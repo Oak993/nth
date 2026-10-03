@@ -549,7 +549,7 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
         // is deferred under ED-180. Geometry/state proofs exist; complete shared style cannot be claimed.
         // STOP opencode-proofs-mcp-b #3: UI-MCP-047 UI-MCP-064. The shared presented-chrome background belongs to the Popovers unit. RecordingPresenter has
         // no popup; the editor through the REAL presenter (overlay host: shown, Close, press outside) is MCPCustomEditorRealPresenterTests and the info
-        // popover's hover onto the popover is MCPSettingsPageInfoLinksTests. Still open: Escape (see ED-NEW-mcpsettingspage (5)) and the native popup window.
+        // popover's hover onto the popover is MCPSettingsPageInfoLinksTests. Still open: Escape (see ED-257 (5)) and the native popup window.
         var editor = new MCPCustomEditor(null); var w = Show(editor, model);
         try
         {

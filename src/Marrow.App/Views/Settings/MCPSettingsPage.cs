@@ -163,7 +163,7 @@ public sealed class MCPSettingsPage : Decorator
     // SOURCE FACT (reference video 1-settings-tour.mov, stills scene-1-settings-tour-186.00 and -187.00, S 174.50): a small
     // `.glass` button under the window's `.tint(accent)` draws as a solid accent capsule 20 pt tall with a white label
     // (Connect 65 x 20, Sign in 56 x 20); a regular text-only one is 22 pt tall (Providers "Login", S 174.50).
-    // ENGINEERING DECISION (ED-NEW-mcpsettingspage): the tint is read from the inherited Popovers.TintProperty that ThemeTint sets
+    // ENGINEERING DECISION (ED-257): the tint is read from the inherited Popovers.TintProperty that ThemeTint sets
     // (WindowManager.cs:818, Popovers.swift:11), so an untinted window (System, Light, Dark: nil) keeps the neutral glass and the
     // primary label colour, UNVERIFIED (no video of that case); `.glassProminent`'s own look is UNVERIFIED (no frame in the video),
     // only its size follows the control size; a regular label is 13 pt, a small one 11 pt (UNVERIFIED for the prominent style).
