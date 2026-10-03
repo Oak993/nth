@@ -1045,6 +1045,7 @@ internal sealed class ComposerTextColumn : Decorator
     private string placeholder;
     private string? attachmentNotice;
     private TextBlock? notice;
+    private NoticeSlot? noticeSlot; // the notice's row: it folds open and shut, so the pill's height eases
     private IFrameSource? heightFrames;
     private Action<TimeSpan>? heightFrame;
 
@@ -1104,7 +1105,13 @@ internal sealed class ComposerTextColumn : Decorator
         stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
         stack.Children.Add(new DraftChips(runtime)); // :574
         stack.Children.Add(new DraftAttachments(runtime)); // :575
-        if (attachmentNotice is { } text) stack.Children.Add(Notice(text).Transition(ArrivedWithColumn)); // :576-583
+        if (attachmentNotice is { } text)
+        {
+            // :576-583 a notice that was there when the column was made: no arrival, and the row is whole.
+            noticeSlot = new NoticeSlot();
+            noticeSlot.Place(Notice(text).Transition(ArrivedWithColumn));
+            stack.Children.Add(noticeSlot);
+        }
 
         // :584-594
         textView = new ComposerTextView(
@@ -1142,12 +1149,19 @@ internal sealed class ComposerTextColumn : Decorator
         this.attachmentNotice = attachmentNotice;
         if (previous is null && attachmentNotice is { } arriving)
         {
-            // :576-582 .transition(.softAppear)
-            SwiftTransition.Insert(stack, 2, Notice(arriving).Transition(SwiftTransition.SoftAppear));
+            // :576-582 .transition(.softAppear), inside withAnimation(Chrome.panelSlide) (:523): the line's own arrival is the
+            // transition's, and the room it takes opens under the change's transaction so the pill grows with it (OD-0076, S5).
+            var slot = new NoticeSlot();
+            stack.Children.Insert(2, slot);
+            slot.Arrive(Notice(arriving).Transition(SwiftTransition.SoftAppear));
+            noticeSlot = slot;
         }
         else if (attachmentNotice is null)
         {
-            if (notice is { } leaving) SwiftTransition.Remove(stack, leaving);
+            // :224 withAnimation(Chrome.panelSlide) { attachmentNotice = nil }: the line leaves on the transition's 0.12 s fade and
+            // its room folds shut under the transaction.
+            if (noticeSlot is { } leaving && notice is { } gone) leaving.Leave(gone, () => stack.Children.Remove(leaving));
+            noticeSlot = null;
             notice = null;
         }
         else if (notice is { } shown)
@@ -1202,6 +1216,98 @@ internal sealed class ComposerTextColumn : Decorator
         };
         heightFrame = frame;
         heightFrames.RequestFrame(frame);
+    }
+}
+
+/// <summary>
+/// PORT-ONLY (OD-0076, UI-COMPOSER-004; ED-NEW-composerview): the room the attachment notice takes in the text column. SwiftUI lays the
+/// column out with the notice and animates the move under the transaction the change was made in (:523, :224), so the text view
+/// and the pill's height ease; an Avalonia transition moves no sibling, so the notice's row folds open and shut under the same
+/// transaction instead, its line top-aligned and clipped (ChipRowCollapse's way). The line itself keeps its own transition.
+/// </summary>
+internal sealed class NoticeSlot : Decorator
+{
+    private readonly Panel inner = new() { VerticalAlignment = VerticalAlignment.Top };
+    private readonly Border clip;
+    private double natural;
+    private double fraction = 1;
+    private IFrameSource? source;
+    private Action<TimeSpan>? frame;
+
+    public NoticeSlot()
+    {
+        clip = new Border { Child = inner, ClipToBounds = true };
+        Child = clip;
+    }
+
+    /// <summary>A line that is there from the first render: no transition in, whole.</summary>
+    public void Place(Control line) => SwiftTransition.Place(inner, 0, line);
+
+    /// <summary>A line that arrives: its own transition in, and the row opens from nothing.</summary>
+    public void Arrive(Control line)
+    {
+        Apply(0);
+        SwiftTransition.Insert(inner, 0, line);
+        Run(0, 1, Transaction.Current ?? Chrome.PanelSlide, null);
+    }
+
+    /// <summary>The line leaves on its transition's removal and the row folds shut; <paramref name="gone"/> runs when both are over.</summary>
+    public void Leave(Control line, Action gone)
+    {
+        var fold = Transaction.Current ?? Chrome.PanelSlide;
+        var removed = false;
+        var folded = false;
+        void Finish()
+        {
+            if (removed && folded) gone();
+        }
+        // The transition takes the line out of the row when its fade is over; the row's own list says when.
+        void Watch(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs args)
+        {
+            if (inner.Children.Count != 0) return;
+            inner.Children.CollectionChanged -= Watch;
+            removed = true;
+            Finish();
+        }
+        inner.Children.CollectionChanged += Watch;
+        SwiftTransition.Remove(inner, line);
+        Run(fraction, 0, fold, () => { folded = true; Finish(); });
+    }
+
+    private void Measure()
+    {
+        clip.Height = double.NaN;
+        inner.Measure(Size.Infinity);
+        natural = inner.DesiredSize.Height;
+    }
+
+    private void Apply(double to)
+    {
+        fraction = to;
+        clip.Height = to >= 1 ? double.NaN : Math.Max(0, natural * to);
+    }
+
+    private void Run(double from, double to, Animation animation, Action? done)
+    {
+        if (frame is not null) source!.CancelFrame(frame);
+        frame = null;
+        Measure();
+        Apply(from);
+        var start = SwiftClock.Now;
+        source = FrameClock.Source.Current;
+        frame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds;
+            var complete = elapsed >= animation.Duration;
+            Apply(complete ? to : from + (to - from) * animation.Progress(elapsed));
+            if (complete)
+            {
+                frame = null;
+                done?.Invoke();
+            }
+            else source!.RequestFrame(frame!);
+        };
+        source.RequestFrame(frame);
     }
 }
 

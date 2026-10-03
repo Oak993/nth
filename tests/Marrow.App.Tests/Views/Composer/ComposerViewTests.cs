@@ -751,7 +751,8 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
                 Assert.Equal(4, stack.Children.Count);
                 Assert.IsType<DraftChips>(stack.Children[0]);
                 Assert.IsType<DraftAttachments>(stack.Children[1]);
-                var notice = Assert.IsType<TextBlock>(stack.Children[2]);
+                // The notice's row (a NoticeSlot: UI-COMPOSER-004's fold) holds the line; it sits third in the column.
+                var notice = One<TextBlock>(Assert.IsType<NoticeSlot>(stack.Children[2]));
                 Assert.Equal("2 files left out", notice.Text);
                 Assert.Equal(new Thickness(0, 0, 0, 6), notice.Margin);
                 Assert.Equal(1, notice.MaxLines);
