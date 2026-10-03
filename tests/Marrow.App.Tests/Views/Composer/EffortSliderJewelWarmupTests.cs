@@ -788,6 +788,45 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "ED-252")] // a release that patches only Skia or ANGLE is a new build: each library is named by its own file's version and size
+    public void Each_library_the_programs_are_made_with_is_named_by_its_files_version_and_size()
+    {
+        // found where the process loads it from, read here independently: beside the tests, or under runtimes\<rid>\native
+        var rid = System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier;
+        var versions = 0;
+        foreach (var name in GpuProgramCache.NativeLibraries)
+        {
+            var file = new[] { AppContext.BaseDirectory, Path.Combine(AppContext.BaseDirectory, "runtimes", rid, "native") }
+                .Select(folder => new FileInfo(Path.Combine(folder, name))).FirstOrDefault(found => found.Exists);
+            Assert.True(file is not null, $"precondition: {name} is neither beside the tests nor under runtimes\\{rid}\\native");
+            var installed = GpuProgramCache.Installed(name);
+            Assert.StartsWith(name + " ", installed, StringComparison.Ordinal);
+            Assert.EndsWith(" " + file!.Length, installed, StringComparison.Ordinal); // its size (libSkiaSharp: the only tell of a patch)
+            if (System.Diagnostics.FileVersionInfo.GetVersionInfo(file.FullName).FileVersion is { } version)
+            {
+                versions++;
+                Assert.Equal(name + " " + version + " " + file.Length, installed);  // and its version, as the file states it
+            }
+        }
+        Assert.True(versions > 0, "precondition: no library carries a version (ANGLE's does)");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the clean-up keeps the folders made on any adapter the machine has: every one DXGI enumerates and describes is named
+    public void Every_adapter_dxgi_enumerates_is_named_with_its_ids_description_and_driver()
+    {
+        // DXGI read through the runtime's COM interop (DxgiAdapterList), not the cache's own vtable reading: in DXGI's order,
+        // each "vendor:device:subsystem:revision description driver" (ED-252), the driver as four 16-bit parts
+        var dxgi = DxgiAdapterList.Read();
+        Assert.True(dxgi.Count > 0, "precondition: DXGI enumerated no adapter");
+        var expected = dxgi.Select(adapter => $"{adapter.Vendor:x4}:{adapter.Device:x4}:{adapter.SubSystem:x8}:{adapter.Revision:x2} {adapter.Description} "
+            + (adapter.Driver is { } umd ? $"{(umd >> 48) & 0xFFFF}.{(umd >> 32) & 0xFFFF}.{(umd >> 16) & 0xFFFF}.{umd & 0xFFFF}" : "no driver version")).ToList();
+        Assert.Equal(expected, GpuProgramCache.Adapters());
+        if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.Arm64)
+            Assert.Equal(expected[0], GpuProgramCache.Machine()); // and the one drawn with: DXGI's first (Avalonia 12.1.2's pick off ARM64)
+    }
+
+    [Fact]
     [Trait("Decision", "ED-252")] // an Avalonia transition counts while it runs, and stops counting once it ended
     public void An_avalonia_transition_counts_as_animating_only_while_it_runs() => headless.OnUiThread(() =>
     {
@@ -849,6 +888,53 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             Assert.Equal(adapter, GpuProgramCache.Prepared);     // the pass again read the adapter: the new context's key names it
         }
         finally { GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; GpuProgramCache.MachineSource = source; window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // a step answered as the new GPU context's is done with: a later redraw of the primer, no step asked, compiles nothing
+    public void A_step_answered_on_a_new_gpu_context_is_not_compiled_by_a_later_redraw() => headless.OnUiThread(() =>
+    {
+        var source = GpuProgramCache.MachineSource;
+        using var holding = new ManualResetEventSlim(false);
+        using var held = new ManualResetEventSlim(false);
+        using var release = new ManualResetEventSlim(false);
+        GpuProgramCache.MachineSource = () =>
+        {
+            // the restarted pass's read of the adapter (a pool thread) waits here, so no step is asked meanwhile
+            if (holding.IsSet) { held.Set(); release.Wait(TimeSpan.FromSeconds(10)); }
+            return "10de:2704:00000000:a1 Test GPU 1.2.3.4";
+        };
+        GpuWarmup.PretendGpu = true;
+        GpuWarmup.PretendContext = 0x7E570001;
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
+        window.Show();
+        try
+        {
+            var done = GpuWarmup.StepsDone;
+            var reports = 0;
+            var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(_ =>
+            {
+                if (reports++ != 0) return;
+                holding.Set();                                    // the second step, asked next, is drawn on a new context
+                GpuWarmup.PretendContext = 0x7E570002;
+            }));
+            FramesFor(TimeSpan.FromSeconds(10), () => held.IsSet);
+            Assert.True(held.IsSet, "precondition: the run never started again on the new context");
+            Assert.Equal(1, GpuWarmup.StepsDone - done);           // the noise step, on the old context
+            // the window drawn whole on the new context, the primer with it, while the restart waits: the step it answered as
+            // the new context's is not compiled now (outside the steps asked, and for the idle fallback outside its idle gate)
+            window.Background = Avalonia.Media.Brushes.Gray;
+            FramesFor(TimeSpan.FromMilliseconds(300), () => false);
+            window.Background = Avalonia.Media.Brushes.DarkGray;
+            FramesFor(TimeSpan.FromMilliseconds(300), () => false);
+            Assert.True(GpuWarmup.StepsDone - done == 1, $"{GpuWarmup.StepsDone - done - 1} step(s) compiled in a redraw, none asked");
+            holding.Reset();
+            release.Set();
+            FramesFor(TimeSpan.FromSeconds(10), () => task.IsCompleted);
+            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
+            Assert.Equal(1 + GpuWarmup.Steps, GpuWarmup.StepsDone - done);
+        }
+        finally { release.Set(); GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; GpuProgramCache.MachineSource = source; window.Close(); }
     });
 
     [Fact]
