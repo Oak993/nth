@@ -99,7 +99,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-189")] // App/AppModel+HydraMerge.swift:919-929 (notification side effect only; STOP #1 below)
+    [Trait("Req", "PR-CHAT-189")] // App/AppModel+HydraMerge.swift:919-929 (notification side effect only; the coordinator clauses are in the HydraMerge tests)
     public void Attention_turn_finish_Hydra_note_and_usage_limit_share_AppModel_Notify() => headless.OnUiThread(() =>
     {
         using var h = new AppModelHarness();
@@ -126,9 +126,10 @@ public sealed class WindowsToastTests(HeadlessSession headless)
         Assert.All(center.Requests, r => { Assert.Equal(thread.Title, r.Title); Assert.Equal(SwiftUUID.UuidString(thread.Id), r.Identifier); });
     });
 
-    // STOP toasts #1. Kind: outside unit. App/AppModel+HydraMerge.swift:902-906, PR-CHAT-189.
-    // The notification side effect at :923-929 is covered above. The existing merge coordinator still writes held
-    // records, and its settlement/preconditions are owned by another unit. Do not claim the whole record complete.
+    // PR-CHAT-189's coordinator clauses (settlement record, no held record, legacy held read) are proved in
+    // AppModelHydraMergeCoordinatorTests, AppModelHydraMergeTests and AppModelHydraMergeAlertTests; this test covers the
+    // notification side effect at :923-929 only. The earlier STOP #1 ("coordinator still writes held records") was stale at B3:
+    // the C# writes no Held record (grep Outcome.Held src: only the read at AppModel+HydraMerge.cs:156).
     // STOP toasts #2. Kind: protected caller. App/AppModel.swift:1158-1165, :1180-1182, :1215-1224.
     // The older private IsOnScreen and unread/chime decisions outside Notify do not include all inline helpers.
     // Notify uses the exact B3 screen gate; updating the callers' read/chime behavior requires their owner's changes.
