@@ -260,6 +260,27 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 (the label's change, ThreadTimeline.swift:2182 .animation(Self.change, value: label)); capture comparison: 2-chat-use.mov 94.943-95.20, "Dancing..." to "Thinking..." (the weight of the new word, fitted frame by frame to the two clean frames either side, evidence/ThreadTimeline/verb)
+    public void The_word_changes_over_a_cross_dissolve_that_matches_the_reference_runtimes() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Model.Settings.ShowReasoning = false;
+        mount.SetEntries(new[] { User("prompt", Turn, "hello") }); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
+        var line = Line(mount); var seed = WorkingWords.Seed(SwiftUUID.UuidString(mount.Runtime.ThreadID)); var host = Assert.IsType<Grid>(Header(line).Children[0]);
+        var next = WorkingWords.Word(seed, 7) + "…"; mount.Advance(6700);
+        while (!Texts(line).Contains(next)) mount.Advance(10);
+        // The new word arrives as the old one goes: the weight of the new one is the capture's (seconds after the first frame with any of it: its weight), within a tenth.
+        var leaving = host.Children[0]; var arriving = host.Children[1];
+        var measured = new (double Seconds, double Weight)[] { (0.034, 0.26), (0.055, 0.41), (0.075, 0.53), (0.097, 0.65), (0.118, 0.74), (0.140, 0.82), (0.162, 0.88) };
+        var elapsed = 0.0;
+        foreach (var (seconds, weight) in measured)
+        {
+            while (elapsed < seconds - 0.0005) { mount.Advance(10); mount.Frames.Advance(TimeSpan.Zero); elapsed += 0.010; }
+            Assert.True(Math.Abs(arriving.Opacity - weight) < 0.11, $"at {seconds}: the new word is at {arriving.Opacity}, the capture's is {weight}");
+            Assert.Equal(1, leaving.Opacity + arriving.Opacity, 2);
+        }
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-044")] // ThreadTimeline.swift:2157-2168,2278 (the thinking rows, only with the show-reasoning setting); TimelineRows.swift (reasoning is no row of its own)
     public void Thinking_rows_exist_only_behind_the_chevron_with_the_setting_on_indented_by_the_icon_column_and_arrive_softly() => ThreadTimelineRig.Run(headless, mount =>
     {
