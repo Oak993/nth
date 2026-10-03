@@ -56,14 +56,14 @@ public static class TimelineMetrics
 /// <summary>The file's free functions (:31-54) and its <c>extension View</c> (:1415-1429), R-NAME-4.</summary>
 public static class TimelineRows
 {
-    private static Avalonia.Input.Cursor? textCursor;
-
-    /// <summary>The pointer over text a row lets the reader select (.textSelection(.enabled): :2121, :2124, :2152, :2394 and
-    /// the head popover's :1900-1901, :1922, :1989, :2000): the I-beam. SOURCE FACT for the notice's message, which the
-    /// reference video shows under the pointer at 2-chat-use.mov 14.74 s (CATALOG segment 15, "Pointer becomes an I-beam
-    /// over message text"); the other sites carry the same modifier. A SelectableTextBlock has no cursor of its own
-    /// (no control theme is loaded). PR-CHAT-166 windows_path.</summary>
-    internal static Avalonia.Input.Cursor TextCursor => textCursor ??= new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Ibeam);
+    /// <summary>A text a row lets the reader select (.textSelection(.enabled): :2121, :2124, :2152, :2394 and the head popover's
+    /// :1900, :1922, :1982, :1989, :2000), made by the one recipe every selectable text of the chat shares (VeiledText.SelectableText,
+    /// ED-NEW-parity-timelinerows (5)). The I-beam over it: SOURCE FACT for the notice's message, which the reference video shows
+    /// under the pointer at 2-chat-use.mov 14.74 s (CATALOG segment 15, "Pointer becomes an I-beam over message text"); the other
+    /// sites carry the same modifier. A selection drawn in the system's selected-text colour, as on the Mac. A SelectableTextBlock has
+    /// neither a cursor nor a SelectionBrush of its own (no control theme is loaded), so without them a drag selected text that was
+    /// never painted. PR-CHAT-166.</summary>
+    internal static SelectableTextBlock SelectableText(bool wraps) => VeiledText.SelectableText(wraps);
 
     // :2023, :2449; UI/Common/Components.swift:37-40. ED-197 / O-65: shared Components.Duration is still B2.
     internal static string Duration(double interval)
@@ -2476,7 +2476,7 @@ public sealed class HydraHeadStepsPopover : Decorator
     private static TextBlock SectionTitle(string title) => TimelineRows.ChatText(title, SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText); // :1950-1952
     private static SelectableTextBlock Selectable(string text, SwiftColor color) // :1897-1902, :1919-1923, :1980-2001
     {
-        var label = new SelectableTextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Cursor = TimelineRows.TextCursor };
+        var label = TimelineRows.SelectableText(wraps: true); label.Text = text;
         ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(label); label.Foreground = color.Brush(label); return label;
     }
 
@@ -2605,7 +2605,8 @@ public sealed class ToolDetailView : Decorator
             stack.Children.Add(new ToolImagePreview(imagePath));
         if (call.Detail is { Length: > 0 } detail) // :2120-2126
         {
-            var text = new SelectableTextBlock { Text = detail, MaxLines = 12, Cursor = TimelineRows.TextCursor }; // :2121, :2124 .textSelection(.enabled), :2125 .lineLimit(12)
+            var text = TimelineRows.SelectableText(wraps: false); // :2121, :2124 .textSelection(.enabled)
+            text.Text = detail; text.MaxLines = 12; // :2125 .lineLimit(12)
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2122
             text.Foreground = Chrome.SecondaryText.Brush(text); // :2123
             stack.Children.Add(text);
@@ -2635,7 +2636,7 @@ public sealed class ToolDetailView : Decorator
                 if (character == '\n') lineCount++;
             }
             var outputStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = TimelineMetrics.RowSpacing }; // :2149
-            var text = new SelectableTextBlock { Cursor = TimelineRows.TextCursor }; // :2150, :2152 .textSelection(.enabled)
+            var text = TimelineRows.SelectableText(wraps: false); // :2150, :2152 .textSelection(.enabled)
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2151
             var plate = new Border // :2153-2155 .frame(maxWidth: .infinity, alignment: .leading).padding(10)
             {
@@ -3036,7 +3037,7 @@ public sealed class NoticeRow : Decorator
             var notice = item.Value;
             var row = new TimelineBaselineRow { Spacing = 8 };
             row.Children.Add(SwiftImage.SystemName(Symbol(notice.NoticeLevel)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)).ForegroundStyle(Color(notice.NoticeLevel)));
-            var message = new SelectableTextBlock { Text = notice.Message, TextWrapping = TextWrapping.Wrap, Cursor = TimelineRows.TextCursor }; // :2394 .textSelection(.enabled)
+            var message = TimelineRows.SelectableText(wraps: true); message.Text = notice.Message; // :2394 .textSelection(.enabled)
             ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(message);
             message.Foreground = (notice.NoticeLevel == Notice.Level.Info ? SwiftColor.Secondary : SwiftColor.Primary).Brush(message);
             row.Children.Add(message);

@@ -296,16 +296,18 @@ public sealed class VeiledText : Decorator
     // this in a horizontal ScrollView with fixedSize (:1223-1229), where the width offered is unbounded, so it stays on its lines.
     // MarkdownView.swift:318, :1131, :1229: every VeiledText (a prose block, a link-free inline paragraph such as the user's
     // bubble, a code block's text) sits under MarkdownBlockSelection, whose live branch is .textSelection(.enabled)
-    // (:890-899; the environment value has no writer, dead_code.md 30): its text is selectable in its own block, so it is
-    // drawn by a SelectableTextBlock, with the system's selected-text colour as ParagraphTextPresenter uses (PR-CHAT-166).
+    // (B3 :854-863, the live branch :858; the environment value has no writer, dead_code.md 30): its text is selectable in
+    // its own block, so it is drawn by a SelectableTextBlock, with the system's selected-text colour as ParagraphTextPresenter uses (PR-CHAT-166).
     // The I-beam a selectable text shows (a SelectableTextBlock has no cursor of its own with no control theme loaded):
     // the reference video shows it over selectable timeline text, 2-chat-use.mov 14.74 s (PR-CHAT-166 windows_path).
     private static readonly Avalonia.Input.Cursor TextCursor = new(Avalonia.Input.StandardCursorType.Ibeam);
 
-    /// <summary>The text of a block that sits under MarkdownBlockSelection (MarkdownView.swift:890-899, live branch
-    /// <c>.textSelection(.enabled)</c>): a SelectableTextBlock with the I-beam over it and the system's selected-text colour,
-    /// the one recipe the veiled text and a table's cells (MarkdownView.swift:1287-1308) share (PR-CHAT-166).</summary>
-    internal static SelectableTextBlock SelectableText(bool wraps)
+    /// <summary>The text of a block that sits under MarkdownBlockSelection (MarkdownView.swift:854-863 at B3, live branch
+    /// <c>.textSelection(.enabled)</c> at :858), or of any other text the source marks <c>.textSelection(.enabled)</c>: a
+    /// SelectableTextBlock with the I-beam over it and the system's selected-text colour, the one recipe the veiled text, a
+    /// table's cells (MarkdownView.swift:1287-1308) and the timeline's own selectable lines (TimelineRows.swift:1900, :1922,
+    /// :1982, :1989, :2000, :2124, :2152, :2394) share (PR-CHAT-166; ED-NEW-parity-timelinerows (5)).</summary>
+    public static SelectableTextBlock SelectableText(bool wraps)
     {
         var block = new SelectableTextBlock { Cursor = TextCursor };
         if (wraps) block.TextWrapping = Avalonia.Media.TextWrapping.Wrap;

@@ -1310,11 +1310,11 @@ file static class MarkdownProseRunsKey
     public const bool DefaultValue = true; // :863
 }
 
-/// <summary>:890-899 <c>struct MarkdownBlockSelection: ViewModifier</c>: <c>.textSelection(.enabled)</c> only while
+/// <summary>:854-863 <c>struct MarkdownBlockSelection: ViewModifier</c>: <c>.textSelection(.enabled)</c> only while
 /// the environment allows blocks their own selection.</summary>
 public sealed record MarkdownBlockSelection
 {
-    // :892-898 func body(content: Content) -> some View. PR-THEME-126: the environment's value is always true
+    // :856-862 func body(content: Content) -> some View. PR-THEME-126: the environment's value is always true
     // (dead_code.md entry 30: markdownBlockSelection has no writer, so the else branch -- .textSelection(.disabled)
     // -- is dead and, per ED-061, is not implemented). Avalonia has no per-subtree "enable text selection"
     // modifier the way SwiftUI's `.textSelection` is: the content this wraps (InlineText, VeiledText, the code
@@ -1909,7 +1909,7 @@ public sealed class TableBlock : Decorator
         for (var row = 0; row <= cells.Count; row++) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         for (var column = 0; column < head.Count; column++) // :1364-1368 GridRow (header)
         {
-            // :1308 .modifier(MarkdownBlockSelection()) on the grid: its live branch is .textSelection(.enabled) (:890-899), so
+            // :1308 .modifier(MarkdownBlockSelection()) on the grid: its live branch is .textSelection(.enabled) (:854-863, :858), so
             // each cell's text is selectable in its own block and shows the I-beam (PR-CHAT-166).
             var text = VeiledText.SelectableText(wraps: false);
             text.Text = head[column].PlainText;
