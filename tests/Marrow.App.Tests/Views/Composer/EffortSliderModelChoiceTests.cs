@@ -28,17 +28,17 @@ public sealed class EffortSliderModelChoiceTests(HeadlessSession headless)
             HydraEnabled = hydra || pair is not null, HydraPairID = pair, ProviderSessionID = session, ProviderResumeAt = resume,
         };
 
-    private static void Pump(Env env) { env.Step(10); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); }
+    private static void Pump(EffortListEnv env) { env.Step(10); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); }
 
     /// <summary>Opens the list in the panel and presses the row by the name it shows; the 0.12 s cross-fade then runs and the panel is back on its slider.</summary>
-    private static void ChooseRow(Env env, ModelEffortPanel panel, Avalonia.Controls.Window window, string name)
+    private static void ChooseRow(EffortListEnv env, ModelEffortPanel panel, Avalonia.Controls.Window window, string name)
     {
         if (!panel.GetVisualDescendants().OfType<ModelList>().Any()) OpenList(env, panel);
         Click(window, ModelRow(panel, name));
         env.Step(130);
     }
 
-    private static ThreadRuntime RunningTurn(Env env)
+    private static ThreadRuntime RunningTurn(EffortListEnv env)
     {
         AppModelHarness.WriteDocument(env.Thread.Id);
         var runtime = env.Model.Runtime(env.Thread.Id);
@@ -131,7 +131,7 @@ public sealed class EffortSliderModelChoiceTests(HeadlessSession headless)
     private static HydraPair LeadPair(string name = "Lead") =>
         new(ProviderKind.Codex) { OrchestratorModel = "lead", OrchestratorEffort = "high", Name = name };
 
-    private static Env PairEnv(Func<ChatThread> thread, HydraPair pair) =>
+    private static EffortListEnv PairEnv(Func<ChatThread> thread, HydraPair pair) =>
         Make(thread, model =>
         {
             model.Settings.HydraEnabled = true; model.Settings.AddHydraPair(pair);

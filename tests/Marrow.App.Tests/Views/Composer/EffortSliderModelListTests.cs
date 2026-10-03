@@ -24,36 +24,8 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class EffortSliderModelListTests(HeadlessSession headless)
 {
-    internal sealed class Env : IDisposable
-    {
-        private readonly List<IDisposable> owned = [];
-        public required AppModel Model;
-        public required AppModelHarness Harness;
-        public required ChatThread Thread;
-        public ManualTimeProvider Time = new();
-        public ManualFrameSource Frames = new();
-        public Avalonia.Controls.Window? Window;
-        public void Own(IDisposable value) => owned.Add(value);
-        public void Dispose() { Window?.Close(); for (var i = owned.Count - 1; i >= 0; i--) owned[i].Dispose(); }
 
-        public Avalonia.Controls.Window Show(Control content, double width = 330)
-        {
-            var host = new Border { Child = content, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
-            AppEnvironment.SetAppModel(host, Model);
-            Window = new Avalonia.Controls.Window { Content = host, Width = width, Height = 700 };
-            Window.Show(); Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            return Window;
-        }
-
-        public void Step(int milliseconds)
-        {
-            Time.Advance(TimeSpan.FromMilliseconds(milliseconds));
-            Frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
-            Dispatcher.UIThread.RunJobs();
-        }
-    }
-
-    internal static Env Make(Func<ChatThread>? thread = null, Action<AppModel>? configure = null, params (ProviderKind Provider, ModelOption[] Models)[] catalogues)
+    internal static EffortListEnv Make(Func<ChatThread>? thread = null, Action<AppModel>? configure = null, params (ProviderKind Provider, ModelOption[] Models)[] catalogues)
     {
         var owned = new List<IDisposable>();
         var time = new ManualTimeProvider(); var frames = new ManualFrameSource();
@@ -68,7 +40,7 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
             if (!provider.IsAPIKeyBased) model.Settings.SetBinaryPath(Path.Combine(harness.Scratch, "missing.exe"), provider);
         foreach (var (provider, models) in catalogues) HydraCookbookResolveFixture.SetModels(model.Providers, provider, models);
         configure?.Invoke(model);
-        var env = new Env { Model = model, Harness = harness, Thread = chat, Time = time, Frames = frames };
+        var env = new EffortListEnv { Model = model, Harness = harness, Thread = chat, Time = time, Frames = frames };
         foreach (var value in owned) env.Own(value);
         return env;
     }
@@ -100,7 +72,7 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
     internal static ModelListRow ModelRow(Control root, string name) => Models(root).Single(row => Name(row) == name);
 
     /// <summary>The panel with its list open: the title is tapped and the 0.12 s cross-fade has run.</summary>
-    internal static ModelEffortPanel OpenPanelList(Env env, bool hasHistory, out Avalonia.Controls.Window window, Action? dismissed = null)
+    internal static ModelEffortPanel OpenPanelList(EffortListEnv env, bool hasHistory, out Avalonia.Controls.Window window, Action? dismissed = null)
     {
         var panel = new ModelEffortPanel(env.Thread.Id, hasHistory);
         if (dismissed is not null) Popovers.SetClosePopover(panel, dismissed);
@@ -109,7 +81,7 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
         return panel;
     }
 
-    internal static void OpenList(Env env, ModelEffortPanel panel)
+    internal static void OpenList(EffortListEnv env, ModelEffortPanel panel)
     {
         var card = Assert.Single(panel.GetVisualDescendants().OfType<EffortSliderCard>());
         ButtonWithTip(card, "Choose a model").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();

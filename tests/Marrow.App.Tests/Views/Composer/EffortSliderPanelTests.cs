@@ -26,38 +26,9 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class EffortSliderPanelTests(HeadlessSession headless)
 {
-    private sealed class Env : IDisposable
-    {
-        private readonly List<IDisposable> owned = [];
-        public required AppModel Model;
-        public required ChatThread Thread;
-        public ManualTimeProvider Time = new();
-        public ManualFrameSource Frames = new();
-        public Avalonia.Controls.Window? Window;
-        public void Own(IDisposable value) => owned.Add(value);
-        public void Dispose() { Window?.Close(); for (var i = owned.Count - 1; i >= 0; i--) owned[i].Dispose(); }
-
-        /// <summary>A real window of <paramref name="width"/> x 700 over the content, with the AppModel in its environment.</summary>
-        public Avalonia.Controls.Window Show(Control content, double width = 330)
-        {
-            var host = new Border { Child = content, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
-            AppEnvironment.SetAppModel(host, Model);
-            Window = new Avalonia.Controls.Window { Content = host, Width = width, Height = 700 };
-            Window.Show(); Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            return Window;
-        }
-
-        /// <summary>Time and frames move together, as a display's frames do.</summary>
-        public void Step(int milliseconds)
-        {
-            Time.Advance(TimeSpan.FromMilliseconds(milliseconds));
-            Frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
-            Dispatcher.UIThread.RunJobs();
-        }
-    }
 
     // A Codex chat; the provider CLIs cannot resolve, so nothing real is launched (fail closed).
-    private static Env Make(Func<ChatThread>? thread = null, Action<AppModel>? configure = null, params (ProviderKind Provider, ModelOption[] Models)[] catalogues)
+    private static EffortPanelEnv Make(Func<ChatThread>? thread = null, Action<AppModel>? configure = null, params (ProviderKind Provider, ModelOption[] Models)[] catalogues)
     {
         var owned = new List<IDisposable>();
         var time = new ManualTimeProvider(); var frames = new ManualFrameSource();
@@ -70,7 +41,7 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
             if (!provider.IsAPIKeyBased) model.Settings.SetBinaryPath(Path.Combine(harness.Scratch, "missing.exe"), provider);
         foreach (var (provider, models) in catalogues) HydraCookbookResolveFixture.SetModels(model.Providers, provider, models);
         configure?.Invoke(model);
-        var env = new Env { Model = model, Thread = chat, Time = time, Frames = frames };
+        var env = new EffortPanelEnv { Model = model, Thread = chat, Time = time, Frames = frames };
         foreach (var value in owned) env.Own(value);
         return env;
     }
@@ -194,7 +165,7 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
 
     // ---- PR-COMPOSER-141: the list's header and its back chevron ---------------------------------------------------------
 
-    private static ModelList MakeList(Env env, Action? onBack = null) =>
+    private static ModelList MakeList(EffortPanelEnv env, Action? onBack = null) =>
         new(env.Thread, false, _ => { }, onBack ?? (() => { }));
 
     [Fact]

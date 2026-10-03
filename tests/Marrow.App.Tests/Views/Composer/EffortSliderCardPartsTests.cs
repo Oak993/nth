@@ -27,14 +27,6 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
 {
-    private sealed class Box<T> : MainActorModel
-    {
-        private T held;
-        public Box(T value) => held = value;
-        public T Value { get => Read(held); set => Set(ref held, value); }
-        public Binding<T> AsBinding() => new(() => Value, v => Value = v);
-    }
-
     private static Avalonia.Controls.Window Show(Control card, double width = 330, double height = 500)
     {
         var host = new Border { Child = card, Width = width, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
@@ -162,7 +154,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
             Assert.Equal(0, Colour(plate.Background).A);
 
             // :582-583 the colour changes over smooth(0.3) when fast mode flips with the text unchanged
-            var fastBox = new Box<bool>(false);
+            var fastBox = new ObservableBoolBox { Value = false };
             var fading = Card(["low", "medium", "high"], "low", null, ProviderKind.Claude, supportsFast: true, titleTap: () => { }, fastBinding: fastBox.AsBinding());
             var fadeWindow = Show(fading);
             var fadeTitle = Title(fading);
@@ -201,7 +193,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
         var clock = new ManualTimeProvider(); using var clockBinding = SwiftClock.Provider.Override(clock);
-        var fast = new Box<bool>(false);
+        var fast = new ObservableBoolBox { Value = false };
         var card = Card(["low", "medium", "high"], "low", null, ProviderKind.Claude, supportsFast: true, titleTap: () => { }, fastBinding: fast.AsBinding());
         var window = Show(card);
         try

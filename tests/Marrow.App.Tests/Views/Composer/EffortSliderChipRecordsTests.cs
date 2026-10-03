@@ -30,30 +30,9 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
     private const string LongName = "Claude Opus 5 (1M context)"; // chipName: "Opus 5" (Provider.swift:268-282)
     private static readonly string[] Levels = ["low", "medium", "high", "xhigh"];
 
-    private sealed class Rig : IDisposable
-    {
-        private readonly List<IDisposable> owned = [];
-        public required AppModel Model;
-        public required ChatThread Thread;
-        public required ModelEffortButton Chip;
-        public required Avalonia.Controls.Window Window;
-        public required RecordingPresenter Presenter;
-        public Button Button => Chip.GetVisualDescendants().OfType<Button>().Single();
-        public Grid Frame => Assert.IsType<Grid>(Assert.IsType<Border>(Button.Content).Child);
-        public void Own(IDisposable value) => owned.Add(value);
-        public void Dispose() { Window.Close(); for (var i = owned.Count - 1; i >= 0; i--) owned[i].Dispose(); }
-        public void Click() { Button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Settle(); }
-        public static void Settle() { Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); } // a layout pass over what the jobs changed
-        public IEnumerable<TextBlock> Texts => Chip.GetVisualDescendants().OfType<TextBlock>();
-        public TextBlock Text(string text) => Texts.Single(t => t.Text == text);
-        public SwiftImage? Symbol(string name) => Chip.GetVisualDescendants().OfType<SwiftImage>().SingleOrDefault(i => i.SymbolName == name);
-        public double Left(Control control) => control.TranslatePoint(default, Frame)!.Value.X;
-        public double Right(Control control) => Left(control) + control.Bounds.Width;
-    }
-
     // A Codex thread (no seeded catalogue) on a model this scenario defines; the provider CLIs cannot resolve, so nothing
     // real is launched (fail closed).
-    private static Rig Make(Func<string, ChatThread> thread, bool compact = false, Action<AppModel, ChatThread>? configure = null,
+    private static EffortChipRig Make(Func<string, ChatThread> thread, bool compact = false, Action<AppModel, ChatThread>? configure = null,
         ModelOption[]? models = null, double width = 360)
     {
         var owned = new List<IDisposable>();
@@ -77,8 +56,8 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
         var host = new Border { Child = chip, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left };
         AppEnvironment.SetAppModel(host, model);
         var window = new Avalonia.Controls.Window { Content = host, Width = width, Height = 120 };
-        window.Show(); Rig.Settle();
-        var rig = new Rig { Model = model, Thread = chat, Chip = chip, Window = window, Presenter = presenter };
+        window.Show(); EffortChipRig.Settle();
+        var rig = new EffortChipRig { Model = model, Thread = chat, Chip = chip, Window = window, Presenter = presenter };
         foreach (var value in owned) rig.Own(value);
         return rig;
     }

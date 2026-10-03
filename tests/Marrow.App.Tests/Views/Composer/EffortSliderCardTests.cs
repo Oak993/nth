@@ -429,19 +429,7 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
         finally { window.Close(); }
     });
 
-    private sealed class PanelEnv : IDisposable
-    {
-        private readonly List<IDisposable> owned = [];
-        public required AppModel Model;
-        public required ChatThread Thread;
-        public required ManualTimeProvider Time;
-        public required ManualFrameSource Frames;
-        public void Own(IDisposable value) => owned.Add(value);
-        public void Dispose() { for (var i = owned.Count - 1; i >= 0; i--) owned[i].Dispose(); }
-        public void Step(int ms) { Time.Advance(TimeSpan.FromMilliseconds(ms)); Frames.Advance(TimeSpan.FromMilliseconds(ms)); Dispatcher.UIThread.RunJobs(); }
-    }
-
-    private static PanelEnv PanelFor(HydraPair pair, bool leading)
+    private static EffortCardPanelEnv PanelFor(HydraPair pair, bool leading)
     {
         var owned = new List<IDisposable>();
         var time = new ManualTimeProvider(); var frames = new ManualFrameSource();
@@ -459,7 +447,7 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
         Marrow.App.Tests.App.Fixtures.HydraCookbookResolveFixture.SetModels(model.Providers, ProviderKind.Codex,
             new ModelOption("c1", "Codex one", efforts: new ValueList<string>(["low", "medium", "high"]), defaultEffort: "medium"));
         model.Settings.HydraEnabled = true; model.Settings.AddHydraPair(pair);
-        var env = new PanelEnv { Model = model, Thread = thread, Time = time, Frames = frames };
+        var env = new EffortCardPanelEnv { Model = model, Thread = thread, Time = time, Frames = frames };
         foreach (var value in owned) env.Own(value);
         return env;
     }
