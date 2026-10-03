@@ -814,4 +814,121 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
             }
         });
     });
+
+    // ---- PR-COMPOSER-211: the image a tool call names ----
+
+    private static void WritePng(string path, int width, int height, Func<int, int, Color> pixel)
+    {
+        var bitmap = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(width, height), new Vector(96, 96), Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Opaque);
+        using (var buffer = bitmap.Lock())
+        {
+            var row = new byte[width * 4];
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var c = pixel(x, y);
+                    row[x * 4] = c.B; row[x * 4 + 1] = c.G; row[x * 4 + 2] = c.R; row[x * 4 + 3] = 255;
+                }
+                System.Runtime.InteropServices.Marshal.Copy(row, 0, buffer.Address + y * buffer.RowBytes, row.Length);
+            }
+        }
+        using (var stream = File.Create(path)) bitmap.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-211")] // TimelineRows.swift:2117-2119; AttachmentPreview.swift:391-440; OD-0098: a read and a command that wrote a screenshot, loading and after the image lands, in both themes
+    public void An_expanded_row_that_names_an_image_shows_a_spinner_in_the_plate_until_the_image_lands_then_the_image_fitted_inside_it_up_to_420_tall_above_its_name_and_Open() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        var cache = new ThumbnailCache();
+        using var cacheSeam = ThumbnailCache.Shared.Override(cache);
+        var opened = new List<string>();
+        var previous = ShellWorkspace.OpenWithDefaultApp;
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        try
+        {
+            var red = Color.FromRgb(224, 48, 48); var blue = Color.FromRgb(48, 80, 224); var green = Color.FromRgb(40, 190, 90); var yellow = Color.FromRgb(230, 200, 40);
+            var wide = Path.Combine(h.Project.Path, "wide-screenshot.png");
+            var tall = Path.Combine(h.Project.Path, "tall.png");
+            WritePng(wide, 240, 120, (x, _) => x < 120 ? red : blue);
+            WritePng(tall, 100, 400, (_, y) => y < 200 ? green : yellow);
+            foreach (var (theme, backdrop) in Themes)
+            {
+                var plate = BlitzAbFrame.Over(SwiftColor.Quaternary.Opacity(0.45).Resolve(theme), backdrop);
+                // A read names the file whole; a command that wrote it names it among its words (PR-CHAT-103): both get the preview.
+                var cases = new (string Name, ToolCall Call, string Path, double Height, (double X, double Y, Color Colour)[] Samples)[]
+                {
+                    ("a read of a wide image", Call(ToolCall.Kind.Read, wide) with { Detail = "image detail" }, wide, 240,
+                        [(0.25, 0.5, red), (0.75, 0.5, blue), (0.02, 0.5, red), (0.98, 0.5, blue)]),
+                    ("a command that wrote a wide screenshot", Call(ToolCall.Kind.Command, "screencapture " + wide) with { Detail = "image detail" }, wide, 240,
+                        [(0.25, 0.5, red), (0.75, 0.5, blue)]),
+                    ("a read of a tall image", Call(ToolCall.Kind.Read, tall) with { Detail = "image detail" }, tall, 420,
+                        [(0.5, 0.25, green), (0.5, 0.75, yellow), (0.1, 0.5, plate), (0.9, 0.5, plate)]),
+                };
+                var views = new List<ToolDetailView>();
+                AvaloniaWindow window = null!;
+                h.Main.OnMain(() =>
+                {
+                    var column = new StackPanel { Spacing = 24, Width = 480 };
+                    foreach (var item in cases) { var view = new ToolDetailView(item.Call, h.Project.Path); views.Add(view); column.Children.Add(view); }
+                    window = BlitzAbRender.Open(new Border { Padding = new Thickness(24), Child = column }, theme, backdrop, 560, 1100);
+                    Settle(window);
+                    // While loading: the small spinner in the plate (:416-417), the image not drawn yet.
+                    foreach (var view in views)
+                    {
+                        var preview = Assert.Single(Mounted<ToolImagePreview>(view));
+                        var box = BlitzAbRender.BoxIn(Assert.IsType<Border>(preview.Children[0]), window);
+                        var spinner = Assert.Single(Mounted<ProgressBar>(preview));
+                        Assert.True(spinner.IsVisible);
+                        var spinnerBox = BlitzAbRender.BoxIn(spinner, window);
+                        Assert.Equal(box.Center.X, spinnerBox.Center.X, 1.0);
+                        Assert.Equal(box.Center.Y, spinnerBox.Center.Y, 1.0);
+                        Assert.Equal(0, Assert.Single(Mounted<Image>(preview)).Opacity);
+                    }
+                });
+                h.Main.Loop.RunUntil(() => views.All(view => !Mounted<ProgressBar>(view).Single().IsVisible), AppModelHarness.Bound);
+                h.Main.OnMain(() =>
+                {
+                    Settle(window);
+                    var frame = BlitzAbRender.Capture(window);
+                    for (var i = 0; i < cases.Length; i++)
+                    {
+                        var (name, call, path, height, samples) = cases[i];
+                        var because = $"{theme}: {name}";
+                        var preview = Assert.Single(Mounted<ToolImagePreview>(views[i]));
+                        var plateBox = BlitzAbRender.BoxIn(Assert.IsType<Border>(preview.Children[0]), window);
+                        // :408-421 as wide as the row, as tall as the image fitted to that width, at most 420; the loaded image replaces the spinner.
+                        Assert.Equal(480, plateBox.Width, 0.5);
+                        Assert.Equal(height, plateBox.Height, 1.0);
+                        Assert.False(Assert.Single(Mounted<ProgressBar>(preview)).IsVisible);
+                        Assert.Equal(1, Assert.Single(Mounted<Image>(preview)).Opacity);
+                        foreach (var (sx, sy, colour) in samples)
+                        {
+                            var at = frame.At((int)(plateBox.Left + sx * plateBox.Width), (int)(plateBox.Top + sy * plateBox.Height));
+                            Assert.True(BlitzAbFrame.Distance(at, colour) <= 18, $"{because}: at ({sx}, {sy}) of the plate the pixel is {at}, expected {colour}");
+                        }
+                        // :422-433 6 points below, the file's name (caption, secondary, one line) at the leading edge and Open, in the accent, at the trailing edge.
+                        var name2 = Assert.Single(Mounted<MiddleTruncatingTextBlock>(preview));
+                        var nameBox = BlitzAbRender.BoxIn(name2, window);
+                        Assert.Equal(Path.GetFileName(path), name2.FullText);
+                        Assert.Equal(plateBox.Left, nameBox.Left, 1.0);
+                        Assert.Equal(6, nameBox.Top - plateBox.Bottom, 3.0);
+                        var openText = Assert.Single(Mounted<TextBlock>(Assert.Single(Mounted<Button>(preview))));
+                        var openBox = BlitzAbRender.BoxIn(openText, window);
+                        Assert.Equal(plateBox.Right, openBox.Right, 1.0);
+                        IsInkedLike(frame, openBox, backdrop, "Open", SwiftFont.Caption, ChromeTokens.Accent, theme, $"{because}: Open");
+                        IsInkedLike(frame, nameBox, backdrop, Path.GetFileName(path), SwiftFont.Caption, ChromeTokens.SecondaryText, theme, $"{because}: the file name");
+                        // The detail text sits a row gap (20) below the preview, inside the same column.
+                        var detail = Assert.Single(Mounted<LineLimitedSelectableText>(views[i]));
+                        Assert.Equal(20, BlitzAbRender.BoxIn(detail, window).Top - BlitzAbRender.BoxIn(preview, window).Bottom, 1.0);
+                    }
+                    BlitzAbRender.Shut(window);
+                });
+            }
+        }
+        finally { ShellWorkspace.OpenWithDefaultApp = previous; }
+    });
 }
