@@ -205,6 +205,7 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
     [Theory]
     [InlineData(1400, null, true)] // free width 1400 >= 900.
     [InlineData(899, null, false)] // under 900 with no panel.
+    [InlineData(900, null, true)] // exactly 900: `>= 900` (ChatView.swift:109) shows the rail at the boundary.
     [InlineData(1400, PanelDockCorner.BottomLeading, false)] // a panel docked on the leading side takes the rail's edge.
     [InlineData(1400, PanelDockCorner.TopTrailing, true)] // a trailing panel leaves at least 900 here.
     [Trait("Req", "PR-CHAT-160")] // App/Views/Chat/ChatView.swift:105-109 (the minimap flag is one of the handed values)

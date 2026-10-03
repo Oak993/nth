@@ -250,4 +250,54 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             Assert.Same(changes, Button("Changes"));
         });
     }
+
+    // The kept toggle buttons (ED-NEW-parity-chatview (5)): a button turned on by ChromeIconButton.Update keeps its "on" circle when the pointer
+    // moves onto it and off it again. Chrome.swift:370-378 redraws the label with the button's current isActive and the new hover state; a hover
+    // that redrew it with the isActive the button was built with would drop the circle (mutant M10d of round 2 survived the ChatView suite).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI/Chrome/Chrome.swift:344-350,370-378; ChatView.swift:1164-1172; ED-NEW-parity-chatview (5)
+    public void A_toggle_button_turned_on_keeps_its_on_circle_while_the_pointer_hovers_it_and_leaves()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var (row, window, runtime) = MakeRow(h, model, sidebarHoldsButtons: false, hydra: false);
+            Step(h, window, time, frames, 0);
+            Control Button(string tip) => h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ChromeIconButton>(row)
+                .Single(button => ((string?)ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(button).Single()) ?? "").StartsWith(tip, StringComparison.Ordinal)));
+            bool HasCircle(Control button) => h.Main.OnMain(() =>
+                LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(button).SingleOrDefault() is { } circle && circle.Opacity > 0.99);
+            void Hover(Control button, bool on)
+            {
+                h.Main.OnMain(() =>
+                {
+                    var at = on ? button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value : new Point(5, 250);
+                    Avalonia.Headless.HeadlessWindowExtensions.MouseMove(window, at, Avalonia.Input.RawInputModifiers.None);
+                });
+                Step(h, window, time, frames, 0);
+                Step(h, window, time, frames, 300);
+            }
+            void Check(string tip, Action turnOn)
+            {
+                var button = Button(tip);
+                h.Main.OnMain(turnOn);
+                Step(h, window, time, frames, 0);
+                Step(h, window, time, frames, 600);
+                Assert.Same(button, Button(tip)); // kept and updated, not rebuilt.
+                Assert.True(HasCircle(button), $"{tip}: on");
+                Hover(button, on: true);
+                Assert.True(HasCircle(button), $"{tip}: the pointer on it dropped the circle");
+                Hover(button, on: false);
+                Assert.True(HasCircle(button), $"{tip}: the pointer leaving it dropped the circle");
+            }
+            Check("Terminal", () => runtime.IsTerminalVisible = true);
+            Check("Changes", () => runtime.IsDiffVisible = true);
+        });
+    }
 }
