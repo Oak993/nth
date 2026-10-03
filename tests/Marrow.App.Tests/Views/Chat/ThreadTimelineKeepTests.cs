@@ -335,18 +335,58 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         Assert.Equal(stopped, line.Ticks); Assert.Equal(segment, time.Text);
     });
 
+    private static DateTimeOffset Drawn(HydraProgressBar bar) => (DateTimeOffset)typeof(HydraProgressBar).GetField("drawDate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(bar)!;
+
+    private static string BarName(HydraProgressBar bar) => Avalonia.Automation.AutomationProperties.GetName(bar) ?? "";
+
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (5)): ThreadTimeline.swift:2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`: a line made as an earlier segment's (a turn's rows before its run is known) that is handed a running turn starts its clock
-    public void A_line_made_as_an_earlier_segments_that_is_handed_a_running_turn_starts_its_clock() => ThreadTimelineRig.Run(headless, mount =>
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (5)): ThreadTimeline.swift:2125 HydraElapsedTime, :2139 HydraProgressBar (the same views handed the running status), :2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`; HydraProgressBar.swift:129-145,186-198: a line made as an earlier segment's (a turn's rows before its run is known) that is handed a running turn keeps its clock and its bar, and the clock counts, the bar draws its sweep and holds a sweep slot
+    public void A_line_made_as_an_earlier_segments_that_is_handed_a_running_turn_keeps_its_clock_and_bar_and_the_clock_counts_and_the_bar_sweeps() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { User("prompt", TurnA, "a question"), ToolEntry("ran", TurnA) };
         mount.SetEntries(entries); mount.Settle(); // no turn runs: the run's line is an earlier segment's, finished
         var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.Blocks().Single(block => block.Block is DisplayBlock.Turn).Row));
+        var clock = Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line)); var bar = Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line));
+        var time = Assert.IsType<TextBlock>(clock.Child);
         var ticks = line.Ticks; mount.Advance(3000); Assert.Equal(ticks, line.Ticks);
+        // Made finished: the clock's words stand still, the bar is settled (it draws nothing more), holds no sweep slot and does not say "so far".
+        var stopped = time.Text; var drawn = Drawn(bar); mount.Advance(2000);
+        Assert.Equal(stopped, time.Text); Assert.Equal(drawn, Drawn(bar));
+        Assert.False(SweepBudget.Shared.Sweeps(mount.Runtime)); Assert.DoesNotContain("so far", BarName(bar), StringComparison.Ordinal);
         mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
         Assert.Same(line, Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.Blocks().Single(block => block.Block is DisplayBlock.Turn).Row)));
+        // The same clock and the same bar, handed the running status: the bar says so, and has taken a sweep slot.
+        Assert.Same(clock, Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line))); Assert.Same(bar, Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line))); Assert.Same(time, clock.Child);
+        Assert.EndsWith(" so far", BarName(bar), StringComparison.Ordinal); Assert.True(SweepBudget.Shared.Sweeps(mount.Runtime), "a bar handed running joins a sweep slot");
+        // The clock counts, a second at a time: four seconds, four different times.
+        var counted = new List<string?>(); for (var second = 0; second < 4; second++) { mount.Advance(1000); counted.Add(time.Text); }
+        Assert.True(counted.Distinct().Count() == 4, "the clock handed a running turn counts every second: " + string.Join(", ", counted));
+        // The bar's clock draws again (it was unsettled), and the line's own task wakes every second.
+        drawn = Drawn(bar); mount.Advance(500); Assert.True(Drawn(bar) > drawn, "a bar handed running is unsettled and draws its sweep");
         mount.Advance(3000);
         Assert.True(line.Ticks >= ticks + 2, $"the line now running wakes every second: {ticks} -> {line.Ticks}");
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (5)): ThreadTimeline.swift:2125,2139 (the same clock and bar handed the stopped status), HydraProgressBar.swift:129-134,186-198: a running line whose turn stops with a note landing (an interrupted turn) keeps its clock and bar; the clock stops, the bar stops drawing and gives its sweep slot back
+    public void A_running_line_handed_a_stopped_turn_keeps_its_clock_and_bar_and_the_clock_stops_and_the_bar_gives_its_sweep_slot_back() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
+        var entries = new List<TimelineEntry> { User("prompt", TurnA, "a question"), ToolEntry("ran", TurnA) };
+        mount.SetEntries(entries); mount.Settle();
+        var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View));
+        var clock = Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line)); var bar = Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line));
+        var time = Assert.IsType<TextBlock>(clock.Child);
+        Assert.True(SweepBudget.Shared.Sweeps(mount.Runtime), "a running bar holds a sweep slot"); Assert.EndsWith(" so far", BarName(bar), StringComparison.Ordinal);
+        var drawn = Drawn(bar); mount.Advance(500); Assert.True(Drawn(bar) > drawn, "a running bar draws its sweep");
+        // The turn stops and a note lands, with no turn running after it: the one line is handed the stopped status (nothing runs, so no later line takes its place).
+        entries.Add(Entry("note", new TimelineItem.Content.Notice(new Marrow.Core.Models.Notice { NoticeLevel = Marrow.Core.Models.Notice.Level.Info, Message = "a note after the run" })));
+        mount.SetPhase(RuntimePhase.Idle); mount.SetEntries(entries); mount.Advance(900);
+        Assert.Same(line, Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View)));
+        Assert.Same(clock, Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line))); Assert.Same(bar, Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line)));
+        Assert.False(SweepBudget.Shared.Sweeps(mount.Runtime), "a bar handed stopped gives its sweep slot back"); Assert.DoesNotContain("so far", BarName(bar), StringComparison.Ordinal);
+        var counted = time.Text; drawn = Drawn(bar); var ticks = line.Ticks; mount.Advance(3000);
+        Assert.Equal(counted, time.Text); Assert.Equal(drawn, Drawn(bar)); Assert.Equal(ticks, line.Ticks); // the clock's words, the bar's drawing and the line's task all stand still
     });
 
     [Fact]
