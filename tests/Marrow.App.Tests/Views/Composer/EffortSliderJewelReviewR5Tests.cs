@@ -3,12 +3,12 @@ using Marrow.Testing;
 namespace Marrow.App.Tests.Views.Composer;
 
 // REVIEW (adversarial, unit jewel-knob, review round 5 on 822263064): each test states what the unit's tests must do and
-// fails on the head reviewed.
+// failed on the head reviewed; it passes from 76dbfda5c (round 5 answered), kept under a plain name.
 public sealed class EffortSliderJewelReviewR5Tests
 {
     [Fact]
     [Trait("Rule", "R-TEST-1")] // a test that verifies a requirement carries that requirement's Req trait, not another's
-    public void REVIEW_no_jewel_knob_test_credits_the_track_and_knob_requirement_with_focus_or_the_chosen_stop_alone()
+    public void No_jewel_knob_test_credits_the_track_and_knob_requirement_with_focus_or_the_chosen_stop_alone()
     {
         // PR-COMPOSER-123 is the track and the knob as drawn (EffortSlider.swift:712-713, 741-775, 781-796: the 34 point
         // capsule, stop centres a knob radius in, the fill to the knob's far edge, the passed and unpassed stop colours, the
