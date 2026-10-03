@@ -176,11 +176,11 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             h.Main.OnMain(() => scroll.Offset = new Vector(0, scroll.Extent.Height - scroll.Viewport.Height - 150)); Settle(h, frames, window, 50);
             var button = JumpButton(view); Assert.NotNull(button);
             // It arrives scaling up from 0.6 with opacity and a 10 point rise, on the spring of response 0.38 and damping 0.78, and rests settled.
-            var jump = LogicalQuery.SelfAndDescendants<JumpToLatestButton>(view).Single(); var circle = LogicalQuery.SelfAndDescendants<ChromeCircleButton>(jump).Single();
-            Assert.True(circle.Opacity < 0.9); Assert.Equal("Jump to latest", ToolTip.GetTip(button));
+            var jump = LogicalQuery.SelfAndDescendants<JumpToLatestButton>(view).Single(); var circle = LogicalQuery.SelfAndDescendants<ChromeCircleButton>(jump).Single(); var frame = (Control)circle.Parent!; // the transition is on the zero-height frame
+            Assert.True(frame.Opacity < 0.9); Assert.Equal("Jump to latest", ToolTip.GetTip(button));
             Assert.Equal("arrow.down", LogicalQuery.SelfAndDescendants<SwiftImage>(circle).First().SymbolName);
-            Settle(h, frames, window, 100); Assert.InRange(circle.Opacity, 0.01, 0.999);
-            Settle(h, frames, window, 1500); Assert.Equal(1, circle.Opacity);
+            Settle(h, frames, window, 100); Assert.InRange(frame.Opacity, 0.01, 0.999);
+            Settle(h, frames, window, 1500); Assert.Equal(1, frame.Opacity);
             // Pressed: it glides to the end over a third of a second (the timeline's own smooth glide) and re-pins; the button leaves once the end is on screen.
             h.Main.OnMain(() => scroll.Offset = new Vector(0, 100)); Settle(h, frames, window, 400);
             var before = scroll.Offset.Y;

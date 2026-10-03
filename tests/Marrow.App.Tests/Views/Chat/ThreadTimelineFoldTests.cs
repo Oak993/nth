@@ -70,4 +70,20 @@ public sealed class ThreadTimelineFoldTests(HeadlessSession headless)
         header.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); mount.Advance(600);
         Assert.Equal(1, reveals); Assert.Empty(LogicalQuery.SelfAndDescendants<WorkGroup>(folded.Row)); Assert.Single(LogicalQuery.SelfAndDescendants<HydraHeadsList>(folded.Row));
     });
+    [Fact]
+    [Trait("Req", "PR-CHAT-155")] // ThreadTimeline.swift:1985-1989 (`if let heads { TurnRow(group: heads...) }`: the list is the same view while heads join it, and a view whose value changed is not brought in again)
+    public void A_head_joining_the_list_a_running_turn_shows_does_not_bring_the_whole_list_in_again() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var entries = new List<TimelineEntry> { User("prompt", Turn, "send out heads"), ToolEntry("hank", Turn, head: true) };
+        mount.SetEntries(entries); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle();
+        var row = mount.Blocks().Single(block => block.Block is DisplayBlock.Turn).Row;
+        var list = Assert.Single(LogicalQuery.SelfAndDescendants<HydraHeadsList>(row)); var turnRow = Assert.IsAssignableFrom<Control>(list.Parent!.Parent); Assert.IsType<TurnRow>(turnRow);
+        Assert.Equal(1, turnRow.Opacity); Assert.Single(LogicalQuery.SelfAndDescendants<ToolRow>(list));
+        // A second head goes out: the list shows both, and it is the same row, still on screen at full strength (no soft appear over it again).
+        entries.Add(ToolEntry("walter", Turn, head: true)); mount.SetEntries(entries);
+        var now = Assert.Single(LogicalQuery.SelfAndDescendants<HydraHeadsList>(row));
+        Assert.Equal(2, LogicalQuery.SelfAndDescendants<ToolRow>(now).Count());
+        Assert.Same(turnRow, Assert.Single(LogicalQuery.SelfAndDescendants<TurnRow>(row), candidate => LogicalQuery.SelfAndDescendants<HydraHeadsList>(candidate).Any()));
+        Assert.Equal(1, turnRow.Opacity);
+    });
 }

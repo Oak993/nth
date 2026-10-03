@@ -1232,18 +1232,26 @@ public sealed class TurnRunningBlock : Decorator
         foreach (var group in partition.Rows)
         {
             seen.Add(group.Id);
-            if (!rowViews.TryGetValue(group.Id, out var kept) || kept.Group != group)
+            if (!rowViews.TryGetValue(group.Id, out var kept)) kept = default;
+            // :1980-1984 ForEach(groups): a group whose id stood and whose value changed is the same row with its new value, not a row that arrives.
+            if (kept.Row is not null && kept.Group != group) { kept.Row.Update(group, context); rowViews[group.Id] = kept = (group, kept.Row); }
+            else if (kept.Row is null)
             {
-                if (kept.Row is not null) { stack.Children.Remove(kept.Row); }
                 rowViews[group.Id] = kept = (group, new TurnRow(group, runtime, context).Transition(ThreadTimeline.RowTransition));
-                if (!ReferenceEquals(kept.Row.Parent, stack)) SwiftTransition.Insert(stack, stack.Children.Count, kept.Row);
+                SwiftTransition.Insert(stack, stack.Children.Count, kept.Row);
             }
             wanted.Add(kept.Row);
         }
         foreach (var gone in rowViews.Keys.Where(id => !seen.Contains(id)).ToArray()) { stack.Children.Remove(rowViews[gone].Row); rowViews.Remove(gone); }
         if (partition.Heads is { } heads)
         {
-            if (headsView is not { } shown || shown.Group != heads)
+            // :1985-1989 `if let heads`: the same view while there are heads, so a head joining the list changes its value and brings nothing in again; a list that
+            // begins with another head is another view.
+            if (headsView is { } shown && shown.Group.Id == heads.Id)
+            {
+                if (shown.Group != heads) { shown.Row.Update(heads, context); headsView = (heads, shown.Row); }
+            }
+            else
             {
                 if (headsView is { } old) stack.Children.Remove(old.Row);
                 headsView = (heads, new TurnRow(heads, runtime, context).Transition(ThreadTimeline.RowTransition));
@@ -1290,8 +1298,15 @@ public sealed class TurnRow : Decorator
     /// <param name="runtime">:2013 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="context">:2014 <c>let context: RowContext</c>.</param>
     // :2020-2024 body
-    public TurnRow(TimelineGroup group, ThreadRuntime runtime, RowContext context) =>
-        Child = new TimelineGroupView(group, runtime, null, false, context); // :2033-2036
+    public TurnRow(TimelineGroup group, ThreadRuntime runtime, RowContext context)
+    {
+        this.runtime = runtime; Child = new TimelineGroupView(group, runtime, null, false, context); // :2033-2036
+    }
+
+    private readonly ThreadRuntime runtime;
+
+    /// <summary>The same row with a new group (the body of :2033-2036 run again for the new value).</summary>
+    internal void Update(TimelineGroup group, RowContext context) => Child = new TimelineGroupView(group, runtime, null, false, context);
 }
 
 /// <summary>:2039-2071 <c>struct TimelineGroupView: View</c>.</summary>
