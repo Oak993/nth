@@ -120,6 +120,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         rig.Main.OnMain(() =>
         {
             popup.Child = null;
+            PopoverCardContent.Lift(card); // the card the presenter hung the view on lets it go
             window = new AvaloniaWindow { Content = card, Width = 330, Height = 260 };
             window.Show();
             Dispatcher.UIThread.RunJobs();

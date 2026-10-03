@@ -325,7 +325,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 // PlainControls.Popover's real lazy content builder runs, without creating a native window.
                 var opened = Assert.IsAssignableFrom<System.Delegate>(typeof(Popup).GetField("Opened", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(popup));
                 opened.DynamicInvoke(popup, System.EventArgs.Empty);
-                var content = Assert.IsAssignableFrom<Control>(popup.Child);
+                var content = Assert.IsAssignableFrom<Control>(PopoverHost.Content(popup)); // the site's view, not the card the presenter hangs it on (OD-0095)
                 Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content));
                 if (merge) Assert.IsType<HydraMergePopover>(content);
                 else { var report = Assert.IsType<HydraReportPopover>(content); Assert.Equal(460, report.Width); }
@@ -1374,7 +1374,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 // :197, :208-212 the edit opening syncs the editor popover, which presents a MessageEditor on the edit,
                 // hung from the pencil's anchor (:148-155).
                 var shown = Assert.Single(presenter.Calls, call => call.Presented);
-                Assert.IsType<MessageEditor>(shown.Popup.Child);
+                Assert.IsType<MessageEditor>(PopoverHost.Content(shown.Popup));
                 var pencil = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(HoverLine(row!)));
                 Assert.Same(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(pencil.Parent!).Single(), shown.Popup.PlacementTarget);
                 // Editing: the line stays up without a hover.

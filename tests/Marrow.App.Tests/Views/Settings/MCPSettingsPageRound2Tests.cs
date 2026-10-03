@@ -46,6 +46,7 @@ public sealed class MCPSettingsPageRound2Tests(HeadlessSession headless)
 
     private static UiWindow Show(Control control, AppModel model, ThemeVariant? theme = null)
     {
+        PopoverCardContent.Lift(control); // a popover's view comes off the card the presenter hung it on
         AppEnvironment.SetAppModel(control, model);
         var window = new UiWindow { Content = control, Width = 800, Height = 800, RequestedThemeVariant = theme ?? ThemeVariant.Light };
         window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); return window;

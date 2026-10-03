@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -173,5 +175,59 @@ public sealed class PopoverCardSitesReviewTests(HeadlessSession headless)
             }
         });
         GC.KeepAlive(app);
+    });
+
+    // MessagePopoverMenu.swift:9-16: every right click replaces the anchor and re-evaluates the actions, including while the
+    // menu shows (the popover sets its new menu and its new rect, and is presented already). Avalonia 12.1.2 gives a Popup's
+    // child to its host once, when it opens, so the second menu was never shown: the first menu stayed, with its tip
+    // aimed at the old point's rect no longer. Through the real presenter the new menu is on screen and the tip points at the
+    // new point (NSPopover.show(relativeTo:of:preferredEdge:) aims its arrow at the rect it is shown from).
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // MessagePopoverMenu.swift:9-16, with OD-0095's card
+    public void REVIEW_A_second_right_click_while_the_message_menu_shows_shows_the_new_menu_with_its_tip_at_the_new_point() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var presenter = new ReviewOverlayPresenter(Presentation.Presenter.Current);
+        using var seam = Presentation.Presenter.Override(presenter);
+        var reads = 0;
+        var message = new Border { Width = 400, Height = 60, Background = Brushes.Transparent, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var view = Marrow.App.Views.Chat.RightClickPopoverExtensions.RightClickPopover(message, () => { reads++; return MessageActionsSample.Make(reads > 1, []); });
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 400, Content = new Border { Margin = new Thickness(10, 200, 0, 0), Child = view, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top } };
+        SettingsProviderPopupLayers.Install(window);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        void RightClick(Point at)
+        {
+            window.MouseDown(at, Avalonia.Input.MouseButton.Right, Avalonia.Input.RawInputModifiers.None);
+            window.MouseUp(at, Avalonia.Input.MouseButton.Right, Avalonia.Input.RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+        try
+        {
+            RightClick(new Point(60, 230));
+            var popup = Assert.Single(presenter.Popups);
+            Assert.True(popup.IsOpen);
+            var first = Assert.IsType<Marrow.UI.Chrome.PopoverMenu>(PopoverHost.Content(popup));
+            Assert.True(first.IsAttachedToVisualTree());
+            RightClick(new Point(300, 240));
+            Assert.Equal(2, reads);
+            var second = Assert.IsType<Marrow.UI.Chrome.PopoverMenu>(PopoverHost.Content(popup));
+            Assert.NotSame(first, second);
+            Assert.True(second.IsAttachedToVisualTree(), "the menu of the second click is not shown");
+            Assert.False(first.IsAttachedToVisualTree(), "the menu of the first click is still shown");
+            var card = Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<PopoverCard>());
+            var tip = card.TranslatePoint(card.TipPoint, window)!.Value;
+            var point = message.TranslatePoint(popup.PlacementRect!.Value.Center, window)!.Value;
+            Assert.True(Math.Abs(tip.X - point.X) < 0.5, $"the tip is at x {tip.X:F1}; the point the menu is shown from is at {point.X:F1}");
+        }
+        finally
+        {
+            foreach (var shown in presenter.Popups) shown.IsOpen = false;
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
     });
 }

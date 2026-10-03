@@ -387,7 +387,7 @@ public sealed class PromptEditorTests(HeadlessSession headless)
         var room = Marrow.UI.Port.PopoverHost.Room(popup); // OD-0095: the tipped card's room round the hosted view
         Assert.Equal(expected.Width + room.Width, popup.Width);
         Assert.Equal(expected.Height + room.Height, popup.Height);
-        Assert.IsType<PromptEditor>(popup.Child); // measured out of the popup and put back
+        Assert.IsType<PromptEditor>(PopoverHost.Content(popup)); // measured out of the popup and put back, on the card the presenter hangs it on (OD-0095)
         runtime.OnMain(popover.Close);
         window.Close(); Dispatcher.UIThread.RunJobs();
     });

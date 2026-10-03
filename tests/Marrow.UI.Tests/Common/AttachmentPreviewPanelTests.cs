@@ -471,7 +471,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
         coordinator.Toggle(attachment);
         Dispatcher.UIThread.RunJobs();
 
-        var frame = Assert.IsType<Border>(coordinator.PopupForTests.Child);
+        var frame = Assert.IsType<Border>(PopoverHost.Content(coordinator.PopupForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
         Assert.Equal(AttachmentLargePreview.ImageBounds.Width + 24, frame.Width);
         Assert.Equal(System.Math.Ceiling(AttachmentLargePreview.ImageBounds.Height) + 60, frame.Height);
         window.Close();
@@ -492,7 +492,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
         coordinator.Toggle(attachment);
         Dispatcher.UIThread.RunJobs();
 
-        var frame = Assert.IsType<Border>(coordinator.PopupForTests.Child);
+        var frame = Assert.IsType<Border>(PopoverHost.Content(coordinator.PopupForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
         Assert.Equal(AttachmentLargePreview.ImageBounds.Width + 24, frame.Width); // :284 videoSizes[path] ?? imageBounds
         Assert.Equal(AttachmentLargePreview.ImageBounds.Height + 60, frame.Height);
         window.Close();
@@ -517,7 +517,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
         coordinator.Toggle(attachment);
         Dispatcher.UIThread.RunJobs();
 
-        var frame = Assert.IsType<Border>(coordinator.PopupForTests.Child);
+        var frame = Assert.IsType<Border>(PopoverHost.Content(coordinator.PopupForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
         Assert.Equal(464, frame.Width); // :230
         Assert.Equal(320 + 60, frame.Height); // min(320, max(120, 500)) + 60
         window.Close();
@@ -541,7 +541,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
         coordinator.Toggle(attachment);
         Dispatcher.UIThread.RunJobs();
 
-        var frame = Assert.IsType<Border>(coordinator.PopupForTests.Child);
+        var frame = Assert.IsType<Border>(PopoverHost.Content(coordinator.PopupForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
         Assert.Equal(120 + 60, frame.Height);
         window.Close();
     });
@@ -564,7 +564,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
         coordinator.Toggle(attachment);
         Dispatcher.UIThread.RunJobs();
 
-        var frame = Assert.IsType<Border>(coordinator.PopupForTests.Child);
+        var frame = Assert.IsType<Border>(PopoverHost.Content(coordinator.PopupForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
         Assert.Equal(344, frame.Width); // :234
         Assert.Equal(100, frame.Height);
         window.Close();
@@ -585,7 +585,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
         coordinator.Toggle(attachment);
         Dispatcher.UIThread.RunJobs();
 
-        var frame = Assert.IsType<Border>(coordinator.PopupForTests.Child);
+        var frame = Assert.IsType<Border>(PopoverHost.Content(coordinator.PopupForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
         Assert.Equal(344, frame.Width);
         Assert.Equal(100, frame.Height);
         window.Close();

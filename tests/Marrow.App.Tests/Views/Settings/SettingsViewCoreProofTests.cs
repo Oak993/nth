@@ -52,7 +52,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     private static void Seed(AppModel model, ProviderKind kind, ProviderStatus status) => typeof(ProviderRegistry).GetProperty("Statuses")!.SetValue(model.Providers, model.Providers.Statuses.Mutating(map => map[kind] = status));
     private static void Hover(Control c, bool on) => c.RaiseEvent(new PointerEventArgs(on ? InputElement.PointerEnteredEvent : InputElement.PointerExitedEvent, c, new Avalonia.Input.Pointer(903, PointerType.Mouse, true), c, default, 0, default, default));
     private static KeyEventArgs Key(Control c, Avalonia.Input.Key key) { var e = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Source = c, Key = key }; c.RaiseEvent(e); Sync(); return e; }
-    private static Control Opened(Popup p) { ((EventHandler?)typeof(Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(p))?.Invoke(p, EventArgs.Empty); return p.Child!; }
+    private static Control Opened(Popup p) { ((EventHandler?)typeof(Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(p))?.Invoke(p, EventArgs.Empty); return PopoverHost.Content(p)!; } // the site's view, not the card the presenter hangs it on (OD-0095)
     private static void Press(Control control)
     {
         var window = (Avalonia.Controls.Window)TopLevel.GetTopLevel(control)!; Drain(control);

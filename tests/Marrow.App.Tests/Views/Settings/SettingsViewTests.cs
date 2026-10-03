@@ -196,7 +196,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     private static Control Opened(Avalonia.Controls.Primitives.Popup popup)
     {
         ((EventHandler?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.Invoke(popup, EventArgs.Empty);
-        return popup.Child!;
+        return PopoverHost.Content(popup)!; // the site's view, not the card the presenter hangs it on (OD-0095)
     }
 
     private static void AdvanceFrames(AppModelHarness h, double milliseconds)
@@ -818,7 +818,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("One").Replace('\\', '/'))); model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("Two").Replace('\\', '/'))); Sync(); Assert.True(edit.IsEnabled); Click(edit); Sync();
         var popup = presenter.Calls.Last(x => x.Presented).Popup;
         ((EventHandler?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.Invoke(popup, EventArgs.Empty);
-        var list = Assert.IsType<StackPanel>(popup.Child); Assert.Equal(400, list.Width);
+        var list = Assert.IsType<StackPanel>(PopoverHost.Content(popup)); Assert.Equal(400, list.Width);
         Assert.Equal(model.Projects.Select(x => x.Name), Nodes<ChromeRow>(list).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(list)); Assert.Equal(2, Nodes<ProjectIconButton>(list).Length);
     });
 
