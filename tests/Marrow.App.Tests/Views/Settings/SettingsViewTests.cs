@@ -541,8 +541,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     // Keep the Terminal title/divider and the AGPL sentence prefix; only its CreditLink, component detail and trailing licence fragment are blocked.
     // STOP App.Views.Settings.SettingsView #5
     // Kind: dependency. Swift: SettingsView.swift:1046-1056. Records: PR-SETTINGS-249 (shipping only).
-    // RESOLVED (defects-priority): Marrow.App.csproj now ships LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside the executable
+    // RESOLVED for the build (defects-priority): Marrow.App.csproj now ships LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside the executable
     // (Legal\ content, copied to the build output and the publish folder); LicensesShippingTests proves them byte for byte.
+    // OPEN (reopened in review round 2) for the installer clause of PR-SETTINGS-249's windows_path ("Ship all three documents with the installer"):
+    // no pack was built and nothing installed, so no test claims PR-SETTINGS-249. Needed: a vpk pack or an installed %LOCALAPPDATA%\Marrow Code
+    // checked for the three files beside Marrow.App.exe, after an install and after an update.
     // (It said: the App project bundles only Assets/icon.png, not the three legal documents.)
     // The independent reader, caching, missing-file path and popover are covered below.
 
@@ -708,8 +711,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy), image => image.AssetName is not null); Assert.Equal("droppy-logo", mark.AssetName); Assert.Equal(40, mark.Width); Assert.Single(Nodes<SwiftImage>(droppy), image => image.SymbolName == "arrow.up.right");
     });
 
+    // Not PR-SETTINGS-249 (withdrawn, defects-priority review round 2): its windows_path ships the three documents with the installer, which no test
+    // checks (STOP #5 above, reopened for that clause).
     [Fact]
-    [Trait("Req", "PR-SETTINGS-249")] // App/Views/Settings/SettingsView.swift:1009-1057
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1007-1057
     public void Licences_are_read_once_and_the_three_markdown_blocks_use_fixed_popover_geometry() => WithView(() => new LicensesRow(), (view, _, _) =>
     {

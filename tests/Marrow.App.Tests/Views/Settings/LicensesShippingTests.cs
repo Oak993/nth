@@ -1,7 +1,11 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
+using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.UI.Markdown;
@@ -56,10 +60,11 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
 
     private static string Missing(string resource) => $"The {resource} file is missing from this copy of the app.";
 
+    // Not PR-SETTINGS-249: its windows_path ships the three "with the installer", and no packed or installed folder is checked here
+    // (STOP App.Views.Settings.SettingsView #5, reopened for that clause; ED-NEW-defects-priority).
     [Fact]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1007-1057
     [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1012-1056
-    [Trait("Req", "PR-SETTINGS-249")] // App/Views/Settings/SettingsView.swift:1009-1057; project.yml:30-34
     public void The_three_legal_documents_ship_in_the_folder_the_app_reads_and_in_the_app_projects_own_output()
     {
         var addendum = File.ReadAllBytes(Path.Combine(RepositoryRoot(), "THIRD_PARTY_NOTICES.md"));
@@ -78,8 +83,9 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
         }
     }
 
+    // Not PR-SETTINGS-249: the publish folder is what the installer packs (scripts/package-windows.ps1), but no pack was built or installed
+    // (STOP App.Views.Settings.SettingsView #5, reopened for the installer clause; ED-NEW-defects-priority).
     [Fact]
-    [Trait("Req", "PR-SETTINGS-249")] // project.yml:30-34 (the three files are resources of the app bundle); the publish folder is what the installer packs (scripts/package-windows.ps1)
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1049 (read from the bundle: here the folder beside the executable)
     public void The_project_publishes_the_three_documents_to_the_root_of_the_publish_folder_beside_the_executable()
     {
@@ -131,6 +137,46 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
         }
         Assert.DoesNotContain(Text(content), line => line.Contains("is missing from this copy of the app", StringComparison.Ordinal));
     });
+
+    [Fact]
+    [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1020-1044 (.popover(isPresented:): Scroll, and Click outside: dismisses)
+    [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1020-1044 (Click Show to open; Scroll the popover)
+    public void The_licenses_popover_scrolls_and_a_click_outside_it_dismisses_it_and_Show_opens_it_again() => With(() => new LicensesRow(), (view, _, h, window) =>
+    {
+        // A real popup on Avalonia's overlay host, with real input (SettingsRestPopupPresenter): the light dismissal is the popup's own.
+        var show = Nodes<Button>(view).Single(button => Text(button).Contains("Show"));
+        Click(window, show);
+        Tick(h, 1000); // the popover grows in
+        Drain(window);
+        var popup = Assert.Single(Nodes<Popup>(view));
+        Assert.True(popup.IsOpen);
+        var scroll = Assert.Single(Nodes<ScrollViewer>(Assert.IsAssignableFrom<Control>(popup.Child)), viewer => viewer.Width == 480);
+        Assert.Equal(440, scroll.Height);
+        Assert.True(scroll.Extent.Height > scroll.Viewport.Height, $"the documents are taller than the popover (extent {scroll.Extent}, viewport {scroll.Viewport})");
+
+        // Scroll: a wheel over the popover moves its documents.
+        var inside = scroll.TranslatePoint(new Avalonia.Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), window)!.Value;
+        window.MouseMove(inside);
+        window.MouseWheel(inside, new Avalonia.Vector(0, -3));
+        Drain(window);
+        Assert.True(scroll.Offset.Y > 0, $"the wheel scrolled the documents (offset {scroll.Offset})");
+
+        // Click outside: a press away from the popover closes it and lets go of its content.
+        var outside = new Avalonia.Point(4, 4);
+        Assert.False(new Avalonia.Rect(scroll.TranslatePoint(new Avalonia.Point(0, 0), window)!.Value, scroll.Bounds.Size).Contains(outside));
+        window.MouseDown(outside, Avalonia.Input.MouseButton.Left);
+        window.MouseUp(outside, Avalonia.Input.MouseButton.Left);
+        Drain(window);
+        Assert.False(popup.IsOpen);
+        Assert.Null(popup.Child);
+
+        // Show opens it again.
+        Click(window, show);
+        Tick(h, 1000);
+        Drain(window);
+        Assert.True(popup.IsOpen);
+        Assert.NotNull(popup.Child);
+    }, nativePopup: true);
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1027-1033 (VStack(spacing: 8): the title at .system(.body, weight: .semibold) over the document in Chrome.secondaryText at 12 pt, text selection enabled)
