@@ -344,7 +344,9 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     public void A_line_made_as_an_earlier_segments_that_is_handed_a_running_turn_keeps_its_clock_and_bar_and_the_clock_counts_and_the_bar_sweeps() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { User("prompt", TurnA, "a question"), ToolEntry("ran", TurnA) };
-        mount.SetEntries(entries); mount.Settle(); // no turn runs: the run's line is an earlier segment's, finished
+        // No turn runs: the run's line is an earlier segment's, finished. Its two entries land together, so it spans no time and its clock says the same words before and after
+        // the hand-over below (the clock's direct path); the next test takes the path where the words change.
+        mount.SetEntries(entries); mount.Settle();
         var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.Blocks().Single(block => block.Block is DisplayBlock.Turn).Row));
         var clock = Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line)); var bar = Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line));
         var time = Assert.IsType<TextBlock>(clock.Child);
@@ -365,6 +367,27 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         drawn = Drawn(bar); mount.Advance(500); Assert.True(Drawn(bar) > drawn, "a bar handed running is unsettled and draws its sweep");
         mount.Advance(3000);
         Assert.True(line.Ticks >= ticks + 2, $"the line now running wakes every second: {ticks} -> {line.Ticks}");
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 (ED-NEW-parity-threadtimeline (5), OD-0076): ThreadTimeline.swift:2125 HydraElapsedTime (the same view handed the running status), HydraProgressBar.swift:549-556 (its branch: the segment's length, or the time counted from the start): a line made as an earlier segment's that spans some seconds, handed a running turn, swaps its words with a fade and then counts every second
+    public void A_line_made_as_an_earlier_segment_of_five_seconds_that_is_handed_a_running_turn_fades_its_time_to_the_turns_and_then_counts_every_second() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var first = User("prompt", TurnA, "a question"); mount.Advance(5000); var last = ToolEntry("ran", TurnA);
+        mount.SetEntries([first, last]); mount.Settle(); // no turn runs: the line is an earlier segment's, finished, five seconds long
+        var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.Blocks().Single(block => block.Block is DisplayBlock.Turn).Row));
+        var clock = Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line)); var time = Assert.IsType<TextBlock>(clock.Child);
+        var made = time.Text;
+        Assert.Equal(Marrow.UI.Common.RelativeTime.Duration(last.Item.Date - first.Item.Date), made); Assert.NotEqual(Marrow.UI.Common.RelativeTime.Duration(TimeSpan.Zero), made);
+        // A turn starts and the line is handed it: the words change ("5s" to the turn's own time), so the old time fades out and the new one comes in where it stood.
+        mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(80);
+        Assert.Same(clock, Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line))); Assert.Same(time, clock.Child);
+        Assert.Equal(made, time.Text); Assert.InRange(time.Opacity, 0.01, 0.99);
+        mount.Advance(300);
+        Assert.Equal(Marrow.UI.Common.RelativeTime.Duration(TimeSpan.Zero), time.Text); Assert.Equal(1, time.Opacity, 3);
+        // Then it counts, a second at a time: four seconds, four different times.
+        var counted = new List<string?>(); for (var second = 0; second < 4; second++) { mount.Advance(1000); counted.Add(time.Text); }
+        Assert.True(counted.Distinct().Count() == 4, $"made '{made}', the clock handed a running turn counts every second: " + string.Join(", ", counted));
     });
 
     [Fact]
