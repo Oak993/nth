@@ -49,20 +49,23 @@ public sealed class UsageFloatingPanel : Decorator
         // :25 let shape = RoundedRectangle(cornerRadius: HydraPanel.cornerRadius, style: .continuous)
         var cornerRadius = new CornerRadius(HydraPanel.CornerRadius);
 
-        // :26-29 let usage = runtime.usage; let hasSomething = ...
-        var usage = runtime.Usage;
-        var hasSomething = usage?.Fraction != null
-            || PlanLimitsReader.ExposesLimits(provider) || CreditsReader.ExposesCredits(provider)
-            || (headsProvider is { } heads && (PlanLimitsReader.ExposesLimits(heads) || CreditsReader.ExposesCredits(heads)));
-
-        // :30-46 Group { if hasSomething { ... } else { ... } }
-        Control content = hasSomething
-            ? BuildScrollingContent(usage, provider, headsProvider, onContentHeight)
-            : BuildPlaceholder(provider, onContentHeight);
+        // :26-46 body reads runtime.usage, so it runs again whenever the usage changes: the placeholder gives way to the
+        // usage panel when the first usage arrives (and back), and the pane is told the height of whichever shows.
+        this.provider = provider;
+        this.headsProvider = headsProvider;
+        this.onContentHeight = onContentHeight;
+        shownUsage = runtime.Usage;
+        ShowContent(shownUsage);
+        this.Track(() => runtime.Usage, next =>
+        {
+            if (Equals(next, shownUsage)) return; // the first read at attach is the usage already shown
+            shownUsage = next;
+            ShowContent(next);
+        });
 
         // :47-49 .overlay(alignment: .top) { strip }
         var contentWithStrip = new Grid();
-        contentWithStrip.Children.Add(content);
+        contentWithStrip.Children.Add(contentSlot);
         var strip = BuildStrip(provider, headsProvider, onDrag, onDragEnd, dismiss);
         strip.VerticalAlignment = VerticalAlignment.Top;
         contentWithStrip.Children.Add(strip);
@@ -117,8 +120,37 @@ public sealed class UsageFloatingPanel : Decorator
         Height = size.Height;
     }
 
-    // :31-37 ScrollView(.vertical) { UsagePanel(...).onGeometryChange(...).padding(.top, stripHeight).padding(.bottom, 8) }
-    private Control BuildScrollingContent(ContextUsage? usage, ProviderKind provider, ProviderKind? headsProvider, Action<double> onContentHeight)
+    private readonly ProviderKind provider;
+    private readonly ProviderKind? headsProvider;
+    private readonly Action<double> onContentHeight;
+    private readonly Grid contentSlot = new(); // :30 the Group the body fills
+    private ContextUsage? shownUsage;
+    private Border? scrollPadded; // the padded content of the scroll view while it shows (:36-37)
+    private double? lastHeight; // :34 onGeometryChange fires only when the derived height changes
+
+    // :26-29 let hasSomething = usage?.fraction != nil || the lead's or the heads' provider exposes limits or credits
+    private bool HasSomething(ContextUsage? usage) => usage?.Fraction != null
+        || PlanLimitsReader.ExposesLimits(provider) || CreditsReader.ExposesCredits(provider)
+        || (headsProvider is { } heads && (PlanLimitsReader.ExposesLimits(heads) || CreditsReader.ExposesCredits(heads)));
+
+    // :30-46 Group { if hasSomething { ScrollView { UsagePanel } } else { placeholder } }. The scroll view stays while only the
+    // figures change, as SwiftUI keeps the ScrollView's identity (and its offset) across a body run; the branch swap replaces it.
+    private void ShowContent(ContextUsage? usage)
+    {
+        if (HasSomething(usage))
+        {
+            if (scrollPadded is not null) { scrollPadded.Child = BuildUsagePanel(usage); return; }
+            contentSlot.Children.Clear();
+            contentSlot.Children.Add(BuildScrollingContent(usage));
+            return;
+        }
+        scrollPadded = null;
+        lastHeight = null;
+        contentSlot.Children.Clear();
+        contentSlot.Children.Add(BuildPlaceholder(provider, onContentHeight));
+    }
+
+    private UsagePanel BuildUsagePanel(ContextUsage? usage)
     {
         var usagePanel = new UsagePanel(usage, provider, headsProvider, fillsWidth: true);
 
@@ -126,7 +158,6 @@ public sealed class UsageFloatingPanel : Decorator
         // onGeometryChange fires only when the derived value changes (SOURCE FACT: SwiftUI's documented contract
         // for onGeometryChange), so this dedupes the same way LayoutUpdated, which fires on every layout pass
         // regardless of whether the measured height moved, does not on its own.
-        double? lastHeight = null;
         usagePanel.LayoutUpdated += (_, _) =>
         {
             var measured = usagePanel.Bounds.Height;
@@ -134,10 +165,15 @@ public sealed class UsageFloatingPanel : Decorator
             lastHeight = measured;
             onContentHeight(measured + HydraPanel.StripHeight + 8);
         };
+        return usagePanel;
+    }
 
+    // :31-37 ScrollView(.vertical) { UsagePanel(...).onGeometryChange(...).padding(.top, stripHeight).padding(.bottom, 8) }
+    private Control BuildScrollingContent(ContextUsage? usage)
+    {
         var padded = new Border
         {
-            Child = usagePanel,
+            Child = BuildUsagePanel(usage),
             Padding = new Thickness(0, HydraPanel.StripHeight, 0, 8),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             // A ScrollView's content keeps its own height; the viewport stretching it would make the height reported
@@ -145,6 +181,7 @@ public sealed class UsageFloatingPanel : Decorator
             VerticalAlignment = VerticalAlignment.Top,
         };
 
+        scrollPadded = padded;
         return new ScrollViewer
         {
             Content = padded,
