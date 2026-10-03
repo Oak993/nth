@@ -83,7 +83,9 @@ public sealed class MarkdownView : Decorator
     // :63-103 body. The prose-run branch (PR-THEME-105) builds ProseRunView for each prose run (part 2's sibling
     // ProseRunView unit; MARROW_STUB there is expected and left alone). The block branch is fully implemented,
     // via MarkdownBlockView.
-    public MarkdownView(string text, bool isStreaming = false)
+    // PORT-ONLY `veils` (UI-THEME-047): the identity a row that builds this view again for every flush keeps for the tree, so the veil of each
+    // place survives the rebuild as SwiftUI's @State does (StreamVeil.cs, MarkdownVeils).
+    public MarkdownView(string text, bool isStreaming = false, MarkdownVeilScope? veils = null)
     {
         Text = text;
         IsStreaming = isStreaming;
@@ -115,7 +117,7 @@ public sealed class MarkdownView : Decorator
             for (var index = 0; index < blocks.Count; index++) // :87
             {
                 var block = blocks[index];
-                var view = new MarkdownBlockView(block, settled: index < stable); // :88
+                var view = new MarkdownBlockView(block, settled: index < stable, veils: veils?.Child("b" + index)); // :88
                 SetMarkdownStreaming(view, isStreaming && index == last); // :89-91
                 view.Transition(Transition(block)); // :92
                 stack.Children.Add(view);
@@ -511,12 +513,16 @@ public sealed class MarkdownBlockView : Decorator
     // file's own InlineText/CodeBlock and into part 2's mention helpers above, which stay MARROW_STUB until
     // part 2 and the sibling StreamVeil/ProseRunView/LinkParagraphView units land (see the unit's dependency
     // cycle note); this body is otherwise complete and does not stand in for any of them.
-    public MarkdownBlockView(MarkdownBlock block, bool settled = false)
+    public MarkdownBlockView(MarkdownBlock block, bool settled = false, MarkdownVeilScope? veils = null)
     {
         Block = block;
         Settled = settled;
+        this.veils = veils;
         Child = Build(block);
     }
+
+    // PORT-ONLY (UI-THEME-047): where this block's veils live (see MarkdownView); null for a view that is not rebuilt flush after flush.
+    private readonly MarkdownVeilScope? veils;
 
     // Each list row's marker and each nested block of a list, kept so the markers follow the environment.
     private readonly List<(StackPanel Row, bool Ordered, int Number, bool? Checked)> markerRows = [];
@@ -551,7 +557,7 @@ public sealed class MarkdownBlockView : Decorator
         {
             case MarkdownBlock.Heading heading: // :302-304
             {
-                var text = new InlineText(heading.Text).Font(HeadingFont(heading.Level));
+                var text = new InlineText(heading.Text, veils: veils).Font(HeadingFont(heading.Level));
                 text.Margin = new Thickness(0, heading.Level <= 2 ? 6 : 2, 0, 0);
                 return text;
             }
@@ -560,15 +566,15 @@ public sealed class MarkdownBlockView : Decorator
                 var text = paragraph.Text;
                 var streaming = MarkdownView.GetMarkdownStreaming(this);
                 var listDepth = MarkdownView.GetMarkdownListDepth(this);
-                if (RichLink.ContainsLinks(text, streaming)) return new InlineText(text, hasLinks: true); // :313
-                if (!streaming && listDepth == 0 && MentionsTarget(text)) return new InlineText(text, hasLinks: true); // :314
+                if (RichLink.ContainsLinks(text, streaming)) return new InlineText(text, hasLinks: true, veils: veils); // :313
+                if (!streaming && listDepth == 0 && MentionsTarget(text)) return new InlineText(text, hasLinks: true, veils: veils); // :314
                 if (listDepth == 0 && MentionSegments(text) is { } segments) // :315-319
                 {
-                    var veiled = new VeiledText(segments); // .modifier(MarkdownBlockSelection()) is identity (:1010-1012)
+                    var veiled = new VeiledText(segments, veils); // .modifier(MarkdownBlockSelection()) is identity (:1010-1012)
                     veiled.HorizontalAlignment = HorizontalAlignment.Stretch; // :318 frame(maxWidth: .infinity, alignment: .leading)
                     return veiled;
                 }
-                return new InlineText(text, hasLinks: false); // :320
+                return new InlineText(text, hasLinks: false, veils: veils); // :320
             }
             case MarkdownBlock.Code code: // :321-333
             {
@@ -586,7 +592,7 @@ public sealed class MarkdownBlockView : Decorator
                     card.IsHitTestVisible = !leaving; // :329
                     return card;
                 }
-                return new CodeBlock(code.Language, code.CodeText); // :331, and B3's new no-renderer-yet fallback
+                return new CodeBlock(code.Language, code.CodeText, veils); // :331, and B3's new no-renderer-yet fallback
             }
             case MarkdownBlock.List list: // :334-353
             {
@@ -602,10 +608,11 @@ public sealed class MarkdownBlockView : Decorator
                     markerRows.Add((row, list.Ordered, list.Start + index, item.Checked));
                     var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 6 }; // :339
                     if (item.Text.Length > 0) // :340
-                        content.Children.Add(new InlineText(item.Text, hasLinks: RichLink.ContainsLinks(item.Text, MarkdownView.GetMarkdownStreaming(this))));
+                        content.Children.Add(new InlineText(item.Text, hasLinks: RichLink.ContainsLinks(item.Text, MarkdownView.GetMarkdownStreaming(this)), veils: veils?.Child("i" + index)));
+                    var childPlace = 0;
                     foreach (var child in item.Children) // :341-343
                     {
-                        var childView = new MarkdownBlockView(child);
+                        var childView = new MarkdownBlockView(child, veils: veils?.Child("i" + index + "." + childPlace++));
                         MarkdownView.SetMarkdownListDepth(childView, MarkdownView.GetMarkdownListDepth(this) + 1); // :345-346
                         listChildren.Add(childView);
                         content.Children.Add(childView);
@@ -624,9 +631,10 @@ public sealed class MarkdownBlockView : Decorator
                 }.RoundedRectangle(1.5, RoundedCornerStyle.Continuous);
                 capsule.Background = SwiftColor.Quaternary.Brush(capsule);
                 var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 8 }; // :358
+                var quotePlace = 0;
                 foreach (var child in quote.Blocks) // :359-361
                 {
-                    var childView = new MarkdownBlockView(child);
+                    var childView = new MarkdownBlockView(child, veils: veils?.Child("q" + quotePlace++));
                     MarkdownView.SetMarkdownDimmed(childView, true); // :364 .environment(\.markdownDimmed, true)
                     content.Children.Add(childView);
                 }
@@ -1614,7 +1622,7 @@ public sealed class InlineText : Decorator
     // sibling LinkParagraphView unit and stays MARROW_STUB (see the file header's dependency-cycle note); this
     // wiring is otherwise complete and does not stand in for it. The link-free branch (:1193-1198) similarly
     // depends on the sibling StreamVeil unit's VeiledText(AttributedString) constructor.
-    public InlineText(string source, bool? hasLinks = null, bool hugsContent = false)
+    public InlineText(string source, bool? hasLinks = null, bool hugsContent = false, MarkdownVeilScope? veils = null)
     {
         Source = source;
         HasLinks = hasLinks;
@@ -1646,7 +1654,8 @@ public sealed class InlineText : Decorator
                 mentions: personas,
                 targets: targets,
                 onOpenHead: url => OpenUrl?.Invoke(url), // :1148 { url in openURL(url) }
-                onHost: view => hostTextView = view); // :1148 { [weak linkBox] view in linkBox?.value = view }
+                onHost: view => hostTextView = view, // :1148 { [weak linkBox] view in linkBox?.value = view }
+                veils: veils); // PORT-ONLY (UI-THEME-047)
             linkView.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
             // :1159-1188 the continuous hover: pushes/pops the pointing hand over a link, shows/hides the head
             // hover card over a mention, only on change (PR-THEME-144). B3 :1159-1160 moves this into the shared
@@ -1667,7 +1676,7 @@ public sealed class InlineText : Decorator
         }
         else // :1193-1198
         {
-            var veiled = new VeiledText(RichLink.PrettyAttributed(source, streaming)); // :1203
+            var veiled = new VeiledText(RichLink.PrettyAttributed(source, streaming), veils); // :1203
             var selected = new MarkdownBlockSelection().Body(veiled); // :1204 .modifier(MarkdownBlockSelection())
             selected.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1206
             child = selected;
@@ -1782,14 +1791,14 @@ public sealed class CodeBlock : Decorator
     // :1278-1321 body. UI-THEME-034 to 037. The code text itself renders through VeiledText(verbatim:), the
     // sibling StreamVeil unit's own MARROW_STUB (see the file header's dependency-cycle note); this wiring is
     // otherwise complete and does not stand in for it.
-    public CodeBlock(string? language, string code)
+    public CodeBlock(string? language, string code, MarkdownVeilScope? veils = null)
     {
         var hover = new BlockHover(); // :1270 @State private var hover = BlockHover()
         var state = new ViewState();
 
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 }; // :1281
-        stack.Track(() => state.ShowsAll, _ => Rebuild(stack, language, code, hover, state));
-        Rebuild(stack, language, code, hover, state);
+        stack.Track(() => state.ShowsAll, _ => Rebuild(stack, language, code, hover, state, veils));
+        Rebuild(stack, language, code, hover, state, veils);
 
         var background = new Border { Child = stack }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1317
         background.Background = SwiftColor.Quaternary.Opacity(0.45).Brush(background); // :1317
@@ -1798,7 +1807,7 @@ public sealed class CodeBlock : Decorator
         Child = background;
     }
 
-    private static void Rebuild(StackPanel stack, string? language, string code, BlockHover hover, ViewState state)
+    private static void Rebuild(StackPanel stack, string? language, string code, BlockHover hover, ViewState state, MarkdownVeilScope? veils)
     {
         stack.Children.Clear();
         var newlines = Encoding.UTF8.GetBytes(code).Count(b => b == 0x0A); // :1281 code.utf8.count { $0 == 0x0A }
@@ -1818,7 +1827,7 @@ public sealed class CodeBlock : Decorator
         header.Margin = new Thickness(12, 6, 6, 0); // :1293-1295 leading 12, trailing 6, top 6
         stack.Children.Add(header);
 
-        var veiled = new VeiledText(visible).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced)); // :1299-1300
+        var veiled = new VeiledText(visible, veils).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced)); // :1299-1300
         var selected = new MarkdownBlockSelection().Body(veiled); // :1301
         selected.Margin = new Thickness(12, 4, 12, 12); // :1302-1304 horizontal 12, bottom 12, top 4
         var scroll = new ScrollViewer

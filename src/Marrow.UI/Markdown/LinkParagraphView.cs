@@ -46,13 +46,15 @@ public sealed class LinkParagraphView : Decorator
         IReadOnlyList<HydraPersona>? mentions = null,
         IReadOnlyDictionary<string, HydraMentionTarget>? targets = null,
         Action<SwiftURL>? onOpenHead = null,
-        Action<LinkTextView>? onHost = null)
+        Action<LinkTextView>? onHost = null,
+        MarkdownVeilScope? veils = null)
     {
         _ = revision;
         var view = new LinkTextView
         {
             OnOpenHead = onOpenHead,
         };
+        if (veils is not null) view.StreamVeil = veils.Link(); // PORT-ONLY (UI-THEME-047): the veil of this place, kept through the flushes (MarkdownVeils)
         view.RenderText(source, pointSize, dimmed, streaming, mentions ?? [], targets ?? new Dictionary<string, HydraMentionTarget>());
         Child = view;
         onHost?.Invoke(view);
@@ -454,8 +456,9 @@ public sealed class LinkTextView : Decorator
     // :287 var onOpenHead: ((URL) -> Void)?
     public Action<SwiftURL>? OnOpenHead { get; set; }
 
-    // :290 let streamVeil = LinkTextVeil()
-    public LinkTextVeil StreamVeil { get; } = new();
+    // :290 let streamVeil = LinkTextVeil(). PORT-ONLY (UI-THEME-047): a row that builds its markdown again for every flush hands every flush's
+    // view the veil of its place (MarkdownVeils), which SwiftUI keeps by identity through the updates (updateNSView keeps its view and its veil).
+    public LinkTextVeil StreamVeil { get; internal set; } = new();
 
     // NSTextView.delegate: set to the coordinator by ProseRunView.swift:49 (and LinkParagraphView.swift:28, which this
     // unit's port has not wired); a link click asks it first (NSTextViewDelegate.textView(_:clickedOnLink:at:)).
@@ -1016,8 +1019,20 @@ public sealed class LinkTextView : Decorator
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        StreamVeil.Update(this, active: false);
+        ApplyVeil();
     }
+
+    // :55-57 `view.streamVeil.update(view, active: veiled)` after the text is in place, with the environment's \.markdownVeiled (StreamVeil.swift:150): the
+    // veil reads what the view holds now. UI-THEME-047: this used to pass `active: false` on attach and never ran again, so no arriving
+    // characters were ever registered. The view paints here once it is in the tree (its text blocks exist), and again whenever the environment
+    // changes (the coordinator's `lastVeiled`, :44).
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == global::Marrow.UI.Markdown.StreamVeil.MarkdownVeiledProperty && Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(this)) ApplyVeil();
+    }
+
+    private void ApplyVeil() => StreamVeil.Update(this, global::Marrow.UI.Markdown.StreamVeil.GetMarkdownVeiled(this));
 
     // :350 override func resetCursorRects()
     protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)

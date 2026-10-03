@@ -236,13 +236,87 @@ public sealed class VeilClock : MainActorModel
     {
         if (ScrollActivity.Shared.Current.IsScrolling) return;
 
-        Set(ref now, SwiftDate.Now);
+        // `now` is the observable property (:166 `private(set) var now`): Set takes the CALLER's name by default, which here is Tick, so without
+        // the property named the paragraphs that read Now (VeiledText's Track, :287) were never told it moved and no frame after the first was drawn.
+        Set(ref now, SwiftDate.Now, property: nameof(Now));
         if (deadline is not { } end || now < end) return;
 
         link?.Invalidate();
         link = null;
         deadline = null;
     }
+}
+
+/// <summary>
+/// PORT-ONLY. ENGINEERING DECISION (proposed ED; UI-THEME-047). SwiftUI keeps <c>@State private var veil</c> of every VeiledText
+/// (StreamVeil.swift:245) and <c>let streamVeil</c> of every link paragraph's text view (LinkParagraphView.swift:290) through all the
+/// evaluations of a streaming reply's body: a view's identity is its place in the tree (<c>ForEach(..., id: \.offset)</c>,
+/// MarkdownView.swift:87), so each flush re-evaluates the body and the SAME veil sees the longer text and registers what was appended
+/// (LinkParagraphView.swift:42, :55-57 feeds it after every render). The port builds a message's whole markdown tree again for every
+/// flush (AssistantMessageRow, Narration, the thinking steps), so every VeiledText and LinkTextView was born new, adopted its text as the
+/// baseline and could never see an append: the fade never ran in the app. A MarkdownVeils is the identity such a row keeps for its tree: one
+/// StreamVeil per VeiledText place and one LinkTextVeil per link paragraph place, named by the builders (<see cref="MarkdownVeilScope"/>), alive
+/// as long as the row is on screen. When the row leaves the screen <see cref="Reset"/> forgets them all, as SwiftUI drops the state of a view
+/// that leaves the hierarchy: what is on screen when the row comes back is adopted as the baseline again (StreamVeil.swift:18-19).
+/// </summary>
+public sealed class MarkdownVeils
+{
+    private sealed class TextPlace
+    {
+        public StreamVeil Veil { get; } = new();
+        public VeiledText? Owner { get; set; }
+    }
+
+    private readonly Dictionary<string, TextPlace> text = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, LinkTextVeil> links = new(StringComparer.Ordinal);
+
+    /// <summary>The scope of the whole tree; the builders extend it place by place.</summary>
+    public MarkdownVeilScope Root => new(this, "");
+
+    // The newest VeiledText of a place owns its veil: the one a flush replaced must feed it nothing more.
+    internal StreamVeil ClaimText(string place, VeiledText owner)
+    {
+        if (!text.TryGetValue(place, out var known)) text[place] = known = new TextPlace();
+        known.Owner = owner;
+        return known.Veil;
+    }
+
+    internal bool OwnsText(string place, VeiledText owner) => text.TryGetValue(place, out var known) && ReferenceEquals(known.Owner, owner);
+
+    internal LinkTextVeil Link(string place)
+    {
+        if (!links.TryGetValue(place, out var known)) links[place] = known = new LinkTextVeil().Retain();
+        return known;
+    }
+
+    /// <summary>The row is leaving the screen: forgets every text and chunk, stops the paint clocks.</summary>
+    public void Reset()
+    {
+        foreach (var place in text.Values) place.Veil.Reset();
+        foreach (var veil in links.Values) veil.Reset();
+    }
+}
+
+/// <summary>PORT-ONLY. A place in a <see cref="MarkdownVeils"/>: the path of block, item and quote indices from the markdown view down to it.</summary>
+public sealed class MarkdownVeilScope
+{
+    private readonly MarkdownVeils store;
+    private readonly string path;
+
+    internal MarkdownVeilScope(MarkdownVeils store, string path)
+    {
+        this.store = store;
+        this.path = path;
+    }
+
+    /// <summary>The place named <paramref name="name"/> under this one.</summary>
+    public MarkdownVeilScope Child(string name) => new(store, path + "/" + name);
+
+    internal StreamVeil ClaimText(VeiledText owner) => store.ClaimText(path, owner);
+
+    internal bool OwnsText(VeiledText owner) => store.OwnsText(path, owner);
+
+    internal LinkTextVeil Link() => store.Link(path);
 }
 
 /// <summary>DroppyCode/UI/Markdown/StreamVeil.swift:200-339.</summary>
@@ -287,7 +361,11 @@ public sealed class VeiledText : Decorator
         public sealed record Prose(AttributedText Value) : Segment; // StreamVeil.swift:231
     }
 
-    private readonly StreamVeil veil = new(); // StreamVeil.swift:245
+    // StreamVeil.swift:245 @State private var veil = StreamVeil(). In SwiftUI it lives as long as the view's place in the tree, through every
+    // evaluation of the body; here a new VeiledText is built for every flush of a streaming reply, so a row that rebuilds its markdown passes
+    // the place's veil in (MarkdownVeils, UI-THEME-047). Without one, the veil is this control's own.
+    private readonly StreamVeil veil;
+    private readonly MarkdownVeilScope? veils;
     private readonly IReadOnlyList<Segment>? segments; // StreamVeil.swift:237
     private readonly Source source; // StreamVeil.swift:229
     // StreamVeil.swift:245. A SwiftUI Text wraps at the width it is offered (no lineLimit anywhere in :200-339), and an
@@ -303,24 +381,28 @@ public sealed class VeiledText : Decorator
     public ValueList<int> ProseEnds { get; } = ValueList<int>.Empty;
 
     // StreamVeil.swift:253-265,273-279.
-    public VeiledText(IReadOnlyList<Segment> segments)
+    public VeiledText(IReadOnlyList<Segment> segments, MarkdownVeilScope? veils = null)
     {
         this.segments = segments;
         hasSegments = true;
         source = new Source.Attributed(JoinProse(segments, out var ends));
         ProseEnds = new ValueList<int>(ends);
+        this.veils = veils;
+        veil = veils?.ClaimText(this) ?? new StreamVeil();
         Build();
     }
 
     // StreamVeil.swift:247-251.
-    public VeiledText(AttributedText attributed) : this([new Segment.Prose(attributed)])
+    public VeiledText(AttributedText attributed, MarkdownVeilScope? veils = null) : this([new Segment.Prose(attributed)], veils)
     {
     }
 
     // StreamVeil.swift:267-271,273-279.
-    public VeiledText(string verbatim)
+    public VeiledText(string verbatim, MarkdownVeilScope? veils = null)
     {
         source = new Source.Plain(verbatim);
+        this.veils = veils;
+        veil = veils?.ClaimText(this) ?? new StreamVeil();
         Build();
     }
 
@@ -335,7 +417,7 @@ public sealed class VeiledText : Decorator
             {
                 if (wasFading) Redraw();
             });
-        Redraw();
+        Redraw(environmentKnown: false);
     }
 
     // StreamVeil.swift:243-244.
@@ -346,10 +428,14 @@ public sealed class VeiledText : Decorator
             Redraw();
     }
 
-    // StreamVeil.swift:273-279.
-    private void Redraw()
+    // StreamVeil.swift:273-279. `environmentKnown` is PORT-ONLY: the first draw runs in the constructor, before this control has a parent, so
+    // \.markdownVeiled still reads its default (false) and says nothing about the reply; that draw only paints (a veil kept from the last flush
+    // may still be dissolving) and never forgets what the veil holds. The environment arrives with the property change that follows.
+    private void Redraw(bool environmentKnown = true)
     {
         if (isRedrawing) return;
+        // A later flush built a newer VeiledText for this place and took the veil over; this one is on its way out of the tree and feeds it nothing.
+        if (veils is not null && !veils.OwnsText(this)) return;
         isRedrawing = true;
         try
         {
@@ -364,7 +450,7 @@ public sealed class VeiledText : Decorator
             }
             else
             {
-                if (!StreamVeil.GetMarkdownVeiled(this)) veil.Reset();
+                if (environmentKnown && !StreamVeil.GetMarkdownVeiled(this)) veil.Reset();
                 result = SettledText();
             }
 
@@ -646,11 +732,34 @@ public sealed class LinkTextVeil
     // of accumulating splits, and Clear() can restore them exactly.
     private readonly Dictionary<TextBlock, List<Inline>> painted = new();
     private WeakReference<LinkTextView>? tickTarget; // StreamVeil.swift:374
+    // PORT-ONLY (UI-THEME-047): a veil kept by a MarkdownVeils outlives the text views that draw it, since the port builds a new one for every
+    // flush; see Detach and Reset.
+    private bool retained;
+
+    internal LinkTextVeil Retain()
+    {
+        retained = true;
+        return this;
+    }
+
+    /// <summary>PORT-ONLY. Forgets the text and every chunk, stops the clock and lets go of the view: the owner of a retained veil
+    /// (<see cref="MarkdownVeils.Reset"/>) calls this when its row leaves the screen.</summary>
+    public void Reset()
+    {
+        displayLink?.Invalidate();
+        displayLink = null;
+        painted.Clear();
+        tickTarget = null;
+        veil.Reset();
+    }
 
     // StreamVeil.swift:354-367.
     public void Update(LinkTextView view, bool active)
     {
         var now = SwiftDate.Now;
+        // PORT-ONLY (UI-THEME-047): a view that is leaving is told the environment it no longer has (the reply is not streaming for it) on its way
+        // out; it must not take a kept veil away from the view that feeds it. Only a view that feeds the veil takes it over from another.
+        if (retained && !active && tickTarget is { } held && held.TryGetTarget(out var holder) && !ReferenceEquals(holder, view)) return;
         if (veil.Step(() => TextOf(view), active, now))
         {
             Paint(view, now);
@@ -668,8 +777,24 @@ public sealed class LinkTextVeil
         }
     }
 
-    // StreamVeil.swift:370-372.
-    public void Detach(LinkTextView view) => Settle(view, false);
+    // StreamVeil.swift:370-372. PORT-ONLY (UI-THEME-047): the view of a retained veil leaves the tree with every flush, as the next flush's view takes
+    // its place (the Child swap detaches the old tree before the new one is attached); the veil's text and chunks belong to the place and are
+    // forgotten only by Reset when the row leaves the screen, so this lets go of the view alone. A view that is not the veil's current one
+    // (a newer view already took it over) touches nothing.
+    public void Detach(LinkTextView view)
+    {
+        if (!retained)
+        {
+            Settle(view, false);
+            return;
+        }
+
+        if (tickTarget is { } target && target.TryGetTarget(out var current) && !ReferenceEquals(current, view)) return;
+        displayLink?.Invalidate();
+        displayLink = null;
+        painted.Clear();
+        tickTarget = null;
+    }
 
     // StreamVeil.swift:376-392.
     private void Tick()

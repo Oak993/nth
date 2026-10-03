@@ -1554,6 +1554,10 @@ public sealed class AssistantMessageRow : Decorator
     // whenever the text or the streaming flag moves (MarkdownView's .equatable(), :1364), the hover state surviving.
     public AssistantMessageRow(TimelineEntry entry, TurnSummary? summary, ThreadRuntime runtime)
     {
+        // PORT-ONLY (UI-THEME-047): the body is built again for every flush, so the veils of the reply's paragraphs (SwiftUI's @State, StreamVeil.swift:245)
+        // live here, through the rebuilds, for as long as the row is on screen.
+        var veils = new MarkdownVeils();
+        DetachedFromVisualTree += (_, _) => veils.Reset();
         AssistantMessage? built = null;
         void Build(TimelineItem.Content content)
         {
@@ -1566,17 +1570,17 @@ public sealed class AssistantMessageRow : Decorator
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return;
             built = message;
-            Child = Body(message, summary, runtime, state);
+            Child = Body(message, summary, runtime, state, veils.Root);
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
     }
 
     // :1363-1388
-    private static Control Body(AssistantMessage message, TurnSummary? summary, ThreadRuntime runtime, ViewState state)
+    private static Control Body(AssistantMessage message, TurnSummary? summary, ThreadRuntime runtime, ViewState state, MarkdownVeilScope veils)
     {
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, Background = Brushes.Transparent }; // :1363
-        column.Children.Add(new MarkdownView(message.Text, message.IsStreaming)); // :1364
+        column.Children.Add(new MarkdownView(message.Text, message.IsStreaming, veils)); // :1364
         // :1365-1374 one side for both kinds of message: the summary sits where the copy control used to be.
         // :1367 HStack(spacing: 8) with its default .center alignment: the summary sits on the centre line of the 22-point
         // line (UI-CHAT-019); a plain horizontal StackPanel stretched it to the top of the slot.
@@ -1901,6 +1905,8 @@ public sealed class WorkSteps : Decorator
     private static Control Narration(TimelineEntry entry)
     {
         var host = new Decorator();
+        var veils = new MarkdownVeils(); // PORT-ONLY (UI-THEME-047): the narration's veils, kept through the rebuilds for as long as it is on screen
+        host.DetachedFromVisualTree += (_, _) => veils.Reset();
         AssistantMessage? built = null;
         void Build(TimelineItem.Content content)
         {
@@ -1913,7 +1919,7 @@ public sealed class WorkSteps : Decorator
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return; // :1549 .equatable()
             built = message;
-            var markdown = new MarkdownView(message.Text, message.IsStreaming); // :1549
+            var markdown = new MarkdownView(message.Text, message.IsStreaming, veils.Root); // :1549
             TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(markdown)); // :1550
             MarkdownView.SetMarkdownPointSize(markdown, 12); // :1551
             MarkdownView.SetMarkdownDimmed(markdown, true); // :1552
