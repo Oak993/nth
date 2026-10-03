@@ -695,10 +695,14 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // :1111-1120 the outcome pill's report: the merge card only when the body leads with a merge request address that
     // parses AND the details hold a files line; anything else, the generic report of the whole body. Opened by a real
     // click on the title, for the merged note and for the merge-failed note (TimelineRowsFinMergeOutcomeTests covers the
-    // remaining three-way cases and the report's geometry).
+    // remaining three-way cases and the report's geometry). The generic report has text selection on (:633): every text in
+    // it selects, and a selection is drawn in the system's selected-text colour, a paragraph with a link among them (the
+    // third note: the shape of AppModel+HydraMerge.swift's merge-failed body, its error naming a job with a link; the link
+    // text's NSTextView, LinkParagraphView.swift:312-313; review round 4).
     [Theory]
     [InlineData("Hydra merged !7.\nhttps://gitlab.com/g/p/-/merge_requests/7\n1 file (+2 −1) landed on `main` from `head`.", true)]
     [InlineData("Hydra opened !7 but could not merge it.\nhttps://gitlab.com/g/p/-/merge_requests/7\nThe pipeline failed on lint.", false)]
+    [InlineData("Hydra opened !7 but could not merge it.\nhttps://gitlab.com/g/p/-/merge_requests/7\n\nThe pipeline failed: see [the lint job](https://gitlab.com/g/p/-/jobs/12).\n\nThe next try brings the request up to date with `main` and merges it.", false)]
     [Trait("Req", "PR-HYDRAMERGE-090")] // TimelineRows.swift:1111-1120, :607-640
     public void The_merged_note_opens_the_merge_card_and_the_merge_failed_note_the_generic_report(string text, bool merged) => headless.OnUiThread(() =>
     {
@@ -729,6 +733,22 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                     // :1117 HydraReportPopover(text: outcome.body): the whole body past the title, its address included.
                     Assert.Equal(MarkdownView.Blocks(text[(text.IndexOf('\n', StringComparison.Ordinal) + 1)..]),
                         LogicalQuery.SelfAndDescendants<MarkdownBlockView>(report).Select(block => block.Block).ToArray());
+                    // :633 .textSelection(.enabled): selectable, and a selection is drawn.
+                    if (text.Contains("](", StringComparison.Ordinal)) Assert.NotEmpty(report.GetVisualDescendants().OfType<LinkParagraphView>());
+                    var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                    Assert.NotEqual(0, system.A);
+                    var texts = report.GetVisualDescendants().OfType<SelectableTextBlock>().ToArray();
+                    var runs = report.GetVisualDescendants().OfType<ParagraphTextPresenter>().ToArray();
+                    Assert.NotEmpty(texts.Cast<Control>().Concat(runs));
+                    foreach (var selectable in texts)
+                    {
+                        selectable.SelectAll();
+                        Assert.False(string.IsNullOrEmpty(selectable.SelectedText));
+                        Assert.True((selectable.SelectionBrush as Avalonia.Media.ISolidColorBrush)?.Color == system,
+                            $"the report's \"{selectable.Inlines?.Text ?? selectable.Text}\": the selection is drawn with {selectable.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
+                    }
+                    foreach (var run in runs)
+                        Assert.True((run.SelectionBrush as Avalonia.Media.ISolidColorBrush)?.Color == system, "a prose run of the report draws its selection with another brush");
                 }
             });
         }
