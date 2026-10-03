@@ -458,6 +458,23 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         typeof(ThreadTimeline).GetMethod("UpdateInputs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(mount.View, ["Project", null, false, columnHeight, showsMinimap]);
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-159 (the travel the veil is driven by is capped by what can scroll, so a short thread draws none and a barely scrollable one only as much as its excess); ThreadTimeline.swift:1365-1384 (travel), :488 (scrollChrome.update); Chrome.swift:568-579; map/CATALOGUE.md C 130-200 (short threads: no veil)
+    public void The_veil_follows_only_what_can_scroll_none_for_a_short_thread_and_the_excess_for_a_barely_tall_one() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        // A short thread: nothing to scroll, no veil, however the pane is sized.
+        mount.SetEntries(Turns(1, sentences: 4).ToList()); mount.Settle();
+        Assert.Equal(0, mount.Scroll.Extent.Height - mount.Scroll.Viewport.Height, 3); Assert.Equal(0, mount.Chrome.Progress);
+        // A thread whose content is 25 points taller than the pane: at the end the travel is 25 (the offset), 0 at the top.
+        mount.SetEntries(Turns(3, sentences: 8).ToList()); mount.Settle();
+        mount.Window.Height = mount.Scroll.Extent.Height - 25; mount.Advance(400);
+        var excess = mount.Scroll.Extent.Height - mount.Scroll.Viewport.Height; Assert.InRange(excess, 24, 26);
+        mount.Scroll.Offset = new Vector(0, excess); mount.Advance(400);
+        Assert.Equal(Math.Round((excess - 10) / 34 / 0.04) * 0.04, mount.Chrome.Progress, 6);
+        mount.Scroll.Offset = default; mount.Advance(400);
+        Assert.Equal(0, mount.Chrome.Progress);
+    });
+
+    [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-006 (the button is shown only while the end marker is out of sight); ThreadTimeline.swift:402-409 (the marker is 1 point tall: a whole point is in view or none of it, at whole-point offsets, so the 0.01 threshold itself is not told apart from others here)
     public void The_button_is_shown_exactly_while_the_one_point_end_marker_is_out_of_sight() => ThreadTimelineRig.Run(headless, mount =>
     {
