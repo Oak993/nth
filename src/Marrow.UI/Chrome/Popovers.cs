@@ -192,7 +192,7 @@ public sealed class PopoverNote : Decorator
     // :138-140 init(_ text: String); :142-149 body
     public PopoverNote(string text)
     {
-        var block = new TextBlock { Text = text }; // :143 Text(verbatim: text)
+        var block = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap }; // :143 Text(verbatim: text), no line limit: it wraps (2-chat-use.mov 152.6 s)
         SwiftFont.Callout.Apply(block); // :144
         block.Foreground = Chrome.SecondaryText.Brush(block); // :145
         block.Margin = new Thickness(8, 5); // :146-147

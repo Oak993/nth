@@ -7940,6 +7940,33 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         finally { WindowOf(popover).Close(); }
     });
 
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-026")] // SidebarView.swift:974; UI/Chrome/Popovers.swift:142-149 PopoverNote: a Text with no line limit wraps
+    [Trait("Req", "UI-GIT-057")] // the note under the question, over the 280 pt menu
+    // Measured beside 2-chat-use.mov 152.6 s (frames/gap-R1-07/d_confirm_hold): "“New thread” and its history will be /
+    // removed. Files in your project stay as they / are." wraps onto three lines inside the ~280 pt confirm; the port's
+    // note ran on one line and was cut at the menu's edge (evidence: E:\Droppy\work\parity\evidence\SidebarView\
+    // delete-note-*.png).
+    public void The_delete_questions_note_wraps_inside_the_280_point_menu_onto_the_lines_it_needs() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha"); var thread = NewThread(project, "New thread", 0);
+        var popover = (Control)Activator.CreateInstance(Private("DeleteThreadPopover"), thread, (Action<bool>)(_ => { }))!;
+        popover.HorizontalAlignment = HorizontalAlignment.Left;
+        popover.VerticalAlignment = VerticalAlignment.Top;
+        new AvaloniaWindow { Content = popover, Width = 300, Height = 160, RequestedThemeVariant = ThemeVariant.Dark, Background = new SolidColorBrush(Color.FromRgb(70, 66, 62)) }.Show(); // about the video's glass grey, for the side-by-side
+        try
+        {
+            WindowOf(popover).UpdateLayout();
+            SidebarCaptureTests.SaveIfAsked(WindowOf(popover), "delete-note-port.png");
+            var note = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text!.EndsWith("stay as they are.", StringComparison.Ordinal));
+            Assert.Equal(TextWrapping.Wrap, note.TextWrapping);
+            Assert.True(note.Bounds.Width <= 280 - 2 * 6 - 2 * 8); // wrapped inside the menu's inner width less the note's own 8 pt sides
+            Assert.Equal(3, note.TextLayout.TextLines.Count); // as the Mac draws it at this width
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
     // STOP opencode-App.Views.Sidebar.SidebarView #12 (successor review of uncommitted predecessor draft)
     // Rule: R-TEST-6, real popup dismissal probe (App/Views/Sidebar/SidebarView.swift:219-232,256-263). A
     // draft test ("Real_delete_popover_dismissal_keeps_the_thread_and_confirmation_waits_for_content_to_leave")
