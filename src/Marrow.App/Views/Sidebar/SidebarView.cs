@@ -3959,6 +3959,8 @@ internal sealed class ActivityViewToggle : Decorator
         glyph.Width = 30; // :2328 .frame(width: 30, height: 30)
         glyph.Height = 30;
         glyph.IsHitTestVisible = false;
+        var glyphColor = new AnimatedColor(glyph);
+        glyph.Foreground = glyphColor.Brush;
         var label = new Panel { Width = 30, Height = 30, Children = { circle, glyph } };
         var button = PlainControls.Button(label, () => // :2322-2324, :2335 .buttonStyle(.plain)
             Transaction.WithAnimation(Chrome.PanelSlide, () => isOn.Value = !isOn.Value));
@@ -3968,7 +3970,7 @@ internal sealed class ActivityViewToggle : Decorator
         button.Track(() => (isOn.Value, state.IsHovering, ShortcutStore.Shared.Current.Chord(AppShortcut.ToggleActivityView)), value =>
         {
             var (on, hovering, chord) = value;
-            glyph.ForegroundStyle(on ? Chrome.Accent : Chrome.SecondaryText); // :2327
+            glyphColor.Set(on ? Chrome.Accent : Chrome.SecondaryText, Transaction.Current); // :2327, eased with the toggle's panelSlide (:2323)
             fill.Set(on ? Chrome.Accent.Opacity(0.16) : (hovering ? Chrome.Overlay(0.08) : SwiftColor.Clear), Transaction.Current); // :2331
             // :2321 DEVIATION OD-0008 B7: the chord's description is Windows notation (Ctrl+Alt+U), Shortcuts.cs.
             var hint = chord is { } bound ? " (" + bound.Description + ")" : "";

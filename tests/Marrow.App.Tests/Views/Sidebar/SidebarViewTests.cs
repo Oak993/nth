@@ -7536,6 +7536,55 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-004")] // SidebarView.swift:2323 withAnimation(Chrome.panelSlide) { isOn.toggle() } drives :2327 and :2331
+    public void The_bells_glyph_turns_to_the_accent_with_its_disc_on_panelSlide_and_the_on_disc_wins_over_hover() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var model = harness.MakeModel();
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        var button = ButtonNamed(view, "Activity view");
+        var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(button).Single();
+        var circle = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(button).Single();
+        Color GlyphColor() => ((ISolidColorBrush)glyph.Foreground!).Color;
+        Color DiscColor() => ((ISolidColorBrush)circle.Fill!).Color;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant), GlyphColor()); // :2327 off
+                window.MouseMove(button.TranslatePoint(new Point(15, 15), window)!.Value);
+            });
+            Tick(300);
+            harness.Main.OnMain(() => PointerClick(button)); // :2323 inside Chrome.panelSlide
+            Tick(50);
+            harness.Main.OnMain(() =>
+            {
+                var off = Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant);
+                var on = Chrome.Accent.Resolve(glyph.ActualThemeVariant);
+                Assert.NotEqual(off, GlyphColor()); // on its way along the spring, not cut at either end
+                Assert.NotEqual(on, GlyphColor());
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Chrome.Accent.Resolve(glyph.ActualThemeVariant), GlyphColor()); // :2327 on
+                Assert.Equal(Chrome.Accent.Opacity(0.16).Resolve(circle.ActualThemeVariant), DiscColor()); // :2331 on wins over the hover's 0.08
+                Assert.True(button.IsPointerOver);
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
     // PR-SIDEBAR-019: the ED-218 foundation has landed; this caller proof must go red before wiring it.
     // The record's pinned capture comparison is still STOP #10, so this test has no Req trait.
     [Theory]
