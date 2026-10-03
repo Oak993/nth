@@ -2287,7 +2287,10 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
             using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
             Loaded(h, h.Runtime);
-            var script = ProviderProbeStandIns.CopyFor("composer-retry-fails-again").SetExitCode(1);
+            // The recording of the stand-in is taken under its folder lock (WaitForRelease, then released at once, so no listing is held): a listing and
+            // the runtime's session warm-up are separate processes, and without the lock two of them can claim one call number and lose a record.
+            var script = ProviderProbeStandIns.CopyFor("composer-retry-fails-again").SetExitCode(1).WaitForRelease();
+            script.Release();
             var directory = h.Store.NewFolder("retry-fails-again");
             h.Main.OnMain(() => h.App.Settings.SetBinaryPath(script.ExecutablePath, ProviderKind.Claude));
             var view = Pill(h, h.Runtime, directory);
