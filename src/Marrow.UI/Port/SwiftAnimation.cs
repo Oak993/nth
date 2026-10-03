@@ -152,6 +152,12 @@ public sealed record SwiftTransition
     {
         // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
+        // OD-0076 (no change by a cut): a removal that interrupts this child's insertion still in flight starts from where
+        // the insertion has brought the child, never from its identity. For a transition with no asymmetric part, the
+        // insertion's state at progress p is the removal's state at 1 - p (move, offset, scale, opacity, blur and modifier
+        // values are each interpolated linearly between the same two ends), so the removal runs from there to its end on its
+        // own curve. ED-NEW-parity-chatview (the drawer closed while it is still opening, ChatView.swift:276-279,290).
+        var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() ? 1 - state.LastProgress : 0;
         state.Stop();
         state.RemovalCompleted = completed;
         var wrapper = state.Wrapper ?? child;
@@ -171,10 +177,10 @@ public sealed record SwiftTransition
             throw new InvalidOperationException(
                 "A child with a modifier transition can leave with an animation only after SwiftTransition.Insert built its wrappers.");
         state.RemovingFrom = panel;
-        state.Present(child, 0, inserting: false);
+        state.Present(child, from, inserting: false);
         state.Run(animation, (p, complete) =>
         {
-            state.Present(child, p, inserting: false);
+            state.Present(child, from + (1 - from) * p, inserting: false);
             if (!complete) return;
             if (panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
@@ -195,6 +201,16 @@ public sealed record SwiftTransition
         Kind.Pair => first!.Touches(inserting) || second!.Touches(inserting),
         Kind.Asym => inserting ? first!.Touches(inserting) : second!.Touches(inserting),
         _ => true,
+    };
+
+    // Whether an `.asymmetric` sits anywhere in the tree: its insertion and removal states then differ, and an insertion's
+    // progress names no removal state.
+    private bool HasAsymmetricPart() => kind switch
+    {
+        Kind.Asym => true,
+        Kind.Animated => first!.HasAsymmetricPart(),
+        Kind.Pair => first!.HasAsymmetricPart() || second!.HasAsymmetricPart(),
+        _ => false,
     };
 
     // The modifier transitions in the tree, counted in the order CreateBody and Gather walk it.
@@ -367,6 +383,10 @@ public sealed record SwiftTransition
         private double lastProgress;
         private bool lastInserting;
         private EventHandler<AvaloniaPropertyChangedEventArgs>? awaitingSize;
+
+        /// <summary>An insertion is still running: its frames are requested and it presents the inserting side.</summary>
+        public bool InsertionInFlight => callback is not null && lastInserting;
+        public double LastProgress => lastProgress;
 
         // Applies the transition at a progress. When a move could not read the child's size yet, the latest state is
         // presented again at the child's next bounds change (its first layout pass), before it is rendered.
