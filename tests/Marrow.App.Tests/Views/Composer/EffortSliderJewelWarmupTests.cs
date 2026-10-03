@@ -780,9 +780,10 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
         Assert.NotEqual(GpuProgramCache.BuildOf(module, natives), GpuProgramCache.BuildOf(module, ["libSkiaSharp.dll 3.119.1.0 11264000", natives[1]]));
         Assert.NotEqual(GpuProgramCache.BuildOf(module, natives), GpuProgramCache.BuildOf(module, [natives[0], "av_libglesv2.dll 2.1.25000.0 5120512"]));
         Assert.NotEqual(GpuProgramCache.BuildOf(module, natives), GpuProgramCache.BuildOf(Guid.NewGuid().ToString("N"), natives));
-        // this build's: the libraries as installed beside it (here under runtimes\<rid>\native), each found
+        // this build's: the libraries as installed beside it (here under runtimes\<rid>\native), each found with its version
+        // as its file says it ("no version" where it carries none: libSkiaSharp) and its size
         var installed = GpuProgramCache.NativeLibraries.Select(GpuProgramCache.Installed).ToList();
-        Assert.All(installed, line => Assert.Matches(@"^\S+\.dll \S+ \d+$", line));
+        Assert.All(installed, line => Assert.Matches(@"^\S+\.dll .+ \d+$", line));
         Assert.Equal(GpuProgramCache.BuildOf(module, installed), GpuProgramCache.Build);
     }
 
