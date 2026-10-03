@@ -39,7 +39,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var slider = new EffortSlider(3, new Binding<int>(() => chosen, value => chosen = value), "Low");
             var window = Show(slider);
             var origin = slider.TranslatePoint(default, window)!.Value;
-            var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 42 && p.Height == 42);
+            var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 48 && p.Height == 48); // OD-0090: the knob is 48, not :713's 42
             window.MouseDown(new Point(origin.X + 100, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             Assert.Equal(1, Assert.IsType<ScaleTransform>(knob.RenderTransform).ScaleX); // spring begins at the resting size
             time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
@@ -48,7 +48,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             window.MouseUp(new Point(origin.X + 100, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             Assert.Equal(draggedLeft, Canvas.GetLeft(knob)); // not a jump to the snapped centre
             time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
-            Assert.Equal(144, Canvas.GetLeft(knob)); // width330, inset21, selected1 => centre165 minus21
+            Assert.Equal(141, Canvas.GetLeft(knob)); // width330, inset24 (OD-0090), selected1 => centre165 minus24
             Assert.Equal(1, Assert.IsType<ScaleTransform>(knob.RenderTransform).ScaleX);
             window.Close();
         });
@@ -644,7 +644,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var texts = window.GetVisualDescendants().OfType<TextBlock>().ToArray();
             Assert.Contains(texts, text => text.Text == "Standard");
             var note = Assert.Single(texts, text => text.Text == "This model has one reasoning level.");
-            Assert.Equal(42, note.Height);
+            Assert.Equal(48, note.Height); // OD-0090: the thumb size the note takes is the 48 px knob
             Assert.Equal(12, note.FontSize);
             Assert.Empty(window.GetVisualDescendants().OfType<EffortSlider>());
             window.Close();
@@ -714,7 +714,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var selected = 0;
             var slider = new EffortSlider(3, new Binding<int>(() => selected, value => selected = value), "Low");
             var window = Show(slider);
-            Assert.Equal(42, slider.Height);
+            Assert.Equal(48, slider.Height); // OD-0090: the control is as tall as the 48 px knob
             var bounds = new Rect(slider.TranslatePoint(default, window)!.Value, slider.Bounds.Size);
             window.MouseDown(new Point(bounds.X + 21, bounds.Center.Y), MouseButton.Left, RawInputModifiers.None);
             window.MouseMove(new Point(bounds.X + bounds.Width / 2, bounds.Center.Y), RawInputModifiers.None);
@@ -1180,7 +1180,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         var box = new ObservableIntBox { Value = index };
         var slider = new EffortSlider(3, box.AsBinding(), "Title", fast, brand);
         var window = Show(slider);
-        var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 42 && p.Height == 42);
+        var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 48 && p.Height == 48); // OD-0090: 48, not :713's 42
         return (slider, box, knob, window);
     }
 
@@ -1201,9 +1201,9 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             window.MouseDown(new Point(origin.X + 200, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             Assert.Equal(0, Canvas.GetLeft(knob)); // no jump to the pointer
             time.Advance(TimeSpan.FromMilliseconds(60)); frames.Advance(TimeSpan.FromMilliseconds(60)); Dispatcher.UIThread.RunJobs();
-            Assert.InRange(Canvas.GetLeft(knob), 1, 178);
+            Assert.InRange(Canvas.GetLeft(knob), 1, 175);
             time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
-            Assert.Equal(179, Canvas.GetLeft(knob)); // pointer 200 minus the 21 point lens radius
+            Assert.Equal(176, Canvas.GetLeft(knob), 9); // pointer 200 minus the knob's 24 px radius (OD-0090)
             window.MouseUp(new Point(origin.X + 200, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             window.Close();
         });
@@ -1223,7 +1223,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:763-799 .animation(.smooth(duration: 0.3), value: look) covers the stops and the knob glow
+    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:763-799 .animation(.smooth(duration: 0.3), value: look) covers the stops; the knob's glow (:780-784) is superseded by the Jewel orb (OD-0090)
     public void A_look_change_crossfades_the_stop_dots_and_the_knob_glow_too()
     {
         headless.OnUiThread(() =>
@@ -1234,21 +1234,17 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             using var clock = SwiftClock.Provider.Override(time);
             var (slider, _, _, window) = OpenSlider(2, fast: false, brand: EffortBrand.Silver);
             var stop = slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().First(e => e.Width == 5);
-            var glow = slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().First(e => e.Effect is not null);
+            // OD-0090: the source's blurred glow disc under the lens (:780-784) is gone with the lens: the Jewel knob has no glow
+            Assert.DoesNotContain(slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>(), e => e.Effect is not null);
             var stopBefore = ((ISolidColorBrush)stop.Fill!).Color;
-            var glowBefore = ((ISolidColorBrush)glow.Fill!).Color;
 
             slider.UpdateLook(true, "High", null); // silver maximum, then fast mode on: supercharged becomes fusion
             Assert.Equal(stopBefore, ((ISolidColorBrush)stop.Fill!).Color); // the crossfade starts from the old colours
-            Assert.Equal(glowBefore, ((ISolidColorBrush)glow.Fill!).Color);
             time.Advance(TimeSpan.FromMilliseconds(120)); frames.Advance(TimeSpan.FromMilliseconds(120)); Dispatcher.UIThread.RunJobs();
             var stopMid = ((ISolidColorBrush)stop.Fill!).Color;
-            var glowMid = ((ISolidColorBrush)glow.Fill!).Color;
             Assert.NotEqual(stopBefore, stopMid);
-            Assert.NotEqual(glowBefore, glowMid);
             time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
             Assert.NotEqual(stopMid, ((ISolidColorBrush)stop.Fill!).Color);
-            Assert.NotEqual(glowMid, ((ISolidColorBrush)glow.Fill!).Color);
             window.Close();
         });
     }
@@ -1270,9 +1266,9 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs(); // the tracked index change reaches the slider
             Assert.Equal(0, Canvas.GetLeft(knob)); // not a jump to the last stop
             time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
-            Assert.InRange(Canvas.GetLeft(knob), 1, 287);
+            Assert.InRange(Canvas.GetLeft(knob), 1, 281);
             time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
-            Assert.Equal(288, Canvas.GetLeft(knob)); // width 330: inset 21, step 144, stop 2 centre 309 minus 21
+            Assert.Equal(282, Canvas.GetLeft(knob), 9); // width 330: inset 24 (OD-0090), step 141, stop 2 centre 306 minus 24
             window.Close();
         });
     }

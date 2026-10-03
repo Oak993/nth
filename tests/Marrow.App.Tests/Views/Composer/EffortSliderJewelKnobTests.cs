@@ -1,0 +1,327 @@
+using System.Text.Json;
+using Avalonia;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Composer;
+using Marrow.Core.Port;
+using Marrow.Testing;
+using Marrow.UI.Port;
+using SkiaSharp;
+
+namespace Marrow.App.Tests.Views.Composer;
+
+// Source: DroppyCode/App/Views/Composer/EffortSlider.swift (B3 52bc792), :711-837. DEVIATION OD-0090 (locked 2026-10-03,
+// E:/Droppy/work/design/jewel-knob-locked/jewel-knob.html): the knob is the Jewel orb, 1.4x the track's height; pressed on
+// the knob it lifts where it is, pressed on the track it springs to the pointer; it follows the drag and springs onto the
+// nearest stop on release. Frame-by-frame expectations come from the page's own spring() and makeSlider/stepSlider, run
+// with node by tests/fixtures/jewel-knob/expected.mjs (a 298 px track with four stops: the app's popover).
+[Collection("Headless")]
+public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
+{
+    private static Panel Knob(EffortSlider slider) => Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == EffortSlider.ThumbSize && p.Height == EffortSlider.ThumbSize);
+    private static Border Fill(EffortSlider slider) => Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
+
+    private static void AssertFrames(JewelRig rig, IEnumerable<JsonElement> expected)
+    {
+        foreach (var e in expected)
+        {
+            rig.Frame();
+            var t = e.GetProperty("t").GetDouble();
+            var x = e.GetProperty("x").GetDouble();
+            Assert.True(Math.Abs(rig.Slider.KnobX - x) < 1e-3, $"x at {t}: page {x}, port {rig.Slider.KnobX}");
+            Assert.True(Math.Abs(rig.Slider.KnobScale - e.GetProperty("scale").GetDouble()) < 1e-5, $"scale at {t}: page {e.GetProperty("scale")}, port {rig.Slider.KnobScale}");
+            Assert.True(Math.Abs(rig.Slider.LiftAmount - e.GetProperty("lift").GetDouble()) < 1e-4, $"lift at {t}");
+            Assert.Equal(e.GetProperty("index").GetInt32(), rig.Index.Value);
+            // what is drawn follows: the knob's box, its scale, the fill to its far edge
+            Assert.Equal(rig.Slider.KnobX - 24, Canvas.GetLeft(Knob(rig.Slider)), 9);
+            Assert.Equal(rig.Slider.KnobScale, Assert.IsType<ScaleTransform>(Knob(rig.Slider).RenderTransform).ScaleX, 9);
+            Assert.Equal(rig.Slider.KnobX + 24, Fill(rig.Slider).Width, 9);
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-713,740-760; DEVIATION OD-0090: the knob is 1.4 x the 34 px track, 48 px
+    [Trait("Decision", "ED-252")]
+    public void The_knob_is_one_point_four_times_the_track_and_the_control_is_as_tall_as_the_knob() => headless.OnUiThread(() =>
+    {
+        Assert.Equal(34, EffortSlider.TrackHeight);
+        Assert.Equal(EffortSlider.ThumbSize, Math.Round(1.4 * EffortSlider.TrackHeight));
+        Assert.Equal(48, EffortSlider.ThumbSize);
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        Assert.Equal(48, rig.Slider.Height);
+        var knob = Knob(rig.Slider);
+        Assert.Equal(RelativePoint.Center, knob.RenderTransformOrigin);
+        var track = Assert.Single(rig.Slider.GetVisualDescendants().OfType<Border>(), b => b.Height == 34 && b.Name != "EffortFill");
+        Assert.Equal(7, Canvas.GetTop(track)); // the knob stands proud of the track by 7 px above and below
+        Assert.Equal(298, track.Width);
+    });
+
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:743-748,756: stop centres a knob radius in from each end, the fill to the knob's far edge
+    [Trait("Decision", "ED-252")]
+    [InlineData(0, 24.0)]
+    [InlineData(1, 24 + 250.0 / 3)]
+    [InlineData(2, 24 + 500.0 / 3)]
+    [InlineData(3, 274.0)]
+    public void Each_stop_puts_the_knob_a_radius_in_and_the_fill_to_its_far_edge(int index, double centre) => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: index);
+        rig.Frame();
+        Assert.Equal(centre, rig.Slider.KnobX, 9);
+        Assert.Equal(centre - 24, Canvas.GetLeft(Knob(rig.Slider)), 9);
+        Assert.Equal(centre + 24, Fill(rig.Slider).Width, 9);
+        if (index == 0) Assert.Equal(0, Canvas.GetLeft(Knob(rig.Slider)), 9);       // flush with the track's start
+        if (index == 3) Assert.Equal(298, Fill(rig.Slider).Width, 9);               // and with its end
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:802-818 (spring 0.22/0.8 to the pointer, 0.32/0.78 back to the stop); OD-0090 page trackPress
+    [Trait("Decision", "ED-252")]
+    public void Pressing_the_track_springs_the_knob_to_the_pointer_and_release_springs_it_to_the_nearest_stop() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        var run = JewelFixtures.Expected.GetProperty("slider").GetProperty("trackPress").EnumerateArray().ToArray();
+        rig.Down(200);
+        Assert.Equal(24, rig.Slider.KnobX); // no jump at the press
+        Assert.Equal(2, rig.Index.Value);   // the effort follows the pointer at once
+        AssertFrames(rig, run.Take(36));
+        rig.Up(200);
+        Assert.Equal(run[35].GetProperty("x").GetDouble(), rig.Slider.KnobX, 3); // no jump at the release either
+        AssertFrames(rig, run.Skip(36));
+        Assert.Equal(24 + 500.0 / 3, rig.Slider.KnobX, 9);
+        Assert.Equal(1, rig.Slider.KnobScale);
+        Assert.Equal(0, rig.Slider.LiftAmount);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:793 scaleEffect 1.06 while held; OD-0090: pressed on the knob it lifts where it is and keeps the grip
+    [Trait("Decision", "ED-252")]
+    public void Pressing_the_knob_lifts_it_where_it_is_and_the_drag_keeps_the_grip() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        var run = JewelFixtures.Expected.GetProperty("slider").GetProperty("knobPress").EnumerateArray().ToArray();
+        rig.Down(34); // 10 px right of the knob's centre
+        AssertFrames(rig, run.Take(30)); // it lifts to 1.06 and stays at 24: no move sideways
+        Assert.Equal(24, rig.Slider.KnobX);
+        Assert.True(rig.Slider.IsHeld);
+        rig.Move(150);
+        AssertFrames(rig, run.Skip(30).Take(30)); // the centre follows the pointer less the grip: 140
+        Assert.Equal(140, rig.Slider.KnobX, 9);
+        rig.Up(150);
+        AssertFrames(rig, run.Skip(60));
+        Assert.Equal(24 + 250.0 / 3, rig.Slider.KnobX, 9);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:808-813,833-836; OD-0090: the effort changes as the knob passes the midpoint between stops
+    [Trait("Decision", "ED-252")]
+    public void The_effort_changes_where_the_knob_passes_the_midpoint_between_two_stops() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        rig.Down(24); // on the knob, at its centre
+        var midpoint = 24 + 250.0 / 3 / 2; // 65.67
+        rig.Move(midpoint - 0.05);
+        Assert.Equal(0, rig.Index.Value);
+        rig.Move(midpoint + 0.05);
+        Assert.Equal(1, rig.Index.Value);
+        rig.Move(24 + 250.0 / 3 * 1.5 + 0.05);
+        Assert.Equal(2, rig.Index.Value);
+        rig.Move(400); // past the end: the knob clamps at the last stop
+        Assert.Equal(3, rig.Index.Value);
+        rig.Move(-100);
+        Assert.Equal(0, rig.Index.Value);
+        rig.Up(-100);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-116")] // EffortSlider.swift:822-830 an adjustable-action step; OD-0090/OD-0076: it springs (page key step: response 0.2, damping 1)
+    [Trait("Decision", "ED-252")]
+    public void An_accessibility_step_springs_the_knob_to_its_stop() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: 1);
+        rig.Frame();
+        Assert.IsAssignableFrom<IRangeValueProvider>(ControlAutomationPeer.CreatePeerForElement(rig.Slider)).SetValue(2);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(24 + 250.0 / 3, rig.Slider.KnobX, 9); // not a jump
+        AssertFrames(rig, JewelFixtures.Expected.GetProperty("slider").GetProperty("key").EnumerateArray());
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:826-831: the slider is an accessibility element only, no focus ring; owner, 2026-10-03: no highlight boundary on a click
+    [Trait("Decision", "ED-252")]
+    public void A_pointer_press_and_drag_show_no_focus_ring() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        rig.Down(24); rig.Move(120); rig.Frame(); rig.Up(120); rig.Frame();
+        Assert.False(rig.Slider.Focusable);
+        Assert.False(rig.Slider.IsFocused);
+        var focused = TopLevel.GetTopLevel(rig.Slider)!.FocusManager?.GetFocusedElement() as Visual;
+        Assert.True(focused is null || !rig.Slider.IsVisualAncestorOf(focused) && !focused.IsVisualAncestorOf(rig.Slider), $"focus went to {focused}");
+        foreach (var visual in rig.Slider.GetSelfAndVisualDescendants().OfType<Control>())
+            Assert.False(visual.IsFocused && visual.FocusAdorner is not null, $"{visual} shows a focus adorner");
+        if (AdornerLayer.GetAdornerLayer(rig.Slider) is { } layer) Assert.Empty(layer.Children);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090 (jewel-knob.html recolour/stepFade): a model change crossfades the knob over 0.6 s, smoothstep
+    public void A_model_change_crossfades_the_knob_over_six_tenths_of_a_second() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(brand: EffortBrand.Silver, fadeFrom: EffortBrand.Claude);
+        var claude = JewelMaterial.For(EffortBrand.Claude);
+        var openAI = JewelMaterial.For(EffortBrand.Silver);
+        rig.Frame(0);
+        Assert.Equal(JewelColor.Hex(claude.Think.ColorC), JewelColor.Hex(rig.Slider.Material.Think.ColorC)); // it starts in the old maker's colours
+        foreach (var step in JewelFixtures.Expected.GetProperty("fade").EnumerateArray().Skip(1).Take(3))
+        {
+            var t = step.GetProperty("t").GetDouble();
+            rig.Frame(t - (rig.Frames.Now.TotalSeconds));
+            var expected = JewelMaterial.Mix(claude, openAI, step.GetProperty("u").GetDouble());
+            Assert.True(JewelColor.Hex(expected.Think.ColorC) == JewelColor.Hex(rig.Slider.Material.Think.ColorC), $"at {t} s");
+            Assert.True(JewelColor.Hex(expected.Idle.ColorA) == JewelColor.Hex(rig.Slider.Material.Idle.ColorA), $"at {t} s");
+        }
+        rig.Frame(0.6 - rig.Frames.Now.TotalSeconds);
+        Assert.Same(openAI, rig.Slider.Material);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090: the card hands the maker shown before a model change to its slider, which fades from it
+    public void The_card_of_a_newly_chosen_model_fades_its_knob_from_the_last_makers_colours() => headless.OnUiThread(() =>
+    {
+        var time = new ManualTimeProvider();
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var card = new EffortSliderCard("GPT", Marrow.Core.Models.ProviderKind.Codex, new ValueList<string>(["low", "high"]), "low", false,
+            new Binding<string?>(() => "low", _ => { }), new Binding<bool>(() => false, _ => { }), () => { }, fadeFrom: EffortBrand.Claude);
+        var window = new Avalonia.Controls.Window { Width = 330, Height = 220, Content = card };
+        window.Show(); window.Activate(); Dispatcher.UIThread.RunJobs();
+        var slider = Assert.Single(card.GetVisualDescendants().OfType<EffortSlider>());
+        frames.Advance(TimeSpan.Zero); Dispatcher.UIThread.RunJobs();
+        Assert.Same(JewelMaterial.For(EffortBrand.Claude), slider.Material);
+        time.Advance(TimeSpan.FromSeconds(0.6)); frames.Advance(TimeSpan.FromSeconds(0.6)); Dispatcher.UIThread.RunJobs();
+        Assert.Same(JewelMaterial.For(EffortBrand.Silver), slider.Material);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090: the liquid and the lightning's tint crossfade with the knob (the page's stepFade: opacity and mixTint)
+    public void A_model_change_crossfades_the_liquid_and_the_lightning_too() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: 3, fast: true, brand: EffortBrand.Silver, fadeFrom: EffortBrand.Claude);
+        rig.Frame(0);
+        var effect = Assert.Single(rig.Slider.GetVisualDescendants().OfType<TrackEffect>());
+        var start = effect.TimeAt(SwiftDate.Now);
+        Assert.Equal(0, effect.FadeAt(start), 3);
+        rig.Frame(0.3);
+        var now = effect.TimeAt(SwiftDate.Now);
+        Assert.Equal(0.5, effect.FadeAt(now), 3);
+        var (gradient, tint) = effect.Colours(LiquidSpec.For(effect.Look), 200, Avalonia.Styling.ThemeVariant.Dark, now);
+        var half = StrikeTint.Mix(StrikeTint.For(EffortBrand.Claude), StrikeTint.For(EffortBrand.Silver), effect.FadeAt(now));
+        Assert.Equal(half, tint);
+        var from = LiquidTrack.GradientFor(LiquidSpec.For(effect.Look with { Brand = EffortBrand.Claude }), gradient.Length, Avalonia.Styling.ThemeVariant.Dark);
+        var to = LiquidTrack.GradientFor(LiquidSpec.For(effect.Look), gradient.Length, Avalonia.Styling.ThemeVariant.Dark);
+        var u = effect.FadeAt(now);
+        Assert.Equal((byte)Math.Round(from[0].Red + (to[0].Red - from[0].Red) * u), gradient[0].Red); // the incoming liquid over the outgoing at the fade's opacity
+        rig.Frame(0.31);
+        Assert.Equal(1, effect.FadeAt(effect.TimeAt(SwiftDate.Now)));
+        Assert.Equal(StrikeTint.For(EffortBrand.Silver), effect.Colours(LiquidSpec.For(effect.Look), 200, Avalonia.Styling.ThemeVariant.Dark, effect.TimeAt(SwiftDate.Now)).Tint);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090: the gem flows at rest (2.6), its motion integrated frame by frame
+    public void At_rest_the_gem_keeps_flowing() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        var before = rig.Slider.Orb.Phase;
+        for (var i = 0; i < 30; i++) rig.Frame();
+        Assert.Equal(before + 0.5 * 2.6, rig.Slider.Orb.Phase, 4);
+        Assert.True(rig.Frames.Pending > 0, "the knob keeps asking for frames while it is shown");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090: reduce motion stills the gem's flow (light only); the springs still settle
+    public void Reduce_motion_stills_the_gem_on_the_slider() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig();
+        EnvironmentValues.SetAccessibilityReduceMotion(rig.Window, true);
+        rig.Frame();
+        var before = rig.Slider.Orb.Phase;
+        for (var i = 0; i < 10; i++) rig.Frame();
+        Assert.Equal(before, rig.Slider.Orb.Phase);
+        rig.Down(200);
+        for (var i = 0; i < 60; i++) rig.Frame();
+        Assert.Equal(200, rig.Slider.KnobX, 3);
+        rig.Up(200);
+        rig.Frame(1);
+        Assert.Equal(24 + 500.0 / 3, rig.Slider.KnobX, 9);
+        Assert.Equal(before, rig.Slider.Orb.Phase);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090 / OD-0084: the knob reads the lightning as the page's part()/shape()/orbAim() read it (A2 strikes with the Mix charge)
+    public void The_knob_reads_the_strikes_signal_as_the_page_does()
+    {
+        var s = JewelFixtures.Expected.GetProperty("signal");
+        var seed = s.GetProperty("seed").GetInt32();
+        var geo = s.GetProperty("geometry");
+        var g = new StrikeGeometry(geo.GetProperty("w").GetDouble(), geo.GetProperty("h").GetDouble(), geo.GetProperty("knob").GetDouble(), geo.GetProperty("radius").GetDouble());
+        foreach (var strike in s.GetProperty("strikes").EnumerateArray())
+        {
+            var k = strike.GetProperty("k").GetInt32();
+            Assert.Equal(strike.GetProperty("at").GetDouble(), Strike.StrikeAt(k, seed), 12);
+            Assert.Equal(strike.GetProperty("charge").GetDouble(), KnobSignal.ChargeOf(k, seed), 12);
+            Assert.Equal(strike.GetProperty("th").GetDouble(), KnobSignal.ExitOf(g, seed, k), 9);
+        }
+        var signal = new KnobSignal();
+        var m = JewelMaterial.For(EffortBrand.Claude);
+        foreach (var f in s.GetProperty("frames").EnumerateArray())
+        {
+            var t = f.GetProperty("t").GetDouble();
+            signal.Read(g, seed, t, t);
+            void Near(string key, double actual, double tol = 1e-9) => Assert.True(Math.Abs(f.GetProperty(key).GetDouble() - actual) < tol, $"{key} at {t}: page {f.GetProperty(key)}, port {actual}");
+            Near("rawCharge", signal.RawCharge); Near("rawFlare", signal.RawFlare);
+            Near("charge", signal.Charge); Near("flare", signal.Flare); Near("exit", signal.ExitAngle);
+            Assert.Equal(f.GetProperty("phase").GetString(), signal.Phase.ToString().ToLowerInvariant());
+            var shared = f.GetProperty("shared").EnumerateArray().Select(x => x.GetDouble()).ToArray();
+            Assert.Equal(shared[0], signal.Charge * m.FxCharge, 9); // the material's share (fx)
+            Assert.Equal(shared[1], signal.Flare * m.FxFlare, 9);
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0084 with OD-0090's knob: the bolt leaves the 48 px knob's centre, and the orb charges before the leader
+    public void In_fast_mode_the_bolt_leaves_the_knobs_centre_and_the_orb_charges_first() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: 1, fast: true);
+        rig.Frame();
+        var effect = Assert.Single(rig.Slider.GetVisualDescendants().OfType<TrackEffect>());
+        var g = effect.StrikeGeometryFor(effect.Bounds.Size);
+        Assert.Equal(rig.Slider.KnobX, g.Knob, 9); // the fill ends a knob radius past the knob's centre
+        Assert.Equal(24, g.KnobRadius);
+        // step to just before strike 1's leader: the knob is charging and the tube has no bolt yet
+        var seed = effect.StrikeSeed;
+        var leader = Strike.StrikeAt(1, seed) - Strike.Lead;
+        var charging = leader - KnobSignal.ChargeOf(1, seed) / 2;
+        rig.Frame(charging - effect.TimeAt(SwiftDate.Now));
+        Assert.Equal(KnobPhase.Charge, rig.Slider.Signal.Phase);
+        Assert.InRange(rig.Slider.Signal.Charge, 0.05, 0.95);
+        Assert.Equal(0, rig.Slider.Signal.RawFlare);
+        Assert.True(rig.Slider.Orb.Activation > 0, "the orb lights before the bolt");
+        rig.Frame(leader + 0.07 - effect.TimeAt(SwiftDate.Now));
+        Assert.Equal(KnobPhase.Strike, rig.Slider.Signal.Phase);
+        Assert.Equal(1, rig.Slider.Signal.RawCharge);
+    });
+}

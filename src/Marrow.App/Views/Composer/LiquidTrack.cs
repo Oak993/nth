@@ -537,7 +537,7 @@ public static class LiquidTrack
     private const string BubbleShader = """
         uniform float scale;   // device pixels per px
         uniform float4 A;      // centre x, centre y, scale, opacity
-        uniform float4 B;      // border box side, dark rim, unused, unused
+        uniform float4 B;      // border box side, dark rim, pale-liquid look (OD-0090 ink), unused
         float erf(float x) { float a = 0.147; float x2 = x * x; float r = sqrt(max(0.0, 1.0 - exp(-x2 * (1.2732395 + a * x2) / (1.0 + a * x2)))); return x < 0.0 ? -r : r; }
         half4 over(half4 dst, half4 src) { return src + dst * (1.0 - src.a); }
         half4 main(float2 p) {
@@ -562,7 +562,17 @@ public static class LiquidTrack
             float ring = clamp(0.5 - d / px, 0.0, 1.0) * clamp(0.5 + (d + 1.0) / px, 0.0, 1.0);
             half4 rc = dark ? half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.5, 0.5) : half4(0.72);
             col = over(col, rc * half(ring));
-            return col * half(A.w);
+            col = col * half(A.w);
+            // OD-0090 (jewel-knob.html drawBub): on a pale liquid the bubble takes the pale-liquid look (FastC .bub.dark: the
+            // highlight with a faint dark falloff, a neutral 1 px rim at .5), drawn over it at the liquid's paleness
+            if (B.z > 0.0 && !dark) {
+                half4 d0 = half4(0.98); half4 d1 = half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.06, 0.06); half4 d2 = half4(0.0);
+                half4 dg;
+                if (t <= 0.18) dg = d0; else if (t <= 0.50) dg = mix(d0, d1, half((t - 0.18) / 0.32)); else if (t <= 0.72) dg = mix(d1, d2, half((t - 0.50) / 0.22)); else dg = d2;
+                half4 pale = over(dg * half(inside), half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.5, 0.5) * half(ring));
+                col = over(col, pale * half(B.z * min(1.0, A.w)));
+            }
+            return col;
         }
         """;
 
@@ -595,17 +605,18 @@ public static class LiquidTrack
 
     /// <summary>One frame's values, resolved on the UI thread.</summary>
     internal sealed record Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
-        IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike);
+        IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double BubbleInk = 0);
 
     /// <summary>
     /// Draws the liquid tube and its bubbles into <paramref name="context"/> at <paramref name="time"/>: its currents and
     /// caustic at <paramref name="flow"/> (by default a normal pace since time 0), and the Strike lightning
-    /// <paramref name="strike"/> over it when given (OD-0073).
+    /// <paramref name="strike"/> over it when given (OD-0073). <paramref name="bubbleInk"/>: how far the bubbles take the
+    /// pale-liquid look (OD-0090, the Strike's ink on a pale liquid).
     /// </summary>
     public static void Draw(DrawingContext context, Size size, double track, double time, LiquidSpec spec, SKColor[] gradient,
-        BubbleLanes? bubbles, bool darkBubbles, ThemeVariant theme, LiquidFlow? flow = null, IReadOnlyList<StrikeOp>? strike = null) =>
+        BubbleLanes? bubbles, bool darkBubbles, ThemeVariant theme, LiquidFlow? flow = null, IReadOnlyList<StrikeOp>? strike = null, double bubbleInk = 0) =>
         context.Custom(new Operation(new Frame(size, track, time, gradient, spec, bubbles, darkBubbles,
-            spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray(), flow ?? LiquidFlow.At(time, false), strike)));
+            spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray(), flow ?? LiquidFlow.At(time, false), strike, bubbleInk)));
 
     /// <summary>The gradient row for a spec at a device width.</summary>
     public static SKColor[] GradientFor(LiquidSpec spec, int pixels, ThemeVariant theme) =>
@@ -701,7 +712,7 @@ public static class LiquidTrack
             var (centre, radius, opacity) = BubbleAt(now.Rise, f.Size.Height, now.Progress);
             if (opacity <= 0.003) continue;
             list.Add((new[] { (float)centre.X, (float)centre.Y, (float)(radius / (now.Rise.Outer / 2)), (float)opacity },
-                new[] { (float)now.Rise.Outer, f.DarkBubbles ? 1f : 0f, 0f, 0f }));
+                new[] { (float)now.Rise.Outer, f.DarkBubbles ? 1f : 0f, f.BubbleInk < 0.01 ? 0f : (float)f.BubbleInk, 0f }));
         }
         return list;
     }

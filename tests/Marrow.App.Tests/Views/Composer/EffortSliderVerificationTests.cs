@@ -136,8 +136,8 @@ public sealed class EffortSliderVerificationTests(HeadlessSession headless)
             var thread = new ChatThread(project.Id, ProviderKind.Claude, "opus", "low", RuntimeMode.Supervised);
             var model = Model(harness, project, thread); var panel = new ModelEffortPanel(thread.Id, false);
             var window = Show(panel, model); var slider = Assert.Single(panel.GetVisualDescendants().OfType<EffortSlider>());
-            var start = slider.TranslatePoint(new Point(21, 21), window)!.Value; // Swift :740-754 thumb width 42, inset 21
-            var end = slider.TranslatePoint(new Point(21 + (slider.Bounds.Width - 42) * 3 / 4, 21), window)!.Value; // Claude's five levels, stop 3 = xhigh
+            var start = slider.TranslatePoint(new Point(24, 24), window)!.Value; // Swift :740-754 inset a knob radius; OD-0090: the knob is 48, inset 24
+            var end = slider.TranslatePoint(new Point(24 + (slider.Bounds.Width - 48) * 3 / 4, 24), window)!.Value; // Claude's five levels, stop 3 = xhigh
             window.MouseMove(start); window.MouseDown(start, MouseButton.Left, RawInputModifiers.None);
             window.MouseMove(end); window.MouseUp(end, MouseButton.Left, RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
             Assert.Equal("xhigh", model.Thread(thread.Id)!.Effort);

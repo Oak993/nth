@@ -1,0 +1,145 @@
+// Records what the locked Jewel knob page computes (OD-0090), for the port's exactness tests (EffortSliderJewelTests):
+// the Jewel material of several makers (knob-variants.js liquidOf / material / mixMaterial / strikeTint / mixTint), the
+// uniforms the Violet Ember orb sends to its shader frame by frame (knob-orbs-1.js makeOrb().frame, run against a
+// recording WebGL2 stub), the page's knob springs (jewel-knob.html spring(), makeSlider / stepSlider) and its reading of
+// the strike's signal (jewel-knob.html part(), shape(), rawSignal(), share(); strike-engine.js plan0 / orbAim / pulseI),
+// fed with the port's fast-mode strikes (A2 at strikeAt, each with the locked Mix rule's charge: 0.14 + 0.12 H(131)).
+//   node tests/fixtures/jewel-knob/expected.mjs [the locked folder] > tests/fixtures/jewel-knob/expected.json
+// Source: E:/Droppy/work/design/jewel-knob-locked/ (the sha256 of every file read is written into the output).
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { pathToFileURL } from 'node:url';
+
+const dir = process.argv[2] || 'E:/Droppy/work/design/jewel-knob-locked';
+const files = ['jewel-knob.html', 'knob-variants.js', 'knob-orbs-1.js', 'strike-engine.js', 'liquid-palettes.json'];
+const sha = Object.fromEntries(files.map((f) => [f, crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, f))).digest('hex')]));
+const KV = await import(pathToFileURL(path.join(dir, 'knob-variants.js')).href);
+const Component = (await import(pathToFileURL(path.join(dir, 'strike-engine.js')).href)).default;
+const PAL = JSON.parse(fs.readFileSync(path.join(dir, 'liquid-palettes.json'), 'utf8'));
+const html = fs.readFileSync(path.join(dir, 'jewel-knob.html'), 'utf8');
+const cut = (from, to) => { const a = html.indexOf(from), b = html.indexOf(to, a); if (a < 0 || b < 0) throw new Error('not found: ' + from); return html.slice(a, b); };
+const out = { source: sha };
+
+// ---- materials (knob-variants.js), at the app's knob size (48 px: the 'm' recipe)
+const MAKERS = ['Claude', 'OpenAI', 'Gemini', 'DeepSeek', 'Grok', 'Zai', 'Pi', 'Cursor'];
+out.materials = {};
+for (const m of MAKERS) {
+  const q = KV.liquidOf(PAL, m, 'dark');
+  out.materials[m] = { liquid: { C: q.C, achro: q.achro, multi: q.multi, blue: q.blue, Lm: q.Lm, Ld: q.Ld }, material: KV.material('jewel', q, 48), tint: KV.strikeTint(q) };
+}
+out.materials140 = KV.material('jewel', KV.liquidOf(PAL, 'Claude', 'dark'), 140);
+out.materials24 = KV.material('jewel', KV.liquidOf(PAL, 'Claude', 'dark'), 24);
+const mc = KV.material('jewel', KV.liquidOf(PAL, 'Claude', 'dark'), 48), mo = KV.material('jewel', KV.liquidOf(PAL, 'OpenAI', 'dark'), 48);
+out.mix = [0.25, 0.5, 0.75].map((u) => ({ u, material: KV.mixMaterial(mc, mo, u), tint: KV.mixTint(KV.strikeTint(KV.liquidOf(PAL, 'Claude', 'dark')), KV.strikeTint(KV.liquidOf(PAL, 'OpenAI', 'dark')), u) }));
+
+// ---- the orb's uniforms per frame (knob-orbs-1.js), through a recording WebGL2 stub
+function stubGL(log) {
+  const cap = {
+    getShaderParameter: () => true, getProgramParameter: () => true, getUniformLocation: (p, n) => n, getExtension: () => null,
+    uniform1f: (l, a) => { log[l] = a; }, uniform2f: (l, a, b) => { log[l] = [a, b]; }, uniform3f: (l, a, b, c) => { log[l] = [a, b, c]; },
+    uniform4f: (l, a, b, c, d) => { log[l] = [a, b, c, d]; }, uniform1fv: (l, v) => { log[l] = Array.from(v); }, uniform3fv: (l, v) => { log[l] = Array.from(v); },
+    uniform1i: (l, a) => { log[l] = a; },
+  };
+  return new Proxy({}, { get: (t, k) => (k in cap ? cap[k] : typeof k === 'string' && /^[A-Z_0-9]+$/.test(k) ? 1 : () => ({})) });
+}
+function orbRun(material, dpr, script, dark = true) {
+  const log = {}, gl = stubGL(log);
+  const canvas = { width: 0, height: 0, style: {}, clientWidth: 48, getContext: () => gl };
+  const orb = KV.ORB['violet-ember'].make(canvas, { dark, colors: material, context: 'own', dpr });
+  orb.resize(48);
+  const frames = [];
+  for (const [t, s, keep] of script) { orb.frame(t, s); if (keep) frames.push({ t, s, u: JSON.parse(JSON.stringify(log)) }); }
+  return { size: [canvas.width, canvas.height], frames };
+}
+// 60 fps for 3 s: rest, a charge build (0.5 to 0.7 s), the strike's flare (0.7 to 1.2 s), the charge let go at 1.2 s
+const script = [];
+for (let i = 0; i <= 180; i++) {
+  const t = i / 60;
+  const c = t < 0.5 ? 0 : t < 0.7 ? 0.58 * ((t - 0.5) / 0.2) : t < 1.2 ? 0.58 : 0;
+  const f = t < 0.7 ? 0 : t < 1.2 ? 0.24 * Math.exp(-(t - 0.7) / 0.3) : 0;
+  script.push([t, { charge: c, flare: f, exitAngle: Math.PI * 0.9, reduceMotion: false }, i % 6 === 0]);
+}
+out.orb = orbRun(mc, 1, script);
+out.orbDpr2 = orbRun(mc, 2, script.slice(0, 2).map(([t, s]) => [t, s, true]));
+out.orbLight = orbRun(mc, 1, script.slice(0, 2).map(([t, s]) => [t, s, true]), false);
+out.orbReduce = orbRun(mc, 1, script.map(([t, s, k]) => [t, { ...s, reduceMotion: true }, k]));
+
+// ---- the page's springs and its slider (jewel-knob.html spring(), makeSlider, stepSlider), DOM-free
+const spring = new Function(cut('function spring(o, target, dt, resp, zeta)', 'const grid =') + '\nreturn spring;')();
+function slider(W, kn, n, index) {
+  const stopX = (i) => kn / 2 + (i * (W - kn)) / (n - 1);
+  const S = { index, held: false, finger: 0, grab: 0, off: { p: 0, v: 0 }, sc: { p: 1, v: 0 }, resp: 0.32, zeta: 0.78, x: stopX(index) };
+  const clampX = (x) => Math.min(W - kn / 2, Math.max(kn / 2, x));
+  const nearest = (x) => Math.round(((clampX(x) - kn / 2) / (W - kn)) * (n - 1));
+  const retarget = (target) => { S.off.p = S.x - target; };
+  return {
+    S, stopX,
+    down(px) { const onKnob = Math.abs(px - S.x) <= kn / 2; S.grab = onKnob ? px - S.x : 0; S.held = true; S.finger = clampX(px - S.grab); retarget(S.finger); S.resp = 0.22; S.zeta = 0.8; S.index = nearest(S.finger); },
+    move(px) { if (!S.held) return; S.finger = clampX(px - S.grab); S.index = nearest(S.finger); },
+    up() { if (!S.held) return; S.held = false; retarget(stopX(S.index)); S.resp = 0.32; S.zeta = 0.78; },
+    key(d) { const i = Math.min(n - 1, Math.max(0, S.index + d)); if (i === S.index) return; retarget(stopX(i)); S.resp = 0.2; S.zeta = 1; S.index = i; },
+    step(dt) {
+      const target = S.held ? S.finger : stopX(S.index);
+      spring(S.off, 0, dt, S.resp, S.zeta);
+      spring(S.sc, S.held ? 1.06 : 1, dt, S.held ? 0.22 : 0.32, S.held ? 0.8 : 0.78);
+      S.x = Math.min(W - kn / 2 + 3, Math.max(kn / 2 - 3, target + S.off.p));
+      return { x: S.x, scale: S.sc.p, lift: Math.max(0, Math.min(1, (S.sc.p - 1) / 0.06)), index: S.index };
+    },
+  };
+}
+function run(W, events) {
+  const s = slider(W, 48, 4, events.index);
+  const rec = [];
+  let t = 0;
+  for (const e of events.steps) {
+    if (e.down != null) s.down(e.down);
+    if (e.move != null) s.move(e.move);
+    if (e.up) s.up();
+    if (e.key) s.key(e.key);
+    for (let i = 0; i < (e.frames || 0); i++) { t += 1 / 60; rec.push({ t: +t.toFixed(6), ...s.step(1 / 60) }); }
+  }
+  return rec;
+}
+out.slider = {
+  W: 298,
+  trackPress: run(298, { index: 0, steps: [{ down: 200, frames: 36 }, { up: true, frames: 60 }] }),
+  knobPress: run(298, { index: 0, steps: [{ down: 34, frames: 30 }, { move: 150, frames: 30 }, { up: true, frames: 60 }] }),
+  key: run(298, { index: 1, steps: [{ key: 1, frames: 30 }] }),
+};
+
+// ---- the strike's signal as the knob reads it (jewel-knob.html), on the port's A2 strikes with the Mix charge
+const E = new Component({ dark: true });
+const H = (k, S, s) => E.hash(k, S * 13 + s);
+const seed = 13 * 97 + 13, W = 298, h = 34;
+const g = { w: W, h, cy: h / 2, xs: h * 0.32, ex: W - 24, kr: 24, k: Math.max(0.62, Math.min(1, h / 40)), seed, tl: { cache: {}, n: 0 } };
+const plans = new Map();
+const planOf = (k) => { if (!plans.has(k)) plans.set(k, Object.assign({}, E.plan0(g, k), { charge: 0.14 + 0.12 * H(k, seed, 131) })); return plans.get(k); };
+const E2 = Object.create(E);
+E2.orbList = (tl, gg, T) => { const list = [], k0 = Math.floor(T / 2.4); for (let k = k0 - 2; k <= k0 + 1; k++) { const B = planOf(k), a = T - B.at; if (a >= -B.lead - B.charge && a <= 1.9) list.push([B, a]); } return list; };
+const sig = new Function('E', 'reduce', 'RAW', cut('const ss = (a, b, x)', '// ---- the loop') + '\nreturn { part, shape, rawSignal, signal, share };')(E2, false, false);
+const tl = { g, off: 0 };
+const st = { th: Math.PI }, raw = { th: Math.PI };
+out.signal = { seed, geometry: { w: W, h, knob: W - 24, radius: 24 }, strikes: [], frames: [] };
+for (let k = 0; k <= 4; k++) { const B = planOf(k); out.signal.strikes.push({ k, at: B.at, lead: B.lead, charge: B.charge, th: E.orbGeo(g, B).th, flick: B.flick }); }
+for (let i = 0; i <= 600; i++) {
+  const t = i / 60;
+  sig.signal(tl, t, st);
+  const r = sig.rawSignal(tl, t, raw);
+  const m = { charge: 0, flare: 0, exitAngle: 0, reduceMotion: false };
+  sig.share(mc, st, m);
+  out.signal.frames.push({ t, rawCharge: r.charge, rawFlare: r.flare, charge: st.charge, flare: st.flare, exit: st.exitAngle, phase: st.p, shared: [m.charge, m.flare] });
+}
+
+// ---- the bolt's ink on light liquids (jewel-knob.html inkOf, mixTint2; the owner, 2026-10-03: the lightning and the
+// bubbles must contrast with every maker's liquid)
+const inkFns = new Function('strikeTint', 'mixTint', cut('const sRGBlin = (v)', 'E.TINT = {') + ';return { inkOf, tintOf, mixTint2 };')(KV.strikeTint, KV.mixTint);
+out.ink = {};
+for (const m of ['Claude', 'OpenAI', 'Gemini', 'DeepSeek', 'Meta', 'Grok', 'Cursor', 'OpenCode', 'OpenCodeGo', 'Zai', 'Devin', 'Copilot', 'CommandCode', 'Pi'])
+  out.ink[m] = inkFns.inkOf(KV.liquidOf(PAL, m, 'dark'));
+out.inkMix = [0.25, 0.5].map((u) => ({ u, tint: inkFns.mixTint2(inkFns.tintOf(KV.liquidOf(PAL, 'Claude', 'dark')), inkFns.tintOf(KV.liquidOf(PAL, 'OpenAI', 'dark')), u) }));
+
+// ---- the crossfade (jewel-knob.html stepFade): smoothstep over 0.6 s
+const ease = new Function(cut('const ease = (x)', 'let liquid') + '\nreturn ease;')();
+out.fade = [0, 0.1, 0.3, 0.45, 0.6, 0.7].map((t) => ({ t, u: ease(t / 0.6) }));
+process.stdout.write(JSON.stringify(out));

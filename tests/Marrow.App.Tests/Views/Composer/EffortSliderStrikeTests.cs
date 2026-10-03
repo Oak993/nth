@@ -251,13 +251,14 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
     private static double[][] Points(IReadOnlyList<StrikeOp> ops) => ops.Select(o => o.Kind == StrikeOpKind.Stroke ? o.Points : new[] { o.X, o.Y, o.Rx, o.Ry, o.Alpha }).ToArray();
 
     [Fact]
-    [Trait("Decision", "ED-248")] // TINT: claude / deepseek / gemini, identical on dark and light; unknown brands use claude; the core is white
+    [Trait("Decision", "ED-248")] // TINT: claude / deepseek / gemini, identical on dark and light; the core is white. DEVIATION OD-0090: the other brands no longer take claude's, they derive their own (EffortSliderJewelMaterialTests)
     public void Each_brand_strikes_in_its_canvas_tint_in_both_appearances()
     {
-        Assert.Equal(new StrikeTint(new SKColor(255, 146, 100), new SKColor(255, 222, 204), new SKColor(255, 168, 126)), StrikeTint.For(EffortBrand.Claude));
-        Assert.Equal(new StrikeTint(new SKColor(116, 142, 255), new SKColor(224, 231, 255), new SKColor(146, 168, 255)), StrikeTint.For(EffortBrand.Deepseek));
-        Assert.Equal(new StrikeTint(new SKColor(190, 160, 255), new SKColor(242, 234, 255), new SKColor(206, 184, 246)), StrikeTint.For(EffortBrand.Antigravity));
-        Assert.Equal(StrikeTint.Claude, StrikeTint.For(EffortBrand.Cursor));
+        static (SKColor, SKColor, SKColor) Colours(StrikeTint t) => (t.Outer, t.Inner, t.Wash);
+        Assert.Equal((new SKColor(255, 146, 100), new SKColor(255, 222, 204), new SKColor(255, 168, 126)), Colours(StrikeTint.For(EffortBrand.Claude)));
+        Assert.Equal((new SKColor(116, 142, 255), new SKColor(224, 231, 255), new SKColor(146, 168, 255)), Colours(StrikeTint.For(EffortBrand.Deepseek)));
+        Assert.Equal((new SKColor(190, 160, 255), new SKColor(242, 234, 255), new SKColor(206, 184, 246)), Colours(StrikeTint.For(EffortBrand.Antigravity)));
+        Assert.NotEqual(Colours(StrikeTint.Claude), Colours(StrikeTint.For(EffortBrand.Cursor)));
         var ops = new StrikeChannels(13).Scene(PortTrack, Strike.StrikeAt(1, 13) + 0.01, StrikeTint.Claude);
         Assert.Contains(ops, o => o.Kind == StrikeOpKind.Stroke && o.Color == SKColors.White);
     }
