@@ -1,5 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App.Port;
@@ -96,6 +99,37 @@ public sealed class MCPSettingsPageInfoLinksTests(HeadlessSession headless)
             }
             // :1010 a docs URL that does not parse omits the link.
             Assert.False(HasDocs(Show(browser, model, MCPCatalog.Entry("gitlab")! with { DocsURL = "" })));
+        });
+    }
+
+    private static void Pointer(Control target, RoutedEvent routed) => target.RaiseEvent(new PointerEventArgs(routed, target, new Pointer(1, PointerType.Mouse, true), target, default, 0, default, default));
+
+    // MCPSettingsPage.swift:914-963 (the hover-open popover) with the info popover's own content: the pointer on the POPOVER keeps it open.
+    [Fact]
+    [Trait("Req", "UI-MCP-064")] // App/Views/Settings/MCPSettingsPage.swift:914-963,967-1024
+    public void Popover_hover_keeps_the_info_popover_open_past_the_320_ms_close_and_the_click_toggles_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime(); using var harness = new AppModelHarness(withRuntime: false);
+            using var scope = Presentation.Presenter.Override(new RecordingPresenter());
+            var model = runtime.OnMain(() => new AppModel()); var info = new MCPInfoButton(MCPCatalog.Entry("gitlab")!);
+            using var window = runtime.OnMain(() => Attach(info, model)); var hover = Nodes<MCPHoverInfoButton>(info).Single(); var button = Assert.Single(Nodes<Button>(info)); var popup = Assert.Single(Nodes<Popup>(info));
+            // The pointer on the (i) opens it after 220 ms, not before.
+            runtime.OnMain(() => Pointer(button, InputElement.PointerEnteredEvent)); runtime.AdvanceMilliseconds(219); Assert.False(Read<bool>(hover, "IsPresented")); runtime.AdvanceMilliseconds(1); Assert.True(Read<bool>(hover, "IsPresented"));
+            var content = Assert.IsAssignableFrom<Control>(PopoverHost.Content(popup)); Assert.IsType<MCPInfoPopover>(content);
+            // Leaving the (i) starts the 320 ms close; the pointer reaching the popover within it cancels it, and it stays open as long as the pointer is on it.
+            runtime.OnMain(() => Pointer(button, InputElement.PointerExitedEvent)); runtime.AdvanceMilliseconds(200); Assert.True(Read<bool>(hover, "IsPresented"));
+            runtime.OnMain(() => Pointer(content, InputElement.PointerEnteredEvent)); runtime.AdvanceMilliseconds(2000); Assert.True(Read<bool>(hover, "IsPresented"), "the popover closed under the pointer");
+            // Leaving the popover closes it after 320 ms.
+            runtime.OnMain(() => Pointer(content, InputElement.PointerExitedEvent)); runtime.AdvanceMilliseconds(319); Assert.True(Read<bool>(hover, "IsPresented")); runtime.AdvanceMilliseconds(1); Assert.False(Read<bool>(hover, "IsPresented"));
+            // Going back to the (i) from the popover within the 320 ms also keeps it open.
+            runtime.OnMain(() => Pointer(button, InputElement.PointerEnteredEvent)); runtime.AdvanceMilliseconds(220); Assert.True(Read<bool>(hover, "IsPresented"));
+            runtime.OnMain(() => Pointer(content, InputElement.PointerEnteredEvent)); runtime.OnMain(() => Pointer(button, InputElement.PointerExitedEvent)); runtime.AdvanceMilliseconds(1000); Assert.True(Read<bool>(hover, "IsPresented"));
+            runtime.OnMain(() => Pointer(content, InputElement.PointerExitedEvent)); runtime.OnMain(() => Pointer(button, InputElement.PointerEnteredEvent)); runtime.AdvanceMilliseconds(1000); Assert.True(Read<bool>(hover, "IsPresented"));
+            // A click toggles it at once, whatever the hover.
+            runtime.OnMain(() => Pointer(button, InputElement.PointerExitedEvent)); runtime.OnMain(() => Click(button)); Assert.False(Read<bool>(hover, "IsPresented")); runtime.OnMain(() => Click(button)); Assert.True(Read<bool>(hover, "IsPresented"));
+            Dispatcher.UIThread.RunJobs();
         });
     }
 }
