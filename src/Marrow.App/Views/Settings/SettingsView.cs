@@ -196,7 +196,6 @@ public sealed class SettingsView : Decorator
             RebuildSidebar();
         });
         this.Track(() => state.Page, _ => { SelectRows(); RebuildDetail(); });
-        this.Track(() => UpdateChecker.Shared.UpdateAvailable, _ => { pageRows.Remove(SettingsPage.About); RebuildSidebar(); }); // :158-162 the About row's icon reads it
         this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, count => { if (state.Page == SettingsPage.Archive && (count == 0) != (pageStack is null)) RebuildDetail(); }); // :198 observe the collection behind the computed archive count; the page's ScrollView identity is its page (:231), so only the empty placeholder swap rebuilds.
         rows.Track(() => scrollTracker.IsFrozen, value => rows.IsHitTestVisible = !value); // :182
         DetachedFromVisualTree += (_, _) => scrollTracker.End(); // :117
@@ -236,8 +235,18 @@ public sealed class SettingsView : Decorator
             var badge = new SidebarIconBadge(() => page == SettingsPage.Hydra
                 ? new HydraMarkImage { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 }
                 : new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1)); // :151-157
-            if (page != SettingsPage.About || !UpdateChecker.Shared.UpdateAvailable) return badge;
-            return new Panel { Children = { badge, new UpdateAvailableDot { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top } } }; // :159-163
+            if (page != SettingsPage.About) return badge;
+            // :158-163 the dot is a conditional inside the About row's icon overlay: the row keeps its identity (and its @State
+            // isHovering, its fill) when UpdateChecker.shared.updateAvailable changes; only the dot comes and goes.
+            badge.Width = Chrome.IconSize; // the row frames its icon at 20 (:151-157); the badge keeps that frame inside the overlay host
+            var icon = new Panel { Children = { badge } };
+            icon.Track(() => UpdateChecker.Shared.UpdateAvailable, available =>
+            {
+                var dot = icon.Children.OfType<UpdateAvailableDot>().FirstOrDefault();
+                if (available && dot is null) icon.Children.Add(new UpdateAvailableDot { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top });
+                else if (!available && dot is not null) icon.Children.Remove(dot);
+            });
+            return icon;
         }, _ => none, isSelected: state.Page == page);
         pageRows[page] = row;
         return row;
