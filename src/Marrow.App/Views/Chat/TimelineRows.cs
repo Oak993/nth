@@ -908,7 +908,7 @@ public sealed class HydraDelegationBlock : Decorator
         if (sent)
         {
             var sweep = new DotFieldSweep { Tint = Chrome.AccentNSColor, Clip = new RectangleGeometry(new Rect()) };
-            pill.SizeChanged += (_, e) => sweep.Clip = new RectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, TimelineMetrics.PillRadius);
+            pill.SizeChanged += (_, e) => sweep.Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :698 .clipShape(RoundedRectangle(cornerRadius: pillRadius, style: .continuous)), through the one helper of ED-181
             Child = new Panel { Children = { pill, sweep } };
         }
         else Child = pill;

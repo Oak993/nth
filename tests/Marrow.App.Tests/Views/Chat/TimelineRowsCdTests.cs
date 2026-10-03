@@ -830,6 +830,9 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
                 var layers = Assert.Single(Mounted<BadgeLayers>(sites[3].Root));
                 if (layers.Clip is not StreamGeometry) failures.Add($"plan badge clip :65: {layers.Clip?.GetType().Name ?? "none"}, not drawn through SwiftShapes");
                 else Assert.Equal(new Rect(0, 0, layers.Children[0].Bounds.Width, layers.Children[0].Bounds.Height), layers.Clip.Bounds);
+                // :696-701 the delegation card's wave is clipped to RoundedRectangle(cornerRadius: pillRadius, style: .continuous) too.
+                var sweep = Assert.Single(Mounted<DotFieldSweep>(sites[^1].Root));
+                if (sweep.Clip is not StreamGeometry) failures.Add($"delegation wave clip :698: {sweep.Clip?.GetType().Name ?? "none"}, not drawn through SwiftShapes");
                 // The diff block of an edit :2137-2140 is a plate drawn the same way (padding 0, clipped).
                 var diff = new ToolDetailView(Call(ToolCall.Kind.Edit, "e") with { Edits = new ValueList<FileEdit>([new FileEdit("src/a.swift", "@@ -1 +1 @@\n-a\n+b\n", 1, 1)]) });
                 var plate = Assert.Single(((StackPanel)diff.Child!).Children.OfType<Border>());
