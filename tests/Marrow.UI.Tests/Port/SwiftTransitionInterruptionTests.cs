@@ -31,8 +31,9 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "OD-0076")]
-    [Trait("Decision", "ED-NEW-parity-chatview")]
+    [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
+    [Trait("Decision", "ED-159")] // the interruption follow-up
+    // Decision ED-NEW-parity-chatview (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
     public void A_removal_during_the_insertion_goes_back_from_where_the_insertion_has_brought_the_child() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -49,7 +50,7 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
         Assert.Equal(40 * (1 - p), Top(child, panel), Tolerance);
         Assert.Equal(p, EffectiveOpacity(child, panel), Tolerance);
         var removal = Animation.EaseOut(duration: 0.3);
-        Transaction.WithAnimation(removal, () => SwiftTransition.Remove(panel, child));
+        Transaction.WithAnimation(removal, () => SwiftTransition.RemoveContinuing(panel, child));
         // The removal's first state is the insertion's last: no jump to identity (top 0, opaque).
         Assert.Equal(40 * (1 - p), Top(child, panel), Tolerance);
         Assert.Equal(p, EffectiveOpacity(child, panel), Tolerance);
@@ -70,8 +71,33 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "OD-0076")]
-    [Trait("Decision", "ED-NEW-parity-chatview")]
+    [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
+    [Trait("Decision", "ED-159")] // the interruption follow-up
+    // Decision ED-NEW-parity-chatview (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
+    public void The_insertions_progress_is_read_on_its_clock_at_the_interruption_not_at_its_last_frame() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var panel = new Canvas { Width = 300, Height = 200 };
+        var window = new Window { Width = 400, Height = 300, Content = panel };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var child = new Border { Width = 100, Height = 40 }.Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
+        var curve = Animation.EaseOut(duration: 0.2);
+        Transaction.WithAnimation(curve, () => SwiftTransition.Insert(panel, 0, child));
+        window.UpdateLayout();
+        clocks.Frame(0.03);
+        clocks.Time.Advance(TimeSpan.FromMilliseconds(40)); // 0.07 s on the clock; the last frame presented 0.03 s.
+        Transaction.WithAnimation(curve, () => SwiftTransition.RemoveContinuing(panel, child));
+        var p = curve.Progress(0.07);
+        Assert.Equal(40 * (1 - p), Top(child, panel), Tolerance);
+        Assert.Equal(p, EffectiveOpacity(child, panel), Tolerance);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
+    [Trait("Decision", "ED-159")] // the interruption follow-up
+    // Decision ED-NEW-parity-chatview (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
     public void A_removal_after_the_insertion_has_settled_starts_from_identity() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -85,7 +111,7 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
         window.UpdateLayout();
         clocks.Frame(0.25);
         Assert.Equal(0, clocks.Frames.Pending);
-        Transaction.WithAnimation(curve, () => SwiftTransition.Remove(panel, child));
+        Transaction.WithAnimation(curve, () => SwiftTransition.RemoveContinuing(panel, child));
         Assert.Equal(0, Top(child, panel), Tolerance);
         Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
         clocks.Frame(0.1);

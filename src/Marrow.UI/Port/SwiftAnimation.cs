@@ -147,17 +147,25 @@ public sealed record SwiftTransition
 
     public static void Remove(Panel panel, Control child) => Remove(panel, child, null);
 
+    /// <summary>
+    /// OD-0076 (no change by a cut), ED-NEW-parity-chatview (10): a removal that may interrupt this child's insertion still in
+    /// flight and starts from where the insertion has brought the child, never from its identity. For a transition with no
+    /// asymmetric part the insertion's state at progress p is the removal's state at 1 - p (move, offset, scale, opacity, blur
+    /// and modifier values each interpolate linearly between the same two ends), so the removal runs from there to its end on
+    /// its own curve; p is read on the insertion's own clock at this instant. An asymmetric transition, or one not in flight,
+    /// leaves as <see cref="Remove(Panel, Control)"/> does. Opt-in: the sites that rely on the restart keep it until the
+    /// app-wide OD-0076 audit (the terminal drawer closed while it is still opening, ChatView.swift:276-279,290, is the first).
+    /// </summary>
+    public static void RemoveContinuing(Panel panel, Control child) => Remove(panel, child, null, continuing: true);
+
     // ED-218: disposal belongs after removal finishes, including immediate/identity removals.
-    internal static void Remove(Panel panel, Control child, Action? completed)
+    internal static void Remove(Panel panel, Control child, Action? completed) => Remove(panel, child, completed, continuing: false);
+
+    private static void Remove(Panel panel, Control child, Action? completed, bool continuing)
     {
         // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
-        // OD-0076 (no change by a cut): a removal that interrupts this child's insertion still in flight starts from where
-        // the insertion has brought the child, never from its identity. For a transition with no asymmetric part, the
-        // insertion's state at progress p is the removal's state at 1 - p (move, offset, scale, opacity, blur and modifier
-        // values are each interpolated linearly between the same two ends), so the removal runs from there to its end on its
-        // own curve. ED-NEW-parity-chatview (the drawer closed while it is still opening, ChatView.swift:276-279,290).
-        var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() ? 1 - state.LastProgress : 0;
+        var from = continuing && state.InsertionInFlight && !state.Transition.HasAsymmetricPart() ? 1 - state.CurrentProgress : 0;
         state.Stop();
         state.RemovalCompleted = completed;
         var wrapper = state.Wrapper ?? child;
@@ -386,7 +394,22 @@ public sealed record SwiftTransition
 
         /// <summary>An insertion is still running: its frames are requested and it presents the inserting side.</summary>
         public bool InsertionInFlight => callback is not null && lastInserting;
-        public double LastProgress => lastProgress;
+
+        // Where the running animation is now on its own clock, whether or not a frame has presented that time yet (an interruption
+        // reads the state on screen at this instant, not the last frame's).
+        public double CurrentProgress
+        {
+            get
+            {
+                if (callback is null || runAnimation is null) return lastProgress;
+                var elapsed = SwiftClock.Now - runStart;
+                return elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(runAnimation.Duration).Ticks
+                    ? 1 : runAnimation.Progress(elapsed.TotalSeconds);
+            }
+        }
+
+        private Marrow.UI.Port.Animation? runAnimation;
+        private ContinuousInstant runStart;
 
         // Applies the transition at a progress. When a move could not read the child's size yet, the latest state is
         // presented again at the child's next bounds change (its first layout pass), before it is rendered.
@@ -416,6 +439,8 @@ public sealed record SwiftTransition
             Stop();
             source = FrameClock.Source.Current;
             var start = SwiftClock.Now;
+            runAnimation = animation;
+            runStart = start;
             Action<TimeSpan>? frame = null;
             frame = _ =>
             {

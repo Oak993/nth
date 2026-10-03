@@ -361,7 +361,7 @@ public sealed class ChatView : Decorator
             if (terminal is not null && (!visible || terminalDirectory != directory))
             {
                 var leaving = terminal;
-                SwiftTransition.Remove(terminalHost, leaving);
+                SwiftTransition.RemoveContinuing(terminalHost, leaving); // closed mid-open: back down from where it is (OD-0076; ED-NEW-parity-chatview (10)).
                 terminal = null;
                 if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height, rowHeld: true);
             }
