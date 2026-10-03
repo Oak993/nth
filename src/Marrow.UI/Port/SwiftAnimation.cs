@@ -147,6 +147,9 @@ public sealed record SwiftTransition
 
     public static void Remove(Panel panel, Control child) => Remove(panel, child, null);
 
+    /// <summary>The child's removal is still running (its frames are requested): <see cref="InsertContinuing"/> would take it back.</summary>
+    public static bool IsRemoving(Control child) => attachments.TryGetValue(child, out var state) && state.RemovalInFlight;
+
     /// <summary>
     /// OD-0076 (no change by a cut), ED-NEW-parity-chatview (10): a removal that may interrupt this child's insertion still in
     /// flight and starts from where the insertion has brought the child, never from its identity. For a transition with no
@@ -157,6 +160,38 @@ public sealed record SwiftTransition
     /// app-wide OD-0076 audit (the terminal drawer closed while it is still opening, ChatView.swift:276-279,290, is the first).
     /// </summary>
     public static void RemoveContinuing(Panel panel, Control child) => Remove(panel, child, null, continuing: true);
+
+    /// <summary>
+    /// OD-0076 (no change by a cut), ED-NEW-parity-chatview (10): the counterpart of <see cref="RemoveContinuing"/>. An insertion that
+    /// interrupts this child's removal still in flight, in the panel the removal is leaving, brings the same child back from where the
+    /// removal has taken it, never from the insertion's start: for a transition with no asymmetric part the removal's state at progress
+    /// r is the insertion's at 1 - r, so the insertion runs from 1 - r (the removal's presented progress at this instant, on its own
+    /// clock) to its end on its own curve. The child stays in its panel at the place it has (the index is not read), its removal's
+    /// frames stop and its completion is dropped (the child is not gone). An asymmetric transition, or a child with no removal in
+    /// flight in this panel, is inserted as <see cref="Insert"/> does. Opt-in, like <see cref="RemoveContinuing"/>.
+    /// </summary>
+    public static void InsertContinuing(Panel panel, int index, Control child)
+    {
+        var state = attachments.GetValue(child, _ => new Attachment(Opacity));
+        if (!state.RemovalInFlight || !ReferenceEquals(state.RemovingFrom, panel) || state.Transition.HasAsymmetricPart()
+            || state.Wrapper is not { } wrapper || !panel.Children.Contains(wrapper))
+        {
+            Insert(panel, index, child);
+            return;
+        }
+        var from = 1 - state.CurrentProgress;
+        state.Stop();
+        state.RemovingFrom = null;
+        state.RemovalCompleted = null;
+        var animation = state.Transition.ForInsert().OwnAnimation() ?? Transaction.Current;
+        if (animation is null)
+        {
+            state.Present(child, 1, inserting: true);
+            return;
+        }
+        state.Present(child, from, inserting: true);
+        state.Run(animation, (p, _) => state.Present(child, from + (1 - from) * p, inserting: true), from);
+    }
 
     // ED-218: disposal belongs after removal finishes, including immediate/identity removals.
     internal static void Remove(Panel panel, Control child, Action? completed) => Remove(panel, child, completed, continuing: false);
@@ -193,7 +228,7 @@ public sealed record SwiftTransition
             if (panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
             state.CompleteRemoval();
-        });
+        }, from);
     }
 
     private SwiftTransition ForInsert() => kind == Kind.Asym ? first! : this;
@@ -395,21 +430,27 @@ public sealed record SwiftTransition
         /// <summary>An insertion is still running: its frames are requested and it presents the inserting side.</summary>
         public bool InsertionInFlight => callback is not null && lastInserting;
 
-        // Where the running animation is now on its own clock, whether or not a frame has presented that time yet (an interruption
-        // reads the state on screen at this instant, not the last frame's).
+        /// <summary>A removal is still running: its frames are requested and it presents the removing side.</summary>
+        public bool RemovalInFlight => callback is not null && !lastInserting;
+
+        // The progress presented now, on the running animation's own clock, whether or not a frame has presented that time yet (an
+        // interruption reads the state on screen at this instant, not the last frame's). A run that continued an interrupted one
+        // presents from runFrom to 1 (from + (1 - from) * the curve), so that is what is read, not the curve alone.
         public double CurrentProgress
         {
             get
             {
                 if (callback is null || runAnimation is null) return lastProgress;
                 var elapsed = SwiftClock.Now - runStart;
-                return elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(runAnimation.Duration).Ticks
+                var curve = elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(runAnimation.Duration).Ticks
                     ? 1 : runAnimation.Progress(elapsed.TotalSeconds);
+                return runFrom + (1 - runFrom) * curve;
             }
         }
 
         private Marrow.UI.Port.Animation? runAnimation;
         private ContinuousInstant runStart;
+        private double runFrom;
 
         // Applies the transition at a progress. When a move could not read the child's size yet, the latest state is
         // presented again at the child's next bounds change (its first layout pass), before it is rendered.
@@ -434,13 +475,14 @@ public sealed record SwiftTransition
             callback = null;
         }
 
-        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply)
+        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply, double from = 0)
         {
             Stop();
             source = FrameClock.Source.Current;
             var start = SwiftClock.Now;
             runAnimation = animation;
             runStart = start;
+            runFrom = from;
             Action<TimeSpan>? frame = null;
             frame = _ =>
             {

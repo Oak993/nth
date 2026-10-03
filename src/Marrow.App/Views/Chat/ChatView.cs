@@ -87,6 +87,7 @@ public sealed class ChatView : Decorator
     private string? composerDirectory;
     private bool? terminalWasVisible;
     private string? terminalDirectory;
+    private (TerminalPanel Panel, string? Directory)? leavingTerminal; // the drawer last taken out, while its removal may still be running.
     private readonly ChatFrameAnimation terminalPush;
     private (bool Showing, double Height)? push; // the terminal push under way: the pane's settled size is read through it.
     private long? seenDiffRevision;
@@ -362,6 +363,7 @@ public sealed class ChatView : Decorator
             {
                 var leaving = terminal;
                 SwiftTransition.RemoveContinuing(terminalHost, leaving); // closed mid-open: back down from where it is (OD-0076; ED-NEW-parity-chatview (10)).
+                leavingTerminal = (leaving, terminalDirectory);
                 terminal = null;
                 if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height, rowHeld: true);
             }
@@ -369,8 +371,19 @@ public sealed class ChatView : Decorator
             {
                 terminalDirectory = directory;
                 var rowHeld = terminalHost.Children.Count != 0; // a drawer still leaving holds its row (and the pane's reach under it).
-                terminal = new TerminalPanel(runtime, directory).Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
-                SwiftTransition.Insert(terminalHost, terminalHost.Children.Count, terminal);
+                // Reopened while it is still closing: the leaving drawer comes back from where it is, the same TerminalPanel (OD-0076;
+                // ED-NEW-parity-chatview (10)); a new one would start a full drawer below under the chat box that is already rising.
+                if (leavingTerminal is { } back && back.Directory == directory && SwiftTransition.IsRemoving(back.Panel))
+                {
+                    terminal = back.Panel;
+                    SwiftTransition.InsertContinuing(terminalHost, terminalHost.Children.Count, terminal);
+                }
+                else
+                {
+                    terminal = new TerminalPanel(runtime, directory).Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
+                    SwiftTransition.Insert(terminalHost, terminalHost.Children.Count, terminal);
+                }
+                leavingTerminal = null;
                 if (changed && animation is not null)
                     PushTerminal(showing: true, animation, double.IsNaN(terminal.Height) ? model!.Settings.TerminalHeight : terminal.Height, rowHeld);
             }
