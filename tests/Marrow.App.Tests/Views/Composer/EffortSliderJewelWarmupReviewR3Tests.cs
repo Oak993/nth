@@ -10,13 +10,13 @@ using Marrow.UI.Port;
 namespace Marrow.App.Tests.Views.Composer;
 
 // REVIEW (adversarial, ED-252 warm-up v2, review round 3 on d864a73e8): each test states what the warm-up or the cache must
-// do and fails on the head reviewed.
+// do and failed on the head reviewed; both pass from review round 4 (round 3 answered), kept under plain names.
 [Collection("Headless")]
 public sealed class EffortSliderJewelWarmupReviewR3Tests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Decision", "ED-252")] // OD-0096: the screen shows again "when the GPU ... changes": IsWarm must know which GPU the app draws with
-    public void REVIEW_the_machine_identity_names_first_the_adapter_the_app_draws_with()
+    public void The_machine_identity_names_first_the_adapter_the_app_draws_with()
     {
         // Avalonia 12.1.2 (Avalonia.Win32 AngleWin32EglDisplay, decompiled; src sets no GraphicsAdapterSelectionCallback) makes
         // ANGLE's D3D11 device on DXGI adapter 0: the adapter the knob's programs are linked and kept for
@@ -36,7 +36,7 @@ public sealed class EffortSliderJewelWarmupReviewR3Tests(HeadlessSession headles
 
     [Fact]
     [Trait("Decision", "ED-252")] // the idle fallback steps only in frames where nothing animates: an Avalonia transition animates
-    public void REVIEW_a_drag_handles_grip_growing_on_hover_counts_as_animating_for_the_warm_up() => headless.OnUiThread(() =>
+    public void A_drag_handles_grip_growing_on_hover_counts_as_animating_for_the_warm_up() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
