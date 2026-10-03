@@ -72,11 +72,17 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
 
     // OD-0094: the drift is "cheap (a shader or brush transform on the frame clock, no per-frame allocation, frames only
     // while the title is visible)". At rest the label is drawn once; each frame only moves its brushes' two ends, which the
-    // compositor carries to what it already draws. Measured three ways: (1) the label is never drawn again while the
-    // colours move; (2) the UI thread's own work per frame, renderer held still, is the two ends' change notices; (3) with
-    // the headless renderer drawing on this thread, a drifting title costs what any changed pixel costs the renderer (a
-    // Border whose brush changes colour each frame): about 6.6 KB a frame here, all of it the renderer's frame (measured
-    // 2026-10-03: the drift's own work 64 B a frame; with the renderer 6.9 KB against 6.6 KB for the border).
+    // compositor carries to what it already draws. Measured two ways: (1) the label is never drawn again while the colours
+    // move, and they move on screen; (2) what the drift costs beyond stock Avalonia making the same visible change, as the
+    // final review's ruling (round 1, 2026-10-03) has it. The round-2 form of (2) held the renderer still and then Avalonia
+    // throttles every commit after the first (MediaContext.CommitCompositorsWithThrottling), so it left out the commit the
+    // app pays every frame; its (3) set the title against a solid Border, which has no gradient shader to serialize, and
+    // failed on the renderer's own frame (about 4.6 KB for any changed pixel, the render thread's on Windows). Now the
+    // renderer ticks every frame (every commit happens, as in the app), only the renderer's own tick is left out of the UI
+    // thread's count, and the floor is a stock TextBlock with the same text and gradient whose two ends the test moves each
+    // frame; 30 frames to warm, the average of 600. The drift may add at most 256 B a frame on the UI thread and 512 B on the
+    // renderer (measured 2026-10-03: drifting 2.25-2.32 KB on the UI thread against the floor's 2.21-2.29 KB, the renderer
+    // 4.57-4.65 KB against 4.58-4.82 KB).
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")] // as ruled by OD-0094
     public void The_drift_moves_the_brushes_and_never_draws_the_label_again() => headless.OnUiThread(() =>
@@ -94,20 +100,47 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
             if (render) Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
         }
-        long PerFrame(Control content, bool render, Action? each = null)
+        const int Frames = 600;
+        (long Ui, long Renderer) PerFrame(Control content, Action? each)
         {
             var window = new Window { Width = 300, Height = 60, Background = Brushes.Black, Content = content };
             window.Show();
             try
             {
-                for (var i = 0; i < 30; i++) Step(render, each);
-                var before = GC.GetAllocatedBytesForCurrentThread();
-                for (var i = 0; i < 120; i++) Step(render, each);
-                return (GC.GetAllocatedBytesForCurrentThread() - before) / 120;
+                long ui = 0, renderer = 0;
+                void Frame(bool count)
+                {
+                    var a = GC.GetAllocatedBytesForCurrentThread();
+                    each?.Invoke();
+                    clock.Advance(TimeSpan.FromMilliseconds(16));
+                    frames.Advance(TimeSpan.FromMilliseconds(16));
+                    Dispatcher.UIThread.RunJobs();
+                    var b = GC.GetAllocatedBytesForCurrentThread();
+                    Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick(); // the renderer's frame (the render thread's on Windows)
+                    var c = GC.GetAllocatedBytesForCurrentThread();
+                    Dispatcher.UIThread.RunJobs();
+                    var d = GC.GetAllocatedBytesForCurrentThread();
+                    if (count) { ui += b - a + (d - c); renderer += c - b; }
+                }
+                for (var i = 0; i < 30; i++) Frame(false);
+                for (var i = 0; i < Frames; i++) Frame(true);
+                return (ui / Frames, renderer / Frames);
             }
             finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
         }
-        CountedMorphingTextBlock Title(double period) => new() { Text = "Extra High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Pair(), DriftPeriod = period };
+        CountedMorphingTextBlock Title(double period) => new() { Text = "Extra High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Pair(), DriftPeriod = period, MaxLines = 1 };
+        (long Ui, long Renderer) Floor()
+        {
+            var brush = Pair();
+            var moved = 0;
+            var stock = new TextBlock { Text = "Extra High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = brush, MaxLines = 1 };
+            return PerFrame(stock, () =>
+            {
+                moved = (moved + 1) % 160;
+                brush.StartPoint = new RelativePoint(moved, 0, RelativeUnit.Absolute);
+                brush.EndPoint = new RelativePoint(moved + 80, 0, RelativeUnit.Absolute);
+            });
+        }
 
         // (1) Drawn once, then only its brushes move: the label is not drawn again, frame after frame.
         var counted = Title(7);
@@ -130,17 +163,13 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
         }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
 
-        // (2) The UI thread's own work, the renderer held still: the two ends' change notices, no more.
-        var stillAlone = PerFrame(Title(0), render: false);
-        var driftAlone = PerFrame(Title(7), render: false);
-        Assert.True(driftAlone - stillAlone <= 256, $"the drift's own work allocates {driftAlone - stillAlone} bytes a frame ({driftAlone} drifting, {stillAlone} still)");
-
-        // (3) With the renderer drawing here: what any changed pixel costs it, no more.
-        var solid = new SolidColorBrush(Colors.Red);
-        var n = 0;
-        var anyChange = PerFrame(new Border { Width = 50, Height = 20, Background = solid }, render: true, () => solid.Color = n++ % 2 == 0 ? Colors.Red : Colors.Blue);
-        var drifting = PerFrame(Title(7), render: true);
-        Assert.True(drifting - anyChange <= 1024, $"a drifting title costs {drifting} bytes a frame with the renderer; a border changing colour {anyChange}");
+        // (2) What the drift costs beyond stock Avalonia moving the same gradient: on the UI thread and on the renderer.
+        PerFrame(Title(7), null); // warm both paths
+        Floor();
+        var drift = PerFrame(Title(7), null);
+        var floor = Floor();
+        Assert.True(drift.Ui - floor.Ui <= 256, $"the drift allocates {drift.Ui - floor.Ui} bytes a frame on the UI thread beyond stock Avalonia moving the same gradient ({drift.Ui} against {floor.Ui})");
+        Assert.True(drift.Renderer - floor.Renderer <= 512, $"the drift costs the renderer {drift.Renderer - floor.Renderer} bytes a frame beyond stock Avalonia moving the same gradient ({drift.Renderer} against {floor.Renderer})");
     });
 
     // Every letter's brush shares its colour's one copy of the stops.
