@@ -119,12 +119,16 @@ public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
         // reads it, so the knob's exit angle is the strike's, from where its bolt leaves
         var reading = Strike.StrikeAt(0, seed) - Strike.Lead - KnobSignal.ChargeOf(0, seed);
         rig.Frame(Math.Max(1.0 / 60, reading + 0.02 - effect.TimeAt(SwiftDate.Now)));
-        rig.Down(250); // on the track: the knob springs from its stop to the pointer
+        // on the track, at stop 2 (below the top: the look stays fast, the same effect): the knob springs from its stop to
+        // the pointer
+        rig.Down(180);
+        Assert.Equal(2, rig.Index.Value);
         var last = rig.Slider.KnobX;
         var moved = 0;
         for (var i = 1; i <= 40; i++)
         {
             rig.Frame();
+            Assert.Same(effect, Assert.Single(rig.Slider.GetVisualDescendants().OfType<TrackEffect>()));
             var x = rig.Slider.KnobX;
             var g = effect.StrikeGeometryFor(effect.Bounds.Size); // the bolt the tube draws this frame, laid out for the knob at x
             Assert.Equal(TrackEffect.ExitAt(x), g.Knob, 9);
@@ -138,7 +142,7 @@ public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
             last = x;
         }
         Assert.True(moved >= 10, $"the exit moved on {moved} frames");
-        rig.Up(250);
+        rig.Up(180);
     });
 
     [Fact]
