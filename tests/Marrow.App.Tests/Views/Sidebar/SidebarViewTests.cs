@@ -291,6 +291,18 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   the round-2 survivors RA1, RA2, RA3, RA4 (restated as RA4b and RA4c for the new RefreshAccessory), RA5, RA7, RA16 and
 //   RA16b, and R4M1-R4M14 over this round's changes. Every one killed but R4M9 (a helper's kept status never drawn again),
 //   which A_helper_rows_status_follows_its_thread_turning_unread_and_then_failed now kills, with R4M9b (mutants_round4b.json).
+//
+// REVIEW PASS 2, ROUND 3 (2026-10-03, adversarial; its REVIEW_Round3_ test kept as written). What it refuted and what was done:
+// - PR-WIN-200 ('with the selection change animated on the 0.1-second hover curve', Chrome.swift:729): SidebarRow took
+//   isSelected once and SettingsView built every row again on a page change, so the wash moved by a cut (1-settings-tour.mov
+//   47.765-47.85 s eases it over about 0.1 s). SidebarRow.IsSelected now hands a kept row its selection, easing the fill on
+//   Chrome.hover whatever the transaction; SettingsView keeps a row per listed page (ED-NEW-parity-sidebarview (5);
+//   SidebarRowSelectionReviewTests, SettingsSidebarSelectionTests, ChromeFifthTests.SidebarRow_handed_a_new_selection_...).
+//   Three Settings tests that read a row right after a click had encoded the cut; they now read it after Chrome.hover's 0.1 s.
+// - The kept helper's isLast was proven one way only (RR6, RR7 survived the namespace):
+//   A_kept_last_helper_row_runs_its_connector_through_once_an_older_helper_lands_below_it, the reviewer's proposed test.
+// - Mutation records: mutants_round5.txt and mutants_round5b.txt (and .json): 19 mutants, every one killed but S17 and RR1,
+//   both recorded in the ED entry as not told apart by any headless check.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
