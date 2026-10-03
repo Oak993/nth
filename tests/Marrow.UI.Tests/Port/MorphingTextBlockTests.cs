@@ -127,7 +127,7 @@ public sealed class MorphingTextBlockTests(HeadlessSession headless)
     // letters' own curve, fitted to all five frames, must give those gaps within 2 px (each edge is read to the pixel;
     // the fit's worst frame is 1.5 off), and give the gap back at the end.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // ED-238's fitted kept-letter clock (the widening, 34.865-34.950 s), a part of PR-COMPOSER-111's morph
     public void The_kept_letters_run_ahead_of_the_labels_frame_as_the_video_measures()
     {
         var change = Animation.Snappy(0.2);

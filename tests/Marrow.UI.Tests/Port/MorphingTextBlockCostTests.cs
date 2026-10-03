@@ -39,7 +39,7 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
     // a new mutable brush and stop list for every letter's seventeen blur copies, about 395 KB more; a small brush per copy
     // instead of per letter, about 32 KB more).
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // the cost of the morph's gradient letters and OD-0094's drift, ED-238's engineering decisions
     public void A_gradient_change_costs_a_small_brush_a_letter_beyond_a_plain_one() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -84,7 +84,7 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
     // renderer (measured 2026-10-03: drifting 2.25-2.32 KB on the UI thread against the floor's 2.21-2.29 KB, the renderer
     // 4.57-4.65 KB against 4.58-4.82 KB).
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // the cost of the morph's gradient letters and OD-0094's drift, ED-238's engineering decisions
     public void The_drift_moves_the_brushes_and_never_draws_the_label_again() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -174,7 +174,7 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
 
     // Every letter's brush shares its colour's one copy of the stops.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // the cost of the morph's gradient letters and OD-0094's drift, ED-238's engineering decisions
     public void Every_letters_brush_shares_one_copy_of_the_stops() => headless.OnUiThread(() =>
     {
         var label = new MorphingTextBlock { Text = "Max" };

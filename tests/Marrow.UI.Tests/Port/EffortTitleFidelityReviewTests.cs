@@ -132,7 +132,7 @@ public sealed class EffortTitleFidelityReviewTests(HeadlessSession headless)
     // by the text renderer; for a plain colour the two meet on the frame the change starts and the frame it ends. The
     // kept "202" must look the same on both sides of that line (no snap of weight or edge at 1, 1.25, 1.5, 1.75).
     [Theory]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111's morph or OD-0094's drift (ED-238), re-traited in final round 2
     [InlineData(1.0)]
     [InlineData(1.25)]
     [InlineData(1.5)]
@@ -172,7 +172,7 @@ public sealed class EffortTitleFidelityReviewTests(HeadlessSession headless)
     // has not moved, and touches it. In the port the kept letters glide on exactly the frame's curve, so the gap never
     // changes (the builder's own sbs_inc_after.png, 34.865-34.907: video "High>" against the port's "High >").
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111's morph or OD-0094's drift (ED-238), re-traited in final round 2
     public void REVIEW_The_kept_letters_run_ahead_of_the_labels_frame_as_in_the_video() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -255,7 +255,7 @@ public sealed class EffortTitleFidelityReviewTests(HeadlessSession headless)
     // over 600 frames on 2026-10-03: drifting 2.25-2.32 KB, the floor 2.21-2.29 KB), cost the renderer no more than the
     // floor does (4.57-4.65 KB against 4.58-4.82 KB), and never draw the label again while its colours move.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111's morph or OD-0094's drift (ED-238), re-traited in final round 2
     public void REVIEW_The_drift_allocates_nothing_frame_by_frame() => headless.OnUiThread(() =>
     {
         const int Frames = 600;
@@ -322,7 +322,7 @@ public sealed class EffortTitleFidelityReviewTests(HeadlessSession headless)
     // copies, every frame (Pinned); measured about 430 KB a frame for "Extra High" -> "Max" against about 40 KB for the
     // same change in a plain colour, some 12 MB of garbage per change on the UI thread.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111's morph or OD-0094's drift (ED-238), re-traited in final round 2
     public void REVIEW_A_gradient_change_costs_about_what_a_plain_one_does() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

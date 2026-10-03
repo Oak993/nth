@@ -121,7 +121,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
     // OD-0094: the card's gradient title (here a pair's lead-to-heads colours) drifts at rest; a single-colour title
     // (a plain effort) stays as it is.
     [Theory]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift at the site (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     [InlineData(true)]
     [InlineData(false)]
     public void A_gradient_title_drifts_at_rest_and_a_single_colour_one_does_not(bool pair) => headless.OnUiThread(() =>

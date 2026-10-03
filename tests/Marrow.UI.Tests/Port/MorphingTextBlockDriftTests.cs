@@ -66,7 +66,7 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift of the title (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     public void At_rest_a_gradient_titles_colours_drift_slowly_along_the_letters() => headless.OnUiThread(() => Run((label, window, step) =>
     {
         Assert.Equal(0, label.DriftPhase);
@@ -77,7 +77,7 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     }));
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift of the title (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     public void The_drift_loops_without_a_seam() => headless.OnUiThread(() => Run((label, window, step) =>
     {
         step(1500);
@@ -96,7 +96,7 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     }));
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift of the title (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     public void Under_reduce_motion_the_gradient_holds_still() => headless.OnUiThread(() => Run((label, window, step) =>
     {
         EnvironmentValues.SetAccessibilityReduceMotion(window, true);
@@ -108,7 +108,7 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     }));
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift of the title (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     public void A_change_takes_the_drift_over_and_hands_it_back_without_a_jump() => headless.OnUiThread(() => Run((label, window, step) =>
     {
         step(1500); // well into the loop, so a hand-off that dropped the drift would show
@@ -136,7 +136,7 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     // at rest are drawn as the line's glyph runs, each where the line places it, and their colours still come from the
     // box the change pins its letters' colours to, not from the run's own place.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift of the title (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     public void A_line_set_in_from_the_labels_edge_keeps_its_colours_as_a_change_takes_the_drift_over() => headless.OnUiThread(() => Run((label, window, step) =>
     {
         step(1500);
@@ -163,7 +163,7 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     // A stalled frame (the window behind another, the machine busy) moves the colours on by at most a tenth of a second
     // when frames come again: the drift never lurches.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift of the title (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     public void A_stalled_frame_moves_the_drift_on_by_a_tenth_of_a_second_at_most() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -193,7 +193,7 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift of the title (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     public void The_drift_asks_for_frames_only_while_the_title_is_shown() => headless.OnUiThread(() => Run((label, window, step) =>
     {
         step(100);
@@ -216,7 +216,7 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     }));
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [Trait("Decision", "ED-238")] // OD-0094's drift of the title (EffortSlider.swift:573-583), not PR-COMPOSER-111's button clauses
     public void A_single_colour_title_stays_as_it_is() => headless.OnUiThread(() => Run((label, window, step) =>
     {
         var start = RenderedPixels.Capture(window);
