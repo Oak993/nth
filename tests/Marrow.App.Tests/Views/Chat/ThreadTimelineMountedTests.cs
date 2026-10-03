@@ -592,4 +592,55 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         Assert.True(mount.Scroll.Extent.Height - mount.Scroll.Offset.Y - mount.Scroll.Viewport.Height < 2);
         Assert.Contains(mount.Blocks(), block => block.Row.TranslatePoint(default, mount.Scroll) is { } at && at.Y < mount.Scroll.Viewport.Height && at.Y + block.Row.Bounds.Height > 0);
     });
+
+    private static void Invoke(object owner, string name, params object?[] arguments) =>
+        owner.GetType().GetMethod(name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(owner, arguments);
+
+    private static void Bump(FrontMonitor monitor, Avalonia.Controls.Window? window) =>
+        typeof(FrontMonitor).GetMethod("Bump", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(monitor, [window]);
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-137")] // ThreadTimeline.swift:616-623,1137-1142,1290-1350; windows_path: WM_ACTIVATEAPP and per-window visibility (Avalonia's Activated, IsVisible and WindowState). A window wholly covered by another application's has no signal there (STOP #3), as the spec's Windows path has none.
+    public void The_timeline_checks_itself_when_the_app_or_its_own_window_comes_back_and_not_when_another_window_does() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(3, sentences: 10).ToList()); mount.Settle();
+        var tracking = mount.Field<TimelineScrollTracking>("tracking"); var monitor = FrontMonitor.Shared.Current;
+        // The window coming to the front: the timeline in it checks itself (:616-623).
+        var checks = tracking.CheckRequest; tracking.BlankRepairs = 2;
+        mount.Window.Activate(); mount.Advance(100);
+        Assert.True(monitor.IsVisible); Assert.True(tracking.CheckRequest > checks); Assert.Equal(0, tracking.BlankRepairs);
+        var other = new Avalonia.Controls.Window { Width = 200, Height = 100 }; Invoke(monitor, "Observe", other);
+        Bump(monitor, null); Assert.True(monitor.Concerns(other) && monitor.Concerns(mount.Window)); // the app coming to the front is a bump for no window in particular
+        // A popover or a tooltip opening over the chat is another window coming on screen: not the reader coming back, and the reader's place is where it was.
+        mount.Scroll.Offset = new Vector(0, 100); mount.Advance(400); tracking.IsPinnedToBottom = false;
+        checks = tracking.CheckRequest; var revision = monitor.Revision;
+        other.Show(); mount.Advance(100);
+        // A window becoming visible bumps for that window only (:1326-1327): this timeline's window is not it.
+        Assert.False(monitor.Concerns(mount.Window)); Assert.True(monitor.Concerns(other));
+        Assert.Equal(checks, tracking.CheckRequest); Assert.Equal(100, mount.Scroll.Offset.Y, 1); Assert.False(tracking.IsPinnedToBottom);
+        // Its occlusion lifting, as a bump for that other window, concerns that window alone.
+        tracking.BlankRepairs = 2; tracking.NoteDrift(5, 48);
+        Bump(monitor, other); mount.Advance(100);
+        Assert.Equal(checks, tracking.CheckRequest); Assert.Equal(2, tracking.BlankRepairs);
+        // This timeline's own window uncovered: :1137-1142 a full run of repairs again, a check requested, a blank watch and a viewport refresh armed.
+        Bump(monitor, mount.Window); mount.Advance(50);
+        Assert.Equal(checks + 1, tracking.CheckRequest); Assert.Equal(0, tracking.BlankRepairs);
+        Assert.False(tracking.NoteDrift(44, 48), "the drift of before (5) was cleared by the refresh: 44 is under the tolerance on its own");
+        // Its window minimised and restored (a window becoming visible again): the same.
+        tracking.BlankRepairs = 3; mount.Window.WindowState = Avalonia.Controls.WindowState.Minimized; mount.Advance(50); Assert.Equal(3, tracking.BlankRepairs);
+        mount.Window.WindowState = Avalonia.Controls.WindowState.Normal; mount.Advance(50);
+        Assert.Equal(0, tracking.BlankRepairs); Assert.True(monitor.Concerns(mount.Window));
+        // The app itself coming to the front concerns every timeline.
+        tracking.BlankRepairs = 1; Bump(monitor, null); mount.Advance(50);
+        Assert.Equal(0, tracking.BlankRepairs); Assert.True(monitor.Concerns(other));
+        other.Close();
+        // The app coming back when none of its windows was visible is app-wide (:1307-1311): a window activating then bumps for no window in particular.
+        typeof(Avalonia.Controls.WindowBase).GetProperty("IsActive")!.GetSetMethod(nonPublic: true)!.Invoke(mount.Window, [false]); mount.Advance(50);
+        Assert.False(monitor.IsVisible);
+        var third = new Avalonia.Controls.Window { Width = 200, Height = 100 }; Invoke(monitor, "Observe", third);
+        Bump(monitor, third); Assert.False(monitor.Concerns(mount.Window));
+        third.Show(); mount.Advance(100);
+        Assert.True(monitor.Concerns(mount.Window), "the app came back: every timeline is concerned, not only the window that activated");
+        third.Close();
+    });
 }
