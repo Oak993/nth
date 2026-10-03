@@ -47,45 +47,15 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
         return true;
     }
 
+    // The texts that are drawn: the sentence box's invisible measuring text (it carries the new words while the height eases) is not one.
     private static Control[] TextHosts(Control root, string text) =>
-        root.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Text == text).Cast<Control>().ToArray();
+        root.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Text == text && !(t.GetVisualParent() is SentenceHeightGlide box && ReferenceEquals(t, box.Probe))).Cast<Control>().ToArray();
 
     private static double Shown(Control root, string text) => TextHosts(root, text).Select(EffectiveOpacity).DefaultIfEmpty(0).Max();
 
     // The button of the check row that carries this label (its own opacity chain).
     private static Button ButtonLabelled(Control root, string label) =>
         root.GetVisualDescendants().OfType<Button>().Single(b => b.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == label));
-
-    private sealed class Stage : IDisposable
-    {
-        private readonly TestRuntime runtime;
-        private readonly ManualFrameSource frames = new();
-        private readonly IDisposable frameScope, main, info;
-        public readonly UpdateChecker Checker;
-        private readonly IDisposable shared;
-        public readonly UpdateInstallProgress Progress = UpdateInstallProgressFixtures.NewProgress();
-        private readonly IDisposable running;
-        public Avalonia.Controls.Window? Window;
-
-        public Stage(TestRuntime runtime)
-        {
-            this.runtime = runtime;
-            main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
-            frameScope = FrameClock.Source.Override(frames);
-            info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
-            Checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], ""));
-            shared = UpdateChecker.OverrideShared(Checker);
-            running = UpdateInstallProgress.Running.Override(Progress);
-        }
-
-        public void Step(int milliseconds)
-        {
-            runtime.Time.Advance(TimeSpan.FromMilliseconds(milliseconds)); frames.Advance(TimeSpan.FromMilliseconds(milliseconds)); Dispatcher.UIThread.RunJobs();
-            Window?.UpdateLayout();
-        }
-
-        public void Dispose() { Window?.Close(); running.Dispose(); shared.Dispose(); info.Dispose(); frameScope.Dispose(); main.Dispose(); }
-    }
 
     // ---- T1: the Check now row ----
 
@@ -99,7 +69,7 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
     [InlineData(true)]
     public void The_check_row_crossfades_its_button_and_its_sentence_each_way_and_cuts_under_Reduce_Motion(bool reduced) => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var stage = new Stage(runtime);
+        using var runtime = new TestRuntime(); using var stage = new AboutStage(runtime);
         var row = new AboutUpdateCheckRow(); EnvironmentValues.SetAccessibilityReduceMotion(row, reduced); stage.Window = Show(row);
         var slot = Assert.Single(row.GetVisualDescendants().OfType<CrossfadeSlot>());
         const string rest = "Marrow checks GitLab for new versions a few times a day. Not checked yet.";
@@ -151,7 +121,7 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
     [InlineData(true)]
     public void The_ready_and_standing_faces_crossfade_each_way_over_0_18_seconds_and_cut_under_Reduce_Motion(bool reduced) => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var stage = new Stage(runtime);
+        using var runtime = new TestRuntime(); using var stage = new AboutStage(runtime);
         AboutVersionPill pill = null!;
         runtime.OnMain(() =>
         {
@@ -195,7 +165,7 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // partial: only that a leaving ready face is inert
     public void A_ready_face_that_is_fading_out_cannot_be_pressed() => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var stage = new Stage(runtime);
+        using var runtime = new TestRuntime(); using var stage = new AboutStage(runtime);
         AboutVersionPill pill = null!;
         runtime.OnMain(() =>
         {
@@ -217,7 +187,7 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // partial: only that a swap in flight is not cut by a same-looking rebuild
     public void A_rebuild_that_looks_the_same_does_not_cut_a_swap_that_is_running() => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var stage = new Stage(runtime);
+        using var runtime = new TestRuntime(); using var stage = new AboutStage(runtime);
         AboutVersionPill pill = null!;
         runtime.OnMain(() =>
         {
@@ -247,7 +217,7 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
     [InlineData(true)]
     public void One_standing_crossfades_into_another_when_a_check_ends_and_cuts_under_Reduce_Motion(bool reduced) => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var stage = new Stage(runtime);
+        using var runtime = new TestRuntime(); using var stage = new AboutStage(runtime);
         AboutVersionPill pill = null!;
         runtime.OnMain(() =>
         {
@@ -286,7 +256,7 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
     [InlineData(true)]
     public void The_install_slider_and_the_face_crossfade_when_an_install_starts_fails_and_completes(bool reduced) => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var stage = new Stage(runtime);
+        using var runtime = new TestRuntime(); using var stage = new AboutStage(runtime);
         AboutVersionPill pill = null!;
         runtime.OnMain(() =>
         {

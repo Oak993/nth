@@ -1509,6 +1509,7 @@ public sealed class AboutUpdateCheckRow : Decorator
     private readonly UpdateChecker checker;
     private readonly CrossfadeSlot buttonSlot = new();
     private readonly TextBlock detailText;
+    private readonly SentenceHeightGlide detailBox;
     private string detailShown;
     private bool buttonChecking;
     private IFrameSource? detailFrames;
@@ -1524,7 +1525,11 @@ public sealed class AboutUpdateCheckRow : Decorator
         // The row is built once; its button and its detail sentence swap with a fade (ENGINEERING DECISION, OD-0076 cut T1): ChromeRow keeps its title
         // and metrics, the Mac's `Button(checker.isChecking ? ...)` and `Text(detail)` (:826-844) change in place.
         var chrome = new ChromeRow("Software update", () => buttonSlot, detailShown);
-        detailText = (TextBlock)((StackPanel)((Grid)((Border)chrome.Child!).Child!).Children[0]).Children[1];
+        var textStack = (StackPanel)((Grid)((Border)chrome.Child!).Child!).Children[0];
+        detailText = (TextBlock)textStack.Children[1];
+        // The sentence sits in a box whose height eases when its words swap to a different number of lines (OD-0076: a card that changes size eases to the new size).
+        textStack.Children.Remove(detailText);
+        textStack.Children.Add(detailBox = new SentenceHeightGlide(detailText));
         Child = chrome;
         this.Track(ReadSnapshot, Apply);
     }
@@ -1560,23 +1565,34 @@ public sealed class AboutUpdateCheckRow : Decorator
 
     private void SwapDetail(string next, Animation? animation)
     {
+        if (next == detailShown)
+        {
+            // The words on show, or on their way in, are these: a swap that is running goes on to them (cancelling it in its first half would leave the old words at full opacity).
+            // Under Reduce Motion a swap still running is finished at once.
+            if (detailFrame is null || animation is not null) { if (detailFrame is null) detailText.Opacity = 1; return; }
+            if (detailFrames is { } finishing) finishing.CancelFrame(detailFrame);
+            detailFrame = null; detailBox.Settle(); detailText.Text = next; detailText.Opacity = 1;
+            return;
+        }
         if (detailFrame is { } running) detailFrames?.CancelFrame(running);
         detailFrame = null;
-        if (next == detailShown) { detailText.Opacity = 1; return; }
         detailShown = next;
-        if (animation is null || TopLevel.GetTopLevel(detailText) is null) { detailText.Text = next; detailText.Opacity = 1; return; }
+        if (animation is null || TopLevel.GetTopLevel(detailText) is null) { detailBox.Settle(); detailText.Text = next; detailText.Opacity = 1; return; }
         // The old words fade out where they stood over the first half, the new ones in over the second (HydraProgressBar's swap); the words on show when
-        // a swap is turned back part way fade from the opacity they have.
+        // a swap is turned back part way fade from the opacity they have. The box they sit in eases from the height it has to the new words' height over
+        // the whole swap on the same curve, so a sentence that rewraps never steps the row (and the card) by a line in one frame.
         var half = animation.Duration / 2; var frames = detailFrames = FrameClock.Source.Current; var since = SwiftClock.Now; var from = detailText.Opacity; var shown = false;
+        detailBox.Ease(next, animation);
         Action<TimeSpan>? frame = null;
         frame = _ =>
         {
             var elapsed = (SwiftClock.Now - since).TotalSeconds;
-            if (elapsed < half) { detailText.Opacity = from * (1 - Animation.EaseIn(half).Progress(elapsed)); frames.RequestFrame(frame!); return; }
+            if (elapsed < half) { detailText.Opacity = from * (1 - Animation.EaseIn(half).Progress(elapsed)); detailBox.Tick(); frames.RequestFrame(frame!); return; }
             if (!shown) { shown = true; detailText.Text = next; }
             var done = elapsed + 0.001 >= 2 * half;
             detailText.Opacity = done ? 1 : Animation.EaseOut(half).Progress(elapsed - half);
-            if (done) { detailFrame = null; return; }
+            if (done) { detailFrame = null; detailBox.Settle(); return; }
+            detailBox.Tick();
             frames.RequestFrame(frame!);
         };
         detailFrame = frame; frames.RequestFrame(frame);
@@ -1595,5 +1611,79 @@ public sealed class AboutUpdateCheckRow : Decorator
         if (snapshot.UpdateAvailable && snapshot.Version is { } version)
             return $"Marrow {version} is ready to install. {checkedText}";
         return $"Marrow checks GitLab for new versions a few times a day. {checkedText}";
+    }
+}
+
+/// <summary>
+/// PORT-ONLY (OD-0076, ED-NEW-aboutupdateviews T1): the box the check row's sentence sits in. While the sentence's words swap, the box's height eases from the
+/// height it has to the height the new words take at the width it is given (measured by a probe that carries the new words, invisible, for the swap's length)
+/// over the swap's animation, so the row and the card around it ease with it; with no swap it is the sentence's own height.
+/// </summary>
+internal sealed class SentenceHeightGlide : Panel
+{
+    private readonly TextBlock text;
+    private TextBlock? probe;
+    private double presented;
+    private double from;
+    private Animation? glide;
+    private ContinuousInstant glideStart;
+
+    public SentenceHeightGlide(TextBlock text) { this.text = text; Children.Add(text); }
+
+    /// <summary>The invisible measuring text that carries the new words while the height eases (null at rest).</summary>
+    public TextBlock? Probe => probe is not null && Children.Contains(probe) ? probe : null;
+
+    /// <summary>Whether the height is still easing.</summary>
+    public bool Gliding => glide is not null;
+
+    /// <summary>Starts easing from the height shown to the height <paramref name="next"/> takes, over <paramref name="animation"/>.</summary>
+    public void Ease(string next, Animation animation)
+    {
+        if (presented <= 0) { Settle(); return; } // never laid out: nothing to ease from
+        if (probe is null)
+        {
+            probe = new TextBlock
+            {
+                FontFamily = text.FontFamily, FontSize = text.FontSize, FontWeight = text.FontWeight, FontStyle = text.FontStyle, FontFeatures = text.FontFeatures,
+                TextWrapping = text.TextWrapping, Opacity = 0, IsHitTestVisible = false,
+            };
+            AutomationProperties.SetAccessibilityView(probe, AccessibilityView.Raw);
+        }
+        probe.Text = next;
+        if (!Children.Contains(probe)) Children.Add(probe);
+        from = presented; glide = animation; glideStart = SwiftClock.Now; ClipToBounds = true;
+        InvalidateMeasure();
+    }
+
+    /// <summary>A frame of the swap: the height moves on.</summary>
+    public void Tick() => InvalidateMeasure();
+
+    /// <summary>The swap is over (or cut): the height is the sentence's own.</summary>
+    public void Settle()
+    {
+        glide = null; ClipToBounds = false;
+        if (probe is not null) Children.Remove(probe);
+        InvalidateMeasure();
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        text.Measure(availableSize);
+        var size = text.DesiredSize;
+        if (glide is { } animation && probe is not null)
+        {
+            probe.Measure(availableSize);
+            var seconds = Math.Min((SwiftClock.Now - glideStart).TotalSeconds, animation.Duration);
+            size = new Size(size.Width, from + (probe.DesiredSize.Height - from) * animation.Progress(seconds));
+        }
+        presented = size.Height;
+        return size;
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        text.Arrange(new Rect(0, 0, finalSize.Width, text.DesiredSize.Height));
+        probe?.Arrange(new Rect(0, 0, finalSize.Width, probe.DesiredSize.Height));
+        return finalSize;
     }
 }
