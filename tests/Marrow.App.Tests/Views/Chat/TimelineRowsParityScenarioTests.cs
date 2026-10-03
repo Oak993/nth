@@ -403,6 +403,51 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
     });
 
+    // ---------------------------------------------------------------- PR-HYDRAMERGE-090
+
+    // :1111-1120 the outcome pill's report: the merge card only when the body leads with a merge request address that
+    // parses AND the details hold a files line; anything else, the generic report of the whole body. Opened by a real
+    // click on the title, for the merged note and for the merge-failed note (TimelineRowsFinMergeOutcomeTests covers the
+    // remaining three-way cases and the report's geometry).
+    [Theory]
+    [InlineData("Hydra merged !7.\nhttps://gitlab.com/g/p/-/merge_requests/7\n1 file (+2 −1) landed on `main` from `head`.", true)]
+    [InlineData("Hydra opened !7 but could not merge it.\nhttps://gitlab.com/g/p/-/merge_requests/7\nThe pipeline failed on lint.", false)]
+    [Trait("Req", "PR-HYDRAMERGE-090")] // TimelineRows.swift:1111-1120, :607-640
+    public void The_merged_note_opens_the_merge_card_and_the_merge_failed_note_the_generic_report(string text, bool merged) => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presenter = new TimelineRowsPrPopupPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        AvaloniaWindow window = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Outcome(new UserMessage { Text = text }));
+                window = Show(row);
+                Click(window, row.GetVisualDescendants().OfType<Button>().Single(button => Equals(ToolTip.GetTip(button), "Show the message")));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                var popup = presenter.Calls.Last(call => call.Presented).Popup;
+                Assert.True(popup.IsOpen);
+                Assert.Equal(PlacementMode.Bottom, popup.Placement); // :1111 arrowEdge: .bottom
+                var shown = Unwrap(popup.Child!);
+                if (merged) Assert.IsType<HydraMergePopover>(shown);
+                else
+                {
+                    var report = Assert.IsType<HydraReportPopover>(shown);
+                    // :1117 HydraReportPopover(text: outcome.body): the whole body past the title, its address included.
+                    Assert.Equal(MarkdownView.Blocks(text[(text.IndexOf('\n', StringComparison.Ordinal) + 1)..]),
+                        LogicalQuery.SelfAndDescendants<MarkdownBlockView>(report).Select(block => block.Block).ToArray());
+                }
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
+    });
+
     // ---------------------------------------------------------------- helpers
 
     private static Control Unwrap(Control content)
