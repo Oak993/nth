@@ -9567,6 +9567,311 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
+
+    // ---- Parity pass (2026-10-03): the remaining clauses of UI-SIDEBAR-015, -034, -038, -039, -042, UI-GIT-057,
+    // PR-SIDEBAR-130 and PR-SIDEBAR-134 on mounted controls ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1442 capped = heads.count > 12; :1436 @State showsAllHeads is the card's own
+    public void The_head_cards_chevron_is_absent_at_twelve_heads_and_a_rebuilt_card_starts_collapsed_again() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 13).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        static IEnumerable<Button> Chevrons(Control card) => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Where(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        Control Card(IReadOnlyList<ChatThread> shown) => (Control)Activator.CreateInstance(Private("HeadCardsRow"),
+            parent, shown, Activator.CreateInstance(Private("SidebarMenuRequests"))!, (Action)(() => { }))!;
+        Control twelve = null!, first = null!, second = null!;
+        harness.Main.OnMain(() =>
+        {
+            twelve = Card(heads.Take(12).ToList());
+            Hosted(model, twelve);
+            Assert.Empty(Chevrons(twelve)); // :1514 `if capped`: twelve is not capped
+            Assert.Equal(12, LogicalQuery.SelfAndDescendants<HydraGlyph>(twelve).Count());
+            first = Card(heads);
+            Hosted(model, first);
+            PointerClick(Chevrons(first).Single()); // shows all thirteen
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(13, LogicalQuery.SelfAndDescendants<HydraGlyph>(first).Count());
+            WindowOf(first).Close(); // the card leaves the list: its @State goes with it
+            second = Card(heads);
+            Hosted(model, second);
+            Assert.Equal(12, LogicalQuery.SelfAndDescendants<HydraGlyph>(second).Count()); // collapsed again
+            Assert.Equal("chevron.down", LogicalQuery.SelfAndDescendants<SwiftImage>(Chevrons(second).Single()).Single().SymbolName);
+            WindowOf(twelve).Close();
+            WindowOf(second).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-015")] // SidebarView.swift:1159 Label("Start new chats on", systemImage: "point.3.connected.trianglepath.dotted"), after a Divider
+    public void The_pair_submenu_is_labelled_with_its_symbol_after_a_divider() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        harness.Main.OnMain(() =>
+        {
+            var items = ProjectRowBuildContextMenuItems(project, true, false, model, ProjectPairChoices((Guid.NewGuid(), "Claude, GPT")));
+            Assert.IsType<Separator>(items[^2]); // :1155 Divider()
+            var submenu = Assert.IsType<MenuItem>(items[^1]);
+            Assert.Equal("Start new chats on", MenuItemTitle(submenu));
+            var symbol = LogicalQuery.SelfAndDescendants<SwiftImage>((Control)submenu.Header!).Single();
+            Assert.Equal("point.3.connected.trianglepath.dotted", symbol.SymbolName);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // windows_path: OD-0010 draws each item symbol as its Lucide icon (porting/icons/sf-symbols-to-lucide.json)
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void The_project_menus_symbols_are_drawn_as_their_lucide_icons() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        harness.Main.OnMain(() => model.Settings.SetProjectActive(true, project.Id)); // an override, so all six items show
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+        harness.Main.OnMain(() => WindowOf(row).MouseMove(row.TranslatePoint(new Point(10, 10), WindowOf(row))!.Value));
+        harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
+        harness.Main.OnMain(() =>
+        {
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null);
+            var glyphs = LogicalQuery.SelfAndDescendants<PopoverItem>(popup.Child!)
+                .Select(i => LogicalQuery.SelfAndDescendants<SwiftImage>(i).First(g => g.SymbolName is not null)).ToList();
+            Assert.Equal(["square-pen", "layers", "folder", "trash", "power", "undo-2"], glyphs.Select(g => g.Mapping!.Lucide));
+            Assert.All(glyphs, g => Assert.NotNull(g.Icon)); // each one draws
+            WindowOf(row).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-GIT-057")] // SidebarView.swift:977-980 the two rows hand their worktree choice to confirmDeletion (:256-263)
+    [Trait("Req", "UI-SIDEBAR-027")]
+    public void The_delete_questions_rows_record_the_deletion_with_or_without_the_worktree_and_wait_for_the_popover_to_go() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Has worktree", 0) with { WorktreePath = harness.NewFolder("worktree") };
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        harness.Main.OnMain(() =>
+        {
+            view = Detached(model);
+        });
+        foreach (var (title, removeWorktree) in new[] { ("Delete thread", false), ("Delete thread and worktree", true) })
+        {
+            harness.Main.OnMain(() =>
+            {
+                var state = Field(view, "state")!;
+                SetProp(state, "IsDeletePopoverShown", true); // :229 the question is on screen
+                var content = (Control)Call(view, "BuildDeletePopoverContent", thread)!; // :225-227, the content the popover shows
+                var rows = LogicalQuery.SelfAndDescendants<PopoverItem>(content).ToList();
+                Assert.All(rows, r => Assert.Equal("trash", LogicalQuery.SelfAndDescendants<SwiftImage>(r).First(g => g.SymbolName is not null).SymbolName)); // :976, :978
+                Click(LogicalQuery.SelfAndDescendants<Button>(content).Single(b => AutomationProperties.GetName(b) == title)); // PopoverItem acts a turn later
+            });
+            harness.Main.OnMain(() =>
+            {
+                var state = Field(view, "state")!;
+                var confirmed = Get(state, "ConfirmedDeletion")!;
+                Assert.Equal(thread.Id, Get(confirmed, "ThreadID"));
+                Assert.Equal(removeWorktree, Get(confirmed, "RemoveWorktree")); // :977-980 the worktree only from the second row
+                Assert.NotNull(model.Thread(thread.Id)); // :261 nothing deleted while the popover is still shown
+                SetProp(state, "ConfirmedDeletion", null);
+            });
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-042")] // SidebarView.swift:164-166; UI/Chrome/Chrome.swift:710-746 SidebarRow
+    public void The_mounted_Add_project_row_has_the_sidebar_rows_geometry_type_colours_and_hover_fill() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        var model = harness.MakeModel();
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        try
+        {
+            Border shape = null!;
+            harness.Main.OnMain(() =>
+            {
+                var row = RowNamed(view, "Add project");
+                Assert.Equal(28d, row.Bounds.Height); // Chrome.rowHeight
+                shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 28);
+                Assert.Equal(new Thickness(8, 0, 8, 0), shape.Padding); // :725-726 with accessoryWidth 0
+                Assert.Equal(new CornerRadius(Chrome.RowCornerRadius), shape.CornerRadius);
+                var badge = LogicalQuery.SelfAndDescendants<SidebarIconBadge>(row).Single();
+                Assert.Equal(20d, badge.Bounds.Width); // :713 Chrome.iconSize
+                Assert.Equal(8d, Frame(badge, row).X); // the leading padding
+                var title = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "Add project");
+                Assert.Equal(8 + 20 + 8, Frame(title, row).X, 0.5); // HStack(spacing: 8)
+                Assert.Equal(13d, title.FontSize); // .body
+                Assert.Equal(FontWeight.Normal, title.FontWeight);
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
+                var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single();
+                Assert.Equal("plus", glyph.SymbolName); // :165 SidebarSymbol("plus") at the default 14 pt
+                Assert.Equal(Chrome.SymbolSize, glyph.Width);
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.85).Resolve(glyph.ActualThemeVariant), ((ISolidColorBrush)glyph.GetValue(SwiftImage.ForegroundProperty)!).Color); // SidebarIconBadge
+                Assert.Equal(0, ((ISolidColorBrush)shape.Background!).Color.A);
+                var window = WindowOf(view);
+                window.MouseMove(row.TranslatePoint(new Point(40, 14), window)!.Value);
+            });
+            harness.Main.AdvanceMilliseconds(300);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(300)));
+            harness.Main.OnMain(() => Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), ((ISolidColorBrush)shape.Background!).Color)); // :729 hovered
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-034")] // SidebarView.swift:1662-1674 the last helper's connector stops at the tick; :1348-1349 on a mounted helper row
+    public void A_mounted_last_helpers_connector_stops_at_its_tick_and_an_earlier_one_runs_to_the_bottom() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        harness.Main.OnMain(() =>
+        {
+            foreach (var isLast in new[] { true, false })
+            {
+                var row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!, isLast);
+                var path = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(row).Single();
+                WindowOf(row).UpdateLayout();
+                Assert.Equal(new Size(28, 24), path.Bounds.Size); // the 28 x 24 column
+                var bounds = path.Data!.Bounds;
+                Assert.Equal(18d, bounds.Left, 3); // the line at x = 18 (connectorLineX)
+                Assert.Equal(28 - 2, bounds.Right, 3); // the tick to maxX - 2
+                Assert.Equal(isLast ? 12 : 24, bounds.Bottom, 3); // ends at midY on the last helper, else runs to the bottom
+                WindowOf(row).Close();
+            }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-134")] // SidebarView.swift:1820-1833 `guard isDragged || isHovering || ...`: the dragged branch
+    public void A_dragged_row_records_its_window_frame_with_no_hover_and_no_glide() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Dragged", 0);
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        harness.Main.OnMain(() =>
+        {
+            var row = LiveThreadRow(thread, dragged: true);
+            var window = WindowOf(Hosted(model, row));
+            try
+            {
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Empty(animator.Glides);
+                var holder = Field(row, "windowFrame")!;
+                Assert.Equal(Frame(row, window), Get(holder, "Frame")); // recorded although nothing hovers it
+                row.Margin = new Thickness(0, 30, 0, 0); // it moves, as a dragged row does
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(Frame(row, window), Get(holder, "Frame")); // in window space (:1903-1905), following it
+            }
+            finally { window.Close(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-039")] // SidebarView.swift:335-336 itemView's header arm builds ActivityHeader(title:isFirst:) in the mounted list
+    public void The_mounted_activity_list_draws_its_day_headers_with_the_first_ones_short_top_padding() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var today = ThreadAt(project, "Fresh", Now.AddHours(-1));
+        var yesterday = ThreadAt(project, "Older", Now.AddDays(-1));
+        var model = Model(harness, [project], [today, yesterday]);
+        InDays(() =>
+        {
+            SidebarView view = null!;
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.SidebarActivityView = true;
+                view = Attached(model);
+            });
+            harness.Main.OnMain(() =>
+            {
+                var headers = LogicalQuery.SelfAndDescendants<ActivityHeader>(ListPanel(view)).ToList();
+                Assert.Equal(["Today", "Yesterday"], headers.Select(h => ((TextBlock)h.Child!).Text));
+                Assert.Equal(new Thickness(8, 2, 8, 4), ((TextBlock)headers[0].Child!).Margin); // first item
+                Assert.Equal(new Thickness(8, 14, 8, 4), ((TextBlock)headers[1].Child!).Margin);
+                Close(view);
+            });
+        });
+    });
+
+    // The dotted guide beside a helper and beside the folded stub (2-chat-use.mov 162 s: a column of dots then the
+    // tick, left of "> 4 heads"; evidence E:\Droppy\work\parity\evidence\SidebarView\z_stub.png). Counts the drawn
+    // dots down the connector's line at x = 18 on a real rendered frame.
+    private static int DotsDownTheLine(AvaloniaWindow window, Control column, int bottom)
+    {
+        window.UpdateLayout();
+        var origin = column.TranslatePoint(default, window)!.Value;
+        var x = (int)Math.Round(origin.X + 18);
+        var background = FramePixels.Levels(window, ((int)origin.X + 2, (int)origin.Y + 2))[0];
+        var levels = FramePixels.Levels(window, Enumerable.Range(0, bottom).Select(y => (x, (int)origin.Y + y)).ToArray());
+        var dots = 0;
+        var inDot = false;
+        foreach (var level in levels)
+        {
+            var drawn = Math.Abs(level - background) > 0.04;
+            if (drawn && !inDot) dots++;
+            inDot = drawn;
+        }
+        return dots;
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-034")] // SidebarView.swift:1648-1651 HelperConnectorShape(...).stroke(color, style: [0.1, 3.6] round) in a 28 x 24 frame
+    [Trait("Req", "UI-SIDEBAR-035")] // :1583-1584 the stub's own ending connector
+    public void The_helper_rows_and_the_folded_stubs_connectors_draw_their_dotted_line() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        harness.Main.OnMain(() =>
+        {
+            var row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!, isLast: false);
+            var window = WindowOf(row);
+            try
+            {
+                var column = Assert.IsType<Grid>(Get(row, "Child")).Children[0];
+                Assert.InRange(DotsDownTheLine(window, column, 24), 5, 8); // 24 pt on a 3.7 pt pitch
+            }
+            finally { window.Close(); }
+            var stub = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helper }, (Action)(() => { }))!;
+            stub.VerticalAlignment = VerticalAlignment.Top;
+            var stubWindow = WindowOf(Hosted(model, stub));
+            try
+            {
+                var path = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(stub).Single();
+                Assert.InRange(DotsDownTheLine(stubWindow, path, 12), 3, 5); // ends at midY: 12 pt of dots
+            }
+            finally { stubWindow.Close(); }
+        });
+    });
 }
 
 // STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)

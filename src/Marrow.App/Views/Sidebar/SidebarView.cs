@@ -2795,7 +2795,9 @@ internal sealed class HelperStubRow : Decorator
             Width = ThreadRowMetrics.ConnectorWidth, // :1584 .frame(width: connectorWidth, height: helperHeight)
             Height = ThreadRowMetrics.HelperHeight,
         };
-        connector.SizeChanged += (_, e) => connector.Data = new HelperConnectorShape(true).Path(new Rect(e.NewSize)); // :1583 endsHere: true
+        // :1583 endsHere: true, in the 28 x 24 frame of :1584 (a Path with no Data measures to nothing, so drawing it on
+        // its own SizeChanged never happened: the stub showed no guide at all beside 2-chat-use.mov 162 s's dots).
+        connector.Data = new HelperConnectorShape(true).Path(new Rect(0, 0, ThreadRowMetrics.ConnectorWidth, ThreadRowMetrics.HelperHeight));
 
         var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(8, weight: SwiftFont.Weight.Bold)); // :1586-1587
         var label = new TextBlock { TextWrapping = TextWrapping.NoWrap }; // :1588-1589
@@ -2951,6 +2953,15 @@ internal sealed class HelperConnector : Decorator
         // already uses for its own check glyph (glyphHost, below) and Chrome.cs (e.g. :577, :812, :875, :1195, :1448).
         var label = new Border { Child = stroke, IsHitTestVisible = true, Background = Brushes.Transparent };
         var button = PlainControls.Button(label, action); // :1648 Button(action:)
+        // :1649-1651 the shape fills the frame its caller gives (28 x 24 beside a helper, 28 x the card's height beside
+        // a head card). A Path with no Data measures to nothing and never changes size, so its own SizeChanged never
+        // drew it: the shape is drawn in the connector's own rect instead.
+        SizeChanged += (_, e) =>
+        {
+            stroke.Width = e.NewSize.Width;
+            stroke.Height = e.NewSize.Height;
+            stroke.Data = new HelperConnectorShape(endsHere).Path(new Rect(e.NewSize));
+        };
         button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :1656 .onHover
         ToolTip.SetTip(button, "Hide helpers"); // :1657 .help("Hide helpers")
         AutomationProperties.SetName(button, "Hide helpers"); // :1658 .accessibilityLabel(Text("Hide helpers"))
