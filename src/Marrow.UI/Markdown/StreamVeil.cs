@@ -262,7 +262,8 @@ public sealed class VeilClock : MainActorModel
 /// StreamVeil per VeiledText place and one LinkTextVeil per link paragraph place, named by the builders (<see cref="MarkdownVeilScope"/>), alive
 /// as long as the row is on screen. When the row leaves the screen <see cref="Reset"/> forgets them all, as SwiftUI drops the state of a view
 /// that leaves the hierarchy: what is on screen when the row comes back is adopted as the baseline again (StreamVeil.swift:18-19). When the
-/// reply stops streaming MarkdownView draws prose runs, a different view, and <see cref="Release"/> drops the places of the views that went.
+/// reply stops streaming MarkdownView draws prose runs, a different view, and <see cref="Release"/> drops the places of the views that went; words still
+/// dissolving at that moment (or arriving with the completion) first finish in the veiled views (OD-0076, MarkdownView.CloseWhenSettled).
 /// </summary>
 public sealed class MarkdownVeils
 {
