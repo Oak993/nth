@@ -13,14 +13,14 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Views.Composer;
 
-// REVIEW (adversarial, ED-252 warm-up v2, ffd1e29f4): each test states what the warm-up or the cache must do and fails on
-// the head reviewed.
+// REVIEW (adversarial, ED-252 warm-up v2, ffd1e29f4): each test states what the warm-up or the cache must do and failed on
+// the head reviewed; all pass from 77bbaa203 (review round 2 answered), kept under plain names.
 [Collection("Headless")]
 public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Decision", "ED-252")] // the composer's working dots animate on the render server: the warm-up must see them
-    public void REVIEW_the_composers_working_dots_count_as_animating_for_the_warm_up() => headless.OnUiThread(() =>
+    public void The_composers_working_dots_count_as_animating_for_the_warm_up() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
         using var executor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
@@ -45,7 +45,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // a host the warm-up served must be collectable once it leaves its window
-    public void REVIEW_a_detached_host_is_not_kept_alive_by_its_warm_up() => headless.OnUiThread(() =>
+    public void A_detached_host_is_not_kept_alive_by_its_warm_up() => headless.OnUiThread(() =>
     {
         var panel = new StackPanel();
         var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = panel };
@@ -91,7 +91,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // an entry that cannot be moved over its file (held open) leaves no half-written file behind
-    public void REVIEW_a_failed_cache_write_leaves_no_part_file()
+    public void A_failed_cache_write_leaves_no_part_file()
     {
         var folderField = typeof(GpuProgramCache).GetField("folder", BindingFlags.NonPublic | BindingFlags.Static)!;
         var put = typeof(GpuProgramCache).GetMethod("Put", BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -122,7 +122,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // OD-0096: the prepared state is invalid on "a new GPU or driver, or a new app build"
-    public void REVIEW_is_warm_is_false_when_the_marker_was_made_on_a_gpu_or_driver_this_machine_does_not_have()
+    public void Is_warm_is_false_when_the_marker_was_made_on_a_gpu_or_driver_this_machine_does_not_have()
     {
         var root = Path.Combine(Path.GetTempPath(), "jewel-warm-review-" + Guid.NewGuid().ToString("N"));
         var gpu = Path.Combine(root, "0123456789abcdef01234567");
@@ -149,7 +149,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // the idle fallback that gave up on a window not drawn (minimised) warms once it is drawn again
-    public void REVIEW_an_idle_warm_up_that_gave_up_on_an_undrawn_window_warms_once_it_is_drawn_again() => headless.OnUiThread(() =>
+    public void An_idle_warm_up_that_gave_up_on_an_undrawn_window_warms_once_it_is_drawn_again() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -178,7 +178,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // WarmAsync "completes when every program is compiled and cached": giving up is not success
-    public void REVIEW_warm_async_does_not_report_success_when_its_step_was_never_drawn() => headless.OnUiThread(() =>
+    public void Warm_async_does_not_report_success_when_its_step_was_never_drawn() => headless.OnUiThread(() =>
     {
         var timeout = GpuWarmup.StepTimeout;
         GpuWarmup.StepTimeout = TimeSpan.FromMilliseconds(300);
@@ -201,7 +201,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // where the cache is cleaned: a completed warm-up leaves no other build's programs behind
-    public void REVIEW_a_completed_warm_up_removes_the_program_folders_of_other_builds()
+    public void A_completed_warm_up_removes_the_program_folders_of_other_builds()
     {
         var root = Path.Combine(Path.GetTempPath(), "jewel-clean-review-" + Guid.NewGuid().ToString("N"));
         var stale = Path.Combine(root, "aaaaaaaaaaaaaaaaaaaaaaaa");
@@ -230,7 +230,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // IDisposable: a second Dispose does nothing (it must not remove another registration)
-    public void REVIEW_disposing_an_activity_twice_leaves_an_equal_registration_in_place() => headless.OnUiThread(() =>
+    public void Disposing_an_activity_twice_leaves_an_equal_registration_in_place() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -244,7 +244,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // a chip attached while hidden (its primer not drawn) warms once it is shown
-    public void REVIEW_a_warm_up_started_while_its_host_was_hidden_warms_once_the_host_is_shown() => headless.OnUiThread(() =>
+    public void A_warm_up_started_while_its_host_was_hidden_warms_once_the_host_is_shown() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
