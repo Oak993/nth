@@ -50,6 +50,49 @@ public sealed class AppModelHydraMergeGuardTests
     [InlineData("setting")]
     [InlineData("thread")]
     [InlineData("hydra")]
+    [InlineData("runtime")]
+    [InlineData("merging")]
+    [InlineData("queued")]
+    [InlineData("ready")]
+    [Trait("Req", "PR-HYDRAMERGE-010")] // App/AppModel+HydraMerge.swift:80-95: the pre-guard decides before any wait, so a refused job never queues behind another chat's merge
+    [Trait("Rule", "R-TEST-4")] // The pre-guard clauses while another merge runs; the guards without one are proved by Every_pre_guard_refuses_silently_without_creating_a_runtime and the post-wait guards below.
+    public void Every_pre_guard_refuses_at_once_without_queueing_even_while_another_chat_merges(string guard)
+    {
+        using var f = new HydraMergeProofFixture();
+        var p = f.AddProject("Project");
+        var lead = f.AddLead(p, "Lead", ["a.txt"]);
+        var busy = f.AddLead(p, "Busy", []);
+        f.Start(lead, busy);
+        var runtime = f.Runtime(lead);
+        f.H.Main.OnMain(() =>
+        {
+            f.Runtime(busy).IsHydraMerging = true;
+            switch (guard)
+            {
+                case "setting": f.Model.Settings.HydraAutoMerge = false; break;
+                case "thread": f.RemoveThread(lead); break;
+                case "hydra": f.Model.UpdateThread(lead.Id, t => t with { HydraEnabled = false }); break;
+                case "runtime": f.RemoveRuntime(lead); break;
+                case "merging": runtime.IsHydraMerging = true; break;
+                case "queued": runtime.IsHydraMergeQueued = true; break;
+                case "ready": typeof(ThreadRuntime).GetProperty("IsLoadingHistory")!.SetValue(runtime, true); break;
+            }
+        });
+        var timers = f.H.Main.Time.ActiveTimers;
+        Task call = null!;
+        f.H.Main.OnMain(() => call = f.Model.AutoMergeHydraWork(lead.Id));
+        Assert.True(call.IsCompletedSuccessfully);
+        Assert.Equal(timers, f.H.Main.Time.ActiveTimers);
+        Assert.Equal(guard == "queued", runtime.IsHydraMergeQueued); // the flag is left exactly as it was found
+        Assert.Equal(guard == "merging", runtime.IsHydraMerging);
+        Assert.Empty(runtime.HydraMerges); Assert.Empty(runtime.Entries);
+        if (guard == "runtime") Assert.Null(f.Model.ExistingRuntime(lead.Id));
+    }
+
+    [Theory]
+    [InlineData("setting")]
+    [InlineData("thread")]
+    [InlineData("hydra")]
     [InlineData("project")]
     [InlineData("runtime")]
     [InlineData("ready")]

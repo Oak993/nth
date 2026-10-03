@@ -217,10 +217,13 @@ public sealed class AppModelHydraMergePart1Tests
         Assert.False(f.Runtime(lead).Turns.Single().HydraMerged);
         Assert.True(f.Runtime(lead).HasHydraMergeRetryPending);
         Assert.DoesNotContain(calls, c => HydraMergeReviewFixture.IsGit(c, "commit-tree") || HydraMergeReviewFixture.IsGit(c, "push"));
+        // Removal makes the retry's capture equal HEAD, so the job settles instead of repeating the deferral. It is removed
+        // BEFORE the clock moves: a retry that fired earlier than the minute (:418 sleeps 60 s) would settle the job below.
+        if (File.Exists(path)) File.Delete(path); else Directory.Delete(path);
         f.H.Main.AdvanceMilliseconds(59_999);
         Assert.Empty(f.Runtime(lead).HydraMerges);
-        // Removal makes the retry's capture equal HEAD, so the job settles instead of repeating the deferral.
-        if (File.Exists(path)) File.Delete(path); else Directory.Delete(path);
+        Assert.False(f.Runtime(lead).Turns.Single().HydraMerged);
+        Assert.True(f.Runtime(lead).HasHydraMergeRetryPending);
         f.H.Main.AdvanceMilliseconds(1);
         f.H.Main.Loop.RunUntil(() => f.Runtime(lead).Turns.Single().HydraMerged, AppModelHarness.Bound);
         Assert.False(f.Runtime(lead).HasHydraMergeRetryPending);
