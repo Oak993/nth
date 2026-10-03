@@ -127,7 +127,7 @@ public sealed partial class ComposerViewTests
         Pump(h, window);
         var ringGrid = h.Main.OnMain(() => Assert.IsType<Grid>(One<Button>(meter).Content));
         var centre = h.Main.OnMain(() => Frame(ringGrid, window).Center);
-        const double radius = 7.5;
+        const double radius = 8.0; // on the stroke's outer half (it spans 6.25 to 8.75 about the 15 point circle), where a track drawn inside the arc's circle is not
         var points = RingAngles.Select(angle =>
         {
             var radians = angle * Math.PI / 180;
@@ -135,7 +135,7 @@ public sealed partial class ComposerViewTests
         }).ToArray();
         var hues = h.Main.OnMain(() => FramePixels.Hues(window, points));
         var levels = h.Main.OnMain(() => FramePixels.Levels(window, points));
-        return hues.Select((hue, index) => (hue.Green < 0.6, levels[index])).ToArray();
+        return hues.Select((hue, index) => (hue.Green < 0.97, levels[index])).ToArray(); // the track and the ground are exactly grey (1.00), the tint is not (0.56 at its middle, 0.9 at an anti-aliased edge)
     }
 
     private static string Describe((bool Tint, double Level)[] samples) =>
