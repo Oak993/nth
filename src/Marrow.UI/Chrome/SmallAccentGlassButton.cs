@@ -28,9 +28,9 @@ public static class SmallAccentGlassButton
     public const double LabelSize = 11;
     public const double DisabledWash = 0.11;
     public const double DisabledLabelOpacity = 0.30;
-    /// <summary>White over the accent capsule under the pointer and while held: the reference's hover frame is (254,68,141) over a rest of (247,46,120) (about 12 % white), its press frame lighter again.</summary>
-    public const double HoverLight = 0.12;
-    public const double PressLight = 0.20;
+    /// <summary>White over the accent capsule under the pointer and while held: the reference's hover frame is (254,68,141) over a rest of (247,46,120); with the material's own pointer light on top, 8 % white reproduces the step and 13 % the press, within the tolerances of SmallAccentGlassButtonTests.</summary>
+    public const double HoverLight = 0.08;
+    public const double PressLight = 0.13;
 
     public static Control Create(string title, Action action, bool enabled)
     {

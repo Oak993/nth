@@ -8,6 +8,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.Core.Port;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
@@ -86,6 +87,8 @@ public sealed class SmallAccentGlassButtonTests(HeadlessSession headless)
     public void The_enabled_button_is_the_reference_accent_capsule_lighter_on_hover_and_press() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameScope = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider(DateTimeOffset.UnixEpoch); using var timeScope = SwiftClock.Provider.Override(clock);
+        void Advance(int milliseconds) { clock.Advance(TimeSpan.FromMilliseconds(milliseconds)); frames.Advance(TimeSpan.FromMilliseconds(milliseconds)); Dispatcher.UIThread.RunJobs(); }
         var previous = ThemeManager.Current;
         try
         {
@@ -99,15 +102,15 @@ public sealed class SmallAccentGlassButtonTests(HeadlessSession headless)
             var x = 10 + 5; var y = 10 + 10; var centre = new Point(10 + size.Width / 2, y);
             var rest = Pixel(window, x, y);
             AssertNear("rest", rest, (247, 46, 120), 14);
-            window.MouseMove(centre); frames.Advance(TimeSpan.FromMilliseconds(200)); var hover = Pixel(window, x, y);
-            AssertNear("hover", hover, (254, 68, 141), 18);
+            window.MouseMove(centre); Advance(200); var hover = Pixel(window, x, y);
+            AssertNear("hover", hover, (254, 68, 141), 14);
             Assert.True(hover.G > rest.G + 8 && hover.B > rest.B + 8, $"hover is lighter than rest: ({rest.R},{rest.G},{rest.B}) -> ({hover.R},{hover.G},{hover.B})");
-            window.MouseDown(centre, MouseButton.Left); frames.Advance(TimeSpan.FromMilliseconds(200)); var pressed = Pixel(window, x, y);
-            Assert.True(pressed.G > hover.G && pressed.B > hover.B, $"press lights further: ({hover.R},{hover.G},{hover.B}) -> ({pressed.R},{pressed.G},{pressed.B})"); // reference (254,79,189)
+            window.MouseDown(centre, MouseButton.Left); Advance(200); var pressed = Pixel(window, x, y);
+            Assert.True(pressed.G >= hover.G + 12 && pressed.B >= hover.B + 8, $"press lights further (the wash steps from 12 % to 20 % white): ({hover.R},{hover.G},{hover.B}) -> ({pressed.R},{pressed.G},{pressed.B})"); // reference (254,79,189)
             // The reference's press frame also has a violet glow under the pointer (blue 189 against 141 on hover), which the port does not
             // draw: red and green are compared, blue only has to be lighter than on hover and not past the reference.
             Assert.True(Math.Abs(pressed.R - 254) <= 20 && Math.Abs(pressed.G - 79) <= 20 && pressed.B <= 189 + 10, $"press: ({pressed.R},{pressed.G},{pressed.B}) against the reference (254,79,189)");
-            window.MouseUp(centre, MouseButton.Left); window.MouseMove(new Point(290, 90)); frames.Advance(TimeSpan.FromMilliseconds(200));
+            window.MouseUp(centre, MouseButton.Left); window.MouseMove(new Point(290, 90)); Advance(200);
             var gone = Pixel(window, x, y); AssertNear("after the pointer left", gone, (rest.R, rest.G, rest.B), 3); // the light goes with the pointer
             window.Close();
         }
@@ -122,7 +125,6 @@ public sealed class SmallAccentGlassButtonTests(HeadlessSession headless)
     [Trait("Decision", "ED-059")] // Inter label widths against the reference's SF, compared with a tolerance
     public void The_disabled_button_is_the_reference_grey_translucent_capsule_with_a_dim_label() => headless.OnUiThread(() =>
     {
-        var frames = new ManualFrameSource(); using var frameScope = FrameClock.Source.Override(frames);
         var previous = ThemeManager.Current;
         try
         {
