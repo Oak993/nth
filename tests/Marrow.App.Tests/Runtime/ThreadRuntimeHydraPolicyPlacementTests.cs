@@ -123,7 +123,7 @@ public sealed class ThreadRuntimeHydraPolicyPlacementTests
     [InlineData(ProviderKind.Codex)]
     [InlineData(ProviderKind.Copilot)]
     [Trait("Req", "PR-HYDRA-060")] // ThreadRuntime.swift:1298 `!launch.runsNatively`: native providers whose heads run ELSEWHERE take the team note, not the policy
-    public void A_native_lead_whose_heads_run_elsewhere_gets_the_team_note_and_never_the_policy(ProviderKind provider)
+    public void A_lead_whose_heads_run_elsewhere_gets_the_team_note_and_never_the_policy(ProviderKind provider)
     {
         var pair = new HydraPair(provider) { WorkerProvider = ProviderKind.Cursor };
         using var rig = Rig(provider, pair);

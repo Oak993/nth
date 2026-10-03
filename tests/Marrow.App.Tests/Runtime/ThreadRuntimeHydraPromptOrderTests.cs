@@ -92,7 +92,7 @@ public sealed class ThreadRuntimeHydraPromptOrderTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-071")] // :1308-1310 `else if merge != nil` on a native launch: the turn note carries the merge, team nil
-    public void A_native_lead_gets_the_merge_note_without_a_team_between_the_delegation_request_and_the_text()
+    public void A_lead_running_its_own_heads_gets_the_merge_note_without_a_team_between_the_delegation_request_and_the_text()
     {
         using var rig = Rig(ProviderKind.Claude, autoMerge: true);
         AddFinishedHead(rig);
@@ -109,7 +109,7 @@ public sealed class ThreadRuntimeHydraPromptOrderTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-071")] // :1308 a native launch with no merge status (nil) prepends no turn note
-    public void A_native_lead_with_no_merge_status_gets_only_the_delegation_request_in_front_of_the_text()
+    public void A_lead_running_its_own_heads_with_no_merge_status_gets_only_the_delegation_request_in_front_of_the_text()
     {
         using var rig = Rig(ProviderKind.Claude, autoMerge: true);
         AddFinishedHead(rig);
@@ -122,7 +122,7 @@ public sealed class ThreadRuntimeHydraPromptOrderTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-071")] // :1297-1308 a native launch that does not auto-merge computes no merge status, so no note
-    public void A_native_lead_that_does_not_auto_merge_gets_no_note_even_with_a_merge_recorded()
+    public void A_lead_running_its_own_heads_that_does_not_auto_merge_gets_no_note_even_with_a_merge_recorded()
     {
         using var rig = Rig(ProviderKind.Claude, autoMerge: false);
         RecordHeldMerge(rig);
