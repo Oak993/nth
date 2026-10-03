@@ -111,6 +111,7 @@ public sealed class ModelEffortButton : Decorator
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         Child = button;
         ProviderRegistry registry = null!; // :60 `let registry = model.providers`, set by every body evaluation below
+        TextBlock? shownName = null, shownEffort = null;
         this.Track(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
@@ -122,6 +123,8 @@ public sealed class ModelEffortButton : Decorator
         {
             var (model, currentThread, current, pair) = snapshot;
             registry = model.Providers;
+            var (oldName, oldEffort) = (shownName, shownEffort);
+            (shownName, shownEffort) = (null, null);
             frame.Children.Clear();
             Control mark = pair is null
                 ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 real provider artwork from Components.
@@ -136,10 +139,12 @@ public sealed class ModelEffortButton : Decorator
             {
                 var name = EffortView.Text(pair?.CustomName ?? current?.ChipName ?? currentThread.Model ?? currentThread.Provider.DisplayName, SwiftFont.Callout, Chrome.PrimaryText);
                 name.TextTrimming = TextTrimming.CharacterEllipsis; Grid.SetColumn(name, 2); frame.Children.Add(name); // :90-94
+                CrossFade(frame, oldName, name, 2); shownName = name;
                 if (current is { Efforts.Count: > 0 })
                 {
                     var effort = EffortView.Text(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""), SwiftFont.Callout, Chrome.PrimaryText.Opacity(0.72));
                     effort.Margin = new Thickness(5, 0, 0, 0); Grid.SetColumn(effort, 3); frame.Children.Add(effort); // :95-99
+                    CrossFade(frame, oldEffort, effort, 3); shownEffort = effort;
                 }
                 var chevron = SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText);
                 chevron.Margin = new Thickness(5, 0, 0, 0); Grid.SetColumn(chevron, 4); frame.Children.Add(chevron); // :101-103
@@ -153,6 +158,29 @@ public sealed class ModelEffortButton : Decorator
         // never looks the environment up, so a task left queued by a chip that has since left the tree still has it.
         this.Task(() => thread.Provider, async provider => await registry.LoadCatalog(provider)); // :138
         // :125-137 capture-only anchor/frame sites remain outside the shipped path (ED-001).
+    }
+
+    // :90-99 plain Texts: a change made inside an animation (the slider's withAnimation(.snappy(duration: 0.2)), :631)
+    // cross-fades the old text into the new one in place, SwiftUI's default for a Text without a content transition.
+    // Reference runtime, 2-chat-use.mov 34.84-34.97 s: the chip's "Sonnet High" fades under "S... Extra High", the new
+    // text's weight 0.37, 0.66, 0.80, 0.90, 0.96 at 27, 49, 69, 90 and 112 ms. The old text keeps its laid-out width (so
+    // its own truncation) and takes no room: it sits in a sizeless layer over its cell until it has faded.
+    private static void CrossFade(Grid frame, TextBlock? old, TextBlock fresh, int column)
+    {
+        if (Transaction.Current is not { } animation || old is null || old.Text == fresh.Text || old.Bounds.Width <= 0) return;
+        var width = old.Bounds.Width;
+        var height = old.Bounds.Height;
+        old.Width = width;
+        var from = old.Opacity; // a text still fading in when the next change comes fades out from where it was
+        var layer = new Canvas { Height = height, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false, Children = { old } };
+        Grid.SetColumn(layer, column);
+        frame.Children.Add(layer);
+        EffortView.Animate(old, animation, progress => // replaces the fade-in it may still be running
+        {
+            old.Opacity = from * (1 - Math.Clamp(progress, 0, 1));
+            if (progress >= 1) frame.Children.Remove(layer);
+        });
+        EffortView.Animate(fresh, animation, progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
     }
 }
 
