@@ -4,9 +4,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Primitives.PopupPositioning;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 
 namespace Marrow.UI.Port;
 
@@ -84,10 +87,35 @@ public static class PopoverHost
             // A site that swaps its content while the popover shows (PlainControls' deferred content, built once it has
             // opened) has the new content hung on the card too. Only while it is open: a closed popup is wrapped when it
             // opens again, so a site may handle its own content in between (PromptEditor measures it in a window of its own).
-            if (carded.TryAdd(popup, popup)) popup.PropertyChanged += (_, change) =>
+            if (carded.TryAdd(popup, popup))
             {
-                if (change.Property == Popup.ChildProperty && popup.IsOpen && Facing(popup) is not null) Wrap(popup);
-            };
+                popup.PropertyChanged += (_, change) =>
+                {
+                    if (change.Property == Popup.ChildProperty && popup.IsOpen && Facing(popup) is not null) Wrap(popup);
+                };
+                // A press in the popover's own top-level but outside the card's outline (beside the tip, in the gap, in the
+                // shadow's room) is a press outside the popover: it light-dismisses it, as Avalonia does for a press
+                // outside the top-level (a native press there reaching the window under it is owed to the native gate).
+                Control? hooked = null;
+                void PressBeside(object? sender, PointerPressedEventArgs e)
+                {
+                    if (!popup.IsOpen || !popup.IsLightDismissEnabled || popup.Child is not PopoverCard card) return;
+                    if (card.HitTest(e.GetPosition(card))) return;
+                    popup.IsOpen = false;
+                    e.Handled = true;
+                }
+                popup.Opened += (_, _) =>
+                {
+                    hooked?.RemoveHandler(InputElement.PointerPressedEvent, PressBeside);
+                    hooked = (popup.Child as Visual)?.GetVisualAncestors().OfType<Control>().FirstOrDefault(ancestor => ancestor is PopupRoot or OverlayPopupHost); // its top-level (a PopupRoot, or the overlay's host)
+                    hooked?.AddHandler(InputElement.PointerPressedEvent, PressBeside, RoutingStrategies.Tunnel, handledEventsToo: true);
+                };
+                popup.Closed += (_, _) =>
+                {
+                    hooked?.RemoveHandler(InputElement.PointerPressedEvent, PressBeside);
+                    hooked = null;
+                };
+            }
         }
         if (popup.Parent is not null || popup.PlacementTarget is not { } anchor) return;
         ((ISetLogicalParent)popup).SetParent(anchor);
@@ -161,7 +189,9 @@ public static class PopoverHost
             Setters =
             {
                 // OD-0095: the panel is the card's (PopoverCard); the top-level is clear around its tip.
-                new Setter(TemplatedControl.BackgroundProperty, Brushes.Transparent),
+                // No fill at all, not Transparent (which is drawn, so hit-tested): a press beside the tip finds nothing of
+                // the popover (PopoverCard.HitTest) and light-dismisses it (PressBeside).
+                new Setter(TemplatedControl.BackgroundProperty, null),
                 new Setter(TemplatedControl.BorderThicknessProperty, new Thickness(0)),
                 new Setter(TopLevel.TransparencyLevelHintProperty, new[] { WindowTransparencyLevel.Transparent }),
             },

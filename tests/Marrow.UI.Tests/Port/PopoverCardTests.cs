@@ -231,7 +231,7 @@ public sealed class PopoverCardTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(PopoverHost.Fill.Resolve(appearance), Assert.IsAssignableFrom<ISolidColorBrush>(card.Background).Color);
             Assert.Equal(PopoverHost.Border.Resolve(appearance), Assert.IsAssignableFrom<ISolidColorBrush>(card.BorderBrush).Color);
-            Assert.Equal(0, Assert.IsAssignableFrom<ISolidColorBrush>(root.Background).Color.A); // clear round the tip
+            Assert.Null(root.Background); // clear round the tip, and not hit-testable there (a Transparent fill is)
             Assert.Equal(new Thickness(0), root.BorderThickness);
             Assert.Contains(WindowTransparencyLevel.Transparent, root.TransparencyLevelHint);
         }
@@ -415,6 +415,55 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         // On the tip's side it has faded out by the popup's last row, under the point too.
         var lastRow = (int)host.Bounds.Height - 1;
         Assert.True(Enumerable.Range(0, image.Width).All(x => image.GetPixel(x, lastRow).Alpha <= 3), "the shadow is cut by the popup's edge under the tip");
+    });
+
+    // The clear surround beside the tip (and the shadow's room) is not the popover: the card takes a press only inside
+    // its one outline, and a press anywhere else in the popover's top-level light-dismisses it, as a press outside an
+    // NSPopover's panel does; a press on the card leaves it open, and a popover that is not light-dismissed stays.
+    [Theory]
+    [Trait("Decision", "ED-238")] // OD-0095
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_press_beside_the_tip_is_outside_the_popover(bool lightDismiss) => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var anchor = new Border { Width = 20, Height = 20, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 20) };
+        var window = HeadlessPopupHost.OverlayWindow(anchor);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var popup = new Popup { PlacementTarget = anchor, Placement = PlacementMode.Top, IsLightDismissEnabled = lightDismiss, ShouldUseOverlayLayer = true, Child = new Border { Width = 120, Height = 60 } };
+        try
+        {
+            Presentation.Presenter.Current.SetPresented(popup, true);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            var card = Assert.IsType<PopoverCard>(popup.Child);
+            Assert.Equal(PopoverTipEdge.Bottom, card.TipEdge);
+            var tip = card.TipPoint;
+            var beside = new Point(tip.X + PopoverCard.TipHalfWidth + 10, tip.Y - 3); // past the card's body, clear of the tip
+            var inside = new Point(tip.X, tip.Y - PopoverCard.TipHeight - 10);
+            Assert.False(((Avalonia.Rendering.ICustomHitTest)card).HitTest(beside), "the card takes a press beside its tip");
+            Assert.True(((Avalonia.Rendering.ICustomHitTest)card).HitTest(inside), "the card takes no press on its body");
+            Assert.True(((Avalonia.Rendering.ICustomHitTest)card).HitTest(new Point(tip.X, tip.Y - 4)), "the card takes no press on its tip");
+            var host = Assert.IsAssignableFrom<Control>(Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(card).First(ancestor => ancestor is PopupRoot or OverlayPopupHost));
+            void Press(Avalonia.Interactivity.Interactive target, Point at)
+            {
+                var point = card.TranslatePoint(at, window)!.Value;
+                var pointer = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), Avalonia.Input.PointerType.Mouse, true);
+                var properties = new Avalonia.Input.PointerPointProperties(Avalonia.Input.RawInputModifiers.LeftMouseButton, Avalonia.Input.PointerUpdateKind.LeftButtonPressed);
+                target.RaiseEvent(new Avalonia.Input.PointerPressedEventArgs(target, pointer, window, point, 0, properties, Avalonia.Input.KeyModifiers.None));
+                Dispatcher.UIThread.RunJobs();
+            }
+            Press(card.Child!, inside); // on the card: still open
+            Assert.True(popup.IsOpen);
+            Press(host, beside); // nothing of the card under it: the press reaches the top-level itself
+            Assert.Equal(!lightDismiss, popup.IsOpen);
+        }
+        finally
+        {
+            popup.IsOpen = false;
+            window.Close();
+        }
     });
 
     // A presented card that flips (no room above its anchor) keeps its shadow's room on the three sides away from its

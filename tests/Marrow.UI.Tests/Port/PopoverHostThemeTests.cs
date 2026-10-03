@@ -110,7 +110,7 @@ public sealed class PopoverHostThemeTests(HeadlessSession headless)
             Assert.Equal(ThemeVariant.Dark, root.ActualThemeVariant);
             Assert.Equal(DarkPanel, Drawn(card.Background));
             Assert.Equal(new SwiftColor(white: 1, opacity: 0.2).Resolve(ThemeVariant.Dark), Drawn(card.BorderBrush)); // Panels / Dark: border 1 px #FFFFFF@0.2
-            Assert.Equal(0, Drawn(root.Background).A); // the top-level is clear around the card's tip
+            Assert.Null(root.Background); // the top-level is clear around the card's tip, with no fill to take a press (OD-0095)
             Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(ThemeVariant.Dark), Drawn(secondary.Foreground)); // white, not black, at 0.7
             Assert.Equal(SwiftColor.LabelColor.Resolve(ThemeVariant.Dark), Drawn(plain.Foreground));
 

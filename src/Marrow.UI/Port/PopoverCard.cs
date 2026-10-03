@@ -36,7 +36,7 @@ public enum PopoverTipEdge
 }
 
 /// <summary>A popover's panel with its tip (see the file note).</summary>
-public sealed class PopoverCard : Decorator
+public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
 {
     internal const double TipHeight = 12;
     internal const double TipHalfWidth = 12;
@@ -198,6 +198,12 @@ public sealed class PopoverCard : Decorator
 
     /// <summary>The panel's one outline: the card's rectangle and the tip, at the card's current size.</summary>
     internal Geometry Outline => Shape(Bounds.Size);
+
+    /// <summary>
+    /// The card takes a press only inside its one outline: the clear room beside the tip and round the card (its gap,
+    /// its shadow) is not the popover (a press there light-dismisses it, PopoverHost).
+    /// </summary>
+    public bool HitTest(Point point) => Bounds.Width > 0 && Bounds.Height > 0 && Outline.FillContains(point);
 
     private Geometry Shape(Size size)
     {
