@@ -149,12 +149,18 @@ public sealed class ThreadTimeline : Decorator
                 foreach (var request in runtime.Questions)
                 {
                     var id = "question-" + request.Id; var hadIdentity = questionViews.TryGetValue(id, out var existing);
-                    var badge = hadIdentity && existing.Request == request ? existing.Row : new QuestionBadgeRow(request, runtime) { Name = id }.Transition(RowTransition);
+                    var badge = hadIdentity && existing.Request == request ? existing.Row : new QuestionBadgeRow(request, runtime) { Name = id }.Transition(SoftAppearTransition);
                     if (badge.Parent is Panel parent) parent.Children.Remove(badge);
                     questionViews[id] = (request, badge);
                     if (hadIdentity) rows.Children.Add(badge); else SwiftTransition.Insert(rows, rows.Children.Count, badge);
                 } // :393-397
-                foreach (var gone in questionViews.Keys.Except(runtime.Questions.Select(request => "question-" + request.Id)).ToArray()) questionViews.Remove(gone);
+                foreach (var gone in questionViews.Keys.Except(runtime.Questions.Select(request => "question-" + request.Id)).ToArray())
+                {
+                    // :396 .transition(.softAppear): an answered question's badge leaves with a quick fade where it stood, at the end of the stack.
+                    var leaving = questionViews[gone].Row; questionViews.Remove(gone);
+                    if (leaving.Parent is Panel from) from.Children.Remove(leaving);
+                    rows.Children.Add(leaving); SwiftTransition.Remove(rows, leaving);
+                }
                 new ScrollFreeze(tracking).Body(rows);
                 if (tracking.SetOutline(blocks.Skip(WindowStartIndex(blocks)).Select(block => (block.Id, block.HasUserMessage)).ToArray()))
                 {
@@ -358,6 +364,13 @@ public sealed class ThreadTimeline : Decorator
     // :307-311 private static func transition(for:) -> AnyTransition
     private static SwiftTransition Transition(DisplayBlock @for) =>
         @for is DisplayBlock.Turn { Summary: not null } or DisplayBlock.Group { Value: TimelineGroup.Work { Entries.Count: > SoftAppearLimit } } ? SwiftTransition.Identity : RowTransition; // :307-314
+
+    // Chrome.swift:949-955 AnyTransition.softAppear as the rows use it (:396 the question badges, :2167 and :2171 the working line's opened body): arrives with the
+    // soft appear, leaves with a quick 0.12 s ease-out fade. The insertion is decomposed into the modifier's layer effects (Chrome.swift:938-945) for the reason
+    // RowTransition gives.
+    internal static SwiftTransition SoftAppearTransition { get; } = SwiftTransition.Asymmetric(
+        SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear),
+        SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
 
     // :317-321 static let rowTransition: AnyTransition
     public static SwiftTransition RowTransition =>
@@ -1174,9 +1187,7 @@ public sealed class WorkingIndicator : Decorator
     // :2167, :2171 .transition(.softAppear); Chrome.swift:949-955: arrives with SoftAppearModifier under Animation.softAppear,
     // leaves with .opacity.animation(.easeOut(duration: 0.12)). The insertion is decomposed into the modifier's layer
     // effects (Chrome.swift:940-944) for the reason ThreadTimeline.RowTransition gives.
-    private static SwiftTransition SoftAppearTransition => SwiftTransition.Asymmetric(
-        SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear),
-        SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
+    private static SwiftTransition SoftAppearTransition => ThreadTimeline.SoftAppearTransition;
 
     /// <param name="runtime">:2064 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="startedAt">:2065 <c>let startedAt: Date</c>.</param>

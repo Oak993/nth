@@ -7,6 +7,7 @@ using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -177,7 +178,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
         Assert.Empty(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
         var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View));
-        Assert.Contains(WorkingWords.Word(WorkingWords.Seed(Marrow.Core.Port.SwiftUUID.UuidString(mount.Runtime.ThreadID)), 0) + "…", Texts(line));
+        Assert.Contains(WorkingWords.Word(WorkingWords.Seed(SwiftUUID.UuidString(mount.Runtime.ThreadID)), 0) + "…", Texts(line));
         Assert.NotNull(mount.ScrollOrNull);
         // The turn over with nothing said: back to the prompt.
         mount.SetPhase(RuntimePhase.Idle); mount.Advance(100);
@@ -245,7 +246,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
     }
 
-    private static string TurnID(Guid turn, string first) => "turn-" + Marrow.Core.Port.SwiftUUID.UuidString(turn) + "-" + first;
+    private static string TurnID(Guid turn, string first) => "turn-" + SwiftUUID.UuidString(turn) + "-" + first;
 
     [Fact]
     [Trait("Req", "PR-CHAT-034")] // ThreadTimeline.swift:104-110,1608-1614 (the pills split, the insertion and its three guards); TimelineRows.swift:420-433 (finishedHeads)
@@ -547,5 +548,48 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         // It arrives by its duration, and settles into the block a moment after it.
         Assert.True(samples[7] - landed < 0.05 * travel, $"at 350 ms it is within a twentieth of the block: {string.Join(", ", samples)}");
         mount.Advance((int)(Animation.Smooth(0.35).Duration * 1000)); Assert.Equal(landed, Where(), 1);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-060")] // ThreadTimeline.swift:393-397,345,665-672,689-712; Chrome.swift:938-960 (softAppear); PR-CHAT-167/168 windows_path for the viewport refresh
+    public void A_question_badge_follows_every_block_under_its_id_arrives_softly_brings_the_reader_to_the_end_and_leaves_with_a_quick_fade_when_answered() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(6, sentences: 10).ToList()); mount.Settle();
+        // A reader who scrolled up to read: the jump button says something is below.
+        mount.Scroll.Offset = new Vector(0, 300); mount.Advance(300); mount.State.ShowsJumpButton = true;
+        Assert.True(mount.Scroll.Extent.Height - mount.Scroll.Offset.Y - mount.Scroll.Viewport.Height > 200);
+        var first = new QuestionRequest("one", new([new QuestionRequest.Question("choice", "Header", "Choose", new([]), false, false, false)]));
+        var second = new QuestionRequest("two", new([new QuestionRequest.Question("other", "Header", "Another", new([]), false, false, false)]));
+        typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Questions))!.SetValue(mount.Runtime, new ValueList<QuestionRequest>(new[] { first }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+        // :345,:393-397 under the id question- plus the request id, after every block (and the badges after one another, in the runtime's order).
+        var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(mount.View).Single();
+        Assert.Equal("question-one", badge.Name);
+        var stack = Assert.IsType<StackPanel>(badge.Parent); Assert.Same(badge, stack.Children[^1]); Assert.Equal(6, stack.Children.Count - 1);
+        // :396 it arrives with the soft appear: opacity 0 and 4 points down, settled over 0.32 s.
+        Assert.Equal(0, badge.Opacity); Assert.Equal(4, Assert.IsType<Avalonia.Media.TranslateTransform>(badge.RenderTransform).Y);
+        // :689-712 a question brings the reader to the end even from up there, and the jump button goes.
+        mount.Advance((int)(Animation.SoftAppear.Duration * 1000) + 50);
+        Assert.Equal(1, badge.Opacity); Assert.False(mount.State.ShowsJumpButton);
+        Assert.True(mount.Scroll.Extent.Height - mount.Scroll.Offset.Y - mount.Scroll.Viewport.Height < 2, "the question is on screen at the end");
+        typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Questions))!.SetValue(mount.Runtime, new ValueList<QuestionRequest>(new[] { first, second }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Advance(400);
+        var badges = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(mount.View).ToList();
+        Assert.Equal(new[] { "question-one", "question-two" }, badges.Select(row => row.Name)); var nowStack = Assert.IsType<StackPanel>(badges[0].Parent); Assert.Same(badges[0], nowStack.Children[^2]); Assert.Same(badges[1], nowStack.Children[^1]);
+        // Answering one removes its badge, with the soft appear's removal: a quick 0.12 s fade (Chrome.swift:949-955), where it stood.
+        mount.Runtime.Answer(first, new ValueMap<string, ValueList<string>>(new Dictionary<string, ValueList<string>>()));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+        Assert.Contains(badges[0], LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(mount.View));
+        Assert.Equal(1, badges[0].Opacity);
+        mount.Advance(100); Assert.InRange(badges[0].Opacity, 0.001, 0.99);
+        mount.Advance(100);
+        Assert.DoesNotContain(badges[0], LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(mount.View));
+        Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(mount.View));
+        // The last one answered: the badge goes, the reader is still at the end with rows on screen (the lazy stack's explicit viewport refresh has no work to do in an eager stack, PR-CHAT-167/168).
+        mount.Runtime.Answer(second, new ValueMap<string, ValueList<string>>(new Dictionary<string, ValueList<string>>()));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Advance(400);
+        Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(mount.View));
+        Assert.True(mount.Scroll.Extent.Height - mount.Scroll.Offset.Y - mount.Scroll.Viewport.Height < 2);
+        Assert.Contains(mount.Blocks(), block => block.Row.TranslatePoint(default, mount.Scroll) is { } at && at.Y < mount.Scroll.Viewport.Height && at.Y + block.Row.Bounds.Height > 0);
     });
 }
