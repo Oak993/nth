@@ -4674,6 +4674,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // (seven tests: TimelineRowsFinUserRowTests, TimelineRowsParityReview2Tests' REVIEW test, TimelineRowsParityScenarioTests,
 // three in TimelineRowsPrRecordsTests, TimelineRowsTimelineScenarioTests) is a Rule R-TEST-4 partial proof now; the record
 // can be claimed again once the ThreadTimeline change is merged and the REVIEW test passes on the integration branch.
+// PR-CHAT-080 waits for the ThreadTimeline merge (unit/parity-threadtimeline first, then this unit; round 4 of the review,
+// 2026-10-03, kept the withdrawal: the lead merges ThreadTimeline first and re-runs the REVIEW test on staging).
 // No production defect is inferred from a missing proof. No tests, assertions, source-derived expectations,
 // Rule/Decision/Oracle traits, or passing fully proven Req traits were removed. Round 1 of the adversarial review
 // (2026-10-03) withdrew the Req trait of two tests that claimed PR-CHAT-113 in full (they are Rule R-TEST-4 partial proofs
@@ -4697,3 +4699,14 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // drawn in the system's selected-text colour (they took only the I-beam of ED-NEW-parity-timelinerows (5)'s recipe; now they are
 // made by it, VeiledText.SelectableText through TimelineRows.SelectableText); PR-CHAT-080 is back in this note (above); the B2
 // citations of MarkdownBlockSelection are re-pointed to B3 (MarkdownView.swift:854-863, the live branch :858).
+// Round 4 fixes (2026-10-03): a selection in text with a link (a sent bubble with a bare domain, a report paragraph with a link)
+// is drawn: LinkTextView's own SelectableTextBlock takes the attach-time SelectionBrush (LinkParagraphView.swift:312-313;
+// ED-NEW-parity-timelinerows (5), corrected to cover link text); a favicon that lands after its bubble is on screen is drawn in
+// front of the link: InlineText's faviconRevision is real state and LinkParagraphView.Update runs updateNSView
+// (MarkdownView.swift:1077, :1114 at B3; LinkParagraphView.swift:36-58); a tool's detail and output wrap at the row's width,
+// the detail cut at its twelfth wrapped line with an ellipsis (:2121-2125, :2150-2155; ED (7); PR-CHAT-101 stays in this
+// note for its capture at 29, 30 and 31 lines). The Req tests of PR-CHAT-077 (the favicon in front of the link, a drawn
+// selection), PR-HYDRAMERGE-090 (a drawn selection in the generic report, a link paragraph included) and PR-CHAT-166 (the
+// notice, the tool's detail and output: a drawn selection) now prove those clauses; the head popover's five lines wrap
+// (R-TEST-4). Owed on the native app (ED (5), (7), (8)): the selection colour in link text on screen, a favicon appearing on a
+// host's first sight, a long tool detail's twelve lines.

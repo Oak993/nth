@@ -162,7 +162,8 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
     // line wraps at the width the row offers (:2121-2125; :2150-2155 inside the .frame(maxWidth: .infinity) plate, padded 10).
     // The detail's .lineLimit(12) counts the lines it wraps into, and a Text cut by its line limit ends its last line in an
     // ellipsis (SwiftUI's truncationMode .tail, the default; the port's convention for a lineLimit with no truncationMode,
-    // RequestCards.cs:111 and CommandPalette.cs:346). The output has no line limit: all of its wrapped lines show.
+    // RequestCards.cs:111 and CommandPalette.cs:346; ED-NEW-parity-timelinerows (7)). The output has no line limit: all of its
+    // wrapped lines show.
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101, UI-CHAT-027 and UI-CHAT-025 (long lines wrap; the detail stops at twelve wrapped lines): TimelineRows.swift:2120-2126, :2149-2155
     public void A_long_detail_wraps_to_at_most_twelve_lines_ending_in_an_ellipsis_and_a_long_output_line_wraps_inside_its_plate() => headless.OnUiThread(() =>

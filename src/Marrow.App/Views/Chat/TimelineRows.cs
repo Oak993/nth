@@ -2611,7 +2611,7 @@ public sealed class ToolDetailView : Decorator
             // :2121 a Text with no fixedSize wraps at the width the row offers; :2124 .textSelection(.enabled).
             var text = TimelineRows.SelectableText(wraps: true);
             // :2125 .lineLimit(12) counts the wrapped lines; a Text it cuts ends its last line in an ellipsis (SwiftUI's
-            // truncationMode .tail, the default; RequestCards.cs:111 takes a lineLimit the same way).
+            // truncationMode .tail, the default; RequestCards.cs:111 takes a lineLimit the same way; ED-NEW-parity-timelinerows (7)).
             text.Text = detail; text.MaxLines = 12; text.TextTrimming = TextTrimming.CharacterEllipsis;
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2122
             text.Foreground = Chrome.SecondaryText.Brush(text); // :2123
