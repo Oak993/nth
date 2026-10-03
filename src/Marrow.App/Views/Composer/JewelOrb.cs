@@ -144,7 +144,7 @@ public sealed class JewelOrb
 }
 
 /// <summary>
-/// One frame's values for the knob's program, as one block of float4 slots (the layout <see cref="JewelKnobShader"/>
+/// One frame's values for the knob's programs, as one block of float4 slots (the layout <see cref="JewelKnobShader"/>
 /// declares): [0] render size, size, phase, knob CSS px; [1] zoom, warp, ridgeAmt, sharp; [2] shade, sheen, gloss,
 /// shellMidAlpha; [3] shellEdgeAlpha, exposure, glassOpacity, contourDeform; [4] activation, flare, exit angle, a device px
 /// in uv; [5] ball radius, dark, render px per CSS px, ring opacity; [6] the flare's tint; [7..18] the twelve colours;
@@ -204,7 +204,12 @@ public sealed class JewelUniforms
 /// <summary>The knob's SkSL program (see the file note).</summary>
 public static class JewelKnobShader
 {
-    internal const string Source = """
+    // ED-252 review (OD-0090, ED-233): two programs, not one. On ANGLE (D3D11) the one-program form, which inlined the fluid
+    // up to three times, took 506 ms to compile on its first draw (measured on a real window, the render thread stalled);
+    // the fluid now lives in a program of its own, run once per dispersion sample into float surfaces at the very pixels the
+    // glass reads back (nearest, at the same pixel centres: nothing is resampled), and the glass and the page's layers in a
+    // second program that reads them.
+    private const string Head = """
         uniform float4 u[27];
 
         // ---- effect.wgsl's noise bank, the Violet Ember fluid (style 21) and the contour, after knob-orbs-1.js
@@ -280,6 +285,35 @@ public static class JewelKnobShader
             float2 tangent = float2(-radial.y, radial.x);
             return normalize(radial - tangent * (rad * slope / distance));
         }
+        // the ball's geometry at a pixel (knob-orbs-1.js MAIN's head, style 21): false outside the ball
+        bool ball(float2 fc, out float2 p, out float2 normal, out float2 refractedP, out float channelSplit, out float clearFa,
+                  out float edgeDepth, out float pd, out float ae, out float pxp) {
+            float2 size = u[0].xy;
+            float2 uv = (2.0 * fc - size) / max(min(size.x, size.y), 1.0);
+            float rad = u[5].x;
+            float t = u[0].z;
+            float contourDeform = u[3].w;
+            float contourRad = rad * glsContourScale(uv, t, contourDeform);
+            pxp = u[4].w / contourRad;
+            ae = max(0.01, 0.75 * pxp);
+            p = float2(0.0); normal = float2(0.0); refractedP = float2(0.0); channelSplit = 0.0; clearFa = 0.0; edgeDepth = 0.0; pd = 0.0;
+            if (length(uv) > contourRad * (1.0 + ae)) return false;
+            float gloss = u[2].z; float shellMidAlpha = u[2].w; float glassOpacity = u[3].z;
+            p = uv / contourRad;
+            pd = length(p);
+            clearFa = 1.0 - smoothstep(0.995, 1.04, pd);
+            normal = glsContourNormal(uv, rad, t, contourDeform);
+            edgeDepth = max(1.0 - pd, 0.0);
+            float refractionWidth = 0.015 + 0.95 * clamp(shellMidAlpha, 0.0, 1.0);
+            float refractionProfile = pow(glsRefractionProfile(edgeDepth / max(refractionWidth, 0.001)), 0.68);
+            refractedP = p - normal * (1.6 * clamp(glassOpacity, 0.0, 1.0) * refractionProfile);
+            channelSplit = 0.14 * clamp(gloss, 0.0, 2.0) * clamp(glassOpacity, 0.0, 1.0) * refractionProfile;
+            return true;
+        }
+        """;
+
+    /// <summary>The fluid program: one dispersion sample of the Violet Ember fluid per pixel.</summary>
+    internal const string FluidSource = Head + """
         float3 glsPresetFluid(float2 p, float t) {
             float zoom = u[1].x; float warp = u[1].y; float ridgeAmt = u[1].z; float sharp = u[1].w;
             float scale = 1.08 + zoom * 1.18;
@@ -299,6 +333,24 @@ public static class JewelKnobShader
             color = mix(color, u[11].rgb, pow(veins, 4.0) * 0.045);
             return glsFinishPresetFluid(color, p);
         }
+        // one dispersion sample of the fluid at every pixel (u[19].w: -1 red, 0 green, +1 blue; the red and blue ones only
+        // where the glass refracts), for the glass program to read at the same pixel
+        half4 main(float2 coord) {
+            float2 fc = float2(coord.x, u[0].y - coord.y);
+            float2 p; float2 normal; float2 refractedP; float channelSplit; float clearFa; float edgeDepth; float pd; float ae; float pxp;
+            if (!ball(fc, p, normal, refractedP, channelSplit, clearFa, edgeDepth, pd, ae, pxp) || clearFa <= 0.0) return half4(0.0);
+            float k = u[19].w;
+            if (k != 0.0 && channelSplit <= 0.0) return half4(0.0);
+            return half4(half3(glsPresetFluid(refractedP + normal * (channelSplit * k), u[0].z)), 1.0);
+        }
+        """;
+
+    /// <summary>The glass program: the shell, the lightning, the hairline and the page's layers over the fluid's samples.</summary>
+    internal const string GlassSource = """
+        uniform shader fluidR;
+        uniform shader fluidG;
+        uniform shader fluidB;
+        """ + Head + """
         float3 mrFlareRoll(float3 c, float fl) {
             float3 hard = clamp(c, float3(0.0), float3(1.0));
             float3 k = max(c - 0.72, float3(0.0));
@@ -306,37 +358,20 @@ public static class JewelKnobShader
             return mix(hard, clamp(soft, float3(0.0), float3(1.0)), clamp(fl * 1.6, 0.0, 1.0));
         }
         // orbGlassLiquidAnim for the knob (knob-orbs-1.js MAIN, style 21), premultiplied
-        half4 orb(float2 fc) {
-            float2 size = u[0].xy;
-            float2 uv = (2.0 * fc - size) / max(min(size.x, size.y), 1.0);
-            float rad = u[5].x;
-            float t = u[0].z;
-            float contourDeform = u[3].w;
-            float contourRad = rad * glsContourScale(uv, t, contourDeform);
-            float pxp = u[4].w / contourRad;
-            float ae = max(0.01, 0.75 * pxp);
-            if (length(uv) > contourRad * (1.0 + ae)) return half4(0.0);
-            float sheen = u[2].y; float gloss = u[2].z; float shellMidAlpha = u[2].w;
+        half4 orb(float2 fc, float2 coord) {
+            float2 p; float2 normal; float2 refractedP; float channelSplit; float clearFa; float edgeDepth; float pd; float ae; float pxp;
+            if (!ball(fc, p, normal, refractedP, channelSplit, clearFa, edgeDepth, pd, ae, pxp)) return half4(0.0);
+            float2 contourNormal = normal;
+            float sheen = u[2].y; float gloss = u[2].z;
             float shellEdgeAlpha = u[3].x; float exposure = u[3].y; float glassOpacity = u[3].z;
-            float2 p = uv / contourRad;
-            float pd = length(p);
-            float clearFa = 1.0 - smoothstep(0.995, 1.04, pd);
-            float2 contourNormal = glsContourNormal(uv, rad, t, contourDeform);
-            float2 normal = contourNormal;
-            float edgeDepth = max(1.0 - pd, 0.0);
-            float refractionWidth = 0.015 + 0.95 * clamp(shellMidAlpha, 0.0, 1.0);
-            float refractionProfile = pow(glsRefractionProfile(edgeDepth / max(refractionWidth, 0.001)), 0.68);
-            float2 refractedP = p - normal * (1.6 * clamp(glassOpacity, 0.0, 1.0) * refractionProfile);
-            float channelSplit = 0.14 * clamp(gloss, 0.0, 2.0) * clamp(glassOpacity, 0.0, 1.0) * refractionProfile;
             float3 fcol = float3(0.0);
             if (clearFa > 0.0) {
-                float3 greenSample = glsPresetFluid(refractedP, t);
-                fcol = greenSample;
+                fcol = float3(fluidG.eval(coord).rgb);
                 // the three dispersion samples differ only where the glass refracts (the same values elsewhere); the CPU
                 // fallback takes the middle one only (u[6].w)
                 if (channelSplit > 0.0 && u[6].w < 0.5) {
-                    fcol.r = glsPresetFluid(refractedP - normal * channelSplit, t).r;
-                    fcol.b = glsPresetFluid(refractedP + normal * channelSplit, t).b;
+                    fcol.r = float(fluidR.eval(coord).r);
+                    fcol.b = float(fluidB.eval(coord).b);
                 }
             }
             float lum = dot(fcol, float3(0.213, 0.715, 0.072));
@@ -407,7 +442,7 @@ public static class JewelKnobShader
         half4 main(float2 coord) {
             float2 size = u[0].xy;
             float perPx = u[5].z;
-            half4 o = orb(float2(coord.x, size.y - coord.y));
+            half4 o = orb(float2(coord.x, size.y - coord.y), coord);
             float kn = u[0].w; float R = kn * 0.5;
             if (kn <= 0.0) return o; // the orb alone (tests compare it with knob-orbs-1.js's canvas)
             float2 q = coord / perPx;
@@ -441,11 +476,17 @@ public static class JewelKnobShader
         }
         """;
 
-    private static readonly Lazy<SKRuntimeEffect> effect = new(() =>
-        SKRuntimeEffect.CreateShader(Source, out var error) ?? throw new InvalidOperationException("The Jewel knob shader did not compile: " + error));
+    private static readonly Lazy<SKRuntimeEffect> fluid = new(() =>
+        SKRuntimeEffect.CreateShader(FluidSource, out var error) ?? throw new InvalidOperationException("The Jewel knob's fluid program did not compile: " + error));
 
-    /// <summary>The compiled program (tests use it to prove the source is valid SkSL).</summary>
-    public static SKRuntimeEffect Effect => effect.Value;
+    private static readonly Lazy<SKRuntimeEffect> glass = new(() =>
+        SKRuntimeEffect.CreateShader(GlassSource, out var error) ?? throw new InvalidOperationException("The Jewel knob's glass program did not compile: " + error));
+
+    /// <summary>The compiled fluid program.</summary>
+    public static SKRuntimeEffect Fluid => fluid.Value;
+
+    /// <summary>The compiled glass program (its children: the red, green and blue samples of the fluid).</summary>
+    public static SKRuntimeEffect Glass => glass.Value;
 }
 
 /// <summary>
@@ -497,14 +538,38 @@ internal sealed class JewelKnobRenderer
         return renderer;
     }
 
-    private void Dispose() { surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
+    private void Dispose() { foreach (var sample in samples) sample?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
 
     /// <summary>The GPU's frame: the shadows, the program at the frame's own size, filtered into the knob's box.</summary>
     public void Draw(SKCanvas canvas, float[] uniforms, SKRect box, float opacity)
     {
         Shadows(canvas, uniforms, box, opacity);
         Program(surface, size, uniforms);
+        if (Probe) ProbeCentre();
         Blit(canvas, surface, size, box, opacity);
+    }
+
+    /// <summary>The native evidence run only (off in the app): read back the program's centre pixel after each frame.</summary>
+    internal static volatile bool Probe;
+
+    private static long probed = -1, probeFailures;
+
+    /// <summary>Read-backs that failed.</summary>
+    internal static long ProbeFailures => Interlocked.Read(ref probeFailures);
+
+    /// <summary>The last centre pixel read back (0xAARRGGBB as Skia's BGRA bytes), or -1.</summary>
+    internal static long ProbedCentre => Interlocked.Read(ref probed);
+
+    private void ProbeCentre()
+    {
+        var pixel = Marshal.AllocHGlobal(4);
+        try
+        {
+            if (surface.ReadPixels(new SKImageInfo(1, 1, SKColorType.Bgra8888, SKAlphaType.Premul), pixel, 4, size / 2, size / 2))
+                Interlocked.Exchange(ref probed, unchecked((uint)Marshal.ReadInt32(pixel)));
+            else Interlocked.Increment(ref probeFailures);
+        }
+        finally { Marshal.FreeHGlobal(pixel); }
     }
 
     /// <summary>The shadows, outside the knob's circle as CSS box-shadows are: the knob's own, then the lift's.</summary>
@@ -528,17 +593,59 @@ internal sealed class JewelKnobRenderer
         canvas.Restore();
     }
 
-    /// <summary>Runs the program into <paramref name="target"/> (<paramref name="px"/> square).</summary>
+    /// <summary>
+    /// Runs the programs into <paramref name="target"/> (<paramref name="px"/> square): the fluid's samples (the middle one
+    /// only when the frame asks, u[6].w), then the glass over them.
+    /// </summary>
     internal void Program(SKSurface target, int px, float[] uniforms)
     {
+        var context = target.Context as GRContext;
+        Marshal.Copy(uniforms, 0, block, JewelUniforms.ShaderBytes / sizeof(float));
+        var middleOnly = uniforms[27] >= 0.5f;
+        for (var k = -1; k <= 1; k++)
+        {
+            if (middleOnly && k != 0) continue;
+            var sample = Samples(context, px, k + 1);
+            Marshal.WriteInt32(block, 79 * sizeof(float), BitConverter.SingleToInt32Bits(k));
+            var fluidShader = JewelNative.Shader(JewelKnobShader.Fluid, block, JewelUniforms.ShaderBytes);
+            JewelNative.SetShader(program, fluidShader);
+            JewelNative.Release(fluidShader);
+            sample.Canvas.Clear(SKColors.Transparent);
+            sample.Canvas.DrawRect(new SKRect(0, 0, px, px), program);
+            JewelNative.SetShader(program, 0);
+        }
+        Marshal.WriteInt32(block, 79 * sizeof(float), BitConverter.SingleToInt32Bits(0f));
+        for (var k = 0; k < 3; k++)
+        {
+            var image = JewelNative.Snapshot(samples[middleOnly ? 1 : k]!);
+            children[k] = JewelNative.ImageShader(image, SKMatrix.Identity, nearest: true);
+            JewelNative.ReleaseImage(image);
+        }
+        var shader = JewelNative.Shader(JewelKnobShader.Glass, block, JewelUniforms.ShaderBytes, children);
+        for (var k = 0; k < 3; k++) { JewelNative.Release(children[k]); children[k] = 0; }
         var c = target.Canvas;
         c.Clear(SKColors.Transparent);
-        Marshal.Copy(uniforms, 0, block, JewelUniforms.ShaderBytes / sizeof(float));
-        var shader = JewelNative.Shader(JewelKnobShader.Effect, block, JewelUniforms.ShaderBytes);
         JewelNative.SetShader(program, shader);
         JewelNative.Release(shader);
         c.DrawRect(new SKRect(0, 0, px, px), program);
         JewelNative.SetShader(program, 0);
+    }
+
+    // the fluid's three samples: float surfaces at the render size (half floats keep the colour to about 1/2000), kept
+    private readonly SKSurface?[] samples = new SKSurface?[3];
+    private readonly int[] samplesSize = new int[3];
+    private readonly nint[] children = new nint[3];
+
+    private SKSurface Samples(GRContext? context, int px, int k)
+    {
+        if (samples[k] is { } kept && samplesSize[k] == px) return kept;
+        samples[k]?.Dispose();
+        var info = new SKImageInfo(px, px, SKColorType.RgbaF16, SKAlphaType.Premul);
+        var made = (context is not null ? SKSurface.Create(context, false, info) : SKSurface.Create(info))
+            ?? (context is not null ? SKSurface.Create(context, false, info.WithColorType(SKColorType.Rgba8888)) : SKSurface.Create(info.WithColorType(SKColorType.Rgba8888)))
+            ?? throw new InvalidOperationException("The Jewel knob's fluid surface could not be made.");
+        samples[k] = made; samplesSize[k] = px;
+        return made;
     }
 
     /// <summary>Draws <paramref name="source"/> (<paramref name="px"/> square) into the knob's box, filtered linearly.</summary>
@@ -687,20 +794,20 @@ internal static class JewelNative
         .Where(m => m.Name.StartsWith("sk_", StringComparison.Ordinal)).ToArray();
 
     /// <summary>The effect's shader for a uniform block (copied): a native reference, released with <see cref="Release"/>.</summary>
-    public static nint Shader(SKRuntimeEffect effect, nint uniforms, int bytes)
+    public static nint Shader(SKRuntimeEffect effect, nint uniforms, int bytes, nint[]? children = null)
     {
         var identity = SKMatrix.Identity;
         var block = sk_data_new_with_copy(uniforms, bytes);
-        try { return sk_runtimeeffect_make_shader(effect.Handle, block, null, 0, ref identity); }
+        try { return sk_runtimeeffect_make_shader(effect.Handle, block, children, children?.Length ?? 0, ref identity); }
         finally { sk_data_unref(block); }
     }
 
     public static nint Snapshot(SKSurface surface) => sk_surface_new_image_snapshot(surface.Handle);
 
     /// <summary>The image's shader through <paramref name="matrix"/>, sampled linearly, transparent outside it.</summary>
-    public static nint ImageShader(nint image, SKMatrix matrix)
+    public static nint ImageShader(nint image, SKMatrix matrix, bool nearest = false)
     {
-        var sampling = new SKSamplingOptions(SKFilterMode.Linear);
+        var sampling = new SKSamplingOptions(nearest ? SKFilterMode.Nearest : SKFilterMode.Linear);
         return sk_image_make_shader(image, SKShaderTileMode.Decal, SKShaderTileMode.Decal, ref sampling, ref matrix);
     }
 
@@ -751,7 +858,38 @@ internal sealed class JewelKnobOperation : ICustomDrawOperation
         using var lease = feature.Lease();
         var box = new SKRect((float)Box.Left, (float)Box.Top, (float)Box.Right, (float)Box.Bottom);
         var opacity = (float)lease.CurrentOpacity;
-        if (lease.GrContext is null && !JewelKnobRenderer.SupersampleOnCpu) (Cpu ?? JewelCpuKnob.Shared).Draw(lease.SkCanvas, Values, box, opacity);
-        else JewelKnobRenderer.For(lease.GrContext, (int)Values[0]).Draw(lease.SkCanvas, Values, box, opacity);
+        if (lease.GrContext is null && !JewelKnobRenderer.SupersampleOnCpu)
+        {
+            (Cpu ?? JewelCpuKnob.Shared).Draw(lease.SkCanvas, Values, box, opacity);
+            Interlocked.Increment(ref cpuFrames);
+            return;
+        }
+        var start = System.Diagnostics.Stopwatch.GetTimestamp();
+        try { JewelKnobRenderer.For(lease.GrContext, (int)Values[0]).Draw(lease.SkCanvas, Values, box, opacity); }
+        catch (Exception error) { LastError = error.GetType().Name + ": " + error.Message; throw; } // recorded for the native evidence run, not swallowed
+        if (lease.GrContext is null) return;
+        LastGpuFrameTicks = Environment.TickCount64;
+        // the GPU path's record (the native evidence run): how many frames, and the longest draw call (the first takes the
+        // program's compile)
+        var ms = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+        if (Interlocked.Increment(ref gpuFrames) == 1) firstGpuRenderMs = ms;
+        else if (ms > maxGpuRenderMs) maxGpuRenderMs = ms;
     }
+
+    private static long gpuFrames, cpuFrames;
+
+    /// <summary>Diagnostics for the native evidence run: the last render-thread error, when the last GPU frame was drawn.</summary>
+    internal static volatile string? LastError;
+    internal static long LastGpuFrameTicks;
+    private static double maxGpuRenderMs, firstGpuRenderMs;
+
+    /// <summary>The first knob draw call on a GPU context, ms (it carries the programs' compile).</summary>
+    internal static double FirstGpuRenderMs => Volatile.Read(ref firstGpuRenderMs);
+
+    /// <summary>Knob frames drawn on a GPU context and on the CPU renderer, in this process.</summary>
+    internal static long GpuFrames => Interlocked.Read(ref gpuFrames);
+    internal static long CpuFrames => Interlocked.Read(ref cpuFrames);
+
+    /// <summary>The longest knob draw call on a GPU context after the first, ms.</summary>
+    internal static double MaxGpuRenderMs => Volatile.Read(ref maxGpuRenderMs);
 }

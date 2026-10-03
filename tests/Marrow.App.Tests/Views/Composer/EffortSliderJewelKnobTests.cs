@@ -271,6 +271,23 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-252")] // jewel-knob.html frameGate (about 60 a second on any display), as the tube's 1/60 timeline (ED-232): measured natively, the knob ran at the display's 240
+    public void On_a_fast_display_the_knob_steps_sixty_times_a_second() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        var steps = 0;
+        var last = rig.Slider.Orb.Phase;
+        for (var i = 0; i < 240; i++)
+        {
+            rig.Frame(1.0 / 240);
+            if (rig.Slider.Orb.Phase != last) { steps++; last = rig.Slider.Orb.Phase; }
+        }
+        Assert.InRange(steps, 58, 61); // one second of 240 Hz frames
+        Assert.Equal(2.6, last - 0, 0.2); // and the gem still flows at 2.6 a second
+    });
+
+    [Fact]
     [Trait("Decision", "ED-252")] // OD-0090: under reduce motion the gem is still, so once the springs settle the knob asks for no more frames
     public void Under_reduce_motion_the_knob_stops_asking_for_frames_once_settled() => headless.OnUiThread(() =>
     {

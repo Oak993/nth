@@ -223,4 +223,67 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
             });
         }, factType: typeof(EffortSliderNativeFrameTests));
     }
+
+    // OD-0090 (ED-252, review): the Jewel knob's SkSL on the real GPU path (ANGLE on D3D11, the app's default backend). The
+    // liquid's one-shader form overflowed ANGLE's shader compile and killed the process (ED-233); the knob's program inlines
+    // the fluid up to three times. This hosts the real slider (fast mode at Max: the knob, the liquid and the strike) on a
+    // real window with the real frame clock, and checks from inside the process (the screen itself cannot be read in every
+    // session: the liquid tests' screen-pixel checks fail where the window is not on top): every knob frame was drawn on a
+    // GPU context, the program's picture read back from the GPU at the knob's centre is the gem's terracotta, the knob runs
+    // at the frame clock's 60 a second and the gem flows. The timings are written to %TEMP%\jewel-native.txt.
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_jewel_knob_draws_on_the_gpu_of_a_real_window()
+    {
+        native.Run(_ =>
+        {
+            var index = 3;
+            JewelKnobRenderer.Probe = true;
+            var shownAt = System.Diagnostics.Stopwatch.StartNew();
+            var (gpu0, cpu0) = (JewelKnobOperation.GpuFrames, JewelKnobOperation.CpuFrames);
+            var (window, frames, slider) = native.OnUi(() =>
+            {
+                EffortSlider slider = null!;
+                var hosted = Host(() => slider = new EffortSlider(4, new Binding<int>(() => index, value => index = value), "Max", true, EffortBrand.Claude) { Width = 320 });
+                return (hosted.Window, hosted.Frames, slider);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            static bool Gem(long bgra) => bgra >= 0 && ((bgra >> 16) & 0xFF) > (bgra & 0xFF) + 30 && ((bgra >> 16) & 0xFF) > 60; // red over blue: terracotta
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (!Gem(JewelKnobRenderer.ProbedCentre) && DateTime.UtcNow < deadline) Thread.Sleep(20);
+            var firstGem = shownAt.Elapsed.TotalMilliseconds;
+            var centre = JewelKnobRenderer.ProbedCentre;
+            var screen = native.OnUi(() => slider.PointToScreen(new Avalonia.Point(slider.KnobX, EffortSlider.ThumbSize / 2)));
+            var screenPixel = ScreenPixels.At(screen.X, screen.Y);
+            Thread.Sleep(500);
+            var (startFrame, gpuStart, phaseStart) = native.OnUi(() => (frames.Stamps.Count, JewelKnobOperation.GpuFrames, slider.Orb.Phase));
+            Thread.Sleep(TimeSpan.FromSeconds(5));
+            var (delivered, span, gaps, gpuFrames, phase) = native.OnUi(() =>
+            {
+                var stamps = frames.Stamps;
+                return (stamps.Count - startFrame, stamps[^1] - stamps[startFrame], frames.GapHistogram(startFrame),
+                    JewelKnobOperation.GpuFrames - gpuStart, slider.Orb.Phase - phaseStart);
+            });
+            JewelKnobRenderer.Probe = false;
+            var state = native.OnUi(() =>
+            {
+                var view = slider.GetVisualDescendants().OfType<JewelKnobView>().Single();
+                return $"knob view recorded {view.Recorded} times, {view.OperationsMade} operations, bounds {view.Bounds}, visible {view.IsEffectivelyVisible}; " +
+                    $"slider {slider.Bounds}; window {window.Bounds} state {window.WindowState} active {window.IsActive} scaling {window.RenderScaling}; " +
+                    $"track effects {slider.GetVisualDescendants().OfType<TrackEffect>().Count()}; GPU knob frames in all {JewelKnobOperation.GpuFrames - gpu0}, " +
+                    $"the last {Environment.TickCount64 - JewelKnobOperation.LastGpuFrameTicks} ms ago; read-backs failed {JewelKnobRenderer.ProbeFailures}; " +
+                    $"render-thread error: {JewelKnobOperation.LastError ?? "none"}";
+            });
+            var report = $"first gem read back from the GPU {firstGem:F0} ms after the window was made (centre BGRA {centre:X8}); knob frames on a GPU context " +
+                $"{gpuFrames} in {span:F0} ms ({gpuFrames * 1000.0 / span:F1} a second), on the CPU renderer {JewelKnobOperation.CpuFrames - cpu0}; frames delivered " +
+                $"{delivered} ({delivered * 1000.0 / span:F1} a second), gaps ms {gaps}; the gem's phase moved {phase:F2} in 5 s (2.6 a second at rest, " +
+                $"4.2 charged); the first knob draw call on the render thread (the programs' compile) {JewelKnobOperation.FirstGpuRenderMs:F1} ms, the longest after it {JewelKnobOperation.MaxGpuRenderMs:F2} ms (each with the test's GPU read-back); the screen at the knob's centre {screenPixel}; {state}";
+            File.WriteAllText(Path.Combine(Path.GetTempPath(), "jewel-native.txt"), report + Environment.NewLine);
+            Assert.True(Gem(centre), report);
+            Assert.True(JewelKnobOperation.CpuFrames == cpu0, report); // a GPU window draws the knob on the GPU
+            Assert.True(gpuFrames * 1000.0 / span >= 55, report);
+            Assert.True(delivered * 1000.0 / span >= 58, report);
+            Assert.InRange(phase, 2.6 * 5 * 0.8, 4.2 * 5 * 1.1);
+        }, factType: typeof(EffortSliderNativeFrameTests));
+    }
 }

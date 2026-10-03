@@ -726,6 +726,7 @@ public sealed class EffortSlider : Decorator
     private IFrameSource? frameSource;
     private bool frameRequested, attached;
     private ContinuousInstant? lastFrame;
+    private ContinuousInstant due;
     private readonly ContinuousInstant born = SwiftClock.Now;
 
     // the knob's material, and a fade between two
@@ -918,7 +919,7 @@ public sealed class EffortSlider : Decorator
     {
         if (frameRequested || !attached) return;
         frameRequested = true;
-        lastFrame ??= SwiftClock.Now; // a loop starting (or waking) counts its first step from the request, never from an idle gap
+        if (lastFrame is null) { lastFrame = SwiftClock.Now; due = lastFrame.Value; } // a loop starting (or waking) counts its first step from the request, never from an idle gap
         frameSource = FrameClock.Source.Current;
         frameSource.RequestFrame(frameTick);
     }
@@ -929,6 +930,11 @@ public sealed class EffortSlider : Decorator
         frameRequested = false;
         if (!attached) return;
         var now = SwiftClock.Now;
+        // about 60 a second on any display (jewel-knob.html frameGate, as the tube's own 1/60 timeline, ED-232): a frame
+        // is due one interval after the last due one (1 ms slack, ED-117 (2)); further behind, it starts again from now
+        var interval = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60);
+        if (lastFrame is { } shown && (now - due).Ticks + TimeSpan.TicksPerMillisecond < interval.Ticks) { RequestFrame(); return; }
+        due = lastFrame is null || now - due >= interval + interval ? now : due + interval;
         var dt = lastFrame is { } previous ? Math.Max(0, (now - previous).TotalSeconds) : 0;
         lastFrame = now;
         Advance(dt, (now - born).TotalSeconds);
@@ -1163,9 +1169,13 @@ public sealed class JewelKnobView : Control
     /// <summary>How many operations the view has made (tests: a few, reused).</summary>
     internal int OperationsMade { get; private set; }
 
+    /// <summary>How many times the view has recorded its drawing (diagnostics).</summary>
+    internal int Recorded { get; private set; }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
+        Recorded++;
         var values = owner.Uniforms.Values;
         if (values[0] <= 0) return;
         JewelKnobOperation? op;

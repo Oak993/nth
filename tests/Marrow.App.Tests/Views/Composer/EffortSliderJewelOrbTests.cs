@@ -166,18 +166,7 @@ public sealed class EffortSliderJewelOrbTests
             }
             var page = Convert.FromBase64String(shot.GetProperty("rgba").GetString()!);
             using var surface = SKSurface.Create(new SKImageInfo(96, 96, SKColorType.Rgba8888, SKAlphaType.Premul));
-            var block = System.Runtime.InteropServices.Marshal.AllocHGlobal(JewelUniforms.ShaderBytes);
-            try
-            {
-                System.Runtime.InteropServices.Marshal.Copy(u.Values, 0, block, JewelUniforms.ShaderBytes / 4);
-                var shader = JewelNative.Shader(JewelKnobShader.Effect, block, JewelUniforms.ShaderBytes);
-                using var paint = new SKPaint();
-                JewelNative.SetShader(paint, shader);
-                JewelNative.Release(shader);
-                surface.Canvas.Clear(SKColors.Transparent);
-                surface.Canvas.DrawRect(new SKRect(0, 0, 96, 96), paint);
-            }
-            finally { System.Runtime.InteropServices.Marshal.FreeHGlobal(block); }
+            JewelKnobRenderer.For(null, 96).Program(surface, 96, u.Values); // the fluid's three samples, then the glass
             using var image = surface.Snapshot();
             using var port = SKBitmap.FromImage(image);
             double sum = 0; int n = 0, far = 0, alphaOff = 0;
@@ -201,12 +190,15 @@ public sealed class EffortSliderJewelOrbTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-252")] // OD-0090: the orb is an SkSL runtime effect (no WebGL)
-    public void The_knob_program_is_valid_sksl_with_one_uniform_block()
+    [Trait("Decision", "ED-252")] // OD-0090: the orb is SkSL runtime effects (no WebGL); ED-233: the fluid in a program of its own, the glass reading its three samples
+    public void The_knob_programs_are_valid_sksl_with_one_uniform_block()
     {
-        var effect = JewelKnobShader.Effect;
-        Assert.Equal(JewelUniforms.ShaderBytes, effect.UniformSize);
-        Assert.Empty(effect.Children);
+        Assert.Equal(JewelUniforms.ShaderBytes, JewelKnobShader.Fluid.UniformSize);
+        Assert.Empty(JewelKnobShader.Fluid.Children);
+        Assert.Equal(JewelUniforms.ShaderBytes, JewelKnobShader.Glass.UniformSize);
+        Assert.Equal(new[] { "fluidR", "fluidG", "fluidB" }, JewelKnobShader.Glass.Children);
+        Assert.DoesNotContain("glsPresetFluid(", JewelKnobShader.GlassSource, StringComparison.Ordinal); // the glass never runs the fluid itself
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(JewelKnobShader.FluidSource, @"glsPresetFluid\(refracted")); // the fluid runs once a pixel
     }
 
     [Fact]
