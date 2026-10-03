@@ -194,8 +194,8 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-252")] // strike-engine.js:56-66 frameGate measures refreshes: the knob's loop idling (reduce motion) is not one (KnobFrameGate.Idle)
-    public void After_idling_the_knob_does_not_take_the_idle_gap_for_a_refresh() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-252")] // strike-engine.js:56-66 frameGate after the knob's loop idled (reduce motion): the last drawn frame is long past, so a press is drawn at once, then the gate's cadence
+    public void After_idling_a_press_is_drawn_at_once_and_the_cadence_resumes() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig(reduceMotion: true);
         var refresh = 1.0 / 239;

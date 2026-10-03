@@ -38,7 +38,11 @@ public struct KnobSpring
 /// drawing only when it passes): the refresh r is measured from the gaps between frames (a gap counts when 2 &lt; d &lt; 50
 /// ms: r = min(d, 0.9 r + 0.1 d), 1000/60 ms until one has), and a frame is drawn when every r - r/2 ms have passed since
 /// the last drawn one, every = max(1, floor(1000/60/r + 0.05)): evenly paced on the refresh, every refresh at 60 to 90 Hz,
-/// every 2nd at 120 to 165 Hz, every 4th at 239 and 240 Hz.
+/// every 2nd at 120 to 165 Hz, every 4th at 239 and 240 Hz. The page asks on every refresh; the knob's loop stops asking
+/// while nothing moves (ED-252). The gap to its next frame, a whole number of refreshes after the last drawn one, is
+/// measured as any other: r = min(d, ...) is the refresh again at the frame after, and the wake frame is drawn or not as it
+/// would be with the gap unmeasured (ties at the threshold aside). After a wake the first frame is drawn when the last
+/// drawn is far enough past, as after any pause; the page, drawing all along, keeps its own cadence's phase.
 /// </summary>
 public sealed class KnobFrameGate
 {
@@ -59,13 +63,6 @@ public sealed class KnobFrameGate
         if (draw) lastDrawn = now;
         return draw;
     }
-
-    /// <summary>
-    /// The knob's loop stops asking for frames (ED-252: idle under reduce motion or while its window is hidden), where the
-    /// page's loop runs on every refresh: the gap until it asks again is not a refresh, so it is not measured. The refresh
-    /// measured and the last frame drawn are kept.
-    /// </summary>
-    public void Idle() => previous = null;
 }
 
 /// <summary>Which part of a strike the knob is in (the page's phase readout).</summary>

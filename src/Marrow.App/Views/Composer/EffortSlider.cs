@@ -945,7 +945,7 @@ public sealed class EffortSlider : Decorator
         // the gem flows while shown; under reduce motion it is still, so frames run only while something moves (the
         // springs, a fade, the light letting go after fast mode); the springs and a fade always run to their end
         if (springing || fadeFromMaterial is not null || visible && (ReduceMotion ? !IsFast && lit : true)) RequestFrame();
-        else { lastFrame = null; gate.Idle(); } // idle until something asks again
+        else lastFrame = null; // idle until something asks again
     }
 
     /// <summary>jewel-knob.html:813: a drawn frame moves the knob's springs by at most this, s.</summary>
