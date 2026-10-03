@@ -156,4 +156,115 @@ public sealed class InlineTextTests(HeadlessSession headless)
             FaviconCacheSeed.Remove(host);
         }
     });
+
+    // body also reads @Environment(\.hydraMentionPersonas) and (\.hydraMentionTargets) (MarkdownView.swift:1074-1075 at B3) and SwiftUI
+    // runs it again when either changes, handing the same LinkParagraphView its new mentions and targets (:1114), whose updateNSView
+    // draws the string again when the names or the targets moved (LinkParagraphView.swift:36-58) and so draws a head's glyph and name
+    // where the text names it (:179-223) and gives its range the head's address (:203-216). ThreadTimeline sets both on a control it
+    // has already built (ThreadTimeline.cs:128-129), when a head joins or leaves the thread. The paragraph follows a value set on an
+    // ancestor after it was built, and stays the same paragraph. No network: the host's icon is in the cache (R-TEST-10).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-144 (the head mentions of a link paragraph): DroppyCode/UI/Markdown/MarkdownView.swift:1074-1075, :1114; LinkParagraphView.swift:36-58, :179-223
+    public void The_mention_personas_and_targets_set_on_an_ancestor_after_the_paragraph_was_built_reach_its_link_text_in_place() => headless.OnUiThread(() =>
+    {
+        const string host = "mention-environment.com";
+        var icon = new Avalonia.Media.Imaging.WriteableBitmap(new Avalonia.PixelSize(4, 4), new Avalonia.Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        FaviconCacheSeed.Seed(host, icon);
+        var persona = new Marrow.Core.Models.HydraPersona("Hank", "dragon-test-asset", 0xFF0000);
+        var target = new Marrow.Core.Models.HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "t", Status = Marrow.Core.Models.HydraHeadInfo.Status.Running };
+        Avalonia.Controls.Window? window = null;
+        try
+        {
+            // The mention leads the text, so its glyph lands at the paragraph's own origin whatever the font metrics.
+            var text = new InlineText("Hank joined, see [a link](https://mention-environment.com/x)", hasLinks: true);
+            var paragraph = Assert.IsType<LinkParagraphView>(text.Child);
+            var view = (LinkTextView)paragraph.Child!;
+            var block = (Avalonia.Controls.SelectableTextBlock)view.Child!;
+            int Glyphs() => block.Inlines!.OfType<Avalonia.Controls.Documents.InlineUIContainer>().Count(); // the link's favicon and each head's glyph
+            Avalonia.Media.IBrush? NameBrush() => block.Inlines!.OfType<Avalonia.Controls.Documents.Run>().FirstOrDefault(run => run.Text == "Hank")?.Foreground;
+            (SwiftURL Url, Avalonia.Rect Rect, string Name)? Head()
+            {
+                window!.UpdateLayout();
+                return view.HeadMentionRect(new Avalonia.Point(2, 2)) is { } found ? (found.Url, found.Rect, found.Name) : null;
+            }
+            var host_ = new Avalonia.Controls.Decorator { Child = text };
+            window = new Avalonia.Controls.Window { Content = host_, Width = 420, Height = 200 };
+            window.Show();
+            Assert.Equal(1, Glyphs()); // built with no heads above it: the favicon only, the name plain prose
+            Assert.Null(NameBrush());
+            Assert.Null(Head());
+
+            MarkdownView.SetHydraMentionPersonas(host_, new ValueList<Marrow.Core.Models.HydraPersona>([persona]));
+            Assert.Same(paragraph, text.Child); // the same paragraph, its string drawn again
+            Assert.Equal(2, Glyphs()); // the head's glyph in front of its name (:200-202)
+            Assert.Equal(0xFF0000u, ((Avalonia.Media.ISolidColorBrush)NameBrush()!).Color.ToUInt32() & 0xFFFFFFu); // its name in the head's colour
+            Assert.Null(Head()); // no target for it yet: no address to open (:203-216)
+
+            MarkdownView.SetHydraMentionTargets(host_, new ValueMap<string, Marrow.Core.Models.HydraMentionTarget>(
+                new Dictionary<string, Marrow.Core.Models.HydraMentionTarget> { ["Hank"] = target }, SwiftStringComparer.Instance));
+            Assert.Same(paragraph, text.Child);
+            Assert.Equal(target.Url, Head()?.Url); // its range now carries the head's address
+            Assert.Equal("Hank", Head()?.Name);
+
+            MarkdownView.SetHydraMentionTargets(host_, ValueMap<string, Marrow.Core.Models.HydraMentionTarget>.Empty);
+            Assert.Same(paragraph, text.Child);
+            Assert.Null(Head());
+            Assert.Equal(2, Glyphs());
+
+            MarkdownView.SetHydraMentionPersonas(host_, ValueList<Marrow.Core.Models.HydraPersona>.Empty);
+            Assert.Same(paragraph, text.Child);
+            Assert.Equal(1, Glyphs());
+            Assert.Null(NameBrush());
+        }
+        finally
+        {
+            window?.Close();
+            FaviconCacheSeed.Remove(host);
+        }
+    });
+
+    // The same representable keeps its NSTextView across those updates, so a selection in a link paragraph that does not name the head
+    // that joins survives it: updateNSView (LinkParagraphView.swift:36-58) is handed the new mentions, finds the names moved, and
+    // render(_:) (:481-496) leaves a text storage that is equal to the new string alone, with its selection (:489 isEqual). Review
+    // round 6 of TimelineRows found the port building a new paragraph, with a new text view, hover and task, and so no selection.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-144 (a link paragraph's state across a head joining): DroppyCode/UI/Markdown/MarkdownView.swift:1074-1075, :1114; LinkParagraphView.swift:36-58, :481-496
+    public void A_head_the_paragraph_does_not_name_joining_the_thread_leaves_its_view_and_its_selection_alone() => headless.OnUiThread(() =>
+    {
+        const string host = "mention-selection.com";
+        var icon = new Avalonia.Media.Imaging.WriteableBitmap(new Avalonia.PixelSize(4, 4), new Avalonia.Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        FaviconCacheSeed.Seed(host, icon);
+        var persona = new Marrow.Core.Models.HydraPersona("Hank", "dragon-test-asset", 0xFF0000);
+        var target = new Marrow.Core.Models.HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "t", Status = Marrow.Core.Models.HydraHeadInfo.Status.Running };
+        Avalonia.Controls.Window? window = null;
+        try
+        {
+            var text = new InlineText("words and [a link](https://mention-selection.com/x) here", hasLinks: true);
+            var paragraph = Assert.IsType<LinkParagraphView>(text.Child);
+            var view = (LinkTextView)paragraph.Child!;
+            var block = (Avalonia.Controls.SelectableTextBlock)view.Child!;
+            var host_ = new Avalonia.Controls.Decorator { Child = text };
+            window = new Avalonia.Controls.Window { Content = host_, Width = 420, Height = 200 };
+            window.Show();
+            block.SelectAll();
+            var selected = block.SelectedText;
+            Assert.Contains("words and", selected, StringComparison.Ordinal);
+
+            MarkdownView.SetHydraMentionPersonas(host_, new ValueList<Marrow.Core.Models.HydraPersona>([persona]));
+            MarkdownView.SetHydraMentionTargets(host_, new ValueMap<string, Marrow.Core.Models.HydraMentionTarget>(
+                new Dictionary<string, Marrow.Core.Models.HydraMentionTarget> { ["Hank"] = target }, SwiftStringComparer.Instance));
+
+            Assert.Same(paragraph, text.Child); // the same paragraph ...
+            Assert.Same(view, paragraph.Child); // ... and text view ...
+            Assert.Same(block, view.Child);
+            Assert.Equal(selected, block.SelectedText); // ... with its selection: the string it draws is the one it drew
+        }
+        finally
+        {
+            window?.Close();
+            FaviconCacheSeed.Remove(host);
+        }
+    });
 }

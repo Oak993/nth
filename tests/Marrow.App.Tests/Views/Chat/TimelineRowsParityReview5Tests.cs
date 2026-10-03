@@ -27,11 +27,11 @@ public sealed class TimelineRowsParityReview5Tests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-HYDRAMERGE-090 (a markdown point size of 12, link text included): TimelineRows.swift:607-640, :631; MarkdownView.swift:801-806, :1071, :1094, :1114
     public void REVIEW_A_report_paragraph_with_a_link_is_drawn_at_the_reports_12_point_markdown_size() => headless.OnUiThread(() =>
     {
+        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10); the assertions untouched): the shown report's link paragraph asks for
+        // its host's favicon, which awaits an in-flight fetch the rig seeds instead of gitlab.com itself; the rig refuses anything else.
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
         using var h = TimelineRowsPrSupport.Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
-        // No network (R-TEST-10; added by the round-5 fix, the assertions untouched): the shown report's link paragraph asks for its
-        // host's favicon, which now awaits a seeded in-flight fetch instead of gitlab.com itself.
-        using var noNetwork = new HydraMergeFaviconSeed("gitlab.com", null, new TaskCompletionSource<Avalonia.Media.IImage?>().Task);
         Avalonia.Controls.Window window = null!;
         try
         {

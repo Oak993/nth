@@ -1646,8 +1646,6 @@ public sealed class InlineText : Decorator
     private ValueMap<string, HydraMentionTarget> lastTargets = ValueMap<string, HydraMentionTarget>.Empty;
     private LinkParagraphView? linkView;
     private string? linkHostKey;
-    private ValueList<HydraPersona> linkPersonas = ValueList<HydraPersona>.Empty;
-    private ValueMap<string, HydraMentionTarget> linkTargets = ValueMap<string, HydraMentionTarget>.Empty;
     private bool builtVeiledStreaming;
 
     // B3 :1071-1075 @Environment(\.markdownPointSize), (\.markdownDimmed), (\.markdownStreaming), (\.hydraMentionPersonas) and
@@ -1701,10 +1699,11 @@ public sealed class InlineText : Decorator
             // :1189-1191 .task(id: hostKey): stable hosts and video ids key the work (PR-THEME-148), so a
             // streamed token with no new link leaves it alone.
             var hostKey = RichLink.LinkAssetKey(source, streaming);
-            // The same paragraph while the branch, the task's id and the hover's mentions stay: its new values go to updateNSView.
-            // A new task id or new mentions build the paragraph again, with its own task and hover.
-            if (linkView is { } kept && hostKey == linkHostKey && ReferenceEquals(Child, kept)
-                && personas.Equals(linkPersonas) && targets.Equals(linkTargets))
+            // The same paragraph while the branch and the task's id stay: SwiftUI keeps the representable (its NSTextView, its selection)
+            // and hands updateNSView the new values, the mentions and targets among them (B3 :1114; LinkParagraphView.swift:36-58); the
+            // hover reads the mentions the environment holds when the pointer moves (below), as SwiftUI's modifier is handed the new
+            // ones. Only a new task id (hostKey) builds the paragraph again, with its own task.
+            if (linkView is { } kept && hostKey == linkHostKey && ReferenceEquals(Child, kept))
             {
                 kept.Update(scaled, dimmed, streaming, revision, personas, targets); // B3 :1114
                 return;
@@ -1724,7 +1723,7 @@ public sealed class InlineText : Decorator
             // :1159-1188 the continuous hover: pushes/pops the pointing hand over a link, shows/hides the head
             // hover card over a mention, only on change (PR-THEME-144). B3 :1159-1160 moves this into the shared
             // UI.Markdown.LinkHover (N9), also used identically by ProseRunView.swift:27-59.
-            LinkHover.Attach(paragraph, () => hostTextView, personas, targets);
+            LinkHover.Attach(paragraph, () => hostTextView, () => MarkdownView.GetHydraMentionPersonas(this), () => MarkdownView.GetHydraMentionTargets(this));
             if (hostKey.Length > 0)
             {
                 // B3 :1123-1125 `[source, streaming, revision = $faviconRevision]`: the task bumps the view's own state (:1163).
@@ -1735,8 +1734,6 @@ public sealed class InlineText : Decorator
             }
             linkView = paragraph;
             linkHostKey = hostKey;
-            linkPersonas = personas;
-            linkTargets = targets;
             child = paragraph;
         }
         else // :1193-1198

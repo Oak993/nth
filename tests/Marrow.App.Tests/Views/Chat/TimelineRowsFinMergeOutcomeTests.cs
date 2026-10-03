@@ -153,6 +153,10 @@ public sealed class TimelineRowsFinMergeOutcomeTests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-050")] // TimelineRows.swift:607-639 the report panel
     public void The_report_opens_the_merge_card_for_a_leading_address_that_parses_with_a_files_line_and_the_460_point_report_otherwise(string body, bool merge) => headless.OnUiThread(() =>
     {
+        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10)). The merge card and the merge-failed row's link paragraph both ask
+        // gitlab.com for its favicon, and a report is measured in a hidden window first (PopoverScroll.MeasuredHeight: attached,
+        // detached, its ask cancelled), so the host is named here for every row: the rig fails the test if anything else is asked.
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
         using var h = Harness();
         using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
         using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
@@ -200,9 +204,10 @@ public sealed class TimelineRowsFinMergeOutcomeTests(HeadlessSession headless)
                 Assert.False(MarkdownView.GetMarkdownDimmed(blocks[0]));
                 Assert.Equal(12, Avalonia.Controls.Documents.TextElement.GetFontSize(stack));
                 // What those mean on screen (review round 5): every text of the report is drawn at 12 points, the callout text style
-                // (:630) and the markdown point size (:631) alike. A paragraph with a link (each leading address here) is InlineText's
-                // link branch, LinkParagraphView(pointSize: scaled) (MarkdownView.swift:1094, :1114 at B3), drawn at the markdown point
-                // size, which the report sets on blocks already built (InlineText runs body again: MarkdownView.cs InlineText).
+                // (:630) and the markdown point size (:631) alike. A paragraph with a link (the markdown link of the last row; the bare
+                // https address line is veiled text in this port's parser, not asserted here) is InlineText's link branch, LinkParagraphView(pointSize: scaled)
+                // (MarkdownView.swift:1094, :1114 at B3), drawn at the markdown point size, which the report sets on blocks already built
+                // (InlineText runs body again: MarkdownView.cs InlineText).
                 var drawn = LogicalQuery.SelfAndDescendants<SelectableTextBlock>(report).ToArray();
                 Assert.NotEmpty(drawn);
                 if (body.Contains("](", StringComparison.Ordinal)) Assert.NotEmpty(LogicalQuery.SelfAndDescendants<LinkParagraphView>(report));

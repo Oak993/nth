@@ -33,11 +33,11 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-166 and PR-CHAT-077 (a bubble with a link): TimelineRows.swift:119-123; MarkdownView.swift:1134-1191; LinkParagraphView.swift:312-313
     public void REVIEW_A_selection_in_a_sent_bubble_with_a_bare_domain_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
     {
+        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10); the assertions untouched): the bubble's link paragraph asks for its
+        // host's favicon, which awaits an in-flight fetch the rig seeds instead of example.com itself; the rig refuses anything else.
+        using var noNetwork = new NoLinkNetwork("example.com");
         using var h = TimelineRowsPrSupport.Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
-        // No network (R-TEST-10; added by the round-5 fix, the assertions untouched): the bubble's link paragraph asks for its host's
-        // favicon, which now awaits a seeded in-flight fetch instead of example.com itself.
-        using var noNetwork = new HydraMergeFaviconSeed("example.com", null, new TaskCompletionSource<Avalonia.Media.IImage?>().Task);
         Avalonia.Controls.Window window = null!;
         try
         {
@@ -62,11 +62,11 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-HYDRAMERGE-090 and PR-CHAT-166 (the generic report's link paragraph): TimelineRows.swift:607-640, :633, :1111-1120
     public void REVIEW_A_selection_in_the_merge_failed_notes_generic_report_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
     {
+        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10); the assertions untouched): the shown report's link paragraph asks for
+        // its host's favicon, which awaits an in-flight fetch the rig seeds instead of gitlab.com itself; the rig refuses anything else.
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
         using var h = TimelineRowsPrSupport.Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
-        // No network (R-TEST-10; added by the round-5 fix, the assertions untouched): the shown report's link paragraph asks for its
-        // host's favicon, which now awaits a seeded in-flight fetch instead of gitlab.com itself.
-        using var noNetwork = new HydraMergeFaviconSeed("gitlab.com", null, new TaskCompletionSource<Avalonia.Media.IImage?>().Task);
         Avalonia.Controls.Window window = null!;
         try
         {
@@ -98,7 +98,7 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     // which bumps `@State faviconRevision` (:1113) once an icon arrives, and LinkParagraphView(revision: faviconRevision) (:1148)
     // draws the text again with the icon in front. In the port, InlineText's hasLinkText branch keeps the revision in a local
     // (`var revision = 0` and a Binding over it) that nothing reads, so a bubble shown before its host's icon was cached never shows
-    // it. No network: FaviconCache.Image awaits a seeded in-flight task (HydraMergeFaviconSeed, R-TEST-10). The controls check
+    // it. No network: FaviconCache.Image awaits a seeded in-flight task (NoLinkNetwork.Pending, R-TEST-10). The controls check
     // that the fetch ran to its end (RichLink.invalidate dropped the source, MarkdownView.swift:1236-1237) and that a bubble built
     // after the icon arrived does show it. Fails alone, twice, at 9af15a67f; passes with a probe (not committed) that has the revision
     // binding's setter draw the host text view again.
@@ -108,12 +108,12 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     {
         const string host = "example.com";
         const string text = "see example.com for it";
+        using var noNetwork = new NoLinkNetwork(); // R-TEST-10, ED-NEW-parity-timelinerows (10): the host's fetch is the one it names below
         using var h = TimelineRowsPrSupport.Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var icon = new Avalonia.Media.Imaging.WriteableBitmap(new Avalonia.PixelSize(4, 4), new Avalonia.Vector(96, 96),
             Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
-        var pending = new TaskCompletionSource<Avalonia.Media.IImage?>();
-        using var inFlight = new HydraMergeFaviconSeed(host, null, pending.Task);
+        var pending = noNetwork.Pending(host);
         Avalonia.Controls.Window window = null!;
         UserMessageRow row = null!;
         void Pump()

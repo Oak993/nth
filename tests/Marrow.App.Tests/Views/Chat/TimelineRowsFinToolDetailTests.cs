@@ -197,9 +197,11 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
     });
 
     // Review round 5: ED-NEW-parity-timelinerows (7) ends a detail cut by its .lineLimit(12) (:2125) in an ellipsis wherever the cut
-    // falls, at a hard line break too (a multi-line command, a heredoc), so the reader can tell the text goes on. The twelfth line keeps
-    // all its words when they and the ellipsis fit the row, and loses its last characters to the ellipsis when they do not (a twelfth
-    // line as wide as the row). A detail of exactly twelve lines is not cut and shows no ellipsis, and neither does a line above the cut.
+    // falls, at a hard line break too (a multi-line command, a heredoc), so the reader can tell the text goes on. Here: the twelfth
+    // line keeps all its words, and takes the ellipsis after them, when both fit the row (thirteen short lines). A detail of exactly
+    // twelve lines is not cut and shows no ellipsis, and neither does a line above the cut. The third case is a line wider than the
+    // row, which wraps: its twelfth wrapped line is cut inside the line, Avalonia's own collapse of a split line (the code of (7) is
+    // not on that path); the twelfth line that fills the row at a hard line break, the code's own cut, is the next test's.
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-NEW-parity-timelinerows (7): TimelineRows.swift:2120-2126
     public void A_detail_cut_at_a_hard_line_break_ends_its_twelfth_line_in_an_ellipsis_and_one_of_exactly_twelve_lines_is_not_cut() => headless.OnUiThread(() =>
@@ -236,9 +238,60 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                 Assert.StartsWith("line 12", shown, StringComparison.Ordinal);
                 Assert.NotEqual("line 12", shown.TrimEnd('\n', '\r'));
                 Assert.True(cut.Width <= 500 + 0.5);
-                // The wide twelfth line: cut short to fit the row with its ellipsis.
+                // The line wider than the row: wrapped, and its twelfth wrapped line cut inside it to fit the row with its ellipsis.
                 var wideCut = Assert.Single(Mounted<SelectableTextBlock>(views[2])).TextLayout.TextLines[^1];
                 Assert.True(wideCut.Width <= 500 + 0.5, $"the cut wide line is {wideCut.Width:0} points wide in a 500-point row");
+            }
+            finally { Close(window); }
+        });
+    });
+
+    // ED-NEW-parity-timelinerows (7), the branch of LineLimitedSelectableText that is its own code: the twelfth line ends at a hard line
+    // break, so Avalonia's TextLayout does not collapse it (only a split line is), and the line is as wide as the row, so its words and
+    // the ellipsis do not both fit. It is cut short to fit, with its ellipsis, as a wrapped line is. The width of one monospaced
+    // character comes from a one-line detail of the same face; n of them are the most that fit 500 points. Controls: with no line
+    // after it that line is the twelfth of exactly twelve, kept whole in 500 points, and one more character would not fit.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-NEW-parity-timelinerows (7): TimelineRows.swift:2120-2126
+    public void A_twelfth_line_that_fills_the_row_and_ends_at_a_hard_line_break_is_cut_short_to_fit_its_ellipsis() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var probe = new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = "w" });
+            var panel = new StackPanel { Width = 500 };
+            panel.Children.Add(probe);
+            var window = Show(panel);
+            try
+            {
+                var one = Assert.Single(Mounted<SelectableTextBlock>(probe)).TextLayout.TextLines[0].Width; // one character of the face
+                Assert.InRange(one, 1, 50);
+                var fits = (int)Math.Floor(500 / one);
+                var fill = new string('w', fits);
+                var whole = new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = Lines(11) + "\n" + fill });
+                var cut = new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = Lines(11) + "\n" + fill + "\nline 13" });
+                panel.Children.Add(whole);
+                panel.Children.Add(cut);
+                Settle(window);
+
+                // Control: twelve lines, the twelfth as wide as the row: nothing follows, so it is kept whole.
+                var kept = Assert.Single(Mounted<SelectableTextBlock>(whole)).TextLayout.TextLines;
+                Assert.Equal(12, kept.Count);
+                Assert.False(kept[^1].HasCollapsed);
+                Assert.True(kept[^1].Width <= 500 + 0.5, $"the whole line is {kept[^1].Width:0} points wide");
+                Assert.True(kept[^1].Width + one > 500, "control: the line's words and an ellipsis would still fit the row, so no cut is needed");
+
+                // With a thirteenth line after it: still twelve lines, the twelfth cut short to fit its ellipsis.
+                var detail = Assert.Single(Mounted<SelectableTextBlock>(cut));
+                var lines = detail.TextLayout.TextLines;
+                Assert.Equal(12, lines.Count);
+                Assert.All(lines.SkipLast(1), line => Assert.False(line.HasCollapsed));
+                Assert.True(lines[^1].HasCollapsed, "the twelfth line is not cut");
+                Assert.True(lines[^1].Width <= 500 + 0.5, $"the cut line is {lines[^1].Width:0} points wide in a 500-point row");
+                var shown = string.Concat(lines[^1].TextRuns.Select(run => run.Text.ToString())).TrimEnd('\n', '\r');
+                Assert.EndsWith("…", shown, StringComparison.Ordinal); // the ellipsis, after fewer of the line's characters
+                Assert.True(shown.Count(character => character == 'w') < fits, "no character went to make room for the ellipsis");
+                Assert.Equal(Lines(11) + "\n" + fill + "\nline 13", detail.Text); // a display limit only
             }
             finally { Close(window); }
         });
