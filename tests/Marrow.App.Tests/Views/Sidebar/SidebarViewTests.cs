@@ -187,9 +187,8 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   appears in the videos (capture UNRESOLVED); the glyph swap is a cut (OD-0076).
 // - PR-SIDEBAR-129, UI-SIDEBAR-008: the 0.55 dim is a cut (the Mac snaps; OD-0076 asks for a transition in the Mac's
 //   motion language, which no decision has fixed for this site); PR-SIDEBAR-129's capture is UNRESOLVED (no inactive
-//   project in the videos). UI-SIDEBAR-008 also: SidebarRow (Chrome.cs) swaps its accessory (count <-> buttons) by a
-//   cut where Chrome.swift:735-737 flips the hover inside withAnimation(Chrome.hover) (a Swift-backed crossfade, as
-//   the thread and helper rows now do); not done in this pass.
+//   project in the videos). UI-SIDEBAR-008's accessory (count <-> buttons) crossfades on the hover's Chrome.hover since
+//   review round 2 (below); the dim is still the cut.
 // - PR-SIDEBAR-135: STOP #9 below (the reopen glide's two faces against a pinned capture).
 // - UI-SIDEBAR-001: "pressing it drags the window" has no hit-test proof; UI-SIDEBAR-005: the real scroll wiring
 //   (ScrollGestureEvent/Offset) that arms the freeze is untested; UI-SIDEBAR-006: the gap's mounted transition needs
@@ -240,9 +239,10 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   lives in the ProjectRow control, which the list rebuilt whenever its item's value changed (a new thread in the project
 //   dropped an open question): the list hands a surviving project row its new snapshot and count in place now
 //   (UpdateItemView), as SwiftUI keeps the row's @State under its ForEach id; the head card likewise (its showsAllHeads).
-//   NOT done, and not claimed: SidebarThreadRow, SidebarHelperRow, HelperStubRow and the headers still take a new value by a
-//   rebuild where they stand (UpdateItemView), so their own @State (a hover, an open popover) may not survive a change of
-//   their record; it is the same gap, UNRESOLVED here (not read through for those rows), and no test covers it.
+//   NOT done, and not claimed: SidebarThreadRow, HelperStubRow and the headers still take a new value by a rebuild where
+//   they stand (UpdateItemView), so their own @State (a hover, an open popover) may not survive a change of their record;
+//   it is the same gap, UNRESOLVED here (not read through for those rows), and no test covers it. (SidebarHelperRow was in
+//   this list until review round 2, below.)
 // - UI-SIDEBAR-038 also: the chevron itself is a view of the card's stack (:1514 `if capped { ... }`), so it joins and leaves
 //   on the same default opacity transition when the head count crosses twelve (:1535 snappy, the card's row count changes
 //   with it): The_head_cards_chevron_fades_in_when_the_card_becomes_capped_and_out_when_it_stops_being.
@@ -254,8 +254,43 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   UI-HYDRAMERGE-030, UI-SIDEBAR-004, -007, -025, -033, -034, -038, -039, -040, -041, -042, -059) and the fixed defects
 //   D1a and D2-D14, every one killed: D6a (Red's dark member) by SwiftColorTests, the others by the Views.Sidebar namespace.
 //   One survived at first, D8a (the folded stub's fill set with no animation): its test now checks the fill mid-fade.
+//   That sweep did not cover every decision of this pass: review round 2's own mutants RA1, RA2, RA3, RA4, RA5, RA7 and RA16
+//   survived (mutants_review2.txt); round 2, below, kills them.
 // - PR-SIDEBAR-126's hover fill was proven only by FillFor's value: A_project_rows_hover_fill_is_drawn_on_a_real_hover_and_
 //   kept_while_the_pointer_rests_on_its_ellipsis proves it on the live row (mutants H2b and P126 in _round3c, both killed).
+//
+// REVIEW PASS 2, ROUND 2 (2026-10-03, adversarial; its REVIEW_Round2_ tests kept as written). What it refuted and what was
+// done, each against the Swift and the videos:
+// - UI-SIDEBAR-038: on the chevron's own toggle (:1515-1516) the old chevron vanished in the first frame; in 2-chat-use.mov
+//   5.340-5.378 s it is still drawn, faint, where it stood. The chevron whose symbol changes (:1516) now leaves on the ghost
+//   layer where it stood and the new one joins (REVIEW_Round2_The_head_cards_down_chevron_fades_out_where_it_stood...). The
+//   head-card tests pick the live chevron (LiveChevron) and check the old one fading where it stood; the toggle test lets the
+//   card's measured width land before its click (a pass that took both ran without the click's transaction).
+// - UI-SIDEBAR-058, PR-SIDEBAR-126, PR-WIN-200: SidebarRow swapped its accessory by a cut where Chrome.swift:735-737 flips
+//   the hover inside withAnimation(Chrome.hover); it now keeps a control its closure hands back and crossfades a new one in
+//   (ED-NEW-parity-sidebarview (4)), and ProjectRow keeps its branch's view (:1115-1133): the count Text changes in place, the
+//   ellipsis-and-plus HStack keeps its button, and its accessory follows the live project's expansion
+//   (REVIEW_Round2_A_search_results_project_row_crossfades_its_count_out..., ChromeFifthTests.SidebarRow_hover_eases_its_fill_
+//   crossfades_a_new_accessory_and_leaves_one_handed_back_alone). Project_count_is_tabular_... follows the fade to its end.
+// - UI-SIDEBAR-033: SidebarHelperRow built a new RowActionsButton on every change of its record, so an open menu lost its
+//   anchor; it keeps the button while the ellipsis shows, builds its actions as the menu opens (RowActionsButton's new
+//   overload), and the list hands a surviving helper row its snapshot and isLast in place
+//   (REVIEW_Round2_A_helper_rows_open_ellipsis_menu_keeps_its_button..., The_real_list_keeps_a_helper_row_and_its_open_menu...,
+//   A_helper_rows_kept_ellipsis_opens_on_the_actions..., A_project_rows_kept_ellipsis_opens_on_the_activation...).
+// - Proofs the round asked for, each killing the mutant that had survived: the card's clip on leaving glyphs (RA1, RA2:
+//   A_leaving_glyph_is_drawn_inside_the_card_and_cut_by_its_edge...), the toggle's snappy on its curve (RA7:
+//   The_chevrons_toggle_fades_the_glyphs_past_twelve_and_its_symbols_on_snappy_0_18...), :1535 inside :1541 (RA5:
+//   A_head_that_joins_on_a_new_row_fades_in_on_the_cards_snappy...), a search result's project row through a new pass (RA3:
+//   A_search_results_project_row_keeps_its_open_menu_and_its_Remove_question...), a menu closed from the ellipsis (RA4:
+//   Closing_the_ellipsis_menu_with_the_pointer_resting_on_the_ellipsis...), the hover fill's ease (RA16:
+//   A_project_rows_hover_fill_eases_in_on_chrome_hover, The_Add_project_rows_hover_fill_eases_in_on_chrome_hover).
+// - The_collapsed_count_label_shows_only_while_collapsed_... now asserts the live row's count and closes its windows inside
+//   the test (a row left open laid its new count out after the test body, and that late layout threw "Could not create
+//   glyphTypeface" headless, twice alone; a layout inside the body did not).
+// - Mutation records: E:\Droppy\work\parity\evidence\SidebarView\review\mutants_round4.txt (and .json): 27 mutants:
+//   the round-2 survivors RA1, RA2, RA3, RA4 (restated as RA4b and RA4c for the new RefreshAccessory), RA5, RA7, RA16 and
+//   RA16b, and R4M1-R4M14 over this round's changes. Every one killed but R4M9 (a helper's kept status never drawn again),
+//   which A_helper_rows_status_follows_its_thread_turning_unread_and_then_failed now kills, with R4M9b (mutants_round4b.json).
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -5997,7 +6032,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
         // The rows stay live in their windows: the one built while the project was expanded draws its count now that the
         // project is collapsed again (:1085, :1127 read the live project, not the snapshot it was built from). The windows
-        // are closed inside the test, so no layout of theirs is left for after its harness is gone.
+        // are closed inside the test, so no layout of theirs is left for after the test body.
         harness.Main.OnMain(() =>
         {
             windows[1].UpdateLayout();
