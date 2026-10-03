@@ -33,6 +33,7 @@ public sealed class LinkPopover
     private readonly Popup popover; // :12 private let popover = NSPopover()
     private readonly PopoverCloseBox closeBox; // :16 private lazy var closeBox = PopoverCloseBox { [weak self] in self?.close() }
     private Window? monitorWindow; // the window the escape monitor is attached to
+    private Control? anchor; // the view it is shown relative to, while shown (ED-253)
     private bool escapeMonitorActive; // :13 private var escapeMonitor: Any?
     // ENGINEERING DECISION (precedent AttachmentPreviewPanel.cs :44, "isShown"): tracks :28/:45's `popover.isShown`
     // ourselves rather than reading Avalonia's `Popup.IsOpen`, which only the real presenter (not the test seam's
@@ -85,7 +86,10 @@ public sealed class LinkPopover
         popover.PlacementAnchor = PopupAnchor.Bottom;
         popover.PlacementGravity = PopupGravity.Bottom;
         popover.PlacementRect = relativeTo;
-        Presentation.Presenter.Current.SetPresented(popover, true);
+        // ED-253: an NSPopover is a window of its own whose Escape runs before the window's (a Settings window's own Escape
+        // closes the window): it is presented as open over its anchor's window, so that window's Escape closes it first.
+        anchor = of;
+        Presentation.SetPresented(popover, true, of, Close);
         isShown = true;
         StartEscapeMonitor(of); // :40
     }
@@ -96,13 +100,16 @@ public sealed class LinkPopover
         StopEscapeMonitor(); // :44
         if (!isShown) return;
         isShown = false;
-        Presentation.Presenter.Current.SetPresented(popover, false); // :45
+        Presentation.SetPresented(popover, false, anchor ?? (Visual)popover, Close); // :45
+        anchor = null;
     }
 
     // :48-50 func popoverDidClose(_:)
     public void PopoverDidClose()
     {
         isShown = false; // resync the shadow flag (:154-style guard) for a close this class did not itself drive
+        WindowTransients.Hide(popover); // ED-253: no longer open over the window
+        anchor = null;
         StopEscapeMonitor(); // :49
     }
 

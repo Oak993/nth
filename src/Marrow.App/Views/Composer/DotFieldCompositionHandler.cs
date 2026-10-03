@@ -37,7 +37,10 @@ internal sealed class DotFieldCompositionHandler : CompositionCustomVisualHandle
 
     private void RequestFrameIfNeeded()
     {
-        var needsFrame = !IsStopped && state?.Sample().NeedsFrame == true;
+        var sample = IsStopped ? null : state?.Sample();
+        // ED-253: a finished accent blend settles into its target, so later samples blend nothing.
+        if (sample is not null && state?.From is not null && sample.From is null) state = sample;
+        var needsFrame = sample?.NeedsFrame == true;
         Volatile.Write(ref animating, needsFrame ? 1 : 0);
         if (!needsFrame || frameRequested) return;
         frameRequested = true;

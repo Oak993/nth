@@ -44,6 +44,9 @@ public interface IContextMenuPresenter
     /// <param name="at">The point in <paramref name="target"/>'s coordinates.</param>
     /// <param name="entries">The rows, as the menu built them for this open.</param>
     void Present(Control target, Point at, IReadOnlyList<ContextMenuEntry> entries);
+
+    /// <summary>Closes the menu being presented, as its own Escape does (ED-253); nothing when none is.</summary>
+    void Dismiss() { }
 }
 
 /// <summary>PORT-ONLY. Context menus as the system menu (see the file note).</summary>
@@ -86,8 +89,17 @@ public static class NativeContextMenus
         // The menu is modal: it is open for exactly the span of Present (the chosen row runs inside it, after the native
         // menu is gone), so Opened and Closed bracket that call.
         menu.RaiseEvent(new RoutedEventArgs(MenuBase.OpenedEvent));
-        try { Presenter.Current.Present(control, at, entries); }
-        finally { menu.RaiseEvent(new RoutedEventArgs(MenuBase.ClosedEvent)); }
+        // ED-253: an NSMenu is a window of its own, which takes the Escape that closes it: while the menu is open it is
+        // among the transients over the control's window, so an Escape that reaches that window (the Settings window closes
+        // on Escape) closes the menu instead. The Win32 menu's own modal loop takes Escape first; this holds either way.
+        var presenter = Presenter.Current;
+        WindowTransients.Show(menu, control, presenter.Dismiss);
+        try { presenter.Present(control, at, entries); }
+        finally
+        {
+            WindowTransients.Hide(menu);
+            menu.RaiseEvent(new RoutedEventArgs(MenuBase.ClosedEvent));
+        }
     }
 
     // The sites rebuild their items in ContextMenu.Opening (the source's fresh per-open read); Avalonia raises it only from
@@ -159,6 +171,12 @@ internal sealed class Win32ContextMenuPresenter : IContextMenuPresenter
     private const uint MF_STRING = 0x0000, MF_GRAYED = 0x0001, MF_CHECKED = 0x0008, MF_POPUP = 0x0010, MF_SEPARATOR = 0x0800;
     private const uint TPM_RIGHTBUTTON = 0x0002, TPM_RETURNCMD = 0x0100;
 
+    // EndMenu: ends the menu the calling thread is tracking (TrackPopupMenuEx returns 0, nothing chosen).
+    public void Dismiss()
+    {
+        if (OperatingSystem.IsWindows()) EndMenu();
+    }
+
     public void Present(Control target, Point at, IReadOnlyList<ContextMenuEntry> entries)
     {
         if (!OperatingSystem.IsWindows()) return;
@@ -226,6 +244,11 @@ internal sealed class Win32ContextMenuPresenter : IContextMenuPresenter
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyMenu(IntPtr menu);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EndMenu();
 
     private const uint WM_NULL = 0x0000;
 

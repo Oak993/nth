@@ -443,7 +443,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
-    public void Theme_capsule_pins_swatch_menu_names_sections_checkmark_hover_and_immediate_selection() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
+    public void Theme_capsule_pins_swatch_menu_names_sections_checkmark_hover_and_immediate_selection() => WithView(Marrow.App.Tests.Fixtures.ThemePickerHost.Page, (view, model, h) => // OD-0088: the capsule beside the page
     {
         // SettingsView.swift:1159-1210; AppTheme.swift:44-73,109-176. UI-SETTINGS-017 subset; STOP #2.
         var picker = Nodes<ThemePickerButton>(view).Single(); var label = Nodes<TextBlock>(picker).Single(); var stack = Nodes<StackPanel>(picker).Single();

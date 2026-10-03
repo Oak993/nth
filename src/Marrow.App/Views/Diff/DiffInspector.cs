@@ -796,6 +796,9 @@ public sealed class DiffLinesView : Decorator
                     TextTrimming = TextTrimming.CharacterEllipsis,
                     MaxLines = 1,
                     Margin = new Thickness(10, 3),
+                    // :355 `Color.accentColor`, named, not the `.tint` style: the app's accent colour (B3 ships no AccentColor
+                    // asset, so the system's), which the window's tint does not change (ThemeTint, WindowManager.swift:186-192,
+                    // sets the tint). OD-0088 (ED-253): not one of Chrome.accent's sites, so the pick does not reach it.
                     Background = SwiftColor.AccentColor.Opacity(0.06).Brush(rows),
                     // :406 .font(.system(size: 11.5, design: .monospaced)): the embedded face's key is fonts:CascadiaMono (SwiftFont.cs:79).
                     FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),

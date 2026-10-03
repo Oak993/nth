@@ -403,7 +403,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Appearance_uses_three_cards_10_apart_and_title_only_chrome_with_22_top_padding() => WithSettings((view, _, _) =>
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.Appearance; Sync(); var appearance = Assert.Single(Nodes<AppearanceSettingsPage>(view));
-        Assert.Equal(3, Nodes<ChromeCard>(appearance).Length); var group = Assert.Single(Nodes<StackPanel>(appearance), stack => stack.Children.Count == 3 && stack.Children[1] is WallpaperCard);
+        // DEVIATION OD-0088 (ED-250): the Look card stands first, then the source's three cards, all 10 apart.
+        Assert.Equal(4, Nodes<ChromeCard>(appearance).Length); var group = Assert.Single(Nodes<StackPanel>(appearance), stack => stack.Children.Count == 4 && stack.Children[0] is Marrow.App.Port.LookCard && stack.Children[2] is WallpaperCard);
         Assert.Equal(10, group.Spacing); Assert.Equal(22, Field<Control>(view, "pageStack").Margin.Top);
         var heading = Nodes<TextBlock>(appearance).First(); Assert.Equal("Appearance", heading.Text); Assert.Equal(13, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight);
         Assert.Empty(Nodes<ChromeSearchField>(Field<Control>(view, "detail"))); Assert.Empty(Nodes<AboutUpdateChromeAccessory>(view)); Assert.Empty(Nodes<ProvidersRefreshButton>(view));
@@ -446,7 +447,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-004")] // App/Views/Settings/SettingsView.swift:1196
     [Trait("Req", "UI-THEME-005")] // App/Views/Settings/SettingsView.swift:1198
     [Trait("Req", "UI-THEME-006")] // App/Views/Settings/SettingsView.swift:1204-1208
-    public void Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
+    public void Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail() => WithView(Marrow.App.Tests.Fixtures.ThemePickerHost.Page, (view, model, _) => // OD-0088: the capsule beside the page
     {
         var picker = Assert.Single(Nodes<ThemePickerButton>(view)); var label = Assert.Single(Nodes<StackPanel>(picker), stack => stack.Height == 28); Assert.Equal(6, label.Spacing); Assert.Equal(new Thickness(12, 0), label.Margin);
         Assert.Equal(12.5, Nodes<TextBlock>(picker).Single().FontSize); Assert.Equal(SwiftFont.System(8, SwiftFont.Weight.Bold), SwiftImage.GetFont(Nodes<SwiftImage>(picker).Single()));
@@ -565,8 +566,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Appearance_rows_follow_the_source_and_selected_details_are_live() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
     {
         var section = Assert.Single(Nodes<ChromeSection>(view)); Assert.Equal("Appearance", Text(section).First());
-        Assert.Equal(new[] { "Theme", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch", "Wallpaper", "Zoom" }, Nodes<ChromeRow>(view).Select(x => Text(x).First()));
-        Assert.Contains("Follows Windows", Text(Row(view, "Theme"))); model.Settings.Theme = AppTheme.CatppuccinMocha; Sync(); Assert.Contains("Dark \u00b7 Mauve", Text(Row(view, "Theme")));
+        // DEVIATION OD-0088 (ED-250): the Theme row is the Look card's (with its Accent row); System's detail reads "System · <accent>".
+        Assert.Equal(new[] { "Theme", "Accent", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch", "Wallpaper", "Zoom" }, Nodes<ChromeRow>(view).Select(x => Text(x).First()));
+        Assert.Contains("System · Windows accent", Text(Row(view, "Theme"))); model.Settings.Theme = AppTheme.CatppuccinMocha; Sync(); Assert.Contains("Dark \u00b7 Mauve", Text(Row(view, "Theme")));
         var sidebar = Row(view, "Sidebar"); Assert.Equal(new[] { "Column", "Floating", "Panel only" }, Nodes<Button>(sidebar).Select(x => Text(x).Last()));
         Click(Button(sidebar, "Panel only")); Sync(); Assert.Equal(SidebarMode.PanelOnly, model.Settings.SidebarMode); Assert.Contains("No column and no toolbar button; the floating panel is the sidebar", Text(sidebar));
         var open = Row(view, "Open the sidebar at launch"); Assert.False(open.IsEnabled); Assert.Equal(0.5, open.Opacity);

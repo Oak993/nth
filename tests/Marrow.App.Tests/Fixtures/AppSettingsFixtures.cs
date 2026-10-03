@@ -24,12 +24,14 @@ public sealed class AppSettingsScope : IDisposable
     private readonly IDisposable defaultsScope;
     private readonly IDisposable secretsScope;
     private readonly AppTheme savedTheme;
+    private readonly string savedAccent;
 
     private AppSettingsScope(string folder)
     {
         Folder = folder;
         SettingsPath = Path.Combine(folder, "settings.json");
         savedTheme = ThemeManager.Current;
+        savedAccent = Marrow.UI.Port.AccentChoice.Current; // OD-0088 (ED-250): mirrored by AppSettings like the theme
         Runtime = new TestRuntime();
         Defaults = new RecordingSettingsStore(new SettingsStore(SettingsPath));
         defaultsScope = UserDefaults.Standard.Override(Defaults);
@@ -81,6 +83,7 @@ public sealed class AppSettingsScope : IDisposable
         defaultsScope.Dispose();
         Runtime.Dispose();
         ThemeManager.Current = savedTheme;
+        Marrow.UI.Port.AccentChoice.Current = savedAccent;
         try { Directory.Delete(Folder, recursive: true); }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }

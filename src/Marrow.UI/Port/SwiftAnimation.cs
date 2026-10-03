@@ -438,6 +438,10 @@ public abstract partial record Animation
     public static Animation EaseOut(double duration = 0.35) => new TimingAnimation(duration, 0, 0, 0.58, 1);
     public static Animation EaseInOut(double duration = 0.35) => new TimingAnimation(duration, 0.42, 0, 0.58, 1);
     public static Animation Linear(double duration = 0.35) => new TimingAnimation(duration, 0, 0, 1, 1);
+    // SwiftUI Animation.timingCurve(_:_:_:_:duration:): a cubic Bezier from (0, 0) to (1, 1) through the two control points
+    // (used by the port-only accent picker, OD-0088, for the CSS curves its locked board names).
+    public static Animation TimingCurve(double c0x, double c0y, double c1x, double c1y, double duration = 0.35) =>
+        new TimingAnimation(duration, c0x, c0y, c1x, c1y);
 
     private sealed record SpringAnimation(double Response, double DampingRatio, double BlendDuration) : Animation
     {

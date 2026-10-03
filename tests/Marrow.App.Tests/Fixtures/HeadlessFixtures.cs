@@ -85,7 +85,13 @@ public sealed class HeadlessSession : IDisposable
     public void Dispose() => Session.Dispose();
 }
 
-[CollectionDefinition("Headless")]
+// R-TEST-5 (ED-253, round 4): the headless tests change and read process-wide state, ThemeManager.Current, AccentChoice and
+// Application.RequestedThemeVariant, which every AppSettings init also assigns (App/AppSettings.swift:728: each MakeModel of
+// a test class in a parallel collection sets the theme to its stored one and posts ThemeManager.didChange from that test's
+// thread). Run beside them, a window being proved frame by frame turned to another theme or accent at a moment no test
+// chose (LookCardTurnoverTests failed in the full App run, never alone). So the collection never runs in parallel with
+// another: xUnit runs it alone, after the parallel collections.
+[CollectionDefinition("Headless", DisableParallelization = true)]
 public sealed class HeadlessCollection : ICollectionFixture<HeadlessSession>;
 
 /// <summary>

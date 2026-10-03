@@ -48,6 +48,7 @@ using Marrow.App.Views.Usage;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 
 namespace Marrow.App.Views.Settings;
 
@@ -129,11 +130,40 @@ internal sealed class TokenActivityHeatmapCanvas : Control
     private double blend;
     private int switchIndex;
 
+    // ED-253 (OD-0076, SPEC 6.5): the cells as last drawn, and an appearance or theme change easing from them.
+    private Color[,]? drawn;
+    private Color[,]? turnFrom;
+    private double turn = 1;
+    private Action stopTurn = static () => { };
+
     internal TokenActivityHeatmapCanvas(TokenActivityGrid grid)
     {
         this.grid = grid;
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // :108 .accessibilityHidden(true)
         HorizontalAlignment = HorizontalAlignment.Stretch; // :222 .frame(maxWidth: .infinity)
+        // :257 the cells' colours (Chrome.overlay, Chrome.accent) resolve as the canvas draws, so a change of appearance or
+        // theme redraws it; in a tree that turns over (the Settings window) the cells ease from what they show over 0.32 s.
+        ActualThemeVariantChanged += (_, _) => Turn();
+        AttachedToVisualTree += (_, _) => ThemeManager.DidChange += OnThemeChanged;
+        DetachedFromVisualTree += (_, _) => { ThemeManager.DidChange -= OnThemeChanged; stopTurn(); turnFrom = null; turn = 1; };
+    }
+
+    private void OnThemeChanged()
+    {
+        if (CheckAccess()) Turn();
+        else Dispatcher.Post(Turn);
+    }
+
+    private void Turn()
+    {
+        stopTurn();
+        turnFrom = drawn;
+        stopTurn = AppearanceTurn.Run(this, progress =>
+        {
+            turn = progress;
+            if (progress >= 1) turnFrom = null;
+            InvalidateVisual();
+        });
     }
 
     internal void Update(TokenActivityGrid newGrid, TokenActivityGrid? newPrevious, double newBlend, int newSwitchIndex)
@@ -173,6 +203,8 @@ internal sealed class TokenActivityHeatmapCanvas : Control
         var theme = ActualThemeVariant;
         var rows = TokenActivityGrid.Rows;
         var previousGrid = previous;
+        var from = turnFrom;
+        var shown = new Color[columns, rows];
         for (var c = 0; c < columns; c++) // :253
         {
             for (var r = 0; r < rows; r++) // :254
@@ -186,10 +218,13 @@ internal sealed class TokenActivityHeatmapCanvas : Control
                     var old = TokenActivityStyle.Color(prev.Values[c][r], prev.MaxValue, future).Resolve(theme); // :259
                     color = progress <= 0 ? old : Mix(old, color, progress); // :260
                 }
+                if (from is not null && c < from.GetLength(0) && turn < 1) color = SwiftColor.PremultipliedMix(from[c, r], color, turn); // ED-253
+                shown[c, r] = color;
                 var rect = new Rect(c * pitch, r * pitch, cell, cell); // :262
                 context.DrawRectangle(new SolidColorBrush(color), null, rect, TokenActivityStyle.CellRadius, TokenActivityStyle.CellRadius); // :263-266
             }
         }
+        drawn = shown;
     }
 
     /// SwiftUI <c>Color.mix(with:by:)</c>; see file header for why this is a linear-channel approximation.
@@ -226,23 +261,40 @@ internal sealed class TokenActivityMonthStrip : Canvas
         return base.ArrangeOverride(finalSize);
     }
 
+    // ED-253: the labels are kept from one layout to the next (their text and place set again), so their colour, a SwiftColor
+    // brush, eases with the window's turnover instead of a new label drawing the new appearance at once.
+    private readonly List<TextBlock> labels = [];
+
     private void Rebuild(double width)
     {
-        Children.Clear();
+        var count = 0;
         var columnCount = Math.Max(grid.Columns.Count, 1); // :118
         var stride = (width + TokenActivityStyle.CellGap) / columnCount; // :119
         var placed = TokenActivityFormat.PlacedTicks(grid.MonthTicks, stride); // :120
         foreach (var tick in placed) // :121
         {
-            var text = new TextBlock { Text = tick.Label }; // :122
-            SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(text); // :123
-            text.Foreground = Chrome.SecondaryText.Brush(text); // :124
+            TextBlock text;
+            if (count < labels.Count) text = labels[count];
+            else
+            {
+                text = new TextBlock(); // :122
+                SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(text); // :123
+                text.Foreground = Chrome.SecondaryText.Brush(text); // :124
+                labels.Add(text);
+                Children.Add(text);
+            }
+            count++;
+            text.Text = tick.Label; // :122
             text.Measure(Size.Infinity); // :125 .fixedSize()
             var x = Math.Min(Math.Max(tick.Column * stride, 12), width - 12); // :127-129
             // :126, :131 .position(x:,y:) anchors the view's CENTER, not its top-left.
             SetLeft(text, x - text.DesiredSize.Width / 2);
             SetTop(text, TokenActivityStyle.LabelHeight / 2 - text.DesiredSize.Height / 2);
-            Children.Add(text);
+        }
+        for (var i = labels.Count - 1; i >= count; i--)
+        {
+            Children.Remove(labels[i]);
+            labels.RemoveAt(i);
         }
     }
 }

@@ -130,12 +130,14 @@ namespace Marrow.UI.Chrome
         public static SwiftColor SecondaryText { get; } = PrimaryText.Opacity(0.7); // :79
         private static SwiftColor SystemAccent { get; } = SwiftColor.ControlAccentColor; // :80
 
-        // :85 PR-WIN-209: the theme's accent, or the system control accent for System/Light/Dark.
-        public static SwiftColor Accent => ThemeManager.Spec.Accent ?? SystemAccent;
+        // :85 PR-WIN-209: the theme's accent, or the system control accent for System/Light/Dark. DEVIATION OD-0088
+        // (ED-250): the spec's accent is the user's pick when it is not the default; the value is ThemeManager.Accent, the
+        // spec's accent ?? SystemAccent read whenever it is resolved, so what was drawn with it follows a later change.
+        public static SwiftColor Accent => ThemeManager.Accent;
 
         // :87 accentNSColor: NSColor is SwiftColor too (ED-092); the AppKit twin falls back to the control accent
-        // directly rather than to a wrapped copy (PR-WIN-209), so it is the same as Accent under ED-092.
-        public static SwiftColor AccentNSColor => ThemeManager.Spec.Accent ?? SwiftColor.ControlAccentColor;
+        // directly rather than to a wrapped copy (PR-WIN-209), so it is the same as Accent under ED-092 (and ED-250).
+        public static SwiftColor AccentNSColor => ThemeManager.Accent;
 
         // :91 PR-WIN-209: re-read on every access, never cached.
         public static SwiftColor Success => ThemeManager.Spec.Success;
@@ -313,7 +315,8 @@ namespace Marrow.UI.Chrome
             var wash = new Rectangle();
             wash.Fill = SwiftColor.Dynamic(light: SwiftColor.White.Opacity(0.3), dark: SwiftColor.Black.Opacity(0.22)).Brush(wash); // :195
             var tint = new Rectangle();
-            tint.Fill = SwiftColor.Dynamic(light: Chrome.GlassTint.Opacity(0.16), dark: Chrome.GlassTint.Opacity(0.22)).Brush(tint); // :196
+            // ED-254 (OD-0088): Chrome.glassTint read whenever it is drawn (ThemeManager.LiveSurface), so the wash follows the theme.
+            tint.Fill = SwiftColor.Dynamic(light: ThemeManager.LiveSurface.Opacity(0.16), dark: ThemeManager.LiveSurface.Opacity(0.22)).Brush(tint); // :196
             return new Panel { Children = { wash, tint, content } }; // :194 .background { ... }
         }
     }
@@ -340,15 +343,30 @@ namespace Marrow.UI.Chrome
             this.opacity = opacity;
             this.wallpaper = wallpaper;
             var tint = Shape();
-            tint.Background = Chrome.GlassTint.Opacity(0.12).Brush(tint); // :263-265
+            tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-254)
             // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
             // which is how an Avalonia Border draws its border.
             var hairline = Shape();
             hairline.BorderThickness = new Thickness(1);
             hairline.BorderBrush = Chrome.Overlay(0.14).Brush(hairline);
             Child = new Panel { Children = { group, tint, hairline } };
-            ActualThemeVariantChanged += (_, _) => Draw(); // :203 @Environment(\.colorScheme)
+            ActualThemeVariantChanged += (_, _) => Turn(); // :203 @Environment(\.colorScheme)
             Draw();
+        }
+
+        // ED-254 (OD-0088, OD-0076): the scrim's strength follows the appearance (:258, 0.26 dark, 0.18 light); in a tree
+        // that turns over (AppearanceTurn, the Settings window) it eases there with the window's colours instead of
+        // changing in one frame.
+        private Action stopTurn = static () => { };
+
+        private void Turn()
+        {
+            var from = scrim?.Opacity;
+            Draw();
+            if (scrim is not { } layer || from is not { } start || layer.Opacity == start || !AppearanceTurn.Eases(this)) return;
+            var end = layer.Opacity;
+            layer.Opacity = start;
+            stopTurn = AppearanceTurn.Run(this, progress => layer.Opacity = start + (end - start) * progress);
         }
 
         /// <summary>
@@ -389,6 +407,8 @@ namespace Marrow.UI.Chrome
 
         private void Draw()
         {
+            stopTurn();
+            stopTurn = static () => { };
             var isDark = PlainControls.IsDark(ActualThemeVariant); // :219
             var isSolid = opacity >= 0.98; // :220-224
             var next = wallpaper is not null ? Base.Wallpaper : isSolid ? Base.Solid : Base.Glass; // :226, :249, :251
@@ -929,6 +949,13 @@ namespace Marrow.UI.Chrome
         private readonly Panel host = new() { Height = Chrome.VeilHeight }; // :623 .frame(height:)
         private Border? baseFade;
         private Border? tintFade;
+        private Color baseShown;
+        private Color tintShown;
+        private Action stopTurn = static () => { };
+        // ED-253 (round 4): the running turnover, from what the fades showed to the colours it is heading for.
+        private bool turning;
+        private (Color Base, Color Tint) turnFrom;
+        private (Color Base, Color Tint) turnTo;
 
         /// <param name="model">:582 <c>let model: ChromeScrollModel</c>.</param>
         // :585-611 body. PR-WIN-196, UI-CHAT-058: two 72-point gradients, never hit-testable, drawn only once
@@ -937,11 +964,25 @@ namespace Marrow.UI.Chrome
         {
             IsHitTestVisible = false; // :624 .allowsHitTesting(false)
             Child = host;
-            this.Track(() => model.Progress, _ => Draw());
-            ActualThemeVariantChanged += (_, _) => Draw(); // :585 model.progress via colorScheme
-            Draw();
+            this.Track(() => model.Progress, _ => Draw(turn: false));
+            ActualThemeVariantChanged += (_, _) => Draw(turn: true); // :585 model.progress via colorScheme
+            // :589 Chrome.glassTint is the theme's surface, read as the body is drawn: a theme of the same appearance redraws
+            // it too (ED-253).
+            AttachedToVisualTree += (_, _) => ThemeManager.DidChange += OnThemeChanged;
+            DetachedFromVisualTree += (_, _) => ThemeManager.DidChange -= OnThemeChanged;
+            Draw(turn: false);
 
-            void Draw()
+            void OnThemeChanged()
+            {
+                if (CheckAccess()) Draw(turn: true);
+                else Dispatcher.Post(() => Draw(turn: true));
+            }
+
+            // ED-253 (OD-0076, SPEC 6.5): in a tree that turns over (AppearanceTurn, the Settings window) a change of
+            // appearance or theme eases both fades from what they show to the new colours over 0.32 s, as every other
+            // colour of the window does, instead of redrawing them in the click's frame. A scroll redraws at once, but one
+            // during that turnover keeps it running, retargeted at the colours of the new position (round 4: "nothing cuts").
+            void Draw(bool turn)
             {
                 var progress = model.Progress; // :585
                 var isDark = PlainControls.IsDark(ActualThemeVariant); // :586
@@ -949,43 +990,83 @@ namespace Marrow.UI.Chrome
                 if (progress > 0) // :590 `if progress > 0`
                 {
                     var scrim = isDark ? 0.14 + 0.18 * progress : 0.30 + 0.26 * progress; // :587
-                    var baseColor = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(scrim); // :588, :596
-                    var tintColor = Chrome.GlassTint.Opacity(isDark ? 0.30 : 0.18); // :589, :597
+                    var baseColor = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(scrim).Resolve(ActualThemeVariant); // :588, :596
+                    var tintColor = Chrome.GlassTint.Opacity(isDark ? 0.30 : 0.18).Resolve(ActualThemeVariant); // :589, :597
+                    var drawn = baseFade is not null;
                     if (baseFade is null)
                     {
-                        baseFade = new Border { IsHitTestVisible = false };
-                        tintFade = new Border { IsHitTestVisible = false };
+                        baseFade = new Border { IsHitTestVisible = false, Background = Fade() };
+                        tintFade = new Border { IsHitTestVisible = false, Background = Fade() };
                         host.Children.Add(baseFade);
                         host.Children.Add(tintFade!);
                     }
-                    Fade(baseFade, baseColor);
-                    Fade(tintFade!, tintColor);
+                    if (!turn && turning && drawn)
+                    {
+                        turnTo = (baseColor, tintColor); // the next frame of the turn heads there
+                        return;
+                    }
+                    StopTurn();
+                    if (turn && drawn && (baseShown != baseColor || tintShown != tintColor) && AppearanceTurn.Eases(this))
+                    {
+                        turnFrom = (baseShown, tintShown);
+                        turnTo = (baseColor, tintColor);
+                        turning = true;
+                        stopTurn = AppearanceTurn.Run(this, p =>
+                        {
+                            Paint(SwiftColor.PremultipliedMix(turnFrom.Base, turnTo.Base, p), SwiftColor.PremultipliedMix(turnFrom.Tint, turnTo.Tint, p));
+                            if (p >= 1) turning = false;
+                        });
+                    }
+                    else Paint(baseColor, tintColor);
                 }
-                else if (baseFade is not null)
+                else
                 {
-                    host.Children.Clear();
-                    baseFade = null;
-                    tintFade = null;
+                    StopTurn();
+                    if (baseFade is not null)
+                    {
+                        host.Children.Clear();
+                        baseFade = null;
+                        tintFade = null;
+                    }
                 }
             }
         }
 
-        // :613-627 the fade held over the top 28%, eased out by 62%, clear at the bottom.
-        private void Fade(Border layer, SwiftColor color)
+        private void StopTurn()
         {
-            var resolved = color.Resolve(ActualThemeVariant);
-            layer.Background = new LinearGradientBrush
+            stopTurn();
+            stopTurn = static () => { };
+            turning = false;
+        }
+
+        private void Paint(Color baseColor, Color tintColor)
+        {
+            baseShown = baseColor;
+            tintShown = tintColor;
+            Fade((LinearGradientBrush)baseFade!.Background!, baseColor);
+            Fade((LinearGradientBrush)tintFade!.Background!, tintColor);
+        }
+
+        // :613-627 the fade held over the top 28%, eased out by 62%, clear at the bottom.
+        private static LinearGradientBrush Fade() => new()
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops =
             {
-                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-                EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-                GradientStops =
-                {
-                    new GradientStop(resolved, 0), // :618
-                    new GradientStop(resolved, 0.28), // :619
-                    new GradientStop(WithAlphaFactor(resolved, 0.45), 0.62), // :620
-                    new GradientStop(WithAlphaFactor(resolved, 0), 1), // :621
-                },
-            };
+                new GradientStop(default, 0), // :618
+                new GradientStop(default, 0.28), // :619
+                new GradientStop(default, 0.62), // :620
+                new GradientStop(default, 1), // :621
+            },
+        };
+
+        private static void Fade(LinearGradientBrush brush, Color resolved)
+        {
+            brush.GradientStops[0].Color = resolved; // :618
+            brush.GradientStops[1].Color = resolved; // :619
+            brush.GradientStops[2].Color = WithAlphaFactor(resolved, 0.45); // :620
+            brush.GradientStops[3].Color = WithAlphaFactor(resolved, 0); // :621
         }
 
         private static Color WithAlphaFactor(Color color, double factor) =>
