@@ -44,10 +44,14 @@ public abstract class SettingsFinishFixture(HeadlessSession headless) : Marrow.A
         var effect = Glass(search); Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.Equal(Chrome.GlassTint, effect.TintColor); Assert.Equal(0.3, effect.TintOpacity); Assert.False(effect.IsInteractive);
         // :854-858 empty: still laid out, drawn at opacity 0, disabled and out of the accessibility tree; the field starts at the same place once text arrives (the text never shifts).
         Assert.Equal("Clear search", AutomationProperties.GetName(clear)); Assert.Equal(0, clear.Opacity); Assert.False(clear.IsEnabled); Assert.True(clear.IsVisible); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(clear)); var fieldAt = TopLeft(field, search); var clearAt = TopLeft(clear, search);
-        Type(w, field, "ab"); Assert.Equal("ab", field.Text); Assert.Equal(1, clear.Opacity); Assert.True(clear.IsEnabled); Assert.NotEqual(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(clear));
+        // OD-0076 (DEVIATION, the source cuts it in at :856): the button fades in over Chrome.hover (easeOut 0.1) and out again, and
+        // grows from 0.8 as it comes; at rest, empty, it is at scale 1 so the layout never shifts.
+        Type(w, field, "ab"); Assert.Equal("ab", field.Text); Assert.Equal(0, clear.Opacity); Assert.True(clear.IsEnabled); Assert.NotEqual(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(clear));
+        Tick(h, 50); Assert.InRange(clear.Opacity, 0.01, 0.99); Assert.Equal(Chrome.Hover.Progress(0.05), clear.Opacity, 6); Assert.Equal(0.8 + 0.2 * clear.Opacity, ((ScaleTransform)clear.RenderTransform!).ScaleX, 6);
+        Tick(h, 51); Assert.Equal(1, clear.Opacity); Assert.Equal(1, ((ScaleTransform)clear.RenderTransform!).ScaleX, 6);
         Assert.Equal(fieldAt, TopLeft(field, search)); Assert.Equal(clearAt, TopLeft(clear, search)); Assert.Equal(200, search.Bounds.Width, 3);
         // :866 Escape empties it; the clear button (a point on the drawn ring, the cross is knocked out of the glyph) empties it too.
-        Press(w, Key.Escape); Assert.Equal("", field.Text ?? ""); Assert.Equal(0, clear.Opacity);
-        Type(w, field, "ab"); Click(w, clear, new Point(4, 8)); Assert.Equal("", field.Text ?? ""); Assert.Equal(0, clear.Opacity);
+        Press(w, Key.Escape); Assert.Equal("", field.Text ?? ""); Assert.Equal(1, clear.Opacity); Tick(h, 50); Assert.Equal(1 - Chrome.Hover.Progress(0.05), clear.Opacity, 6); Tick(h, 51); Assert.Equal(0, clear.Opacity); Assert.Equal(1, ((ScaleTransform)clear.RenderTransform!).ScaleX, 6);
+        Type(w, field, "ab"); Tick(h, 101); Click(w, clear, new Point(4, 8)); Assert.Equal("", field.Text ?? ""); Tick(h, 101); Assert.Equal(0, clear.Opacity);
     }
 }

@@ -610,8 +610,10 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 var options = Nodes<Button>(owner).Single(b => ToolTip.GetTip(b) as string == "Server options");
                 Assert.True(Grid.GetColumn(slot) < Grid.GetColumn(Assert.IsType<Panel>(options.Parent))); // :165-169,516-520 switch before options / in the action slot
                 runtime.OnMain(() => model.Mcp.SetEnabled(true, entry)); Exported(entry.Id, true); toggle = Assert.Single(Nodes<SmallSwitch>(owner));
-                var drawing = new DrawingGroup(); using (var context = drawing.Open()) toggle.Render(context);
-                Colour(Assert.IsType<GeometryDrawing>(drawing.Children[0]).Brush, Chrome.AccentNSColor, toggle); // shared switch's theme accent, Chrome.swift:90
+                runtime.AdvanceMilliseconds(300); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(300)); Dispatcher.UIThread.RunJobs(); // the switch's track crossfades over 0.25 s (UI-SETTINGS-012, ED-NEW-settingsview); the accent is drawn once it has settled
+                var window0 = (Avalonia.Controls.Window)TopLevel.GetTopLevel(toggle)!; var theme0 = window0.RequestedThemeVariant;
+                try { foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark }) { window0.RequestedThemeVariant = theme; Dispatcher.UIThread.RunJobs(); Assert.Equal(((ISolidColorBrush)Chrome.AccentNSColor.Brush(toggle)).Color, toggle.TrackNow()); } } finally { window0.RequestedThemeVariant = theme0; Dispatcher.UIThread.RunJobs(); }
+                var drawing = new DrawingGroup(); using (var context = drawing.Open()) toggle.Render(context); Assert.Equal(toggle.TrackNow(), Assert.IsAssignableFrom<ISolidColorBrush>(Assert.IsType<GeometryDrawing>(drawing.Children[0]).Brush).Color); // shared switch's theme accent, Chrome.swift:90
                 runtime.OnMain(() => KeyboardSpace(toggle));
                 Assert.False(model.Mcp.Connection(entry.Id)!.IsEnabled); Assert.IsType<MCPConnectionState.Connected>(model.Mcp.State(entry.Id)); Exported(entry.Id, false);
                 using (var persisted = JsonDocument.Parse(File.ReadAllText(MCPPaths.ConnectionsURL))) Assert.False(persisted.RootElement.EnumerateArray().Single().GetProperty("isEnabled").GetBoolean());

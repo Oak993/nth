@@ -78,7 +78,7 @@ public sealed class SettingsViewFinishProvidersTests(HeadlessSession headless) :
             None<ProvidersRefreshButton>(view, "on the General page");
             Click(w, RowButton(view, "Providers")); var refresh = Assert.Single(Nodes<ProvidersRefreshButton>(view));
             // :582-584 opening the page checks no provider, and neither does scrolling it: nothing was looked up and no status exists yet.
-            Assert.Equal(0, lookups); Assert.Empty(model.Providers.Statuses); var scroll = Assert.Single(Nodes<ScrollViewer>(Field<Control>(view, "detail"))); var at = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), w)!.Value;
+            Assert.Equal(0, lookups); Assert.Empty(model.Providers.Statuses); var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).First(); /* the page's own; each rounded-border field carries its PART_ScrollViewer */ var at = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), w)!.Value;
             w.MouseMove(at); w.MouseWheel(at, new Vector(0, -3)); Drain(w); Assert.True(scroll.Offset.Y > 0); w.MouseWheel(at, new Vector(0, 3)); Drain(w); Tick(h, 200); /* the rows thaw 150ms after the last movement (SettingsScrollTracker) */ Assert.Equal(0, lookups); Assert.Empty(model.Providers.Statuses);
             // :644-783 the page's other controls only edit settings: opening a card, typing a binary path and flipping a provider's switch probe nothing.
             var codex = Nodes<ProviderSettingsSection>(view).First(x => Text(x).Contains("Codex")); Click(w, Assert.Single(Nodes<Button>(Assert.Single(Nodes<CollapsibleProviderHeader>(codex))))); Tick(h, Chrome.PanelSlide.Duration * 1000 + 1);

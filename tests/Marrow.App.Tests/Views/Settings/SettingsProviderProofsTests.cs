@@ -186,8 +186,10 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     }
     private static void Divider(ChromeRowDivider divider)
     {
-        // Chrome.swift:1082-1087 leading 16; system color remains STOP #1, no source RGBA.
-        Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin); Assert.IsType<Border>(divider.Child);
+        // Chrome.swift:1082-1087 leading 16 only; the hairline is the label colour at 0.10 (SOURCE FACT, reference runtime S 199.5 dark and gap-R2-05 S 141.5 light).
+        Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin); var line = Assert.IsType<Border>(divider.Child);
+        Assert.Equal(new Thickness(0, 0, 0, 1), line.BorderThickness); Assert.Equal(1, line.Height);
+        Assert.Equal(Chrome.Overlay(0.10).Resolve(line.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(line.BorderBrush).Color);
     }
     private static void PrecededByDivider(ChromeRow row)
     {
@@ -249,8 +251,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Assert.Empty(model.Providers.Statuses); SettingsNavigation.Shared.RequestedPage = SettingsPage.Providers; Sync();
         Layout(view); Assert.Empty(model.Providers.Statuses);
         var codex = Section(view, ProviderKind.Codex); Open(codex, h); var keptField = Nodes<TextBox>(codex).Single(); keptField.Text = Path.Combine(h.Scratch, "scroll-preserved-cli.exe"); Sync();
-        var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).Single(); var scrollWindow = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(scroll)); Layout(scroll); using var scrollFrame = scrollWindow.CaptureRenderedFrame();
-        var wheelPoint = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), scrollWindow)!.Value; Assert.NotNull(scrollWindow.InputHitTest(wheelPoint)); scrollWindow.MouseMove(wheelPoint); scrollWindow.MouseWheel(wheelPoint, new Vector(0, -3)); Layout(view); Assert.True(scroll.Offset.Y > 0, $"Wheel hit {scrollWindow.InputHitTest(wheelPoint)?.GetType().Name}; extent={scroll.Extent}, viewport={scroll.Viewport}, presenter={scroll.GetVisualDescendants().OfType<ScrollContentPresenter>().Single().Offset}."); Assert.Equal(15, Nodes<ProviderSettingsSection>(view).Length); Assert.Empty(model.Providers.Statuses);
+        var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).First(); /* the page's own; the rounded-border fields carry one each (their PART_ScrollViewer) */ var scrollWindow = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(scroll)); Layout(scroll); using var scrollFrame = scrollWindow.CaptureRenderedFrame();
+        var wheelPoint = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), scrollWindow)!.Value; Assert.NotNull(scrollWindow.InputHitTest(wheelPoint)); scrollWindow.MouseMove(wheelPoint); scrollWindow.MouseWheel(wheelPoint, new Vector(0, -3)); Layout(view); Assert.True(scroll.Offset.Y > 0, $"Wheel hit {scrollWindow.InputHitTest(wheelPoint)?.GetType().Name}; extent={scroll.Extent}, viewport={scroll.Viewport}, presenter={scroll.GetVisualDescendants().OfType<ScrollContentPresenter>().First().Offset}."); Assert.Equal(15, Nodes<ProviderSettingsSection>(view).Length); Assert.Empty(model.Providers.Statuses);
         Assert.Same(codex, Section(view, ProviderKind.Codex)); Assert.Same(keptField, Nodes<TextBox>(codex).Single()); Assert.Equal(Path.Combine(h.Scratch, "scroll-preserved-cli.exe"), keptField.Text);
         var refresh = Assert.Single(Nodes<ProvidersRefreshButton>(view)); Assert.Single(Nodes<ChromeCapsule>(refresh)); Assert.Single(Nodes<ChromeIconButton>(refresh)); Assert.Empty(Text(refresh));
         var symbol = Assert.Single(Nodes<SwiftImage>(refresh)); Assert.Equal("arrow.clockwise", symbol.SymbolName); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(symbol));
@@ -444,10 +446,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-2")] // Partial divider proof only; no Req while STOP #1 is open.
-    // STOP opencode-proofs-settings-prov #1 UI-PROVREG-009: placement/gates below are proven, but Swift Divider() delegates color to macOS.
-    // Kind: platform rendering; Chrome.swift:1084. No source RGBA or approved specific divider mapping/reference exists (OD-0001).
-    // Needed: approved divider-color mapping or pinned macOS measurement. The current Overlay(0.14) is only an unverified approximation.
+    [Trait("Req", "UI-PROVREG-009")] // App/Views/Settings/SettingsView.swift:677,690,720,731,739,748; UI/Chrome/Chrome.swift:1082-1087; the colour is the reference runtime's (S 199.5, S 141.5), see Row_divider_is_white_at_a_tenth_in_dark_and_black_at_a_tenth_in_light
     public void Every_present_row_and_usage_block_has_one_preceding_inset_divider_in_all_states() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
@@ -462,6 +461,20 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             }
             Close(section, h);
         }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-PROVREG-009")] // the divider's colour: SOURCE FACT, the reference runtime measures it as the label colour at 0.10 on the dark card (frames/w-1-settings-tour-198.0/stills/win_199.5.png, y402: (22,66,72) over (43,86,92)) and on the light card (frames/gap-R2-05, S 141.5)
+    public void Row_divider_is_white_at_a_tenth_in_dark_and_black_at_a_tenth_in_light() => WithView(() => new ProvidersSettingsPage(), (view, _, _) =>
+    {
+        var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(view)); var saved = window.RequestedThemeVariant;
+        try
+        {
+            var divider = Nodes<ChromeRowDivider>(view).First(); var line = Assert.IsType<Border>(divider.Child);
+            window.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark; Layout(view); Assert.Equal(Color.FromArgb(26, 255, 255, 255), Assert.IsAssignableFrom<ISolidColorBrush>(line.BorderBrush).Color);
+            window.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light; Layout(view); Assert.Equal(Color.FromArgb(26, 0, 0, 0), Assert.IsAssignableFrom<ISolidColorBrush>(line.BorderBrush).Color);
+        }
+        finally { window.RequestedThemeVariant = saved; }
     });
 
     [Fact]

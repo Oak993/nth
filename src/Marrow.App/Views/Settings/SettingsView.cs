@@ -193,7 +193,7 @@ public sealed class SettingsView : Decorator
             if (pages.Count > 0 && !pages.Contains(state.Page)) state.Page = pages[0];
             RebuildSidebar();
         });
-        this.Track(() => state.Page, _ => { RebuildSidebar(); RebuildDetail(); });
+        this.Track(() => state.Page, _ => { SelectSidebarRow(); RebuildDetail(); });
         this.Track(() => UpdateChecker.Shared.UpdateAvailable, _ => RebuildSidebar());
         this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, count => { if (state.Page == SettingsPage.Archive && (count == 0) != (pageStack is null)) RebuildDetail(); }); // :198 observe the collection behind the computed archive count; the page's ScrollView identity is its page (:231), so only the empty placeholder swap rebuilds.
         rows.Track(() => scrollTracker.IsFrozen, value => rows.IsHitTestVisible = !value); // :182
@@ -201,9 +201,19 @@ public sealed class SettingsView : Decorator
     }
 
     // :148-177
+    private readonly List<(SettingsPage Page, SidebarRow Row)> builtRows = [];
+
+    // :149,:155 `isSelected: state.page == page` changed on rows that stay: the rows are kept and told, so each wash crossfades
+    // in place over Chrome.hover (Chrome.swift:723-724, UI-SETTINGS-004). Another list of pages is a new set of rows.
+    private void SelectSidebarRow()
+    {
+        if (!builtRows.Select(built => built.Page).SequenceEqual(VisiblePages) || (VisiblePages.Count > 0 && rows.Children.Count != builtRows.Count)) { RebuildSidebar(); return; }
+        foreach (var (page, row) in builtRows) row.SetSelected(state.Page == page);
+    }
+
     private void RebuildSidebar()
     {
-        rows.Children.Clear();
+        rows.Children.Clear(); builtRows.Clear();
         foreach (var page in VisiblePages)
         {
             var row = new SidebarRow(page.Title, () => state.Page = page, () =>
@@ -213,8 +223,8 @@ public sealed class SettingsView : Decorator
                     : new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1)); // :151-157
                 if (page != SettingsPage.About || !UpdateChecker.Shared.UpdateAvailable) return badge;
                 return new Panel { Children = { badge, new UpdateAvailableDot { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top } } }; // :159-163
-            }, _ => new Border(), isSelected: state.Page == page);
-            rows.Children.Add(row);
+            }, _ => new Border(), isSelected: state.Page == page, pressLook: true); // the plain button's pressed look (press.row-tile-dim)
+            rows.Children.Add(row); builtRows.Add((page, row));
         }
         if (VisiblePages.Count == 0)
         {
@@ -302,18 +312,28 @@ public sealed class SettingsSwitch : Decorator
 /// ENGINEERING DECISION: Avalonia's own ToggleSwitch needs its Fluent theme's control template
 /// (PART_MovingKnobs), which this codebase's headless test host does not register, so it throws
 /// KeyNotFoundException the moment it is measured. A small, self-drawn switch avoids any themed
-/// template. Track/knob sizes are not given by the Swift source beyond ".controlSize(.small)", so
-/// they are chosen to read as a small macOS-style switch, not a source fact.
+/// template. Its look is the Mac's, measured in the reference runtime (ED-NEW-settingsview; work/reference-video,
+/// 1 px = 1 pt): a 44 x 20 track and a white 26 x 16 pill knob 2 in from every edge (S 178.0 on, S 42.5 off); the off
+/// track is the label colour at 0.10 over the card; a press widens the knob to 30 (CATALOGUE settings.switch-toggle:
+/// 25 to 29-30 in 80-100 ms) holding the edge on its own side; the commit slides the knob its 14 points over 0.21 s
+/// on an ease-out (0.5 of the way at 72 ms, 0.91 at 163 ms) while the track crossfades over 0.25 s. The glass lens the
+/// Mac draws on the pressed knob is not drawn (the knob stays white). Reduce motion jumps.
 /// </summary>
 internal sealed class SmallSwitch : Control
 {
-    private const double TrackWidth = 28;
-    private const double TrackHeight = 16;
-    private const double Inset = 2;
-    private const double KnobDiameter = TrackHeight - Inset * 2;
+    internal const double TrackWidth = 44;
+    internal const double TrackHeight = 20;
+    internal const double Inset = 2;
+    internal const double KnobWidth = 26;
+    internal const double KnobHeight = 16;
+    internal const double PressedKnobWidth = 30;
+    internal static Animation Slide => Animation.EaseOut(duration: 0.21);
+    internal static Animation Crossfade => Animation.EaseOut(duration: 0.25);
+    internal static Animation Press => Animation.EaseOut(duration: 0.09);
 
     private readonly Binding<bool> isOn;
     private bool pressed;
+    private readonly AnimatedScalar position, tint, widen;
 
     public SmallSwitch(Binding<bool> isOn)
     {
@@ -322,8 +342,17 @@ internal sealed class SmallSwitch : Control
         Height = TrackHeight;
         Focusable = true;
         Cursor = new Cursor(StandardCursorType.Hand);
-        this.Track(() => isOn.Value, _ => InvalidateVisual());
-        KeyDown += (_, e) => { if (e.Key == Key.Space && IsEffectivelyEnabled) { isOn.Value = !isOn.Value; e.Handled = true; InvalidateVisual(); } };
+        position = new AnimatedScalar(this, isOn.Value ? 1 : 0, _ => InvalidateVisual());
+        tint = new AnimatedScalar(this, isOn.Value ? 1 : 0, _ => InvalidateVisual());
+        widen = new AnimatedScalar(this, 0, _ => InvalidateVisual());
+        var primed = false;
+        ActualThemeVariantChanged += (_, _) => InvalidateVisual(); // the track and its fade take the theme's colours
+        this.Track(() => isOn.Value, value =>
+        {
+            var still = !primed || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion; primed = true;
+            position.Set(value ? 1 : 0, still ? null : Slide); tint.Set(value ? 1 : 0, still ? null : Crossfade);
+        });
+        KeyDown += (_, e) => { if (e.Key == Key.Space && IsEffectivelyEnabled) { isOn.Value = !isOn.Value; e.Handled = true; } };
         // :296-305 the native switch acts on a primary press that is released inside it: a secondary or middle press,
         // or a press dragged away before release, changes nothing.
         PointerPressed += (_, e) =>
@@ -331,6 +360,7 @@ internal sealed class SmallSwitch : Control
             if (!IsEffectivelyEnabled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
             Focus();
             pressed = true;
+            widen.Set(1, Press);
             e.Pointer.Capture(this);
             e.Handled = true;
         };
@@ -338,13 +368,26 @@ internal sealed class SmallSwitch : Control
         {
             if (!pressed) return;
             pressed = false;
+            widen.Set(0, Press);
             e.Pointer.Capture(null);
             e.Handled = true;
             if (!IsEffectivelyEnabled || !new Rect(Bounds.Size).Contains(e.GetPosition(this))) return;
             isOn.Value = !isOn.Value;
-            InvalidateVisual();
         };
-        PointerCaptureLost += (_, _) => pressed = false;
+        PointerCaptureLost += (_, _) => { if (pressed) widen.Set(0, Press); pressed = false; };
+    }
+
+    /// <summary>The track's colour now: the label colour at 0.10 when off (the Mac's off track, S 42.5: background (45,60,60) became (65,78,78)),
+    /// the accent when on, crossfaded while it moves.</summary>
+    internal Color TrackNow() => SwiftColor.PremultipliedMix(Chrome.Overlay(0.10).Resolve(ActualThemeVariant), Chrome.AccentNSColor.Resolve(ActualThemeVariant), tint.Value);
+
+    /// <summary>The knob's rectangle now: the pill that slid, widened while pressed on the side it is leaving.</summary>
+    internal Rect KnobNow()
+    {
+        var width = KnobWidth + (PressedKnobWidth - KnobWidth) * widen.Value;
+        var travel = TrackWidth - 2 * Inset - KnobWidth;
+        var x = Inset + travel * position.Value - (width - KnobWidth) * position.Value;
+        return new Rect(x, (TrackHeight - KnobHeight) / 2, width, KnobHeight);
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new SwitchPeer(this);
@@ -358,14 +401,12 @@ internal sealed class SmallSwitch : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        var on = isOn.Value;
         var track = new Rect(0, 0, TrackWidth, TrackHeight);
-        var trackBrush = on ? Chrome.AccentNSColor.Brush(this) : Chrome.Overlay(0.2).Brush(this);
+        // at rest the track is the theme's own brush, so it follows an appearance change; between the two it is the mixed colour
+        IBrush trackBrush = tint.Value == 1 ? Chrome.AccentNSColor.Brush(this) : tint.Value == 0 ? Chrome.Overlay(0.10).Brush(this) : new SolidColorBrush(TrackNow());
         context.DrawRectangle(trackBrush, null, track, TrackHeight / 2, TrackHeight / 2);
-
-        var knobX = on ? TrackWidth - Inset - KnobDiameter : Inset;
-        var knob = new Rect(knobX, Inset, KnobDiameter, KnobDiameter);
-        context.DrawEllipse(Brushes.White, null, knob);
+        var knob = KnobNow();
+        context.DrawRectangle(Brushes.White, null, knob, KnobHeight / 2, KnobHeight / 2);
     }
 }
 
@@ -665,7 +706,7 @@ internal sealed class ProviderSettingsSection : Decorator
                     keyCheck = MainActor.Spawn(async () => { await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(600)); if (SwiftTask.IsCancelled) return; await model.Providers.Refresh(provider); await model.Providers.LoadCatalog(provider, force: true); }); // :789-794
                 }));
                 keyField.PasswordChar = '\u2022'; keyField.Width = 200; SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Apply(keyField); // :700-707
-                MaskedPresenter(keyField); // SecureField must mask its actual text presenter, not just the box property.
+                ChatDialogControls.TextEditor(keyField, style: "RoundedBorder"); // :703 .textFieldStyle(.roundedBorder) (OD-0042, OD-0045); the template binds PasswordChar, so a SecureField stays masked until the eye shows it
                 var eyeLabel = new Border { Background = Brushes.Transparent, Child = SwiftImage.SystemName("eye").Font(SwiftFont.System(12)).ForegroundStyle(Chrome.SecondaryText) }; // :708-717: the plain button's label frame is the hit surface.
                 var eye = PlainControls.Button(eyeLabel, () => state.ShowsAPIKey = !state.ShowsAPIKey); // :708-715
                 eye.Track(() => state.ShowsAPIKey, shown => { keyField.PasswordChar = shown ? '\0' : '\u2022'; eyeLabel.Child = SwiftImage.SystemName(shown ? "eye.slash" : "eye").Font(SwiftFont.System(12)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(eye, shown ? "Hide the API key" : "Show the API key"); }); // :711,716
@@ -675,7 +716,7 @@ internal sealed class ProviderSettingsSection : Decorator
                 keyControls.Track(() => { _ = StoredKey(model.Settings); return model.Settings.APIKeyRefusal(provider); }, refusal =>
                 {
                     if (keyControls.Children.Count > 1) keyControls.Children.RemoveAt(1);
-                    if (refusal is not null) keyControls.Children.Add(new TextBlock { Text = refusal, TextWrapping = TextWrapping.Wrap }); // DEVIATION OD-0012 E5: exact line beneath the field; no unspecified type/colour tokens invented.
+                    if (refusal is not null) keyControls.Children.Add(new TextBlock { Text = refusal, TextWrapping = TextWrapping.Wrap, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline))); // DEVIATION OD-0012 E5: exact line beneath the field, in the key row's own detail style (ED-090: .subheadline, Chrome.secondaryText, :1055-1079).
                 });
                 cardRows.Children.Add(new ChromeRow(provider.IsAPIKeyBased ? "API key" : "API key (optional)", () => keyControls, keyDetail)); // :691-717
                 keyField.Track(() => StoredKey(model.Settings), value => { if (!SwiftString.Equal(state.ApiKey, value)) state.ApiKey = value; }); // :796-799
@@ -684,7 +725,7 @@ internal sealed class ProviderSettingsSection : Decorator
             {
                 cardRows.Children.Add(new ChromeRowDivider());
                 var field = PlainControls.TextField(provider.ExecutableName, new Binding<string>(() => state.BinaryPath, value => { state.BinaryPath = value; if (!SwiftString.Equal(value, model.Settings.BinaryPath(provider))) model.Settings.SetBinaryPath(value, provider); })); // :732-735,780-783
-                field.Width = 200; SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Apply(field);
+                field.Width = 200; SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Apply(field); ChatDialogControls.TextEditor(field, style: "RoundedBorder"); // :735-737 .textFieldStyle(.roundedBorder).font(.system(size: 12, design: .monospaced)).frame(width: 200)
                 var row = new ChromeRow("Binary path", () => field); row.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider).Executable?.Path; }, value => SettingsRowDetails.Update(row, value)); cardRows.Children.Add(row); // :732-736
             }
             var installSlot = new StackPanel(); cardRows.Children.Add(installSlot);
@@ -696,27 +737,6 @@ internal sealed class ProviderSettingsSection : Decorator
                 if (!status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Install", () => Link("Get " + provider.DisplayName, provider.InstallURL), provider.DisplayName + " was not found on your PATH.")); } // :738-745
                 else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => PlainControls.Button(new TextBlock { Text = "Login", Height = Chrome.RowButtonLabelHeight }, () => Workspace.OpenTerminal(provider.LoginCommand)).ChromeGlassCapsule(), "Click here to login again.")); } // :638-641,747-756
             });
-        });
-    }
-
-    // SecureField's native masking and editing presenter, retaining the shared field's binding and prompt.
-    // The source's OS-defined roundedBorder appearance remains STOP #6 rather than guessed geometry.
-    private static void MaskedPresenter(TextBox box)
-    {
-        box.Template = new FuncControlTemplate<TextBox>((owner, scope) =>
-        {
-            var prompt = new TextBlock { IsHitTestVisible = false, [!TextBlock.TextProperty] = owner[!TextBox.PlaceholderTextProperty], [!TextBlock.ForegroundProperty] = owner[!TextBox.PlaceholderForegroundProperty] };
-            var presenter = new TextPresenter
-            {
-                Name = "PART_TextPresenter", [!TextPresenter.TextProperty] = owner[!TextBox.TextProperty],
-                [!TextPresenter.PasswordCharProperty] = owner[!TextBox.PasswordCharProperty],
-                [!TextPresenter.SelectionStartProperty] = owner[!TextBox.SelectionStartProperty], [!TextPresenter.SelectionEndProperty] = owner[!TextBox.SelectionEndProperty],
-                [!TextPresenter.CaretIndexProperty] = owner[!TextBox.CaretIndexProperty],
-            }.RegisterInNameScope(scope);
-            void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(owner.Text);
-            owner.PropertyChanged += (_, change) => { if (change.Property == TextBox.TextProperty) ShowPrompt(); }; ShowPrompt();
-            // :698-707: an empty SecureField still receives pointer focus and text input.
-            return new Panel { Background = Brushes.Transparent, Children = { prompt, presenter } };
         });
     }
 
@@ -748,7 +768,7 @@ internal sealed class SourceControlSettingsPage : Decorator
         {
             var settings = model.Settings;
             sections.Children.Add(new ChromeSection("Text generation", () => new ChromeCard(() => new ChromeRow("Thread titles and commit messages", () =>
-                new GlassPickerButton<TextGenerationChoice>(SwiftEnum<TextGenerationChoice>.AllCases.Select(choice => (choice, choice.Title)).ToArray(), new Binding<TextGenerationChoice>(() => settings.TextGeneration, value => settings.TextGeneration = value), asset: choice => choice == TextGenerationChoice.Claude ? "claude" : choice == TextGenerationChoice.Codex ? "codex" : null),
+                new GlassPickerButton<TextGenerationChoice>(SwiftEnum<TextGenerationChoice>.AllCases.Select(choice => (choice, choice.Title)).ToArray(), new Binding<TextGenerationChoice>(() => settings.TextGeneration, value => settings.TextGeneration = value), asset: choice => choice == TextGenerationChoice.Claude ? ProviderKind.Claude.IconName : choice == TextGenerationChoice.Codex ? ProviderKind.Codex.IconName : null), // :813 ProviderKind(rawValue: $0.rawValue)?.iconName: "provider-claude" / "provider-codex", none for automatic and off
                 "Automatic uses the thread's own provider. Claude uses Haiku, Codex your default model.")))); // :808-816
             var editor = PlainControls.TextField("", new Binding<string>(() => settings.CommitInstructions, value => settings.CommitInstructions = value)); editor.AcceptsReturn = true; editor.TextWrapping = TextWrapping.Wrap; editor.MinHeight = 90; SwiftFont.System(SwiftFont.TextStyle.Body).Apply(editor); // :821-824
             editor.Template = new FuncControlTemplate<TextBox>((owner, scope) => new ScrollViewer // :821-824. Plain transparent multiline editor, with its native caret/selection and scrolling.
@@ -771,11 +791,23 @@ internal sealed class SourceControlSettingsPage : Decorator
             sections.Children.Add(new ChromeSection("Commit message instructions", () => new ChromeCard(() => new Border { Padding = new Thickness(12), Child = new Panel { Children = { editor, placeholder } } }))); // :818-834
             sections.Children.Add(new ChromeSection("Worktrees and pull requests", () => new ChromeCard(() => new StackPanel { Children =
             {
-                new ChromeRow("Worktrees", () => PlainControls.Button(new TextBlock { Text = "Reveal" }, () => Workspace.RevealInFileExplorer(Storage.WorktreesDirectory)).ChromeGlassCapsule(), Storage.WorktreesDirectory), // :838-840
+                new ChromeRow("Worktrees", () => SettingsGlassButtons.Text("Reveal", () => Workspace.RevealInFileExplorer(Storage.WorktreesDirectory)), Storage.WorktreesDirectory), // :838-841 .buttonStyle(.glass)
                 new ChromeRowDivider(), // :842
                 new ChromeRow("Pull requests", () => new Border(), "Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH."), // :843-845
             } })));
         });
+    }
+}
+
+/// <summary>PORT-ONLY (ED-NEW-settingsview): a text button in SettingsView.swift's <c>.buttonStyle(.glass)</c> (Reveal, :840) or its
+/// <c>.buttonStyle(.glass).controlSize(.small)</c> (Show, :986): an accent capsule with a white label (SwiftGlass.StyleAccentGlassButton).</summary>
+internal static class SettingsGlassButtons
+{
+    public static Button Text(string title, Action action, bool small = false)
+    {
+        var button = PlainControls.Button(new TextBlock { Text = title }, action);
+        SwiftGlass.StyleAccentGlassButton(button, small);
+        return button;
     }
 }
 
@@ -896,7 +928,7 @@ internal sealed class AboutSettingsPage : Decorator
         return new StackPanel { Children =
         {
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(16), Children = { icon, labels } }, new ChromeRowDivider(),
-            new ChromeRow("Welcome tour", () => PlainControls.Button(new TextBlock { Text = "Show" }, () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this))).ChromeGlassCapsule(), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
+            new ChromeRow("Welcome tour", () => SettingsGlassButtons.Text("Show", () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this)), small: true), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
             new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(13)),
             new ChromeRowDivider(), // :996
             new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(12)), // :997-1002, OD-0012 F1, H (OD-0072).
@@ -912,7 +944,7 @@ internal sealed class LicensesRow : Decorator
     private static readonly Lazy<Dictionary<string, string>> texts = new(() => files.ToDictionary(file => file.Resource, file => Read(file.Resource))); // :1046-1056
     public LicensesRow()
     {
-        var state = new PresentedState(); var button = PlainControls.Button(new TextBlock { Text = "Show" }, () => state.IsPresented = true);
+        var state = new PresentedState(); var button = SettingsGlassButtons.Text("Show", () => state.IsPresented = true, small: true); // :1020-1022 .buttonStyle(.glass).controlSize(.small)
         var popup = PlainControls.Popover(button, new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value), () =>
         {
             var stack = new StackPanel { Spacing = 18, Margin = new Thickness(18) };
@@ -923,7 +955,7 @@ internal sealed class LicensesRow : Decorator
             }
             return new ScrollViewer { Width = 480, Height = 440, Content = stack, HorizontalContentAlignment = HorizontalAlignment.Left }.PresentedChrome(); // :1043
         });
-        Child = new ChromeRow("Licenses", () => new Panel { Children = { button.ChromeGlassCapsule(), popup } }, "AGPL-3.0 with attribution terms, and the notices for what the app builds on."); // :1019-1042
+        Child = new ChromeRow("Licenses", () => new Panel { Children = { button, popup } }, "AGPL-3.0 with attribution terms, and the notices for what the app builds on."); // :1019-1042
     }
 
     // :1077-1079 private static func text(of:) -> String

@@ -1158,7 +1158,8 @@ namespace Marrow.UI.Chrome
             Func<bool, Control> accessory,
             bool isSelected = false,
             bool isEmphasized = false,
-            double accessoryWidth = 0)
+            double accessoryWidth = 0,
+            bool pressLook = false)
         {
             var state = new ViewState();
             var iconSlot = icon(); // :712
@@ -1193,12 +1194,39 @@ namespace Marrow.UI.Chrome
             shape.Background = fill.Brush;
             fill.Set(FillFor(isSelected, false), null);
 
-            var button = new SelectableButton(isSelected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
+            var button = new SelectableButton { IsRowSelected = isSelected, Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
             button.Click += (_, _) => action();
+            // The pressed look (PORT-ONLY, ED-NEW-settingsview; SOURCE FACT: the reference runtime, CATALOGUE press.row-tile-dim):
+            // a plain button dims its content to 0.8 and its wash to x0.7 while the pointer holds it down. The catalogue's own
+            // ramp, 0.05 s in and 0.1 s out, ease-out (transition-audit sidebar-panels-015). Only the rows that ask for it draw it.
+            var pressed = false;
+            var dim = new AnimatedScalar(button, 0, value => row.Opacity = 1 - 0.2 * value);
+            void Restyle(Animation? animation) => fill.Set(FillFor(isSelected, state.IsHovering).Opacity(pressed ? 0.7 : 1), animation);
+            if (pressLook)
+            {
+                button.PropertyChanged += (_, change) =>
+                {
+                    if (change.Property != Button.IsPressedProperty || button.IsPressed == pressed) return;
+                    pressed = button.IsPressed;
+                    var ramp = pressed ? Animation.EaseOut(0.05) : Animation.EaseOut(0.1);
+                    dim.Set(pressed ? 1 : 0, ramp);
+                    Restyle(ramp);
+                };
+            }
             button.Track(() => state.IsHovering, hovering =>
             {
-                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(isSelected, hovering), Transaction.Current)); // :729
+                Transaction.WithAnimation(Chrome.Hover, () => Restyle(Transaction.Current)); // :729
             });
+            // :723-724 `.animation(Chrome.hover, value: isSelected)`: the wash crossfades in place, the old row's out as the new
+            // row's comes in. The weight and ink are not part of that animation (the video changes them in the release frame).
+            setSelected = selected =>
+            {
+                if (selected == isSelected) return;
+                isSelected = selected;
+                button.IsRowSelected = selected;
+                ApplyText();
+                Transaction.WithAnimation(Chrome.Hover, () => Restyle(Transaction.Current));
+            };
             button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
 
             var overlay = new Panel { Children = { button } };
@@ -1243,9 +1271,11 @@ namespace Marrow.UI.Chrome
         // state; :738 `.accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)` is exposed through
         // ISelectionItemProvider, the platform's own selectable-item automation pattern, alongside the button's
         // invoke behaviour.
-        private sealed class SelectableButton(bool isSelected) : Button
+        private sealed class SelectableButton : Button
         {
-            protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, isSelected);
+            internal bool IsRowSelected { get; set; }
+
+            protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this);
 
             // :730 the row is a Button: accessibility activation runs its action, as a click does.
             internal void Activate()
@@ -1253,10 +1283,10 @@ namespace Marrow.UI.Chrome
                 if (IsEffectivelyEnabled) OnClick();
             }
 
-            private sealed class Peer(Control owner, bool isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
+            private sealed class Peer(Control owner) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
             {
                 protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
-                bool ISelectionItemProvider.IsSelected => isSelected;
+                bool ISelectionItemProvider.IsSelected => ((SelectableButton)Owner).IsRowSelected;
                 ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
                 void ISelectionItemProvider.AddToSelection() { }
                 void ISelectionItemProvider.RemoveFromSelection() { }
@@ -1280,6 +1310,12 @@ namespace Marrow.UI.Chrome
             : this(title, action, icon, _ => new Panel(), isSelected)
         {
         }
+
+        private Action<bool>? setSelected;
+
+        /// <summary>:723-724 the row's <c>isSelected</c> changed in place: the wash crossfades over <see cref="Chrome.Hover"/>
+        /// (UI-SETTINGS-004), so a caller keeps its rows and says which one is selected instead of building them again.</summary>
+        public void SetSelected(bool selected) => setSelected?.Invoke(selected);
 
         // :741-745. PR-WIN-200: the primary label colour at 0.12 selected, 0.06 hovered, clear otherwise.
         private static SwiftColor FillFor(bool isSelected, bool isHovering)
@@ -1429,9 +1465,14 @@ namespace Marrow.UI.Chrome
             AutomationProperties.SetName(clear, "Clear search"); // :859
             // :854-858 Always laid out, so the field's text never shifts when the button comes; invisible and out of the
             // accessibility tree while there is nothing to clear.
+            // DEVIATION OD-0076 (ED-NEW-settingsview): the source cuts the button in and out (:856, no animation); the port
+            // fades it and scales it from 0.8 over Chrome.hover, the way every control that appears does.
+            clear.RenderTransformOrigin = RelativePoint.Center;
+            var shown = new AnimatedScalar(clear, 0, value => { clear.Opacity = value; var scale = value == 0 ? 1 : 0.8 + 0.2 * value; clear.RenderTransform = new ScaleTransform(scale, scale); });
+            var primed = false;
             clear.Track(() => query.Value.Length == 0, isEmpty =>
             {
-                clear.Opacity = isEmpty ? 0 : 1; // :856
+                shown.Set(isEmpty ? 0 : 1, primed ? Transaction.Current ?? Chrome.Hover : null); primed = true; // :856
                 clear.IsEnabled = !isEmpty; // :857
                 if (isEmpty) AutomationProperties.SetAccessibilityView(clear, AccessibilityView.Raw); // :858
                 else clear.ClearValue(AutomationProperties.AccessibilityViewProperty);
@@ -1822,11 +1863,12 @@ namespace Marrow.UI.Chrome
         public ChromeRowDivider()
         {
             var line = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Height = 1 };
-            // :1084 `Divider()`: SwiftUI's own separator, drawn in the system divider colour. B2 gives it no
-            // literal (the framework paints it), so it takes the same translucent hairline opacity Chrome uses
-            // for its other system-style rules (WindowBackdrop's edge, :270), UNVERIFIED under OD-0001.
-            // STOP opencode-proofs-settings-prov #1 UI-PROVREG-009: Divider system color has no pinned RGBA or approved specific mapping; need a ruling or macOS measurement.
-            line.BorderBrush = Chrome.Overlay(0.14).Brush(line);
+            // :1084 `Divider()`: SwiftUI's own separator, drawn in the system divider colour, which the framework paints
+            // (B2 gives it no literal). SOURCE FACT (the reference runtime, work/reference-video): measured on
+            // the Mac as the label colour at 0.10, 1 px: dark card S 199.5 (frames/w-1-settings-tour-198.0/stills/win_199.5.png,
+            // y402: (22,66,72) over (43,86,92), white at 0.09-0.11) and light card S 141.5 (frames/gap-R2-05, black at 0.10);
+            // CATALOGUE static.settings-light-theme says the same (row separators 10 % light, 9-10 % dark).
+            line.BorderBrush = Chrome.Overlay(0.10).Brush(line);
             Child = line;
             Margin = new Thickness(16, 0, 0, 0); // :1085 .padding(.leading, 16)
         }
