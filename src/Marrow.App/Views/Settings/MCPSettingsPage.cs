@@ -665,7 +665,7 @@ internal sealed class MCPCustomEditor : Decorator
         if (kind == MCPCustomServer.Kind.Stdio)
         {
             form.Children.Add(Field("Command", MCPSettingsPage.McpFieldSurface(EditorField("npx", () => command, v => command = v))));
-            var args = EditorField("", () => argsText, v => argsText = v); args.AcceptsReturn = true; args.TextWrapping = TextWrapping.Wrap; args.Height = 66; args.Padding = new Thickness(6, 4);
+            var args = EditorField("", () => argsText, v => argsText = v); args.AcceptsReturn = true; args.TextWrapping = TextWrapping.Wrap; args.Height = 66; args.Padding = new Thickness(11, 4); // :783-784 padding 6 and 4, plus the inset a TextEditor's text has of its own: DEVIATION OD-0032 "Windows argument-editor inset compensation" (6 + 5, the 5 being SettingsView.swift:829's placeholder alignment, video S 199.50 the placeholder starts 16.7 px in = 12 + 5)
             form.Children.Add(Field("Arguments", MCPSettingsPage.McpFieldSurface(args), MCPSettingsPage.Text("One argument per line; empty lines are dropped.", 10.5, Chrome.SecondaryText))); // :777-790 editor and hint are two children of field()
         }
         else form.Children.Add(Field("URL", MCPSettingsPage.McpFieldSurface(EditorField("https://\U00002026", () => url, v => url = v)))); // U+2026 HORIZONTAL ELLIPSIS

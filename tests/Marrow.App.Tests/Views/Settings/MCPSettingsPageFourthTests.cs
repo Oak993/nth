@@ -28,7 +28,7 @@ public sealed class MCPSettingsPageFourthTests(HeadlessSession headless)
     public void Command_url_and_arguments_use_exact_padding_fonts_and_field_surfaces()
     {
         Ui((model,_)=>{var editor=new MCPCustomEditor(null);using var window=Attach(editor,model);var command=Field(editor,"npx");Assert.Equal(new Thickness(10,7),command.Padding);Assert.Equal(12,command.FontSize);Assert.Equal(new CornerRadius(9),Assert.IsType<Border>(command.Parent).CornerRadius);
-            var args=Nodes<TextBox>(editor).Single(x=>x.AcceptsReturn);Assert.Equal(66,args.Height);Assert.Equal(new Thickness(6,4),args.Padding);Assert.Contains("One argument per line; empty lines are dropped.",Texts(editor));Call(editor,"SetKind",MCPCustomServer.Kind.Http);var url=Field(editor,"https://\U00002026");Assert.Equal(new Thickness(10,7),url.Padding);Assert.Equal(12,url.FontSize);Assert.DoesNotContain(Nodes<TextBox>(editor),x=>x.AcceptsReturn);
+            var args=Nodes<TextBox>(editor).Single(x=>x.AcceptsReturn);Assert.Equal(66,args.Height);Assert.Equal(new Thickness(11,4),args.Padding); // OD-0032: 6 plus the TextEditor's own 5Assert.Contains("One argument per line; empty lines are dropped.",Texts(editor));Call(editor,"SetKind",MCPCustomServer.Kind.Http);var url=Field(editor,"https://\U00002026");Assert.Equal(new Thickness(10,7),url.Padding);Assert.Equal(12,url.FontSize);Assert.DoesNotContain(Nodes<TextBox>(editor),x=>x.AcceptsReturn);
         }); // U+2026 HORIZONTAL ELLIPSIS
     }
     [Fact]
