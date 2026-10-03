@@ -11731,6 +11731,116 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         finally { harness.Main.OnMain(() => Close(view)); }
     });
 
+    // The ellipsis a row keeps (above) opens on the actions its body builds now (:1375-1376 makeActions() over the live
+    // thread, :1118 actions(isActive:) over the live project and activation): the kept button reads them as its menu opens,
+    // not when the button was first drawn.
+    private static string[] MenuTitles(RecordingPresenter presenter, Button more) =>
+        LogicalQuery.SelfAndDescendants<Button>(presenter.Calls.Last(call => call.Presented && ReferenceEquals(call.Popup.PlacementTarget, more)).Popup.Child!)
+            .Select(b => AutomationProperties.GetName(b) ?? "").Where(name => name.Length > 0).ToArray();
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // :1375-1376 RowActionsButton(actions: makeActions(), ...) over the live thread (:2214 Reveal worktree)
+    public void A_helper_rows_kept_ellipsis_opens_on_the_actions_of_the_record_as_it_is_when_it_opens() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var presenter = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(presenter);
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Button More() => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(100, 12), window)!.Value); // hovered: the ellipsis
+        });
+        try
+        {
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                more = More();
+                model.UpdateThread(helper.Id, t => t with { WorktreePath = "C:/Alpha/wt" }); // the helper gets a worktree under the drawn ellipsis
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(more, More()); // the ellipsis is the one it had
+                PointerClick(more);
+            });
+            Tick(16);
+            harness.Main.OnMain(() => Assert.Contains("Reveal worktree in File Explorer", MenuTitles(presenter, more))); // :2214, as it is now
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // :1216-1220 Activate/Deactivate by the current activation, :1096 isActive read live
+    [Trait("Req", "UI-SIDEBAR-014")] // "Activate project and Deactivate project are mutually exclusive by current activation"
+    public void A_project_rows_kept_ellipsis_opens_on_the_activation_as_it_is_when_it_opens() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var presenter = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(presenter);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Button More() => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // hovered: the ellipsis and plus
+        });
+        try
+        {
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(model.Settings.IsProjectActive(project.Id));
+                more = More();
+                model.Settings.SetProjectActive(false, project.Id); // switched off under the drawn ellipsis
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(more, More()); // the ellipsis is the one it had
+                PointerClick(more);
+            });
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                var titles = MenuTitles(presenter, more);
+                Assert.Contains("Activate project", titles); // :1217 isActive false now
+                Assert.DoesNotContain("Deactivate project", titles);
+                Assert.Contains("Follow global setting", titles); // :1223 the override this switch made
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
     // The list keeps a helper row whose own item changes in a new pass (:470-472 its ForEach id; :1320, :1326 its snapshot and
     // isLast handed in place, UpdateItemView): its open ellipsis menu keeps its button, the title is the record's as it is
     // now, and the connector ends at the row once the helper below it is gone (:1349, :1665-1669).
