@@ -141,6 +141,33 @@ public static class JewelFixtures
         Dispatcher.UIThread.RunJobs();
         return new JewelRig(slider, box, window, time, frames, source, clock);
     }
+    /// <summary>
+    /// A slider the model list's switch has just faded in, as ModelEffortPanel plays it (EffortSlider.swift:180-188
+    /// .transition(.opacity) under .animation(.easeOut(duration: 0.12), value: showsModels): SwiftTransition under the same
+    /// Transaction, the content it replaces fading out beside it), in a window that showed a stand-in for the model list.
+    /// </summary>
+    public static JewelRig FadingRig(int count = 4, int index = 1, double width = 298)
+    {
+        var time = new ManualTimeProvider();
+        var frames = new ManualFrameSource();
+        var source = FrameClock.Source.Override(frames);
+        var clock = SwiftClock.Provider.Override(time);
+        var box = new ObservableIntBox { Value = index };
+        var slider = new EffortSlider(count, box.AsBinding(), "Title") { Width = width };
+        var pages = new Panel();
+        pages.Children.Add(new Border { Height = EffortSlider.ThumbSize }); // the model list
+        var window = new Avalonia.Controls.Window { Width = width + 40, Height = 160, Content = new Border { Padding = new Thickness(20), Child = pages } };
+        window.Show();
+        window.Activate();
+        Dispatcher.UIThread.RunJobs();
+        Transaction.WithAnimation(Animation.EaseOut(0.12), () =>
+        {
+            foreach (var old in pages.Children.ToArray()) SwiftTransition.Remove(pages, old);
+            SwiftTransition.Insert(pages, pages.Children.Count, slider);
+        });
+        Dispatcher.UIThread.RunJobs();
+        return new JewelRig(slider, box, window, time, frames, source, clock);
+    }
 }
 
 /// <summary>One slider under test, frame by frame.</summary>

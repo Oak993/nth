@@ -10,6 +10,7 @@ using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using SkiaSharp;
@@ -318,6 +319,59 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         Assert.Equal(0, rig.Slider.Signal.Charge);
         Assert.Equal(0, rig.Slider.Signal.Flare);
         Assert.Empty(rig.Slider.GetVisualDescendants().OfType<TrackEffect>()); // the bolt has faded out and gone
+    });
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: turning fast mode off drops the knob's signal at once (the fading bolt is not read) and the knob lets go through shape(), staying at least as lit as the bolt still drawn
+    public void Turning_fast_mode_off_drops_the_signal_at_once_and_the_knob_stays_as_lit_as_the_bolt_still_fading() => headless.OnUiThread(() =>
+    {
+        // under reduce motion the still moment is read, so what the bolt would give the knob is its opacity times the still
+        // moment's charge 1 and flare
+        using var rig = JewelFixtures.Rig(index: 1, fast: true, reduceMotion: true);
+        for (var i = 0; i < 4; i++) rig.Frame();
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
+        var flare = StillFlare(effect);
+        Assert.Equal(1, rig.Slider.Signal.Charge);
+        Assert.True(Math.Abs(rig.Slider.Signal.Flare - flare) < 1e-3);
+        rig.Slider.UpdateLook(false, "Title", null);
+        Assert.Same(effect, rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single()); // leaving: still drawn, fading out
+        var seen = 0;
+        double first = 0;
+        for (var i = 0; i < 40 && effect.GetVisualParent() is not null; i++)
+        {
+            rig.Frame();
+            if (effect.GetVisualParent() is null) break;
+            var opacity = effect.Opacity;
+            if (seen++ == 0) first = opacity;
+            Assert.True(rig.Slider.Signal.RawCharge == 0 && rig.Slider.Signal.RawFlare == 0, $"frame {seen}: the bolt is drawn at {opacity} and the knob reads charge {rig.Slider.Signal.RawCharge}, flare {rig.Slider.Signal.RawFlare}: the signal drops at once");
+            Assert.True(rig.Slider.Signal.Charge >= opacity - 1e-9 && rig.Slider.Signal.Flare >= opacity * flare - 1e-9,
+                $"frame {seen}: the bolt is drawn at {opacity}, the knob is lit to charge {rig.Slider.Signal.Charge}, flare {rig.Slider.Signal.Flare}: darker than the bolt it leaves");
+        }
+        Assert.True(seen >= 8 && first > 0.5, $"the bolt was drawn on {seen} frames of the knob's letting go, at {first} on the first"); // the premise: the fade is under way, not over
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: a strike landing inside the 0.3 s the bolt fades out after fast mode is turned off does not reach the knob (it is not read once the effect has left)
+    public void A_strike_inside_the_fade_out_of_fast_mode_does_not_charge_or_flare_the_knob() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: 1, fast: true);
+        rig.Frame();
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
+        var now = effect.TimeAt(SwiftDate.Now);
+        var k = Enumerable.Range(0, 40).First(j => Strike.StrikeAt(j, effect.StrikeSeed) > now + 0.5);
+        var strikes = Strike.StrikeAt(k, effect.StrikeSeed);
+        rig.Frame(strikes - 0.1 - now); // 0.1 s before the strike: its leader (0.14 s) and charge are still to come
+        rig.Slider.UpdateLook(false, "Title", null);
+        Assert.Same(effect, rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single());
+        var drawn = 0; // frames on which the tube still draws the strike's bolt (its leader and its flash), at a visible opacity
+        for (var i = 0; i < 14; i++)
+        {
+            rig.Frame();
+            var a = effect.TimeAt(SwiftDate.Now) - strikes;
+            if (effect.GetVisualParent() is { } && a > -Strike.Lead && a < 0.2 && effect.Opacity > 0.15) drawn++;
+            Assert.True(rig.Slider.Signal.RawCharge == 0 && rig.Slider.Signal.RawFlare == 0,
+                $"{a:F3} s from the strike, the bolt at {effect.Opacity}: the knob reads charge {rig.Slider.Signal.RawCharge}, flare {rig.Slider.Signal.RawFlare}");
+        }
+        Assert.True(drawn >= 3, $"the bolt's strike was drawn on {drawn} frames of the fade"); // the premise: the strike is inside the fade
     });
 
     [Fact]
