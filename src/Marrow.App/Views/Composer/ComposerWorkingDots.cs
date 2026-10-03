@@ -115,6 +115,7 @@ public sealed class DotFieldControl : Canvas
     internal DotFieldCompositionHandler? CompositionHandler => compositionHandler;
     internal DotFieldCompositionFrame? LastRenderedFrame => compositionHandler?.LastFrame;
     private ContinuousInstant sweepStart;
+    private IDisposable? warmupActivity;
 
     public DotFieldControl(SwiftColor color, bool animated, bool sweeps)
     {
@@ -132,8 +133,8 @@ public sealed class DotFieldControl : Canvas
         dotCanvas = new Canvas { IsVisible = !animated };
         Children.Add(dotCanvas);
         // :113-122 Window attachment installs motion; theme-aware brushes also follow system accent changes.
-        AttachedToVisualTree += (_, _) => InstallAnimation();
-        DetachedFromVisualTree += (_, _) => RemoveComposition();
+        AttachedToVisualTree += (_, _) => { InstallAnimation(); warmupActivity ??= GpuWarmup.AddActivity(IsAnimatingOnCompositor); };
+        DetachedFromVisualTree += (_, _) => { RemoveComposition(); warmupActivity?.Dispose(); warmupActivity = null; };
         ActualThemeVariantChanged += (_, _) => OnAppearanceChanged();
     }
 
@@ -235,6 +236,10 @@ public sealed class DotFieldControl : Canvas
         compositionVisual.SendHandlerMessage(new DotFieldCompositionFrame(laidOutSize,
             GetBrush().ToImmutable(), animated, sweeps, SwiftClock.Provider.Current, sweepStart, SwiftClock.Now));
     }
+
+    // PORT-ONLY (ED-252): the dots move on the render server, where the frame clock cannot see them; while attached they
+    // tell GpuWarmup's idle fallback when they move, so it compiles the effort knob's programs in other frames.
+    private bool IsAnimatingOnCompositor() => compositionHandler?.IsAnimating == true;
 
     private void RemoveComposition()
     {
