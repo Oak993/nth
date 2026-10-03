@@ -165,7 +165,7 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
             var asked = GpuWarmup.StepsAsked;
             AvaloniaHeadlessPlatform.ForceRenderTimerTick(); // the window's first frame: the fallback starts
             Dispatcher.UIThread.RunJobs();
-            Pump(TimeSpan.FromSeconds(3), () => false, render: false); // then no frame: past the cap and the step's timeout
+            Pump(TimeSpan.FromSeconds(3), () => false, render: false); // then not drawn: the step asked is never drawn and times out
             Assert.True(GpuWarmup.StepsAsked == asked + 1, $"precondition: one forced step asked and never drawn ({GpuWarmup.StepsAsked - asked} asked)");
             // the window is drawn again (restored); Steps returned at the timeout ("a later call warms") but nothing calls
             // again for the chip: the popover's first open compiles the four programs in one frame (220 ms measured, or
@@ -240,6 +240,32 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
         first.Dispose();
         first.Dispose(); // Activity.Dispose removes "an equal delegate" each time: the second registration goes
         Assert.True(GpuWarmup.Animating(frames), "the second registration was removed by the first's second Dispose");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // a chip attached while hidden (its primer not drawn) warms once it is shown
+    public void REVIEW_a_warm_up_started_while_its_host_was_hidden_warms_once_the_host_is_shown() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        var (cap, timeout) = (GpuWarmup.IdleCap, GpuWarmup.StepTimeout);
+        GpuWarmup.IdleCap = TimeSpan.FromMilliseconds(300);
+        GpuWarmup.StepTimeout = TimeSpan.FromMilliseconds(300);
+        var host = new Border { Width = 40, Height = 20 };
+        var holder = new Border { IsVisible = false, Child = host };
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = holder };
+        window.Show();
+        try
+        {
+            GpuWarmup.WhenIdle(host);
+            var asked = GpuWarmup.StepsAsked;
+            Pump(TimeSpan.FromSeconds(3), () => false, render: true); // the window draws, the chip's part of it does not
+            Assert.True(GpuWarmup.StepsAsked == asked + 1, $"precondition: one step asked and never drawn ({GpuWarmup.StepsAsked - asked} asked)");
+            holder.IsVisible = true;
+            Pump(TimeSpan.FromSeconds(5), () => GpuWarmup.StepsAsked > asked + 1, render: true);
+            Assert.True(GpuWarmup.StepsAsked > asked + 1, "the warm-up never resumed once its host was shown");
+        }
+        finally { (GpuWarmup.IdleCap, GpuWarmup.StepTimeout) = (cap, timeout); window.Close(); }
     });
 
     // frames (or none) about every 10 ms until done or the time is up, the dispatcher's jobs run between
