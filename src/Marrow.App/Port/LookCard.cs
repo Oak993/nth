@@ -1286,7 +1286,11 @@ internal sealed class SignatureFold : Panel
     protected override Size MeasureOverride(Size availableSize)
     {
         line.Measure(new Size(availableSize.Width, LookCard.FoldOpen + 12));
-        return new Size(line.DesiredSize.Width, FoldHeight.Value);
+        // ED-253: the board lays the fold out unrounded and its frames draw what follows it at the nearest pixel (+1, +4, +8,
+        // +12 for 1.38, 4.05, 7.94, 12.45, canvas-frames 02); Avalonia's layout rounding takes a desired size up, so the
+        // height is given already rounded to the nearest device pixel.
+        var scale = LayoutHelper.GetLayoutScale(this);
+        return new Size(line.DesiredSize.Width, Math.Round(FoldHeight.Value * scale, MidpointRounding.AwayFromZero) / scale);
     }
 
     protected override Size ArrangeOverride(Size finalSize)

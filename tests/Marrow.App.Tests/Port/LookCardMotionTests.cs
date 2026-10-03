@@ -117,6 +117,32 @@ public sealed class LookCardMotionTests(HeadlessSession headless) : LookCardFixt
         Assert.Equal(237, card.Bounds.Height);
     });
 
+    // ED-253: what follows the card moves down by the fold's height rounded to the nearest pixel, as the locked board's frames
+    // draw it (canvas-frames 02: +1, +4, +8, +12 at frames 1 to 4, the fold being 1.38, 4.05, 7.94, 12.45), not rounded up.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void What_follows_the_card_moves_by_the_folds_height_rounded_to_the_nearest_pixel() => Card((card, _, h, w) =>
+    {
+        Avalonia.Controls.Control below = card;
+        while (below.Parent is not Avalonia.Controls.StackPanel { Children.Count: > 1 } stack || stack.Children.IndexOf(below) == stack.Children.Count - 1)
+            below = (Avalonia.Controls.Control)below.Parent!;
+        var list = (Avalonia.Controls.StackPanel)below.Parent!;
+        var next = list.Children[list.Children.IndexOf(below) + 1];
+        double Top() => next.TranslatePoint(default, list)!.Value.Y;
+        var rest = Top();
+        Release(w, card.More); // scenario 02
+        var seen = new List<double>();
+        for (var k = 1; k <= 21; k++)
+        {
+            Frame(h);
+            Drain(w);
+            seen.Add(Top() - rest);
+            Assert.Equal(Math.Round(Ease(0, 36, 300)(k * FrameMs), MidpointRounding.AwayFromZero), Top() - rest);
+        }
+        Assert.Equal([1.0, 4, 8, 12], seen.Take(4));
+        Assert.Equal(36, seen[^1]);
+    });
+
     [Fact]
     [Trait("Decision", "ED-250")]
     public void A_pick_on_the_other_line_fades_one_ring_out_in_place_and_places_the_other_and_fades_it_in() => Card((card, _, h, w) =>
