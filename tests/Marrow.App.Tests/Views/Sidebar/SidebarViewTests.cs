@@ -9794,7 +9794,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-039")] // SidebarView.swift:335-336 itemView's header arm builds ActivityHeader(title:isFirst:) in the mounted list
     public void The_mounted_activity_list_draws_its_day_headers_with_the_first_ones_short_top_padding() => headless.OnUiThread(() =>
     {
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
         using var harness = new AppModelHarness();
         var project = NewProject(harness, "Alpha");
         var today = ThreadAt(project, "Fresh", Now.AddHours(-1));
@@ -9808,12 +9809,15 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 model.Settings.SidebarActivityView = true;
                 view = Attached(model);
             });
+            harness.Main.AdvanceMilliseconds(1600); // any arrival transition has finished
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(1600)); WindowOf(view).UpdateLayout(); });
             harness.Main.OnMain(() =>
             {
                 var headers = LogicalQuery.SelfAndDescendants<ActivityHeader>(ListPanel(view)).ToList();
                 Assert.Equal(["Today", "Yesterday"], headers.Select(h => ((TextBlock)h.Child!).Text));
                 Assert.Equal(new Thickness(8, 2, 8, 4), ((TextBlock)headers[0].Child!).Margin); // first item
-                Assert.Equal(new Thickness(8, 14, 8, 4), ((TextBlock)headers[1].Child!).Margin);
+                Assert.True(new Thickness(8, 14, 8, 4) == ((TextBlock)headers[1].Child!).Margin, // the list as drawn, should this ever differ:
+                    string.Join(" | ", ListPanel(view).Children.Select(c => c.GetType().Name + ":" + c.Opacity + ":" + string.Join(",", Texts(c)))));
                 Close(view);
             });
         });
