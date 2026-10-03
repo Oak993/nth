@@ -147,7 +147,7 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
                 var sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(popup.Child!));
                 Assert.Equal(model.Sidebar.Width, sidebar.Width);
                 Assert.Equal(560, sidebar.Height);
-                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(popup.Child!)); // .presentedChrome()
+                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(PopoverHost.Content(popup)!)); // .presentedChrome() on the site's own content (the presenter hangs it on its card, OD-0095)
                 ((Action)typeof(SidebarView).GetField("dismiss", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(sidebar)!)();
             });
             Drain();
