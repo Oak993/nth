@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.UI.Markdown;
 using Marrow.App.Views.Composer;
+using Marrow.App.Views.Tour;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
@@ -139,7 +140,11 @@ public sealed class ThreadTimeline : Decorator
                 {
                     var context = new RowContext(workingDirectory, block.TurnID is { } id && rewindable.Contains(id), false);
                     var hadIdentity = rowViews.TryGetValue(block.Id, out var existing);
-                    var row = hadIdentity && existing.Block == block && existing.Context == context ? existing.Row : new DisplayBlockView(block, runtime, context).Transition(Transition(block));
+                    // :332-334 `.id(block.id)`: a block whose id survives keeps its view. A running turn's block changes with every step that lands in it, and its
+                    // working line, its expansion and its bar must go on through that, so the row is told its new block instead of being made again.
+                    var row = hadIdentity && existing.Block == block && existing.Context == context ? existing.Row
+                        : hadIdentity && existing.Row is DisplayBlockView alive && alive.TryUpdate(block, context) ? alive
+                        : new DisplayBlockView(block, runtime, context).Transition(Transition(block));
                     if (row.Parent is Panel parent) parent.Children.Remove(row);
                     rowViews[block.Id] = (block, context, row);
                     laidOutRows[block.Id] = row;
@@ -1076,6 +1081,7 @@ public sealed class DisplayBlockView : Decorator
     // :1884-1924 body
     public DisplayBlockView(DisplayBlock block, ThreadRuntime runtime, RowContext context)
     {
+        shown = block;
         // :1902-1935. STOP #1 only at external leaf constructors; dispatch and arguments are owned.
         if (block.HydraMergePhase is { } phase) { Child = new HydraMergeRow(runtime, phase); return; }
         switch (block)
@@ -1090,6 +1096,16 @@ public sealed class DisplayBlockView : Decorator
         }
     }
 
+    private DisplayBlock shown;
+
+    /// <summary>:1896-1936 the same view with a new block: only a running turn's block, whose body (:1924) keeps the state of its parts (the working line's
+    /// expansion, its bar) while the entries change. Anything else is a different view.</summary>
+    internal bool TryUpdate(DisplayBlock next, RowContext nextContext)
+    {
+        if (shown is not DisplayBlock.Turn { Summary: null } || next is not DisplayBlock.Turn { Summary: null } turn || Child is not TurnRunningBlock running || next.Id != shown.Id) return false;
+        running.Update(turn.Entries, turn.ShowsWorking, nextContext); shown = next; return true;
+    }
+
     // :1874-1882 private static func splitTurnEntries(_:) -> (userEntries:, content:)
     private static (ValueList<TimelineEntry> UserEntries, ValueList<TimelineEntry> Content) SplitTurnEntries(IReadOnlyList<TimelineEntry> entries) =>
         (new(entries.Where(entry => entry.TimelineEntryKind == TimelineEntry.Kind.User)), new(entries.Where(entry => entry.TimelineEntryKind != TimelineEntry.Kind.User))); // :1887-1895
@@ -1098,6 +1114,13 @@ public sealed class DisplayBlockView : Decorator
 /// <summary>:1942-2002 <c>private struct TurnRunningBlock: View</c>.</summary>
 public sealed class TurnRunningBlock : Decorator
 {
+    private readonly ThreadRuntime runtime;
+    private readonly StackPanel stack = new() { Spacing = TimelineMetrics.RowSpacing }; // :1979
+    private readonly TurnGroupCache groupCache = new(); // :1949 @State private var groupCache
+    private readonly Dictionary<string, (TimelineGroup Group, TurnRow Row)> rowViews = [];
+    private (TimelineGroup Group, TurnRow Row)? headsView;
+    private WorkingBlockView? working;
+
     /// <param name="runtime">:1931 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="entries">:1932 <c>let entries: [TimelineEntry]</c>.</param>
     /// <param name="showsWorking">:1933 <c>let showsWorking: Bool</c>.</param>
@@ -1105,10 +1128,48 @@ public sealed class TurnRunningBlock : Decorator
     // :1939-1989 body
     public TurnRunningBlock(ThreadRuntime runtime, ValueList<TimelineEntry> entries, bool showsWorking, RowContext context)
     {
-        var partition = Partition(new TurnGroupCache().Groups(entries)); var stack = new StackPanel { Spacing = TimelineMetrics.RowSpacing }; Child = stack;
-        foreach (var group in partition.Rows) SwiftTransition.Insert(stack, stack.Children.Count, new TurnRow(group, runtime, context).Transition(ThreadTimeline.RowTransition));
-        if (partition.Heads is { } heads) SwiftTransition.Insert(stack, stack.Children.Count, new TurnRow(heads, runtime, context).Transition(ThreadTimeline.RowTransition));
-        if (showsWorking || partition.Work.Count != 0) SwiftTransition.Insert(stack, stack.Children.Count, new WorkingBlockView(runtime, partition.Work, context.WorkingDirectory, context.Chronological, showsWorking ? null : entries).Transition(ThreadTimeline.RowTransition)); // :1977-2001
+        this.runtime = runtime; Child = stack;
+        Update(entries, showsWorking, context);
+    }
+
+    // The body run again with new entries: a row whose group is unchanged is the same view, a new one arrives with the row transition, a gone one leaves
+    // (:1980-1984, :1985-1989 the heads after the rows, :1990-1999 the working line last). The working line is one view for as long as the turn runs.
+    internal void Update(ValueList<TimelineEntry> entries, bool showsWorking, RowContext context)
+    {
+        var partition = Partition(groupCache.Groups(entries)); var wanted = new List<Control>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var group in partition.Rows)
+        {
+            seen.Add(group.Id);
+            if (!rowViews.TryGetValue(group.Id, out var kept) || kept.Group != group)
+            {
+                if (kept.Row is not null) { stack.Children.Remove(kept.Row); }
+                rowViews[group.Id] = kept = (group, new TurnRow(group, runtime, context).Transition(ThreadTimeline.RowTransition));
+                if (!ReferenceEquals(kept.Row.Parent, stack)) SwiftTransition.Insert(stack, stack.Children.Count, kept.Row);
+            }
+            wanted.Add(kept.Row);
+        }
+        foreach (var gone in rowViews.Keys.Where(id => !seen.Contains(id)).ToArray()) { stack.Children.Remove(rowViews[gone].Row); rowViews.Remove(gone); }
+        if (partition.Heads is { } heads)
+        {
+            if (headsView is not { } shown || shown.Group != heads)
+            {
+                if (headsView is { } old) stack.Children.Remove(old.Row);
+                headsView = (heads, new TurnRow(heads, runtime, context).Transition(ThreadTimeline.RowTransition));
+                SwiftTransition.Insert(stack, stack.Children.Count, headsView.Value.Row);
+            }
+            wanted.Add(headsView.Value.Row);
+        }
+        else if (headsView is { } old) { stack.Children.Remove(old.Row); headsView = null; }
+        if (showsWorking || partition.Work.Count != 0)
+        {
+            if (working is null) { working = new WorkingBlockView(runtime, partition.Work, context.WorkingDirectory, context.Chronological, showsWorking ? null : entries); working.Transition(ThreadTimeline.RowTransition); SwiftTransition.Insert(stack, stack.Children.Count, working); }
+            else working.Update(partition.Work, showsWorking ? null : entries);
+            wanted.Add(working);
+        }
+        else if (working is not null) { stack.Children.Remove(working); working = null; }
+        // The order of the stack is the rows, the heads, the working line.
+        for (var i = 0; i < wanted.Count; i++) { var at = stack.Children.IndexOf(wanted[i]); if (at >= 0 && at != i) stack.Children.Move(at, i); }
     }
     // :1948-1976
     private static (ValueList<TimelineGroup> Rows, TimelineGroup? Heads, ValueList<TimelineEntry> Work) Partition(IReadOnlyList<TimelineGroup> groups)
@@ -1215,30 +1276,72 @@ public sealed class WorkingIndicator : Decorator
         var isExpanded = chronological; var showsAllSteps = chronological; var now = SwiftDate.Now;
         var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null;
         var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this) }; Child = shell;
-        var column = new StackPanel { Spacing = TimelineMetrics.RowSpacing }; shell.Child = column;
-        // :2155-2176 the opened body lives across renders while it stays open: its structural ifs (:2156, :2169) keep their
+        var column = new StackPanel(); shell.Child = column; // :2106 VStack(spacing: rowSpacing): the opened body brings that space with it, so it grows and folds with the body
+        // The line's own parts live across renders, as SwiftUI keeps the views of a body that runs again: the label and its time go on ticking, the
+        // bar keeps its state, and what changes (:2182-2183 the label and whether there is anything to open) changes in place under `change`.
+        var header = new BaselineHeader { FillsTitle = showsCard };
+        var titleHost = new Grid(); header.Children.Add(titleHost);
+        var elapsedView = new HydraElapsedTime(startedAt, finishedAt, running); var glide = new TranslateTransform(); elapsedView.RenderTransform = glide; header.Children.Add(elapsedView);
+        var timeGlide = new AnimatedDouble(x => glide.X = x);
+        // :2129-2135 the chevron, only once there is something to open, turning down while the line is open.
+        var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(SwiftColor.Tertiary);
+        var turn = new AnimatedDouble(angle => chevron.RenderTransform = new RotateTransform(angle)); turn.Set(isExpanded ? 90 : 0, null);
+        var chevronFade = new AnimatedDouble(opacity => chevron.Opacity = opacity);
+        var inner = new StackPanel { Spacing = 10, Children = { header } };
+        var frame = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = Brushes.Transparent, Child = inner, HorizontalAlignment = HorizontalAlignment.Left }; // :2147 .contentShape(RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))
+        HydraWorkingTitle? title = null; string? titleText = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false;
+        GrowingBody? opened = null; StackPanel? openedDetails = null; StackPanel? openedThinking = null; WorkSteps? openedSteps = null;
+        Button button = null!;
+        button = PlainControls.Button(frame, () =>
+        {
+            if (!canExpand) return;
+            // :2107-2119 both directions run the one animation: the card closes with the glide it opens with.
+            Transaction.WithAnimation(Animation.Snappy(0.24), () => { isExpanded = !isExpanded; if (isExpanded) ThreadTimeline.GetRevealTimelineEnd(this)?.Follow(); Draw(); });
+        });
+        button.HorizontalAlignment = HorizontalAlignment.Left; // :2106 VStack(alignment: .leading) hugs its content; the button never stretches to the row's width.
+        column.Children.Add(button);
+        // :2155-2176 the opened body (opened, above) lives across renders while it stays open: its structural ifs (:2156, :2169) keep their
         // views, so their transitions play on insertion and removal only, never again on a new render.
-        Border? opened = null; StackPanel? openedDetails = null; StackPanel? openedThinking = null; WorkSteps? openedSteps = null;
-        string? drawnLabel = null;
         void Draw(bool force = true)
         {
             var elapsed = Math.Max(0, (now - startedAt).TotalSeconds); var word = WorkingWords.Word(seed, (long)elapsed);
             var label = liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
-            if (!force && drawnLabel == label) return; drawnLabel = label;
-            var header = new BaselineHeader(showsCard);
-            header.Children.Add(new HydraWorkingTitle(label, running, TextAlignment.Left)); header.Children.Add(new HydraElapsedTime(startedAt, finishedAt, running));
-            if (canExpand) { var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(SwiftColor.Tertiary).Transition(SwiftTransition.Opacity); chevron.RenderTransform = new RotateTransform(isExpanded ? 90 : 0); header.Children.Add(chevron); }
-            var inner = new StackPanel { Spacing = 10, Children = { header } };
-            if (showsCard) inner.Children.Add(new HydraProgressBar(runtime, startedAt, finishedAt, running ? HydraHeadInfo.Status.Running : HydraHeadInfo.Status.Stopped, Chrome.Accent, turnEntries));
-            var frame = new Border { Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = Brushes.Transparent, Child = inner, HorizontalAlignment = HorizontalAlignment.Left }; // :2147 .contentShape(RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))
-            if (showsCard) frame.Width = CardWidth;
-            var button = PlainControls.Button(frame, () => { if (!canExpand) return; Transaction.WithAnimation(Animation.Snappy(0.24), () => { isExpanded = !isExpanded; if (isExpanded) ThreadTimeline.GetRevealTimelineEnd(this)?.Follow(); Draw(); }); });
-            button.HorizontalAlignment = HorizontalAlignment.Left; // :2106 VStack(alignment: .leading) hugs its content; the button never stretches to the row's width.
+            if (!force && titleText == label) return;
+            // :2182 .animation(Self.change, value: label): a new label takes the place of the old one over the one motion for what changes on the line.
+            if (titleText != label)
+            {
+                var previous = title; title = new HydraWorkingTitle(label, running, TextAlignment.Left); titleText = label;
+                if (previous is null) titleHost.Children.Add(title);
+                else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, titleHost.Children.Count, title.Transition(SwiftTransition.Opacity)); });
+            }
+            // :2144-2147 the card keeps an even 14 on both sides so its bar sits centred; the badge is a pill like the others in the column.
+            frame.Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical);
+            frame.Width = showsCard ? CardWidth : double.NaN; header.FillsTitle = showsCard;
+            // :2129-2135 the chevron comes with something to open and goes with it; :2128, :2183 the time glides over to make room, or back.
+            var motion = drawn ? Change : null;
+            if (canExpand != chevronShown)
+            {
+                chevronShown = canExpand;
+                if (canExpand) { turn.Set(isExpanded ? 90 : 0, null); header.Children.Add(chevron); }
+                else header.Children.Remove(chevron);
+                chevron.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                var room = header.FillsTitle ? 8 + chevron.DesiredSize.Width : 0;
+                if (canExpand) { chevronFade.Set(0, null); chevronFade.Set(1, motion); }
+                if (room > 0) { timeGlide.Set(canExpand ? room : -room, null); timeGlide.Set(0, motion); }
+            }
+            // :2138-2140 the bar is the card's; the badge is the line above alone. It is made again only when what it draws changed.
+            if (!showsCard) { if (bar is not null) { inner.Children.Remove(bar); bar = null; barEntries = null; } barCard = false; }
+            else if (bar is not null && barCard == true && !Equals(barEntries, turnEntries)) { bar.UpdateEntries(turnEntries); barEntries = turnEntries; } // :2139 the bar is handed the entries again and goes on
+            else if (bar is null || barCard != true)
+            {
+                if (bar is not null) inner.Children.Remove(bar);
+                bar = new HydraProgressBar(runtime, startedAt, finishedAt, running ? HydraHeadInfo.Status.Running : HydraHeadInfo.Status.Stopped, Chrome.Accent, turnEntries); barEntries = turnEntries; barCard = true; inner.Children.Add(bar);
+            }
+            turn.Set(isExpanded ? 90 : 0, Transaction.Current);
             ToolTip.SetTip(button, canExpand ? isExpanded ? "Hide these steps" : "Show these steps" : ""); Avalonia.Automation.AutomationProperties.SetHelpText(button, canExpand ? "Shows what the agent is doing" : "");
-            if (column.Children.Count == 0) column.Children.Add(button); else column.Children[0] = button;
             if (isExpanded && canExpand)
             {
-                if (opened is null) { openedDetails = new StackPanel { Spacing = TimelineMetrics.RowSpacing }; opened = new Border { Padding = new Thickness(14, 0, 14, 11), Child = openedDetails }; column.Children.Add(opened); }
+                if (opened is null) { openedDetails = new StackPanel { Spacing = TimelineMetrics.RowSpacing }; opened = new GrowingBody { LeadingSpace = TimelineMetrics.RowSpacing, Child = new Border { Padding = new Thickness(14, 0, 14, 11), Child = openedDetails } }; column.Children.Add(opened); opened.Open(Transaction.Current); }
                 var details = openedDetails!;
                 if (thinkingSteps.Count != 0) // :2156-2168
                 {
@@ -1258,7 +1361,8 @@ public sealed class WorkingIndicator : Decorator
                 }
                 else if (openedSteps is not null) { SwiftTransition.Remove(details, openedSteps); openedSteps = null; }
             }
-            else if (opened is not null) { column.Children.Remove(opened); opened = null; openedDetails = null; openedThinking = null; openedSteps = null; }
+            else if (opened is not null) { var closing = opened; opened = null; openedDetails = null; openedThinking = null; openedSteps = null; closing.Close(Transaction.Current, () => column.Children.Remove(closing)); }
+            drawn = true;
         }
         applyInputs = (thinking, work, entries, card) => { thinkingSteps = thinking; liveWork = work; turnEntries = entries; showsCard = card; canExpand = thinking.Count != 0 || work.Count != 0; Draw(); };
         Draw(); // :2185-2188. The source retains chronological, but ThreadTimeline always passes false.
@@ -1266,8 +1370,10 @@ public sealed class WorkingIndicator : Decorator
     }
 
     // :2122. The title fills only the card's surplus width; every child aligns on its first text baseline.
-    private sealed class BaselineHeader(bool fillsTitle) : Panel
+    private sealed class BaselineHeader : Panel
     {
+        private bool fillsTitle;
+        public bool FillsTitle { get => fillsTitle; set { if (fillsTitle == value) return; fillsTitle = value; InvalidateMeasure(); } }
         private static double Baseline(Control child) => child switch { TextBlock text => text.TextLayout.TextLines.FirstOrDefault()?.Baseline ?? child.DesiredSize.Height, Decorator { Child: { } content } => Baseline(content), Panel panel when panel.Children.Count > 0 => Baseline(panel.Children[0]), _ => child.DesiredSize.Height };
         protected override Size MeasureOverride(Size availableSize)
         {
@@ -1283,6 +1389,55 @@ public sealed class WorkingIndicator : Decorator
             for (var i = 0; i < Children.Count; i++) { var child = Children[i]; var width = i == 0 && fillsTitle ? Math.Max(0, finalSize.Width - other) : child.DesiredSize.Width; child.Arrange(new Rect(x, baseline - Baseline(child), width, child.DesiredSize.Height)); x += width + 8; } return finalSize;
         }
     }
+}
+
+/// <summary>The opened body of the working line (:2155-2176), which the card's own animation grows to its height on opening and folds away on closing
+/// (:2107-2119 `withAnimation(.snappy(duration: 0.24))` over `isExpanded`: the card is a stack whose height follows what it holds). It fades with its height.</summary>
+internal sealed class GrowingBody : Decorator
+{
+    private double revealed = 1;
+    private IFrameSource? source;
+    private Action<TimeSpan>? pending;
+
+    /// <summary>The space the body brings above it into the stack (the stack's spacing, :2106).</summary>
+    public double LeadingSpace { get; init; }
+
+    public GrowingBody() => ClipToBounds = true;
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (Child is null) return default;
+        Child.Measure(availableSize);
+        return new Size(Child.DesiredSize.Width, (LeadingSpace + Child.DesiredSize.Height) * revealed);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        Child?.Arrange(new Rect(0, LeadingSpace, finalSize.Width, Child.DesiredSize.Height));
+        return finalSize;
+    }
+
+    private void Set(double value) { revealed = Math.Max(0, value); Opacity = Math.Clamp(value, 0, 1); InvalidateMeasure(); }
+
+    public void Open(Animation? animation) { Set(animation is null ? 1 : 0); if (animation is not null) Run(1, animation, null); }
+
+    public void Close(Animation? animation, Action done) { if (animation is null) { done(); return; } Run(0, animation, done); }
+
+    private void Run(double to, Animation animation, Action? done)
+    {
+        Stop();
+        var from = revealed; var started = SwiftClock.Now; var frames = FrameClock.Source.Current; source = frames;
+        Action<TimeSpan>? frame = null;
+        frame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - started).TotalSeconds; var complete = elapsed >= animation.Duration;
+            Set(complete ? to : from + (to - from) * animation.Progress(elapsed));
+            if (complete) { pending = null; done?.Invoke(); } else frames.RequestFrame(frame!);
+        };
+        pending = frame; frames.RequestFrame(frame);
+    }
+
+    private void Stop() { if (pending is { } frame) source?.CancelFrame(frame); pending = null; }
 }
 
 /// <summary>:2201-2204 <c>struct ThinkingStep: Equatable</c>.</summary>
@@ -1337,6 +1492,12 @@ file static class RevealTimelineEndKey
 /// <summary>:2261-2315 <c>private struct WorkingBlockView: View</c>.</summary>
 public sealed class WorkingBlockView : Decorator
 {
+    private readonly ThreadRuntime runtime;
+    private ValueList<TimelineEntry> liveWork;
+    private readonly string? workingDirectory;
+    private readonly bool chronological;
+    private ValueList<TimelineEntry>? earlierEntries;
+
     /// <param name="runtime">:2251 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="liveWork">:2253 <c>let liveWork: [TimelineEntry]</c>.</param>
     /// <param name="workingDirectory">:2254 <c>let workingDirectory: String?</c>.</param>
@@ -1345,12 +1506,23 @@ public sealed class WorkingBlockView : Decorator
     // :2260-2274 body
     public WorkingBlockView(ThreadRuntime runtime, ValueList<TimelineEntry> liveWork, string? workingDirectory, bool chronological = false, ValueList<TimelineEntry>? earlierEntries = null)
     {
-        this.Track(() => (AppEnvironment.GetAppModel(this).Settings.ShowsWorkingCard, AppEnvironment.GetAppModel(this).Settings.ShowReasoning, earlierEntries is null && AppEnvironment.GetAppModel(this).Settings.ShowReasoning ? Thinking(runtime) : new ValueList<ThinkingStep>([])), values =>
-        {
-            var thinking = earlierEntries is null && values.ShowReasoning ? values.Item3 : new([]); var entries = earlierEntries ?? TurnEntries(runtime);
-            if (Child is WorkingIndicator indicator) indicator.UpdateValues(thinking, liveWork, entries, values.ShowsWorkingCard);
-            else Child = new WorkingIndicator(runtime, earlierEntries?.FirstOrDefault()?.Item.Date ?? runtime.TurnStartedAt ?? SwiftDate.Now, WorkingWords.Seed(SwiftUUID.UuidString(runtime.ThreadID)), thinking, liveWork, entries, values.ShowsWorkingCard, earlierEntries?.LastOrDefault()?.Item.Date, chronological, workingDirectory);
-        }); // :2267-2285
+        this.runtime = runtime; this.liveWork = liveWork; this.workingDirectory = workingDirectory; this.chronological = chronological; this.earlierEntries = earlierEntries;
+        this.Track(() => (AppEnvironment.GetAppModel(this).Settings.ShowsWorkingCard, AppEnvironment.GetAppModel(this).Settings.ShowReasoning, this.earlierEntries is null && AppEnvironment.GetAppModel(this).Settings.ShowReasoning ? Thinking(runtime) : new ValueList<ThinkingStep>([])), Apply); // :2267-2285
+    }
+
+    private void Apply((bool ShowsWorkingCard, bool ShowReasoning, ValueList<ThinkingStep>) values)
+    {
+        var thinking = earlierEntries is null && values.ShowReasoning ? values.Item3 : new([]); var entries = earlierEntries ?? TurnEntries(runtime);
+        if (Child is WorkingIndicator indicator) indicator.UpdateValues(thinking, liveWork, entries, values.ShowsWorkingCard);
+        else Child = new WorkingIndicator(runtime, earlierEntries?.FirstOrDefault()?.Item.Date ?? runtime.TurnStartedAt ?? SwiftDate.Now, WorkingWords.Seed(SwiftUUID.UuidString(runtime.ThreadID)), thinking, liveWork, entries, values.ShowsWorkingCard, earlierEntries?.LastOrDefault()?.Item.Date, chronological, workingDirectory);
+    }
+
+    /// <summary>The view with new inputs (:1990-1999 the turn's block hands it its live work and its entries again): its state, the line's expansion above all, stays.</summary>
+    internal void Update(ValueList<TimelineEntry> nextLiveWork, ValueList<TimelineEntry>? nextEarlierEntries)
+    {
+        liveWork = nextLiveWork; earlierEntries = nextEarlierEntries;
+        var settings = AppEnvironment.GetAppModel(this).Settings;
+        Apply((settings.ShowsWorkingCard, settings.ShowReasoning, earlierEntries is null && settings.ShowReasoning ? Thinking(runtime) : new ValueList<ThinkingStep>([])));
     }
 
     // :2278-2287 private static func turnEntries(of:) -> [TimelineEntry]

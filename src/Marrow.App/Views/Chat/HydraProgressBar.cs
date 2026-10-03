@@ -39,7 +39,7 @@ public sealed class HydraProgressBar : Decorator
     private readonly DateTimeOffset? finishedAt;
     private readonly HydraHeadInfo.Status status;
     private readonly SwiftColor tint;
-    private readonly IReadOnlyList<TimelineEntry>? suppliedEntries;
+    private IReadOnlyList<TimelineEntry>? suppliedEntries;
     private readonly StaveCache cache = new();
     private readonly BarDrawing bar;
     private readonly StackPanel content;
@@ -68,6 +68,10 @@ public sealed class HydraProgressBar : Decorator
         public bool Rising { get => Read(rising); set => Set(ref rising, value); }
         public bool Settled { get => Read(settled); set => Set(ref settled, value); }
     }
+
+    /// <summary>The entries the bar draws its staves from, handed down again by the view that holds it (ThreadTimeline.swift:2139 <c>entries: turnEntries</c>):
+    /// a view whose inputs changed keeps its state, so the bar goes on from where it was instead of starting again.</summary>
+    internal void UpdateEntries(IReadOnlyList<TimelineEntry>? entries) => suppliedEntries = entries;
 
     // :20-27, :122-209
     public HydraProgressBar(
