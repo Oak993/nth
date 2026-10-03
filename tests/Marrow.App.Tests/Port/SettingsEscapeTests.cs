@@ -109,4 +109,111 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         Escape(window);
         Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
     });
+
+    // ED-253 round 4 (F1): a link's popover (LinkPopover, right-click on a link in the Licenses popover or the About page's
+    // release notes) is presented with its anchor's window: Escape closes it, the Settings window stays, and the next Escape
+    // closes the window.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void Escape_with_a_link_popover_open_closes_it_and_the_next_escape_closes_the_window() => Open(SettingsPage.About, (window, view, presenter) =>
+    {
+        var anchor = view.GetVisualDescendants().OfType<TextBlock>().First(t => t.IsEffectivelyVisible);
+        try
+        {
+            Marrow.UI.Markdown.LinkPopover.Shared.Show(Marrow.Core.Port.SwiftURL.Create("https://example.com")!, null, new Rect(0, 0, 10, 10), anchor);
+            var popup = Assert.Single(presenter.Calls, c => c.Presented).Popup;
+            Assert.True(WindowTransients.IsShown(popup));
+            Escape(window);
+            Assert.Equal((popup, false), presenter.Calls[^1]);
+            Assert.False(WindowTransients.IsShown(popup));
+            Assert.True(window.IsVisible); // the window stays
+            Escape(window);
+            Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+        }
+        finally { Marrow.UI.Markdown.LinkPopover.Shared.Close(); }
+    });
+
+    // A link popover closed by a click outside it (its light dismiss, popoverDidClose) is no longer open over the window.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void A_link_popover_closed_by_its_light_dismiss_is_no_longer_over_the_window() => Open(SettingsPage.About, (window, view, presenter) =>
+    {
+        var anchor = view.GetVisualDescendants().OfType<TextBlock>().First(t => t.IsEffectivelyVisible);
+        try
+        {
+            Marrow.UI.Markdown.LinkPopover.Shared.Show(Marrow.Core.Port.SwiftURL.Create("https://example.com")!, null, new Rect(0, 0, 10, 10), anchor);
+            var popup = Assert.Single(presenter.Calls, c => c.Presented).Popup;
+            Marrow.UI.Markdown.LinkPopover.Shared.PopoverDidClose();
+            Assert.False(WindowTransients.IsShown(popup));
+            // And one closed by its own rows (Open Link, Copy Link: close()).
+            Marrow.UI.Markdown.LinkPopover.Shared.Show(Marrow.Core.Port.SwiftURL.Create("https://example.com")!, null, new Rect(0, 0, 10, 10), anchor);
+            Assert.True(WindowTransients.IsShown(popup));
+            Marrow.UI.Markdown.LinkPopover.Shared.Close();
+            Assert.False(WindowTransients.IsShown(popup));
+            Escape(window);
+            Assert.False(window.IsVisible); // nothing open over it: Escape closes the window
+        }
+        finally { Marrow.UI.Markdown.LinkPopover.Shared.Close(); }
+    });
+
+    // The text menu of a paragraph (ParagraphTextPresenter's Copy / Select All, NativeContextMenus) is a window of its own as
+    // NSMenu is: an Escape that reaches the window while it is open closes the menu, not the window.
+    private sealed class EscapeInsideMenu(HostWindow window, bool pressEscape = true) : IContextMenuPresenter
+    {
+        public bool? ShownAfterEscape { get; private set; }
+        public int Dismissed { get; private set; }
+
+        public void Present(Control target, Point at, IReadOnlyList<ContextMenuEntry> entries)
+        {
+            Assert.Contains(entries, e => e.Title == "Select All");
+            if (!pressEscape) return; // closed by a click outside it, or a row chosen
+            Escape(window);
+            ShownAfterEscape = window.IsVisible;
+        }
+
+        public void Dismiss() => Dismissed++;
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void Escape_while_a_paragraph_text_menu_is_open_closes_the_menu_and_the_window_stays() => Open(SettingsPage.About, (window, view, _) =>
+    {
+        var host = view.GetVisualDescendants().OfType<Panel>().First(p => p.IsEffectivelyVisible && p.Bounds.Width > 100);
+        var markdown = new Marrow.UI.Markdown.MarkdownView("Words a reader may copy.");
+        host.Children.Add(markdown);
+        try
+        {
+            Drain(window);
+            var paragraph = markdown.GetVisualDescendants().OfType<ParagraphTextPresenter>().First();
+            var menu = new EscapeInsideMenu(window);
+            using (NativeContextMenus.Presenter.Override(menu))
+                paragraph.RaiseEvent(new ContextRequestedEventArgs());
+            Assert.True(menu.ShownAfterEscape, "Escape over the paragraph's text menu closed the Settings window");
+            Assert.Equal(1, menu.Dismissed);
+            Assert.True(window.IsVisible);
+            Escape(window);
+            Assert.False(window.IsVisible); // the menu is gone: Escape closes the window
+        }
+        finally { host.Children.Remove(markdown); }
+    });
+
+    // A text menu closed without Escape (a row chosen, a click outside it) is no longer over the window.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void A_paragraph_text_menu_closed_otherwise_leaves_the_next_escape_to_the_window() => Open(SettingsPage.About, (window, view, _) =>
+    {
+        var host = view.GetVisualDescendants().OfType<Panel>().First(p => p.IsEffectivelyVisible && p.Bounds.Width > 100);
+        var markdown = new Marrow.UI.Markdown.MarkdownView("Words a reader may copy.");
+        host.Children.Add(markdown);
+        try
+        {
+            Drain(window);
+            var paragraph = markdown.GetVisualDescendants().OfType<ParagraphTextPresenter>().First();
+            using (NativeContextMenus.Presenter.Override(new EscapeInsideMenu(window, pressEscape: false)))
+                paragraph.RaiseEvent(new ContextRequestedEventArgs());
+            Escape(window);
+            Assert.False(window.IsVisible);
+        }
+        finally { host.Children.Remove(markdown); }
+    });
 }
