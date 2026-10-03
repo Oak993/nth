@@ -541,7 +541,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-005 / -006: Return and the arrows ----
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:86-90
+    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:86-90
+    // (was Rule R-TEST-6 for STOP #5; these needles and titles are ASCII, where the canonical and the ordinal readings of
+    // `lowercased().contains` agree, so the expectations do not rest on that open item)
     public void Return_selects_the_first_thread_of_the_first_search_result()
     {
         headless.OnUiThread(() =>
@@ -570,7 +572,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:87
+    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:87 (ASCII only, as above: STOP #5 does not bear on it)
     public void Return_with_no_result_changes_nothing()
     {
         headless.OnUiThread(() =>
