@@ -11065,6 +11065,124 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             WindowOf(row).Close();
         });
     });
+
+    // ---- REVIEW (pass 2, round 1, adversarial): two changes the port makes by a cut where the Mac fades ----
+    //
+    // (1) Chrome.swift:735-737 SidebarRow flips isHovering inside withAnimation(Chrome.hover), and the project row's
+    // accessory (SidebarView.swift:1115-1133) is `if hovering || isMenuPresented { HStack { ellipsis; plus } } else if
+    // !project.isExpanded, count > 0 { Text(count) }`: the two branches swap on SwiftUI's default .opacity transition under
+    // that easeOut 0.1 s, as the helper row's status and ellipsis do (Hovering_a_helper_row_crossfades_its_status_out_...).
+    // OD-0076: nothing on screen changes by a cut. The port's SidebarRow (Chrome.cs) removes the old accessory and adds the
+    // new one at once, so a search result's inert project row (UI-SIDEBAR-058 "still shows its hover accessories") shows
+    // them by a cut.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-058")] // SidebarView.swift:709, :1115-1133; Chrome.swift:731-737
+    public void REVIEW_Round2_A_search_results_project_row_crossfades_its_count_out_and_its_hover_accessories_in_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false }; // folded: the idle accessory is the count (:1127-1131)
+        var thread = NewThread(project, "Fix it", 1);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1, togglesExpansion: false); // :709 the search result's own project row
+            window = WindowOf(row);
+        });
+        try
+        {
+            TextBlock count = null!;
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                count = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "1"); // :1127-1131 while the pointer is elsewhere
+                Assert.Empty(LogicalQuery.SelfAndDescendants<RowActionsButton>(row));
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // onto the row's icon
+            });
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s
+            harness.Main.OnMain(() =>
+            {
+                Assert.InRange(ShownOpacityWithin(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single(), row), 0.05, 0.95); // fading in
+                Assert.Contains(count, LogicalQuery.SelfAndDescendants<TextBlock>(row)); // the count is still drawn ...
+                Assert.InRange(ShownOpacityWithin(count, row), 0.05, 0.95); // ... fading out
+            });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "1");
+                Assert.Equal(1d, ShownOpacityWithin(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single(), row));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // (2) 2-chat-use.mov 5.340-5.378 s (frames python frames.py extract 2-chat-use.mov 5.30 5.56 --crop 80:50:20:285): on the
+    // chevron's own toggle (SidebarView.swift:1515-1516 withAnimation(.snappy(duration: 0.18))) the down-chevron does not
+    // vanish. At 5.340 s it is whole; at 5.357 s it is still drawn, faint, exactly where it stood, over the first joining
+    // glyph fading in at the same place; it is gone once the toggle has run (and the up-chevron is under the grown card's
+    // last row). OD-0076 asks the same. The port rebuilds the card's stack and puts a new up-chevron in at once, so the
+    // down-chevron is gone in the first frame.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1514-1526 the chevron, :1515-1516 its snappy toggle; 2-chat-use.mov 5.340-5.378 s
+    public void REVIEW_Round2_The_head_cards_down_chevron_fades_out_where_it_stood_on_its_own_toggle_instead_of_vanishing() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 15).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<SwiftImage> Chevrons(string symbol) => LogicalQuery.SelfAndDescendants<SwiftImage>(card).Where(i => i.SymbolName == symbol).ToList();
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        Rect downWhenCollapsed = default;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var down = Chevrons("chevron.down").Single();
+                downWhenCollapsed = Frame(down, card);
+                Assert.True(downWhenCollapsed.Y > 40, "the head card has not been laid out"); // under the second row of twelve
+                Click(LogicalQuery.SelfAndDescendants<Button>(card).Single(b => b.GetLogicalDescendants().Contains(down)));
+            });
+            harness.Main.OnMain(() => { });
+            Frames(2); // about 32 ms into the 0.18 s snappy toggle (the video's 5.357 s frame is 17-27 ms after the press)
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var down = Assert.Single(Chevrons("chevron.down")); // still drawn ...
+                Assert.InRange(ShownOpacityWithin(down, card), 0.02, 0.98); // ... fading out ...
+                Assert.True(Math.Abs(Frame(down, card).Y - downWhenCollapsed.Y) < 0.5, "the down-chevron fades where it stood"); // ... in place
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Empty(Chevrons("chevron.down")); // gone once the toggle has run
+                Assert.Equal(1d, ShownOpacityWithin(Chevrons("chevron.up").Single(), card));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
 }
 
 // STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)
