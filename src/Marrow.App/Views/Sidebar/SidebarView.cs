@@ -3058,7 +3058,7 @@ internal sealed class SidebarThreadRow : Decorator
         Child = ApplyDraggedLift(overlays, () => isDragged); // :1838-1849
         var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         Control? check = null, trailing = null, fold = null;
-        bool? selectedBefore = null;
+        bool? selectedBefore = null, actionsBefore = null;
         this.Track(() =>
         {
             var thread = Thread();
@@ -3081,16 +3081,31 @@ internal sealed class SidebarThreadRow : Decorator
             fill.Set(colors.Background, selectedBefore is not null && selectedBefore != selected ? Chrome.Hover : Transaction.Current); // :1750-1754
             selectedBefore = selected;
             pinnedOverlay.Background = colors.PinnedOverlay?.Brush(pinnedOverlay); // :1756-1758
-            if (check is not null) overlays.Children.Remove(check);
-            if (trailing is not null) overlays.Children.Remove(trailing);
-            if (fold is not null) overlays.Children.Remove(fold);
-            check = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
-            if (check is not null) overlays.Children.Add(check);
-            trailing = BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
-                actions ? MakeActions() : [], menuPresented); // :1772-1801 actions are built only when visible
-            overlays.Children.Add(trailing);
-            fold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
-            if (fold is not null) overlays.Children.Add(fold);
+            // :1816-1817 the hover flips `showsActions` inside withAnimation(Chrome.hover): the branches that come and go
+            // with it (the check, the trailing buttons or status or time, the fold chevron) leave and join on SwiftUI's
+            // default .opacity transition, so they crossfade (2-chat-use.mov 70.74-71.30 s). Any other rebuild is an
+            // update of the same branch and replaces in place.
+            var hoverFlip = actionsBefore is { } before && before != actions && Transaction.Current is not null;
+            actionsBefore = actions;
+            void Swap(ref Control? slot, Control? next, bool branchChanged)
+            {
+                var crossfade = hoverFlip && branchChanged;
+                if (slot is not null)
+                {
+                    if (crossfade) SwiftTransition.Remove(overlays, slot);
+                    else overlays.Children.Remove(SwiftTransition.Container(slot));
+                }
+                slot = next;
+                if (next is null) return;
+                if (crossfade) SwiftTransition.Insert(overlays, overlays.Children.Count, next);
+                else overlays.Children.Add(next);
+            }
+            var nextCheck = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
+            Swap(ref check, nextCheck, (check is null) != (nextCheck is null)); // a settled row keeps its check: same branch
+            Swap(ref trailing, BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
+                actions ? MakeActions() : [], menuPresented), branchChanged: true); // :1772-1801 the hover always changes the branch
+            var nextFold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
+            Swap(ref fold, nextFold, (fold is null) != (nextFold is null));
             SetHidden(hidden); // :1834-1838
             AutomationProperties.SetName(selectButton, thread.Title); // :1871-1872
         });

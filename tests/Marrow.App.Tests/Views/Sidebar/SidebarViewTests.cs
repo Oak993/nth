@@ -6733,6 +6733,62 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Activator.CreateInstance(Private("SidebarMenuRequests")), (Action)(() => { }), (Action)(() => { }),
             dragged, listFrame, fold)!);
 
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:1772-1814 the trailing branches, swapped inside :1816-1817 withAnimation(Chrome.hover)
+    [Trait("Req", "UI-SIDEBAR-023")] // the time label gives way to the hover buttons
+    // A view that leaves or joins under an animation uses SwiftUI's default .opacity transition, so the age label fades
+    // out while the buttons fade in (2-chat-use.mov 70.74-71.30 s, CATALOGUE hover.main-sidebar-thread-row: "the trailing
+    // age label crossfades OUT while the row's buttons crossfade IN", ~90-110 ms).
+    public void Hovering_a_thread_row_crossfades_its_time_label_out_and_its_buttons_in_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Row", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        static double ShownOpacity(Control control) =>
+            control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => v.GetType() != Private("SidebarThreadRow")).Aggregate(1d, (o, v) => o * v.Opacity);
+        harness.Main.OnMain(() =>
+        {
+            row = LiveThreadRow(thread);
+            window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+        });
+        try
+        {
+            RelativeTimeLabel time = null!;
+            harness.Main.OnMain(() =>
+            {
+                time = LogicalQuery.SelfAndDescendants<RelativeTimeLabel>(row).Single();
+                Assert.Empty(LogicalQuery.SelfAndDescendants<RowActionsButton>(row));
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s
+            harness.Main.OnMain(() =>
+            {
+                var ellipsis = LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single();
+                Assert.InRange(ShownOpacity(ellipsis), 0.05, 0.95); // fading in
+                Assert.Same(time, LogicalQuery.SelfAndDescendants<RelativeTimeLabel>(row).Single()); // the old label is still there,
+                Assert.InRange(ShownOpacity(time), 0.05, 0.95); // fading out
+            });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<RelativeTimeLabel>(row)); // gone once faded
+                Assert.Equal(1d, ShownOpacity(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single()));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
     private static Control WithNaturalRowHeight(Control row)
     {
         row.VerticalAlignment = VerticalAlignment.Top;
