@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
@@ -57,4 +58,33 @@ public sealed class ThreadTimelineReviewRound2Tests(HeadlessSession headless)
             Assert.True(ReferenceEquals(strip, Assert.Single(LogicalQuery.SelfAndDescendants<AttachmentStrip>(user))), "the attachment strip is made again as the turn ends");
             Assert.True(ReferenceEquals(bubble, Assert.Single(LogicalQuery.SelfAndDescendants<InlineText>(user))), "the bubble's selectable text is made again as the turn ends");
         });
+
+    private static double ShownOpacity(Control control, Control upTo)
+    {
+        var opacity = 1.0;
+        for (Avalonia.Visual? at = control; at is not null; at = at.GetVisualParent())
+        {
+            opacity *= at.Opacity;
+            if (ReferenceEquals(at, upTo)) break;
+        }
+        return opacity;
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // REVIEW PR-CHAT-026 / OD-0076 ("content that swaps crossfades", nothing on screen changes by a cut): NewThreadPrompt.swift:25-29 (the name's Text), :74-80 (the move runs under withAnimation(Chrome.panelSlide)); ThreadTimeline.swift:136-141
+    public void REVIEW_picking_another_project_on_the_empty_threads_prompt_swaps_its_words_with_a_transition_not_a_cut() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
+        TextBlock? Showing(string words) => LogicalQuery.SelfAndDescendants<TextBlock>(prompt).FirstOrDefault(text => text.Text == words && ShownOpacity(text, prompt) > 0.001);
+        Assert.NotNull(Showing("Project"));
+        // The reader picks another project in the prompt's picker: the chat hands the timeline the new name.
+        typeof(ThreadTimeline).GetMethod("UpdateInputs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(mount.View, ["Another", null, false, 480.0, true]);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+        var next = Showing("Another");
+        var cut = Showing("Project") is null && next is not null && ShownOpacity(next, prompt) >= 0.999;
+        Assert.False(cut, "the old name is gone and the new one is at full opacity in the same frame: the words change by a cut");
+        mount.Advance(800); // and the swap is over
+        Assert.Null(Showing("Project")); Assert.NotNull(Showing("Another")); Assert.Equal(1, ShownOpacity(Showing("Another")!, prompt), 3);
+    });
 }
