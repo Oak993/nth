@@ -147,6 +147,7 @@ public sealed class TimelineRowsFinMergeOutcomeTests(HeadlessSession headless)
     [InlineData("https://gitlab.com/g/p/-/merge_requests/7\n1 file (+2 −1) landed on `main` from `head`.", true)]
     [InlineData("1 file (+2 −1) landed on `main` from `head`.", false)]
     [InlineData("LONG", false)]
+    [InlineData("https://gitlab.com/g/p/-/merge_requests/7\nThe pipeline failed: see [the lint job](https://gitlab.com/g/p/-/jobs/12).", false)]
     [Trait("Req", "PR-HYDRAMERGE-090")] // TimelineRows.swift:1111-1120 the merge card only when all three conditions hold
     [Trait("Req", "UI-HYDRAMERGE-007")] // TimelineRows.swift:607-640 the generic report popover
     [Trait("Req", "UI-CHAT-050")] // TimelineRows.swift:607-639 the report panel
@@ -198,6 +199,16 @@ public sealed class TimelineRowsFinMergeOutcomeTests(HeadlessSession headless)
                 Assert.Equal(12, MarkdownView.GetMarkdownPointSize(blocks[0]));
                 Assert.False(MarkdownView.GetMarkdownDimmed(blocks[0]));
                 Assert.Equal(12, Avalonia.Controls.Documents.TextElement.GetFontSize(stack));
+                // What those mean on screen (review round 5): every text of the report is drawn at 12 points, the callout text style
+                // (:630) and the markdown point size (:631) alike. A paragraph with a link (each leading address here) is InlineText's
+                // link branch, LinkParagraphView(pointSize: scaled) (MarkdownView.swift:1094, :1114 at B3), drawn at the markdown point
+                // size, which the report sets on blocks already built (InlineText runs body again: MarkdownView.cs InlineText).
+                var drawn = LogicalQuery.SelfAndDescendants<SelectableTextBlock>(report).ToArray();
+                Assert.NotEmpty(drawn);
+                if (body.Contains("](", StringComparison.Ordinal)) Assert.NotEmpty(LogicalQuery.SelfAndDescendants<LinkParagraphView>(report));
+                foreach (var text in drawn)
+                    Assert.True(DrawnProseSizes(text).SequenceEqual([12.0]),
+                        $"the report's \"{text.Inlines?.Text ?? text.Text}\" is drawn at {string.Join(", ", DrawnProseSizes(text))} points");
                 Assert.Equal(new Thickness(16, 14), Assert.IsAssignableFrom<Decorator>(stack.Parent).Padding);
                 Assert.True(MarkdownView.GetMarkdownBlockSelection(stack)); // :633 textSelection(.enabled)
             }

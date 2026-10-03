@@ -35,6 +35,9 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     {
         using var h = TimelineRowsPrSupport.Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        // No network (R-TEST-10; added by the round-5 fix, the assertions untouched): the bubble's link paragraph asks for its host's
+        // favicon, which now awaits a seeded in-flight fetch instead of example.com itself.
+        using var noNetwork = new HydraMergeFaviconSeed("example.com", null, new TaskCompletionSource<Avalonia.Media.IImage?>().Task);
         Avalonia.Controls.Window window = null!;
         try
         {
@@ -61,6 +64,9 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     {
         using var h = TimelineRowsPrSupport.Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        // No network (R-TEST-10; added by the round-5 fix, the assertions untouched): the shown report's link paragraph asks for its
+        // host's favicon, which now awaits a seeded in-flight fetch instead of gitlab.com itself.
+        using var noNetwork = new HydraMergeFaviconSeed("gitlab.com", null, new TaskCompletionSource<Avalonia.Media.IImage?>().Task);
         Avalonia.Controls.Window window = null!;
         try
         {

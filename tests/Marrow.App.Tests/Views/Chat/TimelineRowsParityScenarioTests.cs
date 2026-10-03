@@ -578,16 +578,34 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     }
 
+    // The pointer over the middle of the first box of some words of a text block.
+    private static void MoveOver(AvaloniaWindow window, SelectableTextBlock text, string words)
+    {
+        var at = (text.Inlines?.Text ?? text.Text ?? "").IndexOf(words, StringComparison.Ordinal);
+        Assert.True(at >= 0, $"\"{words}\" is not in the text");
+        var box = text.TextLayout.HitTestTextRange(at, words.Length).First();
+        var point = text.TranslatePoint(new Point(text.Padding.Left + box.X + box.Width / 2, text.Padding.Top + box.Y + box.Height / 2), window)
+            ?? throw new InvalidOperationException("not mounted");
+        window.MouseMove(point, RawInputModifiers.None);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+    }
+
     // :123 the bubble, and every block of a reply (MarkdownView.swift:318, :1131, :1229, :1308 MarkdownBlockSelection on the
     // prose, the inline text, the code and the table), carry .textSelection(.enabled) of their own: a drag selects inside
     // the block it starts in and never runs on into the next block, and there is no whole-reply selection layer
-    // (whole-reply copying is the row menu's Copy message and Copy as markdown, PR-CHAT-089).
+    // (whole-reply copying is the row menu's Copy message and Copy as markdown, PR-CHAT-089). The windows_path's link text (review
+    // round 5): a sent bubble with a bare domain (:119-123) and a report paragraph with a link (:633) are InlineText's link branch,
+    // LinkParagraphView, an NSTextView that "shows the native pointing hand over links and the I-beam over prose" (LinkParagraphView.swift:4-8)
+    // and takes its own drag (isSelectable, :312-313): the hand over the link, the I-beam over the prose, and a drag that starts on the
+    // prose selects the paragraph's words. No network: each link's host has a seeded in-flight favicon fetch (R-TEST-10).
     [Fact]
-    [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:123, :1364; MarkdownView.swift:318, :1131, :1229
+    [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:119-123, :633, :1364; MarkdownView.swift:318, :1131, :1229; LinkParagraphView.swift:4-8, :312-313
     public void A_drag_selects_inside_the_block_it_starts_in_across_a_reply_its_code_block_and_a_bubble() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var bubbleHost = new HydraMergeFaviconSeed("hover-hand.com", null, new TaskCompletionSource<Avalonia.Media.IImage?>().Task);
+        using var reportHost = new HydraMergeFaviconSeed("hover-hand-report.com", null, new TaskCompletionSource<Avalonia.Media.IImage?>().Task);
         AvaloniaWindow window = null!;
         try
         {
@@ -595,7 +613,9 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
             {
                 var reply = new AssistantMessageRow(Reply("First words of the answer.\n\nSecond paragraph of the answer.\n\n```\nlet code = 1\n```"), null, h.Runtime);
                 var bubble = new UserMessageRow(UserEntry("plain words in a bubble", Guid.NewGuid()), h.Runtime, canRevert: false);
-                window = Show(new StackPanel { Spacing = 40, Children = { reply, bubble } });
+                var linkBubble = new UserMessageRow(UserEntry("see hover-hand.com for it", Guid.NewGuid()), h.Runtime, canRevert: false);
+                var report = new HydraReportPopover("Plain words of the report.\n\nThe pipeline failed: see [the lint job](https://hover-hand-report.com/jobs/12).");
+                window = Show(new StackPanel { Spacing = 40, Children = { reply, bubble, linkBubble, report } });
                 Settle(window);
                 var prose = Assert.Single(reply.GetVisualDescendants().OfType<ParagraphTextPresenter>()); // one prose run, both paragraphs
                 var code = Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<SelectableTextBlock>());
@@ -614,6 +634,25 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 // The sent bubble selects inside itself too (:123).
                 Drag(window, words, new Point(1, words.Bounds.Height / 2), words, new Point(words.Bounds.Width - 1, words.Bounds.Height / 2));
                 Assert.Equal("plain words in a bubble", words.SelectedText);
+
+                // Link text: the bubble with a bare domain and the report's paragraph with a link.
+                var linkWords = Assert.Single(Assert.Single(linkBubble.GetVisualDescendants().OfType<LinkParagraphView>()).GetVisualDescendants().OfType<SelectableTextBlock>());
+                var reportLink = Assert.Single(Assert.Single(report.GetVisualDescendants().OfType<LinkParagraphView>()).GetVisualDescendants().OfType<SelectableTextBlock>());
+                foreach (var (text, proseWords, link, whole) in new[]
+                {
+                    (linkWords, "see", "hover-hand.com", "see hover-hand.com for it"),
+                    (reportLink, "pipeline", "the lint job", "The pipeline failed: see the lint job."),
+                })
+                {
+                    Assert.Equal(whole, text.Inlines!.Text);
+                    MoveOver(window, text, link);
+                    Assert.Equal("Hand", text.Cursor?.ToString()); // the pointing hand over the link
+                    MoveOver(window, text, proseWords);
+                    Assert.Equal("Ibeam", text.Cursor?.ToString()); // the I-beam over the prose
+                    // A drag that starts on the prose selects the paragraph's words in the paragraph itself, never anything around it.
+                    Drag(window, text, new Point(1, text.Bounds.Height / 2), text, new Point(text.Bounds.Width - 1, text.Bounds.Height / 2));
+                    Assert.Equal(whole, text.SelectedText);
+                }
             });
         }
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
@@ -708,6 +747,8 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     {
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        // No network: the link's host has a seeded in-flight favicon fetch (the open report's paragraph asks for it, R-TEST-10).
+        using var jobHost = new HydraMergeFaviconSeed("gitlab.com", null, new TaskCompletionSource<Avalonia.Media.IImage?>().Task);
         using var presenter = new TimelineRowsPrPopupPresenter();
         using var seam = Presentation.Presenter.Override(presenter);
         AvaloniaWindow window = null!;
@@ -740,8 +781,14 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                     var texts = report.GetVisualDescendants().OfType<SelectableTextBlock>().ToArray();
                     var runs = report.GetVisualDescendants().OfType<ParagraphTextPresenter>().ToArray();
                     Assert.NotEmpty(texts.Cast<Control>().Concat(runs));
+                    Assert.Empty(runs); // the report's blocks are MarkdownBlockViews (:625-628), so every text is a SelectableTextBlock
                     foreach (var selectable in texts)
                     {
+                        // :630-631 the callout text style and the markdown point size, both 12: every text of the report is drawn at
+                        // 12 points, a paragraph with a link included (LinkParagraphView(pointSize: scaled), MarkdownView.swift:1094,
+                        // :1114 at B3; review round 5 found the link paragraph drawn at the 13-point default).
+                        Assert.True(DrawnProseSizes(selectable).SequenceEqual([12.0]),
+                            $"the report's \"{selectable.Inlines?.Text ?? selectable.Text}\" is drawn at {string.Join(", ", DrawnProseSizes(selectable))} points");
                         selectable.SelectAll();
                         Assert.False(string.IsNullOrEmpty(selectable.SelectedText));
                         Assert.True((selectable.SelectionBrush as Avalonia.Media.ISolidColorBrush)?.Color == system,

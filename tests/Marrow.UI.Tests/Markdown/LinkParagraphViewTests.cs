@@ -1258,4 +1258,38 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
         }
         finally { FaviconCacheSeed.Remove(host); }
     });
+
+    // ---- Review round 5 of the TimelineRows parity pass (2026-10-03): the cached measurement ----
+
+    // :490-494 render(_:): a new string drops the cached measurement (lastMeasuredHeight = 0; measuredWidth = 0), so height(forWidth:)
+    // (:498-507) measures the new text instead of handing back the old text's height for the same width (:500). A favicon-load bump
+    // draws the string again with the icon and a space in front of the link (:134-150), which can push the paragraph onto a second
+    // line at a width the text alone fitted.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-152 (height(forWidth:) measures the text on screen): DroppyCode/UI/Markdown/LinkParagraphView.swift:490-494, :498-507
+    public void A_string_drawn_again_drops_the_cached_height_so_an_icon_that_wraps_the_line_is_measured() => headless.OnUiThread(() =>
+    {
+        const string host = "measure-reset.com";
+        var icon = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(4, 4), new Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        var paragraph = new LinkParagraphView("see [the page](https://measure-reset.com/a) now");
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        block.Measure(Size.Infinity);
+        var width = Math.Ceiling(block.DesiredSize.Width) + 1; // the text alone fits on one line, with a point to spare
+        var oneLine = view.HeightForWidth(width);
+        Assert.True(oneLine > 0);
+        Assert.Equal(oneLine, view.HeightForWidth(width)); // the same width again: the cached height (:500)
+        FaviconCacheSeed.Seed(host, icon);
+        try
+        {
+            paragraph.Update(revision: 1); // the icon and a space now stand in front of the link: wider than the width
+            Assert.Single(block.Inlines!.OfType<InlineUIContainer>());
+            block.Measure(Size.Infinity);
+            Assert.True(block.DesiredSize.Width > width, "the icon did not widen the line past the width");
+            Assert.True(view.HeightForWidth(width) > oneLine,
+                $"the paragraph's height at {width} points is still the one-line height {oneLine} of the text drawn before the icon");
+        }
+        finally { FaviconCacheSeed.Remove(host); }
+    });
 }
