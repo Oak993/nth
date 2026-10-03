@@ -64,7 +64,6 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:10-21, :273-279
-    [Trait("Req", "PR-THEME-153")] // DroppyCode/UI/Markdown/StreamVeil.swift:4-24
     public void Every_kind_of_block_veils_what_a_flush_appends_at_its_own_place_and_settles_to_plain_text() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -118,7 +117,6 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:42, :55-57; DroppyCode/UI/Markdown/StreamVeil.swift:344-431
-    [Trait("Req", "PR-THEME-161")] // DroppyCode/UI/Markdown/StreamVeil.swift:409-430
     public void A_link_paragraph_fades_its_appended_tail_through_the_rebuilds_keeping_its_link_in_the_accent() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -170,7 +168,6 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:73-77 (a view going away detaches the veil it drew)
-    [Trait("Req", "PR-THEME-161")] // DroppyCode/UI/Markdown/StreamVeil.swift:370-372
     public void A_link_view_leaving_after_a_newer_one_took_the_kept_veil_over_leaves_the_veil_and_the_new_views_fade_alone() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -211,7 +208,6 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     [InlineData(false)]
     [InlineData(true)]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:311, :319
-    [Trait("Req", "PR-THEME-160")] // DroppyCode/UI/Markdown/StreamVeil.swift:309-338
     public void An_arriving_run_is_painted_in_the_primary_colour_at_its_alpha_and_in_the_dimmed_primary_when_the_reply_is_dimmed(bool dimmed) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -314,7 +310,6 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:376-392 (the clock holds its last frame through a scroll)
-    [Trait("Req", "PR-THEME-161")] // DroppyCode/UI/Markdown/StreamVeil.swift:376-392
     public void The_link_text_veil_holds_its_frame_while_the_timeline_is_scrolling_and_resumes_after() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -353,8 +348,41 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:183-188 (the shared clock holds its last frame through a scroll, so the veiled paragraphs are not redrawn; the ramp resumes when the scroll ends)
+    public void A_veiled_text_holds_its_frame_while_the_timeline_is_scrolling_and_resumes_after() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var scroll = new ScrollActivity();
+        using var scrollScope = ScrollActivity.Shared.Override(scroll);
+        FreshVeilClock();
+        var host = new StreamVeilFlowHost(runtime, "Hello");
+        try
+        {
+            host.Flush(runtime, "Hello there");
+            Tick(runtime, frames, 100);
+            var held = Runs(host.Decorator)[1].Opacity;
+            Assert.Equal(Alpha(0.25) * Runs(host.Decorator)[0].Opacity, held, 0.01);
+
+            var timeline = Guid.NewGuid();
+            runtime.OnMain(() => scroll.SetScrolling(true, timeline));
+            Tick(runtime, frames, 100);
+            Assert.Equal(held, Runs(host.Decorator)[1].Opacity, 0.001); // the reader is scrolling: no frame is drawn
+
+            runtime.OnMain(() => scroll.SetScrolling(false, timeline));
+            Tick(runtime, frames, 50);
+            Assert.True(Runs(host.Decorator)[1].Opacity > held + 0.05, "the ramp resumes when the scroll ends, at the time it has reached");
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            host.Window.Close();
+        }
+    });
+
+    [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:40, :73-80 (a fast stream: the cadence EMA, clamped to 120 ms at the bottom)
-    [Trait("Req", "PR-THEME-154")] // DroppyCode/UI/Markdown/StreamVeil.swift:40-44,73-81
     public void A_fast_stream_clamps_the_fade_to_120_milliseconds()
     {
         using var runtime = new TestRuntime();
@@ -376,7 +404,6 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:44, :75 (a gap counts at most one second)
-    [Trait("Req", "PR-THEME-154")] // DroppyCode/UI/Markdown/StreamVeil.swift:40-44,73-81
     public void A_long_gap_counts_as_one_second_in_the_cadence()
     {
         using var runtime = new TestRuntime();
