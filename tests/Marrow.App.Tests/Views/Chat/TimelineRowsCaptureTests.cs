@@ -146,4 +146,24 @@ public sealed class TimelineRowsCaptureTests(HeadlessSession headless)
         }
         finally { h.Main.OnMain(() => ThemeManager.Current = previous); }
     });
+
+    // ---------------------------------------------------------------- PR-CHAT-116 (partial)
+
+    // The folded turns' headers in the reference video read "Worked for 5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
+    // (2-chat-use.mov 9.0 s and 168.0 s; catalogue static.timeline-rows; mac_full_9, mac_full_168 in the evidence folder): the
+    // reference runtime's narrow units with a space between them. The record also asks for 0 s, a negative interval, 3599 s
+    // and 3725 s, which appear in no frame, so PR-CHAT-116 stays in STOP #11.
+    [Theory]
+    [Trait("Rule", "R-TEST-4")] // partial evidence for PR-CHAT-116; TimelineRows.swift:2448-2455
+    [InlineData(TurnStatus.Completed, 5.0, "Worked for 5s")]
+    [InlineData(TurnStatus.Completed, 10.0, "Worked for 10s")]
+    [InlineData(TurnStatus.Completed, 28.0, "Worked for 28s")]
+    [InlineData(TurnStatus.Completed, 38.0, "Worked for 38s")]
+    [InlineData(TurnStatus.Completed, 83.0, "Worked for 1m 23s")]
+    [InlineData(TurnStatus.Failed, 1.0, "Failed after 1s")]
+    public void The_turn_end_label_reads_as_the_reference_video_shows(TurnStatus status, double seconds, string shown)
+    {
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+        Assert.Equal(shown, TurnEndRow.Label(new TurnSummary { TurnID = Guid.NewGuid(), Status = status, Duration = seconds, FilesChanged = 0, Additions = 0, Deletions = 0 }));
+    }
 }

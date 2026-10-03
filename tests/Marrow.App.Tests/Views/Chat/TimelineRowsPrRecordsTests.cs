@@ -155,7 +155,10 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     // expected strings below ("1m 4s", "1h 2m", ...) are the port's own expectations, so they cannot prove the clause; the
     // rest of the record (the three phrasings, the rounding, the clamp at zero, the caption/secondary styling, the row
     // suppressed when a reply exists) does run here (under the local /tmp/icushim; ordinary tests on Windows) and passes,
-    // but the record is not claimed: these tests carry Rule R-TEST-4 until the reference-runtime capture exists. ----
+    // but the record is not claimed: these tests carry Rule R-TEST-4 until the reference-runtime capture exists.
+    // 2026-10-03: the reference video now gives "5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
+    // (TimelineRowsCaptureTests.The_turn_end_label_reads_as_the_reference_video_shows); 0 s, a negative interval and the
+    // hour cases are in no frame, so the record stays open (STOP #11 in TimelineRowsTests). ----
 
     [Theory]
     [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: TimelineRows.Duration needs icu.dll for the current locale.
