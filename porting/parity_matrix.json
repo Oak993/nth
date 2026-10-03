@@ -7302,7 +7302,7 @@
       "title": "The chip's popover is 330 points wide and cross-fades between the slider and the model list in 0.12 seconds",
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:161-188 ModelEffortPanel - Group { showsModels ? ModelList : slider }.frame(width: 330).animation(.easeOut(duration: 0.12), value: showsModels); both branches carry .transition(.opacity)",
-        "DroppyCode/App/Views/Composer/EffortSlider.swift:120-123 the popover hangs below the chip and is wrapped in .presentedChrome()"
+        "DroppyCode/App/Views/Composer/EffortSlider.swift:120-123 .popover(isPresented:arrowEdge: .bottom) wrapped in .presentedChrome(); the reference runtime opens it above the chip, its arrow on the card's bottom edge pointing down at the chip (work/reference-video/2-chat-use.mov 33.74-33.94 s, every frame; study effort-title-2026-10-03/popover_open_sheet.png)"
       ],
       "preconditions": "The chip was clicked.",
       "action": "The user taps the slider's title, or the list's back chevron.",

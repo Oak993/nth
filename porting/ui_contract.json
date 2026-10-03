@@ -2373,7 +2373,7 @@
         "no efforts: the effort text is omitted"
       ],
       "interactions": [
-        "click opens the effort card popover below the chip"
+        "click opens the effort card popover above the chip (reference runtime, 2-chat-use.mov 33.74-33.94 s)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:59-138"
@@ -2789,7 +2789,7 @@
         "cross-fades to the model list over 0.12 s ease-out"
       ],
       "interactions": [
-        "hangs below the model chip"
+        "hangs above the model chip, its arrow pointing down at it (reference runtime, 2-chat-use.mov 33.74-33.94 s)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:153-228",
