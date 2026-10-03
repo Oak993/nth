@@ -173,7 +173,9 @@ public sealed class TimelineRowsUiLabelsTests(HeadlessSession headless)
                 Assert.Equal(Dock.Right, DockPanel.GetDock(line));
                 Assert.Equal(panel.Bounds.Width, line.Bounds.Right, 5);
                 var other = Assert.Single(panel.Children, c => c != line);
-                Assert.True(line.Bounds.Left - other.Bounds.Right >= 8); // :1832 Spacer(minLength:8)
+                // :1774 HStack(spacing: iconSpacing) { badge; Spacer(minLength: 8); outcome }: the stack puts its 8 points on
+                // both sides of the spacer, so the tightest gap is 8 + 8 + 8 = 24 (a truncated subject may end a little short).
+                Assert.True(line.Bounds.Left - other.Bounds.Right >= 24 - 0.5, $"gap {line.Bounds.Left - other.Bounds.Right}"); // :1832 Spacer(minLength:8)
                 Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(line));
             }
             }

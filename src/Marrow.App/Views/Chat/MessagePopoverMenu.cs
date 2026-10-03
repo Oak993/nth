@@ -53,6 +53,19 @@ internal sealed class RightClickPopoverModifier
             }
         });
 
+        // :6 @State private var anchor and :13-18 .popover(isPresented:) both belong to the row's own view: when the row
+        // leaves the hierarchy (scrolled out of the timeline's lazy stack) its state goes, and the popover with it. The
+        // popover must not hold the row as its target after that, or an open menu would pin the row, its entry and its
+        // text (TimelineRows.swift:56-62, :165-178; PR-CHAT-161).
+        content.DetachedFromVisualTree += (_, _) =>
+        {
+            popover.PlacementTarget = null;
+            if (!shown) return;
+            shown = false;
+            popover.Child = null;
+            Presentation.Presenter.Current.SetPresented(popover, false);
+        };
+
         // :14 .popover isPresented: anchor == nil closes the popover
         popover.Closed += (_, _) =>
         {
