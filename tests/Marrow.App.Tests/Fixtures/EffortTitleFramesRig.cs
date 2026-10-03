@@ -20,7 +20,8 @@ namespace Marrow.App.Tests.Fixtures;
 /// E:\Droppy\work\reference-video\study\effort-title-2026-10-03, tools/probe.sh renders, tools/rawconv.py turns the frames into
 /// PNGs with their video times). A schedule is "start;ms:effort;ms:effort", for example "high;0:xhigh;215:max": the slider's
 /// effort at the start, then each change at its millisecond, written inside withAnimation(.snappy(duration: 0.2)) as the
-/// slider writes it (EffortSlider.swift:631). Every step a frame t{ms:0000}.raw is written as the renderer locks it (rows of
+/// slider writes it (EffortSlider.swift:631); the card itself runs a change into or out of maximum on smooth(0.3) (:582,
+/// ED-238 final round 5), so the rig's max events follow the source's curve. Every step a frame t{ms:0000}.raw is written as the renderer locks it (rows of
 /// RowBytes, 4 bytes a pixel), and raw.txt holds the width, height, row bytes, pixel format and alpha format.
 /// </summary>
 internal static class EffortTitleFramesRig

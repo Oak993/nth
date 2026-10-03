@@ -15,9 +15,10 @@
 //   moves as the label's width animates, so a narrowing centred label carries it right, past the chevron); the same
 //   direction whether the effort goes up or down (numericText's default, countsDown: false);
 // - the letters take their turns left to right over about 0.14 s whatever their number ("Max" arrives about 70 ms
-//   apart, "Extra" about 30 ms, the nine leaving letters of "Extra High" about 20 ms), and each then follows the change's
-//   own curve (the first arriving "E" tracks the snappy spring of the slider from about 40 ms after the change); so
-//   the last letters settle about 0.18 s after the change's own duration;
+//   apart, "Extra" about 30 ms, the nine leaving letters of "Extra High" about 20 ms), and each then follows the slider's
+//   snappy curve (the first arriving "E" tracks it from about 40 ms after the change); so the last letters settle about
+//   0.18 s after the change's own duration; they keep that pace when the change itself runs on another curve (the changes
+//   into and out of maximum run on smooth(0.3), EffortSlider.swift:582; final review round 5, LETTERS' PACE below);
 // - leaving letters keep the old colour, arriving ones wear the new one from their first frame (an orange "M" beside a
 //   pink leaving "High");
 // - a gradient title is filled through the new text's own box, set at the label's moving leading edge: its colours span
@@ -26,7 +27,7 @@
 //   coloured across the whole sweep, "um" gone at once; "Extra High" -> "Max" 184.715 s: "Extra" cut through its "a",
 //   "High" gone). A plain colour draws every letter (the pink "High" fading past the chevron, 35.12-35.29 s).
 // ENGINEERING DECISION, UNVERIFIED numbers fitted to those frames: travel 0.4 em, half-size start, 4 pt blur, the turns
-// spread over 55 % of the change's duration (0.14 s for the slider's snappy 0.2), new letters starting 15 % of it
+// spread over 55 % of the letters' pace's duration (the slider's snappy 0.2: 0.14 s), new letters starting 15 % of it
 // (0.04 s) late, scaling about each letter's centre.
 // Side by side with the video in study\effort-title-2026-10-03\sbs_*.png.
 // While a change runs every letter is drawn as its own glyph run of one (so no neighbour is drawn with it and a gradient
@@ -117,14 +118,16 @@ public class MorphingTextBlock : TextBlock
     // a change's leaving letters take their turns first to last over SpreadShare of its duration as from rest, but share
     // them with the letters the changes it interrupts are still taking away, each counted by how much of it still shows
     // (Lingering: its opacity as drawn when the change begins). The widening's takeover interrupts High -> Extra High, which
-    // takes nothing away: the nine go 17.8 ms apart, as before. The narrowing's interrupts Max -> Extra High 118 ms in, whose
-    // "M", "a" and "x" still show 0.05, 0.53 and 1: the five of "Extra" share the turns of 6.58, 25.5 ms apart, the "a" at
-    // 102 ms. Measured on the label's drawing at the video's frames (work/claude-verify/resume-2026-10-03/
-    // effort-fix-r6.takeover-probe.lingering.txt): the "a" 0.92, 0.71, 0.47, 0.27, 0.16, 0.07, 0.02 at 35.865-35.987 s against
-    // the ink above (rms 0.045; the ink is a floor, as a leaving letter also shrinks and blurs); "x", "t", "r", "a" at 0.72,
-    // 0.88, 0.79, 0.64 at 35.807 s; the widening's "r" and "a" 0.95 and 0.79 at 35.100 s, 0.10 and 0.19 at 35.207 s,
-    // unchanged. Side by side: sbs_takeover_dec_r5.png, sbs_dec_after_r5.png; the widening's and the pair's frames are
-    // byte-identical to round 2's (sbs_takeover_inc.png, sbs_inc_after_r4.png, sbs_pair_after_r4.png). Replaced: round 2's
+    // takes nothing away: the nine go 17.8 ms apart, as before. The narrowing's interrupts Max -> Extra High, which the source
+    // runs on smooth(0.3) from 35.623 s (final review round 5; round 4 fitted it on snappy(0.2) from 35.635 s), 130 ms in, its
+    // letters at their pace (LETTERS' PACE): the "M", "a" and "x" of "Max" still show 0.03, 0.40 and 1, so the five of
+    // "Extra" share the turns of 6.43, 26.2 ms apart, the "a" at 105 ms, where the frames put it. Measured on the label's
+    // drawing at the video's frames (work/claude-verify/resume-2026-10-03/effort-fix-r7.takeover-probe.txt): the "a" 0.96,
+    // 0.75, 0.50, 0.29, 0.18, 0.08, 0.03 at 35.865-35.987 s against the ink above (rms 0.029; the ink is a floor, as a leaving
+    // letter also shrinks and blurs; round 4's fit on snappy: 0.92, 0.71, 0.47, 0.27, 0.16, 0.07, 0.02, rms 0.045); "x", "t",
+    // "r", "a" at 0.75, 0.93, 0.86, 0.74 at 35.807 s; the widening's "r" and "a" 0.95 and 0.79 at 35.100 s, 0.10 and 0.19 at
+    // 35.207 s, unchanged. Side by side: sbs_takeover_dec_r6.png, sbs_dec_after_r6.png, sbs_takeover_inc_r6.png,
+    // sbs_inc_after_r6.png, sbs_pair_after_r6.png (round 4's r5 and r4 sheets kept). Replaced: round 2's
     // turns by place among all the old line's letters, the kept ones counted, which put the "a" at 72 ms (0.57, 0.35, 0.19,
     // 0.09, 0.05, 0.01; effort-fix-r6.takeover-probe.head.txt) and, for a change keeping a prefix ("12" -> "13" -> "14"),
     // left the leaving "3" waiting for the last turn of the line; it now leaves at once. The "x", "t" and "r" cannot be
