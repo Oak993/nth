@@ -326,6 +326,38 @@ public sealed class MarkdownVeils
     private static bool IsUnder(string place, string path) =>
         path.Length == 0 || place == path || place.StartsWith(path + "/", StringComparison.Ordinal);
 
+    /// <summary>PORT-ONLY (UI-THEME-047, OD-0076). Whether a place at or under <paramref name="path"/> keeps the text it was fed or a chunk in flight:
+    /// the reply drawn there was streaming on screen, so the end of its stream may still carry words in flight or a last batch.</summary>
+    internal bool HoldsTextUnder(string path) =>
+        text.Any(pair => IsUnder(pair.Key, path) && !pair.Value.Veil.IsEmpty) || HoldsLinkTextUnder(path);
+
+    /// <summary>PORT-ONLY (OD-0076). Whether a link paragraph's place at or under <paramref name="path"/> keeps its text: its view feeds the veil only
+    /// once it is in the tree (LinkTextView.OnAttachedToVisualTree), so a batch that ends the stream there is known only after that.</summary>
+    internal bool HoldsLinkTextUnder(string path) => links.Any(pair => IsUnder(pair.Key, path) && !pair.Value.IsEmpty);
+
+    /// <summary>PORT-ONLY (OD-0076). When the last chunk still dissolving at <paramref name="at"/> at or under <paramref name="path"/> settles, or null when
+    /// nothing there dissolves any more (StreamVeil.swift:97-100 isFading, :110-113 settlesAt).</summary>
+    internal DateTimeOffset? FadingUntil(string path, DateTimeOffset at)
+    {
+        DateTimeOffset? latest = null;
+        void Consider(DateTimeOffset? settles)
+        {
+            if (settles is { } value && (latest is null || value > latest.Value)) latest = value;
+        }
+
+        foreach (var (place, known) in text)
+        {
+            if (IsUnder(place, path) && known.Veil.IsFading(at)) Consider(known.Veil.SettlesAt);
+        }
+
+        foreach (var (place, veil) in links)
+        {
+            if (IsUnder(place, path) && veil.IsFading(at)) Consider(veil.SettlesAt);
+        }
+
+        return latest;
+    }
+
     /// <summary>PORT-ONLY, observed by the tests: how many places hold a veil (each with its owner view).</summary>
     public int Places => text.Count + links.Count;
 
@@ -354,6 +386,15 @@ public sealed class MarkdownVeilScope
 
     /// <summary>The reply under this place has stopped streaming and its views have left: see <see cref="MarkdownVeils.Release"/>.</summary>
     internal void Release() => store.Release(path);
+
+    /// <summary>See <see cref="MarkdownVeils.HoldsTextUnder(string)"/>.</summary>
+    internal bool HoldsText => store.HoldsTextUnder(path);
+
+    /// <summary>See <see cref="MarkdownVeils.HoldsLinkTextUnder(string)"/>.</summary>
+    internal bool HoldsLinkText => store.HoldsLinkTextUnder(path);
+
+    /// <summary>See <see cref="MarkdownVeils.FadingUntil(string, DateTimeOffset)"/>.</summary>
+    internal DateTimeOffset? FadingUntil(DateTimeOffset at) => store.FadingUntil(path, at);
 
     internal LinkTextVeil Link() => store.Link(path);
 }
@@ -792,6 +833,12 @@ public sealed class LinkTextVeil
 
     /// <summary>PORT-ONLY (observed by the tests): whether the veil keeps nothing, see <see cref="StreamVeil.IsEmpty"/>.</summary>
     internal bool IsEmpty => veil.IsEmpty;
+
+    /// <summary>PORT-ONLY (OD-0076, MarkdownVeils.FadingUntil): StreamVeil.swift:97-100 isFading of this veil's chunks.</summary>
+    internal bool IsFading(DateTimeOffset at) => veil.IsFading(at);
+
+    /// <summary>PORT-ONLY (OD-0076, MarkdownVeils.FadingUntil): StreamVeil.swift:110-113 settlesAt of this veil's chunks.</summary>
+    internal DateTimeOffset? SettlesAt => veil.SettlesAt;
 
     /// <summary>PORT-ONLY. Forgets the text and every chunk, stops the clock and lets go of the view: the owner of a retained veil
     /// (<see cref="MarkdownVeils.Reset"/>) calls this when its row leaves the screen.</summary>

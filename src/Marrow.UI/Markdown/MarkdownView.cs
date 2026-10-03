@@ -92,43 +92,116 @@ public sealed class MarkdownView : Decorator
         var parse = isStreaming ? StreamingParse(text) : (Blocks: Blocks(text), Stable: 0); // :67
         var blocks = parse.Blocks;
         var stable = parse.Stable;
-        var last = blocks.Count - 1;
         var proseRuns = GetMarkdownProseRuns(this); // :71 @Environment(\.markdownProseRuns)
-        Control root;
-        if (!isStreaming && proseRuns) // :71-83
+        Control? root = null;
+        if (!isStreaming && proseRuns && veils is { HoldsText: true })
+        {
+            // PORT-ONLY, owner-ruled (OD-0076, UI-THEME-047): the reply has just stopped streaming on screen. The Swift draws it as prose runs at once
+            // (:71-83), a different view, so the words still dissolving jump to the full colour and words that arrive with the completion
+            // (ThreadRuntime.swift:3248-3265) never dissolve: a cut, and "a token that popped in whole read as a glitch" (StreamVeil.swift:4-8). The
+            // reply is drawn as its veiled blocks a little longer instead, at the same places, still veiled so the last batch registers as a chunk;
+            // the paragraphs feed their veils as they are built (the inherited \.markdownVeiled reaches them here), so whether anything dissolves
+            // is known now. When nothing does (and no link paragraph, which feeds its veil only once it is in the tree, may still take a last
+            // batch), the prose runs are drawn at once, as before.
+            var veiled = VeiledBlocks(blocks, stable, isStreaming: false, veils);
+            StreamVeil.SetMarkdownVeiled(veiled, true);
+            if (veils.FadingUntil(SwiftDate.Now) is not null || veils.HoldsLinkText)
+            {
+                closingVeils = veils;
+                root = veiled;
+            }
+        }
+
+        if (closingVeils is not null)
+        {
+            closingBlocks = blocks;
+            AttachedToVisualTree += (_, _) => closingClock ??= new Tracked<DateTimeOffset>(() => VeilClock.Shared.Now, _ => MainActor.Post(CloseWhenSettled));
+            DetachedFromVisualTree += (_, _) => StopClosingClock();
+        }
+        else if (!isStreaming && proseRuns) // :71-83
         {
             // PORT-ONLY (UI-THEME-047): the reply is drawn as prose runs now, so the veiled views that kept its places have left (StreamVeil.swift:291-295:
             // "once the reply has finished the veil is emptied too, so a settled paragraph keeps no copy of itself"): the places are released.
             veils?.Release();
-            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :72
-            foreach (var segment in Segments(blocks)) // :73-80
-            {
-                Control child = segment switch
-                {
-                    MarkdownSegment.Prose prose => new ProseRunView(prose.Value), // :75-76
-                    MarkdownSegment.Block block => new MarkdownBlockView(block.Value).Transition(Transition(block.Value)), // :77-79
-                    _ => throw new UnreachableException(),
-                };
-                stack.Children.Add(child);
-            }
-            stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :82 frame(maxWidth: .infinity, alignment: .leading)
-            root = stack;
+            root = ProseRuns(blocks);
+            StreamVeil.SetMarkdownVeiled(root, isStreaming); // :80 .environment(\.markdownVeiled, isStreaming)
         }
         else // :84-98
         {
-            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :86
-            for (var index = 0; index < blocks.Count; index++) // :87
-            {
-                var block = blocks[index];
-                var view = new MarkdownBlockView(block, settled: index < stable, veils: veils?.Child("b" + index)); // :88
-                SetMarkdownStreaming(view, isStreaming && index == last); // :89-91
-                view.Transition(Transition(block)); // :92
-                stack.Children.Add(view);
-            }
-            stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :97 frame(maxWidth: .infinity, alignment: .leading)
-            root = stack;
+            root = VeiledBlocks(blocks, stable, isStreaming, veils);
+            StreamVeil.SetMarkdownVeiled(root, isStreaming); // :96 .environment(\.markdownVeiled, isStreaming)
         }
-        StreamVeil.SetMarkdownVeiled(root, isStreaming); // :80, :96 .environment(\.markdownVeiled, isStreaming)
+
+        Child = root;
+    }
+
+    // :72-82 the prose-run branch. PR-THEME-105: ProseRunView for each prose run; code, tables and rules stand alone.
+    private static StackPanel ProseRuns(IReadOnlyList<MarkdownBlock> blocks)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :72
+        foreach (var segment in Segments(blocks)) // :73-80
+        {
+            Control child = segment switch
+            {
+                MarkdownSegment.Prose prose => new ProseRunView(prose.Value), // :75-76
+                MarkdownSegment.Block block => new MarkdownBlockView(block.Value).Transition(Transition(block.Value)), // :77-79
+                _ => throw new UnreachableException(),
+            };
+            stack.Children.Add(child);
+        }
+        stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :82 frame(maxWidth: .infinity, alignment: .leading)
+        return stack;
+    }
+
+    // :86-97 the block branch, each block at its place in the veils (b{n}).
+    private static StackPanel VeiledBlocks(IReadOnlyList<MarkdownBlock> blocks, int stable, bool isStreaming, MarkdownVeilScope? veils)
+    {
+        var last = blocks.Count - 1;
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :86
+        for (var index = 0; index < blocks.Count; index++) // :87
+        {
+            var block = blocks[index];
+            var view = new MarkdownBlockView(block, settled: index < stable, veils: veils?.Child("b" + index)); // :88
+            SetMarkdownStreaming(view, isStreaming && index == last); // :89-91
+            view.Transition(Transition(block)); // :92
+            stack.Children.Add(view);
+        }
+        stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :97 frame(maxWidth: .infinity, alignment: .leading)
+        return stack;
+    }
+
+    // PORT-ONLY (OD-0076, UI-THEME-047): the places of a reply that stopped streaming while words were still dissolving (or with a link paragraph that may
+    // take a last batch once it is in the tree), the finished reply's blocks, and the shared veil clock watched until they settle.
+    private MarkdownVeilScope? closingVeils;
+    private IReadOnlyList<MarkdownBlock> closingBlocks = [];
+    private Tracked<DateTimeOffset>? closingClock;
+
+    private void StopClosingClock()
+    {
+        closingClock?.Dispose();
+        closingClock = null;
+    }
+
+    // PORT-ONLY (OD-0076). Runs after the pass that put this view in the tree (posted: the link paragraphs have fed their veils by then) and on every
+    // tick of the shared veil clock (StreamVeil.swift:161-194). While something under this view still dissolves, the clock is kept running to its
+    // settle (StreamVeil.swift:171-181); once nothing does, the reply is drawn as the Swift's prose runs (:71-83) and its places are released
+    // (StreamVeil.swift:291-295). A view that is not in the tree does nothing: a newer view may have taken its places, and one that comes back
+    // looks again.
+    private void CloseWhenSettled()
+    {
+        if (closingVeils is not { } veils || !Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(this)) return;
+        if (veils.FadingUntil(SwiftDate.Now) is { } settlesAt)
+        {
+            VeilClock.Shared.Run(until: settlesAt);
+            return;
+        }
+
+        closingVeils = null;
+        StopClosingClock();
+        veils.Release();
+        var root = ProseRuns(closingBlocks);
+        StreamVeil.SetMarkdownVeiled(root, false); // :80 .environment(\.markdownVeiled, isStreaming)
+        closingBlocks = [];
         Child = root;
     }
 
