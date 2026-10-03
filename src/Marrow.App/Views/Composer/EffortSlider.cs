@@ -727,7 +727,7 @@ public sealed class EffortSlider : Decorator
     private IFrameSource? frameSource;
     private bool frameRequested, attached;
     private ContinuousInstant? lastFrame;
-    private ContinuousInstant due;
+    private readonly KnobFrameGate gate = new();
     private readonly ContinuousInstant born = SwiftClock.Now;
 
     // the knob's material, and a fade between two
@@ -757,7 +757,7 @@ public sealed class EffortSlider : Decorator
         frameTick = OnFrame;
         Height = ThumbSize;
         // OD-0090: the knob and the fill move by fractions of a pixel (springs), so they are laid out unrounded: a rounded
-        // layout would step them a whole pixel at a time and put the bolt's start up to a pixel off the knob's centre
+        // layout would step them a whole pixel at a time and put the bolt's start up to a pixel off where the page puts it
         foreach (var part in new Layoutable[] { canvas, track, fill, effects, knob, orbView }) part.UseLayoutRounding = false;
         track.Capsule(RoundedCornerStyle.Continuous); fill.Capsule(RoundedCornerStyle.Continuous);
         fill.Child = effects; fill.ClipToBounds = true;
@@ -920,7 +920,7 @@ public sealed class EffortSlider : Decorator
     {
         if (frameRequested || !attached) return;
         frameRequested = true;
-        if (lastFrame is null) { lastFrame = SwiftClock.Now; due = lastFrame.Value; } // a loop starting (or waking) counts its first step from the request, never from an idle gap
+        if (lastFrame is null) lastFrame = SwiftClock.Now; // a loop starting (or waking) counts its first step from the request, never from an idle gap
         frameSource = FrameClock.Source.Current;
         frameSource.RequestFrame(frameTick);
     }
@@ -931,12 +931,12 @@ public sealed class EffortSlider : Decorator
         frameRequested = false;
         if (!attached) return;
         var now = SwiftClock.Now;
-        // about 60 a second on any display (jewel-knob.html frameGate, as the tube's own 1/60 timeline, ED-232): a frame
-        // is due one interval after the last due one (1 ms slack, ED-117 (2)); further behind, it starts again from now
-        var interval = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60);
-        if (lastFrame is { } shown && (now - due).Ticks + TimeSpan.TicksPerMillisecond < interval.Ticks) { RequestFrame(); return; }
-        due = lastFrame is null || now - due >= interval + interval ? now : due + interval;
-        var dt = lastFrame is { } previous ? Math.Max(0, (now - previous).TotalSeconds) : 0;
+        // jewel-knob.html:867-871: drawn only on the refreshes the page's frame gate passes (KnobFrameGate: evenly paced,
+        // about 60 a second on any display); the tube keeps its own 1/60 s timeline (ED-232)
+        if (!gate.Draw((now - born).TotalMilliseconds)) { RequestFrame(); return; }
+        // jewel-knob.html:813 tick(): the springs move by the time since the last drawn frame, at most 50 ms (after a stall
+        // the knob goes on from where it was)
+        var dt = lastFrame is { } previous ? Math.Min(MaxStep, Math.Max(0, (now - previous).TotalSeconds)) : 0;
         lastFrame = now;
         Advance(dt, (now - born).TotalSeconds);
         var visible = FrontMonitor.Shared.Current.IsVisible;
@@ -945,8 +945,11 @@ public sealed class EffortSlider : Decorator
         // the gem flows while shown; under reduce motion it is still, so frames run only while something moves (the
         // springs, a fade, the light letting go after fast mode); the springs and a fade always run to their end
         if (springing || fadeFromMaterial is not null || visible && (ReduceMotion ? !IsFast && lit : true)) RequestFrame();
-        else lastFrame = null; // idle until something asks again
+        else { lastFrame = null; gate.Idle(); } // idle until something asks again
     }
+
+    /// <summary>jewel-knob.html:813: a drawn frame moves the knob's springs by at most this, s.</summary>
+    internal const double MaxStep = 0.05;
 
     private bool IsFast => currentEffect is { } effect && TrackEffect.IsFast(effect.Look);
 
@@ -1663,15 +1666,23 @@ public sealed class TrackEffect : Decorator
     internal int StrikeSeed => unchecked(bubbleSeed * 97 + 13);
 
     /// <summary>The knob's centre, in from the liquid's end, and its radius (the slider's knob: 48 px since OD-0090, centred on
-    /// the fill's end less 24). The Strike channel leaves the knob's centre; its sparks start inside the knob.</summary>
+    /// the fill's end less 24). The Strike channel leaves the knob where the page's does; its sparks start inside the knob.</summary>
     internal double KnobInset { get; set; } = EffortSlider.ThumbSize / 2;
     internal double KnobRadius { get; set; } = EffortSlider.ThumbSize / 2;
+
+    /// <summary>
+    /// Where the bolt leaves for a knob centred at <paramref name="knob"/> (jewel-knob.html:593 stepSlider, tl.exAt =
+    /// Math.round((x - 2) * 4) / 4, read by drawTile as g.ex, :335): 2 px before the centre, on a quarter pixel (JavaScript's
+    /// Math.round: halves up).
+    /// </summary>
+    internal static double ExitAt(double knob) => Math.Floor((knob - 2) * 4 + 0.5) / 4;
 
     internal StrikeGeometry StrikeGeometryFor(Size size)
     {
         // kept while the size and the knob hold (a frame asks for it several times: no new record a frame, ED-252)
-        if (geometry is { } kept && kept.Width == size.Width && kept.Height == size.Height && kept.Knob == size.Width - KnobInset && kept.KnobRadius == KnobRadius) return kept;
-        return geometry = new StrikeGeometry(size.Width, size.Height, size.Width - KnobInset, KnobRadius);
+        var exit = ExitAt(size.Width - KnobInset);
+        if (geometry is { } kept && kept.Width == size.Width && kept.Height == size.Height && kept.Knob == exit && kept.KnobRadius == KnobRadius) return kept;
+        return geometry = new StrikeGeometry(size.Width, size.Height, exit, KnobRadius);
     }
 
     private StrikeGeometry? geometry;

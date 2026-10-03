@@ -79,8 +79,9 @@ public readonly record struct StrikeTint(SKColor Outer, SKColor Inner, SKColor W
 }
 
 /// <summary>
-/// Where a strike runs: the liquid's size (px), the knob's centre <paramref name="Knob"/> (x, px) and its radius. The
-/// channel runs from the knob's centre to the cap end at 0.32 h; <see cref="K"/> scales every width and length.
+/// Where a strike runs: the liquid's size (px), where the bolt leaves the knob <paramref name="Knob"/> (x, px: the engine's
+/// g.ex; on the slider the page's exAt, 2 px before the knob's centre on a quarter pixel) and the knob's radius. The
+/// channel runs from there to the cap end at 0.32 h; <see cref="K"/> scales every width and length.
 /// </summary>
 public sealed record StrikeGeometry(double Width, double Height, double Knob, double KnobRadius)
 {
@@ -327,7 +328,7 @@ public sealed class StrikeChannels(int seed)
         geometry = g; mains.Clear(); branches.Clear(); traces.Clear();
     }
 
-    /// <summary>Strike k's channel: from the knob's centre to the cap end at a height of its own (hash(k, S+1)), seed S*37 + k,
+    /// <summary>Strike k's channel: from the knob (g.ex) to the cap end at a height of its own (hash(k, S+1)), seed S*37 + k,
     /// amplitude 0.34 h.</summary>
     public double[] Main(StrikeGeometry g, int k)
     {

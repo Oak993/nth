@@ -405,7 +405,9 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
         var t = Strike.StrikeAt(2, effect.StrikeSeed) + 0.01;
         using var drawn = Frame(effect, t);
         var geometry = effect.StrikeGeometryFor(new Size(260, 34));
-        Assert.Equal(new StrikeGeometry(260, 34, 260 - EffortSlider.ThumbSize / 2, EffortSlider.ThumbSize / 2), geometry); // the knob's centre and radius
+        // the knob's radius, and where the bolt leaves: OD-0090's page puts it 2 px before the knob's centre (236), on a
+        // quarter pixel (jewel-knob.html:593 tl.exAt = Math.round((x - 2) * 4) / 4: 234)
+        Assert.Equal(new StrikeGeometry(260, 34, 234, EffortSlider.ThumbSize / 2), geometry);
         var ops = new StrikeChannels(effect.StrikeSeed).Scene(geometry, t, StrikeTint.DeepSeek);
         var spec = LiquidSpec.For(look);
         // OD-0078 (required with OD-0090): the bubbles the strikes touched have burst

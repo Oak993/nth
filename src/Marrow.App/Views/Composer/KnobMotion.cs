@@ -7,7 +7,8 @@ namespace Marrow.App.Views.Composer;
 //   KnobSignal: the page's part(), shape() and rawSignal() over the strikes the tube draws, with orbAim()'s exit angle
 //     (strike-engine.js). The port's fast mode is still the A2 strike at its own times (OD-0073, ED-248: the OD-0084 Mix is
 //     not built yet), so each A2 strike gets the charge the locked Mix gives every A2 strike it draws (plan(): 0.14 +
-//     0.12 hash(k, 13 S + 131) s before the leader): the orb charges first, then the bolt leaves its centre.
+//     0.12 hash(k, 13 S + 131) s before the leader): the orb charges first, then the bolt leaves it (where the page's
+//     does: tl.exAt, 2 px before its centre on a quarter pixel).
 
 /// <summary>One value on the page's spring: position and velocity.</summary>
 public struct KnobSpring
@@ -30,6 +31,41 @@ public struct KnobSpring
 
     /// <summary>True when it rests on <paramref name="target"/>.</summary>
     public readonly bool AtRest(double target) => P == target && V == 0;
+}
+
+/// <summary>
+/// The page's frame gate (strike-engine.js:56-66 frameGate, which jewel-knob.html:867-871 asks on every display refresh,
+/// drawing only when it passes): the refresh r is measured from the gaps between frames (a gap counts when 2 &lt; d &lt; 50
+/// ms: r = min(d, 0.9 r + 0.1 d), 1000/60 ms until one has), and a frame is drawn when every r - r/2 ms have passed since
+/// the last drawn one, every = max(1, floor(1000/60/r + 0.05)): evenly paced on the refresh, every refresh at 60 to 90 Hz,
+/// every 2nd at 120 to 165 Hz, every 4th at 239 and 240 Hz.
+/// </summary>
+public sealed class KnobFrameGate
+{
+    private double? previous, lastDrawn, refresh;
+
+    /// <summary>Whether the frame at <paramref name="now"/> (ms) is drawn.</summary>
+    public bool Draw(double now)
+    {
+        if (previous is { } before)
+        {
+            var d = now - before;
+            if (d > 2 && d < 50) refresh = refresh is { } r0 ? Math.Min(d, r0 * 0.9 + d * 0.1) : d;
+        }
+        previous = now;
+        var r = refresh ?? 1000.0 / 60;
+        var every = Math.Max(1, Math.Floor(1000.0 / 60 / r + 0.05));
+        var draw = lastDrawn is not { } last || now - last >= every * r - r / 2;
+        if (draw) lastDrawn = now;
+        return draw;
+    }
+
+    /// <summary>
+    /// The knob's loop stops asking for frames (ED-252: idle under reduce motion or while its window is hidden), where the
+    /// page's loop runs on every refresh: the gap until it asks again is not a refresh, so it is not measured. The refresh
+    /// measured and the last frame drawn are kept.
+    /// </summary>
+    public void Idle() => previous = null;
 }
 
 /// <summary>Which part of a strike the knob is in (the page's phase readout).</summary>
@@ -87,8 +123,8 @@ public sealed class KnobSignal
     }
 
     /// <summary>
-    /// The exit angle of strike <paramref name="k"/> (strike-engine.js orbGeo): its channel from the knob's centre, to the
-    /// first vertex at or past the knob's radius less half a pixel.
+    /// The exit angle of strike <paramref name="k"/> (strike-engine.js orbGeo): its channel from where it leaves (g.ex, the
+    /// orb's centre as orbGeo reads it), to the first vertex at or past the knob's radius less half a pixel.
     /// </summary>
     public static double ExitOf(StrikeGeometry g, int seed, int k)
     {

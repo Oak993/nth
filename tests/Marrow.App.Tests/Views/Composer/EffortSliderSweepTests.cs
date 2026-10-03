@@ -47,7 +47,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var draggedLeft = Canvas.GetLeft(knob);
             window.MouseUp(new Point(origin.X + 100, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             Assert.Equal(draggedLeft, Canvas.GetLeft(knob)); // not a jump to the snapped centre
-            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
+            OneSecondOfFrames(time, frames);
             Assert.Equal(141, Canvas.GetLeft(knob)); // width330, inset24 (OD-0090), selected1 => centre165 minus24
             Assert.Equal(1, Assert.IsType<ScaleTransform>(knob.RenderTransform).ScaleX);
             window.Close();
@@ -609,6 +609,14 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return window;
+    }
+
+    // A second of a 60 Hz display's frames. OD-0090's locked page moves the knob's springs by at most 50 ms a frame
+    // (jewel-knob.html:813 tick()), so one frame a second long is a stall, after which the knob goes on from where it was.
+    private static void OneSecondOfFrames(ManualTimeProvider time, ManualFrameSource frames)
+    {
+        var frame = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60);
+        for (var i = 0; i < 60; i++) { time.Advance(frame); frames.Advance(frame); Dispatcher.UIThread.RunJobs(); }
     }
 
     private static EffortSliderCard Card(string[] levels, string? chosen, string? defaultLevel, Action? titleTap = null, Action? reset = null) =>
@@ -1202,7 +1210,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal(0, Canvas.GetLeft(knob)); // no jump to the pointer
             time.Advance(TimeSpan.FromMilliseconds(60)); frames.Advance(TimeSpan.FromMilliseconds(60)); Dispatcher.UIThread.RunJobs();
             Assert.InRange(Canvas.GetLeft(knob), 1, 175);
-            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
+            OneSecondOfFrames(time, frames);
             Assert.Equal(176, Canvas.GetLeft(knob), 9); // pointer 200 minus the knob's 24 px radius (OD-0090)
             window.MouseUp(new Point(origin.X + 200, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             window.Close();
@@ -1267,7 +1275,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal(0, Canvas.GetLeft(knob)); // not a jump to the last stop
             time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
             Assert.InRange(Canvas.GetLeft(knob), 1, 281);
-            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
+            OneSecondOfFrames(time, frames);
             Assert.Equal(282, Canvas.GetLeft(knob), 9); // width 330: inset 24 (OD-0090), step 141, stop 2 centre 306 minus 24
             window.Close();
         });
