@@ -952,6 +952,10 @@ namespace Marrow.UI.Chrome
         private Color baseShown;
         private Color tintShown;
         private Action stopTurn = static () => { };
+        // ED-253 (round 4): the running turnover, from what the fades showed to the colours it is heading for.
+        private bool turning;
+        private (Color Base, Color Tint) turnFrom;
+        private (Color Base, Color Tint) turnTo;
 
         /// <param name="model">:582 <c>let model: ChromeScrollModel</c>.</param>
         // :585-611 body. PR-WIN-196, UI-CHAT-058: two 72-point gradients, never hit-testable, drawn only once
@@ -976,11 +980,10 @@ namespace Marrow.UI.Chrome
 
             // ED-253 (OD-0076, SPEC 6.5): in a tree that turns over (AppearanceTurn, the Settings window) a change of
             // appearance or theme eases both fades from what they show to the new colours over 0.32 s, as every other
-            // colour of the window does, instead of redrawing them in the click's frame. A scroll redraws at once.
+            // colour of the window does, instead of redrawing them in the click's frame. A scroll redraws at once, but one
+            // during that turnover keeps it running, retargeted at the colours of the new position (round 4: "nothing cuts").
             void Draw(bool turn)
             {
-                stopTurn();
-                stopTurn = static () => { };
                 var progress = model.Progress; // :585
                 var isDark = PlainControls.IsDark(ActualThemeVariant); // :586
                 host.Opacity = 0.08 + 0.92 * progress; // :622
@@ -997,20 +1000,43 @@ namespace Marrow.UI.Chrome
                         host.Children.Add(baseFade);
                         host.Children.Add(tintFade!);
                     }
+                    if (!turn && turning && drawn)
+                    {
+                        turnTo = (baseColor, tintColor); // the next frame of the turn heads there
+                        return;
+                    }
+                    StopTurn();
                     if (turn && drawn && (baseShown != baseColor || tintShown != tintColor) && AppearanceTurn.Eases(this))
                     {
-                        var (baseFrom, tintFrom) = (baseShown, tintShown);
-                        stopTurn = AppearanceTurn.Run(this, p => Paint(SwiftColor.PremultipliedMix(baseFrom, baseColor, p), SwiftColor.PremultipliedMix(tintFrom, tintColor, p)));
+                        turnFrom = (baseShown, tintShown);
+                        turnTo = (baseColor, tintColor);
+                        turning = true;
+                        stopTurn = AppearanceTurn.Run(this, p =>
+                        {
+                            Paint(SwiftColor.PremultipliedMix(turnFrom.Base, turnTo.Base, p), SwiftColor.PremultipliedMix(turnFrom.Tint, turnTo.Tint, p));
+                            if (p >= 1) turning = false;
+                        });
                     }
                     else Paint(baseColor, tintColor);
                 }
-                else if (baseFade is not null)
+                else
                 {
-                    host.Children.Clear();
-                    baseFade = null;
-                    tintFade = null;
+                    StopTurn();
+                    if (baseFade is not null)
+                    {
+                        host.Children.Clear();
+                        baseFade = null;
+                        tintFade = null;
+                    }
                 }
             }
+        }
+
+        private void StopTurn()
+        {
+            stopTurn();
+            stopTurn = static () => { };
+            turning = false;
         }
 
         private void Paint(Color baseColor, Color tintColor)
