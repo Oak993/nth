@@ -13,8 +13,8 @@ namespace Marrow.UI.Tests.Markdown;
 public sealed class MarkdownBlockSelectionTests
 {
     [Fact]
-    [Trait("Req", "PR-THEME-126")] // DroppyCode/UI/Markdown/MarkdownView.swift:890-899; dead_code.md entry 30
-    public void Body_returns_its_content_unchanged_since_selection_is_always_enabled()
+    [Trait("Req", "PR-THEME-126")] // DroppyCode/UI/Markdown/MarkdownView.swift:890-899; dead_code.md entry 30 (the else branch is dead and not implemented, ED-061). Only that Body is the identity: that the blocks select and copy is VeiledTextSelectionTests
+    public void Body_returns_its_content_unchanged()
     {
         var content = new Avalonia.Controls.TextBlock();
         var result = new MarkdownBlockSelection().Body(content);

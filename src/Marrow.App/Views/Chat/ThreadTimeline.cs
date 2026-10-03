@@ -1564,6 +1564,10 @@ public sealed class WorkingIndicator : Decorator
         var frame = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = Brushes.Transparent, Child = inner, HorizontalAlignment = HorizontalAlignment.Left }; // :2147 .contentShape(RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))
         HydraWorkingTitle? title = null; string? titleText = null; bool? titleRunning = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false; var leaving = 0;
         GrowingBody? opened = null; StackPanel? openedDetails = null; StackPanel? openedThinking = null; WorkSteps? openedSteps = null;
+        // PORT-ONLY (UI-THEME-047): every draw builds the thinking markdown again, so the veils of its steps (SwiftUI's @State, kept by the ForEach's
+        // offsets, :2158) live here for as long as the steps stay open on screen.
+        var thinkingVeils = new MarkdownVeils();
+        DetachedFromVisualTree += (_, _) => thinkingVeils.Reset();
         Button button = null!;
         button = PlainControls.Button(frame, () =>
         {
@@ -1640,9 +1644,9 @@ public sealed class WorkingIndicator : Decorator
                         MarkdownView.SetMarkdownPointSize(openedThinking, 12); MarkdownView.SetMarkdownDimmed(openedThinking, true);
                         SwiftTransition.Insert(details, 0, openedThinking.Transition(SoftAppearTransition));
                     }
-                    openedThinking.Children.Clear(); foreach (var step in thinkingSteps) openedThinking.Children.Add(new MarkdownView(step.Text, step.IsStreaming));
+                    openedThinking.Children.Clear(); var stepPlace = 0; foreach (var step in thinkingSteps) openedThinking.Children.Add(new MarkdownView(step.Text, step.IsStreaming, thinkingVeils.Root.Child("s" + stepPlace++)));
                 }
-                else if (openedThinking is not null) { SwiftTransition.Remove(details, openedThinking); openedThinking = null; }
+                else if (openedThinking is not null) { SwiftTransition.Remove(details, openedThinking); openedThinking = null; thinkingVeils.Reset(); }
                 if (liveWork.Count != 0) // :2169-2172
                 {
                     if (openedSteps is null) { openedSteps = new WorkSteps(liveWork, runtime, new Binding<bool>(() => showsAllSteps, value => showsAllSteps = value), workingDirectory); SwiftTransition.Insert(details, details.Children.Count, openedSteps.Transition(SoftAppearTransition)); }
@@ -1650,7 +1654,7 @@ public sealed class WorkingIndicator : Decorator
                 }
                 else if (openedSteps is not null) { SwiftTransition.Remove(details, openedSteps); openedSteps = null; }
             }
-            else if (opened is not null) { var closing = opened; opened = null; openedDetails = null; openedThinking = null; openedSteps = null; closing.Close(Transaction.Current, () => column.Children.Remove(closing)); }
+            else if (opened is not null) { var closing = opened; opened = null; openedDetails = null; openedThinking = null; openedSteps = null; thinkingVeils.Reset(); closing.Close(Transaction.Current, () => column.Children.Remove(closing)); }
             drawn = true;
         }
         applyInputs = (thinking, work, entries, card, start, finish) =>

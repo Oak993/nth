@@ -63,6 +63,7 @@ public sealed class RootView : Decorator
     private readonly Border detailPadded;
     private readonly Panel detailSlot = new OverlayPanel();
     private readonly WindowBackdrop backdrop;
+    private readonly WindowCornerWedge cornerWedge = new(AppSettings.DefaultBackdropOpacity);
     private readonly WindowChromeProbe chromeProbe = new();
     private readonly WindowChromeConfigurator chromeConfig = new();
     private readonly Border windowClip;
@@ -86,6 +87,9 @@ public sealed class RootView : Decorator
 
     /// <summary>Test-only: the window's own rounded clip (PR-WIN-062, :66-68).</summary>
     internal Border WindowClip => windowClip;
+
+    /// <summary>Test-only: the layer that fills the wedge between the window's rectangle and its 26 pt shape with the scrim (OD-0075).</summary>
+    internal WindowCornerWedge CornerWedge => cornerWedge;
 
     /// <summary>Test-only: the detail column's own clip, before its (inert) padding (PR-WIN-063, :40).</summary>
     internal Border DetailClip => detailClip;
@@ -188,7 +192,8 @@ public sealed class RootView : Decorator
         // :66-68 clipped to the window's own rounded shape only after the backdrop is painted, so the glass and its
         // edge stop at the window's own curve (PR-WIN-062, "Clip the composited window to the same squircle... so
         // the DWM shadow follows the same curve" - the native region/DWM preference and four-corner capture
-        // remain STOP #4 in RootViewTests.cs; this Border is only the composited-content part of that contract). .ignoresSafeArea() (:68) has nothing to do here: Windows reserves no OS-drawn
+        // remain STOP #4 in RootViewTests.cs; this Border is only the composited-content part of that contract; the wedge between it and the rectangular
+        // window is OD-0075's, added below as a fifth layer). .ignoresSafeArea() (:68) has nothing to do here: Windows reserves no OS-drawn
         // safe area over this fully custom-chromed window, the identical call WindowChrome.cs's own top-of-file
         // note already makes for the titlebar container it has no counterpart for.
         windowClip = new Border
@@ -217,6 +222,12 @@ public sealed class RootView : Decorator
         outerRoot.Children.Add(genieLayer);
         outerRoot.Children.Add(rowGlideLayer);
         outerRoot.Children.Add(paletteHost); // :72-76, CommandPalette added/removed by UpdatePalette below
+        // OD-0075 (owner, 2026-10-02): the wedge between the window's rectangle (system Acrylic, ED-236) and its 26 pt shape is filled with the
+        // window's scrim. The source's four layers keep their order above; the wedge is the fifth, painted FIRST (ZIndex -1), under windowClip, so the
+        // glass and its hairline still stop at the curve. It follows the backdrop's opacity and theme (UpdateBackdrop below). On the Mac the corner
+        // outside the shape is clear.
+        cornerWedge.ZIndex = -1;
+        outerRoot.Children.Add(cornerWedge);
 
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;
@@ -322,6 +333,7 @@ public sealed class RootView : Decorator
         try { model = AppEnvironment.GetAppModel(this); }
         catch (InvalidOperationException) { return; }
         backdrop.Update(model.Settings.BackdropOpacity, WallpaperStore.Shared.Current.Image);
+        cornerWedge.Update(model.Settings.BackdropOpacity); // OD-0075: the corner follows the backdrop it belongs to
     }
 
     // :65 the window-chrome probe updates in place the same way (WindowChromeConfigurator.Update's identical shape).

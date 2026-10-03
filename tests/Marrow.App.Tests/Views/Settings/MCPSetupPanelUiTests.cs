@@ -150,6 +150,23 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Decision", "ED-236")] // MCPSetupPanel.swift:117-131 `.padding(18).frame(width: 400)` before `.background { WindowDragArea() }`: the drag area fills the padded frame (OD-0075, the guide panels)
+    public void A_press_in_the_18_point_band_around_the_card_reaches_the_drag_area_like_the_card_behind_its_text()
+    {
+        Run(NeedsSetup(), session =>
+        {
+            session.Window.UpdateLayout();
+            using var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(session.Window);
+            var height = session.Window.ClientSize.Height;
+            foreach (var at in new[] { new Point(8, height / 2), new Point(392, height / 2), new Point(200, 8), new Point(200, height - 9) })
+            {
+                var hit = session.Window.InputHitTest(at) as Visual;
+                Assert.True(hit is WindowDragArea, $"a press at {at} (inside the shape, in the padding) was hit through {hit}");
+            }
+        });
+    }
+
     // The shared panel, with the browser a recording double: body runs on the main actor's behalf.
     private void RunShared(Action<AppModel, TestRuntime, MCPSetupLauncherScope> body) =>
         headless.OnUiThread(() =>

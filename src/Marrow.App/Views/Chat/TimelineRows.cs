@@ -1628,6 +1628,10 @@ public sealed class AssistantMessageRow : Decorator
 
     private readonly ViewState state = new();
 
+    // PORT-ONLY (UI-THEME-047): the body is built again for every flush, so the veils of the reply's paragraphs (SwiftUI's @State, StreamVeil.swift:245)
+    // live here, through the rebuilds, for as long as the row is on screen. Internal for the tests (InternalsVisibleTo Marrow.App.Tests).
+    internal MarkdownVeils Veils { get; } = new();
+
     /// <param name="entry">:1354 <c>let entry: TimelineEntry</c>.</param>
     /// <param name="summary">:1355-1357 <c>let summary: TurnSummary?</c>: the turn's summary, set only on the turn's last
     /// reply, precomputed by the timeline so rows never scan the thread.</param>
@@ -1637,6 +1641,7 @@ public sealed class AssistantMessageRow : Decorator
     public AssistantMessageRow(TimelineEntry entry, TurnSummary? summary, ThreadRuntime runtime)
     {
         this.summary = summary; this.runtime = runtime;
+        DetachedFromVisualTree += (_, _) => Veils.Reset(); // PORT-ONLY (UI-THEME-047): the row leaves the screen, its @State with it
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Assistant assistant) // :1362
@@ -1648,7 +1653,7 @@ public sealed class AssistantMessageRow : Decorator
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return;
             built = message;
-            Child = Body(message, this.summary, runtime, state);
+            Child = Body(message, this.summary, runtime, state, Veils.Root);
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
@@ -1663,14 +1668,14 @@ public sealed class AssistantMessageRow : Decorator
     {
         if (Equals(summary, next)) return;
         summary = next;
-        if (built is { } message) Child = Body(message, summary, runtime, state);
+        if (built is { } message) Child = Body(message, summary, runtime, state, Veils.Root);
     }
 
     // :1363-1388
-    private static Control Body(AssistantMessage message, TurnSummary? summary, ThreadRuntime runtime, ViewState state)
+    private static Control Body(AssistantMessage message, TurnSummary? summary, ThreadRuntime runtime, ViewState state, MarkdownVeilScope veils)
     {
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, Background = Brushes.Transparent }; // :1363
-        column.Children.Add(new MarkdownView(message.Text, message.IsStreaming)); // :1364
+        column.Children.Add(new MarkdownView(message.Text, message.IsStreaming, veils)); // :1364
         // :1365-1374 one side for both kinds of message: the summary sits where the copy control used to be.
         // :1367 HStack(spacing: 8) with its default .center alignment: the summary sits on the centre line of the 22-point
         // line (UI-CHAT-019); a plain horizontal StackPanel stretched it to the top of the slot.
@@ -1995,6 +2000,8 @@ public sealed class WorkSteps : Decorator
     private static Control Narration(TimelineEntry entry)
     {
         var host = new Decorator();
+        var veils = new MarkdownVeils(); // PORT-ONLY (UI-THEME-047): the narration's veils, kept through the rebuilds for as long as it is on screen
+        host.DetachedFromVisualTree += (_, _) => veils.Reset();
         AssistantMessage? built = null;
         void Build(TimelineItem.Content content)
         {
@@ -2007,7 +2014,7 @@ public sealed class WorkSteps : Decorator
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return; // :1549 .equatable()
             built = message;
-            var markdown = new MarkdownView(message.Text, message.IsStreaming); // :1549
+            var markdown = new MarkdownView(message.Text, message.IsStreaming, veils.Root); // :1549
             TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(markdown)); // :1550
             MarkdownView.SetMarkdownPointSize(markdown, 12); // :1551
             MarkdownView.SetMarkdownDimmed(markdown, true); // :1552
