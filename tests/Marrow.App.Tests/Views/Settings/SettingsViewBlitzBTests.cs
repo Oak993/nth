@@ -1,4 +1,7 @@
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
@@ -192,6 +195,97 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             w.KeyPressQwerty(PhysicalKey.ArrowLeft, RawInputModifiers.None); w.KeyReleaseQwerty(PhysicalKey.ArrowLeft, RawInputModifiers.None); Drain(w);
             Assert.True(slider.Value < before && before - slider.Value <= 0.1, "an arrow key moved the slider from " + before + " to " + slider.Value); Assert.Equal(slider.Value, model.Settings.BackdropOpacity, 6);
         });
+    }
+
+    private static (SwiftSound Sound, float Volume) Direct(Action play)
+    {
+        var recorder = new SettingsViewSoundRecorder(); using (SoundOutput.Current.Override(recorder)) play();
+        return Assert.Single(recorder.Plays);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-THEME-026")] // SettingsView.swift:358-364; AppSettings.swift:122,713
+    public void Chime_row_plays_the_finish_chime_once_at_its_own_volume_when_switched_on_and_is_silent_when_switched_off()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var finish = Direct(Marrow.UI.Sound.FinishChime.Play); var settle = Direct(Marrow.UI.Sound.SettleChime.Play);
+            Assert.Equal(0.35f, finish.Volume); Assert.Equal(0.18f, settle.Volume); Assert.NotSame(finish.Sound, settle.Sound); // the two chimes are told apart
+            var recorder = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(recorder);
+            var row = Row(view, "Chime when a turn finishes"); CheckRow(row, "Chime when a turn finishes", "A soft chime, whether or not the thread is in view");
+            Assert.True(model.Settings.ChimeWhenFinished); Assert.True(row.IsEffectivelyEnabled); // on by default
+            var toggle = Assert.Single(Nodes<SmallSwitch>(row));
+            Click(w, toggle); Assert.False(model.Settings.ChimeWhenFinished); Assert.Empty(recorder.Plays); Assert.False(h.Defaults.Bool("chimeWhenFinished")); // off is silent, under the key chimeWhenFinished
+            Click(w, toggle); Assert.True(model.Settings.ChimeWhenFinished); Assert.True(h.Defaults.Bool("chimeWhenFinished"));
+            var play = Assert.Single(recorder.Plays); Assert.Same(finish.Sound, play.Sound); Assert.Equal(0.35f, play.Volume); // on plays the finish chime, once, as the preview
+            model.Settings.ChimeWhenFinished = false; Drain(w); Assert.Single(recorder.Plays); model.Settings.ChimeWhenFinished = true; Drain(w); // a change from elsewhere is heard the same
+            Assert.Equal(2, recorder.Plays.Count); Assert.Same(finish.Sound, recorder.Plays[1].Sound); Assert.Equal(0.35f, recorder.Plays[1].Volume);
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; Drain(w); Tick(h, 300); Assert.True(row.IsEffectivelyEnabled); Assert.Equal(1, row.Opacity); // no disabled state
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-THEME-027")] // SettingsView.swift:401-409; AppSettings.swift:126,717; OD-0076
+    public void Settle_row_plays_the_settle_chime_on_enable_and_dims_over_Chrome_hover_when_the_finish_action_becomes_Archive_leaving_the_stored_value()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var finish = Direct(Marrow.UI.Sound.FinishChime.Play); var settleDirect = Direct(Marrow.UI.Sound.SettleChime.Play);
+            var recorder = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(recorder);
+            var row = Row(view, "Sound when settling"); CheckRow(row, "Sound when settling", "A small note as the thread settles");
+            Assert.True(model.Settings.SettleSound); Assert.True(row.IsEnabled); Assert.Equal(1, row.Opacity); // on by default
+            var toggle = Assert.Single(Nodes<SmallSwitch>(row)); var rows = Assert.IsType<StackPanel>(row.Parent); Assert.IsType<ChromeRowDivider>(rows.Children[rows.Children.IndexOf(row) - 1]); // below a divider under the finish-action picker
+            Click(w, toggle); Assert.False(model.Settings.SettleSound); Assert.Empty(recorder.Plays); Assert.False(h.Defaults.Bool("settleSound"));
+            Click(w, toggle); Assert.True(model.Settings.SettleSound);
+            var play = Assert.Single(recorder.Plays); Assert.Same(settleDirect.Sound, play.Sound); Assert.NotSame(finish.Sound, play.Sound); Assert.Equal(0.18f, play.Volume);
+            // the tile's click runs in Chrome.hover: the row is disabled at once and eases to 0.5 over that animation
+            var tiles = Nodes<ChromeVisualTile>(Row(view, "Done with a thread")); var archive = tiles.Single(tile => AutomationProperties.GetName(tile) == "Archive"); var settleTile = tiles.Single(tile => AutomationProperties.GetName(tile) == "Settle");
+            Click(w, archive); Assert.Equal(ThreadFinishAction.Archive, model.Settings.ThreadFinishAction); Assert.False(row.IsEnabled); Assert.False(toggle.IsEffectivelyEnabled);
+            Tick(h, 50); Assert.InRange(row.Opacity, 0.501, 0.999); Tick(h, 60); Assert.Equal(0.5, row.Opacity);
+            Assert.True(model.Settings.SettleSound); Assert.Single(recorder.Plays); // the stored value is left alone and nothing was played
+            Click(w, toggle); Assert.True(model.Settings.SettleSound); Assert.Single(recorder.Plays); // the disabled switch does nothing
+            Click(w, settleTile); Assert.True(row.IsEnabled); Tick(h, 50); Assert.InRange(row.Opacity, 0.501, 0.999); Tick(h, 60); Assert.Equal(1, row.Opacity); Assert.Single(recorder.Plays);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-USAGE-044")] // SettingsView.swift:374-379; AppSettings.swift:635-637,774
+    public void The_usage_panel_switch_is_last_in_Conversation_off_by_default_writes_at_once_and_follows_writes_from_elsewhere()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var row = Row(view, "Show a usage panel"); var toggle = Assert.Single(Nodes<SmallSwitch>(row));
+            var rows = Assert.IsType<StackPanel>(row.Parent); Assert.Same(row, rows.Children[^1]); Assert.IsType<ChromeRowDivider>(rows.Children[^2]); Assert.Equal("Continue after a usage limit", Text(rows.Children[^3]).First());
+            var peer = Assert.IsAssignableFrom<IToggleProvider>(ControlAutomationPeer.CreatePeerForElement(toggle));
+            Assert.False(model.Settings.ShowsUsagePanel); Assert.Equal(ToggleState.Off, peer.ToggleState); // default off on a fresh install
+            Click(w, toggle); Assert.True(model.Settings.ShowsUsagePanel); Assert.True(h.Defaults.Bool("showsUsagePanel")); Assert.Equal(ToggleState.On, peer.ToggleState); // written immediately
+            // the usage popover's pop-out button writes ShowsUsagePanel = true (ComposerView.cs, proved by ComposerViewTests), the panel's close button writes false (ChatView.cs): the row follows
+            model.Settings.ShowsUsagePanel = false; Drain(w); Assert.Equal(ToggleState.Off, peer.ToggleState);
+            Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.ShowsUsagePanel = true); Drain(w); Assert.Equal(ToggleState.On, peer.ToggleState);
+            Click(w, toggle); Assert.False(model.Settings.ShowsUsagePanel); Assert.False(h.Defaults.Bool("showsUsagePanel"));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-066")] // SettingsView.swift:668-671; AppSettings.swift:882-889
+    public void Provider_switch_sits_at_the_trailing_edge_of_the_first_row_in_every_provider_with_the_display_name_and_clears_duplicates_when_switched()
+    {
+        With(() => new ProvidersSettingsPage(), (view, model, h, w) =>
+        {
+            var sections = Nodes<ProviderSettingsSection>(view); Assert.Equal(SwiftEnum<ProviderKind>.AllCases.Count, sections.Length); // one per provider, installed or not
+            foreach (var section in sections)
+            {
+                var provider = Field<ProviderKind>(section, "provider"); var toggle = Assert.Single(Nodes<SmallSwitch>(section));
+                var statusRow = Assert.IsType<Grid>(toggle.Parent!.Parent); Assert.Equal(2, Grid.GetColumn((Control)toggle.Parent)); Assert.Same(statusRow, Nodes<Grid>(section).First(g => g.ColumnDefinitions.Count == 3)); // the provider's first row, its trailing cell
+                Assert.Equal(provider.DisplayName, AutomationProperties.GetName(toggle)); // its accessible name is the section header's
+            }
+            var codex = Nodes<ProviderSettingsSection>(view).Single(x => Field<ProviderKind>(x, "provider") == ProviderKind.Codex);
+            // SetEnabled removes every entry for the provider and appends one only when switching off
+            var toggleCodex = Assert.Single(Nodes<SmallSwitch>(codex)); var header = Assert.Single(Nodes<CollapsibleProviderHeader>(codex)); Click(w, Assert.Single(Nodes<Button>(header))); Drain(w); Tick(h, 400); Drain(w);
+            Assert.Equal(ToggleState.Off, ((IToggleProvider)ControlAutomationPeer.CreatePeerForElement(toggleCodex)).ToggleState);
+            Click(w, toggleCodex); Assert.Equal(new[] { "claude", "claude", "grok" }, model.Settings.DisabledProviders); // switching on: every "codex" entry gone, the others kept
+            Click(w, toggleCodex); Assert.Equal(new[] { "claude", "claude", "grok", "codex" }, model.Settings.DisabledProviders); // switching off: one appended
+        }, before: h => h.Defaults.Set("disabledProviders", new List<object> { "claude", "codex", "claude", "codex", "grok" }));
     }
 
     private static Control Opened(Popup popup) { Open(popup); return PopoverHost.Content(popup)!; }

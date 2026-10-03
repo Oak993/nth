@@ -461,12 +461,16 @@ internal sealed class GeneralSettingsPage : Decorator
             root.Children.Add(new ChromeSection("Projects", () => new ChromeCard(() => Rows(
                 Toggle("Projects", "Activates every project at once unless explicitly overridden", () => s.ProjectsEnabled, value => s.ProjectsEnabled = value), // :384-386
                 new ChromeRow("Marks", () => new ProjectMarksRow(), "An emoji or symbol for each project, drawn before the thread's name in the activity list and on the project's own row"))))); // :388-390
-            var finish = new Border();
-            finish.Track(() => s.ThreadFinishAction, action => finish.Child = new ChromeRow("Done with a thread", () => new ChromeVisualPicker<ThreadFinishAction, Control>(SwiftEnum<ThreadFinishAction>.AllCases.Select(x => (x, x.Title)).ToArray(), new Binding<ThreadFinishAction>(() => s.ThreadFinishAction, value => s.ThreadFinishAction = value), value => SwiftImage.SystemName(value == ThreadFinishAction.Settle ? "checkmark" : "archivebox")), action.Detail)); // :395-399
+            // :395-399 the row keeps its picker (and so the tiles' own transitions) when the choice changes; only its detail follows the choice.
+            var finish = new ChromeRow("Done with a thread", () => new ChromeVisualPicker<ThreadFinishAction, Control>(SwiftEnum<ThreadFinishAction>.AllCases.Select(x => (x, x.Title)).ToArray(), new Binding<ThreadFinishAction>(() => s.ThreadFinishAction, value => s.ThreadFinishAction = value), value => SwiftImage.SystemName(value == ThreadFinishAction.Settle ? "checkmark" : "archivebox")), s.ThreadFinishAction.Detail);
+            finish.Track(() => s.ThreadFinishAction, action => SettingsRowDetails.Update(finish, action.Detail));
             var settle = Toggle("Sound when settling", "A small note as the thread settles", () => s.SettleSound, value => s.SettleSound = value); // :401-403
             var lastSettle = s.SettleSound;
             settle.Track(() => s.SettleSound, value => { if (value && !lastSettle) SettleChime.Play(); lastSettle = value; }); // :404-406
-            settle.Track(() => s.ThreadFinishAction, value => { settle.IsEnabled = value == ThreadFinishAction.Settle; settle.Opacity = value == ThreadFinishAction.Settle ? 1 : 0.5; }); // :408-409
+            // :408-409 .disabled / .opacity: the row is disabled at once and dims to 0.5 in the transaction of the change; the Done-with-a-thread tile's click
+            // runs in Chrome.hover (ChromeVisualPicker.swift:41), so the row eases there (OD-0076: nothing cuts; the source's own opacity change rides that transaction).
+            var settleDim = new AnimatedScalar(settle, 1, value => settle.Opacity = value);
+            settle.Track(() => s.ThreadFinishAction, value => { settle.IsEnabled = value == ThreadFinishAction.Settle; settleDim.Set(value == ThreadFinishAction.Settle ? 1 : 0.5, Transaction.Current); });
             root.Children.Add(new ChromeSection("Finished threads", () => new ChromeCard(() => Rows(finish, settle)))); // :393-411
         });
     }
@@ -696,6 +700,7 @@ internal sealed class ProviderSettingsSection : Decorator
             var icon = new ProviderIcon { Provider = provider, Size = 18 }; icon.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.PrimaryText.Brush(icon)); statusRow.Children.Add(icon); // :651-652 .foregroundStyle(Chrome.primaryText)
             var labels = new StackPanel { Spacing = 2 }; Grid.SetColumn(labels, 1); statusRow.Children.Add(labels); // :654
             var toggle = new SettingsSwitch(new Binding<bool>(() => model.Settings.IsEnabled(provider), value => model.Settings.SetEnabled(value, provider))); Grid.SetColumn(toggle, 2); statusRow.Children.Add(toggle); // :668-671
+            AutomationProperties.SetName(toggle.Child!, provider.DisplayName); // the record's accessible name: the section header's, the provider's display name
             cardRows.Children.Add(statusRow);
             var usage = new StackPanel { Spacing = 14, Margin = new Thickness(16, 12) }; // :676-687
             var usageSlot = new StackPanel(); cardRows.Children.Add(usageSlot);
