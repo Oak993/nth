@@ -56,6 +56,9 @@ public sealed class EffortSliderJewelOpacityTests(HeadlessSession headless)
         (string What, int X, int Y)[] points = rig.Slider.IsHeld
             ? [("the orb's centre", cx, cy), ("the lift's shadow", cx, cy + 36), ("the lift's shadow", cx, cy + 40)]
             : [("the orb's centre", cx, cy), ("the knob's own shadow", cx, cy + 27)];
+        // (the CPU renderer steps its render size down when its own program's median runs over 7 ms, which would change the
+        // picture between two reads on a machine busy enough: its window is filled with fast runs first)
+        for (var i = 0; i < 16; i++) view.Cpu.Record(0.1);
         for (var i = 0; i < 3; i++) { view.InvalidateVisual(); Pixel(rig.Window, 0, 0); }
         foreach (var opacity in opacities)
         {
