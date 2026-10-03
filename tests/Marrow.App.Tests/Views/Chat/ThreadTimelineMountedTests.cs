@@ -321,7 +321,21 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-045")] // ThreadTimeline.swift:1804-1811,81,257-268,384-391,595-608,703-707; PR-CHAT-191 (appended blocks add to the window)
-    public void The_window_opens_at_three_blocks_anchors_on_the_newest_twenty_four_a_beat_later_pages_back_by_twenty_four_and_drops_back_past_ninety_six() => ThreadTimelineRig.Run(headless, mount =>
+    public void The_window_opens_at_three_blocks_anchors_on_the_newest_twenty_four_a_beat_later_pages_back_by_twenty_four_drops_back_past_ninety_six_and_a_thread_closed_in_the_beat_loads_nothing()
+    {
+        // The failure case: a thread closed within the 250 ms beat (:600 `guard !Task.isCancelled`, the task is the thread's and goes with it) does nothing further.
+        ThreadTimelineRig.Run(headless, mount =>
+        {
+            mount.Settle();
+            mount.SetEntries(Turns(60, sentences: 14).ToList());
+            mount.Advance(200); Assert.Equal(3, mount.Blocks().Length);
+            mount.Host.Child = null; mount.Advance(500);
+            Assert.Null(mount.Field<string?>("windowStartID")); // the window never moved: the newest three are all it ever held
+        });
+        ThreadTimelineRig.Run(headless, OpensPagesAndDropsBack);
+    }
+
+    private static void OpensPagesAndDropsBack(TimelineMount mount)
     {
         mount.Settle();
         var entries = Turns(60, sentences: 14, unique: true).ToList(); // tall blocks: the newest three fill the pane, so the earlier pill is out of view at the open
@@ -354,37 +368,20 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         // :77-80 blocks appended at the end add to the window rather than pushing older rows out.
         entries.AddRange(Turns(5, "late-", sentences: 14)); mount.SetEntries(entries); mount.Advance(300);
         Assert.Equal(65, mount.Blocks().Length); Assert.Equal(BlockID(entries, 0), mount.Field<string?>("windowStartID"));
-    });
-
-    [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (the drop-back past ninety-six only): ThreadTimeline.swift:703-707 (the followed run past eagerLimit drops back to the newest 24), :1808-1810
-    public void A_followed_run_growing_past_ninety_six_blocks_drops_the_window_back_to_the_newest_twenty_four() => ThreadTimelineRig.Run(headless, mount =>
-    {
-        mount.Settle();
-        var entries = Turns(100, sentences: 10).ToList();
-        mount.SetEntries(entries); mount.Settle();
-        Assert.Equal(24, mount.Blocks().Length);
-        // The reader pages back to the start of the thread: 76 blocks are hidden, so the window grows 24, 48, 72, 96, 100 blocks.
-        for (var page = 0; page < 5 && mount.Blocks().Length < 100; page++) ToTheTop(mount);
-        Assert.Equal(100, mount.Blocks().Length);
-        // The reader comes back to the end and follows a new block landing there: the window holds more than 96, so it drops back to the newest 24 (the blocks above come back as history).
+        // :703-707, :1808-1810 a followed run: the reader at the end, new rows landing there. Up to ninety-six blocks the window keeps them all ...
         ToTheEnd(mount);
-        entries.AddRange(Turns(1, "new-", sentences: 10)); mount.SetEntries(entries); mount.Advance(400);
+        entries.AddRange(Turns(31, "run-", sentences: 14)); mount.SetEntries(entries); mount.Advance(400);
+        Assert.Equal(96, mount.Blocks().Length); Assert.Equal(BlockID(entries, 0), mount.Field<string?>("windowStartID"));
+        Assert.True(mount.Scroll.Extent.Height - (mount.Scroll.Offset.Y + mount.Scroll.Viewport.Height) < 2, "the reader follows the run");
+        // ... and the row that takes it past ninety-six drops the window back to the newest twenty-four, the start on the block twenty-four from the end.
+        entries.AddRange(Turns(1, "past-", sentences: 14)); mount.SetEntries(entries); mount.Advance(400);
         Assert.Equal(24, mount.Blocks().Length);
-        Assert.Equal(BlockID(entries, 101 - 24), mount.Field<string?>("windowStartID"));
-        Assert.Equal("Show 77 earlier messages", PillText(mount));
-    });
-
-    [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (the task's cancellation only): ThreadTimeline.swift:600 (a task cancelled within its 250 ms does nothing further)
-    public void A_thread_closed_within_two_hundred_fifty_milliseconds_never_loads_its_window() => ThreadTimelineRig.Run(headless, mount =>
-    {
-        mount.Settle();
-        mount.SetEntries(Turns(60, sentences: 14).ToList());
-        mount.Advance(200);
-        mount.Host.Child = null; mount.Advance(500);
-        Assert.Null(mount.Field<string?>("windowStartID"));
-    });
+        Assert.Equal(BlockID(entries, 97 - 24), mount.Field<string?>("windowStartID"));
+        Assert.Equal("Show 73 earlier messages", PillText(mount));
+        Assert.True(mount.Scroll.Extent.Height - (mount.Scroll.Offset.Y + mount.Scroll.Viewport.Height) < 2, "the reader is still at the end: the rows that went were above the viewport");
+        // The dropped rows come back as history when the reader scrolls up: a page of twenty-four.
+        ToTheTop(mount); Assert.Equal(BlockID(entries, 97 - 48), mount.Field<string?>("windowStartID")); Assert.Equal(48, mount.Blocks().Length);
+    }
 
     [Fact]
     [Trait("Req", "PR-CHAT-046")] // ThreadTimeline.swift:161-162,366-382 (the pill, its text, its tap and its 10 percent threshold), :258 (a load is refused while one is pending)
