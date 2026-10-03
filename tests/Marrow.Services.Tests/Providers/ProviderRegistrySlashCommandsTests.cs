@@ -15,6 +15,12 @@ namespace Marrow.Services.Tests.Providers;
 // parts 1 to 4 live in ProviderRegistryTests.cs, ProviderRegistryRefreshTests.cs,
 // ProviderRegistryCatalogTests.cs and ProviderRegistryLimitsAndCommandsTests.cs.
 //
+// RESOLVED LATER (defects-priority): the join-not-duplicate half of PR-PROVREG-217 is proved by launch-counting stand-ins in
+// ComposerViewTests (Two_composers_on_one_provider_and_folder_launch_the_CLI_once_...), and the CLI half of PR-PROVREG-218 by
+// ProviderRegistryCommandErrorTests.a_load_that_cannot_launch_the_CLI_stores_the_launch_error_and_clears_the_in_flight_entry: a launch
+// failure is a Win32Exception, which the registry now stores by its own Message (it threw NotSupportedException out of the catch).
+// What follows is the original note, kept for its history.
+//
 // UNTESTABLE IN THIS PART (section 6: reported, not invented):
 //  - PR-PROVREG-217's join-not-duplicate half (a second caller for the same key awaiting the first task's
 //    completion instead of spawning a second CLI process): CodexSession.ListCommands and ClaudeSession's

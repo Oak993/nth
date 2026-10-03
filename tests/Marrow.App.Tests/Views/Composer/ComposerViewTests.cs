@@ -2227,6 +2227,198 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         });
     }
 
+    // ---- command loading: a CLI that cannot be launched, a failing retry, one launch for many composers (:245-248, :264-273) ----
+
+    private const string ListingOf = "{\"type\":\"control_response\",\"response\":{\"request_id\":\"handshake\",\"response\":{\"commands\":[{\"name\":\"proof-shared\",\"description\":\"Shared fixture command\"}]}}}\n";
+    private const string ListingWithoutCommands = "{\"type\":\"control_response\",\"response\":{\"request_id\":\"handshake\",\"response\":{\"models\":[]}}}\n";
+
+    private static System.Collections.IDictionary InFlightCommandLoads(ThreadRuntimePart12Harness h) =>
+        (System.Collections.IDictionary)typeof(ProviderRegistry).GetField("commandLoads", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(h.App.Providers)!;
+
+    // The catalogue handshake the mounted model picker would start is not what these tests are about.
+    private static void SkipCatalogHandshake(ThreadRuntimePart12Harness h) =>
+        ((HashSet<ProviderKind>)typeof(ProviderRegistry).GetField("attemptedCatalogs", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(h.App.Providers)!).Add(ProviderKind.Claude);
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:245-248; Services/Providers/ProviderRegistry.swift:855-858
+    [Trait("Req", "PR-COMPOSER-051")] // App/Views/Composer/ComposerView.swift:264-273
+    public void A_command_list_for_a_folder_that_is_gone_shows_the_launch_failure_and_a_Retry_row_instead_of_ending_the_app()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            var gone = Path.Combine(h.Store.NewFolder("folder-gone"), "deleted"); // never created: the thread's folder is not there
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(FailingCommandCLI(), ProviderKind.Claude));
+            // The text of that launch failure, taken from the very launch run directly (a locale proof: it is never typed here).
+            var launchFailure = h.Main.Loop.Run<string?>(async () =>
+            {
+                try
+                {
+                    await ClaudeSession.Handshake(h.App.Providers.Executable(ProviderKind.Claude)!,
+                        SwiftURL.Create("marrow-native-path:" + gone.Replace('\\', '/'))!, h.App.Providers.Environment(ProviderKind.Claude));
+                    return null;
+                }
+                catch (Exception error) { return error.Message; }
+            }, AppModelHarness.Bound);
+            Assert.False(string.IsNullOrEmpty(launchFailure));
+
+            var view = Pill(h, h.Runtime, gone);
+            h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound); // used to throw out of the load and end the process
+            var key = ProviderRegistry.CommandKey(ProviderKind.Claude, gone);
+            Assert.Equal(launchFailure, h.App.Providers.CommandErrors[key]);
+            Assert.Empty(InFlightCommandLoads(h));
+
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            var menu = h.Main.OnMain(() => view.SuggestionMenu());
+            Assert.Equal(launchFailure, Assert.IsType<TextBlock>(One<PopoverNote>(menu).Child).Text);
+            Assert.Equal("Retry loading commands", Avalonia.Automation.AutomationProperties.GetName(One<Button>(One<PopoverItem>(menu))));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:245-248, :269-273; Services/Providers/ProviderRegistry.swift:855-858
+    public void A_failing_retry_replaces_the_note_with_the_new_description()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            var script = ProviderProbeStandIns.CopyFor("composer-retry-fails-again").SetExitCode(1);
+            var directory = h.Store.NewFolder("retry-fails-again");
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(script.ExecutablePath, ProviderKind.Claude));
+            var view = Pill(h, h.Runtime, directory);
+            h.Main.Loop.Run(() => view.LoadCommands(force: true), AppModelHarness.Bound);
+            var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
+            Assert.Equal("Claude's command discovery did not finish. Try again.", h.App.Providers.CommandErrors[key]); // ClaudeSession.swift:208
+
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            var menu = h.Main.OnMain(() => view.SuggestionMenu());
+            Assert.Equal("Claude's command discovery did not finish. Try again.", Assert.IsType<TextBlock>(One<PopoverNote>(menu).Child).Text);
+
+            // Opening the panel asked again, as the list is not fresh (:213-215): that is the second listing; let it end before the retry.
+            var loads = InFlightCommandLoads(h);
+            Until(h, null, () => script.CommandListings().Count == 2 && loads.Count == 0);
+            var listed = script.CommandListings().Count;
+            // The retry fails again, in another way: the CLI answers the handshake with no commands (ClaudeSession.swift:203-205).
+            script.SetStdout(ListingWithoutCommands);
+            h.Main.OnMain(() => Click(One<Button>(One<PopoverItem>(menu))));
+            Until(h, null, () => loads.Count > 0);
+            Until(h, null, () => loads.Count == 0);
+            Assert.Equal(listed + 1, script.CommandListings().Count); // the retry is one more listing
+            Assert.Equal("Claude could not load its commands.", h.App.Providers.CommandErrors[key]);
+            var next = h.Main.OnMain(() => view.SuggestionMenu());
+            // The note is replaced, not added to, and the Retry row is still the one row of its kind.
+            Assert.Equal("Claude could not load its commands.", Assert.IsType<TextBlock>(One<PopoverNote>(next).Child).Text);
+            Assert.Equal("Retry loading commands", Avalonia.Automation.AutomationProperties.GetName(One<Button>(One<PopoverItem>(next))));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-051")] // App/Views/Composer/ComposerView.swift:264-273; Services/Providers/ProviderRegistry.swift:762-784 (a second caller awaits the first task), ED-033 (one key for two spellings of a folder)
+    public void Two_composers_on_one_provider_and_folder_launch_the_CLI_once_and_two_spellings_of_the_folder_share_the_entry()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            var script = ProviderProbeStandIns.CopyFor("composer-two-composers").WaitForRelease().SetExitCode(0).SetStdout(ListingOf);
+            h.Main.OnMain(() => h.App.Settings.SetBinaryPath(script.ExecutablePath, ProviderKind.Claude));
+            SkipCatalogHandshake(h);
+            var directory = h.Store.NewFolder("two-composers");
+            var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
+            var loads = InFlightCommandLoads(h);
+            var (first, firstWindow, _, _) = OnScreen(h, h.Runtime, directory);
+            AvaloniaWindow? secondWindow = null, thirdWindow = null;
+            try
+            {
+                Until(h, firstWindow, () => script.CommandListings().Count == 1 && loads.Contains(key)); // the first composer's mount starts the listing
+                // A second composer, for the same folder spelled another way (upper case with a trailing separator): it asks while the first listing is
+                // held and joins it, as the key is one and the listing is in flight.
+                var spelling = directory.ToUpperInvariant() + Path.DirectorySeparatorChar;
+                Assert.NotEqual(directory, spelling);
+                Assert.Equal(key, ProviderRegistry.CommandKey(ProviderKind.Claude, spelling));
+                var (second, window2, _, _) = OnScreen(h, h.Runtime, spelling);
+                secondWindow = window2;
+                Pump(h, secondWindow);
+                Assert.Single(script.CommandListings()); // still one launch: the second awaits the held one
+                Assert.True(loads.Contains(key));
+                script.Release();
+                Until(h, firstWindow, () => !loads.Contains(key) && h.App.Providers.Commands.ContainsKey(key));
+                Assert.Equal(["proof-shared"], h.App.Providers.Commands[key].Select(command => command.Name));
+                Assert.Single(script.CommandListings());
+                // Inside the 600 s the cache is fresh: a third composer asks and costs nothing.
+                var (third, window3, _, _) = OnScreen(h, h.Runtime, directory);
+                thirdWindow = window3;
+                Pump(h, thirdWindow);
+                Assert.Single(script.CommandListings());
+                Assert.Single(h.App.Providers.Commands.Keys, candidate => candidate.StartsWith("claude\n", StringComparison.Ordinal));
+            }
+            finally
+            {
+                script.Release();
+                if (thirdWindow is not null) Close(h, thirdWindow);
+                if (secondWindow is not null) Close(h, secondWindow);
+                Close(h, firstWindow);
+            }
+        });
+    }
+
+    [Theory]
+    [InlineData(ProviderKind.Copilot)]
+    [InlineData(ProviderKind.Cursor)]
+    [InlineData(ProviderKind.Deepseek)]
+    [Trait("Req", "PR-COMPOSER-051")] // App/Views/Composer/ComposerView.swift:264-273; Services/Providers/ProviderRegistry.swift:763 (only Codex and Claude list commands)
+    public void A_composer_for_a_provider_other_than_codex_or_claude_launches_nothing(ProviderKind provider)
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(provider);
+            Loaded(h, h.Runtime);
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            var script = ProviderProbeStandIns.CopyFor("composer-other-provider").SetExitCode(0).SetStdout(ListingOf);
+            // Every provider's executable points at the stand-in, so that nothing but the provider guard (ProviderRegistry.swift:763) stands between
+            // this composer and a launch: if it launched one, the stand-in would record it.
+            h.Main.OnMain(() =>
+            {
+                h.App.Settings.SetBinaryPath(script.ExecutablePath, ProviderKind.Claude);
+                h.App.Settings.SetBinaryPath(script.ExecutablePath, ProviderKind.Codex);
+                h.App.Settings.SetBinaryPath(script.ExecutablePath, provider);
+            });
+            var presenter = new RecordingPresenter();
+            using var presentation = Presentation.Presenter.Override(presenter);
+            var (view, window, _, _) = OnScreen(h, h.Runtime, h.Store.NewFolder("other-provider"));
+            try
+            {
+                Pump(h, window);
+                h.Main.OnMain(() => Type(view, "/"));
+                // A launch is not instant, and nothing says when "never" has been long enough: give one that would happen a second and a half, pumping.
+                var loads = InFlightCommandLoads(h);
+                var deadline = DateTime.UtcNow.AddSeconds(1.5);
+                while (DateTime.UtcNow < deadline && script.CommandListings().Count == 0 && loads.Count == 0)
+                {
+                    Pump(h, window);
+                    System.Threading.Thread.Sleep(25);
+                }
+                Assert.Empty(loads);
+                Assert.Empty(script.CommandListings());
+                Assert.DoesNotContain(script.RecordedCalls(), call => call.Contains("--no-session-persistence"));
+                Assert.Empty(h.App.Providers.Commands);
+                Assert.Empty(h.App.Providers.CommandErrors);
+            }
+            finally { Close(h, window); }
+        });
+    }
+
     // ---- focus and visibility (:197-203, :228-237) ----
 
     [Fact]
