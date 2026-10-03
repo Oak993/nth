@@ -4331,7 +4331,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Write no held record. Read a held record saved by an earlier version as the last record for the settlement check. recordHydraSettlement compares nothing but the unmerged-file count.",
       "verification_method": "unit over the merge coordinator with a fake git layer: a job with nothing left to send after a legacy held record (one settled record with files 0 and one note), a run where every project was already on the default branch (settled), and the same with unmerged files left (nothing)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
