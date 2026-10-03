@@ -548,7 +548,8 @@ internal sealed class AppZoomCard : Decorator
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         Button Command(string symbol, string help, Action action, SwiftFont.Weight weight = SwiftFont.Weight.Regular)
         {
-            var button = PlainControls.Button(SwiftImage.SystemName(symbol).Font(SwiftFont.System(11, weight)).ForegroundStyle(Chrome.SecondaryText), action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, help); return button;
+            // :478,:494,:506 .contentShape(.rect): the whole 22 x 22 slot is the hit target, not only the glyph's painted pixels.
+            var button = PlainControls.Button(new Border { Background = Brushes.Transparent, Child = SwiftImage.SystemName(symbol).Font(SwiftFont.System(11, weight)).ForegroundStyle(Chrome.SecondaryText) }, action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, help); return button;
         }
         var smaller = Command("textformat.size.smaller", "Zoom out", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: false)); // :475-483
         var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(11, SwiftFont.Weight.Medium).MonospacedDigit()); // :483-486
@@ -567,13 +568,23 @@ internal sealed class BackdropOpacitySlider : Decorator
     // :522 @Binding var value: Double; :526-563 body
     public BackdropOpacitySlider(Binding<double> value)
     {
-        var slider = new Slider { Minimum = 0, Maximum = 1, Width = 140, Value = value.Value }; // :535-537
+        // ENGINEERING DECISION (ED-NEW-settingsview, UNVERIFIED against the Mac): Slider(value:in: 0...1) has no step, so the arrow keys the
+        // framework gives it move a small amount; Avalonia's default SmallChange is 1, the whole of this 0 to 1 range, which would jump the
+        // window from clear to solid on one key. A hundredth per arrow key, a tenth per Page key.
+        var slider = new Slider { Minimum = 0, Maximum = 1, Width = 140, Value = value.Value, SmallChange = 0.01, LargeChange = 0.1 }; // :535-537
         var updatingSlider = false;
         var thumb = new SettingsScalarAnimation(slider, value.Value, v => { updatingSlider = true; try { slider.Value = v; } finally { updatingSlider = false; } });
         slider.PropertyChanged += (_, change) => { if (!updatingSlider && change.Property == Slider.ValueProperty && value.Value != slider.Value) value.Value = slider.Value; };
         slider.Track(() => value.Value, v => thumb.Set(v, Transaction.Current));
-        var clear = SwiftImage.SystemName("circle.dotted").Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(clear, "Clear");
-        var solid = SwiftImage.SystemName("circle.fill").Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(solid, "Solid");
+        // :531,:538 .help: a SwiftUI Image is hit over its whole frame, an Avalonia one only where it painted (the dotted ring has nothing at its centre),
+        // so each end glyph sits in a transparent frame of its own size that carries the tip.
+        Control EndGlyph(string symbol, string help)
+        {
+            var glyph = SwiftImage.SystemName(symbol).Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText);
+            var frame = new Border { Background = Brushes.Transparent, Child = glyph }; ToolTip.SetTip(frame, help); return frame;
+        }
+        var clear = EndGlyph("circle.dotted", "Clear"); // :528-531
+        var solid = EndGlyph("circle.fill", "Solid"); // :535-538
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { clear, slider, solid } }; // :528-539
         // :551-552 .frame(width: 22, height: 22).contentShape(.rect): DEFECT FIX (UI-SETTINGS-018), the whole 22pt square is the hit target; the bare glyph was hit
         // only on its drawn pixels (the centre of the arrow is empty).

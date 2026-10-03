@@ -492,7 +492,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         var control = Assert.Single(Nodes<BackdropOpacitySlider>(view)); var reset = Assert.Single(Nodes<Button>(control)); var slider = Assert.Single(Nodes<Slider>(control));
         var row = Assert.Single(Nodes<StackPanel>(control)); Assert.Equal(8, row.Spacing); Assert.Equal("Window transparency", AutomationProperties.GetName(control)); Assert.Equal(0.5, slider.Value);
-        Assert.Equal("Clear", ToolTip.GetTip(Nodes<SwiftImage>(control).Single(image => image.SymbolName == "circle.dotted"))); Assert.Equal("Solid", ToolTip.GetTip(Nodes<SwiftImage>(control).Single(image => image.SymbolName == "circle.fill")));
+        Assert.Equal("Clear", ToolTip.GetTip(Assert.IsType<Border>(Nodes<SwiftImage>(control).Single(image => image.SymbolName == "circle.dotted").Parent))); Assert.Equal("Solid", ToolTip.GetTip(Assert.IsType<Border>(Nodes<SwiftImage>(control).Single(image => image.SymbolName == "circle.fill").Parent))); // the tip sits on the glyph's transparent frame (UI-THEME-010)
         var width = control.Bounds.Width; model.Settings.BackdropOpacity = 0.7; Sync(); Assert.True(reset.IsVisible); Assert.Equal(0, reset.Opacity);
         AdvanceFrames(h, 100); Assert.InRange(reset.Opacity, 0.001, 0.999); Assert.InRange(Assert.IsType<Avalonia.Media.TranslateTransform>(reset.RenderTransform).X, -28, -22);
         AdvanceFrames(h, 101); Assert.Equal(1, reset.Opacity); Assert.Equal(-28, Assert.IsType<Avalonia.Media.TranslateTransform>(reset.RenderTransform).X); Assert.Equal(width, control.Bounds.Width);

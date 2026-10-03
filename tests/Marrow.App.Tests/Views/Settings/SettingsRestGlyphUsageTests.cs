@@ -12,19 +12,9 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class SettingsRestGlyphUsageTests(HeadlessSession headless) : SettingsRestFixture(headless)
 {
-    // STOP opencode-SettingsView-rest #6: UI-THEME-010's "hover shows the tooltip \"Clear\"" clause
-    // (ui_contract.json UI-THEME-010.interactions) cannot be proven with a real pointer. Its glyph, SystemName
-    // "circle.dotted", is an unfilled ring: ED-182 (Q4) draws only its stroke, so no pixel is painted at the icon's
-    // own centre (or anywhere but the thin ring). Avalonia 12.1.2's compositor hit-tests only recorded paint
-    // (Avalonia.Rendering.Composition.CompositingRenderer.HitTest walks the composition draw list built from
-    // SwiftImage.Render), unlike SwiftUI, which hit-tests a plain Image's whole layout frame regardless of alpha.
-    // Widening it needs a shared change to the Port foundation control (src/Marrow.UI/Port/SwiftImage.cs,
-    // ED-179/ED-182), which around 200 other call sites across units not yet merged or reviewed also depend on for
-    // intentional click-through (their own explicit IsHitTestVisible = false relies on nothing being painted where a
-    // sibling underneath should receive the pointer instead); that file and those call sites are not a
-    // SettingsView-rest record and are outside this unit's scope. Every other clause of UI-THEME-010 (font, colour,
-    // order, geometry, the tooltip text itself as a static property) is proved below alongside UI-THEME-011, which
-    // is fully proved: its glyph, "circle.fill", paints its whole disc and is genuinely hit-testable at its centre.
+    // Resolved STOP opencode-SettingsView-rest #6 (UI-THEME-010): the Clear glyph, "circle.dotted", is an unfilled ring and Avalonia hit-tests only
+    // what was painted, where SwiftUI hits a plain Image's whole frame. BackdropOpacitySlider now puts each end glyph in a transparent frame of its
+    // own size that carries the tip (no shared change to SwiftImage); SettingsViewBlitzBTests proves the hit over the whole frame with a real pointer.
     [Fact]
     [Trait("Req", "UI-THEME-011")] // SettingsView.swift:528-539; ED-059; ED-062.
     public void Transparency_glyphs_are_static_11_point_secondary_with_8_point_order_and_the_solid_glyph_has_a_real_hover_tooltip()
@@ -32,8 +22,8 @@ public sealed class SettingsRestGlyphUsageTests(HeadlessSession headless) : Sett
         With(() => new BackdropOpacitySlider(Binding<double>.Constant(0.5)), (view, _, _, w) =>
         {
             var images = Nodes<SwiftImage>(view).Where(i => i.SymbolName != "arrow.counterclockwise").ToArray(); Assert.Equal(new[] { "circle.dotted", "circle.fill" }, images.Select(i => i.SymbolName));
-            var row = Assert.IsType<StackPanel>(images[0].Parent); Assert.Equal(8, row.Spacing); Assert.Same(images[0], row.Children[0]); Assert.IsType<Slider>(row.Children[1]); Assert.Same(images[1], row.Children[2]);
-            for (var i = 0; i < 2; i++) { Assert.Equal(SwiftFont.System(11), SwiftImage.GetFont(images[i])); Ink(images[i], images[i].Foreground, Chrome.SecondaryText); Assert.Equal(i == 0 ? "Clear" : "Solid", ToolTip.GetTip(images[i])); Assert.Empty(Nodes<Button>(images[i])); }
+            var row = Assert.IsType<StackPanel>(images[0].Parent!.Parent); Assert.Equal(8, row.Spacing); Assert.Same(images[0].Parent, row.Children[0]); Assert.IsType<Slider>(row.Children[1]); Assert.Same(images[1].Parent, row.Children[2]); /* each glyph in its transparent frame */
+            for (var i = 0; i < 2; i++) { Assert.Equal(SwiftFont.System(11), SwiftImage.GetFont(images[i])); Ink(images[i], images[i].Foreground, Chrome.SecondaryText); Assert.Equal(i == 0 ? "Clear" : "Solid", ToolTip.GetTip(Assert.IsType<Border>(images[i].Parent))); Assert.Empty(Nodes<Button>(images[i])); }
             Hover(w, images[1]); Ink(images[1], images[1].Foreground, Chrome.SecondaryText); // real pointer hover on the fillable "Solid" glyph (UI-THEME-011).
         });
     }
