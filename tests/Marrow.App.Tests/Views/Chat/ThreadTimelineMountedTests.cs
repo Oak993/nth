@@ -457,6 +457,37 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-039")] // ThreadTimeline.swift:1520-1526 (only turn blocks with a sent message and single user groups carry one), :346-354,1239-1245 (the outline and the active tick resolve against the same classification); TimelineMinimap.swift:21-35
+    public void The_rail_and_the_active_tick_take_the_same_blocks_one_tick_for_each_sent_message_and_none_for_replies_notices_or_heads() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        // Three turns (a prompt, an answer, an end marker each), then a notice, a reply and a message sent outside any turn, which is the last block.
+        var heads = new List<TimelineEntry>(Turns(3, sentences: 14)) { Entry("note", new TimelineItem.Content.Notice(new Marrow.Core.Models.Notice { NoticeLevel = Marrow.Core.Models.Notice.Level.Info, Message = "a notice" })), Reply("plain-reply", null, "a reply outside any turn"), User("plain-user", null, "a message sent outside any turn") };
+        // A turn that holds no sent message at all (a reply and its end marker): a block like the others, with no tick.
+        var orphan = Guid.NewGuid(); heads.InsertRange(9, [Reply("orphan-reply", orphan, "an answer to nothing sent here"), End("orphan-end", orphan)]);
+        mount.SetEntries(heads); mount.Settle();
+        var userBlocks = mount.Blocks().Where(block => block.Block.HasUserMessage).Select(block => block.Id).ToList();
+        Assert.Equal(4, userBlocks.Count); Assert.Equal(7, mount.Blocks().Length); // 3 turns, the one with no message, the notice, the reply and the message: seven blocks
+        Assert.Contains(mount.Blocks(), block => block.Block is DisplayBlock.Turn && !block.Block.HasUserMessage);
+        // The rail: one tick for each of the four, titled by the first message of each.
+        var rail = Rail(mount)!; var ticks = LogicalQuery.SelfAndDescendants<Button>(rail).ToList();
+        Assert.Equal(4, ticks.Count);
+        // The outline the tracking resolves the active tick against holds the same four, and the active tick is always one of them, wherever the reader is.
+        var tracking = mount.Field<TimelineScrollTracking>("tracking");
+        Assert.Equal(userBlocks.ToHashSet(), ((HashSet<string>)typeof(TimelineScrollTracking).GetField("userBlockIDs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(tracking)!));
+        var seen = new HashSet<string>(); var visibleField = typeof(TimelineScrollTracking).GetField("visibleIDs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        for (var offset = 0.0; offset <= Math.Max(0, mount.Scroll.Extent.Height - mount.Scroll.Viewport.Height) + 50; offset += 60)
+        {
+            mount.Scroll.Offset = new Vector(0, offset); mount.Advance(200);
+            // :1239-1245 the block in the middle of those on screen, and the latest sent message at or before it.
+            var order = mount.Blocks().Select(block => block.Id).ToList(); var visible = (HashSet<string>)visibleField.GetValue(tracking)!;
+            var onScreen = order.Where(visible.Contains).ToList(); var middle = order.IndexOf(onScreen[onScreen.Count / 2]);
+            var expected = order.Take(middle + 1).LastOrDefault(userBlocks.Contains);
+            Assert.Equal(expected, tracking.ActiveBlockID); Assert.Contains(tracking.ActiveBlockID!, userBlocks); seen.Add(tracking.ActiveBlockID!);
+        }
+        Assert.True(seen.Count >= 2, "the active tick moves through the sent messages as the reader does: " + string.Join(", ", seen));
+    });
+
+    [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (the rail's frame, its overlay and when it shows); ThreadTimeline.swift:176-208
     public void The_rail_is_a_thirty_point_overlay_below_the_titlebar_that_takes_no_layout_and_shows_with_two_sent_messages_and_the_flag() => ThreadTimelineRig.Run(headless, mount =>
     {
