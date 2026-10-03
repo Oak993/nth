@@ -307,8 +307,8 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-100")] // TimelineRows.swift:1833-1841: Declined only for a declined call, an exit code only for a failed call with one
-    public void Declined_reads_exactly_Declined_in_the_warning_colour_at_the_trailing_edge_and_no_other_status_or_missing_code_shows_either_word() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-CHAT-100")] // TimelineRows.swift:1837-1840: the literal Declined at caption size in Chrome.warning, at the trailing edge
+    public void Declined_reads_exactly_Declined_in_the_warning_colour_at_the_trailing_edge_and_a_declined_call_never_reads_an_exit_code() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         h.Main.OnMain(() =>
@@ -317,13 +317,10 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
             {
                 var declined = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "rm -rf /", ToolCall.Status.Declined)), h.Runtime);
                 var declinedWithCode = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "rm", ToolCall.Status.Declined) with { ExitCode = 5 }), h.Runtime);
-                var failedNoCode = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "make", ToolCall.Status.Failed)), h.Runtime);
-                var completedWithCode = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "make") with { ExitCode = 3 }), h.Runtime);
-                var runningWithCode = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "make", ToolCall.Status.Running) with { ExitCode = 3 }), h.Runtime);
-                var rows = new Control[] { declined, declinedWithCode, failedNoCode, completedWithCode, runningWithCode };
                 var panel = new StackPanel { Width = 480, Spacing = 16, Margin = new Thickness(0, 12) };
-                foreach (var row in rows) panel.Children.Add(row);
-                BlitzAbRender.Render(panel, theme, backdrop, 480, 240, (window, frame) =>
+                panel.Children.Add(declined);
+                panel.Children.Add(declinedWithCode);
+                BlitzAbRender.Render(panel, theme, backdrop, 480, 120, (window, frame) =>
                 {
                     foreach (var row in new[] { declined, declinedWithCode })
                     {
@@ -336,12 +333,30 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
                         BlitzAbRender.TextIsColour(frame, area, backdrop, ChromeTokens.Warning.Resolve(theme), $"Declined in {theme}");
                         Assert.DoesNotContain(Texts(row), text => text.StartsWith("exit", StringComparison.Ordinal)); // a declined call never reads an exit code
                     }
-                    foreach (var row in new[] { failedNoCode, completedWithCode, runningWithCode })
-                    {
-                        Assert.DoesNotContain(Texts(row), text => text.StartsWith("exit", StringComparison.Ordinal) || text == "Declined");
-                    }
                 });
             }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-100")] // TimelineRows.swift:1833-1841: a failed call with no exit code, a completed one and a running one show neither the code nor Declined
+    public void A_failed_call_with_no_code_and_a_completed_or_running_one_with_a_code_show_neither_an_exit_code_nor_Declined() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var failedNoCode = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "make", ToolCall.Status.Failed)), h.Runtime);
+            var completedWithCode = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "make") with { ExitCode = 3 }), h.Runtime);
+            var runningWithCode = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "make", ToolCall.Status.Running) with { ExitCode = 3 }), h.Runtime);
+            var panel = new StackPanel { Width = 480, Spacing = 16 };
+            foreach (var row in new[] { failedNoCode, completedWithCode, runningWithCode }) panel.Children.Add(row);
+            var window = Show(panel);
+            try
+            {
+                foreach (var row in new[] { failedNoCode, completedWithCode, runningWithCode })
+                    Assert.DoesNotContain(Texts(row), text => text.StartsWith("exit", StringComparison.Ordinal) || text == "Declined");
+            }
+            finally { Close(window); }
         });
     });
 }
