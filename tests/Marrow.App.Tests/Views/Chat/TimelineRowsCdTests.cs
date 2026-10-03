@@ -647,7 +647,7 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
     // works": a head with no step yet reads No steps yet. in the Steps section, and the line is gone once a tool call arrives, which
     // shows as a step in the icon column.
     [Fact]
-    [Trait("Req", "UI-CHAT-055")] // TimelineRows.swift:1884-1931 the panel grows while the head still works; the Report section is appended once finished
+    [Trait("Req", "UI-CHAT-055")] // TimelineRows.swift:1884-1931 the panel grows while the head still works
     [Trait("Req", "UI-CHAT-070")] // TimelineRows.swift:1906-1909 No steps yet. is shown while the head has produced no step and goes with the first
     public void The_head_panel_grows_with_the_heads_own_runtime_and_No_steps_yet_goes_with_its_first_step() => headless.OnUiThread(() =>
     {
@@ -841,3 +841,51 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
         });
     });
 }
+
+// STOP App.Views.Chat.TimelineRows #12 (unit blitz-timelinerows-cd, 2026-10-04; OD-0098: where a record asks for a comparison with
+// a frame the reference videos do not contain, the pinned Swift is the proof). Kind: record audit, clause by clause, against
+// TimelineRows.swift (B3 52bc792) and the tests, with mutation checks of every proof added here (M1 to M26 of the unit's log).
+// Test names are the classes in tests/Marrow.App.Tests/Views/Chat: FT FinToolRow, FD FinToolDetail, FP FinPlan, FN FinNotice,
+// FE FinTurnEnd, FB FinTurnBlock, FC FinFileCard, FR FinRevert, FF FinFilesPopover, FRR FinReportRow, FMO FinMergeOutcome,
+// FMR FinMergeRow, FHS FinHeadSteps, FHR FinHeadRows, FWG FinWorkGroup, FUR FinUserRow, UL UiLabels, CD this file.
+//
+// PROVEN (every clause of the record is held by the tests named; no capture is needed):
+// UI-CHAT-026: FD output plate and link (text, caption, position, 30-line rule, Show less), CD link in the accent with the hand
+//   (OD-0088, ED-253), UiPointerTests (real pointer). UI-CHAT-027: FD detail text (12 lines, secondary monospace, omitted, selection).
+// UI-CHAT-030: FP panel (520, 16, 12, 420, headline, actions only while proposed, greyed with the tooltip), CD copy puts the
+//   markdown on the clipboard. UI-CHAT-031, -032: FP actions (prominent/plain glass, disabled while busy, close first then act),
+//   CD Dismiss is not destructive. UI-CHAT-035: FE phrasings and styling, CD the six strings of the reference video (SOURCE FACT) and
+//   every boundary of the formatter the code names. UI-RUNTIME-004: FE.
+// UI-CHAT-038: FC disc (28, glyph, hover fill over 0.1 s, tooltip, absent when not undoable), CD hangs its confirmation below itself.
+//   UI-CHAT-040: FC disc and lazy anchor, CD the click asks the runtime for the turn's changes on the disc (ShowDiff). UI-GIT-046,
+//   UI-GIT-048: the same tests. UI-CHAT-041, UI-GIT-045: FF rows, overflow and Binary, PrFileTests (popover below the title), CD
+//   stat colours and no controls. UI-CHAT-042, -070, -071, -072: UL (with FHS and CD for -070).
+// UI-CHAT-049, UI-HYDRAMERGE-006: FRR and FMO Open link (caption semibold, sibling, tooltip, click). UI-CHAT-050, UI-HYDRAMERGE-007:
+//   FMO report (460, 16 by 14, 10, 12-point markdown, selection, bottom edge) with PR-CHAT-146's final-height test.
+//   UI-HYDRAMERGE-005: FMO title and chevron. UI-HYDRAMERGE-004: FMR track and animations, PrRecords flourish and the pin at 6.
+// UI-CHAT-055: FHS (panel, header, sections, selection with the I-beam, 520), CD status line, which entries are steps, the panel
+//   follows the head's runtime. UI-CHAT-061: FWG narration, CD it selects. UI-GIT-049, -050: FUR pencil and menu item.
+// UI-RUNTIME-001: FN info row; its four runtime messages are held by ThreadRuntimeLocalCommandTests, ThreadRuntimeNoticeRowsTests,
+//   AutoContinueReviewTests and ThreadRuntimeCLIUpdateTests.
+//
+// CORNER-ONLY (every clause but ED-181's continuous curve is proven; CD pins the radius and the .continuous style of each site, so the
+// records close when the curve lands in SwiftShapes): UI-CHAT-024 (FT, CD spacer, PR-CHAT-097 interactions), UI-CHAT-025 (FD),
+//   UI-CHAT-028 (FD, CD selection), UI-CHAT-029 (FP, CD wave), UI-CHAT-033 (FN, CD animation), UI-CHAT-034 and UI-RUNTIME-002,
+//   UI-RUNTIME-003 (FN), UI-CHAT-036 (FB, PR-CHAT-104), UI-CHAT-037 (FC, FF, CD asset), UI-CHAT-048 (FRR, CD popovers),
+//   UI-CHAT-051 (FHR, PR-CHAT-147), UI-CHAT-053 and UI-HYDRAMERGE-002 (FMR, FMO, PR-CHAT-150), UI-CHAT-054 (FHR, PR-CHAT-149),
+//   UI-CHAT-056, UI-CHAT-057 (FT, CD MCP row, PR-CHAT-097), UI-CHAT-059 (FB, CD strays), UI-GIT-044 (the alignment test, FC).
+// UI-CHAT-052: CORNER-ONLY and one more clause, the soft ARRIVAL of the settle glide: SoftAppearModifier has no animatable data, and
+//   SwiftTransition.Gather (SwiftAnimation.cs, ED-098 (2)) gives such a modifier its identity at the start, so a pill that joins
+//   shows at once (measured: opacity 1, no offset at the first frame). The Swift body reads .opacity(isVisible ? 1 : 0).offset(y: ...)
+//   under .animation(.softAppear) (Chrome.swift:938-955), which SwiftUI animates. The fix is in Chrome / F.SwiftAnimation (every soft
+//   appear), not here. CD proves the pill joins in order under .smooth(duration: 0.3) (Rule); its leaving half is in FHR.
+//
+// BLOCKED: UI-CHAT-039 and UI-GIT-047: Button(...).controlSize(.small) on the glass buttons (:2796) has no metric in the source or in
+//   any frame; GlassCommand(small: true) draws the regular capsule (STOP #5). CD proves Return activates Revert (Rule); everything
+//   else of both records is proven (FR, CD). UNRESOLVED: the small glass button's height, padding and type size.
+//
+// Notes. The UI-HYDRAMERGE-005 record's exact_text lists
+//   titles that AppModel+HydraMerge writes (:290, :330, :905); the row shows whatever first line the note has, which FMO holds.
+//   UI-CHAT-048's text says a leading address "is dropped from the report": the source drops it only from the details (the empty
+//   check and the merge card's parse, :254-257); the generic report popover is HydraReportPopover(text: body), the whole body (:297),
+//   and the port does the same (CD popovers). The record's wording is looser than the source.
