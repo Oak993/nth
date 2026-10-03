@@ -55,6 +55,9 @@ public sealed class LinkPopover
         closeBox = new PopoverCloseBox(Close); // :16
     }
 
+    /// <summary>:35 the hosted view's intrinsic size. A seam so a test can make the measure come back empty, the case :36 answers.</summary>
+    internal static Func<Control, Size> MeasureContent { get; set; } = content => StyledMeasure.Of(content, new Size(double.PositiveInfinity, double.PositiveInfinity));
+
     /// <summary>Test-only readback (InternalsVisibleTo, matching AttachmentPreviewCoordinator.cs's PopupForTests
     /// pattern): the Popup this class drives, so a test can inspect or directly close it.</summary>
     internal Popup PopoverForTests => popover;
@@ -76,7 +79,7 @@ public sealed class LinkPopover
         Popovers.SetClosePopoverBox(content, closeBox); // :34 .environment(\.closePopoverBox, closeBox)
         // :35 NSHostingView(rootView: content).intrinsicContentSize: the size of a hosted view, so measured in a window, where
         // the rows' button templates are in effect (detached, the rows measured 12 pt tall instead of 64).
-        var size = StyledMeasure.Of(content, new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var size = MeasureContent(content);
         if (size.Width <= 0 || size.Height <= 0) size = new Size(220, 110); // :36
         popover.SetFixedContent(content, size); // :37
         // :39 preferredEdge: .minY, "below the words in the flipped text view" (the source's own comment):

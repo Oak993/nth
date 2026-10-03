@@ -183,6 +183,35 @@ public sealed class LinkPopoverRowsAndIconTests(HeadlessSession headless)
         finally { window.Close(); }
     });
 
+    [Theory]
+    [InlineData(0, 0, 220, 110)] // :36 an empty measure falls back to 220 by 110
+    [InlineData(0, 64, 220, 110)]
+    [InlineData(220, 64, 220, 64)] // a real measure is the size the popover takes
+    [Trait("Req", "UI-THEME-042")] // :35-37 the popover's size is the hosted content's intrinsic size, 220 by 110 when that comes back empty
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-THEME-042: the size fallback; the outside-click, escape and second-show clauses need a real popup window (NATIVE-ONLY)
+    public void The_popover_takes_the_measured_size_or_220_by_110_when_the_measure_is_empty(double measuredWidth, double measuredHeight, double width, double height) => headless.OnUiThread(() =>
+    {
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var anchor = new Border { Width = 10, Height = 10 };
+        var window = Show(anchor);
+        var previous = LinkPopover.MeasureContent;
+        try
+        {
+            LinkPopover.MeasureContent = _ => new Size(measuredWidth, measuredHeight);
+            LinkPopover.Shared.Show(SwiftURL.Create("https://example.com/x")!, null, new Rect(0, 0, 10, 10), anchor);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests));
+            Assert.Equal(width, frame.Width);
+            Assert.Equal(height, frame.Height);
+        }
+        finally
+        {
+            LinkPopover.MeasureContent = previous;
+            LinkPopover.Shared.Close();
+            window.Close();
+        }
+    });
+
     [Fact]
     [Trait("Req", "UI-THEME-045")] // :91-94 the pasteboard takes the url's absolute string; here the content is not in the window's own tree (a popup's root), so the write goes through the link's window
     public void Copy_Link_writes_through_the_window_the_link_is_in_when_the_popup_content_has_a_root_of_its_own() => headless.OnUiThread(() =>
