@@ -9,6 +9,7 @@ public sealed class AppModelHydraMergeCoordinatorTests
 {
     [Theory]
     [InlineData("legacy-empty")]
+    [InlineData("legacy-not-last")]
     [InlineData("empty")]
     [InlineData("already-main")]
     [InlineData("stray")]
@@ -23,11 +24,15 @@ public sealed class AppModelHydraMergeCoordinatorTests
         var doc = f.Documents[lead.Id];
         if (scenario == "legacy-empty") f.Documents[lead.Id] = doc with { HydraMerges = new ValueList<HydraMergeRecord>([new HydraMergeRecord
         { At = SwiftDate.Now, HydraMergeRecordOutcome = HydraMergeRecord.Outcome.Held, Files = 1, Detail = "old saved entry" }]) };
+        // :157 reads the LAST record only (`runtime.hydraMerges.last?.outcome == .held`): a held entry a later record follows settles nothing.
+        if (scenario == "legacy-not-last") f.Documents[lead.Id] = doc with { HydraMerges = new ValueList<HydraMergeRecord>([
+            new HydraMergeRecord { At = SwiftDate.Now, HydraMergeRecordOutcome = HydraMergeRecord.Outcome.Held, Files = 1, Detail = "old saved entry" },
+            new HydraMergeRecord { At = SwiftDate.Now, HydraMergeRecordOutcome = HydraMergeRecord.Outcome.Failed, Project = "Project", Files = 0, Detail = "later failure", Retryable = true }]) };
         if (scenario == "stray") f.Tool(lead, @"C:\real-work-outside-all-projects\stray.txt");
         f.Start(lead);
         f.Run(lead);
         var records = f.Runtime(lead).HydraMerges;
-        Assert.DoesNotContain(records.Where(r => scenario != "legacy-empty" || r.Detail != "old saved entry"), r => r.HydraMergeRecordOutcome == HydraMergeRecord.Outcome.Held);
+        Assert.DoesNotContain(records.Where(r => scenario is not ("legacy-empty" or "legacy-not-last") || r.Detail != "old saved entry"), r => r.HydraMergeRecordOutcome == HydraMergeRecord.Outcome.Held);
         Assert.DoesNotContain(f.Notes(lead), n => n.StartsWith("Hydra is waiting for another chat's files.", StringComparison.Ordinal));
         if (scenario is "legacy-empty" or "already-main")
         {
@@ -39,6 +44,12 @@ public sealed class AppModelHydraMergeCoordinatorTests
             if (scenario == "legacy-empty") { Assert.Equal(2, records.Count); Assert.Equal(HydraMergeRecord.Outcome.Held, records[0].HydraMergeRecordOutcome); }
         }
         else if (scenario == "empty") { Assert.Empty(records); Assert.Empty(f.Notes(lead)); }
+        else if (scenario == "legacy-not-last")
+        {
+            Assert.Equal(2, records.Count);
+            Assert.DoesNotContain(records, r => r.HydraMergeRecordOutcome == HydraMergeRecord.Outcome.Settled);
+            Assert.Empty(f.Notes(lead));
+        }
         else { Assert.Equal(HydraMergeRecord.Outcome.Stray, Assert.Single(records).HydraMergeRecordOutcome); Assert.DoesNotContain(records, r => r.HydraMergeRecordOutcome == HydraMergeRecord.Outcome.Settled); }
         Assert.Equal(scenario != "stray", f.Runtime(lead).Turns.Single().HydraMerged);
         Assert.Equal(scenario != "stray", f.Model.Thread(head.Id)!.Hydra!.MergedAt is not null);

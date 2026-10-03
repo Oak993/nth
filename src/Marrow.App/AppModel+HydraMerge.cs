@@ -487,11 +487,10 @@ public sealed partial class AppModel
         if (await git.Forge() != MergeRequestLink.Forge.Gitlab || LoginEnvironment.Which("glab") is null)
             return await git.CreatePullRequest(title, body, source, target); // :434-435
 
-        var remoteWeb = await git.RemoteWebURL(); // :437
-        var host = remoteWeb?.Host ?? "your GitLab host";
+        var host = (await git.RemoteWebURL())?.Host ?? "your GitLab host"; // :437
         var arguments = new List<string> { "mr", "create", "--title", title, "--description", body,
             "--yes", "--squash-before-merge" }; // :441
-        if (remoteWeb is { Host: not null } web)
+        if (await git.RemoteWebURL() is { Host: not null } web) // :442 (read again, as the source does)
         {
             if (URLComponents.Create(web, resolvingAgainstBaseURL: false) is { User: not null } components)
             {

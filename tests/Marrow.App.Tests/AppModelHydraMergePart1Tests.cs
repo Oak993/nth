@@ -108,17 +108,21 @@ public sealed class AppModelHydraMergePart1Tests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
     [Trait("Req", "PR-HYDRAMERGE-015")] // App/AppModel+HydraMerge.swift:127,136-148
-    [Trait("Req", "PR-HYDRAMERGE-017")] // App/AppModel+HydraMerge.swift:136-139,636-643
     [Trait("Req", "PR-HYDRAMERGE-024")] // App/AppModel+HydraMerge.swift:166-179
-    public void Project_groups_follow_sidebar_order_keep_the_own_project_first_and_do_not_sweep_other_checkouts(bool emptyOwn)
+    // PR-HYDRAMERGE-017 (iteration follows the sidebar's own project order; `swapped` adds Third BEFORE Other, so
+    // sidebar order differs from the name/path order the folders sort in): App/AppModel+HydraMerge.swift:136 loops `projects`.
+    public void Project_groups_follow_sidebar_order_keep_the_own_project_first_and_do_not_sweep_other_checkouts(bool emptyOwn, bool swapped)
     {
         using var f = new HydraMergeProofFixture();
         var own = f.AddProject("Own", origin: false);
-        var other = f.AddProject("Other", origin: false);
+        var other = swapped ? null! : f.AddProject("Other", origin: false);
         var third = f.AddProject("Third", origin: false);
+        if (swapped) other = f.AddProject("Other", origin: false);
         var ownRepo = f.Repos[own.Id];
         var baseTree = ownRepo.Git("rev-parse", "HEAD^{tree}").Trim();
         var lead = f.AddLead(own, "Lead", emptyOwn ? ["gone"] : ["a.txt"], checkpoint: baseTree);
@@ -129,7 +133,8 @@ public sealed class AppModelHydraMergePart1Tests
         var calls = new List<ShellInvocation>();
         f.Run(lead, calls.Add);
         var records = f.Runtime(lead).HydraMerges;
-        Assert.Equal(emptyOwn ? ["Other", "Third"] : ["Own", "Other", "Third"], records.Select(r => r.Project));
+        var order = swapped ? new[] { "Third", "Other" } : new[] { "Other", "Third" };
+        Assert.Equal(emptyOwn ? order : ["Own", .. order], records.Select(r => r.Project));
         foreach (var r in records)
         {
             Assert.Equal(HydraMergeRecord.Outcome.Failed, r.HydraMergeRecordOutcome);
@@ -139,6 +144,56 @@ public sealed class AppModelHydraMergePart1Tests
         Assert.DoesNotContain(calls, c => c.Directory != own.Path && HydraMergeReviewFixture.IsGit(c, "add"));
         Assert.Equal("?? unrecorded.txt", f.Repos[other.Id].Git("status", "--porcelain").Trim());
         Assert.Equal("?? unrecorded.txt", f.Repos[third.Id].Git("status", "--porcelain").Trim());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-017")] // App/AppModel+HydraMerge.swift:122-139,148,636-643
+    public void Each_other_owning_project_gets_its_own_pass_in_sidebar_order_with_the_sweep_off_and_the_leads_checkout_anchoring_relative_edits()
+    {
+        using var f = new HydraMergeProofFixture();
+        // Sidebar order is Own, Third, Other, Untouched: not the order the names or folders sort in (:136 loops `projects`).
+        var own = f.AddProject("Own");
+        var third = f.AddProject("Third");
+        var other = f.AddProject("Other");
+        var untouched = f.AddProject("Untouched"); // owns none of the lead's outside paths: no pass of its own (:136 owners.values.contains)
+        var baseTree = f.Repos[own.Id].Git("rev-parse", "HEAD^{tree}").Trim();
+        var lead = f.AddLead(own, "Lead", [], checkpoint: baseTree); // The lead's own checkout is swept from this checkpoint (:636-640)...
+        // ...a relative edit is anchored at the LEAD's checkout (:137 leadCheckout: ownCheckout), where rel.txt does not exist.
+        f.Tool(lead, "rel.txt", Path.Combine(other.Path, "o.txt"), Path.Combine(third.Path, "t.txt"));
+        File.WriteAllText(Path.Combine(other.Path, "o.txt"), "o\n");
+        File.WriteAllText(Path.Combine(other.Path, "rel.txt"), "same name in the other project\n");
+        File.WriteAllText(Path.Combine(other.Path, "unrecorded.txt"), "user, in the checkout the sweep must not read\n");
+        File.WriteAllText(Path.Combine(third.Path, "t.txt"), "t\n");
+        f.Start(lead);
+        f.Forge(third);
+        f.Forge(other);
+        var calls = new List<ShellInvocation>();
+        var visited = new List<string>();
+        f.Run(lead, call =>
+        {
+            calls.Add(call);
+            if (HydraMergeReviewFixture.IsGit(call, "remote") && call.Arguments.Contains("get-url") && !visited.Contains(call.Directory!)) visited.Add(call.Directory!);
+        });
+        // Own's group had nothing to send and was pruned (:148); the others went in sidebar order, the first-come order of the loop.
+        Assert.Equal([third.Path, other.Path], visited);
+        var records = f.Runtime(lead).HydraMerges;
+        Assert.Equal(["Third", "Other"], records.Select(r => r.Project));
+        Assert.All(records, r => Assert.Equal(HydraMergeRecord.Outcome.Merged, r.HydraMergeRecordOutcome));
+        var branch = f.Branch(lead);
+        Assert.Equal([
+            $"Third: Hydra merged #7\n{HydraMergeReviewFixture.Url}\n\n1 file (+1 \u22120) landed on `main` from `{branch}`.\nThe checkout is up to date.",
+            $"Other: Hydra merged #7\n{HydraMergeReviewFixture.Url}\n\n1 file (+1 \u22120) landed on `main` from `{branch}`.\nThe checkout is up to date."], f.Notes(lead));
+        // The other checkout's branch holds the recorded o.txt only: not rel.txt (anchored at the lead's checkout), not the user's file.
+        var repo = f.Repos[other.Id];
+        Assert.True(repo.Raw("cat-file", "-e", branch + ":o.txt").Succeeded);
+        Assert.False(repo.Raw("cat-file", "-e", branch + ":rel.txt").Succeeded);
+        Assert.False(repo.Raw("cat-file", "-e", branch + ":unrecorded.txt").Succeeded);
+        // sweepsCheckout: false: the lead's first checkpoint was read in the lead's checkout and in no other one (:636).
+        bool ReadsCheckpoint(ShellInvocation call, string directory) => call.Directory == directory && call.Arguments.Contains(baseTree);
+        Assert.Contains(calls, call => ReadsCheckpoint(call, own.Path));
+        Assert.DoesNotContain(calls, call => ReadsCheckpoint(call, other.Path) || ReadsCheckpoint(call, third.Path));
+        Assert.DoesNotContain(calls, call => call.Directory == untouched.Path);
+        Assert.True(f.Runtime(lead).Turns.Single().HydraMerged);
     }
 
     [Theory]
@@ -162,10 +217,13 @@ public sealed class AppModelHydraMergePart1Tests
         Assert.False(f.Runtime(lead).Turns.Single().HydraMerged);
         Assert.True(f.Runtime(lead).HasHydraMergeRetryPending);
         Assert.DoesNotContain(calls, c => HydraMergeReviewFixture.IsGit(c, "commit-tree") || HydraMergeReviewFixture.IsGit(c, "push"));
+        // Removal makes the retry's capture equal HEAD, so the job settles instead of repeating the deferral. It is removed
+        // BEFORE the clock moves: a retry that fired earlier than the minute (:418 sleeps 60 s) would settle the job below.
+        if (File.Exists(path)) File.Delete(path); else Directory.Delete(path);
         f.H.Main.AdvanceMilliseconds(59_999);
         Assert.Empty(f.Runtime(lead).HydraMerges);
-        // Removal makes the retry's capture equal HEAD, so the job settles instead of repeating the deferral.
-        if (File.Exists(path)) File.Delete(path); else Directory.Delete(path);
+        Assert.False(f.Runtime(lead).Turns.Single().HydraMerged);
+        Assert.True(f.Runtime(lead).HasHydraMergeRetryPending);
         f.H.Main.AdvanceMilliseconds(1);
         f.H.Main.Loop.RunUntil(() => f.Runtime(lead).Turns.Single().HydraMerged, AppModelHarness.Bound);
         Assert.False(f.Runtime(lead).HasHydraMergeRetryPending);

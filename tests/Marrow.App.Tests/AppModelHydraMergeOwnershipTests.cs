@@ -55,6 +55,9 @@ public sealed class AppModelHydraMergeOwnershipTests
         f.AddLead(p, "Cold", ["cold.txt"]);
         var unrelated = f.AddLead(other, "Other lead", ["foreign.txt"], status: TurnStatus.Interrupted);
         var interrupted = f.AddLead(p, "Interrupted", ["shared.txt", "partial.txt", "layered.txt", Path.Combine(other.Path, "outside.txt")], status: TurnStatus.Interrupted, hydra: false);
+        // A LIVE chat whose completed unmerged turn holds a path but which can no longer merge (Hydra off, idle, not merging, :763-770):
+        // it reserves nothing, because a completed turn reserves only while canStillMerge (:720 `canStillMerge(other) || turn.status != .completed`).
+        var spent = f.AddLead(p, "Spent", ["spent.txt"], hydra: false);
         var active = f.AddLead(p, "Parent", [], new Guid("ffffffff-0000-0000-0000-000000000001"));
         var running = f.AddHead(active, ["shared.txt", "running.txt"], HydraHeadInfo.Status.Running);
         var orphan = f.AddHead(active, ["orphan.txt"], HydraHeadInfo.Status.Running);
@@ -63,7 +66,7 @@ public sealed class AppModelHydraMergeOwnershipTests
         f.AddHead(activeOld, ["active-old.txt"], HydraHeadInfo.Status.Failed);
         var later = f.AddLead(p, "Later", ["later-only.txt"], new Guid("ffffffff-ffff-ffff-ffff-ffffffffffff"));
         f.AddHead(later, ["layered.txt"]);
-        f.Start(lead, interrupted, unrelated, activeOld, later);
+        f.Start(lead, interrupted, unrelated, activeOld, later, spent);
         f.H.Main.OnMain(() =>
         {
             f.Model.UpdateThread(running.Id, t => t with { Hydra = t.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running } });
@@ -76,6 +79,8 @@ public sealed class AppModelHydraMergeOwnershipTests
         Assert.Equal(expected.OrderBy(p => p.Key), reserved.OrderBy(p => p.Key));
         expected["layered.txt"] = "Interrupted"; expected.Remove("later-only.txt"); // A later NON-blocking reservation does not erase the prior block.
         Assert.Equal(expected.OrderBy(p => p.Key), blocking.OrderBy(p => p.Key));
+        Assert.NotNull(f.Model.ExistingRuntime(spent.Id));
+        Assert.DoesNotContain("spent.txt", reserved.Keys); Assert.DoesNotContain("spent.txt", blocking.Keys);
         Assert.Null(f.Model.ExistingRuntime(ownHead.Id));
         Assert.Null(f.Model.ExistingRuntime(f.Threads.Single(t => t.Title == "Cold").Id));
     }
