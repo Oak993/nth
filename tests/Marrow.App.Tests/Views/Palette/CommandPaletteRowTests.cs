@@ -189,7 +189,10 @@ public sealed class CommandPaletteRowTests(HeadlessSession headless)
                 // Invoke runs the row and closes the palette first.
                 var runtime = model.Runtime(thread.Id);
                 Assert.False(runtime.IsTerminalVisible);
+                var terminalIndex = Array.IndexOf(Titles(palette), "Toggle terminal");
+                Assert.NotEqual(selectedIndex, terminalIndex);
                 ((IInvokeProvider)terminalPeer).Invoke();
+                Assert.Equal(terminalIndex, palette.Selection); // like a tap, invoking selects the row (:87) before running it
                 Assert.False(model.IsCommandPalettePresented);
                 Assert.True(runtime.IsTerminalVisible);
             });

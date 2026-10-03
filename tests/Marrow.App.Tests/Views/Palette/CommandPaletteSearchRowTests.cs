@@ -89,11 +89,14 @@ public sealed class CommandPaletteSearchRowTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 Settle(window);
+                var consumed = new System.Collections.Generic.List<(Key Key, bool Handled)>();
+                window.AddHandler(InputElement.KeyDownEvent, (_, e) => consumed.Add((e.Key, e.Handled)), Avalonia.Interactivity.RoutingStrategies.Bubble, handledEventsToo: true);
                 palette.QueryField.CaretIndex = 3;
                 Press(window, Key.Up, PhysicalKey.ArrowUp);
                 Assert.Equal(3, palette.QueryField.CaretIndex);
                 Press(window, Key.Down, PhysicalKey.ArrowDown);
                 Assert.Equal(3, palette.QueryField.CaretIndex);
+                Assert.Equal([(Key.Up, true), (Key.Down, true)], consumed); // both arrows are consumed (:51-58 return .handled)
 
                 // Escape closes without clearing what was typed.
                 model.IsCommandPalettePresented = true;
