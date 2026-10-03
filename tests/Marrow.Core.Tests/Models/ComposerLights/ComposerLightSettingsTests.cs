@@ -135,4 +135,13 @@ public sealed class ComposerLightSettingsTests
         var off = ComposerLightSettings.FromJson("""{"style":"off"}"""u8);
         Assert.Equal(ComposerLightSettings.Default with { Style = ComposerLightStyle.Off }, off);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // review D4: bytes that are not valid Unicode (invalid UTF-8, a lone surrogate escape) read as the default, never an exception
+    public void Text_that_is_not_valid_unicode_is_the_default()
+    {
+        byte[] invalid = [.. "{\"style\":\""u8.ToArray(), 0xFF, .. "\"}"u8.ToArray()];
+        Assert.Equal(ComposerLightSettings.Default, ComposerLightSettings.FromJson(invalid));
+        Assert.Equal(ComposerLightSettings.Default, ComposerLightSettings.FromJson(Encoding.ASCII.GetBytes("{\"aura\":{\"c1\":\"\\ud800\"}}")));   // the JSON escape \ud800, alone
+    }
 }

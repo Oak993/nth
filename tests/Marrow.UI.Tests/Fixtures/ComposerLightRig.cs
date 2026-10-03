@@ -11,7 +11,7 @@ internal static class ComposerLightRig
 {
     public const int Margin = 40;
 
-    public static SKBitmap Render(ComposerLightAnimator light, bool dark, float scale = 1, ComposerLightRenderer? renderer = null, double w = 820, double h = 52)
+    public static SKBitmap Render(ComposerLightAnimator light, bool dark, float scale = 1, ComposerLightRenderer? renderer = null, double w = 820, double h = 52, double now = 0)
     {
         var info = new SKImageInfo((int)Math.Ceiling((w + 2 * Margin) * scale), (int)Math.Ceiling((h + 2 * Margin) * scale), SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
@@ -23,7 +23,7 @@ internal static class ComposerLightRig
         canvas.Translate(Margin, Margin);
         var own = renderer is null;
         var r = renderer ?? new ComposerLightRenderer();
-        try { r.Draw(canvas, null, light, scale); }
+        try { r.Draw(canvas, null, light, scale, now); }
         finally { if (own) r.Dispose(); }
         var bitmap = new SKBitmap(info);
         surface.ReadPixels(info, bitmap.GetPixels(), info.RowBytes, 0, 0);
@@ -109,19 +109,20 @@ internal static class ComposerLightFixtures
         return list;
     }
 
-    /// <summary>(largest channel difference, share of pixels off by more than 6 / 255 in %).</summary>
-    public static (int Max, double OffPercent) Compare(SKBitmap a, SKBitmap b)
+    /// <summary>(largest channel difference, share of pixels off by more than 6 / 255 in %), over a region (default all).</summary>
+    public static (int Max, double OffPercent) Compare(SKBitmap a, SKBitmap b, SKRectI? region = null)
     {
         var max = 0; var off = 0;
-        for (var y = 0; y < a.Height; y++)
-            for (var x = 0; x < a.Width; x++)
+        var r = region ?? new SKRectI(0, 0, a.Width, a.Height);
+        for (var y = r.Top; y < r.Bottom; y++)
+            for (var x = r.Left; x < r.Right; x++)
             {
                 SKColor p = a.GetPixel(x, y), q = b.GetPixel(x, y);
                 var d = Math.Max(Math.Abs(p.Red - q.Red), Math.Max(Math.Abs(p.Green - q.Green), Math.Abs(p.Blue - q.Blue)));
                 max = Math.Max(max, d);
                 if (d > 6) off++;
             }
-        return (max, off * 100.0 / (a.Width * a.Height));
+        return (max, off * 100.0 / (r.Width * r.Height));
     }
 }
 

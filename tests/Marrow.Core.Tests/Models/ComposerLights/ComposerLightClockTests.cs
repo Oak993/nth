@@ -141,4 +141,18 @@ public sealed class ComposerLightClockTests
         Assert.Equal((2.3, 1.7, 0.6, 7.8, 19.5, 2.343, 0.371), (auto.Duration, auto.Brightness, auto.Saturation, auto.CoreBlur, auto.BloomBlur, auto.GlowX, auto.GlowY));
         Assert.Equal(3.692552685682387, BorderBeamResolved.AutoValues(BorderBeamOptions.Default with { Duration = 5 }, true, 820, 52, 22).Duration, 12);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // logic.js tick(): the fitted windows' radius c.rr eases to the radius in effect over .22 s (c.rr + (r - c.rr)(1 - e^(-dt / .22)))
+    public void The_window_radius_eases_over_point_22_seconds()
+    {
+        var clock = new ComposerLightClock(true, false);
+        clock.Advance(1 / 60.0, false, 12, true, 3.69, false, false, 22);
+        Assert.Equal(22, clock.WindowRadius, 12);
+        clock.Advance(1 / 60.0, false, 12, true, 3.69, false, false, 10);
+        var expected = 22 + (10 - 22) * (1 - Math.Exp(-(1 / 60.0) / 0.22));
+        Assert.Equal(expected, clock.WindowRadius, 12);
+        clock.Advance(0.04, false, 12, true, 3.69, false, false, 10);
+        Assert.Equal(expected + (10 - expected) * (1 - Math.Exp(-0.04 / 0.22)), clock.WindowRadius, 12);
+    }
 }

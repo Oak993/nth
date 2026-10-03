@@ -162,7 +162,7 @@ public sealed class ComposerLightClock
         bp += e / 4;
 
         // the beam
-        var dur = Math.Max(0.3, beamDuration);
+        var dur = double.IsFinite(beamDuration) ? Math.Max(0.3, beamDuration) : 1.96; // never a NaN into the integrated phases
         var (pB, pS, pS2) = BorderBeamMath.LinePeriods(dur);
         ap += e / dur; hs += e / 12; hs8 += e / 8;
         lp += e / dur; lbp += e / pB; lsp += e / pS; ls2p += e / pS2;
@@ -199,7 +199,7 @@ public sealed class ComposerLightClock
     /// <summary>The test hook of the playground (window.__bbT): every beam phase at absolute seconds T.</summary>
     public void SetBeamTime(double seconds, double hueSeconds, double beamDuration, bool staticHue, bool lightTheme)
     {
-        var dur = Math.Max(0.3, beamDuration);
+        var dur = double.IsFinite(beamDuration) ? Math.Max(0.3, beamDuration) : 1.96; // never a NaN into the integrated phases
         var (pB, pS, pS2) = BorderBeamMath.LinePeriods(dur);
         ap = seconds / dur; hs = hueSeconds / 12; hs8 = hueSeconds / 8; lp = seconds / dur; lbp = seconds / pB; lsp = seconds / pS; ls2p = seconds / pS2;
         tau = seconds * 2.3 / dur;

@@ -24,13 +24,24 @@ internal static class ComposerLightShaders
             return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
         }
         float erf(float x) { float a = 0.147; float x2 = x * x; float r = sqrt(max(0.0, 1.0 - exp(-x2 * (1.2732395 + a * x2) / (1.0 + a * x2)))); return x < 0.0 ? -r : r; }
+        // a rounded rectangle (x, y, w, h; radius r) blurred by s, analytically: the blurred box (separable, exact for a
+        // rectangle) capped by the blurred rounded edge; used while a baked one is not settled
+        float blurRR(float2 p, float4 rc, float r, float s) {
+            float d = rrSdf(p - rc.xy, rc.zw, r);
+            if (s < 0.05) return clamp(0.5 - d, 0.0, 1.0);
+            float k = 0.70710678 / s;
+            float2 lo = p - rc.xy; float2 hi = rc.xy + rc.zw - p;
+            float bx = 0.5 * (erf(hi.x * k) + erf(lo.x * k));
+            float by = 0.5 * (erf(hi.y * k) + erf(lo.y * k));
+            return clamp(min(bx * by, 0.5 * (1.0 - erf(d * k))), 0.0, 1.0);
+        }
         """;
 
     // Border beam's uniforms. geo: clip radius, ring radius, device scale, mode (0 rotate, 1 line, 2 pulse inner, 3 pulse
     // outside). win: phase, window radius, fitted, unused. rows: stroke window, inner window, highlight, bloom. bands: on,
     // dv, dh, bloom sigma. opac: inner, stroke, bloom, slot alpha. outer: core opacity, bloom opacity, core sigma, bloom
     // sigma. flags: filter stroke and inner, filter bloom, hue on the bloom, has a shadow.
-    private const string BeamUniforms = """
+    internal const string BeamUniforms = """
         uniform float2 box;
         uniform float4 geo;
         uniform float4 win;
@@ -47,6 +58,11 @@ internal static class ComposerLightShaders
         uniform float bright;
         uniform float4 lmask;
         uniform float lmaskB;
+        uniform float4 shadowR;
+        uniform float4 shadowP;
+        uniform float4 bloomR;
+        uniform float4 bloomP;
+        uniform float4 bakeMap;
 
         """;
 
@@ -60,9 +76,12 @@ internal static class ComposerLightShaders
 
         """;
 
-    private const string BeamFunctions = Common + """
+    internal const string BeamFunctions = Common + """
 
         float cov(float d) { return clamp(0.5 - d * geo.z, 0.0, 1.0); }
+        // the inset shadow's hole and the bloom's edge, blurred: baked once settled (P.z = 1), else analytic
+        float shadowCover(float2 p) { return shadowP.z > 0.5 ? float(shadowTex.eval(p).a) : blurRR(p, shadowR, shadowP.x, shadowP.y); }
+        float bloomCover(float2 p) { return bloomP.z > 0.5 ? float(bloomTex.eval(p).a) : blurRR(p, bloomR, bloomP.x, bloomP.y); }
         float prof(float row, float f) { return float(profiles.eval(float2(fract(f) * 2048.0, row + 0.5)).a); }
         float perimLen(float W, float H, float R) { return 2.0 * (W + H) - (8.0 - 2.0 * PI) * R; }
 
@@ -188,33 +207,25 @@ internal static class ComposerLightShaders
             }
         """;
 
-    // Large and Small, the static half (baked once per size): bake 1 the inner wash (the inset shadow over the inner blobs,
-    // times the edge bands), bake 2 the stroke's blobs on the ring, bake 3 the ring itself.
+    // Large and Small, the static half (baked once a size has settled): bake 1 the inner blobs, bake 2 the stroke's, each
+    // as a plain field over the box (the masks are drawn per frame), so a stale bake can be stretched over a moving size.
     internal const string RotateBakeSource = BeamUniforms + EllipseUniforms + """
         uniform float bake;
         uniform shader shadowTex;
+        uniform shader bloomTex;
         uniform shader profiles;
         """ + BeamFunctions + """
         half4 main(float2 p) {
         """ + EllipseLoop + """
-            if (bake < 1.5) {
-                if (cov(rrSdf(p, box, geo.x)) <= 0.0) return half4(0.0);
-                half4 sh = half4(0.0);
-                if (flags.w > 0.5) sh = half4(shadowC) * half(1.0 - float(shadowTex.eval(p).a));
-                float m = bands.x > 0.5 ? bandsMask(p) : 1.0;
-                return (sh + a0 * (1.0 - sh.a)) * half(m);
-            }
-            float ring = ringMask(p, geo.y);
-            if (bake < 2.5) return a1 * half(ring);
-            return half4(half(ring));
+            return bake < 1.5 ? a0 : a1;
         }
         """;
 
-    // Large and Small, per frame: the baked layers under the travelling windows, the highlight and the bloom.
+    // Large and Small, per frame: the baked blob fields (mapped from the size they were baked at) under the edge bands, the
+    // inset shadow, the ring and the travelling windows, the highlight and the bloom.
     internal const string RotateSource = BeamUniforms + """
         uniform shader innerTex;
         uniform shader strokeTex;
-        uniform shader ringTex;
         uniform shader bloomTex;
         uniform shader profiles;
         uniform shader shadowTex;
@@ -223,17 +234,21 @@ internal static class ComposerLightShaders
             float clip = cov(rrSdf(p, box, geo.x));
             if (clip <= 0.0) return half4(0.0);
             float ph = win.x;
-            half4 inner = innerTex.eval(p);
-            if (inner.a > 0.0) {
-                inner = inner * half(prof(rows.y, uInner(p) - ph) * opac.x);
+            float2 q = p * bakeMap.xy;
+            half4 sh = half4(0.0);
+            if (flags.w > 0.5) sh = half4(shadowC) * half(1.0 - shadowCover(p));
+            half4 inner = sh + innerTex.eval(q) * (1.0 - sh.a);
+            float m = bands.x > 0.5 ? bandsMask(p) : 1.0;
+            if (inner.a > 0.0 && m > 0.0) {
+                inner = inner * half(m * prof(rows.y, uInner(p) - ph) * opac.x);
                 if (flags.x > 0.5) inner = filt(inner, hueS, true);
-            }
+            } else inner = half4(0.0);
             half4 col = inner;
-            float ring = float(ringTex.eval(p).a);
+            float ring = ringMask(p, geo.y);
             if (ring > 0.002) {
                 float u = uCentre(p);
                 float hl = prof(rows.z, u - ph);
-                half4 bg = half4(hlc) * half(hl * ring) + strokeTex.eval(p) * half(1.0 - hl);
+                half4 bg = (half4(hlc) * half(hl) + strokeTex.eval(q) * half(1.0 - hl)) * half(ring);
                 half4 stroke = bg * half(prof(rows.x, u - ph) * opac.y);
                 if (flags.x > 0.5) stroke = filt(stroke, hueS, true);
                 // the bloom: the highlight's conic blurred (a Gaussian-weighted mean over the box's inside) times the
@@ -242,13 +257,13 @@ internal static class ComposerLightShaders
                 for (int a = 0; a < 5; a++) {
                     for (int b = 0; b < 5; b++) {
                         float2 o = float2(float(a) - 2.0, float(b) - 2.0);
-                        float2 q = p + sg * o;
-                        float w = exp(-0.5 * dot(o, o)) * cov(rrSdf(q, box, geo.y));
-                        if (w > 0.0) { ws += w; vs += w * prof(rows.w, uCentre(q) - ph); }
+                        float2 qq = p + sg * o;
+                        float w = exp(-0.5 * dot(o, o)) * cov(rrSdf(qq, box, geo.y));
+                        if (w > 0.0) { ws += w; vs += w * prof(rows.w, uCentre(qq) - ph); }
                     }
                 }
                 float bl = ws > 0.0 ? vs / ws : 0.0;
-                half4 bloom = filt(half4(hlc) * half(bl * float(bloomTex.eval(p).a) * ring * opac.z), hueB, false);
+                half4 bloom = filt(half4(hlc) * half(bl * bloomCover(p) * ring * opac.z), hueB, false);
                 col = stroke + col * (1.0 - stroke.a);
                 col = bloom + col * (1.0 - bloom.a);
             }
@@ -268,7 +283,7 @@ internal static class ComposerLightShaders
             float clip = cov(rrSdf(p, box, geo.x));
             half4 col = half4(0.0);
             half4 sh = half4(0.0);
-            if (flags.w > 0.5 && clip > 0.0) sh = half4(shadowC) * half(1.0 - float(shadowTex.eval(p).a));
+            if (flags.w > 0.5 && clip > 0.0) sh = half4(shadowC) * half(1.0 - shadowCover(p));
             if (mode < 1.5) {
                 float ms = maskEll(p, lmask.y, lmask.z, 0.45);
                 half4 inner = half4(0.0); half4 stroke = half4(0.0); half4 bloom = half4(0.0);
@@ -276,7 +291,7 @@ internal static class ComposerLightShaders
                     inner = (sh + a0 * (1.0 - sh.a)) * half(ms * bandsMask(p) * opac.x);
                     if (flags.x > 0.5) inner = filt(inner, hueS, true);
                     // the spikes are painted inside the layer's box, then blurred: the box's blurred edge dims them at the bottom
-                    bloom = a2 * half(maskEll(p, lmask.w, lmaskB, 0.35) * float(bloomTex.eval(p).a) * opac.z);
+                    bloom = a2 * half(maskEll(p, lmask.w, lmaskB, 0.35) * bloomCover(p) * opac.z);
                     if (flags.y > 0.5) bloom = filt(bloom, hueB, flags.z > 0.5);
                 }
                 float ring = ringMask(p, geo.y);
@@ -292,7 +307,7 @@ internal static class ComposerLightShaders
                 half4 inner = filt(a0 * half(bandsMask(p) * opac.x), hueS, flags.x > 0.5);
                 half4 stroke = filt(a1 * half(ring * opac.y), hueS, flags.x > 0.5);
                 half4 bloom = half4(0.0);
-                if (ring > 0.0) bloom = filt(a2 * half(ring * float(bloomTex.eval(p).a) * opac.z), hueB, flags.z > 0.5);
+                if (ring > 0.0) bloom = filt(a2 * half(ring * bloomCover(p) * opac.z), hueB, flags.z > 0.5);
                 col = stroke + inner * (1.0 - stroke.a);
                 col = bloom + col * (1.0 - bloom.a);
                 col *= half(clip);
@@ -324,6 +339,10 @@ internal static class ComposerLightShaders
         uniform float4 k2;
         uniform float4 n1;
         uniform float4 n2;
+        uniform float4 haloR;
+        uniform float4 haloP;
+        uniform float4 rimR;
+        uniform float4 rimP;
         uniform shader haloTex;
         uniform shader rimTex;
         """ + Common + """
@@ -354,7 +373,10 @@ internal static class ComposerLightShaders
             float ca = cos(g.z); float sa = sin(g.z);
             return float2(ca / sx, sa / sy) / (g.w * 400.0);
         }
-        float cover(float2 p, bool isHalo) { return isHalo ? float(haloTex.eval(p).a) : float(rimTex.eval(p).a); }
+        float cover(float2 p, bool isHalo) {
+            if (isHalo) return haloP.z > 0.5 ? float(haloTex.eval(p).a) : blurRR(p, haloR, haloP.x, haloP.y);
+            return rimP.z > 0.5 ? float(rimTex.eval(p).a) : blurRR(p, rimR, rimP.x, rimP.y);
+        }
         // a blurred layer, blur(clip x gradient): the clip's blurred coverage A times the gradient's mean under the kernel
         // restricted to the clip. A Gaussian kernel's restricted moments come from A's derivatives: the mean is
         // p + s^2 grad A / A, the variance along n is s^2 + s^4 (n.H.n) / A - (s^2 n.grad A / A)^2; the gradient's mean

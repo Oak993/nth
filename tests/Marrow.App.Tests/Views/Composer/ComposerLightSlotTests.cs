@@ -151,4 +151,25 @@ public sealed class ComposerLightSlotTests(HeadlessSession headless)
             });
         });
     }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // logic.js MODELS: the Maker scheme's colours are the maker's liquid stops (OD-0063): heart and second dark, the deeper pair light; no thread's maker: Purple
+    public void The_palette_is_the_makers_liquid_stops()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = Harness();
+            var runtime = Unresolved(h);
+            var area = h.Main.OnMain(() => new ComposerArea(runtime, workingDirectory: null));
+            var window = h.Main.OnMain(() => Show(area, h.App));
+            Pump(h, window);
+            h.Main.OnMain(() =>
+            {
+                var p = One<ComposerLightView>(area).Palette;
+                Assert.Equal(("#8C57F7", "#B48CFF", "#7A4BE0", "#8C57F7"), (p.MakerHeartDark, p.MakerSecondDark, p.MakerHeartLight, p.MakerSecondLight));
+                Assert.Matches("^#[0-9A-F]{6}$", p.AccentDark);
+                window.Close();
+            });
+        });
+    }
 }

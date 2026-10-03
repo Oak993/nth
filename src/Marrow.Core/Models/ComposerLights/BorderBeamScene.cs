@@ -137,6 +137,8 @@ public static class BorderBeamScene
     {
         f.Ellipses.Clear();
         f.W = w; f.H = h;
+        // not laid out yet: nothing to draw (and Line's spike step would be 0)
+        if (!(w > 0) || !(h > 0)) return;
         f.ClipRadius = BorderBeamMath.ClampRadius(w, h, v.R);
         f.WindowRadius = double.IsNaN(clock.WindowRadius) ? v.R : clock.WindowRadius;
         f.Fitted = c.Fitted; f.Dark = c.Dark; f.Small = c.Type == BeamType.Small;
@@ -311,7 +313,7 @@ public static class BorderBeamScene
         {
             double R = 366, step = 0.14 * R * sc, x0 = 0.08 * R * sc;
             var count = 0;
-            while (x0 + count * step <= w - x0 + 0.5) count++;
+            if (step > 0) while (count < EllipseBuffer.Capacity && x0 + count * step <= w - x0 + 0.5) count++;
             for (var j = count - 1; j >= 0; j--) One(j % 7, BorderBeamMath.Fixed2(x0 + j * step));
         }
     }

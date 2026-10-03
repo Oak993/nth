@@ -262,6 +262,8 @@ public static class BorderBeamMath
     /// </summary>
     public static double FitDurationScale(BeamType type, double w, double h, double r)
     {
+        // a composer not laid out yet (0 x 0) keeps the package's duration: 0 / 0 would poison every integrated phase
+        if (!(w > 0) || !(h > 0)) return 1;
         if (type is BeamType.Large or BeamType.Small)
         {
             var (rw, rh) = ReferenceBox(type);

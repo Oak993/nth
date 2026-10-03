@@ -18,20 +18,13 @@ namespace Marrow.UI.Port.ComposerLights;
 /// <summary>Everything the render thread needs for one composer's light, as one immutable value.</summary>
 public sealed record ComposerLightSnapshot(
     ComposerLightSettings Settings, ComposerLightPhase Phase, bool Dark, Rect Composer, bool ReduceMotion,
-    ComposerLightPalette Palette, double? FadeBottom, TimeProvider Clock)
+    ComposerLightPalette Palette, double? FadeBottom, TimeProvider Clock);
+
+/// <summary>The view left the tree: the handler stops and releases its bakes on the render thread.</summary>
+internal sealed class ComposerLightStop
 {
-    /// <summary>How far the light reaches outside the composer for these settings (px): the Uiverse halo, Pulse Outside's haloes.</summary>
-    public double Reach
-    {
-        get
-        {
-            var a = Settings.Aura; var b = Settings.Beam;
-            var aura = a.HaloSize + 3 * a.HaloBlur + 4;
-            var dark = b.Theme == BeamTheme.Auto ? Dark : b.Theme == BeamTheme.Dark;
-            var beam = b.Type == BeamType.PulseOutside ? 30 + 3 * Math.Max(b.BloomBlur ?? BorderBeamMath.GlowRadius(dark ? 22.5 : 15, b.GlowSize), b.CoreBlur ?? 6) + 4 : 2;
-            return Math.Max(aura, beam);
-        }
-    }
+    public static readonly ComposerLightStop Instance = new();
+    private ComposerLightStop() { }
 }
 
 /// <summary>The composition handler: the light's animator and renderer, on the render thread.</summary>
@@ -41,14 +34,17 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
     private ComposerLightAnimator? light;
     private readonly ComposerLightRenderer renderer = new();
     private bool frameRequested;
+    private bool drawnSinceRequest = true;
+    private bool wantsFrames;
     private int stopped;
-    private double reach;
+    private double reach = 2, drawnReach = 2;
     private bool software;
 
     /// <summary>
     /// ENGINEERING DECISION (ED-251): with no GPU (Skia's software rasterizer), the light is drawn as one still, as under
-    /// reduce motion: its shaders cost 15 to 60 ms a frame there, which would make typing stutter. Tests that need the
-    /// motion on the headless (software) renderer turn this on.
+    /// reduce motion: its shaders cost 15 to 60 ms a frame there, which would make typing stutter. Re-checked on every
+    /// frame drawn (a device change redraws), so a GPU that comes back brings the motion back. Tests that need the motion
+    /// on the headless (software) renderer turn this on.
     /// </summary>
     internal static volatile bool AnimateWithoutGpu;
 
@@ -59,25 +55,32 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
     public int Frames => Volatile.Read(ref frames);
     private int frames;
 
-    /// <summary>True while the handler asks the compositor for frames.</summary>
+    /// <summary>True while the handler has asked the compositor for a frame.</summary>
     public bool IsAnimating => Volatile.Read(ref animating) != 0;
     private int animating;
 
+    /// <summary>True once the handler has stopped and released its renderer.</summary>
+    public bool IsStopped => Volatile.Read(ref stopped) != 0;
+
     public void Stop() => Interlocked.Exchange(ref stopped, 1);
 
-    private static double Seconds(TimeProvider clock)
-    {
-        using var scope = SwiftClock.Provider.Override(clock);
-        return SwiftClock.Now.Ticks / (double)TimeSpan.TicksPerSecond;
-    }
+    // SwiftClock's reading of a provider, without the ambient override's allocation (this runs every frame)
+    private static double Seconds(TimeProvider clock) => clock.GetTimestamp() / (double)clock.TimestampFrequency;
 
     public override void OnMessage(object message)
     {
-        if (Volatile.Read(ref stopped) != 0 || message is not ComposerLightSnapshot next) return;
+        if (message is ComposerLightStop)
+        {
+            Stop();
+            renderer.Dispose();
+            Volatile.Write(ref animating, 0);
+            return;
+        }
+        if (IsStopped || message is not ComposerLightSnapshot next) return;
         var now = Seconds(next.Clock);
         var size = next.Composer.Size;
         if (light is null)
-            Volatile.Write(ref light, new ComposerLightAnimator(next.Settings, next.Phase, next.Dark, size.Width, size.Height, next.ReduceMotion, next.Palette));
+            Volatile.Write(ref light, new ComposerLightAnimator(next.Settings, next.Phase, next.Dark, size.Width, size.Height, next.ReduceMotion || software, next.Palette));
         else
         {
             light.SetReduceMotion(next.ReduceMotion || software, now);
@@ -87,8 +90,6 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
             light.SetPhase(next.Phase, now);
             light.SetSettings(next.Settings, now);
         }
-        // the reach covers what the light drew before and what it draws now, through a fade
-        reach = Math.Max(next.Reach, snapshot?.Reach ?? 0);
         snapshot = next;
         Step(now);
     }
@@ -96,47 +97,77 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
     public override void OnAnimationFrameUpdate()
     {
         frameRequested = false;
-        if (Volatile.Read(ref stopped) != 0 || snapshot is null) return;
+        Volatile.Write(ref animating, 0);
+        if (IsStopped || snapshot is null) return;
         Step(Seconds(snapshot.Clock));
     }
 
     private void Step(double now)
     {
         if (light is null) return;
-        var more = light.Advance(now);
-        if (!more && snapshot is not null) reach = snapshot.Reach;
-        Volatile.Write(ref animating, more ? 1 : 0);
+        wantsFrames = light.Advance(now) || renderer.Settling;
+        reach = Reach(light);
         Invalidate();
-        if (more && !frameRequested)
-        {
-            frameRequested = true;
-            RegisterForNextAnimationFrameUpdate();
-        }
+        // the board's port notes: frames only while something moves, and only while it is seen. A frame is asked for
+        // again only once the last one was drawn; a light nobody draws (a hidden chat column) stops, and OnRender
+        // resumes it when it is drawn again.
+        if (wantsFrames && drawnSinceRequest) Request();
     }
 
-    public override Rect GetRenderBounds() => snapshot is { } s ? s.Composer.Inflate(reach) : default;
+    private void Request()
+    {
+        if (frameRequested || IsStopped) return;
+        frameRequested = true;
+        drawnSinceRequest = false;
+        Volatile.Write(ref animating, 1);
+        RegisterForNextAnimationFrameUpdate();
+    }
+
+    // how far this frame's light reaches outside the composer: the Uiverse halo while it shows, Pulse Outside's haloes
+    private static double Reach(ComposerLightAnimator light)
+    {
+        var r = 2.0;
+        if (light.AuraVisible) r = Math.Max(r, light.Aura.HaloSize + 3 * light.Aura.HaloBlur + 4);
+        for (var i = 0; i < light.DrawnCount; i++)
+        {
+            var f = light.Slots[light.Drawn[i]];
+            if (f.Mode == 3) r = Math.Max(r, 30 + 3 * Math.Max(f.OuterBloomSigma, f.CoreSigma) + 4);
+        }
+        return r;
+    }
+
+    // this frame's reach and the last drawn one, so a shrinking light clears what it drew
+    public override Rect GetRenderBounds() => snapshot is { } s && s.Composer.Width > 0 && s.Composer.Height > 0 ? s.Composer.Inflate(Math.Max(reach, drawnReach)) : default;
 
     public override void OnRender(ImmediateDrawingContext context)
     {
-        if (Volatile.Read(ref stopped) != 0 || snapshot is not { } s || light is null) return;
-        if (!light.AuraVisible && light.DrawnCount == 0) return;
-        var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
-        if (feature is null) return;
-        using var lease = feature.Lease();
-        if (lease.GrContext is null && !AnimateWithoutGpu && !software)
+        if (IsStopped || snapshot is not { } s || light is null) return;
+        drawnSinceRequest = true;
+        drawnReach = reach;
+        if (light.AuraVisible || light.DrawnCount > 0)
         {
-            software = true;
-            light.SetReduceMotion(true, Seconds(s.Clock));
+            var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
+            if (feature is null) return;
+            using var lease = feature.Lease();
+            var now = Seconds(s.Clock);
+            var noGpu = lease.GrContext is null && !AnimateWithoutGpu;
+            if (noGpu != software)
+            {
+                software = noGpu;
+                light.SetReduceMotion(s.ReduceMotion || software, now);
+            }
+            var canvas = lease.SkCanvas;
+            var m = canvas.TotalMatrix;
+            var scale = (float)Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));
+            canvas.Save();
+            canvas.Translate((float)s.Composer.X, (float)s.Composer.Y);
+            renderer.Draw(canvas, lease.GrContext, light, scale, now, (float)lease.CurrentOpacity,
+                s.FadeBottom is { } f ? (float)(f - s.Composer.Y) : null);
+            canvas.Restore();
+            Interlocked.Increment(ref frames);
+            if (renderer.Settling) wantsFrames = true;
         }
-        var canvas = lease.SkCanvas;
-        var m = canvas.TotalMatrix;
-        var scale = (float)Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));
-        canvas.Save();
-        canvas.Translate((float)s.Composer.X, (float)s.Composer.Y);
-        renderer.Draw(canvas, lease.GrContext, light, scale, (float)lease.CurrentOpacity,
-            s.FadeBottom is { } f ? (float)(f - s.Composer.Y) : null);
-        canvas.Restore();
-        Interlocked.Increment(ref frames);
+        if (wantsFrames) Request();
     }
 }
 
@@ -212,7 +243,8 @@ public sealed class ComposerLightView : Control
 
     private void Remove()
     {
-        handler?.Stop();
+        // the handler releases its bakes and shaders on the render thread, where they were made
+        visual?.SendHandlerMessage(ComposerLightStop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
         visual = null;
         handler = null;
@@ -223,6 +255,8 @@ public sealed class ComposerLightView : Control
     {
         if (visual is null) return;
         var composer = ComposerRect.Width > 0 && ComposerRect.Height > 0 ? ComposerRect : new Rect(Bounds.Size);
+        // not laid out yet: nothing to light (a 0 x 0 composer is never sent)
+        if (!(composer.Width > 0) || !(composer.Height > 0)) return;
         var snapshot = new ComposerLightSnapshot(Settings, Phase, ActualThemeVariant == ThemeVariant.Dark, composer,
             EnvironmentValues.GetAccessibilityReduceMotion(this), Palette, FadeBottom, SwiftClock.Provider.Current);
         if (snapshot == sent) return;

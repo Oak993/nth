@@ -387,8 +387,9 @@ public sealed record ComposerLightSettings
             }
             return settings.Clamped();
         }
-        catch (JsonException)
+        catch (Exception e) when (e is JsonException or InvalidOperationException or ArgumentException)
         {
+            // malformed JSON, invalid UTF-8, a lone surrogate escape (GetString throws InvalidOperationException)
             return Default;
         }
     }

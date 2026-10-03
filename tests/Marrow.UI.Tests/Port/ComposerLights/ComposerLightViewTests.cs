@@ -246,4 +246,66 @@ public sealed class ComposerLightViewTests(HeadlessSession headless)
         }
         finally { window.Close(); }
     });
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // the composer's size and the theme reach the light (a growing pill; a switch to the light theme cross-fades Auto to the light sheet)
+    public void The_composers_size_and_the_theme_reach_the_light() => headless.OnUiThread(() =>
+    {
+        using var motion = new ComposerLightMotion();
+        var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
+        var (window, view) = Show(ComposerLightSettings.Default with { Style = ComposerLightStyle.Aura });
+        try
+        {
+            var light = view.Handler!.Light!;
+            Assert.Equal((820.0, 52.0), (light.Aura.W, light.Aura.H));
+            view.ComposerRect = new Rect(40, 30, 700, 72);
+            Tick();
+            clock.Advance(TimeSpan.FromSeconds(0.1));
+            Tick();
+            Assert.Equal((700.0, 72.0), (light.Aura.W, light.Aura.H));
+            Assert.True(light.SlotKey(light.CurrentSlot)!.Value.Dark);
+            window.RequestedThemeVariant = ThemeVariant.Light;
+            Tick();
+            clock.Advance(TimeSpan.FromSeconds(0.1));
+            Tick();
+            Assert.False(light.SlotKey(light.CurrentSlot)!.Value.Dark);    // Border beam's Auto theme follows
+            clock.Advance(TimeSpan.FromSeconds(1));
+            Tick();
+            Assert.Equal(0.4 * 1.2, light.Aura.HaloAlpha, 6);              // --au-tm 1.2 in the light theme
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // review D6: leaving the tree stops the handler and releases its renderer on the render thread
+    public void Leaving_the_tree_stops_the_handler() => headless.OnUiThread(() =>
+    {
+        var (window, view) = Show(ComposerLightSettings.Default);
+        var handler = view.Handler!;
+        ((Panel)window.Content!).Children.Clear();
+        Tick();
+        Assert.True(handler.IsStopped);
+        Assert.False(handler.IsAnimating);
+        Assert.Null(view.Handler);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // review D1: a composer with no size yet is never sent to the render thread; the light starts once it has one
+    public void A_composer_with_no_size_is_not_lit_until_it_has_one() => headless.OnUiThread(() =>
+    {
+        var view = new ComposerLightView { Settings = ComposerLightSettings.Default, Width = 0, Height = 0 };
+        var window = new Window { Width = 900, Height = 132, Content = new Panel { Children = { view } } };
+        window.Show();
+        try
+        {
+            Tick();
+            Assert.NotNull(view.Handler);
+            Assert.Null(view.Handler!.Light);
+            view.ComposerRect = new Rect(40, 40, 820, 52);
+            Tick();
+            Assert.Equal(820, view.Handler!.Light!.Aura.W);
+        }
+        finally { window.Close(); }
+    });
 }

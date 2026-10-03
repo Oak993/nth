@@ -223,4 +223,47 @@ public sealed class ComposerLightAnimatorTests
         a.Advance(1.02);
         Assert.True(double.IsFinite(a.Slots[a.CurrentSlot].Phase), $"phase {a.Slots[a.CurrentSlot].Phase}");
     }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // CSS Transitions 1: reversing a reversal shortens by |output x factor + 1 - factor| of the running one
+    public void A_reversal_of_a_reversal_keeps_shortening()
+    {
+        var t = new CssTransition(0);
+        t.Set(1, 0, 0.6);
+        var o = CssTiming.Ease(0.5);
+        t.Set(0, 0.3, 0.6);                              // first reversal: factor o, 0.6 o seconds
+        var d1 = 0.6 * o;
+        var at = 0.3 + d1 / 2;
+        var mid = t.Value(at);
+        Assert.Equal(o + (0 - o) * o, mid, 9);
+        t.Set(1, at, 0.6);                               // back again: factor |o o + 1 - o|
+        var d2 = 0.6 * Math.Abs(o * o + 1 - o);
+        Assert.Equal(mid, t.Value(at), 9);               // no jump
+        Assert.True(t.IsRunning(at + d2 - 0.005));
+        Assert.False(t.IsRunning(at + d2 + 0.005));
+        Assert.Equal(1, t.Value(at + d2), 9);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // logic.js auraColors(): Maker takes the chip's maker stops and Accent the accent, per appearance; a theme switch moves them over .6 s
+    public void The_maker_and_accent_colours_follow_the_theme()
+    {
+        var palette = new ComposerLightPalette("#CC6B47", "#E0875F", "#B85A38", "#CC6B47", "#4B9FFC", "#0067C0");
+        var a = new ComposerLightAnimator(ComposerLightSettings.Default with { Style = ComposerLightStyle.Aura, Aura = UiverseAuraOptions.Default with { Scheme = AuraScheme.Maker } },
+            ComposerLightPhase.Rest, true, 820, 52, false, palette);
+        a.Advance(0);
+        Assert.Equal(CssColor.Parse("#CC6B47") with { }, Round(a.Aura.C1));
+        Assert.Equal(CssColor.Parse("#E0875F"), Round(a.Aura.C2));
+        a.SetDark(false, 1);
+        a.Advance(1.3);
+        Assert.NotEqual(CssColor.Parse("#B85A38"), Round(a.Aura.C1));   // moving, not cut
+        a.Advance(1.7);
+        Assert.Equal(CssColor.Parse("#B85A38"), Round(a.Aura.C1));
+        a.SetSettings(a.Settings with { Aura = a.Settings.Aura with { Scheme = AuraScheme.Accent } }, 2);
+        a.Advance(3);
+        Assert.Equal(CssColor.Parse("#0067C0"), Round(a.Aura.C1));
+        Assert.Equal(CssColor.Parse(BorderBeamMath.MixHex("#0067C0", "#ffffff", 0.45)), Round(a.Aura.C2));
+    }
+
+    private static CssColor Round(CssColor c) => new(Math.Round(c.R), Math.Round(c.G), Math.Round(c.B), Math.Round(c.A, 6));
 }

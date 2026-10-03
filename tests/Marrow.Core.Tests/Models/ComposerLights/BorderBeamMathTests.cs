@@ -150,4 +150,21 @@ public sealed class BorderBeamMathTests
         Assert.Equal("#9ccafd", BorderBeamMath.MixHex("#4B9FFC", "#ffffff", 0.45));
         Assert.Equal("#99c2e6", BorderBeamMath.MixHex("#0067C0", "#ffffff", 0.6));
     }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // review D1: a composer not laid out (0 x 0) keeps the package's duration; bbFitDur's W / (H / 42) would be 0 / 0
+    public void An_unlaid_composer_keeps_the_package_duration()
+    {
+        foreach (var t in new[] { BeamType.Line, BeamType.Large, BeamType.Small })
+        {
+            Assert.Equal(1, BorderBeamMath.FitDurationScale(t, 0, 0, 22));
+            Assert.Equal(1, BorderBeamMath.FitDurationScale(t, 820, 0, 22));
+        }
+        var clock = new ComposerLightClock(true, false);
+        clock.Advance(1 / 60.0, false, 12, true, double.NaN, false, false, 22);
+        Assert.True(double.IsFinite(clock.BeamAngle) && double.IsFinite(clock.LineX));
+        var f = new BeamFrame();
+        BorderBeamScene.Build(f, BeamSlotConfig.For(BorderBeamOptions.Default.WithType(BeamType.Line), true), new BeamValues(), clock, 820, 0);
+        Assert.Equal(0, f.Ellipses.Count);
+    }
 }

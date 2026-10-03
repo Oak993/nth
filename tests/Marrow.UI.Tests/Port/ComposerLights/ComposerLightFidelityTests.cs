@@ -31,5 +31,13 @@ public sealed class ComposerLightFidelityTests
         Assert.Equal((reference.Width, reference.Height), (port.Width, port.Height));
         var (max, off) = ComposerLightFixtures.Compare(reference, port);
         Assert.True(max <= maxDelta && off <= maxOff, $"{name}: largest difference {max} (allowed {maxDelta}), {off:F3} % of pixels off by more than 6 (allowed {maxOff} %)");
+        // fitted Large: the inner wash's ends (beam.js bbInnerPieces: conics about (H / 2, H / 2) and (W - H / 2, H / 2)),
+        // inside the stroke, at a tighter bound than the whole frame
+        if (job.Beam is { } beam && beam.GetProperty("size").GetString() == "md" && beam.GetProperty("fit").GetBoolean())
+            foreach (var end in new[] { new SKRectI(48, 50, 64, 82), new SKRectI(836, 50, 852, 82) })
+            {
+                var (endMax, _) = ComposerLightFixtures.Compare(reference, port, end);
+                Assert.True(endMax <= 4, $"{name}: the inner wash's end {end} differs by {endMax}");
+            }
     }
 }
