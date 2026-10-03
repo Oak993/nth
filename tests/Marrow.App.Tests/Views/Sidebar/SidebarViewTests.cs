@@ -10579,7 +10579,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-038")] // :470-472, :1434-1437: the list keeps the card whose head changed, with its @State
-    public void The_real_list_keeps_an_expanded_head_card_when_one_of_its_heads_changes() => headless.OnUiThread(() =>
+    public void The_real_list_keeps_an_expanded_head_card_when_a_new_pass_hands_it_changed_heads() => headless.OnUiThread(() =>
     {
         var manual = new ManualFrameSource();
         using var frames = FrameClock.Source.Override(manual);
@@ -10619,7 +10619,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 Assert.Equal(14, Glyphs(card).Count); // every head showing
-                model.UpdateThread(heads[3].Id, t => t with { Title = "Renamed head" }); // one head's thread changes
+                model.UpdateThread(heads[3].Id, t => t with { Title = "Renamed head" }); // one head's thread changes: the card reads its live thread
+                model.NewThread(project); // and the list takes a new pass (a thread more): its item for the card carries the heads as they are now
             });
             Tick(1600);
             harness.Main.OnMain(() =>
