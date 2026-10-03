@@ -328,4 +328,20 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
         mount.Advance(400);
         Assert.Equal(1, overlay.Opacity, 3); Assert.True(overlay.IsHitTestVisible);
     });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-NEW-parity-threadtimeline (3), OD-0076): a timeline turned back while still fading out, once reduce motion is on, is cut back in and STAYS on show: the cut stops the fade still running (BranchHost.Cut's Stop), so the fade cannot carry it on to 0 and drop it (scoped check round 5, mutant C1)
+    public void A_timeline_turned_back_while_leaving_once_reduce_motion_was_turned_on_stays_on_show() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(3)); mount.Settle();
+        var scroll = mount.Scroll; var overlay = Assert.IsAssignableFrom<Control>(scroll.Parent);
+        RevertToEmpty(mount); mount.Advance(96); // part way through its fade under the prompt
+        Assert.InRange(overlay.Opacity, 0.05, 0.95);
+        EnvironmentValues.SetAccessibilityReduceMotion(mount.Host, true);
+        Send(mount, "again");
+        Assert.Same(scroll, mount.Scroll); Assert.Equal(1, overlay.Opacity, 3);
+        mount.Advance(400);
+        Assert.True(scroll.IsAttachedToVisualTree(), "the timeline on show is still in the tree");
+        Assert.Equal(1, overlay.Opacity, 3); Assert.True(overlay.IsHitTestVisible);
+    });
 }
