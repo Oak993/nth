@@ -487,8 +487,7 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
         Assert.Single(view.GetVisualDescendants().OfType<ParagraphTextPresenter>()).Text.String;
 
     [Fact]
-    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-12 (each append registers its tail as a chunk); ThreadRuntime.swift:3248-3265; MarkdownView.swift:69-83
-    [Trait("Decision", "OD-0076")]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-12 (each append registers its tail as a chunk); ThreadRuntime.swift:3248-3265; MarkdownView.swift:69-83; OD-0076 (owner-ruled: no cut at the end of a stream)
     public void The_last_words_that_arrive_with_the_end_of_the_stream_dissolve_in_through_the_real_row() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -530,8 +529,7 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:102-107 (a veil no longer fed finishes its chunks in flight); ThreadTimeline.swift:2156-2168; MarkdownView.swift:69-83
-    [Trait("Decision", "OD-0076")]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:102-107 (a veil no longer fed finishes its chunks in flight); ThreadTimeline.swift:2156-2168; MarkdownView.swift:69-83; OD-0076 (owner-ruled: no cut at the end of a stream)
     public void A_thinking_step_that_ends_while_its_words_dissolve_carries_them_on_through_the_rebuilds_of_the_steps() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -581,8 +579,7 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:102-107; TimelineRows.swift:1546-1553 (the narration is a MarkdownView of the streaming entry); MarkdownView.swift:69-83
-    [Trait("Decision", "OD-0076")]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:102-107; TimelineRows.swift:1546-1553 (the narration is a MarkdownView of the streaming entry); MarkdownView.swift:69-83; OD-0076 (owner-ruled: no cut at the end of a stream)
     public void The_narration_that_ends_while_its_words_dissolve_carries_them_on() => headless.OnUiThread(() =>
     {
         using var h = Harness();

@@ -341,8 +341,7 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-8, :102-107 (a veil that is no longer fed finishes the chunks in flight); MarkdownView.swift:69-83
-    [Trait("Decision", "OD-0076")]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-8, :102-107 (a veil that is no longer fed finishes the chunks in flight); MarkdownView.swift:69-83; OD-0076 (owner-ruled: no cut at the end of a stream)
     public void A_reply_that_ends_while_its_tail_dissolves_carries_the_tail_on_and_draws_prose_runs_once_it_has_settled(bool links) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -389,8 +388,7 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-8, :10-12 (each append registers the new tail as a chunk); ThreadRuntime.swift:3248-3265
-    [Trait("Decision", "OD-0076")]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-8, :10-12 (each append registers the new tail as a chunk); ThreadRuntime.swift:3248-3265; OD-0076 (owner-ruled: no cut at the end of a stream)
     public void The_words_that_arrive_with_the_end_of_the_stream_dissolve_in_before_the_reply_is_drawn_as_prose_runs(bool links) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -429,8 +427,7 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [Trait("Req", "UI-THEME-047")] // MarkdownView.swift:69-83; StreamVeil.swift:245 (@State per view: each thinking step is a MarkdownView of its own, ThreadTimeline.swift:2158)
-    [Trait("Decision", "OD-0076")]
+    [Trait("Req", "UI-THEME-047")] // MarkdownView.swift:69-83; StreamVeil.swift:245 (@State per view: each thinking step is a MarkdownView of its own, ThreadTimeline.swift:2158); OD-0076 (owner-ruled: no cut at the end of a stream)
     public void A_step_that_ends_with_nothing_in_flight_is_drawn_as_prose_runs_at_once_while_another_step_still_dissolves(bool otherIsLink) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -477,8 +474,38 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-THEME-047")] // MarkdownView.swift:69-83 (a finished reply is prose runs); StreamVeil.swift:18-19 (a veil that attaches adopts what is on screen)
-    [Trait("Decision", "OD-0076")]
+    [Trait("Req", "UI-THEME-047")] // MarkdownView.swift:69-83 (a finished reply is prose runs); StreamVeil.swift:161-194 (the shared clock stops once nothing dissolves); OD-0076 (owner-ruled: no cut at the end of a stream)
+    public void A_reply_that_leaves_the_screen_while_its_tail_dissolves_is_prose_runs_when_it_comes_back() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var host = new StreamVeilFlowHost(runtime, "Hello");
+        var panel = (StackPanel)host.Window.Content!;
+        try
+        {
+            host.Flush(runtime, "Hello there");
+            Tick(runtime, frames, 100);
+            host.Finish(runtime, "Hello there"); // " there" carries on
+            Assert.Empty(host.Decorator.GetVisualDescendants().OfType<ProseRunView>());
+            runtime.OnMain(() => { panel.Children.Remove(host.Decorator); Pump(); }); // it leaves the screen while " there" dissolves
+            Tick(runtime, frames, 1000); // and stays away until the shared clock has stopped
+            Assert.Equal(0, frames.Pending);
+            runtime.OnMain(() => { panel.Children.Add(host.Decorator); Pump(); }); // back: nothing dissolves any more
+            Assert.Equal("Hello there", ProseRun(host.Decorator).Text.String);
+            Assert.Equal(0, host.Veils.Places);
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            host.Window.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // MarkdownView.swift:69-83 (a finished reply is prose runs); StreamVeil.swift:18-19 (a veil that attaches adopts what is on screen); OD-0076 (owner-ruled: no cut at the end of a stream)
     public void A_reply_that_ends_after_a_reset_has_nothing_to_carry_on_and_is_drawn_as_prose_runs_at_once() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
