@@ -561,4 +561,35 @@ public sealed partial class ComposerViewTests
             }
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-015")] // App/Views/Composer/ComposerView.swift:599-602; ComposerTextView.swift:234-238, :273
+    [Trait("Rule", "R-TEST-4")] // The heights: Five_lines_fill_the_ceiling_exactly_...
+    public void The_text_view_draws_its_text_and_past_five_lines_it_scrolls_inside_the_fixed_height_and_keeps_the_caret_in_view()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var column = h.Main.OnMain(() => Column(h.Runtime, notice: null));
+            var window = h.Main.OnMain(() => Show(column, h.App, width: 400));
+            Pump(h, window);
+            var eight = string.Join("\n", Enumerable.Range(1, 8).Select(n => "line " + n.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Text = eight });
+            Pump(h, window);
+            var (box, scroll) = h.Main.OnMain(() => (One<ComposerNSTextView>(column), One<ScrollViewer>(column)));
+            h.Main.OnMain(() =>
+            {
+                // A TextBox with no template draws nothing: the typed text needs its presenter.
+                var presenter = Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(box).OfType<Avalonia.Controls.Presenters.TextPresenter>());
+                Assert.Equal(eight, presenter.Text);
+                Assert.Equal(FiveLineCeiling(), scroll.Viewport.Height); // five lines and the inset
+                Assert.True(scroll.Extent.Height > scroll.Viewport.Height + 10, "eight lines are taller than the fixed height"); // so it scrolls
+                box.Focus();
+                box.CaretIndex = eight.Length;
+            });
+            Pump(h, window);
+            h.Main.OnMain(() => Assert.True(scroll.Offset.Y > 0, "the caret at the last line is scrolled into view"));
+            Close(h, window);
+        });
+    }
 }

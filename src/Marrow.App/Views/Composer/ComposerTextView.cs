@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -205,6 +206,24 @@ public sealed class ComposerNSTextView : TextBox
         AcceptsReturn = false; // :332-341 Return is always handled explicitly below, never a default newline
         AcceptsTab = true; // :346-347 an unhandled Tab still inserts a literal tab character
         BorderThickness = new Thickness(0);
+        // The app carries no theme package, so a TextBox without a template draws nothing, and nothing typed would be seen
+        // or scrolled (PlainControls.PlainTextField). The NSTextView draws its own text (:234-274): the template is the text
+        // presenter alone, wrapping at the box's width, inside the container inset; the box's height is the text's, and the
+        // scroll view around it (ComposerTextView.scroll, :273) scrolls what passes the fixed height.
+        Template = new Avalonia.Controls.Templates.FuncControlTemplate<TextBox>((box, scope) =>
+        {
+            var presenter = new Avalonia.Controls.Presenters.TextPresenter
+            {
+                Name = "PART_TextPresenter",
+                [!Avalonia.Controls.Presenters.TextPresenter.TextProperty] = box[!TextBox.TextProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.TextWrappingProperty] = box[!TextBox.TextWrappingProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.SelectionStartProperty] = box[!TextBox.SelectionStartProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.SelectionEndProperty] = box[!TextBox.SelectionEndProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty],
+            }.RegisterInNameScope(scope);
+            PlainControls.FieldBrushes(box, presenter);
+            return new Border { Background = Brushes.Transparent, [!Border.PaddingProperty] = box[!TemplatedControl.PaddingProperty], Child = presenter };
+        });
         CornerRadius = new CornerRadius(0);
         MinHeight = 18;
         lastWidth = Bounds.Width;

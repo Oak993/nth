@@ -35,9 +35,10 @@ namespace Marrow.App.Views.Composer;
 // Binding<T>, and file URLs are path strings. NSRange is a (Location, Length) pair of UTF-16 offsets. Swift private
 // top-level declarations remain internal, preserving every declared type and existing public signature.
 // All five B3 parts have been audited against pinned 1.7.0. The native chooser is behind ComposerFileDialog for
-// isolated tests. The ModelEffortButton and chip-style sites are implemented; STOP #7 leaves
-// surviving chip/approval layout movement unanimated pending foundation support; #8 records ProviderRegistry's
-// missing notifications; #9 records the SlashCommand.Suggestions dependency after inherited cross-unit code removal.
+// isolated tests. The ModelEffortButton and chip-style sites are implemented; the chip row keeps its scroller and chips
+// (STOP #7 in the tests records what the foundation's ForEach still lacks) and the approval stack's own re-layout is still
+// a cut (STOP #2); #8 records ProviderRegistry's missing notifications; #9 records the SlashCommand.Suggestions dependency
+// after inherited cross-unit code removal.
 // Diff popup and suggestion popup headless limits are documented in tests (STOP #3/#5). ED-180/181/182 retain the
 // existing material, continuous-corner, palette and symbol-transition deferrals; visual macOS parity is unverified.
 

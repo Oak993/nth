@@ -2,6 +2,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
@@ -223,7 +224,7 @@ public sealed partial class ComposerViewTests
             Until(h, window, () => view.Suggestions.Range.Location == 4);
             Assert.Equal(0, view.Suggestions.Selected);
 
-            h.Main.OnMain(() => Type(view, "@aa @zzz")); // nothing matches: the list closes, no highlight is clamped
+            h.Main.OnMain(() => window.KeyTextInput("zz")); // typed on at the caret: "@azz" matches nothing, so the list closes, no highlight is clamped
             Until(h, window, () => !view.Suggestions.IsVisible && !presenter.Calls[^1].Presented);
             Assert.Empty(view.Suggestions.Items);
             Close(h, window);
