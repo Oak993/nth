@@ -62,7 +62,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     [Trait("Req", "PR-UPDATE-075")] // App/Views/Settings/AboutUpdateViews.swift:678-703
     public void Empty_feed_click_is_observed_to_send_zero_requests_and_updates_the_real_pill_and_persisted_row() => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0")); using var probe = new AboutUpdateHttpProbe();
         var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed)); using var shared = UpdateChecker.OverrideShared(checker);
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
@@ -71,7 +71,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         runtime.RunUntilIdle();
         runtime.OnMain(() =>
         {
-            Dispatcher.UIThread.RunJobs(); Assert.Equal(0, probe.Requests);
+            Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, source); Assert.Equal(0, probe.Requests);
             Assert.Equal("No update feed is set.", checker.LastError); Assert.NotNull(checker.LastCheckedAt);
             Assert.Equal(checker.LastCheckedAt, runtime.Defaults.Object("updateChecker_lastChecked"));
             var stamp = "Checked " + SwiftFormatters.RelativeNamed(checker.LastCheckedAt!.Value) + "."; // :837; ED-096 named relative formatter
@@ -94,7 +94,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     [Trait("Req", "UI-UPDATE-022")] // App/Views/Settings/AboutUpdateViews.swift:826-829; UpdateChecker.swift:178-180: foreground, cannot raise a notification
     public void Successful_pointer_check_is_foreground_and_never_toasts_a_newer_release() => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
         var toasts = new RecordingToastCenter(); using var toastScope = UpdateToastCenter.Ambient.Override(toasts);
         using var server = System.Threading.Tasks.Task.Run(() => new LoopbackFeedServer(_ => CannedResponse.Json(ReleaseFeed.Feed(
@@ -107,7 +107,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         HeadlessSession.RunDispatcherUntil(finished.Task, TimeSpan.FromSeconds(20));
         runtime.OnMain(() =>
         {
-            Dispatcher.UIThread.RunJobs(); Assert.True(checker.UpdateAvailable); Assert.Null(checker.LastError);
+            Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, source); Assert.True(checker.UpdateAvailable); Assert.Null(checker.LastError);
             Assert.Empty(toasts.Shown); Assert.DoesNotContain("updateChecker_notifiedVersion", runtime.Defaults.Writes);
             Assert.NotNull(runtime.Defaults.Object("updateChecker_release"));
             Assert.Contains(row.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Marrow 9.0.0 is ready to install. Checked " + SwiftFormatters.RelativeNamed(checker.LastCheckedAt!.Value) + ".");
@@ -123,7 +123,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:638-640,673-675: click starts the install, a second click is ignored, the button is gone once it runs
     public void Ready_pointer_click_runs_real_install_and_a_stale_second_click_reads_live_state_and_starts_nothing() => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
         var progress = UpdateInstallProgressFixtures.NewProgress(); using var running = UpdateInstallProgress.Running.Override(progress);
         using var server = System.Threading.Tasks.Task.Run(() => new LoopbackFeedServer(_ => CannedResponse.Json("installer bytes"))).GetAwaiter().GetResult();
@@ -152,7 +152,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         HeadlessSession.RunDispatcherUntil(finished.Task, TimeSpan.FromSeconds(20));
         runtime.OnMain(() =>
         {
-            Dispatcher.UIThread.RunJobs(); Assert.Single(server.Requests);
+            Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, source); Assert.Single(server.Requests); // the ready button has faded out into the slider (OD-0076)
             Assert.Single(boundary.Calls, call => call.StartsWith("Stage(", StringComparison.Ordinal));
             Assert.Single(boundary.Calls, call => call.StartsWith("LaunchDetachedInstaller(", StringComparison.Ordinal));
             Assert.Empty(pill.GetVisualDescendants().OfType<Button>()); Assert.Single(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>());
@@ -189,7 +189,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
             Assert.Null(Field(progress, "creepTask")); Assert.Null(Field(progress, "failureReset"));
             Assert.True(oldWork.IsCancelled); // AppUpdater.swift:162-163 stops the actual task, not just the stored handle
             Assert.Equal(UpdateInstallProgress.Phase.Celebrating, progress.UpdateInstallProgressPhase); Assert.Equal(0.86, progress.Fraction);
-            Assert.Equal(0.86, Assert.Single(pill.GetVisualDescendants().OfType<UpdateProgressSlider>()).Fraction);
+            Assert.Equal(0.86, AboutSwap.Live<UpdateProgressSlider>(pill).Fraction); // the face and the slider swap by a crossfade (OD-0076): the slider on show is the live one
             Assert.Equal("No update feed is set.", checker.LastError); Assert.NotNull(checker.LastCheckedAt);
         });
         runtime.AdvanceMilliseconds(549); runtime.OnMain(() => Assert.Equal(0.86, progress.Fraction));
@@ -199,6 +199,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         runtime.OnMain(() =>
         {
             Dispatcher.UIThread.RunJobs(); Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); Assert.Equal(0, progress.Fraction);
+            AboutSwap.Settle(runtime, frames); // the slider fades out into the standing over 0.18 s (OD-0076); the phase and the fraction were read first
             Assert.Empty(pill.GetVisualDescendants().OfType<UpdateProgressSlider>());
             Assert.Contains(pill.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Check failed");
             // PR-SETTINGS-243 failure case: the page's own check failed, so the row's detail prefixes the error (:839, OD-0012 I1).
@@ -226,7 +227,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         });
         runtime.OnMain(() =>
         {
-            Dispatcher.UIThread.RunJobs();
+            Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, frames); // the slider has faded out into the standing (OD-0076); what is left of it is gone with it
             Assert.Empty(window.GetVisualDescendants().OfType<UpdateProgressSlider>()); Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Check failed");
             Assert.Equal(0, frames.Pending); // :737-743 no detached slider timeline survives
         });

@@ -54,7 +54,8 @@ public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
     private static string Detail(AboutUpdateCheckRow row)
     {
         var chrome = Assert.IsType<ChromeRow>(row.Child);
-        return Assert.Single(chrome.GetVisualDescendants().OfType<TextBlock>(), t => t.FontSize == 11).Text!;
+        // The detail is the 11 pt caption outside the button: the button's own label is 11 pt as well (the small control size).
+        return Assert.Single(chrome.GetVisualDescendants().OfType<TextBlock>(), t => t.FontSize == 11 && t.FindAncestorOfType<Button>() is null).Text!;
     }
 
     // Avalonia raises Popup.Opened and Popup.Closed from the open popup itself; the headless platform cannot open one
@@ -74,8 +75,10 @@ public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
     [Trait("Req", "PR-UPDATE-076")] // App/Views/Settings/AboutUpdateViews.swift:822-845: the running check cannot be cancelled, the button is disabled instead
     public void A_pressed_Check_now_reads_Checking_and_is_disabled_while_the_check_runs_then_returns_with_the_error_in_front() => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0")); using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+        // OD-0076: the button and the sentence swap over 0.18 s; each state is read once that swap has finished (the leaving button is gone).
+        void Settle() { runtime.Time.Advance(TimeSpan.FromMilliseconds(300)); source.Advance(TimeSpan.FromMilliseconds(300)); Dispatcher.UIThread.RunJobs(); }
         using var feed = new LoopbackConnectionCounter();
         var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], feed.Url("/releases"))); using var shared = UpdateChecker.OverrideShared(checker);
         var row = new AboutUpdateCheckRow(); var window = Show(row);
@@ -83,7 +86,7 @@ public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
         Assert.Equal("Marrow checks GitLab for new versions a few times a day. Not checked yet.", Detail(row));
 
         Tap(CheckButton(row), window); // :827-829 Task { await checker.check() }
-        Assert.True(checker.IsChecking);
+        Assert.True(checker.IsChecking); Settle();
         Assert.Equal("Checking…", Label(row)); // :827 one U+2026
         Assert.False(CheckButton(row).IsEnabled); // :832
         Assert.Equal("Asking GitLab for the latest release…", Detail(row)); // :837
@@ -98,7 +101,7 @@ public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
         Assert.Equal(1, connections); // the one press made one request
         HeadlessSession.RunDispatcherUntil(finished.Task, TimeSpan.FromSeconds(30));
         Dispatcher.UIThread.RunJobs();
-        var error = Assert.IsType<string>(checker.LastError);
+        var error = Assert.IsType<string>(checker.LastError); Settle();
         Assert.Equal("Check now", Label(row)); Assert.True(CheckButton(row).IsEnabled);
         Assert.Equal(error + " Checked " + SwiftFormatters.RelativeNamed(checker.LastCheckedAt!.Value) + ".", Detail(row)); // :839
         window.Close();

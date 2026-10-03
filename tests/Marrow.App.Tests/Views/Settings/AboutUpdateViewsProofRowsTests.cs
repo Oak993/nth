@@ -39,7 +39,9 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
         // :1062,1072: VStack, Spacer(minLength:12), control; HStack has two 16pt gaps.
         Assert.Equal(new[] { 16.0, 12.0, 16.0 }, grid.ColumnDefinitions.Skip(1).Take(3).Select(c => c.Width.Value));
         var labels = Assert.IsType<StackPanel>(grid.Children[0]); Assert.Equal(2, labels.Spacing);
-        var titleText = Assert.IsType<TextBlock>(labels.Children[0]); var detailText = Assert.IsType<TextBlock>(labels.Children[1]);
+        var titleText = Assert.IsType<TextBlock>(labels.Children[0]);
+        // The check row's sentence sits in the box that eases its height when the words swap (OD-0076); at rest the box holds the sentence alone.
+        var detailText = Assert.IsType<TextBlock>(labels.Children[1] is SentenceHeightGlide box ? Assert.Single(box.Children) : labels.Children[1]);
         Assert.Equal(title, titleText.Text); Assert.Equal(detail, detailText.Text);
         Assert.Equal(13, titleText.FontSize); Assert.Equal(11, detailText.FontSize); Assert.Equal(TextWrapping.Wrap, detailText.TextWrapping);
         Assert.Equal(Chrome.PrimaryText.Resolve(titleText.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(titleText.Foreground).Color);
@@ -74,7 +76,10 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
         var button = Assert.Single(view.GetVisualDescendants().OfType<Button>()); Assert.Equal(!checking, button.IsEnabled);
         Assert.Equal(checking ? "Checking…" : "Check now", Assert.Single(button.GetVisualDescendants().OfType<TextBlock>()).Text);
         var surface = Assert.Single(view.GetVisualDescendants().OfType<Control>().Select(SwiftGlass.GetEffect).OfType<GlassEffect>());
-        Assert.Equal(GlassShapeKind.Capsule, surface.Shape.Kind); Assert.Equal(0.3, surface.TintOpacity);
+        // :830-831 .buttonStyle(.glass).controlSize(.small) under the window's accent tint (WindowManager.swift:162,191): the reference
+        // video shows an accent capsule (interactive while enabled), grey and translucent while disabled; the looks are measured in
+        // AboutUpdateViewsCheckNowLookTests, so this row test only pins which material goes with which state.
+        Assert.Equal(GlassShapeKind.Capsule, surface.Shape.Kind); Assert.Equal(!checking, surface.IsInteractive); Assert.Equal(checking ? 0.11 : 1.0, surface.TintOpacity);
         window.Close();
     });
 
