@@ -132,8 +132,8 @@ public sealed class DotFieldControl : Canvas
         dotCanvas = new Canvas { IsVisible = !animated };
         Children.Add(dotCanvas);
         // :113-122 Window attachment installs motion; theme-aware brushes also follow system accent changes.
-        AttachedToVisualTree += (_, _) => InstallAnimation();
-        DetachedFromVisualTree += (_, _) => RemoveComposition();
+        AttachedToVisualTree += (_, _) => { InstallAnimation(); Marrow.UI.Theme.ThemeManager.DidChange += OnThemeChanged; };
+        DetachedFromVisualTree += (_, _) => { Marrow.UI.Theme.ThemeManager.DidChange -= OnThemeChanged; RemoveComposition(); };
         ActualThemeVariantChanged += (_, _) => OnAppearanceChanged();
     }
 
@@ -262,6 +262,15 @@ public sealed class DotFieldControl : Canvas
             animated = newAnimated;
             InstallAnimation();
         }
+    }
+
+    // OD-0088 (ED-253): Chrome.accentNSColor (:15-16) is the theme's accent or the user's pick, read as the body is drawn
+    // again (:104-111 configure(color:)); a pick or a theme posts ThemeManager.DidChange, and the field sends the colour it
+    // now resolves to the render server (the still dots take it too).
+    private void OnThemeChanged()
+    {
+        if (CheckAccess()) UpdateBrushes();
+        else Dispatcher.Post(() => { if (TopLevel.GetTopLevel(this) is not null) UpdateBrushes(); });
     }
 
     public void OnAppearanceChanged()
