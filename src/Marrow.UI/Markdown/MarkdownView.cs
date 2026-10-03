@@ -468,6 +468,23 @@ public sealed class MarkdownView : Decorator
 
     public static void SetMarkdownDimmed(Control control, bool value) => control.SetValue(MarkdownDimmedProperty, value);
 
+    // :1110 @Environment(\.openURL): the OpenURLAction an ancestor supplies, `.handled` when it took the URL (true) and `.systemAction` when it did not (false).
+    // The timeline supplies one that selects a head's chat for a head mention's URL (ThreadTimeline.swift:211-217); anything it declines, and every view
+    // outside a timeline, goes to the system's handling (the App's hook, InlineText.OpenUrl).
+    public static readonly AttachedProperty<Func<SwiftURL, bool>?> OpenUrlActionProperty =
+        AvaloniaProperty.RegisterAttached<Control, Func<SwiftURL, bool>?>("OpenUrlAction", typeof(MarkdownView), null, inherits: true);
+
+    public static Func<SwiftURL, bool>? GetOpenUrlAction(Control control) => control.GetValue(OpenUrlActionProperty);
+
+    public static void SetOpenUrlAction(Control control, Func<SwiftURL, bool>? value) => control.SetValue(OpenUrlActionProperty, value);
+
+    /// <summary>:1148 <c>{ url in openURL(url) }</c> read from <paramref name="control"/>'s environment.</summary>
+    public static void OpenUrl(Control control, SwiftURL url)
+    {
+        if (GetOpenUrlAction(control)?.Invoke(url) == true) return;
+        InlineText.OpenUrl?.Invoke(url);
+    }
+
     // :875-878 var markdownStreaming: Bool
     public static readonly AttachedProperty<bool> MarkdownStreamingProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>(
@@ -1645,7 +1662,7 @@ public sealed class InlineText : Decorator
                 revision: 0, // :1113 @State private var faviconRevision = 0
                 mentions: personas,
                 targets: targets,
-                onOpenHead: url => OpenUrl?.Invoke(url), // :1148 { url in openURL(url) }
+                onOpenHead: url => MarkdownView.OpenUrl(this, url), // :1148 { url in openURL(url) }
                 onHost: view => hostTextView = view); // :1148 { [weak linkBox] view in linkBox?.value = view }
             linkView.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
             // :1159-1188 the continuous hover: pushes/pops the pointing hand over a link, shows/hides the head

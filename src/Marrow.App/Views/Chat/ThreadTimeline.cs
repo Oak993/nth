@@ -109,6 +109,12 @@ public sealed class ThreadTimeline : Decorator
         state = scrollState; ownerRuntime = runtime;
         inputs = (runtime, scrollChrome, scrollState, projectName, workingDirectory, supportsRewind, columnHeight, showsMinimap);
         SetRevealTimelineEnd(this, revealBox); revealBox.Action = RevealEnd; revealBox.Follow = FollowEnd;
+        // :209-217 a head's name in the prose opens the head's chat; every other link keeps the system's handling.
+        MarkdownView.SetOpenUrlAction(this, url =>
+        {
+            if (HydraMentionTarget.ThreadIDIn(url) is not { } headID) return false;
+            AppEnvironment.GetAppModel(this).SelectedThreadID = headID; return true;
+        });
         var host = new Border(); Child = host;
         void Draw()
         {
