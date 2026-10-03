@@ -172,8 +172,19 @@ out.gate = [
   gateRun('240 Hz, then a 100 ms stall, then a frame 1 ms after the last', [...even(240, 1), 1000000, ...even(240, 0.5), 10000, ...even(240, 0.5)]),
   // neither the stall (50 ms or more) nor frames under 2 ms apart are refreshes: the gate keeps the 240 Hz it measured
   gateRun('240 Hz, then a 300 ms stall, then frames 1.5 ms apart', [...even(240, 0.5), 3000000, ...Array.from({ length: 60 }, () => 15000)]),
-  // nor is a gap of 80 ms (the bound is 50 ms, not some longer one: measured, it would set the refresh to 11.75 ms)
+  // nor is a gap of 80 ms (a bound above 80 ms would measure it and set the refresh to 11.75 ms)
   gateRun('240 Hz, then an 80 ms stall, then frames 1.5 ms apart', [...even(240, 0.5), 800000, ...Array.from({ length: 60 }, () => 15000)]),
+  // the bound itself, 50 ms (strike-engine.js:60 d < 50), told from both sides by a stall of each: a gap of 55 ms is not a
+  // refresh (a bound of 60 or 120 would measure it: 47 frames drawn where the page draws 38) and a gap of 45 ms is (a bound
+  // of 40 would not measure it, and the draws then differ from the page's). The frames after each, 1.5 ms apart, are not
+  // refreshes either (under 2 ms), so what the stall set is what is drawn from then on. The pair pins the knob's bound in
+  // (45, 55]; a gap of exactly 50 ms is not asked (the page's time is a float sum of 100 ns ticks, the port's a whole count
+  // of them: the two round differently at the bound itself).
+  gateRun('240 Hz, then a 45 ms stall, then frames 1.5 ms apart', [...even(240, 0.5), 450000, ...Array.from({ length: 60 }, () => 15000)]),
+  gateRun('240 Hz, then a 55 ms stall, then frames 1.5 ms apart', [...even(240, 0.5), 550000, ...Array.from({ length: 60 }, () => 15000)]),
+  // the lower bound, 2 ms (d > 2): frames 2.5 ms apart are refreshes the gate measures (a bound of 3 ms would take them for
+  // nothing and keep the 16.7 ms it started with, and draw otherwise)
+  gateRun('60 Hz, then frames 2.5 ms apart', [...even(60, 0.5), ...Array.from({ length: 200 }, () => 25000)]),
   gateRun('60 Hz, then 240 Hz (the window moved to a faster display)', [...even(60, 1), ...even(240, 1)]),
   gateRun('240 Hz, then 60 Hz (the window moved to a slower display)', [...even(240, 1), ...even(60, 1)]),
 ];
