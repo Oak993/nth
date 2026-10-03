@@ -88,6 +88,7 @@ public sealed class ChatView : Decorator
     private bool? terminalWasVisible;
     private string? terminalDirectory;
     private readonly ChatFrameAnimation terminalPush;
+    private (bool Showing, double Height)? push; // the terminal push under way: the pane's settled size is read through it.
     private long? seenDiffRevision;
 
     // :7 @Bindable var runtime: ThreadRuntime; :76-321 body
@@ -111,6 +112,7 @@ public sealed class ChatView : Decorator
         {
             if (terminalHost.Children.Count != 0) return;
             terminalPush.Stop();
+            push = null;
             pane.Margin = default;
         };
 
@@ -173,7 +175,7 @@ public sealed class ChatView : Decorator
             if (sceneThreadID is { } previous && previous != id) ResetThreadScene(); // :306-319
             sceneThreadID = id;
         });
-        pane.SizeChanged += (_, _) => NotePaneSize(pane.Bounds.Size); // :241-249
+        pane.SizeChanged += (_, _) => NotePaneSize(SettledPaneSize()); // :241-249
         composerHost.SizeChanged += (_, _) => NoteComposerAreaHeight(composerHost.Bounds.Height); // :129-138
         SizeChanged += (_, _) =>
         {
@@ -288,6 +290,14 @@ public sealed class ChatView : Decorator
         RefreshScene();
     }
 
+    // :241-249 onGeometryChange reads the size SwiftUI's layout settled at, and a layout animation (the terminal's push, :290) only
+    // interpolates what is drawn: paneSize takes its final value once. The port's push animates the pane's own bottom margin
+    // (PushTerminal), so the measured size passes through every value between (and layout rounding makes each a fraction off the
+    // last); the scene reads the size the push is heading for, the column less the drawer's row when it opens.
+    private Size SettledPaneSize() => push is { } heading
+        ? new Size(pane.Bounds.Width, columnHeight - (heading.Showing ? heading.Height : 0))
+        : pane.Bounds.Size;
+
     private void NotePaneSize(Size size) // :241-249
     {
         if (paneSize == size) return;
@@ -353,15 +363,16 @@ public sealed class ChatView : Decorator
                 var leaving = terminal;
                 SwiftTransition.Remove(terminalHost, leaving);
                 terminal = null;
-                if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height);
+                if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height, rowHeld: true);
             }
             if (visible && terminal is null)
             {
                 terminalDirectory = directory;
+                var rowHeld = terminalHost.Children.Count != 0; // a drawer still leaving holds its row (and the pane's reach under it).
                 terminal = new TerminalPanel(runtime, directory).Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
                 SwiftTransition.Insert(terminalHost, terminalHost.Children.Count, terminal);
                 if (changed && animation is not null)
-                    PushTerminal(showing: true, animation, double.IsNaN(terminal.Height) ? model!.Settings.TerminalHeight : terminal.Height);
+                    PushTerminal(showing: true, animation, double.IsNaN(terminal.Height) ? model!.Settings.TerminalHeight : terminal.Height, rowHeld);
             }
         }
         if (changed && sceneThreadID == runtime.ThreadID) Transaction.WithAnimation(Chrome.PanelSlide, Apply);
@@ -373,13 +384,26 @@ public sealed class ChatView : Decorator
     // is animated, so the thread view above it (timeline, chat box, panels) is pushed up and let back down in lock-step with
     // the drawer's move from the bottom edge, never cut to its new height (2-chat-use.mov C 132.2-132.55, the push measured
     // frame by frame; OD-0076). The drawer's row takes its height at once, so the pane reaches under it by the part of the
-    // drawer still below its resting place: its bottom edge is the drawer's top on every frame.
-    private void PushTerminal(bool showing, Animation animation, double height)
+    // drawer still below its resting place: its bottom edge is the drawer's top on every frame. A push that starts while another is
+    // under way (the drawer reopened while it is still closing, or closed while it is still opening) goes on from where the pane is:
+    // the margin it has now, never a full drawer below (SwiftUI retargets the animated layout from its presentation; OD-0076). A
+    // fresh opening starts a full drawer below, as the drawer's row takes its height at once; a drawer that still holds its row (the
+    // one leaving) has already given the pane its reach, and the new push continues from the margin that reach has now.
+    private void PushTerminal(bool showing, Animation animation, double height, bool rowHeld)
     {
         terminalPush.Stop();
-        var from = showing ? -height : pane.Margin.Bottom;
+        var from = showing && !rowHeld ? -height : pane.Margin.Bottom;
         var to = showing ? 0 : -height;
-        terminalPush.Start(animation, progress => pane.Margin = new Thickness(0, 0, 0, from + (to - from) * progress));
+        push = (showing, height);
+        terminalPush.Start(animation, progress =>
+        {
+            pane.Margin = new Thickness(0, 0, 0, from + (to - from) * progress);
+            if (progress >= 1 && showing) push = null; // an open drawer has its row: the pane's own size is the settled one again.
+        });
+        // :241-249,290 paneSize takes the layout's settled value once, and the panels re-place under the same panelSlide as the thread
+        // view's push (the bottom-docked ones rise with the chat box): the scene is told the size the push heads for now, not
+        // the per-frame sizes the margin makes the pane pass through (those would each start a fresh settle from where the panel is).
+        if (columnHeight > 0) NotePaneSize(SettledPaneSize());
     }
 
     private static SwiftTransition PanelTransition => SwiftTransition.Asymmetric(
@@ -392,6 +416,7 @@ public sealed class ChatView : Decorator
         var host = new Panel();
         var placed = new PlacedPanel(drag, rest, size, host, resize, holds);
         panelSurfaces[placed] = (host, surface);
+        placed.PresentSurface = presented => SizeSurface(placed, presented);
         host.Children.CollectionChanged += (_, _) =>
         {
             if (host.Children.Count != 0) return;
@@ -399,6 +424,22 @@ public sealed class ChatView : Decorator
             panelSurfaces.Remove(placed);
         };
         return placed;
+    }
+
+    // :541-545 the frame of a placed panel includes its surface. The placement presents each size of a settle and the surface
+    // follows, so a panel that grows or shrinks (the usage panel's reset to its content height, :574-577; the pane changing size
+    // under it) glides under panelSlide rather than taking its final size ahead of the placement.
+    private void SizeSurface(Control placed, Size size)
+    {
+        if (!panelSurfaces.TryGetValue(placed, out var panel)) return;
+        panel.Surface.Width = size.Width;
+        panel.Surface.Height = size.Height;
+        // SubagentPanel.swift:299,340-354 frames both borders explicitly; Hydra/Usage frames its root.
+        if (panel.Surface is SubagentPanel { Child: Border { Child: Border shape } scrim })
+        {
+            scrim.Width = shape.Width = size.Width;
+            scrim.Height = shape.Height = size.Height;
+        }
     }
 
     private void RemovePanel(Control placed)
@@ -456,6 +497,7 @@ public sealed class ChatView : Decorator
                 });
                 panelSurfaces[prior.View] = (existing.Host, surface);
                 mountedPanels[id] = (prior.View, inputs);
+                ((PlacedPanel)prior.View).PresentSurfaceNow(); // the new surface joins the frame the placement presents now.
                 UpdatePanelPlacement(id, (PlacedPanel)prior.View, holds);
                 return;
             }
@@ -529,16 +571,9 @@ public sealed class ChatView : Decorator
 
     private void UpdatePanelPlacement(FloatingPanelID id, PlacedPanel placed, bool holds)
     {
+        // The host's and the surface's frames come from the placement's own presentation (PanelPlacementView.Present), at once for a
+        // placement that does not settle and on every frame of one that does.
         var size = CurrentSize(id);
-        var panel = panelSurfaces[placed];
-        panel.Host.Width = panel.Surface.Width = size.Width;
-        panel.Host.Height = panel.Surface.Height = size.Height;
-        // SubagentPanel.swift:299,340-354 frames both borders explicitly; Hydra/Usage frames its root.
-        if (panel.Surface is SubagentPanel { Child: Border { Child: Border shape } scrim })
-        {
-            scrim.Width = shape.Width = size.Width;
-            scrim.Height = shape.Height = size.Height;
-        }
         placed.UpdatePlacement(CurrentOrigin(id), size, holds);
         // SubagentPanel.swift:599-615. Moving to a different dock updates the existing grips' free edges.
         var dock = CurrentSlot(id).Corner;
@@ -1214,22 +1249,26 @@ public sealed class JumpToLatestButton : Decorator
     {
         var host = new Panel();
         Height = 0; // :1095 zero flow height, above the composer.
-        Child = new ChatBottomOverlay(host, 10); // :1094 bottom padding.
-        ChromeCircleButton? button = null;
+        Child = host;
+        ChatBottomOverlay? frame = null;
         this.Track(() => scrollState.ShowsJumpButton, shown =>
         {
-            if (shown && button is null)
+            if (shown && frame is null)
             {
-                button = new ChromeCircleButton("arrow.down", "Jump to latest", scrollState.JumpToLatest)
-                { HorizontalAlignment = HorizontalAlignment.Center }
+                var button = new ChromeCircleButton("arrow.down", "Jump to latest", scrollState.JumpToLatest)
+                { HorizontalAlignment = HorizontalAlignment.Center };
+                // :1094-1101 the transition is on the zero-height frame with the button's 10 points of bottom padding, not on the button: it scales about the frame's centre (the
+                // point at the top of the composer, centred on the column), so the circle rises by more than the offset's 10 points while it grows. Measured on the reference
+                // runtime (2-chat-use.mov 10.357-10.478: the rise fits 19.6 points of travel on the spring, 20.4 for this geometry, and cannot fit the offset's 10).
+                frame = new ChatBottomOverlay(button, 10) // :1094 bottom padding.
                     .Transition(SwiftTransition.Asymmetric(
                         SwiftTransition.Scale(0.6).Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 10)),
                         SwiftTransition.Scale(0.85).Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 6)))); // :1096-1101
-                SwiftTransition.Insert(host, host.Children.Count, button);
+                SwiftTransition.Insert(host, host.Children.Count, frame);
             }
-            else if (!shown && button is { } leaving)
+            else if (!shown && frame is { } leaving)
             {
-                button = null;
+                frame = null;
                 SwiftTransition.Remove(host, leaving);
             }
         });
@@ -1254,22 +1293,95 @@ internal sealed class GlassEffectContainer : Decorator
 /// <summary>PORT-ONLY. The row's <c>HStack(alignment: .center, spacing: 10)</c> (ChatView.swift:1124) with the title's
 /// <c>.frame(maxWidth: .infinity, alignment: .leading)</c> (:1238) in it: every other control takes its own width, and the
 /// title's frame takes what is left, so the trailing capsules sit at the row's trailing end. A horizontal StackPanel gave
-/// the title only its text's width and drew the capsules straight after it.</summary>
+/// the title only its text's width and drew the capsules straight after it. It also carries what SwiftUI's stack gets from
+/// `.animation(Chrome.panelSlide, value: sidebarVisible)` on the row (:1179): a control whose place in the row changes glides
+/// from where it was (<see cref="Glide"/>), and a control that is removed gives up its slot at once while it fades out where it
+/// stood (<see cref="Departing"/>). ED-NEW-parity-chatview (1).</summary>
 internal sealed class ChatChromeRowStack : StackPanel
 {
-    public ChatChromeRowStack() => Orientation = Orientation.Horizontal;
+    private Animation? glide;
+    private ContinuousInstant glideStart;
+    // A control is known by its kind and its place among controls of that kind: the row rebuilds most of its controls on every
+    // refresh (a SwiftUI body re-evaluates; the view's identity is its position), so the same control is a new instance.
+    private Dictionary<(Type, int), double>? glideFrom; // asked for: where each control was drawn when the change began.
+    private readonly Dictionary<(Type, int), double> glideOffsets = []; // how far from its new place each control began.
+    private Action<TimeSpan>? pendingFrame;
+    private IFrameSource? glideFrames; // the frame source of the context that asked for the glide: layout runs outside it.
+
+    public ChatChromeRowStack()
+    {
+        Orientation = Orientation.Horizontal;
+        DetachedFromVisualTree += (_, _) => StopFrames();
+    }
+
+    /// <summary>The controls whose removal is running: not in the row's layout, drawn where they stood.</summary>
+    internal HashSet<Control> Departing { get; } = [];
 
     private static bool FillsRow(Control child) => child is ChatChromeTitle;
 
     private IEnumerable<Control> Shown => Children.Where(child => child.IsVisible);
 
+    private static IEnumerable<((Type, int) Key, Control Child)> Keyed(IEnumerable<Control> children)
+    {
+        var counts = new Dictionary<Type, int>();
+        foreach (var child in children)
+        {
+            var type = child.GetType();
+            counts[type] = counts.GetValueOrDefault(type) + 1;
+            yield return ((type, counts[type]), child);
+        }
+    }
+
+    /// <summary>The next layout puts every control it has already drawn at its new place by gliding from where it is drawn
+    /// now, on <paramref name="animation"/> (a control that arrives has no old place and comes in at its own).</summary>
+    internal void Glide(Animation animation)
+    {
+        glide = animation;
+        glideStart = SwiftClock.Now;
+        glideFrames = FrameClock.Source.Current;
+        glideOffsets.Clear();
+        glideFrom = Keyed(Shown).ToDictionary(entry => entry.Key, entry => entry.Child.Bounds.X);
+        InvalidateArrange();
+    }
+
+    private double GlideRemaining()
+    {
+        if (glide is null || glideOffsets.Count == 0) return 0;
+        var elapsed = SwiftClock.Now - glideStart;
+        return elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(glide.Duration).Ticks ? 0 : 1 - glide.Progress(elapsed.TotalSeconds);
+    }
+
+    private void RequestGlideFrame()
+    {
+        if (pendingFrame is not null || glideFrames is not { } frames) return;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            if (!ReferenceEquals(pendingFrame, tick)) return;
+            pendingFrame = null;
+            InvalidateArrange();
+            if (GlideRemaining() > 0) RequestGlideFrame();
+        };
+        pendingFrame = tick;
+        frames.RequestFrame(tick);
+    }
+
+    private void StopFrames()
+    {
+        if (pendingFrame is { } frame) glideFrames?.CancelFrame(frame);
+        pendingFrame = null;
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         var shown = Shown.ToArray();
-        var gaps = Math.Max(0, shown.Length - 1) * Spacing;
+        foreach (var child in shown.Where(Departing.Contains))
+            child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+        var slots = shown.Where(child => !Departing.Contains(child)).ToArray();
+        var gaps = Math.Max(0, slots.Length - 1) * Spacing;
         var used = gaps;
         var height = 0.0;
-        foreach (var child in shown.Where(child => !FillsRow(child)))
+        foreach (var child in slots.Where(child => !FillsRow(child)))
         {
             child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
             used += child.DesiredSize.Width;
@@ -1277,7 +1389,7 @@ internal sealed class ChatChromeRowStack : StackPanel
         }
         var left = double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0, availableSize.Width - used);
         var fills = false;
-        foreach (var child in shown.Where(FillsRow))
+        foreach (var child in slots.Where(FillsRow))
         {
             fills = true;
             child.Measure(new Size(left, availableSize.Height));
@@ -1291,16 +1403,33 @@ internal sealed class ChatChromeRowStack : StackPanel
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var shown = Shown.ToArray();
-        var fixedWidth = shown.Where(child => !FillsRow(child)).Sum(child => child.DesiredSize.Width) + Math.Max(0, shown.Length - 1) * Spacing;
+        var keyed = Keyed(Shown).ToArray();
+        var slots = keyed.Where(entry => !Departing.Contains(entry.Child)).ToArray();
+        var fixedWidth = slots.Where(entry => !FillsRow(entry.Child)).Sum(entry => entry.Child.DesiredSize.Width) + Math.Max(0, slots.Length - 1) * Spacing;
         var left = Math.Max(0, finalSize.Width - fixedWidth);
+        var places = new List<((Type, int) Key, Control Child, double X, double Width)>();
         var x = 0.0;
-        foreach (var child in shown)
+        foreach (var (key, child) in slots)
         {
             var width = FillsRow(child) ? left : child.DesiredSize.Width;
-            child.Arrange(new Rect(x, 0, width, finalSize.Height));
+            places.Add((key, child, x, width));
             x += width + Spacing;
         }
+        var from = glideFrom;
+        if (from is not null)
+        {
+            glideFrom = null;
+            glideOffsets.Clear();
+            foreach (var (key, _, place, _) in places)
+                if (from.TryGetValue(key, out var was) && Math.Abs(was - place) > 0.01) glideOffsets[key] = was - place;
+            if (glideOffsets.Count != 0) RequestGlideFrame();
+        }
+        var remaining = GlideRemaining();
+        if (remaining == 0) glideOffsets.Clear();
+        foreach (var (key, child, place, width) in places)
+            child.Arrange(new Rect(place + (glideOffsets.TryGetValue(key, out var offset) ? offset * remaining : 0), 0, width, finalSize.Height));
+        foreach (var (key, child) in keyed.Where(entry => Departing.Contains(entry.Child))) // drawn where it stood.
+            child.Arrange(new Rect(from is not null && from.TryGetValue(key, out var stood) ? stood : child.Bounds.X, 0, child.DesiredSize.Width, finalSize.Height));
         return finalSize;
     }
 }
@@ -1409,10 +1538,16 @@ internal sealed class ChatChromeRow : Decorator
                 else row.Children.Insert(position, control);
                 position++;
             }
+            // A removed control gives up its slot at once (the stack closes up around it) and fades where it stood.
+            row.Departing.Clear();
+            foreach (var control in leaving) row.Departing.Add(SwiftTransition.Container(control));
         }
         void Build()
         {
             var sidebarVisible = model.Sidebar.HoldsTrafficLights; // :1119
+            // :1179 `.animation(Chrome.panelSlide, value: sidebarVisible)` is on the whole row: when the buttons move to or from the
+            // sidebar, every control's new place in the HStack is reached by gliding on panelSlide, from where it was drawn.
+            if (built && previousSidebarVisible is { } wasVisible && wasVisible != sidebarVisible) row.Glide(Chrome.PanelSlide);
             var desired = new List<Control>();
             var transitioning = new HashSet<Control>();
             var silent = new HashSet<Control>();
@@ -1905,8 +2040,12 @@ internal sealed class OpenInMenu : Decorator
     {
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
         stack.Children.Add(new PopoverSectionHeader("Open in")); // :1416
-        // :1417-1419 deviation OD-0012 G4: "Finder" -> "File Explorer", using Components' workspace seam.
-        stack.Children.Add(new PopoverItem("File Explorer", () => Workspace.RevealInFileExplorer(directory), image: Workspace.FileExplorerIcon as IImage));
+        // :1417-1419 deviation OD-0012 G4: "Finder" -> "File Explorer". The row runs `NSWorkspace.shared.open(URL(fileURLWithPath: directory))`:
+        // it OPENS the chat's directory (a window showing its contents), which is not Workspace.revealInFinder
+        // (Components.swift:163-165, activateFileViewerSelecting: the parent folder with the directory selected). The UI layer's twin of
+        // NSWorkspace.shared.open is ShellWorkspace.OpenWithDefaultApp (ShellExecuteW "open" opens a folder in File Explorer), as
+        // DownloadsPopover's own open of the downloads folder uses it; RevealInFileExplorer stays for the source's revealInFinder sites.
+        stack.Children.Add(new PopoverItem("File Explorer", () => ShellWorkspace.OpenWithDefaultApp(directory), image: Workspace.FileExplorerIcon as IImage));
         foreach (var editor in Workspace.InstalledEditors) // :1420-1424
             stack.Children.Add(new PopoverItem(editor.Name, () => Workspace.Open(directory, editor),
                 symbol: "chevron.left.forwardslash.chevron.right", image: Workspace.Icon(editor) as IImage));

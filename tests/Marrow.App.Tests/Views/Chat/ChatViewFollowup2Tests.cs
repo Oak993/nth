@@ -47,8 +47,14 @@ public sealed class ChatViewFollowup2Tests(HeadlessSession headless)
                 Assert.Equal([ChatWorkspaceFixture.Explorer, @"C:\fixture\Code.exe", @"C:\fixture\Cursor.exe", @"C:\fixture\Zed.exe", @"C:\fixture\wt.exe"], workspace.IconReads);
                 Assert.Single(LogicalQuery.SelfAndDescendants<PopoverDivider>(menu));
             });
-            main.OnMain(() => Click(rows[0]));
-            Assert.Equal([directory], workspace.Reveals);
+            // :1417-1419 NSWorkspace.shared.open(directory): the directory itself opens; it is not revealed in its parent (round 1 review, PR-CHAT-180).
+            var opened = new List<string>();
+            var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+            ShellWorkspace.OpenWithDefaultApp = opened.Add; // fail closed: nothing reaches the shell.
+            try { main.OnMain(() => Click(rows[0])); }
+            finally { ShellWorkspace.OpenWithDefaultApp = previousOpen; }
+            Assert.Equal([directory], opened);
+            Assert.Empty(workspace.Reveals);
             main.OnMain(() => { foreach (var row in rows.Skip(1).Take(4)) Click(row); });
                 Assert.Equal([@"C:\fixture\Code.exe", @"C:\fixture\Cursor.exe", @"C:\fixture\Zed.exe", @"C:\fixture\wt.exe"], workspace.Launches.Select(call => call.Executable));
                 Assert.Equal(new[] { directory }, workspace.Launches[0].Arguments);
@@ -98,8 +104,13 @@ public sealed class ChatViewFollowup2Tests(HeadlessSession headless)
                 Assert.Equal(["File Explorer", "Copy path"], Rows(menu).Select(Title));
                 Assert.Single(LogicalQuery.SelfAndDescendants<PopoverDivider>(menu));
             });
-            main.OnMain(() => Click(Rows(menu)[0]));
-            Assert.Equal([@"C:\project"], workspace.Reveals);
+            var opened = new List<string>();
+            var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+            ShellWorkspace.OpenWithDefaultApp = opened.Add; // fail closed: nothing reaches the shell.
+            try { main.OnMain(() => Click(Rows(menu)[0])); }
+            finally { ShellWorkspace.OpenWithDefaultApp = previousOpen; }
+            Assert.Equal([@"C:\project"], opened); // :1417-1419 the directory opens (round 1 review, PR-CHAT-180).
+            Assert.Empty(workspace.Reveals);
             Assert.Empty(workspace.Launches);
         });
     }

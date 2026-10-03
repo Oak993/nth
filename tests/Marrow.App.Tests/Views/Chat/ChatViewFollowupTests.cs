@@ -254,21 +254,22 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
             Drain(h);
             var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(view));
             var circle = Assert.Single(LogicalQuery.SelfAndDescendants<ChromeCircleButton>(view)); // :1091 source transition encloses the whole chrome surface.
+            var frame = Assert.IsAssignableFrom<Avalonia.Controls.Decorator>(circle.Parent); // :1094-1101 the transition is on the zero-height frame with the 10 points of bottom padding, not on the circle.
             Assert.Equal("Jump to latest", ToolTip.GetTip(button));
             Assert.Equal("arrow.down", Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(button)).SymbolName);
             Assert.Equal(0, view.Height);
-            Assert.Equal(0, circle.Opacity);
-            Assert.Equal(0.6, circle.RenderTransform!.Value.M11, 8);
-            Assert.Equal(10, circle.RenderTransform!.Value.M32, 8);
+            Assert.Equal(0, frame.Opacity); Assert.Equal(1, circle.Opacity);
+            Assert.Equal(0.6, frame.RenderTransform!.Value.M11, 8);
+            Assert.Equal(10, frame.RenderTransform!.Value.M32, 8);
             h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
             h.Main.OnMain(() => ChatGitFixtures.Click(button));
             Assert.Equal(1, state.JumpRequest);
             h.Main.OnMain(() => Transaction.WithAnimation(Chrome.PanelSlide, () => state.ShowsJumpButton = false));
             Drain(h);
             h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
-            Assert.Equal(0, circle.Opacity);
-            Assert.Equal(0.85, circle.RenderTransform!.Value.M11, 8);
-            Assert.Equal(6, circle.RenderTransform!.Value.M32, 8);
+            Assert.Equal(0, frame.Opacity);
+            Assert.Equal(0.85, frame.RenderTransform!.Value.M11, 8);
+            Assert.Equal(6, frame.RenderTransform!.Value.M32, 8);
             Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(view));
         });
     }

@@ -102,12 +102,16 @@ public sealed class ChatViewParityReviewTests(HeadlessSession headless)
             h.Main.Advance(TimeSpan.FromSeconds(2)); frames.Advance(TimeSpan.Zero); Drain(h, window);
             var circle = Assert.Single(LogicalQuery.SelfAndDescendants<ChromeCircleButton>(view));
             Point Centre() => circle.TranslatePoint(new Point(circle.Bounds.Width / 2, circle.Bounds.Height / 2), window)!.Value;
+            // ChatView.swift:1094-1101 puts the transition on the zero-height frame around the circle, so the fade is that frame's: the
+            // circle's shown opacity is the product of the opacities along its ancestry up to the view (the same number whichever of
+            // the two the fade is set on; the position assertion below is unchanged).
+            double Shown() { var shown = 1.0; for (Control? c = circle; c is not null; c = c.Parent as Control) { shown *= c.Opacity; if (ReferenceEquals(c, view)) break; } return shown; }
             var rest = Centre();
-            Assert.Equal(1, circle.Opacity, 3);
+            Assert.Equal(1, Shown(), 3);
             h.Main.OnMain(() => Transaction.WithAnimation(Chrome.PanelSlide, () => state.ShowsJumpButton = false));
             Drain(h, window);
             h.Main.AdvanceMilliseconds(100); frames.Advance(TimeSpan.Zero); Drain(h, window);
-            var q = 1 - circle.Opacity; // the removal's progress: opacity, scale and offset share one curve.
+            var q = 1 - Shown(); // the removal's progress: opacity, scale and offset share one curve.
             Assert.InRange(q, 0.2, 0.9);
             Assert.Equal(9.9 * q, Centre().Y - rest.Y, 0.5);
         });
