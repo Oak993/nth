@@ -7,9 +7,9 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3695,
+      "IMPLEMENTED": 3700,
       "RETIRED": 15,
-      "SPECIFIED": 254,
+      "SPECIFIED": 249,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
       "DISCOVERED": 6
     },
@@ -32306,7 +32306,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five fields and the same localized case-insensitive containment: SwiftString.LocalizedCaseInsensitiveContains (R-STR-6, ED-009), current culture, case-insensitive, accent-sensitive, an empty needle never contained. localizedCaseInsensitiveContains (MCPSettingsPage.swift:80-84) is a case-insensitive search only; the diacritic-insensitive Foundation call is localizedStandardContains, which this page does not use. Corrected 2026-09-27: the earlier text claimed diacritics are ignored here, contradicting the source call and ED-009.",
       "verification_method": "unit over each of the five fields plus an interaction test on the field",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32619,7 +32619,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same labels including the trailing single-character ellipsis U+2026, and the same lowercasing of the field label.",
       "verification_method": "interaction test on gitlab and on a custom server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32945,7 +32945,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute the popover height from the same formula on every change of kind or row count; keep the width at 380 and the cap at 560.",
       "verification_method": "unit over the height function for stdio and http with 0, 3, 4, 7 and 8 rows, plus a capture comparison of the editor with an empty stdio form and with four stdio rows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32971,7 +32971,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Put the error line and the save row in a fixed footer outside the scrolling region of the popover. The save button's prominent glass style follows OD-0005 (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
       "verification_method": "interaction test: open a stdio editor with five variable rows, scroll the form to the bottom and back, and assert the save button keeps its position; then force a validation error and assert the error line appears above the button with the button still visible",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32996,7 +32996,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Expose the button to UI Automation with the name \"Close\" and a 24 by 24 hit target.",
       "verification_method": "UI Automation test finding the button by the name \"Close\", then a click near a corner of its 24 by 24 frame asserting the popover closes and custom-mcp.json is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
