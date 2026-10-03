@@ -400,7 +400,7 @@ public sealed class UpdateReleaseSectionCards : Decorator
                 if (presented == shown)
                     return;
                 shown = presented;
-                Presentation.Presenter.Current.SetPresented(popover, presented);
+                Presentation.SetPresented(popover, presented, button, () => { if (state.Presented == category) state.Presented = null; }); // ED-253: Escape closes it
             });
             Grid.SetColumn(button, index * 2);
             row.Children.Add(button);

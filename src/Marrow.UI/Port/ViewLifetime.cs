@@ -80,6 +80,18 @@ public static class Presentation
 {
     public static Ambient<IPopoverPresenter> Presenter { get; } = new(new AvaloniaPopoverPresenter());
 
+    /// <summary>
+    /// Presents or dismisses <paramref name="popup"/> through <see cref="Presenter"/> and, while it is presented, keeps it
+    /// among the transients over <paramref name="anchor"/>'s window (ED-253): the window's Escape runs
+    /// <paramref name="dismiss"/> (which sets the presenting state false) as NSPopover's own Escape closes it.
+    /// </summary>
+    public static void SetPresented(Popup popup, bool presented, Visual anchor, Action dismiss)
+    {
+        if (presented) WindowTransients.Show(popup, anchor, dismiss);
+        else WindowTransients.Hide(popup);
+        Presenter.Current.SetPresented(popup, presented);
+    }
+
     private sealed class AvaloniaPopoverPresenter : IPopoverPresenter
     {
         private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Popup, Action> closing = new();

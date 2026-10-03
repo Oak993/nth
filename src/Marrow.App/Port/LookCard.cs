@@ -1382,6 +1382,8 @@ internal sealed class ThemeMenu : Border
             watched.AddHandler(PointerPressedEvent, OnOutsidePress, RoutingStrategies.Tunnel, handledEventsToo: true);
             watched.AddHandler(KeyDownEvent, OnEscape, RoutingStrategies.Tunnel, handledEventsToo: true);
         }
+        // ED-253: the Settings window's own Escape (SecondaryWindow, ahead of every handler here) closes the menu, not itself.
+        WindowTransients.Show(this, this, EscapeClose);
         if (keyboard) (current ?? Rows[0]).Focus(NavigationMethod.Directional);
     }
 
@@ -1389,6 +1391,7 @@ internal sealed class ThemeMenu : Border
     {
         if (!isOpen && !immediately) return;
         isOpen = false;
+        WindowTransients.Hide(this);
         if (watched is not null)
         {
             watched.RemoveHandler(PointerPressedEvent, OnOutsidePress);
@@ -1416,6 +1419,7 @@ internal sealed class ThemeMenu : Border
 
     private void OnEscape(object? sender, KeyEventArgs e)
     {
+        if (!isOpen) return; // closed by the window's Escape already (ED-253)
         if (e.Key == Key.Tab)
         {
             // Tab closes the menu (focus never wanders off while it hangs open); from inside it, focus goes back to segment
@@ -1429,6 +1433,12 @@ internal sealed class ThemeMenu : Border
         }
         if (e.Key != Key.Escape) return;
         e.Handled = true;
+        EscapeClose();
+    }
+
+    // SPEC 7: Escape closes the menu and returns focus to segment 4.
+    private void EscapeClose()
+    {
         Close();
         card.Segments.Buttons[3].Focus(NavigationMethod.Directional);
     }

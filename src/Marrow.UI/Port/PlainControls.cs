@@ -188,7 +188,7 @@ public static class PlainControls
                 if (buildBeforeOpen) popup.Child ??= content(); // Build before native Popup.Open captures its child; lazy per presentation.
                 else if (popup.Child is null) popup.Child = new DeferredPopoverContent();
             }
-            Presentation.Presenter.Current.SetPresented(popup, presented);
+            Presentation.SetPresented(popup, presented, anchor, () => isPresented.Value = false);
         });
         return popup;
     }
