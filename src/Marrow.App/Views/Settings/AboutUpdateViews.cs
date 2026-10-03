@@ -1086,13 +1086,36 @@ internal sealed class AboutVersionPill : Decorator
     private readonly UpdateInstallProgress progress;
     private bool? previousReady;
     private SwiftColor? previousIconTint;
+    private readonly CrossfadeSlot slot = new();
+    private string lastLook;
 
     public AboutVersionPill()
     {
         checker = UpdateChecker.Shared;
         progress = UpdateInstallProgress.Shared;
-        Child = Build(ReadSnapshot());
-        this.Track(ReadSnapshot, snapshot => Child = Build(snapshot));
+        var first = ReadSnapshot();
+        lastLook = Look(first);
+        slot.Show(Build(first), null);
+        Child = slot;
+        this.Track(ReadSnapshot, Swap);
+    }
+
+    // ENGINEERING DECISION (OD-0076 cut T2 and T3, :671): what the pill shows as one of the slider, the ready button or one of the three standings. A change
+    // from one to another is a swap of content (SwiftUI: the `if` branches of :643-660 and :638-682 are removed and inserted, and under :671
+    // `.animation(.easeInOut(duration: 0.18), value: isReady)` that takes the default opacity transition), so the old face fades out where it stood while the
+    // new one fades in, over the same 0.18 s on the ease of :671, on the frame clock; the slot eases to the new face's width. Under Reduce Motion (:671 `nil`) they cut.
+    // A rebuild that looks the same replaces the face at once (the slider's phase changes rebuild it with a new chase), unless a swap is still running.
+    private static string Look(Snapshot snapshot) =>
+        snapshot.Phase is not (UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed) ? "slider"
+        : snapshot.UpdateAvailable && snapshot.Update is not null ? "ready"
+        : ResolveStanding(snapshot).ToString();
+
+    private void Swap(Snapshot snapshot)
+    {
+        var look = Look(snapshot);
+        var changed = look != lastLook || slot.Settling;
+        lastLook = look;
+        slot.Show(Build(snapshot), changed && !snapshot.ReduceMotion ? Animation.EaseInOut(0.18) : null);
     }
 
     private Snapshot ReadSnapshot() => new(
@@ -1484,12 +1507,26 @@ public sealed class AboutUpdateCheckRow : Decorator
         string? Version);
 
     private readonly UpdateChecker checker;
+    private readonly CrossfadeSlot buttonSlot = new();
+    private readonly TextBlock detailText;
+    private string detailShown;
+    private bool buttonChecking;
+    private IFrameSource? detailFrames;
+    private Action<TimeSpan>? detailFrame;
 
     public AboutUpdateCheckRow()
     {
         checker = UpdateChecker.Shared;
-        Child = Build(ReadSnapshot());
-        this.Track(ReadSnapshot, snapshot => Child = Build(snapshot));
+        var first = ReadSnapshot();
+        buttonChecking = first.IsChecking;
+        buttonSlot.Show(MakeButton(first), null);
+        detailShown = Detail(first);
+        // The row is built once; its button and its detail sentence swap with a fade (ENGINEERING DECISION, OD-0076 cut T1): ChromeRow keeps its title
+        // and metrics, the Mac's `Button(checker.isChecking ? ...)` and `Text(detail)` (:826-844) change in place.
+        var chrome = new ChromeRow("Software update", () => buttonSlot, detailShown);
+        detailText = (TextBlock)((StackPanel)((Grid)((Border)chrome.Child!).Child!).Children[0]).Children[1];
+        Child = chrome;
+        this.Track(ReadSnapshot, Apply);
     }
 
     private Snapshot ReadSnapshot() => new(
@@ -1499,18 +1536,50 @@ public sealed class AboutUpdateCheckRow : Decorator
         checker.UpdateAvailable,
         checker.Update?.Version);
 
-    private Control Build(Snapshot snapshot)
+    private Control MakeButton(Snapshot snapshot)
     {
-        var detail = Detail(snapshot);
         // :826-833 Button(checker.isChecking ? "Checking…" : "Check now") { Task { await checker.check() } }.buttonStyle(.glass)
         // .controlSize(.small).disabled(checker.isChecking): the small accent glass capsule the recorded Mac runtime shows
         // (SmallAccentGlassButton, ED-NEW-aboutupdateviews); the label and the disabled look share isChecking.
-        var button = SmallAccentGlassButton.Create(snapshot.IsChecking ? "Checking…" : "Check now", () =>
+        return SmallAccentGlassButton.Create(snapshot.IsChecking ? "Checking…" : "Check now", () =>
         {
             if (!snapshot.IsChecking)
                 MainActor.Spawn(async () => await checker.Check());
         }, enabled: !snapshot.IsChecking);
-        return new ChromeRow("Software update", () => button, detail);
+    }
+
+    // OD-0076 cut T1: the button (label, accent capsule to grey and back) crossfades into its next state over 0.18 s on the ease of the pill's :671, and its slot
+    // eases to the new width; the detail sentence fades out and the new one fades in over the same time. Reduce Motion cuts them.
+    private void Apply(Snapshot snapshot)
+    {
+        var animation = EnvironmentValues.GetAccessibilityReduceMotion(this) ? null : Animation.EaseInOut(0.18);
+        // The button looks only as isChecking says (:827,832); a change of anything else leaves the one on show.
+        if (snapshot.IsChecking != buttonChecking) { buttonChecking = snapshot.IsChecking; buttonSlot.Show(MakeButton(snapshot), animation); }
+        SwapDetail(Detail(snapshot), animation);
+    }
+
+    private void SwapDetail(string next, Animation? animation)
+    {
+        if (detailFrame is { } running) detailFrames?.CancelFrame(running);
+        detailFrame = null;
+        if (next == detailShown) { detailText.Opacity = 1; return; }
+        detailShown = next;
+        if (animation is null || TopLevel.GetTopLevel(detailText) is null) { detailText.Text = next; detailText.Opacity = 1; return; }
+        // The old words fade out where they stood over the first half, the new ones in over the second (HydraProgressBar's swap); the words on show when
+        // a swap is turned back part way fade from the opacity they have.
+        var half = animation.Duration / 2; var frames = detailFrames = FrameClock.Source.Current; var since = SwiftClock.Now; var from = detailText.Opacity; var shown = false;
+        Action<TimeSpan>? frame = null;
+        frame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - since).TotalSeconds;
+            if (elapsed < half) { detailText.Opacity = from * (1 - Animation.EaseIn(half).Progress(elapsed)); frames.RequestFrame(frame!); return; }
+            if (!shown) { shown = true; detailText.Text = next; }
+            var done = elapsed + 0.001 >= 2 * half;
+            detailText.Opacity = done ? 1 : Animation.EaseOut(half).Progress(elapsed - half);
+            if (done) { detailFrame = null; return; }
+            frames.RequestFrame(frame!);
+        };
+        detailFrame = frame; frames.RequestFrame(frame);
     }
 
     private static string Detail(Snapshot snapshot)

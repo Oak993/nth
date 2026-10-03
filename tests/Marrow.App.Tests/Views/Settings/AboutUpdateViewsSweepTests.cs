@@ -184,7 +184,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var runtime = new TestRuntime(); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
             using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
             var checker = runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], UpdateChecker.DefaultFeed));
             using var shared = UpdateChecker.OverrideShared(checker);
@@ -199,6 +199,8 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
             runtime.OnMain(() =>
             {
                 Dispatcher.UIThread.RunJobs();
+                // OD-0076: the new sentence replaces the old one over 0.18 s (the swap is finished before the words are read).
+                runtime.Time.Advance(TimeSpan.FromMilliseconds(300)); source.Advance(TimeSpan.FromMilliseconds(300)); Dispatcher.UIThread.RunJobs();
                 Assert.NotNull(checker.LastCheckedAt);
                 Assert.Equal("No update feed is set.", checker.LastError); // OD-0012 I1
                 var stamp = "Checked " + SwiftFormatters.RelativeNamed(checker.LastCheckedAt!.Value) + "."; // ED-096 formatter oracle

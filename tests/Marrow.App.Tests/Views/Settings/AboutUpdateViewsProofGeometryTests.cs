@@ -191,7 +191,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:625-636 (104-point slider in the glass capsule)
     public void Every_progress_phase_replaces_the_face_at_104_plus_padding_and_failure_restores_it() => headless.OnUiThread(() =>
     {
-        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
         runtime.OnMain(() =>
         {
@@ -202,7 +202,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
             var startY = pill.Bounds.Y;
             void Slider()
             {
-                Dispatcher.UIThread.RunJobs();
+                Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, source); // a face and the slider swap over 0.18 s (OD-0076): the phase is read once that is over
                 var slider = Assert.Single(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>());
                 Assert.Equal(104, slider.Width); Assert.Equal(28, slider.Height);
                 var padded = Assert.Single(pill.GetVisualDescendants().OfType<Border>(), b => b.Padding != default);
@@ -216,10 +216,10 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
             Assert.Empty(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>());
             progress.Begin(); Slider(); progress.NoteDownloadProgress(0.5); Slider();
             progress.BeginVerification(); Slider(); progress.BeginStaging(); Slider(); progress.NoteHandoff(); Slider();
-            progress.Fail(); Dispatcher.UIThread.RunJobs();
+            progress.Fail(); Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, source);
             Assert.Empty(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>()); Assert.Single(pill.GetVisualDescendants().OfType<Button>());
             progress.ArmCelebration(); progress.ConsumePendingCelebration(); Slider();
-            progress.CompleteCelebration(); Dispatcher.UIThread.RunJobs();
+            progress.CompleteCelebration(); Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, source);
             Assert.Empty(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>()); Assert.Single(pill.GetVisualDescendants().OfType<Button>());
             window.Close();
         });
