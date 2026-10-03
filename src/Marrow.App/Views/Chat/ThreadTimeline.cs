@@ -118,16 +118,13 @@ public sealed class ThreadTimeline : Decorator
                 return;
             }
             var model = AppEnvironment.GetAppModel(this);
-            var team = model.Helpers(runtime.ThreadID).Where(thread => thread.IsHydraHead).ToArray();
-            // STOP #1 is only the external roster extraction, not this unit's finish ordering and cut.
-            var finished = team.Length == 0 ? new ValueList<HydraHeadInfo>([]) : HydraHeadsWorkingRow.FinishedHeads(team);
-            var pills = SplitHeadPills(finished, runtime.IsRunning ? runtime.TurnStartedAt : null);
+            var modelInputs = ReadModelInputs(runtime); seenModelInputs = modelInputs; // :99-131
+            var pills = modelInputs.Pills;
             var blocks = TimelineBlockCache.Cache(runtime.ThreadID).Blocks(runtime.Entries, model.Settings.ShowReasoning, runtime.IsRunning, MergeID(runtime.IsHydraMerging, runtime.HydraMergeNoteID), pills);
             var lastID = runtime.Questions.LastOrDefault() is { } question ? "question-" + question.Id : blocks.LastOrDefault()?.Id;
             if (seenLastEntryID != lastID) { seenLastEntryID = lastID; NoteArrival(lastID, blocks); }
-            var heads = model.Children(runtime.ThreadID).Where(thread => thread.IsHydraHead).ToArray();
-            MarkdownView.SetHydraMentionPersonas(this, TimelineBlockCache.Cache(runtime.ThreadID).MentionPersonas(heads, model.Thread(runtime.ThreadID) is { } thread && model.HydraIsOn(thread)));
-            MarkdownView.SetHydraMentionTargets(this, MentionTargets(heads)); // :123-131,209-210. URL hook remains STOP #4.
+            MarkdownView.SetHydraMentionPersonas(this, TimelineBlockCache.Cache(runtime.ThreadID).MentionPersonas(modelInputs.Heads, modelInputs.Roster));
+            MarkdownView.SetHydraMentionTargets(this, MentionTargets(modelInputs.Heads)); // :123-131,209-210. URL hook remains STOP #4.
             if (blocks.Count == 0 && !runtime.IsRunning)
             {
                 host.Child = new NewThreadPrompt(runtime.ThreadID, projectName); scrollChrome.Update(0); scrollState.ShowsJumpButton = false; // :136-141
@@ -136,7 +133,7 @@ public sealed class ThreadTimeline : Decorator
             {
                 // STOP #1: external row rendering is not substituted by fabricated content.
                 var rows = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
-                var rewindable = RewindableIDs(supportsRewind, runtime.IsRunning, runtime.Turns.Select(turn => turn.Id));
+                var rewindable = modelInputs.Rewindable.ToHashSet();
                 foreach (var id in laidOutRows.Keys) tracking.SetVisible(id, false); laidOutRows.Clear();
                 foreach (var block in blocks.Skip(WindowStartIndex(blocks)))
                 {
@@ -182,7 +179,7 @@ public sealed class ThreadTimeline : Decorator
                 {
                     tracking.HoldEnd(1.5);
                     scroll = new ScrollViewer { Template = TimelineScrollTemplate, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
-                    currentScroll = scroll;
+                    currentScroll = scroll; initialAnchorApplied = false;
                     scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); if (drawnColumn is { } current) current.MinHeight = viewportHeight; paneWidth = scroll.Bounds.Width; RefreshLayoutWidth(); }; // :446-450
                     var oldMetrics = new ScrollMetrics();
                     scroll.ScrollChanged += (_, change) =>
@@ -202,10 +199,11 @@ public sealed class ThreadTimeline : Decorator
                             }
                         }
                         NoteMetrics(oldMetrics, next, AppEnvironment.GetWindowLiveResize(this).IsActive); oldMetrics = next; scrollChrome.Update(next.Travel);
-                        foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
-                        if (drawnSentinel is { } end) SetEndVisible(VisibleFraction(end, scroll) >= 0.01);
-                        if (drawnEarlier is { } pill && VisibleFraction(pill, scroll) >= 0.1 && !historyLoadPending) { LoadEarlier(drawnBlocks); MainActor.Post(Draw); }
+                        ReportVisibility(scroll);
                     };
+                    // :335-338,380-382,404-409 onScrollVisibilityChange reports whenever a view crosses its threshold, whatever moved it: a scroll, a row
+                    // arriving, the pane resizing. A layout pass is the port's moment for all of them (a short thread growing past its window never scrolls).
+                    scroll.LayoutUpdated += (_, _) => ReportVisibility(scroll);
                     scrollOverlay = new Grid { Children = { scroll } };
                 }
                 var oldOffset = scroll.Offset;
@@ -218,12 +216,23 @@ public sealed class ThreadTimeline : Decorator
                 currentRail = CreateRail(blocks, showsMinimap, columnHeight);
                 if (currentRail is not null) overlay.Children.Add(currentRail);
                 if (!ReferenceEquals(host.Child, overlay)) host.Child = overlay;
-                MainActor.Post(() => { if (!ReferenceEquals(currentScroll, scroll)) return; if (tracking.IsPinnedToBottom) SnapEnd(); else scroll.Offset = oldOffset; });
+                MainActor.Post(() =>
+                {
+                    if (!ReferenceEquals(currentScroll, scroll)) return;
+                    if (tracking.IsPinnedToBottom) SnapEnd(); else scroll.Offset = oldOffset;
+                    // :438 .defaultScrollAnchor(.bottom, for: .initialOffset): a thread opens at its end, and no row reports itself before that (the first layout
+                    // at offset 0 shows the top of the window, which the earlier pill would take for the reader arriving at it).
+                    if (!initialAnchorApplied) { initialAnchorApplied = true; scroll.InvalidateArrange(); } // a layout pass at the anchored offset reports the rows' visibility
+                });
                 if (!initialHistoryStarted) StartInitialHistoryLoad(blocks); // :594-607; task starts only with a timeline, never with the empty prompt.
             }
         }
         this.Track(() => (runtime.IsLoadingHistory, runtime.Entries, runtime.IsRunning, runtime.IsHydraMerging, runtime.HydraMergeNoteID, AppEnvironment.GetAppModel(this).Settings.ShowReasoning), _ => Draw());
         this.Track(() => runtime.Questions, _ => Draw());
+        // :99-131,167-172 the body reads the model as well as the runtime: the heads' finish times (the pills), their personas and chats (the
+        // mentions), the roster flag, and the runtime's turn start and turn records (the turns a row may offer to revert). It runs again when
+        // one of those moved; a head's token count, or another thread changing, is not one of them.
+        this.Track(() => ReadModelInputs(runtime), inputs => { if (seenModelInputs is { } previous && !previous.SameAs(inputs)) Draw(); });
         redraw = Draw;
         // ChatView.swift:97-123: the view keeps its identity (.id(runtime.threadID)) while the supplied layout values change,
         // so a changed column height or minimap flag updates this timeline in place instead of replacing it.
@@ -299,6 +308,31 @@ public sealed class ThreadTimeline : Decorator
     private static ValueMap<string, HydraMentionTarget> MentionTargets(IReadOnlyList<ChatThread> @for) =>
         new(@for.OrderBy(head => head.CreatedAt).Where(head => head.Hydra is not null).Aggregate(new Dictionary<string, HydraMentionTarget>(StringComparer.Ordinal), (map, head) => { map[head.Hydra!.Persona.Name] = new HydraMentionTarget { ThreadID = head.Id, Task = head.Hydra.Task, Status = head.Hydra.HydraHeadInfoStatus }; return map; })); // :148-155
 
+    // What the body reads from the model and the runtime besides the entries (:99-131, :167-172), as the values the rows are built from.
+    private sealed record ModelInputs(HeadPills Pills, ChatThread[] Heads, bool Roster, ValueMap<string, HydraMentionTarget> Targets, ValueList<Guid> Rewindable, DateTimeOffset? Since)
+    {
+        // The heads enter the rows by roster index (the personas), the pills and the targets only; the chat records themselves are not compared.
+        public bool SameAs(ModelInputs other) =>
+            Pills == other.Pills && Roster == other.Roster && Since == other.Since && Targets.Equals(other.Targets) && Rewindable.Equals(other.Rewindable)
+            && Heads.Select(head => head.Hydra?.Index).SequenceEqual(other.Heads.Select(head => head.Hydra?.Index));
+    }
+    private ModelInputs? seenModelInputs;
+
+    private ModelInputs ReadModelInputs(ThreadRuntime runtime)
+    {
+        var model = AppEnvironment.GetAppModel(this);
+        // :105-110 every unarchived head, in the panel or not; the finished ones by finish order, split at the running turn's start.
+        var team = model.Helpers(runtime.ThreadID).Where(thread => thread.IsHydraHead).ToArray();
+        var finished = team.Length == 0 ? new ValueList<HydraHeadInfo>([]) : HydraHeadsWorkingRow.FinishedHeads(team);
+        var since = runtime.IsRunning ? runtime.TurnStartedAt : null;
+        // :123-131 every head the chat ever sent out, the roster flag, and the targets oldest first.
+        var heads = model.Children(runtime.ThreadID).Where(thread => thread.IsHydraHead).ToArray();
+        var roster = model.Thread(runtime.ThreadID) is { } thread && model.HydraIsOn(thread);
+        // :167-172 the turns a row may offer to revert, read once here.
+        var rewindable = new ValueList<Guid>(RewindableIDs(inputs.Rewind, runtime.IsRunning, runtime.Turns.Select(turn => turn.Id)));
+        return new ModelInputs(SplitHeadPills(finished, since), heads, roster, MentionTargets(heads), rewindable, since);
+    }
+
     // :104-110. Nil finish dates sort as distantPast; membership is by roster index, not record identity.
     private static HeadPills SplitHeadPills(IReadOnlyList<HydraHeadInfo> finished, DateTimeOffset? since)
     {
@@ -341,11 +375,27 @@ public sealed class ThreadTimeline : Decorator
         });
     }
     // :335-338,379-382,404-409. Intersections are area fractions, not pixel distances.
-    private static double VisibleFraction(Control row, ScrollViewer scroll)
+    // `above` is the view's own space above its bounds that its visibility frame includes (padding applied before onScrollVisibilityChange, :379-380).
+    private static double VisibleFraction(Control row, ScrollViewer scroll, double above = 0)
     {
         var point = row.TranslatePoint(default, scroll); if (point is null || row.Bounds.Width <= 0 || row.Bounds.Height <= 0) return 0;
-        var rect = new Rect(point.Value, row.Bounds.Size); var intersection = rect.Intersect(new Rect(scroll.Viewport)); return intersection.Width * intersection.Height / (rect.Width * rect.Height);
+        var rect = new Rect(point.Value.X, point.Value.Y - above, row.Bounds.Width, row.Bounds.Height + above); var intersection = rect.Intersect(new Rect(scroll.Viewport)); return intersection.Width * intersection.Height / (rect.Width * rect.Height);
     }
+    // :335-338 each row's own visibility (threshold 0.001), :404-409 the end sentinel's (0.01), :380-382 the earlier pill's (0.1).
+    private void ReportVisibility(ScrollViewer scroll)
+    {
+        if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied) return;
+        foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
+        if (drawnSentinel is { } end) SetEndVisible(VisibleFraction(end, scroll) >= 0.01);
+        // The pill loads a page when it comes into view, not on every report while it stays there: the action of onScrollVisibilityChange is
+        // called when the visibility crosses the threshold (a refused load, :258, is not retried either).
+        var visible = drawnEarlier is { } pill && VisibleFraction(pill, scroll, pill.Margin.Top) >= 0.1; // the 20 points above the pill are inside the frame the modifier measures (:379-380)
+        var appeared = visible && !earlierPillVisible; earlierPillVisible = visible;
+        if (appeared && !historyLoadPending) { LoadEarlier(drawnBlocks); MainActor.Post(() => redraw?.Invoke()); }
+    }
+    private bool earlierPillVisible;
+    private bool initialAnchorApplied;
+
     // :402-409
     private void SetEndVisible(bool visible) { if (state is not null && state.ShowsJumpButton == visible) Transaction.WithAnimation(Animation.Spring(response: 0.38, dampingFraction: 0.78), () => state.ShowsJumpButton = !visible); }
     // :224-252

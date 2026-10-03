@@ -233,4 +233,203 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
 
     private static bool Transparent(Control control) => (control as Avalonia.Controls.Primitives.TemplatedControl)?.Background is null or Avalonia.Media.ISolidColorBrush { Color.A: 0 }
         && (control as Panel)?.Background is null or Avalonia.Media.ISolidColorBrush { Color.A: 0 };
+
+    private static HydraHeadInfo FinishedHead(long index, DateTimeOffset started, DateTimeOffset finished) =>
+        new(index, "task " + index, HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) { HydraHeadInfoStatus = HydraHeadInfo.Status.Completed, StartedAt = started, FinishedAt = finished };
+
+    // A head's record changes in the app model, as when it starts or finishes working.
+    private static void SetHeadStatus(TimelineMount mount, long index, HydraHeadInfo.Status status, DateTimeOffset? finished)
+    {
+        var head = mount.Model.Children(mount.Runtime.ThreadID).First(thread => thread.Hydra!.Index == index);
+        mount.Model.UpdateThread(head.Id, thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = status, FinishedAt = finished } });
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+    }
+
+    private static string TurnID(Guid turn, string first) => "turn-" + Marrow.Core.Port.SwiftUUID.UuidString(turn) + "-" + first;
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-034")] // ThreadTimeline.swift:104-110,1608-1614 (the pills split, the insertion and its three guards); TimelineRows.swift:420-433 (finishedHeads)
+    [Trait("Req", "PR-CHAT-035")] // ThreadTimeline.swift:105-110,1615-1617,1505 (the later pills, the two identities); the interaction across a turn boundary
+    public void Finished_heads_sit_above_the_running_turn_or_after_it_in_finish_order_and_the_pill_row_keeps_its_identity_into_the_next_turn()
+    {
+        var s = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        // Four heads that set out together at +0 (roster indices 1 to 4); 2 and 4 finish at +100 and +200, before the second turn begins at +300; 3 finishes at +400, during it.
+        var heads = new[] { FinishedHead(1, s, s.AddSeconds(1000)), FinishedHead(2, s, s.AddSeconds(100)), FinishedHead(3, s, s.AddSeconds(400)), FinishedHead(4, s, s.AddSeconds(200)) };
+        ThreadTimelineRig.RunWithTeam(headless, mount =>
+        {
+            var turn1 = Guid.NewGuid(); var turn2 = Guid.NewGuid(); var turn3 = Guid.NewGuid();
+            // Heads 1 and 3 are still at work: a finished head is shown only while a head of its team still is (TimelineRows.swift:426).
+            SetHeadStatus(mount, 1, HydraHeadInfo.Status.Running, null); SetHeadStatus(mount, 3, HydraHeadInfo.Status.Running, null);
+            var first = new[] { User("p1", turn1), Reply("a1", turn1), End("e1", turn1) };
+            mount.SetEntries(first); mount.Settle();
+            // No turn runs: every finished head ends the timeline under the untrailed id (:1615-1617, :1505), in finish order (:106).
+            var blocks = mount.Blocks();
+            Assert.Equal(new[] { TurnID(turn1, "p1"), "hydra-heads-working" }, blocks.Select(block => block.Id));
+            var idle = Assert.IsType<DisplayBlock.HeadsWorking>(blocks[1].Block); Assert.Equal(new[] { 2, 4 }, idle.Heads); Assert.False(idle.Trailing);
+            Assert.Single(LogicalQuery.SelfAndDescendants<HydraHeadsWorkingRow>(blocks[1].Row));
+            // The second turn begins at +300: the two that finished before it (in finish order) sit above it under the plain id, as one row.
+            var second = first.Concat(new[] { User("p2", turn2), Reply("a2", turn2) }).ToArray();
+            mount.SetEntries(second); mount.SetTurnStartedAt(s.AddSeconds(300)); mount.SetPhase(RuntimePhase.Running); mount.Advance(200);
+            blocks = mount.Blocks();
+            Assert.Equal(new[] { TurnID(turn1, "p1"), "hydra-heads-working", TurnID(turn2, "p2") }, blocks.Select(block => block.Id));
+            var above = Assert.IsType<DisplayBlock.HeadsWorking>(blocks[1].Block); Assert.Equal(new[] { 2, 4 }, above.Heads); Assert.False(above.Trailing);
+            // Head 3 finishes at +400, nothing else changed in the thread: it joins at the end under the tail id (:1615-1617).
+            SetHeadStatus(mount, 3, HydraHeadInfo.Status.Completed, s.AddSeconds(400)); mount.Advance(200);
+            blocks = mount.Blocks();
+            Assert.Equal(new[] { TurnID(turn1, "p1"), "hydra-heads-working", TurnID(turn2, "p2"), "hydra-heads-working-tail" }, blocks.Select(block => block.Id));
+            var after = Assert.IsType<DisplayBlock.HeadsWorking>(blocks[3].Block); Assert.Equal(new[] { 3 }, after.Heads); Assert.True(after.Trailing);
+            Assert.Single(LogicalQuery.SelfAndDescendants<HydraHeadsWorkingRow>(blocks[3].Row));
+            Assert.True(blocks[1].Row.TranslatePoint(default, mount.Column)!.Value.Y < blocks[2].Row.TranslatePoint(default, mount.Column)!.Value.Y);
+            // Head 2's finish time moves past the turn's start with nothing else changed (its status is the same): it leaves the pills above for the one after, in finish order (+400, +450).
+            SetHeadStatus(mount, 2, HydraHeadInfo.Status.Completed, s.AddSeconds(450)); mount.Advance(200);
+            blocks = mount.Blocks();
+            Assert.Equal(new[] { 4 }, Assert.IsType<DisplayBlock.HeadsWorking>(blocks[1].Block).Heads);
+            Assert.Equal(new[] { 3, 2 }, Assert.IsType<DisplayBlock.HeadsWorking>(blocks[3].Block).Heads);
+            SetHeadStatus(mount, 2, HydraHeadInfo.Status.Completed, s.AddSeconds(100)); mount.Advance(200);
+            Assert.Equal(new[] { 2, 4 }, Assert.IsType<DisplayBlock.HeadsWorking>(mount.Blocks()[1].Block).Heads);
+            // :1612 the guard: a turn whose own rows hold a head sent out shows no pill above it (the same heads would appear twice); the later one stays.
+            var withHead = second.Append(ToolEntry("sent", turn2, head: true)).ToArray();
+            mount.SetEntries(withHead); mount.Advance(100);
+            Assert.Equal(new[] { TurnID(turn1, "p1"), TurnID(turn2, "p2"), "hydra-heads-working-tail" }, mount.Blocks().Select(block => block.Id));
+            // The turn ends: nothing runs, so all three end the timeline under the untrailed id, in finish order (+100, +200, +400).
+            mount.SetEntries(second.Append(End("e2", turn2)).ToArray()); mount.SetPhase(RuntimePhase.Idle); mount.Advance(200);
+            blocks = mount.Blocks();
+            Assert.Equal(new[] { TurnID(turn1, "p1"), TurnID(turn2, "p2"), "hydra-heads-working" }, blocks.Select(block => block.Id));
+            var all = Assert.IsType<DisplayBlock.HeadsWorking>(blocks[2].Block); Assert.Equal(new[] { 2, 4, 3 }, all.Heads); Assert.False(all.Trailing);
+            var pillRow = blocks[2].Row;
+            // The third turn begins after all three finished: they are "earlier", above it, under the same id with the same list, so the same row stays and the new turn simply appears below it.
+            mount.SetEntries(second.Append(End("e2", turn2)).Concat(new[] { User("p3", turn3), Reply("a3", turn3) }).ToArray());
+            mount.SetTurnStartedAt(s.AddSeconds(500)); mount.SetPhase(RuntimePhase.Running); mount.Advance(200);
+            blocks = mount.Blocks();
+            Assert.Equal(new[] { TurnID(turn1, "p1"), TurnID(turn2, "p2"), "hydra-heads-working", TurnID(turn3, "p3") }, blocks.Select(block => block.Id));
+            Assert.Same(pillRow, blocks[2].Row);
+            Assert.True(blocks[2].Row.TranslatePoint(default, mount.Column)!.Value.Y < blocks[3].Row.TranslatePoint(default, mount.Column)!.Value.Y);
+        }, heads);
+    }
+
+    private static string? PillText(TimelineMount mount) => mount.Scroll.GetVisualDescendants().OfType<Button>().SelectMany(button => Texts(button)).FirstOrDefault(text => text.StartsWith("Show ", StringComparison.Ordinal));
+
+    private static Button EarlierPill(TimelineMount mount) => mount.Scroll.GetVisualDescendants().OfType<Button>().Single(button => Texts(button).Any(text => text.StartsWith("Show ", StringComparison.Ordinal)));
+
+    // The identity of the turn block of entry group `index` (a turn's block is named by the turn and its first row, ThreadTimeline.swift:1593).
+    private static string BlockID(IReadOnlyList<TimelineEntry> entries, int index) => TurnID(entries[index * 3].TurnID!.Value, entries[index * 3].Id);
+
+    private static void ToTheTop(TimelineMount mount) { mount.Scroll.Offset = default; mount.Advance(400); }
+
+    private static void ToTheEnd(TimelineMount mount) { mount.Scroll.Offset = new Vector(0, Math.Max(0, mount.Scroll.Extent.Height - mount.Scroll.Viewport.Height)); mount.Advance(400); }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // ThreadTimeline.swift:1804-1811,81,257-268,384-391,595-608,703-707; PR-CHAT-191 (appended blocks add to the window)
+    public void The_window_opens_at_three_blocks_anchors_on_the_newest_twenty_four_a_beat_later_pages_back_by_twenty_four_and_drops_back_past_ninety_six() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var entries = Turns(60, sentences: 14, unique: true).ToList(); // tall blocks: the newest three fill the pane, so the earlier pill is out of view at the open
+        var finished = entries.Where(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Assistant).Select(entry => ((TimelineItem.Content.Assistant)entry.Item.TimelineItemContent).Value.Text).ToList();
+        Assert.Equal(24, Marrow.UI.Markdown.MarkdownView.WarmTexts(finished).Count); // none parsed yet (at most 24 are asked for at a time, MarkdownView.swift:221-235)
+        mount.SetEntries(entries);
+        // :1805 firstPaint: the thread opens at once with its newest three blocks (:277), the rows in a plain stack (:388, eager, not virtualized).
+        Assert.Equal(new[] { BlockID(entries, 57), BlockID(entries, 58), BlockID(entries, 59) }, mount.Blocks().Select(block => block.Id));
+        Assert.Equal("Show 57 earlier messages", PillText(mount));
+        // :599 the 250 ms beat: not a moment before.
+        mount.Advance(249); Assert.Equal(3, mount.Blocks().Length);
+        mount.Advance(1); mount.Advance(100);
+        // :603 the window's start is the block 24 from the end of the list; :81 anchored by identity; every block in it is built (:384-391).
+        Assert.Equal(BlockID(entries, 36), mount.Field<string?>("windowStartID"));
+        Assert.Equal(24, mount.Blocks().Length);
+        Assert.Equal("Show 36 earlier messages", PillText(mount));
+        // The 24 landed above the viewport, the reader is still looking at the end.
+        mount.Advance(2000);
+        Assert.True(mount.Scroll.Extent.Height - (mount.Scroll.Offset.Y + mount.Scroll.Viewport.Height) < 2, "the reader stays on the end");
+        // :289-297 every finished reply's markdown is parsed off the main thread (a real task: wait for it).
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+        while (Marrow.UI.Markdown.MarkdownView.WarmTexts(finished.Take(24)).Count != 0 && waited.ElapsedMilliseconds < 20000) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+        // The pass takes the replies oldest first and no more than 24 of them (:289-297, MarkdownView.swift:221-235).
+        Assert.Empty(Marrow.UI.Markdown.MarkdownView.WarmTexts(finished.Take(24)));
+        Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.WarmTexts(finished.Skip(24)).Count); // replies 24 to 35: neither warmed (the cap) nor in the window (36 to 59, parsed by their own rows)
+        // :263 each later page moves the start 24 blocks further back, floored at the first block.
+        ToTheTop(mount); Assert.Equal(BlockID(entries, 12), mount.Field<string?>("windowStartID")); Assert.Equal(48, mount.Blocks().Length);
+        ToTheTop(mount); Assert.Equal(BlockID(entries, 0), mount.Field<string?>("windowStartID")); Assert.Equal(60, mount.Blocks().Length);
+        Assert.Null(PillText(mount));
+        // :77-80 blocks appended at the end add to the window rather than pushing older rows out.
+        entries.AddRange(Turns(5, "late-", sentences: 14)); mount.SetEntries(entries); mount.Advance(300);
+        Assert.Equal(65, mount.Blocks().Length); Assert.Equal(BlockID(entries, 0), mount.Field<string?>("windowStartID"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // ThreadTimeline.swift:703-707 (the followed run past eagerLimit drops back to the newest 24), :1808-1810
+    public void A_followed_run_growing_past_ninety_six_blocks_drops_the_window_back_to_the_newest_twenty_four() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var entries = Turns(100, sentences: 10).ToList();
+        mount.SetEntries(entries); mount.Settle();
+        Assert.Equal(24, mount.Blocks().Length);
+        // The reader pages back to the start of the thread: 76 blocks are hidden, so the window grows 24, 48, 72, 96, 100 blocks.
+        for (var page = 0; page < 5 && mount.Blocks().Length < 100; page++) ToTheTop(mount);
+        Assert.Equal(100, mount.Blocks().Length);
+        // The reader comes back to the end and follows a new block landing there: the window holds more than 96, so it drops back to the newest 24 (the blocks above come back as history).
+        ToTheEnd(mount);
+        entries.AddRange(Turns(1, "new-", sentences: 10)); mount.SetEntries(entries); mount.Advance(400);
+        Assert.Equal(24, mount.Blocks().Length);
+        Assert.Equal(BlockID(entries, 101 - 24), mount.Field<string?>("windowStartID"));
+        Assert.Equal("Show 77 earlier messages", PillText(mount));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // ThreadTimeline.swift:600 (a task cancelled within its 250 ms does nothing further)
+    public void A_thread_closed_within_two_hundred_fifty_milliseconds_never_loads_its_window() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        mount.SetEntries(Turns(60, sentences: 14).ToList());
+        mount.Advance(200);
+        mount.Host.Child = null; mount.Advance(500);
+        Assert.Null(mount.Field<string?>("windowStartID"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-046")] // ThreadTimeline.swift:161-162,366-382 (the pill, its text, its tap and its 10 percent threshold), :258 (a load is refused while one is pending)
+    public void The_earlier_pill_reads_Show_N_earlier_messages_and_loads_a_page_when_tapped_or_once_a_tenth_of_its_frame_is_on_screen() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var entries = Turns(60, sentences: 14).ToList();
+        mount.SetEntries(entries); mount.Advance(2500);
+        // :162 N is the count of blocks above the window's first block, no separator; the up chevron leads it; centred above the rows with 20 points over it.
+        var pill = EarlierPill(mount);
+        Assert.Equal("Show 36 earlier messages", PillText(mount));
+        Assert.Equal("chevron.up", LogicalQuery.SelfAndDescendants<SwiftImage>(pill).Single().SymbolName);
+        var top = pill.TranslatePoint(default, mount.Column)!.Value;
+        Assert.Equal(Chrome.ContentTopInset + 20, top.Y, 3);
+        Assert.Equal(mount.Column.Bounds.Width / 2, top.X + pill.Bounds.Width / 2, 0.5);
+        Assert.Equal(top.Y + pill.Bounds.Height, mount.Rows[0].TranslatePoint(default, mount.Column)!.Value.Y, 3); // the rows follow it at once (the stack's spacing is 0, :360)
+        // The count has no thousands separator.
+        var big = (Button)typeof(ThreadTimeline).GetMethod("EarlierPill", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(mount.View, [1234, (Action)(() => { })])!;
+        Assert.Equal("Show 1234 earlier messages", Texts(big).Single());
+        // :366-367 the tap loads a page of 24; :258 a second tap before that page has been measured is refused.
+        pill.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); pill.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        mount.Advance(400);
+        Assert.Equal(BlockID(entries, 12), mount.Field<string?>("windowStartID")); Assert.Equal("Show 12 earlier messages", PillText(mount));
+        // :380-382 the reader comes back to it: nine hundredths of its frame (the pill and the 20 points over it, :379-380) on screen load nothing (that is more than a tenth of the pill itself), eleven hundredths do.
+        pill = EarlierPill(mount); top = pill.TranslatePoint(default, mount.Column)!.Value;
+        var frame = pill.Bounds.Height + pill.Margin.Top;
+        mount.Scroll.Offset = new Vector(0, top.Y + pill.Bounds.Height - 0.09 * frame); mount.Advance(400);
+        Assert.Equal("Show 12 earlier messages", PillText(mount));
+        mount.Scroll.Offset = new Vector(0, top.Y + pill.Bounds.Height - 0.11 * frame); mount.Advance(400);
+        Assert.Equal(BlockID(entries, 0), mount.Field<string?>("windowStartID")); Assert.Null(PillText(mount));
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-046: a pill that is on screen when it appears loads its page at once (ThreadTimeline.swift:380-382), without any scroll
+    public void A_short_conversation_growing_past_its_first_window_loads_the_earlier_blocks_by_itself() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        // A thread that opens with seven short messages: its newest three fit above the composer with the pill in view, which loads the rest at once.
+        mount.SetEntries(Enumerable.Range(0, 7).Select(i => User("u" + i, null, "message " + i)).ToList()); mount.Advance(300);
+        Assert.Equal(7, mount.Blocks().Length); Assert.Null(PillText(mount));
+        // And one that grows a message at a time.
+        for (var count = 8; count <= 12; count++)
+        {
+            mount.SetEntries(Enumerable.Range(0, count).Select(i => User("u" + i, null, "message " + i)).ToList()); mount.Advance(300);
+            Assert.Equal(count, mount.Blocks().Length);
+        }
+        Assert.Null(PillText(mount));
+    });
 }

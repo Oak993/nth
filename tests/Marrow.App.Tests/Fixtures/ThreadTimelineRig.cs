@@ -75,6 +75,14 @@ internal sealed class TimelineMount
     /// <summary>The scroll view's content (the column), whose coordinates the layout clauses are read in.</summary>
     internal Control Column => (Control)Scroll.Content!;
 
+    /// <summary>The blocks the timeline has laid out, top to bottom: each one's identity, the block it was built from and the row view it shows.</summary>
+    internal (string Id, DisplayBlock Block, Control Row)[] Blocks()
+    {
+        var laid = Field<Dictionary<string, Control>>("laidOutRows");
+        var views = (System.Collections.IDictionary)typeof(ThreadTimeline).GetField("rowViews", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(View)!;
+        return laid.Select(pair => (pair.Key, (DisplayBlock)views[pair.Key]!.GetType().GetField("Item1")!.GetValue(views[pair.Key])!, pair.Value)).ToArray();
+    }
+
     internal T Field<T>(string name) => (T)typeof(ThreadTimeline).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(View)!;
 
     internal static TimelineEntry Entry(string id, TimelineItem.Content content, Guid? turn = null) => new(new TimelineItem(turn, content, id));
@@ -83,17 +91,20 @@ internal sealed class TimelineMount
 
     internal static TimelineEntry Reply(string id, Guid? turn = null, string text = "reply") => Entry(id, new TimelineItem.Content.Assistant(new AssistantMessage { Text = text }), turn);
 
+    internal static TimelineEntry ToolEntry(string id, Guid? turn = null, bool head = false) =>
+        Entry(id, new TimelineItem.Content.Tool(new ToolCall { Title = id, ToolCallKind = head ? ToolCall.Kind.Agent : ToolCall.Kind.Command }), turn);
+
     internal static TimelineEntry End(string id, Guid turn) => Entry(id, new TimelineItem.Content.TurnEnd(new TurnSummary { TurnID = turn, Status = TurnStatus.Completed, Duration = 2, FilesChanged = 0, Additions = 0, Deletions = 0 }), turn);
 
     /// <summary>Finished turns of a question, a reply of several lines and the turn's end marker: one block each, taller than a line.</summary>
-    internal static IEnumerable<TimelineEntry> Turns(int count, string prefix = "", int sentences = 6)
+    internal static IEnumerable<TimelineEntry> Turns(int count, string prefix = "", int sentences = 6, bool unique = false)
     {
         var reply = string.Join(" ", Enumerable.Repeat("This answer is long enough to wrap across several lines in the column.", sentences));
         for (var i = 0; i < count; i++)
         {
             var turn = Guid.NewGuid();
             yield return User(prefix + "user-" + i, turn, "Question number " + i + " about the conversation layout.");
-            yield return Reply(prefix + "reply-" + i, turn, reply);
+            yield return Reply(prefix + "reply-" + i, turn, unique ? reply + " " + Guid.NewGuid() : reply);
             yield return End(prefix + "end-" + i, turn);
         }
     }
