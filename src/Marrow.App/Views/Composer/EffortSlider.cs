@@ -472,7 +472,8 @@ public sealed class EffortSliderCard : Decorator
         header.Children.Add(sides);
         var centre = new StackPanel { Spacing = 2, Margin = new Thickness(44, 0), HorizontalAlignment = HorizontalAlignment.Center };
         // :573-574 Text(verbatim: title).font(.system(.title2, weight: .medium)).contentTransition(.numericText())
-        var title = new MorphingTextBlock { Text = "", MaxLines = 1, VerticalAlignment = VerticalAlignment.Center };
+        // :566-567 the title row is centred in the card's VStack: new letters appear where they settle (GrowthAnchor).
+        var title = new MorphingTextBlock { Text = "", MaxLines = 1, VerticalAlignment = VerticalAlignment.Center, GrowthAnchor = 0.5 };
         SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium).Apply(title);
         title.Foreground = Chrome.PrimaryText.Brush(title);
         var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { title } };
@@ -481,6 +482,9 @@ public sealed class EffortSliderCard : Decorator
         var titleFill = new AnimatedColor(titlePlate); titlePlate.Background = titleFill.Brush;
         var titleButton = PlainControls.Button(titlePlate, () => onTitleTap?.Invoke()); // :568-597
         titleButton.IsEnabled = onTitleTap is not null;
+        // :589 .buttonStyle(.plain) draws its label unclipped: the title's leaving letters, carried right past the chevron
+        // as the label narrows, fade there (reference runtime, 2-chat-use.mov 35.12-35.29 s).
+        titleButton.ClipToBounds = false;
         titleButton.OnHover(hovering => titleFill.Set(hovering && onTitleTap is not null ? Chrome.Overlay(0.08) : SwiftColor.Clear, Chrome.Hover));
         ToolTip.SetTip(titleButton, onTitleTap is null ? "" : "Choose a model");
         titleButton.HorizontalAlignment = HorizontalAlignment.Center; // :567 a VStack centres each child at its own width, so the hover plate fits the title
@@ -530,6 +534,7 @@ public sealed class EffortSliderCard : Decorator
             var nextTitle = efforts.Count == 0 ? "Standard" : ModelOption.EffortTitle(efforts[index]);
             // :574 .contentTransition(.numericText()): inside the change's animation (the slider's
             // withAnimation(.snappy(duration: 0.2)), :631) the letters morph; outside one the text simply changes.
+            var morphing = previousTitle is not null && previousTitle != nextTitle && Transaction.Current is not null;
             title.SetText(nextTitle, previousTitle is null ? null : Transaction.Current);
             // :543-555 AnyShapeStyle is represented by Avalonia's brush; every literal colour comes from Swift.
             var titleBrush = pair is not null
@@ -537,8 +542,11 @@ public sealed class EffortSliderCard : Decorator
                 : maximum && fast ? EffortView.Gradient([brand.TitleColor, EffortPalette.Fast], theme)
                 : maximum ? EffortView.BrandTitle(brand, theme)
                 : (fast ? EffortPalette.Fast : EffortPalette.Title).Brush(title);
-            if (previousTitle is null) title.Foreground = titleBrush;
-            else EffortView.AnimateBrush(title, () => title.Foreground, brush => title.Foreground = brush, titleBrush, Animation.Smooth(0.3)); // :582-583
+            // :582-583 the colour fades over smooth 0.3 when only it changes (fast mode, the pair's heads); when the text
+            // morphs too, its leaving letters keep the old colour and the arriving ones wear the new one from their first
+            // frame (reference runtime, 2-chat-use.mov 35.10-35.21 s: an orange "M" beside the pink leaving "High").
+            if (previousTitle is null || morphing) EffortView.SetBrush(title, brush => title.Foreground = brush, titleBrush);
+            else EffortView.AnimateBrush(title, () => title.Foreground, brush => title.Foreground = brush, titleBrush, Animation.Smooth(0.3));
             previousTitle = nextTitle;
             if (efforts.Count == 0) return;
             // :626-637 keep the gesture's own binding alive; changes to look/title update it without replacing the dragging view.
@@ -954,6 +962,13 @@ internal static class EffortView
             else frames.RequestFrame(tick!);
         };
         playback.Source = frames; playback.Tick = tick; frames.RequestFrame(tick);
+    }
+
+    // A brush set at once: any fade still running on the owner is stopped first, so it cannot overwrite it.
+    internal static void SetBrush(Control owner, Action<IBrush> apply, IBrush target)
+    {
+        if (playbacks.TryGetValue(owner, out var playback)) playback.Stop();
+        apply(target);
     }
 
     internal static void AnimateBrush(Control owner, Func<IBrush?> read, Action<IBrush> apply, IBrush target, Animation animation)

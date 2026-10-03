@@ -84,10 +84,10 @@ public sealed class MorphingTextBlockTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-111")]
     public void Shared_letters_glide_and_new_letters_arrive_one_after_another_small_blurred_and_faint()
     {
-        var pairs = MorphingTextBlock.CommonSubsequence("High", "Extra High").Pairs;
+        var pairs = MorphingTextBlock.KeptLetters("High", "Extra High");
         Assert.Equal([(0, 6), (1, 7), (2, 8), (3, 9)], pairs); // "High" is kept and moves, not morphed letter by letter
 
-        var early = MorphingTextBlock.Glyphs("High", "Extra High", 0.03, Change);
+        var early = MorphingTextBlock.Glyphs("High", "Extra High", 0.08, Change); // past the first new letter's short wait
         var arriving = early.Where(glyph => glyph.OldIndex is null).OrderBy(glyph => glyph.NewIndex).ToList();
         Assert.Equal([0, 1, 2, 3, 4], arriving.Select(glyph => glyph.NewIndex!.Value)); // E x t r a (the space draws nothing)
         // Left to right: each later letter is no further along than the one before it, and the last has not begun.
@@ -98,7 +98,9 @@ public sealed class MorphingTextBlockTests(HeadlessSession headless)
         Assert.Equal(MorphingTextBlock.StartScale, arriving[^1].Scale);
         Assert.Equal(MorphingTextBlock.MaxBlur, arriving[^1].Blur);
 
-        var late = MorphingTextBlock.Glyphs("High", "Extra High", Change.Duration, Change);
+        // Settled once the last letter's turn has run the change's curve: the turns come later than the change's own
+        // duration (video 2026-10-03: "Max" still arriving 0.19-0.3 s into the slider's 0.26 s snappy change).
+        var late = MorphingTextBlock.Glyphs("High", "Extra High", MorphingTextBlock.Length(Change), Change);
         Assert.All(late, glyph => Assert.Equal(1, glyph.Opacity, 3));
         Assert.All(late, glyph => Assert.Equal(1, glyph.Scale, 3));
         Assert.All(late, glyph => Assert.Equal(0, glyph.Blur, 3));
@@ -113,7 +115,7 @@ public sealed class MorphingTextBlockTests(HeadlessSession headless)
         Assert.NotEmpty(leaving);
         Assert.All(leaving, glyph => Assert.True(glyph.FromOld));
         Assert.Contains(leaving, glyph => glyph.Opacity < 1 && glyph.Scale < 1 && glyph.Blur > 0);
-        var end = MorphingTextBlock.Glyphs("Extra High", "Max", Change.Duration, Change).Where(glyph => glyph.NewIndex is null);
+        var end = MorphingTextBlock.Glyphs("Extra High", "Max", MorphingTextBlock.Length(Change), Change).Where(glyph => glyph.NewIndex is null);
         Assert.All(end, glyph => Assert.Equal(0, glyph.Opacity, 3));
     }
 }

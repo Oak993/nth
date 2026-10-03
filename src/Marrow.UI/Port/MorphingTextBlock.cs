@@ -3,17 +3,34 @@
 // strings share glide to their new places, the new ones arrive one after another and the old ones leave, each with a
 // blur, instead of the whole label cross-fading.
 //
-// Measured from the reference runtime (E:\Droppy\work\reference-video, 2-chat-use.mov 34.80-35.75 s, every frame, the
-// effort title going High -> Extra High -> Max at title2; INDEX.md "Findings"): "High" glides right as "Extra" arrives
-// letter by letter from the left, 20-40 ms apart; each arriving letter starts at about half size, sitting on the
-// baseline, blurred and faint, and settles in about 120-150 ms; leaving letters blur, shrink and fade where they were,
-// relative to the label's leading edge, which moves as the label's width animates (so a shrinking centred label pushes
-// them right); the leaving letters keep the old colour while the new ones already wear the new one; a whole change
-// takes about the animation's duration (0.25-0.3 s). SOURCE FACT: the transition and its look (video). ENGINEERING
-// DECISION, UNVERIFIED numbers estimated from those frames: half-size start, 4 pt blur, letters 25 ms apart (at most
-// 30 % of the duration in all), each a smoothstep over 70 % of it (about 0.18 s for the slider's snappy 0.2), shared
-// letters gliding on the change's own curve and matched by longest common subsequence; side by side with the video in comparisons/effort_title_morph_port_vs_mac_{a,b}.png.
-// The blur is drawn as seventeen offset copies (Avalonia's DrawingContext has no per-draw blur).
+// Measured from the reference runtime (E:\Droppy\work\reference-video, 2-chat-use.mov, every frame; study of
+// 2026-10-03 in study\effort-title-2026-10-03: High -> Extra High 34.84 s, Extra High -> Max 35.04 s, Max -> Extra High
+// 35.635 s, Medium -> High 184.22 s, High -> Extra High 184.46 s, Extra High -> Max 184.70 s). SOURCE FACTS (video):
+// - only a common beginning or end of the two strings is kept: its letters glide to their new places on the change's
+//   own curve ("High" in High <-> Extra High); "Extra High" -> "Max", "Max" -> "Extra High" and "Medium" -> "High" keep
+//   nothing (no "a", "x" or "i" glides);
+// - every other letter rolls: an arriving one rises from below its place (its centre starts about 6.6 px, 0.39 em of the
+//   17 pt title, low) while growing from about half size, blurred and faint; a leaving one rises away upward by about
+//   the same (7-7.5 px) while it shrinks, blurs and fades, where it was relative to the label's leading edge (which
+//   moves as the label's width animates, so a narrowing centred label carries it right, past the chevron); the same
+//   direction whether the effort goes up or down (numericText's default, countsDown: false);
+// - the letters take their turns left to right over about 0.14 s whatever their number ("Max" arrives about 70 ms
+//   apart, "Extra" about 30 ms, the nine leaving letters of "Extra High" about 20 ms), and each then follows the change's
+//   own curve (the first arriving "E" tracks the snappy spring of the slider from about 40 ms after the change); so
+//   the last letters settle about 0.18 s after the change's own duration;
+// - leaving letters keep the old colour, arriving ones wear the new one from their first frame (an orange "M" beside a
+//   pink leaving "High");
+// - a gradient title is filled through the new text's own box, set at the label's moving leading edge: its colours span
+//   the new text from the first frame, so letters gliding or carried along pass through them (the "passing gradient" of
+//   the 6 Luna pair's title, 183.3-185.4 s), and nothing outside that box shows ("Medium" -> "High" 184.24 s: "Medi"
+//   coloured across the whole sweep, "um" gone at once; "Extra High" -> "Max" 184.715 s: "Extra" cut through its "a",
+//   "High" gone). A plain colour draws every letter (the pink "High" fading past the chevron, 35.12-35.29 s).
+// ENGINEERING DECISION, UNVERIFIED numbers fitted to those frames: travel 0.4 em, half-size start, 4 pt blur, the turns
+// spread over 55 % of the change's duration (0.14 s for the slider's snappy 0.2), new letters starting 15 % of it
+// (0.04 s) late, scaling about each letter's centre.
+// Side by side with the video in study\effort-title-2026-10-03\sbs_*.png.
+// The blur is drawn as seventeen offset copies (Avalonia's DrawingContext has no per-draw blur); a gradient-filled
+// letter is drawn as its outline geometry so its brush can be pinned to that box.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -27,9 +44,9 @@ public class MorphingTextBlock : TextBlock
 {
     internal const double StartScale = 0.5;
     internal const double MaxBlur = 4;
-    internal const double SpreadShare = 0.3; // with GlyphShare, every letter ends by the change's end
-    internal const double Stagger = 0.025;
-    internal const double GlyphShare = 0.7;
+    internal const double Travel = 0.4; // of the font size: how far below its place a letter starts, and how far up one leaves
+    internal const double SpreadShare = 0.55; // the letters' turns, first to last, as a share of the change's duration
+    internal const double ArrivalShare = 0.15; // how long, as a share of the duration, the first new letter waits
 
     private Morph? morph;
     private IFrameSource? frames;
@@ -38,6 +55,14 @@ public class MorphingTextBlock : TextBlock
     // Leaving letters keep their old place while the label narrows, so they may hang past its new edge (the video's
     // "High" drifts over the chevron as "Max" arrives): nothing of the label is clipped.
     public MorphingTextBlock() => ClipToBounds = false;
+
+    /// <summary>
+    /// Where the label stays put in its parent while its width changes: 0 its leading edge (the default), 0.5 its centre
+    /// (a centred label such as the effort title), 1 its trailing edge. Arriving letters appear at the places they will
+    /// have once the label has its new width (video: the "M" of Max at its final place from its first frame, 35.12 s,
+    /// while the narrowing label's leading edge is still on its way), so they are drawn that far from the moving edge.
+    /// </summary>
+    public double GrowthAnchor { get; set; }
 
     /// <summary>Whether a change is still animating.</summary>
     public bool IsMorphing => morph is not null;
@@ -67,17 +92,22 @@ public class MorphingTextBlock : TextBlock
     protected void BeginMorph(Animation animation)
     {
         var old = Text ?? "";
-        Stop();
-        if (old.Length == 0) return;
+        // A change that comes while one still runs (a quick drag across the stops) carries on from where every letter is:
+        // a half-arrived letter leaves from its half-arrived state, and letters already leaving go on leaving.
+        var interrupted = morph is { } running ? running with { NewText = old } : null;
+        var carried = interrupted is not null && TextLayout is { } current ? InFlight(interrupted, old, current) : null;
+        CancelTick();
+        morph = null;
+        if (old.Length == 0) { InvalidateMeasure(); InvalidateVisual(); return; }
         // A copy of the old line, built now with the old colour: the TextBlock disposes its own layout on a change.
-        morph = new Morph(old, CreateTextLayout(old), Bounds.Width, animation, SwiftClock.Now);
+        morph = new Morph(old, CreateTextLayout(old), Foreground, Bounds.Width, animation, SwiftClock.Now, carried, Running(interrupted));
         frames = FrameClock.Source.Current;
         tick = _ =>
         {
             if (morph is null) return;
             InvalidateMeasure();
             InvalidateVisual();
-            if (Elapsed(morph) >= morph.Animation.Duration) { Stop(); return; }
+            if (Running(morph) is null) { Stop(); return; }
             frames.RequestFrame(tick!);
         };
         frames.RequestFrame(tick);
@@ -85,10 +115,31 @@ public class MorphingTextBlock : TextBlock
         InvalidateVisual();
     }
 
-    private void Stop()
+    // A morph, unless it has finished, with whichever of the morphs it interrupted still play their leaving letters.
+    private static Morph? Running(Morph? state)
+    {
+        if (state is null) return null;
+        var rest = Running(state.Interrupted);
+        if (Elapsed(state) < Length(state.Animation)) return ReferenceEquals(rest, state.Interrupted) ? state : state with { Interrupted = rest };
+        return rest;
+    }
+
+    // Every letter of the text the running morph is going to, at its state now and where it is drawn, by its index.
+    private static Dictionary<int, (GlyphState Glyph, double X)> InFlight(Morph state, string text, TextLayout layout) =>
+        Resolve(state, text, layout, Elapsed(state)).Where(g => g.Glyph.NewIndex is not null).ToDictionary(g => g.Glyph.NewIndex!.Value, g => (g.Glyph, g.X));
+
+    // The last new letter takes its turn (ArrivalShare + SpreadShare) of the change's duration in, then runs its curve.
+    internal static double Length(Animation animation) => animation.Duration * (1 + ArrivalShare + SpreadShare);
+
+    private void CancelTick()
     {
         if (tick is not null) frames?.CancelFrame(tick);
         tick = null;
+    }
+
+    private void Stop()
+    {
+        CancelTick();
         if (morph is null) return;
         morph = null;
         InvalidateMeasure();
@@ -126,32 +177,105 @@ public class MorphingTextBlock : TextBlock
             base.RenderTextLayout(context, origin);
             return;
         }
-        foreach (var glyph in Glyphs(state.Old, Text ?? "", Elapsed(state), state.Animation))
+        // A gradient title is filled through the new text's own box, set at the label's moving leading edge: the gradient
+        // spans the new text's width from the first frame and nothing outside that box shows (video, the 6 Luna pair:
+        // "Medium" -> "High" at 184.24 s shows "Medi" coloured across the whole sweep and its "um" gone at once; "Extra
+        // High" -> "Max" at 184.715 s cuts "Extra" through its "a" and drops "High"). A plain colour draws every letter.
+        var frame = new Rect(origin, new Size(layout.WidthIncludingTrailingWhitespace, Math.Max(layout.Height, Bounds.Height - origin.Y)));
+        using var mask = Foreground is ILinearGradientBrush ? context.PushClip(frame) : default(DrawingContext.PushedState?);
+        // The leaving letters of the changes this one interrupted, oldest first, each on its own clock.
+        var chain = new List<(Morph State, TextLayout Next)>();
+        var next = state.OldLayout;
+        for (var earlier = state.Interrupted; earlier is not null; earlier = earlier.Interrupted)
         {
-            if (glyph.Opacity <= 0.001) continue;
-            var source = glyph.FromOld ? state.OldLayout : layout;
-            var rect = source.HitTestTextPosition(glyph.SourceIndex);
-            if (rect.Width <= 0) continue; // a space
-            var drawX = glyph.X(state.OldLayout, layout);
-            // Scale about the glyph's foot, so a growing letter rises out of the baseline.
-            var foot = new Point(rect.X + rect.Width / 2, rect.Bottom);
-            var transform = Matrix.CreateTranslation(-foot.X, -foot.Y) * Matrix.CreateScale(glyph.Scale, glyph.Scale)
-                * Matrix.CreateTranslation(foot.X + drawX - rect.X, foot.Y) * Matrix.CreateTranslation(origin.X, origin.Y);
-            var clip = rect.Inflate(new Thickness(2, 4));
-            using (context.PushTransform(transform))
-            using (context.PushClip(clip))
-                DrawBlurred(context, source, glyph.Opacity, glyph.Blur);
+            chain.Insert(0, (earlier, next));
+            next = earlier.OldLayout;
+        }
+        foreach (var (earlier, after) in chain)
+        {
+            if (Elapsed(earlier) >= Length(earlier.Animation)) continue;
+            foreach (var (glyph, x) in Resolve(earlier, earlier.NewText, after, Elapsed(earlier)))
+                if (glyph.NewIndex is null) DrawGlyph(context, origin, frame, glyph, x, earlier.OldLayout, earlier.OldBrush);
+        }
+        // How far the label's leading edge still has to go, given where it stays put: where the new letters already stand.
+        var arrival = (Bounds.Width - Padding.Left - Padding.Right - layout.WidthIncludingTrailingWhitespace) * GrowthAnchor;
+        foreach (var (glyph, x) in Resolve(state, Text ?? "", layout, Elapsed(state)))
+            DrawGlyph(context, origin, frame, glyph, glyph.OldIndex is null ? x + arrival : x, glyph.FromOld ? state.OldLayout : layout, glyph.FromOld ? state.OldBrush : Foreground);
+    }
+
+    // Every letter of a change at a moment, with where it is drawn along the line; the letters it took over from an
+    // interrupted change start from where that one had them.
+    private static List<(GlyphState Glyph, double X)> Resolve(Morph state, string newText, TextLayout newLayout, double seconds)
+    {
+        var result = new List<(GlyphState, double)>();
+        foreach (var glyph in Glyphs(state.Old, newText, seconds, state.Animation))
+        {
+            var x = glyph.X(state.OldLayout, newLayout);
+            var drawn = glyph;
+            if (glyph.OldIndex is { } o && state.Carried is { } carried && carried.TryGetValue(o, out var from))
+            {
+                if (glyph.NewIndex is null)
+                {
+                    drawn = glyph with
+                    {
+                        Opacity = from.Glyph.Opacity * glyph.Opacity,
+                        Scale = from.Glyph.Scale * glyph.Scale,
+                        Blur = Math.Max(from.Glyph.Blur, glyph.Blur),
+                        Rise = from.Glyph.Rise + glyph.Rise,
+                    };
+                    x = from.X;
+                }
+                else
+                {
+                    var q = glyph.Progress;
+                    drawn = glyph with
+                    {
+                        Opacity = Math.Clamp(from.Glyph.Opacity + (1 - from.Glyph.Opacity) * q, 0, 1),
+                        Scale = from.Glyph.Scale + (1 - from.Glyph.Scale) * q,
+                        Blur = Math.Max(0, from.Glyph.Blur * (1 - q)),
+                        Rise = from.Glyph.Rise * (1 - q),
+                    };
+                    x = from.X + (x - from.X) * q;
+                }
+            }
+            result.Add((drawn, x));
+        }
+        return result;
+    }
+
+    private void DrawGlyph(DrawingContext context, Point origin, Rect frame, GlyphState glyph, double drawX, TextLayout source, IBrush? brush)
+    {
+        if (glyph.Opacity <= 0.001) return;
+        var rect = source.HitTestTextPosition(glyph.SourceIndex);
+        if (rect.Width <= 0) return; // a space
+        // Scale about the letter's centre, moved to its place along the line and up or down by its roll.
+        var centre = rect.Center;
+        var transform = Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateScale(glyph.Scale, glyph.Scale)
+            * Matrix.CreateTranslation(centre.X + drawX - rect.X, centre.Y + glyph.Rise * FontSize) * Matrix.CreateTranslation(origin.X, origin.Y);
+        var clip = rect.Inflate(new Thickness(2, 4));
+        using (context.PushTransform(transform))
+        using (context.PushClip(clip))
+        {
+            if (brush is ILinearGradientBrush gradient && transform.TryInvert(out var inverse) && Outline(source) is { } outline)
+                DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) =>
+                {
+                    var shift = Matrix.CreateTranslation(dx, dy);
+                    using (context.PushTransform(shift))
+                        context.DrawGeometry(Pinned(gradient, frame, shift.Invert() * inverse), null, outline);
+                });
+            else
+                DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) => source.Draw(context, new Point(dx, dy)));
         }
     }
 
-    // The whole line is drawn under a clip to one glyph, so kerning and a gradient across the word stay as they were.
-    // Each line carries its own brush: the old line the old colour, the live one the (animating) new colour.
-    private static void DrawBlurred(DrawingContext context, TextLayout layout, double opacity, double blur)
+    // The whole line is drawn under a clip to one glyph, so kerning stays as it was. Each line carries its own brush: the
+    // old line the old colour, the live one the new colour.
+    private static void DrawBlurred(DrawingContext context, double opacity, double blur, Action<double, double> draw)
     {
         void Draw(double dx, double dy, double alpha)
         {
             using (context.PushOpacity(alpha))
-                layout.Draw(context, new Point(dx, dy));
+                draw(dx, dy);
         }
         if (blur < 0.25)
         {
@@ -168,8 +292,51 @@ public class MorphingTextBlock : TextBlock
         }
     }
 
-    /// <summary>One character's state at a moment of a change.</summary>
-    internal readonly record struct GlyphState(bool FromOld, int SourceIndex, int? OldIndex, int? NewIndex, double Progress, double Opacity, double Scale, double Blur)
+    // A gradient whose ends sit where they would on the label's frame, given in the letter's own (transformed) space:
+    // the letter moves through the colours instead of carrying its own.
+    private static LinearGradientBrush Pinned(ILinearGradientBrush gradient, Rect frame, Matrix toLetter)
+    {
+        Point At(RelativePoint point) => toLetter.Transform(point.ToPixels(frame));
+        var stops = new GradientStops();
+        foreach (var stop in gradient.GradientStops) stops.Add(new GradientStop(stop.Color, stop.Offset));
+        return new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(At(gradient.StartPoint), RelativeUnit.Absolute),
+            EndPoint = new RelativePoint(At(gradient.EndPoint), RelativeUnit.Absolute),
+            GradientStops = stops,
+            SpreadMethod = gradient.SpreadMethod,
+            Opacity = gradient.Opacity,
+        };
+    }
+
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextLayout, Geometry> outlines = new();
+
+    // The line's glyph outlines in the layout's own coordinates, as TextLayout.Draw places its runs.
+    private Geometry? Outline(TextLayout layout)
+    {
+        if (outlines.TryGetValue(layout, out var known)) return known;
+        var group = new GeometryGroup();
+        double top = 0;
+        foreach (var line in layout.TextLines)
+        {
+            var x = line.Start;
+            foreach (var run in line.TextRuns)
+            {
+                if (run is ShapedTextRun shaped && shaped.GlyphRun.BuildGeometry() is { } glyphs)
+                {
+                    glyphs.Transform = new MatrixTransform(Matrix.CreateTranslation(x, top + line.Baseline - shaped.GlyphRun.BaselineOrigin.Y));
+                    group.Children.Add(glyphs);
+                }
+                if (run is DrawableTextRun drawable) x += drawable.Size.Width;
+            }
+            top += line.Height;
+        }
+        outlines.AddOrUpdate(layout, group);
+        return group;
+    }
+
+    /// <summary>One character's state at a moment of a change; <see cref="Rise"/> is its roll in font sizes, down positive.</summary>
+    internal readonly record struct GlyphState(bool FromOld, int SourceIndex, int? OldIndex, int? NewIndex, double Progress, double Opacity, double Scale, double Blur, double Rise)
     {
         public double X(TextLayout oldLayout, TextLayout newLayout)
         {
@@ -182,55 +349,63 @@ public class MorphingTextBlock : TextBlock
     /// <summary>Every character of a change at <paramref name="seconds"/> into it (see the file note for the rules).</summary>
     internal static List<GlyphState> Glyphs(string oldText, string newText, double seconds, Animation animation)
     {
-        var duration = Math.Max(animation.Duration, 1e-6);
-        var shared = animation.Progress(Math.Min(seconds, duration));
-        var (pairs, _) = CommonSubsequence(oldText, newText);
+        var shared = animation.Progress(Math.Min(seconds, animation.Duration));
+        var pairs = KeptLetters(oldText, newText);
         var result = new List<GlyphState>();
         var keptOld = new HashSet<int>(pairs.Select(pair => pair.Old));
         var keptNew = new HashSet<int>(pairs.Select(pair => pair.New));
         foreach (var (o, n) in pairs)
-            result.Add(new GlyphState(false, n, o, n, shared, 1, 1, 0));
+            result.Add(new GlyphState(false, n, o, n, shared, 1, 1, 0, 0));
         var arriving = Enumerable.Range(0, newText.Length).Where(i => !keptNew.Contains(i) && newText[i] != ' ').ToList();
         var leaving = Enumerable.Range(0, oldText.Length).Where(i => !keptOld.Contains(i) && oldText[i] != ' ').ToList();
         for (var k = 0; k < leaving.Count; k++)
         {
-            var p = Local(k, leaving.Count, seconds, animation);
-            result.Add(new GlyphState(true, leaving[k], leaving[k], null, p, 1 - p, 1 - (1 - StartScale) * p, MaxBlur * p));
+            var p = Turn(k, leaving.Count, seconds, animation, 0);
+            var faded = Math.Clamp(p, 0, 1);
+            result.Add(new GlyphState(true, leaving[k], leaving[k], null, p, 1 - faded, 1 - (1 - StartScale) * p, MaxBlur * faded, -Travel * p));
         }
         for (var k = 0; k < arriving.Count; k++)
         {
-            var p = Local(k, arriving.Count, seconds, animation);
-            result.Add(new GlyphState(false, arriving[k], null, arriving[k], p, p, StartScale + (1 - StartScale) * p, MaxBlur * (1 - p)));
+            var p = Turn(k, arriving.Count, seconds, animation, ArrivalShare * animation.Duration);
+            var shown = Math.Clamp(p, 0, 1);
+            result.Add(new GlyphState(false, arriving[k], null, arriving[k], p, shown, StartScale + (1 - StartScale) * p, MaxBlur * (1 - shown), Travel * (1 - p)));
         }
         return result;
     }
 
-    // One letter's progress: a smoothstep over its own span, after its turn in the stagger. Not the change's spring:
-    // in the frames a letter stays soft and faint for most of its span instead of snapping in early.
-    private static double Local(int order, int count, double seconds, Animation animation)
+    // One letter's progress: the change's own curve from its turn, the turns spread evenly, first to last, over
+    // SpreadShare of the change's duration (so a short word's letters go far apart and a long one's close together).
+    // New letters start a little after the change (the video's first arriving letter about 40 ms after the glide of
+    // the kept "High" began, and "M" of Max about as late), leaving ones at once.
+    private static double Turn(int order, int count, double seconds, Animation animation, double wait)
     {
-        var duration = animation.Duration;
-        var delay = count <= 1 ? 0 : order * Math.Min(Stagger, SpreadShare * duration / (count - 1));
-        var linear = Math.Clamp((seconds - delay) / (GlyphShare * duration), 0, 1);
-        return linear * linear * (3 - 2 * linear);
+        var delay = wait + (count <= 1 ? 0 : order * SpreadShare * animation.Duration / (count - 1));
+        var local = seconds - delay;
+        if (local <= 0) return 0;
+        return local >= animation.Duration - 1e-9 ? 1 : animation.Progress(local);
     }
 
-    /// <summary>The characters both strings keep, as (old index, new index) pairs in order: a longest common subsequence.</summary>
-    internal static (List<(int Old, int New)> Pairs, int Count) CommonSubsequence(string a, string b)
+    /// <summary>
+    /// The characters both strings keep, as (old index, new index) pairs in order: their common beginning and their
+    /// common end ("High" of "High" and "Extra High"); nothing in the middle is matched.
+    /// </summary>
+    internal static List<(int Old, int New)> KeptLetters(string a, string b)
     {
-        var table = new int[a.Length + 1, b.Length + 1];
-        for (var i = a.Length - 1; i >= 0; i--)
-            for (var j = b.Length - 1; j >= 0; j--)
-                table[i, j] = a[i] == b[j] ? table[i + 1, j + 1] + 1 : Math.Max(table[i + 1, j], table[i, j + 1]);
+        var prefix = 0;
+        while (prefix < a.Length && prefix < b.Length && a[prefix] == b[prefix]) prefix++;
+        var suffix = 0;
+        while (suffix < a.Length - prefix && suffix < b.Length - prefix && a[a.Length - 1 - suffix] == b[b.Length - 1 - suffix]) suffix++;
         var pairs = new List<(int, int)>();
-        for (int i = 0, j = 0; i < a.Length && j < b.Length;)
-        {
-            if (a[i] == b[j]) { pairs.Add((i, j)); i++; j++; }
-            else if (table[i + 1, j] >= table[i, j + 1]) i++;
-            else j++;
-        }
-        return (pairs, pairs.Count);
+        for (var i = 0; i < prefix; i++) pairs.Add((i, i));
+        for (var j = suffix; j > 0; j--) pairs.Add((a.Length - j, b.Length - j));
+        return pairs;
     }
 
-    private sealed record Morph(string Old, TextLayout OldLayout, double OldWidth, Animation Animation, ContinuousInstant Start);
+    // Carried: the in-flight state of the old text's letters when this change interrupted another; Interrupted: that
+    // change, whose leaving letters still play out; NewText: the text a change went to, set once it is interrupted.
+    private sealed record Morph(string Old, TextLayout OldLayout, IBrush? OldBrush, double OldWidth, Animation Animation, ContinuousInstant Start,
+        Dictionary<int, (GlyphState Glyph, double X)>? Carried, Morph? Interrupted)
+    {
+        public string NewText { get; init; } = "";
+    }
 }
