@@ -2906,26 +2906,31 @@
       "element": "Effort slider",
       "role": "slider",
       "exact_text": "Reasoning effort | The lead's reasoning effort (accessibility label)",
-      "geometry": "Control height 42; track a 34 point capsule at full width; stop centres at 21 + index * ((width - 42) / (count - 1)); stops 5 points across; knob 42 points, scaled 1.06 while dragging",
+      "geometry": "Control height 48 (the knob's; OD-0090, the source's 42); track a 34 point capsule at full width, centred in the control; stop centres at 24 + index * ((width - 48) / (count - 1)) (OD-0090; the source's 21 + index * ((width - 42) / (count - 1))); stops 5 points across; knob 48 px (1.4 times the track's height, work/design/jewel-knob-locked/jewel-knob.html:390; the source's 42 points), standing 7 px proud of the track above and below and flush with the track's end at either extreme, lifted to 1.06x about its centre while pressed (work/design/jewel-knob-locked/jewel-knob.html:526)",
       "typography": "n/a",
-      "colors": "Track Chrome.overlay(0.1); fill per TrackLook; passed stops look.stopColor (black at 0.35 on a light fill, else white at 0.6), unpassed Chrome.overlay(0.32); the knob is a glass lens tinted white at 0.55 on a light fill, else 0.32, with a black 0.14 edge only on a light fill; a blurred glow beneath it (radius 4 plain, 8 charged) offset 1 point down. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
+      "colors": "Track Chrome.overlay(0.1); fill per TrackLook; passed stops look.stopColor (black at 0.35 on a light fill, else white at 0.6), unpassed Chrome.overlay(0.32); the knob is the Jewel orb (OD-0090; the source's glass lens tinted white at 0.55 on a light fill, else 0.32, with a black 0.14 edge only on a light fill and a blurred glow beneath it, radius 4 plain, 8 charged, offset 1 point down, none of which the port draws): the Jewel material (the Violet Ember orb program of Liquid Orb Editor, MIT, LerSent001, re-coloured from the selected maker's own liquid by jewel() in knob-variants.js), in a refractive glass shell of its own with the tube refracted at its rim, a fine red and blue fringe and a soft inner shade just inside its hairline (work/design/jewel-knob-locked/jewel-knob.html:113-115, :128-130); colours follow the model's maker (liquid-palettes.json, 30 makers; the app's 15 brands use their 'high' palette, the same in dark and light), crossfading over 0.6 s when the model changes (work/design/jewel-knob-locked/jewel-knob.html:459 FADE; 0.2 s under reduce motion); the knob's shadow 0 2px 6px rgba(0,0,0,.24) dark, 0 2px 6px rgba(20,32,50,.2) light (work/design/jewel-knob-locked/jewel-knob.html:21, :35) and, as it lifts, a deeper one, 0 7px 18px rgba(0,0,0,.34) plus 0 2px 5px rgba(0,0,0,.2), faded in with the lift (:118, :597); the orb, its shadow and the lift's shadow are drawn at the opacity the slider is shown at. The orb is not the app's glass material, so OD-0005 and OD-0014 do not apply to the knob.",
       "states": [
         "plain",
         "supercharged (max effort)",
         "fast",
         "fusion (max and fast)",
         "pair: the fill always runs lead to heads with a live fusion seam",
-        "dragging: the knob follows the pointer and grows"
+        "dragging: the knob lifts to 1.06x where it is pressed (never sliding sideways), with a deeper shadow, and follows the pointer keeping the grip's offset (pressed on the track away from the knob, it springs to the pointer) (OD-0090)"
       ],
       "interactions": [
-        "press anywhere on the track moves the knob (minimum drag distance 0)",
-        "drag snaps to the nearest stop with an alignment haptic per change",
-        "accessibility increment and decrement step the level"
+        "press anywhere on the track acts (minimum drag distance 0): on the knob it lifts in place; elsewhere the knob springs to the pointer and lifts (OD-0090)",
+        "drag follows the pointer; the stop changes, with an alignment haptic, as the knob's centre passes the midpoint between two stops, and on release the knob springs onto the nearest stop and back to 1x (OD-0090)",
+        "accessibility increment and decrement step the level, springing the knob to its new stop (response 0.2 s, damping 1; OD-0090)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:711-836"
       ],
-      "notes": "The 21 point inset is what keeps the whole knob visible at the extremes and the fill flush with its far edge; the fill width is x + 21, not x."
+      "notes": "The 24 px inset (a knob radius; the source's 21 points) is what keeps the whole knob visible at the extremes and the fill flush with its far edge; the fill width is x + 24, not x. OD-0090: the gem in the orb moves at rest, at speed 2.6, and up to 4.2 as the charge rises (knob-variants.js:169-174, :167), held still under reduce motion (the light stays); in fast mode the orb charges before each bolt and the bolt leaves its centre (the strike's own look is OD-0093's). UNRESOLVED (ED-252, OD-0050): Purple, which has no maker in the liquid palettes, takes its own locked stops.",
+      "deviation": {
+        "decision": "OD-0090",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:713 thumbSize = 42 (:746 inset 21, :820 control height 42); :781-796 the knob: a blurred glow disc (radius 4 plain, 8 charged, offset 1 point down, :782-785) under a clear circle with .glassEffect(.regular.tint(white at 0.55 on a light fill, else 0.32).interactive()) (:786-788) and a black 0.14 strokeBorder only on a light fill (:790-792), 42 by 42, scaled 1.06 while dragging (:794-795); :801-818 the drag; :824-830 the adjustable action",
+        "port": "The knob is the 48 px Jewel orb (OD-0090, ED-252), larger than the 34 px track (1.4 x its height: it stands 7 px proud above and below and sits flush with the track's end at either extreme), with the control 48 px high, stop centres 24 px in from each end and the fill to the knob's far edge; it lifts to 1.06x where it is pressed (response 0.22 s, damping 0.8, a deeper shadow fading in) and springs onto the nearest stop and back to 1x on release (0.32 s, 0.78), the gem always moving (speed 2.6 at rest, up to 4.2 as the charge rises; still under reduce motion), its colours the selected maker's liquid, crossfading over 0.6 s on a model change; no glass lens, tint, edge or glow."
+      }
     },
     {
       "area": "COMPOSER",
@@ -2934,7 +2939,7 @@
       "element": "Single reasoning level note",
       "role": "label",
       "exact_text": "This model has one reasoning level.",
-      "geometry": "Occupies exactly 42 points of height in place of the slider",
+      "geometry": "Occupies exactly 48 px of height in place of the slider (OD-0090: the knob's; the source's 42 points)",
       "typography": "System .callout (12 point at the macOS default)",
       "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [],
@@ -2945,7 +2950,12 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:620-624 `if efforts.isEmpty { Text(\"This model has one reasoning level.\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).frame(height: EffortSlider.thumbSize) }`"
       ],
       "notes": "The reserved height matches the slider's, so the card does not change size between models. The trailing full stop is part of the string.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:622 `.font(.system(size: 12))` -> B2 :622 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:622 `.font(.system(size: 12))` -> B2 :622 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059).",
+      "deviation": {
+        "decision": "OD-0090",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:620-624 `.frame(height: EffortSlider.thumbSize)` with :713 thumbSize = 42: the note occupies 42 points of height",
+        "port": "The note occupies 48 px of height, the knob's (EffortSlider.ThumbSize = 48 under OD-0090, ED-252), so the card keeps one height between models, as the source intends."
+      }
     },
     {
       "area": "COMPOSER",
