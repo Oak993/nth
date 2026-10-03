@@ -126,6 +126,31 @@ public sealed class ChatViewParityUsageTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-USAGE-069")] // App/Views/Chat/ChatView.swift:236 `if let usage = scene.usage, scene.showsUsage`; :930 showsUsage needs a measured pane
+    public void Before_the_pane_has_a_size_no_usage_panel_is_placed()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                model.Settings.ShowsUsagePanel = true;
+                var view = new ChatView(model.Runtime(model.NewThread(model.AddProject(new Project("P", h.NewFolder("p")).Url))!.Id));
+                // The body's first pass, before any layout has measured the pane (:17 paneSize = .zero).
+                typeof(ChatView).GetField("model", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(view, model);
+                typeof(ChatView).GetMethod("RefreshInputs", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(view, null);
+                var scene = (PanelScene)typeof(ChatView).GetField("scene", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(view)!;
+                Assert.NotNull(scene.Usage); // the setting is on and the thread is loaded...
+                Assert.False(scene.IsMeasured); // ...but the pane has no size yet,
+                Assert.Empty(LogicalQuery.SelfAndDescendants<UsageFloatingPanel>(view)); // so nothing is placed.
+                Assert.Empty(LogicalQuery.SelfAndDescendants<PlacedPanel>(view));
+            });
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-USAGE-070")] // AppSettings.swift:175,787 the corner is stored for the app, unreadable values read as bottom leading
     public void The_usage_corner_survives_a_restart_and_an_unreadable_value_falls_back_to_bottom_leading()
     {
