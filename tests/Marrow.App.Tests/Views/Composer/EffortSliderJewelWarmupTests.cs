@@ -771,7 +771,7 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // OD-0096: a new app build shows the screen again, and a release that patches only Skia or ANGLE is one
-    public void The_build_names_the_native_libraries_the_programs_are_made_with()
+    public void The_build_names_the_skia_and_angle_libraries_the_programs_are_made_with()
     {
         var module = typeof(GpuProgramCache).Assembly.ManifestModule.ModuleVersionId.ToString("N");
         string[] natives = ["libSkiaSharp.dll 3.119.0.0 11264000", "av_libglesv2.dll 2.1.25000.0 5120000"];
