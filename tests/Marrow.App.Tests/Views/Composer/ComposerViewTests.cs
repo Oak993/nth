@@ -3027,6 +3027,8 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             using var h = RuntimeHarness(); var a = new ReplyQuote { Text = "\n  alpha   beta\nsecond" }; var b = new ReplyQuote { Text = "other" };
             h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([a, b]) });
             var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
+            // ComposerView.swift:965-968 ChipChrome `Capsule(style: .continuous)` (ED-181 closed): each chip's radius is half its height, the circular arc.
+            h.Main.OnMain(() => { var capsules = LogicalQuery.SelfAndDescendants<Border>(chips).Where(border => SwiftShapes.GetCornerStyle(border) == RoundedCornerStyle.Continuous).ToArray(); Assert.Equal(2, capsules.Length); Assert.All(capsules, capsule => ContinuousCornerChecks.Drawn(capsule, expectApple: false)); });
             h.Main.OnMain(() => { var text = LogicalQuery.SelfAndDescendants<TextBlock>(chips).First(); Assert.Equal("alpha beta", text.Text); Assert.Equal(260, text.MaxWidth); Assert.Equal(1, text.MaxLines); Assert.Equal(TextTrimming.CharacterEllipsis, text.TextTrimming); Click(LogicalQuery.SelfAndDescendants<Button>(chips).First()); });
             Pump(h, window); Assert.Equal([b.Id], h.Runtime.Draft.Quotes.Select(q => q.Id)); Close(h, window);
         });
@@ -3636,7 +3638,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // Records: UI-COMPOSER-001 (glass merging spacing 8), PR-COMPOSER-003 (surviving approval row movement).
 // Missing: foundation has no GlassEffectContainer spacing/merging implementation or animated geometric re-layout.
 // Needed: foundation/compositor support; glass is deferred under ED-180. Approval insertion/removal fading and all
-// measured area ordering, spacing, cap and padding are verified. Continuous-corner rendering remains ED-181.
+// measured area ordering, spacing, cap and padding are verified. Continuous-corner rendering is ED-181, closed 2026-10-04.
 
 // B3 resolution of historical STOP #5(c): forced retry is now proven by observing the in-flight registry load after
 // clicking the actual retry row while a fetched command list is still fresh. #5(a)/(b) popup hit/scroll limits remain.

@@ -178,6 +178,16 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         Assert.Equal([PathVerb.Move, PathVerb.Line, PathVerb.Line, PathVerb.Line, PathVerb.Line], square.Segments.Select(x => x.Verb)); // a plain rectangle, four sides
     }
 
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void The_cheap_regime_check_agrees_with_the_outline_for_every_size_radius_and_style()
+    {
+        foreach (var style in new[] { RoundedCornerStyle.Continuous, RoundedCornerStyle.Circular })
+            foreach (var (w, h) in new[] { (400.0, 300.0), (120.0, 80.0), (120.0, 70.0), (60.0, 22.0), (818.0, 46.0), (30.0, 40.0), (0.0, 10.0) })
+                foreach (var radii in new[] { new CornerRadius(0), new CornerRadius(6), new CornerRadius(26), new CornerRadius(12, 12, 0, 0), new CornerRadius(0, 0, 18, 18), new CornerRadius(16, 0, 0, 0), new CornerRadius(80) })
+                    Assert.Equal(SwiftShapes.Outline(new Rect(0, 0, w, h), radii, style).HasContinuousCorner, SwiftShapes.HasContinuousCorner(new Size(w, h), radii, style));
+    }
+
     // ---- 5.1-3 containment probes (r 26, top-left corner of 400 x 300) -----------------------------------------------
 
     [Fact]

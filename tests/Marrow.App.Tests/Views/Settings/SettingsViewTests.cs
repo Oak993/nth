@@ -894,7 +894,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
         Assert.Equal(212, Field<Control>(view, "sidebar").Width);
-        Assert.Equal(26, Field<Border>(view, "frame").CornerRadius.TopLeft);
+        Assert.Equal(26, Field<SwiftShapeBorder>(view, "frame").CornerRadius.TopLeft);
         Assert.Equal(new Thickness(0), Field<Control>(view, "detail").Margin);
         Assert.Single(Nodes<WindowBackdrop>(view));
     });

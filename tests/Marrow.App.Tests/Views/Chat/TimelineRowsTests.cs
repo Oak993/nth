@@ -4629,8 +4629,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // the folded-turn header and rule (UI-CHAT-036; the expanded state is in no frame), the error notice pill (UI-CHAT-034,
 // UI-RUNTIME-003; info and warning levels and the light theme are in no frame), the Edited-files card (UI-CHAT-037,
 // UI-GIT-044), the heads' report and note pills (UI-CHAT-048) and a sent-head badge (UI-CHAT-056). Every one of those
-// pills, cards and plates is drawn in a .continuous rounded rectangle, which ED-181 still draws with circular arcs
-// (STOP opencode #1), so none of them can match yet; no frame shows any other record of this list.
+// pills, cards and plates is drawn in a .continuous rounded rectangle, which ED-181 (closed 2026-10-04, STOP opencode #1
+// resolved) now draws as Apple's continuous corner where the size allows; the type face and text metrics remain the OD-0001
+// and ED-059 residual; no frame shows any other record of this list.
 // Six explicit label contracts are closed by TimelineRowsUiLabelsTests with clause-by-clause mutations.
 // Precise remaining UI dependency sites are recorded in TimelineRowsUiAuditTests.
 // UI-CHAT-024's finite-width defect is fixed and mounted long/short labels are now regression tested for
@@ -4658,7 +4659,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // -082 (the confirmation dialog), -088 (the reply's duration hover line), -092, -094 (seven of the eight kinds), -098, -099,
 // -100, -101, -104 (expanded state), -109, -110, -111, -112, -114, -115 (info and warning, light theme), -146, -147, -148,
 // -150, -151, -152, -153 (running and failed), -154, PR-COMPOSER-211, PR-HYDRAMERGE-101, -102, -103, -106, -107.
-// In a frame but drawn in an ED-181 .continuous shape (STOP opencode #1): PR-CHAT-079 (plate), -108 (Edited card),
+// In a frame, in a `.continuous` shape that ED-181 now draws (closed 2026-10-04): PR-CHAT-079 (plate), -108 (Edited card),
 // -143 (report pill), -153 (sent badge). PR-CHAT-020 also needs the per-site static check (STOP cloud #13).
 // PR-CHAT-116: the video gives the reference formatter's "5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
 // (catalogue static.timeline-rows); 0 s, a negative interval and the hour cases (3599, 3725 s) appear in no frame.

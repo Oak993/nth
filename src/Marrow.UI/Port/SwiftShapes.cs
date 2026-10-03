@@ -135,6 +135,25 @@ public static class SwiftShapes
     // anti-aliased edge, stays what draws every straight side).
     internal static ShapeOutline ClipOutline(Rect rect, CornerRadius radii) => Build(rect, radii, RoundedCornerStyle.Continuous, ClipSlack);
 
+    // Whether a corner's run-in fits: the corner and its neighbour on each side it shares need E r each along that side (the top side
+    // joins corners 0 and 1, the bottom side 2 and 3, the left side 0 and 3, the right side 1 and 2; corners clockwise from the top-left).
+    private static bool FitsContinuous(int corner, double w, double h, double tl, double tr, double br, double bl)
+    {
+        static bool Fits(double a, double b, double side) => ContinuousCorner.Extent * a + ContinuousCorner.Extent * b <= side + 1e-9;
+        var horizontal = corner is 0 or 1 ? Fits(tl, tr, w) : Fits(br, bl, w);
+        var vertical = corner is 0 or 3 ? Fits(tl, bl, h) : Fits(tr, br, h);
+        return horizontal && vertical;
+    }
+
+    /// <summary>Whether any corner of this shape is Apple's continuous corner at this size (what <see cref="Outline"/> reports, without building the path).</summary>
+    public static bool HasContinuousCorner(Size size, CornerRadius radii, RoundedCornerStyle style)
+    {
+        if (style != RoundedCornerStyle.Continuous || !(size.Width > 0) || !(size.Height > 0)) return false;
+        double tl = Math.Max(0, radii.TopLeft), tr = Math.Max(0, radii.TopRight), br = Math.Max(0, radii.BottomRight), bl = Math.Max(0, radii.BottomLeft);
+        return (tl > 0 && FitsContinuous(0, size.Width, size.Height, tl, tr, br, bl)) || (tr > 0 && FitsContinuous(1, size.Width, size.Height, tl, tr, br, bl))
+            || (br > 0 && FitsContinuous(2, size.Width, size.Height, tl, tr, br, bl)) || (bl > 0 && FitsContinuous(3, size.Width, size.Height, tl, tr, br, bl));
+    }
+
     private static ShapeOutline Build(Rect rect, CornerRadius radii, RoundedCornerStyle style, double slack)
     {
         double x0 = rect.Left, y0 = rect.Top, x1 = rect.Right, y1 = rect.Bottom;
@@ -156,14 +175,11 @@ public static class SwiftShapes
         var kinds = new CornerKind[4];
         var ext = new double[4];
         var arc = new double[4];
-        bool Fits(int a, int b, double side) => e * requested[a] + e * requested[b] <= side + 1e-9;
         for (var i = 0; i < 4; i++)
         {
             var r = requested[i];
             if (r <= 0) { kinds[i] = CornerKind.Square; continue; }
-            var horizontal = i is 0 or 1 ? Fits(0, 1, w) : Fits(2, 3, w); // the top side joins corners 0 and 1, the bottom side 2 and 3
-            var vertical = i is 0 or 3 ? Fits(0, 3, h) : Fits(1, 2, h); // the left side joins corners 0 and 3, the right side 1 and 2
-            if (style == RoundedCornerStyle.Continuous && horizontal && vertical)
+            if (style == RoundedCornerStyle.Continuous && FitsContinuous(i, w, h, requested[0], requested[1], requested[2], requested[3]))
             {
                 kinds[i] = CornerKind.Continuous;
                 ext[i] = e * r;
@@ -340,8 +356,7 @@ internal static class ContinuousClip
         var drawsBorder = border.BorderBrush is not null && border.BorderThickness != default;
         if (!drawsFill && !drawsBorder && !border.ClipToBounds) return null;
         var radii = border.CornerRadius;
-        var rect = new Rect(size);
-        return SwiftShapes.Outline(rect, radii, RoundedCornerStyle.Continuous).HasContinuousCorner ? SwiftShapes.ClipGeometry(rect, radii) : null;
+        return SwiftShapes.HasContinuousCorner(size, radii, RoundedCornerStyle.Continuous) ? SwiftShapes.ClipGeometry(new Rect(size), radii) : null;
     }
 
     private sealed class Tracker

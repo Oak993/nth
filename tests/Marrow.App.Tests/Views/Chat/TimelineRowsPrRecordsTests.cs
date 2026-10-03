@@ -880,6 +880,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 // :2818-2822 padded 12 leading, 6 trailing and 6 vertical on .quaternary at 0.32, hugging its content.
                 var pill = undoable.GetVisualDescendants().OfType<Border>().First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
                 Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                ContinuousCornerChecks.Drawn(pill, expectApple: false); // :2822 `.continuous` (ED-181 closed): 40 pt tall, under the 55 pt an 18 pt continuous corner needs
                 Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), pill), BrushColor(pill.Background));
                 Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
                 // both popovers open below their buttons (arrowEdge: .bottom)

@@ -29,7 +29,7 @@ namespace Marrow.App.Tests.Views.Settings;
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :35-122, :542-1141.
 // Round 2 of proofs-mcp-b: every clause of each tagged record is asserted on the rendered production tree
 // (arranged bounds, resolved brushes, real pointer and keyboard input, the production popover builder).
-// ED-181 approves testing the continuous-corner parameter pending the oracle-backed curve.
+// ED-181 is closed (2026-10-04): the continuous corner is Apple's curve; these tests assert the radius and style parameters.
 [Collection("Headless")]
 public sealed class MCPSettingsPageRound2Tests(HeadlessSession headless)
 {

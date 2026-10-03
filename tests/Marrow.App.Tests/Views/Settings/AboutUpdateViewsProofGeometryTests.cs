@@ -250,6 +250,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
                 Assert.Equal(buttons[0].Bounds.Width, button.Bounds.Width); Assert.Equal(buttons[0].Bounds.Y, button.Bounds.Y);
                 Assert.Equal(new Thickness(8, 12), surface.Padding); Assert.Equal(new CornerRadius(14), surface.CornerRadius);
                 Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(surface)); Assert.Equal(default, surface.BorderThickness);
+                ContinuousCornerChecks.Drawn(surface, expectApple: true); // AboutUpdateViews.swift:206-216 `.rect(cornerRadius: 14, style: .continuous)` (ED-181 closed): the card is far taller than the 43 pt two run-ins need
                 Assert.Equal(tints[i].Opacity(0.09).Resolve(surface.ActualThemeVariant), ColorOf(surface.Background));
                 var labels = Assert.Single(surface.GetVisualDescendants().OfType<StackPanel>()); Assert.Equal(6, labels.Spacing);
                 var cardIcon = Assert.IsType<SwiftImage>(labels.Children[0]); Assert.Equal(26, cardIcon.Bounds.Width); Assert.Equal(26, cardIcon.Bounds.Height);

@@ -63,6 +63,10 @@ public sealed class TimelineRowsFinMergeRowTests(HeadlessSession headless)
                 var pill = PillOf(row);
                 // :1012-1017 12 leading, 14 trailing, 8 vertical, radius 18, .tint at 0.1; :1016-1017 lead-aligned with 96 clear.
                 Assert.Equal(new CornerRadius(18), pill.CornerRadius);
+                // :1015 `.background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))` (ED-181
+                // closed): one line is 33 pt tall, less than the 55 pt two run-ins of an 18 pt corner need, so the corner is the circular arc.
+                Assert.True(pill.Bounds.Height < 55, $"the merge pill is {pill.Bounds.Height} pt tall");
+                ContinuousCornerChecks.Drawn(pill, expectApple: false);
                 Paints(pill.Background, ChromeTokens.Accent.Opacity(0.1), pill, "pill fill");
                 Assert.Equal(new Thickness(0, 0, 96, 0), row.Padding);
                 Near("nMergeRow:1", Left(host, window), Left(pill, window));

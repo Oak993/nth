@@ -115,10 +115,9 @@ public class SwiftShapeBorder : Decorator
         var thickness = LayoutThickness.Top; // SwiftUI's strokeBorder has one width
         var radii = CornerRadius;
         var rect = new Rect(size);
-        var outline = SwiftShapes.Outline(rect, radii, CornerStyle);
         var stroke = BorderBrush is { } brush && thickness > 0 ? new Pen(brush, thickness) : null;
 
-        if (!outline.HasContinuousCorner)
+        if (!SwiftShapes.HasContinuousCorner(size, radii, CornerStyle))
         {
             // Circular corners, a capsule, a radius past the limit: what a Border draws, the same call, pixel for pixel.
             var inner = thickness != 0 ? rect.Deflate(thickness * 0.5) : rect;
@@ -128,13 +127,12 @@ public class SwiftShapeBorder : Decorator
 
         // Continuous corners. A shadow is blurred, so the circular rounded rectangle of the same radius stands for the shape
         // (ENGINEERING DECISION: the curves differ by at most 0.0138 r, which no blur shows); the fill and the border are the path.
-        var outer = new List<BoxShadow>();
-        var insets = new List<BoxShadow>();
-        foreach (var shadow in BoxShadow) (shadow.IsInset ? insets : outer).Add(shadow);
         var circular = new RoundedRect(rect, radii.TopLeft, radii.TopRight, radii.BottomRight, radii.BottomLeft);
-        if (outer.Count > 0) context.DrawRectangle(null, null, circular, new BoxShadows(outer[0], outer.Skip(1).ToArray()));
+        List<BoxShadow>? outer = null, insets = null;
+        foreach (var shadow in BoxShadow) (shadow.IsInset ? insets ??= [] : outer ??= []).Add(shadow);
+        if (outer is not null) context.DrawRectangle(null, null, circular, new BoxShadows(outer[0], outer.Skip(1).ToArray()));
         context.DrawGeometry(Background, null, SwiftShapes.UnevenRoundedRectangleGeometry(rect, radii, CornerStyle));
-        if (insets.Count > 0) context.DrawRectangle(null, null, circular, new BoxShadows(insets[0], insets.Skip(1).ToArray()));
+        if (insets is not null) context.DrawRectangle(null, null, circular, new BoxShadows(insets[0], insets.Skip(1).ToArray()));
         if (stroke is not null)
         {
             // strokeBorder: the shape inset by half the width (radius r - width / 2), stroked with the full width.

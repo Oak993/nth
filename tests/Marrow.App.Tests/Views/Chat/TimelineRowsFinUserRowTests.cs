@@ -153,6 +153,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
                     // ChipChrome: 9 leading, 7 trailing, 5 vertical; a continuous capsule filled with Chrome.overlay(0.12).
                     Assert.Equal(new Thickness(9, 5, 7, 5), chip.Padding);
                     Assert.Equal(chip.Bounds.Height / 2, chip.CornerRadius.TopLeft, 0.5);
+                    ContinuousCornerChecks.Drawn(chip, expectApple: false); // `Capsule(style: .continuous)` (ED-181 closed): its radius is half its height, past the continuous limit
                     Paints(chip.Background, ChromeTokens.Overlay(0.12), chip, "capsule fill");
                     var glyph = Assert.Single(Mounted<SwiftImage>(chip));
                     Assert.Equal("text.quote", glyph.SymbolName);

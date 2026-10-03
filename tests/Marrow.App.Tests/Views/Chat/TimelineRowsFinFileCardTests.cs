@@ -57,6 +57,10 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
                 var pill = Mounted<Border>(one).First(border => border.Padding == new Thickness(12, 6, 6, 6));
                 // :2818-2822 padded 12 leading, 6 trailing and 6 vertical, radius 18, .quaternary at 0.32, hugging its content, leading.
                 Assert.Equal(new CornerRadius(18), pill.CornerRadius);
+                // :2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))` (ED-181
+                // closed): the card is 40 pt tall (28 + 12), under the 55 pt an 18 pt continuous corner needs, so its ends are the circular arc the
+                // video shows for the Edited card (static.timeline-rows: radius 18).
+                ContinuousCornerChecks.Drawn(pill, expectApple: false);
                 Paints(pill.Background, SwiftColor.Quaternary.Opacity(0.32), pill, "card fill");
                 Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
                 Near("gap 1", Left(panel, window), Left(pill, window));

@@ -338,6 +338,14 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 Assert.Equal(new Thickness(1), frame.BorderThickness);
                 Assert.Equal(new CornerRadius(6), frame.CornerRadius);
                 Assert.Equal(RoundedCornerStyle.Continuous, frame.CornerStyle);
+                // :1670-1693 the field is the second item of the card's VStack(spacing: 8): the name row above it, the checkbox below.
+                var fieldFrame = Assert.IsType<Panel>(frame.Parent);
+                var column = Assert.IsType<StackPanel>(fieldFrame.Parent);
+                Assert.Equal(8, column.Spacing);
+                Assert.Equal(3, column.Children.Count);
+                Assert.Same(fieldFrame, column.Children[1]);
+                Assert.IsType<StackPanel>(column.Children[0]);
+                Assert.IsType<CheckBox>(column.Children[2]);
                 Assert.Equal(Chrome.Danger.Opacity(0.65).Resolve(frame.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(frame.BorderBrush).Color); // :1687-1689 danger at 0.65 while blank
                 Assert.False(editor.SaveButton.IsEnabled); // :1711,1717
                 Assert.Equal("Every script needs a command.", ToolTip.GetTip(editor.SaveButton)); // :1718

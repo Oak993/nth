@@ -80,7 +80,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
                 {
                     var button = Assert.Single(Nodes<Button>(rows[i])); var shape = Assert.IsType<Border>(button.Content); var label = Assert.Single(Nodes<TextBlock>(rows[i])); var on = titles[i] == selected;
                     // Chrome.swift:719-727: height 28, 7pt continuous corners, 8pt leading and (8 + accessoryWidth 0) trailing, the 20pt icon column, 8pt spacing, the full 192pt of the list.
-                    Assert.Equal(28, shape.Bounds.Height, 3); Assert.Equal(192, shape.Bounds.Width, 3); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); Assert.Equal(new Thickness(8, 0), shape.Padding);
+                    Assert.Equal(28, shape.Bounds.Height, 3); Assert.Equal(192, shape.Bounds.Width, 3); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); Assert.Equal(new Thickness(8, 0), shape.Padding); ContinuousCornerChecks.Drawn(shape, expectApple: true); // ED-181 closed: 28 pt holds the 21 pt two run-ins of a 7 pt corner
                     var badge = Assert.Single(Nodes<SidebarIconBadge>(rows[i])); Assert.Equal(20, badge.Bounds.Width, 3); Assert.Equal(8, TopLeft(badge, shape).X, 3); Assert.Equal(8 + 20 + 8, TopLeft(label, shape).X, 3);
                     if (i > 0) Assert.Equal(28 + 1, TopLeft(shape, list).Y - TopLeft(Nodes<Button>(rows[i - 1]).Single(), list).Y, 3);
                     // :713-716 .body, medium when selected else regular, primary at 1 when selected else 0.92, one line truncated at the tail; :754 the isSelected trait.

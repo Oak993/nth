@@ -19,11 +19,16 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
     }
 }
 
-// STOP opencode-App.Views.Chat.TimelineRows #1
-// Kind: external foundation/oracle. Missing: the approved continuous corner curve. ED-181's current
-// src/Marrow.UI/Port/SwiftShapes.cs:39,48,63 still uses circular arcs for .continuous. Needed: that foundation's
-// oracle-backed continuous curve, not another locally invented rounded path. The legacy tests retain all
-// source radius/inset/type/text/state checks, and TimelineRowsUiPointerTests adds real menu input.
+// STOP opencode-App.Views.Chat.TimelineRows #1: RESOLVED 2026-10-04 (ED-181 closed, the continuous-corners build, ED-NEW-corners).
+// The foundation's oracle-backed continuous corner landed (SwiftShapes.Outline, SwiftShapeBorder, ContinuousClip; the curve is
+// SwiftShapesContinuousTests and SwiftShapesOracleTests in Marrow.UI.Tests). Every site below draws it where its size allows
+// (2 * 1.528665 * r <= min(w, h)) and the circular arc where not (a capsule, a one-line pill under 55 pt), which the reference video
+// fits (ED-NEW-corners (2)); ContinuousCornerChecks.Drawn asserts the regime on the mounted control, in the tests that name the
+// record: UI-CHAT-008 (TimelineRowsFinUserRowTests), UI-CHAT-020/UI-CHAT-021 (TimelineRowsFinReplyTests), UI-RUNTIME-002/003
+// (TimelineRowsFinNoticeTests), UI-GIT-044/PR-CHAT-108 (TimelineRowsFinFileCardTests, TimelineRowsPrRecordsTests),
+// UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests), UI-GIT-050 (TimelineRowsFinUserRowTests). The other records of the list keep
+// their own gaps; none waits on the curve. The legacy tests retain all source radius/inset/type/text/state checks, and
+// TimelineRowsUiPointerTests adds real menu input.
 // Exact TimelineRows.cs sites (Swift source sites and records):
 // UserMessageRow quote ChipChrome :97-114, UI-CHAT-008.
 // AssistantMessageRow.MessageActions -> PopoverItem's continuous hover surface :1401-1410, UI-CHAT-020/UI-CHAT-021.

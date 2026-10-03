@@ -224,7 +224,7 @@ public sealed class EffortSliderVerificationTests(HeadlessSession headless)
             Assert.True(title.TranslatePoint(default, window)!.Value.X < check.TranslatePoint(default, window)!.Value.X);
             Assert.Equal(new Thickness(10, 0), plate.Padding); Assert.Equal(46, plate.Height); Assert.Equal(46, row.Bounds.Height);
             Assert.Equal(new CornerRadius(9), plate.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(plate));
-            // ED-181 approves the continuous request/radius with circular arcs pending the curve oracle.
+            // ED-181 (closed 2026-10-04): the continuous plate is drawn as Apple's corner where its size allows.
             // ED-182(Q2) approves Lucide symbol mapping and recorded semibold; native stroke weight is not claimed.
             var presenter = Assert.IsType<Avalonia.Controls.Presenters.ContentPresenter>(Assert.Single(button.GetVisualChildren()));
             Assert.Same(plate, presenter.Child); // :416 .plain renders only the label, no extra bezel
