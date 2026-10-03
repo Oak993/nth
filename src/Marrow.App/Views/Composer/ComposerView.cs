@@ -1631,16 +1631,30 @@ internal sealed class SendDraftState : Decorator
         button.Margin = new Thickness(4,0,0,0); // :841
         ToolTip.SetTip(button, HelpText(isRunning, headsWorking, goesToHead, queueGoesToHead)); // :842
         AutomationProperties.SetName(button, isRunning ? "Stop" : goesToHead ? "Send to a head" : "Send"); // :843
-        void Apply(bool empty, bool reverting)
+        var fill = new AnimatedColor(label); // the disc's fill and the glyph's ink follow the state along a transition (OD-0076)
+        label.Background = fill.Brush;
+        var ink = new AnimatedColor(image);
+        image.Foreground = ink.Brush;
+        void Apply(bool empty, bool reverting, Animation? animation)
         {
             var enabled = isRunning || !empty; // :826-827
             button.IsEnabled = enabled && !reverting; // :840
-            label.Background = (enabled ? Popovers.GetTint(this) ?? SwiftColor.AccentColor : SwiftColor.Quaternary).Brush(label); // :836
+            // A disabled plain button dims its label: VIDEO content.composer-send-states (C 81.640, C 90.5): the empty composer's disc is
+            // a faint grey and its arrow about half white, measured on the extracted frames as 0.48 to 0.51 of the white over the disc.
+            var dim = button.IsEnabled ? 1 : DisabledLabelOpacity;
+            fill.Set((enabled ? Popovers.GetTint(this) ?? SwiftColor.AccentColor : SwiftColor.Quaternary).Opacity(dim), animation); // :836
+            ink.Set(SwiftColor.White.Opacity(dim), animation); // :833
         }
-        Apply(runtime.Draft.IsEmpty, runtime.IsReverting);
-        this.Track(() => (Empty: runtime.Draft.IsEmpty, Reverting: runtime.IsReverting), input => Apply(input.Empty, input.Reverting));
+        Apply(runtime.Draft.IsEmpty, runtime.IsReverting, null);
+        // The Mac changes the fill in one frame; the owner's OD-0076 has every change transitioned, in the Mac's motion language
+        // for a hover (0.12 s ease-out), unless the change is made inside an animation of its own.
+        this.Track(() => (Empty: runtime.Draft.IsEmpty, Reverting: runtime.IsReverting),
+            input => Apply(input.Empty, input.Reverting, Transaction.Current ?? Animation.EaseOut(duration: 0.12)));
         Child = button;
     }
+
+    /// <summary>PORT-ONLY: how much of itself a disabled send button's label keeps (VIDEO, see <c>Apply</c>).</summary>
+    internal const double DisabledLabelOpacity = 0.5;
 
     /// <summary>:831 the button's symbol: stop.fill while running, else arrow.up.</summary>
     internal static string Symbol(bool isRunning) => isRunning ? "stop.fill" : "arrow.up";

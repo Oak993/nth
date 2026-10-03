@@ -3148,6 +3148,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            var frames=new ManualFrameSource(); using var frameScope=FrameClock.Source.Override(frames); // the disc's fill eases on the frame clock (UI-COMPOSER-016)
             using var h=RuntimeHarness(); var send=h.Main.OnMain(() => new SendDraftState(h.Runtime,false,false,true,false,()=>{})); var window=h.Main.OnMain(() => Show(send,h.App,200)); Pump(h,window);
             var button=One<Button>(send); Assert.False(button.IsEnabled); Assert.False(button.Focusable); Assert.Equal("Send to a head",AutomationProperties.GetName(button)); Assert.Equal(new Thickness(4,0,0,0),button.Margin);
             h.Main.OnMain(() => h.Runtime.Draft=new ComposerDraft{Text="message"}); Pump(h,window); Assert.True(button.IsEnabled); var label=Assert.IsType<Border>(button.Content); Assert.Equal(28,label.Width); Assert.Equal(28,label.Height); Assert.Equal("arrow.up",One<SwiftImage>(label).SymbolName); Close(h,window);
