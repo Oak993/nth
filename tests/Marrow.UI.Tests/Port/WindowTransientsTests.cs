@@ -14,23 +14,6 @@ namespace Marrow.UI.Tests.Port;
 [Collection("Headless")]
 public sealed class WindowTransientsTests(HeadlessSession headless)
 {
-    private sealed class Scene : IDisposable
-    {
-        private readonly List<object> keys = [];
-        public List<string> Dismissed { get; } = [];
-
-        public void Show(object key, Avalonia.Visual owner, string name)
-        {
-            keys.Add(key);
-            WindowTransients.Show(key, owner, () => Dismissed.Add(name));
-        }
-
-        public void Dispose()
-        {
-            foreach (var key in keys) WindowTransients.Hide(key);
-        }
-    }
-
     // A popover's own top level, shown (its content attached to it) as Popup.Open shows it.
     private static PopupRoot Open(Popup popup, TopLevel parent, Control content)
     {
@@ -57,7 +40,7 @@ public sealed class WindowTransientsTests(HeadlessSession headless)
         var kindButton = new Button();
         var editor = new Popup { PlacementTarget = anchor };
         var kind = new Popup { PlacementTarget = kindButton };
-        using var scene = new Scene();
+        using var scene = new TransientScene();
         try
         {
             var editorRoot = Open(editor, window, new StackPanel { Children = { kindButton } });
@@ -88,7 +71,7 @@ public sealed class WindowTransientsTests(HeadlessSession headless)
         var kindButton = new Button();
         var kind = new Popup { PlacementTarget = kindButton };
         var editor = new Popup { PlacementTarget = anchor };
-        using var scene = new Scene();
+        using var scene = new TransientScene();
         try
         {
             var editorRoot = Open(editor, window, new StackPanel { Children = { kindButton, kind } });
@@ -113,7 +96,7 @@ public sealed class WindowTransientsTests(HeadlessSession headless)
         var window = Shown(anchor);
         var bare = new Popup();
         var editor = new Popup { PlacementTarget = anchor };
-        using var scene = new Scene();
+        using var scene = new TransientScene();
         try
         {
             var editorRoot = Open(editor, window, new StackPanel { Children = { new Button(), bare } });
@@ -144,7 +127,7 @@ public sealed class WindowTransientsTests(HeadlessSession headless)
         var mainPopover = new Popup { PlacementTarget = mainAnchor };
         var mainNested = new Popup { PlacementTarget = mainInner };
         var settingsPopover = new Popup { PlacementTarget = settingsAnchor };
-        using var scene = new Scene();
+        using var scene = new TransientScene();
         try
         {
             var root = Open(mainPopover, main, new StackPanel { Children = { mainInner } });
