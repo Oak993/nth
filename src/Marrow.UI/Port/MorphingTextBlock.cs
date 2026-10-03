@@ -42,6 +42,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Avalonia.Media.TextFormatting;
 using Avalonia.VisualTree;
 using Marrow.Core.Port;
@@ -415,14 +416,17 @@ public class MorphingTextBlock : TextBlock
         using (context.PushTransform(transform))
         {
             if (brush is ILinearGradientBrush gradient)
+            {
+                // One brush for the letter, pinned through its own place: its blur copies (at most 4 pt off) share it.
+                if (!(letter.Place * transform).TryInvert(out var toLetter)) return;
+                var pinned = Pinned(gradient, frame, toLetter);
                 DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) =>
                 {
-                    var shift = Matrix.CreateTranslation(dx, dy);
-                    if (!(letter.Place * shift * transform).TryInvert(out var toLetter)) return;
-                    using (context.PushTransform(shift))
+                    using (context.PushTransform(Matrix.CreateTranslation(dx, dy)))
                     using (context.PushTransform(letter.Place))
-                        context.DrawGlyphRun(Pinned(gradient, frame, toLetter), letter.Run);
+                        context.DrawGlyphRun(pinned, letter.Run);
                 });
+            }
             else
                 DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) =>
                 {
@@ -520,22 +524,24 @@ public class MorphingTextBlock : TextBlock
 
     // A gradient whose ends sit where they would on the label's frame, given in the letter's own (transformed) space:
     // the letter moves through the colours instead of carrying its own.
-    private LinearGradientBrush Pinned(ILinearGradientBrush gradient, Rect frame, Matrix toLetter)
+    // Each colour's stops, copied once as immutable stops and shared by every letter's brush (REVIEW round 1: a stop list
+    // and a brush for every letter's every blur copy each frame, about 430 KB a frame for a gradient change).
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ILinearGradientBrush, ImmutableGradientStop[]> pinnedStops = new();
+
+    // The letter's brush is a small immutable one (its ends are the letter's own each frame), on the cached stops.
+    internal ImmutableLinearGradientBrush Pinned(ILinearGradientBrush gradient, Rect frame, Matrix toLetter)
     {
         // The drift moves the colours along the same box at rest and here: one phase, so a change takes it over and
         // hands it back without a jump (OD-0094).
         var along = new Vector(DriftOffset(frame.Width), 0);
         Point At(RelativePoint point) => toLetter.Transform(point.ToPixels(frame) + along);
-        var stops = new GradientStops();
-        foreach (var stop in gradient.GradientStops) stops.Add(new GradientStop(stop.Color, stop.Offset));
-        return new LinearGradientBrush
+        if (!pinnedStops.TryGetValue(gradient, out var stops))
         {
-            StartPoint = new RelativePoint(At(gradient.StartPoint), RelativeUnit.Absolute),
-            EndPoint = new RelativePoint(At(gradient.EndPoint), RelativeUnit.Absolute),
-            GradientStops = stops,
-            SpreadMethod = driftPeriod > 0 ? GradientSpreadMethod.Reflect : gradient.SpreadMethod,
-            Opacity = gradient.Opacity,
-        };
+            stops = gradient.GradientStops.Select(stop => new ImmutableGradientStop(stop.Offset, stop.Color)).ToArray();
+            pinnedStops.AddOrUpdate(gradient, stops);
+        }
+        return new ImmutableLinearGradientBrush(stops, gradient.Opacity, spreadMethod: driftPeriod > 0 ? GradientSpreadMethod.Reflect : gradient.SpreadMethod,
+            startPoint: new RelativePoint(At(gradient.StartPoint), RelativeUnit.Absolute), endPoint: new RelativePoint(At(gradient.EndPoint), RelativeUnit.Absolute));
     }
 
     /// <summary>One character's state at a moment of a change; <see cref="Rise"/> is its roll in font sizes, down positive.</summary>
