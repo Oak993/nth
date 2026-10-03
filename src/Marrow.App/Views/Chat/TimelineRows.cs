@@ -214,7 +214,7 @@ public sealed class UserMessageRow : Decorator
     {
         this.entry = entry;
         this.runtime = runtime;
-        this.canRevert = canRevert;
+        this.canRevert = canRevert; revertable.Value = canRevert;
 
         void Build(TimelineItem.Content content)
         {
@@ -230,18 +230,27 @@ public sealed class UserMessageRow : Decorator
     }
 
     /// <summary>The row handed whether its message can be edited again (:67-69, decided by the timeline, which flips it for every row at every turn start and end on a provider that
-    /// rewinds): the same row, its hover, its pending confirmation and its editor kept (they live in the row, not in the body), with the pencil and the menu's entry that depend on it.
-    /// ED-NEW-parity-threadtimeline (3).</summary>
+    /// rewinds): the same row and the same body. `canRevert` reaches two places of the body only, the hover line's pencil (:131 `if canRevert`) and the right-click menu's entry
+    /// (:168-178, read when the menu opens); the attachment strip with its preview, the quote chips, the bubble's selectable text, a brief's popover and the row's hover, its
+    /// pending confirmation and its editor stand where they are, as views whose place in the body does not change keep their @State. ED-NEW-parity-threadtimeline (3).</summary>
     internal void SetCanRevert(bool next)
     {
         if (canRevert == next) return;
-        canRevert = next;
-        if (built is { } content) Child = Body(content);
+        canRevert = next; revertable.Value = next;
+        if (hoverLine is { } line) FillHoverLine(line.Line, line.Message, line.IsEditing);
     }
+
+    // :168 the menu's snapshot of `canRevert`, held outside the row so the popover's builder reads it when the menu opens without capturing the row (the source's
+    // capture list keeps the row out of the builder for the same reason).
+    private sealed class RevertFlag { public bool Value; }
+    private readonly RevertFlag revertable = new();
+    // The hover line of the body on show (null for a Hydra report or brief), so a new `canRevert` changes its pencil and nothing else.
+    private (StackPanel Line, UserMessage Message, Func<bool> IsEditing)? hoverLine;
 
     // :79-199
     private Control? Body(TimelineItem.Content content)
     {
+        hoverLine = null;
         if (content is TimelineItem.Content.User { Value.IsFromHydra: true } report) return new HydraReportRow(report.Value); // :79-80
         if (content is TimelineItem.Content.User { Value.IsHydraBrief: true } brief) return new HydraBriefRow(brief.Value, entry, runtime); // :81-82
         if (content is not TimelineItem.Content.User user) return null; // :83
@@ -280,12 +289,13 @@ public sealed class UserMessageRow : Decorator
         var hover = state;
         row.OnHover(hovering => hover.IsHovering = hovering);
         // :168-178 .rightClickPopover { [message, canRevert, confirming = $menuRequests.confirmRevert] in ... }: snapshots
-        // only; the revert intent goes through the binding alone.
+        // only; the revert intent goes through the binding alone. The flag is the one the row holds when the menu opens (a body run
+        // again with a new `canRevert` hands the modifier a new snapshot), read from its box, not from the row.
         var requests = menuRequests;
         var text = message.Text;
-        var revertable = canRevert;
+        var flag = revertable;
         var confirming = new Binding<bool>(() => requests.ConfirmRevert, value => requests.ConfirmRevert = value);
-        row.RightClickPopover(() => MessageActions(text, revertable, confirming));
+        row.RightClickPopover(() => MessageActions(text, flag.Value, confirming));
         // :179-183 the room for the hover line lives inside the row but is taken back out of its height, so the
         // controls show up in the gap to the next row. (6 = the VStack's spacing above them.)
         row.Margin = new Thickness(0, 0, 0, -(TimelineMetrics.HoverLineHeight + 6));
@@ -400,6 +410,17 @@ public sealed class UserMessageRow : Decorator
             Height = TimelineMetrics.HoverLineHeight, // :160
             HorizontalAlignment = HorizontalAlignment.Right,
         };
+        hoverLine = (line, message, isEditing);
+        FillHoverLine(line, message, isEditing);
+        // :161 .opacity(isHovering || isEditing ? 1 : 0)
+        line.Track(() => state.IsHovering || isEditing(), shown => line.Opacity = shown ? 1 : 0);
+        return line;
+    }
+
+    // :131-159 what the hover line holds: the pencil when the message can be edited (the line itself, its room and its fade stand whatever `canRevert` says).
+    private void FillHoverLine(StackPanel line, UserMessage message, Func<bool> isEditing)
+    {
+        line.Children.Clear();
         if (canRevert && entry.TurnID is { } turnID) // :131
         {
             var target = runtime;
@@ -427,9 +448,6 @@ public sealed class UserMessageRow : Decorator
                 SyncEditor(isEditing());
             })));
         }
-        // :161 .opacity(isHovering || isEditing ? 1 : 0)
-        line.Track(() => state.IsHovering || isEditing(), shown => line.Opacity = shown ? 1 : 0);
-        return line;
     }
 
     // :202-206 private func revert(restoreFiles:), used by the confirmation dialog's two buttons (:192-193).

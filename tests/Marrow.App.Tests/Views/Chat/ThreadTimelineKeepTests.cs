@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -57,6 +58,50 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         Assert.Same(folded.Row, mount.Blocks().Single(block => block.Id == folded.Id).Row);
         Assert.Same(user, Assert.Single(LogicalQuery.SelfAndDescendants<UserMessageRow>(folded.Row))); Assert.Same(card, Assert.Single(LogicalQuery.SelfAndDescendants<TurnFileCard>(folded.Row)));
         Assert.True(Offers(user, "Edit message")); Assert.True(Offers(card, "Revert this turn's files and conversation"));
+    });
+
+    // A real right click on the row (RightClickCatcher's tunnel handler) and the titles of the menu it presents.
+    private static string[] MenuTitles(RecordingPresenter presenter, Avalonia.Controls.Window window, Control on)
+    {
+        var point = on.TranslatePoint(new Avalonia.Point(4, 4), window) ?? throw new Xunit.Sdk.XunitException("not in the window");
+        Avalonia.Headless.HeadlessWindowExtensions.MouseDown(window, point, Avalonia.Input.MouseButton.Right, Avalonia.Input.RawInputModifiers.None);
+        Avalonia.Headless.HeadlessWindowExtensions.MouseUp(window, point, Avalonia.Input.MouseButton.Right, Avalonia.Input.RawInputModifiers.None);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var popup = presenter.Calls.Last(call => call.Presented).Popup;
+        var items = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Chrome.RowActionItems>(popup.Child!));
+        var titles = LogicalQuery.SelfAndDescendants<Marrow.UI.Chrome.PopoverItem>(items).Select(item => LogicalQuery.SelfAndDescendants<Marrow.UI.Chrome.MiddleTruncatingText>(item).First().FullText).ToArray();
+        popup.IsOpen = false; Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        return titles;
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-NEW-parity-threadtimeline (3)): TimelineRows.swift:131 `if canRevert` (the pencil) and :168-178 the menu's `canRevert`, the only two places of the body the flag reaches; the bubble (:118-129) stands whatever it says
+    public void A_message_rows_menu_offers_to_edit_from_here_as_its_rewind_flag_is_when_the_menu_opens_and_its_bubble_stays_the_same_view() => headless.OnUiThread(() =>
+    {
+        System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+        using var h = new ThreadRuntimePart12Harness();
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        h.Main.OnMain(() =>
+        {
+            var row = new UserMessageRow(new TimelineEntry(new TimelineItem(TurnA, new TimelineItem.Content.User(new UserMessage { Text = "hello there" }), "p1")), h.Runtime, canRevert: true);
+            var window = new Avalonia.Controls.Window { Content = new StackPanel { Children = { row } }, Width = 800, Height = 600 };
+            window.Show(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            try
+            {
+                var bubble = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.InlineText>(row));
+                Assert.Equal(["Copy message", "Copy as markdown", "Edit from here"], MenuTitles(presenter, window, bubble)); Assert.True(Offers(row, "Edit message"));
+                // A turn starts: the row is handed false. The menu opened now has no entry to edit from here, the pencil is gone, and the bubble is the one that was there.
+                row.SetCanRevert(false); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.Same(bubble, Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.InlineText>(row)));
+                Assert.Equal(["Copy message", "Copy as markdown"], MenuTitles(presenter, window, bubble)); Assert.False(Offers(row, "Edit message"));
+                // The turn ends: true again, and the menu and the pencil offer it again.
+                row.SetCanRevert(true); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.Same(bubble, Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.InlineText>(row)));
+                Assert.Equal(["Copy message", "Copy as markdown", "Edit from here"], MenuTitles(presenter, window, bubble)); Assert.True(Offers(row, "Edit message"));
+            }
+            finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+        });
     });
 
     [Fact]
