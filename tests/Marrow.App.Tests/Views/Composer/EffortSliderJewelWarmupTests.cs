@@ -998,7 +998,7 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-252")] // the record of steps done keeps the last ones only (a chip's warm-up adds four, one for each composer made)
+    [Trait("Decision", "ED-252")] // the steps done are kept, the last ones only (a chip's warm-up adds four, one for each composer made)
     public void The_record_of_steps_done_keeps_the_last_ones_only()
     {
         for (var k = 0; k < GpuWarmup.DoneKept + 10; k++)
