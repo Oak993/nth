@@ -1692,6 +1692,28 @@ internal sealed class DeleteThreadPopover : Decorator
     }
 }
 
+/// <summary>The Remove project question: port-only by owner rulings OD-0008 A9 and OD-0012 E2 (PR-SIDEBAR-130,
+/// PR-SIDEBAR-131), in the shape of the thread delete question above (:966-981): a 280 pt popover menu with the
+/// section header, the note naming the project in U+201C/U+201D, a divider and one destructive trash item.</summary>
+internal sealed class RemoveProjectPopover : Decorator
+{
+    public RemoveProjectPopover(Project project, Action onRemove)
+    {
+        var menu = new PopoverMenu(() =>
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+            stack.Children.Add(new PopoverSectionHeader("Remove this project?")); // OD-0012 E2
+            stack.Children.Add(new PopoverNote(
+                "“" + project.Name + "” and its threads will be removed. Files in your project stay as they are.")); // OD-0012 E2
+            stack.Children.Add(new PopoverDivider()); // as :975
+            stack.Children.Add(new PopoverItem("Remove project", onRemove, symbol: "trash", isDestructive: true)); // OD-0012 E2, as :976
+            return stack;
+        });
+        menu.Width = 280; // as :980 .frame(width: 280)
+        Child = menu;
+    }
+}
+
 /// <summary>:987-1025 <c>private struct RenameThreadPopover: View</c>: what the rename popover asks, the title field and
 /// the choice. PR-SIDEBAR-091.</summary>
 internal sealed class RenameThreadPopover : Decorator
@@ -1812,9 +1834,22 @@ internal sealed class ProjectRow : Decorator
     private sealed class ViewState : MainActorModel
     {
         private bool isMenuPresented;
+        private bool isRemovalPresented;
 
         public bool IsMenuPresented { get => Read(isMenuPresented); set => Set(ref isMenuPresented, value); }
+
+        // Port-only state, owner rulings OD-0008 A9 and OD-0012 E2 (PR-SIDEBAR-130, PR-SIDEBAR-131): upstream removes a
+        // project at once from both menus (:1183-1186, :1212-1214); the port asks first while confirmBeforeDeleting is
+        // on, in the thread delete question's own shape (deletePopover, :217-237, and DeleteThreadPopover, :966-981).
+        public bool IsRemovalPresented { get => Read(isRemovalPresented); set => Set(ref isRemovalPresented, value); }
+
+        // The confirmed removal waits for the question's popup to be gone, as a confirmed thread deletion does
+        // (confirmDeletion/carryOutConfirmedDeletion, :256-306): removing the project removes this row, popup included.
+        public bool RemovalConfirmed;
+        public bool IsRemovalPopoverShown;
     }
+
+    private readonly ViewState state = new();
 
     /// <param name="snapshot">:1081 <c>let snapshot: Project</c>.</param>
     /// <param name="count">:1088 <c>let count: Int</c>.</param>
@@ -1833,7 +1868,6 @@ internal sealed class ProjectRow : Decorator
     // FIX, part 6: both Tracks were reviewer findings against the initial part 6 implementation).
     public ProjectRow(Project snapshot, long count, bool togglesExpansion = true)
     {
-        var state = new ViewState();
         var current = snapshot; // :1085, refreshed by the Track below
         var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         SidebarIconBadge? iconBadge = null;
@@ -1845,7 +1879,7 @@ internal sealed class ProjectRow : Decorator
             {
                 var isActive = Model.Settings.IsProjectActive(current.Id); // :1096, read fresh at invocation time
                 var cluster = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1117
-                cluster.Children.Add(new RowActionsButton(Actions(Model, current, isActive), isMenuPresented)); // :1118
+                cluster.Children.Add(new RowActionsButton(Actions(Model, current, isActive, RequestRemoval), isMenuPresented)); // :1118
                 var plus = PlainControls.Button(new RowAccessoryIcon("plus"), () => Model.NewThread(current)); // :1119-1123, :1124 .buttonStyle(.plain)
                 ToolTip.SetTip(plus, "New thread in " + current.Name); // :1125
                 cluster.Children.Add(plus);
@@ -1940,11 +1974,62 @@ internal sealed class ProjectRow : Decorator
                 .Select(pair => new ProjectPairChoice { Id = pair.Id, Title = HydraPairSummary.Title(pair, Model.Providers) })
                 .ToList();
             contextMenu.Items.Clear();
-            foreach (var item in BuildContextMenuItems(projectSnapshot, activeSnapshot, overrideSnapshot, Model, pairsSnapshot))
+            foreach (var item in BuildContextMenuItems(projectSnapshot, activeSnapshot, overrideSnapshot, Model, pairsSnapshot, RequestRemoval))
                 contextMenu.Items.Add(item);
         };
         row.ContextMenu = contextMenu; // :1138 .contextMenu { ... }; UI-SIDEBAR-014/-015/-016, PR-SIDEBAR-130/-133
-        Child = row;
+        Child = new Panel { Children = { row, RemovalPopover(row, snapshot) } };
+    }
+
+    // OD-0008 A9 (PR-SIDEBAR-131): Remove project honours confirmBeforeDeleting the way the three thread-deletion paths
+    // do (:190-197, :359-365, :890-896 `if model.settings.confirmBeforeDeleting { pendingDeletionID = thread.id } else
+    // { model.delete(thread.id) }`); with it off the removal runs at once, as upstream's :1183-1186 and :1212-1214.
+    private void RequestRemoval(Project project)
+    {
+        if (Model.Settings.ConfirmBeforeDeleting) state.IsRemovalPresented = true;
+        else Model.RemoveProject(project);
+    }
+
+    // OD-0012 E2: the question on the row itself, in the thread delete question's style (:217-237 deletePopover,
+    // arrowEdge .trailing). Dismissing it (click away, Escape) closes the popup, whose Closed handler clears the
+    // presentation through the binding, and removes nothing.
+    private Popup RemovalPopover(Control row, Project snapshot)
+    {
+        removalSnapshot = snapshot;
+        var isPresented = new Binding<bool>(() => state.IsRemovalPresented, value => state.IsRemovalPresented = value);
+        var popup = PlainControls.Popover(row, isPresented, () => new RemoveProjectPopover(
+            Model.Project(snapshot.Id) ?? snapshot, ConfirmRemoval), PlacementMode.Right); // :220 arrowEdge: .trailing
+        popup.Opened += (_, _) => state.IsRemovalPopoverShown = true; // :229 .onAppear
+        popup.Closed += (_, _) =>
+        {
+            state.IsRemovalPopoverShown = false; // :231 .onDisappear
+            CarryOutConfirmedRemoval(); // :232
+        };
+        return popup;
+    }
+
+    private Project? removalSnapshot;
+
+    // :256-263 confirmDeletion's shape: record the deed, close the question, and run it now unless the popup is
+    // still on screen.
+    private void ConfirmRemoval()
+    {
+        state.RemovalConfirmed = true;
+        state.IsRemovalPresented = false;
+        if (!state.IsRemovalPopoverShown) CarryOutConfirmedRemoval();
+    }
+
+    // :295-306 carryOutConfirmedDeletion's shape: once, on the main actor's next turn.
+    private void CarryOutConfirmedRemoval()
+    {
+        if (!state.RemovalConfirmed || removalSnapshot is not { } snapshot) return;
+        state.RemovalConfirmed = false;
+        var model = Model;
+        MainActor.Spawn(() =>
+        {
+            model.RemoveProject(model.Project(snapshot.Id) ?? snapshot); // AppModel.swift:558-567, upstream's removal
+            return Task.CompletedTask;
+        });
     }
 
     // REVIEW FIX (part 6): SidebarIconBadge (UI/Chrome/Chrome.cs :674-677) sets its glyph's own foreground and
@@ -1968,7 +2053,8 @@ internal sealed class ProjectRow : Decorator
     // wired to the live ContextMenu at Job SB (this class's own constructor, ContextMenu.Opening). The weak-model
     // capture mirrors ThreadActions.MakeContextMenu's own reasoning (the AppKit menu outlives the right-click).
     // PR-SIDEBAR-127, PR-SIDEBAR-129, PR-SIDEBAR-130; OD-0008 B1 ("Reveal in File Explorer" replaces "Reveal in Finder").
-    private static ValueList<RowAction> ContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model)
+    // OD-0008 A9: `requestRemoval` is the row's RequestRemoval, which asks first while confirmBeforeDeleting is on.
+    private static ValueList<RowAction> ContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model, Action<Project> requestRemoval)
     {
         var projectID = project.Id; // :1169
         var weakModel = new WeakReference<AppModel>(model); // [weak model]
@@ -1977,7 +2063,7 @@ internal sealed class ProjectRow : Decorator
             new() { Title = "New thread", Symbol = "square.and.pencil", Action = () => { if (weakModel.TryGetTarget(out var live)) live.NewThread(project); } }, // :1171-1174
             new() { Title = "New thread in worktree", Symbol = "square.stack.3d.up", Action = () => { if (weakModel.TryGetTarget(out var live)) live.NewThread(project, WorkspaceMode.Worktree); } }, // :1175-1178
             new() { Title = "Reveal in File Explorer", Symbol = "folder", StartsGroup = true, Action = () => { if (weakModel.TryGetTarget(out _)) ShellWorkspace.RevealInFileExplorer(project.Path); } }, // :1179-1182, OD-0008 B1
-            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => { if (weakModel.TryGetTarget(out var live)) live.RemoveProject(project); } }, // :1183-1186
+            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => { if (weakModel.TryGetTarget(out _)) requestRemoval(project); } }, // :1183-1186, asking first by OD-0008 A9
         };
         items.Add(new RowAction // :1188-1195
         {
@@ -1997,14 +2083,14 @@ internal sealed class ProjectRow : Decorator
     // closures over the model and project, unlike ContextMenuActions' weak snapshots above (the popover button owns
     // its own lifetime; there is no AppKit menu to outlive it, matching ThreadActions.Make's own reasoning).
     // PR-SIDEBAR-127, PR-SIDEBAR-129; OD-0008 B1.
-    private static ValueList<RowAction> Actions(AppModel model, Project project, bool isActive)
+    private static ValueList<RowAction> Actions(AppModel model, Project project, bool isActive, Action<Project> requestRemoval)
     {
         var items = new List<RowAction>
         {
             new() { Title = "New thread", Symbol = "square.and.pencil", Action = () => model.NewThread(project) }, // :1207
             new() { Title = "New thread in worktree", Symbol = "square.stack.3d.up", Action = () => model.NewThread(project, WorkspaceMode.Worktree) }, // :1208-1210
             new() { Title = "Reveal in File Explorer", Symbol = "folder", StartsGroup = true, Action = () => ShellWorkspace.RevealInFileExplorer(project.Path) }, // :1211, OD-0008 B1
-            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => model.RemoveProject(project) }, // :1212-1214
+            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => requestRemoval(project) }, // :1212-1214, asking first by OD-0008 A9
         };
         items.Add(new RowAction // :1216-1220
         {
@@ -2025,9 +2111,9 @@ internal sealed class ProjectRow : Decorator
     // class's own constructor installs the result on a live ContextMenu.Items, freshly, on every open (Job SB).
     // PR-SIDEBAR-129, UI-SIDEBAR-014, UI-SIDEBAR-015, UI-SIDEBAR-016.
     private static IReadOnlyList<Control> BuildContextMenuItems(
-        Project project, bool isActive, bool hasOverride, AppModel model, IReadOnlyList<ProjectPairChoice> pairs)
+        Project project, bool isActive, bool hasOverride, AppModel model, IReadOnlyList<ProjectPairChoice> pairs, Action<Project> requestRemoval)
     {
-        var items = new List<Control>(new RowActionMenuButtons(ContextMenuActions(project, isActive, hasOverride, model)).Items); // :1143-1148
+        var items = new List<Control>(new RowActionMenuButtons(ContextMenuActions(project, isActive, hasOverride, model, requestRemoval)).Items); // :1143-1148
         if (pairs.Count > 0) // :1154 pairsSnapshot.isEmpty
         {
             items.Add(new Separator()); // :1155

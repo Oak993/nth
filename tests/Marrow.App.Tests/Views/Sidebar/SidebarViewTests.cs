@@ -5278,10 +5278,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     private static ValueList<RowAction> ProjectRowContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model) =>
-        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "ContextMenuActions", project, isActive, hasOverride, model)!;
+        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "ContextMenuActions", project, isActive, hasOverride, model, (Action<Project>)model.RemoveProject)!;
 
     private static ValueList<RowAction> ProjectRowActions(AppModel model, Project project, bool isActive) =>
-        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "Actions", model, project, isActive)!;
+        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "Actions", model, project, isActive, (Action<Project>)model.RemoveProject)!;
 
     private static object ProjectPairChoices(params (Guid Id, string Title)[] pairs)
     {
@@ -5298,7 +5298,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     private static IReadOnlyList<Control> ProjectRowBuildContextMenuItems(Project project, bool isActive, bool hasOverride, AppModel model, object pairs) =>
-        (IReadOnlyList<Control>)CallStatic(Private("ProjectRow"), "BuildContextMenuItems", project, isActive, hasOverride, model, pairs)!;
+        (IReadOnlyList<Control>)CallStatic(Private("ProjectRow"), "BuildContextMenuItems", project, isActive, hasOverride, model, pairs, (Action<Project>)model.RemoveProject)!;
 
     // ---- PR-SIDEBAR-160: the Archive item ----
 
@@ -5626,9 +5626,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         }
     }
 
-    // ShownProjectRow returns the outer ProjectRow (a Decorator); ContextMenu is set on its own Child (the inner
-    // SidebarRow this constructor builds and wraps), not on ProjectRow itself.
-    private static ContextMenu ContextMenuOf(Control row) => ((Decorator)row).Child!.ContextMenu!;
+    // ShownProjectRow returns the outer ProjectRow (a Decorator); ContextMenu is set on the inner SidebarRow this
+    // constructor builds and wraps (beside the removal question's popup, OD-0008 A9), not on ProjectRow itself.
+    private static ContextMenu ContextMenuOf(Control row) => LogicalQuery.SelfAndDescendants<SidebarRow>(row).First().ContextMenu!;
 
     private static string MenuItemTitle(object item) => item switch
     {
@@ -8063,7 +8063,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
         harness.Main.OnMain(() =>
         {
-            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single();
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null); // the ellipsis popover (the removal question's is not presented)
             var texts = LogicalQuery.SelfAndDescendants<Button>(popup.Child!).Select(b => AutomationProperties.GetName(b)).ToList(); // each item's title
             Assert.Contains("New thread", texts); // the popover is the plain action list
             Assert.DoesNotContain("Start new chats on", texts);
@@ -8497,7 +8497,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
         harness.Main.OnMain(() =>
         {
-            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single();
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null); // the ellipsis popover (the removal question's is not presented)
             var stack = Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<RowActionItems>(popup.Child!).Single().Child);
             // dividers before Reveal in File Explorer, before Remove project and before the activation item
             Assert.Equal(
@@ -8574,6 +8574,124 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             OpenMenu(out var items);
             Choose(items[^2]); // Activate project
             Assert.True(model.Settings.IsProjectActive(project.Id));
+            WindowOf(row).Close();
+        });
+    });
+
+    // ---- PR-SIDEBAR-130/-131, UI-SIDEBAR-014: Remove project asks first (owner rulings OD-0008 A9, OD-0012 E2) ----
+    //
+    // Upstream removes at once from both menus (SidebarView.swift:1183-1186, :1212-1214). By OD-0008 A9 the port asks
+    // first while confirmBeforeDeleting is on, in the thread delete question's own style (DeleteThreadPopover,
+    // :966-981) with the OD-0012 E2 wording; with the setting off it removes at once, as upstream.
+
+    private static Popup RemovalPopup(Control row) =>
+        LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child?.GetType() == Private("RemoveProjectPopover"));
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // SidebarView.swift:1183-1186, :1212-1214; OD-0008 A9; OD-0012 E2
+    [Trait("Req", "UI-SIDEBAR-014")] // SidebarView.swift:1168-1231: Remove project confirms first while confirmBeforeDeleting is on
+    public void Remove_project_asks_first_from_both_menus_and_only_the_red_action_removes_the_project() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Settings.ConfirmBeforeDeleting); // AppSettings.swift:710 default true
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+        });
+        // The context menu's Remove project only asks.
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var remove = ContextMenuOf(row).Items.Cast<Control>().Single(i => i is MenuItem && MenuItemTitle(i) == "Remove project");
+            remove.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.NotNull(model.Project(project.Id)); // nothing removed yet
+        });
+        harness.Main.OnMain(() =>
+        {
+            var popup = RemovalPopup(row);
+            Assert.Contains(recorder.Calls, c => c.Popup == popup && c.Presented);
+            Assert.Equal(PlacementMode.Right, popup.Placement); // the thread delete question's own arrowEdge: .trailing (:220)
+            var menu = Assert.IsType<PopoverMenu>(Get(popup.Child!, "Child"));
+            Assert.Equal(280d, menu.Width); // :980 .frame(width: 280)
+            var inner = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(Assert.IsType<ScrollViewer>(menu.Child).Content).Child).Children.Single());
+            Assert.Equal(new[] { typeof(PopoverSectionHeader), typeof(PopoverNote), typeof(PopoverDivider), typeof(PopoverItem) }, inner.Children.Select(c => c.GetType()));
+            Assert.Equal("Remove this project?", Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(inner.Children[0])).Text); // OD-0012 E2
+            Assert.Equal("“Alpha” and its threads will be removed. Files in your project stay as they are.", Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(inner.Children[1])).Text);
+            var item = (PopoverItem)inner.Children[3];
+            var button = LogicalQuery.SelfAndDescendants<Button>(item).Single();
+            Assert.Equal("Remove project", AutomationProperties.GetName(button));
+            Assert.Equal("trash", LogicalQuery.SelfAndDescendants<SwiftImage>(item).First(g => g.SymbolName is not null).SymbolName);
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(button).First();
+            Assert.Equal(Chrome.Danger.Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color); // the red action
+            // Dismissing (click away, Escape) closes the popup, whose Closed handler writes false through the binding:
+            // the project stays.
+            SetProp(Field(row, "state")!, "IsRemovalPresented", false);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Contains(recorder.Calls, c => c.Popup == RemovalPopup(row) && !c.Presented);
+            Assert.NotNull(model.Project(project.Id));
+            Assert.NotNull(model.Thread(thread.Id));
+            // The ellipsis popover's Remove project asks too, one turn after its own popover closes.
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+        });
+        harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
+        harness.Main.OnMain(() =>
+        {
+            var actions = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null && LogicalQuery.SelfAndDescendants<RowActionItems>(p.Child).Any());
+            Click(LogicalQuery.SelfAndDescendants<Button>(actions.Child!).Single(b => AutomationProperties.GetName(b) == "Remove project"));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.Project(project.Id)); // asked, not removed
+            var popup = RemovalPopup(row);
+            Assert.Equal(2, recorder.Calls.Count(c => c.Popup == popup && c.Presented));
+            // Only the red action removes the project (upstream's removal, AppModel.swift:558-567).
+            Click(LogicalQuery.SelfAndDescendants<Button>(popup.Child!).Single(b => AutomationProperties.GetName(b) == "Remove project"));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Null(model.Project(project.Id));
+            Assert.Null(model.Thread(thread.Id));
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9: with confirmBeforeDeleting off the removal runs at once, as upstream (:1183-1186)
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void With_confirm_before_deleting_off_remove_project_removes_at_once_from_the_context_menu() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.ConfirmBeforeDeleting = false;
+            row = ShownProjectRow(model, project, 0);
+        });
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            ContextMenuOf(row).Items.Cast<Control>().Single(i => i is MenuItem && MenuItemTitle(i) == "Remove project")
+                .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.Null(model.Project(project.Id)); // removed inside the click, nothing asked
+            Assert.DoesNotContain(recorder.Calls, c => c.Presented);
             WindowOf(row).Close();
         });
     });
@@ -8730,7 +8848,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
         harness.Main.OnMain(() =>
         {
-            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single();
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null); // the ellipsis popover (the removal question's is not presented)
             var stack = Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<RowActionItems>(popup.Child!).Single().Child);
             Assert.Equal(
                 [typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverDivider), typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverItem)],
