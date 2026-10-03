@@ -287,6 +287,7 @@ public sealed class AppModelHydraMergeWorkTests
 
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-076")] // AppModel+HydraMerge.swift:136-138 (sweepsCheckout: false for every other project)
+    [Trait("Rule", "R-TEST-4")] // PR-HYDRAMERGE-017, the sweep-off clause only: App/AppModel+HydraMerge.swift:137 passes sweepsCheckout: false for every other project; the other clauses are in AppModelHydraMergePart1Tests.
     public void Other_projects_passes_never_sweep_their_checkout()
     {
         using var f = new HydraMergeProofFixture();

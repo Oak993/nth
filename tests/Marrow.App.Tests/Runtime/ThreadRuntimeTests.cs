@@ -182,6 +182,30 @@ public sealed class ThreadRuntimeTests
     }
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // PR-HYDRAMERGE-122 persistence clause only: the queued flag is not among the conditions.
+    // App/AppModel+HydraMerge.swift:80-101 sets isHydraMergeQueued while a job waits its turn; App/Runtime/ThreadRuntime.swift:313-315
+    // declares it and :3679-3686 holdsOnlyPersistedState does not read it, so a queued wait does not keep a runtime alive.
+    public void A_queued_merge_flag_does_not_stop_a_runtime_holding_only_persisted_state()
+    {
+        using var harness = new AppModelHarness();
+        var fixture = ThreadRuntimePart8Fixtures.Create(harness);
+
+        harness.Main.OnMain(() =>
+        {
+            Assert.False(fixture.Runtime.IsHydraMergeQueued);
+            fixture.Runtime.IsHydraMergeQueued = true;
+            Assert.True(fixture.Runtime.HoldsOnlyPersistedState);
+            fixture.Runtime.IsHydraMergeQueued = false;
+            // Control: the merging flag IS one of the conditions (:3685), so the helper can tell the two apart.
+            fixture.Runtime.IsHydraMerging = true;
+            Assert.False(fixture.Runtime.HoldsOnlyPersistedState);
+            fixture.Runtime.IsHydraMerging = false;
+            Assert.True(fixture.Runtime.HoldsOnlyPersistedState);
+            fixture.Runtime.CancelPersistence();
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-RUNTIME-165")] // App/Runtime/ThreadRuntime.swift:3642-3648
     public void Cancel_persistence_prevents_a_dirty_scheduled_save_from_recreating_a_deleted_file()
     {

@@ -40,11 +40,14 @@ public sealed class AppModelHydraMergePreparationTests
         var calls = new List<ShellInvocation>();
         var preparedHeads = new List<string>();
         var writing = new List<(string?, HydraMergeStage?)>();
+        var capturing = new List<(string?, HydraMergeStage?)>();
         var tries = 0;
         var result = f.Pass(lead, p, several, observer: call =>
         {
             calls.Add(call);
             if (HydraMergeReviewFixture.IsGit(call, "fetch")) writing.Add((f.Runtime(lead).HydraMergeStage, f.Runtime(lead).HydraMergeStep));
+            // Every try writes its tree under the stage the try advanced to (:279), the feature branch (no fetch) included.
+            if (HydraMergeReviewFixture.IsGit(call, "write-tree")) capturing.Add((f.Runtime(lead).HydraMergeStage, f.Runtime(lead).HydraMergeStep));
             if (!HydraMergeReviewFixture.IsGit(call, "commit-tree")) return;
             var args = HydraMergeReviewFixture.GitArgs(call);
             preparedHeads.Add(args[3]);
@@ -61,6 +64,8 @@ public sealed class AppModelHydraMergePreparationTests
         if (changePatch) Assert.NotEqual(prompts[0], prompts[1]);
         Assert.Equal(moves == 3 ? 3 : 2, tries);
         Assert.All(writing.Take(tries), s => Assert.Equal(("Writing the commit", HydraMergeStage.Committing), s));
+        Assert.Equal(tries, capturing.Count);
+        Assert.All(capturing, s => Assert.Equal(((several ? "Project: " : "") + "Writing the commit", HydraMergeStage.Committing), s));
         Assert.Equal(tries, preparedHeads.Distinct().Count());
         if (moves == 3)
         {
@@ -150,6 +155,34 @@ public sealed class AppModelHydraMergePreparationTests
         Assert.Equal(2, tries);
         Assert.Single(forge.Calls(), c => c.Arguments.Contains("-p"));
         Assert.Equal("Canonical subject\n", repo.Git("show", "-s", "--format=%B", f.Branch(lead)).TrimEnd('\n') + "\n");
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-033")] // App/AppModel+HydraMerge.swift:285-308; Services/Git/Git.swift:306 `guard remote != working else { continue }`
+    public void An_own_branch_whose_remote_already_holds_the_teams_change_returns_AlreadyOnMain_against_the_remote_tree()
+    {
+        using var f = new HydraMergeProofFixture();
+        var p = f.AddProject("Project");
+        var repo = f.Repos[p.Id];
+        var head = repo.Git("rev-parse", "HEAD").Trim();
+        // Someone else put exactly the team's a.txt on the remote; this checkout fell behind and holds the same bytes in its working tree.
+        var clone = f.Clone(p);
+        File.WriteAllText(Path.Combine(clone.Root, "a.txt"), "team\n");
+        clone.Git("add", "a.txt"); clone.Git("commit", "-q", "-m", "remote has it"); clone.Git("push", "origin", "main");
+        File.WriteAllText(Path.Combine(p.Path, "a.txt"), "team\n");
+        var lead = f.AddLead(p, "Lead", ["a.txt"]);
+        f.Start(lead);
+        var calls = new List<ShellInvocation>();
+        Assert.Equal("AlreadyOnMain", f.Pass(lead, p, observer: calls.Add)); // the tree equals the REMOTE commit's tree, not HEAD's (:308)
+        Assert.Contains(calls, c => HydraMergeReviewFixture.IsGit(c, "fetch"));
+        Assert.Contains(calls, c => HydraMergeReviewFixture.IsGit(c, "merge-base"));
+        Assert.DoesNotContain(calls, c => HydraMergeReviewFixture.IsGit(c, "commit-tree") || HydraMergeReviewFixture.IsGit(c, "update-ref") || HydraMergeReviewFixture.IsGit(c, "push"));
+        Assert.Empty(f.Runtime(lead).HydraMerges); Assert.Empty(f.Notes(lead));
+        Assert.Equal(head, repo.Git("rev-parse", "HEAD").Trim());
+        // The caller still marks the work spent and settles it (PR-HYDRAMERGE-113).
+        f.Run(lead);
+        Assert.Equal(HydraMergeRecord.Outcome.Settled, Assert.Single(f.Runtime(lead).HydraMerges).HydraMergeRecordOutcome);
+        Assert.True(f.Runtime(lead).Turns.Single().HydraMerged);
     }
 
     [Theory]
