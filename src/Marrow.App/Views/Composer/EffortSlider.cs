@@ -102,7 +102,7 @@ public sealed class ModelEffortButton : Decorator
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         button.Focusable = false; popup.PlacementTarget = button; // :115,120
-        JewelWarmup.Schedule(this); // OD-0090 / ED-252: the effort knob's programs primed before this chip can open the popover
+        GpuWarmup.WhenIdle(this); // OD-0090 / ED-252: the effort knob's programs primed before this chip can open the popover
         button.Chip(); // :114 inactive until the popover opens.
         frame.SizeChanged += (_, _) => { if (lockedWidth is null) naturalWidth = frame.Bounds.Width; }; // :109-112
         popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; }; // :114,116-117

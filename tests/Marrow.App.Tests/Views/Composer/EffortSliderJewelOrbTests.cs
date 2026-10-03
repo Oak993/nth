@@ -184,21 +184,28 @@ public sealed class EffortSliderJewelOrbTests
             var mean = sum / n;
             report.Add($"{maker} {(dark ? "dark" : "light")} {shot.GetProperty("state").GetString()}: mean {mean:F2}, over 3: {far}/{n}, alpha off: {alphaOff}");
             Assert.True(n > 6000, $"{maker}: the ball covers the canvas");
-            Assert.True(mean < 0.3 && far <= n / 1000 && alphaOff <= 2, string.Join("; ", report)); // measured: mean 0.03-0.05, none over 3, alpha exact
+            // measured: one program 0.03-0.05; split into four (the currents kept to 1e-6, the orb in full floats) 0.09-0.17, none
+            // over 3, alpha exact (the currents as plain half floats: 0.16-0.26; the orb in half floats: 0.14-0.30)
+            Assert.True(mean < 0.2 && far <= n / 1000 && alphaOff <= 2, string.Join("; ", report));
         }
         File.WriteAllLines(Path.Combine(Path.GetTempPath(), "jewel-orb-pixels.txt"), report);
     }
 
     [Fact]
-    [Trait("Decision", "ED-252")] // OD-0090: the orb is SkSL runtime effects (no WebGL); ED-233: the fluid in a program of its own, the glass reading its three samples
+    [Trait("Decision", "ED-252")] // OD-0090: the orb is SkSL runtime effects (no WebGL); ED-233 and the lead's ~50 ms a compile: four programs, each over the last's output at the same pixels
     public void The_knob_programs_are_valid_sksl_with_one_uniform_block()
     {
-        Assert.Equal(JewelUniforms.ShaderBytes, JewelKnobShader.Fluid.UniformSize);
-        Assert.Empty(JewelKnobShader.Fluid.Children);
-        Assert.Equal(JewelUniforms.ShaderBytes, JewelKnobShader.Glass.UniformSize);
-        Assert.Equal(new[] { "fluidR", "fluidG", "fluidB" }, JewelKnobShader.Glass.Children);
-        Assert.DoesNotContain("glsPresetFluid(", JewelKnobShader.GlassSource, StringComparison.Ordinal); // the glass never runs the fluid itself
-        Assert.Single(System.Text.RegularExpressions.Regex.Matches(JewelKnobShader.FluidSource, @"glsPresetFluid\(refracted")); // the fluid runs once a pixel
+        foreach (var effect in new[] { JewelKnobShader.Noise, JewelKnobShader.Fluid, JewelKnobShader.Orb, JewelKnobShader.Page })
+            Assert.Equal(JewelUniforms.ShaderBytes, effect.UniformSize);
+        Assert.Empty(JewelKnobShader.Noise.Children);
+        Assert.Equal(new[] { "noise" }, JewelKnobShader.Fluid.Children);
+        Assert.Equal(new[] { "fluidR", "fluidG", "fluidB" }, JewelKnobShader.Orb.Children);
+        Assert.Equal(new[] { "orbs" }, JewelKnobShader.Page.Children);
+        // the four noise passes split two and two: each program runs two of them, once a pixel
+        static int Fbm(string source) => System.Text.RegularExpressions.Regex.Matches(source, @"= lqFbm\(|lqRidgeS\(lqFbm\(").Count;
+        Assert.Equal(2, Fbm(JewelKnobShader.NoiseSource));
+        Assert.Equal(2, Fbm(JewelKnobShader.FluidSource));
+        Assert.Equal(0, Fbm(JewelKnobShader.OrbSource) + Fbm(JewelKnobShader.PageSource));
     }
 
     [Fact]

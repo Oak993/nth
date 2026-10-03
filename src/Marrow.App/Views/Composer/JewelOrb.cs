@@ -204,11 +204,14 @@ public sealed class JewelUniforms
 /// <summary>The knob's SkSL program (see the file note).</summary>
 public static class JewelKnobShader
 {
-    // ED-252 review (OD-0090, ED-233): two programs, not one. On ANGLE (D3D11) the one-program form, which inlined the fluid
-    // up to three times, took 506 ms to compile on its first draw (measured on a real window, the render thread stalled);
-    // the fluid now lives in a program of its own, run once per dispersion sample into float surfaces at the very pixels the
-    // glass reads back (nearest, at the same pixel centres: nothing is resampled), and the glass and the page's layers in a
-    // second program that reads them.
+    // ED-252 review (OD-0090, ED-233): four programs, not one. On ANGLE (D3D11) the one-program form took 506 ms to compile
+    // on its first draw, two programs (the fluid, the glass) 87 to 105 ms each (measured on a real window); the lead's bar is
+    // about 50 ms a compile. So: the fluid's first two noise passes (its low and cross currents), then the rest of the
+    // fluid reading them, once per dispersion sample; the orb's glass, light and hairline reading the three samples; the
+    // page's layers over the orb. Each program writes floats at the very pixels the next one reads (nearest, at the same
+    // pixel centres): nothing is resampled. The currents are half floats split in two (a part a half float holds exactly and
+    // the rest), about 1e-6 each; the fluid's samples half floats; the orb full floats where the GPU has them (in half floats
+    // the orb's 8-bit rounding moved: the pixel test's mean went from 0.09-0.17 to 0.14-0.30 of 255).
     private const string Head = """
         uniform float4 u[27];
 
@@ -312,19 +315,44 @@ public static class JewelKnobShader
         }
         """;
 
-    /// <summary>The fluid program: one dispersion sample of the Violet Ember fluid per pixel.</summary>
-    internal const string FluidSource = Head + """
-        float3 glsPresetFluid(float2 p, float t) {
+    /// <summary>The noise program: the fluid's low and cross currents (their values) for one dispersion sample.</summary>
+    internal const string NoiseSource = Head + """
+        half4 main(float2 coord) {
+            float2 fc = float2(coord.x, u[0].y - coord.y);
+            float2 p; float2 normal; float2 refractedP; float channelSplit; float clearFa; float edgeDepth; float pd; float ae; float pxp;
+            if (!ball(fc, p, normal, refractedP, channelSplit, clearFa, edgeDepth, pd, ae, pxp) || clearFa <= 0.0) return half4(0.0);
+            float k = u[19].w;
+            if (k != 0.0 && channelSplit <= 0.0) return half4(0.0);
+            float2 at = refractedP + normal * (channelSplit * k);
+            float2 p0 = at; float t = u[0].z;
+            float zoom = u[1].x; float warp = u[1].y; float ridgeAmt = u[1].z; float sharp = u[1].w;
+            float scale = 1.08 + zoom * 1.18;
+            float blur = 0.011 + 0.005 * zoom;
+            float radius = length(p0);
+            float twist = t * 0.055 + radius * (0.72 + warp * 0.11) + 0.08 * sin(t * 0.31 + radius * 4.0);
+            float2 q = glsRotate(p0 * scale, twist);
+            float2 low = lqFbm(q * 1.18 + float2(t * 0.068, -t * 0.105), blur * 1.18);
+            float2 crs = lqFbm(glsRotate(q, -1.12) * 1.52 + float2(-t * 0.094, t * 0.042) + float2(low.x * 1.35, -low.x * 0.72), blur * 1.52);
+            // each current to about 1e-6, not a half float's 2.4e-4: a part exact in a half float (1/1024 steps) and the rest,
+            // scaled into a half float's finer range around 0.5 (the fluid program adds them back)
+            float lowHi = floor(low.x * 1024.0 + 0.5) / 1024.0; float crsHi = floor(crs.x * 1024.0 + 0.5) / 1024.0;
+            return half4(half(lowHi), half(0.5 + (low.x - lowHi) * 512.0), half(crsHi), half(0.5 + (crs.x - crsHi) * 512.0));
+        }
+        """;
+
+    /// <summary>The fluid program: the rest of the Violet Ember fluid, over the noise program's currents, per sample.</summary>
+    internal const string FluidSource = """
+        uniform shader noise;
+        """ + Head + """
+        float3 glsPresetFluid(float2 p, float t, float lowX, float crsX) {
             float zoom = u[1].x; float warp = u[1].y; float ridgeAmt = u[1].z; float sharp = u[1].w;
             float scale = 1.08 + zoom * 1.18;
             float blur = 0.011 + 0.005 * zoom;
             float radius = length(p);
             float twist = t * 0.055 + radius * (0.72 + warp * 0.11) + 0.08 * sin(t * 0.31 + radius * 4.0);
             float2 q = glsRotate(p * scale, twist);
-            float2 low = lqFbm(q * 1.18 + float2(t * 0.068, -t * 0.105), blur * 1.18);
-            float2 crs = lqFbm(glsRotate(q, -1.12) * 1.52 + float2(-t * 0.094, t * 0.042) + float2(low.x * 1.35, -low.x * 0.72), blur * 1.52);
-            float2 warped = q + float2(low.x - 0.5, crs.x - 0.5) * (0.3 + warp * 0.12);
-            float2 melt = lqFbm(warped * 1.34 + float2(crs.x * 1.48, low.x * 1.12), blur * 1.34);
+            float2 warped = q + float2(lowX - 0.5, crsX - 0.5) * (0.3 + warp * 0.12);
+            float2 melt = lqFbm(warped * 1.34 + float2(crsX * 1.48, lowX * 1.12), blur * 1.34);
             float vs = 2.05 + zoom * 0.72;
             float veins = lqRidgeS(lqFbm(warped * vs + float2(-2.1, t * 0.052), blur * vs), 0.82 + sharp * 0.58);
             float heat = smoothstep(0.18, 0.92, melt.x * (0.72 - ridgeAmt * 0.16) + veins * (0.32 + ridgeAmt * 0.5));
@@ -334,23 +362,28 @@ public static class JewelKnobShader
             return glsFinishPresetFluid(color, p);
         }
         // one dispersion sample of the fluid at every pixel (u[19].w: -1 red, 0 green, +1 blue; the red and blue ones only
-        // where the glass refracts), for the glass program to read at the same pixel
+        // where the glass refracts), for the orb program to read at the same pixel
         half4 main(float2 coord) {
             float2 fc = float2(coord.x, u[0].y - coord.y);
             float2 p; float2 normal; float2 refractedP; float channelSplit; float clearFa; float edgeDepth; float pd; float ae; float pxp;
             if (!ball(fc, p, normal, refractedP, channelSplit, clearFa, edgeDepth, pd, ae, pxp) || clearFa <= 0.0) return half4(0.0);
             float k = u[19].w;
             if (k != 0.0 && channelSplit <= 0.0) return half4(0.0);
-            return half4(half3(glsPresetFluid(refractedP + normal * (channelSplit * k), u[0].z)), 1.0);
+            float2 at = refractedP + normal * (channelSplit * k);
+            half4 currents = noise.eval(coord);
+            float lowX = float(currents.r) + (float(currents.g) - 0.5) / 512.0;
+            float crsX = float(currents.b) + (float(currents.a) - 0.5) / 512.0;
+            return half4(half3(glsPresetFluid(at, u[0].z, lowX, crsX)), 1.0);
         }
         """;
 
-    /// <summary>The glass program: the shell, the lightning, the hairline and the page's layers over the fluid's samples.</summary>
-    internal const string GlassSource = """
+    /// <summary>The orb program: the shell, the lightning and the hairline over the fluid's three samples.</summary>
+    internal const string OrbSource = """
         uniform shader fluidR;
         uniform shader fluidG;
         uniform shader fluidB;
         """ + Head + """
+
         float3 mrFlareRoll(float3 c, float fl) {
             float3 hard = clamp(c, float3(0.0), float3(1.0));
             float3 k = max(c - 0.72, float3(0.0));
@@ -422,6 +455,13 @@ public static class JewelKnobShader
             return half4(half3(col * ballA), half(ballA));
         }
 
+        half4 main(float2 coord) { return orb(float2(coord.x, u[0].y - coord.y), coord); }
+        """;
+
+    /// <summary>The page program: the tube refracted at the rim, the rim highlight and the fringes, over the orb.</summary>
+    internal const string PageSource = """
+        uniform shader orbs;
+        """ + Head + """
         // ---- the page's layers (jewel-knob.html .kw), in the knob's CSS px
         float erf(float x) { float a = 0.147; float x2 = x * x; float r = sqrt(max(0.0, 1.0 - exp(-x2 * (1.2732395 + a * x2) / (1.0 + a * x2)))); return x < 0.0 ? -r : r; }
         float phi(float x) { return 0.5 * (1.0 + erf(x * 0.70710678)); }
@@ -442,7 +482,7 @@ public static class JewelKnobShader
         half4 main(float2 coord) {
             float2 size = u[0].xy;
             float perPx = u[5].z;
-            half4 o = orb(float2(coord.x, size.y - coord.y), coord);
+            half4 o = orbs.eval(coord); // the orb, at this very pixel
             float kn = u[0].w; float R = kn * 0.5;
             if (kn <= 0.0) return o; // the orb alone (tests compare it with knob-orbs-1.js's canvas)
             float2 q = coord / perPx;
@@ -476,17 +516,20 @@ public static class JewelKnobShader
         }
         """;
 
-    private static readonly Lazy<SKRuntimeEffect> fluid = new(() =>
-        SKRuntimeEffect.CreateShader(FluidSource, out var error) ?? throw new InvalidOperationException("The Jewel knob's fluid program did not compile: " + error));
+    private static Lazy<SKRuntimeEffect> Compile(string source, string what) => new(() =>
+        SKRuntimeEffect.CreateShader(source, out var error) ?? throw new InvalidOperationException("The Jewel knob's " + what + " program did not compile: " + error));
 
-    private static readonly Lazy<SKRuntimeEffect> glass = new(() =>
-        SKRuntimeEffect.CreateShader(GlassSource, out var error) ?? throw new InvalidOperationException("The Jewel knob's glass program did not compile: " + error));
+    private static readonly Lazy<SKRuntimeEffect> noise = Compile(NoiseSource, "noise"), fluid = Compile(FluidSource, "fluid"),
+        orb = Compile(OrbSource, "orb"), page = Compile(PageSource, "page");
 
-    /// <summary>The compiled fluid program.</summary>
+    public static SKRuntimeEffect Noise => noise.Value;
     public static SKRuntimeEffect Fluid => fluid.Value;
+    public static SKRuntimeEffect Orb => orb.Value;
+    public static SKRuntimeEffect Page => page.Value;
 
-    /// <summary>The compiled glass program (its children: the red, green and blue samples of the fluid).</summary>
-    public static SKRuntimeEffect Glass => glass.Value;
+    /// <summary>Makes the four programs (Skia's SkSL compile, on the CPU, any thread): the GPU warm-up does it off the render
+    /// thread before its first step, so that thread only links them (or loads them from the cache).</summary>
+    internal static void Prepare() { _ = Noise; _ = Fluid; _ = Orb; _ = Page; }
 }
 
 /// <summary>
@@ -541,32 +584,32 @@ internal sealed class JewelKnobRenderer
         return renderer;
     }
 
-    private void Dispose() { foreach (var sample in samples) sample?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
+    private void Dispose() { foreach (var made in surfaces) made?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
 
     /// <summary>
-    /// JewelWarmup's steps (render thread): 0 builds the fluid program (one sample into its surface), 1 the glass program, the
+    /// GpuWarmup's steps (render thread): 0 the noise program, 1 the fluid, 2 the orb, 3 the page with the
     /// shadows' blur and the blit (a whole frame of the knob into an offscreen pixel). The surfaces and programs are the
     /// knob's own, so its first visible draw finds them made.
     /// </summary>
     internal void Warm(int step)
     {
         var values = warmValues ??= WarmFrame(size);
-        if (step == 0)
+        Marshal.Copy(values, 0, block, JewelUniforms.ShaderBytes / sizeof(float));
+        Marshal.WriteInt32(block, 79 * sizeof(float), BitConverter.SingleToInt32Bits(0f));
+        switch (step)
         {
-            Marshal.Copy(values, 0, block, JewelUniforms.ShaderBytes / sizeof(float));
-            Marshal.WriteInt32(block, 79 * sizeof(float), BitConverter.SingleToInt32Bits(0f));
-            var sample = Samples(gpu, size, 1);
-            var fluidShader = JewelNative.Shader(JewelKnobShader.Fluid, block, JewelUniforms.ShaderBytes);
-            JewelNative.SetShader(program, fluidShader);
-            JewelNative.Release(fluidShader);
-            sample.Canvas.Clear(SKColors.Transparent);
-            sample.Canvas.DrawRect(new SKRect(0, 0, size, size), program);
-            JewelNative.SetShader(program, 0);
-            return;
+            case 0: Pass(JewelKnobShader.Noise, Surface(gpu, size, Noise, 1), size); break;
+            case 1: Pass(JewelKnobShader.Fluid, Surface(gpu, size, Fluid, 1), size, Surface(gpu, size, Noise, 1)); break;
+            case 2:
+                var g = Surface(gpu, size, Fluid, 1);
+                Pass(JewelKnobShader.Orb, Surface(gpu, size, Orbs, 0), size, g, g, g);
+                break;
+            default:
+                using (var pixel = (gpu is not null ? SKSurface.Create(gpu, false, new SKImageInfo(1, 1, SKColorType.Bgra8888, SKAlphaType.Premul)) : null)
+                    ?? SKSurface.Create(new SKImageInfo(1, 1, SKColorType.Bgra8888, SKAlphaType.Premul)))
+                    Draw(pixel.Canvas, values, new SKRect(-60, -60, -12, -12), 1); // the page program, the shadows and the blit: nothing lands
+                break;
         }
-        using var pixel = (gpu is not null ? SKSurface.Create(gpu, false, new SKImageInfo(1, 1, SKColorType.Bgra8888, SKAlphaType.Premul)) : null)
-            ?? SKSurface.Create(new SKImageInfo(1, 1, SKColorType.Bgra8888, SKAlphaType.Premul));
-        Draw(pixel.Canvas, values, new SKRect(-60, -60, -12, -12), 1); // the whole knob, drawn off the pixel: nothing lands
     }
 
     private float[]? warmValues;
@@ -645,25 +688,33 @@ internal sealed class JewelKnobRenderer
         for (var k = -1; k <= 1; k++)
         {
             if (middleOnly && k != 0) continue;
-            var sample = Samples(context, px, k + 1);
             Marshal.WriteInt32(block, 79 * sizeof(float), BitConverter.SingleToInt32Bits(k));
-            var fluidShader = JewelNative.Shader(JewelKnobShader.Fluid, block, JewelUniforms.ShaderBytes);
-            JewelNative.SetShader(program, fluidShader);
-            JewelNative.Release(fluidShader);
-            sample.Canvas.Clear(SKColors.Transparent);
-            sample.Canvas.DrawRect(new SKRect(0, 0, px, px), program);
-            JewelNative.SetShader(program, 0);
+            var currents = Surface(context, px, Noise, k + 1);
+            Pass(JewelKnobShader.Noise, currents, px);
+            Pass(JewelKnobShader.Fluid, Surface(context, px, Fluid, k + 1), px, currents);
         }
         Marshal.WriteInt32(block, 79 * sizeof(float), BitConverter.SingleToInt32Bits(0f));
-        for (var k = 0; k < 3; k++)
-        {
-            var image = JewelNative.Snapshot(samples[middleOnly ? 1 : k]!);
-            children[k] = JewelNative.ImageShader(image, SKMatrix.Identity, nearest: true);
-            JewelNative.ReleaseImage(image);
-        }
-        var shader = JewelNative.Shader(JewelKnobShader.Glass, block, JewelUniforms.ShaderBytes, children);
-        for (var k = 0; k < 3; k++) { JewelNative.Release(children[k]); children[k] = 0; }
-        var c = target.Canvas;
+        SKSurface Sample(int k) => Surface(context, px, Fluid, middleOnly ? 1 : k);
+        var orbs = Surface(context, px, Orbs, 0);
+        Pass(JewelKnobShader.Orb, orbs, px, Sample(0), Sample(1), Sample(2));
+        Pass(JewelKnobShader.Page, target, px, orbs);
+    }
+
+    // one program into a surface, its children the snapshots of the given surfaces read at the same pixels (nearest)
+    // (up to three inputs, as arguments: no array a frame)
+    private void Pass(SKRuntimeEffect effect, SKSurface into, int px, SKSurface? first = null, SKSurface? second = null, SKSurface? third = null)
+    {
+        var handles = first is null ? null : second is null ? one : children;
+        if (handles is not null)
+            for (var k = 0; k < handles.Length; k++)
+            {
+                var image = JewelNative.Snapshot(k == 0 ? first! : k == 1 ? second! : third!);
+                handles[k] = JewelNative.ImageShader(image, SKMatrix.Identity, nearest: true);
+                JewelNative.ReleaseImage(image);
+            }
+        var shader = JewelNative.Shader(effect, block, JewelUniforms.ShaderBytes, handles);
+        if (handles is not null) for (var k = 0; k < handles.Length; k++) { JewelNative.Release(handles[k]); handles[k] = 0; }
+        var c = into.Canvas;
         c.Clear(SKColors.Transparent);
         JewelNative.SetShader(program, shader);
         JewelNative.Release(shader);
@@ -671,20 +722,23 @@ internal sealed class JewelKnobRenderer
         JewelNative.SetShader(program, 0);
     }
 
-    // the fluid's three samples: float surfaces at the render size (half floats keep the colour to about 1/2000), kept
-    private readonly SKSurface?[] samples = new SKSurface?[3];
-    private readonly int[] samplesSize = new int[3];
-    private readonly nint[] children = new nint[3];
+    // the passes' surfaces at the render size (the currents and the fluid's samples half floats, the orb full floats), kept
+    private const int Noise = 0, Fluid = 3, Orbs = 6;
+    private readonly SKSurface?[] surfaces = new SKSurface?[7];
+    private readonly int[] surfaceSizes = new int[7];
+    private readonly nint[] children = new nint[3], one = new nint[1];
 
-    private SKSurface Samples(GRContext? context, int px, int k)
+    private SKSurface Surface(GRContext? context, int px, int kind, int k)
     {
-        if (samples[k] is { } kept && samplesSize[k] == px) return kept;
-        samples[k]?.Dispose();
+        var at = kind + k;
+        if (surfaces[at] is { } kept && surfaceSizes[at] == px) return kept;
+        surfaces[at]?.Dispose();
         var info = new SKImageInfo(px, px, SKColorType.RgbaF16, SKAlphaType.Premul);
-        var made = (context is not null ? SKSurface.Create(context, false, info) : SKSurface.Create(info))
+        SKSurface? Make(SKImageInfo of) => context is not null ? SKSurface.Create(context, false, of) : SKSurface.Create(of);
+        var made = (kind == Orbs ? Make(info.WithColorType(SKColorType.RgbaF32)) : null) ?? Make(info)
             ?? (context is not null ? SKSurface.Create(context, false, info.WithColorType(SKColorType.Rgba8888)) : SKSurface.Create(info.WithColorType(SKColorType.Rgba8888)))
-            ?? throw new InvalidOperationException("The Jewel knob's fluid surface could not be made.");
-        samples[k] = made; samplesSize[k] = px;
+            ?? throw new InvalidOperationException("The Jewel knob's pass surface could not be made.");
+        surfaces[at] = made; surfaceSizes[at] = px;
         return made;
     }
 
@@ -904,6 +958,7 @@ internal sealed class JewelKnobOperation : ICustomDrawOperation
             Interlocked.Increment(ref cpuFrames);
             return;
         }
+        if (lease.GrContext is not null) GpuProgramCache.EnsureInstalled(); // (once; the warm-up has normally done it)
         var start = System.Diagnostics.Stopwatch.GetTimestamp();
         try { JewelKnobRenderer.For(lease.GrContext, (int)Values[0]).Draw(lease.SkCanvas, Values, box, opacity); }
         catch (Exception error) { LastError = error.GetType().Name + ": " + error.Message; throw; } // recorded for the native evidence run, not swallowed
