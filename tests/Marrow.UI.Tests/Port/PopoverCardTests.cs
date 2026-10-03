@@ -16,9 +16,10 @@ namespace Marrow.UI.Tests.Port;
 // the reference runtime frame by frame (study effort-title-2026-10-03/arrow): the model chip's card at 34.4 s, the
 // diff panel's "..." menu at 22.2 s, the message menu at 24.3 s (all above their anchors, tip down) and a Hydra pair
 // picker at 84.5 s of the settings tour (below its button, tip up): the tip stands 10-10.5 pt off the card's edge, its
-// base is 27-29 pt wide where it meets the card, its sides run about 1.4 pt across for each pt down (a blunt tip, not a
-// right angle), its point is rounded (about 3 pt flat) and its shoulders blend into the edge; the point is 1-2 pt from
-// the anchor; the tip is centred on the anchor and part of the card's one outline. The card's corners and material stay
+// base is 27-29 pt wide where it meets the card, its sides run at 45 degrees (its outline narrows by 2 px a row,
+// review/video_tips_x8_reviewer.png), its point is rounded (about 3 pt flat) and its shoulders blend into the edge; the
+// point is 1-2 pt from the anchor (the card's edge 13 pt from it); the tip is centred on the anchor and part of the
+// card's one outline. The card's corners and material stay
 // with OD-0005; this draws the shape the tip needs, with ED-238's panel fill and edge.
 [Collection("Headless")]
 public sealed class PopoverCardTests(HeadlessSession headless)
@@ -43,8 +44,10 @@ public sealed class PopoverCardTests(HeadlessSession headless)
     public void The_tip_has_the_Macs_size_and_stands_off_the_edge_facing_the_anchor() => headless.OnUiThread(() =>
     {
         Assert.InRange(PopoverCard.TipHeight, 10, 12);      // 10-10.5 pt seen past the rounding of the point
-        Assert.InRange(PopoverCard.TipHalfWidth * 2, 26, 31); // 27-29 pt at the card's edge
-        Assert.InRange(PopoverCard.TipHalfWidth / PopoverCard.TipHeight, 1.2, 1.6); // blunt: ~1.4 pt across per pt down
+        var shoulder = PopoverCard.TipShoulderRadius * Math.Tan(Math.PI / 8); // where a shoulder's rounding leaves the edge
+        Assert.InRange(2 * (PopoverCard.TipHalfWidth + shoulder), 27, 29); // 27-29 pt at the card's edge, shoulders included
+        Assert.InRange(PopoverCard.TipHalfWidth / PopoverCard.TipHeight, 0.95, 1.05); // 45 degrees: 1 pt across per pt down
+        Assert.InRange(PopoverCard.TipApexRadius, 2.5, 3.5); // about 3 pt flat at the point
         Assert.InRange(PopoverCard.TipGap, 0.5, 2);          // its point 1-2 pt from the anchor
         var below = Card(PopoverTipEdge.Bottom);
         Assert.Equal(new Size(202, 102 + PopoverCard.TipHeight + PopoverCard.TipGap), below.DesiredSize); // the 1 pt edge all round, then the tip

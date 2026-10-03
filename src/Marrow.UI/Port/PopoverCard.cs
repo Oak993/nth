@@ -4,17 +4,20 @@
 // the card's rectangle with the tip in it, so tip and card share one fill and one edge with no seam at any scale.
 //
 // SOURCE FACT, measured frame by frame in the reference runtime (E:\Droppy\work\reference-video\study\
-// effort-title-2026-10-03\arrow): the model chip's card (2-chat-use.mov 34.4 s), the diff panel's "..." menu (22.2 s) and
-// the message menu (24.3 s), all above their anchors with the tip down, and a Hydra pair picker below its button with the
-// tip up (1-settings-tour.mov 84.5 s): the tip stands 10-10.5 pt off the card's edge, 27-29 pt wide where it meets the
-// card, its sides running about 1.4 pt across for each pt down, its point rounded (about 3 pt flat), its shoulders
-// blending into the edge; its point 1-2 pt from the anchor, centred on the anchor's middle. Cross-check: AppKit's
-// NSPopover arrow is not published as a constant; the four popovers agree within a point, so they are the reference.
+// effort-title-2026-10-03\arrow and \review): the model chip's card (2-chat-use.mov 34.4 s), the diff panel's "..." menu
+// (22.2 s) and the message menu (24.3 s), all above their anchors with the tip down, and a Hydra pair picker below its
+// button with the tip up (1-settings-tour.mov 84.5 s): the tip stands 10-10.5 pt off the card's edge, 27-29 pt wide where
+// it meets the card (its shoulders included), its point rounded (about 3 pt flat), its shoulders blending into the edge;
+// its point 1-2 pt from the anchor, centred on the anchor's middle, the card's edge 13 pt from the anchor (OD-0095 said
+// "about 11"; amended). Its sides run at 45 degrees: the tip's dark outline, row by row from 3 to 10 px under the card's
+// edge, narrows by exactly 2 px a row in all four (review\video_tips_x8_reviewer.png). Cross-check: AppKit's NSPopover
+// arrow is not published as a constant; the four popovers agree within a point, so they are the reference.
 // ENGINEERING DECISION, the shape fitted to those numbers and checked side by side (arrow/sbs_tip_video_vs_port.png): a
-// sharp height of 12 pt and a half base of 15 pt (sides at 51 degrees from the vertical), the point rounded with a 4.5 pt
-// radius (its outer edge 10.3 pt off the card's, its flat about 5 pt), the shoulders with 4 pt, and 1 pt left clear
-// between the point and the anchor (the card's edge 13 pt from it, a whole number so the card stays on whole points). The card's corners stay square and its material plain until the
-// glass pass (OD-0005); the tip keeps clear of the corners by its shoulder.
+// sharp height of 12 pt and a half base of 12 pt (sides at 45 degrees), the point rounded with a 3 pt radius (its outer
+// edge 10.3 pt off the card's), the shoulders with 4 pt (27.3 pt across at the edge), and 1 pt left clear between the
+// point and the anchor (the card's edge 13 pt from it, a whole number so the card stays on whole points). The card's
+// corners stay square and its material plain until the glass pass (OD-0005); the tip keeps clear of the corners by its
+// shoulder.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -35,8 +38,8 @@ public enum PopoverTipEdge
 public sealed class PopoverCard : Decorator
 {
     internal const double TipHeight = 12;
-    internal const double TipHalfWidth = 15;
-    internal const double TipApexRadius = 4.5;
+    internal const double TipHalfWidth = 12;
+    internal const double TipApexRadius = 3;
     internal const double TipShoulderRadius = 4;
     internal const double TipGap = 1;
     private const double Edge = 1; // ED-238's 1 pt panel edge
