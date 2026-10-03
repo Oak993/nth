@@ -2520,7 +2520,7 @@ internal sealed class HeadCardsRow : Decorator
     public HeadCardsRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> headSnapshots, SidebarMenuRequests menuRequests, Action onFold)
     {
         var state = new ViewState();
-        var connector = new HelperConnector(true, onFold); // :1436-1437, endsHere: true
+        var connector = new HelperConnector(true, onFold) { Width = ThreadRowMetrics.ConnectorWidth }; // :1433-1437, endsHere: true, .frame(width: connectorWidth, ...)
         var connectorHeight = new AnimatedDouble(v => connector.Height = v); // :1439, :1541
         long? previousCardRows = null; // :1535 .animation(.snappy(duration: 0.18), value: cardRows)
         ValueList<Guid>? previousHeadIDs = null; // :1541 .animation(Chrome.panelSlide, value: heads.map(\.id))
@@ -2534,6 +2534,8 @@ internal sealed class HeadCardsRow : Decorator
             Child = rows,
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1519-1521 background + clipShape
         card.Background = Chrome.Overlay(0.04).Brush(card); // :1520
+        card.ClipToBounds = true; // :1521 .clipShape: while the card grows its lower rows show only as its edge reaches them
+        // (2-chat-use.mov 5.33-5.53 s, CATALOGUE sidebar.activity-grid-expand)
         var cardHeightAnimated = new AnimatedDouble(v => card.Height = v); // :1518, :1535
 
         var outer = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :1440 HStack(spacing: 0)
@@ -2654,6 +2656,7 @@ internal sealed class HeadCardsRow : Decorator
                 var chevronButton = PlainControls.Button(chevronHost, () => // :1515-1516
                     Transaction.WithAnimation(Animation.Snappy(duration: 0.18), () => state.ShowsAllHeads = !state.ShowsAllHeads));
                 ToolTip.SetTip(chevronButton, ChevronTooltip(showsAllHeads, heads.Count)); // :1526
+                chevronButton.HorizontalAlignment = HorizontalAlignment.Left; // :1465 VStack(alignment: .leading): the 14 pt button sits at the leading edge
                 rows.Children.Add(chevronButton);
             }
             Opacity = isHidden ? 0 : 1; // :1543

@@ -6434,6 +6434,57 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // SidebarView.swift:1440-1544 HeadCardsRow body; :1291-1311 ThreadRowMetrics
+    [Trait("Req", "UI-SIDEBAR-034")] // :1433-1436 the connector column beside a head card is connectorWidth wide and the card's height tall
+    [Trait("Req", "UI-SIDEBAR-038")] // :1514-1527 the chevron row: 14x14, caption2 semibold, secondaryText
+    public void A_mounted_head_card_keeps_the_28pt_connector_column_6pt_padding_and_gaps_and_twelve_glyphs_in_rows_of_perRow() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 13).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        Control card = null!;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            WindowOf(Hosted(model, card)).UpdateLayout();
+        });
+        harness.Main.OnMain(() =>
+        {
+            var window = WindowOf(card);
+            window.UpdateLayout();
+            var connector = LogicalQuery.SelfAndDescendants<HelperConnector>(card).Single();
+            Assert.Equal(ThreadRowMetrics.ConnectorWidth, connector.Bounds.Width); // :1434 .frame(width: connectorWidth)
+            var cardBorder = LogicalQuery.SelfAndDescendants<Border>(card).First(b => b.Padding == new Thickness(ThreadRowMetrics.HeadCardPadding)); // :1516 .padding(headCardPadding)
+            Assert.Equal(28d, Frame(cardBorder, card).X); // HStack(spacing: 0): the card starts right after the 28 pt column
+            Assert.Equal(new CornerRadius(Chrome.RowCornerRadius), cardBorder.CornerRadius); // :1519-1521
+            Assert.Equal(Chrome.Overlay(0.04).Resolve(cardBorder.ActualThemeVariant), ((ISolidColorBrush)cardBorder.Background!).Color); // :1520
+            Assert.True(cardBorder.ClipToBounds); // :1521 .clipShape
+            Assert.Equal(connector.Bounds.Height, cardBorder.Bounds.Height); // :1435-1436 the column is the card's height
+            var rows = Assert.IsType<StackPanel>(cardBorder.Child);
+            Assert.Equal(ThreadRowMetrics.HeadRowGap, rows.Spacing); // :1465 VStack(spacing: headRowGap)
+            var perRow = HeadCardsRow.PerRow(200); // :1451 at this host's 200 pt
+            var lines = rows.Children.OfType<StackPanel>().ToList();
+            Assert.Equal(new[] { (int)perRow, 12 - (int)perRow }, lines.Select(l => l.Children.Count)); // :1443 prefix(12), :1545-1547 chunked by perRow
+            foreach (var line in lines)
+            {
+                Assert.Equal(HeadCardsRow.RowGap(200, perRow), line.Spacing); // :1467 HStack(spacing: rowGap)
+                Assert.Equal(new Thickness(0, 0, ThreadRowMetrics.HeadBadgeOverhang, 0), line.Margin); // :1512-1513
+            }
+            var chevron = Assert.IsType<Button>(rows.Children[^1]); // :1514 the chevron's own row below the glyph rows
+            Assert.Equal(new Size(ThreadRowMetrics.HeadGlyphSize, ThreadRowMetrics.HeadGlyphSize), chevron.Bounds.Size); // :1519 14x14
+            Assert.Equal(ThreadRowMetrics.HeadCardPadding, Frame(chevron, cardBorder).X); // :1465 VStack(alignment: .leading), inside the 6 pt padding
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).Single();
+            Assert.Equal(10d, SwiftImage.GetFont(glyph)!.PointSize); // :1517 .caption2 (10 pt)
+            Assert.Equal(FontWeight.SemiBold, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
+            Assert.Equal(Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color); // :1518
+            window.Close();
+        });
+    });
+
+    [Fact]
     [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:1535 .animation(.snappy(duration: 0.18), value: cardRows)
     [Trait("Req", "UI-SIDEBAR-038")] // App/Views/Sidebar/SidebarView.swift:1515-1516 withAnimation(.snappy(duration: 0.18)) { showsAllHeads.toggle() }
     public void A_head_cards_row_count_change_animates_the_cards_and_connectors_height_with_snappy_0_18() => headless.OnUiThread(() =>
