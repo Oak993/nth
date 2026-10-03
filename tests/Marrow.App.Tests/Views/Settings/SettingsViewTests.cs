@@ -128,7 +128,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1012-1056
     public void Legal_popover_inherits_presented_chrome_and_selectable_markdown_with_all_missing_resource_names() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
-        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var show = Button(view, "Show"); Assert.True(show.IsEnabled); Click(show); Sync(); var popup = presenter.Calls.Last(x => x.Presented).Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, popup.Placement); var content = Opened(popup); Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); foreach (var body in Nodes<MarkdownView>(content)) Assert.True(MarkdownView.GetMarkdownBlockSelection(body)); var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) Assert.Equal($"The {resource} file is missing from this copy of the app.", reader.Invoke(null, [resource]));
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var show = Button(view, "Show"); Assert.True(show.IsEnabled); Click(show); Sync(); var popup = presenter.Calls.Last(x => x.Presented).Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, popup.Placement); var content = Opened(popup); Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); foreach (var body in Nodes<MarkdownView>(content)) Assert.True(MarkdownView.GetMarkdownBlockSelection(body)); var reader = typeof(LicensesRow).GetMethod("Read", BindingFlags.Static | BindingFlags.NonPublic)!; foreach (var resource in new[] { "absent-LICENSE", "absent-THIRD_PARTY_NOTICES", "absent-TRADEMARK" }) Assert.Equal($"The {resource} file is missing from this copy of the app.", reader.Invoke(null, [resource])); /* PR-SETTINGS-249 ships the three files, so the fallback is exercised on names the build does not ship */
     });
 
     [Fact]
@@ -182,7 +182,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-069")] // App/Views/Settings/SettingsView.swift:838-840
     public void Sign_in_and_reveal_keep_the_source_glass_capsule_wrappers_without_invoking_blocked_actions()
     {
-        WithView(() => new SourceControlSettingsPage(), (view, _, _) => Assert.Single(Nodes<Border>(Row(view, "Worktrees")), border => !border.IsHitTestVisible));
+        WithView(() => new SourceControlSettingsPage(), (view, _, _) => Assert.Single(Button(Row(view, "Worktrees"), "Reveal").GetVisualDescendants().OfType<Border>(), border => border.Height == 22 && SwiftGlass.GetEffect(border) is not null)); // Reveal is the accent glass pill itself (ED-NEW-settingsview)
         WithView(() => new ProviderSettingsSection(ProviderKind.Commandcode, Binding<bool>.Constant(true)), (view, _, _) => { var row = Row(view, "Sign in"); Assert.Equal(16, Nodes<TextBlock>(row).Single(text => text.Text == "Login").Height); Assert.Single(Nodes<Border>(row), border => !border.IsHitTestVisible); }, model => Seed(model, ProviderKind.Commandcode, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }));
     }
 
@@ -204,11 +204,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         h.Main.AdvanceMilliseconds(milliseconds); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(milliseconds)); Sync();
     }
 
-    // STOP App.Views.Settings.SettingsView #6
-    // Kind: dependency / adaptation. Swift: SettingsView.swift:705,735. Records: UI-PROVAPI-005, UI-PROVREG-038, UI-PROVREG-041.
-    // Missing: the shared plain-field primitive does not implement the native roundedBorder style.
-    // Needed: a Windows rounded-border field form with its platform styling defined. Masking is implemented
-    // locally; guessed border radii, padding and colours are not substituted for an OS-defined source style.
+    // Resolved STOP App.Views.Settings.SettingsView #6 (UI-PROVAPI-005, UI-PROVREG-038, UI-PROVREG-041): the key and binary-path fields are
+    // ChatDialogControls.TextEditor(field, style: "RoundedBorder") (OD-0042, OD-0045), asserted by CheckBezel below.
     // STOP App.Views.Settings.SettingsView #7
     // Kind: dependency. Swift: SettingsView.swift:647; ModelsSettingsPage.swift:436. Records: UI-PROVREG-045 (motion only).
     // Missing: CollapsibleProviderHeader assigns a RotateTransform immediately, not an animated rotation.
@@ -340,8 +337,33 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var presenter = Assert.Single(field.GetVisualDescendants().OfType<TextPresenter>()); Assert.Equal('\u2022', presenter.PasswordChar);
         const string refusal = "Credential Manager did not accept this key, so it was not saved."; Assert.Equal(refusal, model.Settings.APIKeyRefusal(ProviderKind.Meta)); Assert.Contains(refusal, Text(view));
         var block = Assert.Single(Nodes<StackPanel>(view), stack => stack.Children.Count == 2 && stack.Children[0] is StackPanel && stack.Children[1] is TextBlock note && note.Text == refusal); Assert.Same(field, Nodes<TextBox>(block).Single());
+        // OD-0012 E5 + ED-090: the refusal line takes the key row's detail style (.subheadline 11, Chrome.secondaryText), wraps, and sits in the key row's control column under the field and eye.
+        var note = (TextBlock)block.Children[1]; Assert.Equal(11, note.FontSize); Assert.Equal(Chrome.SecondaryText.Resolve(note.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(note.Foreground).Color); Assert.Equal(Avalonia.Media.TextWrapping.Wrap, note.TextWrapping);
+        CheckBezel(field); // :703 .textFieldStyle(.roundedBorder), hidden (SecureField)
         var eye = Nodes<Button>(view).Single(button => Equals(ToolTip.GetTip(button), "Show the API key")); Click(eye); Sync(); Assert.Equal('\0', presenter.PasswordChar); Assert.Equal("Hide the API key", ToolTip.GetTip(eye)); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(Nodes<SwiftImage>(eye).Single()));
+        CheckBezel(field); // :698-701 the revealed TextField has the same style, font, width and placeholder
+        Assert.Equal(8, Assert.IsType<StackPanel>(field.Parent).Spacing); // :697 HStack(spacing: 8) { field, eye }
+        backend.RefuseWrites = false; field.Text = "fixture-key-accepted"; Sync(); Assert.Null(model.Settings.APIKeyRefusal(ProviderKind.Meta)); Assert.DoesNotContain(refusal, Text(view)); // the line clears when the key is saved (ED-090)
         field.Text = ""; Sync();
+    });
+
+    // `.textFieldStyle(.roundedBorder).font(.system(size: 12, design: .monospaced)).frame(width: 200)` (SettingsView.swift:703-705, :735-737),
+    // drawn as the Apple kit's text field (OD-0042, OD-0045): 24 high, radius 6, fill #1E1E1E / #FFFFFF, a 1 px border.
+    private static void CheckBezel(TextBox box)
+    {
+        Assert.Equal("RoundedBorder", box.GetValue(Marrow.App.Port.ChatDialogControls.InputStyleProperty)); Assert.Equal(200, box.Width); Assert.Equal(SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Resolve().FontSize, box.FontSize); Assert.Equal(SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Resolve().FontFamily, box.FontFamily);
+        var bezel = box.GetVisualDescendants().OfType<Border>().First(b => b.CornerRadius == new CornerRadius(6));
+        Assert.Equal(24, bezel.MinHeight); Assert.Equal(24, bezel.Bounds.Height, 1); Assert.Equal(200, bezel.Bounds.Width, 1); Assert.Equal(new Thickness(1), bezel.BorderThickness);
+        Assert.Equal(Marrow.App.Port.ChatDialogControls.FieldFill.Resolve(bezel.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(bezel.Background).Color); Assert.Equal(Marrow.App.Port.ChatDialogControls.FieldStroke.Resolve(bezel.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(bezel.BorderBrush).Color);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // the field chrome of UI-PROVREG-041 only; the row's gates, placeholder, write-through and detail are proven in All_provider_cards_apply_the_exact_key_binary_and_install_row_gates_and_divider_insets
+    public void Binary_path_field_is_the_rounded_border_bezel_200_wide_in_12_monospaced_with_the_executable_name_as_its_prompt() => WithView(() => new ProviderSettingsSection(ProviderKind.Codex, Binding<bool>.Constant(true)), (view, model, _) =>
+    {
+        var field = Assert.Single(Nodes<TextBox>(view)); Assert.Equal(ProviderKind.Codex.ExecutableName, field.PlaceholderText); CheckBezel(field);
+        Assert.Contains("Binary path", Nodes<ChromeRow>(view).Select(r => Text(r).First()));
+        field.Text = "C:\\tools\\codex.exe"; Sync(); Assert.Equal("C:\\tools\\codex.exe", model.Settings.BinaryPath(ProviderKind.Codex)); // :780-783 writes through on every change
     });
 
     [Fact]
@@ -540,11 +562,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     // Missing: TerminalHostView explicitly has no renderer or chosen terminal component.
     // Needed: the shipped terminal's name, author, licence and project URL; do not credit SwiftTerm on Windows.
     // Keep the Terminal title/divider and the AGPL sentence prefix; only its CreditLink, component detail and trailing licence fragment are blocked.
-    // STOP App.Views.Settings.SettingsView #5
-    // Kind: dependency. Swift: SettingsView.swift:1046-1056. Records: PR-SETTINGS-249 (shipping only).
-    // Missing: the App project bundles only Assets/icon.png, not the three legal documents.
-    // Needed: the packaging unit to ship LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md.
-    // The independent reader, caching, missing-file path and popover are covered below.
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-123")] // App/Views/Settings/SettingsView.swift:401-409
@@ -644,9 +661,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Commit_editor_keeps_whitespace_and_text_generation_uses_the_source_asset_map() => WithView(() => new SourceControlSettingsPage(), (view, model, _) =>
     {
         var editor = Assert.Single(Nodes<TextBox>(view)); Assert.True(editor.AcceptsReturn); Assert.Equal(90, editor.MinHeight); editor.Text = " \nKeep this\n "; Sync(); Assert.Equal(" \nKeep this\n ", model.Settings.CommitInstructions);
-        model.Settings.TextGeneration = TextGenerationChoice.Claude; Sync(); Assert.Contains(Nodes<SwiftImage>(view), image => image.AssetName == "claude");
-        model.Settings.TextGeneration = TextGenerationChoice.Codex; Sync(); Assert.Contains(Nodes<SwiftImage>(view), image => image.AssetName == "codex");
-        Assert.Contains(Storage.WorktreesDirectory, Text(Row(view, "Worktrees"))); Assert.Equal("Reveal", Text(Button(Row(view, "Worktrees"), "Reveal")).Single());
+        model.Settings.TextGeneration = TextGenerationChoice.Claude; Sync(); Assert.Contains(Nodes<SwiftImage>(view), image => image.AssetName == "provider-claude"); // :813 ProviderKind(rawValue: $0.rawValue)?.iconName (Provider.swift:60), the catalogue's own key (SwiftImage.cs), not the bare raw value
+        model.Settings.TextGeneration = TextGenerationChoice.Codex; Sync(); Assert.Contains(Nodes<SwiftImage>(view), image => image.AssetName == "provider-codex"); Assert.DoesNotContain(Nodes<SwiftImage>(view), image => image.AssetName == "provider-claude");
+        foreach (var none in new[] { TextGenerationChoice.Automatic, TextGenerationChoice.Off }) { model.Settings.TextGeneration = none; Sync(); Assert.DoesNotContain(Nodes<SwiftImage>(view), image => image.AssetName is not null && image.AssetName.StartsWith("provider-", StringComparison.Ordinal)); } // no ProviderKind has the raw value "automatic" or "off"        Assert.Contains(Storage.WorktreesDirectory, Text(Row(view, "Worktrees"))); Assert.Equal("Reveal", Text(Button(Row(view, "Worktrees"), "Reveal")).Single());
     });
 
     [Fact]
@@ -714,12 +731,33 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1007-1057
     public void Licences_are_read_once_and_the_three_markdown_blocks_use_fixed_popover_geometry() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
+        // :1020-1022 .buttonStyle(.glass).controlSize(.small): the accent capsule, 20pt high, an 11pt white label with 10.5pt either side (S 213.0, stills/scene-1-settings-tour-213.00.png: 48 x 20).
+        var show = Button(view, "Show"); var showLabel = Assert.Single(show.GetVisualDescendants().OfType<TextBlock>()); Assert.Equal(20, show.Bounds.Height, 3); Assert.Equal(11, showLabel.FontSize); Assert.Equal(Avalonia.Media.Colors.White, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(showLabel.Foreground).Color); Assert.InRange(show.Bounds.Width - (showLabel.Bounds.Width + 2 * 10.5), -1.0, 1.0); /* the label is laid out whole-pixel by the headless text engine */
+        var showEffect = SwiftGlass.GetEffect(Assert.Single(show.GetVisualDescendants().OfType<Control>(), c => SwiftGlass.GetEffect(c) is not null))!; Assert.Equal(Chrome.Accent, showEffect.TintColor); Assert.Equal(1, showEffect.TintOpacity); Assert.True(showEffect.IsInteractive);
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(view, "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup);
-        var scroll = Assert.Single(Nodes<ScrollViewer>(content)); Assert.Equal(480, scroll.Width); Assert.Equal(440, scroll.Height);
+        var scroll = Assert.Single(Nodes<ScrollViewer>(content), s => s.Width == 480); /* the real documents carry code blocks, each with a scroller of its own */ Assert.Equal(480, scroll.Width); Assert.Equal(440, scroll.Height);
         var blocks = Assert.Single(Nodes<StackPanel>(content), x => x.Spacing == 18); Assert.Equal(new Thickness(18), blocks.Margin); Assert.Equal(3, blocks.Children.Count);
         Assert.Equal(new[] { "Marrow", "Third-party notices", "Trademarks" }, blocks.Children.Select(x => Text(x).First()));
         foreach (var markdown in Nodes<MarkdownView>(content)) Assert.Equal(12, MarkdownView.GetMarkdownPointSize(markdown)); Assert.Equal(3, Nodes<MarkdownView>(content).Length);
-        var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; Assert.Equal("The THIRD_PARTY_NOTICES file is missing from this copy of the app.", reader.Invoke(null, ["THIRD_PARTY_NOTICES"]));
+        var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; // PR-SETTINGS-249: the three documents ship beside the executable (Marrow.App.csproj), so the reader answers with their text and never the missing-file sentence.
+        foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) { var text = Assert.IsType<string>(reader.Invoke(null, [resource])); Assert.NotEmpty(text); Assert.DoesNotContain("file is missing from this copy of the app", text, StringComparison.Ordinal); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-249")] // App/Views/Settings/SettingsView.swift:1012-1016,1046-1056; Marrow.App.csproj (OD-0002: upstream's three documents ship unchanged)
+    public void The_three_licence_documents_ship_beside_the_executable_upstream_first_and_the_popover_shows_them() => WithView(() => new LicensesRow(), (view, _, _) =>
+    {
+        string Shipped(string name) { var path = System.IO.Path.Combine(AppContext.BaseDirectory, name); Assert.True(System.IO.File.Exists(path), name + " is not beside the executable"); return System.IO.File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal); /* upstream's files are CRLF */ }
+        var license = Shipped("LICENSE"); var notices = Shipped("THIRD_PARTY_NOTICES.md"); var trademark = Shipped("TRADEMARK.md");
+        Assert.StartsWith("Droppy Code\nCopyright (c) 2026 Jordy Spruit (Droppy)", license, StringComparison.Ordinal); Assert.Contains("ADDITIONAL TERMS UNDER SECTION 7 OF THE GNU AFFERO GENERAL PUBLIC LICENSE", license, StringComparison.Ordinal);
+        Assert.StartsWith("# Droppy Code Trademark Policy", trademark, StringComparison.Ordinal);
+        // Upstream's notices first and unchanged, then the port's additions file after it.
+        Assert.StartsWith("# Third-party notices\n\n## Droppy Code\n", notices, StringComparison.Ordinal); var additions = notices.IndexOf("# Third-party notices (the Windows port)", StringComparison.Ordinal); Assert.True(additions > 0);
+        Assert.Contains("## T3 Code", notices[..additions], StringComparison.Ordinal); Assert.Contains("## Composer lights", notices[additions..], StringComparison.Ordinal);
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(view, "Show")); Sync(); var shown = string.Join("\n", Text(Opened(presenter.Calls.Last(x => x.Presented).Popup)));
+        Assert.DoesNotContain("is missing from this copy of the app", shown, StringComparison.Ordinal); Assert.Equal(3, Nodes<MarkdownView>(Opened(presenter.Calls.Last(x => x.Presented).Popup)).Length); // the markdown draws as blocks, not text runs: the documents themselves are read through the reader
+        var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!;
+        Assert.Contains("Trademark Policy", (string)reader.Invoke(null, ["TRADEMARK"])!, StringComparison.Ordinal); Assert.Contains("Composer lights", (string)reader.Invoke(null, ["THIRD_PARTY_NOTICES"])!, StringComparison.Ordinal); Assert.Contains("GNU AFFERO GENERAL PUBLIC LICENSE", (string)reader.Invoke(null, ["LICENSE"])!, StringComparison.OrdinalIgnoreCase);
     });
 
     [Fact]

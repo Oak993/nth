@@ -265,7 +265,7 @@ public sealed class CreditsView : Decorator
             if (CreditsReader.TopUpURL(provider) is { } topUpURL)
             {
                 var topUp = new Button { Content = "Top up" };
-                topUp.Click += (_, _) => Process.Start(new ProcessStartInfo(topUpURL.AbsoluteUri) { UseShellExecute = true });
+                topUp.Click += (_, _) => { if (!Marrow.Core.Port.ShellGuard.InTestHost) Process.Start(new ProcessStartInfo(topUpURL.AbsoluteUri) { UseShellExecute = true })?.Dispose(); }; // R-TEST-10
                 right.Children.Add(topUp.ChromeGlassCapsule());
             }
 

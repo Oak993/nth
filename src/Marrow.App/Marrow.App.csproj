@@ -24,4 +24,53 @@
     <AvaloniaResource Include="Assets/icon.png" />
   </ItemGroup>
 
+  <!--
+    PR-SETTINGS-249 (SettingsView.swift:1012-1016, :1046-1056): the Licenses popover reads LICENSE, THIRD_PARTY_NOTICES.md and
+    TRADEMARK.md from beside the executable (Bundle.main in the source, AppContext.BaseDirectory here). OD-0002: upstream's three
+    files ship unchanged. LICENSE and TRADEMARK.md are copied byte for byte from the pinned reference (droppy-code-v1.7.0, B3).
+    The notices file is upstream's own (legal/THIRD_PARTY_NOTICES.upstream.md, byte for byte) with the port's additions file
+    (THIRD_PARTY_NOTICES.md at the repository root) after it, joined at build time so neither copy can drift from the shipped one
+    (ED-NEW-settingsview). Content items reach the publish folder the installer is packed from (scripts/package-windows.ps1).
+  -->
+  <PropertyGroup>
+    <LegalRoot>$(MSBuildThisFileDirectory)../../</LegalRoot>
+    <ShippedNotices>$(IntermediateOutputPath)legal/THIRD_PARTY_NOTICES.md</ShippedNotices>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="$(LegalRoot)LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(LegalRoot)TRADEMARK.md" Link="TRADEMARK.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <UsingTask TaskName="JoinNoticeFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Upstream ParameterType="System.String" Required="true" />
+      <Additions ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        // Upstream's bytes first, untouched; a blank line; the port's additions with the same CRLF line ends.
+        var upstream = File.ReadAllBytes(Upstream);
+        var additions = Encoding.UTF8.GetBytes(File.ReadAllText(Additions).Replace("\r\n", "\n").Replace("\n", "\r\n"));
+        var separator = Encoding.ASCII.GetBytes("\r\n");
+        var joined = new byte[upstream.Length + separator.Length + additions.Length];
+        Buffer.BlockCopy(upstream, 0, joined, 0, upstream.Length);
+        Buffer.BlockCopy(separator, 0, joined, upstream.Length, separator.Length);
+        Buffer.BlockCopy(additions, 0, joined, upstream.Length + separator.Length, additions.Length);
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        if (!File.Exists(Output) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Output), joined)) File.WriteAllBytes(Output, joined);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="JoinThirdPartyNotices" BeforeTargets="AssignTargetPaths">
+    <JoinNoticeFiles Upstream="$(LegalRoot)legal/THIRD_PARTY_NOTICES.upstream.md" Additions="$(LegalRoot)THIRD_PARTY_NOTICES.md" Output="$(MSBuildProjectDirectory)/$(ShippedNotices)" />
+    <ItemGroup>
+      <Content Include="$(MSBuildProjectDirectory)/$(ShippedNotices)" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
 </Project>

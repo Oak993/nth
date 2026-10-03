@@ -25,6 +25,7 @@ public static class ShellWorkspace
     // e.g. a redirected Downloads folder, is exactly what NSWorkspace.shared.open opens on the source's platform).
     public static Action<string> OpenWithDefaultApp { get; set; } = path =>
     {
+        if (Marrow.Core.Port.ShellGuard.InTestHost) return; // R-TEST-10: a test never opens a real browser or app
         if (ShouldAttemptShellExecute(path)) ShellExecuteW(IntPtr.Zero, "open", path, null, null, ShowNormal);
     };
 
@@ -32,7 +33,10 @@ public static class ShellWorkspace
     // selected. The target handed to ShellExecuteW is always the fixed "explorer.exe"; the caller's own path is
     // only ever its argument, so this needs no ED-203 gate (that gate is for a caller string used as the target).
     public static Action<string> RevealInFileExplorer { get; set; } = path =>
+    {
+        if (Marrow.Core.Port.ShellGuard.InTestHost) return; // R-TEST-10
         ShellExecuteW(IntPtr.Zero, "open", "explorer.exe", "/select,\"" + path + "\"", null, ShowNormal);
+    };
 
     /// <summary>
     /// ED-203: accepted when the string is (1) an absolute URL with a real scheme (an <c>http(s)://</c> or

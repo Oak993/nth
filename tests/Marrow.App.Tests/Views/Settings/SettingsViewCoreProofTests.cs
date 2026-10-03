@@ -163,7 +163,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         Assert.Empty(Nodes<Button>(rows[1]));
         foreach (var row in rows) { var text = Nodes<TextBlock>(row); Assert.Equal(13, text[0].FontSize); Assert.Equal(11, text[1].FontSize); Foreground(text[0], Chrome.PrimaryText); Foreground(text[1], Chrome.SecondaryText); }
         var back = Assert.IsType<Border>(card.Child); Assert.Equal(new CornerRadius(16), back.CornerRadius); Assert.Equal(Chrome.Overlay(0.03).Resolve(back.ActualThemeVariant), ColorOf(back.Background)); // Chrome.swift:1023-1025.
-        var revealEffect = SwiftGlass.GetEffect(Assert.Single(Nodes<Control>(rows[0]), c => SwiftGlass.GetEffect(c) is not null))!; // :840 .buttonStyle(.glass): the accent capsule (SettingsViewFinishWorktreesTests carries the measured geometry)
+        var revealEffect = SwiftGlass.GetEffect(Assert.Single(Button(rows[0], "Reveal").GetVisualDescendants().OfType<Control>(), c => SwiftGlass.GetEffect(c) is not null))!; // :840 .buttonStyle(.glass): the accent capsule (SettingsViewFinishWorktreesTests carries the measured geometry)
         Assert.Equal(GlassShapeKind.Capsule, revealEffect.Shape.Kind); Assert.Equal(Chrome.Accent, revealEffect.TintColor); Assert.Equal(1, revealEffect.TintOpacity); Assert.True(revealEffect.IsInteractive);
         string? path = null; using var workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend { Reveal = p => path = p });
         var reveal = Button(rows[0], "Reveal"); var trailing = ((Grid)((Border)rows[0].Child!).Child!).Children[1]; Assert.Equal(HorizontalAlignment.Right, trailing.HorizontalAlignment); Click(reveal); Sync(); Assert.Equal(Storage.WorktreesDirectory, path);

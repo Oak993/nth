@@ -16,9 +16,6 @@ namespace Marrow.App.Tests.Views.Settings;
 public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsRestFixture(headless)
 {
     // SettingsView.swift:953-956,997-1002; OD-0012 H, OD-0072: the terminal is Marrow's own, built on Windows ConPTY.
-    // STOP opencode-SettingsView-rest #2
-    // SettingsView.swift:1046-1056. PR-SETTINGS-249 needs packaging of LICENSE, THIRD_PARTY_NOTICES.md,
-    // TRADEMARK.md. Marrow.App.csproj still includes only icon.png. No packaging changes belong to this job.
 
     [Fact]
     [Trait("Req", "PR-UPDATE-082")] // App/Views/Settings/SettingsView.swift:968-1004; Chrome.swift:1012-1026,1082-1087

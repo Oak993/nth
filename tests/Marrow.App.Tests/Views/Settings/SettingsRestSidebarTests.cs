@@ -40,7 +40,7 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
             {
                 var row = Nodes<SidebarRow>(view)[index]; Check(row, index, false); var button = Assert.Single(Nodes<Button>(row)); var shape = Assert.IsType<Border>(button.Content);
                 Hover(w, button); Tick(h, 50); Ink(shape, shape.Background, Chrome.Overlay(0.06 * Animation.EaseOut(0.1).Progress(0.05))); Tick(h, 50); Ink(shape, shape.Background, Chrome.Overlay(0.06));
-                Click(w, button); row = Nodes<SidebarRow>(view)[index]; Check(row, index, true);
+                Click(w, button); Tick(h, 150); /* the wash crossfades over Chrome.hover (UI-SETTINGS-004) */ row = Nodes<SidebarRow>(view)[index]; Check(row, index, true);
                 // Selecting rebuilds the page; current selection must survive moving the pointer away.
                 w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 100); Check(row, index, true);
             }

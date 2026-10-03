@@ -73,8 +73,9 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
         {
             var titles = new[] { "General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About" }; // :4-15 declaration order, :19-32 titles
             Assert.Equal(titles, Titles(view)); var list = Field<StackPanel>(view, "rows"); Assert.Equal(1, list.Spacing); // :147 rows separated by 1pt
-            void Check(string selected)
+            void Check(string selected, double settle = 150)
             {
+                Tick(h, settle); // the wash crossfades over Chrome.hover (UI-SETTINGS-004); the checks below are of the settled look
                 var rows = Nodes<SidebarRow>(view);
                 for (var i = 0; i < rows.Length; i++)
                 {
@@ -99,12 +100,41 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             Click(w, models); Assert.Single(Nodes<ModelsSettingsPage>(view)); Check("Models"); fill = Assert.IsType<Border>(RowButton(view, "Models").Content); Hover(w, RowButton(view, "Models")); Tick(h, 150); Ink(fill, fill.Background, Chrome.Overlay(0.12));
             foreach (var title in titles.Skip(1)) { Click(w, RowButton(view, title)); Check(title); if (title == "Archive") Assert.Empty(Nodes<ChromeCompactTitle>(view)); /* :198 the empty archive is one symbol */ else Assert.Equal(title, Text(Assert.Single(Nodes<ChromeCompactTitle>(view)))[0]); }
             // :182 frozen while the pane scrolls: a wheel turn over the page holds every row away from the pointer (no hover fill, no click) until 150ms after the last movement.
-            Click(w, RowButton(view, "General")); var scroll = Assert.Single(Nodes<ScrollViewer>(Field<Control>(view, "detail"))); var at = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), w)!.Value;
+            Click(w, RowButton(view, "General")); Tick(h, 101); /* About's wash finishes fading out */ var scroll = Assert.Single(Nodes<ScrollViewer>(Field<Control>(view, "detail"))); var at = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), w)!.Value;
             Assert.True(list.IsHitTestVisible); w.MouseMove(at); w.MouseWheel(at, new Vector(0, -3)); Drain(w); Assert.True(scroll.Offset.Y > 0); Assert.False(list.IsHitTestVisible);
             var about = RowButton(view, "About"); var aboutFill = Assert.IsType<Border>(about.Content); var point = about.TranslatePoint(new Point(10, 10), w)!.Value;
             w.MouseMove(point); Drain(w); Tick(h, 30); Assert.False(about.IsPointerOver); Ink(aboutFill, aboutFill.Background, SwiftColor.Clear);
-            w.MouseDown(point, MouseButton.Left); w.MouseUp(point, MouseButton.Left); Drain(w); Assert.Single(Nodes<GeneralSettingsPage>(view)); Check("General");
+            w.MouseDown(point, MouseButton.Left); w.MouseUp(point, MouseButton.Left); Drain(w); Assert.Single(Nodes<GeneralSettingsPage>(view)); Check("General", 101); /* still inside the 150 ms freeze: a longer wait would thaw the rows and let the pointer light About */
             Tick(h, 200); Assert.True(list.IsHitTestVisible); Click(w, RowButton(view, "About")); Assert.Single(Nodes<AboutSettingsPage>(view)); Check("About");
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-004")] // App/Views/Settings/SettingsView.swift:148-164; UI/Chrome/Chrome.swift:723-724,739-745; the reference runtime (settings.sidebar-navigation: S 47.765-47.850, 124.5, 162.2, 180.5, 199.1; press.row-tile-dim: S 47.578)
+    public void Selecting_a_page_keeps_the_rows_crossfades_the_old_and_new_wash_over_chrome_hover_and_dims_the_pressed_row()
+    {
+        With(() => new SettingsView(), (view, _, h, w) =>
+        {
+            var rows = Nodes<SidebarRow>(view); Assert.Equal(10, rows.Length); var list = Field<StackPanel>(view, "rows");
+            var models = RowButton(view, "Models"); var general = RowButton(view, "General"); var modelsFill = Assert.IsType<Border>(models.Content); var generalFill = Assert.IsType<Border>(general.Content);
+            var selectedAlpha = Chrome.Overlay(0.12).Resolve(modelsFill.ActualThemeVariant).A; Assert.True(selectedAlpha > 0);
+            byte Alpha(Border fill) => Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color.A;
+            // :149 a click selects the page: the rows stay (the state is theirs, not a new set of rows), and the label's weight and ink change at once ...
+            Click(w, models); Assert.Single(Nodes<ModelsSettingsPage>(view));
+            Assert.Equal(rows, Nodes<SidebarRow>(view)); Assert.Same(models, RowButton(view, "Models")); Assert.Same(modelsFill, models.Content);
+            Font(Assert.Single(Nodes<TextBlock>(models)), 13, FontWeight.Medium); Font(Assert.Single(Nodes<TextBlock>(general)), 13, FontWeight.Normal); Assert.True(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(models)!).IsSelected); Assert.False(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(general)!).IsSelected);
+            // ... and the wash crossfades in place over Chrome.hover (0.1 s ease-out): the new row part-way up, the old row part-way down, then exact.
+            Tick(h, 40); Assert.InRange(Alpha(modelsFill), 1, selectedAlpha - 1); Assert.InRange(Alpha(generalFill), 1, selectedAlpha - 1);
+            Tick(h, 101); Ink(modelsFill, modelsFill.Background, Chrome.Overlay(0.12)); Ink(generalFill, generalFill.Background, SwiftColor.Clear);
+            // Chrome.swift:723-724 the same for a search that takes the selection to the first match: Appearance is selected while the list narrows to it.
+            var search = Assert.Single(Nodes<TextBox>(Assert.Single(Nodes<SidebarSearchField>(view)))); Type(w, search, "theme"); Assert.Equal(new[] { "Appearance" }, Titles(view)); Tick(h, 150); Ink(Assert.IsType<Border>(RowButton(view, "Appearance").Content), Assert.IsType<Border>(RowButton(view, "Appearance").Content).Background, Chrome.Overlay(0.12));
+            search.Text = ""; Drain(w); Tick(h, 150); Assert.Equal(10, Titles(view).Length);
+
+            // press.row-tile-dim (S 47.578): while the pointer holds a row its content is at 0.8 and its wash at x0.7 of what it was; letting go restores both (0.05 s in, 0.1 s out).
+            var hydra = RowButton(view, "Hydra"); var hydraFill = Assert.IsType<Border>(hydra.Content); var content = Assert.IsAssignableFrom<Control>(Assert.Single(Nodes<TextBlock>(hydra)).Parent); var at = hydra.TranslatePoint(new Point(10, 10), w)!.Value;
+            w.MouseMove(at); Drain(w); Tick(h, 150); Ink(hydraFill, hydraFill.Background, Chrome.Overlay(0.06)); Assert.Equal(1, content.Opacity);
+            w.MouseDown(at, MouseButton.Left); Drain(w); Tick(h, 51); Assert.Equal(0.8, content.Opacity, 3); Ink(hydraFill, hydraFill.Background, Chrome.Overlay(0.06).Opacity(0.7)); Assert.Single(Nodes<AppearanceSettingsPage>(view)); // pressing selects nothing yet (the search above left Appearance selected)
+            w.MouseUp(at, MouseButton.Left); Drain(w); Tick(h, 101); Assert.Equal(1, content.Opacity, 3); Ink(hydraFill, hydraFill.Background, Chrome.Overlay(0.12)); Assert.Single(Nodes<HydraSettingsPage>(view));
         });
     }
 }

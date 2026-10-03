@@ -122,6 +122,20 @@ public sealed class ChromeVisualTile : Decorator
     private Border? paddedStage;
     private TextBlock? captionBlock;
 
+    // :40-41 and :69-70 move selection and hover inside withAnimation(Chrome.hover), and the body reads isHovering and isSelected
+    // into the stage fill (:93), the ring (:97), the symbol (:89) and the caption (:80): all four ride that one transaction, so each
+    // is a colour that follows it (UI-SETTINGS-014; the reference runtime shows the ring and the fill crossfading in about 0.1 s).
+    private AnimatedColor stageFill = null!;
+    private AnimatedColor ringFill = null!;
+    private AnimatedColor symbolFill = null!;
+    private AnimatedColor captionFill = null!;
+    private bool isPressed;
+
+    private SwiftColor StageColor => Chrome.Overlay(state.IsHovering || isSelected ? 0.10 : 0.06).Opacity(isPressed ? 0.7 : 1); // :93 (x0.7 pressed: press.row-tile-dim)
+    private SwiftColor RingColor => isSelected ? Chrome.Accent : Chrome.Accent.Opacity(0); // :97 the stroke is there for the chosen tile only; a clear one fades the same colour
+    private SwiftColor SymbolColor => isSelected ? Chrome.Accent : Chrome.SecondaryText; // :89
+    private SwiftColor CaptionColor => isSelected ? Chrome.PrimaryText : Chrome.SecondaryText; // :80
+
     /// <summary>
     /// :53-63 The memberwise form that omits the optional width (<c>var width: CGFloat = regularWidth</c>, :56): the
     /// overload without the parameter, so a call that names every argument still binds to the full constructor.
@@ -146,6 +160,9 @@ public sealed class ChromeVisualTile : Decorator
         this.width = width;
         this.content = content;
         this.action = action;
+
+        stageFill = new AnimatedColor(this); ringFill = new AnimatedColor(this); symbolFill = new AnimatedColor(this); captionFill = new AnimatedColor(this);
+        stageFill.Set(StageColor, null); ringFill.Set(RingColor, null); symbolFill.Set(SymbolColor, null); captionFill.Set(CaptionColor, null);
 
         // Set accessibility properties
         // :72 .accessibilityLabel(Text(verbatim: title))
@@ -174,6 +191,18 @@ public sealed class ChromeVisualTile : Decorator
         // Track hover state to update visuals
         stack.Track(() => state.IsHovering, _ => UpdateStageVisuals());
 
+        // The plain button's pressed look (SOURCE FACT: the reference runtime, CATALOGUE press.row-tile-dim, S 21.543): the
+        // tile's content dims to 0.8 and its fill to x0.7 while the pointer holds it, 0.05 s in and 0.1 s out, ease-out.
+        var dim = new AnimatedScalar(this, 0, value => stack.Opacity = 1 - 0.2 * value);
+        button.PropertyChanged += (_, change) =>
+        {
+            if (change.Property != Button.IsPressedProperty || button.IsPressed == isPressed) return;
+            isPressed = button.IsPressed;
+            var ramp = isPressed ? Animation.EaseOut(0.05) : Animation.EaseOut(0.1);
+            dim.Set(isPressed ? 1 : 0, ramp);
+            UpdateStageBrush(ramp);
+        };
+
         Child = button;
 
         AttachedToVisualTree += (_, _) => WatchContent();
@@ -193,13 +222,13 @@ public sealed class ChromeVisualTile : Decorator
         // Create a border for the background and ring
         stageBack = new Border
         {
+            Background = stageFill.Brush,
             Width = width,
             Height = ChromeVisualTileMetrics.Height,
             CornerRadius = new CornerRadius(ChromeVisualTileMetrics.CornerRadius),
         };
 
-        // Apply the background fill: Chrome.overlay(isHovering || isSelected ? 0.10 : 0.06)
-        UpdateStageBrush();
+        // The background fill, Chrome.overlay(isHovering || isSelected ? 0.10 : 0.06), is stageFill's brush.
 
         // The content itself, built where the tile reads observable state (:44-46 the body calls preview again after
         // anything it read changes); it takes the font and colour below when installed.
@@ -212,9 +241,8 @@ public sealed class ChromeVisualTile : Decorator
             Padding = new Thickness(ChromeVisualTileMetrics.RingInset - ChromeVisualTileMetrics.RingWidth),
             BorderThickness = new Thickness(ChromeVisualTileMetrics.RingWidth),
             CornerRadius = new CornerRadius(ChromeVisualTileMetrics.CornerRadius + ChromeVisualTileMetrics.RingInset), // ChromeVisualPicker.swift:98-101 ring radius 6 + 3.
+            BorderBrush = ringFill.Brush,
         };
-
-        UpdateRing();
 
         return paddedStage;
     }
@@ -257,39 +285,21 @@ public sealed class ChromeVisualTile : Decorator
         subheadlineFont.Apply(captionBlock);
 
         // :80 .foregroundStyle(isSelected ? Chrome.primaryText : Chrome.secondaryText)
-        UpdateCaptionColor();
+        captionBlock.Foreground = captionFill.Brush;
 
         return captionBlock;
     }
 
     /// <summary>
-    /// Update the stage background brush based on the hover and selection state.
+    /// Move the stage fill to its colour for the hover, selection and press state.
     /// :93 .fill(Chrome.overlay(isHovering || isSelected ? 0.10 : 0.06))
     /// </summary>
-    private void UpdateStageBrush()
-    {
-        if (stageBack is null) return;
-        var opacity = state.IsHovering || isSelected ? 0.10 : 0.06;
-        stageBack.Background = Chrome.Overlay(opacity).Brush(this);
-    }
+    private void UpdateStageBrush(Animation? animation) => stageFill.Set(StageColor, animation);
 
     /// <summary>
-    /// Update the ring visuals.
-    /// :96-102 RoundedRectangle stroke overlay, inset 3, stroke 2, radius 9
+    /// Update the stage visuals (background) when hover changes, in the transaction that changed it.
     /// </summary>
-    private void UpdateRing()
-    {
-        if (paddedStage is null) return;
-        paddedStage.BorderBrush = isSelected ? Chrome.Accent.Brush(this) : null;
-    }
-
-    /// <summary>
-    /// Update the stage visuals (background and ring) when hover or selection changes.
-    /// </summary>
-    private void UpdateStageVisuals()
-    {
-        UpdateStageBrush();
-    }
+    private void UpdateStageVisuals() => UpdateStageBrush(Transaction.Current);
 
     /// <summary>
     /// Apply font to the content control (recursively if needed).
@@ -313,30 +323,20 @@ public sealed class ChromeVisualTile : Decorator
     }
 
     /// <summary>
-    /// Update the content (symbol) color based on selection state.
+    /// Give the content (symbol) the tile's animated ink.
     /// </summary>
     private void UpdateContentColor(Control control)
     {
-        var color = isSelected ? Chrome.Accent : Chrome.SecondaryText;
-        TextElement.SetForeground(control, color.Brush(control));
+        var brush = symbolFill.Brush;
+        TextElement.SetForeground(control, brush);
         if (control is TextBlock textBlock)
         {
-            textBlock.Foreground = color.Brush(this);
+            textBlock.Foreground = brush;
         }
         else if (control is SwiftImage image)
         {
-            image.ForegroundStyle(color); // ChromeVisualPicker.swift:89 selected accent / unselected secondaryText.
+            image.Foreground = brush; // ChromeVisualPicker.swift:89 selected accent / unselected secondaryText.
         }
-    }
-
-    /// <summary>
-    /// Update the caption (title) color based on selection state.
-    /// </summary>
-    private void UpdateCaptionColor()
-    {
-        if (captionBlock is null) return;
-        var color = isSelected ? Chrome.PrimaryText : Chrome.SecondaryText;
-        captionBlock.Foreground = color.Brush(this);
     }
 
     /// <summary>
@@ -352,17 +352,12 @@ public sealed class ChromeVisualTile : Decorator
         // Update accessibility trait
         // :73 .accessibilityAddTraits(isSelected ? .isSelected : [])
 
-        // Update stage visuals
-        UpdateStageBrush();
-        UpdateRing();
-
-        // Update content and caption colors
-        if (stageBack?.Child is Control contentControl)
-        {
-            UpdateContentColor(contentControl);
-        }
-
-        UpdateCaptionColor();
+        // The fill, ring, symbol and caption move together over the transaction the selection changed in (:40-41).
+        var animation = Transaction.Current;
+        UpdateStageBrush(animation);
+        ringFill.Set(RingColor, animation);
+        symbolFill.Set(SymbolColor, animation);
+        captionFill.Set(CaptionColor, animation);
     }
 
     /// <summary>
