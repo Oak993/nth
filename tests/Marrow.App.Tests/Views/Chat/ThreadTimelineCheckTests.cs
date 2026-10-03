@@ -23,7 +23,7 @@ public sealed class ThreadTimelineCheckTests(HeadlessSession headless)
         typeof(ThreadTimeline).GetMethod("RepairLayout", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(mount.View, null);
 
     [Fact]
-    [Trait("Req", "PR-CHAT-137")] // ThreadTimeline.swift:616-623,1137-1142 (the return to the front asks for a check), :609-615,770-803 (what the check does: the end, deferred while the reader scrolls)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-137 (what the check does for a reader pinned to the end, and its deferral): ThreadTimeline.swift:616-623,1137-1142 (the return to the front asks for a check), :609-615,770-803 (what the check does: the end, deferred while the reader scrolls); ED-NEW-parity-threadtimeline (2)
     public void The_window_coming_back_checks_the_timeline_which_puts_a_reader_pinned_to_the_end_back_on_it_and_waits_for_a_reader_who_is_scrolling() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(8, sentences: 8).ToList()); mount.Settle();
@@ -48,7 +48,7 @@ public sealed class ThreadTimelineCheckTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-137")] // ThreadTimeline.swift:616-623 (another window coming on screen, a popover or a tooltip opening over the chat included, is not the reader coming back), :1290-1350
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-137 (the record's verification method, a tooltip over the chat; the return to the front and the check's repairs are proven apart): ThreadTimeline.swift:616-623 (another window coming on screen, a popover or a tooltip opening over the chat included, is not the reader coming back), :1290-1350
     public void A_tooltip_opening_over_the_conversation_checks_nothing_and_moves_nobody() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(8, sentences: 8).ToList()); mount.Settle();
@@ -67,7 +67,7 @@ public sealed class ThreadTimelineCheckTests(HeadlessSession headless)
     }, layers: true);
 
     [Fact]
-    [Trait("Req", "PR-CHAT-137")] // ThreadTimeline.swift:770-803 (a viewport past the end of the conversation is never a valid place to be; a blank one is checked again a beat from now, three times, the last pinning the reader to the end)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-137 (the repairs of a viewport past the end and of a blank one, which ED-NEW-parity-threadtimeline (2) ports; the lazy stack's own are not ported): ThreadTimeline.swift:770-803 (a viewport past the end of the conversation is never a valid place to be; a blank one is checked again a beat from now, three times, the last pinning the reader to the end)
     public void A_check_brings_a_viewport_past_the_end_back_and_a_blank_one_is_repaired_in_three_steps_the_last_going_to_the_end() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(8, sentences: 8).ToList()); mount.Settle();

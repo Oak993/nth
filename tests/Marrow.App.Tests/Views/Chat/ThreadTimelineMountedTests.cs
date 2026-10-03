@@ -357,7 +357,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-045")] // ThreadTimeline.swift:703-707 (the followed run past eagerLimit drops back to the newest 24), :1808-1810
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (the drop-back past ninety-six only): ThreadTimeline.swift:703-707 (the followed run past eagerLimit drops back to the newest 24), :1808-1810
     public void A_followed_run_growing_past_ninety_six_blocks_drops_the_window_back_to_the_newest_twenty_four() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();
@@ -376,7 +376,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-045")] // ThreadTimeline.swift:600 (a task cancelled within its 250 ms does nothing further)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (the task's cancellation only): ThreadTimeline.swift:600 (a task cancelled within its 250 ms does nothing further)
     public void A_thread_closed_within_two_hundred_fifty_milliseconds_never_loads_its_window() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();
@@ -697,6 +697,12 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         // A popover or a tooltip opening over the chat is another window coming on screen: not the reader coming back, and the reader's place is where it was.
         mount.Scroll.Offset = new Vector(0, 100); mount.Advance(400); tracking.IsPinnedToBottom = false;
         checks = tracking.CheckRequest; var revision = monitor.Revision;
+        // A real tooltip over a row (the record's verification method): in the popup layer of the window, no window of the app, no revision, no check, no scroll.
+        var tipped = mount.Rows[1].GetVisualDescendants().OfType<TextBlock>().First();
+        ToolTip.SetTip(tipped, "A tooltip over the conversation"); ToolTip.SetIsOpen(tipped, true); mount.Advance(300);
+        Assert.True(ToolTip.GetIsOpen(tipped), "the tooltip is open");
+        Assert.Equal(revision, monitor.Revision); Assert.Equal(checks, tracking.CheckRequest); Assert.Equal(100, mount.Scroll.Offset.Y, 1); Assert.False(tracking.IsPinnedToBottom);
+        ToolTip.SetIsOpen(tipped, false); mount.Advance(300);
         other.Show(); mount.Advance(100);
         // A window becoming visible bumps for that window only (:1326-1327): this timeline's window is not it.
         Assert.False(monitor.Concerns(mount.Window)); Assert.True(monitor.Concerns(other));
@@ -725,7 +731,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         third.Show(); mount.Advance(100);
         Assert.True(monitor.Concerns(mount.Window), "the app came back: every timeline is concerned, not only the window that activated");
         third.Close();
-    });
+    }, layers: true);
 
     [Fact]
     [Trait("Req", "UI-CHAT-002")] // ThreadTimeline.swift:364-383; ChatFont.swift:6 (Font.chat(.callout), 12 pt per ED-059)

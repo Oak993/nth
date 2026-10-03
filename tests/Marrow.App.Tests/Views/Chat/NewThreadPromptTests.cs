@@ -197,6 +197,33 @@ public sealed class NewThreadPromptTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-NEW-parity-threadtimeline (3)); NewThreadPrompt.swift:50-53: the prompt's body runs as it attaches, so the frame source in force at Show() is the one its fade runs on (the fixtures that override it before Show() hold the fade still), and handing it another name does not run the fade again
+    public void The_prompt_fades_in_on_the_frame_source_in_force_when_it_attaches_and_a_new_name_does_not_fade_it_again()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var frames = new ManualFrameSource();
+            NewThreadPrompt prompt = null!; AvaloniaWindow window = null!;
+            harness.Main.OnMain(() =>
+            {
+                prompt = new NewThreadPrompt(System.Guid.NewGuid(), "Project");
+                var host = new Border { Child = prompt }; AppEnvironment.SetAppModel(host, model);
+                window = new AvaloniaWindow { Content = host };
+                using (FrameClock.Source.Override(frames)) window.Show(); // the override is gone when the frames are delivered, as it is for a test that disposes its scope
+            });
+            var content = Assert.IsAssignableFrom<Control>(prompt.Child);
+            Assert.Equal(0, content.Opacity); // held: no frame has been delivered
+            void Step() { harness.Main.Advance(System.TimeSpan.FromMilliseconds(400)); frames.Advance(System.TimeSpan.FromMilliseconds(400)); }
+            Step(); Assert.Equal(1, content.Opacity); // the manual source was the one the fade was asked of
+            harness.Main.OnMain(() => prompt.Update("Another")); Assert.Equal(1, content.Opacity); // at once: it does not start again from nothing
+            Step(); Assert.Equal(1, content.Opacity); Assert.Contains("Another", Texts(prompt));
+            harness.Main.OnMain(() => window.Close());
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-CHAT-139")] // App/Views/Chat/NewThreadPrompt.swift:75 "does nothing when the thread is already in that project"
     public void Choosing_the_current_project_does_nothing()
     {

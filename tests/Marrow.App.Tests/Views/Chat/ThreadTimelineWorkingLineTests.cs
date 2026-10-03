@@ -167,10 +167,14 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         Assert.Equal(90, AngleOf(line), 1); Assert.Single(LogicalQuery.SelfAndDescendants<WorkSteps>(line)); Assert.Equal(2, LogicalQuery.SelfAndDescendants<ToolRow>(line).Count());
         Assert.Contains("4 commands", Texts(line)); // the bar was handed the new step and went on
         Assert.True(DistanceFromEnd(mount) < 2, "and the reader following it stays at the end");
+        // :2108, :2152-2153 with nothing left to open the tooltip and the hint are empty and a press does nothing (the guard on canExpand).
+        mount.SetEntries(new[] { User("prompt", Turn, "Please make the build faster") }); mount.Advance(800);
+        Assert.Same(line, Line(mount)); Assert.Equal("", ToolTip.GetTip(Chevron(line))); Assert.Equal("", Avalonia.Automation.AutomationProperties.GetHelpText(Chevron(line)));
+        var rest = line.Bounds.Height; Click(line); mount.Advance(500); Assert.Equal(rest, line.Bounds.Height, 3); Assert.Empty(LogicalQuery.SelfAndDescendants<WorkSteps>(line));
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-121")] // ThreadTimeline.swift:2152-2153 (the tooltip and the hint are empty when nothing can open)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 (the tooltip and the hint are empty when nothing can open, and the chevron's arrival; the opening, the follow and the body are proven apart): ThreadTimeline.swift:2152-2153
     public void A_running_line_with_nothing_to_open_has_no_chevron_tooltip_or_hint_and_its_time_sits_at_the_cards_edge() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Model.Settings.ShowReasoning = true;

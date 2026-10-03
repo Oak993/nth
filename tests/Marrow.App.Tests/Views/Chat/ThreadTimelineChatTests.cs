@@ -170,7 +170,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-CHAT-006")] // ChatView.swift:1085-1104; ThreadTimeline.swift:402-409,673-677,689-712; the cousin's scroll-to-bottom button (map/CATALOGUE.md timeline.scroll-to-bottom-button)
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-006 (when it shows, the press and the hide on a followed row; the spring's values and the place are proven apart): ChatView.swift:1085-1104; ThreadTimeline.swift:402-409,673-677,689-712; the cousin's scroll-to-bottom button (map/CATALOGUE.md timeline.scroll-to-bottom-button)
     public void The_jump_button_shows_once_the_end_is_out_of_sight_glides_to_the_end_when_pressed_and_goes_at_once_when_a_row_is_followed()
         => WithChat((view, runtime, model, h, window, frames) =>
         {
@@ -222,7 +222,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
         });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-006")] // ThreadTimeline.swift:402-409 (the end sentinel's spring, response 0.38 and damping 0.78, both ways); ChatView.swift:1089-1103 (the scale, opacity and offset of each side; 10 points of bottom padding in a zero-height frame at the top of the composer)
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-006 (the spring's values both ways and the button's place; when it shows, the press and the hide are proven apart): ThreadTimeline.swift:402-409 (the end sentinel's spring, response 0.38 and damping 0.78, both ways); ChatView.swift:1089-1103 (the scale, opacity and offset of each side; 10 points of bottom padding in a zero-height frame at the top of the composer)
     public void The_jump_button_comes_and_goes_on_the_sentinels_spring_through_its_scale_opacity_and_rise_and_sits_ten_points_above_the_composer()
         => WithChat((view, runtime, model, h, window, frames) =>
         {
