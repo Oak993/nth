@@ -92,8 +92,9 @@ public class MorphingTextBlock : TextBlock
     // kept ones counted, so "Extra" of "Extra High" goes as the first five of nine. Measured on the label's drawing at the
     // video's frames (work/claude-verify/resume-2026-10-03/effort-fix-r4.takeover-probe.live.txt): "x", "t", "r", "a" at
     // 0.62-0.79 at 35.807 s; "a" 0.57 at 35.865, 0.35 at 35.887, 0.09 at 35.928, 0.05 at 35.943, 0.01 at 35.965; in the
-    // widening "r" and "a" 0.95 and 0.79 at 35.100 s, 0.10 and 0.19 at 35.207 s. Residual: the video's "a" still looks
-    // plain at 35.887 s, where the port's is at 0.35 (a later turn for it would leave it showing past 35.943 s).
+    // widening "r" and "a" 0.95 and 0.79 at 35.100 s, 0.10 and 0.19 at 35.207 s. Residual (narrowing only): the video's "a"
+    // still looks plain at 35.887 s and sits on the "h" at its baseline to 35.907 s, where the port's is at 0.35 and rising
+    // away (a later turn for it would leave it showing past 35.943 s); the widening's frames match (sbs_takeover_inc.png).
 
     private Morph? morph;
     private IFrameSource? frames;
