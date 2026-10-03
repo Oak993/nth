@@ -236,6 +236,46 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
         });
     });
 
+    // Review (2026-10-04, second round): the most common change of the pill is one standing into another when a check ends (:617-621
+    // standing: Not checked yet -> Check failed -> Up to date); its symbol and title swap like the ready face (OD-0076 content that swaps
+    // crossfades). Killed the mutation that gives every standing one look (the swap would cut).
+    [Theory]
+    [Trait("Req", "UI-SETTINGS-056")] // :625-682 the pill's three standings replace each other by a crossfade
+    [Trait("Req", "PR-SETTINGS-242")] // :586-621 the standings and the transition between them
+    [Trait("Rule", "R-TEST-4")] // partial: only the standing-to-standing crossfade
+    [InlineData(false)]
+    [InlineData(true)]
+    public void One_standing_crossfades_into_another_when_a_check_ends_and_cuts_under_Reduce_Motion(bool reduced) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var stage = new Stage(runtime);
+        AboutVersionPill pill = null!;
+        runtime.OnMain(() =>
+        {
+            pill = new AboutVersionPill(); EnvironmentValues.SetAccessibilityReduceMotion(pill, reduced); stage.Window = Show(pill);
+            Assert.Equal(1, Shown(pill, "Not checked yet"));
+            Set(stage.Checker, nameof(UpdateChecker.LastError), "No update feed is set."); Set(stage.Checker, nameof(UpdateChecker.LastCheckedAt), SwiftDate.Now);
+        });
+        runtime.OnMain(() =>
+        {
+            Dispatcher.UIThread.RunJobs();
+            if (reduced)
+            {
+                Assert.Empty(TextHosts(pill, "Not checked yet")); Assert.Equal(1, Shown(pill, "Check failed")); return;
+            }
+            stage.Step(45);
+            Assert.InRange(Shown(pill, "Not checked yet"), 0.80, 0.995); Assert.InRange(Shown(pill, "Check failed"), 0.005, 0.20);
+            stage.Step(45);
+            Assert.InRange(Shown(pill, "Not checked yet"), 0.40, 0.60); Assert.InRange(Shown(pill, "Check failed"), 0.40, 0.60);
+            stage.Step(100);
+            Assert.Empty(TextHosts(pill, "Not checked yet")); Assert.Equal(1, Shown(pill, "Check failed"));
+            Set(stage.Checker, nameof(UpdateChecker.LastError), null); Dispatcher.UIThread.RunJobs(); // the next check succeeds
+            stage.Step(90);
+            Assert.InRange(Shown(pill, "Check failed"), 0.40, 0.60); Assert.InRange(Shown(pill, "Up to date"), 0.40, 0.60);
+            stage.Step(100);
+            Assert.Empty(TextHosts(pill, "Check failed")); Assert.Equal(1, Shown(pill, "Up to date"));
+        });
+    });
+
     // ---- T3: the pill and the install slider ----
 
     [Theory]
