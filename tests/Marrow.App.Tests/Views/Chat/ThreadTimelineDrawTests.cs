@@ -126,6 +126,22 @@ public sealed class ThreadTimelineDrawTests(HeadlessSession headless)
     }, [Head(1, HydraHeadInfo.Status.Running, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), null), Head(2, HydraHeadInfo.Status.Completed, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_100)), Head(4, HydraHeadInfo.Status.Completed, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_200))]);
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 and UI-CHAT-001 (what is anchored in a row stays while the thread changes: the popover and the tooltip of a row, ThreadTimeline.swift:332-334); ED-NEW-parity-threadtimeline
+    public void A_tooltip_open_on_a_row_stays_open_while_new_entries_arrive_and_the_body_runs_again() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var entries = Turns(4, sentences: 6).ToList();
+        mount.SetEntries(entries); mount.Settle();
+        var text = mount.Rows[1].GetVisualDescendants().OfType<TextBlock>().First();
+        ToolTip.SetTip(text, "A tooltip on a row"); ToolTip.SetIsOpen(text, true); mount.Advance(300);
+        Assert.True(ToolTip.GetIsOpen(text)); Assert.Contains(mount.Window.GetVisualDescendants().OfType<TextBlock>(), shown => shown.Text == "A tooltip on a row");
+        // A message arrives, a setting the body reads changes, the body is run again: the row it is on never left the tree, so the tooltip is still there.
+        entries.AddRange(Turns(1, "late-", sentences: 6)); mount.SetEntries(entries); mount.Advance(300);
+        mount.Model.Settings.ShowReasoning = !mount.Model.Settings.ShowReasoning; mount.Advance(200); mount.Field<Action>("redraw")(); mount.Advance(200);
+        Assert.True(ToolTip.GetIsOpen(text), "the tooltip is still open"); Assert.Contains(mount.Window.GetVisualDescendants().OfType<TextBlock>(), shown => shown.Text == "A tooltip on a row");
+        ToolTip.SetIsOpen(text, false);
+    }, layers: true);
+
+    [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (a page of older blocks lands above the viewport and the rows below it stay); ThreadTimeline.swift:257-268,332-334; ED-NEW-parity-threadtimeline
     public void A_page_of_older_blocks_arriving_above_leaves_the_rows_already_there_where_they_are() => ThreadTimelineRig.Run(headless, mount =>
     {
