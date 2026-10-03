@@ -56,6 +56,15 @@ public static class TimelineMetrics
 /// <summary>The file's free functions (:31-54) and its <c>extension View</c> (:1415-1429), R-NAME-4.</summary>
 public static class TimelineRows
 {
+    private static Avalonia.Input.Cursor? textCursor;
+
+    /// <summary>The pointer over text a row lets the reader select (.textSelection(.enabled): :2121, :2124, :2152, :2394 and
+    /// the head popover's :1900-1901, :1922, :1989, :2000): the I-beam. SOURCE FACT for the notice's message, which the
+    /// reference video shows under the pointer at 2-chat-use.mov 14.74 s (CATALOG segment 15, "Pointer becomes an I-beam
+    /// over message text"); the other sites carry the same modifier. A SelectableTextBlock has no cursor of its own
+    /// (no control theme is loaded). PR-CHAT-166 windows_path.</summary>
+    internal static Avalonia.Input.Cursor TextCursor => textCursor ??= new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Ibeam);
+
     // :2023, :2449; UI/Common/Components.swift:37-40. ED-197 / O-65: shared Components.Duration is still B2.
     internal static string Duration(double interval)
     {
@@ -2460,7 +2469,7 @@ public sealed class HydraHeadStepsPopover : Decorator
     private static TextBlock SectionTitle(string title) => TimelineRows.ChatText(title, SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText); // :1950-1952
     private static SelectableTextBlock Selectable(string text, SwiftColor color) // :1897-1902, :1919-1923, :1980-2001
     {
-        var label = new SelectableTextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+        var label = new SelectableTextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Cursor = TimelineRows.TextCursor };
         ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(label); label.Foreground = color.Brush(label); return label;
     }
 
@@ -2589,7 +2598,7 @@ public sealed class ToolDetailView : Decorator
             stack.Children.Add(new ToolImagePreview(imagePath));
         if (call.Detail is { Length: > 0 } detail) // :2120-2126
         {
-            var text = new SelectableTextBlock { Text = detail, MaxLines = 12 }; // :2121, :2124 .textSelection(.enabled), :2125 .lineLimit(12)
+            var text = new SelectableTextBlock { Text = detail, MaxLines = 12, Cursor = TimelineRows.TextCursor }; // :2121, :2124 .textSelection(.enabled), :2125 .lineLimit(12)
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2122
             text.Foreground = Chrome.SecondaryText.Brush(text); // :2123
             stack.Children.Add(text);
@@ -2619,7 +2628,7 @@ public sealed class ToolDetailView : Decorator
                 if (character == '\n') lineCount++;
             }
             var outputStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = TimelineMetrics.RowSpacing }; // :2149
-            var text = new SelectableTextBlock(); // :2150, :2152 .textSelection(.enabled)
+            var text = new SelectableTextBlock { Cursor = TimelineRows.TextCursor }; // :2150, :2152 .textSelection(.enabled)
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2151
             var plate = new Border // :2153-2155 .frame(maxWidth: .infinity, alignment: .leading).padding(10)
             {
@@ -2809,16 +2818,36 @@ public sealed class PlanCard : Decorator
         private bool isShowingPlan;
         public bool IsShowingPlan { get => Read(isShowingPlan); set => Set(ref isShowingPlan, value); }
     }
-    private readonly ViewState state = new(); // :2261
+    // :2261 @State private var isShowingPlan, and ChatBadge.swift:20's @State coordinator. SwiftUI keeps both for as long as the
+    // card's identity lives: ThreadTimeline.swift:1979-1984 ForEach(groups) in TurnRunningBlock keys the card by its plan
+    // entry, whichever render of the running turn's block holds it, so a plan popover that is open stays open while the
+    // turn's other rows arrive (PR-CHAT-113). The port builds a block's rows anew whenever the block changes, so the
+    // identity's state is held per plan entry and place here, and every card built for them reads it. A card in another
+    // place (the finished turn's steps, its folded answer: :2642, :2672) is another view in SwiftUI, a new @State with its
+    // own coordinator, as the running block's card going away closes its popover. ENGINEERING DECISION.
+    private sealed class Identity
+    {
+        public readonly ViewState State = new();
+        public readonly BadgePopoverCoordinator Coordinator = new();
+    }
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TimelineEntry, Dictionary<string, Identity>> identities = new();
+    private readonly Identity identity;
+    private readonly ViewState state; // :2261, the identity's
     private readonly TimelineEntry entry;
     private readonly ThreadRuntime runtime;
     /// <param name="entry">:2258 <c>let entry: TimelineEntry</c>.</param>
     /// <param name="runtime">:2259 <c>let runtime: ThreadRuntime</c>.</param>
+    /// <param name="place">PORT-ONLY: where the card sits, which with the entry is its SwiftUI identity: the running turn's
+    /// block and the plain groups (the default), or one of the finished turn's two places.</param>
     // :2263-2316 body
-    public PlanCard(TimelineEntry entry, ThreadRuntime runtime)
+    public PlanCard(TimelineEntry entry, ThreadRuntime runtime, string place = "turn")
     {
         this.entry = entry;
         this.runtime = runtime;
+        var places = identities.GetValue(entry, _ => []);
+        if (!places.TryGetValue(place, out var found)) places[place] = found = new Identity();
+        identity = found;
+        state = found.State;
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Plan item) { Child = null; return; }
@@ -2837,7 +2866,7 @@ public sealed class PlanCard : Decorator
             }
             Child = new ChatBadge(Title(plan.ProposedPlanState), new Binding<bool>(() => box.IsShowingPlan, value => box.IsShowingPlan = value),
                 glyph: Glyph, detail: () => Detail(plan), caption: Caption(plan.ProposedPlanState), showsChevron: plan.Markdown.Length != 0,
-                needsAttention: NeedsAttention(plan.ProposedPlanState), isEnabled: plan.Markdown.Length != 0);
+                needsAttention: NeedsAttention(plan.ProposedPlanState), isEnabled: plan.Markdown.Length != 0, coordinator: identity.Coordinator);
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
@@ -3000,7 +3029,7 @@ public sealed class NoticeRow : Decorator
             var notice = item.Value;
             var row = new TimelineBaselineRow { Spacing = 8 };
             row.Children.Add(SwiftImage.SystemName(Symbol(notice.NoticeLevel)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)).ForegroundStyle(Color(notice.NoticeLevel)));
-            var message = new SelectableTextBlock { Text = notice.Message, TextWrapping = TextWrapping.Wrap };
+            var message = new SelectableTextBlock { Text = notice.Message, TextWrapping = TextWrapping.Wrap, Cursor = TimelineRows.TextCursor }; // :2394 .textSelection(.enabled)
             ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(message);
             message.Foreground = (notice.NoticeLevel == Notice.Level.Info ? SwiftColor.Secondary : SwiftColor.Primary).Brush(message);
             row.Children.Add(message);
@@ -3276,7 +3305,7 @@ public sealed class TurnFinishedBlock : Decorator
                 {
                     TimelineEntry.Kind.Assistant => new AssistantMessageRow(single.Value, null, runtime), // :2638
                     TimelineEntry.Kind.Tool => new WorkGroup(new ValueList<TimelineEntry>([single.Value]), runtime, workingDirectory), // :2640
-                    TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime), // :2642
+                    TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime, "steps"), // :2642
                     TimelineEntry.Kind.Todos => new TodoListRow(single.Value), // :2644
                     TimelineEntry.Kind.Notice => new NoticeRow(single.Value), // :2646
                     TimelineEntry.Kind.User or TimelineEntry.Kind.Reasoning or TimelineEntry.Kind.TurnEnd => null, // :2647-2648
@@ -3314,7 +3343,7 @@ public sealed class TurnFinishedBlock : Decorator
             if (entry.Item.TimelineItemContent is TimelineItem.Content.Assistant assistant && assistant.Value.Text.Length != 0)
                 column.Children.Add(new FoldedAnswerView(assistant.Value.Text, runtime));
         }
-        foreach (var entry in turn.CollapsedPlans) column.Children.Add(new PlanCard(entry, runtime)); // :2672-2674
+        foreach (var entry in turn.CollapsedPlans) column.Children.Add(new PlanCard(entry, runtime, "folded")); // :2672-2674
         foreach (var entry in turn.CollapsedNotices) column.Children.Add(new NoticeRow(entry)); // :2675-2677
         return column.Transition(SwiftTransition.Identity); // PR-CHAT-104.windows_path
     }

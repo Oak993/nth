@@ -21,6 +21,13 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class ChatBadgeTests(HeadlessSession headless)
 {
+    // An observable presented flag (PlanCard's @State isShowingPlan, TimelineRows.swift:2261): the badge's body tracks it.
+    private sealed class PresentedFlag : MainActorModel
+    {
+        private bool shown;
+        public bool Value { get => Read(shown); set => Set(ref shown, value); }
+    }
+
     [Fact]
     [Trait("Req", "PR-CHAT-140")] // App/Views/Chat/ChatBadge.swift:22-52,76-80
     public void The_badge_uses_its_title_as_its_accessibility_label_and_click_toggles_presentation()
@@ -379,6 +386,148 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             var field = Assert.Single(LogicalQuery.SelfAndDescendants<DotFieldControl>(badge));
             Assert.True(field.IsVisible);
+            window.Close();
+        });
+    }
+
+    // Review round 1 (2026-10-03): ChatBadge.Update is the one way a host (PlanCard, TimelineRows.swift:2263-2316, PR-CHAT-113)
+    // hands a badge that stays in the tree the values its body has now. Everything the badge's body derives from them
+    // follows: the label (:23-53), the pill's availability (:53 .disabled(!isEnabled)), the accessibility label and value
+    // (:78-79), the attention dot field (:54-65): the clauses of PR-CHAT-140, for the values a host gave later.
+    [Fact]
+    [Trait("Req", "PR-CHAT-140")] // ChatBadge.swift:23-65, :53, :78-79; TimelineRows.swift:2263-2316
+    public void A_badge_given_new_values_by_its_host_shows_them_in_its_label_availability_name_and_status()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presented = false;
+            var badge = new ChatBadge("Writing a plan", new Binding<bool>(() => presented, value => presented = value),
+                () => new Border { Width = 18, Height = 18 }, () => new Border(), isEnabled: false);
+            var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(badge));
+            string[] Words() => LogicalQuery.SelfAndDescendants<TextBlock>(badge).Select(text => text.Text ?? "").ToArray();
+            Assert.False(button.IsEnabled);
+            Assert.Equal("", AutomationProperties.GetItemStatus(button));
+            Assert.Contains("Writing a plan", Words());
+            Assert.Empty(LogicalQuery.SelfAndDescendants<DotFieldControl>(badge));
+
+            badge.Update("Plan ready", () => new Border { Width = 18, Height = 18 }, () => new Border(), caption: "Implement or dismiss",
+                needsAttention: true, isEnabled: true);
+            Assert.Same(button, Assert.Single(LogicalQuery.SelfAndDescendants<Button>(badge))); // the same pill, not a new one
+            Assert.True(button.IsEnabled);
+            Assert.Equal("Plan ready", AutomationProperties.GetName(button));
+            Assert.Equal("Plan ready", AutomationProperties.GetName(badge));
+            Assert.Equal("Needs your attention", AutomationProperties.GetItemStatus(button));
+            Assert.Equal("Needs your attention", AutomationProperties.GetItemStatus(badge));
+            Assert.Contains("Plan ready", Words());
+            Assert.Contains("Implement or dismiss", Words());
+            Assert.DoesNotContain("Writing a plan", Words());
+            Assert.NotEmpty(LogicalQuery.SelfAndDescendants<DotFieldControl>(badge));
+
+            badge.Update("Plan", () => new Border { Width = 18, Height = 18 }, () => new Border(), isEnabled: false);
+            Assert.False(button.IsEnabled);
+            Assert.Equal("Plan", AutomationProperties.GetName(button));
+            Assert.Equal("", AutomationProperties.GetItemStatus(button));
+            Assert.Equal("", AutomationProperties.GetItemStatus(badge));
+            Assert.Empty(LogicalQuery.SelfAndDescendants<DotFieldControl>(badge));
+        });
+    }
+
+    // ChatBadge.swift:75 .onDisappear { coordinator.close() }: SwiftUI fires it for a view that left the hierarchy, never for
+    // one that stayed (PR-CHAT-142 cancellation: the popover goes "when the view disappears"). ThreadTimeline.Draw takes
+    // each kept row out of its stack and puts it into a new one inside a single pass, so a badge is detached and attached
+    // again with nothing having disappeared; only a badge that is still out of the tree after the pass has.
+    [Fact]
+    [Trait("Req", "PR-CHAT-142")] // ChatBadge.swift:74-75; ThreadTimeline.swift:384-391
+    public void A_badge_that_is_moved_keeps_its_open_popover_and_one_that_has_left_the_tree_closes_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presenter = new RecordingPresenter();
+            using var presenterScope = Presentation.Presenter.Override(presenter);
+            var flag = new PresentedFlag();
+            var coordinator = new BadgePopoverCoordinator();
+            var badge = new ChatBadge("Plan", new Binding<bool>(() => flag.Value, value => flag.Value = value),
+                () => new Border { Width = 18, Height = 18 }, () => new Border { Width = 100, Height = 50 }, coordinator: coordinator);
+            var before = new StackPanel { Children = { badge } };
+            var after = new StackPanel();
+            var window = new AvaloniaWindow { Content = new StackPanel { Children = { before, after } }, Width = 400, Height = 300 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            _ = AppCurrentEvent.CurrentWindow;
+            window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+
+            runtime.OnMain(() => Assert.Single(LogicalQuery.SelfAndDescendants<Button>(badge)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent))); // the flag is main-actor state; its Track runs on the main loop too
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(coordinator.IsShown);
+            var popup = Assert.Single(presenter.Calls, call => call.Presented).Popup;
+
+            // Taken out of one stack and put into another in the same pass: the badge never disappeared.
+            before.Children.Remove(badge);
+            after.Children.Add(badge);
+            window.UpdateLayout();
+            runtime.RunUntilIdle();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(coordinator.IsShown, "the open popover closed when its badge was only moved");
+            Assert.True(presenter.Calls.Last(call => ReferenceEquals(call.Popup, popup)).Presented);
+
+            // Out of the tree for good: the popover goes with the badge.
+            after.Children.Remove(badge);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(coordinator.IsShown);
+            Assert.False(presenter.Calls.Last(call => ReferenceEquals(call.Popup, popup)).Presented);
+            window.Close();
+        });
+    }
+
+    // :20 the coordinator is the badge's @State: a host whose identity outlives the control (PlanCard) rebuilds the control
+    // over the coordinator it keeps, and the popover that is open is still the one popover, with the new badge now the view
+    // it hangs from. The old badge leaving does not close it; the new one leaving does.
+    [Fact]
+    [Trait("Req", "PR-CHAT-142")] // ChatBadge.swift:20, :74-75
+    public void A_popover_open_over_a_coordinator_outlives_the_badge_that_opened_it_while_another_badge_is_over_that_coordinator()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presenter = new RecordingPresenter();
+            using var presenterScope = Presentation.Presenter.Override(presenter);
+            var flag = new PresentedFlag();
+            var coordinator = new BadgePopoverCoordinator();
+            ChatBadge Make() => new("Plan", new Binding<bool>(() => flag.Value, value => flag.Value = value),
+                () => new Border { Width = 18, Height = 18 }, () => new Border { Width = 100, Height = 50 }, coordinator: coordinator);
+            var first = Make();
+            var host = new StackPanel { Children = { first } };
+            var window = new AvaloniaWindow { Content = host, Width = 400, Height = 300 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            _ = AppCurrentEvent.CurrentWindow;
+            window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+            runtime.OnMain(() => Assert.Single(LogicalQuery.SelfAndDescendants<Button>(first)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent))); // the flag is main-actor state; its Track runs on the main loop too
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(coordinator.IsShown);
+            var shown = presenter.Calls.Count(call => call.Presented);
+
+            // The host builds the badge again (a new control for the same identity) and drops the old one.
+            var second = Make();
+            host.Children.Clear();
+            host.Children.Add(second);
+            window.UpdateLayout();
+            runtime.RunUntilIdle();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(coordinator.IsShown, "the open popover closed when the host replaced its badge");
+            Assert.Equal(shown, presenter.Calls.Count(call => call.Presented)); // and was not shown a second time
+            Assert.True(flag.Value);
+
+            // The replacement leaves: now the popover goes.
+            host.Children.Clear();
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(coordinator.IsShown);
             window.Close();
         });
     }

@@ -5,6 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.VisualTree;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -54,17 +55,22 @@ internal sealed class RightClickPopoverModifier
         });
 
         // :6 @State private var anchor and :13-18 .popover(isPresented:) both belong to the row's own view: when the row
-        // leaves the hierarchy (scrolled out of the timeline's lazy stack) its state goes, and the popover with it. The
-        // popover must not hold the row as its target after that, or an open menu would pin the row, its entry and its
-        // text (TimelineRows.swift:56-62, :165-178; PR-CHAT-161).
-        content.DetachedFromVisualTree += (_, _) =>
+        // leaves the hierarchy (a block of the timeline going, a thread closing) its state goes, and the popover with it.
+        // The popover must not hold the row as its target after that, or an open menu would pin the row, its entry and its
+        // text (TimelineRows.swift:56-62, :165-178; PR-CHAT-161). ENGINEERING DECISION: a row that stays in the timeline
+        // keeps its @State (the 1.7.0 timeline is an eager VStack, ThreadTimeline.swift:384-391), so a row that is merely
+        // moved is not gone. ThreadTimeline.Draw takes every kept row out of its old stack and puts it into a new one on
+        // each change of the thread, inside one synchronous pass: the row is gone only if it is still out of the tree once
+        // that pass is over (the same reading of onDisappear as BadgePopoverCoordinator.Disappear).
+        content.DetachedFromVisualTree += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
+            if (content.IsAttachedToVisualTree()) return;
             popover.PlacementTarget = null;
             if (!shown) return;
             shown = false;
             popover.Child = null;
             Presentation.Presenter.Current.SetPresented(popover, false);
-        };
+        });
 
         // :14 .popover isPresented: anchor == nil closes the popover
         popover.Closed += (_, _) =>

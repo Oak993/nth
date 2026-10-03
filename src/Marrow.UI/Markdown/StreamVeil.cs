@@ -298,7 +298,10 @@ public sealed class VeiledText : Decorator
     // bubble, a code block's text) sits under MarkdownBlockSelection, whose live branch is .textSelection(.enabled)
     // (:890-899; the environment value has no writer, dead_code.md 30): its text is selectable in its own block, so it is
     // drawn by a SelectableTextBlock, with the system's selected-text colour as ParagraphTextPresenter uses (PR-CHAT-166).
-    private readonly TextBlock textBlock = new SelectableTextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+    // The I-beam a selectable text shows (a SelectableTextBlock has no cursor of its own with no control theme loaded):
+    // the reference video shows it over selectable timeline text, 2-chat-use.mov 14.74 s (PR-CHAT-166 windows_path).
+    private static readonly Avalonia.Input.Cursor TextCursor = new(Avalonia.Input.StandardCursorType.Ibeam);
+    private readonly TextBlock textBlock = new SelectableTextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap, Cursor = TextCursor };
     private readonly bool hasSegments;
     private bool isRedrawing;
     private bool wasFading;

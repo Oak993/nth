@@ -3350,7 +3350,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // PR-CHAT-113 full proof: TimelineRowsParityScenarioTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:2287
+    // Partial proof PR-CHAT-113 (STOP #11, record/source conflict): the streaming flag is the drafting state alone; App/Views/Chat/TimelineRows.swift:2287
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_drafting_plan_renders_with_the_streaming_markdown_and_a_proposed_one_with_the_finished_prose()
     {
@@ -4544,7 +4544,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // STOP App.Views.Chat.TimelineRows #6: RESOLVED 2026-10-03 (parity pass). PR-CHAT-166's real pointer drags across a reply's
 // prose run, its code block and a bubble are in TimelineRowsParityScenarioTests; the drag exposed that VeiledText (the code
 // block's text and every link-free bubble or paragraph) was a plain TextBlock, fixed to the SelectableTextBlock that
-// MarkdownBlockSelection's .textSelection(.enabled) asks for (MarkdownView.swift:318, :1131, :1229).
+// MarkdownBlockSelection's .textSelection(.enabled) asks for (MarkdownView.swift:318, :1131, :1229). Adversarial review round 1
+// (2026-10-03): those selectable texts, the notice's message and a tool's detail and output also carry the I-beam the reference
+// video shows over selectable timeline text (2-chat-use.mov 14.74 s), and a selection in a bubble or a code block is drawn.
 //
 // STOP App.Views.Chat.TimelineRows #7 (review fixes, 2026-09-27; checked again 2026-10-03)
 // Kind: source conflict, needs a lead ruling (with STOP opencode #3 in TimelineRowsPrSourceConflictTests).
@@ -4604,12 +4606,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Swift: App/Views/Chat/TimelineRows.swift:1-2859; exact member ranges remain beside each partial-proof test.
 // Proven and removed from this note on 2026-10-03 (mounted scenarios, captures and mutations in TimelineRowsParityScenarioTests,
 // TimelineRowsTimelineScenarioTests and TimelineRowsCaptureTests, or the earlier Req tests re-verified by mutation):
-// PR-CHAT-077, -080, -089, -105, -106, -113, -123, -125, -144, -155, -166; PR-GIT-122, -151, -152;
-// PR-HYDRAMERGE-088, -090, -104, -105.
+// PR-CHAT-077, -080, -089, -105, -106, -123, -125, -144, -155, -166; PR-GIT-122, -151, -152;
+// PR-HYDRAMERGE-088, -090, -104, -105. (PR-CHAT-113 was listed here and is back below after the adversarial review of
+// 2026-10-03: a record/source conflict.)
 // Records: PR-CHAT-020; PR-CHAT-078; PR-CHAT-079; PR-CHAT-082; PR-CHAT-088.
 // Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
 // Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-108; PR-CHAT-109.
-// Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-114; PR-CHAT-115.
+// Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
 // Records: PR-CHAT-116; PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
 // Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.
 // Records: PR-CHAT-153; PR-CHAT-154; PR-CHAT-161; PR-COMPOSER-211.
@@ -4629,8 +4632,29 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // PR-CHAT-149: the streamed fixture is read flush by flush and never shows JSON (TimelineRowsParityScenarioTests), but the
 // card's changes do not animate with Chrome.panelSlide (:703-704): every flush rebuilds the reply's MarkdownView and a new
 // card, where SwiftUI keeps the card's identity. Needed: block identity kept across streaming re-renders (UI.Markdown).
-// PR-CHAT-161: a row's open menu now lets go of the row when it scrolls away (MessagePopoverMenu fix, structural test);
-// the GC release asked for cannot be observed headless: Avalonia 12.1.2 keeps any element that took a pointer press
-// reachable after it leaves the tree (a bare Border the same way), so the record's unit stays unproven by GC.
+// PR-CHAT-113: record vs source. The record's action is "the popover is open while the markdown arrives" and its result
+// that the plan "switches to the finished-prose surface the moment the state leaves drafting". The pinned source freezes
+// the popover's content when it opens (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147: the hosted
+// view is built once, from the plan as it was), so an open popover never switches; only one opened again builds the
+// finished surface (:2287). The port reproduces the source (TimelineRowsParityScenarioTests.A_plan_opened_while_drafting_...,
+// a Rule test for that reason), and the record needs correcting before a Req test can claim it. Proven and unaffected by the
+// conflict: the streaming flag is the drafting state alone (:2287); the open popover survives the plan's own updates
+// (ChatBadge.Update) and, on the real timeline, the running turn's other rows arriving (a PlanCard keeps one identity per plan
+// entry: TimelineRowsParityReviewTests.REVIEW_An_open_plan_popover_stays_open_on_the_real_timeline_...).
+// PR-CHAT-161: a row's open menu lets go of the row when the row is gone (MessagePopoverMenu fix, structural test: a row
+// only moved to another stack, as ThreadTimeline.Draw does on every change, keeps its menu); the GC release asked for cannot
+// be observed headless: Avalonia 12.1.2 keeps any element that took a pointer press reachable after it leaves the tree (a
+// bare Border the same way), so the record's unit stays unproven by GC.
+// Observed (measured, not inferred), outside this unit (ThreadTimeline.Draw), not a clause of PR-CHAT-087/-089: a real Avalonia Popup closes itself in
+// the Remove call that takes its placement target out of the tree (probed 2026-10-03 with the overlay presenter, the row's
+// handler disabled too), and the right-click menu's target is the row. ThreadTimeline.Draw takes every kept row out of its
+// stack and puts it into a new one on each change of the thread, so on the real timeline an open reply menu still closes
+// when another row arrives, although the row's own handler no longer closes it (TimelineRowsParityReviewTests holds the
+// recording presenter's half). Badge popovers hang from the window, so the plan popover is not affected (the overlay-presenter
+// tests of TimelineRowsParityScenarioTests). Needed: ThreadTimeline.Draw keeping its kept rows in place, as the eager VStack
+// does (ThreadTimeline.swift:384-391); a change to the ThreadTimeline unit's draw and scroll anchoring, not made here.
 // No production defect is inferred from a missing proof. No tests, assertions, source-derived expectations,
-// Rule/Decision/Oracle traits, or passing fully proven Req traits were removed.
+// Rule/Decision/Oracle traits, or passing fully proven Req traits were removed. Round 1 of the adversarial review
+// (2026-10-03) withdrew the Req trait of two tests that claimed PR-CHAT-113 in full (they are Rule R-TEST-4 partial proofs
+// now), strengthened the assertions behind UI-CHAT-063/-064 (the room reserved beside the outcome is exactly 24) and the
+// pencil fade (the ease-out curve), and added PR-CHAT-080's Req trait to the pencil test that asserts the hover prefetch.

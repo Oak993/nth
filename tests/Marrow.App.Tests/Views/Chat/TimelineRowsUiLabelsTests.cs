@@ -176,6 +176,12 @@ public sealed class TimelineRowsUiLabelsTests(HeadlessSession headless)
                 // :1774 HStack(spacing: iconSpacing) { badge; Spacer(minLength: 8); outcome }: the stack puts its 8 points on
                 // both sides of the spacer, so the tightest gap is 8 + 8 + 8 = 24 (a truncated subject may end a little short).
                 Assert.True(line.Bounds.Left - other.Bounds.Right >= 24 - 0.5, $"gap {line.Bounds.Left - other.Bounds.Right}"); // :1832 Spacer(minLength:8)
+                // Review round 1: that is only a floor, and a spacer wider than the minimum satisfies it too. The room the layout
+                // reserves between the two (what each one's slot holds beyond its own bounds: the badge's right side, the
+                // outcome's left side) is exactly the 8 + 8 + 8, however much of the subject the width lets through. Layout
+                // rounding moves a bound by under a point; a spacer of 16 reserves 32.
+                var reserved = (other.DesiredSize.Width - other.Bounds.Width) + (line.DesiredSize.Width - line.Bounds.Width);
+                Assert.True(Math.Abs(reserved - 24) <= 1, $"reserved {reserved} between the badge and the outcome, not 8 + 8 + 8"); // :1774, :1832
                 Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(line));
             }
             }

@@ -6,6 +6,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -32,11 +34,14 @@ public sealed class ChatBadge : Decorator
         string? caption = null,
         bool showsChevron = true,
         bool needsAttention = false,
-        bool isEnabled = true)
+        bool isEnabled = true,
+        BadgePopoverCoordinator? coordinator = null)
     {
         this.detail = detail;
-        // :20-21
-        var coordinator = new BadgePopoverCoordinator();
+        // :20-21 @State private var coordinator. PORT-ONLY (ED-095 form): a host whose own view identity outlives the badge
+        // control (PlanCard, kept by ForEach(groups) in SwiftUI while the port rebuilds the block that holds it) hands in
+        // the coordinator it keeps for that identity, so a popover that is open stays the same popover.
+        var held = coordinator ?? new BadgePopoverCoordinator();
 
         button = PlainControls.Button(Label(title, glyph, caption, showsChevron, needsAttention),
             () => isPresented.Value = !isPresented.Value); // :23 Button { isPresented.toggle() }
@@ -48,24 +53,24 @@ public sealed class ChatBadge : Decorator
         Describe(title, needsAttention, isEnabled);
 
         // :66
-        button.WindowRectAnchor(coordinator.SetAnchor);
+        button.WindowRectAnchor(held.SetAnchor);
 
         // :67-73
         button.Track(() => isPresented.Value, shown =>
         {
             if (shown)
             {
-                if (!coordinator.IsShown) coordinator.Show(this.detail().PresentedChrome()); // :69
+                if (!held.IsShown) held.Show(this.detail().PresentedChrome()); // :69
             }
             else
             {
-                coordinator.Close(); // :71
+                held.Close(); // :71
             }
         });
 
-        // :74-75
-        button.AttachedToVisualTree += (_, _) => coordinator.OnClose = () => isPresented.Value = false;
-        button.DetachedFromVisualTree += (_, _) => coordinator.Close();
+        // :74-75 .onAppear { coordinator.onClose = ... } and .onDisappear { coordinator.close() }
+        button.AttachedToVisualTree += (_, _) => held.Appear(button, () => isPresented.Value = false);
+        button.DetachedFromVisualTree += (_, _) => held.Disappear(button);
 
         // :76-79
         var aligned = new Border
@@ -240,6 +245,29 @@ public sealed class BadgePopoverCoordinator
 
     // :123. A `(() -> Void)?` is an Action?.
     public Action? OnClose { get; set; }
+
+    // The badge control that last appeared over this coordinator (the view whose onAppear/onDisappear it follows).
+    private Control? presence;
+
+    /// <summary>:74 <c>.onAppear { coordinator.onClose = { isPresented = false } }</c>, for the badge control now in the tree.</summary>
+    internal void Appear(Control view, Action onClose)
+    {
+        presence = view;
+        OnClose = onClose;
+    }
+
+    /// <summary>:75 <c>.onDisappear { coordinator.close() }</c>. ENGINEERING DECISION: SwiftUI's onDisappear fires when the view
+    /// has left the hierarchy; it never fires for a view that merely moved. The port's timeline lays its rows out again
+    /// by taking each kept row out of its old stack and putting it into a new one (ThreadTimeline.Draw), so a badge is
+    /// detached and attached again inside one synchronous pass. The badge has disappeared only if, once the pass is over,
+    /// no control is attached over this coordinator any more: another badge that appeared over it (a host's rebuilt copy
+    /// of the same identity) or the same badge back in the tree is the view still being there.</summary>
+    internal void Disappear(Control view) => Dispatcher.UIThread.Post(() =>
+    {
+        if (!ReferenceEquals(presence, view) || view.IsAttachedToVisualTree()) return;
+        presence = null; // the detached control is not kept alive by the identity's coordinator
+        Close();
+    });
 
     // :125-130
     public BadgePopoverCoordinator()

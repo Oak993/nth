@@ -171,6 +171,58 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
         });
     });
 
+    // Review round 1 (2026-10-03): the other half of the structural proof above. ThreadTimeline.Draw takes every kept row out of
+    // its old stack and puts it into a new one on each change of the thread; SwiftUI keeps such a row's @State (eager VStack,
+    // ThreadTimeline.swift:384-391), so its open menu stays open. Only a row that is still out of the tree after the pass is gone.
+    // This isolates the row's own handler, so it runs on the recording presenter: a real Avalonia Popup closes itself the moment
+    // its placement target leaves the tree (probed 2026-10-03: the overlay popup reports IsOpen false inside the Remove call, with
+    // this handler disabled too), which no handler of the row can prevent. That limit is in STOP #11 (TimelineRowsTests).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // TimelineRows.swift:56-62, :165-178, :1415-1429; MessagePopoverMenu.swift:4-18; ThreadTimeline.swift:384-391
+    public void A_rows_own_handler_keeps_its_open_menu_while_the_row_is_only_moved_to_another_stack_and_ends_it_once_the_row_is_gone() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var before = new StackPanel { Spacing = 40 };
+        var after = new StackPanel { Spacing = 40 };
+        AvaloniaWindow window = null!;
+        h.Main.OnMain(() =>
+        {
+            window = Show(new StackPanel { Children = { before, after } });
+            try
+            {
+                foreach (var user in new[] { true, false })
+                {
+                    var entry = user ? UserEntry("a message with a menu", Guid.NewGuid()) : Reply("a reply with a menu");
+                    Control row = user ? new UserMessageRow(entry, h.Runtime, canRevert: true) : new AssistantMessageRow(entry, null, h.Runtime);
+                    before.Children.Add(row);
+                    Settle(window);
+                    Control target = user ? LogicalQuery.SelfAndDescendants<InlineText>(row).Single() : LogicalQuery.SelfAndDescendants<MarkdownView>(row).Single();
+                    RightClick(window, target);
+                    var popup = presenter.Calls.Last(call => call.Presented).Popup;
+                    Assert.NotNull(popup.Child);
+                    var calls = presenter.Calls.Count;
+
+                    before.Children.Remove(row); // taken out of one stack and put into another, as ThreadTimeline.Draw does
+                    after.Children.Add(row);
+                    Settle(window);
+                    Assert.DoesNotContain(presenter.Calls.Skip(calls), call => ReferenceEquals(call.Popup, popup) && !call.Presented);
+                    Assert.NotNull(popup.PlacementTarget);
+                    Assert.NotNull(popup.Child);
+
+                    after.Children.Remove(row); // and now it is gone
+                    Settle(window);
+                    Assert.Contains(presenter.Calls.Skip(calls), call => ReferenceEquals(call.Popup, popup) && !call.Presented);
+                    Assert.Null(popup.PlacementTarget);
+                    Assert.Null(popup.Child);
+                }
+            }
+            finally { Close(window); }
+        });
+    });
+
     // ---------------------------------------------------------------- PR-CHAT-144
 
     [Fact]
@@ -221,6 +273,20 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
 
     // ---------------------------------------------------------------- PR-CHAT-080 under OD-0076
 
+    // SwiftUI's easeOut is the cubic Bezier (0, 0, 0.58, 1): the progress at a fraction of the duration, found independently
+    // of the port's own timing code (x(t) solved by bisection, then y(t)).
+    private static double EaseOutProgress(double fraction)
+    {
+        static double Bezier(double t, double p1, double p2) => 3 * (1 - t) * (1 - t) * t * p1 + 3 * (1 - t) * t * t * p2 + t * t * t;
+        double low = 0, high = 1;
+        for (var step = 0; step < 60; step++)
+        {
+            var mid = (low + high) / 2;
+            if (Bezier(mid, 0, 0.58) < fraction) low = mid; else high = mid;
+        }
+        return Bezier((low + high) / 2, 0, 1);
+    }
+
     private static Control PencilLine(UserMessageRow row) =>
         row.GetVisualDescendants().OfType<Control>().Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
 
@@ -251,7 +317,9 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
             });
             frames.Advance(TimeSpan.Zero);
             Step(60);
-            h.Main.OnMain(() => Assert.InRange(PencilLine(row).Opacity, 0.01, 0.99));
+            // Halfway through the 0.12 s fade, on the ease-out curve (:1381 .easeOut(duration: 0.12)): 0.68 of the way, not the
+            // half a linear fade would have reached, nor the third an ease-in would.
+            h.Main.OnMain(() => Assert.Equal(EaseOutProgress(0.5), PencilLine(row).Opacity, 0.05));
             Step(80);
             h.Main.OnMain(() =>
             {
@@ -262,7 +330,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
             });
             frames.Advance(TimeSpan.Zero);
             Step(60);
-            h.Main.OnMain(() => Assert.InRange(PencilLine(row).Opacity, 0.01, 0.99));
+            h.Main.OnMain(() => Assert.Equal(1 - EaseOutProgress(0.5), PencilLine(row).Opacity, 0.05)); // and out, on the same curve
             Step(80);
             h.Main.OnMain(() =>
             {
@@ -282,8 +350,12 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // content it was opened with (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147) while the
     // badge's own label follows the plan. Opening it again builds the detail from the plan as it now is: the drafting
     // plan rendered by the streaming renderer, the proposed one by the finished surface with its two buttons (:2287).
+    // Review round 1 (2026-10-03): this is the SOURCE's behaviour, and the record words it differently: PR-CHAT-113 expects the
+    // open popover to switch to the finished-prose surface "the moment the state leaves drafting", while the pinned source
+    // freezes the popover's content when it opens, so only a popover opened again switches. A record/source conflict (STOP #11),
+    // not a Req proof.
     [Fact]
-    [Trait("Req", "PR-CHAT-113")] // TimelineRows.swift:2263-2316, :2287; ChatBadge.swift:20, :67-75, :138-147
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11); TimelineRows.swift:2263-2316, :2287; ChatBadge.swift:20, :67-75, :138-147
     public void A_plan_opened_while_drafting_keeps_its_popover_through_the_switch_to_proposed_and_reopens_on_the_finished_surface() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -347,6 +419,151 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
     });
 
+    // PR-CHAT-113 review round 1 (2026-10-03): the card is one identity for as long as the plan is a row of the running turn
+    // (ThreadTimeline.swift:1979-1984 ForEach(groups) in TurnRunningBlock), whichever render of the block holds it, so the
+    // popover the reader opened is not closed by the turn's other rows arriving. The port builds the block's rows anew,
+    // and with them a new PlanCard for the same plan entry: the popover is the identity's, not the control's. The same
+    // scenario on the real timeline is REVIEW_An_open_plan_popover_stays_open_on_the_real_timeline_while_the_turn_keeps_streaming.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11); TimelineRows.swift:2261, :2263-2316; ChatBadge.swift:20, :74-75; ThreadTimeline.swift:1979-1984
+    public void An_open_plan_popover_survives_the_card_being_built_again_for_the_same_plan_and_goes_when_the_card_does() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presenter = new TimelineRowsPrPopupPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var entry = new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.Plan(new ProposedPlan
+            { Markdown = "First paragraph.", ProposedPlanState = ProposedPlan.State.Drafting })));
+        var host = new StackPanel();
+        AvaloniaWindow window = null!;
+        Popup popup = null!;
+        PlanCard second = null!;
+        PlanCard third = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                _ = AppCurrentEvent.CurrentWindow; // the badge's window anchor reads the current event's window
+                host.Children.Add(new PlanCard(entry, h.Runtime));
+                window = Show(host);
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(Assert.Single(host.Children)).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                popup = presenter.Calls.Last(call => call.Presented).Popup;
+                Assert.True(popup.IsOpen);
+                // The running turn's block is built again: the old card is dropped, a new one is made for the same plan.
+                host.Children.Clear();
+                second = new PlanCard(entry, h.Runtime);
+                host.Children.Add(second);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.True(popup.IsOpen, "the open plan popover closed when its card was built again");
+                Assert.Single(presenter.Calls, call => call.Presented); // the same popover, never shown a second time
+                // The new card's pill is the one that now toggles it: a click shuts it.
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(second).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.False(popup.IsOpen);
+                // And opens it again, from the new card.
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(second).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                var reopened = presenter.Calls.Last(call => call.Presented).Popup;
+                Assert.True(reopened.IsOpen);
+                // The turn ends: the running block's card goes and the finished turn's folded answer shows the plan in a card of
+                // its own (:2672-2674), another view in SwiftUI with a state and a coordinator of its own. The old popover goes
+                // with the old card, and the new card starts shut.
+                host.Children.Clear();
+                third = new PlanCard(entry, h.Runtime, "folded");
+                host.Children.Add(third);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.False(presenter.Calls.Last().Presented);
+                Assert.False(presenter.Calls.Last().Popup.IsOpen);
+                Assert.Equal(2, presenter.Calls.Count(call => call.Presented)); // shown twice so far, the second time from the new card's pill
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(third).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.Equal(3, presenter.Calls.Count(call => call.Presented)); // the folded card opens a popover of its own
+                // The card leaves the timeline for good: the popover goes with it.
+                host.Children.Clear();
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.False(presenter.Calls.Last().Presented);
+                Assert.False(presenter.Calls.Last().Popup.IsOpen);
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
+    });
+
+    // The other half of that identity is its place. The running turn's block is one view in SwiftUI, and the finished turn's
+    // folded answer another (ThreadTimeline.swift:1950-1957 against TimelineRows.swift:2664-2674), so when the turn ends the
+    // plan card of the running block goes with its popover and the folded answer's card is a new view with a state of its own.
+    // The port's per-plan state must not follow the plan from the one into the other.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11); TimelineRows.swift:2261, :2664-2674; ChatBadge.swift:20, :74-75
+    public void A_plan_popover_open_in_the_running_turn_goes_when_the_turn_folds_and_the_folded_answers_card_starts_shut() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presenter = new TimelineRowsPrPopupPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var turn = Guid.NewGuid();
+        var plan = PlanEntry(ProposedPlan.State.Proposed, turn: turn);
+        var host = new Border();
+        AvaloniaWindow window = null!;
+        Popup running = null!;
+        TurnFinishedBlock block = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                _ = AppCurrentEvent.CurrentWindow; // the badge's window anchor reads the current event's window
+                host.Child = new PlanCard(plan, h.Runtime) { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+                window = Show(host);
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(host.Child).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                running = presenter.Calls.Last(call => call.Presented).Popup;
+                Assert.True(running.IsOpen);
+                // The turn ends and folds: tool, answer, then the plan, which the folded answer shows after the reply.
+                block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), new ValueList<TimelineEntry>([UserEntry("do it", turn)]),
+                    new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Command, "make"), turn), Reply("```\nthe answer\n```"), plan]),
+                    null, canUndo: false, chronological: false);
+                host.Child = block;
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.False(running.IsOpen, "the running turn's plan popover stayed open over the folded answer's card");
+                Assert.Single(presenter.Calls, call => call.Presented); // and the new card did not show one of its own
+                var folded = Assert.Single(block.GetVisualDescendants().OfType<PlanCard>());
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(folded).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.Equal(2, presenter.Calls.Count(call => call.Presented)); // the folded card opens a popover of its own
+                Assert.True(presenter.Calls.Last(call => call.Presented).Popup.IsOpen);
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
+    });
+
     // ---------------------------------------------------------------- PR-CHAT-166
 
     private static void Drag(AvaloniaWindow window, Control fromControl, Point from, Control toControl, Point to)
@@ -397,6 +614,69 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 // The sent bubble selects inside itself too (:123).
                 Drag(window, words, new Point(1, words.Bounds.Height / 2), words, new Point(words.Bounds.Width - 1, words.Bounds.Height / 2));
                 Assert.Equal("plain words in a bubble", words.SelectedText);
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
+    });
+
+    // Review round 1 (2026-10-03): a text the reader can select shows the I-beam (the reference video, 2-chat-use.mov 14.74 s,
+    // under the error notice's message; REVIEW_The_pointer_is_an_I_beam_over_selectable_notice_bubble_and_code_text_as_over_a_replys_prose
+    // holds the notice, the bubble and a code block). The same .textSelection(.enabled) is on a tool's detail line and its output
+    // (:2121, :2124, :2152): both are SelectableTextBlocks, which carry no cursor of their own with no control theme loaded.
+    [Fact]
+    [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:2121, :2124, :2152
+    public void The_pointer_is_an_I_beam_over_the_selectable_detail_and_output_of_a_tool() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        AvaloniaWindow window = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var tool = new ToolDetailView(new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "cat", ToolCallStatus = ToolCall.Status.Completed,
+                    Detail = "cat notes.txt", Output = "the printed result" });
+                window = Show(tool);
+                var texts = tool.GetVisualDescendants().OfType<SelectableTextBlock>().ToArray();
+                Assert.Equal(["cat notes.txt", "the printed result"], texts.Select(text => text.Text ?? "").ToArray());
+                foreach (var text in texts)
+                {
+                    Hover(window, text);
+                    Assert.Equal("Ibeam", text.Cursor?.ToString());
+                }
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
+    });
+
+    // PR-CHAT-166 / PR-CHAT-077: the veiled text of a bubble or a code block is selectable, and a selection must be drawn. The
+    // SelectionBrush of a SelectableTextBlock is null with no control theme loaded, so a drag selected text that never showed
+    // it (the same default LinkParagraphView's presenter overrides, ProseRunViewTests A_selection_paints_something_the_unselected_frame_does_not).
+    [Fact]
+    [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:123; MarkdownView.swift:318, :1131, :1229
+    public void A_selection_in_a_bubble_and_in_a_code_block_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        AvaloniaWindow window = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var reply = new AssistantMessageRow(Reply("```\nlet code = 1\n```"), null, h.Runtime);
+                var bubble = new UserMessageRow(UserEntry("plain words in a bubble", Guid.NewGuid()), h.Runtime, canRevert: false);
+                window = Show(new StackPanel { Spacing = 40, Children = { reply, bubble } });
+                Settle(window);
+                var code = Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<SelectableTextBlock>());
+                var words = Assert.Single(bubble.GetVisualDescendants().OfType<SelectableTextBlock>());
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
+                foreach (var (text, expected) in new[] { (code, "let code = 1"), (words, "plain words in a bubble") })
+                {
+                    Assert.Equal(system, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(text.SelectionBrush).Color);
+                    text.SelectAll();
+                    Assert.Equal(expected, text.SelectedText);
+                }
             });
         }
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
