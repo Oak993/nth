@@ -73,7 +73,8 @@ public sealed class ComposerArea : Decorator
         // :28-31 the tab slot and the pill, the tab drawn under the pill's top 14 points.
         var group = new StackPanel { Orientation = Orientation.Vertical, Spacing = -ThreadChangesTab.Overlap };
         group.Children.Add(new TabSlot(runtime, diffPopover, showsChanges)); // :29
-        group.Children.Add(new ComposerView(runtime, workingDirectory, compactModelChip, takesFocusOnAppear)); // :30
+        var pill = new ComposerView(runtime, workingDirectory, compactModelChip, takesFocusOnAppear);
+        group.Children.Add(pill); // :30
 
         // :32-38 two backgrounds; the later one sits behind the earlier.
         var layers = new Grid();
@@ -87,6 +88,8 @@ public sealed class ComposerArea : Decorator
             });
         }
         layers.Children.Add(new AttachmentAnchorCapture(view => diffPopover.SetFallbackAnchor(view))); // :32-34
+        // PORT-ONLY, owner-ruled (OD-0089, ED-251): the composer light, over the group's glass, under the tab and the pill
+        layers.Children.Add(new ComposerLightSlot(runtime, pill));
         layers.Children.Add(group);
         layers.AttachedToVisualTree += (_, _) => Appear();
         layers.DetachedFromVisualTree += (_, _) => Disappear();

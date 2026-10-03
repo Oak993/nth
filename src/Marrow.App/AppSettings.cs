@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Avalonia;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
+using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Providers;
@@ -301,6 +302,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         public const string HydraPairs = "hydraPairs";
         public const string HasSeenTour = "hasSeenTour";
         public const string HasSeenHydraIntro = "hasSeenHydraIntro";
+        public const string ComposerLight = ComposerLightSettings.StoreKey; // PORT-ONLY, owner-ruled (OD-0089, ED-251)
     }
 
     // :182
@@ -370,6 +372,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     private bool settledCollapsed;
     private AppTheme theme;
     private double backdropOpacity;
+    private ComposerLightSettings composerLight;
     private TextGenerationChoice textGeneration;
     private string commitInstructions = "";
     private double terminalHeight;
@@ -561,6 +564,19 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     {
         get => Read(backdropOpacity);
         set => Set(ref backdropOpacity, value, _ => defaults.Set(Key.BackdropOpacity, value));
+    }
+
+    // PORT-ONLY, owner-ruled addition (OD-0083, OD-0085, OD-0089; ED-251): the light around every composer, Border beam by
+    // default, chosen and tuned in Settings > Customization. Stored as one JSON object (the playground's keys); a change
+    // applies to every composer at once (each ComposerLightSlot reads this property).
+    public ComposerLightSettings ComposerLight
+    {
+        get => Read(composerLight);
+        set
+        {
+            var clamped = value.Clamped();
+            Set(ref composerLight, clamped, _ => defaults.Set(Key.ComposerLight, clamped.ToJson()));
+        }
     }
 
     // :301-303
@@ -1189,6 +1205,8 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             : PanelDockCorner.BottomLeading;
         usagePanelHeight = Plist.AsDouble(defaults.Object(Key.UsagePanelHeight));
         hydraPairs = LoadHydraPairsLenient(defaults, Key.HydraPairs);
+        // PORT-ONLY (OD-0089, ED-251): unreadable or missing, the default (Border beam)
+        composerLight = defaults.Data(Key.ComposerLight) is { } lightStored ? ComposerLightSettings.FromJson(lightStored) : ComposerLightSettings.Default;
     }
 
     // MARK: - Hydra pairs
