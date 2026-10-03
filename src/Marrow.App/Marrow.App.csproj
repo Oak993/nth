@@ -24,4 +24,55 @@
     <AvaloniaResource Include="Assets/icon.png" />
   </ItemGroup>
 
+  <!--
+    OD-0002 (AGPLv3 section 7 obligations stay intact): LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md ship with the app,
+    as the pinned source's project.yml:30-34 puts all three in the bundle's resources. Settings > About > Licenses
+    (LicensesRow, UI-SETTINGS-060, UI-UPDATE-032) reads them from AppContext.BaseDirectory, so they are Content copied
+    beside Marrow.App.exe, to the build output and to the publish folder (what the installer packs).
+    Legal\ holds VERBATIM copies of the pinned upstream files (git blobs of commit 52bc7926, byte for byte).
+    LICENSE and TRADEMARK.md ship as they are. THIRD_PARTY_NOTICES.md ships as upstream's file followed by the port's own
+    additions (the repo root's THIRD_PARTY_NOTICES.md, which says it "adds to" upstream's and "does not replace" it):
+    one document, so the Licenses popover and the install folder carry both.
+  -->
+  <ItemGroup>
+    <Content Include="Legal\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Legal\TRADEMARK.md" Link="TRADEMARK.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <UsingTask TaskName="MarrowJoinFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Files ParameterType="System.String[]" Required="true" />
+      <Separator ParameterType="System.String" Required="true" />
+      <Destination ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        // Byte-exact: no decoding, no line-ending change, no BOM, and no newline added at the end.
+        var joined = new System.Collections.Generic.List<byte>();
+        for (var index = 0; index < Files.Length; index++)
+        {
+            if (index > 0) joined.AddRange(new UTF8Encoding(false).GetBytes(Separator));
+            joined.AddRange(File.ReadAllBytes(Files[index]));
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(Destination));
+        File.WriteAllBytes(Destination, joined.ToArray());
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="MarrowShippedNotices" BeforeTargets="AssignTargetPaths"
+          Inputs="Legal\THIRD_PARTY_NOTICES.md;..\..\THIRD_PARTY_NOTICES.md;$(MSBuildProjectFullPath)"
+          Outputs="$(IntermediateOutputPath)Legal\THIRD_PARTY_NOTICES.md">
+    <MarrowJoinFiles Files="Legal\THIRD_PARTY_NOTICES.md;..\..\THIRD_PARTY_NOTICES.md" Separator="&#10;"
+                     Destination="$(IntermediateOutputPath)Legal\THIRD_PARTY_NOTICES.md" />
+  </Target>
+
+  <Target Name="MarrowShippedNoticesContent" BeforeTargets="AssignTargetPaths" DependsOnTargets="MarrowShippedNotices">
+    <ItemGroup>
+      <Content Include="$(IntermediateOutputPath)Legal\THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
 </Project>

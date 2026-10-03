@@ -384,6 +384,9 @@ namespace Marrow.UI.Chrome
                 Draw();
         }
 
+        // :220-224 `opacity >= 0.98`: from here up the window is a solid fill, not glass under a scrim (Draw, and the corner wedge's fill).
+        public static bool IsSolid(double opacity) => opacity >= 0.98;
+
         // :211-215 static func scrim(for:isDark:)
         public static double Scrim(double @for, bool isDark)
         {
@@ -410,7 +413,7 @@ namespace Marrow.UI.Chrome
             stopTurn();
             stopTurn = static () => { };
             var isDark = PlainControls.IsDark(ActualThemeVariant); // :219
-            var isSolid = opacity >= 0.98; // :220-224
+            var isSolid = IsSolid(opacity); // :220-224
             var next = wallpaper is not null ? Base.Wallpaper : isSolid ? Base.Solid : Base.Glass; // :226, :249, :251
             if (next != drawn)
             {

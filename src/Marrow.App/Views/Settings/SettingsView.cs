@@ -145,11 +145,13 @@ public sealed class SettingsView : Decorator
     private SettingsPage? builtPage;
     private readonly SidebarSearchField search;
     private readonly WindowBackdrop backdrop;
+    private readonly WindowCornerWedge cornerWedge = new(0); // OD-0075: the wedge between the window's rectangle and its 26 pt shape, in the scrim
     private Control? riseChrome;
     private Control? risePage;
 
     // PORT-ONLY (OD-0074, ED-249): the parts the Settings window's open (Port/SettingsRise.cs) fades and raises.
     internal WindowBackdrop RiseBackdrop => backdrop;
+    internal WindowCornerWedge RiseWedge => cornerWedge; // fades in with the glass (OD-0074), as the corners belong to it
     internal Panel? RiseSheet => detail.Child as Panel; // DetailSheetModifier: wash, tint, content
     internal SidebarSearchField RiseSearch => search;
     internal Controls RiseSidebarRows => rows.Children;
@@ -182,8 +184,11 @@ public sealed class SettingsView : Decorator
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("212,*") }; Grid.SetColumn(detail, 1); grid.Children.Add(sidebar); grid.Children.Add(detail);
         backdrop = new WindowBackdrop(0); // :118
         frame = new Border { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous); frame.ClipToBounds = true; // :119-120
-        Child = frame;
-        this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => backdrop.Update(value, null));
+        // OD-0075 (owner, 2026-10-02): the wedge between the window's rectangle (system Acrylic, ED-236) and the 26 pt shape is filled with the window's
+        // scrim. Painted first (ZIndex -1), under the clipped frame, so the glass and its hairline still stop at the curve.
+        cornerWedge.ZIndex = -1;
+        Child = new Panel { Children = { frame, cornerWedge } };
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => { backdrop.Update(value, null); cornerWedge.Update(value); });
         this.Track(() => SettingsNavigation.Shared.RequestedPage, requested => // :123-127
         {
             if (requested is not { } page) return;
@@ -954,7 +959,7 @@ internal sealed class LicensesRow : Decorator
             var stack = new StackPanel { Spacing = 18, Margin = new Thickness(18) };
             foreach (var file in files)
             {
-                var markdown = new MarkdownView(Text(file.Resource)); MarkdownView.SetMarkdownPointSize(markdown, 12); Avalonia.Controls.Documents.TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(this));
+                var markdown = new MarkdownView(Text(file.Resource)); MarkdownView.SetMarkdownPointSize(markdown, 12); Avalonia.Controls.Documents.TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(this)); MarkdownView.SetTextSelectionEnabled(markdown, true); /* :1033 .textSelection(.enabled): the environment reaches every Text of the document, a code block's caption included */
                 stack.Children.Add(new StackPanel { Spacing = 8, Children = { new TextBlock { Text = file.Title }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), markdown } });
             }
             return new ScrollViewer { Width = 480, Height = 440, Content = stack, HorizontalContentAlignment = HorizontalAlignment.Left }.PresentedChrome(); // :1043
@@ -964,11 +969,19 @@ internal sealed class LicensesRow : Decorator
 
     // :1077-1079 private static func text(of:) -> String
     private static string Text(string of) => texts.Value[of]; // :1055
-    private static string Read(string resource)
+    // The three files ship beside the executable (Marrow.App.csproj: Legal\ content, OD-0002), the folder the bundle's resources
+    // are on macOS (:1049 Bundle.main.url).
+    private static string Read(string resource) => Read(resource, AppContext.BaseDirectory);
+
+    // PORT-ONLY test seam: the folder the files are read from. :1049-1051: `try? String(contentsOf:encoding: .utf8)` gives nil for a file that
+    // cannot be read AND for bytes that are not valid UTF-8, and both give the sentence naming the resource: File.ReadAllText would
+    // replace invalid bytes with U+FFFD instead, so the decoder here throws on them.
+    private static string Read(string resource, string directory)
     {
-        try { return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, resource == "LICENSE" ? resource : resource + ".md")); }
+        try { return new System.Text.UTF8Encoding(false, true).GetString(File.ReadAllBytes(Path.Combine(directory, resource == "LICENSE" ? resource : resource + ".md"))); }
         catch (IOException) { return $"The {resource} file is missing from this copy of the app."; }
         catch (UnauthorizedAccessException) { return $"The {resource} file is missing from this copy of the app."; }
+        catch (System.Text.DecoderFallbackException) { return $"The {resource} file is missing from this copy of the app."; }
     }
 }
 

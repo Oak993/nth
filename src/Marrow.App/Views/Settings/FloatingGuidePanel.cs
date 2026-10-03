@@ -6,11 +6,38 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Reactive;
+using Marrow.UI.Chrome;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/FloatingGuidePanel.swift (B3 52bc7926), :1-71.
+
+/// <summary>
+/// PORT-ONLY (OD-0075, owner 2026-10-02: "the wedge is filled with the window's scrim"; ED-236 UNRESOLVED (a)). The view both guide panels put in their
+/// window (MCPKeyPanelView, MCPSetupPanelView). The panel's window is a rectangle of the system's Acrylic (<see cref="FloatingGuidePanel"/> MakePanel) and
+/// the view draws its 26 pt shape over it (<c>.clipShape(RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous))</c>,
+/// MCPKeyPanel.swift:57, MCPSetupPanel.swift:130), so between the shape and the rectangle the blur would show without the scrim, the wedge the main and
+/// Settings windows fill in RootView and SettingsView. The view is the window's whole content, so it paints the wedge itself under what it holds, with
+/// the scrim its own <c>WindowBackdrop(opacity: 0.5)</c> draws (the same drawing as <see cref="WindowCornerWedge"/>, which cannot be a layer of the
+/// setup panel's view: everything it holds is clipped to the shape).
+/// </summary>
+public abstract class FloatingGuidePanelView : Decorator
+{
+    /// <summary>MCPKeyPanel.swift:56, MCPSetupPanel.swift:129 <c>WindowBackdrop(opacity: 0.5)</c>: the opacity of the backdrop whose scrim the corners wear.</summary>
+    public const double BackdropOpacity = 0.5;
+
+    protected FloatingGuidePanelView()
+    {
+        ActualThemeVariantChanged += (_, _) => InvalidateVisual(); // the scrim is white in the light theme and black in the dark one
+    }
+
+    public override void Render(DrawingContext context)
+    {
+        WindowCornerWedge.Paint(context, Bounds.Size, BackdropOpacity, ActualThemeVariant);
+        base.Render(context);
+    }
+}
 
 /// <summary>:6-71 <c>@MainActor class FloatingGuidePanel</c>: the floating, non-activating panel the MCP key and
 /// setup guides share: sized to its content, parked in the top-right corner of the main screen and closed on

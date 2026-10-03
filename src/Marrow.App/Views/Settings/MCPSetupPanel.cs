@@ -84,7 +84,7 @@ public sealed class MCPSetupPanel : FloatingGuidePanel
 
 /// <summary>:55-212 <c>struct MCPSetupPanelView: View</c>: the reason, numbered steps, an open page button with
 /// Check again, and the success view once the server connects.</summary>
-public sealed class MCPSetupPanelView : Decorator
+public sealed class MCPSetupPanelView : FloatingGuidePanelView
 {
     private readonly MCPCatalogEntry entry; // :56
     private readonly MCPSetupGuide guide; // :57
@@ -128,8 +128,14 @@ public sealed class MCPSetupPanelView : Decorator
     private void PaddingHost(Control content)
     {
         var layers = new Grid();
-        layers.Children.Add(new WindowBackdrop(0.5));
-        layers.Children.Add(new WindowDragArea());
+        // The backdrop and the drag area fill the whole 400 pt frame, the padding included (:123-130 `.padding(18).frame(width: 400)` come BEFORE
+        // `.background { WindowDragArea() }.background { WindowBackdrop(opacity: 0.5) }`, so they fill the padded frame): inside this padded host
+        // they reach out over it by the padding's own width. Without it the glass showed bare in an 18 pt band around the card (measured: the pixel
+        // 8 pt from the edge read the Acrylic with no scrim).
+        var backdrop = new WindowBackdrop(BackdropOpacity) { Margin = new Thickness(-18) };
+        var drag = new WindowDragArea { Margin = new Thickness(-18) };
+        layers.Children.Add(backdrop);
+        layers.Children.Add(drag);
         layers.Children.Add(content);
         Child = new Border
         {

@@ -619,7 +619,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 window = Show(new StackPanel { Spacing = 40, Children = { reply, bubble, linkBubble, report } });
                 Settle(window);
                 var prose = Assert.Single(reply.GetVisualDescendants().OfType<ParagraphTextPresenter>()); // one prose run, both paragraphs
-                var code = Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<SelectableTextBlock>());
+                var code = Assert.Single(Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<VeiledText>()).GetVisualDescendants().OfType<SelectableTextBlock>()); // the code lines' text, in the block's VeiledText (the header's caption is a SelectableTextBlock too, selectable only where an ancestor enables text selection: ED-259)
                 var words = Assert.Single(bubble.GetVisualDescendants().OfType<SelectableTextBlock>());
 
                 // Across the reply: from the first paragraph down into the code block. The selection stays in the prose.
@@ -722,7 +722,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 var bubble = new UserMessageRow(UserEntry("plain words in a bubble", Guid.NewGuid()), h.Runtime, canRevert: false);
                 window = Show(new StackPanel { Spacing = 40, Children = { reply, bubble } });
                 Settle(window);
-                var code = Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<SelectableTextBlock>());
+                var code = Assert.Single(Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<VeiledText>()).GetVisualDescendants().OfType<SelectableTextBlock>()); // the code lines' text, in the block's VeiledText (the header's caption is a SelectableTextBlock too, selectable only where an ancestor enables text selection: ED-259)
                 var words = Assert.Single(bubble.GetVisualDescendants().OfType<SelectableTextBlock>());
                 var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
                 Assert.NotEqual(0, system.A);

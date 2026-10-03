@@ -807,7 +807,7 @@ public sealed class RootViewTests(HeadlessSession headless)
                     window.UpdateLayout();
                     Dispatcher.UIThread.RunJobs();
                     var layers = Assert.IsType<Panel>(root.Child);
-                    Assert.Equal(4, layers.Children.Count); // clipped body, genie, row glide, palette host
+                    Assert.Equal(5, layers.Children.Count); // clipped body, genie, row glide, palette host, and (OD-0075) the corner wedge painted beneath them all
                     Assert.Same(root.WindowClip, layers.Children[0]);
                     Assert.IsType<GenieLayer>(layers.Children[1]);
                     Assert.IsType<RowGlideLayer>(layers.Children[2]);
@@ -1309,3 +1309,6 @@ public sealed class RootViewTests(HeadlessSession headless)
 // Missing: window region or DWM corner preference so the native shadow follows the curve, and a four-corner capture.
 // Needed: the native window-chrome owner supplies that region/preference and a four-corner capture verifies it.
 // This review explicitly defers implementing PR-WIN-062's remaining native/capture portion.
+// PARTLY RESOLVED (defects-priority): the owner ruled the other way for the corners (OD-0075: the wedge between the window's rectangle and its 26 pt shape is filled
+// with the window's scrim, no window region), and that is built and proved on pixels headless (RootViewCornerWedgeTests, UI.Tests WindowCornerWedgeTests). The
+// four-corner capture of the REAL window (the system's Acrylic under the fill) and the Mac-corner comparison are still owed natively.
