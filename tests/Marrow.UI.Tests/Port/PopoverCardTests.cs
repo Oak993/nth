@@ -348,7 +348,7 @@ public sealed class PopoverCardTests(HeadlessSession headless)
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var anchor = new Border { Width = 20, Height = 20 };
-        var state = new Shown();
+        var state = new ShownFlag();
         var built = new Border { Width = 60, Height = 30 };
         var popup = PlainControls.Popover(anchor, new Binding<bool>(() => state.Value, value => state.Value = value), () => built, PlacementMode.Bottom, buildBeforeOpen: false);
         popup.ShouldUseOverlayLayer = true;
@@ -571,11 +571,4 @@ public sealed class PopoverCardTests(HeadlessSession headless)
     });
 
     private static Avalonia.LogicalTree.ILogical? StyledParent(Control control) => ((Avalonia.LogicalTree.ILogical)control).LogicalParent;
-
-    private sealed class Shown : Marrow.Core.Port.ObservableModel
-    {
-        private bool value;
-
-        public bool Value { get => Read(value); set => Set(ref this.value, value); }
-    }
 }

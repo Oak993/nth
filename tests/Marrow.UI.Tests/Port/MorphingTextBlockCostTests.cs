@@ -70,17 +70,6 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
         Assert.True(gradient.PerFrame - plain.PerFrame <= 24 * 1024, $"a gradient change allocates {gradient.PerFrame} bytes a frame, a plain one {plain.PerFrame}");
     });
 
-    private sealed class CountedTitle : MorphingTextBlock
-    {
-        public int Renders { get; private set; }
-
-        protected override void RenderTextLayout(DrawingContext context, Point origin)
-        {
-            Renders++;
-            base.RenderTextLayout(context, origin);
-        }
-    }
-
     // OD-0094: the drift is "cheap (a shader or brush transform on the frame clock, no per-frame allocation, frames only
     // while the title is visible)". At rest the label is drawn once; each frame only moves its brushes' two ends, which the
     // compositor carries to what it already draws. Measured three ways: (1) the label is never drawn again while the
@@ -118,7 +107,7 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
             }
             finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
         }
-        CountedTitle Title(double period) => new() { Text = "Extra High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Pair(), DriftPeriod = period };
+        CountedMorphingTextBlock Title(double period) => new() { Text = "Extra High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Pair(), DriftPeriod = period };
 
         // (1) Drawn once, then only its brushes move: the label is not drawn again, frame after frame.
         var counted = Title(7);
