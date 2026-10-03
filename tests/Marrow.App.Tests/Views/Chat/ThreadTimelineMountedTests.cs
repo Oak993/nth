@@ -643,4 +643,54 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         Assert.True(monitor.Concerns(mount.Window), "the app came back: every timeline is concerned, not only the window that activated");
         third.Close();
     });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-002")] // ThreadTimeline.swift:364-383; ChatFont.swift:6 (Font.chat(.callout), 12 pt per ED-059)
+    public void The_earlier_pill_is_a_secondary_callout_capsule_on_a_quaternary_half_with_no_pressed_look_that_loads_a_page_when_pressed_or_seen() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var entries = Turns(60, sentences: 14).ToList();
+        mount.SetEntries(entries); mount.Advance(2500);
+        var pill = EarlierPill(mount); var theme = pill.ActualThemeVariant;
+        Assert.Equal("Show 36 earlier messages", PillText(mount));
+        // :369-374 the label in the chat callout (12 point), in secondary; 14 and 7 of padding on a quaternary half in a capsule (:374 radius is half the height).
+        var text = LogicalQuery.SelfAndDescendants<TextBlock>(pill).Single(); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(pill).Single();
+        Assert.Equal(12, text.FontSize); Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout), SwiftImage.GetFont(icon));
+        Assert.Equal(SwiftColor.Secondary.Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(text.Foreground).Color);
+        Assert.Equal(SwiftColor.Secondary.Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(icon.Foreground).Color);
+        var capsule = LogicalQuery.SelfAndDescendants<Border>(pill).Single(border => border.Padding == new Thickness(14, 7));
+        Assert.Equal(SwiftColor.Quaternary.Opacity(0.5).Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(capsule.Background).Color);
+        Assert.True(capsule.CornerRadius.TopLeft >= capsule.Bounds.Height / 2, "a capsule: ends as round as the height allows");
+        // :377 the plain button style: pressing it changes nothing about how it looks.
+        var centre = pill.TranslatePoint(new Point(pill.Bounds.Width / 2, pill.Bounds.Height / 2), mount.Window);
+        mount.Scroll.Offset = new Vector(0, pill.TranslatePoint(default, mount.Column)!.Value.Y - 5); mount.Advance(400);
+        pill = EarlierPill(mount); capsule = LogicalQuery.SelfAndDescendants<Border>(pill).Single(border => border.Padding == new Thickness(14, 7));
+        var look = (pill.Opacity, capsule.Opacity, ((Avalonia.Media.ISolidColorBrush)capsule.Background!).Color, text.Opacity);
+        var point = pill.TranslatePoint(new Point(pill.Bounds.Width / 2, pill.Bounds.Height / 2), mount.Window)!.Value;
+        mount.Window.MouseMove(point); mount.Window.MouseDown(point, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None); mount.Advance(200);
+        Assert.Equal(look, (pill.Opacity, capsule.Opacity, ((Avalonia.Media.ISolidColorBrush)capsule.Background!).Color, text.Opacity));
+        // Pressed and released: one page of 24 older blocks.
+        mount.Window.MouseUp(point, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None); mount.Advance(400);
+        Assert.Equal(BlockID(entries, 12), mount.Field<string?>("windowStartID")); Assert.Equal("Show 12 earlier messages", PillText(mount));
+        // Hidden when nothing is hidden.
+        ToTheTop(mount); ToTheTop(mount);
+        Assert.Null(PillText(mount));
+    });
+
+    [Theory]
+    [InlineData("Hydra merged project", true)]
+    [InlineData("Hydra left a file outside every project.", true)]
+    [InlineData("Hydra is waiting for another chat's files.", true)]
+    [InlineData("Project: Hydra merged branch", false)]
+    [InlineData("Project: Hydra did not merge", false)]
+    [Trait("Req", "UI-HYDRAMERGE-031")] // ThreadTimeline.swift:1645-1652; AppModel+HydraMerge.swift:163,183,222-223,905: a title without the exact prefix "Hydra " is an ordinary Hydra note, one with it the merge pill
+    public void A_hydra_note_gets_the_merge_row_only_when_its_title_begins_with_the_exact_prefix_and_is_an_ordinary_note_otherwise(string title, bool merge) => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        mount.SetEntries(new[] { Entry("note", new TimelineItem.Content.User(new UserMessage { Text = title + "\nbody", HydraHeads = new([]) })) }); mount.Advance(400);
+        var row = mount.Blocks().Single().Row;
+        Assert.Equal(merge, LogicalQuery.SelfAndDescendants<HydraMergeRow>(row).Any());
+        // Otherwise it is the standard note row, as any note in the timeline.
+        Assert.Equal(!merge, LogicalQuery.SelfAndDescendants<UserMessageRow>(row).Any());
+    });
 }
