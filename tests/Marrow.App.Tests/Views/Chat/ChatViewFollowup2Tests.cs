@@ -20,6 +20,17 @@ public sealed class ChatViewFollowup2Tests(HeadlessSession headless)
     private static string Title(PopoverItem item) => Assert.Single(LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(item)).FullText;
     private static void Click(PopoverItem item) => ChatGitFixtures.Click(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(item)));
 
+    // The File Explorer row hands the directory to ShellWorkspace.OpenWithDefaultApp, whose real implementation opens only what its gate accepts
+    // (ED-203): a drive-letter folder with spaces in its name, and a network share's, must pass it, or the row would do nothing on a real machine.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1417-1419 (PR-CHAT-180, UI-CHAT-080: the row opens the chat's directory); ED-203; ED-NEW-parity-chatview
+    public void The_shells_gate_accepts_a_chats_directory_with_spaces_or_on_a_share()
+    {
+        Assert.True(ShellWorkspace.ShouldAttemptShellExecute(@"C:\work with spaces\project"));
+        Assert.True(ShellWorkspace.ShouldAttemptShellExecute(@"\\server\share\my project"));
+        Assert.True(ShellWorkspace.ShouldAttemptShellExecute(@"D:\code\project"));
+    }
+
     [Fact]
     [Trait("Req", "PR-CHAT-180")] // App/Views/Chat/ChatView.swift:1416-1429
     [Trait("Req", "UI-CHAT-080")] // App/Views/Chat/ChatView.swift:1416-1429; UI/Common/Components.swift:109-117,143-163; OD-0012 G4 / ED-087.
