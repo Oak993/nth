@@ -127,6 +127,7 @@ internal static class ThreadTimelineRig
             DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id));
             DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult();
             var runtime = new ThreadRuntime(id, model);
+            AwaitHistory(store, runtime); // the stored thread's history is read on a pool thread: a loaded machine must not leave the loading mark where a test's rows belong
             Mount(store, model, runtime, frames, check, width, height, showsMinimap, columnHeight ?? height, layers);
         });
 
