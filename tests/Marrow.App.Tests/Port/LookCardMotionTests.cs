@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Testing;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
 using HostWindow = Avalonia.Controls.Window;
@@ -176,6 +177,32 @@ public sealed class LookCardMotionTests(HeadlessSession headless) : LookCardFixt
         var surface = new LookTrack("mini surface", () => (card.Surface.Value.R - 0x1E) / (double)(0xFF - 0x1E), Crossfade32, Ease(0, 1, 320), 1, quantum: 0.5 / (0xFF - 0x1E)); // a colour channel: within half a level
         Run(h, w, 21, pill, turn, surface);
         Assert.True(Largest(turn.Seen) <= 0.19, $"largest crossfade step {Largest(turn.Seen):F3}"); // SPEC 6.10: .19
+    });
+
+    // ED-251: segment 4 narrowing from "More themes" (106) to "Dracula" (75) moves the control's left edge on the width's curve
+    // (.3 s ez) to its very last frame, its right edge fixed; no whole-pixel settle at the end (the layout is not rounded).
+    [Fact]
+    [Trait("Decision", "ED-251")]
+    public void A_segment_width_change_glides_the_controls_left_edge_on_its_curve_and_its_right_edge_stays() => Card((card, model, h, w) =>
+    {
+        Rect Drawn() => In(card.Segments.Track, card); // the track: the control as it is drawn
+        var start = Drawn();
+        Assert.Equal(269, start.Width);
+        Assert.Equal(520 - Chrome.RowControlTrailingPadding, start.Right);
+        model.Settings.Theme = AppTheme.Dracula;
+        Drain(w);
+        const double travel = 106 - 75;
+        for (var k = 0; k <= 21; k++)
+        {
+            if (k > 0) { Frame(h); Drain(w); }
+            var now = Drawn();
+            Assert.Equal(start.Right, now.Right, 6);
+            var progress = (now.X - start.X) / travel;
+            var curve = CssCurve.At(CssCurve.Ez, k * FrameMs, 300);
+            Assert.True(Math.Abs(progress - curve) <= 0.002, $"frame {k}: {progress:F4}, curve {curve:F4}");
+            Assert.Equal(card.Segments.Buttons[0].Bounds.X - 2, card.Segments.Track.Bounds.X, 6); // the segments ride on the track
+        }
+        Assert.Equal(238, Drawn().Width);
     });
 
     [Fact]

@@ -285,6 +285,9 @@ public sealed class WindowManager
     {
         var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow()); // :81
         WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
+        // DEVIATION OD-0088, OD-0076 (ED-251): the Settings window turns over on a change of appearance, every colour in it
+        // easing 0.32 s as the locked accent board's window does (SPEC 6.5), where the source changes it in one frame.
+        AppearanceTurn.SetTurnsOver(window, true);
         return window; // :83
     }
 

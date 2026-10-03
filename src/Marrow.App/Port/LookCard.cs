@@ -34,15 +34,39 @@ namespace Marrow.App.Port;
 // sits flush with the card's top as the locked frames draw it (9.1); the detail lines carry names only, no hex (9.2,
 // OD-0088 "Names only"); the menu lists the 23 named themes as the board does (9.3); Escape and a click outside close the
 // menu however it was opened (9.4); each segment is its own tab stop with no arrow keys, as the board (9.5); the Windows
-// accent is lifted app-wide (9.6, ED-250); System's detail reads "System · <accent>" (9.7); the segment labels are
-// measured in the port's own type (Inter, OD-0009), not the board's Segoe UI Variable, so a segment is the label as the
-// port draws it plus 22 (and 11 for the chevron) and the widths differ from SPEC 2.3's Segoe table; a swatch's release
-// eases back to the hover scale in 0.12 s as the board's frames measure it (scenario 20), not the 0.08 s of SPEC 6.9's text.
+// accent is lifted app-wide (9.6, ED-250); System's detail reads "System · <accent>" (9.7); a swatch's release eases back
+// to the hover scale in 0.12 s as the board's frames measure it (scenario 20), not the 0.08 s of SPEC 6.9's text.
+// ED-251 (amends ED-250): the segments are SPEC 2.3's table (the board's label widths + 22, + 11 for the chevron), the
+// labels drawn in the port's type (Inter, OD-0009) and centred with the chevron, at least 6 clear of each end; the rows
+// keep the board's 28 between text and control, so the Accent detail has the board's column (156 here) and every line of
+// SPEC 4.3 fits whole; the window turns over with the appearance (AppearanceTurn, SPEC 6.5).
 
 /// <summary>The Look card (SPEC section 1): the first card of Settings &gt; Appearance.</summary>
 public sealed class LookCard : Decorator
 {
     public const double MiniHeight = 128, FoldOpen = 36, Pitch = 26, SwatchSize = 24, LineWidth = 310, MenuWidth = 264, MenuGap = 15, MenuListMax = 260;
+
+    /// <summary>SPEC 2.1: the gap between a row's text column and its control (the board's 28; ChromeRow's is 44).</summary>
+    public const double RowGap = 28;
+
+    /// <summary>
+    /// SPEC 2.3: each segment label's width on the board (Segoe UI Variable Text 12/500, canvas measure, rounded up). A
+    /// segment is that + 22, and the fourth + 11 more for its chevron, so the control is the board's at every theme (298 at
+    /// its widest, Catppuccin Mocha). The label is drawn in the port's type (Inter, OD-0009), centred with the chevron.
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, double> BoardLabelWidths = new Dictionary<string, double>
+    {
+        ["System"] = 39, ["Light"] = 28, ["Dark"] = 26, ["More themes"] = 73,
+        ["Catppuccin Mocha"] = 102, ["Catppuccin Latte"] = 92, ["Dracula"] = 42, ["Tokyo Night"] = 67, ["Nord"] = 29,
+        ["Gruvbox"] = 47, ["Gruvbox Light"] = 78, ["One Dark"] = 52, ["Everforest"] = 55, ["Kanagawa"] = 56,
+        ["Ros\u00E9 Pine"] = 53, ["Solarized Dark"] = 79, ["Solarized Light"] = 81, ["GitHub Dark"] = 68, ["GitHub Light"] = 70,
+        ["Ayu"] = 21, ["Night Owl"] = 56, ["Monokai"] = 49, ["Claude"] = 38, ["Claude Light"] = 69, ["Codex"] = 35,
+        ["Cursor"] = 36, ["Matrix"] = 36,
+    };
+
+    /// <summary>SPEC 2.3: a segment's width for its label (the board's label width, else the port's measure).</summary>
+    internal static double SegmentWidthFor(string label, bool chevron) =>
+        (BoardLabelWidths.TryGetValue(label, out var width) ? width : LookDraw.Width(label, SegmentFont)) + 22 + (chevron ? 11 : 0);
 
     internal static readonly SwiftFont SegmentFont = SwiftFont.System(12, SwiftFont.Weight.Medium);
     internal static readonly SwiftFont MoreFont = SwiftFont.System(11, SwiftFont.Weight.Medium);
@@ -182,15 +206,26 @@ public sealed class LookCard : Decorator
 
     internal string AccentLine(int index)
     {
-        if (index == 0) return IsNamed ? Dot(OwnWord, "the theme's own") : Dot("Windows accent", "default");
+        if (index == 0) return IsNamed ? OwnLine : Dot("Windows accent", "default");
         var name = AccentPalette.All[index].Name;
         if (!IsNamed) return name;
-        var over = Dot(name, "over " + CardTheme.DisplayName());
-        return LookDraw.Width(over, DetailFont) <= DetailRoom ? over : Dot(name, "over the theme");
+        return Fit(Dot(name, "over " + CardTheme.DisplayName()), Dot(name, "over the theme"), name);
     }
 
-    // The text column beside the Accent row's swatches (the port's ChromeRow: 520 - 16 - 10 - 44 - 310).
-    private double DetailRoom => AccentDetail.Bounds.Width > 0 ? AccentDetail.Bounds.Width : 520 - 16 - Chrome.RowControlTrailingPadding - 44 - LineWidth;
+    // "<word> · the theme's own" (SPEC 4.3), the word alone in the unlikely case the column cannot hold it.
+    private string OwnLine => Fit(Dot(OwnWord, "the theme's own"), OwnWord);
+
+    // The first words that fit the text column whole (OD-0069: a line is never cut), else the last.
+    private string Fit(params string[] candidates)
+    {
+        foreach (var words in candidates.SkipLast(1))
+            if (LookDraw.Width(words, DetailFont) <= DetailRoom) return words;
+        return candidates[^1];
+    }
+
+    // The text column beside the Accent row's swatches: 520 - 16 - 10 - 28 - 310 = 156 (the board's 155, SPEC 4.3, with the
+    // port's 10 trailing padding).
+    internal double DetailRoom => AccentDetail.Bounds.Width > 0 ? AccentDetail.Bounds.Width : 520 - 16 - Chrome.RowControlTrailingPadding - RowGap - LineWidth;
 
     internal string ThemeLine
     {
@@ -204,7 +239,7 @@ public sealed class LookCard : Decorator
     private string AccentText => Hover switch
     {
         "more" => AccentPalette.All.Count - AccentPalette.ClassicCount + " Signature accents",
-        { } id when AccentPalette.IndexOf(id) is var i and >= 0 => i == 0 && IsNamed ? Dot(OwnWord, "the theme's own") : ShortName(i),
+        { } id when AccentPalette.IndexOf(id) is var i and >= 0 => i == 0 && IsNamed ? OwnLine : ShortName(i),
         _ => AccentLine(Picked),
     };
 
@@ -420,8 +455,14 @@ public sealed class LookCard : Decorator
     {
         var row = new ChromeRow(title, () => control, " ");
         // The row's own detail slot (ChromeRow: Border > Grid > the title and detail stack) takes the crossfading line.
-        var labels = (StackPanel)((Grid)((Border)row.Child!).Child!).Children[0];
+        var grid = (Grid)((Border)row.Child!).Child!;
+        var labels = (StackPanel)grid.Children[0];
         labels.Children[1] = detail;
+        // SPEC 2.1: the board's 28 between the text column and the control (ChromeRow's HStack gives 16 + 12 + 16), so the
+        // Accent detail has the board's column (SPEC 4.3) and no line of 4.3 is cut.
+        grid.ColumnDefinitions[1].Width = new GridLength(RowGap);
+        grid.ColumnDefinitions[2].Width = new GridLength(0);
+        grid.ColumnDefinitions[3].Width = new GridLength(0);
         return row;
     }
 }
@@ -576,6 +617,11 @@ internal sealed class ThemeSegments : Panel
         Track = new SegmentTrack(card, this);
         Children.Add(Track);
         foreach (var button in Buttons) Children.Add(button);
+        // The control's width moves with a segment's (SPEC 6.6, 6.7) and its right edge stays put: laid out unrounded, so it
+        // glides there to the last frame instead of settling with a whole-pixel step (layout rounding takes a size up).
+        UseLayoutRounding = false;
+        Track.UseLayoutRounding = false;
+        foreach (var button in Buttons) button.UseLayoutRounding = false;
         PillLeft = new LookNumber(card.Motion, 2);
         PillWidth = new LookNumber(card.Motion, 0);
     }
@@ -616,22 +662,25 @@ internal sealed class ThemeSegments : Panel
         else card.PickTheme(Bases[index]);
     }
 
+    /// <summary>The control's drawn width now: the segments and the track's 2 each side.</summary>
+    internal double ContentWidth => 4 + Buttons.Sum(b => b.SegmentWidth.Value);
+
+    // The panel asks for whole pixels (its row's grid rounds the column it sits in, and a column narrower than the control
+    // would squeeze it) and draws the track and segments against its right edge, unrounded.
     protected override Size MeasureOverride(Size availableSize)
     {
-        var width = 4.0;
-        foreach (var button in Buttons)
-        {
-            button.Measure(new Size(button.SegmentWidth.Value, 24));
-            width += button.SegmentWidth.Value;
-        }
+        var width = ContentWidth;
+        foreach (var button in Buttons) button.Measure(new Size(button.SegmentWidth.Value, 24));
         Track.Measure(new Size(width, 28));
-        return new Size(width, 28);
+        return new Size(Math.Ceiling(width - 1e-6), 28);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        Track.Arrange(new Rect(finalSize));
-        var x = 2.0;
+        var width = ContentWidth;
+        var left = finalSize.Width - width;
+        Track.Arrange(new Rect(left, 0, width, 28));
+        var x = left + 2;
         foreach (var button in Buttons)
         {
             button.Arrange(new Rect(x, 2, button.SegmentWidth.Value, 24));
@@ -715,8 +764,8 @@ internal sealed class SegmentButton : Control, ICustomHitTest
             if (animate) opacity.To(target, LookCurve.Ease(0.2)); else opacity.Jump(target);
         }
         labels.RemoveAll(l => l.Text != text && l.Opacity.Value == 0 && !l.Opacity.IsMoving);
-        var labelWidth = LookDraw.Width(text, LookCard.SegmentFont);
-        var width = labelWidth + 22 + (Index == 3 ? 11 : 0);
+        var labelWidth = LookDraw.Width(text, LookCard.SegmentFont); // the drawn label's box, centred with the chevron
+        var width = LookCard.SegmentWidthFor(text, chevron: Index == 3); // the board's segment
         if (animate) { LabelWidth.To(labelWidth, LookCurve.Ez(0.3)); SegmentWidth.To(width, LookCurve.Ez(0.3)); }
         else { LabelWidth.Jump(labelWidth); SegmentWidth.Jump(width); }
         AutomationProperties.SetName(this, Index == 3 && card.IsNamed ? text : text);
@@ -1367,6 +1416,17 @@ internal sealed class ThemeMenu : Border
 
     private void OnEscape(object? sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Tab)
+        {
+            // Tab closes the menu (focus never wanders off while it hangs open); from inside it, focus goes back to segment
+            // 4, the way Escape returns it, and the next Tab goes on from there.
+            var inside = Rows.Any(r => r.IsFocused);
+            Close();
+            if (!inside) return;
+            e.Handled = true;
+            card.Segments.Buttons[3].Focus(NavigationMethod.Tab);
+            return;
+        }
         if (e.Key != Key.Escape) return;
         e.Handled = true;
         Close();

@@ -343,7 +343,8 @@ public sealed class SwiftColor
             this.color = color;
             this.brush = brush;
             this.control = control;
-            control.ActualThemeVariantChanged += (_, _) => Update();
+            // ED-251 (OD-0076, SPEC 6.5): inside a tree that turns over (AppearanceTurn), an appearance change eases.
+            control.ActualThemeVariantChanged += (_, _) => { if (AppearanceTurn.Eases(control)) Ease(); else Update(); };
             if (color.UsesAccent)
             {
                 // The platform settings live as long as the application; subscribe only while the control is in a

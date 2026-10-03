@@ -17,8 +17,8 @@ using Marrow.UI.Theme;
 namespace Marrow.App.Tests.Port;
 
 // OD-0088 (ED-250): the Look card's place, layout, words, colours, states and the setting it writes, to
-// E:/Droppy/work/design/accent-build/SPEC.md sections 1 to 5. Expected numbers are the spec's (or its rule, where the port's
-// own type gives the measure: the segment and label widths, ED-250).
+// E:/Droppy/work/design/accent-build/SPEC.md sections 1 to 5. Expected numbers are the spec's (the segment widths its 2.3 table,
+// ED-251); the label boxes are measured in the port's own type.
 [Collection("Headless")]
 public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(headless)
 {
@@ -58,22 +58,27 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
         Assert.Equal(128 + 54 + 1, In(card.AccentRow, card).Y);
         Assert.Equal(0, card.Fold.Bounds.Height);
         Assert.Equal(237, card.Bounds.Height);
-        // SPEC 2.3: the control right-aligned at the row's trailing padding, 28 tall, centred in the row; segments are the
-        // label (as the port draws it, rounded up) + 22, and the fourth + 11 for its chevron; the pill under Dark.
+        // SPEC 2.3: the control right-aligned at the row's trailing padding, 28 tall, centred in the row; the segments are the
+        // board's: 61, 50, 48 and 106 ("More themes"), 269 with the track's padding; the pill under Dark.
         var segments = In(card.Segments, card);
         Assert.Equal(520 - Chrome.RowControlTrailingPadding, segments.Right);
         Assert.Equal(28, segments.Height);
         Assert.Equal(128 + 13, segments.Y);
-        var labels = new[] { "System", "Light", "Dark", "More themes" };
+        var widths = new double[] { 61, 50, 48, 106 };
         for (var i = 0; i < 4; i++)
         {
             var b = card.Segments.Buttons[i];
-            Assert.Equal(LookDraw.Width(labels[i], SwiftFont.System(12, SwiftFont.Weight.Medium)) + 22 + (i == 3 ? 11 : 0), b.Bounds.Width);
+            Assert.Equal(widths[i], b.Bounds.Width);
             Assert.Equal(24, b.Bounds.Height);
             Assert.Equal(2, b.Bounds.Y);
         }
         Assert.Equal(2, card.Segments.Buttons[0].Bounds.X);
+        Assert.Equal(269, segments.Width);
         Assert.Equal(card.Segments.Buttons.Sum(b => b.Bounds.Width) + 4, segments.Width);
+        // SPEC 2.1, 4.3: 28 between each row's text column and its control, which leaves the Accent detail 156 (the board's
+        // 155 with the port's 10 trailing padding); the Theme detail the room beside the control.
+        Assert.Equal(156, card.AccentDetail.Bounds.Width);
+        Assert.Equal(520 - 16 - 10 - 28 - 269, card.ThemeDetail.Bounds.Width);
         Assert.Equal(card.Segments.Buttons[2].Bounds.X, card.Segments.PillLeft.Value);
         Assert.Equal(card.Segments.Buttons[2].Bounds.Width, card.Segments.PillWidth.Value);
         // SPEC 2.5: the Classic line 310 x 24, 15 below the row top, its right edge at the row's trailing padding; swatches
@@ -97,6 +102,99 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
         Assert.Equal(16, label.X);
         Assert.Equal(signature.Center.Y, label.Center.Y, 0.5);
         Assert.Equal(12, card.Fold.Label.FontSize);
+    });
+
+    // SPEC 2.3's table: each named theme's label width on the board; the segment is that + 33.
+    public static TheoryData<AppTheme, double> BoardSegments() => new()
+    {
+        { AppTheme.CatppuccinMocha, 102 }, { AppTheme.CatppuccinLatte, 92 }, { AppTheme.Dracula, 42 }, { AppTheme.TokyoNight, 67 },
+        { AppTheme.Nord, 29 }, { AppTheme.Gruvbox, 47 }, { AppTheme.GruvboxLight, 78 }, { AppTheme.OneDark, 52 },
+        { AppTheme.Everforest, 55 }, { AppTheme.Kanagawa, 56 }, { AppTheme.RosePine, 53 }, { AppTheme.SolarizedDark, 79 },
+        { AppTheme.SolarizedLight, 81 }, { AppTheme.GithubDark, 68 }, { AppTheme.GithubLight, 70 }, { AppTheme.Ayu, 21 },
+        { AppTheme.NightOwl, 56 }, { AppTheme.Monokai, 49 }, { AppTheme.Claude, 38 }, { AppTheme.ClaudeLight, 69 },
+        { AppTheme.Codex, 35 }, { AppTheme.Cursor, 36 }, { AppTheme.Matrix, 36 },
+    };
+
+    [Theory]
+    [MemberData(nameof(BoardSegments))]
+    [Trait("Decision", "ED-251")]
+    public void Under_a_named_theme_the_control_is_the_boards_and_the_label_and_chevron_sit_inside_their_segment(AppTheme theme, double boardLabel) => Card((card, _, h, w) =>
+    {
+        var segments = card.Segments;
+        Assert.Equal(boardLabel + 22 + 11, segments.Buttons[3].Bounds.Width);
+        Assert.Equal(61 + 50 + 48 + boardLabel + 33 + 4, segments.Bounds.Width);
+        Assert.Equal(520 - Chrome.RowControlTrailingPadding, In(segments, card).Right);
+        if (theme == AppTheme.CatppuccinMocha) Assert.Equal(298, segments.Bounds.Width); // SPEC 2.3: the widest control
+        // The label as the port draws it, 4 and the 7 wide chevron, centred: at least 6 clear of each end (OD-0069).
+        foreach (var b in segments.Buttons)
+        {
+            var label = b.Label;
+            var content = Measured(label, SwiftFont.System(12, SwiftFont.Weight.Medium)) + (b.Index == 3 ? 11 : 0);
+            Assert.True((b.Bounds.Width - content) / 2 >= 6, $"{theme} '{label}': {content:F1} in {b.Bounds.Width}");
+        }
+        // The Theme row's words and the control never meet.
+        var detail = In(card.ThemeDetail, card.ThemeRow);
+        Assert.True(detail.X + Measured(card.ThemeDetail.Text, LookCard.DetailFont) <= In(segments, card.ThemeRow).X - LookCard.RowGap + 0.01, $"{theme}: {card.ThemeDetail.Text}");
+    }, theme: theme);
+
+    private static double Measured(string text, SwiftFont font)
+    {
+        var resolved = font.Resolve();
+        using var layout = new Avalonia.Media.TextFormatting.TextLayout(text, new Typeface(resolved.FontFamily, resolved.FontStyle, resolved.FontWeight), resolved.FontSize, null);
+        return layout.WidthIncludingTrailingWhitespace;
+    }
+
+    // OD-0069: a detail line is never cut. Every theme, every pick, and every hover (each swatch and More) shows words that fit
+    // their column whole, measured as the text is laid out; the column is the board's (155, here 156).
+    [Fact]
+    [Trait("Decision", "ED-251")]
+    public void Every_detail_line_fits_its_column_whole_for_every_theme_pick_and_hover() => Card((card, model, h, w) =>
+    {
+        var cut = new List<string>();
+        void Rest() { for (var i = 0; i < 30; i++) { Frame(h); Drain(w); } } // half a second: every line has settled
+        void Check(string when)
+        {
+            foreach (var (name, line) in new[] { ("theme", card.ThemeDetail), ("accent", card.AccentDetail) })
+            {
+                foreach (var (text, opacity) in line.Lines)
+                {
+                    if (opacity <= 0) continue;
+                    var width = Measured(text, LookCard.DetailFont);
+                    if (width > line.Bounds.Width + 0.01) cut.Add($"{when} {name}: '{text}' {width:F1} > {line.Bounds.Width:F1}");
+                }
+            }
+        }
+        Assert.Equal(156, card.AccentDetail.Bounds.Width);
+        foreach (var theme in SwiftEnum<AppTheme>.AllCases)
+        {
+            model.Settings.Theme = theme;
+            foreach (var accent in AccentPalette.All)
+            {
+                model.Settings.Accent = accent.Id;
+                Rest();
+                Check($"{theme} {accent.Id}");
+            }
+            model.Settings.Accent = "windows";
+            foreach (var hover in AccentPalette.All.Select(a => a.Id).Append("more"))
+            {
+                card.SetHover(hover);
+                Rest();
+                Check($"{theme} hover {hover}");
+                card.SetHover(null);
+            }
+        }
+        Assert.True(cut.Count == 0, string.Join("\n", cut));
+        // The four the old column cut, whole (SPEC 4.3's own words).
+        foreach (var (theme, words) in new[] { (AppTheme.Claude, "Terracotta"), (AppTheme.ClaudeLight, "Terracotta"), (AppTheme.Kanagawa, "Wave blue"), (AppTheme.Codex, "Magenta") })
+        {
+            model.Settings.Theme = theme;
+            Settle(h, w);
+            Assert.Equal(words + " \u00B7 the theme's own", card.AccentDetail.Text);
+            card.SetHover("windows");
+            Settle(h, w);
+            Assert.Equal(words + " \u00B7 the theme's own", card.AccentDetail.Text);
+            card.SetHover(null);
+        }
     });
 
     [Fact]
@@ -291,7 +389,7 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
         Settle(h, w);
         Assert.False(card.Menu.IsVisible);
         Assert.Equal("Nord", card.Segments.Buttons[3].Label);
-        Assert.Equal(LookDraw.Width("Nord", SwiftFont.System(12, SwiftFont.Weight.Medium)) + 33, card.Segments.Buttons[3].Bounds.Width);
+        Assert.Equal(62, card.Segments.Buttons[3].Bounds.Width); // the board's: 29 + 22 + 11
         Assert.Equal(card.Segments.Buttons[3].Bounds.X, card.Segments.PillLeft.Value, 6);
         Assert.Equal("Dark \u00B7 Frost", card.ThemeDetail.Text);
         // A click outside closes it.

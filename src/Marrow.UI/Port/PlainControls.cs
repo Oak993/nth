@@ -259,6 +259,12 @@ public sealed class AnimatedColor
         owner.ActualThemeVariantChanged += (_, _) =>
         {
             if (color is null) return;
+            // ED-251 (OD-0076, SPEC 6.5): inside a tree that turns over, the new appearance's colour is eased to.
+            if (AppearanceTurn.Eases(owner))
+            {
+                Set(color, AppearanceTurn.Curve);
+                return;
+            }
             Stop();
             Brush.Color = color.Resolve(owner.ActualThemeVariant);
         };

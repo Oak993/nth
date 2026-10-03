@@ -315,7 +315,8 @@ namespace Marrow.UI.Chrome
             var wash = new Rectangle();
             wash.Fill = SwiftColor.Dynamic(light: SwiftColor.White.Opacity(0.3), dark: SwiftColor.Black.Opacity(0.22)).Brush(wash); // :195
             var tint = new Rectangle();
-            tint.Fill = SwiftColor.Dynamic(light: Chrome.GlassTint.Opacity(0.16), dark: Chrome.GlassTint.Opacity(0.22)).Brush(tint); // :196
+            // ED-251 (OD-0088): Chrome.glassTint read whenever it is drawn (ThemeManager.LiveSurface), so the wash follows the theme.
+            tint.Fill = SwiftColor.Dynamic(light: ThemeManager.LiveSurface.Opacity(0.16), dark: ThemeManager.LiveSurface.Opacity(0.22)).Brush(tint); // :196
             return new Panel { Children = { wash, tint, content } }; // :194 .background { ... }
         }
     }
@@ -342,15 +343,30 @@ namespace Marrow.UI.Chrome
             this.opacity = opacity;
             this.wallpaper = wallpaper;
             var tint = Shape();
-            tint.Background = Chrome.GlassTint.Opacity(0.12).Brush(tint); // :263-265
+            tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-251)
             // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
             // which is how an Avalonia Border draws its border.
             var hairline = Shape();
             hairline.BorderThickness = new Thickness(1);
             hairline.BorderBrush = Chrome.Overlay(0.14).Brush(hairline);
             Child = new Panel { Children = { group, tint, hairline } };
-            ActualThemeVariantChanged += (_, _) => Draw(); // :203 @Environment(\.colorScheme)
+            ActualThemeVariantChanged += (_, _) => Turn(); // :203 @Environment(\.colorScheme)
             Draw();
+        }
+
+        // ED-251 (OD-0088, OD-0076): the scrim's strength follows the appearance (:258, 0.26 dark, 0.18 light); in a tree
+        // that turns over (AppearanceTurn, the Settings window) it eases there with the window's colours instead of
+        // changing in one frame.
+        private Action stopTurn = static () => { };
+
+        private void Turn()
+        {
+            var from = scrim?.Opacity;
+            Draw();
+            if (scrim is not { } layer || from is not { } start || layer.Opacity == start || !AppearanceTurn.Eases(this)) return;
+            var end = layer.Opacity;
+            layer.Opacity = start;
+            stopTurn = AppearanceTurn.Run(this, progress => layer.Opacity = start + (end - start) * progress);
         }
 
         /// <summary>
@@ -391,6 +407,8 @@ namespace Marrow.UI.Chrome
 
         private void Draw()
         {
+            stopTurn();
+            stopTurn = static () => { };
             var isDark = PlainControls.IsDark(ActualThemeVariant); // :219
             var isSolid = opacity >= 0.98; // :220-224
             var next = wallpaper is not null ? Base.Wallpaper : isSolid ? Base.Solid : Base.Glass; // :226, :249, :251

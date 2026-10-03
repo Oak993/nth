@@ -174,6 +174,34 @@ public sealed class LookCardKeyboardTests(HeadlessSession headless) : LookCardFi
         Assert.Same(card.Segments.Buttons[3], Focused(w));
     });
 
+    // ED-251: Tab never leaves the menu hanging open. From a row it closes the menu and focus returns to segment 4 (the next
+    // Tab goes on from there to the Accent group); with focus outside the menu (opened by pointer) it closes it and Tab moves on.
+    [Fact]
+    [Trait("Decision", "ED-251")]
+    public void Tab_closes_the_open_menu_and_from_a_row_returns_focus_to_segment_4() => Card((card, model, h, w) =>
+    {
+        Assert.True(card.Segments.Buttons[3].Focus(NavigationMethod.Tab));
+        Press(w, Key.Enter);
+        Assert.True(card.Menu.IsOpen);
+        Press(w, Key.Down);
+        Assert.Same(card.Menu.Rows[1], Focused(w));
+        Tab(w);
+        Assert.False(card.Menu.IsOpen);
+        Assert.Same(card.Segments.Buttons[3], Focused(w));
+        Assert.Equal(AppTheme.Dark, model.Settings.Theme); // nothing picked
+        Tab(w);
+        Assert.Same(card.Classic.Swatches[0], Focused(w));
+        // Opened by pointer, focus on segment 4: Tab closes it and moves on as ever.
+        Click(w, card.Segments.Buttons[3]);
+        Assert.True(card.Menu.IsOpen);
+        Assert.True(card.Segments.Buttons[3].Focus(NavigationMethod.Tab));
+        Tab(w);
+        Assert.False(card.Menu.IsOpen);
+        Assert.Same(card.Classic.Swatches[0], Focused(w));
+        Settle(h, w);
+        Assert.False(card.Menu.IsVisible);
+    });
+
     [Fact]
     [Trait("Decision", "ED-250")]
     public void An_arrow_that_focuses_a_swatch_out_of_view_does_not_scroll_the_page() => With(() =>
