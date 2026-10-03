@@ -27,12 +27,7 @@ public sealed class TimelineRowsCaptureTests(HeadlessSession headless)
 {
     private static readonly string? Evidence = Environment.GetEnvironmentVariable("MARROW_PARITY_EVIDENCE");
 
-    private readonly record struct Frame(int Width, int Height, byte[] Pixels)
-    {
-        public (int R, int G, int B) At(int x, int y) => (Pixels[(y * Width + x) * 4], Pixels[(y * Width + x) * 4 + 1], Pixels[(y * Width + x) * 4 + 2]);
-    }
-
-    private static Frame Capture(AvaloniaWindow window, string? name)
+    private static TimelineRowsCaptureFrame Capture(AvaloniaWindow window, string? name)
     {
         for (var pass = 0; pass < 4; pass++) { window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); }
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -49,16 +44,13 @@ public sealed class TimelineRowsCaptureTests(HeadlessSession headless)
         var pixels = new byte[buffer.RowBytes * buffer.Size.Height];
         System.Runtime.InteropServices.Marshal.Copy(buffer.Address, pixels, 0, pixels.Length);
         Assert.Equal(buffer.Size.Width * 4, buffer.RowBytes);
-        return new Frame(buffer.Size.Width, buffer.Size.Height, pixels);
+        return new TimelineRowsCaptureFrame(buffer.Size.Width, buffer.Size.Height, pixels);
     }
 
     // ---------------------------------------------------------------- PR-CHAT-077
 
-    private readonly record struct Bubble(int Top, int Bottom, int BodyLeft, int BodyRight, int TipRight, int InkLeft, int InkRight,
-        int TopRowLeft, int ThirdRowLeft, int TopRowRight, bool Flares, bool Notch, (int R, int G, int B) Fill, int[] InkRows);
-
     // A UserMessageRow in the 820-point timeline column over the video's opaque black window (backdrop 5,5,5), Monokai.
-    private Bubble RenderBubble(ThreadRuntimePart12Harness h, string text, string name)
+    private TimelineRowsBubbleMeasure RenderBubble(ThreadRuntimePart12Harness h, string text, string name)
     {
         var row = new UserMessageRow(UserEntry(text, Guid.NewGuid()), h.Runtime, canRevert: false);
         var window = new AvaloniaWindow
@@ -83,7 +75,7 @@ public sealed class TimelineRowsCaptureTests(HeadlessSession headless)
             var inkColumns = Enumerable.Range(bodyLeft, bodyRight - bodyLeft).Where(x => Enumerable.Range(top, bottom - top).Any(y => Ink(x, y))).ToArray();
             var inkRows = Enumerable.Range(top, bottom - top).Where(y => Enumerable.Range(bodyLeft, bodyRight - bodyLeft).Any(x => Ink(x, y))).ToArray();
             var notch = Enumerable.Range(bottom - 3, 4).Count(y => !Tinted(bodyRight - 6, y) || !Tinted(bodyRight - 7, y)) >= 2;
-            return new Bubble(top, bottom, bodyLeft, bodyRight, Right(bottom), inkColumns.Min(), inkColumns.Max(),
+            return new TimelineRowsBubbleMeasure(top, bottom, bodyLeft, bodyRight, Right(bottom), inkColumns.Min(), inkColumns.Max(),
                 Left(top), Left(top + 2), Right(top), Right(bottom - 4) >= bodyRight, notch, frame.At(bodyLeft + 4, mid), inkRows);
         }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }

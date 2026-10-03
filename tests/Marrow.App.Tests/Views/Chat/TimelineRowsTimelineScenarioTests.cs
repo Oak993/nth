@@ -31,9 +31,6 @@ public sealed class TimelineRowsTimelineScenarioTests(HeadlessSession headless)
 
     [ThreadStatic] private static Marrow.Testing.ManualTimeProvider? clock;
 
-    private sealed record Scene(ThreadTimeline View, ThreadRuntime Runtime, AppModel Model, Border Host, Avalonia.Controls.Window Window,
-        ManualFrameSource Frames, RecordingPresenter Presenter);
-
     private static TimelineEntry Entry(string id, TimelineItem.Content content, Guid turn) => new(new TimelineItem(turn, content, id));
 
     // Finished turns: a question, a long answer and the turn's summary; their records, so the turns can be rewound.
@@ -58,7 +55,7 @@ public sealed class TimelineRowsTimelineScenarioTests(HeadlessSession headless)
     private static void SetTurns(ThreadRuntime runtime, IEnumerable<TurnRecord> turns) =>
         typeof(ThreadRuntime).GetProperty("Turns")!.SetValue(runtime, new ValueList<TurnRecord>(turns));
 
-    private void WithTimeline(bool supportsRewind, Action<AppModel>? beforeView, Action<Scene> check) => headless.OnUiThread(() =>
+    private void WithTimeline(bool supportsRewind, Action<AppModel>? beforeView, Action<TimelineRowsScene> check) => headless.OnUiThread(() =>
     {
         Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
         var frames = new ManualFrameSource();
@@ -84,7 +81,7 @@ public sealed class TimelineRowsTimelineScenarioTests(HeadlessSession headless)
         {
             window.Show();
             Settle(window, frames);
-            check(new Scene(view, runtime, model, host, window, frames, presenter));
+            check(new TimelineRowsScene(view, runtime, model, host, window, frames, presenter));
         }
         finally
         {
