@@ -4712,3 +4712,12 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // notice, the tool's detail and output: a drawn selection) now prove those clauses; the head popover's five lines wrap
 // (R-TEST-4). Owed on the native app (ED (5), (7), (8)): the selection colour in link text on screen, a favicon appearing on a
 // host's first sight, a long tool detail's twelve lines.
+// Round 5 fixes (2026-10-03): a report paragraph with a link is drawn at the report's 12 points: InlineText runs its body again
+// when an environment value it reads changes after it was built, and hands its link paragraph the new values in place
+// (MarkdownView.swift:1071-1075, :1094, :1114 at B3; LinkParagraphView.swift:36-58; ED (9)); the PR-HYDRAMERGE-090 Req tests
+// assert the drawn size of every text of the report, a link paragraph included, not the attached property. A tool detail cut at
+// a hard line break ends its twelfth line in an ellipsis too (ED (7), corrected; PR-CHAT-101 stays in this note: not claimed).
+// The PR-CHAT-166 drag test hovers the link text at both of the record's sites (a sent bubble with a bare domain, a report
+// paragraph with a link): the pointing hand over the link, the I-beam over the prose, a drag on the prose. LinkTextView's dropped
+// measurement on a new string has its test (LinkParagraphViewTests). PR-CHAT-080 still waits for the ThreadTimeline merge (above).
+// Owed on the native app (ED (7)): a detail cut at a hard line break, whose ellipsis there is UNRESOLVED on the Mac.
