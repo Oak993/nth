@@ -155,8 +155,9 @@ public static class GpuWarmup
 
     /// <summary>
     /// True when a warm-up of this build completed on this machine as it is now: the marker names this build, a GPU folder
-    /// whose key names this build and this machine's graphics adapters with their current drivers (DXGI), and that folder
-    /// holds an entry for each step. A driver update, a new GPU or a new build is not warm (OD-0096).
+    /// and the graphics adapter the app draws with and its current driver (DXGI), that folder's key names the same build and
+    /// adapter, and the folder holds an entry for each step. An update of that adapter's driver, a move of the app to another
+    /// adapter or a new build is not warm (OD-0096); a change to an adapter the app does not draw with leaves it warm.
     /// </summary>
     public static bool IsWarm
     {
