@@ -119,6 +119,10 @@ public sealed class ModelEffortButton : Decorator
         Child = button;
         ProviderRegistry registry = null!; // :60 `let registry = model.providers`, set by every body evaluation below
         TextBlock? shownName = null, shownEffort = null;
+        // :73 .id(pair.id): the fused mark's view, and with it its state, is kept while the pair (and the providers it fuses) stay the same, so a
+        // change of effort or of fast mode does not play the fuse-in again (HydraFusedPairIcon.swift:37-42 plays it from its own .task(id:)).
+        HydraFusedPairIcon? keptMark = null;
+        (Guid Pair, ProviderKind Lead, ProviderKind Heads)? keptKey = null;
         this.Track(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
@@ -132,11 +136,21 @@ public sealed class ModelEffortButton : Decorator
             registry = model.Providers;
             var (oldName, oldEffort) = (shownName, shownEffort);
             (shownName, shownEffort) = (null, null);
-            row.Children.Clear();
-            Control mark = pair is null
-                ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 real provider artwork from Components.
-                : new HydraFusedPairIcon(pair.Provider, model.HydraHeadsProvider(pair), 15); // :70-72
-            DockPanel.SetDock(mark, Dock.Left); row.Children.Add(mark);
+            Control mark;
+            if (pair is null)
+            {
+                (keptMark, keptKey) = (null, null);
+                mark = new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 }; // :73-75 real provider artwork from Components.
+            }
+            else
+            {
+                var key = (pair.Id, pair.Provider, model.HydraHeadsProvider(pair));
+                if (keptMark is null || keptKey != key) (keptMark, keptKey) = (new HydraFusedPairIcon(key.Provider, key.Item3, 15), key); // :70-72
+                mark = keptMark;
+            }
+            // everything but the kept mark is rebuilt; the mark itself stays in the row, never detached, so it keeps its state
+            foreach (var child in row.Children.ToArray()) if (!ReferenceEquals(child, mark)) row.Children.Remove(child);
+            DockPanel.SetDock(mark, Dock.Left); if (!row.Children.Contains(mark)) row.Children.Insert(0, mark);
             if (currentThread.FastMode && current?.SupportsFast == true)
             {
                 var bolt = SwiftImage.SystemName("bolt.fill").Font(Chrome.InlineIconFont).ForegroundStyle(SwiftColor.Yellow); bolt.Margin = new Thickness(5, 0, 0, 0);

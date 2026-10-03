@@ -57,6 +57,7 @@ public sealed class EffortSliderModelChoiceTests(HeadlessSession headless)
         var pair = new HydraPair(ProviderKind.Claude) { OrchestratorModel = "opus", Name = "Led" };
         using var env = Make(() => Chat(ProviderKind.Claude, "opus", "high", pair: pair.Id, session: "session-1", resume: "resume-1"), model =>
         {
+            model.Settings.DefaultProvider = ProviderKind.Grok; // not the provider the choice will make the default
             model.Settings.HydraEnabled = true; model.Settings.AddHydraPair(pair);
             model.Settings.AddToModelList(Pin(ProviderKind.Claude, "opus")); model.Settings.AddToModelList(Pin(ProviderKind.Codex, "cx"));
             // the stored preference of the model that will be chosen: an effort it offers and the fast flag
@@ -102,6 +103,7 @@ public sealed class EffortSliderModelChoiceTests(HeadlessSession headless)
     {
         using var env = Make(() => Chat(ProviderKind.Codex, "cx1", "low", session: "session-1", resume: "resume-1"), model =>
         {
+            model.Settings.DefaultProvider = ProviderKind.Grok;
             foreach (var id in new[] { "cx1", "cx2", "cx3", "cx4" }) model.Settings.AddToModelList(Pin(ProviderKind.Codex, id));
             model.Settings.SetPreference(new ModelPreference { Effort = "max", FastMode = true }, ProviderKind.Codex, "cx2");  // an effort the model does not offer; fast the model has no tier for
             model.Settings.SetPreference(new ModelPreference { Effort = "low", FastMode = false }, ProviderKind.Codex, "cx3"); // valid, fast off although the model has the tier
