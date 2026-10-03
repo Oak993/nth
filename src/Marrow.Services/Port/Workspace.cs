@@ -26,7 +26,8 @@ public static class Workspace
 
     // ShellExecuteW returns a value greater than 32 on success (SE_ERR_* values are 32 or less).
     private static bool ShellOpen(SwiftURL url) =>
-        ShouldAttemptShellExecute(url)
+        !ShellGuard.InTestHost // R-TEST-10: a test never opens a real browser
+        && ShouldAttemptShellExecute(url)
         && ShellExecuteW(IntPtr.Zero, "open", url.AbsoluteString, null, null, ShowNormal).ToInt64() > 32;
 
     private const int ShowNormal = 1; // SW_SHOWNORMAL
