@@ -62,19 +62,24 @@ public sealed class EffortSliderJewelFramesTests(HeadlessSession headless)
                 rig.Window.Height = 88; // the slider at (20, 20) in a 338 x 88 frame
                 rig.Window.RequestedThemeVariant = appearance == "dark" ? ThemeVariant.Dark : ThemeVariant.Light;
                 var host = (Border)rig.Window.Content!;
-                host.Background = new SolidColorBrush(appearance == "dark" ? Color.Parse("#141d27") : Color.Parse("#e6ebf1"));
+                host.Background = new SolidColorBrush(appearance == "dark" ? Color.Parse("#141d27") : Color.Parse("#e9eef3")); // the page's --pane base
                 for (var i = 0; i < 30; i++) rig.Frame();
                 if (state == "held") { rig.Down(rig.Slider.KnobX + 6); for (var i = 0; i < 36; i++) rig.Frame(); }
                 if (fast)
                 {
                     var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().First();
                     var seed = effect.StrikeSeed;
-                    // the second strike: charging halfway through its charge, or 60 ms after it struck (the swell)
+                    // like the page's shots (shoot.cjs): charging, its raw charge past half; or the strike's swell at its peak
                     var leader = Strike.StrikeAt(2, seed) - Strike.Lead;
-                    var target = state == "charge" ? leader - KnobSignal.ChargeOf(2, seed) * 0.3 : Strike.StrikeAt(2, seed) + 0.06;
+                    var target = state == "charge" ? leader - KnobSignal.ChargeOf(2, seed) * 0.3 : Strike.StrikeAt(2, seed);
                     while (effect.TimeAt(SwiftDate.Now) < target - 1.0 / 60) rig.Frame();
                     rig.Frame(Math.Max(0, target - effect.TimeAt(SwiftDate.Now)));
-                    Assert.Equal(state == "charge" ? KnobPhase.Charge : KnobPhase.Strike, rig.Slider.Signal.Phase);
+                    if (state == "charge") Assert.True(rig.Slider.Signal.Phase == KnobPhase.Charge && rig.Slider.Signal.RawCharge > 0.5, $"charge {rig.Slider.Signal.RawCharge}");
+                    else
+                    {
+                        var peak = rig.Slider.Signal.Flare;
+                        for (var i = 0; i < 60; i++) { rig.Frame(); if (rig.Slider.Signal.Flare < peak) break; peak = rig.Slider.Signal.Flare; }
+                    }
                 }
                 Save(rig, host, Path.Combine(folder, $"port-{maker}-{appearance}-{state}.png"));
                 written++;
@@ -93,7 +98,6 @@ public sealed class EffortSliderJewelFramesTests(HeadlessSession headless)
         foreach (var (dpr, cpu) in new[] { (1.0, false), (1.0, true), (1.5, false), (1.5, true), (2.0, false), (2.0, true) })
         {
             var (size, perPx) = JewelOrb.RenderSize(48, dpr);
-            if (cpu) (size, perPx) = ((int)Math.Floor(48 * dpr + 0.5), dpr); // the CPU renderer's 1x
             var orb = new JewelOrb(JewelMaterial.For(EffortBrand.Claude));
             var u = new JewelUniforms();
             u.SetPage(48, 0.26, 190, 298, 34, new SKColor(0x14, 0x1d, 0x27), new SKColor(0x11, 0x18, 0x20), [SKColors.Red, SKColors.Red, SKColors.Red, SKColors.Red, SKColors.Red]);
@@ -103,18 +107,26 @@ public sealed class EffortSliderJewelFramesTests(HeadlessSession headless)
             canvas.Scale((float)dpr);
             var renderer = JewelKnobRenderer.For(null, size);
             orb.Frame(0, 0, 0, Math.PI, false, size, perPx, true, u);
-            renderer.Draw(canvas, u.Values, new SKRect(20, 20, 68, 68), 1);
+            u.Values[110] = JewelOrb.Supersampled(48, dpr) ? 2 : 1;
+            // the CPU renderer's own path (JewelCpuKnob: 48 px at most, the gem at 30 Hz, the middle sample, stepping down), or
+            // the GPU path's look (2x, three samples, every frame) drawn on the CPU for reference
+            var knob = new JewelCpuKnob();
+            void Draw() { if (cpu) knob.Draw(canvas, u.Values, new SKRect(20, 20, 68, 68), 1); else renderer.Draw(canvas, u.Values, new SKRect(20, 20, 68, 68), 1); }
+            Draw();
             var draw = new List<double>();
             var watch = new Stopwatch();
             for (var i = 1; i <= 120; i++)
             {
                 orb.Frame(i / 60.0, i % 40 < 10 ? 0.58 : 0, i % 40 is > 5 and < 10 ? 0.24 : 0, Math.PI, false, size, perPx, true, u);
+                u.Values[110] = JewelOrb.Supersampled(48, dpr) ? 2 : 1;
                 watch.Restart();
-                renderer.Draw(canvas, u.Values, new SKRect(20, 20, 68, 68), 1);
+                Draw();
                 draw.Add(watch.Elapsed.TotalMilliseconds);
             }
             draw.Sort();
-            lines.Add($"dpr {dpr} {(cpu ? "CPU fallback (1x)" : "GPU path's 2x, drawn on the CPU")}: render {size} px, CPU raster draw per frame p50 {draw[60]:F2} ms, p95 {draw[114]:F2} ms, max {draw[^1]:F2} ms");
+            lines.Add(cpu
+                ? $"dpr {dpr} CPU renderer's knob (JewelCpuKnob: {knob.RenderedSize} px, step {knob.Level}, the gem every other frame, middle sample): per frame p50 {draw[60]:F2} ms, p95 {draw[114]:F2} ms, max {draw[^1]:F2} ms"
+                : $"dpr {dpr} GPU path's look (render {size} px, three samples, every frame) drawn on the CPU, for reference: per frame p50 {draw[60]:F2} ms, p95 {draw[114]:F2} ms, max {draw[^1]:F2} ms");
         }
         // the UI thread's share: a slider frame (springs, signal, orb uniforms, layout) in fast mode
         using (var rig = JewelFixtures.Rig(index: 2, fast: true))
