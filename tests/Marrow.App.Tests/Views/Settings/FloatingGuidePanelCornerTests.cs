@@ -50,6 +50,8 @@ public sealed class FloatingGuidePanelCornerTests(HeadlessSession headless)
         {
             window.UpdateLayout();
             Dispatcher.UIThread.RunJobs();
+            Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
         }
     }
 
@@ -64,7 +66,15 @@ public sealed class FloatingGuidePanelCornerTests(HeadlessSession headless)
             using var runtime = new TestRuntime();
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
-            harness.Main.OnMain(() => { MCPKeyPanel.Shared.Present(KeyEntry(), model); Dispatcher.UIThread.RunJobs(); });
+            // A panel window of its own: the shared panel's window, hidden by an earlier test and shown again, keeps handing back the frame it
+            // last rendered headless, so this test makes the panel build its window afresh (FloatingGuidePanel.swift:17 `self.panel ?? makePanel()`).
+            harness.Main.OnMain(() =>
+            {
+                MCPKeyPanel.Shared.Close();
+                typeof(FloatingGuidePanel).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(MCPKeyPanel.Shared, null);
+                MCPKeyPanel.Shared.Present(KeyEntry(), model);
+                Dispatcher.UIThread.RunJobs();
+            });
             var window = PanelOf(MCPKeyPanel.Shared);
             try
             {
