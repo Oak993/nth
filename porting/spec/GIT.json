@@ -5603,7 +5603,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:965-983",
         "DroppyCode/App/AppModel.swift:943-966"
       ],
-      "notes": "The note is the thread's title in typographic double quotes, then \" and its history will be removed. Files in your project stay as they are.\" The quotes are U+201C and U+201D, not straight quotes. Checkpoints are deleted on both choices."
+      "notes": "The note is the thread's title in typographic double quotes, then \" and its history will be removed. Files in your project stay as they are.\" The quotes are U+201C and U+201D, not straight quotes. Checkpoints are deleted on both choices.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-058",

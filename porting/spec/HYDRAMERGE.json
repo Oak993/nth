@@ -4245,7 +4245,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1980-1984",
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1574, :2091, :2418"
       ],
-      "notes": "The same words as the pill, including the multi-project \"<project>: \" prefix, and the same single U+2026."
+      "notes": "The same words as the pill, including the multi-project \"<project>: \" prefix, and the same single U+2026.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-031",
