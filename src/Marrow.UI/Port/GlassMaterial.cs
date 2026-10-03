@@ -141,8 +141,15 @@ internal static class GlassMaterial
             var e = SwiftGlass.GetEffect(control);
             if (e is null || SwiftGlass.GetUsesDesktopBackdrop(control) || opacity <= 0 || control.Bounds.Width <= 0 || control.Bounds.Height <= 0 || !toOwner.TryInvert(out _)) return null;
             var tint = e.TintColor?.Opacity(e.TintOpacity ?? 1).Resolve(control.ActualThemeVariant) ?? Colors.Transparent;
-            var drawnTint = control is Border { Background: ISolidColorBrush background } && background.Color.A > 0 && e.TintColor is not null;
-            var corners = control is Border border ? border.CornerRadius : new CornerRadius(e.Shape.CornerRadius ?? 0);
+            // A shape's fill and corners are the Border's or, for a SwiftUI shape with its own curve, the SwiftShapeBorder's (ED-181).
+            var (fill, ownCorners) = control switch
+            {
+                Border border => (border.Background, (CornerRadius?)border.CornerRadius),
+                SwiftShapeBorder shape => (shape.Background, shape.CornerRadius),
+                _ => ((IBrush?)null, null),
+            };
+            var drawnTint = fill is ISolidColorBrush background && background.Color.A > 0 && e.TintColor is not null;
+            var corners = ownCorners ?? new CornerRadius(e.Shape.CornerRadius ?? 0);
             if (e.Shape.Kind == GlassShapeKind.RoundedRectangle && corners == default) corners = new CornerRadius(e.Shape.CornerRadius ?? 0);
             var a = AttachmentFor(control);
             return new Region(control.Bounds.Size, e.Shape, corners, tint, drawnTint, PlainControls.IsDark(control.ActualThemeVariant),
@@ -221,10 +228,15 @@ internal static class GlassMaterial
         return bounds;
     }
 
-    // Fourth-power corners are the P1 approximation, not oracle-backed SwiftUI curvature (ED-181).
-    private const string ShaderHeader = """
-        uniform shader backdrop;
-        uniform float merge;
+    // The shape's signed distance (negative inside). A `.continuous` rounded rectangle is the circular corner's distance plus the
+    // offset of Apple's curve from the circle (ContinuousCorner.ShaderSource, ED-181): the zero level lies on the path
+    // SwiftShapes draws (to 2e-5 r) and the field is the plain circle's wherever the curve is not drawn (a capsule, a radius past
+    // ContinuousCorner.LargestRadius, `.circular`), so those stay what the video shows. The C# mirror is ContinuousCorner.Distance.
+    internal static readonly string ShaderHeader = string.Concat(
+        "uniform shader backdrop;\nuniform float merge;\n",
+        ContinuousCorner.ShaderSource(),
+        """
+
         float shapeDistance(float2 xy, float2 size, float4 corners, float kind, float continuous) {
             float2 c = size * 0.5;
             float2 p = xy - c;
@@ -234,15 +246,15 @@ internal static class GlassMaterial
             radius = min(radius, min(c.x, c.y));
             float2 q = abs(p) - c + radius;
             float2 qc = max(q, 0.0);
-            float outside = continuous > 0.5 ? pow(pow(qc.x, 4.0) + pow(qc.y, 4.0), 0.25) : length(qc);
-            return outside + min(max(q.x, q.y), 0.0) - radius;
+            float cd = length(qc) + min(max(q.x, q.y), 0.0) - radius;
+            return continuous > 0.5 ? continuousCorner(cd, c, p, radius) : cd;
         }
         float smoothUnion(float a, float b) {
             if (merge <= 0.0) return min(a, b);
             float h = max(merge - abs(a - b), 0.0) / merge;
             return min(a, b) - h * h * merge * 0.25;
         }
-        """;
+        """);
     private static readonly ConcurrentDictionary<int, Lazy<SKRuntimeEffect>> effects = new();
 
     private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>

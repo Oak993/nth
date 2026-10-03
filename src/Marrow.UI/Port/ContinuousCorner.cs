@@ -143,7 +143,8 @@ public static class ContinuousCorner
     // ---- The glass shader's text -------------------------------------------------------------------------------------
 
     /// <summary>
-    /// SkSL for <c>float continuousOffset(float2 d, float radius)</c> and <c>float continuousFade(float cd, float radius)</c>,
+    /// SkSL for <c>float continuousOffset(float2 d, float radius)</c>, <c>float continuousFade(float cd, float radius)</c> and
+    /// <c>float continuousCorner(float cd, float2 c, float2 p, float radius)</c> (the circular distance <c>cd</c> to a corner with half extents <c>c</c> at <c>p</c> from the centre, made Apple's),
     /// generated from the constants above so the shader and <see cref="Offset"/> cannot drift apart.
     /// </summary>
     internal static string ShaderSource()
@@ -185,6 +186,10 @@ public static class ContinuousCorner
             float continuousFade(float cd, float radius) {
                 float t = clamp((abs(cd) - 0.15 * radius) / (0.45 * radius), 0.0, 1.0);
                 return 1.0 - t * t * (3.0 - 2.0 * t);
+            }
+            float continuousCorner(float cd, float2 c, float2 p, float radius) {
+                if (radius <= 0.0 || radius > min(c.x, c.y) / {{F(Extent)}}) return cd;
+                return cd + continuousOffset(c - abs(p), radius) * continuousFade(cd, radius);
             }
             """;
     }
