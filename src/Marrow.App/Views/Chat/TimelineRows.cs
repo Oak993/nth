@@ -2608,8 +2608,11 @@ public sealed class ToolDetailView : Decorator
             stack.Children.Add(new ToolImagePreview(imagePath));
         if (call.Detail is { Length: > 0 } detail) // :2120-2126
         {
-            var text = TimelineRows.SelectableText(wraps: false); // :2121, :2124 .textSelection(.enabled)
-            text.Text = detail; text.MaxLines = 12; // :2125 .lineLimit(12)
+            // :2121 a Text with no fixedSize wraps at the width the row offers; :2124 .textSelection(.enabled).
+            var text = TimelineRows.SelectableText(wraps: true);
+            // :2125 .lineLimit(12) counts the wrapped lines; a Text it cuts ends its last line in an ellipsis (SwiftUI's
+            // truncationMode .tail, the default; RequestCards.cs:111 takes a lineLimit the same way).
+            text.Text = detail; text.MaxLines = 12; text.TextTrimming = TextTrimming.CharacterEllipsis;
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2122
             text.Foreground = Chrome.SecondaryText.Brush(text); // :2123
             stack.Children.Add(text);
@@ -2639,7 +2642,8 @@ public sealed class ToolDetailView : Decorator
                 if (character == '\n') lineCount++;
             }
             var outputStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = TimelineMetrics.RowSpacing }; // :2149
-            var text = TimelineRows.SelectableText(wraps: false); // :2150, :2152 .textSelection(.enabled)
+            // :2150 a Text with no fixedSize wraps at its plate's width (.frame(maxWidth: .infinity) :2153); :2152 .textSelection(.enabled).
+            var text = TimelineRows.SelectableText(wraps: true);
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2151
             var plate = new Border // :2153-2155 .frame(maxWidth: .infinity, alignment: .leading).padding(10)
             {

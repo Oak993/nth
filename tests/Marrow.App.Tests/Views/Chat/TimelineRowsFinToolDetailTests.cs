@@ -63,6 +63,14 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                 Assert.Single(Column(withoutDetail).Children);
                 Assert.Single(Column(emptyDetail).Children);
                 Assert.DoesNotContain(Mounted<SelectableTextBlock>(withoutDetail), block => block.MaxLines == 12);
+                // :2124 .textSelection(.enabled): the detail selects, and a selection is drawn in the system's selected-text colour (a
+                // SelectableTextBlock has no SelectionBrush with no control theme loaded; ED-NEW-parity-timelinerows (5); review round 4).
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
+                detail.SelectAll();
+                Assert.Equal(detailText, detail.SelectedText);
+                Assert.True((detail.SelectionBrush as ISolidColorBrush)?.Color == system,
+                    $"the detail: the selection is drawn with {detail.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
             }
             finally { Close(window); }
         });
@@ -95,6 +103,15 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                 Assert.Equal(10, text.FontSize);
                 Assert.Equal(Mono, text.FontFamily);
                 Paints(text.Foreground, SwiftColor.Primary, text, "output text");
+                // :2152 .textSelection(.enabled): the output selects, and a selection is drawn in the system's selected-text colour
+                // (ED-NEW-parity-timelinerows (5); review round 4).
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
+                text.SelectAll();
+                Assert.Equal(Lines(30), text.SelectedText);
+                Assert.True((text.SelectionBrush as ISolidColorBrush)?.Color == system,
+                    $"the output: the selection is drawn with {text.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
+                text.ClearSelection();
                 // :2153-2155 padding 10, a 10-point rounded plate of .quaternary at 0.45, as wide as the detail.
                 Assert.Equal(new CornerRadius(10), plate.CornerRadius);
                 Paints(plate.Background, SwiftColor.Quaternary.Opacity(0.45), plate, "output plate");
@@ -140,6 +157,43 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
     });
 
     private static double Top(Control control, Visual root) => control.TranslatePoint(default, root)!.Value.Y;
+
+    // Review round 4 (PR-CHAT-101, found in passing): the detail and the output are SwiftUI Texts with no fixedSize, so a long
+    // line wraps at the width the row offers (:2121-2125; :2150-2155 inside the .frame(maxWidth: .infinity) plate, padded 10).
+    // The detail's .lineLimit(12) counts the lines it wraps into, and a Text cut by its line limit ends its last line in an
+    // ellipsis (SwiftUI's truncationMode .tail, the default; the port's convention for a lineLimit with no truncationMode,
+    // RequestCards.cs:111 and CommandPalette.cs:346). The output has no line limit: all of its wrapped lines show.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101, UI-CHAT-027 and UI-CHAT-025 (long lines wrap; the detail stops at twelve wrapped lines): TimelineRows.swift:2120-2126, :2149-2155
+    public void A_long_detail_wraps_to_at_most_twelve_lines_ending_in_an_ellipsis_and_a_long_output_line_wraps_inside_its_plate() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var detailText = "run " + string.Join(" ", Enumerable.Repeat("segment", 600));
+            var outputText = "out " + string.Join(" ", Enumerable.Repeat("segment", 120));
+            var view = new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = detailText, Output = outputText });
+            var panel = new StackPanel { Width = 500 };
+            panel.Children.Add(view);
+            var window = Show(panel);
+            try
+            {
+                var detail = Assert.Single(Mounted<SelectableTextBlock>(view), block => block.Text == detailText);
+                Assert.Equal(12, detail.TextLayout.TextLines.Count); // wrapped, and cut at the twelfth line
+                Assert.True(detail.TextLayout.Width <= 500 + 0.5, $"the detail is {detail.TextLayout.Width:0} points wide in a 500-point row");
+                Assert.True(detail.TextLayout.TextLines[^1].HasCollapsed, "the twelfth line does not end in an ellipsis");
+                Assert.All(detail.TextLayout.TextLines.SkipLast(1), line => Assert.False(line.HasCollapsed));
+                Assert.Equal(detailText, detail.Text); // a display limit only
+                var plate = Mounted<Border>(view).Single(border => border.Padding == new Thickness(10));
+                var output = Assert.Single(Mounted<SelectableTextBlock>(plate));
+                Assert.True(output.TextLayout.TextLines.Count > 1, $"the output runs on in one line {output.TextLayout.Width:0} points wide");
+                Assert.True(output.TextLayout.Width <= 500 - 20 + 0.5, $"the output is {output.TextLayout.Width:0} points wide inside a 480-point plate");
+                Assert.DoesNotContain(output.TextLayout.TextLines, line => line.HasCollapsed);
+                Assert.Equal(500, plate.Bounds.Width, 0.5);
+            }
+            finally { Close(window); }
+        });
+    });
 
     [Fact]
     [Trait("Req", "UI-CHAT-028")] // TimelineRows.swift:2127-2140 the per-file diff block

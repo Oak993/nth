@@ -138,6 +138,41 @@ public sealed class TimelineRowsFinHeadStepsTests(HeadlessSession headless)
         });
     });
 
+    // Review round 4 (mutant M7): the five selectable lines are Texts with .fixedSize(horizontal: false, vertical: true) (:1901,
+    // :1923, :1983, :1990, :2001), which wrap at the width the 440-point panel offers and grow downward; none runs on in one line.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-055 (the panel's lines wrap at its width): TimelineRows.swift:1896-1902, :1917-1924, :1978-1990, :1991-2002, :1927-1930
+    public void A_long_task_reply_brief_notice_and_report_each_wrap_inside_the_440_point_panel() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        runtime.OnMain(() =>
+        {
+            string Long(string word) => string.Join(" ", Enumerable.Repeat(word, 60));
+            var steps = new TimelineEntry[] { Reply(Long("reply")), UserEntry(Long("brief"), null), NoticeEntry(Notice.Level.Warning, Long("notice")) };
+            var start = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+            var head = TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Completed) with
+            {
+                Task = Long("task"), Summary = Long("report"), StartedAt = start, FinishedAt = start.AddSeconds(64), ToolCalls = 2,
+            };
+            var body = Body(head, steps);
+            var window = Show(new StackPanel { Children = { body } });
+            try
+            {
+                var panel = Mounted<Border>(body).First(border => border.Padding == new Thickness(16));
+                var right = Left(panel, window) + 440 - 16; // :1927-1930 the 440-point frame, padded 16
+                var lines = Mounted<SelectableTextBlock>(body).ToArray();
+                Assert.Equal(5, lines.Length);
+                foreach (var line in lines)
+                {
+                    Assert.True(line.TextLayout.TextLines.Count > 1, $"\"{line.Text![..8]}...\" runs on in one line {line.TextLayout.Width:0} points wide");
+                    Assert.True(Left(line, window) + line.TextLayout.Width <= right + 0.5, $"\"{line.Text![..8]}...\" runs past the panel's padding");
+                }
+            }
+            finally { Close(window); }
+        });
+    });
+
     [Fact]
     [Trait("Req", "UI-CHAT-055")] // TimelineRows.swift:1906-1909 the empty state, :1916 no report until the head is finished
     [Trait("Req", "PR-CHAT-154")] // TimelineRows.swift:1906-1909 No steps yet.
