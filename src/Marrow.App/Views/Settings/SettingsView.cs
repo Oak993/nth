@@ -203,8 +203,8 @@ public sealed class SettingsView : Decorator
     }
 
     // :148-177. `ForEach(visiblePages) { item in SidebarRow(title:, isSelected: page == item, ...) }`: a page keeps its row
-    // under its ForEach id while it stays listed (its hover with it), and a new pass hands the row its isSelected, which
-    // eases the row's fill on Chrome.hover (Chrome.swift:729; 1-settings-tour.mov 47.765-47.85 s). A page that leaves the
+    // under its ForEach id while it stays listed (its hover with it), and a page change hands the row its isSelected
+    // (SelectRows), which eases the row's fill on Chrome.hover (Chrome.swift:729; 1-settings-tour.mov 47.765-47.85 s). A page that leaves the
     // list drops its row and its state; one that comes back is built anew. Kept rows stay where they are in the panel
     // (the pages keep their declaration order, :4-15), so a new pass only takes out and puts in the rows that change.
     private void RebuildSidebar()
@@ -219,10 +219,9 @@ public sealed class SettingsView : Decorator
             if (!wanted.Contains(rows.Children[i])) rows.Children.RemoveAt(i);
         for (var i = 0; i < wanted.Count; i++)
             if (i >= rows.Children.Count || !ReferenceEquals(rows.Children[i], wanted[i])) rows.Children.Insert(i, wanted[i]);
-        SelectRows();
     }
 
-    // :149 `isSelected: page == item`, handed to every listed row on each pass.
+    // :149 `isSelected: page == item`, handed to every listed row whenever the page changes (a row built anew is built with it).
     private void SelectRows()
     {
         foreach (var (page, row) in pageRows) row.IsSelected = state.Page == page;

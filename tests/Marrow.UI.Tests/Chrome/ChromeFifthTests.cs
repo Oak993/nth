@@ -680,6 +680,30 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             Step(0.05);
             Assert.Equal(0, Alpha());
+
+            // :741-745 the fill is the selection's first and the hover's after it, whichever of the two changed.
+            var hovered = Label(0.06, ThemeVariant.Light); // :743
+            window.MouseMove(new Point(20, 14)); // onto the row
+            Dispatcher.UIThread.RunJobs();
+            Step(0.11);
+            AssertColor(hovered, Effective(shape.Background));
+            row.IsSelected = true; // selected under the pointer
+            Dispatcher.UIThread.RunJobs();
+            Step(0.11);
+            AssertColor(selected, Effective(shape.Background));
+            window.MouseMove(new Point(350, 250)); // off the row: still selected, so nothing changes
+            Dispatcher.UIThread.RunJobs();
+            Step(0.11);
+            AssertColor(selected, Effective(shape.Background));
+            window.MouseMove(new Point(20, 14)); // back onto it
+            Dispatcher.UIThread.RunJobs();
+            Step(0.11);
+            row.IsSelected = false; // deselected under the pointer: the hover's wash, not clear
+            Dispatcher.UIThread.RunJobs();
+            Step(0.05);
+            Assert.InRange(Alpha(), (byte)(hovered.A + 1), (byte)(selected.A - 1)); // on its way down from 0.12 to 0.06
+            Step(0.06);
+            AssertColor(hovered, Effective(shape.Background));
         }
         finally { window.Close(); }
     });
