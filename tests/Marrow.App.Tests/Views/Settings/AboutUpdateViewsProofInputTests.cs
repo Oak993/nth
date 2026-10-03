@@ -440,7 +440,7 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
         void Advance(int ms) { runtime.Time.Advance(TimeSpan.FromMilliseconds(ms)); frames.Advance(TimeSpan.FromMilliseconds(ms)); Dispatcher.UIThread.RunJobs(); }
         (Border Face, SwiftImage Icon, TextBlock Title) Parts()
         {
-            // The face that is leaving crossfades out under the one on show (OD-0076, ED-NEW-aboutupdateviews T2); the live face is the last.
+            // The face that is leaving crossfades out under the one on show (OD-0076, ED-261 T2); the live face is the last.
             var face = pill.GetVisualDescendants().OfType<Border>().Last(b => b.Child is StackPanel);
             var row = Assert.IsType<StackPanel>(face.Child);
             return (face, Assert.IsType<SwiftImage>(row.Children[0]), Assert.IsType<TextBlock>(row.Children[1]));

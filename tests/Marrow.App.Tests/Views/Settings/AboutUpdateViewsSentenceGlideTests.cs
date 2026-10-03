@@ -14,7 +14,7 @@ using Marrow.UI.Port;
 namespace Marrow.App.Tests.Views.Settings;
 
 // OD-0076 (porting/owner_decisions.md:712-719): "a card ... that changes size eases to the new size ... with no single-frame jump", "the system's reduce-motion
-// setting stills them". ENGINEERING DECISION ED-NEW-aboutupdateviews T1: when the check row's sentence swaps its words, the box it sits in (SentenceHeightGlide)
+// setting stills them". ENGINEERING DECISION ED-261 T1: when the check row's sentence swaps its words, the box it sits in (SentenceHeightGlide)
 // eases its height from the height it has to the height the new words take over the swap's 0.18 s on the ease of the pill's :671 (AboutUpdateViews.swift:671),
 // so the row and the card around it ease with it; under Reduce Motion the height cuts. At the settings window's default size (SettingsView.cs:170 Width = 780,
 // :122; the 212 pt sidebar, :178; 24 pt each side of the page stack, :249) the card is 520 pt wide and the resting sentence takes two lines where "Asking GitLab

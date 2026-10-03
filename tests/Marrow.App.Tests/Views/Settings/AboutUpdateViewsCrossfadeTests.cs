@@ -17,7 +17,7 @@ namespace Marrow.App.Tests.Views.Settings;
 // OD-0076 (porting/owner_decisions.md:712-719, "content that swaps crossfades ... every transition runs on the frame clock with no single-frame jump, and the
 // system's reduce-motion setting stills them") and AboutUpdateViews.swift:671 `.animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: isReady)`
 // over the `if isReady {...} else {...}` branches (:643-660) whose removal and insertion take SwiftUI's default opacity transition under that animation.
-// ENGINEERING DECISION ED-NEW-aboutupdateviews T1-T3: the Check now button and its sentence, the pill's ready and standing faces and the install slider all swap
+// ENGINEERING DECISION ED-261 T1-T3: the Check now button and its sentence, the pill's ready and standing faces and the install slider all swap
 // over 0.18 s on that ease (the pill's own), on the frame clock, the old content fading out where it stood while the new fades in, the slot easing to the new width,
 // the content that is leaving taking no input; under Reduce Motion they cut. Each test reads the screen at a quarter, the middle and the end of the swap.
 [Collection("Headless")]

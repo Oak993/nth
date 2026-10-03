@@ -9,7 +9,7 @@ using Marrow.UI.Port;
 namespace Marrow.App.Views.Settings;
 
 /// <summary>
-/// PORT-ONLY (OD-0076, ED-NEW-aboutupdateviews T1-T3): the place where content that swaps crossfades. <see cref="Show"/> puts a new
+/// PORT-ONLY (OD-0076, ED-261 T1-T3): the place where content that swaps crossfades. <see cref="Show"/> puts a new
 /// piece of content in place of the one on show: under an animation the old one fades out where it stood while the new one fades in
 /// (SwiftUI's default opacity transition of a branch that is removed and inserted, AboutUpdateViews.swift:671), on the frame clock,
 /// and the slot's own size eases from where it is to the new content's size over the same animation (a label whose width changes

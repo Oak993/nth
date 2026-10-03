@@ -15,7 +15,7 @@ namespace Marrow.App.Tests.Views.Settings;
 
 // REVIEW (adversarial review of unit blitz-aboutupdateviews, 2026-10-04). OD-0076 (porting/owner_decisions.md:712-719): "nothing on
 // screen changes by a cut ... content that swaps crossfades ... Every transition runs on the frame clock (ED-237) with no
-// single-frame jump, and the system's reduce-motion setting stills them." The unit's own ED-NEW-aboutupdateviews lists these
+// single-frame jump, and the system's reduce-motion setting stills them." The unit's own ED-261 lists these
 // swaps as OD-0076 transition debt T1-T3 (cuts). For the version pill's face swap the Swift itself animates the change:
 // :671 `.animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: isReady)` wraps the `if isReady {...} else {...}`
 // branches (:643-660), whose removal and insertion take SwiftUI's default opacity transition under that animation.
@@ -48,7 +48,7 @@ public sealed class AboutUpdateViewsReviewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-071")] // REVIEW: OD-0076 - "Check now" to "Checking…" swaps by a cut (ED-NEW-aboutupdateviews T1)
+    [Trait("Req", "UI-SETTINGS-071")] // REVIEW: OD-0076 - "Check now" to "Checking…" swaps by a cut (ED-261 T1)
     [Trait("Rule", "R-TEST-4")] // partial: only the label crossfade clause added by OD-0076
     public void REVIEW_Check_now_label_crossfades_into_Checking_rather_than_cutting() => headless.OnUiThread(() =>
     {
@@ -68,7 +68,7 @@ public sealed class AboutUpdateViewsReviewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-UPDATE-005")] // REVIEW: :671 + OD-0076 - the standing/ready face swap crossfades its symbol and title (ED-NEW-aboutupdateviews T2)
+    [Trait("Req", "UI-UPDATE-005")] // REVIEW: :671 + OD-0076 - the standing/ready face swap crossfades its symbol and title (ED-261 T2)
     [Trait("Rule", "R-TEST-4")] // partial: only the content crossfade of the face change
     public void REVIEW_The_ready_face_crossfades_in_over_the_standing_face() => headless.OnUiThread(() =>
     {
@@ -97,7 +97,7 @@ public sealed class AboutUpdateViewsReviewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-056")] // REVIEW: OD-0076 - the installing slider and the standing face swap by a cut (ED-NEW-aboutupdateviews T3)
+    [Trait("Req", "UI-SETTINGS-056")] // REVIEW: OD-0076 - the installing slider and the standing face swap by a cut (ED-261 T3)
     [Trait("Rule", "R-TEST-4")] // partial: only the slider-to-face crossfade added by OD-0076
     public void REVIEW_The_slider_crossfades_into_the_standing_face_when_the_celebration_completes() => headless.OnUiThread(() =>
     {
@@ -122,7 +122,7 @@ public sealed class AboutUpdateViewsReviewTests(HeadlessSession headless)
     // window's default size (SettingsView.cs:170 Width = 780, :122; the 212 pt sidebar, :178; the page stack's 24 pt each side, :249) the card is
     // 520 pt wide and the resting sentence "Marrow checks GitLab for new versions a few times a day. Not checked yet." takes more lines than
     // "Asking GitLab for the latest release…". The row's sentence swap replaces the words at the middle of the fade, so the card's height must
-    // ease, not step by a whole line in one frame (the unit's ED-NEW-aboutupdateviews T1 leaves this "NOT eased (UNVERIFIED, rare)").
+    // ease, not step by a whole line in one frame (the unit's ED-261 T1 leaves this "NOT eased (UNVERIFIED, rare)").
     [Fact]
     [Trait("Req", "PR-SETTINGS-240")] // REVIEW: the detail swap while a check starts; OD-0076 card size change
     [Trait("Rule", "R-TEST-4")] // partial: only that the card's height does not jump when the sentence rewraps

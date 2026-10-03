@@ -15,7 +15,7 @@ namespace Marrow.UI.Chrome;
 /// on the extracted frames): the capsule is 20 pt tall and about 78 pt wide with a white label (~11 pt) at rest, 20 pt
 /// tall with the label grey on a grey translucent capsule while disabled ("Checking..."), the accent fill (247,46,120)
 /// over a (52,59,60) backdrop on the recorded Monokai theme (accent F92672 = 249,38,114), lighter on hover (254,68,141) and on press.
-/// ENGINEERING DECISION (ED-NEW-aboutupdateviews): the accent glass is the port's own material (OD-0005) tinted with the
+/// ENGINEERING DECISION (ED-261): the accent glass is the port's own material (OD-0005) tinted with the
 /// accent (Chrome.Accent, following the theme live) at full strength, so its interactive hover and press light shows on top of it;
 /// the disabled capsule is the same material washed with the label colour at 11 %. Side padding 10 pt (Apple kit small
 /// row, E:\Droppy\work\apple-kit\macos27-uikit-controls.md:68), label 11 pt Medium.

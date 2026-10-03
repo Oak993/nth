@@ -1545,7 +1545,7 @@ public sealed class AboutUpdateCheckRow : Decorator
     {
         // :826-833 Button(checker.isChecking ? "Checking…" : "Check now") { Task { await checker.check() } }.buttonStyle(.glass)
         // .controlSize(.small).disabled(checker.isChecking): the small accent glass capsule the recorded Mac runtime shows
-        // (SmallAccentGlassButton, ED-NEW-aboutupdateviews); the label and the disabled look share isChecking.
+        // (SmallAccentGlassButton, ED-261); the label and the disabled look share isChecking.
         return SmallAccentGlassButton.Create(snapshot.IsChecking ? "Checking…" : "Check now", () =>
         {
             if (!snapshot.IsChecking)
@@ -1615,7 +1615,7 @@ public sealed class AboutUpdateCheckRow : Decorator
 }
 
 /// <summary>
-/// PORT-ONLY (OD-0076, ED-NEW-aboutupdateviews T1): the box the check row's sentence sits in. While the sentence's words swap, the box's height eases from the
+/// PORT-ONLY (OD-0076, ED-261 T1): the box the check row's sentence sits in. While the sentence's words swap, the box's height eases from the
 /// height it has to the height the new words take at the width it is given (measured by a probe that carries the new words, invisible, for the swap's length)
 /// over the swap's animation, so the row and the card around it ease with it; with no swap it is the sentence's own height.
 /// </summary>

@@ -7,7 +7,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Views.Settings;
 
-/// <summary>OD-0076 (ED-NEW-aboutupdateviews T1-T3): the About update views swap their content over 0.18 s on the frame clock; a test that reads the state a swap
+/// <summary>OD-0076 (ED-261 T1-T3): the About update views swap their content over 0.18 s on the frame clock; a test that reads the state a swap
 /// ends in lets the swap finish first, so the content that left is gone from the tree.</summary>
 internal static class AboutSwap
 {

@@ -883,7 +883,7 @@ public enum HapticPattern { Generic, Alignment, LevelChange }
 
 public static class Haptics
 {
-    /// <summary>PORT-ONLY (ED-NEW-aboutupdateviews): where each haptic goes. The shipped sink does nothing
+    /// <summary>PORT-ONLY (ED-261): where each haptic goes. The shipped sink does nothing
     /// (port_impacts X6: no sound or animation substitutes for it); a test overrides it for its own flow so the
     /// call sites of the Swift (AboutUpdateViews.swift:804,809,812) and their times can be observed.</summary>
     public static Ambient<Action<HapticPattern>> Sink { get; } = new((Action<HapticPattern>)Ignore);
