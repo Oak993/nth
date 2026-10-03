@@ -141,4 +141,45 @@ public sealed class TimelineRowsParityReview3Tests(HeadlessSession headless)
         Assert.True(closings == 0, $"the editor's popover closed {closings} time(s) when an entry arrived below its row");
         Assert.True(ReferenceEquals(content, editor.Child), "a new MessageEditor was built: its @State (restoresFiles, error, isSending) started over");
     });
+
+    // PR-CHAT-166 ("Selection works within the block under the pointer"; TimelineRows.swift:2124 the tool's detail, :2152 its output,
+    // :2394 a notice's message, each .textSelection(.enabled)). A SelectableTextBlock's SelectionBrush is null with no control theme
+    // loaded (the app loads none: PortControlThemes; ParagraphTextPresenter and VeiledText.SelectableText set it for that reason), so
+    // a drag over these lines selects text that is never drawn. ED-NEW-parity-timelinerows (5) decides that every such text, the
+    // timeline's own lines included (:2121, :2124, :2152, :2394, ...), is made by the one recipe with the system's selected-text
+    // colour; the round-2 fix gave it to the veiled text and the table cells only, and these sites still set the I-beam alone
+    // (TimelineRows.cs ToolDetailView, NoticeRow; HydraHeadStepsPopover.Selectable the same).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-166: TimelineRows.swift:2121-2124, :2150-2152, :2394; ED-NEW-parity-timelinerows (5)
+    public void REVIEW_A_selection_in_a_notice_and_in_a_tools_detail_and_output_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
+    {
+        using var h = TimelineRowsPrSupport.Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        Avalonia.Controls.Window window = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var notice = new NoticeRow(TimelineRowsPrSupport.NoticeEntry(Notice.Level.Error, "No message found with that id."));
+                var tool = new ToolDetailView(TimelineRowsPrSupport.Call(ToolCall.Kind.Command, "cat") with { Detail = "cat notes.txt", Output = "the output line" });
+                window = TimelineRowsPrSupport.Show(new StackPanel { Width = 500, Spacing = 40, Children = { notice, tool } });
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
+                var texts = new[]
+                {
+                    ("notice", Assert.Single(notice.GetVisualDescendants().OfType<SelectableTextBlock>())),
+                    ("detail", Assert.Single(tool.GetVisualDescendants().OfType<SelectableTextBlock>(), text => text.Text == "cat notes.txt")),
+                    ("output", Assert.Single(tool.GetVisualDescendants().OfType<SelectableTextBlock>(), text => text.Text == "the output line")),
+                };
+                foreach (var (name, text) in texts)
+                {
+                    text.SelectAll();
+                    Assert.Equal(text.Text, text.SelectedText); // selected ...
+                    Assert.True((text.SelectionBrush as Avalonia.Media.ISolidColorBrush)?.Color == system,
+                        $"{name}: the selection is drawn with {text.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}"); // ... and drawn
+                }
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => TimelineRowsPrSupport.Close(window)); }
+    });
 }
