@@ -77,6 +77,8 @@ public sealed class ThreadTimeline : Decorator
         presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
         return presenter.RegisterInNameScope(scope);
     });
+    /// <summary>How many times the body has run (:98 `var body`): the render count PR-CHAT-160's `.equatable()` boundary is proven by (a title, an effort or a mode runs it no more).</summary>
+    internal int DrawPasses { get; private set; }
     private long? seenAutoStartedTurnToken; // :83-85
     private bool? seenRunning;
     private string? seenLastEntryID;
@@ -112,6 +114,7 @@ public sealed class ThreadTimeline : Decorator
         var host = new Border(); Child = host;
         void Draw()
         {
+            DrawPasses++;
             if (runtime.IsLoadingHistory)
             {
                 // :134-135; OD-0016 / ED-097. LoadingMark owns the 400 ms blank period and 0.2 s fade, and cancels its frames on detach.

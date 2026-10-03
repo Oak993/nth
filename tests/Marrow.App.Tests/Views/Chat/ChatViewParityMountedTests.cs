@@ -104,7 +104,10 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
             }
             Assert.Equal(PanelDockCorner.TopTrailing, docks[^1]); // re-docked while still held (:611 "called as the panel is held").
             Assert.Contains(PanelDockCorner.BottomLeading, docks.Take(1));
-            Assert.True(h.Defaults.Writes.Count(key => key == "usagePanelDock") > writes); // written mid-drag, when it changes.
+            // :620-625 `if next != corner.wrappedValue`: written mid-drag once per change of corner, never on a move that leaves it where it is.
+            var changes = docks.Prepend(PanelDockCorner.BottomLeading).Zip(docks, (was, now) => was != now).Count(changed => changed);
+            Assert.True(changes >= 2, "the drag crosses more than one corner");
+            Assert.Equal(changes, h.Defaults.Writes.Count(key => key == "usagePanelDock") - writes);
             window.MouseUp(start + new Point(12 * 90, -12 * 55), MouseButton.Left, RawInputModifiers.None);
             Drain(h, window);
             Assert.True(Timeline(view).IsHitTestVisible); // the flag clears when every drag state releases.
@@ -181,7 +184,8 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
         => WithColumn((h, model, runtime, view, window, _) =>
         {
             var timeline = Timeline(view);
-            var rail = Assert.Single(LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view)); // rebuilt on every draw
+            var passes = timeline.DrawPasses; // the passes of the timeline's body: a direct count, whatever it rebuilds or reuses inside one.
+            Assert.True(passes > 0);
             h.Main.OnMain(() =>
             {
                 model.Rename(runtime.ThreadID, "A new title");
@@ -190,12 +194,12 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
             });
             Drain(h, window);
             Assert.Same(timeline, Timeline(view));
-            Assert.Same(rail, Assert.Single(LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view))); // never redrawn.
+            Assert.Equal(passes, timeline.DrawPasses); // never drawn again.
             Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(view), t => t.Text == "A new title"); // the chat view itself did follow.
             h.Main.OnMain(() => window.Height = 800); // the column height is one of the eight values.
             Drain(h, window);
             Assert.Same(timeline, Timeline(view));
-            Assert.NotSame(rail, Assert.Single(LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view)));
+            Assert.True(timeline.DrawPasses > passes);
         }, messages: true);
 
     [Theory]
