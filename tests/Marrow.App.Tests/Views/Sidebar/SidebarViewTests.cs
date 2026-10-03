@@ -12003,6 +12003,73 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
+
+    // The other way round (review pass 2, round 3): SidebarView.swift:1325-1326 `let isLast`, :1348-1349
+    // HelperConnector(endsHere: isLast), :1665-1674 the stem stops at the row's middle only on the last helper and runs
+    // through every other. Helpers are listed newest first (:419, createdAt descending) and an archived one is not listed
+    // (:414), so an older helper coming back from the archive lands below the last one, which the list keeps (its ForEach id,
+    // UpdateItemView) and hands isLast false: its connector runs on down to the new last row instead of stopping at its own
+    // middle. A list that handed every kept row true, or an EndsHere that always drew the end, leaves a gap above the new
+    // last row. Each connector is the full 28 x 24 shape: the stem down x = 18 (:1292 connectorLineX) from the top, the tick
+    // across the middle to 2 pt short of the trailing edge (x = 26).
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-111")] // App/Views/Sidebar/SidebarView.swift:1325-1326, :1348-1349, :1662-1676, :409-420
+    public void A_kept_last_helper_row_runs_its_connector_through_once_an_older_helper_lands_below_it() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var newer = NewThread(project, "Helper newer", 2) with { ParentThreadID = parent.Id };
+        var older = NewThread(project, "Helper older", 1) with { ParentThreadID = parent.Id, IsArchived = true };
+        var model = Model(harness, [project], [parent, newer, older]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        StackPanel list = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        List<Control> HelperRows() => LogicalQuery.SelfAndDescendants<Control>(list).Where(c => c.GetType() == Private("SidebarHelperRow")).ToList();
+        Control HelperRowTitled(string title) => HelperRows().Single(r => Texts(r).Contains(title));
+        void Connector(Control helperRow, bool endsHere)
+        {
+            var shape = LogicalQuery.SelfAndDescendants<HelperConnector>(helperRow).Single().GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single().Data!.Bounds;
+            Assert.Equal(18d, shape.Left, 3); // :1668, :1670 the stem and the tick start at x = 18
+            Assert.Equal(26d, shape.Right, 3); // :1671 the tick ends at rect.maxX - 2
+            Assert.Equal(0d, shape.Top, 3); // :1668 from rect.minY
+            Assert.Equal(endsHere ? ThreadRowMetrics.HelperHeight / 2 : ThreadRowMetrics.HelperHeight, shape.Bottom, 3); // :1669 midY on the last helper, maxY otherwise
+        }
+        harness.Main.OnMain(() =>
+        {
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            Control kept = null!;
+            harness.Main.OnMain(() =>
+            {
+                kept = Assert.Single(HelperRows()); // the archived helper is not listed (:414)
+                Connector(kept, endsHere: true); // the only helper: the connector ends at it
+                model.UpdateThread(older.Id, t => t with { IsArchived = false }); // the older helper is back, below it (:419)
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(2, HelperRows().Count);
+                Assert.Same(kept, HelperRowTitled("Helper newer")); // the row the list had
+                Assert.Same(kept, HelperRows()[0]); // above the older one
+                Connector(HelperRowTitled("Helper older"), endsHere: true); // the new last helper ends the connector
+                Connector(kept, endsHere: false); // :1349 isLast false now: the stem runs through to the row below
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
 }
 
 // STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)
