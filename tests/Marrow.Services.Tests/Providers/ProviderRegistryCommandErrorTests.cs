@@ -134,4 +134,44 @@ public sealed class ProviderRegistryCommandErrorTests
         Assert.Equal("Claude could not load its commands.", registry.CommandErrors[key]);
         Assert.DoesNotContain(key, registry.Commands.Keys);
     }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-051")] // ProviderRegistry.swift:819-830 (a 33rd key evicts the least recently fetched entry, with its error entry)
+    [Trait("Req", "PR-PROVREG-214")] // ProviderRegistry.swift:822-826 (the eviction also removes the oldest key's error)
+    public async Task the_entry_evicted_for_a_thirty_third_key_takes_its_error_entry_with_it()
+    {
+        using var runtime = new TestRuntime();
+        var script = new ClaudeScript("command-error-evicted");
+        script.SetResponse(NoCommands);
+        var settings = new FakeProviderSettings();
+        settings.Paths[ProviderKind.Claude] = script.ExecutablePath.Replace('\\', '/');
+        var registry = new ProviderRegistry(settings);
+        var root = Folder();
+        var directories = Enumerable.Range(0, 33).Select(index => Directory.CreateDirectory(Path.Combine(root, "d" + index)).FullName).ToArray();
+        for (var index = 0; index < 32; index++)
+        {
+            runtime.Advance(TimeSpan.FromSeconds(1)); // distinct, increasing fetch times: the first key is the oldest
+            var directory = directories[index];
+            var name = "c" + index;
+            runtime.Loop.Run(() => MainActor.Run(() => registry.UpdateCommands(
+                new ValueList<SlashCommand>([new SlashCommand { Name = name, Detail = "" }]), ProviderKind.Claude, directory)));
+        }
+        var oldest = ProviderRegistry.CommandKey(ProviderKind.Claude, directories[0]);
+        var survivor = ProviderRegistry.CommandKey(ProviderKind.Claude, directories[1]);
+
+        // The oldest key fails to reload: its error is stored beside its stale list (PR-PROVREG-218), and the fetch time stays what it was.
+        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCommands(ProviderKind.Claude, directories[0], force: true)));
+        Assert.Equal("Claude could not load its commands.", registry.CommandErrors[oldest]);
+        Assert.Equal(32, registry.Commands.Count);
+
+        // A 33rd key evicts the oldest entry, and with it the error that was stored under that key.
+        runtime.Advance(TimeSpan.FromSeconds(1));
+        runtime.Loop.Run(() => MainActor.Run(() => registry.UpdateCommands(
+            new ValueList<SlashCommand>([new SlashCommand { Name = "new", Detail = "" }]), ProviderKind.Claude, directories[32])));
+        Assert.Equal(32, registry.Commands.Count);
+        Assert.False(registry.Commands.ContainsKey(oldest));
+        Assert.False(registry.CommandErrors.ContainsKey(oldest)); // the error entry went with it
+        Assert.True(registry.Commands.ContainsKey(survivor));
+        Assert.Empty(registry.CommandErrors);
+    }
 }
