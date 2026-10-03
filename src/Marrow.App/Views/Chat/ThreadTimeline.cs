@@ -56,7 +56,6 @@ public sealed class ThreadTimeline : Decorator
     private StackPanel? drawnBody;
     private StackPanel? drawnRows; // :388 the stack of the rows, one for the life of the content: each pass diffs it (ED-NEW-parity-threadtimeline)
     private readonly HashSet<Control> leavingViews = []; // badges fading out where they stood: still in the stack, in nobody's order
-    private bool rowsPlaced; // a first pass places its views with the stack; the passes after it bring new ones in with their transitions
     private int earlierHidden; // the count the drawn earlier pill says
     private string? promptProject; // the project name the shown new-thread prompt says
     private Control? drawnSentinel;
@@ -162,7 +161,11 @@ public sealed class ThreadTimeline : Decorator
                 var rewindable = modelInputs.Rewindable.ToHashSet();
                 var shownBefore = laidOutRows.Keys.ToArray(); laidOutRows.Clear();
                 // This pass's views in order: the blocks' rows, then the questions' badges. A view arrives (with its transition) when it joins a stack that is already
-                // on screen under an id that was not there; a first pass places its views with the stack, as a SwiftUI parent brings its children when it appears.
+                // on screen under an id that was not there. A timeline that comes in from nothing (its first pass, or back after the prompt or the loading mark took its
+                // place and it had gone) comes in whole: :134-144 is an if/else, and the branch that comes back is a new view whose children come with it, so its rows and
+                // its badges are placed with the stack, its rail with it, and what it had before (an answered badge, a rail it no longer has) is gone at once; the host's
+                // one fade carries it (OD-0076, ED-NEW-parity-threadtimeline (3)). A timeline turned back while it was still leaving is partly on screen: rows new to it arrive.
+                var comesWhole = scrollOverlay is not { } layer || !branches.Holds(layer);
                 var wanted = new List<(Control View, bool Arrives)>();
                 var stale = new List<Control>(); var leaving = new List<Control>();
                 foreach (var block in blocks.Skip(WindowStartIndex(blocks)))
@@ -179,7 +182,7 @@ public sealed class ThreadTimeline : Decorator
                     if (made && hadIdentity) stale.Add(existing.Row);
                     rowViews[block.Id] = (block, context, row);
                     laidOutRows[block.Id] = row;
-                    wanted.Add((row, made && !hadIdentity && rowsPlaced)); // a view made again for an id that stood takes its place: no arrival
+                    wanted.Add((row, made && !hadIdentity && !comesWhole)); // a view made again for an id that stood takes its place: no arrival
                 }
                 // Rows whose blocks left the window or the thread leave at once (:339 removal: .identity, whatever a row's own transition says).
                 foreach (var gone in rowViews.Keys.Except(laidOutRows.Keys).ToArray()) { stale.Add(rowViews[gone].Row); rowViews.Remove(gone); }
@@ -192,12 +195,12 @@ public sealed class ThreadTimeline : Decorator
                     var badge = same ? existing.Row : new QuestionBadgeRow(request, runtime) { Name = id }.Transition(SoftAppearTransition);
                     if (!same && hadIdentity) stale.Add(existing.Row);
                     questionViews[id] = (request, badge);
-                    wanted.Add((badge, !same && !hadIdentity && rowsPlaced));
+                    wanted.Add((badge, !same && !hadIdentity && !comesWhole));
                 } // :393-397
                 foreach (var gone in questionViews.Keys.Except(runtime.Questions.Select(request => "question-" + request.Id)).ToArray())
                 {
-                    // :396 .transition(.softAppear): an answered question's badge leaves with a quick fade where it stood.
-                    leaving.Add(questionViews[gone].Row); questionViews.Remove(gone);
+                    // :396 .transition(.softAppear): an answered question's badge leaves with a quick fade where it stood (one answered while the timeline had gone is not in the one that comes back).
+                    (comesWhole ? stale : leaving).Add(questionViews[gone].Row); questionViews.Remove(gone);
                 }
                 foreach (var row in stale) rows.Children.Remove(SwiftTransition.Container(row));
                 foreach (var row in leaving) SwiftTransition.Remove(rows, row);
@@ -210,7 +213,6 @@ public sealed class ThreadTimeline : Decorator
                     else if (arrives) SwiftTransition.Insert(rows, slot, view);
                     else SwiftTransition.Place(rows, slot, view);
                 }
-                rowsPlaced = true;
                 if (tracking.SetOutline(blocks.Skip(WindowStartIndex(blocks)).Select(block => (block.Id, block.HasUserMessage)).ToArray()))
                 {
                     tracking.ArmBlankWatch(); if (tracking.IsPinnedToBottom && !tracking.IsArriving) tracking.ArmViewportRefresh();
@@ -280,15 +282,15 @@ public sealed class ThreadTimeline : Decorator
                     var previous = currentRail; currentRail = nextRail;
                     // :195-200 `.transition(.opacity)` under `.animation(Chrome.panelSlide, value: showsMinimap)`: the rail fades in and out with the slide of the
                     // panel that takes its edge, held while the window is dragged (a fresh slide every frame lagged the chat behind the window). A rail whose
-                    // ticks changed is the same view with new content, not a new rail.
-                    var fades = (previous is null) != (nextRail is null) && !AppEnvironment.GetWindowLiveResize(this).IsReshaping;
+                    // ticks changed is the same view with new content, not a new rail. A timeline that comes in whole brings its rail with it and has none of the one before.
+                    var fades = (previous is null) != (nextRail is null) && !AppEnvironment.GetWindowLiveResize(this).IsReshaping && !comesWhole;
                     Transaction.WithAnimation(fades ? Chrome.PanelSlide : null, () =>
                     {
                         if (previous is not null) SwiftTransition.Remove(overlay, previous);
                         if (nextRail is not null) SwiftTransition.Insert(overlay, overlay.Children.Count, nextRail);
                     });
                 }
-                branches.Show(overlay, fadesIn: true); // the timeline comes in over a prompt that fades out (a thread that opens on rows has nothing to fade from: the first branch is placed whole)
+                branches.Show(overlay, fadesIn: true); // the timeline comes in over a prompt that fades out, with all it shows (a thread that opens on rows has nothing to fade from: the first branch is placed whole)
                 MainActor.Post(() =>
                 {
                     if (!ReferenceEquals(currentScroll, scroll)) return;
@@ -529,6 +531,9 @@ public sealed class ThreadTimeline : Decorator
 
         /// <summary>The branch on show.</summary>
         public Control? On { get; private set; }
+
+        /// <summary>Whether <paramref name="layer"/> is one of the layers here (on show, or leaving and still partly showing): a layer that has gone is not.</summary>
+        public bool Holds(Control layer) => Children.Contains(layer);
 
         /// <summary>Puts <paramref name="next"/> on show. <paramref name="fadesIn"/>: this host brings it in (the timeline); a branch that comes in with its own appear (the prompt) is left to it.</summary>
         public void Show(Control next, bool fadesIn)

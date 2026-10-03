@@ -4,6 +4,8 @@ using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
+using Marrow.App.Views.Composer;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 using static Marrow.App.Tests.Fixtures.TimelineMount;
@@ -15,7 +17,8 @@ namespace Marrow.App.Tests.Views.Chat;
 // (E:/Droppy/work/reference-video/CATALOG.md, 2-chat-use.mov 87.86 "the thread starts in ONE frame"); OD-0076 rules that nothing on screen changes by a cut, that content that
 // swaps crossfades, and that where the Mac changes state without animation the port still transitions (an owner-ruled deviation wherever the source snaps), over about 0.3 s on
 // the frame clock, with the system's reduce-motion setting stilling it. ED-NEW-parity-threadtimeline (3): the swap crossfades in both directions; the prompt comes in with its own
-// appear (NewThreadPrompt.swift:50-53, easeOut over 0.3 s), the timeline and the leaving branch with the same curve.
+// appear (NewThreadPrompt.swift:50-53, easeOut over 0.3 s), the timeline and the leaving branch with the same curve. A timeline that comes in from nothing (its first pass, or back
+// after it had gone) comes in whole, its rows, badges and rail placed with it under that one fade (round 4: a thread reverted to nothing faded its next message twice).
 [Collection("Headless")]
 public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
 {
@@ -228,5 +231,84 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
         Assert.Equal(0, mount.Chrome.Progress); Assert.False(mount.State.ShowsJumpButton);
         mount.Advance(400);
         Assert.Null(mount.ScrollOrNull); Assert.Equal(0, mount.Chrome.Progress); Assert.False(mount.State.ShowsJumpButton);
+    });
+
+    private static string Series(IEnumerable<double> values) => string.Join(" ", values.Select(value => value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)));
+
+    private static void Ask(TimelineMount mount, params QuestionRequest[] requests) =>
+        typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Questions))!.SetValue(mount.Runtime, new ValueList<QuestionRequest>(requests));
+
+    private static TimelineMinimapColumn? Rail(TimelineMount mount) => LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(mount.View).SingleOrDefault();
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076): ThreadTimeline.swift:134-144 (the timeline branch that comes back is a new view, and what it shows comes with it), :393-397 (the badges), :179-200 (the rail): a timeline that had gone comes back whole under its one fade
+    public void A_timeline_that_comes_back_after_it_had_gone_brings_its_question_badge_in_with_its_one_fade_and_not_the_rail_or_the_badge_it_had_before() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        static QuestionRequest Question(string id) => new(id, new([new QuestionRequest.Question("choice-" + id, "Header", "Choose", new([]), false, false, false)]));
+        mount.SetEntries(Turns(3)); Ask(mount, Question("old")); mount.Settle();
+        var rail = Assert.IsType<TimelineMinimapColumn>(Rail(mount)); // three sent messages: the rail is on show
+        var answered = Assert.Single(LogicalQuery.SelfAndDescendants<QuestionBadgeRow>(mount.View)); Assert.Equal(1, Showing(answered, mount.View), 3); // and a question's badge
+        RevertToEmpty(mount); mount.Advance(800);
+        var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View)); Assert.Null(mount.ScrollOrNull); // the timeline has gone, its rail and its badge with it
+        // While the prompt is up (its branch reads the blocks and the turn only, :136) the old question is answered and a new one waits: its badge comes back with the timeline.
+        Ask(mount, Question("q")); mount.Advance(16);
+        Assert.Same(prompt, Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View))); Assert.False(answered.IsAttachedToVisualTree());
+        Send(mount, "a new first question");
+        var badge = Assert.Single(LogicalQuery.SelfAndDescendants<QuestionBadgeRow>(mount.View), row => row.Name == "question-q");
+        var leaving = new List<double> { Showing(prompt, mount.View) }; var arriving = new List<double> { Showing(badge, mount.View) };
+        var oldRail = new List<double> { Showing(rail, mount.View) }; var oldBadge = new List<double> { Showing(answered, mount.View) };
+        for (var frame = 0; frame < 30; frame++)
+        {
+            mount.Advance(16);
+            leaving.Add(Showing(prompt, mount.View)); arriving.Add(Showing(badge, mount.View)); oldRail.Add(Showing(rail, mount.View)); oldBadge.Add(Showing(answered, mount.View));
+        }
+        AssertCrossfade(leaving, arriving); // the badge is faded once: by the timeline's fade, not again by its own soft appear (:396)
+        Assert.True(oldRail.All(value => value < 0.001), "the rail the timeline had before it went does not show again (one sent message has none): " + Series(oldRail));
+        Assert.True(oldBadge.All(value => value < 0.001), "the badge of the question answered while the timeline had gone does not show again: " + Series(oldBadge));
+        Assert.Null(Rail(mount)); Assert.False(rail.IsAttachedToVisualTree()); Assert.False(answered.IsAttachedToVisualTree());
+        Assert.Same(badge, Assert.Single(LogicalQuery.SelfAndDescendants<QuestionBadgeRow>(mount.View)));
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and UI-CHAT-003 (ED-NEW-parity-threadtimeline (3), OD-0076): ThreadTimeline.swift:134-144, :179-200 (the rail is part of the timeline that comes in; its own fade, `.animation(Chrome.panelSlide, value: showsMinimap)`, is the flag's)
+    public void A_timeline_that_comes_in_with_two_sent_messages_brings_its_rail_in_with_its_one_fade_on_its_first_pass_and_when_it_comes_back() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
+        mount.SetEntries(Turns(2)); // the timeline's first pass
+        var rail = Assert.IsType<TimelineMinimapColumn>(Rail(mount));
+        var (leaving, arriving) = Sample(mount, () => Showing(prompt, mount.View), () => Showing(rail, mount.View));
+        AssertCrossfade(leaving, arriving); // the rail is faded once, by the timeline's fade, not again by the panel slide's
+        // Down to one sent message the rail goes (the timeline on show: the slide's fade), then the thread is reverted to nothing and the timeline goes.
+        mount.SetEntries([User("only", TurnA, "one message")]); mount.Settle(); Assert.Null(Rail(mount));
+        RevertToEmpty(mount); mount.Advance(800); Assert.Null(mount.ScrollOrNull);
+        var again = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
+        // It comes back with two sent messages: a rail it did not have when it went comes in with it, under the same one fade.
+        mount.SetEntries(Turns(2, prefix: "back-"));
+        var back = Assert.IsType<TimelineMinimapColumn>(Rail(mount)); Assert.NotSame(rail, back);
+        (leaving, arriving) = Sample(mount, () => Showing(again, mount.View), () => Showing(back, mount.View));
+        AssertCrossfade(leaving, arriving);
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-NEW-parity-threadtimeline (3), OD-0076): ThreadTimeline.swift:317-321 (a row that joins a stack on screen arrives with its transition): a timeline turned back while it was still leaving is partly on screen, so a row new to it arrives from nothing
+    public void A_message_that_joins_a_timeline_turned_back_while_it_was_leaving_arrives_with_its_own_transition_from_nothing_not_at_the_layers_opacity() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(3)); mount.Settle();
+        var scroll = mount.Scroll; var overlay = Assert.IsAssignableFrom<Control>(scroll.Parent);
+        RevertToEmpty(mount); mount.Advance(96);
+        Assert.InRange(Showing(overlay, mount.View), 0.05, 0.95); // the timeline is on its way out
+        Send(mount, "a new first question");
+        Assert.Same(scroll, mount.Scroll); // the same timeline, turned back
+        var message = Assert.Single(LogicalQuery.SelfAndDescendants<UserMessageRow>(mount.View));
+        var shown = new List<double> { Showing(message, mount.View) };
+        for (var frame = 0; frame < 40; frame++) { mount.Advance(16); shown.Add(Showing(message, mount.View)); }
+        Assert.True(shown[0] < 0.001, "the message arrives from nothing, not at the opacity the layer turned back from: " + Series(shown));
+        for (var frame = 1; frame < shown.Count; frame++)
+        {
+            Assert.True(shown[frame] >= shown[frame - 1] - 1e-9, $"frame {frame}: the message comes in only: {Series(shown)}");
+            Assert.True(shown[frame] - shown[frame - 1] < 0.15, $"frame {frame}: the message jumps: {Series(shown)}");
+        }
+        Assert.Equal(1, shown[^1], 3);
     });
 }
