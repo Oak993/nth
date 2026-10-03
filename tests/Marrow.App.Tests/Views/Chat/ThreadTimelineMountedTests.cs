@@ -693,4 +693,25 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         // Otherwise it is the standard note row, as any note in the timeline.
         Assert.Equal(!merge, LogicalQuery.SelfAndDescendants<UserMessageRow>(row).Any());
     });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (expanded: the base tick opacity rises from 0.25 to 0.4 under hover or press; the lit tick and the hovered one); TimelineMinimap.swift:258-282, mounted in the timeline
+    public void Ticks_rest_at_a_quarter_and_rise_to_four_tenths_while_the_rail_is_hovered_or_pressed() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(4, sentences: 10).ToList()); mount.Settle();
+        var rail = Rail(mount)!; var ticks = LogicalQuery.SelfAndDescendants<Button>(rail).ToList(); Assert.Equal(4, ticks.Count);
+        // At rest: the lit tick (the message the reader is on: the last, at the end) is fully there, the others a quarter.
+        Assert.Equal(new[] { 0.25, 0.25, 0.25, 1.0 }, ticks.Select(tick => Math.Round(tick.Opacity, 3)));
+        // The pointer over the second tick: it is previewed (nearly full), the lit one stays, the others rise to four tenths.
+        var point = ticks[1].TranslatePoint(new Point(ticks[1].Bounds.Width / 2, ticks[1].Bounds.Height / 2), mount.Window)!.Value;
+        mount.Window.MouseMove(point); mount.Advance(500);
+        Assert.Equal(new[] { 0.4, 0.95, 0.4, 1.0 }, ticks.Select(tick => Math.Round(tick.Opacity, 3)));
+        // Pressed on the rail (the scrub): the others stay at four tenths too.
+        mount.Window.MouseDown(point, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None); mount.Advance(500);
+        Assert.Equal(0.4, Math.Round(ticks[0].Opacity, 3)); Assert.Equal(0.4, Math.Round(ticks[2].Opacity, 3));
+        mount.Window.MouseUp(point, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        // The pointer leaves: back to a quarter.
+        mount.Window.MouseMove(new Point(700, 300)); mount.Advance(600);
+        Assert.Equal(0.25, Math.Round(Rail(mount)!.GetVisualDescendants().OfType<Button>().First().Opacity, 3));
+    });
 }
