@@ -4885,6 +4885,81 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-035")] // SidebarView.swift:1581-1613 HelperStubRow body
+    public void A_folded_stub_keeps_its_recorded_geometry_and_its_colours_ease_with_the_hover_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var head = HeadHelper(project, parent.Id, 0, 1);
+        var model = Model(harness, [project], [parent, head]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        Border shape = null!;
+        TextBlock label = null!;
+        SwiftImage chevron = null!;
+        Avalonia.Controls.Shapes.Path connector = null!;
+        static Color ColorOf(IBrush? brush) => ((ISolidColorBrush)brush!).Color;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { head }, (Action)(() => { }))!;
+            window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                shape = LogicalQuery.SelfAndDescendants<Border>(row).Single(border => border.Height == ThreadRowMetrics.HelperHeight);
+                label = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(text => text.Text == "1 head"); // :1577-1578, :1591 one head says "head"
+                chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(i => i.SymbolName == "chevron.right"); // :1586
+                connector = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(row).Single();
+                Assert.Equal(new Thickness(6, 0, Chrome.RowHorizontalPadding, 0), shape.Padding); // :1600-1601
+                Assert.Equal(new CornerRadius(Chrome.RowCornerRadius), shape.CornerRadius); // :1580
+                Assert.Equal(ThreadRowMetrics.ConnectorWidth, Frame(shape, row).X); // :1584 the 28 pt stub, then the row
+                Assert.Equal(5d, Assert.IsType<StackPanel>(chevron.Parent).Spacing); // :1585 HStack(spacing: 5)
+                Assert.Equal(8d, SwiftImage.GetFont(chevron)!.PointSize); // :1587 .system(size: 8, weight: .bold)
+                Assert.Equal(FontWeight.Bold, SwiftImage.GetFont(chevron)!.Resolve().FontWeight);
+                Assert.Equal(11d, label.FontSize); // :1590 .subheadline
+                var idle = Chrome.SecondaryText.Opacity(0.85).Resolve(label.ActualThemeVariant); // :1596 not hovered
+                Assert.Equal(idle, ColorOf(label.Foreground));
+                Assert.Equal(idle, ColorOf(chevron.Foreground));
+                Assert.Equal(HelperConnector.Color(false).Resolve(connector.ActualThemeVariant), ColorOf(connector.Stroke)); // :1584
+                Assert.Equal(0, ColorOf(shape.Background).A); // :1607 clear
+                window.MouseMove(shape.TranslatePoint(new Point(80, 12), window)!.Value); // :1611-1613 withAnimation(Chrome.hover)
+            });
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s: the label, chevron and stroke are on their way, not cut
+            harness.Main.OnMain(() =>
+            {
+                var idle = Chrome.SecondaryText.Opacity(0.85).Resolve(label.ActualThemeVariant);
+                var hovered = Chrome.SecondaryText.Resolve(label.ActualThemeVariant);
+                Assert.InRange((double)ColorOf(label.Foreground).A, idle.A + 1, hovered.A - 1);
+                Assert.InRange((double)ColorOf(chevron.Foreground).A, idle.A + 1, hovered.A - 1);
+                var strokeIdle = HelperConnector.Color(false).Resolve(connector.ActualThemeVariant);
+                var strokeHovered = HelperConnector.Color(true).Resolve(connector.ActualThemeVariant);
+                Assert.InRange((double)ColorOf(connector.Stroke).A, strokeIdle.A + 1, strokeHovered.A - 1);
+            });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                var hovered = Chrome.SecondaryText.Resolve(label.ActualThemeVariant); // :1596 hovered: 1
+                Assert.Equal(hovered, ColorOf(label.Foreground));
+                Assert.Equal(hovered, ColorOf(chevron.Foreground));
+                Assert.Equal(HelperConnector.Color(true).Resolve(connector.ActualThemeVariant), ColorOf(connector.Stroke));
+                Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), ColorOf(shape.Background)); // :1607
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-SIDEBAR-113")] // App/Views/Sidebar/SidebarView.swift:1585 HStack(spacing: 5), centre alignment by default
     public void The_folded_stubs_chevron_and_label_sit_on_the_centre_line_of_its_24_point_row() => headless.OnUiThread(() =>
     {
@@ -8225,6 +8300,52 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal(1d, row.Opacity);
             window.Close();
         });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // SidebarView.swift:1370-1372 `.fill(isSelected ? ...).animation(Chrome.hover, value: isSelected)`
+    public void A_helper_rows_selection_fill_eases_in_and_out_on_chrome_hover_even_with_no_ambient_animation() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        Border shape = null!;
+        double Alpha() => ((ISolidColorBrush)shape.Background!).Color.A / 255.0;
+        var selectedAlpha = 0d;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 24);
+            selectedAlpha = Chrome.Overlay(0.12).Resolve(shape.ActualThemeVariant).A / 255.0;
+            Assert.Equal(0d, Alpha());
+        });
+        try
+        {
+            harness.Main.OnMain(() => model.SelectedThreadID = helper.Id); // a plain write: no withAnimation around it
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s
+            harness.Main.OnMain(() => Assert.InRange(Alpha(), 0.2 * selectedAlpha, 0.95 * selectedAlpha)); // easing, not cut
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(selectedAlpha, Alpha(), 2);
+                model.SelectedThreadID = parent.Id; // and out again
+            });
+            Tick(50);
+            harness.Main.OnMain(() => Assert.InRange(Alpha(), 0.05 * selectedAlpha, 0.8 * selectedAlpha));
+            Tick(200);
+            harness.Main.OnMain(() => Assert.Equal(0d, Alpha()));
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
     });
 
     private static object? DocumentPrefetchTake(Guid id) => DocumentPrefetch.Shared.Take(id);

@@ -2304,6 +2304,7 @@ internal sealed class SidebarHelperRow : Decorator
         };
         overlayHost.ContextMenu = contextMenu;
 
+        bool? selectedBefore = null;
         overlayHost.Track(() =>
         {
             var thread = Model.Thread(snapshot.Id) ?? snapshot; // :1324-1325
@@ -2332,7 +2333,11 @@ internal sealed class SidebarHelperRow : Decorator
                 glyph = null;
             }
             shape.Padding = new Thickness(6, 0, TrailingPadding(showsActions), 0); // :1365-1367
-            fill.Set(Chrome.Overlay(BackgroundFill(isSelected, state.IsHovering)), Transaction.Current); // :1370-1372
+            // :1370-1372 `.animation(Chrome.hover, value: isSelected)`: a selection change eases on Chrome.hover whatever
+            // transaction carried it; a hover change rides its own withAnimation(Chrome.hover) (:1386).
+            fill.Set(Chrome.Overlay(BackgroundFill(isSelected, state.IsHovering)),
+                selectedBefore is { } before && before != isSelected ? Chrome.Hover : Transaction.Current);
+            selectedBefore = isSelected;
             if (overlayControl is { } previous) overlayHost.Children.Remove(previous);
             var actionsButton = new RowActionsButton(ThreadActions.Make(Model, thread, onRename, onDelete), isMenuPresented); // :1375-1376
             overlayControl = BuildTrailingOverlay(showsActions, thread, actionsButton); // :1375-1384
@@ -2772,6 +2777,12 @@ internal sealed class HelperStubRow : Decorator
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1580 RoundedRectangle(cornerRadius:, style: .continuous)
         var fill = new AnimatedColor(shape);
         shape.Background = fill.Brush;
+        var stroke = new AnimatedColor(connector);
+        connector.Stroke = stroke.Brush;
+        var chevronColor = new AnimatedColor(chevron);
+        chevron.Foreground = chevronColor.Brush;
+        var labelColor = new AnimatedColor(label);
+        label.Foreground = labelColor.Brush;
 
         // :1581 HStack(spacing: 0). A horizontal StackPanel arranges every child at its own DesiredSize along the
         // stack axis (HorizontalAlignment.Stretch is a no-op there), so shape's :1603 frame(maxWidth: .infinity)
@@ -2805,10 +2816,12 @@ internal sealed class HelperStubRow : Decorator
         {
             var (count, working, noun, isHidden, hovering) = value;
             label.Text = count == 1 ? $"1 {noun}" : $"{count} {noun}s"; // :1591
-            connector.Stroke = HelperConnector.Color(hovering).Brush(connector); // :1583 HelperConnector.color(hovering:)
+            // :1611-1613 withAnimation(Chrome.hover) { isHovering = hovering }: everything isHovering drives eases with it,
+            // the stroke (:1583), the label and chevron's foreground (:1596) and the fill (:1607).
+            stroke.Set(HelperConnector.Color(hovering), Transaction.Current); // :1583 HelperConnector.color(hovering:)
             var foreground = Chrome.SecondaryText.Opacity(hovering ? 1 : 0.85); // :1596
-            chevron.ForegroundStyle(foreground);
-            label.Foreground = foreground.Brush(label);
+            chevronColor.Set(foreground, Transaction.Current);
+            labelColor.Set(foreground, Transaction.Current);
             fill.Set(hovering ? Chrome.Overlay(0.06) : SwiftColor.Clear, Transaction.Current); // :1607
             if (working) // :1592-1594
             {
