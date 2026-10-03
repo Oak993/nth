@@ -169,6 +169,9 @@ public sealed class ComposerLightAnimator
         if (width == w && height == h) return;
         w = width; h = height;
         Retarget(now);
+        // the values that only follow the composer's size (the halo's and rim's stretch, Pulse Outside's glow scale)
+        // follow it at once: a growing composer is layout, not a change of setting
+        foreach (var t in new[] { asx, asy, arsx, arsy, sx, sy }) t.Snap(t.Target);
     }
 
     public void SetReduceMotion(bool next, double now)

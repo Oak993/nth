@@ -191,4 +191,18 @@ public sealed class ComposerLightAnimatorTests
         for (var t = 10; t < 130; t++) aura.Advance(t / 60.0);
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // the composer growing (a second line of text) is layout: the light follows its size at once
+    public void A_growing_composer_is_followed_at_once()
+    {
+        var a = Make(ComposerLightSettings.Default with { Style = ComposerLightStyle.Aura });
+        a.Advance(0);
+        Assert.Equal(4 * (52 + 4) / 400.0, a.Aura.Sy, 12);
+        a.SetSize(820, 72, 1);
+        a.Advance(1.01);
+        Assert.Equal(72, a.Aura.H);
+        Assert.Equal(4 * (72 + 4) / 400.0, a.Aura.Sy, 12);
+        Assert.Equal(4 * (72 + 3) / 400.0, a.Aura.Rsy, 12);
+    }
 }
