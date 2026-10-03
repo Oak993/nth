@@ -158,23 +158,8 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
     });
 
     // The text menu of a paragraph (ParagraphTextPresenter's Copy / Select All, NativeContextMenus) is a window of its own as
-    // NSMenu is: an Escape that reaches the window while it is open closes the menu, not the window.
-    private sealed class EscapeInsideMenu(HostWindow window, bool pressEscape = true) : IContextMenuPresenter
-    {
-        public bool? ShownAfterEscape { get; private set; }
-        public int Dismissed { get; private set; }
-
-        public void Present(Control target, Point at, IReadOnlyList<ContextMenuEntry> entries)
-        {
-            Assert.Contains(entries, e => e.Title == "Select All");
-            if (!pressEscape) return; // closed by a click outside it, or a row chosen
-            Escape(window);
-            ShownAfterEscape = window.IsVisible;
-        }
-
-        public void Dismiss() => Dismissed++;
-    }
-
+    // NSMenu is: an Escape that reaches the window while it is open closes the menu, not the window (EscapeInsideMenu presses it
+    // while the menu is open).
     [Fact]
     [Trait("Decision", "ED-253")]
     public void Escape_while_a_paragraph_text_menu_is_open_closes_the_menu_and_the_window_stays() => Open(SettingsPage.About, (window, view, _) =>
@@ -186,7 +171,7 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         {
             Drain(window);
             var paragraph = markdown.GetVisualDescendants().OfType<ParagraphTextPresenter>().First();
-            var menu = new EscapeInsideMenu(window);
+            var menu = new EscapeInsideMenu(() => { Escape(window); return window.IsVisible; });
             using (NativeContextMenus.Presenter.Override(menu))
                 paragraph.RaiseEvent(new ContextRequestedEventArgs());
             Assert.True(menu.ShownAfterEscape, "Escape over the paragraph's text menu closed the Settings window");
@@ -210,7 +195,7 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         {
             Drain(window);
             var paragraph = markdown.GetVisualDescendants().OfType<ParagraphTextPresenter>().First();
-            using (NativeContextMenus.Presenter.Override(new EscapeInsideMenu(window, pressEscape: false)))
+            using (NativeContextMenus.Presenter.Override(new EscapeInsideMenu(escape: null)))
                 paragraph.RaiseEvent(new ContextRequestedEventArgs());
             Escape(window);
             Assert.False(window.IsVisible);
