@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
+using Marrow.App.Tests.Window;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -378,6 +379,114 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
                 Assert.InRange(surface.Bounds.Width - (label.Bounds.Width + 26), -1.0, 1.0); Assert.Equal(Chrome.Accent, effect.TintColor); Assert.Equal(1, effect.TintOpacity); Assert.True(effect.IsInteractive);
                 Assert.True(button.IsEffectivelyEnabled); Assert.Equal(1, surface.Opacity);
             }, model => Seed(model, provider, provider == ProviderKind.Commandcode ? new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() } : new ProviderStatus()));
+    }
+
+    // The state matrix of ChromeVisualPicker.swift:36-105 for the pickers SettingsView itself owns (Done with a thread, Sidebar, Activity list): the
+    // fill, ring, symbol and caption of a selected, a hovered and a plain tile, each moving over Chrome.hover, and the press dim.
+    private static void CheckTileStates(Control row, Avalonia.Controls.Window w, AppModelHarness h, string[] titles, string[] symbols)
+    {
+        var tiles = Nodes<ChromeVisualTile>(row); Assert.Equal(titles, tiles.Select(AutomationProperties.GetName)); Assert.Equal(symbols, tiles.Select(tile => Assert.Single(Nodes<SwiftImage>(tile)).SymbolName));
+        Click(w, Assert.Single(Nodes<Button>(tiles[0]))); w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 150); // the first tile chosen, the pointer away, everything settled
+        var parts = tiles.Select(t => (Stage: Assert.Single(Nodes<Border>(t), b => b.Width == 76 && b.Height == 48), Ring: Assert.Single(Nodes<Border>(t), b => b.BorderThickness == new Thickness(2)), Caption: Assert.Single(Nodes<TextBlock>(t)), Symbol: Assert.Single(Nodes<SwiftImage>(t)), Content: Assert.Single(Nodes<StackPanel>(t)))).ToArray();
+        Color Of(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color; Color Resolved(SwiftColor c) => c.Resolve(tiles[0].ActualThemeVariant);
+        var stageTo = Resolved(Chrome.Overlay(0.10)); var stageFrom = Resolved(Chrome.Overlay(0.06)); var accent = Resolved(Chrome.Accent); var none = Resolved(Chrome.Accent.Opacity(0)); var primary = Resolved(Chrome.PrimaryText); var secondary = Resolved(Chrome.SecondaryText);
+        // selected: accent ring and symbol, primary caption, the 0.10 fill; plain: no ring, secondary symbol and caption, the 0.06 fill
+        Assert.Equal(accent, Of(parts[0].Ring.BorderBrush)); Assert.Equal(accent, Of(parts[0].Symbol.Foreground)); Assert.Equal(primary, Of(parts[0].Caption.Foreground)); Assert.Equal(stageTo, Of(parts[0].Stage.Background));
+        for (var i = 1; i < tiles.Length; i++) { Assert.Equal(none, Of(parts[i].Ring.BorderBrush)); Assert.Equal(secondary, Of(parts[i].Symbol.Foreground)); Assert.Equal(secondary, Of(parts[i].Caption.Foreground)); Assert.Equal(stageFrom, Of(parts[i].Stage.Background)); }
+        // a click selects inside withAnimation(Chrome.hover): both tiles are part-way after 40 ms and settled after the 0.1 s
+        Click(w, Assert.Single(Nodes<Button>(tiles[1]))); Tick(h, 40);
+        Assert.NotEqual(none, Of(parts[1].Ring.BorderBrush)); Assert.NotEqual(accent, Of(parts[1].Ring.BorderBrush)); Assert.NotEqual(accent, Of(parts[0].Ring.BorderBrush)); Assert.NotEqual(none, Of(parts[0].Ring.BorderBrush));
+        Assert.NotEqual(secondary, Of(parts[1].Symbol.Foreground)); Assert.NotEqual(accent, Of(parts[1].Symbol.Foreground)); Assert.NotEqual(secondary, Of(parts[1].Caption.Foreground)); Assert.NotEqual(primary, Of(parts[1].Caption.Foreground));
+        Assert.NotEqual(stageFrom, Of(parts[1].Stage.Background)); Assert.NotEqual(stageTo, Of(parts[1].Stage.Background));
+        Tick(h, 101);
+        Assert.Equal(none, Of(parts[0].Ring.BorderBrush)); Assert.Equal(accent, Of(parts[1].Ring.BorderBrush)); Assert.Equal(secondary, Of(parts[0].Symbol.Foreground)); Assert.Equal(accent, Of(parts[1].Symbol.Foreground));
+        Assert.Equal(secondary, Of(parts[0].Caption.Foreground)); Assert.Equal(primary, Of(parts[1].Caption.Foreground)); Assert.Equal(stageTo, Of(parts[1].Stage.Background));
+        // hovering lifts the plain tile's fill to the 0.10 over the same curve and the pointer leaving takes it back; the symbol and caption stay secondary
+        Hover(w, Assert.Single(Nodes<Button>(tiles[0]))); Tick(h, 40); Assert.NotEqual(stageFrom, Of(parts[0].Stage.Background)); Assert.NotEqual(stageTo, Of(parts[0].Stage.Background)); Tick(h, 101);
+        Assert.Equal(stageTo, Of(parts[0].Stage.Background)); Assert.Equal(secondary, Of(parts[0].Symbol.Foreground)); Assert.Equal(secondary, Of(parts[0].Caption.Foreground)); Assert.Equal(none, Of(parts[0].Ring.BorderBrush));
+        w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 150); Assert.Equal(stageFrom, Of(parts[0].Stage.Background));
+        // the geometry every tile shares: 76 x 48 whatever the number of options, 6 radius, ring 2 wide, caption 6 below, at most two lines
+        foreach (var part in parts) { Assert.Equal(new Size(76, 48), part.Stage.Bounds.Size); Assert.Equal(new CornerRadius(6), part.Stage.CornerRadius); Assert.Equal(2, part.Caption.MaxLines); }
+        // press.row-tile-dim: held down the tile's content is at 0.8 and its fill at x0.7; letting go restores both and selects the tile
+        var at = tiles[0].TranslatePoint(new Point(20, 20), w)!.Value; w.MouseMove(at); w.MouseDown(at, MouseButton.Left); Drain(w); Tick(h, 51);
+        Assert.Equal(0.8, parts[0].Content.Opacity, 3); Assert.Equal(1, parts[1].Content.Opacity); Assert.Equal(Resolved(Chrome.Overlay(0.10).Opacity(0.7)), Of(parts[0].Stage.Background));
+        w.MouseUp(at, MouseButton.Left); Drain(w); Tick(h, 151); Assert.Equal(1, parts[0].Content.Opacity, 3); Assert.Equal(accent, Of(parts[0].Ring.BorderBrush)); w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 150);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-065 for the pickers SettingsView.swift owns (Settle/Archive, Column/Floating/Panel only, Icon/Project name); the Hydra pickers are asserted by HydraSettingsPageSpecTests, the continuous corner awaits ED-181
+    [Trait("Req", "UI-SETTINGS-065")] // SettingsView.swift:395-399,432-442; ChromeVisualPicker.swift:10-105
+    public void The_owned_visual_pickers_have_the_selected_hovered_and_plain_states_over_Chrome_hover_and_the_press_dim()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) => CheckTileStates(Row(view, "Done with a thread"), w, h, ["Settle", "Archive"], ["checkmark", "archivebox"]));
+        With(() => new AppearanceSettingsPage(), (view, model, h, w) =>
+        {
+            CheckTileStates(Row(view, "Sidebar"), w, h, ["Column", "Floating", "Panel only"], ["sidebar.left", "macwindow.on.rectangle", "macwindow"]);
+            CheckTileStates(Row(view, "Activity list"), w, h, ["Icon", "Project name"], ["list.bullet", "text.alignleft"]);
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-065: the rows whose detail follows the selected tile (the Hydra rows are asserted by HydraSettingsPageSpecTests)
+    [Trait("Req", "UI-SETTINGS-065")] // SettingsView.swift:395,432,438
+    public void The_row_detail_follows_the_selected_tile_in_Done_with_a_thread_Sidebar_and_Activity_list()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var tiles = Nodes<ChromeVisualTile>(Row(view, "Done with a thread"));
+            foreach (var action in new[] { ThreadFinishAction.Archive, ThreadFinishAction.Settle })
+            {
+                Click(w, Assert.Single(Nodes<Button>(tiles[action == ThreadFinishAction.Archive ? 1 : 0]))); Tick(h, 150); Assert.Equal(action, model.Settings.ThreadFinishAction);
+                Assert.Contains(action.Detail, Text(Row(view, "Done with a thread")));
+            }
+        });
+        With(() => new AppearanceSettingsPage(), (view, model, h, w) =>
+        {
+            var sidebar = Row(view, "Sidebar"); var sidebarTiles = Nodes<ChromeVisualTile>(sidebar);
+            for (var i = 0; i < SwiftEnum<SidebarMode>.AllCases.Count; i++) { Click(w, Assert.Single(Nodes<Button>(sidebarTiles[i]))); Tick(h, 150); Assert.Equal(SwiftEnum<SidebarMode>.AllCases[i], model.Settings.SidebarMode); Assert.Contains(SwiftEnum<SidebarMode>.AllCases[i].Detail, Text(sidebar)); }
+            var activity = Row(view, "Activity list"); var activityTiles = Nodes<ChromeVisualTile>(activity);
+            for (var i = 0; i < SwiftEnum<ActivityThreadStyle>.AllCases.Count; i++) { Click(w, Assert.Single(Nodes<Button>(activityTiles[i]))); Tick(h, 150); Assert.Equal(SwiftEnum<ActivityThreadStyle>.AllCases[i], model.Settings.ActivityThreadStyle); Assert.Contains(SwiftEnum<ActivityThreadStyle>.AllCases[i].Detail, Text(activity)); }
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-018: the reset's animation reaching the window backdrop (SettingsView.swift:546, OD-0076); the drag, the end glyphs, the reset, the tooltips and the layout are asserted by Transparency_slider_follows_a_real_drag_live_and_shows_its_reset_only_off_stock_without_taking_layout_room, The_end_glyphs_show_their_tips_over_their_whole_frame_not_only_where_the_ring_was_painted and Transparency_reset_hits_its_whole_22_point_square_with_no_background_in_any_state_and_a_click_animates_back_over_snappy_0_2
+    [Trait("Req", "UI-SETTINGS-018")] // SettingsView.swift:428-430,519-563
+    public void Reset_glides_the_window_backdrop_to_stock_in_the_snappy_transaction_where_a_drag_moves_it_live()
+    {
+        With(() => new SettingsView(), (view, model, h, w) =>
+        {
+            Click(w, Nodes<SidebarRow>(view).Single(row => Text(row).Contains("Appearance"))); var settings = model.Settings; var backdrop = Assert.Single(Nodes<WindowBackdrop>(view));
+            var reset = Assert.Single(Nodes<Button>(Assert.Single(Nodes<BackdropOpacitySlider>(view)))); var isDark = Marrow.UI.Port.PlainControls.IsDark(backdrop.ActualThemeVariant);
+            double Scrim(double value) => WindowBackdrop.Scrim(value, isDark);
+            // outside a transaction the backdrop follows the value at once (a drag)
+            settings.BackdropOpacity = 0.9; Drain(w); SettingsBackdropAssertions.GlassOpacity(backdrop, Scrim(0.9)); Tick(h, 400); Drain(w);
+            var material = Assert.IsType<Panel>(Assert.Single(Assert.IsType<Panel>(Assert.IsType<Panel>(backdrop.Child).Children[0]).Children)); var scrim = Assert.IsType<Border>(material.Children[1]);
+            Click(w, reset); Assert.Equal(0.5, settings.BackdropOpacity); // the setting is written at once; the window's glass takes the snappy 0.2 to get there
+            Assert.Equal(Scrim(0.9), scrim.Opacity, 6); Tick(h, 60); Assert.InRange(scrim.Opacity, Scrim(0.5) + 0.0005, Scrim(0.9) - 0.0005);
+            var mid = scrim.Opacity; Tick(h, 60); Assert.True(scrim.Opacity < mid + 1e-9, "the scrim moves one way: " + mid + " then " + scrim.Opacity);
+            Tick(h, 400); Drain(w); SettingsBackdropAssertions.GlassOpacity(backdrop, Scrim(0.5));
+            // a live write stops a glide: the backdrop is where the value says
+            settings.BackdropOpacity = 0.9; Drain(w); Click(w, reset); Tick(h, 40); settings.BackdropOpacity = 0.7; Drain(w); SettingsBackdropAssertions.GlassOpacity(backdrop, Scrim(0.7)); Tick(h, 400); SettingsBackdropAssertions.GlassOpacity(backdrop, Scrim(0.7));
+        }, height: 1100);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-018: the held knob's own transition (OD-0076); the drag itself is asserted by Transparency_slider_follows_a_real_drag_live_and_shows_its_reset_only_off_stock_without_taking_layout_room
+    [Trait("Req", "UI-SETTINGS-018")] // SettingsView.swift:532-534; the reference runtime 1-settings-tour.mov 125.868-125.975 (press), 130.893-131.022 (release)
+    public void The_slider_knob_turns_to_glass_over_the_press_and_back_over_the_release_not_in_one_frame()
+    {
+        With(() => new AppearanceSettingsPage(), (view, model, h, w) =>
+        {
+            var slider = Assert.Single(Nodes<Slider>(view)); var knob = Assert.Single(slider.GetVisualDescendants().OfType<Thumb>()); var face = Assert.Single(knob.GetVisualDescendants().OfType<Border>(), b => b.CornerRadius.TopLeft >= 7 && b.BoxShadow.Count > 0);
+            Assert.Equal(new Size(18, 14), knob.Bounds.Size); Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(face.Background).Color);
+            var at = At(knob, w); w.MouseMove(at); w.MouseDown(at, MouseButton.Left); w.MouseMove(at + new Vector(10, 0)); Drain(w);
+            Tick(h, 40); Drain(w); Assert.InRange(knob.Bounds.Width, 18.1, 22.9); Assert.InRange(knob.Bounds.Height, 14.1, 19.9); var mid = Assert.IsAssignableFrom<ISolidColorBrush>(face.Background).Color.A; Assert.InRange(mid, 0x31, 0xFE); // part-way: neither the white capsule nor the glass one
+            Tick(h, 100); Drain(w); Assert.Equal(new Size(23, 20), knob.Bounds.Size); Assert.Equal(0x30, Assert.IsAssignableFrom<ISolidColorBrush>(face.Background).Color.A);
+            w.MouseUp(at + new Vector(10, 0), MouseButton.Left); Drain(w);
+            Tick(h, 30); Drain(w); Assert.InRange(knob.Bounds.Width, 18.1, 22.9); Assert.InRange(knob.Bounds.Height, 14.1, 19.9);
+            Tick(h, 100); Drain(w); Assert.Equal(new Size(18, 14), knob.Bounds.Size); Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(face.Background).Color);
+        });
     }
 
     private static Control Opened(Popup popup) { Open(popup); return PopoverHost.Content(popup)!; }

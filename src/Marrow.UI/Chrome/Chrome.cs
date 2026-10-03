@@ -334,6 +334,7 @@ namespace Marrow.UI.Chrome
         private Image? picture;
         private Border? scrim;
         private Panel? wallpaperOverlay;
+        private AnimatedScalar? scrimGlide;
 
         /// <param name="opacity">:205 <c>let opacity: Double</c>.</param>
         /// <param name="wallpaper">:207 <c>var wallpaper: NSImage? = nil</c>.</param>
@@ -376,12 +377,21 @@ namespace Marrow.UI.Chrome
         public void Update(double opacity, IImage? wallpaper)
         {
             var hadWallpaper = this.wallpaper is not null;
+            var before = scrim; var shown = scrim?.Opacity;
             this.opacity = opacity;
             this.wallpaper = wallpaper;
             if (hadWallpaper != wallpaper is not null)
                 Transaction.WithAnimation(Animation.EaseInOut(duration: 0.3), Draw); // :262 .animation(_, value: wallpaper != nil)
             else
+            {
                 Draw();
+                // DEVIATION OD-0076 (ED-NEW-settingsview): `withAnimation(.snappy(duration: 0.2))` on the transparency (SettingsView.swift:546) reaches the
+                // scrim through this input; the scrim glides to its new strength in that transaction instead of cutting there.
+                if (Transaction.Current is { } animation && shown is { } start && ReferenceEquals(before, scrim) && scrim is { } layer && layer.Opacity != start)
+                {
+                    var end = layer.Opacity; scrimGlide!.Set(start, null); scrimGlide.Set(end, animation);
+                }
+            }
         }
 
         // :211-215 static func scrim(for:isDark:)
@@ -430,7 +440,7 @@ namespace Marrow.UI.Chrome
                 picture.Source = image; // :234
                 picture.Opacity = opacity; // :238
             }
-            if (scrim is not null) scrim.Opacity = Scrim(opacity, isDark); // :258
+            if (scrim is not null) { scrimGlide ??= new AnimatedScalar(this, 0, value => { if (scrim is { } layer) layer.Opacity = value; }); scrimGlide.Set(Scrim(opacity, isDark), null); } // :258 (a running glide stops here)
             if (wallpaperOverlay is { } overlay)
             {
                 // :241-247 `.overlay { if !isSolid { ... } }`

@@ -23,17 +23,17 @@ public sealed class SettingsRestNativeDependencyTests(HeadlessSession headless) 
         // PortControlThemes' Slider theme, measured from the reference runtime (proposal ED-229 (2)): a 4 pt track across
         // the 140 pt, a white 18 x 14 pt knob kept inside its ends.
         var value = 0.5;
-        With(() => new BackdropOpacitySlider(new Binding<double>(() => value, v => value = v)), (view, _, _, w) =>
+        With(() => new BackdropOpacitySlider(new Binding<double>(() => value, v => value = v)), (view, _, h, w) =>
         {
             var slider = Assert.Single(Nodes<Slider>(view)); Assert.Equal(140, slider.Width); Assert.Equal(0, slider.Minimum); Assert.Equal(1, slider.Maximum);
             var knob = Assert.Single(slider.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Thumb>());
             Assert.Equal(new Size(18, 14), knob.Bounds.Size);
             Assert.All(slider.GetVisualDescendants().OfType<Border>().Where(b => b.Height == 4), bar => Assert.True(bar.Bounds.Right <= 140.5));
-            var at = knob.TranslatePoint(new Point(9, 7), w)!.Value; w.MouseDown(at, MouseButton.Left); w.MouseMove(at + new Vector(40, 0)); Drain(w);
+            var at = knob.TranslatePoint(new Point(9, 7), w)!.Value; w.MouseDown(at, MouseButton.Left); w.MouseMove(at + new Vector(40, 0)); Drain(w); Tick(h, 150); Drain(w); // the knob turns to glass over 0.08 s
             // While held the knob is the larger glass capsule, the fill showing through (1-settings-tour.mov 128-131 s).
             Assert.Equal(new Size(23, 20), knob.Bounds.Size);
             Assert.True(((Avalonia.Media.ISolidColorBrush)knob.GetVisualDescendants().OfType<Border>().First().Background!).Color.A < 0x80, "the held knob is not translucent");
-            w.MouseUp(at + new Vector(40, 0), MouseButton.Left); Drain(w);
+            w.MouseUp(at + new Vector(40, 0), MouseButton.Left); Drain(w); Tick(h, 150); Drain(w);
             Assert.Equal(new Size(18, 14), knob.Bounds.Size);
             Assert.True(slider.Value > 0.7, "the drag did not move the knob: " + slider.Value);
             Assert.Equal(slider.Value, value, 6); // the setting follows the knob
