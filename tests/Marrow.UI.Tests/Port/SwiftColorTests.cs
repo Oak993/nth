@@ -480,6 +480,21 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         Assert.True(dark.G > light.G && dark.B > light.B, $"dark {dark} is not the lighter member of {light}");
     }
 
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-104")]
+    public void Red_is_the_system_red_pair_of_the_same_table_edition_as_Yellow_and_fades_both_members()
+    {
+        // UNVERIFIED under OD-0001, no O-nn, on ED-104's footing. The macOS 27 UI Kit (OD-0045, E:\Droppy\work\apple-kit\
+        // macos27-uikit-controls.md "System colours") lists Yellow at Light #FFCC00 and Dark #FFD600, ED-104's
+        // (255, 204, 0) and (255, 214, 0), so its Red is the same edition's: Light #FF383C, Dark #FF4245, opaque.
+        // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
+        Assert.Equal(Argb(255, 255, 56, 60), SwiftColor.Red.Resolve(Light));
+        Assert.Equal(Argb(255, 255, 66, 69), SwiftColor.Red.Resolve(Dark));
+        Assert.Equal(Argb(46, 255, 56, 60), SwiftColor.Red.Opacity(0.18).Resolve(Light));
+        Assert.Equal(Argb(46, 255, 66, 69), SwiftColor.Red.Opacity(0.18).Resolve(Dark));
+    }
+
     // ---- Opacity arithmetic and immutability ----
 
     [Fact]
