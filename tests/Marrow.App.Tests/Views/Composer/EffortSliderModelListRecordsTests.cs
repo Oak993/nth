@@ -91,11 +91,14 @@ public sealed class EffortSliderModelListRecordsTests(HeadlessSession headless)
     public void The_scrolling_area_is_the_fixed_row_arithmetic_padded_6_capped_at_440_and_scrolls_only_when_the_rows_exceed_it() => headless.OnUiThread(() =>
     {
         ProviderKind[] kinds = [ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta];
-        // (providers listed, models per provider, history with only foreign models, empty, pairs) -> (row height, scroll height)
-        foreach (var (providers, per, foreignOnly, empty, pairCount, rowHeight, height) in new (int, int, bool, bool, int, double, double)[]
+        // (providers listed, models per provider, only a foreign provider listed, the chat has history, empty, pairs) -> (row height, scroll height)
+        foreach (var (providers, per, foreignOnly, history, empty, pairCount, rowHeight, height) in new (int, int, bool, bool, bool, int, double, double)[]
         {
-            (1, 3, false, false, 0, 34, 105), (3, 2, false, false, 0, 46, 282), (2, 1, false, false, 0, 46, 94), (1, 2, true, false, 0, 46, 94), (1, 2, false, false, 0, 34, 70),
-            (2, 5, false, false, 0, 46, 440), (1, 1, false, true, 0, 34, 35), (1, 3, false, false, 2, 34, 44 + 94 + 105), (1, 1, false, false, 1, 34, 44 + 47 + 35), (2, 2, false, false, 5, 46, 440),
+            (1, 3, false, false, false, 0, 34, 105), (3, 2, false, false, false, 0, 46, 282), (2, 1, false, false, false, 0, 46, 94),
+            (1, 2, true, true, false, 0, 46, 94), // a locked cross-provider row: 46
+            (1, 2, true, false, false, 0, 34, 70), // the same list without history: nothing is locked and one provider shows no icons, 34 (:286's `hasHistory &&`)
+            (1, 2, false, false, false, 0, 34, 70),
+            (2, 5, false, false, false, 0, 46, 440), (1, 1, false, false, true, 0, 34, 35), (1, 3, false, false, false, 2, 34, 44 + 94 + 105), (1, 1, false, false, false, 1, 34, 44 + 47 + 35), (2, 2, false, false, false, 5, 46, 440),
         })
         {
             var own = foreignOnly || empty ? "unlisted" : "c1";
@@ -109,10 +112,10 @@ public sealed class EffortSliderModelListRecordsTests(HeadlessSession headless)
                 if (empty) model.Settings.AddToModelList(Pin(ProviderKind.Codex, "nothing-resolves-this"));
                 else foreach (var (kind, models) in catalogues) foreach (var option in models) model.Settings.AddToModelList(Pin(kind, option.Id));
             }, catalogues);
-            var list = new ModelList(env.Thread, foreignOnly, _ => { }, () => { });
+            var list = new ModelList(env.Thread, history, _ => { }, () => { });
             env.Show(list);
             var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().Single();
-            Assert.True(height == scroll.Height, $"{providers}x{per} foreignOnly {foreignOnly} empty {empty} pairs {pairCount}: scroll {scroll.Height}, expected {height}");
+            Assert.True(height == scroll.Height, $"{providers}x{per} foreignOnly {foreignOnly} history {history} empty {empty} pairs {pairCount}: scroll {scroll.Height}, expected {height}");
             Assert.Equal(new Thickness(6), Assert.IsType<Border>(list.Child).Padding); // the whole list is padded 6
             var rows = Models(list);
             Assert.All(rows, row => Assert.Equal(rowHeight, row.Bounds.Height, 0.5));

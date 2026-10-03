@@ -74,12 +74,36 @@ public static class ModelCatalog
 /// <summary>:36-150 <c>struct ModelEffortButton: View</c>.</summary>
 public sealed class ModelEffortButton : Decorator
 {
+    // :38-39 the chip's inputs. SwiftUI re-evaluates the chip's body with new values and keeps its @State (isPresented,
+    // naturalWidth, lockedWidth, the popover), so a thread write made from the open popover (the slider's effort, the fast
+    // toggle, a pair, a model) changes these two and never makes the chip again. ComposerControls hands them in with Update.
+    private sealed class Inputs(ChatThread thread, bool hasHistory) : MainActorModel
+    {
+        private ChatThread thread = thread;
+        private bool hasHistory = hasHistory;
+        public ChatThread Thread { get => Read(thread); set => Set(ref thread, value); }
+        public bool HasHistory { get => Read(hasHistory); set => Set(ref hasHistory, value); }
+    }
+    private readonly Inputs inputs;
+    private ModelEffortPanel? openPanel;
+
+    /// <summary>:38-39 the composer hands the chip the thread it now draws and the turns it now has (SwiftUI's re-evaluated
+    /// body); the chip, its popover and its held width stay as they are, and the open panel is given the new
+    /// <c>hasHistory</c> (:121).</summary>
+    internal void Update(ChatThread thread, bool hasHistory)
+    {
+        inputs.Thread = thread;
+        inputs.HasHistory = hasHistory;
+        openPanel?.SetHasHistory(hasHistory);
+    }
+
     /// <param name="thread">:38 <c>let thread: ChatThread</c>.</param>
     /// <param name="hasHistory">:39 <c>let hasHistory: Bool</c>.</param>
     /// <param name="compact">:42 <c>var compact: Bool = false</c>.</param>
     // :59-138 body
     public ModelEffortButton(ChatThread thread, bool hasHistory, bool compact = false)
     {
+        inputs = new Inputs(thread, hasHistory);
         // :105-108 the held box (.frame(width: lockedWidth)) with the label's HStack(spacing: 5) centred in it. A DockPanel is that
         // HStack: its marks and its effort and chevron keep their size, and the name, the one flexible part and the last
         // child, takes what is left and is what gets cut (:89-94); every item after the first carries the 5 point gap, so
@@ -102,19 +126,20 @@ public sealed class ModelEffortButton : Decorator
             lockedWidth = presented ? naturalWidth : null; frame.Width = compact ? double.NaN : lockedWidth ?? double.NaN; // :108-117
             if (presented)
             {
-                var content = new ModelEffortPanel(thread.Id, hasHistory).PresentedChrome();
+                var panel = openPanel = new ModelEffortPanel(inputs.Thread.Id, inputs.HasHistory);
+                var content = panel.PresentedChrome();
                 AppEnvironment.SetAppModel(content, AppEnvironment.GetAppModel(this));
                 Popovers.SetClosePopover(content, () => Presentation.Presenter.Current.SetPresented(popup, false));
                 popup.Child = content;
             }
-            else popup.Child = null;
+            else { popup.Child = null; openPanel = null; }
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         button.Focusable = false; popup.PlacementTarget = button; // :115,120
         GpuWarmup.WhenIdle(this); // OD-0090 / ED-252: the effort knob's programs primed before this chip can open the popover
         button.Chip(); // :114 inactive until the popover opens.
         frame.SizeChanged += (_, _) => { if (lockedWidth is null) naturalWidth = frame.Bounds.Width; }; // :109-112
-        popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; }; // :114,116-117
+        popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; openPanel = null; }; // :114,116-117
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         Child = button;
         ProviderRegistry registry = null!; // :60 `let registry = model.providers`, set by every body evaluation below
@@ -126,7 +151,8 @@ public sealed class ModelEffortButton : Decorator
         this.Track(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
-            var currentThread = model.Thread(thread.Id) ?? thread;
+            var input = inputs.Thread;
+            var currentThread = model.Thread(input.Id) ?? input;
             var option = model.Providers.Model(currentThread.Model, currentThread.Provider);
             var pair = model.HydraIsOn(currentThread) ? model.HydraPair(currentThread) : null;
             return (model, currentThread, option, pair);
@@ -183,7 +209,7 @@ public sealed class ModelEffortButton : Decorator
         });
         // :138 the body closes over the registry of the body evaluation (:60), attached before this task starts; it
         // never looks the environment up, so a task left queued by a chip that has since left the tree still has it.
-        this.Task(() => thread.Provider, async provider => await registry.LoadCatalog(provider)); // :138
+        this.Task(() => inputs.Thread.Provider, async provider => await registry.LoadCatalog(provider)); // :138
         // :125-137 capture-only anchor/frame sites remain outside the shipped path (ED-001).
     }
 
@@ -235,8 +261,12 @@ public sealed class ModelEffortPanel : Decorator
     {
         private bool showsModels;
         public bool ShowsModels { get => Read(showsModels); set => Set(ref showsModels, value); }
+        // :157 the input the chip hands the panel again when the composer re-renders under the open popover (:121)
+        private bool hasHistory;
+        public bool HasHistory { get => Read(hasHistory); set => Set(ref hasHistory, value); }
     }
     private readonly ViewState state = new();
+    internal void SetHasHistory(bool hasHistory) => state.HasHistory = hasHistory;
     private AppModel model = null!;
     private readonly Panel pages = new();
     private bool? displayedModels;
@@ -248,15 +278,16 @@ public sealed class ModelEffortPanel : Decorator
     public ModelEffortPanel(Guid threadID, bool hasHistory)
     {
         Width = 330; Child = pages; // :186
+        state.HasHistory = hasHistory;
         this.Track(() =>
         {
             var app = AppEnvironment.GetAppModel(this);
             var thread = app.Thread(threadID);
             // :196 the body reads hydraLaunch's resolved heads effort, so the caption follows it.
-            return (app, thread, state.ShowsModels, HeadsEffort: thread is null ? null : app.HydraLaunch(thread)?.WorkerEffort);
+            return (app, thread, state.ShowsModels, HeadsEffort: thread is null ? null : app.HydraLaunch(thread)?.WorkerEffort, History: state.HasHistory);
         }, snapshot =>
         {
-            var (app, thread, showsModels, headsEffort) = snapshot; model = app;
+            var (app, thread, showsModels, headsEffort, history) = snapshot; model = app;
             if (thread is null) { pages.Children.Clear(); displayedModels = null; return; } // :162
             var key = (thread.Provider, thread.Model, model.Providers.Model(thread.Model, thread.Provider));
             // :163-185 the branch retains its view/state while only the bound effort or fast mode changes, and :196 while the
@@ -270,7 +301,7 @@ public sealed class ModelEffortPanel : Decorator
             sliderKey = key;
             Control content;
             if (showsModels)
-                content = new ModelList(thread, hasHistory, entry => { Choose(entry, thread); state.ShowsModels = false; },
+                content = new ModelList(thread, history, entry => { Choose(entry, thread); state.ShowsModels = false; },
                     () => state.ShowsModels = false, pair =>
                     {
                         model.EnterHydraPair(pair, thread.Id); state.ShowsModels = false;
@@ -1058,7 +1089,7 @@ public sealed class EffortSlider : Decorator
             var kind = count > 1 && index.Value == count - 1
                 ? fastMode ? TrackLook.Kind.Fusion : TrackLook.Kind.Supercharged
                 : fastMode ? TrackLook.Kind.Fast : TrackLook.Kind.Plain;
-            if (cachedLook is { } kept && kept.TrackLookKind == kind && ReferenceEquals(kept.Pair, pair)) return kept;
+            if (cachedLook is { } kept && kept.TrackLookKind == kind && Equals(kept.Pair, pair)) return kept;
             return cachedLook = new TrackLook(kind, brand, pair);
         }
     }
@@ -1687,6 +1718,20 @@ public sealed record EffortPairBrand
 
     // :964 var titleColors: [Color]
     public ValueList<SwiftColor> TitleColors => new(Colors.Select(color => color.Mix(SwiftColor.White, 0.18)));
+
+    // :942 `struct EffortPairBrand: Hashable`: equal when the colours are equal, whichever instance built them. SwiftColor here is a class, so the
+    // record's own member-wise comparison would tell two brands made from the same pair apart, and a card that stays while the thread
+    // is written (ModelEffortPanel hands it a new brand each time) would look like a different pair to the track's effect identity
+    // (:1020-1026), which would restart the effect's clock on every write.
+    public bool Equals(EffortPairBrand? other) =>
+        other is not null && IsLight == other.IsLight && Equals(HeadsBrand, other.HeadsBrand) && Colors.Count == other.Colors.Count &&
+        Colors.Zip(other.Colors).All(pair => SameColour(pair.First, pair.Second));
+
+    public override int GetHashCode() => HashCode.Combine(IsLight, HeadsBrand, Colors.Count);
+
+    private static bool SameColour(SwiftColor a, SwiftColor b) =>
+        a.Resolve(Avalonia.Styling.ThemeVariant.Light) == b.Resolve(Avalonia.Styling.ThemeVariant.Light) &&
+        a.Resolve(Avalonia.Styling.ThemeVariant.Dark) == b.Resolve(Avalonia.Styling.ThemeVariant.Dark);
 }
 
 /// <summary>:968-1027 <c>struct TrackLook: Hashable</c>.</summary>

@@ -262,20 +262,21 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-COMPOSER-142")] // App/Views/Composer/EffortSlider.swift:271-287,348-349 rowHeight 34 or 46, pairsHeight 22 * 2 + n * 47, min(.., 440)
-    [InlineData(1, 3, false, false, 34, 105)]   // one provider, three models: 3 * (34 + 1)
-    [InlineData(3, 2, false, false, 46, 282)]   // three providers show their icons: 6 * (46 + 1)
-    [InlineData(2, 1, false, false, 46, 94)]    // two providers
-    [InlineData(1, 2, true, false, 46, 94)]     // only a foreign provider's models, and the chat has history: they are locked, so 46
-    [InlineData(1, 2, false, false, 34, 70)]    // the same without history: 2 * 35
-    [InlineData(2, 5, false, false, 46, 440)]   // ten rows would be 470: the popover stops at 440
-    [InlineData(1, 1, false, true, 34, 35)]     // no model at all: the "Loading models…" line takes one reserved row
-    public void Model_list_heights_follow_the_fixed_row_arithmetic(int providers, int perProvider, bool foreignOnlyWithHistory, bool empty, double rowHeight, double scrollHeight) =>
+    [InlineData(1, 3, false, false, false, 34, 105)]   // one provider, three models: 3 * (34 + 1)
+    [InlineData(3, 2, false, false, false, 46, 282)]   // three providers show their icons: 6 * (46 + 1)
+    [InlineData(2, 1, false, false, false, 46, 94)]    // two providers
+    [InlineData(1, 2, true, true, false, 46, 94)]      // only a foreign provider's models, and the chat has history: they are locked, so 46 (:286 hasHistory && contains)
+    [InlineData(1, 2, true, false, false, 34, 70)]     // the same foreign-only list without history: nothing is locked and one provider shows no icons, so 34 (the `hasHistory &&` term)
+    [InlineData(1, 2, false, false, false, 34, 70)]    // the thread's own provider, no history: 2 * 35
+    [InlineData(2, 5, false, false, false, 46, 440)]   // ten rows would be 470: the popover stops at 440
+    [InlineData(1, 1, false, false, true, 34, 35)]     // no model at all: the "Loading models…" line takes one reserved row
+    public void Model_list_heights_follow_the_fixed_row_arithmetic(int providers, int perProvider, bool foreignOnly, bool history, bool empty, double rowHeight, double scrollHeight) =>
         headless.OnUiThread(() =>
         {
             ProviderKind[] kinds = [ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta];
             // the thread's own model is "c1": a Codex model when the scenario lists Codex, an unlisted id when only foreign providers are listed
-            var own = foreignOnlyWithHistory || empty ? "unlisted" : "c1";
-            var listed = foreignOnlyWithHistory ? new[] { ProviderKind.Deepseek } : empty ? [] : kinds.Take(providers).ToArray();
+            var own = foreignOnly || empty ? "unlisted" : "c1";
+            var listed = foreignOnly ? new[] { ProviderKind.Deepseek } : empty ? [] : kinds.Take(providers).ToArray();
             var catalogues = listed.Select(kind => (kind, Options(kind == ProviderKind.Codex ? "c" : kind == ProviderKind.Deepseek ? "d" : "m", perProvider))).ToArray();
             using var env = Make(() => new ChatThread(Guid.NewGuid(), ProviderKind.Codex, own, "medium", RuntimeMode.Supervised),
                 model =>
@@ -284,7 +285,7 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
                     else foreach (var (kind, models) in catalogues) foreach (var option in models) model.Settings.AddToModelList(Pin(kind, option.Id));
                 },
                 catalogues);
-            var list = new ModelList(env.Thread, foreignOnlyWithHistory, _ => { }, () => { });
+            var list = new ModelList(env.Thread, history, _ => { }, () => { });
             env.Show(list);
             var (scroll, rows, _, _) = Measure(list);
             Assert.True(scrollHeight == scroll.Height, $"scroll {scroll.Height}, expected {scrollHeight}; rows {rows.Length}");
