@@ -179,4 +179,54 @@ public sealed class ComposerLightViewTests(HeadlessSession headless)
         }
         finally { window.Close(); }
     });
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // REVIEW: the board's port notes, "frames only while something moves": a light nobody sees (a kept, hidden chat column, RootView's IsVisible = false) asks for no frames, and turns again once shown
+    public void A_hidden_light_asks_for_no_frames() => headless.OnUiThread(() =>
+    {
+        using var motion = new ComposerLightMotion();
+        var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
+        var view = new ComposerLightView { Settings = ComposerLightSettings.Default, ComposerRect = new Rect(40, 40, 820, 52) };
+        var column = new Panel { IsVisible = false, Children = { view } };
+        var window = new Window { Width = 900, Height = 132, RequestedThemeVariant = ThemeVariant.Dark, Background = new SolidColorBrush(Color.FromRgb(0x17, 0x17, 0x17)), Content = new Panel { Children = { column } } };
+        window.Show();
+        try
+        {
+            Tick();
+            clock.Advance(TimeSpan.FromSeconds(0.5));
+            Tick();
+            Assert.NotNull(view.Handler);
+            Assert.False(view.Handler!.IsAnimating, "a hidden composer's light keeps the compositor ticking");
+            column.IsVisible = true;
+            Tick();
+            clock.Advance(TimeSpan.FromSeconds(0.5));
+            Tick();
+            Assert.True(view.Handler!.IsAnimating);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // REVIEW: as ComposerLightSlot hosts it (no ComposerRect until LayoutUpdated, so the first snapshot is the unlaid 0 x 0 bounds), the Line light draws once laid out
+    public void A_line_light_attached_before_layout_draws_once_laid_out() => headless.OnUiThread(() =>
+    {
+        using var motion = new ComposerLightMotion();
+        var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
+        var view = new ComposerLightView { Settings = ComposerLightSettings.Default with { Beam = BorderBeamOptions.Default.WithType(BeamType.Line) } };
+        var window = new Window { Width = 900, Height = 132, RequestedThemeVariant = ThemeVariant.Dark, Background = new SolidColorBrush(Color.FromRgb(0x17, 0x17, 0x17)), Content = new Panel { Children = { view } } };
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        window.Show();
+        try
+        {
+            Tick();
+            // the first frames draw at once (no render-thread stall on the unlaid size)
+            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"the first frames took {watch.Elapsed.TotalSeconds:F1} s");
+            view.ComposerRect = new Rect(40, 40, 820, 52);
+            for (var i = 0; i < 30; i++) { clock.Advance(TimeSpan.FromSeconds(0.05)); Tick(); } // 1.5 s of beam time: Line is a quarter into its travel, its edge fade open
+            var light = view.Handler!.Light!;
+            Assert.True(double.IsFinite(light.Clock.LineX) && light.Clock.LineEdge > 0, $"Line x {light.Clock.LineX}, edge {light.Clock.LineEdge}");
+            Assert.True(Lit(Pixels(window), 900, 40, 40, 860, 92) > 50, "the Line beam shows on the composer");
+        }
+        finally { window.Close(); }
+    });
 }

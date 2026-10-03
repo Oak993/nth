@@ -205,4 +205,22 @@ public sealed class ComposerLightAnimatorTests
         Assert.Equal(4 * (72 + 4) / 400.0, a.Aura.Sy, 12);
         Assert.Equal(4 * (72 + 3) / 400.0, a.Aura.Rsy, 12);
     }
+
+    [Theory]
+    [Trait("Decision", "ED-251")] // REVIEW: a ComposerLightView sends its first snapshot on attach, before layout (0 x 0); Line's fitted spikes (beam.js bbSpikes: step .14 x 366 x H/42) and Auto duration (bbFitDur: W / (H / 42) / 366) must not hang, throw or poison the clock, and the light turns once the composer has its size
+    [InlineData(BeamType.Line)]
+    [InlineData(BeamType.Large)]
+    public void A_light_that_starts_before_layout_turns_once_laid_out(BeamType type)
+    {
+        var s = ComposerLightSettings.Default with { Beam = BorderBeamOptions.Default.WithType(type) };
+        var a = new ComposerLightAnimator(s, ComposerLightPhase.Rest, dark: true, 0, 0, reduceMotion: false);
+        a.Advance(0);
+        a.SetSize(820, 52, 0.016);
+        for (var t = 1; t <= 60; t++) a.Advance(t / 60.0);
+        Assert.True(double.IsFinite(a.Clock.BeamAngle) && double.IsFinite(a.Clock.LineX) && double.IsFinite(a.Clock.LineEdge), $"angle {a.Clock.BeamAngle}, Line x {a.Clock.LineX}");
+        // switching to another type later must find a live clock too
+        a.SetSettings(ComposerLightSettings.Default, 1.01);
+        a.Advance(1.02);
+        Assert.True(double.IsFinite(a.Slots[a.CurrentSlot].Phase), $"phase {a.Slots[a.CurrentSlot].Phase}");
+    }
 }

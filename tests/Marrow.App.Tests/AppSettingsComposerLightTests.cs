@@ -54,4 +54,18 @@ public sealed class AppSettingsComposerLightTests
         scope.Relaunch();
         scope.OnMain(() => Assert.Equal(ComposerLightSettings.Default, new AppSettings().ComposerLight));
     }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // REVIEW: stored bytes that parse as JSON but hold invalid UTF-8 (or a lone surrogate escape) are the default, not an exception out of AppSettings' load
+    public void Stored_text_that_is_not_valid_unicode_is_the_default()
+    {
+        using var scope = AppSettingsScope.Create();
+        byte[] bad = [.. Encoding.ASCII.GetBytes("{\"style\":\""), 0xFF, .. Encoding.ASCII.GetBytes("\"}")];
+        scope.OnMain(() => scope.Defaults.Set("composerLight", bad));
+        scope.Relaunch();
+        scope.OnMain(() => Assert.Equal(ComposerLightSettings.Default, new AppSettings().ComposerLight));
+        scope.OnMain(() => scope.Defaults.Set("composerLight", Encoding.ASCII.GetBytes("{\"aura\":{\"c1\":\"\\ud800\"}}")));
+        scope.Relaunch();
+        scope.OnMain(() => Assert.Equal(ComposerLightSettings.Default, new AppSettings().ComposerLight));
+    }
 }
