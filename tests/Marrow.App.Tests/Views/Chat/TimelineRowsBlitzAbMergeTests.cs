@@ -441,7 +441,7 @@ public sealed class TimelineRowsBlitzAbMergeTests(HeadlessSession headless)
                     Assert.True(s.Beyond <= 8, $"{theme} at {i * 50} ms: the capsule is drawn past its width");
                     if (i > 0) Assert.True((s.Width - samples[i - 1].Width) * (after - before) >= -0.75, $"{theme}: the width went back at {i * 50} ms");
                 }
-                Assert.Equal(before, samples[0].Width, 1); // the first frame has not moved yet
+                Assert.Equal(before, samples[0].Width, 1.0); // the first frame has not moved yet
                 Assert.Contains(samples, s => Math.Abs(s.Width - before) > 2 && Math.Abs(s.Width - after) > 2); // it glides: some frame is part way
                 // The old words fade out and the new ones fade in, together at some frame; the old ones are gone and the new ones whole at the end.
                 Assert.Contains(samples, s => s.Old is > 0.02 and < 0.98 && s.New is > 0.02 and < 0.98);

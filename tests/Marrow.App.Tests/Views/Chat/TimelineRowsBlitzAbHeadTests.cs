@@ -16,6 +16,7 @@ using Marrow.Services.Providers;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
+using Marrow.UI.Markdown;
 using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
@@ -733,5 +734,84 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
                 finally { BlitzAbRender.Shut(window); }
             });
         }
+    });
+
+    // ---- PR-CHAT-146: the report popover ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-146")] // TimelineRows.swift:607-639; OD-0098: a long report against the 460 by 460 bounds, a short one at its own size, 12-point markdown in the primary ink, both themes
+    public void The_report_popover_of_a_long_report_fills_the_460_by_460_bounds_a_short_one_opens_at_its_final_size_and_the_markdown_reads_at_12_points_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var noNetwork = new NoLinkNetwork("docs.example"); // R-TEST-10: the report holds a link
+        using var runtime = new TestRuntime();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        runtime.OnMain(() =>
+        {
+            foreach (var (theme, backdrop) in Themes)
+            {
+                var primary = ChromeTokens.PrimaryText.Resolve(theme);
+                const string linked = "see [the docs](https://docs.example/x) for more words in this line";
+                var paragraphs = Enumerable.Range(1, 80).Select(i => "paragraph " + i + " of the long report").ToList();
+                paragraphs.Insert(1, linked); // the second paragraph: in view at the top of the scroller
+                var longReport = string.Join("\n\n", paragraphs);
+                var shortReport = "one short paragraph\n\nand a second";
+                var tall = new HydraReportPopover(longReport);
+                var shortOne = new HydraReportPopover(shortReport);
+                var column = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 24 };
+                column.Children.Add(tall); column.Children.Add(shortOne);
+                BlitzAbRender.Render(new Border { Padding = new Thickness(24), Child = column }, theme, backdrop, 1060, 560, (window, frame) =>
+                {
+                    var because = $"{theme}";
+                    // :623-626 the width defaults to 460 and a scroller up to 460 high at that width: a long report fills the bounds exactly and scrolls.
+                    var box = BlitzAbRender.BoxIn(tall, window);
+                    Assert.Equal(460, box.Width, 0.5);
+                    var scroller = Assert.Single(Mounted<ScrollViewer>(tall));
+                    Assert.Equal(460, BlitzAbRender.BoxIn(scroller, window).Height, 0.5);
+                    Assert.True(scroller.Extent.Height > 460 * 4, $"{because}: the long report is {scroller.Extent.Height} tall");
+                    // The whole body has been laid out already (every block at once), so the panel opened at its final size: a short report's panel is its body's height.
+                    var shortScroller = Assert.Single(Mounted<ScrollViewer>(shortOne));
+                    Assert.Equal(shortScroller.Extent.Height, shortScroller.Bounds.Height, 0.5);
+                    Assert.InRange(shortScroller.Bounds.Height, 40, 400);
+                    // :1927-1930 padded 16 horizontally and 14 vertically, full width, leading: the first line stands 16 in and 14 down.
+                    var panel = BlitzAbRender.BoxIn(scroller, window);
+                    static string Words(TextBlock text) => text.Text ?? string.Concat((text.Inlines ?? []).OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text));
+                    var first = Mounted<TextBlock>(tall).First(text => Words(text).StartsWith("paragraph 1 ", StringComparison.Ordinal));
+                    var firstBox = BlitzAbRender.BoxIn(first, window);
+                    Assert.Equal(panel.Left + 16, firstBox.Left, 1.5);
+                    Assert.Equal(panel.Top + 14, firstBox.Top, 3.0);
+                    // :629-632 the callout text style with 12-point markdown, undimmed: the paragraph is drawn like a 12-point label in the primary ink.
+                    var reference = new TextBlock { Text = Words(first), FontSize = 12, FontFamily = first.FontFamily, FontWeight = first.FontWeight };
+                    reference.Foreground = ChromeTokens.PrimaryText.Brush(reference);
+                    Rect referenceBox = default;
+                    BlitzAbFrame? referenceFrame = null;
+                    BlitzAbRender.Render(new Border { Padding = new Thickness(8), Child = reference }, theme, backdrop, 480, 60, (win, shot) => { referenceFrame = shot; referenceBox = BlitzAbRender.BoxIn(reference, win); });
+                    var drawn = frame.Ink(firstBox, backdrop) ?? throw new Xunit.Sdk.XunitException($"{because}: the paragraph is not drawn");
+                    var wanted = referenceFrame!.Ink(referenceBox, backdrop)!.Value;
+                    Assert.Equal(wanted.Right - wanted.Left, drawn.Right - drawn.Left, 1.5); // as wide as the same words at 12 points: 13 would be 8 percent wider
+                    Assert.Equal(wanted.Bottom - wanted.Top, drawn.Bottom - drawn.Top, 1.5);
+                    Assert.InRange(RawPeak(frame, firstBox, backdrop) / RawPeak(referenceFrame, referenceBox, backdrop), 0.9, 1.1); // undimmed: the primary ink whole
+                    // :631 environment.markdownPointSize 12 and :632 markdownDimmed false reach a paragraph with a link (a link-free one takes its size from the callout font):
+                    // drawn like the same paragraph on its own at 12 points, undimmed, and not like one at 13.
+                    var linkText = Mounted<LinkTextView>(tall).First();
+                    var linkBox = BlitzAbRender.BoxIn(linkText, window);
+                    var controls = new[] { 12.0, 13.0 }.Select(size =>
+                    {
+                        var control = new InlineText(linked, hasLinks: true);
+                        MarkdownView.SetMarkdownPointSize(control, size);
+                        return control;
+                    }).ToArray();
+                    var inks = new List<((int Left, int Top, int Right, int Bottom) Ink, double Peak)>();
+                    foreach (var control in controls)
+                        BlitzAbRender.Render(new Border { Padding = new Thickness(16), Child = control }, theme, backdrop, 480, 80, (win, shot) =>
+                            inks.Add((shot.Ink(BlitzAbRender.BoxIn(Mounted<LinkTextView>(control).First(), win), backdrop)!.Value, RawPeak(shot, BlitzAbRender.BoxIn(Mounted<LinkTextView>(control).First(), win), backdrop))));
+                    var linkInk = frame.Ink(linkBox, backdrop)!.Value;
+                    var width12 = inks[0].Ink.Right - inks[0].Ink.Left;
+                    var width13 = inks[1].Ink.Right - inks[1].Ink.Left;
+                    Assert.True(width13 > width12 + 8, $"{because}: 12 and 13 points are {width12} and {width13} wide");
+                    Assert.Equal(width12, linkInk.Right - linkInk.Left, 3.0);
+                    Assert.InRange(RawPeak(frame, linkBox, backdrop) / inks[0].Peak, 0.9, 1.1);
+                });
+            }
+        });
     });
 }
