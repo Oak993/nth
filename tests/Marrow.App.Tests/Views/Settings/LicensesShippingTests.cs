@@ -79,6 +79,25 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
     }
 
     [Fact]
+    [Trait("Req", "PR-SETTINGS-249")] // project.yml:30-34 (the three files are resources of the app bundle); the publish folder is what the installer packs (scripts/package-windows.ps1)
+    [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1049 (read from the bundle: here the folder beside the executable)
+    public void The_project_publishes_the_three_documents_to_the_root_of_the_publish_folder_beside_the_executable()
+    {
+        // The tests above prove the BUILD output. The folder the installer packs is the publish folder, so the project must also say that each
+        // of the three is copied there, under its own name at the root (a Content item's Link is its path relative to the output root).
+        // `dotnet msbuild -t:ComputeResolvedFilesToPublishList -getItem:ResolvedFileToPublish` on the project lists LICENSE, TRADEMARK.md and
+        // THIRD_PARTY_NOTICES.md with those relative paths and PreserveNewest.
+        var project = System.Xml.Linq.XDocument.Load(Path.Combine(RepositoryRoot(), "src", "Marrow.App", "Marrow.App.csproj"));
+        var contents = project.Descendants().Where(element => element.Name.LocalName == "Content").ToArray();
+        foreach (var name in new[] { "LICENSE", "THIRD_PARTY_NOTICES.md", "TRADEMARK.md" })
+        {
+            var item = Assert.Single(contents, content => (string?)content.Attribute("Link") == name);
+            Assert.Equal("PreserveNewest", (string?)item.Attribute("CopyToOutputDirectory"));
+            Assert.Equal("PreserveNewest", (string?)item.Attribute("CopyToPublishDirectory"));
+        }
+    }
+
+    [Fact]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1046-1056
     [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1046-1056
     public void The_licenses_popover_shows_the_shipped_documents_not_the_missing_file_sentence() => With(() => new LicensesRow(), (view, _, _, window) =>
@@ -111,6 +130,31 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
             Assert.True(bodies[index].DesiredSize.Height > 100, $"{resource} renders as a real document, not one line.");
         }
         Assert.DoesNotContain(Text(content), line => line.Contains("is missing from this copy of the app", StringComparison.Ordinal));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1027-1033 (VStack(spacing: 8): the title at .system(.body, weight: .semibold) over the document in Chrome.secondaryText at 12 pt, text selection enabled)
+    [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1027-1033
+    public void Each_block_is_a_13_point_semibold_title_8_points_above_its_document_in_the_secondary_colour_with_selectable_text() => With(() => new LicensesRow(), (view, _, _, window) =>
+    {
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
+        Click(window, Nodes<Button>(view).Single(button => Text(button).Contains("Show")));
+        var popup = presenter.Calls.Last(call => call.Presented).Popup;
+        Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, popup.Placement); // :1023 .popover(isPresented:, arrowEdge: .bottom)
+        var content = Open(popup);
+        var blocks = Nodes<StackPanel>(content).Single(panel => panel.Spacing == 18).Children.Cast<StackPanel>().ToArray();
+        Assert.Equal(3, blocks.Length);
+        foreach (var block in blocks)
+        {
+            Assert.Equal(8, block.Spacing); // :1027 VStack(alignment: .leading, spacing: 8)
+            Assert.Equal(2, block.Children.Count);
+            var title = Assert.IsType<TextBlock>(block.Children[0]);
+            Font(title, 13, Avalonia.Media.FontWeight.SemiBold); // :1029 .font(.system(.body, weight: .semibold)): body is 13 pt
+            var body = Assert.IsType<MarkdownView>(block.Children[1]);
+            Assert.Equal(12, MarkdownView.GetMarkdownPointSize(body)); // :1031 .environment(\.markdownPointSize, 12)
+            Ink(body, Avalonia.Controls.Documents.TextElement.GetForeground(body), Marrow.UI.Chrome.Chrome.SecondaryText); // :1032 .foregroundStyle(Chrome.secondaryText)
+            Assert.True(MarkdownView.GetMarkdownBlockSelection(body)); // :1033 .textSelection(.enabled)
+        }
     });
 
     [Fact]
