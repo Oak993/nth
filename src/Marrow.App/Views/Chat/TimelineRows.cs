@@ -3100,31 +3100,43 @@ public sealed class TodoListRow : Decorator
         header.Children.Add(count);
         column.Children.Add(header);
         var card = TimelineRows.Pill(column, SwiftColor.Quaternary.Opacity(0.32), new Thickness(14));
-        var rows = new List<(TimelineBaselineRow Row, SwiftImage Icon, TextBlock Text)>();
+        var rows = new List<(TimelineBaselineRow Row, SwiftImage Icon, TextBlock Text, AnimatedColor IconColour, AnimatedColor TextColour)>();
+        // :2372 .animation(.snappy(duration: 0.2), value: steps): the colours a step is drawn in follow the change along the animation, as
+        // SwiftUI interpolates a foreground style, and a step that arrives or goes fades in or out (the default transition of a view in a stack).
+        // The step's glyph is the one thing swapped at once: the source asks for no symbol effect. ENGINEERING DECISION (OD-0076).
+        static SwiftColor IconColourFor(TodoStep.Status status) => status == TodoStep.Status.Pending ? SwiftColor.Tertiary : Chrome.Accent; // :2355
+        static SwiftColor TextColourFor(TodoStep.Status status) => status == TodoStep.Status.Done ? SwiftColor.Secondary : SwiftColor.Primary; // :2357
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Todos todos || todos.Value.Count == 0) { Child = null; return; }
             var steps = todos.Value;
             count.Text = $"{steps.Count(step => step.TodoStepStatus == TodoStep.Status.Done)} of {steps.Count} done";
-            while (rows.Count > steps.Count) { column.Children.Remove(rows[^1].Row); rows.RemoveAt(rows.Count - 1); }
+            while (rows.Count > steps.Count) { SwiftTransition.Remove(column, rows[^1].Row); rows.RemoveAt(rows.Count - 1); }
             while (rows.Count < steps.Count)
             {
                 var row = new TimelineBaselineRow { Spacing = 8 };
                 var icon = SwiftImage.SystemName("circle").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout));
                 var text = TimelineRows.ChatText("");
+                var iconColour = new AnimatedColor(row);
+                var textColour = new AnimatedColor(row);
+                iconColour.Set(IconColourFor(steps[rows.Count].TodoStepStatus), null); // a step arriving is not tweened from nothing
+                textColour.Set(TextColourFor(steps[rows.Count].TodoStepStatus), null);
+                text.Foreground = textColour.Brush;
                 row.Children.Add(icon); row.Children.Add(text);
-                rows.Add((row, icon, text)); column.Children.Add(row);
+                rows.Add((row, icon, text, iconColour, textColour));
+                SwiftTransition.Insert(column, column.Children.Count, row);
             }
             for (var i = 0; i < steps.Count; i++)
             {
                 var step = steps[i]; var row = rows[i];
                 var icon = SwiftImage.SystemName(Symbol(step.TodoStepStatus)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout));
-                icon.Foreground = (step.TodoStepStatus == TodoStep.Status.Pending ? SwiftColor.Tertiary : Chrome.Accent).Brush(icon);
+                row.IconColour.Set(IconColourFor(step.TodoStepStatus), Transaction.Current);
+                icon.Foreground = row.IconColour.Brush;
                 row.Row.Children[0] = icon;
-                rows[i] = (row.Row, icon, row.Text);
+                rows[i] = (row.Row, icon, row.Text, row.IconColour, row.TextColour);
                 row.Text.Text = step.Text;
                 var done = step.TodoStepStatus == TodoStep.Status.Done;
-                row.Text.Foreground = (done ? SwiftColor.Secondary : SwiftColor.Primary).Brush(row.Text);
+                row.TextColour.Set(TextColourFor(step.TodoStepStatus), Transaction.Current);
                 row.Text.TextDecorations = done ? new TextDecorationCollection { new TextDecoration { Location = TextDecorationLocation.Strikethrough, Stroke = SwiftColor.Secondary.Brush(row.Text) } } : null;
             }
             Child = card;

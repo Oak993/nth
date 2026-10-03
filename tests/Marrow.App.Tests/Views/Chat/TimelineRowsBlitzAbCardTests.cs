@@ -397,6 +397,88 @@ public sealed class TimelineRowsBlitzAbCardTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-114")] // TimelineRows.swift:2372 .animation(.snappy(duration: 0.2), value: steps), :2355-2358; OD-0076 (ENGINEERING DECISION: the glyph itself is swapped at once)
+    public void Checking_an_item_off_moves_the_same_lines_colours_along_the_snappy_animation_and_a_new_step_fades_in_without_adding_a_second_list() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var clock = new ManualFrameSource();
+        using var clockSeam = FrameClock.Source.Override(clock);
+        TimelineEntry entry = null!;
+        TodoListRow row = null!;
+        AvaloniaWindow window = null!;
+        TextBlock one = null!, two = null!;
+        SwiftImage twoGlyph = null!;
+        double Effective(Control control)
+        {
+            var opacity = 1d;
+            for (Visual? at = control; at is not null && !ReferenceEquals(at, row); at = at.GetVisualParent()) opacity *= at.Opacity;
+            return opacity;
+        }
+        Color Ink(TextBlock text) => ((ISolidColorBrush)text.Foreground!).Color;
+        void Frames(double milliseconds)
+        {
+            clock.Advance(TimeSpan.Zero);
+            h.Main.AdvanceMilliseconds(milliseconds);
+            clock.Advance(TimeSpan.FromMilliseconds(milliseconds));
+        }
+        h.Main.OnMain(() =>
+        {
+            entry = new TimelineEntry(new TimelineItem(null, Steps(("One", TodoStep.Status.Active), ("Two", TodoStep.Status.Pending))));
+            row = new TodoListRow(entry);
+            window = Show(new Border { Child = row, Width = 600 });
+            one = TextNamed(row, "One"); two = TextNamed(row, "Two");
+            twoGlyph = Mounted<SwiftImage>(row).Single(image => image.SymbolName == "circle");
+            Assert.Equal(1, Mounted<StackPanel>(row).Count(stack => stack.Spacing == 7)); // one list
+            entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Done), ("Two", TodoStep.Status.Active)) };
+        });
+        try
+        {
+            h.Main.OnMain(() => { });
+            Frames(50);
+            h.Main.OnMain(() =>
+            {
+                var primaryColour = SwiftColor.Primary.Resolve(window.ActualThemeVariant);
+                var secondaryColour = SwiftColor.Secondary.Resolve(window.ActualThemeVariant);
+                // :2357 the checked line's text moves from primary to secondary: part way along the animation, in neither.
+                Assert.NotEqual(primaryColour, Ink(one));
+                Assert.NotEqual(secondaryColour, Ink(one));
+                Assert.Same(one, TextNamed(row, "One")); // the same line, not a new one
+                // :2355 the next step's glyph moves from tertiary to the tint.
+                var glyph = Mounted<SwiftImage>(row).Single(image => image.SymbolName == "circle.dotted.circle");
+                Assert.NotEqual(SwiftColor.Tertiary.Resolve(window.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color);
+                Assert.NotEqual(ChromeTokens.Accent.Resolve(window.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color);
+            });
+            Frames(450);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal(SwiftColor.Secondary.Resolve(window.ActualThemeVariant), Ink(one)); // settled: a done step in secondary
+                Assert.Equal(SwiftColor.Primary.Resolve(window.ActualThemeVariant), Ink(two));
+                var glyph = Mounted<SwiftImage>(row).Single(image => image.SymbolName == "circle.dotted.circle");
+                Assert.Equal(ChromeTokens.Accent.Resolve(window.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color);
+                Assert.Equal("1 of 2 done", Assert.Single(Mounted<TextBlock>(row), block => block.Text?.EndsWith("done", StringComparison.Ordinal) == true).Text);
+                // A step added to the list: one more line in the same list, fading in rather than appearing.
+                entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Done), ("Two", TodoStep.Status.Done), ("Three", TodoStep.Status.Pending)) };
+            });
+            h.Main.OnMain(() => { });
+            Frames(30);
+            h.Main.OnMain(() =>
+            {
+                var three = TextNamed(row, "Three");
+                Assert.InRange(Effective(three), 0, 0.999); // arriving: not yet in
+                Assert.Equal(1, Mounted<StackPanel>(row).Count(stack => stack.Spacing == 7));
+                Assert.Same(one, TextNamed(row, "One"));
+            });
+            Frames(450);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal(1, Effective(TextNamed(row, "Three")));
+                Assert.Equal(3, Mounted<SwiftImage>(row).Count(image => image.SymbolName != "checklist"));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window)); }
+    });
+
     // ---- PR-CHAT-115: the notice at three levels ----
 
     [Fact]
