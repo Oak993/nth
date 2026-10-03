@@ -171,6 +171,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-043")] // :81 favicon == nil -> the placeholder symbol
     public void The_merge_row_shows_the_placeholder_symbol_until_the_favicon_loads() => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork("gitlab.com"); // R-TEST-10: its favicon fetch is in flight and never ends, so the placeholder stays; nothing is sent (found by the network audit, ED-256 (10))
         var url = SwiftURL.Create("https://gitlab.com/g/p/-/merge_requests/7")!;
         var request = MergeRequestLink.Create(url)!;
         var content = new LinkPopoverContent(url, request, _ => { });
@@ -230,6 +231,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-043")] // :80 "Merge" semibold + " " + request.Label regular; :332 AutomationProperties.SetName(button, title) with request.Title
     public void The_merge_row_shows_Merge_semibold_then_the_label_in_regular_weight() => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork("gitlab.com"); // R-TEST-10: the content asks gitlab.com for its favicon when it appears (found by the network audit, ED-256 (10))
         var url = SwiftURL.Create("https://gitlab.com/g/p/-/merge_requests/7")!;
         var request = MergeRequestLink.Create(url)!;
         var content = new LinkPopoverContent(url, request, _ => { });
