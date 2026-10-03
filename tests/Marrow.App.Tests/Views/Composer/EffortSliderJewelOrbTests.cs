@@ -323,10 +323,17 @@ public sealed class EffortSliderJewelOrbTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-252")] // OD-0090: the knob's binding of Skia's C API takes the parameter types SkiaSharp's own bindings take
-    public void The_native_bindings_match_skiasharps_own()
+    [Trait("Decision", "ED-252")] // OD-0090: the knob's binding of Skia's C API takes the parameter and return types SkiaSharp's own bindings take
+    public void The_knobs_skia_c_bindings_match_skiasharps_own()
     {
+        // (its name keeps clear of the suites' FullyQualifiedName!~Native filter, a case-insensitive contains: it is headless)
         var api = typeof(SKCanvas).Assembly.GetType("SkiaSharp.SkiaApi", true)!;
+        static int Size(Type t) => t.IsByRef ? IntPtr.Size : t.IsPointer || t == typeof(nint) || t.IsArray ? IntPtr.Size : System.Runtime.InteropServices.Marshal.SizeOf(t.IsEnum ? Enum.GetUnderlyingType(t) : t);
+        // every function the knob imports is compared
+        var imported = typeof(JewelNative).GetMethods(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)
+            .Where(m => m.Attributes.HasFlag(System.Reflection.MethodAttributes.PinvokeImpl)).Select(m => m.Name).Order().ToList();
+        Assert.NotEmpty(imported);
+        Assert.Equal(imported, JewelNative.Bindings.Select(m => m.Name).Order().ToList());
         foreach (var binding in JewelNative.Bindings)
         {
             var theirs = api.GetMethod(binding.Name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
@@ -335,10 +342,11 @@ public sealed class EffortSliderJewelOrbTests
             var their = theirs!.GetParameters();
             Assert.Equal(their.Length, ours.Length);
             for (var i = 0; i < ours.Length; i++)
-            {
-                static int Size(Type t) => t.IsByRef ? IntPtr.Size : t.IsPointer || t == typeof(nint) || t.IsArray ? IntPtr.Size : System.Runtime.InteropServices.Marshal.SizeOf(t.IsEnum ? Enum.GetUnderlyingType(t) : t);
                 Assert.True(Size(their[i].ParameterType) == Size(ours[i].ParameterType), $"{binding.Name} parameter {i}: {their[i].ParameterType} vs {ours[i].ParameterType}");
-            }
+            // the return: none for none, else of the same size (a pointer returned as a pointer)
+            Assert.True(theirs.ReturnType == typeof(void) == (binding.ReturnType == typeof(void)), $"{binding.Name} returns {binding.ReturnType}, SkiaSharp's {theirs.ReturnType}");
+            if (binding.ReturnType != typeof(void))
+                Assert.True(Size(theirs.ReturnType) == Size(binding.ReturnType), $"{binding.Name} returns {binding.ReturnType}, SkiaSharp's {theirs.ReturnType}");
         }
     }
 
