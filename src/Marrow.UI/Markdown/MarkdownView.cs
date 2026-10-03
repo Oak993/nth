@@ -97,6 +97,9 @@ public sealed class MarkdownView : Decorator
         Control root;
         if (!isStreaming && proseRuns) // :71-83
         {
+            // PORT-ONLY (UI-THEME-047): the reply is drawn as prose runs now, so the veiled views that kept its places have left (StreamVeil.swift:291-295:
+            // "once the reply has finished the veil is emptied too, so a settled paragraph keeps no copy of itself"): the places are released.
+            veils?.Release();
             var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :72
             foreach (var segment in Segments(blocks)) // :73-80
             {

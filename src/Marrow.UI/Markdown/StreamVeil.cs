@@ -144,6 +144,10 @@ public sealed class StreamVeil
         }
     }
 
+    /// <summary>PORT-ONLY (UI-THEME-047, observed by the tests). Whether the veil keeps nothing: no copy of the text it was fed, no chunk in flight.
+    /// StreamVeil.swift:291-295 "a settled paragraph keeps no copy of itself".</summary>
+    public bool IsEmpty => previous is null && chunks.Count == 0;
+
     // StreamVeil.swift:117-122.
     public void Reset()
     {
@@ -257,7 +261,8 @@ public sealed class VeilClock : MainActorModel
 /// baseline and could never see an append: the fade never ran in the app. A MarkdownVeils is the identity such a row keeps for its tree: one
 /// StreamVeil per VeiledText place and one LinkTextVeil per link paragraph place, named by the builders (<see cref="MarkdownVeilScope"/>), alive
 /// as long as the row is on screen. When the row leaves the screen <see cref="Reset"/> forgets them all, as SwiftUI drops the state of a view
-/// that leaves the hierarchy: what is on screen when the row comes back is adopted as the baseline again (StreamVeil.swift:18-19).
+/// that leaves the hierarchy: what is on screen when the row comes back is adopted as the baseline again (StreamVeil.swift:18-19). When the
+/// reply stops streaming MarkdownView draws prose runs, a different view, and <see cref="Release"/> drops the places of the views that went.
 /// </summary>
 public sealed class MarkdownVeils
 {
@@ -295,6 +300,37 @@ public sealed class MarkdownVeils
         foreach (var place in text.Values) place.Veil.Reset();
         foreach (var veil in links.Values) veil.Reset();
     }
+
+    /// <summary>
+    /// The reply drawn under <paramref name="path"/> has stopped streaming: MarkdownView draws prose runs now (MarkdownView.swift:69-83), a different view, so the
+    /// VeiledText that kept these veils has left the hierarchy and its <c>@State</c> with it, "so a settled paragraph keeps no copy of itself"
+    /// (StreamVeil.swift:291-295). Every place at or under the path forgets its text and chunks and is dropped with the owner view it held; the
+    /// places of the other thinking steps, whose names this one's may begin with ("s1", "s10"), stay as they are.
+    /// </summary>
+    internal void Release(string path)
+    {
+        foreach (var place in text.Keys.Where(place => IsUnder(place, path)).ToList())
+        {
+            text[place].Veil.Reset();
+            text.Remove(place);
+        }
+
+        foreach (var place in links.Keys.Where(place => IsUnder(place, path)).ToList())
+        {
+            links[place].Reset();
+            links.Remove(place);
+        }
+    }
+
+    // The root's path is "", the child named n of a place p is p + "/" + n: a place is under a path when it is that path or goes on with a "/".
+    private static bool IsUnder(string place, string path) =>
+        path.Length == 0 || place == path || place.StartsWith(path + "/", StringComparison.Ordinal);
+
+    /// <summary>PORT-ONLY, observed by the tests: how many places hold a veil (each with its owner view).</summary>
+    public int Places => text.Count + links.Count;
+
+    /// <summary>PORT-ONLY, observed by the tests: whether any place still keeps a copy of its text or a chunk in flight.</summary>
+    public bool HoldsText => text.Values.Any(place => !place.Veil.IsEmpty) || links.Values.Any(veil => !veil.IsEmpty);
 }
 
 /// <summary>PORT-ONLY. A place in a <see cref="MarkdownVeils"/>: the path of block, item and quote indices from the markdown view down to it.</summary>
@@ -315,6 +351,9 @@ public sealed class MarkdownVeilScope
     internal StreamVeil ClaimText(VeiledText owner) => store.ClaimText(path, owner);
 
     internal bool OwnsText(VeiledText owner) => store.OwnsText(path, owner);
+
+    /// <summary>The reply under this place has stopped streaming and its views have left: see <see cref="MarkdownVeils.Release"/>.</summary>
+    internal void Release() => store.Release(path);
 
     internal LinkTextVeil Link() => store.Link(path);
 }
@@ -750,6 +789,9 @@ public sealed class LinkTextVeil
         retained = true;
         return this;
     }
+
+    /// <summary>PORT-ONLY (observed by the tests): whether the veil keeps nothing, see <see cref="StreamVeil.IsEmpty"/>.</summary>
+    internal bool IsEmpty => veil.IsEmpty;
 
     /// <summary>PORT-ONLY. Forgets the text and every chunk, stops the clock and lets go of the view: the owner of a retained veil
     /// (<see cref="MarkdownVeils.Reset"/>) calls this when its row leaves the screen.</summary>

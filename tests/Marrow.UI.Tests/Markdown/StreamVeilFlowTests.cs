@@ -301,6 +301,123 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:291-295 (once the reply has finished the veil is emptied, a settled paragraph keeps no copy of itself); MarkdownView.swift:69-83 (it is prose runs then, a different view)
+    public void A_reply_that_stops_streaming_keeps_no_copy_of_itself_in_the_row_that_held_its_veils(bool links) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var lead = links ? $"Read [notes]({Local}) now" : "Hello";
+        var host = new StreamVeilFlowHost(runtime, lead);
+        try
+        {
+            host.Flush(runtime, lead + " there");
+            Tick(runtime, frames, 600); // everything has settled: a quiet beat between two flushes
+            // While it still streams the baseline stays, or the next flush would arrive unveiled (StreamVeil.swift:291-292).
+            Assert.True(host.Veils.HoldsText, "a streaming reply keeps its text for the next flush");
+            Assert.True(host.Veils.Places > 0);
+
+            // The reply is done: the row builds its markdown with isStreaming false, which draws prose runs, and the veils go with the views that kept them.
+            runtime.OnMain(() => { host.Decorator.Child = new MarkdownView(lead + " there", isStreaming: false, host.Veils.Root); Pump(); });
+            Assert.False(host.Veils.HoldsText, "no copy of the settled reply is kept");
+            Assert.Equal(0, host.Veils.Places); // and no place keeps the views that drew it
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            host.Window.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:291-295 and :245 (@State per view), for the thinking steps: each step is a MarkdownView of its own (ThreadTimeline.swift:2158)
+    public void A_step_that_stops_streaming_releases_its_own_places_and_those_of_no_other_step() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var veils = new MarkdownVeils();
+        Window window = null!;
+        StackPanel panel = null!;
+        VeiledText Veiled(string step, string text)
+        {
+            var view = new VeiledText(text, veils.Root.Child(step).Child("b0"));
+            panel.Children.Add(view);
+            StreamVeil.SetMarkdownVeiled(view, true);
+            return view;
+        }
+        runtime.OnMain(() =>
+        {
+            panel = new StackPanel();
+            window = Show(panel);
+            // Three steps, each with the baseline "Hello" in its place; the names are prefixes of one another.
+            foreach (var step in new[] { "s1", "s10", "s2" }) Veiled(step, "Hello");
+            Pump();
+            Assert.Equal(3, veils.Places);
+            Assert.True(veils.HoldsText);
+        });
+        try
+        {
+            runtime.OnMain(() =>
+            {
+                _ = new MarkdownView("Hello", isStreaming: false, veils.Root.Child("s1")); // the first of them has finished
+                Assert.Equal(2, veils.Places); // s10 and s2 stay: the step named s1 is not the one named s10
+                var s10 = Veiled("s10", "Hello there"); // the next flush of those that still stream: " there" arrives
+                var s2 = Veiled("s2", "Hello there");
+                Pump();
+                Assert.Equal(["Hello", " there"], Texts(Runs(s10)));
+                Assert.Equal(["Hello", " there"], Texts(Runs(s2)));
+                Assert.Equal(0, Runs(s10)[1].Opacity, 0.001);
+                Assert.Equal(0, Runs(s2)[1].Opacity, 0.001);
+            });
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            runtime.OnMain(window.Close);
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:291-295 (a text that is not veiled empties its veil)
+    public void A_text_that_stops_being_veiled_forgets_what_it_was_fed_so_a_later_stream_adopts_what_is_on_screen() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var veils = new MarkdownVeils();
+        var scope = veils.Root.Child("b0");
+        Window window = null!;
+        runtime.OnMain(() =>
+        {
+            var first = new VeiledText("Hello", scope);
+            var panel = new StackPanel { Children = { first } };
+            window = Show(panel);
+            StreamVeil.SetMarkdownVeiled(first, true); // the baseline: "Hello"
+            Pump();
+            Assert.True(veils.HoldsText);
+            StreamVeil.SetMarkdownVeiled(first, false); // it is not veiled any more: nothing fades, so its veil is emptied
+            Pump();
+            Assert.False(veils.HoldsText, "a settled paragraph keeps no copy of itself");
+            // The place is veiled again (a later stream): what is on screen is the baseline, " there" is not an arrival.
+            var second = new VeiledText("Hello there", scope);
+            panel.Children.Add(second);
+            StreamVeil.SetMarkdownVeiled(second, true);
+            Pump();
+            Assert.Equal(["Hello there"], Texts(Runs(second)));
+        });
+        runtime.OnMain(window.Close);
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:18-19 (what is on screen when a veil attaches is the baseline)
     public void Resetting_the_veils_makes_the_next_evaluation_a_first_one_that_adopts_the_text(bool links) => headless.OnUiThread(() =>
     {

@@ -124,6 +124,44 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:291-295 (once the reply has finished the veil is emptied, a settled paragraph keeps no copy of itself); MarkdownView.swift:69-83
+    public void The_row_of_a_reply_that_has_finished_streaming_keeps_no_copy_of_it_and_still_shows_it() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        TimelineEntry entry = null!;
+        AssistantMessageRow row = null!;
+        Avalonia.Controls.Window window = null!;
+        h.Main.OnMain(() =>
+        {
+            entry = Streaming("Hello");
+            row = new AssistantMessageRow(entry, null, h.Runtime);
+            window = Show(row);
+            Flush(entry, "Hello there");
+            Settle(window);
+        });
+        Tick(h, frames, window, 600); // "Hello there" has settled: a quiet beat between two flushes
+        // While the reply streams the baseline stays, or the next flush would arrive unveiled (StreamVeil.swift:291-292).
+        Assert.True(row.Veils.HoldsText);
+        Assert.True(row.Veils.Places > 0);
+
+        // The reply is done: the row's veils go, the text stays (the row draws prose runs, MarkdownView.swift:71-83).
+        try
+        {
+            h.Main.OnMain(() => { Flush(entry, "Hello there", streaming: false); Settle(window); });
+            Assert.False(row.Veils.HoldsText, "no copy of the finished reply is kept");
+            Assert.Equal(0, row.Veils.Places);
+            Assert.Equal("Hello there", Assert.Single(row.GetVisualDescendants().OfType<ParagraphTextPresenter>()).Text.String);
+        }
+        finally
+        {
+            h.Main.OnMain(() => Close(window)); // a window left open makes the next layout fail on its own, and hides the assertion that failed
+        }
+    });
+
+    [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:18-19 (a row scrolled back into view adopts what is on screen)
     public void A_row_that_scrolls_away_and_back_adopts_what_it_shows_instead_of_fading_it_all_in() => headless.OnUiThread(() =>
     {

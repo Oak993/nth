@@ -1546,6 +1546,10 @@ public sealed class AssistantMessageRow : Decorator
 
     private readonly ViewState state = new();
 
+    // PORT-ONLY (UI-THEME-047): the body is built again for every flush, so the veils of the reply's paragraphs (SwiftUI's @State, StreamVeil.swift:245)
+    // live here, through the rebuilds, for as long as the row is on screen. Internal for the tests (InternalsVisibleTo Marrow.App.Tests).
+    internal MarkdownVeils Veils { get; } = new();
+
     /// <param name="entry">:1354 <c>let entry: TimelineEntry</c>.</param>
     /// <param name="summary">:1355-1357 <c>let summary: TurnSummary?</c>: the turn's summary, set only on the turn's last
     /// reply, precomputed by the timeline so rows never scan the thread.</param>
@@ -1554,10 +1558,7 @@ public sealed class AssistantMessageRow : Decorator
     // whenever the text or the streaming flag moves (MarkdownView's .equatable(), :1364), the hover state surviving.
     public AssistantMessageRow(TimelineEntry entry, TurnSummary? summary, ThreadRuntime runtime)
     {
-        // PORT-ONLY (UI-THEME-047): the body is built again for every flush, so the veils of the reply's paragraphs (SwiftUI's @State, StreamVeil.swift:245)
-        // live here, through the rebuilds, for as long as the row is on screen.
-        var veils = new MarkdownVeils();
-        DetachedFromVisualTree += (_, _) => veils.Reset();
+        DetachedFromVisualTree += (_, _) => Veils.Reset(); // PORT-ONLY (UI-THEME-047): the row leaves the screen, its @State with it
         AssistantMessage? built = null;
         void Build(TimelineItem.Content content)
         {
@@ -1570,7 +1571,7 @@ public sealed class AssistantMessageRow : Decorator
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return;
             built = message;
-            Child = Body(message, summary, runtime, state, veils.Root);
+            Child = Body(message, summary, runtime, state, Veils.Root);
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
