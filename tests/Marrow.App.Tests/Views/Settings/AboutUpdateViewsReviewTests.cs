@@ -117,4 +117,40 @@ public sealed class AboutUpdateViewsReviewTests(HeadlessSession headless)
             $"one frame after the celebration completed the slider is gone and the standing is at opacity {faceOpacity}: a cut (OD-0076)");
         window.Close();
     });
+
+    // REVIEW (second round, 2026-10-04). OD-0076: "a card ... that changes size eases to the new size ... with no single-frame jump". At the settings
+    // window's default size (SettingsView.cs:170 Width = 780, :122; the 212 pt sidebar, :178; the page stack's 24 pt each side, :249) the card is
+    // 520 pt wide and the resting sentence "Marrow checks GitLab for new versions a few times a day. Not checked yet." takes more lines than
+    // "Asking GitLab for the latest release…". The row's sentence swap replaces the words at the middle of the fade, so the card's height must
+    // ease, not step by a whole line in one frame (the unit's ED-NEW-aboutupdateviews T1 leaves this "NOT eased (UNVERIFIED, rare)").
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-240")] // REVIEW: the detail swap while a check starts; OD-0076 card size change
+    [Trait("Rule", "R-TEST-4")] // partial: only that the card's height does not jump when the sentence rewraps
+    public void REVIEW_The_card_does_not_jump_a_line_when_the_check_sentence_rewraps_at_the_default_settings_width() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var frames = new ManualFrameSource(); using var frameScope = FrameClock.Source.Override(frames);
+        using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0")); using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+        var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], "")); using var shared = UpdateChecker.OverrideShared(checker);
+        var row = new AboutUpdateCheckRow();
+        var card = new Marrow.UI.Chrome.ChromeCard(() => new StackPanel { Children = { row } });
+        var window = new Avalonia.Controls.Window
+        {
+            Width = 568, Height = 300, UseLayoutRounding = false,
+            Content = new Border { Margin = new Thickness(24, 0), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Child = card },
+        };
+        window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        var heights = new List<double> { card.Bounds.Height };
+        Set(checker, nameof(UpdateChecker.IsChecking), true); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        for (var i = 0; i < 20; i++)
+        {
+            runtime.Time.Advance(TimeSpan.FromMilliseconds(16)); frames.Advance(TimeSpan.FromMilliseconds(16)); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            heights.Add(card.Bounds.Height);
+        }
+        var travel = Math.Abs(heights[^1] - heights[0]);
+        var largest = heights.Zip(heights.Skip(1), (a, b) => Math.Abs(b - a)).Max();
+        Assert.True(travel < 0.5 || largest < travel * 0.5,
+            $"the card goes from {heights[0]} to {heights[^1]} pt with a single-frame step of {largest} pt (frames: {string.Join(", ", heights)}): a cut (OD-0076)");
+        window.Close();
+    });
 }
