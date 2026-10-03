@@ -641,8 +641,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-117")] // App/Views/Composer/EffortSlider.swift:620-624
-    [Trait("Req", "UI-COMPOSER-036")] // App/Views/Composer/EffortSlider.swift:620-624
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:620-624 .frame(height: EffortSlider.thumbSize) (PR-COMPOSER-117 and UI-COMPOSER-036, whose 42 point height OD-0090 made the 48 px knob's)
     public void Empty_levels_show_standard_and_the_single_level_note()
     {
         headless.OnUiThread(() =>
@@ -736,7 +735,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-126")] // App/Views/Composer/EffortSlider.swift:822-830
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:820 .frame(height: Self.thumbSize), :822-830 (PR-COMPOSER-126, whose 42 point height OD-0090 made the 48 px knob's)
     public void Accessibility_adjustments_clamp_at_the_extremes()
     {
         headless.OnUiThread(() =>
@@ -745,6 +744,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var selected = 0;
             var slider = new EffortSlider(3, new Binding<int>(() => selected, value => selected = value), "Medium");
             var window = Show(slider);
+            Assert.Equal(48, slider.Height); // OD-0090: the control reserves the 48 px knob's height
             Assert.Equal("Reasoning effort", AutomationProperties.GetName(slider));
             var provider = Assert.IsAssignableFrom<IRangeValueProvider>(ControlAutomationPeer.CreatePeerForElement(slider));
             Assert.Equal(0, provider.Minimum);
