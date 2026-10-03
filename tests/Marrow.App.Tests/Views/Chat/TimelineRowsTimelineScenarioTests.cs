@@ -119,7 +119,7 @@ public sealed class TimelineRowsTimelineScenarioTests(HeadlessSession headless)
     private static Popup? ShownEditor(RecordingPresenter presenter)
     {
         // The editor's popup is the last one whose content is a MessageEditor; it is shown when its last call presented it.
-        var editor = presenter.Calls.Where(call => call.Popup.Child is MessageEditor).Select(call => call.Popup).LastOrDefault();
+        var editor = presenter.Calls.Where(call => PopoverHost.Content(call.Popup) is MessageEditor).Select(call => call.Popup).LastOrDefault();
         if (editor is null) return null;
         return presenter.Calls.Last(call => ReferenceEquals(call.Popup, editor)).Presented ? editor : null;
     }
@@ -145,7 +145,7 @@ public sealed class TimelineRowsTimelineScenarioTests(HeadlessSession headless)
         Settle(scene.Window, scene.Frames);
         var edit = Assert.IsType<PromptEdit>(scene.Runtime.MessageEdit);
         Assert.Equal(last, edit.Id);
-        Assert.IsType<MessageEditor>(Assert.IsType<Popup>(ShownEditor(scene.Presenter)).Child);
+        Assert.IsType<MessageEditor>(PopoverHost.Content(Assert.IsType<Popup>(ShownEditor(scene.Presenter))));
 
         // Scroll the row away (to the thread's top), then back to the end: the edit is the thread's, the editor is still up.
         var scroller = Scroller(scene.View);
@@ -168,7 +168,7 @@ public sealed class TimelineRowsTimelineScenarioTests(HeadlessSession headless)
         scene.Host.Child = scene.View;
         Settle(scene.Window, scene.Frames);
         var reopened = Assert.IsType<Popup>(ShownEditor(scene.Presenter));
-        Assert.IsType<MessageEditor>(reopened.Child);
+        Assert.IsType<MessageEditor>(PopoverHost.Content(reopened));
         Assert.Same(edit, scene.Runtime.MessageEdit);
         // A second tap on the pencil closes it (:132-134).
         Click(scene.Window, Pencil());

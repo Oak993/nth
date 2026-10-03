@@ -123,7 +123,7 @@ public sealed class TimelineRowsParityReviewTests(HeadlessSession headless)
 
         var answer = Assert.Single(scene.View.GetVisualDescendants().OfType<FoldedAnswerView>());
         Press(scene.Window, Assert.Single(answer.GetVisualDescendants().OfType<MarkdownView>()), MouseButton.Right);
-        var menu = scene.Presenter.Calls.Last(call => call.Presented && call.Popup.Child is PopoverMenu).Popup;
+        var menu = scene.Presenter.Calls.Last(call => call.Presented && PopoverHost.Content(call.Popup) is PopoverMenu).Popup;
         Assert.True(IsShown(scene.Presenter, menu));
 
         // The running turn reads a file: one more entry, the folded turn above is untouched.
@@ -155,7 +155,7 @@ public sealed class TimelineRowsParityReviewTests(HeadlessSession headless)
         Press(scene.Window, badge, MouseButton.Left);
         Settle(scene.Window, scene.Frames);
         var popup = scene.Presenter.Calls.Last(call => call.Presented).Popup;
-        Assert.NotEmpty(LogicalQuery.SelfAndDescendants<MarkdownView>(popup.Child!));
+        Assert.NotEmpty(LogicalQuery.SelfAndDescendants<MarkdownView>(PopoverHost.Content(popup)!));
 
         // More of the plan streams in.
         scene.Runtime.Rehearse(new ProviderEvent.PlanDelta("plan-1", "\n\nSecond paragraph."));

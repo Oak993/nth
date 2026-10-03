@@ -608,7 +608,7 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
             coordinator.Show(new Border { Width = 120, Height = 60 });
             Assert.True(coordinator.IsShown);
             Assert.NotNull(popup.PlacementTarget);
-            Assert.Equal(120, Assert.IsType<Border>(popup.Child).Width);
+            Assert.Equal(120, Assert.IsType<Border>(PopoverHost.Content(popup)).Width);
             coordinator.Close();
             window.Close();
         });

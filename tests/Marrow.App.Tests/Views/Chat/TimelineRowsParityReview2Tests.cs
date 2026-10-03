@@ -175,8 +175,8 @@ public sealed class TimelineRowsParityReview2Tests(HeadlessSession headless)
         scene.Window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
         Settle(scene.Window, scene.Frames);
         var edit = Assert.IsType<PromptEdit>(scene.Runtime.MessageEdit);
-        var editor = scene.Presenter.Calls.Last(call => call.Presented && call.Popup.Child is MessageEditor).Popup;
-        var content = Assert.IsType<MessageEditor>(editor.Child);
+        var editor = scene.Presenter.Calls.Last(call => call.Presented && PopoverHost.Content(call.Popup) is MessageEditor).Popup;
+        var content = Assert.IsType<MessageEditor>(PopoverHost.Content(editor));
         var calls = scene.Presenter.Calls.Count;
 
         // A notice the thread is told while it waits: a block of its own below the turns, the edited turn untouched.
@@ -186,7 +186,7 @@ public sealed class TimelineRowsParityReview2Tests(HeadlessSession headless)
         Assert.Same(row, Row()); // the row was kept
         Assert.Same(edit, scene.Runtime.MessageEdit);
         Assert.DoesNotContain(scene.Presenter.Calls.Skip(calls), call => ReferenceEquals(call.Popup, editor) && !call.Presented);
-        Assert.Same(content, editor.Child); // the same MessageEditor, its @State as the reader left it
+        Assert.Same(content, PopoverHost.Content(editor)); // the same MessageEditor, its @State as the reader left it
     });
 
     // PR-CHAT-166: "Selection works within the block under the pointer" and, per its windows_path, "Per-block selection is always

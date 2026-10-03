@@ -128,7 +128,7 @@ public sealed class TimelineRowsParityReview3Tests(HeadlessSession headless)
         var edit = Assert.IsType<PromptEdit>(runtime.MessageEdit);
         var editor = presenter.Calls.Last(call => call.Presented && call.Popup.Child is MessageEditor).Popup;
         Assert.True(editor.IsOpen);
-        var content = Assert.IsType<MessageEditor>(editor.Child);
+        var content = Assert.IsType<MessageEditor>(PopoverHost.Content(editor));
         var closings = 0;
         editor.Closed += (_, _) => closings++;
 
