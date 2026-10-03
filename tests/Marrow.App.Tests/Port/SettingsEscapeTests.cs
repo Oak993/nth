@@ -25,13 +25,14 @@ namespace Marrow.App.Tests.Port;
 [Collection("Headless")]
 public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
-    private void Open(SettingsPage page, Action<SecondaryWindow, SettingsView, RecordingPresenter> check) =>
+    private void Open(SettingsPage page, Action<SecondaryWindow, SettingsView, RecordingPresenter> check, Action<Marrow.App.AppModel>? arrange = null) =>
         WithManager((h, manager) =>
         {
             var presenter = new RecordingPresenter();
             using var presentation = Presentation.Presenter.Override(presenter);
             using var rig = new SettingsRiseRig { Accepts = false };
             manager.Model.Settings.Theme = AppTheme.Dark;
+            arrange?.Invoke(manager.Model);
             manager.SettingsCloak = rig.Cloak;
             manager.ShowSettings(page);
             Dispatcher.UIThread.RunJobs();
@@ -215,5 +216,81 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             Assert.False(window.IsVisible);
         }
         finally { host.Children.Remove(markdown); }
+    });
+
+    // ED-253 round 4 (F6): the About page's release-note cards (UpdateReleaseSectionCards, AboutUpdateViews.swift:241-244) each
+    // present their popover over the window: Escape closes it, the window stays, the next Escape closes the window.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void Escape_with_a_release_note_popover_open_closes_it_and_the_window_stays() => Open(SettingsPage.About, (window, view, presenter) =>
+    {
+        var host = view.GetVisualDescendants().OfType<Panel>().First(p => p.IsEffectivelyVisible && p.Bounds.Width > 100);
+        var sections = ReleaseNoteCategoryExtensions.AllCases.Select(c => new UpdateReleaseNotesDigest.Section
+            { Category = c, Bullets = new Marrow.Core.Port.ValueList<string>(["Change"]), RollupCount = 0 }).ToArray();
+        var cards = new UpdateReleaseSectionCards(new UpdateReleaseNotesDigest { Sections = new Marrow.Core.Port.ValueList<UpdateReleaseNotesDigest.Section>(sections) }, "9.0.0");
+        host.Children.Add(cards);
+        try
+        {
+            Drain(window);
+            var card = cards.GetVisualDescendants().OfType<Button>().First();
+            card.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Drain(window);
+            var popup = Assert.Single(presenter.Calls, c => c.Presented).Popup;
+            Assert.True(WindowTransients.IsShown(popup));
+            Escape(window);
+            Assert.Equal((popup, false), presenter.Calls[^1]);
+            Assert.True(window.IsVisible); // the window stays
+            Escape(window);
+            Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+        }
+        finally { host.Children.Remove(cards); }
+    });
+
+    // ED-253 round 4 (F6): a Hydra pair's editor (HydraPairRow, HydraSettingsPage.swift:264-271) is a popover over the window:
+    // Escape closes it (its draft is the pair itself, kept), the window stays, the next Escape closes the window.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void Escape_with_a_hydra_pair_editor_open_closes_it_and_the_window_stays() => Open(SettingsPage.Hydra, (window, view, presenter) =>
+    {
+        var row = view.GetVisualDescendants().OfType<HydraPairRow>().Single();
+        var open = row.GetVisualDescendants().OfType<Button>().First(); // the row's own button, the remove control trails it
+        open.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Drain(window);
+        var popup = Assert.Single(presenter.Calls, c => c.Presented).Popup;
+        Assert.Same(open, popup.PlacementTarget);
+        Escape(window);
+        Assert.Equal((popup, false), presenter.Calls[^1]);
+        Assert.True(window.IsVisible); // the window stays
+        Assert.Single(view.GetVisualDescendants().OfType<HydraPairRow>()); // the pair is still there
+        Escape(window);
+        Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+    }, model => model.Settings.AddHydraPair(new Marrow.Core.Models.HydraPair(Marrow.Core.Models.ProviderKind.Codex)));
+
+    // ED-253 round 4 (F6): a popover open over another window (the main window's) is not over the Settings window: the Settings
+    // window's Escape leaves it open and closes the Settings window.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void Escape_in_settings_never_closes_a_popover_of_another_window() => Open(SettingsPage.General, (window, view, presenter) =>
+    {
+        var anchor = new Button();
+        var other = new HostWindow { Width = 200, Height = 120, Content = anchor };
+        var popup = new Avalonia.Controls.Primitives.Popup { PlacementTarget = anchor };
+        var dismissed = 0;
+        other.Show();
+        try
+        {
+            Drain(other);
+            Presentation.SetPresented(popup, true, anchor, () => dismissed++);
+            Escape(window);
+            Assert.Equal(0, dismissed);
+            Assert.True(WindowTransients.IsShown(popup)); // the other window's popover stays
+            Assert.Equal((popup, true), presenter.Calls[^1]);
+            Assert.False(window.IsVisible); // nothing over Settings: its Escape closes it
+        }
+        finally
+        {
+            Presentation.SetPresented(popup, false, anchor, () => dismissed++);
+            other.Close();
+        }
     });
 }
