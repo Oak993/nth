@@ -50,6 +50,7 @@ public sealed class ThreadTimeline : Decorator
     // :384-440 the ScrollView is one view for the life of the timeline: its geometry handler sees every change as old ->
     // new. Each draw swaps only its content; these are the current draw's pieces the long-lived handlers read.
     private Grid? scrollOverlay;
+    private readonly BranchHost branches; // :134-144 the body's branches: the loading mark, the empty thread's prompt, the timeline (scrollOverlay)
     private Control? currentRail;
     private Control? drawnColumn;
     private StackPanel? drawnBody;
@@ -122,14 +123,17 @@ public sealed class ThreadTimeline : Decorator
             if (HydraMentionTarget.ThreadIDIn(url) is not { } headID) return false;
             AppEnvironment.GetAppModel(this).SelectedThreadID = headID; return true;
         });
-        var host = new Border(); Child = host;
+        // :134-144 `if runtime.isLoadingHistory { Color.clear } else if blocks.isEmpty && !runtime.isRunning { NewThreadPrompt } else { timeline }`: the branch on show is one child of
+        // this host. A swap between the prompt and the timeline crossfades (OD-0076: the Mac swaps them in one frame; ED-NEW-parity-threadtimeline (3)); the loading mark's are cuts, as the
+        // Mac's (a thread opens in one frame, CATALOGUE.md C 164.452-164.640; ThreadTimelineTests STOP #10).
+        branches = new BranchHost(() => EnvironmentValues.GetAccessibilityReduceMotion(this)); Child = branches;
         void Draw()
         {
             DrawPasses++;
             if (runtime.IsLoadingHistory)
             {
                 // :134-135; OD-0016 / ED-097. LoadingMark owns the 400 ms blank period and 0.2 s fade, and cancels its frames on detach.
-                if (host.Child is not LoadingMark) host.Child = new LoadingMark { Width = 64, Height = 64, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                if (branches.On is not LoadingMark) branches.Show(new LoadingMark { Width = 64, Height = 64, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, fadesIn: false);
                 return;
             }
             var model = AppEnvironment.GetAppModel(this);
@@ -145,8 +149,9 @@ public sealed class ThreadTimeline : Decorator
                 // :136-141 the prompt is one view while the thread stays empty and idle, and `.onAppear` runs when it appears, not at every pass of the body: a pass that
                 // finds it shown leaves it, with its fade over, instead of replaying it, and a new project name is handed to it (NewThreadPrompt(threadID:projectName:) has no
                 // `.id`: it says other words, it does not appear again, and `.onAppear` does not run).
-                if (host.Child is NewThreadPrompt shown) { if (promptProject != projectName) { shown.Update(projectName); promptProject = projectName; } }
-                else { host.Child = new NewThreadPrompt(runtime.ThreadID, projectName); promptProject = projectName; scrollChrome.Update(0); scrollState.ShowsJumpButton = false; }
+                // The prompt comes in with its own appear (NewThreadPrompt.swift:50-53), so the host fades only what leaves; a timeline that was on show fades out where it stood.
+                if (branches.On is NewThreadPrompt shown) { if (promptProject != projectName) { shown.Update(projectName); promptProject = projectName; } }
+                else { branches.Show(new NewThreadPrompt(runtime.ThreadID, projectName), fadesIn: false); promptProject = projectName; scrollChrome.Update(0); scrollState.ShowsJumpButton = false; }
             }
             else
             {
@@ -252,7 +257,8 @@ public sealed class ThreadTimeline : Decorator
                                 MainActor.Post(() => { if (ReferenceEquals(currentScroll, scroll)) scroll.Offset = new Vector(scroll.Offset.X, offset); });
                             }
                         }
-                        NoteMetrics(oldMetrics, next, AppEnvironment.GetWindowLiveResize(this).IsActive); oldMetrics = next; scrollChrome.Update(next.Travel);
+                        // A timeline that is fading out under the prompt (OD-0076) has handed the chrome its travel of 0 (:139-140 `.onAppear`): what it still lays out is not the reader's.
+                        NoteMetrics(oldMetrics, next, AppEnvironment.GetWindowLiveResize(this).IsActive); oldMetrics = next; if (TimelineOnShow) scrollChrome.Update(next.Travel);
                         ReportVisibility(scroll);
                     };
                     // :335-338,380-382,404-409 onScrollVisibilityChange reports whenever a view crosses its threshold, whatever moved it: a scroll, a row
@@ -282,7 +288,7 @@ public sealed class ThreadTimeline : Decorator
                         if (nextRail is not null) SwiftTransition.Insert(overlay, overlay.Children.Count, nextRail);
                     });
                 }
-                if (!ReferenceEquals(host.Child, overlay)) host.Child = overlay;
+                branches.Show(overlay, fadesIn: true); // the timeline comes in over a prompt that fades out (a thread that opens on rows has nothing to fade from: the first branch is placed whole)
                 MainActor.Post(() =>
                 {
                     if (!ReferenceEquals(currentScroll, scroll)) return;
@@ -488,7 +494,7 @@ public sealed class ThreadTimeline : Decorator
     // :335-338 each row's own visibility (threshold 0.001), :404-409 the end sentinel's (0.01), :380-382 the earlier pill's (0.1).
     private void ReportVisibility(ScrollViewer scroll)
     {
-        if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied) return;
+        if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied || !TimelineOnShow) return; // rows that are fading out under the prompt report nothing (the jump button, a page of history)
         foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
         // :404-409 the end sentinel reports when it crosses its threshold, not on every layout: a row landing under a reader who is following it has the
         // button hidden (:710) and not shown again for the beat before the scroll that brings the end back.
@@ -502,6 +508,73 @@ public sealed class ThreadTimeline : Decorator
     private bool earlierPillVisible;
     private bool? endSeen;
     private bool initialAnchorApplied;
+    // The timeline is the branch on show (not fading out under the prompt, not under the loading mark).
+    private bool TimelineOnShow => scrollOverlay is { } overlay && ReferenceEquals(branches.On, overlay);
+
+    /// <summary>
+    /// ENGINEERING DECISION (OD-0076, ED-NEW-parity-threadtimeline (3)): the branches of the body (:134-144) as the layers of one host. The branch on show is <see cref="On"/>; a swap between the
+    /// prompt and the timeline (the Mac swaps them in one frame, the first message sent and a turn that ends with nothing said alike) fades the branch that leaves out where it stood while the one that
+    /// comes in fades in (the prompt's own appear, NewThreadPrompt.swift:50-53, is its fade-in), over 0.3 s on the ease-out of that appear, on the frame clock. A swap turned back part way goes on from
+    /// the opacity each layer has. The system's reduce-motion setting stills it, and a swap that involves the loading mark is a cut (a thread opens in one frame; ThreadTimelineTests STOP #10).
+    /// A layer that is leaving takes no input and is taken out of the tree when it is gone.
+    /// </summary>
+    private sealed class BranchHost : Panel
+    {
+        private static Animation Fade => Animation.EaseOut(duration: 0.3);
+        private readonly Func<bool> stilled;
+        private readonly Dictionary<Control, AnimatedDouble> fades = [];
+        private readonly HashSet<Control> leaving = [];
+
+        public BranchHost(Func<bool> stilled) => this.stilled = stilled;
+
+        /// <summary>The branch on show.</summary>
+        public Control? On { get; private set; }
+
+        /// <summary>Puts <paramref name="next"/> on show. <paramref name="fadesIn"/>: this host brings it in (the timeline); a branch that comes in with its own appear (the prompt) is left to it.</summary>
+        public void Show(Control next, bool fadesIn)
+        {
+            if (ReferenceEquals(On, next)) return;
+            var previous = On; On = next;
+            if (previous is null || previous is LoadingMark || next is LoadingMark || stilled()) { Cut(next); return; }
+            var back = Children.Contains(next); // a layer that was leaving, turned back
+            Leave(previous);
+            if (!back) { next.Opacity = fadesIn ? 0 : 1; Children.Add(next); }
+            leaving.Remove(next); next.IsHitTestVisible = true;
+            if (fadesIn || back) Animate(next, 1);
+        }
+
+        private void Cut(Control next)
+        {
+            foreach (var layer in Children.ToArray()) if (!ReferenceEquals(layer, next)) Drop(layer);
+            Stop(next); next.Opacity = 1; next.IsHitTestVisible = true;
+            if (!Children.Contains(next)) Children.Add(next);
+        }
+
+        private void Leave(Control layer)
+        {
+            layer.IsHitTestVisible = false; leaving.Add(layer);
+            Animate(layer, 0);
+        }
+
+        // The layer's opacity goes to <paramref name="target"/> from where it is now. A leaving layer is taken out when it has gone.
+        private void Animate(Control layer, double target)
+        {
+            if (!fades.TryGetValue(layer, out var fade))
+                fades[layer] = fade = new AnimatedDouble(value => { layer.Opacity = value; if (value <= 0 && leaving.Contains(layer)) Drop(layer); });
+            var isLeaving = leaving.Remove(layer); fade.Set(layer.Opacity, null); if (isLeaving) leaving.Add(layer); // primed with the opacity it has: the motion goes on from there
+            fade.Set(target, Fade);
+        }
+
+        private void Stop(Control layer)
+        {
+            if (fades.TryGetValue(layer, out var fade)) { leaving.Remove(layer); fade.Set(layer.Opacity, null); }
+        }
+
+        private void Drop(Control layer)
+        {
+            Stop(layer); fades.Remove(layer); leaving.Remove(layer); Children.Remove(layer);
+        }
+    }
 
     // :402-409
     private void SetEndVisible(bool visible) { if (state is not null && state.ShowsJumpButton == visible) Transaction.WithAnimation(Animation.Spring(response: 0.38, dampingFraction: 0.78), () => state.ShowsJumpButton = !visible); }

@@ -162,8 +162,12 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         // :137 the prompt for a new thread, with the project's name (:137 projectName), and not the timeline.
         var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
         Assert.Equal("What should we build in Project?", string.Concat(Texts(prompt)));
-        Assert.Null(mount.ScrollOrNull);
         // :139-140 on appear, with no animation and not a frame later: the chrome's travel is 0 (its progress with it, which clears the top veil) and the button is hidden.
+        Assert.Equal(0, mount.Chrome.Progress);
+        Assert.False(mount.State.ShowsJumpButton);
+        // The timeline fades out where it stood (OD-0076, ThreadTimelineReviewRound3Tests) and is out of the tree when it has.
+        mount.Advance(400);
+        Assert.Null(mount.ScrollOrNull);
         Assert.Equal(0, mount.Chrome.Progress);
         Assert.False(mount.State.ShowsJumpButton);
     });
@@ -174,14 +178,14 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     {
         mount.Settle();
         Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
-        // Running, nothing in the thread yet: the timeline branch, whose block list gets the working block (:1600-1602).
-        mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
+        // Running, nothing in the thread yet: the timeline branch, whose block list gets the working block (:1600-1602). The prompt fades out (OD-0076) and is gone when the swap is over.
+        mount.SetPhase(RuntimePhase.Running); mount.Advance(400);
         Assert.Empty(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
         var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View));
         Assert.Contains(WorkingWords.Word(WorkingWords.Seed(SwiftUUID.UuidString(mount.Runtime.ThreadID)), 0) + "…", Texts(line));
         Assert.NotNull(mount.ScrollOrNull);
-        // The turn over with nothing said: back to the prompt.
-        mount.SetPhase(RuntimePhase.Idle); mount.Advance(100);
+        // The turn over with nothing said: back to the prompt (the working line fades out as it comes in, OD-0076).
+        mount.SetPhase(RuntimePhase.Idle); mount.Advance(400);
         Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
         Assert.Empty(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View));
         // The two conditions in order: a history still loading shows neither, running or not (:134 comes first).

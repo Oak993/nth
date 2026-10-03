@@ -79,7 +79,7 @@ public sealed class ThreadTimelineDrawTests(HeadlessSession headless)
         Assert.Equal(1, Assert.IsAssignableFrom<Control>(prompt.Child).Opacity);
         Assert.True(mount.State.ShowsJumpButton); Assert.True(mount.Chrome.Progress > 0);
         // The prompt leaving and appearing again is a new appearance: its effects run.
-        mount.SetEntries(Turns(1).ToList()); mount.Advance(300);
+        mount.SetEntries(Turns(1).ToList()); mount.Advance(400); // the prompt fades out over 0.3 s (OD-0076)
         Assert.Empty(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
         mount.State.ShowsJumpButton = true; mount.Chrome.Update(100);
         mount.SetEntries([]);

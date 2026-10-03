@@ -321,6 +321,14 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // The column's geometry, its four states, the hidden indicators and the wheel are proven (ThreadTimelineMountedTests).
     // Needed: probe P4b's outcome and the soft-scroll unit's merge.
 
+    // STOP App.Views.Chat.ThreadTimeline #10
+    // Kind: owner decision. Swift: ThreadTimeline.swift:132-135 (the loading branch is `Color.clear`, then the content), :317-321,339 (a row's removal is `.identity`, whatever a row's own transition says). Records: PR-CHAT-027, PR-CHAT-045, UI-CHAT-001.
+    // Missing: OD-0076 ("nothing on screen changes by a cut") beats the source where it snaps, and its transition audit has no entry for two changes the port still cuts as the Mac does: the loading mark's swap with
+    // the content (a thread opens in one frame on the reference runtime, CATALOGUE.md C 164.452-164.640; the first pass places its rows whole, ThreadTimelineDrawTests, and the mark is replaced by what the thread shows,
+    // the loading state of ThreadTimelineMountedTests) and the rows that leave at once when their blocks leave the window or the thread (the drop-back of a followed run, ThreadTimelineDrawTests). The swap between the
+    // empty thread's prompt and the timeline is not one of them: it crossfades in both directions (ThreadTimelineReviewRound3Tests).
+    // Needed: the owner's ruling on those two entries (what the loading mark hands over to, and how rows that leave go); no transition is invented here.
+
     [Fact]
     [Trait("Req", "PR-CHAT-192")] // App/Views/Chat/ThreadTimeline.swift:270-278,595-603,1804-1811
     public void Fallback_keeps_three_leaves_a_stale_anchor_and_delayed_load_uses_its_captured_blocks() => WithTimeline((view, _, _, _, h) =>
