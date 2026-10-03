@@ -2900,9 +2900,17 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             });
             static double ScaleOf(Control control) => control.RenderTransform is ScaleTransform scale ? scale.ScaleX : 1;
             static double LiftOpacity(Control host) => ((Panel)host).Children[0].Opacity;
+            // :1838-1846 .background { lift }.scaleEffect(isDragged ? 1.02 : 1): the scale applies to the row WITH its
+            // lifted fill and shadow, so it sits on the host that holds both, and neither carries a scale of its own.
+            static void OneScale(Control host, Control content, double expected)
+            {
+                Assert.Equal(expected, ScaleOf(host), 3);
+                Assert.Equal(1d, ScaleOf(content));
+                Assert.Equal(1d, ScaleOf(((Panel)host).Children[0]));
+            }
             harness.Main.OnMain(() =>
             {
-                Assert.Equal(1d, ScaleOf(content));
+                OneScale(host, content, 1d);
                 Assert.Equal(0d, LiftOpacity(host));
                 Call(view, "DragChanged", grabbed, 5d);
             });
@@ -2913,7 +2921,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             }
             harness.Main.OnMain(() =>
             {
-                Assert.Equal(1.02d, ScaleOf(content), 3); // :1846
+                OneScale(host, content, 1.02d); // :1846
                 Assert.Equal(1d, LiftOpacity(host)); // :1842-1843 fully faded in
                 Call(view, "DragEnded");
             });
@@ -2924,7 +2932,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             }
             harness.Main.OnMain(() =>
             {
-                Assert.Equal(1d, ScaleOf(content), 3); // springs back out
+                OneScale(host, content, 1d); // springs back out
                 Assert.Equal(0d, LiftOpacity(host));
                 window.Close();
             });
@@ -6720,7 +6728,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 manual.Advance(TimeSpan.FromSeconds(1)); // :1849 let the lift's spring finish
-                Assert.Equal(1.02, ((ScaleTransform)((Control)Field(row, "overlays")!).RenderTransform!).ScaleX); // :1847
+                Assert.Equal(1.02, ((ScaleTransform)((Decorator)row).Child!.RenderTransform!).ScaleX); // :1847
                 var window = WindowOf(row);
                 window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
             });
@@ -7258,7 +7266,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Tick(1600); // settle the exact response 0.25/damping 0.8 lift, while still holding the pointer
             harness.Main.OnMain(() =>
             {
-                var overlays = (Control)Field(row, "overlays")!;
+                var overlays = ((Decorator)row).Child!; // the lift host: :1846 scales the row together with its lift (:1838-1843)
                 Assert.Equal(1.02, ((ScaleTransform)overlays.RenderTransform!).ScaleX, 3); // :1846
                 var lift = Assert.IsType<Border>(Assert.IsType<Panel>(row is Decorator d ? d.Child : null).Children[0]);
                 Assert.Equal(1, lift.Opacity);
@@ -7279,7 +7287,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarThreadRow"));
                 AssertRider(row, 0);
                 AssertRider(LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("HelperStubRow")), 0);
-                Assert.Equal(1, ((ScaleTransform)((Control)Field(row, "overlays")!).RenderTransform!).ScaleX, 3);
+                Assert.Equal(1, ((ScaleTransform)((Decorator)row).Child!.RenderTransform!).ScaleX, 3);
                 Assert.Equal(0, Assert.IsType<Border>(Assert.IsType<Panel>(((Decorator)row).Child).Children[0]).Opacity);
                 window.MouseMove(new Point(-20, -20));
                 window.MouseMove(row.TranslatePoint(new Point(12, 12), window)!.Value); // re-enter the newly released row's live instance

@@ -3184,7 +3184,6 @@ internal sealed class SidebarThreadRow : Decorator
     private static Control ApplyDraggedLift(Control content, Func<bool> isDragged)
     {
         var scale = new ScaleTransform(1, 1);
-        content.RenderTransform = scale;
         var lift = new Border // :1841-1843
         {
             Background = Chrome.Overlay(0.12).Brush(content), // :1842
@@ -3192,7 +3191,9 @@ internal sealed class SidebarThreadRow : Decorator
             Opacity = 0,
             IsHitTestVisible = false,
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1735 shape, followed by both the row's own background and this lift
-        var host = new Panel { Children = { lift, content } };
+        // :1838-1846 `.background { lift }.scaleEffect(isDragged ? 1.02 : 1)`: the scale is applied after the
+        // background, so it grows the row together with its lifted fill and shadow (UI-SIDEBAR-060).
+        var host = new Panel { Children = { lift, content }, RenderTransform = scale };
         var spring = Animation.Spring(response: 0.25, dampingFraction: 0.8); // :1847, a fixed animation (R-VIEW-4):
         // .animation(_, value:) ignores whatever ambient transaction changed isDragged.
         var current = 0d;
