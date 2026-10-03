@@ -14,7 +14,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // `.equatable()` row, :1896-1936 DisplayBlockView's body, :1980-1989 the turn's ForEach and its `if let heads`; TimelineRows.swift:1569-1576 HydraHeadsList's ForEach(entries),
 // :2499-2509 TurnFinishedBlock's @State). Every kind of block is handed its new value in place; only a block whose branch changed is a different view. The fixer's tests of the
 // first adversarial round (ThreadTimelineReviewTests) cover the finished turn's fold, the pills' row and the running turn's heads; these cover what else a pass hands again.
-// ED-NEW-parity-threadtimeline (3) (the placeholder the lead numbers at the merge).
+// ED-255 (3) (the placeholder the lead numbers at the merge).
 [Collection("Headless")]
 public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
 {
@@ -36,7 +36,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     private static bool Offers(Control row, string tip) => LogicalQuery.SelfAndDescendants<Button>(row).Any(button => ToolTip.GetTip(button) as string == tip);
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 and PR-CHAT-155 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:167-172,332-334; TimelineRows.swift:2599-2602 ForEach(userEntries), :2688-2699 the file card's `canUndo`: the rewind flag flips at every turn start and end, and the rows it reaches are the same views
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 and PR-CHAT-155 (ED-255 (3)): ThreadTimeline.swift:167-172,332-334; TimelineRows.swift:2599-2602 ForEach(userEntries), :2688-2699 the file card's `canUndo`: the rewind flag flips at every turn start and end, and the rows it reaches are the same views
     public void A_finished_turns_message_and_file_card_stay_the_same_views_while_the_rewind_flag_flips_and_show_what_it_decides() => ThreadTimelineRig.Run(headless, mount =>
     {
         Inputs(mount, "Project", true);
@@ -75,7 +75,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-NEW-parity-threadtimeline (3)): TimelineRows.swift:131 `if canRevert` (the pencil) and :168-178 the menu's `canRevert`, the only two places of the body the flag reaches; the bubble (:118-129) stands whatever it says
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-255 (3)): TimelineRows.swift:131 `if canRevert` (the pencil) and :168-178 the menu's `canRevert`, the only two places of the body the flag reaches; the bubble (:118-129) stands whatever it says
     public void A_message_rows_menu_offers_to_edit_from_here_as_its_rewind_flag_is_when_the_menu_opens_and_its_bubble_stays_the_same_view() => headless.OnUiThread(() =>
     {
         System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
@@ -105,7 +105,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-104 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:332-334, TimelineRows.swift:2610 the header's line: a turn's summary handed again changes what its header says, and the fold stays as the reader left it
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-104 (ED-255 (3)): ThreadTimeline.swift:332-334, TimelineRows.swift:2610 the header's line: a turn's summary handed again changes what its header says, and the fold stays as the reader left it
     public void A_finished_turns_summary_handed_again_changes_its_header_line_and_not_its_views_or_its_fold() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { User("p1", TurnA, "question"), Reply("said", TurnA, "I will run it"), ToolEntry("run", TurnA), Reply("final", TurnA, "Done."), EndWith("e1", TurnA, 2, 0) };
@@ -136,7 +136,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     }).Select(entry => entry.Id).ToArray();
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-104 (ED-NEW-parity-threadtimeline (3)): TimelineRows.swift:2589-2591 the body derives the turn from the entries it is handed (:2703-2706 its cache keyed on them), :2631-2680 the answer folded and the steps opened: other entries under the block's id change what it shows, and the fold stays
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-104 (ED-255 (3)): TimelineRows.swift:2589-2591 the body derives the turn from the entries it is handed (:2703-2706 its cache keyed on them), :2631-2680 the answer folded and the steps opened: other entries under the block's id change what it shows, and the fold stays
     public void A_finished_turn_handed_other_entries_under_its_id_shows_them_folded_and_opened_and_keeps_its_fold() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { User("p1", TurnA, "question"), Reply("said", TurnA, "I will run it"), ToolEntry("run", TurnA), Reply("final", TurnA, "Done."), EndWith("e1", TurnA, 2, 0) };
@@ -157,7 +157,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:167-172 (no turn is rewindable while one runs), :1980-1984 the turn's ForEach hands each TurnRow its context (:2012-2014 `let context`), TimelineRows.swift:131 the pencil: a turn left without its end marker is a turn block with no summary, and its message loses and regains the pencil as a later turn starts and ends
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-255 (3)): ThreadTimeline.swift:167-172 (no turn is rewindable while one runs), :1980-1984 the turn's ForEach hands each TurnRow its context (:2012-2014 `let context`), TimelineRows.swift:131 the pencil: a turn left without its end marker is a turn block with no summary, and its message loses and regains the pencil as a later turn starts and ends
     public void An_interrupted_turns_message_loses_its_pencil_while_a_later_turn_runs_and_gets_it_back_when_that_turn_ends() => ThreadTimelineRig.Run(headless, mount =>
     {
         Inputs(mount, "Project", true);
@@ -181,7 +181,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:1902-1935 DisplayBlockView's `.working(_, liveWork)` branch (WorkingBlockView, :2261-2274, its WorkingIndicator's @State): a working block handed another value under its id is the same line with the new work
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 (ED-255 (3)): ThreadTimeline.swift:1902-1935 DisplayBlockView's `.working(_, liveWork)` branch (WorkingBlockView, :2261-2274, its WorkingIndicator's @State): a working block handed another value under its id is the same line with the new work
     public void A_working_block_handed_other_work_under_its_id_is_the_same_line_showing_it() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle(); // a turn running with nothing in the thread yet: the working block alone (:1600-1602)
@@ -199,7 +199,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-155 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:2039-2071 TimelineGroupView, TimelineRows.swift:1572 ForEach(entries): a group of a run with no turn that grows under its id is the same row
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-155 (ED-255 (3)): ThreadTimeline.swift:2039-2071 TimelineGroupView, TimelineRows.swift:1572 ForEach(entries): a group of a run with no turn that grows under its id is the same row
     public void A_work_group_that_grows_under_its_id_is_the_same_row_and_the_same_group_with_its_steps_following() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { ToolEntry("t1"), ToolEntry("t2") };
@@ -216,7 +216,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-155 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:1985-1989 `if let heads` (the branch is the view's identity, not the first head's id), TimelineRows.swift:1569-1576 `ForEach(entries)`: the list is made of the rows of the heads it holds, one that leaves takes its row, the rest stay
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-155 (ED-255 (3)): ThreadTimeline.swift:1985-1989 `if let heads` (the branch is the view's identity, not the first head's id), TimelineRows.swift:1569-1576 `ForEach(entries)`: the list is made of the rows of the heads it holds, one that leaves takes its row, the rest stay
     public void A_head_leaving_the_heads_list_takes_its_row_and_the_others_stay() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { User("prompt", TurnA, "send out heads"), ToolEntry("hank", TurnA, head: true), ToolEntry("walter", TurnA, head: true) };
@@ -239,7 +239,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-NEW-parity-threadtimeline (3)): TimelineRows.swift:408-415 ForEach(finished, id: \.index) { FinishedHeadPill(head: head) }, :441 @State isShowingReport: a head that changed under its index is the same pill with the new value
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-255 (3)): TimelineRows.swift:408-415 ForEach(finished, id: \.index) { FinishedHeadPill(head: head) }, :441 @State isShowingReport: a head that changed under its index is the same pill with the new value
     public void A_finished_heads_pill_stays_the_same_view_when_its_head_changes_and_says_what_became_of_it() => ThreadTimelineRig.RunWithTeam(headless, mount =>
     {
         var s = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
@@ -259,7 +259,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         FinishedHead(3, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_400)), FinishedHead(4, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_200)) });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-HYDRAMERGE-031 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:1902-1905 (the block keeps its id from the merge's first stage to its outcome note, so the one branch keeps the row's identity and the pill morphs rather than being swapped)
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-HYDRAMERGE-031 (ED-255 (3)): ThreadTimeline.swift:1902-1905 (the block keeps its id from the merge's first stage to its outcome note, so the one branch keeps the row's identity and the pill morphs rather than being swapped)
     public void The_merge_pill_is_one_view_from_the_merges_first_stage_to_its_outcome_note() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { User("p1", TurnA), Reply("a1", TurnA), End("e1", TurnA) };
@@ -281,7 +281,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:2261-2274 (WorkingBlockView hands WorkingIndicator its startedAt and finishedAt), :2075-2092,2107-2119 (@State isExpanded, which no change of a `let` disturbs)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-255 (3)): ThreadTimeline.swift:2261-2274 (WorkingBlockView hands WorkingIndicator its startedAt and finishedAt), :2075-2092,2107-2119 (@State isExpanded, which no change of a `let` disturbs)
     public void An_opened_running_line_that_becomes_an_earlier_segment_stays_the_same_line_and_stays_open() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { User("prompt", TurnA, "a question"), ToolEntry("ran", TurnA) };
@@ -301,7 +301,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (5)): ThreadTimeline.swift:2125 HydraElapsedTime and :2139 HydraProgressBar stand in the same place of the body when the line's times change (:2261-2274), :2182 the line's motion (OD-0076: the time's words swap with a fade, not a cut), :2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`: the one-second clock ends with the line's running
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-255 (5)): ThreadTimeline.swift:2125 HydraElapsedTime and :2139 HydraProgressBar stand in the same place of the body when the line's times change (:2261-2274), :2182 the line's motion (OD-0076: the time's words swap with a fade, not a cut), :2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`: the one-second clock ends with the line's running
     public void A_running_line_that_becomes_an_earlier_segment_keeps_its_clock_and_its_bar_fades_its_time_over_and_stops_ticking() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100); // the turn runs before its rows land: its line is made running
@@ -340,7 +340,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     private static string BarName(HydraProgressBar bar) => Avalonia.Automation.AutomationProperties.GetName(bar) ?? "";
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (5)): ThreadTimeline.swift:2125 HydraElapsedTime, :2139 HydraProgressBar (the same views handed the running status), :2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`; HydraProgressBar.swift:129-145,186-198: a line made as an earlier segment's (a turn's rows before its run is known) that is handed a running turn keeps its clock and its bar, and the clock counts, the bar draws its sweep and holds a sweep slot
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-255 (5)): ThreadTimeline.swift:2125 HydraElapsedTime, :2139 HydraProgressBar (the same views handed the running status), :2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`; HydraProgressBar.swift:129-145,186-198: a line made as an earlier segment's (a turn's rows before its run is known) that is handed a running turn keeps its clock and its bar, and the clock counts, the bar draws its sweep and holds a sweep slot
     public void A_line_made_as_an_earlier_segments_that_is_handed_a_running_turn_keeps_its_clock_and_bar_and_the_clock_counts_and_the_bar_sweeps() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = new List<TimelineEntry> { User("prompt", TurnA, "a question"), ToolEntry("ran", TurnA) };
@@ -370,7 +370,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 (ED-NEW-parity-threadtimeline (5), OD-0076): ThreadTimeline.swift:2125 HydraElapsedTime (the same view handed the running status), HydraProgressBar.swift:549-556 (its branch: the segment's length, or the time counted from the start): a line made as an earlier segment's that spans some seconds, handed a running turn, swaps its words with a fade and then counts every second
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 (ED-255 (5), OD-0076): ThreadTimeline.swift:2125 HydraElapsedTime (the same view handed the running status), HydraProgressBar.swift:549-556 (its branch: the segment's length, or the time counted from the start): a line made as an earlier segment's that spans some seconds, handed a running turn, swaps its words with a fade and then counts every second
     public void A_line_made_as_an_earlier_segment_of_five_seconds_that_is_handed_a_running_turn_fades_its_time_to_the_turns_and_then_counts_every_second() => ThreadTimelineRig.Run(headless, mount =>
     {
         var first = User("prompt", TurnA, "a question"); mount.Advance(5000); var last = ToolEntry("ran", TurnA);
@@ -391,7 +391,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (5)): ThreadTimeline.swift:2125,2139 (the same clock and bar handed the stopped status), HydraProgressBar.swift:129-134,186-198: a running line whose turn stops with a note landing (an interrupted turn) keeps its clock and bar; the clock stops, the bar stops drawing and gives its sweep slot back
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-255 (5)): ThreadTimeline.swift:2125,2139 (the same clock and bar handed the stopped status), HydraProgressBar.swift:129-134,186-198: a running line whose turn stops with a note landing (an interrupted turn) keeps its clock and bar; the clock stops, the bar stops drawing and gives its sweep slot back
     public void A_running_line_handed_a_stopped_turn_keeps_its_clock_and_bar_and_the_clock_stops_and_the_bar_gives_its_sweep_slot_back() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
@@ -413,7 +413,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:136-141, NewThreadPrompt.swift:15-55: the line's other branch (a name, no name) is other words in the same prompt, which does not appear again
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-255 (3)): ThreadTimeline.swift:136-141, NewThreadPrompt.swift:15-55: the line's other branch (a name, no name) is other words in the same prompt, which does not appear again
     public void The_empty_threads_prompt_goes_between_asking_in_a_project_and_asking_alone_without_appearing_again() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();
@@ -443,7 +443,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076 content that swaps crossfades and a label whose width changes eases its container's width): NewThreadPrompt.swift:22-46 the line, :25-37 the name's button, :74-80 the move under withAnimation(Chrome.panelSlide)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-255 (3), OD-0076 content that swaps crossfades and a label whose width changes eases its container's width): NewThreadPrompt.swift:22-46 the line, :25-37 the name's button, :74-80 the move under withAnimation(Chrome.panelSlide)
     public void Another_project_on_the_empty_threads_prompt_crossfades_its_words_in_the_same_button_and_eases_the_line_to_its_new_width() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();

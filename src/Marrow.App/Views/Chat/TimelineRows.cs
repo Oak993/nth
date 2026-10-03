@@ -232,7 +232,7 @@ public sealed class UserMessageRow : Decorator
     /// <summary>The row handed whether its message can be edited again (:67-69, decided by the timeline, which flips it for every row at every turn start and end on a provider that
     /// rewinds): the same row and the same body. `canRevert` reaches two places of the body only, the hover line's pencil (:131 `if canRevert`) and the right-click menu's entry
     /// (:168-178, read when the menu opens); the attachment strip with its preview, the quote chips, the bubble's selectable text, a brief's popover and the row's hover, its
-    /// pending confirmation and its editor stand where they are, as views whose place in the body does not change keep their @State. ED-NEW-parity-threadtimeline (3).</summary>
+    /// pending confirmation and its editor stand where they are, as views whose place in the body does not change keep their @State. ED-255 (3).</summary>
     internal void SetCanRevert(bool next)
     {
         if (canRevert == next) return;
@@ -634,7 +634,7 @@ public sealed class HydraHeadsWorkingRow : Decorator
     }
 
     /// <summary>The row handed its heads again (:395, the block's value changed under the same id: a head finished): the same row, the pills already in it the same views (an open
-    /// report stays open), a pill that joined gliding in beside them under the list's own animation (:411-415 ForEach(finished, id: \.index)). ED-NEW-parity-threadtimeline (3).</summary>
+    /// report stays open), a pill that joined gliding in beside them under the list's own animation (:411-415 ForEach(finished, id: \.index)). ED-255 (3).</summary>
     internal void Update(ValueList<int> heads)
     {
         if (requestedHeads.Equals(heads)) return;
@@ -720,7 +720,7 @@ public sealed class FinishedHeadPill : Decorator
     }
 
     /// <summary>The pill handed its head again (:439, `ForEach(finished, id: \.index)`: a head whose record changed under its index is the same view with the new value, and its @State
-    /// stays): its words and glyph follow the head, the report it opens is the head's as it is, and an open report stays open. ED-NEW-parity-threadtimeline (3).</summary>
+    /// stays): its words and glyph follow the head, the report it opens is the head's as it is, and an open report stays open. ED-255 (3).</summary>
     internal void Update(HydraHeadInfo next)
     {
         if (head == next) return;
@@ -1635,7 +1635,7 @@ public sealed class AssistantMessageRow : Decorator
     private readonly ThreadRuntime runtime;
     private AssistantMessage? built;
 
-    /// <summary>The row handed its turn's summary again: the same row, its hover kept, its line saying the new summary. ED-NEW-parity-threadtimeline (3).</summary>
+    /// <summary>The row handed its turn's summary again: the same row, its hover kept, its line saying the new summary. ED-255 (3).</summary>
     internal void SetSummary(TurnSummary? next)
     {
         if (Equals(summary, next)) return;
@@ -2017,7 +2017,7 @@ public sealed class HydraHeadsList : Decorator
     private readonly List<(TimelineEntry Entry, ToolRow Row)> rows = [];
 
     /// <summary>:1572 <c>ForEach(entries)</c> run again with the list as it is now: a row whose entry stands is the same view (its expansion, its head's popover, its anchor), a head
-    /// that joined gets a row at its place, one that went loses its row. ED-NEW-parity-threadtimeline (3).</summary>
+    /// that joined gets a row at its place, one that went loses its row. ED-255 (3).</summary>
     internal void Update(ValueList<TimelineEntry> entries)
     {
         var kept = rows.ToList(); var next = new List<(TimelineEntry Entry, ToolRow Row)>();
@@ -3162,7 +3162,7 @@ public sealed class MutedRoundGlyph : Decorator
 public sealed class TurnFinishedBlock : Decorator
 {
     // The block's inputs (:2481-2491): a pass of the timeline's body hands them again under the same id (Update), and the body is read again with the
-    // @State below kept. ED-NEW-parity-threadtimeline (3).
+    // @State below kept. ED-255 (3).
     private readonly ThreadRuntime runtime;            // :2481
     private readonly Guid turnID;                      // :2482
     private TurnSummary summary;                       // :2483
@@ -3320,7 +3320,7 @@ public sealed class TurnFinishedBlock : Decorator
 
     /// <summary>The block handed its inputs again under the same id (:1896-1912, :2589): its @State (the fold, the files worked out once), the header and the rows that stand
     /// are the same views. What changed is read by the body that runs again: the summary's line, the user rows (each handed whether it can revert), the steps or the answer
-    /// when the turn's entries changed, the heads' list, and the file card's revert button. ED-NEW-parity-threadtimeline (3).</summary>
+    /// when the turn's entries changed, the heads' list, and the file card's revert button. ED-255 (3).</summary>
     internal void Update(TurnSummary nextSummary, ValueList<TimelineEntry> nextUserEntries, ValueList<TimelineEntry> nextContent, string? nextWorkingDirectory, bool nextCanUndo)
     {
         var sameContent = content.Count == nextContent.Count && content.Zip(nextContent).All(pair => ReferenceEquals(pair.First, pair.Second));
@@ -3657,7 +3657,7 @@ public sealed class TurnFileCard : Decorator
     }
 
     /// <summary>The card handed whether the turn can be reverted again (:2722, decided by the timeline, which flips it at every turn start and end on a provider that rewinds): the same
-    /// card, its files popover and its review anchor kept, the revert button (:2770 `if canUndo`) coming or going in its place. ED-NEW-parity-threadtimeline (3).</summary>
+    /// card, its files popover and its review anchor kept, the revert button (:2770 `if canUndo`) coming or going in its place. ED-255 (3).</summary>
     internal void SetCanUndo(bool next)
     {
         if (cardRow is not { } row || (revertSlot is not null) == next) return;

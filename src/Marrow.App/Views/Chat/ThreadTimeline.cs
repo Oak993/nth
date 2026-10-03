@@ -54,7 +54,7 @@ public sealed class ThreadTimeline : Decorator
     private Control? currentRail;
     private Control? drawnColumn;
     private StackPanel? drawnBody;
-    private StackPanel? drawnRows; // :388 the stack of the rows, one for the life of the content: each pass diffs it (ED-NEW-parity-threadtimeline)
+    private StackPanel? drawnRows; // :388 the stack of the rows, one for the life of the content: each pass diffs it (ED-255)
     private readonly HashSet<Control> leavingViews = []; // badges fading out where they stood: still in the stack, in nobody's order
     private int earlierHidden; // the count the drawn earlier pill says
     private string? promptProject; // the project name the shown new-thread prompt says
@@ -123,7 +123,7 @@ public sealed class ThreadTimeline : Decorator
             AppEnvironment.GetAppModel(this).SelectedThreadID = headID; return true;
         });
         // :134-144 `if runtime.isLoadingHistory { Color.clear } else if blocks.isEmpty && !runtime.isRunning { NewThreadPrompt } else { timeline }`: the branch on show is one child of
-        // this host. A swap between the prompt and the timeline crossfades (OD-0076: the Mac swaps them in one frame; ED-NEW-parity-threadtimeline (3)); the loading mark's are cuts, as the
+        // this host. A swap between the prompt and the timeline crossfades (OD-0076: the Mac swaps them in one frame; ED-255 (3)); the loading mark's are cuts, as the
         // Mac's (a thread opens in one frame, CATALOGUE.md C 164.452-164.640; ThreadTimelineTests STOP #10).
         branches = new BranchHost(() => EnvironmentValues.GetAccessibilityReduceMotion(this)); Child = branches;
         void Draw()
@@ -156,7 +156,7 @@ public sealed class ThreadTimeline : Decorator
             {
                 // :388-391 the stack of rows is one view for the life of the timeline's content, and each pass diffs it: a row whose id survives is the same
                 // view in the same place and is never taken out of the tree and put back (a popover anchored in it, its selection, its hover and its focus
-                // stay, and a long thread's pass costs the rows that changed, not all of them). ED-NEW-parity-threadtimeline.
+                // stay, and a long thread's pass costs the rows that changed, not all of them). ED-255.
                 var rows = drawnRows ??= MakeRows();
                 var rewindable = modelInputs.Rewindable.ToHashSet();
                 var shownBefore = laidOutRows.Keys.ToArray(); laidOutRows.Clear();
@@ -164,7 +164,7 @@ public sealed class ThreadTimeline : Decorator
                 // on screen under an id that was not there. A timeline that comes in from nothing (its first pass, or back after the prompt or the loading mark took its
                 // place and it had gone) comes in whole: :134-144 is an if/else, and the branch that comes back is a new view whose children come with it, so its rows and
                 // its badges are placed with the stack, its rail with it, and what it had before (an answered badge, a rail it no longer has) is gone at once; the host's
-                // one fade carries it (OD-0076, ED-NEW-parity-threadtimeline (3)). A timeline turned back while it was still leaving is partly on screen: rows new to it arrive.
+                // one fade carries it (OD-0076, ED-255 (3)). A timeline turned back while it was still leaving is partly on screen: rows new to it arrive.
                 var comesWhole = scrollOverlay is not { } layer || !branches.Holds(layer);
                 var wanted = new List<(Control View, bool Arrives)>();
                 var stale = new List<Control>(); var leaving = new List<Control>();
@@ -514,7 +514,7 @@ public sealed class ThreadTimeline : Decorator
     private bool TimelineOnShow => scrollOverlay is { } overlay && ReferenceEquals(branches.On, overlay);
 
     /// <summary>
-    /// ENGINEERING DECISION (OD-0076, ED-NEW-parity-threadtimeline (3)): the branches of the body (:134-144) as the layers of one host. The branch on show is <see cref="On"/>; a swap between the
+    /// ENGINEERING DECISION (OD-0076, ED-255 (3)): the branches of the body (:134-144) as the layers of one host. The branch on show is <see cref="On"/>; a swap between the
     /// prompt and the timeline (the Mac swaps them in one frame, the first message sent and a turn that ends with nothing said alike) fades the branch that leaves out where it stood while the one that
     /// comes in fades in (the prompt's own appear, NewThreadPrompt.swift:50-53, is its fade-in), over 0.3 s on the ease-out of that appear, on the frame clock. A swap turned back part way goes on from
     /// the opacity each layer has. The system's reduce-motion setting stills it, and a swap that involves the loading mark is a cut (a thread opens in one frame; ThreadTimelineTests STOP #10).
@@ -658,7 +658,7 @@ public sealed class ThreadTimeline : Decorator
     // :770-803. The check of a layout that may have changed shape unseen. The reader's place is ported whole: a scroll in progress puts it off, a viewport past the end of the
     // conversation, or a reader pinned to the end and away from it, is sent to the end (unanimated), and a viewport on the conversation that shows no row of it is repaired in
     // up to three steps a beat apart. The lazy stack's own repairs (:785 telling it where the viewport is, :787-788 remaking it, :881-887) have nothing to repair in the eager stack
-    // (PR-CHAT-056/057/167/168 windows_path), so those two steps only count; the third, pinning the reader to the end, is what a blank pane ends in. ED-NEW-parity-threadtimeline.
+    // (PR-CHAT-056/057/167/168 windows_path), so those two steps only count; the third, pinning the reader to the end, is what a blank pane ends in. ED-255.
     private void RepairLayout()
     {
         if (viewportHeight <= 0) return;
@@ -1272,7 +1272,7 @@ public sealed class DisplayBlockView : Decorator
 
     /// <summary>:1896-1936, :332-334 the same view with a new block or a new context under the same id (`.id(block.id)` on an `.equatable()` row: the body runs again and every
     /// @State inside it survives). The view is the same while the body's branch is: the merge pill (in either of its phases), a group, a turn that is running (or finished), the
-    /// working line, the heads' pills. A block whose branch changed, or whose directory a row was made with changed, is a different view (false). ED-NEW-parity-threadtimeline (3).</summary>
+    /// working line, the heads' pills. A block whose branch changed, or whose directory a row was made with changed, is a different view (false). ED-255 (3).</summary>
     internal bool TryUpdate(DisplayBlock next, RowContext nextContext)
     {
         if (next.Id != shown.Id || nextContext.Chronological != shownContext.Chronological) return false;
@@ -1330,7 +1330,7 @@ public sealed class TurnRunningBlock : Decorator
     {
         // The first body of a block places its views with it: the children of a view that comes in come with it and run no transition of their own (:1979-2001, :303-321 the
         // block itself arrives like a row), and a thread that opens on a running turn opens in one frame. The bodies after it bring a row, the heads or the working line in
-        // with their transitions (:1983, :1988, :1998). ED-NEW-parity-threadtimeline (3).
+        // with their transitions (:1983, :1988, :1998). ED-255 (3).
         var arrives = placed; placed = true;
         var contextChanged = shownContext is { } before && before != context; shownContext = context;
         var partition = Partition(groupCache.Groups(entries)); var wanted = new List<Control>();
@@ -1415,7 +1415,7 @@ public sealed class TurnRow : Decorator
     private readonly ThreadRuntime runtime;
 
     /// <summary>The same row with a new group (the body of :2033-2036 run again for the new value): the group view in it takes the value in place, and is made again only where
-    /// the body's branch changed. ED-NEW-parity-threadtimeline (3).</summary>
+    /// the body's branch changed. ED-255 (3).</summary>
     internal void Update(TimelineGroup group, RowContext context)
     {
         if (Child is TimelineGroupView view && view.TryUpdate(group, null, false, context)) return;
@@ -1461,7 +1461,7 @@ public sealed class TimelineGroupView : Decorator
     private RowContext shownContext;
 
     /// <summary>:2053-2070 the body run again with a new value for the same group (its id stands): the branch's view is the same view, handed what changed (a work group its entries,
-    /// the heads' list its rows, a message row whether it can revert, a reply its summary); a group of another branch is a different view (false). ED-NEW-parity-threadtimeline (3).</summary>
+    /// the heads' list its rows, a message row whether it can revert, a reply its summary); a group of another branch is a different view (false). ED-255 (3).</summary>
     internal bool TryUpdate(TimelineGroup group, TurnSummary? summary, bool hasReply, RowContext context)
     {
         if (context.WorkingDirectory != shownContext.WorkingDirectory) return false; // the rows below were made with the directory
@@ -1495,7 +1495,7 @@ public sealed class WorkingIndicator : Decorator
     /// <summary>The time the line counts from (:2065): the turn's start, or an earlier segment's first entry.</summary>
     internal DateTimeOffset StartedAt => startedAtValue;
     // :2065-2092. Updating view values retains the indicator's local expansion state, whatever the line's times become: a running line and an earlier segment's are the same view with
-    // other values (a live clock and a bar in motion, or a clock stopped), and a running line a Hydra note splits off goes on as it was, opened. ED-NEW-parity-threadtimeline (3).
+    // other values (a live clock and a bar in motion, or a clock stopped), and a running line a Hydra note splits off goes on as it was, opened. ED-255 (3).
     internal void UpdateValues(ValueList<ThinkingStep> thinkingSteps, ValueList<TimelineEntry> liveWork, ValueList<TimelineEntry> turnEntries, bool showsCard, DateTimeOffset startedAt, DateTimeOffset? finishedAt) =>
         applyInputs?.Invoke(thinkingSteps, liveWork, turnEntries, showsCard, startedAt, finishedAt);
     internal void UpdateValues(ValueList<ThinkingStep> thinkingSteps, ValueList<TimelineEntry> liveWork, ValueList<TimelineEntry> turnEntries, bool showsCard) =>

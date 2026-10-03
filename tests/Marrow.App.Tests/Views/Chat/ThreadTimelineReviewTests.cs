@@ -13,7 +13,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // REVIEW (adversarial round 1 of unit parity-threadtimeline): what SwiftUI keeps when the timeline's body runs again (DroppyCode/App/Views/Chat/ThreadTimeline.swift, B3 52bc792).
 // A view whose identity stands keeps its @State whatever its inputs do (:332-334 `.id(block.id)` on an `.equatable()` row; :1980-1989 the turn's ForEach and its `if let heads`;
 // TimelineRows.swift:1569-1576 HydraHeadsList's ForEach(entries)), and the children of a view that appears come with it, with no transition of their own (the principle
-// ED-NEW-parity-threadtimeline applies to the stack's first pass).
+// ED-255 applies to the stack's first pass).
 [Collection("Headless")]
 public sealed class ThreadTimelineReviewTests(HeadlessSession headless)
 {
@@ -49,7 +49,7 @@ public sealed class ThreadTimelineReviewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // REVIEW ED-NEW-parity-threadtimeline (3) "a row whose block id survives is the same view": ThreadTimeline.swift:167-172 (rewindable is empty while a turn runs), :325-341 (the row's context), :332-334 `.id(block.id)`; TimelineRows.swift:2499-2509 TurnFinishedBlock's @State isExpanded
+    [Trait("Rule", "R-TEST-4")] // REVIEW ED-255 (3) "a row whose block id survives is the same view": ThreadTimeline.swift:167-172 (rewindable is empty while a turn runs), :325-341 (the row's context), :332-334 `.id(block.id)`; TimelineRows.swift:2499-2509 TurnFinishedBlock's @State isExpanded
     public void REVIEW_an_opened_finished_turn_stays_open_and_is_the_same_row_when_the_next_turn_starts_on_a_provider_that_rewinds() => ThreadTimelineRig.Run(headless, mount =>
     {
         // A provider that rewinds (Claude, Codex, Copilot: Provider.SupportsRewind), with the finished turn's record, so its row may offer to revert while nothing runs.
@@ -73,7 +73,7 @@ public sealed class ThreadTimelineReviewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // REVIEW ED-NEW-parity-threadtimeline (3) "the first pass of a timeline places its views" (map/CATALOGUE.md C 164.452-164.640): ThreadTimeline.swift:1979-2001, the rows of a running turn come with its block
+    [Trait("Rule", "R-TEST-4")] // REVIEW ED-255 (3) "the first pass of a timeline places its views" (map/CATALOGUE.md C 164.452-164.640): ThreadTimeline.swift:1979-2001, the rows of a running turn come with its block
     public void REVIEW_a_thread_that_opens_on_a_running_turn_shows_the_turns_rows_at_once() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetTurnStartedAt(SwiftDate.Now);

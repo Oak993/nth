@@ -83,7 +83,7 @@ public sealed class HydraProgressBar : Decorator
     /// <summary>The times and the status handed again by the view that holds the bar (ThreadTimeline.swift:2139 `startedAt`, `finishedAt`, `status: isRunning ? .running :
     /// .stopped`: a running line that becomes an earlier segment's): the same bar, its staves and its rise kept, with what the status decides (:129-134 the sweep and its clock,
     /// :186-191 `.task(id: isRunning ? -1 : events.count)` unsettled and then settled once the last stave has risen, :192-198 `.task(id: isRunning)` the sweep slot joined or
-    /// given back, :204 the label). ED-NEW-parity-threadtimeline (5).</summary>
+    /// given back, :204 the label). ED-255 (5).</summary>
     internal void UpdateTimes(DateTimeOffset nextStartedAt, DateTimeOffset? nextFinishedAt, HydraHeadInfo.Status nextStatus)
     {
         if (nextStartedAt == startedAt && nextFinishedAt == finishedAt && nextStatus == status) return;
@@ -857,7 +857,7 @@ public sealed class HydraElapsedTime : Decorator
 
     /// <summary>The view handed its inputs again (:544-546 `let`s of a view that stays: a body run again): the same text, now counting from <paramref name="nextStartedAt"/>,
     /// ticking only while it runs (:549-556 the branch). When the words it says change under <paramref name="change"/> they swap with a fade (OD-0076, content that swaps
-    /// crossfades: the old time fades out, the new one comes in where it stood, each over half the motion), else at once. ED-NEW-parity-threadtimeline (5).</summary>
+    /// crossfades: the old time fades out, the new one comes in where it stood, each over half the motion), else at once. ED-255 (5).</summary>
     internal void Update(DateTimeOffset nextStartedAt, DateTimeOffset? nextFinishedAt, bool nextIsRunning, Animation? change)
     {
         if (nextStartedAt == startedAt && nextFinishedAt == finishedAt && nextIsRunning == isRunning) return;

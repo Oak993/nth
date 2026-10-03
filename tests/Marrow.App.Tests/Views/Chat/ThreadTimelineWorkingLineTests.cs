@@ -308,7 +308,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and PR-CHAT-117 (the chevron goes with nothing left to open: ThreadTimeline.swift:2128-2135 `.transition(.opacity)`, :2183 `.animation(Self.change, value: canExpand)`; OD-0076: every change is transitioned; ED-NEW-parity-threadtimeline (3))
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and PR-CHAT-117 (the chevron goes with nothing left to open: ThreadTimeline.swift:2128-2135 `.transition(.opacity)`, :2183 `.animation(Self.change, value: canExpand)`; OD-0076: every change is transitioned; ED-255 (3))
     public void The_chevron_fades_out_where_it_stood_when_nothing_is_left_to_open_and_the_time_glides_back_over_the_same_motion() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(new[] { User("prompt", Turn, "hello"), ToolEntry("tool-0", Turn) }); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle();

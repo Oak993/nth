@@ -13,12 +13,12 @@ namespace Marrow.App.Tests.Views.Chat;
 
 // What a pass of the timeline's body keeps (DroppyCode/App/Views/Chat/ThreadTimeline.swift, B3 52bc792, :332-334 `.id(block.id)`, :388-391 the stack of rows,
 // :357-359 the one scroll view): a row whose id survives is the same view, in the same place, and is never taken out of the tree and put back, so a popover
-// anchored in it, a selection, a hover and the focus stay. ED-NEW-parity-threadtimeline (the placeholder the lead numbers at the merge).
+// anchored in it, a selection, a hover and the focus stay. ED-255 (the placeholder the lead numbers at the merge).
 [Collection("Headless")]
 public sealed class ThreadTimelineDrawTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 and UI-CHAT-001 (the rows sit in one plain stack inside the one scroll view); ThreadTimeline.swift:332-334,388-391; the engineering decision ED-NEW-parity-threadtimeline (a pass diffs the stack, it does not rebuild it)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 and UI-CHAT-001 (the rows sit in one plain stack inside the one scroll view); ThreadTimeline.swift:332-334,388-391; the engineering decision ED-255 (a pass diffs the stack, it does not rebuild it)
     public void A_pass_of_the_body_keeps_every_surviving_row_in_the_tree_in_its_stack_and_in_its_place() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = Turns(6, sentences: 6).ToList();
@@ -47,7 +47,7 @@ public sealed class ThreadTimelineDrawTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (the thread opens at once with its rows in place; map/CATALOGUE.md C 164.452-164.640: the thread opens in one frame); ThreadTimeline.swift:317-321,388-391; ED-NEW-parity-threadtimeline
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (the thread opens at once with its rows in place; map/CATALOGUE.md C 164.452-164.640: the thread opens in one frame); ThreadTimeline.swift:317-321,388-391; ED-255
     public void A_thread_opens_with_its_rows_already_there_and_a_row_that_joins_it_later_arrives_softly() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = Enumerable.Range(0, 3).Select(i => User("note-" + i, null, "a note " + i)).ToList(); // rows with the soft appear: a finished turn's block has none
@@ -98,7 +98,7 @@ public sealed class ThreadTimelineDrawTests(HeadlessSession headless)
         new(index, "task " + index, HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) { HydraHeadInfoStatus = status, StartedAt = started, FinishedAt = finished };
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (the finished heads' row stands above a running turn and after it once it is over, under the one id); ThreadTimeline.swift:1608-1617,332-334; ED-NEW-parity-threadtimeline
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (the finished heads' row stands above a running turn and after it once it is over, under the one id); ThreadTimeline.swift:1608-1617,332-334; ED-255
     public void A_row_that_changes_its_place_among_the_rows_moves_in_the_stack_and_is_the_same_view() => ThreadTimelineRig.RunWithTeam(headless, mount =>
     {
         var s = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000); var first = Guid.NewGuid(); var second = Guid.NewGuid();
@@ -126,7 +126,7 @@ public sealed class ThreadTimelineDrawTests(HeadlessSession headless)
     }, [Head(1, HydraHeadInfo.Status.Running, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), null), Head(2, HydraHeadInfo.Status.Completed, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_100)), Head(4, HydraHeadInfo.Status.Completed, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_200))]);
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 and UI-CHAT-001 (what is anchored in a row stays while the thread changes: the popover and the tooltip of a row, ThreadTimeline.swift:332-334); ED-NEW-parity-threadtimeline
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 and UI-CHAT-001 (what is anchored in a row stays while the thread changes: the popover and the tooltip of a row, ThreadTimeline.swift:332-334); ED-255
     public void A_tooltip_open_on_a_row_stays_open_while_new_entries_arrive_and_the_body_runs_again() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = Turns(4, sentences: 6).ToList();
@@ -142,7 +142,7 @@ public sealed class ThreadTimelineDrawTests(HeadlessSession headless)
     }, layers: true);
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (a page of older blocks lands above the viewport and the rows below it stay); ThreadTimeline.swift:257-268,332-334; ED-NEW-parity-threadtimeline
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (a page of older blocks lands above the viewport and the rows below it stay); ThreadTimeline.swift:257-268,332-334; ED-255
     public void A_page_of_older_blocks_arriving_above_leaves_the_rows_already_there_where_they_are() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();
@@ -157,7 +157,7 @@ public sealed class ThreadTimelineDrawTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (a followed run past ninety-six blocks lets the oldest rows go); ThreadTimeline.swift:703-707; ED-NEW-parity-threadtimeline
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 (a followed run past ninety-six blocks lets the oldest rows go); ThreadTimeline.swift:703-707; ED-255
     public void Rows_dropped_from_the_window_leave_and_the_rows_that_stay_are_not_touched() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();

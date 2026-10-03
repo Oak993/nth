@@ -16,7 +16,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // B3 52bc792, :134-144: the prompt while no block is there and no turn runs, the timeline otherwise). The Mac swaps the two in one frame when the first message is sent
 // (E:/Droppy/work/reference-video/CATALOG.md, 2-chat-use.mov 87.86 "the thread starts in ONE frame"); OD-0076 rules that nothing on screen changes by a cut, that content that
 // swaps crossfades, and that where the Mac changes state without animation the port still transitions (an owner-ruled deviation wherever the source snaps), over about 0.3 s on
-// the frame clock, with the system's reduce-motion setting stilling it. ED-NEW-parity-threadtimeline (3): the swap crossfades in both directions; the prompt comes in with its own
+// the frame clock, with the system's reduce-motion setting stilling it. ED-255 (3): the swap crossfades in both directions; the prompt comes in with its own
 // appear (NewThreadPrompt.swift:50-53, easeOut over 0.3 s), the timeline and the leaving branch with the same curve. A timeline that comes in from nothing (its first pass, or back
 // after it had gone) comes in whole, its rows, badges and rail placed with it under that one fade (round 4: a thread reverted to nothing faded its next message twice).
 [Collection("Headless")]
@@ -105,7 +105,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076): ThreadTimeline.swift:134-144, NewThreadPrompt.swift:50-53: the first message sent crossfades the prompt out and the timeline in, frame by frame
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-255 (3), OD-0076): ThreadTimeline.swift:134-144, NewThreadPrompt.swift:50-53: the first message sent crossfades the prompt out and the timeline in, frame by frame
     public void The_first_message_sent_on_an_empty_thread_crossfades_the_prompt_out_and_the_timeline_in_over_about_0_3_s_with_no_frame_that_jumps() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();
@@ -119,7 +119,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076): ThreadTimeline.swift:134-144, NewThreadPrompt.swift:50-53: a turn that ends with nothing said crossfades the timeline out and the prompt (its own appear) in, frame by frame
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-255 (3), OD-0076): ThreadTimeline.swift:134-144, NewThreadPrompt.swift:50-53: a turn that ends with nothing said crossfades the timeline out and the prompt (its own appear) in, frame by frame
     public void A_turn_that_ends_with_nothing_said_crossfades_the_timeline_out_and_the_prompt_in_over_about_0_3_s_with_no_frame_that_jumps() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle(); // a turn runs and nothing is said: the timeline with its working line
@@ -134,7 +134,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076): a thread reverted to nothing crossfades its rows out and the prompt in
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-255 (3), OD-0076): a thread reverted to nothing crossfades its rows out and the prompt in
     public void A_thread_reverted_to_nothing_crossfades_its_rows_out_and_the_prompt_in_over_about_0_3_s_with_no_frame_that_jumps() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(3)); mount.Settle();
@@ -148,7 +148,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076): the system's reduce-motion setting stills the swap: it lands in one frame, in both directions
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-255 (3), OD-0076): the system's reduce-motion setting stills the swap: it lands in one frame, in both directions
     public void With_reduce_motion_on_the_prompt_and_the_timeline_swap_in_one_frame_in_both_directions() => ThreadTimelineRig.Run(headless, mount =>
     {
         EnvironmentValues.SetAccessibilityReduceMotion(mount.Host, true);
@@ -166,7 +166,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076): a swap turned back part way goes on from the opacity each branch had, no frame jumping
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-255 (3), OD-0076): a swap turned back part way goes on from the opacity each branch had, no frame jumping
     public void A_swap_that_is_turned_back_part_way_goes_on_from_the_opacity_each_branch_had_and_ends_on_the_prompt() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();
@@ -195,7 +195,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076): the timeline that comes back while it is leaving is the same view; the layer that is leaving is not hit testable (it is out of the pointer's way), the one on show is
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-255 (3), OD-0076): the timeline that comes back while it is leaving is the same view; the layer that is leaving is not hit testable (it is out of the pointer's way), the one on show is
     public void A_timeline_that_comes_back_while_it_is_leaving_is_the_same_view_and_only_the_layer_on_show_is_hit_testable() => ThreadTimelineRig.Run(headless, mount =>
     {
         var entries = Turns(3).ToList();
@@ -217,7 +217,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076; ThreadTimeline.swift:139-140 `.onAppear`): the on-appear resets are made as the prompt comes and a timeline leaving does not undo them
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-255 (3), OD-0076; ThreadTimeline.swift:139-140 `.onAppear`): the on-appear resets are made as the prompt comes and a timeline leaving does not undo them
     public void The_rows_leaving_under_the_prompt_do_not_put_back_the_travel_or_the_jump_button_the_prompt_cleared() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(6, sentences: 10)); mount.Settle(); // the reader is at the end: the end is on screen
@@ -241,7 +241,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     private static TimelineMinimapColumn? Rail(TimelineMount mount) => LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(mount.View).SingleOrDefault();
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076): ThreadTimeline.swift:134-144 (the timeline branch that comes back is a new view, and what it shows comes with it), :393-397 (the badges), :179-200 (the rail): a timeline that had gone comes back whole under its one fade
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and PR-CHAT-026 (ED-255 (3), OD-0076): ThreadTimeline.swift:134-144 (the timeline branch that comes back is a new view, and what it shows comes with it), :393-397 (the badges), :179-200 (the rail): a timeline that had gone comes back whole under its one fade
     public void A_timeline_that_comes_back_after_it_had_gone_brings_its_question_badge_in_with_its_one_fade_and_not_the_rail_or_the_badge_it_had_before() => ThreadTimelineRig.Run(headless, mount =>
     {
         static QuestionRequest Question(string id) => new(id, new([new QuestionRequest.Question("choice-" + id, "Header", "Choose", new([]), false, false, false)]));
@@ -270,7 +270,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and UI-CHAT-003 (ED-NEW-parity-threadtimeline (3), OD-0076): ThreadTimeline.swift:134-144, :179-200 (the rail is part of the timeline that comes in; its own fade, `.animation(Chrome.panelSlide, value: showsMinimap)`, is the flag's)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and UI-CHAT-003 (ED-255 (3), OD-0076): ThreadTimeline.swift:134-144, :179-200 (the rail is part of the timeline that comes in; its own fade, `.animation(Chrome.panelSlide, value: showsMinimap)`, is the flag's)
     public void A_timeline_that_comes_in_with_two_sent_messages_brings_its_rail_in_with_its_one_fade_on_its_first_pass_and_when_it_comes_back() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Settle();
@@ -291,7 +291,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-NEW-parity-threadtimeline (3), OD-0076): ThreadTimeline.swift:317-321 (a row that joins a stack on screen arrives with its transition): a timeline turned back while it was still leaving is partly on screen, so a row new to it arrives from nothing
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-255 (3), OD-0076): ThreadTimeline.swift:317-321 (a row that joins a stack on screen arrives with its transition): a timeline turned back while it was still leaving is partly on screen, so a row new to it arrives from nothing
     public void A_message_that_joins_a_timeline_turned_back_while_it_was_leaving_arrives_with_its_own_transition_from_nothing_not_at_the_layers_opacity() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(3)); mount.Settle();
@@ -313,7 +313,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-NEW-parity-threadtimeline (3), OD-0076): reduce motion stills the swap; a timeline that faded out (opacity 0, out of the pointer's way) and is cut back in once reduce motion is on is whole and takes input
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-255 (3), OD-0076): reduce motion stills the swap; a timeline that faded out (opacity 0, out of the pointer's way) and is cut back in once reduce motion is on is whole and takes input
     public void A_timeline_that_faded_out_comes_back_whole_and_taking_input_when_reduce_motion_was_turned_on_while_it_was_gone() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(3)); mount.Settle();
@@ -330,7 +330,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-NEW-parity-threadtimeline (3), OD-0076): a timeline turned back while still fading out, once reduce motion is on, is cut back in and STAYS on show: the cut stops the fade still running (BranchHost.Cut's Stop), so the fade cannot carry it on to 0 and drop it (scoped check round 5, mutant C1)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-255 (3), OD-0076): a timeline turned back while still fading out, once reduce motion is on, is cut back in and STAYS on show: the cut stops the fade still running (BranchHost.Cut's Stop), so the fade cannot carry it on to 0 and drop it (scoped check round 5, mutant C1)
     public void A_timeline_turned_back_while_leaving_once_reduce_motion_was_turned_on_stays_on_show() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(3)); mount.Settle();

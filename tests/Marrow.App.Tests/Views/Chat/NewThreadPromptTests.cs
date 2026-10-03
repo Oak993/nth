@@ -197,7 +197,7 @@ public sealed class NewThreadPromptTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-NEW-parity-threadtimeline (3)); NewThreadPrompt.swift:50-53: the prompt's body runs as it attaches, so the frame source in force at Show() is the one its fade runs on (the fixtures that override it before Show() hold the fade still), and handing it another name does not run the fade again
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-255 (3)); NewThreadPrompt.swift:50-53: the prompt's body runs as it attaches, so the frame source in force at Show() is the one its fade runs on (the fixtures that override it before Show() hold the fade still), and handing it another name does not run the fade again
     public void The_prompt_fades_in_on_the_frame_source_in_force_when_it_attaches_and_a_new_name_does_not_fade_it_again()
     {
         headless.OnUiThread(() =>

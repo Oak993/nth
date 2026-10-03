@@ -39,7 +39,7 @@ public sealed class NewThreadPrompt : Decorator
     /// <summary>:9 <c>let projectName: String?</c> handed again (the reader picked another project in the prompt's picker, or the project was renamed): the same view, which words it says
     /// changed, and it does not appear again (:50-53 `isVisible` stays true and `.onAppear` does not run). The words change over the move's own motion (:77-78
     /// `withAnimation(Chrome.panelSlide)`), never by a cut (OD-0076: content that swaps crossfades and the line eases to its new width): the old name fades out as the new one fades
-    /// in, and a name where there was none (or none where there was one) swaps the whole line the same way. ED-NEW-parity-threadtimeline (3).</summary>
+    /// in, and a name where there was none (or none where there was one) swaps the whole line the same way. ED-255 (3).</summary>
     internal void Update(string? nextProjectName)
     {
         if (nextProjectName == projectName) return;
@@ -205,7 +205,7 @@ public sealed class NewThreadPrompt : Decorator
     private static TextBlock MakeText(string text) => new() { Text = text };
 
     /// <summary>
-    /// ENGINEERING DECISION (OD-0076, ED-NEW-parity-threadtimeline (3)): words that change in place, the old fading out where they stood as the new fade in, over a slot whose
+    /// ENGINEERING DECISION (OD-0076, ED-255 (3)): words that change in place, the old fading out where they stood as the new fade in, over a slot whose
     /// width glides from the old words' width to the new ones', so what sits beside it (the "?", the underline, the line's centre in the column) moves with it instead of
     /// jumping. The pattern the source uses for its own crossfading pill (TimelineRows.swift:973-1009 HydraMergeRow: only the new contents size the slot, the contents on
     /// show are drawn at their own size over it); the words keep their minimumScaleFactor (each child is measured at the room the slot is given, ED-214).

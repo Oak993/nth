@@ -30,7 +30,7 @@ public sealed class ThreadTimelineReviewRound2Tests(HeadlessSession headless)
     private static bool OffersEdit(Control row) => LogicalQuery.SelfAndDescendants<Button>(row).Any(button => ToolTip.GetTip(button) as string == "Edit message");
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // REVIEW ED-NEW-parity-threadtimeline (3) "keeps every @State inside it when the block's value or its context changes": TimelineRows.swift:89-91, :118-129 (the strip and the bubble are not under `if canRevert`), :1212-1214 the strip's @State preview
+    [Trait("Rule", "R-TEST-4")] // REVIEW ED-255 (3) "keeps every @State inside it when the block's value or its context changes": TimelineRows.swift:89-91, :118-129 (the strip and the bubble are not under `if canRevert`), :1212-1214 the strip's @State preview
     public void REVIEW_a_finished_turns_message_keeps_its_attachment_strip_and_its_selectable_bubble_while_the_rewind_flag_flips()
         => ThreadTimelineRig.Run(headless, mount =>
         {
