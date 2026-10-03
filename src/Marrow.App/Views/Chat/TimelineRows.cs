@@ -640,7 +640,7 @@ public sealed class HydraHeadsWorkingRow : Decorator
             for (var i = 0; i < finished.Count; i++)
             {
                 var head = finished[i];
-                if (shown.TryGetValue(head.Index, out var prior) && prior.Head == head) continue;
+                if (shown.TryGetValue(head.Index, out var prior) && prior.View is FinishedHeadPill shownPill) { shownPill.Update(head); shown[head.Index] = (head, shownPill); continue; } // the same pill, the new record
                 if (prior.View is not null) SwiftTransition.Remove(column, prior.View);
                 var pill = new FinishedHeadPill(head).Transition(SwiftTransition.SettleGlide);
                 shown[head.Index] = (head, pill);
@@ -676,18 +676,39 @@ public sealed class FinishedHeadPill : Decorator
     // :443-475 body
     public FinishedHeadPill(HydraHeadInfo head)
     {
-        var suffix = head.HydraHeadInfoStatus == HydraHeadInfo.Status.Failed ? " failed" : head.HydraHeadInfoStatus == HydraHeadInfo.Status.Stopped ? " was stopped" : " finished working";
+        this.head = head;
+        var box = this.box;
+        button = PlainControls.Button(TimelineRows.Pill(Label()), () => box.Showing = !box.Showing);
+        ToolTip.SetTip(button, "Show the report");
+        Child = button.BadgePopover(new Binding<bool>(() => box.Showing, value => box.Showing = value), () => new HydraHeadReportPopover(this.head));
+        AutomationProperties.SetName(this, this.head.Persona.Name + Suffix);
+    }
+
+    private HydraHeadInfo head;
+    private readonly Button button;
+    private readonly ReportState box = new(); // :441 @State isShowingReport
+    private string Suffix => head.HydraHeadInfoStatus == HydraHeadInfo.Status.Failed ? " failed" : head.HydraHeadInfoStatus == HydraHeadInfo.Status.Stopped ? " was stopped" : " finished working";
+
+    // :449-466 the glyph, the name and what became of the head, and the chevron.
+    private Control Label()
+    {
         var text = new TextBlock { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis };
-        (HydraNameStyle.Text(head.Persona, Chrome.PrimaryText.Opacity(0.75)) + new StyledText(suffix))
+        (HydraNameStyle.Text(head.Persona, Chrome.PrimaryText.Opacity(0.75)) + new StyledText(Suffix))
             .Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).Render(text);
         var row = new HStack { Spacing = 8 }; // HStack :452: its children share one centre line
         row.Children.Add(new HydraGlyph(head.Persona, 18, status: head.HydraHeadInfoStatus));
         row.Children.Add(text); row.Children.Add(TimelineRows.Chevron());
-        var box = new ReportState();
-        var button = PlainControls.Button(TimelineRows.Pill(row), () => box.Showing = !box.Showing);
-        ToolTip.SetTip(button, "Show the report");
-        Child = button.BadgePopover(new Binding<bool>(() => box.Showing, value => box.Showing = value), () => new HydraHeadReportPopover(head));
-        AutomationProperties.SetName(this, head.Persona.Name + suffix);
+        return row;
+    }
+
+    /// <summary>The pill handed its head again (:439, `ForEach(finished, id: \.index)`: a head whose record changed under its index is the same view with the new value, and its @State
+    /// stays): its words and glyph follow the head, the report it opens is the head's as it is, and an open report stays open. ED-NEW-parity-threadtimeline (3).</summary>
+    internal void Update(HydraHeadInfo next)
+    {
+        if (head == next) return;
+        head = next;
+        button.Content = TimelineRows.Pill(Label());
+        AutomationProperties.SetName(this, head.Persona.Name + Suffix);
     }
     private sealed class ReportState : MainActorModel // :441
     {

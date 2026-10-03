@@ -110,6 +110,36 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         Assert.Same(rows[1], Assert.Single(LogicalQuery.SelfAndDescendants<ToolRow>(list)));
     });
 
+    private static HydraHeadInfo FinishedHead(long index, DateTimeOffset started, DateTimeOffset finished) =>
+        new(index, "task " + index, HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) { HydraHeadInfoStatus = HydraHeadInfo.Status.Completed, StartedAt = started, FinishedAt = finished };
+
+    private static void SetHeadStatus(TimelineMount mount, long index, HydraHeadInfo.Status status, DateTimeOffset? finished)
+    {
+        var head = mount.Model.Children(mount.Runtime.ThreadID).First(thread => thread.Hydra!.Index == index);
+        mount.Model.UpdateThread(head.Id, thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = status, FinishedAt = finished } });
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-NEW-parity-threadtimeline (3)): TimelineRows.swift:408-415 ForEach(finished, id: \.index) { FinishedHeadPill(head: head) }, :441 @State isShowingReport: a head whose record changed under its index is the same pill with the new value
+    public void A_finished_heads_pill_stays_the_same_view_when_its_head_changes_and_says_what_became_of_it() => ThreadTimelineRig.RunWithTeam(headless, mount =>
+    {
+        var s = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        SetHeadStatus(mount, 1, HydraHeadInfo.Status.Running, null); SetHeadStatus(mount, 3, HydraHeadInfo.Status.Running, null);
+        var turn = Guid.NewGuid();
+        mount.SetEntries(new[] { User("p1", turn), Reply("a1", turn), End("e1", turn) }); mount.Settle();
+        var row = mount.Blocks().Single(block => block.Id == "hydra-heads-working").Row;
+        var pills = LogicalQuery.SelfAndDescendants<FinishedHeadPill>(row).ToList(); Assert.Equal(2, pills.Count);
+        Assert.EndsWith(" finished working", Avalonia.Automation.AutomationProperties.GetName(pills[0]), StringComparison.Ordinal);
+        // The first of them turns out to have failed: the pill is the same view, and says so.
+        SetHeadStatus(mount, 2, HydraHeadInfo.Status.Failed, s.AddSeconds(100)); mount.Advance(20);
+        var after = LogicalQuery.SelfAndDescendants<FinishedHeadPill>(mount.Blocks().Single(block => block.Id == "hydra-heads-working").Row).ToList(); Assert.Equal(2, after.Count);
+        Assert.Same(pills[0], after[0]); Assert.Same(pills[1], after[1]);
+        Assert.EndsWith(" failed", Avalonia.Automation.AutomationProperties.GetName(pills[0]), StringComparison.Ordinal);
+        Assert.Contains(" failed", string.Concat(LogicalQuery.SelfAndDescendants<TextBlock>(pills[0]).SelectMany(text => text.Inlines ?? []).OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text)), StringComparison.Ordinal);
+    }, new[] { FinishedHead(1, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_001_000)), FinishedHead(2, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_100)),
+        FinishedHead(3, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_400)), FinishedHead(4, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_200)) });
+
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:2261-2274 (WorkingBlockView hands WorkingIndicator its startedAt and finishedAt), :2075-2092,2107-2119 (@State isExpanded, which no change of a `let` disturbs)
     public void An_opened_running_line_that_becomes_an_earlier_segment_stays_the_same_line_and_stays_open() => ThreadTimelineRig.Run(headless, mount =>
