@@ -142,6 +142,59 @@ public sealed class TimelineMinimapAnimationAuditTests(HeadlessSession headless)
         Assert.Equal(0, frames.Pending);
     });
 
+    // PR-CHAT-073 "capture comparison in both themes", the port half: what each tick state draws in the Light and in the Dark theme variant
+    // (the label colour is appearance-dependent, Chrome.PrimaryText; the accent is the theme's). The reference video shows the dark rail only
+    // (idle grey ticks, the accent block, a white hovered tick, E:\Droppy\work\reference-video CATALOG timeline.turn-rail and
+    // timeline.rail-hover-preview), so the light half is port-derived and UNVERIFIED against a Mac (OD-0001).
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-CHAT-073")] // App/Views/Chat/TimelineMinimap.swift:193-199,262-268
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-CHAT-073: the colours per theme; the capture comparison itself is not part of this test
+    public void Tick_colours_and_opacities_follow_the_theme_variant_at_rest_expanded_hovered_and_selected(bool dark) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var variant = dark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
+        var rail = new TimelineMinimapRail(new[] { Entry("first"), Entry("second"), Entry("third") }, 100, "first", (_, _) => { });
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 200, Content = rail, RequestedThemeVariant = variant };
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            var ticks = Ticks(rail);
+            var label = Chrome.PrimaryText.Resolve(variant);
+            Assert.NotEqual(Chrome.PrimaryText.Resolve(Avalonia.Styling.ThemeVariant.Light), Chrome.PrimaryText.Resolve(Avalonia.Styling.ThemeVariant.Dark));
+            // Rest: the unselected ticks are the label colour at 0.25; the block the reader is on is the accent, full strength.
+            Assert.Equal(label, Color(ticks[1]));
+            Assert.Equal(0.25, ticks[1].Opacity);
+            Assert.Equal(label, Color(ticks[2]));
+            Assert.Equal(Chrome.Accent.Resolve(variant), Color(ticks[0]));
+            Assert.Equal(1, ticks[0].Opacity);
+            // Expanded by a hover on the third tick: every unselected tick rises to 0.4; the hovered one is plain ink at 0.95; the accent stays on the
+            // selected one while it is not the hovered one.
+            Hover(rail, "third");
+            Step(runtime, frames, 1000);
+            Assert.Equal(0.4, ticks[1].Opacity);
+            Assert.Equal(label, Color(ticks[1]));
+            Assert.Equal(label, Color(ticks[2]));
+            Assert.Equal(0.95, ticks[2].Opacity);
+            Assert.Equal(Chrome.Accent.Resolve(variant), Color(ticks[0]));
+            Assert.Equal(1, ticks[0].Opacity);
+            // Hovering the selected tick overrides the accent with plain ink at 0.95.
+            Hover(rail, "first");
+            Step(runtime, frames, 1000);
+            Assert.Equal(label, Color(ticks[0]));
+            Assert.Equal(0.95, ticks[0].Opacity);
+            Hover(rail, null);
+            Step(runtime, frames, 1000);
+            Assert.Equal(0.25, ticks[1].Opacity);
+            Assert.Equal(Chrome.Accent.Resolve(variant), Color(ticks[0]));
+        }
+        finally { window.Close(); }
+    });
+
     [Theory]
     [InlineData(true, false)]
     [InlineData(false, true)]

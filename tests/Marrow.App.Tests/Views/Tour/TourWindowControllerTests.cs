@@ -341,4 +341,62 @@ public sealed class TourWindowControllerTests(HeadlessSession headless)
             }
         });
     }
+
+    // PR-UPDATE-095 "the tour card's height is measured across all pages before the window opens, so it never grows or shrinks between pages"
+    // (TourWindowController.swift:37-46, :70-74), with the real eight pages: the window keeps one size from the first page to the last, and on every
+    // page the card's bottom panel fills what the 413-point image leaves, so the 220 x 42 button sits 24 points above the card's bottom edge
+    // (TourView.swift:149-181: the panel is `.frame(maxWidth: .infinity, maxHeight: .infinity)`, padded 24 at the bottom).
+    [Fact]
+    [Trait("Req", "PR-UPDATE-095")] // DroppyCode/App/Views/Tour/TourWindowController.swift:37-46,70-74; TourView.swift:58-60,149-181
+    public void Paging_through_all_eight_real_pages_never_changes_the_window_size_and_pins_the_button_to_the_card_bottom()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness();
+            var frames = new ManualFrameSource();
+            using var frameSource = FrameClock.Source.Override(frames);
+            var window = h.Main.OnMain(() => TourWindowController.Shared.Present(Marrow.App.Views.Tour.Tour.Pages, width: 660));
+            createdWindow = window;
+            var view = Assert.IsType<TourView>(window.Content);
+            try
+            {
+                var pageCount = Marrow.App.Views.Tour.Tour.Pages.Count;
+                Assert.Equal(8, pageCount);
+                var size = new Size(window.Width, window.Height);
+                var tallestPanel = 0.0;
+                for (var page = 0; page < pageCount; page++)
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    window.UpdateLayout();
+                    Assert.Equal(page, view.CurrentIndex);
+                    Assert.Equal(size, new Size(window.Width, window.Height)); // never grows or shrinks between pages
+                    Assert.Equal(size, window.ClientSize);
+                    var panel = Assert.Single(view.BottomHost.Children);
+                    panel.Measure(new Size(660, double.PositiveInfinity));
+                    tallestPanel = Math.Max(tallestPanel, panel.DesiredSize.Height);
+                    Assert.True(panel.DesiredSize.Height <= size.Height - 413 + 0.01, "page " + page + " needs more than the window gives its panel");
+                    // The bottom panel fills the room under the 413-point image, whatever its own text needs.
+                    Assert.Equal(size.Height - 413, view.BottomHost.Bounds.Height, 1);
+                    Assert.Equal(413, view.BottomHost.TranslatePoint(default, window)!.Value.Y, 1);
+                    // The 220 x 42 action sits 24 points above the card's bottom on every page.
+                    var button = Assert.Single(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Button>(view.BottomHost));
+                    Assert.Equal(220, button.Bounds.Width, 1);
+                    Assert.Equal(size.Height - 24, button.TranslatePoint(new Point(0, button.Bounds.Height), window)!.Value.Y, 1);
+                    if (page < pageCount - 1)
+                    {
+                        h.Main.OnMain(view.Advance);
+                        h.Main.Advance(TimeSpan.FromSeconds(0.5));
+                        frames.Advance(TimeSpan.FromSeconds(0.5));
+                    }
+                }
+                // The window is the image plus the TALLEST page's panel: that page needs exactly what it is given.
+                Assert.Equal(size.Height - 413, tallestPanel, 1);
+            }
+            finally
+            {
+                Cleanup(window);
+                TourWindowController.Shared.Close();
+            }
+        });
+    }
 }

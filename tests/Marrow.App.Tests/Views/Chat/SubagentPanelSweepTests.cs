@@ -239,22 +239,118 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
         });
     }
 
+    // PR-HYDRA-230 `.overlay(alignment: .top) { JumpToLatestButton }` on the composer (SubagentPanel.swift:292-297): with the REAL control the
+    // circle floats 10 points above the chat box's top edge, centred on it. (The seam factory only captures the panel's scroll state.)
+    [Fact]
+    [Trait("Req", "PR-HYDRA-230")] // App/Views/Chat/SubagentPanel.swift:292-297 with ChatView.swift:1089-1103
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-230: the jump button's place; the other clauses are asserted by the tests beside it
+    public void Jump_to_latest_floats_above_the_chat_box()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var project = AppModelSamples.Project("Panel", h.NewFolder("panel"));
+            var thread = AppModelSamples.Thread(project);
+            h.WriteLibrary([project], [thread]);
+            AppModelHarness.WriteDocument(thread.Id);
+            Marrow.Services.Store.DocumentPrefetch.Shared.Warm([thread.Id], urgent: true)?.Completion.GetAwaiter().GetResult();
+            var manager = new WindowManager();
+            using var shared = WindowManager.OverrideShared(manager);
+            TimelineScrollState state = null!;
+            var panel = new SubagentPanel(thread, new Size(400, 500), project.Path, project.Name, _ => { }, () => { }, () => { },
+                scrollState => { state = scrollState; return new JumpToLatestButton(scrollState); });
+            AppEnvironment.SetAppModel(panel, manager.Model);
+            var window = new Avalonia.Controls.Window { Width = 400, Height = 500, UseLayoutRounding = false, Content = new Avalonia.Controls.Primitives.VisualLayerManager { EnableOverlayLayer = true, Child = panel } };
+            AppEnvironment.SetWindowLiveResize(panel, new WindowLiveResize(window));
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            try
+            {
+                state.ShowsJumpButton = true;
+                Dispatcher.UIThread.RunJobs();
+                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration));
+                Dispatcher.UIThread.RunJobs();
+                var circle = Descendants<Button>(panel).Single(button => Equals(ToolTip.GetTip(button), "Jump to latest")); // the circle chrome's own button
+                var composer = Descendants<ComposerArea>(panel).Single();
+                Rect Where(Control control) => new(control.TranslatePoint(default, panel) ?? default, control.Bounds.Size);
+                Assert.Equal(Where(composer).Top - 10, Where(circle).Bottom, 1); // the zero-height button sits on the composer's top edge; its circle rides 10 above
+                Assert.Equal(Where(composer).Center.X, Where(circle).Center.X, 1);
+            }
+            finally
+            {
+                window.Close();
+                h.Main.OnMain(() => manager.Model.Runtime(thread.Id).CancelPersistence());
+                var preparation = new FileIndex().Prepare(project.Path);
+                HeadlessSession.RunDispatcherUntil(preparation, AppModelHarness.Bound);
+                preparation.GetAwaiter().GetResult();
+            }
+        });
+    }
+
+    // The arguments the panel hands its children (SubagentPanel.swift:268-327): the transcript is built without a rewind and without a rail at the
+    // panel's height; the chat box is the compact, non-focus-taking one with no changes tab; the strip's handle is "Drag to move" at the handle height.
+    [Fact]
+    [Trait("Req", "PR-HYDRA-230")] // App/Views/Chat/SubagentPanel.swift:268-327
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-230: the panel's arguments to its children (private fields read by reflection, nothing public observes them)
+    public void Panel_arguments_reach_their_children()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness(withRuntime: false);
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
+            var project = AppModelSamples.Project("Panel", h.NewFolder("panel"));
+            var thread = AppModelSamples.Thread(project);
+            h.WriteLibrary([project], [thread]);
+            AppModelHarness.WriteDocument(thread.Id);
+            Marrow.Services.Store.DocumentPrefetch.Shared.Warm([thread.Id], urgent: true)?.Completion.GetAwaiter().GetResult();
+            var manager = new WindowManager();
+            using var shared = WindowManager.OverrideShared(manager);
+            var panel = new SubagentPanel(thread, new Size(400, 500), project.Path, project.Name, _ => { }, () => { }, () => { });
+            AppEnvironment.SetAppModel(panel, manager.Model);
+            var window = new Avalonia.Controls.Window { Width = 400, Height = 500, Content = new Avalonia.Controls.Primitives.VisualLayerManager { EnableOverlayLayer = true, Child = panel } };
+            AppEnvironment.SetWindowLiveResize(panel, new WindowLiveResize(window));
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            try
+            {
+                const BindingFlags instance = BindingFlags.Instance | BindingFlags.NonPublic;
+                var timeline = Assert.Single(Descendants<ThreadTimeline>(panel));
+                var inputs = typeof(ThreadTimeline).GetField("inputs", instance)!.GetValue(timeline)!;
+                Assert.False((bool)inputs.GetType().GetField("Item6")!.GetValue(inputs)!); // supportsRewind: false
+                Assert.Equal(500d, (double)inputs.GetType().GetField("Item7")!.GetValue(inputs)!); // columnHeight: size.height
+                var rest = inputs.GetType().GetField("Rest")!.GetValue(inputs)!; // the eighth element of the eight-tuple
+                Assert.False((bool)rest.GetType().GetField("Item1")!.GetValue(rest)!); // showsMinimap: false
+                var composerView = Assert.Single(Descendants<ComposerView>(panel));
+                Assert.True((bool)typeof(ComposerView).GetField("compactModelChip", instance)!.GetValue(composerView)!);
+                Assert.False((bool)typeof(ComposerView).GetField("takesFocusOnAppear", instance)!.GetValue(composerView)!);
+                var slot = Assert.Single(Descendants<TabSlot>(panel));
+                Assert.False((bool)typeof(TabSlot).GetField("showsChanges", instance)!.GetValue(slot)!);
+                var handle = Descendants<PanelDragHandle>(panel).Single();
+                Assert.Equal("Drag to move", ToolTip.GetTip(handle));
+                Assert.Equal("Drag to move", Avalonia.Automation.AutomationProperties.GetName(handle));
+                Assert.Equal(Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 6, handle.Height);
+                Assert.Equal(12, Descendants<SubagentWorkingBox>(panel).Single().Margin.Top); // .padding(.top, Chrome.chromeTopPadding)
+            }
+            finally
+            {
+                window.Close();
+                manager.Model.Runtime(thread.Id).CancelPersistence();
+                var preparation = new FileIndex().Prepare(project.Path);
+                HeadlessSession.RunDispatcherUntil(preparation, AppModelHarness.Bound);
+                preparation.GetAwaiter().GetResult();
+            }
+        });
+    }
+
     private static IEnumerable<T> Descendants<T>(Control root) => root.GetSelfAndLogicalDescendants().OfType<T>();
 
-    // STOP App.Views.Chat.SubagentPanel #1
-    // Kind: missing dependency. Swift: App/Views/Chat/SubagentPanel.swift:294-297.
-    // Records: PR-HYDRA-230. JumpToLatestButton still throws MARROW_STUB in the excluded ChatView.cs.
-    // Needed: its ChatView unit implementation before an end-to-end public panel can be constructed.
-    // These tests substitute only that unrelated control; transcript/composer/close behavior stays real.
-    // PR-HYDRA-230 is PARTIAL: the passing seam test does not award full record credit.
-    private static SubagentPanel MakePanel(ChatThread thread, Project project, Action close)
-    {
-        var constructor = typeof(SubagentPanel).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
-            .SingleOrDefault(value => value.GetParameters().Length == 8);
-        Assert.NotNull(constructor);
-        return (SubagentPanel)constructor.Invoke([thread, new Size(400, 500), project.Path, project.Name,
-            (Action<Size>)(_ => { }), (Action)(() => { }), close, (Func<TimelineScrollState, Control>)(_ => new Border())]);
-    }
+    // The public constructor: the real JumpToLatestButton (ChatView.cs:1155-1190) is mounted, not a stand-in (the earlier STOP #1 is resolved).
+    private static SubagentPanel MakePanel(ChatThread thread, Project project, Action close) =>
+        new(thread, new Size(400, 500), project.Path, project.Name, _ => { }, () => { }, close);
 
     private static void ResizeMessage(WindowLiveResize resize, uint message)
     {

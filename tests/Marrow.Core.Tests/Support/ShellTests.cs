@@ -103,6 +103,27 @@ public sealed class ShellTests
         Assert.Equal(error.Message, SwiftErrors.LocalizedDescription(error));
     }
 
+    // PR-GIT-051's verification_method is "for each of the three names": gh, glab and tea (the forge CLIs Git.swift:174-199 and :231-248 run by name).
+    // The lookup is over a PATH with nothing on it, so a real gh the owner has installed cannot make the call succeed.
+    [Theory]
+    [InlineData("gh")]
+    [InlineData("glab")]
+    [InlineData("tea")]
+    [Trait("Req", "PR-GIT-051")] // Core/Support/Shell.swift:128-131: "<name> was not found on your PATH." for each forge CLI, nothing spawned, nothing armed
+    public async Task A_missing_forge_CLI_throws_its_exact_sentence_for_each_of_the_three_names(string tool)
+    {
+        using var runtime = new TestRuntime();
+        using var emptyPath = LoginEnvironment.PathForTesting.Override("");
+        Assert.Null(LoginEnvironment.Which(tool));
+
+        var error = await Assert.ThrowsAsync<ShellError>(() => Shell.RunTool(tool, ["--version"]));
+
+        Assert.Equal(tool + " was not found on your PATH.", error.Message);
+        Assert.Equal(tool + " was not found on your PATH.", error.ErrorDescription);
+        Assert.Equal(error.Message, SwiftErrors.LocalizedDescription(error));
+        Assert.Equal(0, runtime.Time.ActiveTimers); // no process started, so no deadline was armed (:132 is never reached)
+    }
+
     // ---- Shell.run (:36-108) ----
 
     [Fact]

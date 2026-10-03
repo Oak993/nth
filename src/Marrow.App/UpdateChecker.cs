@@ -423,9 +423,8 @@ public sealed class UpdateChecker : MainActorModel
         var body = "Open Settings › About to update and restart."; // U+203A SINGLE RIGHT-POINTING ANGLE QUOTATION MARK, :251
         // PR-UPDATE-023 windows_path: Windows 10/11 toasts need no runtime permission prompt, so the
         // notDetermined/requestAuthorization branch (:256-258) has no analogue; the port sends the toast
-        // directly. No Windows toast delivery unit exists yet in this tree; UpdateToastCenter's default binding
-        // is a safe no-op until it lands, matching the shipped behavior when a toast silently fails to add
-        // (:260 try? await center.add(request); PR-UPDATE-023 failure_cases).
+        // directly (WindowsToastCenter, ED-220: it posts through IWindowsToastPlatform and swallows a failed or denied post, as the
+        // Swift's `try? await center.add(request)` does at :260; PR-UPDATE-023 failure_cases). The marker above is already written.
         UpdateToastCenter.Ambient.Current.Show("update-" + found.Version, title, body, found.Version); // :253
     }
 }

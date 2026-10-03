@@ -718,7 +718,7 @@ internal sealed class HydraHeadTranscript : Decorator
             // :421-425 A child Droppy Code runs itself can be steered and answered like any chat.
             var composer = new Grid();
             composer.Children.Add(new ComposerArea(runtime, workingDirectory, compactModelChip: true, takesFocusOnAppear: false, showsChanges: false));
-            composer.Children.Add(new JumpToLatestButton(scrollState));
+            composer.Children.Add(new JumpToLatestButton(scrollState) { VerticalAlignment = VerticalAlignment.Top }); // :425-427 overlay(alignment: .top)
             DockPanel.SetDock(composer, Dock.Bottom);
             content.Children.Add(composer);
         }
@@ -727,7 +727,7 @@ internal sealed class HydraHeadTranscript : Decorator
             var footer = new Grid();
             footerHost.Child = new HydraHeadFooter(HydraLiveInfo.Shown(info, runtime));
             footer.Children.Add(footerHost);
-            footer.Children.Add(new JumpToLatestButton(scrollState));
+            footer.Children.Add(new JumpToLatestButton(scrollState) { VerticalAlignment = VerticalAlignment.Top }); // :430-432 overlay(alignment: .top)
             DockPanel.SetDock(footer, Dock.Bottom);
             content.Children.Add(footer);
         }

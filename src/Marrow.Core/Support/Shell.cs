@@ -703,6 +703,14 @@ public static class LoginEnvironment
     private static string? InstallFolder(IReadOnlyDictionary<string, string> environment, string variable, string relative) =>
         ValueIgnoringCase(environment, variable) is { Length: > 0 } folder ? Path.Join(folder, relative) : null;
 
+    // PORT-ONLY R-TEST-10 boundary (PR-GIT-051); null in production. A test sets it (an empty string is a PATH with nothing on it) so that
+    // a lookup over current's PATH (which(name), Shell.run(tool:)) finds nothing the owner's machine or a test stand-in put there. It
+    // changes what is searched only, never the environment a child process is given.
+    internal static Ambient<string> PathForTesting { get; } = new((string)null!); // Current is null while no test overrides it
+
+    private static IReadOnlyDictionary<string, string> SearchedCurrent() =>
+        PathForTesting.Current is { } path ? Current.Mutating(environment => environment["PATH"] = path) : Current;
+
     /// <summary>:415-427</summary>
     public static string? Which(string name, IReadOnlyDictionary<string, string>? environment = null) =>
         Which(name, environment, HomeDirectory);
@@ -713,7 +721,7 @@ public static class LoginEnvironment
     /// </summary>
     internal static string? Which(string name, IReadOnlyDictionary<string, string>? environment, string home)
     {
-        IReadOnlyDictionary<string, string> searched = environment ?? Current;
+        IReadOnlyDictionary<string, string> searched = environment ?? SearchedCurrent();
         // ED-171: the PATHEXT that stands in for Darwin's executable test, on both branches.
         var pathExt = PathExt(searched);
         // :421 with ED-170 (3)

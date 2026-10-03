@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Marrow.App.Tests.Fixtures;
+using Marrow.Testing;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -248,6 +249,29 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
             Assert.Equal(title, model.Alert!.Title);
             Assert.False(string.IsNullOrEmpty(model.Alert.Message));
             Assert.Null(git.Activity);
+        });
+    }
+
+    // PR-GIT-051 at the alert (ChatView.swift:1505-1527): the push succeeds (a local bare origin), the origin names no GitHub or GitLab so the
+    // forge is Gitea, and `tea` is not on the PATH: the alert carries the exact sentence the lookup threw.
+    [Fact]
+    [Trait("Req", "PR-GIT-051")] // App/Views/Chat/ChatView.swift:1520-1521 with Core/Support/Shell.swift:129-130
+    public void Open_pull_request_alert_carries_the_not_found_sentence_when_the_forge_CLI_is_missing()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            var directory = ChatGitFixtures.Init(h.NewFolder("repo"));
+            var origin = h.NewFolder("origin.git");
+            ChatGitFixtures.Run(origin, "init", "-q", "--bare");
+            ChatGitFixtures.Run(directory, "remote", "add", "origin", origin);
+            var git = new GitStatusModel();
+            using var emptyPath = EmptyLoginPath.Begin();
+            h.Main.OnMain(() => ChatGitFixtures.InvokeStatic(typeof(GitActionsMenu), "OpenPullRequest", model, git, directory));
+            h.Main.Loop.Run(() => ChatGitFixtures.Until(() => model.Alert is not null && git.Status is not null));
+            Assert.Equal("Could not open a pull request", model.Alert!.Title);
+            Assert.Equal("tea was not found on your PATH.", model.Alert.Message);
         });
     }
 

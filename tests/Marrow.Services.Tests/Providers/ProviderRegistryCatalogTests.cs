@@ -513,8 +513,73 @@ public sealed class ProviderRegistryCatalogTests
         // Every detail is a vendor word, a middle dot, and a phrase.
         Assert.Equal("Anthropic \U000000B7 best combo of speed & intelligence", seed[0].Detail);
         Assert.Equal("Open Source \U000000B7 frontier coding with emergent cyber capabilities", seed[10].Detail);
-        // The seed doubles as loadCatalog's still-seeded equality sentinel (:194, :474).
-        Assert.Equal(ProviderRegistry.CommandcodeSeed, seed);
+        // Every (id, name, detail) of the eleven rows, as the Swift literal has them (CommandCodeAPI.swift:350-360; U+00B7 between vendor and phrase).
+        Assert.Equal(
+        [
+            ("claude-sonnet-5", "Claude Sonnet 5", "Anthropic · best combo of speed & intelligence"),
+            ("claude-fable-5-1", "Claude Fable 5.1", "Anthropic · most capable for demanding reasoning & long-horizon agents"),
+            ("claude-opus-5-5", "Claude Opus 5.5", "Anthropic · the newest Opus, for everyday complex work and coding"),
+            ("claude-opus-5", "Claude Opus 5", "Anthropic · most intelligent Opus for agents and coding"),
+            ("gpt-6-astra", "GPT-6 Astra", "OpenAI · most capable OpenAI model for demanding reasoning & agents"),
+            ("gpt-5.6-sol", "GPT-5.6 Sol", "OpenAI · latest frontier model for general complex work"),
+            ("gpt-5.6-luna", "GPT-5.6 Luna", "OpenAI · fast and efficient model"),
+            ("google/gemini-3.8-flash", "Gemini 3.8 Flash", "Google · newest Gemini Flash, improved core reasoning"),
+            ("deepseek/deepseek-v4-flash", "DeepSeek V4 Flash", "Open Source · fast hybrid-attention reasoning"),
+            ("moonshotai/kimi-k3", "Kimi K3", "Open Source · long-horizon coding & knowledge work with 1M context"),
+            ("zai-org/glm-5.3", "GLM 5.3", "Open Source · frontier coding with emergent cyber capabilities"),
+        ],
+        seed.Select(o => (o.Id, o.Name, o.Detail)).ToArray());
+        // The registry's seed is the list CommandCodeAPI hands out as its own (:158).
+        Assert.Equal(CommandCodeAPI.Seed, seed);
+    }
+
+    // ProviderRegistry.swift:202 `if catalogs[.commandcode]?.isEmpty ?? true { catalogs[.commandcode] = seed }`: the constructor installs the
+    // seed when the persisted catalog is absent or empty and leaves a persisted list alone.
+    [Fact]
+    [Trait("Req", "PR-PROVREG-145")] // ProviderRegistry.swift:156-158, :202
+    public void the_commandcode_catalog_is_seeded_when_the_cache_is_absent_or_empty_and_kept_when_not()
+    {
+        using var runtime = new TestRuntime();
+        using var storage = BindStorage();
+        var absent = MakeRegistry(runtime, Settings());
+        Assert.Equal(11, absent.Models(ProviderKind.Commandcode).Count);
+        Assert.Equal(CommandCodeAPI.Seed, absent.Models(ProviderKind.Commandcode));
+
+        SeedUnblockingCache(runtime, ("commandcode", Array.Empty<object>()));
+        Assert.Equal(CommandCodeAPI.Seed, MakeRegistry(runtime, Settings()).Models(ProviderKind.Commandcode));
+
+        SeedUnblockingCache(runtime, ("commandcode", [new { id = "persisted-cc", name = "Persisted", efforts = Array.Empty<string>() }]));
+        Assert.Equal(["persisted-cc"], MakeRegistry(runtime, Settings()).Models(ProviderKind.Commandcode).Select(o => o.Id).ToArray());
+    }
+
+    // ProviderRegistry.swift:553 `current == CommandCodeAPI.seed` is the still-seeded sentinel: a fresh (5 minutes old), unforced list that
+    // still equals the seed is fetched anyway, while a fresh list that differs is not. A load is observed through the loading mark (:558
+    // insert, :559 remove), which only a load that got past the freshness test sets.
+    [Theory]
+    [InlineData(true, true)] // the seed itself: still seeded, so it proceeds
+    [InlineData(false, false)] // a persisted list of one other row: fresh and not the seed, so it returns before anything starts
+    [Trait("Req", "PR-PROVREG-145")] // ProviderRegistry.swift:473-478 (seeded, stale, the return), :553, :558-559
+    public void loadcatalog_refetches_a_fresh_commandcode_list_only_while_it_equals_the_seed(bool equalsSeed, bool proceeds)
+    {
+        using var runtime = new TestRuntime();
+        using var storage = BindStorage();
+        if (!equalsSeed) SeedUnblockingCache(runtime); // the one-row "seed-cc" list from the helper
+        var fresh = SwiftDate.Now.ToUnixTimeSeconds() - 300;
+        runtime.Defaults.Set("providerModelCatalogDates",
+            System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new Dictionary<string, double> { ["commandcode"] = fresh })));
+        var settings = Settings();
+        settings.Paths[ProviderKind.Commandcode] = Path.Combine(TempDir(), "does-not-exist.exe"); // a load stops at "no executable" once it has started
+        var registry = MakeRegistry(runtime, settings);
+        Assert.Equal(equalsSeed, registry.Models(ProviderKind.Commandcode).Equals(CommandCodeAPI.Seed));
+        var marks = new List<bool>();
+        registry.PropertyChanged += (_, change) =>
+        {
+            if (change.PropertyName == nameof(registry.LoadingCatalogs)) marks.Add(registry.LoadingCatalogs.Contains(ProviderKind.Commandcode));
+        };
+
+        runtime.Loop.Run(() => registry.LoadCatalog(ProviderKind.Commandcode), TimeSpan.FromSeconds(60));
+
+        Assert.Equal(proceeds ? [true, false] : Array.Empty<bool>(), marks);
     }
 
     [Fact]

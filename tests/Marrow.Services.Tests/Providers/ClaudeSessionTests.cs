@@ -1440,6 +1440,90 @@ public sealed class ClaudeSessionTests
         runtime.RunUntilIdle();
     }
 
+    // PR-PROVCLI-442 "No timeout applies" (PendingReplies.register is called with no timeout, ClaudeSession.swift:301-309): a request nobody
+    // answers waits through any span of time until its reply arrives or didClose fails it. Time here is the manual clock, so a 30 s (or any)
+    // timeout in Control would complete the waiter long before the thirty minutes the test lets pass.
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-442")] // ClaudeSession.swift:301-309, Core/Support/PendingReplies.swift:10-36 (no timeout argument)
+    public async Task Control_with_no_reply_keeps_waiting_past_any_timeout_until_answered_or_the_session_closes()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = new ClaudeScript("control-no-timeout");
+        script.SetResponse(MinimalResponse);
+        File.WriteAllText(Path.Combine(script.ControlDirectory, "reply-limit.txt"), "1"); // answers the handshake only
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session); // marrow-1
+
+        var answered = MainActor.SpawnThrowing(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "interrupt"))));
+        var closed = MainActor.SpawnThrowing(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"))));
+        runtime.RunUntilIdle();
+        Assert.Contains("\"request_id\":\"marrow-2\"", script.CapturedLine(1, 1), StringComparison.Ordinal);
+        Assert.Contains("\"request_id\":\"marrow-3\"", script.CapturedLine(1, 2), StringComparison.Ordinal);
+
+        runtime.Advance(TimeSpan.FromMinutes(30));
+        runtime.RunUntilIdle();
+        Assert.False(answered.Value.IsCompleted);
+        Assert.False(closed.Value.IsCompleted);
+
+        var marker = JSONValue.FromDictionaryLiteral(("ok", true), ("marker", "late-reply-442"));
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "control_response"),
+            ("response", JSONValue.FromDictionaryLiteral(("request_id", "marrow-2"), ("response", marker)))));
+        runtime.RunUntilIdle();
+        Assert.Equal(marker, await answered.Value);
+        Assert.False(closed.Value.IsCompleted); // the other one still waits, however long ago it was sent
+
+        session.Stop(); // the process ends: didClose fails what is still waiting (PR-PROVCLI-061)
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (!closed.Value.IsCompleted && DateTime.UtcNow < deadline)
+        {
+            runtime.RunUntilIdle();
+            System.Threading.Thread.Sleep(20);
+        }
+        Assert.True(closed.Value.IsFaulted);
+        Assert.IsType<ProviderError>(closed.Value.Exception!.InnerException);
+    }
+
+    // "This holds for every control() caller, start()'s initialize included" (ClaudeSession.swift:160): cancelling Start while its initialize
+    // reply is outstanding throws CancellationError out of Start, and the reply that comes later is dropped like any unmatched id.
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-442")] // ClaudeSession.swift:154-166 (start's initialize goes through control), :301-309
+    public void Start_cancelled_while_the_initialize_reply_is_outstanding_throws_CancellationError_and_the_late_reply_is_dropped()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = new ClaudeScript("start-cancel-initialize");
+        script.SetResponse(MinimalResponse);
+        File.WriteAllText(Path.Combine(script.ControlDirectory, "reply-limit.txt"), "0"); // the handshake is never answered
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(Config(script)) { OnEvent = events.Add };
+
+        var start = MainActor.SpawnThrowing(() => session.Start());
+        runtime.Loop.RunUntil(() => script.MessageCount(1) >= 1, TimeSpan.FromSeconds(30));
+        var line = script.CapturedLine(1, 0);
+        Assert.Contains("\"request_id\":\"marrow-1\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"subtype\":\"initialize\"", line, StringComparison.Ordinal);
+        Assert.False(start.Value.IsCompleted);
+
+        start.Cancel();
+        runtime.Loop.RunUntil(() => start.Value.IsCompleted, TimeSpan.FromSeconds(30));
+        Assert.True(start.Value.IsFaulted);
+        Assert.IsType<CancellationError>(start.Value.Exception!.InnerException);
+
+        // The reply that arrives after the removal finds nothing waiting: no event, no second resume.
+        var command = JSONValue.FromDictionaryLiteral(("name", "review"), ("description", "Review"));
+        var initialization = JSONValue.FromDictionaryLiteral(("commands", new JSONValue.Array(new ValueList<JSONValue>(new[] { command }))));
+        var lateReply = JSONValue.FromDictionaryLiteral(("request_id", "marrow-1"), ("response", initialization));
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "control_response"), ("response", lateReply)));
+        runtime.RunUntilIdle();
+        Assert.Empty(events.OfType<ProviderEvent.Models>());
+        Assert.Empty(events.OfType<ProviderEvent.Commands>());
+        Assert.True(start.Value.IsFaulted);
+        session.Stop();
+        runtime.RunUntilIdle();
+    }
+
     // ---- PR-PROVCLI-044 ----
 
     [Fact]

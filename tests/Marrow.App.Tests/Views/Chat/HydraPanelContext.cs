@@ -36,7 +36,7 @@ namespace Marrow.App.Tests.Views.Chat;
         public ChatThread First { get; }
         public ChatThread Second { get; }
 
-        public HydraPanelContext(bool visible = false, Action<Guid>? popOut = null, bool withoutPopOut = false, Action? dismiss = null, bool poppedOut = false, Avalonia.Styling.ThemeVariant? theme = null, Action<Size>? onDrag = null, Action? onDragEnd = null)
+        public HydraPanelContext(bool visible = false, Action<Guid>? popOut = null, bool withoutPopOut = false, Action? dismiss = null, bool poppedOut = false, Avalonia.Styling.ThemeVariant? theme = null, Action<Size>? onDrag = null, Action? onDragEnd = null, bool poppedWithBoth = false, bool realStage = false)
         {
             actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             frameClock = FrameClock.Source.Override(frames);
@@ -52,8 +52,8 @@ namespace Marrow.App.Tests.Views.Chat;
             Window = new Avalonia.Controls.Window { Width=420,Height=280 };
             if (theme is not null) Window.RequestedThemeVariant=theme;
             resize = new WindowLiveResize(Window);
-            Panel = harness.Main.OnMain(() => new HydraPanel(runtime,poppedOut ? [First] : [],new Size(420,280),null,null,onDrag ?? (_=>{}),onDragEnd ?? (()=>{}),dismiss ?? (()=>{}),isPoppedOut:poppedOut,popOut:withoutPopOut ? null : popOut ?? (_=>{})));
-            typeof(HydraPanel).GetProperty("StageFactory",BindingFlags.NonPublic|BindingFlags.Instance)?.SetValue(Panel,(Func<ChatThread,Control>)(head => new Border { Tag=head.Id }));
+            Panel = harness.Main.OnMain(() => new HydraPanel(runtime,poppedOut ? (poppedWithBoth ? [First,Second] : [First]) : [],new Size(420,280),null,null,onDrag ?? (_=>{}),onDragEnd ?? (()=>{}),dismiss ?? (()=>{}),isPoppedOut:poppedOut,popOut:withoutPopOut ? null : popOut ?? (_=>{})));
+            if(!realStage) typeof(HydraPanel).GetProperty("StageFactory",BindingFlags.NonPublic|BindingFlags.Instance)?.SetValue(Panel,(Func<ChatThread,Control>)(head => new Border { Tag=head.Id }));
             AppEnvironment.SetAppModel(Panel,Model); AppEnvironment.SetWindowLiveResize(Panel,resize);
             // Attach real controls without asking the headless backend to shape Inter Medium glyphs.
             // The sweep is independently laid out in the wave test; fonts are unchanged.
