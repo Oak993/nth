@@ -60,6 +60,34 @@ public sealed class ChatViewEvidenceCaptures(HeadlessSession headless)
         });
     }
 
+    // The toggle capsule with the terminal open (the "on" circle behind the terminal glyph), as 2-chat-use.mov shows it from
+    // C 132.55 while the drawer is open.
+    [Fact]
+    [Trait("Evidence", "ChatView")]
+    public void Chrome_row_with_the_terminal_open()
+    {
+        if (Folder is null) return;
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                model.Settings.HydraEnabled = true;
+                var project = model.AddProject(new Project("LifeOS-Migration", h.NewFolder("project")).Url);
+                var runtime = model.Runtime(model.NewThread(project)!.Id);
+                runtime.IsTerminalVisible = true;
+                model.Sidebar.NoteLaidOutWidth(400);
+                var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Test four attention heads", project, project.Path, new GitStatusModel()) { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+                var window = new AvaloniaWindow { Content = row, Width = 2290, Height = 80, RequestedThemeVariant = ThemeVariant.Dark, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(38, 44, 52)) };
+                ChatHeadlessFixtures.Track(window);
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+                Save(window, "chrome_row_port_terminal_open");
+            });
+        });
+    }
+
     // The terminal open of 2-chat-use.mov C 132.2-132.55 on the port: frames at the same times after the start.
     [Fact]
     [Trait("Evidence", "ChatView")]

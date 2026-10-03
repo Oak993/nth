@@ -253,6 +253,61 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
         });
     }
 
+    // ---- The row against the reference still (2-chat-use.mov at C 11 s, stills/chat-11.png, 1 px = 1 pt) --------------
+    // Measured on the Mac with the sidebar holding the window buttons, a project, no repository, Hydra on: from the content
+    // area's leading edge the three circles span 14-46, 56-88 and 98-130, the title starts at 140, the circles' tops sit 12
+    // below the window top; the trailing capsules are 63 wide, 8 apart and 32 high. Side by side:
+    // E:\Droppy\work\parity\evidence\ChatView\chrome_row_port_vs_mac.png (and _left/_right zooms), and with the terminal open
+    // (the "on" circle behind the terminal glyph, 27 grey levels over its capsule on the Mac, 22 on the port's darker glass)
+    // terminal_toggle_on_port_vs_mac.png. The trailing end differs by OD-0044 (the capsules end clear of the Windows caption
+    // buttons); glyph shapes by OD-0010 (Lucide); the glass by OD-0005 (UNVERIFIED, ED-180); the title face by OD-0009 (Inter).
+    [Fact]
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1123-1174 (geometry; the single glass pass stays STOP #3)
+    [Trait("Req", "PR-CHAT-176")] // App/Views/Chat/ChatView.swift:1203-1209 (the capture of the non-empty title)
+    [Trait("Req", "PR-TERM-062")] // App/Views/Chat/ChatView.swift:1153-1158 (the capsule [Open in | Run] as the video shows it)
+    [Trait("Req", "PR-TERM-072")] // App/Views/Chat/ChatView.swift:1164-1167 (both states, the "on" circle)
+    public void The_row_lays_out_at_the_positions_measured_on_the_Mac()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                model.Settings.HydraEnabled = true;
+                var project = model.AddProject(new Project("LifeOS-Migration", h.NewFolder("project")).Url);
+                var runtime = model.Runtime(model.NewThread(project)!.Id);
+                model.Sidebar.NoteLaidOutWidth(400);
+                var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish LifeOS repo baseline framework", project, project.Path, new GitStatusModel())
+                { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+                var window = Host(row, 2290);
+                Rect Box(Control c) => new(c.TranslatePoint(default, window)!.Value, c.Bounds.Size);
+                var circles = new Control[]
+                {
+                    LogicalQuery.SelfAndDescendants<ChromeCircleButton>(row).First(),
+                    LogicalQuery.SelfAndDescendants<HydraButton>(row).Single(),
+                    LogicalQuery.SelfAndDescendants<ChromeCircleMenu>(row).Single(),
+                };
+                var expected = new[] { 14d, 56, 98 };
+                for (var i = 0; i < 3; i++)
+                {
+                    var surface = LogicalQuery.SelfAndDescendants<Button>(circles[i]).First();
+                    Assert.Equal(expected[i], Box(surface).X, 0.5);
+                    Assert.Equal(32, surface.Bounds.Width, 0.5);
+                    Assert.Equal(12, Box(surface).Y, 0.5);
+                }
+                var words = LogicalQuery.SelfAndDescendants<TextBlock>(LogicalQuery.SelfAndDescendants<ChatChromeTitle>(row).Single()).Single();
+                Assert.Equal(140, Box(words).X, 0.5);
+                var capsules = LogicalQuery.SelfAndDescendants<ChromeCapsule>(row).ToArray();
+                Assert.Equal(2, capsules.Length);
+                Assert.All(capsules, capsule => { Assert.Equal(63, capsule.Bounds.Width, 0.5); Assert.Equal(32, capsule.Bounds.Height, 0.5); });
+                Assert.Equal(8, Box(capsules[1]).X - Box(capsules[0]).Right, 0.5);
+                Assert.Equal(12, Box(capsules[0]).Y, 0.5);
+                Assert.Equal(2290 - WindowChrome.CaptionTrailingReserve, Box(capsules[1]).Right, 0.5); // OD-0044 (the Mac: 2290 - 14).
+            });
+        });
+    }
+
     [Theory]
     [InlineData("", "New thread")]
     [InlineData("Fix the build", "Fix the build")]
