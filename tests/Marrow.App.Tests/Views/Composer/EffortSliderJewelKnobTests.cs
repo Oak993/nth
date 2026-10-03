@@ -285,6 +285,23 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-252")] // jewel-knob.html frameGate (strike-engine.js:57-66: at 60 to 75 Hz every refresh draws); the port's due times reach it with ED-117 (2)'s 1 ms slack
+    public void On_a_sixty_hertz_display_whose_frames_come_16_or_17_ms_apart_the_knob_steps_at_every_frame() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        var steps = 0;
+        var last = rig.Slider.Orb.Phase;
+        double[] gaps = [0.016, 0.017, 0.017]; // 50 ms over three frames, as a 60 Hz display delivers them
+        for (var i = 0; i < 60; i++)
+        {
+            rig.Frame(gaps[i % gaps.Length]);
+            if (rig.Slider.Orb.Phase != last) { steps++; last = rig.Slider.Orb.Phase; }
+        }
+        Assert.Equal(60, steps); // not about 2 in 3 (40 a second) when a 16 ms frame falls short of 16.667 ms
+    });
+
+    [Fact]
     [Trait("Decision", "ED-252")] // OD-0090: under reduce motion the gem is still, so once the springs settle the knob asks for no more frames
     public void Under_reduce_motion_the_knob_stops_asking_for_frames_once_settled() => headless.OnUiThread(() =>
     {
