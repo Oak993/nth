@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Marrow.App.Port;
@@ -44,13 +45,13 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
         h.Main.RunUntilIdle();
     }
 
-    // How the control is drawn now: its shown opacity (the product along its ancestry up to the row) and the rise its transition holds it at.
-    private static (double Opacity, double Rise) Look<T>(AppModelHarness h, ChatChromeRow row) where T : Control => h.Main.OnMain(() =>
+    // How the control is drawn now: its shown opacity (the product along its ancestry up to the row), the rise its transition holds it at, and where it is.
+    private static (double Opacity, double Rise, double X) Look<T>(AppModelHarness h, ChatChromeRow row, AvaloniaWindow window) where T : Control => h.Main.OnMain(() =>
     {
         var control = LogicalQuery.SelfAndDescendants<T>(row).Single();
         var opacity = 1.0;
         for (Control? at = control; at is not null && !ReferenceEquals(at, row); at = at.Parent as Control) opacity *= at.Opacity;
-        return (opacity, control.RenderTransform?.Value.M32 ?? 0);
+        return (opacity, control.RenderTransform?.Value.M32 ?? 0, control.TranslatePoint(default, window)!.Value.X);
     });
 
     // The arrival: faded out and 4 points low on the first frame, then Opacity = p and Rise = 4 (1 - p) on the softAppear curve, whole at its end.
@@ -70,7 +71,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             Assert.Empty(LogicalQuery.SelfAndDescendants<T>(row));
             h.Main.OnMain(() => trigger(model));
             Step(h, window, time, frames, 0);
-            var first = Look<T>(h, row);
+            var first = Look<T>(h, row, window);
             Assert.Equal(0, first.Opacity, 3); // faded out: not a cut to full.
             Assert.Equal(4, first.Rise, 3); // the rise: .offset(y: 4) in the modifier's inactive state (Chrome.swift:938-941).
             Assert.Equal(Animation.Smooth(0.32), Animation.SoftAppear); // Chrome.swift:960 `.smooth(duration: 0.32)`.
@@ -79,13 +80,13 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             {
                 Step(h, window, time, frames, at - elapsed); elapsed = at;
                 var progress = Animation.SoftAppear.Progress(at / 1000.0);
-                var seen = Look<T>(h, row);
+                var seen = Look<T>(h, row, window);
                 Assert.InRange(progress, 0.02, 0.98); // each sample lies on the curve's slope, where a different curve would not agree.
                 Assert.Equal(progress, seen.Opacity, 2);
                 Assert.Equal(4 * (1 - progress), seen.Rise, 2);
             }
             Step(h, window, time, frames, 300);
-            var done = Look<T>(h, row);
+            var done = Look<T>(h, row, window);
             Assert.Equal(1, done.Opacity, 3);
             Assert.Equal(0, done.Rise, 3);
         });
@@ -106,22 +107,24 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             var (row, window) = MakeRow(h, model, sidebarHoldsButtons, hydra);
             Step(h, window, time, frames, 0);
             Step(h, window, time, frames, 400);
-            var settled = Look<T>(h, row);
+            var settled = Look<T>(h, row, window);
             Assert.Equal(1, settled.Opacity, 3);
             Assert.Equal(0, settled.Rise, 3);
+            Assert.True(settled.X > 0);
             h.Main.OnMain(() => trigger(model));
             Step(h, window, time, frames, 0);
-            var first = Look<T>(h, row);
+            var first = Look<T>(h, row, window);
             Assert.Equal(1, first.Opacity, 3); // still whole on the first frame.
             var elapsed = 0;
             foreach (var at in new[] { 30, 60, 90 })
             {
                 Step(h, window, time, frames, at - elapsed); elapsed = at;
                 var progress = Animation.EaseOut(0.12).Progress(at / 1000.0);
-                var seen = Look<T>(h, row);
+                var seen = Look<T>(h, row, window);
                 Assert.InRange(progress, 0.02, 0.98);
                 Assert.Equal(1 - progress, seen.Opacity, 2);
                 Assert.Equal(0, seen.Rise, 3); // the removal is `.opacity` alone: it never sinks.
+                Assert.Equal(settled.X, seen.X, 0.5); // it fades where it stood: a removed view keeps no slot in the stack, and does not drift with it.
             }
             Step(h, window, time, frames, 130 - elapsed); // 0.13 s: the 0.12 s fade has ended and the control has left the row.
             Assert.Empty(LogicalQuery.SelfAndDescendants<T>(row));
