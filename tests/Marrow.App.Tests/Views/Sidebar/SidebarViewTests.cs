@@ -9876,6 +9876,136 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             finally { stubWindow.Close(); }
         });
     });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-030")] // SidebarView.swift:1980-1984 mergeStage; :2053-2063 the detailed row's second line; :2090 the ghost badge
+    public void A_live_detailed_row_swaps_its_project_line_for_the_merge_stage_while_merging_and_back_and_its_ghost_badge_counts_merging_as_running() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the running spinner animates
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Lead", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            var runtime = model.Runtime(thread.Id); // the thread has run, so its runtime exists (AppModel.swift:108 runtimes are unobserved)
+            row = LiveThreadRow(thread, projectName: "Alpha");
+            WindowOf(Hosted(model, row)).UpdateLayout();
+            Assert.Contains("Alpha", Texts(row)); // no merge: the project name
+            runtime.IsHydraMerging = true;
+            runtime.HydraMergeStage = "Alpha: Reviewing heads"; // the multi-project prefix comes with the stage words
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("Alpha: Reviewing heads…", Texts(row)); // :1981-1983 the words and one U+2026, in place of the name
+                Assert.DoesNotContain("Alpha", Texts(row));
+                Assert.True(new ThreadGhostBadge(thread, model.Runtime(thread.Id)).IsRunning); // :2090 merging counts as running
+                model.Runtime(thread.Id).HydraMergeStage = null;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("Merging…", Texts(row)); // :1983 the fallback while merging with no stage
+                model.Runtime(thread.Id).IsHydraMerging = false;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("Alpha", Texts(row)); // :1980 nil once the merge is over: the name again
+                Assert.DoesNotContain(Texts(row), t => t.EndsWith('…'));
+                Assert.False(new ThreadGhostBadge(thread, model.Runtime(thread.Id)).IsRunning);
+            });
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // SidebarView.swift:1361 regular while idle and read; :1346 a continuous rounded rect; :128-133 only rows that report a frame are grabbed
+    public void A_helper_row_is_regular_while_idle_has_continuous_corners_and_never_starts_a_reorder() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var other = NewThread(project, "Other", 2);
+        var model = Model(harness, [project], [parent, helper, other]);
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarHelperRow"));
+                var title = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "Helper");
+                Assert.Equal(FontWeight.Normal, title.FontWeight); // :1361 not selected, not unread
+                var shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 24);
+                Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); // :1346
+                var start = title.TranslatePoint(new Point(4, 6), window)!.Value;
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(start + new Vector(0, 10), RawInputModifiers.LeftMouseButton);
+                window.MouseMove(start + new Vector(0, 30), RawInputModifiers.LeftMouseButton);
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(Drag(view).Id); // a helper reports no frame to the grab table: nothing to move
+                window.MouseUp(new Point(10, 10), MouseButton.Left);
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // SidebarView.swift:1433-1437 the connector folds the helpers away; :1540 hidden while the parent's ghost is in the air
+    [Trait("Req", "UI-SIDEBAR-035")] // :1617 the folded stub hides the same way
+    public void The_head_cards_connector_folds_and_the_card_and_the_stub_hide_while_their_parents_glide_is_in_the_air() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 3).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        var folded = 0;
+        Control card = null!, stub = null!;
+        harness.Main.OnMain(() =>
+        {
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, Activator.CreateInstance(Private("SidebarMenuRequests"))!, (Action)(() => folded++))!;
+            WindowOf(Hosted(model, card)).UpdateLayout();
+            stub = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, heads, (Action)(() => { }))!;
+            WindowOf(Hosted(model, stub)).UpdateLayout();
+            var connector = LogicalQuery.SelfAndDescendants<HelperConnector>(card).Single();
+            Click(LogicalQuery.SelfAndDescendants<Button>(connector).Single()); // :1436 action: onFold
+            Assert.Equal(1, folded);
+            Assert.Equal(1d, card.Opacity);
+            Assert.Equal(1d, LogicalQuery.SelfAndDescendants<Button>(stub).Single().Opacity);
+            animator.Launch(parent.Id, RowGlideAnimator.Glide.Direction.Settle, new Rect(0, 300, 200, 24),
+                new Rect(0, -28, 200, 28), new Rect(0, 0, 200, 400), new FaceSample(200, 24), new FaceSample(200, 28), 0, 0);
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(animator.IsHiding(parent.Id));
+                Assert.Equal(0d, card.Opacity); // out of sight the moment the ghost takes off
+                Assert.Equal(0d, LogicalQuery.SelfAndDescendants<Button>(stub).Single().Opacity);
+                animator.Arrive(animator.Glides[0].Id);
+            });
+            harness.Main.OnMain(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1d, card.Opacity);
+                Assert.Equal(1d, LogicalQuery.SelfAndDescendants<Button>(stub).Single().Opacity);
+            });
+        }
+        finally { harness.Main.OnMain(() => { WindowOf(card).Close(); WindowOf(stub).Close(); }); }
+    });
 }
 
 // STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)
