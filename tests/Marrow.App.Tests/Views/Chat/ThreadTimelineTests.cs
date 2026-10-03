@@ -296,6 +296,31 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // ThreadTimelineMountedTests.The_timeline_checks_itself_when_the_app_or_its_own_window_comes_back_and_not_when_another_window_does.
     // Needed: a Windows occlusion tracker (SetWinEventHook over the top-level windows, as Chromium's native occlusion tracker does); no occlusion state is invented here.
 
+    // STOP App.Views.Chat.ThreadTimeline #6
+    // Kind: owner decision. Swift: TimelineRows.swift:2589-2715 (the fold), ThreadTimeline.swift:1907-1926. Records: PR-CHAT-104 (windows_path: the fold is a change of what the block shows in the same frame, no transition), PR-CHAT-117/121 (the working card's open and close).
+    // Missing: OD-0076 ("nothing on screen changes by a cut") beats the source where it snaps, and its transition audit has no entry for the turn-end swap (running block to folded block, one frame on the reference
+    // runtime, CATALOGUE.md C 125.743-125.78) or for the turn header's chevron fold; the port cuts as the Mac does (ThreadTimelineFoldTests proves the swap in one pass, the TimelineRows tests the fold).
+    // Needed: the owner's ruling on those two entries; no transition is invented here.
+
+    // STOP App.Views.Chat.ThreadTimeline #7
+    // Kind: shared symbol metrics. Swift: ThreadTimeline.swift:2129-2135 (the chevron joins the header, the time glides over to make room). Record: UI-CHAT-043.
+    // Missing: on the reference runtime the time's left edge moves 17 points when the chevron comes (8 of spacing and a 9 point symbol, 2-chat-use.mov 95.803-96.078); the port's chevron.right is 12 wide
+    // at the same font, so the whole shift is 20 and the time sits 3 points further left than the Mac's whenever a chevron is shown. The curve is the Mac's (smooth 0.3 s, ThreadTimelineWorkingLineTests).
+    // Needed: the symbol set's advance for chevron.right at caption2 (Marrow.UI SwiftImage, shared by every chevron in the app); not changed here.
+
+    // STOP App.Views.Chat.ThreadTimeline #8
+    // Kind: reference capture. Swift: Chrome.swift:581-629, ThreadTimeline.swift:488,1376. Record: PR-CHAT-159 (capture comparison at travel 0, 20 and 44 in both themes).
+    // Missing: the reference runtime shows the veil only at full travel in the cousin's dark theme (2-chat-use.mov 8.403, none on short threads), so the falloff over its 72 points is compared (ThreadTimelineVeilTests)
+    // and the formula of its level through the travel is proven against the pixels, but the level at full travel (0.525 here, 0.46 there: the theme's surface alpha and wallpaper are the cousin's), travel 20 and
+    // the light theme have no reference frame; the Acrylic backdrop behind it needs a real window (OD-0014, OD-0005).
+    // Needed: a capture of a thread scrolled to 20 points and a light-theme chat on the reference runtime.
+
+    // STOP App.Views.Chat.ThreadTimeline #9
+    // Kind: real window and shared behaviour. Swift: ThreadTimeline.swift:359-440. Record: UI-CHAT-001.
+    // Missing: OD-0013 (the live-resize edge strip must be fixed: probe P4b on a real window, not a headless run) and OD-0071 (soft weighted scrolling in every scroll area: the shared SoftScroll unit's, not this view's).
+    // The column's geometry, its four states, the hidden indicators and the wheel are proven (ThreadTimelineMountedTests).
+    // Needed: probe P4b's outcome and the soft-scroll unit's merge.
+
     [Fact]
     [Trait("Req", "PR-CHAT-192")] // App/Views/Chat/ThreadTimeline.swift:270-278,595-603,1804-1811
     public void Fallback_keeps_three_leaves_a_stale_anchor_and_delayed_load_uses_its_captured_blocks() => WithTimeline((view, _, _, _, h) =>
