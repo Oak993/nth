@@ -46,8 +46,8 @@ public sealed class AboutUpdateViewsChipCaptureTests(HeadlessSession headless)
         var identity = Assert.Single(accessory.GetVisualDescendants().OfType<AboutIdentityPill>()); var version = Assert.Single(accessory.GetVisualDescendants().OfType<AboutVersionPill>());
         Assert.Contains(version.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Up to date");
         Assert.Equal(32, identity.Bounds.Height); Assert.Equal(32, version.Bounds.Height); // reference: both 32 tall
-        Assert.InRange(identity.Bounds.Width, 81 - 8, 81 + 8); // reference 81
-        Assert.InRange(version.Bounds.Width, 108 - 8, 108 + 8); // reference 108
+        Assert.InRange(identity.Bounds.Width, 81 - 6, 81 + 6); // reference 81 (port 78.1: Inter and the Marrow icon against SF and the Droppy icon)
+        Assert.InRange(version.Bounds.Width, 108 - 6, 108 + 6); // reference 108 (port 103.3)
         Assert.InRange(version.Bounds.X - identity.Bounds.Right, 9, 10); // reference 9 to 10 (the HStack's 10)
         window.Close();
     });
