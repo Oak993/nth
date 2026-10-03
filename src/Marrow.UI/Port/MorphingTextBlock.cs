@@ -86,17 +86,26 @@ public class MorphingTextBlock : TextBlock
     // was still bringing in go on arriving (whole by 35.078-35.100 s in Extra High -> Max at 35.05 s, the "t", "r" and "a" of
     // "Extra" plainly drawn at 35.807-35.843 s in Extra High -> High at 35.753 s) and then leave in turn, rising and fading:
     // in the first, all nine letters of "Extra High" leave about 18 ms apart, as any nine do; in the second the five of
-    // "Extra" leave about as close ("E" faint by 35.807, "x" and "t" by 35.843, the "a" last, faint at 35.928, gone at 35.943),
-    // not 36 ms apart as five leaving letters of a change from rest would. ENGINEERING DECISION, fitted to those two events
-    // with no new number: a taken-over line's leaving letters take their turns by their places among all its letters, the
-    // kept ones counted, so "Extra" of "Extra High" goes as the first five of nine. Measured on the label's drawing at the
-    // video's frames (work/claude-verify/resume-2026-10-03/effort-fix-r4.takeover-probe.live.txt): "x", "t", "r", "a" at
-    // 0.62-0.79 at 35.807 s; "a" 0.57 at 35.865, 0.35 at 35.887, 0.09 at 35.928, 0.05 at 35.943, 0.01 at 35.965; in the
-    // widening "r" and "a" 0.95 and 0.79 at 35.100 s, 0.10 and 0.19 at 35.207 s. Residual (narrowing only; OPEN, ED-238 final
-    // round 3 (4)): the video's "a" keeps 1.00, 0.75, 0.50, 0.28, 0.22, 0.04 of its ink at 35.865-35.965 s, rising as it
-    // fades: this very leave with its turn 105 ms after the takeover, where the turns by place give it 72 ms (0.61, 0.36,
-    // 0.20, 0.09 ...); the "x", "t" and "r" cannot be measured apart from the moving "High", so no rule is fitted to the one
-    // event. The widening's frames match (sbs_takeover_inc.png).
+    // "Extra" leave closer than five from rest (36 ms apart) and farther than nine: the "E" starts its leave at once (about
+    // 35.76 s) and the "a", measured alone over the settled "h" (ED-238 final round 3 (4); effort-fix-r5.narrowing-takeover-
+    // measure.txt), keeps 1.00, 0.75, 0.50, 0.28, 0.22, 0.04 and 0 of its ink at 35.865, 35.887, 35.907, 35.928, 35.943, 35.965
+    // and 35.987 s, rising as it fades: this very leave with its turn about 105 ms after the takeover, about 25 ms a place.
+    // ENGINEERING DECISION, fitted to those two events with no new number (final review round 4, lead decision 2026-10-03):
+    // a change's leaving letters take their turns first to last over SpreadShare of its duration as from rest, but share
+    // them with the letters the changes it interrupts are still taking away, each counted by how much of it still shows
+    // (Lingering: its opacity as drawn when the change begins). The widening's takeover interrupts High -> Extra High, which
+    // takes nothing away: the nine go 17.8 ms apart, as before. The narrowing's interrupts Max -> Extra High 118 ms in, whose
+    // "M", "a" and "x" still show 0.05, 0.53 and 1: the five of "Extra" share the turns of 6.58, 25.5 ms apart, the "a" at
+    // 102 ms. Measured on the label's drawing at the video's frames (work/claude-verify/resume-2026-10-03/
+    // effort-fix-r6.takeover-probe.lingering.txt): the "a" 0.92, 0.71, 0.47, 0.27, 0.16, 0.07, 0.02 at 35.865-35.987 s against
+    // the ink above (rms 0.045; the ink is a floor, as a leaving letter also shrinks and blurs); "x", "t", "r", "a" at 0.72,
+    // 0.88, 0.79, 0.64 at 35.807 s; the widening's "r" and "a" 0.95 and 0.79 at 35.100 s, 0.10 and 0.19 at 35.207 s,
+    // unchanged. Side by side: sbs_takeover_dec_r5.png, sbs_dec_after_r5.png; the widening's and the pair's frames are
+    // byte-identical to round 2's (sbs_takeover_inc.png, sbs_inc_after_r4.png, sbs_pair_after_r4.png). Replaced: round 2's
+    // turns by place among all the old line's letters, the kept ones counted, which put the "a" at 72 ms (0.57, 0.35, 0.19,
+    // 0.09, 0.05, 0.01; effort-fix-r6.takeover-probe.head.txt) and, for a change keeping a prefix ("12" -> "13" -> "14"),
+    // left the leaving "3" waiting for the last turn of the line; it now leaves at once. The "x", "t" and "r" cannot be
+    // measured apart from the moving "High" (35.807-35.843 s, read by eye: "xtra" then "Hra" plainly drawn).
 
     private Morph? morph;
     private IFrameSource? frames;
@@ -175,7 +184,13 @@ public class MorphingTextBlock : TextBlock
         morph = null;
         if (old.Length == 0) { InvalidateMeasure(); InvalidateVisual(); return; }
         // A copy of the old line, built now with the old colour: the TextBlock disposes its own layout on a change.
-        morph = new Morph(old, CreateTextLayout(old), Foreground, Bounds.Width, animation, SwiftClock.Now, carried, Running(interrupted)) { Taken = carried is null ? null : interrupted };
+        var oldLayout = CreateTextLayout(old);
+        var earlier = Running(interrupted);
+        morph = new Morph(old, oldLayout, Foreground, Bounds.Width, animation, SwiftClock.Now, carried, earlier)
+        {
+            Taken = carried is null ? null : interrupted,
+            Lingering = Lingering(earlier, oldLayout),
+        };
         frames = FrameClock.Source.Current;
         tick = _ =>
         {
@@ -205,6 +220,21 @@ public class MorphingTextBlock : TextBlock
 
     // The letters of the text a change taken over was going to, as that change has them now (it runs on under the leave).
     private static Dictionary<int, (GlyphState Glyph, double X)> Live(Morph taken, TextLayout layout) => InFlight(taken, taken.NewText, layout);
+
+    // How much still shows, now, of the letters that the changes a new one interrupts are still taking away: each leaving
+    // letter of theirs counted by its opacity as drawn (one half gone counts a half), over the same chain and layouts the
+    // drawing walks (RenderTextLayout). The new change's own leaving letters share their turns with these (see TAKEOVER).
+    private static double Lingering(Morph? chain, TextLayout after)
+    {
+        var showing = 0.0;
+        for (var earlier = chain; earlier is not null; after = earlier.OldLayout, earlier = earlier.Interrupted)
+        {
+            if (Elapsed(earlier) >= Length(earlier.Animation)) continue;
+            foreach (var (glyph, _) in Resolve(earlier, earlier.NewText, after, Elapsed(earlier)))
+                if (glyph.NewIndex is null) showing += Math.Clamp(glyph.Opacity, 0, 1);
+        }
+        return showing;
+    }
 
     // The last new letter takes its turn (ArrivalShare + SpreadShare) of the change's duration in, then runs its curve.
     internal static double Length(Animation animation) => animation.Duration * (1 + ArrivalShare + SpreadShare);
@@ -421,7 +451,7 @@ public class MorphingTextBlock : TextBlock
     {
         var result = new List<(GlyphState, double)>();
         Dictionary<int, (GlyphState Glyph, double X)>? live = null;
-        foreach (var glyph in Glyphs(state.Old, newText, seconds, state.Animation, newLayout.WidthIncludingTrailingWhitespace < state.OldLayout.WidthIncludingTrailingWhitespace, takeover: state.Carried is not null))
+        foreach (var glyph in Glyphs(state.Old, newText, seconds, state.Animation, newLayout.WidthIncludingTrailingWhitespace < state.OldLayout.WidthIncludingTrailingWhitespace, state.Lingering))
         {
             if (newLettersOnly && glyph.NewIndex is null) continue;
             var x = glyph.X(state.OldLayout, newLayout);
@@ -623,7 +653,9 @@ public class MorphingTextBlock : TextBlock
     }
 
     /// <summary>Every character of a change at <paramref name="seconds"/> into it (see the file note for the rules).</summary>
-    internal static List<GlyphState> Glyphs(string oldText, string newText, double seconds, Animation animation, bool narrowing = false, bool takeover = false)
+    /// <param name="lingering">How much still shows of the letters the changes this one interrupted are still taking away
+    /// (0 for a change from rest): the leaving letters share their turns with them (see TAKEOVER in the file).</param>
+    internal static List<GlyphState> Glyphs(string oldText, string newText, double seconds, Animation animation, bool narrowing = false, double lingering = 0)
     {
         // The kept letters' own clock (see KeptLead, NarrowingKeptLead).
         var keptTime = (seconds + (narrowing ? NarrowingKeptLead : KeptLead)) / (narrowing ? NarrowingKeptStretch : KeptStretch);
@@ -637,12 +669,11 @@ public class MorphingTextBlock : TextBlock
             result.Add(new GlyphState(false, n, o, n, shared, 1, 1, 0, 0));
         var arriving = Enumerable.Range(0, newText.Length).Where(i => !keptNew.Contains(i) && newText[i] != ' ').ToList();
         var leaving = Enumerable.Range(0, oldText.Length).Where(i => !keptOld.Contains(i) && oldText[i] != ' ').ToList();
-        // A change that takes over an unfinished one: its leaving letters take their turns by their places among all the old
-        // line's letters, the kept ones counted (TakeoverTurns).
-        var letters = takeover ? Enumerable.Range(0, oldText.Length).Where(i => oldText[i] != ' ').ToList() : leaving;
+        // The leaving letters take their turns first to last, spread as if the letters still being taken away by the changes
+        // this one interrupted were among them, each counted by how much of it still shows (lingering; TAKEOVER).
         for (var k = 0; k < leaving.Count; k++)
         {
-            var p = Turn(takeover ? letters.IndexOf(leaving[k]) : k, letters.Count, seconds, animation, 0);
+            var p = Turn(k, leaving.Count + lingering, seconds, animation, 0);
             var faded = Math.Clamp(p, 0, 1);
             result.Add(new GlyphState(true, leaving[k], leaving[k], null, p, 1 - faded, 1 - (1 - StartScale) * p, MaxBlur * faded, -Travel * p));
         }
@@ -659,7 +690,8 @@ public class MorphingTextBlock : TextBlock
     // SpreadShare of the change's duration (so a short word's letters go far apart and a long one's close together).
     // New letters start a little after the change (the video's first arriving letter about 40 ms after the glide of
     // the kept "High" began, and "M" of Max about as late), leaving ones at once.
-    private static double Turn(int order, int count, double seconds, Animation animation, double wait)
+    // The count need not be whole: a leaving letter of an interrupted change still half shown counts a half (TAKEOVER).
+    private static double Turn(int order, double count, double seconds, Animation animation, double wait)
     {
         var delay = wait + (count <= 1 ? 0 : order * SpreadShare * animation.Duration / (count - 1));
         var local = seconds - delay;
@@ -685,12 +717,15 @@ public class MorphingTextBlock : TextBlock
 
     // Carried: the in-flight state of the old text's letters when this change interrupted another; Interrupted: that
     // change, whose leaving letters still play out; NewText: the text a change went to, set once it is interrupted; Taken:
-    // the change this one took over, whose arrivals its leaving letters go on with (see Resolve).
+    // the change this one took over, whose arrivals its leaving letters go on with (see Resolve); Lingering: how much of
+    // the interrupted changes' leaving letters still showed when this one began (see Lingering, TAKEOVER).
     private sealed record Morph(string Old, TextLayout OldLayout, IBrush? OldBrush, double OldWidth, Animation Animation, ContinuousInstant Start,
         Dictionary<int, (GlyphState Glyph, double X)>? Carried, Morph? Interrupted)
     {
         public string NewText { get; init; } = "";
 
         public Morph? Taken { get; init; }
+
+        public double Lingering { get; init; }
     }
 }
