@@ -39,8 +39,8 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // UserMessageRow.UserActions -> PopoverItem continuous hover surface :216-228, UI-GIT-050.
 // 2026-10-04 (unit blitz-timelinerows-cd, OD-0098): the sites above (and the tool badge, the notice pills and the merge pill) are
 // pinned, each with the radius and the .continuous style the source states, in TimelineRowsCdTests.Every_pill_card_and_plate_of_the_
-// timeline_rows_is_a_continuous_rounded_rectangle_of_the_radius_the_source_states; ChatBadge's pill and its clip, which bypassed
-// SwiftShapes, now go through it. Only the curve itself stays open: those records are CORNER-ONLY.
+// timeline_rows_is_a_continuous_rounded_rectangle_of_the_radius_the_source_states; ChatBadge's pill and its clip and the delegation
+// card's wave clip (:698), which bypassed SwiftShapes, now go through it. Only the curve itself stays open: those records are CORNER-ONLY.
 //
 // STOP opencode-App.Views.Chat.TimelineRows #2
 // Kind: external symbol/native-style oracle. Missing: measured reference metrics/drawing for the requested
