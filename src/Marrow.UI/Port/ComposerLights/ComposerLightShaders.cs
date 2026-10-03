@@ -26,11 +26,11 @@ internal static class ComposerLightShaders
         float erf(float x) { float a = 0.147; float x2 = x * x; float r = sqrt(max(0.0, 1.0 - exp(-x2 * (1.2732395 + a * x2) / (1.0 + a * x2)))); return x < 0.0 ? -r : r; }
         """;
 
-    // Border beam. geo: clip radius, ring radius, device scale, mode (0 rotate, 1 line, 2 pulse inner, 3 pulse outside).
-    // win: phase, window radius, fitted, unused. rows: stroke window, inner window, highlight, bloom. bands: on, dv, dh,
-    // bloom sigma. opac: inner, stroke, bloom, slot alpha. outer: core opacity, bloom opacity, core sigma, bloom sigma.
-    // flags: filter stroke and inner, filter bloom, hue on the bloom, has a shadow.
-    internal const string BeamSource = """
+    // Border beam's uniforms. geo: clip radius, ring radius, device scale, mode (0 rotate, 1 line, 2 pulse inner, 3 pulse
+    // outside). win: phase, window radius, fitted, unused. rows: stroke window, inner window, highlight, bloom. bands: on,
+    // dv, dh, bloom sigma. opac: inner, stroke, bloom, slot alpha. outer: core opacity, bloom opacity, core sigma, bloom
+    // sigma. flags: filter stroke and inner, filter bloom, hue on the bloom, has a shadow.
+    private const string BeamUniforms = """
         uniform float2 box;
         uniform float4 geo;
         uniform float4 win;
@@ -47,16 +47,20 @@ internal static class ComposerLightShaders
         uniform float bright;
         uniform float4 lmask;
         uniform float lmaskB;
+
+        """;
+
+    private const string EllipseUniforms = """
         uniform float count;
         uniform float4 eg[40];
         uniform float4 es[40];
         uniform float4 e0[40];
         uniform float4 e1[40];
         uniform float4 e2[40];
-        uniform shader shadowTex;
-        uniform shader bloomTex;
-        uniform shader profiles;
-        """ + Common + """
+
+        """;
+
+    private const string BeamFunctions = Common + """
 
         float cov(float d) { return clamp(0.5 - d * geo.z, 0.0, 1.0); }
         float prof(float row, float f) { return float(profiles.eval(float2(fract(f) * 2048.0, row + 0.5)).a); }
@@ -162,7 +166,10 @@ internal static class ComposerLightShaders
             return 0.5 * (1.0 - erf(d / (sigma * 1.41421356)));
         }
 
-        half4 main(float2 p) {
+        """;
+
+    // the ellipse primitives, composited per layer in paint order (bottom first)
+    private const string EllipseLoop = """
             half4 a0 = half4(0.0); half4 a1 = half4(0.0); half4 a2 = half4(0.0); half4 a3 = half4(0.0); half4 a4 = half4(0.0);
             for (int i = 0; i < 40; i++) {
                 if (float(i) >= count) break;
@@ -179,46 +186,90 @@ internal static class ComposerLightShaders
                 else if (s.w < 3.5) a3 = c + a3 * (1.0 - c.a);
                 else a4 = c + a4 * (1.0 - c.a);
             }
+        """;
+
+    // Large and Small, the static half (baked once per size): bake 1 the inner wash (the inset shadow over the inner blobs,
+    // times the edge bands), bake 2 the stroke's blobs on the ring, bake 3 the ring itself.
+    internal const string RotateBakeSource = BeamUniforms + EllipseUniforms + """
+        uniform float bake;
+        uniform shader shadowTex;
+        uniform shader profiles;
+        """ + BeamFunctions + """
+        half4 main(float2 p) {
+        """ + EllipseLoop + """
+            if (bake < 1.5) {
+                if (cov(rrSdf(p, box, geo.x)) <= 0.0) return half4(0.0);
+                half4 sh = half4(0.0);
+                if (flags.w > 0.5) sh = half4(shadowC) * half(1.0 - float(shadowTex.eval(p).a));
+                float m = bands.x > 0.5 ? bandsMask(p) : 1.0;
+                return (sh + a0 * (1.0 - sh.a)) * half(m);
+            }
+            float ring = ringMask(p, geo.y);
+            if (bake < 2.5) return a1 * half(ring);
+            return half4(half(ring));
+        }
+        """;
+
+    // Large and Small, per frame: the baked layers under the travelling windows, the highlight and the bloom.
+    internal const string RotateSource = BeamUniforms + """
+        uniform shader innerTex;
+        uniform shader strokeTex;
+        uniform shader ringTex;
+        uniform shader bloomTex;
+        uniform shader profiles;
+        uniform shader shadowTex;
+        """ + BeamFunctions + """
+        half4 main(float2 p) {
+            float clip = cov(rrSdf(p, box, geo.x));
+            if (clip <= 0.0) return half4(0.0);
+            float ph = win.x;
+            half4 inner = innerTex.eval(p);
+            if (inner.a > 0.0) {
+                inner = inner * half(prof(rows.y, uInner(p) - ph) * opac.x);
+                if (flags.x > 0.5) inner = filt(inner, hueS, true);
+            }
+            half4 col = inner;
+            float ring = float(ringTex.eval(p).a);
+            if (ring > 0.002) {
+                float u = uCentre(p);
+                float hl = prof(rows.z, u - ph);
+                half4 bg = half4(hlc) * half(hl * ring) + strokeTex.eval(p) * half(1.0 - hl);
+                half4 stroke = bg * half(prof(rows.x, u - ph) * opac.y);
+                if (flags.x > 0.5) stroke = filt(stroke, hueS, true);
+                // the bloom: the highlight's conic blurred (a Gaussian-weighted mean over the box's inside) times the
+                // blurred edge, on the ring
+                float sg = bands.w; float ws = 0.0; float vs = 0.0;
+                for (int a = 0; a < 5; a++) {
+                    for (int b = 0; b < 5; b++) {
+                        float2 o = float2(float(a) - 2.0, float(b) - 2.0);
+                        float2 q = p + sg * o;
+                        float w = exp(-0.5 * dot(o, o)) * cov(rrSdf(q, box, geo.y));
+                        if (w > 0.0) { ws += w; vs += w * prof(rows.w, uCentre(q) - ph); }
+                    }
+                }
+                float bl = ws > 0.0 ? vs / ws : 0.0;
+                half4 bloom = filt(half4(hlc) * half(bl * float(bloomTex.eval(p).a) * ring * opac.z), hueB, false);
+                col = stroke + col * (1.0 - stroke.a);
+                col = bloom + col * (1.0 - bloom.a);
+            }
+            return col * half(clip * opac.w);
+        }
+        """;
+
+    // Line and the pulses, per frame: their ellipses move, so they are evaluated directly.
+    internal const string MovingSource = BeamUniforms + EllipseUniforms + """
+        uniform shader shadowTex;
+        uniform shader bloomTex;
+        uniform shader profiles;
+        """ + BeamFunctions + """
+        half4 main(float2 p) {
+        """ + EllipseLoop + """
             float mode = geo.w;
             float clip = cov(rrSdf(p, box, geo.x));
             half4 col = half4(0.0);
             half4 sh = half4(0.0);
             if (flags.w > 0.5 && clip > 0.0) sh = half4(shadowC) * half(1.0 - float(shadowTex.eval(p).a));
-            if (mode < 0.5) {
-                float ph = win.x;
-                half4 inner = half4(0.0); half4 stroke = half4(0.0); half4 bloom = half4(0.0);
-                if (clip > 0.0) {
-                    inner = sh + a0 * (1.0 - sh.a);
-                    float m = bands.x > 0.5 ? bandsMask(p) : 1.0;
-                    inner = inner * half(m * prof(rows.y, uInner(p) - ph) * opac.x);
-                    if (flags.x > 0.5) inner = filt(inner, hueS, true);
-                }
-                float ring = ringMask(p, geo.y);
-                if (ring > 0.0) {
-                    float u = uCentre(p);
-                    float hl = prof(rows.z, u - ph);
-                    half4 bg = half4(hlc) * half(hl) + a1 * half(1.0 - hl);
-                    stroke = bg * half(prof(rows.x, u - ph) * ring * opac.y);
-                    if (flags.x > 0.5) stroke = filt(stroke, hueS, true);
-                    // the bloom: the highlight's conic blurred (a Gaussian-weighted mean over the box's inside) times the
-                    // blurred edge, on the ring
-                    float sg = bands.w; float ws = 0.0; float vs = 0.0;
-                    for (int a = 0; a < 5; a++) {
-                        for (int b = 0; b < 5; b++) {
-                            float2 o = float2(float(a) - 2.0, float(b) - 2.0);
-                            float2 q = p + sg * o;
-                            float w = exp(-0.5 * dot(o, o)) * cov(rrSdf(q, box, geo.y));
-                            if (w > 0.0) { ws += w; vs += w * prof(rows.w, uCentre(q) - ph); }
-                        }
-                    }
-                    float bl = ws > 0.0 ? vs / ws : 0.0;
-                    bloom = half4(hlc) * half(bl * float(bloomTex.eval(p).a) * ring * opac.z);
-                    bloom = filt(bloom, hueB, false);
-                }
-                col = stroke + inner * (1.0 - stroke.a);
-                col = bloom + col * (1.0 - bloom.a);
-                col *= half(clip);
-            } else if (mode < 1.5) {
+            if (mode < 1.5) {
                 float ms = maskEll(p, lmask.y, lmask.z, 0.45);
                 half4 inner = half4(0.0); half4 stroke = half4(0.0); half4 bloom = half4(0.0);
                 if (clip > 0.0) {
@@ -366,10 +417,14 @@ internal static class ComposerLightShaders
     private static Lazy<SKRuntimeEffect> Compile(string source, string what) => new(() =>
         SKRuntimeEffect.CreateShader(source, out var error) ?? throw new InvalidOperationException("The composer light's " + what + " shader did not compile: " + error));
 
-    private static readonly Lazy<SKRuntimeEffect> beam = Compile(BeamSource, "Border beam");
+    private static readonly Lazy<SKRuntimeEffect> rotateBake = Compile(RotateBakeSource, "Border beam bake");
+    private static readonly Lazy<SKRuntimeEffect> rotate = Compile(RotateSource, "Border beam (rotate)");
+    private static readonly Lazy<SKRuntimeEffect> moving = Compile(MovingSource, "Border beam (line, pulse)");
     private static readonly Lazy<SKRuntimeEffect> aura = Compile(AuraSource, "Uiverse");
 
-    public static SKRuntimeEffect Beam => beam.Value;
+    public static SKRuntimeEffect RotateBake => rotateBake.Value;
+    public static SKRuntimeEffect Rotate => rotate.Value;
+    public static SKRuntimeEffect Moving => moving.Value;
     public static SKRuntimeEffect Aura => aura.Value;
 
     private static readonly Lazy<SKImage> profiles = new(BuildProfiles);

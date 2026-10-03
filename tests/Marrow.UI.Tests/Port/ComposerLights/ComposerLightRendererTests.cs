@@ -11,10 +11,12 @@ namespace Marrow.UI.Tests.Port.ComposerLights;
 public sealed class ComposerLightRendererTests
 {
     [Fact]
-    [Trait("Decision", "ED-251")] // the board's port notes: one SkSL shader per light; both compile
-    public void Both_shaders_compile()
+    [Trait("Decision", "ED-251")] // the board's port notes: one SkSL shader per light and frame (and Large/Small's bake); all compile
+    public void Every_shader_compiles()
     {
-        Assert.NotNull(ComposerLightShaders.Beam);
+        Assert.NotNull(ComposerLightShaders.Rotate);
+        Assert.NotNull(ComposerLightShaders.RotateBake);
+        Assert.NotNull(ComposerLightShaders.Moving);
         Assert.NotNull(ComposerLightShaders.Aura);
     }
 

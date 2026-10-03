@@ -43,6 +43,14 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
     private bool frameRequested;
     private int stopped;
     private double reach;
+    private bool software;
+
+    /// <summary>
+    /// ENGINEERING DECISION (ED-251): with no GPU (Skia's software rasterizer), the light is drawn as one still, as under
+    /// reduce motion: its shaders cost 15 to 60 ms a frame there, which would make typing stutter. Tests that need the
+    /// motion on the headless (software) renderer turn this on.
+    /// </summary>
+    internal static volatile bool AnimateWithoutGpu;
 
     /// <summary>The animator (tests read it).</summary>
     public ComposerLightAnimator? Light => Volatile.Read(ref light);
@@ -72,7 +80,7 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
             Volatile.Write(ref light, new ComposerLightAnimator(next.Settings, next.Phase, next.Dark, size.Width, size.Height, next.ReduceMotion, next.Palette));
         else
         {
-            light.SetReduceMotion(next.ReduceMotion, now);
+            light.SetReduceMotion(next.ReduceMotion || software, now);
             light.SetSize(size.Width, size.Height, now);
             light.SetDark(next.Dark, now);
             light.SetPalette(next.Palette, now);
@@ -115,6 +123,11 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
         var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
         if (feature is null) return;
         using var lease = feature.Lease();
+        if (lease.GrContext is null && !AnimateWithoutGpu && !software)
+        {
+            software = true;
+            light.SetReduceMotion(true, Seconds(s.Clock));
+        }
         var canvas = lease.SkCanvas;
         var m = canvas.TotalMatrix;
         var scale = (float)Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));

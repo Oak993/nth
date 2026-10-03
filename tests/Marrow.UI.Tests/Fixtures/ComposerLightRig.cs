@@ -124,3 +124,10 @@ internal static class ComposerLightFixtures
         return (max, off * 100.0 / (a.Width * a.Height));
     }
 }
+
+/// <summary>The headless renderer is Skia's software rasterizer, where the light draws one still unless asked (ED-251).</summary>
+internal sealed class ComposerLightMotion : IDisposable
+{
+    public ComposerLightMotion() => ComposerLightHandler.AnimateWithoutGpu = true;
+    public void Dispose() => ComposerLightHandler.AnimateWithoutGpu = false;
+}

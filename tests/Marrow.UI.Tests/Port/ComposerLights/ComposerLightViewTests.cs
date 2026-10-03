@@ -73,6 +73,7 @@ public sealed class ComposerLightViewTests(HeadlessSession headless)
     [Trait("Decision", "ED-251")] // OD-0089: Border beam by default, drawn on the composition thread inside the composer
     public void The_default_light_is_border_beam_inside_the_composer() => headless.OnUiThread(() =>
     {
+        using var motion = new ComposerLightMotion();
         var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
         var (window, view) = Show(ComposerLightSettings.Default);
         try
@@ -96,6 +97,7 @@ public sealed class ComposerLightViewTests(HeadlessSession headless)
     [Trait("Decision", "ED-251")] // OD-0076 / gen.py: a change of style fades (.5 s out, .6 s in), never a cut; Off asks for no frames once faded
     public void A_change_of_settings_transitions_and_off_stops_the_frames() => headless.OnUiThread(() =>
     {
+        using var motion = new ComposerLightMotion();
         var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
         var (window, view) = Show(ComposerLightSettings.Default);
         try
@@ -154,6 +156,26 @@ public sealed class ComposerLightViewTests(HeadlessSession headless)
             Assert.Equal(ComposerLightStyle.Aura, b.Handler!.Light!.Settings.Style);
             Assert.True(b.Handler.Light.AuraVisible);
             Assert.False(a.Handler.Light.AuraVisible);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // ENGINEERING DECISION: without a GPU the light is one still (its shaders are too slow for 60 Hz in software)
+    public void Without_a_gpu_the_light_is_a_still() => headless.OnUiThread(() =>
+    {
+        var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
+        var (window, view) = Show(ComposerLightSettings.Default);
+        try
+        {
+            clock.Advance(TimeSpan.FromSeconds(0.5));
+            Tick();
+            Assert.False(view.Handler!.IsAnimating);
+            var first = Pixels(window);
+            clock.Advance(TimeSpan.FromSeconds(1.3));
+            Tick();
+            Assert.Equal(first, Pixels(window));
+            Assert.True(Lit(first, 900, 40, 40, 860, 92) > 100);
         }
         finally { window.Close(); }
     });

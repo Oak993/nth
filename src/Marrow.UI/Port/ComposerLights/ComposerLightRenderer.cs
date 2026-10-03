@@ -48,14 +48,48 @@ public sealed class ComposerLightRenderer : IDisposable
 {
     private const int Max = EllipseBuffer.Capacity;
 
+    // Large and Small's static layers, baked at device scale: the inner wash, the stroke's blobs on the ring, the ring.
+    private sealed class RotateBake : IDisposable
+    {
+        private (BeamSlotConfig Key, float W, float H, float Clip, float Ring, float ShadowSigma, float Scale)? key;
+        private SKImage? inner, stroke, ring;
+        public SKShader? Inner { get; private set; }
+        public SKShader? Stroke { get; private set; }
+        public SKShader? Ring { get; private set; }
+
+        public bool Matches(BeamSlotConfig k, float w, float h, float clip, float ringR, float sigma, float scale) =>
+            Inner is not null && key == (k, w, h, clip, ringR, sigma, scale);
+
+        public void Set(BeamSlotConfig k, float w, float h, float clip, float ringR, float sigma, float scale, SKImage i, SKImage s, SKImage r)
+        {
+            Dispose();
+            key = (k, w, h, clip, ringR, sigma, scale);
+            inner = i; stroke = s; ring = r;
+            var local = SKMatrix.CreateScaleTranslation(1 / scale, 1 / scale, -1, -1);
+            var sampling = new SKSamplingOptions(SKFilterMode.Linear);
+            Inner = i.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, sampling, local);
+            Stroke = s.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, sampling, local);
+            Ring = r.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, sampling, local);
+        }
+
+        public void Dispose()
+        {
+            Inner?.Dispose(); Stroke?.Dispose(); Ring?.Dispose(); inner?.Dispose(); stroke?.Dispose(); ring?.Dispose();
+            Inner = Stroke = Ring = null; inner = stroke = ring = null;
+        }
+    }
+
     private sealed class BeamGpu : IDisposable
     {
-        public readonly SKRuntimeEffectUniforms Uniforms = new(ComposerLightShaders.Beam);
-        public readonly SKRuntimeEffectChildren Children = new(ComposerLightShaders.Beam);
+        public readonly SKRuntimeEffectUniforms Rotate = new(ComposerLightShaders.Rotate);
+        public readonly SKRuntimeEffectChildren RotateChildren = new(ComposerLightShaders.Rotate);
+        public readonly SKRuntimeEffectUniforms Moving = new(ComposerLightShaders.Moving);
+        public readonly SKRuntimeEffectChildren MovingChildren = new(ComposerLightShaders.Moving);
         public readonly BakedRoundRect Shadow = new(), Bloom = new();
+        public readonly RotateBake Bake = new();
         public readonly float[] Eg = new float[Max * 4], Es = new float[Max * 4], E0 = new float[Max * 4], E1 = new float[Max * 4], E2 = new float[Max * 4];
         public readonly float[] HueS = new float[9], HueB = new float[9], Sat = new float[9];
-        public void Dispose() { Uniforms.Dispose(); Children.Dispose(); Shadow.Dispose(); Bloom.Dispose(); }
+        public void Dispose() { Rotate.Dispose(); RotateChildren.Dispose(); Moving.Dispose(); MovingChildren.Dispose(); Shadow.Dispose(); Bloom.Dispose(); Bake.Dispose(); }
     }
 
     private readonly BeamGpu[] beams = [new(), new(), new()];
@@ -77,16 +111,51 @@ public sealed class ComposerLightRenderer : IDisposable
         for (var i = 0; i < light.DrawnCount; i++)
         {
             var slot = light.Drawn[i];
-            DrawBeam(canvas, gpu, beams[slot], light.Slots[slot], scale, opacity);
+            if (light.SlotKey(slot) is { } key) DrawBeam(canvas, gpu, beams[slot], light.Slots[slot], key, scale, opacity);
         }
     }
 
-    private void DrawBeam(SKCanvas canvas, GRContext? gpu, BeamGpu g, BeamFrame f, float scale, float opacity)
+    private void DrawBeam(SKCanvas canvas, GRContext? gpu, BeamGpu g, BeamFrame f, BeamSlotConfig key, float scale, float opacity)
     {
         float w = (float)f.W, h = (float)f.H;
         if (w <= 0 || h <= 0) return;
-        var u = g.Uniforms;
-        u["box"] = new SKSize(w, h);
+        var rotate = f.Mode == 0;
+        var u = rotate ? g.Rotate : g.Moving;
+        Common(u, g, f, scale, opacity);
+        var clip = (float)f.ClipRadius;
+        var shadow = f.ShadowSigma > 0 && f.Shadow.A > 0
+            ? g.Shadow.Get(gpu, 1, 1, w - 2, h - 2, Math.Max(0, clip - 1), (float)f.ShadowSigma, scale)
+            : nothing;
+        var bloom = f.Mode is 0 or 1 or 2 ? g.Bloom.Get(gpu, 0, 0, w, h, (float)f.RingRadius, (float)Math.Max(0.05, f.BloomSigma), scale) : nothing;
+        SKShader shader;
+        if (rotate)
+        {
+            if (!g.Bake.Matches(key, w, h, clip, (float)f.RingRadius, (float)f.ShadowSigma, scale)) Bake(gpu, g, f, key, shadow, scale);
+            var c = g.RotateChildren;
+            c["innerTex"] = g.Bake.Inner; c["strokeTex"] = g.Bake.Stroke; c["ringTex"] = g.Bake.Ring;
+            c["bloomTex"] = bloom; c["profiles"] = profiles; c["shadowTex"] = nothing;
+            shader = ComposerLightShaders.Rotate.ToShader(u, c);
+        }
+        else
+        {
+            Ellipses(u, g, f);
+            var c = g.MovingChildren;
+            c["shadowTex"] = shadow; c["bloomTex"] = bloom; c["profiles"] = profiles;
+            shader = ComposerLightShaders.Moving.ToShader(u, c);
+        }
+        using (shader)
+        {
+            var reach = f.Mode == 3 ? 30 + 3 * (float)Math.Max(f.OuterBloomSigma, f.CoreSigma) + 4 : 1;
+            paint.Shader = shader;
+            canvas.DrawRect(new SKRect(-reach, -reach, w + reach, h + reach), paint);
+            paint.Shader = null;
+        }
+    }
+
+    // the uniforms every beam shader shares
+    private static void Common(SKRuntimeEffectUniforms u, BeamGpu g, BeamFrame f, float scale, float opacity)
+    {
+        u["box"] = new SKSize((float)f.W, (float)f.H);
         Set(u, "geo", f.ClipRadius, f.RingRadius, scale, f.Mode);
         Set(u, "win", f.Phase, f.WindowRadius, f.Fitted ? 1 : 0, 0);
         Set(u, "rows", ComposerLightShaders.RowW1, f.InnerWindowW2 ? ComposerLightShaders.RowW2 : ComposerLightShaders.RowW1,
@@ -103,6 +172,11 @@ public sealed class ComposerLightRenderer : IDisposable
         u["bright"] = (float)f.Brightness;
         Set(u, "lmask", f.MaskX, f.MaskSrx, f.MaskSry, f.MaskBrx);
         u["lmaskB"] = (float)f.MaskBry;
+    }
+
+    // the ellipse primitives as the shaders' five arrays
+    private static void Ellipses(SKRuntimeEffectUniforms u, BeamGpu g, BeamFrame f)
+    {
         var e = f.Ellipses; var n = e.Count; var d = e.Data;
         for (var i = 0; i < Max; i++)
         {
@@ -118,18 +192,31 @@ public sealed class ComposerLightRenderer : IDisposable
         }
         u["count"] = (float)n;
         u["eg"] = g.Eg.AsSpan(); u["es"] = g.Es.AsSpan(); u["e0"] = g.E0.AsSpan(); u["e1"] = g.E1.AsSpan(); u["e2"] = g.E2.AsSpan();
-        var c = g.Children;
-        var clip = (float)f.ClipRadius;
-        c["shadowTex"] = f.ShadowSigma > 0 && f.Shadow.A > 0
-            ? g.Shadow.Get(gpu, 1, 1, w - 2, h - 2, Math.Max(0, clip - 1), (float)f.ShadowSigma, scale)
-            : nothing;
-        c["bloomTex"] = f.Mode is 0 or 1 or 2 ? g.Bloom.Get(gpu, 0, 0, w, h, (float)f.RingRadius, (float)Math.Max(0.05, f.BloomSigma), scale) : nothing;
-        c["profiles"] = profiles;
-        var reach = f.Mode == 3 ? 30 + 3 * (float)Math.Max(f.OuterBloomSigma, f.CoreSigma) + 4 : 1;
-        using var shader = ComposerLightShaders.Beam.ToShader(u, c);
-        paint.Shader = shader;
-        canvas.DrawRect(new SKRect(-reach, -reach, w + reach, h + reach), paint);
-        paint.Shader = null;
+    }
+
+    // Large and Small's static layers into three images at device scale (1 px of margin), once per structure, size and scale
+    private void Bake(GRContext? gpu, BeamGpu g, BeamFrame f, BeamSlotConfig key, SKShader shadow, float scale)
+    {
+        float w = (float)f.W, h = (float)f.H;
+        using var u = new SKRuntimeEffectUniforms(ComposerLightShaders.RotateBake);
+        Common(u, g, f, scale, 1);
+        Ellipses(u, g, f);
+        using var c = new SKRuntimeEffectChildren(ComposerLightShaders.RotateBake) { ["shadowTex"] = shadow, ["profiles"] = profiles };
+        var info = new SKImageInfo(Math.Max(1, (int)Math.Ceiling((w + 2) * scale)), Math.Max(1, (int)Math.Ceiling((h + 2) * scale)), SKColorType.Rgba8888, SKAlphaType.Premul);
+        SKImage Pass(float bake)
+        {
+            u["bake"] = bake;
+            using var surface = (gpu is not null ? SKSurface.Create(gpu, false, info) : null) ?? SKSurface.Create(info);
+            var canvas = surface.Canvas;
+            canvas.Clear(SKColors.Transparent);
+            canvas.Scale(scale);
+            canvas.Translate(1, 1);
+            using var shader = ComposerLightShaders.RotateBake.ToShader(u, c);
+            using var p = new SKPaint { Shader = shader, BlendMode = SKBlendMode.Src };
+            canvas.DrawRect(new SKRect(-1, -1, w + 1, h + 1), p);
+            return surface.Snapshot();
+        }
+        g.Bake.Set(key, w, h, (float)f.ClipRadius, (float)f.RingRadius, (float)f.ShadowSigma, scale, Pass(1), Pass(2), Pass(3));
     }
 
     private void DrawAura(SKCanvas canvas, GRContext? gpu, AuraFrame a, float scale, float opacity, float? fadeBottom)
