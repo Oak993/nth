@@ -80,6 +80,21 @@ public class MorphingTextBlock : TextBlock
     internal const double NarrowingKeptLead = -0.010;
     internal const double NarrowingKeptStretch = 1;
 
+    // TAKEOVER (final review, round 2: the leaving letters of a change that takes over an unfinished one were frozen as they
+    // were at the takeover, so the letters still arriving left faint and too soon). SOURCE FACT, 2-chat-use.mov frame by
+    // frame (study effort-title-2026-10-03, sbs_takeover_dec.png and sbs_takeover_inc.png): the letters the change taken over
+    // was still bringing in go on arriving (whole by 35.078-35.100 s in Extra High -> Max at 35.05 s, the "t", "r" and "a" of
+    // "Extra" plainly drawn at 35.807-35.843 s in Extra High -> High at 35.753 s) and then leave in turn, rising and fading:
+    // in the first, all nine letters of "Extra High" leave about 18 ms apart, as any nine do; in the second the five of
+    // "Extra" leave about as close ("E" faint by 35.807, "x" and "t" by 35.843, the "a" last, faint at 35.928, gone at 35.943),
+    // not 36 ms apart as five leaving letters of a change from rest would. ENGINEERING DECISION, fitted to those two events
+    // with no new number: a taken-over line's leaving letters take their turns by their places among all its letters, the
+    // kept ones counted, so "Extra" of "Extra High" goes as the first five of nine. Measured on the label's drawing at the
+    // video's frames (work/claude-verify/resume-2026-10-03/effort-fix-r4.takeover-probe.live.txt): "x", "t", "r", "a" at
+    // 0.62-0.79 at 35.807 s; "a" 0.57 at 35.865, 0.35 at 35.887, 0.09 at 35.928, 0.05 at 35.943, 0.01 at 35.965; in the
+    // widening "r" and "a" 0.95 and 0.79 at 35.100 s, 0.10 and 0.19 at 35.207 s. Residual: the video's "a" still looks
+    // plain at 35.887 s, where the port's is at 0.35 (a later turn for it would leave it showing past 35.943 s).
+
     private Morph? morph;
     private IFrameSource? frames;
     private Action<TimeSpan>? tick;
@@ -157,7 +172,7 @@ public class MorphingTextBlock : TextBlock
         morph = null;
         if (old.Length == 0) { InvalidateMeasure(); InvalidateVisual(); return; }
         // A copy of the old line, built now with the old colour: the TextBlock disposes its own layout on a change.
-        morph = new Morph(old, CreateTextLayout(old), Foreground, Bounds.Width, animation, SwiftClock.Now, carried, Running(interrupted));
+        morph = new Morph(old, CreateTextLayout(old), Foreground, Bounds.Width, animation, SwiftClock.Now, carried, Running(interrupted)) { Taken = carried is null ? null : interrupted };
         frames = FrameClock.Source.Current;
         tick = _ =>
         {
@@ -183,7 +198,10 @@ public class MorphingTextBlock : TextBlock
 
     // Every letter of the text the running morph is going to, at its state now and where it is drawn, by its index.
     private static Dictionary<int, (GlyphState Glyph, double X)> InFlight(Morph state, string text, TextLayout layout) =>
-        Resolve(state, text, layout, Elapsed(state)).Where(g => g.Glyph.NewIndex is not null).ToDictionary(g => g.Glyph.NewIndex!.Value, g => (g.Glyph, g.X));
+        Resolve(state, text, layout, Elapsed(state), newLettersOnly: true).ToDictionary(g => g.Glyph.NewIndex!.Value, g => (g.Glyph, g.X));
+
+    // The letters of the text a change taken over was going to, as that change has them now (it runs on under the leave).
+    private static Dictionary<int, (GlyphState Glyph, double X)> Live(Morph taken, TextLayout layout) => InFlight(taken, taken.NewText, layout);
 
     // The last new letter takes its turn (ArrivalShare + SpreadShare) of the change's duration in, then runs its curve.
     internal static double Length(Animation animation) => animation.Duration * (1 + ArrivalShare + SpreadShare);
@@ -394,26 +412,36 @@ public class MorphingTextBlock : TextBlock
     }
 
     // Every letter of a change at a moment, with where it is drawn along the line; the letters it took over from an
-    // interrupted change start from where that one had them.
-    private static List<(GlyphState Glyph, double X)> Resolve(Morph state, string newText, TextLayout newLayout, double seconds)
+    // interrupted change start from where that one had them (its leaving ones go on with that change, see below).
+    // newLettersOnly: only the letters of the new text (what a change taken over hands on).
+    private static List<(GlyphState Glyph, double X)> Resolve(Morph state, string newText, TextLayout newLayout, double seconds, bool newLettersOnly = false)
     {
         var result = new List<(GlyphState, double)>();
-        foreach (var glyph in Glyphs(state.Old, newText, seconds, state.Animation, newLayout.WidthIncludingTrailingWhitespace < state.OldLayout.WidthIncludingTrailingWhitespace))
+        Dictionary<int, (GlyphState Glyph, double X)>? live = null;
+        foreach (var glyph in Glyphs(state.Old, newText, seconds, state.Animation, newLayout.WidthIncludingTrailingWhitespace < state.OldLayout.WidthIncludingTrailingWhitespace, takeover: state.Carried is not null))
         {
+            if (newLettersOnly && glyph.NewIndex is null) continue;
             var x = glyph.X(state.OldLayout, newLayout);
             var drawn = glyph;
             if (glyph.OldIndex is { } o && state.Carried is { } carried && carried.TryGetValue(o, out var from))
             {
                 if (glyph.NewIndex is null)
                 {
+                    // A letter the change taken over was still bringing in goes on arriving under its leave, on that change's
+                    // own clock, and is not frozen as it was at the takeover. SOURCE FACT (2-chat-use.mov, final review round
+                    // 2, study effort-title-2026-10-03/sbs_takeover_*): Extra High -> High taking over Max -> Extra High at
+                    // 35.753 s, the "t", "r" and "a" of "Extra", faint at the takeover, are plainly drawn at 35.807-35.843 and
+                    // the "a" on the "h" at 35.865-35.907; Extra High -> Max taking over High -> Extra High at 35.05 s, the
+                    // small, faint "r" and "a" are whole at 35.078-35.122 and then rise away fading.
+                    var now = state.Taken is { } taken && (live ??= Live(taken, state.OldLayout)).TryGetValue(o, out var going) ? going : from;
                     drawn = glyph with
                     {
-                        Opacity = from.Glyph.Opacity * glyph.Opacity,
-                        Scale = from.Glyph.Scale * glyph.Scale,
-                        Blur = Math.Max(from.Glyph.Blur, glyph.Blur),
-                        Rise = from.Glyph.Rise + glyph.Rise,
+                        Opacity = now.Glyph.Opacity * glyph.Opacity,
+                        Scale = now.Glyph.Scale * glyph.Scale,
+                        Blur = Math.Max(now.Glyph.Blur, glyph.Blur),
+                        Rise = now.Glyph.Rise + glyph.Rise,
                     };
-                    x = from.X;
+                    x = now.X;
                 }
                 else
                 {
@@ -592,7 +620,7 @@ public class MorphingTextBlock : TextBlock
     }
 
     /// <summary>Every character of a change at <paramref name="seconds"/> into it (see the file note for the rules).</summary>
-    internal static List<GlyphState> Glyphs(string oldText, string newText, double seconds, Animation animation, bool narrowing = false)
+    internal static List<GlyphState> Glyphs(string oldText, string newText, double seconds, Animation animation, bool narrowing = false, bool takeover = false)
     {
         // The kept letters' own clock (see KeptLead, NarrowingKeptLead).
         var keptTime = (seconds + (narrowing ? NarrowingKeptLead : KeptLead)) / (narrowing ? NarrowingKeptStretch : KeptStretch);
@@ -606,9 +634,12 @@ public class MorphingTextBlock : TextBlock
             result.Add(new GlyphState(false, n, o, n, shared, 1, 1, 0, 0));
         var arriving = Enumerable.Range(0, newText.Length).Where(i => !keptNew.Contains(i) && newText[i] != ' ').ToList();
         var leaving = Enumerable.Range(0, oldText.Length).Where(i => !keptOld.Contains(i) && oldText[i] != ' ').ToList();
+        // A change that takes over an unfinished one: its leaving letters take their turns by their places among all the old
+        // line's letters, the kept ones counted (TakeoverTurns).
+        var letters = takeover ? Enumerable.Range(0, oldText.Length).Where(i => oldText[i] != ' ').ToList() : leaving;
         for (var k = 0; k < leaving.Count; k++)
         {
-            var p = Turn(k, leaving.Count, seconds, animation, 0);
+            var p = Turn(takeover ? letters.IndexOf(leaving[k]) : k, letters.Count, seconds, animation, 0);
             var faded = Math.Clamp(p, 0, 1);
             result.Add(new GlyphState(true, leaving[k], leaving[k], null, p, 1 - faded, 1 - (1 - StartScale) * p, MaxBlur * faded, -Travel * p));
         }
@@ -650,10 +681,13 @@ public class MorphingTextBlock : TextBlock
     }
 
     // Carried: the in-flight state of the old text's letters when this change interrupted another; Interrupted: that
-    // change, whose leaving letters still play out; NewText: the text a change went to, set once it is interrupted.
+    // change, whose leaving letters still play out; NewText: the text a change went to, set once it is interrupted; Taken:
+    // the change this one took over, whose arrivals its leaving letters go on with (see Resolve).
     private sealed record Morph(string Old, TextLayout OldLayout, IBrush? OldBrush, double OldWidth, Animation Animation, ContinuousInstant Start,
         Dictionary<int, (GlyphState Glyph, double X)>? Carried, Morph? Interrupted)
     {
         public string NewText { get; init; } = "";
+
+        public Morph? Taken { get; init; }
     }
 }

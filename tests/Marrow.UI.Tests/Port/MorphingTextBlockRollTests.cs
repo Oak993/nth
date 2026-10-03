@@ -289,36 +289,81 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
         return sum / weight;
     }
 
-    // Video 35.04 s: "Extra High" -> "Max" came while "r" and "a" were still arriving (faint, low at 35.037 s); they then
-    // left from there, raised and fading (35.10-35.14 s), never drawn whole in between.
+    // SOURCE FACT, 2-chat-use.mov frame by frame (study effort-title-2026-10-03/sbs_takeover_inc.png): "Extra High" -> "Max"
+    // takes over the unfinished "High" -> "Extra High" at about 35.05 s, while the "r" and "a" of "Extra" are still small,
+    // faint and low (35.037 s). They go on arriving and are drawn whole, full size and plain, at 35.078-35.100 s (25-47 ms
+    // after the takeover); then they rise away and fade (35.122-35.165 s), very faint at 35.207 s (154 ms). (This test said
+    // until final review round 2 that they left from where they were at the takeover, "never drawn whole in between"; the
+    // frames show them whole: it measured ink 5 ms after the takeover and pinned the frozen state the review refuted.)
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
-    public void A_change_that_interrupts_another_carries_on_from_where_its_letters_are() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-238")] // PR-COMPOSER-111's morph (EffortSlider.swift:574, numericText) through a takeover
+    public void The_letters_still_arriving_when_a_change_is_taken_over_arrive_whole_before_they_leave() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
         var clock = new ManualTimeProvider();
         using var time = SwiftClock.Provider.Override(clock);
-        var label = new MorphingTextBlock { Text = "HHHH", FontSize = 30, Foreground = Brushes.White, Margin = new Thickness(10) };
-        var window = new Window { Width = 400, Height = 90, Background = Brushes.Black, Content = new Border { Child = label, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top } };
+        var label = new DrawnMorphingTextBlock { Text = "High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Brushes.White, MaxLines = 1, GrowthAnchor = 0.5 };
+        var window = new Window { Width = 300, Height = 60, Background = Brushes.Black, Content = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Children = { label } } };
         window.Show();
         Dispatcher.UIThread.RunJobs();
         try
         {
-            var right = (RenderedPixels.Capture(window) is var rest ? Enumerable.Range(0, rest.Width).Last(x => Enumerable.Range(0, rest.Height).Any(y => rest.Level(x, y) > 60)) : 0) + 3;
-            double Ink() { var pixels = RenderedPixels.Capture(window); double sum = 0; for (var x = right; x < pixels.Width; x++) for (var y = 0; y < pixels.Height; y++) sum += pixels.Level(x, y); return sum; }
-            void Step(int ms) { clock.Advance(TimeSpan.FromMilliseconds(ms)); frames.Advance(TimeSpan.FromMilliseconds(ms)); Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); }
-            label.SetText("HHHHMM", Slider);
-            Step(75); // the first M part way in, the second only begun
-            var arriving = Ink();
-            Assert.True(arriving > 0);
-            label.SetText("HHHH", Slider);
-            Step(5);
-            var after = Ink();
-            Assert.True(after < arriving * 1.15 + 1, $"the half-arrived letters leave from where they were: {arriving:F0} -> {after:F0}");
+            void Advance(int milliseconds)
+            {
+                for (var ms = 0; ms < milliseconds; ms += 1)
+                {
+                    clock.Advance(TimeSpan.FromMilliseconds(1));
+                    frames.Advance(TimeSpan.FromMilliseconds(1));
+                    Dispatcher.UIThread.RunJobs();
+                    window.UpdateLayout();
+                }
+            }
+            label.SetText("Extra High", Slider); // 34.838 s
+            Dispatcher.UIThread.RunJobs();
+            Advance(215);
+            var taken = Letters(label, "Extra High");
+            label.SetText("Max", Slider); // about 35.053 s, the takeover
+            Dispatcher.UIThread.RunJobs();
+            Advance(47); // 35.100 s
+            var whole = Letters(label, "Extra High");
+            Advance(107); // 35.207 s
+            var faint = Letters(label, "Extra High");
+            string Show(Dictionary<int, double> letters) => string.Join(" ", new[] { 3, 4 }.Select(i => $"{"Extra High"[i]}:{(letters.TryGetValue(i, out var o) ? o : 0):F2}"));
+            var seen = $"at the takeover {Show(taken)}; 47 ms after {Show(whole)}; 154 ms after {Show(faint)}";
+            Assert.True(taken.GetValueOrDefault(4) < 0.5, $"the \"a\" is not still arriving at the takeover (video 35.037 s: small and faint): {seen}");
+            Assert.True(whole.GetValueOrDefault(3) >= 0.7 && whole.GetValueOrDefault(4) >= 0.7, $"47 ms after the takeover (video 35.100 s: \"r\" and \"a\" plain and whole) they are not drawn whole: {seen}");
+            Assert.True(faint.GetValueOrDefault(3) < 0.25 && faint.GetValueOrDefault(4) < 0.25, $"154 ms after the takeover (video 35.207 s: very faint) they have not gone: {seen}");
         }
-        finally { window.Close(); }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     });
+
+    // Each letter of the line <paramref name="line"/> as the label draws it now, by its index in that line: its copies'
+    // opacities added up over the copies a blurred letter is drawn as (MorphingTextBlock.DrawBlurred: 0.25 + 8 x 0.12 +
+    // 8 x 0.06 of its opacity), read from what the label pushes into a recording.
+    private static Dictionary<int, double> Letters(DrawnMorphingTextBlock label, string line)
+    {
+        var recording = new DrawingGroup();
+        using (var context = recording.Open()) label.DrawInto(context);
+        var sums = new Dictionary<int, (double Sum, int Copies)>();
+        void Walk(Drawing drawing, double opacity)
+        {
+            switch (drawing)
+            {
+                case DrawingGroup group:
+                    var inner = opacity * (group.IsSet(DrawingGroup.OpacityProperty) ? group.Opacity : 1);
+                    foreach (var child in group.Children) Walk(child, inner);
+                    break;
+                case GlyphRunDrawing { GlyphRun: { } run } when run.Characters.ToString() == line:
+                    var cluster = run.GlyphInfos[0].GlyphCluster;
+                    var (sum, copies) = sums.TryGetValue(cluster, out var known) ? known : (0, 0);
+                    sums[cluster] = (sum + opacity, copies + 1);
+                    break;
+            }
+        }
+        Walk(recording, 1);
+        return sums.ToDictionary(pair => pair.Key, pair => pair.Value.Copies >= 17 ? pair.Value.Sum / 1.69 : pair.Value.Sum);
+    }
 
     // Each H's columns along the row through the middle of the ink (an H is one run across its bar), and that row.
     private static List<(int X0, int X1, int Y)> Letters(RenderedPixels pixels)
