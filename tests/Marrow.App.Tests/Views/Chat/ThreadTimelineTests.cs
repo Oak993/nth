@@ -306,7 +306,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // Kind: shared symbol metrics. Swift: ThreadTimeline.swift:2129-2135 (the chevron joins the header, the time glides over to make room). Record: UI-CHAT-043.
     // Missing: on the reference runtime the time's left edge moves 17 points when the chevron comes (8 of spacing and a 9 point symbol, 2-chat-use.mov 95.803-96.078); the port's chevron.right is 12 wide
     // at the same font, so the whole shift is 20 and the time sits 3 points further left than the Mac's whenever a chevron is shown. The curve is the Mac's (smooth 0.3 s, ThreadTimelineWorkingLineTests).
-    // Needed: the symbol set's advance for chevron.right at caption2 (Marrow.UI SwiftImage, shared by every chevron in the app); not changed here.
+    // Needed: a per-symbol advance for chevron.right at caption2. ED-182 draws every symbol in a square of 1.2 times the font's size (SwiftImage.SymbolSide), shared by every symbol in the app; not changed here.
 
     // STOP App.Views.Chat.ThreadTimeline #8
     // Kind: reference capture. Swift: Chrome.swift:581-629, ThreadTimeline.swift:488,1376. Record: PR-CHAT-159 (capture comparison at travel 0, 20 and 44 in both themes).
