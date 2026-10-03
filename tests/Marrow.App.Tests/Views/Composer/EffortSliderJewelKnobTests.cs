@@ -145,8 +145,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-116")] // EffortSlider.swift:822-830 an adjustable-action step; OD-0090/OD-0076: it springs (page key step: response 0.2, damping 1)
-    [Trait("Decision", "ED-252")]
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:822-830 an adjustable-action step; OD-0090/OD-0076: it springs (page key step: response 0.2, damping 1)
     public void An_accessibility_step_springs_the_knob_to_its_stop() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig(index: 1);

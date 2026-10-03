@@ -1223,8 +1223,8 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:763-799 .animation(.smooth(duration: 0.3), value: look) covers the stops; the knob's glow (:780-784) is superseded by the Jewel orb (OD-0090)
-    public void A_look_change_crossfades_the_stop_dots_and_the_knob_glow_too()
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:763-799 .animation(.smooth(duration: 0.3), value: look) covers the stops (part of PR-COMPOSER-127, not its mapping); the knob's glow (:780-784) is gone with the lens (OD-0090)
+    public void A_look_change_crossfades_the_stop_dots_and_the_knob_has_no_glow()
     {
         headless.OnUiThread(() =>
         {
@@ -1250,7 +1250,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:799,822-830 an adjustable-action step changes the look inside .smooth(0.3): the knob and fill glide
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:799,822-830 an adjustable-action step changes the look; OD-0090/OD-0076: the knob springs to the stop, no jump
     public void An_accessibility_step_that_changes_the_look_glides_the_knob()
     {
         headless.OnUiThread(() =>
