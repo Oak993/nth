@@ -24,7 +24,8 @@ namespace Marrow.UI.Port;
 //      background with an edge: Dark fill #1E1E1E and a 1 px #FFFFFF at 0.2 border, Light fill #FFFFFF (the kit's shadow is
 //      the window manager's). SOURCE FACT (Apple design resource, OD-0045; E:\Droppy\work\apple-kit\macos27-uikit-controls.md,
 //      "Panels"). Only a popup the presenter shows as a popover wears it: a tooltip is a Popup too and draws its own card
-//      inside a clear surround (PortControlThemes.TipTemplate).
+//      inside a clear surround (PortControlThemes.TipTemplate). Since OD-0095 the panel is drawn by the card the content
+//      hangs on (PopoverCard: one outline with the tip facing the anchor), and the PopupRoot is clear around it.
 public static class PopoverHost
 {
     /// <summary>The style class a presented popover's Popup carries; the panel style matches its PopupRoot through it.</summary>
@@ -46,6 +47,8 @@ public static class PopoverHost
     internal static void Prepare(Popup popup)
     {
         if (!popup.Classes.Contains(PopoverClass)) popup.Classes.Add(PopoverClass);
+        Wrap(popup);
+        if (carded.TryAdd(popup, popup)) popup.PropertyChanged += (_, change) => { if (change.Property == Popup.ChildProperty) Wrap(popup); };
         if (popup.Parent is not null || popup.PlacementTarget is not { } anchor) return;
         ((ISetLogicalParent)popup).SetParent(anchor);
         adopted.Add(popup, popup);
@@ -57,6 +60,42 @@ public static class PopoverHost
         };
         popup.Closed += release;
     }
+
+    private static readonly ConditionalWeakTable<Popup, object> carded = new();
+
+    // OD-0095: the popover's content hangs on the panel's card, its tip on the edge facing the anchor (the side the
+    // placement puts it on; the card turns it if the popup flips), so the panel's fill and edge are the card's one
+    // outline and the top-level around it is clear.
+    private static void Wrap(Popup popup)
+    {
+        if (popup.Child is null or PopoverCard) return;
+        var content = popup.Child;
+        popup.Child = null;
+        var card = new PopoverCard { Child = content, TipEdge = Facing(popup), Anchor = popup.PlacementTarget };
+        // A site that sized the popup to its content (PromptEditor's resize) keeps its content's room inside the card.
+        var (wide, tall) = card.Room;
+        if (!double.IsNaN(popup.Width)) popup.Width += wide;
+        if (!double.IsNaN(popup.Height)) popup.Height += tall;
+        card.Bind(PopoverCard.BackgroundProperty, new DynamicResourceExtension(FillKey));
+        card.Bind(PopoverCard.BorderBrushProperty, new DynamicResourceExtension(BorderKey));
+        popup.Child = card;
+    }
+
+    // The card edge facing the anchor for the placement asked for: above the anchor the tip is at the bottom, and so on.
+    private static PopoverTipEdge Facing(Popup popup) => popup.Placement switch
+    {
+        PlacementMode.Top or PlacementMode.TopEdgeAlignedLeft or PlacementMode.TopEdgeAlignedRight => PopoverTipEdge.Bottom,
+        PlacementMode.Left or PlacementMode.LeftEdgeAlignedTop or PlacementMode.LeftEdgeAlignedBottom => PopoverTipEdge.Right,
+        PlacementMode.Right or PlacementMode.RightEdgeAlignedTop or PlacementMode.RightEdgeAlignedBottom => PopoverTipEdge.Left,
+        PlacementMode.AnchorAndGravity => popup.PlacementGravity switch
+        {
+            Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.Top or Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.TopLeft or Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.TopRight => PopoverTipEdge.Bottom,
+            Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.Left => PopoverTipEdge.Right,
+            Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.Right => PopoverTipEdge.Left,
+            _ => PopoverTipEdge.Top,
+        },
+        _ => PopoverTipEdge.Top,
+    };
 
     /// <summary>Puts the panel style and its two colours in the application's resources (PortControlThemes.Register).</summary>
     internal static void Register(Application application)
@@ -73,9 +112,10 @@ public static class PopoverHost
         {
             Setters =
             {
-                new Setter(TemplatedControl.BackgroundProperty, new DynamicResourceExtension(FillKey)),
-                new Setter(TemplatedControl.BorderBrushProperty, new DynamicResourceExtension(BorderKey)),
-                new Setter(TemplatedControl.BorderThicknessProperty, new Thickness(1)),
+                // OD-0095: the panel is the card's (PopoverCard); the top-level is clear around its tip.
+                new Setter(TemplatedControl.BackgroundProperty, Brushes.Transparent),
+                new Setter(TemplatedControl.BorderThicknessProperty, new Thickness(0)),
+                new Setter(TopLevel.TransparencyLevelHintProperty, new[] { WindowTransparencyLevel.Transparent }),
             },
         });
     }
