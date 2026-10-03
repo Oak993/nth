@@ -11231,13 +11231,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             {
                 Assert.Single(presenter.Calls, call => call.Presented); // the menu, presented once
                 Assert.True(ReferenceEquals(more, More()), "the ellipsis was rebuilt as its menu opened");
-                model.UpdateThread(helper.Id, t => t with { Title = "Helper renamed" }); // the helper's record changes under the open menu
+                model.UpdateThread(helper.Id, t => t with { Title = "Helper renamed" }); // the helper's thread changes under the open menu
             });
             Tick(300);
             harness.Main.OnMain(() =>
             {
                 Assert.Contains("Helper renamed", Texts(row)); // :1359 the title follows the live record
-                Assert.True(ReferenceEquals(more, More()), "the open menu's ellipsis was rebuilt when the helper's record changed"); // the open menu hangs on the button it had
+                Assert.True(ReferenceEquals(more, More()), "the open menu's ellipsis was rebuilt when the helper's thread changed"); // the open menu hangs on the button it had
                 Assert.Single(presenter.Calls, call => call.Presented); // and is not presented again on another popup
             });
         }
