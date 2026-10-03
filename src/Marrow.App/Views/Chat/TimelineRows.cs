@@ -2633,7 +2633,9 @@ public sealed class ToolDetailView : Decorator
                 // hover).
                 var title = new TextBlock();
                 ChatFont.Chat(SwiftFont.TextStyle.Caption).Apply(title); // :2161
-                title.Foreground = SwiftColor.AccentColor.Brush(title);
+                // OD-0088 (ED-253): the link style draws in the view's tint, the theme's accent (WindowManager.swift:186-192):
+                // Chrome.accent, the user's pick when there is one.
+                title.Foreground = Chrome.Accent.Brush(title);
                 var toggle = PlainControls.Button(title, () => state.ShowsFullOutput = !state.ShowsFullOutput); // :2158
                 toggle.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
                 toggle.HorizontalAlignment = HorizontalAlignment.Left;

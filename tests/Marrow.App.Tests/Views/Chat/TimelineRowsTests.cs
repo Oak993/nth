@@ -2239,6 +2239,40 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         });
     }
 
+    // OD-0088 (ED-253): "Show full output" is a `.buttonStyle(.link)` button (TimelineRows.swift:2156-2160), drawn in the view's
+    // tint, which the window root sets to the theme's accent (WindowManager.swift:186-192): Chrome.accent, the user's pick.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void The_full_output_link_wears_the_picked_accent()
+    {
+        headless.OnUiThread(() =>
+        {
+            var (theme, choice) = (Marrow.UI.Theme.ThemeManager.Current, AccentChoice.Current);
+            using var h = RuntimeHarness();
+            try
+            {
+                h.Main.OnMain(() =>
+                {
+                    Marrow.UI.Theme.ThemeManager.Current = Marrow.UI.Theme.AppTheme.System;
+                    AccentChoice.Current = "orchid";
+                    var view = new ToolDetailView(Call(ToolCall.Kind.Command, "cat") with { Output = Lines(31) });
+                    var window = Show(view);
+                    var title = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(view))));
+                    Assert.Equal(AccentPalette.Pick("orchid")!.Resolve(title.ActualThemeVariant), BrushColor(title.Foreground));
+                    Marrow.UI.Theme.ThemeManager.Current = Marrow.UI.Theme.AppTheme.Dracula;
+                    AccentChoice.Current = "windows"; // the theme's own
+                    Assert.Equal(Color.Parse("#BD93F9"), BrushColor(title.Foreground));
+                    Close(window);
+                });
+            }
+            finally
+            {
+                AccentChoice.Current = choice;
+                Marrow.UI.Theme.ThemeManager.Current = theme;
+            }
+        });
+    }
+
     [Fact]
     // Partial proof PR-CHAT-101 (STOP #11); App/Views/Chat/TimelineRows.swift:2120-2126, :2145-2147, :2156
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
