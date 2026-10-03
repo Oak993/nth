@@ -237,4 +237,136 @@ public sealed class PopoverCardTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
         }
     });
+
+    // OD-0095 gives the tip to "every popover the source presents with SwiftUI .popover (an NSPopover)"; a SwiftUI .sheet
+    // (ChatView.swift:1456,1489, shown through ChatSheetPresentation) is not one, and a popup centred on its target faces no
+    // edge of it. Neither hangs on a card: each keeps ED-238's panel on its own top-level.
+    [Theory]
+    [Trait("Decision", "ED-238")] // OD-0095
+    [InlineData(true, PlacementMode.Bottom)]
+    [InlineData(false, PlacementMode.Center)]
+    public void A_sheet_has_no_tip_and_its_top_level_wears_the_panel(bool sheet, PlacementMode placement) => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var anchor = new Border { Width = 200, Height = 200 };
+        var window = HeadlessPopupHost.OverlayWindow(anchor);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var content = new Border { Width = 60, Height = 30 };
+        var popup = new Popup { PlacementTarget = anchor, Placement = placement, ShouldUseOverlayLayer = true, Child = content };
+        if (sheet) PopoverHost.SetIsSheet(popup, true);
+        try
+        {
+            Presentation.Presenter.Current.SetPresented(popup, true);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(content, popup.Child);
+            Assert.Equal(default, PopoverHost.Room(popup));
+            popup.Child = null;
+            using var root = HeadlessPopupHost.Open(popup, window, content);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(PopoverHost.Fill.Resolve(ThemeVariant.Light), Assert.IsAssignableFrom<ISolidColorBrush>(root.Background).Color); // the panel, as before OD-0095
+            Assert.Equal(new Thickness(1), root.BorderThickness);
+        }
+        finally
+        {
+            popup.IsOpen = false;
+            window.Close();
+        }
+    });
+
+    // The card's first frame is drawn before any layout has told it where it ended up: its tip starts on the edge the
+    // placement faces (above the anchor, the tip down), so the grow-in starts from the right place.
+    [Theory]
+    [Trait("Decision", "ED-238")] // OD-0095
+    [InlineData(PlacementMode.Top, PopoverTipEdge.Bottom)]
+    [InlineData(PlacementMode.TopEdgeAlignedLeft, PopoverTipEdge.Bottom)]
+    [InlineData(PlacementMode.Bottom, PopoverTipEdge.Top)]
+    [InlineData(PlacementMode.Right, PopoverTipEdge.Left)]
+    [InlineData(PlacementMode.Left, PopoverTipEdge.Right)]
+    public void Before_any_layout_the_tip_stands_on_the_edge_the_placement_faces(PlacementMode placement, PopoverTipEdge edge) => headless.OnUiThread(() =>
+    {
+        var popup = new Popup { PlacementTarget = new Border(), Placement = placement, Child = new Border { Width = 60, Height = 30 } };
+        PopoverHost.Prepare(popup);
+        Assert.Equal(edge, Assert.IsType<PopoverCard>(popup.Child).TipEdge);
+        var room = PopoverHost.Room(popup);
+        Assert.Equal(edge is PopoverTipEdge.Top or PopoverTipEdge.Bottom ? new Size(2, 2 + PopoverCard.TipHeight + PopoverCard.TipGap) : new Size(2 + PopoverCard.TipHeight + PopoverCard.TipGap, 2), room);
+    });
+
+    // A popup that closes and is given new content keeps it as the site set it until it is presented again (a site may
+    // take it out and measure it in a window of its own in between: PromptEditor), and then hangs it on a new card.
+    [Fact]
+    [Trait("Decision", "ED-238")] // OD-0095
+    public void A_closed_popover_is_hung_on_a_new_card_only_when_it_opens_again() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var anchor = new Border { Width = 20, Height = 20 };
+        var window = HeadlessPopupHost.OverlayWindow(anchor);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var first = new Border { Width = 60, Height = 30 };
+        var popup = new Popup { PlacementTarget = anchor, Placement = PlacementMode.Top, ShouldUseOverlayLayer = true, Child = first };
+        try
+        {
+            Presentation.Presenter.Current.SetPresented(popup, true);
+            Dispatcher.UIThread.RunJobs();
+            var card = Assert.IsType<PopoverCard>(popup.Child);
+            popup.IsOpen = false;
+            Dispatcher.UIThread.RunJobs();
+            var second = new Border { Width = 50, Height = 20 };
+            popup.Child = second;
+            Assert.Same(second, popup.Child); // closed: left as the site set it
+            popup.Child = null;
+            Assert.Null(StyledParent(second)); // free to be measured in a window of its own
+            popup.Child = second;
+            Presentation.Presenter.Current.SetPresented(popup, true);
+            Dispatcher.UIThread.RunJobs();
+            var again = Assert.IsType<PopoverCard>(popup.Child);
+            Assert.NotSame(card, again);
+            Assert.Same(second, again.Child);
+        }
+        finally
+        {
+            popup.IsOpen = false;
+            window.Close();
+        }
+    });
+
+    // PlainControls.Popover(buildBeforeOpen: false) reserves the popup with a placeholder and builds its content once the
+    // popup has opened; the presenter has hung the placeholder on the card by then, and the built content takes its place.
+    [Fact]
+    [Trait("Decision", "ED-238")] // OD-0095
+    public void Content_built_once_the_popover_has_opened_hangs_on_the_card() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var anchor = new Border { Width = 20, Height = 20 };
+        var state = new Shown();
+        var built = new Border { Width = 60, Height = 30 };
+        var popup = PlainControls.Popover(anchor, new Binding<bool>(() => state.Value, value => state.Value = value), () => built, PlacementMode.Bottom, buildBeforeOpen: false);
+        popup.ShouldUseOverlayLayer = true;
+        var window = HeadlessPopupHost.OverlayWindow(new Panel { Children = { anchor, popup } });
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try
+        {
+            state.Value = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(popup.IsOpen);
+            var card = Assert.IsType<PopoverCard>(popup.Child);
+            Assert.Same(built, card.Child);
+        }
+        finally
+        {
+            popup.IsOpen = false;
+            window.Close();
+        }
+    });
+
+    private static Avalonia.LogicalTree.ILogical? StyledParent(Control control) => ((Avalonia.LogicalTree.ILogical)control).LogicalParent;
+
+    private sealed class Shown : Marrow.Core.Port.ObservableModel
+    {
+        private bool value;
+
+        public bool Value { get => Read(value); set => Set(ref this.value, value); }
+    }
 }

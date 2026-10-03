@@ -92,12 +92,14 @@ public sealed class PopoverCard : Decorator
         _ => new Rect(0, 0, Math.Max(0, size.Width - Reach), size.Height),
     };
 
-    /// <summary>What the card adds round its content: its edge, and the tip with its gap on the tip's side.</summary>
-    internal (double Width, double Height) Room => Vertical ? (2 * Edge, 2 * Edge + Reach) : (2 * Edge + Reach, 2 * Edge);
+    /// <summary>What a card with its tip on <paramref name="edge"/> adds round its content: its edge, and the tip with its
+    /// gap on the tip's side.</summary>
+    internal static Size RoomAround(PopoverTipEdge edge) =>
+        edge is PopoverTipEdge.Top or PopoverTipEdge.Bottom ? new Size(2 * Edge, 2 * Edge + Reach) : new Size(2 * Edge + Reach, 2 * Edge);
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        var room = new Size(Room.Width, Room.Height);
+        var room = RoomAround(TipEdge);
         Child?.Measure(new Size(Math.Max(0, availableSize.Width - room.Width), Math.Max(0, availableSize.Height - room.Height)));
         var child = Child?.DesiredSize ?? default;
         return new Size(child.Width + room.Width, child.Height + room.Height);

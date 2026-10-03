@@ -48,12 +48,15 @@ public sealed class PromptEditorTests(HeadlessSession headless)
         Assert.True(Popovers.GetIsCapsuleButtonBorderShape(host));
         Assert.Equal(ThemeManager.Spec.Accent?.Resolve(Avalonia.Styling.ThemeVariant.Light), Popovers.GetTint(host)?.Resolve(Avalonia.Styling.ThemeVariant.Light));
         Assert.False(popup.IsLightDismissEnabled);
-        Assert.Equal(400, popup.Width); Assert.Equal(100, popup.Height);
+        // OD-0095: the popup is the hosted view's size and the room of the tipped card it hangs on once presented.
+        var room = Marrow.UI.Port.PopoverHost.Room(popup);
+        Assert.True(room.Height > 0);
+        Assert.Equal(400 + room.Width, popup.Width); Assert.Equal(100 + room.Height, popup.Height);
         var resize = typeof(PromptEditorPopover<Border>).GetMethod("ResizeToContent", BindingFlags.Instance | BindingFlags.NonPublic)!;
         host.Height = 100.4;
-        resize.Invoke(popover, [popup, host, false]); Assert.Equal(100, popup.Height);
+        resize.Invoke(popover, [popup, host, false]); Assert.Equal(100 + room.Height, popup.Height);
         host.Height = 102; host.Width = 410;
-        resize.Invoke(popover, [popup, host, false]); Assert.Equal(102, popup.Height); Assert.Equal(410, popup.Width);
+        resize.Invoke(popover, [popup, host, false]); Assert.Equal(102 + room.Height, popup.Height); Assert.Equal(410 + room.Width, popup.Width);
         window.MouseDown(new Point(10, 10), MouseButton.Left); window.MouseUp(new Point(10, 10), MouseButton.Left);
         Assert.Equal(0, dismissed);
         window.MouseDown(new Point(100, 100), MouseButton.Left); window.MouseUp(new Point(100, 100), MouseButton.Left);
@@ -381,8 +384,9 @@ public sealed class PromptEditorTests(HeadlessSession headless)
         runtime.OnMain(() => popover.Sync(edit, () => { }, _ => Editor()));
 
         var popup = Assert.Single(presenter.Calls).Popup;
-        Assert.Equal(expected.Width, popup.Width);
-        Assert.Equal(expected.Height, popup.Height);
+        var room = Marrow.UI.Port.PopoverHost.Room(popup); // OD-0095: the tipped card's room round the hosted view
+        Assert.Equal(expected.Width + room.Width, popup.Width);
+        Assert.Equal(expected.Height + room.Height, popup.Height);
         Assert.IsType<PromptEditor>(popup.Child); // measured out of the popup and put back
         runtime.OnMain(popover.Close);
         window.Close(); Dispatcher.UIThread.RunJobs();

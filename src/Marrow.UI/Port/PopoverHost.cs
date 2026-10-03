@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -42,13 +43,47 @@ public static class PopoverHost
 
     private static readonly ConditionalWeakTable<Popup, object> adopted = new();
 
-    /// <summary>Readies <paramref name="popup"/> to be presented as a popover: the panel class, and its anchor as its
-    /// logical parent until it closes (so it, and the top-level it opens, inherit the anchor's appearance).</summary>
+    /// <summary>The style class of a presented popover that hangs on its tipped card (OD-0095): its top-level is clear.</summary>
+    internal const string TippedClass = "marrow-popover-tipped";
+
+    /// <summary>
+    /// A popup the source presents as a sheet (SwiftUI <c>.sheet</c>, ChatView.swift:1456,1489), not as a popover: it keeps
+    /// ED-238's panel on its top-level and gets no tip (OD-0095 gives the tip only to what the source shows as an NSPopover).
+    /// </summary>
+    public static readonly AttachedProperty<bool> IsSheetProperty =
+        AvaloniaProperty.RegisterAttached<Popup, bool>("IsSheet", typeof(PopoverHost));
+
+    public static bool GetIsSheet(Popup popup) => popup.GetValue(IsSheetProperty);
+
+    public static void SetIsSheet(Popup popup, bool value) => popup.SetValue(IsSheetProperty, value);
+
+    /// <summary>The site's own content of a presented popup: the card's child once it hangs on one.</summary>
+    public static Control? Content(Popup popup) => popup.Child is PopoverCard card ? card.Child : popup.Child;
+
+    /// <summary>
+    /// What the card adds round a popover's content, for a site that sizes its popup to its content (PromptEditor's
+    /// resize): the edge, the tip with its gap and the shadow's room; nothing for a sheet.
+    /// </summary>
+    public static Size Room(Popup popup) => Facing(popup) is { } edge ? PopoverCard.RoomAround(edge) : default;
+
+    /// <summary>Readies <paramref name="popup"/> to be presented as a popover: the panel class, its card (OD-0095), and its
+    /// anchor as its logical parent until it closes (so it, and the top-level it opens, inherit the anchor's appearance).</summary>
     internal static void Prepare(Popup popup)
     {
         if (!popup.Classes.Contains(PopoverClass)) popup.Classes.Add(PopoverClass);
-        Wrap(popup);
-        if (carded.TryAdd(popup, popup)) popup.PropertyChanged += (_, change) => { if (change.Property == Popup.ChildProperty) Wrap(popup); };
+        var tipped = Facing(popup) is not null;
+        popup.Classes.Set(TippedClass, tipped);
+        if (tipped)
+        {
+            Wrap(popup);
+            // A site that swaps its content while the popover shows (PlainControls' deferred content, built once it has
+            // opened) has the new content hung on the card too. Only while it is open: a closed popup is wrapped when it
+            // opens again, so a site may handle its own content in between (PromptEditor measures it in a window of its own).
+            if (carded.TryAdd(popup, popup)) popup.PropertyChanged += (_, change) =>
+            {
+                if (change.Property == Popup.ChildProperty && popup.IsOpen && Facing(popup) is not null) Wrap(popup);
+            };
+        }
         if (popup.Parent is not null || popup.PlacementTarget is not { } anchor) return;
         ((ISetLogicalParent)popup).SetParent(anchor);
         adopted.Add(popup, popup);
@@ -65,33 +100,31 @@ public static class PopoverHost
 
     // OD-0095: the popover's content hangs on the panel's card, its tip on the edge facing the anchor (the side the
     // placement puts it on; the card turns it if the popup flips), so the panel's fill and edge are the card's one
-    // outline and the top-level around it is clear.
+    // outline and the top-level around it is clear. A new card for each showing, so a flip of the last one is not kept.
     private static void Wrap(Popup popup)
     {
-        if (popup.Child is null or PopoverCard) return;
+        if (popup.Child is null or PopoverCard || Facing(popup) is not { } edge) return;
         var content = popup.Child;
         popup.Child = null;
-        var card = new PopoverCard { Child = content, TipEdge = Facing(popup), Anchor = popup.PlacementTarget };
-        // A site that sized the popup to its content (PromptEditor's resize) keeps its content's room inside the card.
-        var (wide, tall) = card.Room;
-        if (!double.IsNaN(popup.Width)) popup.Width += wide;
-        if (!double.IsNaN(popup.Height)) popup.Height += tall;
+        var card = new PopoverCard { Child = content, TipEdge = edge, Anchor = popup.PlacementTarget };
         card.Bind(PopoverCard.BackgroundProperty, new DynamicResourceExtension(FillKey));
         card.Bind(PopoverCard.BorderBrushProperty, new DynamicResourceExtension(BorderKey));
         popup.Child = card;
     }
 
     // The card edge facing the anchor for the placement asked for: above the anchor the tip is at the bottom, and so on.
-    private static PopoverTipEdge Facing(Popup popup) => popup.Placement switch
+    // None for a sheet, and none for a popup centred on its target (it faces no edge of it).
+    private static PopoverTipEdge? Facing(Popup popup) => GetIsSheet(popup) ? null : popup.Placement switch
     {
         PlacementMode.Top or PlacementMode.TopEdgeAlignedLeft or PlacementMode.TopEdgeAlignedRight => PopoverTipEdge.Bottom,
         PlacementMode.Left or PlacementMode.LeftEdgeAlignedTop or PlacementMode.LeftEdgeAlignedBottom => PopoverTipEdge.Right,
         PlacementMode.Right or PlacementMode.RightEdgeAlignedTop or PlacementMode.RightEdgeAlignedBottom => PopoverTipEdge.Left,
+        PlacementMode.Center => null,
         PlacementMode.AnchorAndGravity => popup.PlacementGravity switch
         {
-            Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.Top or Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.TopLeft or Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.TopRight => PopoverTipEdge.Bottom,
-            Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.Left => PopoverTipEdge.Right,
-            Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.Right => PopoverTipEdge.Left,
+            PopupGravity.Top or PopupGravity.TopLeft or PopupGravity.TopRight => PopoverTipEdge.Bottom,
+            PopupGravity.Left => PopoverTipEdge.Right,
+            PopupGravity.Right => PopoverTipEdge.Left,
             _ => PopoverTipEdge.Top,
         },
         _ => PopoverTipEdge.Top,
@@ -108,7 +141,17 @@ public static class PopoverHost
             dictionary[FillKey] = new SolidColorBrush(Fill.Resolve(variant));
             dictionary[BorderKey] = new SolidColorBrush(Border.Resolve(variant));
         }
-        application.Styles.Add(new Style(selector => selector.OfType<Popup>().Class(PopoverClass).Child().OfType<PopupRoot>())
+        // ED-238: a presented popup's top-level wears the panel (a sheet, which has no tip).
+        application.Styles.Add(new Style(selector => selector.OfType<Popup>().Class(PopoverClass).Not(x => x.Class(TippedClass)).Child().OfType<PopupRoot>())
+        {
+            Setters =
+            {
+                new Setter(TemplatedControl.BackgroundProperty, new DynamicResourceExtension(FillKey)),
+                new Setter(TemplatedControl.BorderBrushProperty, new DynamicResourceExtension(BorderKey)),
+                new Setter(TemplatedControl.BorderThicknessProperty, new Thickness(1)),
+            },
+        });
+        application.Styles.Add(new Style(selector => selector.OfType<Popup>().Class(PopoverClass).Class(TippedClass).Child().OfType<PopupRoot>())
         {
             Setters =
             {
