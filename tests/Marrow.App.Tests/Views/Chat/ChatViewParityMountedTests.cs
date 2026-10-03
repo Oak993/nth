@@ -260,12 +260,17 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
             }
             var rail = Assert.Single(Rails());
             Assert.Equal(1, Seen(rail));
+            double X(Control control) => control.TranslatePoint(default, view)!.Value.X;
+            var resting = X(rail);
             h.Main.OnMain(() => { model.Settings.UsagePanelDock = PanelDockCorner.BottomLeading; model.Settings.ShowsUsagePanel = true; });
             Drain(h, window);
             var leaving = Assert.Single(Rails()); // still on screen: fading, not cut.
             Assert.True(Seen(leaving) > 0.5);
+            Assert.True(Field<PanelScene>(view, "scene").Reserve.Leading > 0);
+            Assert.Equal(resting, X(leaving), 3); // it keeps the column's leading edge while it fades (:203-207).
             h.Main.AdvanceMilliseconds(90); frames.Advance(TimeSpan.Zero); Drain(h, window);
             Assert.InRange(Seen(Assert.Single(Rails())), 0.001, 0.999);
+            Assert.Equal(resting, X(leaving), 3);
             h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero); Drain(h, window);
             Assert.Empty(Rails());
             h.Main.OnMain(() => model.Settings.ShowsUsagePanel = false);
