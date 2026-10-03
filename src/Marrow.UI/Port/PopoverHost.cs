@@ -133,9 +133,9 @@ public static class PopoverHost
             // The child it replaces is the one the host shows (before the popup's Opened handlers have all run, the host is
             // not known from the new one, which is in no tree yet).
             if (host is null && change.OldValue is Visual shown) host = HostOf(shown);
-            if (popup.Child is null) return; // taken away for a while (a site measures it elsewhere): the host keeps what it shows
             if (Facing(popup) is not null) Wrap(popup);
-            // What Popup.Open's SetChild does: both hosts (PopupRoot, OverlayPopupHost) show their Content.
+            // What Popup.Open's SetChild does: both hosts (PopupRoot, OverlayPopupHost) show their Content. A child taken away
+            // for a while (a site measures it elsewhere) leaves the host showing what it shows.
             if (popup.Child is { } child && host is ContentControl hosted && !ReferenceEquals(hosted.Content, child)) hosted.Content = child;
         };
         popup.Opened += (_, _) =>
