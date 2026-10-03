@@ -301,6 +301,55 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (5)): ThreadTimeline.swift:2125 HydraElapsedTime and :2139 HydraProgressBar stand in the same place of the body when the line's times change (:2261-2274), :2182 the line's motion (OD-0076: the time's words swap with a fade, not a cut), :2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`: the one-second clock ends with the line's running
+    public void A_running_line_that_becomes_an_earlier_segment_keeps_its_clock_and_its_bar_fades_its_time_over_and_stops_ticking() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100); // the turn runs before its rows land: its line is made running
+        var entries = new List<TimelineEntry> { User("prompt", TurnA, "a question"), ToolEntry("ran", TurnA) };
+        mount.SetEntries(entries); mount.Settle();
+        var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.Blocks().Single(block => block.Block is DisplayBlock.Turn).Row));
+        var clock = Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line)); var bar = Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line));
+        var time = Assert.IsType<TextBlock>(clock.Child);
+        var ticks = line.Ticks; mount.Advance(3000);
+        Assert.True(line.Ticks >= ticks + 2, $"the running line's clock wakes every second: {ticks} -> {line.Ticks}");
+        Assert.EndsWith(" so far", Avalonia.Automation.AutomationProperties.GetName(bar), StringComparison.Ordinal);
+        DateTimeOffset Drawn() => (DateTimeOffset)typeof(HydraProgressBar).GetField("drawDate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(bar)!;
+        var drawn = Drawn(); mount.Advance(500); Assert.True(Drawn() > drawn, "a running bar's clock draws its sweep"); // HydraProgressBar.swift:129-145
+        var running = time.Text;
+        // A Hydra note lands and the turn goes on after it: the run so far is an earlier segment, its clock stopped at the segment's length.
+        entries.Add(Entry("note", new TimelineItem.Content.Notice(new Marrow.Core.Models.Notice { NoticeLevel = Marrow.Core.Models.Notice.Level.Info, Message = "a note between the runs" })));
+        entries.Add(Reply("after", TurnA, "and on it goes")); mount.SetEntries(entries);
+        var segment = Marrow.UI.Common.RelativeTime.Duration(entries[1].Item.Date - entries[0].Item.Date);
+        Assert.NotEqual(running, segment);
+        Assert.Same(clock, Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(line))); Assert.Same(bar, Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line)));
+        Assert.Same(time, clock.Child);
+        Assert.Equal(running, time.Text); Assert.Equal(1, time.Opacity, 3); // not a cut: the old time is there as the change lands ...
+        mount.Advance(100);
+        Assert.InRange(time.Opacity, 0.01, 0.99); // ... it fades ...
+        mount.Advance(600);
+        Assert.Equal(segment, time.Text); Assert.Equal(1, time.Opacity, 3); // ... and the segment's length is in its place
+        Assert.DoesNotContain("so far", Avalonia.Automation.AutomationProperties.GetName(bar), StringComparison.Ordinal); // the bar was handed the stopped status ...
+        drawn = Drawn(); mount.Advance(1000); Assert.Equal(drawn, Drawn()); // ... and its clock stopped: a stopped bar does not sweep (:129-134), and its last stave has risen (:186-191)
+        // The clock's task ended with the line's running: nothing wakes it any more.
+        var stopped = line.Ticks; mount.Advance(5000);
+        Assert.Equal(stopped, line.Ticks); Assert.Equal(segment, time.Text);
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (5)): ThreadTimeline.swift:2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`: a line made as an earlier segment's (a turn's rows before its run is known) that is handed a running turn starts its clock
+    public void A_line_made_as_an_earlier_segments_that_is_handed_a_running_turn_starts_its_clock() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var entries = new List<TimelineEntry> { User("prompt", TurnA, "a question"), ToolEntry("ran", TurnA) };
+        mount.SetEntries(entries); mount.Settle(); // no turn runs: the run's line is an earlier segment's, finished
+        var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.Blocks().Single(block => block.Block is DisplayBlock.Turn).Row));
+        var ticks = line.Ticks; mount.Advance(3000); Assert.Equal(ticks, line.Ticks);
+        mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
+        Assert.Same(line, Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.Blocks().Single(block => block.Block is DisplayBlock.Turn).Row)));
+        mount.Advance(3000);
+        Assert.True(line.Ticks >= ticks + 2, $"the line now running wakes every second: {ticks} -> {line.Ticks}");
+    });
+
+    [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:136-141, NewThreadPrompt.swift:15-55: the line's other branch (a name, no name) is other words in the same prompt, which does not appear again
     public void The_empty_threads_prompt_goes_between_asking_in_a_project_and_asking_alone_without_appearing_again() => ThreadTimelineRig.Run(headless, mount =>
     {

@@ -1423,6 +1423,16 @@ public sealed class WorkingIndicator : Decorator
     internal void UpdateValues(ValueList<ThinkingStep> thinkingSteps, ValueList<TimelineEntry> liveWork, ValueList<TimelineEntry> turnEntries, bool showsCard) =>
         UpdateValues(thinkingSteps, liveWork, turnEntries, showsCard, startedAtValue, finishedAtValue);
     private DateTimeOffset? finishedAtValue;
+    // :2189 `.task(id: FrontMonitor.shared.isVisible && isRunning)`: whether the line runs is part of the task's id, so it is observed (a line that stops running ends its
+    // clock's task, one that runs again starts it).
+    private sealed class LineState : MainActorModel
+    {
+        private bool running;
+        public bool Running { get => Read(running); set => Set(ref running, value); }
+    }
+    private readonly LineState lineState = new();
+    /// <summary>How many times the line's one-second clock has woken (:2192-2195), for the tests of its task's id.</summary>
+    internal int Ticks { get; private set; }
     // :2083 private static let change = Animation.smooth(duration: 0.3)
     private static Animation Change => Animation.Smooth(duration: 0.3);
 
@@ -1459,7 +1469,7 @@ public sealed class WorkingIndicator : Decorator
     {
         startedAtValue = startedAt; finishedAtValue = finishedAt;
         var isExpanded = chronological; var showsAllSteps = chronological; var now = SwiftDate.Now;
-        var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null;
+        var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null; lineState.Running = running;
         var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this), HorizontalAlignment = HorizontalAlignment.Left }; Child = shell; // :2178-2181 the fill is the card's own width: the stack it backs hugs what it holds, it is not the row's width
         var column = new StackPanel(); shell.Child = column; // :2106 VStack(spacing: rowSpacing): the opened body brings that space with it, so it grows and folds with the body
         // The line's own parts live across renders, as SwiftUI keeps the views of a body that runs again: the label and its time go on ticking, the
@@ -1570,16 +1580,21 @@ public sealed class WorkingIndicator : Decorator
             thinkingSteps = thinking; liveWork = work; turnEntries = entries; showsCard = card; canExpand = thinking.Count != 0 || work.Count != 0;
             if (start != startedAt || finish != finishedAt)
             {
-                // :2065,:2074 the line's times handed again (a running line a note splits off becomes an earlier segment's, finished): its clock and its bar are made again with
-                // them, and the line, its fold and its opened body are as they were.
-                startedAt = start; finishedAt = finish; startedAtValue = start; finishedAtValue = finish; running = finish is null;
-                var next = new HydraElapsedTime(start, finish, running) { RenderTransform = glide }; header.Children[header.Children.IndexOf(elapsedView)] = next; elapsedView = next;
-                if (bar is not null) { inner.Children.Remove(bar); bar = null; barEntries = null; barCard = null; }
+                // :2065,:2074 the line's times handed again (a running line a note splits off becomes an earlier segment's, finished): the line, its fold, its opened body,
+                // its clock and its bar are the views they were (:2125 HydraElapsedTime and :2139 HydraProgressBar stand in the same place of the body, so they keep their
+                // state), handed the new times and status; the clock's words swap over the line's own motion (:2182, OD-0076), and its one-second task follows `running`.
+                startedAt = start; finishedAt = finish; startedAtValue = start; finishedAtValue = finish; running = finish is null; lineState.Running = running;
+                elapsedView.Update(start, finish, running, drawn ? Change : null);
+                bar?.UpdateTimes(start, finish, running ? HydraHeadInfo.Status.Running : HydraHeadInfo.Status.Stopped);
             }
             Draw();
         };
         Draw(); // :2185-2188. The source retains chronological, but ThreadTimeline always passes false.
-        this.Task(() => FrontMonitor.Shared.Current.IsVisible && running, async active => { if (!active) return; while (await SwiftTask.TrySleep(TimeSpan.FromSeconds(1))) await MainActor.Run(() => { now = SwiftDate.Now; Draw(false); }); }); // :2189-2196
+        this.Task(() => FrontMonitor.Shared.Current.IsVisible && lineState.Running, async active =>
+        {
+            if (!active) return; // :2191 the elapsed-time label ticks only while someone can see it, and only while the line runs
+            while (await SwiftTask.TrySleep(TimeSpan.FromSeconds(1))) await MainActor.Run(() => { Ticks++; now = SwiftDate.Now; Draw(false); });
+        }); // :2189-2196
     }
 
     // :2122. The title fills only the card's surplus width; every child aligns on its first text baseline.
