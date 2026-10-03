@@ -516,9 +516,12 @@ internal sealed class JewelKnobRenderer
     private readonly nint block = Marshal.AllocHGlobal(JewelUniforms.ShaderBytes); // the uniforms' native copy, kept
     private readonly int size;
 
+    private readonly GRContext? gpu;
+
     private JewelKnobRenderer(GRContext? gpu, int size)
     {
         this.size = size;
+        this.gpu = gpu;
         var info = new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Premul);
         surface = (gpu is not null ? SKSurface.Create(gpu, false, info) : null) ?? SKSurface.Create(info)
             ?? throw new InvalidOperationException("The Jewel knob's surface could not be made.");
@@ -539,6 +542,43 @@ internal sealed class JewelKnobRenderer
     }
 
     private void Dispose() { foreach (var sample in samples) sample?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
+
+    /// <summary>
+    /// JewelWarmup's steps (render thread): 0 builds the fluid program (one sample into its surface), 1 the glass program, the
+    /// shadows' blur and the blit (a whole frame of the knob into an offscreen pixel). The surfaces and programs are the
+    /// knob's own, so its first visible draw finds them made.
+    /// </summary>
+    internal void Warm(int step)
+    {
+        var values = warmValues ??= WarmFrame(size);
+        if (step == 0)
+        {
+            Marshal.Copy(values, 0, block, JewelUniforms.ShaderBytes / sizeof(float));
+            Marshal.WriteInt32(block, 79 * sizeof(float), BitConverter.SingleToInt32Bits(0f));
+            var sample = Samples(gpu, size, 1);
+            var fluidShader = JewelNative.Shader(JewelKnobShader.Fluid, block, JewelUniforms.ShaderBytes);
+            JewelNative.SetShader(program, fluidShader);
+            JewelNative.Release(fluidShader);
+            sample.Canvas.Clear(SKColors.Transparent);
+            sample.Canvas.DrawRect(new SKRect(0, 0, size, size), program);
+            JewelNative.SetShader(program, 0);
+            return;
+        }
+        using var pixel = (gpu is not null ? SKSurface.Create(gpu, false, new SKImageInfo(1, 1, SKColorType.Bgra8888, SKAlphaType.Premul)) : null)
+            ?? SKSurface.Create(new SKImageInfo(1, 1, SKColorType.Bgra8888, SKAlphaType.Premul));
+        Draw(pixel.Canvas, values, new SKRect(-60, -60, -12, -12), 1); // the whole knob, drawn off the pixel: nothing lands
+    }
+
+    private float[]? warmValues;
+
+    private static float[] WarmFrame(int px)
+    {
+        var u = new JewelUniforms();
+        new JewelOrb(JewelMaterial.For(EffortBrand.Purple)).Frame(0, 0, 0, Math.PI, false, px, px / EffortSlider.ThumbSize, true, u);
+        u.SetPage(EffortSlider.ThumbSize, 0.26, 100, 298, EffortSlider.TrackHeight, SKColors.Black, SKColors.Black, [SKColors.Black, SKColors.Black, SKColors.Black, SKColors.Black, SKColors.Black]);
+        u.Lift = 1; // the lift's blurs too
+        return u.Values;
+    }
 
     /// <summary>The GPU's frame: the shadows, the program at the frame's own size, filtered into the knob's box.</summary>
     public void Draw(SKCanvas canvas, float[] uniforms, SKRect box, float opacity)

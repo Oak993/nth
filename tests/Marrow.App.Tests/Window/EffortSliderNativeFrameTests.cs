@@ -286,4 +286,89 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
             Assert.InRange(phase, 2.6 * 5 * 0.8, 4.2 * 5 * 1.1);
         }, factType: typeof(EffortSliderNativeFrameTests));
     }
+
+    // OD-0090 / ED-252 (lead's ruling, 2026-10-03): the composer primes the knob's programs after its window's first frame, at
+    // idle, so the first open of the effort popover does not wait for their compile. A window hosts the primer (as the
+    // composer's model chip does) and an animating liquid track; once primed, the slider opens in a popup from it, as the
+    // effort popover does, and its first knob draw on the GPU must fit a 60 Hz frame. Recorded: %TEMP%\jewel-warm.txt.
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_knob_warm_up_keeps_the_popovers_first_knob_draw_within_a_frame()
+    {
+        native.Run(_ =>
+        {
+            var index = 3;
+            var (window, frames, host) = native.OnUi(() =>
+            {
+                Border host = null!;
+                var hosted = Host(() => new StackPanel { Children = { (host = new Border { Width = 300, Height = 26, Child = new TrackEffect(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)) { Width = 300, Height = 26 } }) } });
+                JewelWarmup.Schedule(host);
+                return (hosted.Window, hosted.Frames, host);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (JewelWarmup.StepsDone < 2 && DateTime.UtcNow < deadline) Thread.Sleep(20);
+            var steps = string.Join(", ", JewelWarmup.StepTimes.Select(t => $"{t:F1} ms"));
+            Assert.True(JewelWarmup.StepsDone >= 2, $"the warm-up did not finish: {JewelWarmup.StepsDone} steps ({steps})");
+            Thread.Sleep(300);
+            var slider = native.OnUi(() =>
+            {
+                var slider = new EffortSlider(4, new Binding<int>(() => index, value => index = value), "Max", true, EffortBrand.Claude) { Width = 320 };
+                var popup = new Avalonia.Controls.Primitives.Popup { PlacementTarget = host, Placement = PlacementMode.Bottom, Child = new Border { Width = 340, Height = 60, Child = slider } };
+                ((Panel)window.Content!).Children.Add(popup);
+                popup.IsOpen = true;
+                return slider;
+            });
+            deadline = DateTime.UtcNow.AddSeconds(10);
+            while (JewelKnobOperation.GpuFrames < 30 && DateTime.UtcNow < deadline) Thread.Sleep(20);
+            var report = $"warm-up steps {steps}; the popover's first knob draw {JewelKnobOperation.FirstGpuRenderMs:F2} ms, the longest after it " +
+                $"{JewelKnobOperation.MaxGpuRenderMs:F2} ms over {JewelKnobOperation.GpuFrames} GPU knob frames ({JewelKnobOperation.CpuFrames} on the CPU)";
+            File.WriteAllText(Path.Combine(Path.GetTempPath(), "jewel-warm.txt"), report + Environment.NewLine);
+            Assert.True(JewelKnobOperation.GpuFrames >= 30, report);
+            Assert.True(JewelKnobOperation.FirstGpuRenderMs < 1000.0 / 60, report);
+        }, factType: typeof(EffortSliderNativeFrameTests));
+    }
+
+    // The warm-up's own frames: the window's frame gaps over its first 4 s with an animating liquid track (the worst case: a
+    // stall there would show), with the primer and without it. Recorded in %TEMP%\jewel-warm-frames.txt.
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_knob_warm_up_waits_for_the_first_frame_and_its_frames_are_measured() => WarmFrames(true);
+
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void Without_the_warm_up_the_windows_frames_are_measured_the_same_way() => WarmFrames(false);
+
+    private void WarmFrames(bool warm, [System.Runtime.CompilerServices.CallerMemberName] string fact = "")
+    {
+        native.Run(_ =>
+        {
+            var shown = Environment.TickCount64;
+            var (window, frames) = native.OnUi(() =>
+            {
+                Border host = null!;
+                var hosted = Host(() => host = new Border { Width = 300, Height = 26, Child = new TrackEffect(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)) { Width = 300, Height = 26 } });
+                if (warm) JewelWarmup.Schedule(host);
+                return (hosted.Window, hosted.Frames);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            Thread.Sleep(4000);
+            var (gaps, count, longest) = native.OnUi(() =>
+            {
+                var stamps = frames.Stamps;
+                var longest = stamps.Zip(stamps.Skip(1), (a, b) => (Gap: b - a, At: b)).OrderByDescending(x => x.Gap).Take(3).ToArray();
+                return (frames.GapHistogram(0), stamps.Count, string.Join(" ", longest.Select(x => $"{x.Gap:F0}@{x.At:F0}")));
+            });
+            var first = native.OnUi(() => frames.Stamps.Count > 0 ? frames.Stamps[0] : -1);
+            var line = $"warm-up {(warm ? "on" : "off")}: {count} frames in 4 s, gaps ms {gaps}; the longest (ms@ms since the frame clock started) {longest}" +
+                (warm ? $"; its steps {string.Join(", ", JewelWarmup.StepTimes.Select(t => $"{t:F1} ms"))}, the first {JewelWarmup.FirstStepTicks - shown} ms after the window was made" : "");
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "jewel-warm-frames.txt"), line + Environment.NewLine);
+            if (warm)
+            {
+                Assert.True(JewelWarmup.StepsDone == 2, line); // one program a frame, two frames
+                Assert.True(first >= 0 && JewelWarmup.FirstStepTicks > shown, line); // after the window's first frame
+            }
+            else Assert.Equal(0, JewelWarmup.StepsDone);
+        }, fact, typeof(EffortSliderNativeFrameTests));
+    }
 }
