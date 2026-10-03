@@ -9321,7 +9321,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // :966-981) with the OD-0012 E2 wording; with the setting off it removes at once, as upstream.
 
     private static Popup RemovalPopup(Control row) =>
-        LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child?.GetType() == Private("RemoveProjectPopover"));
+        LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => PopoverHost.Content(p)?.GetType() == Private("RemoveProjectPopover"));
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-130")] // SidebarView.swift:1183-1186, :1212-1214; OD-0008 A9; OD-0012 E2
@@ -9356,7 +9356,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var popup = RemovalPopup(row);
             Assert.Contains(recorder.Calls, c => c.Popup == popup && c.Presented);
             Assert.Equal(PlacementMode.Right, popup.Placement); // the thread delete question's own arrowEdge: .trailing (:220)
-            var menu = Assert.IsType<PopoverMenu>(Get(popup.Child!, "Child"));
+            var menu = Assert.IsType<PopoverMenu>(Get(PopoverHost.Content(popup)!, "Child"));
             Assert.Equal(280d, menu.Width); // :980 .frame(width: 280)
             var inner = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(Assert.IsType<ScrollViewer>(menu.Child).Content).Child).Children.Single());
             Assert.Equal(new[] { typeof(PopoverSectionHeader), typeof(PopoverNote), typeof(PopoverDivider), typeof(PopoverItem) }, inner.Children.Select(c => c.GetType()));
@@ -9393,7 +9393,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var popup = RemovalPopup(row);
             Assert.Equal(2, recorder.Calls.Count(c => c.Popup == popup && c.Presented));
             // Only the red action removes the project (upstream's removal, AppModel.swift:558-567).
-            Click(LogicalQuery.SelfAndDescendants<Button>(popup.Child!).Single(b => AutomationProperties.GetName(b) == "Remove project"));
+            Click(LogicalQuery.SelfAndDescendants<Button>(PopoverHost.Content(popup)!).Single(b => AutomationProperties.GetName(b) == "Remove project"));
         });
         harness.Main.OnMain(() => { });
         harness.Main.OnMain(() =>
@@ -10902,7 +10902,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         StackPanel list = null!; // taken once: a popup's content, once built, brings a ScrollViewer of its own into the view's logical tree
         Control ProjectRowNow() => list.Children.Single(c => c.GetType() == Private("ProjectRow"));
         bool Asking(Control row) => LogicalQuery.SelfAndDescendants<Popup>(row).Any(p => recorder.Calls.LastOrDefault(c => c.Popup == p) is { Presented: true } call
-            && p.Child?.GetType() == Private("RemoveProjectPopover"));
+            && PopoverHost.Content(p)?.GetType() == Private("RemoveProjectPopover"));
         harness.Main.OnMain(() =>
         {
             Assert.True(model.Settings.ConfirmBeforeDeleting);
@@ -11034,7 +11034,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     private static void AskToRemove(Control row, Project project) => CallOn(row, "RequestRemoval", project);
 
     private static Button RemoveAction(Popup popup) =>
-        LogicalQuery.SelfAndDescendants<Button>(popup.Child!).Single(b => AutomationProperties.GetName(b) == "Remove project");
+        LogicalQuery.SelfAndDescendants<Button>(PopoverHost.Content(popup)!).Single(b => AutomationProperties.GetName(b) == "Remove project");
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9: a dismissal of the question removes nothing
@@ -11575,7 +11575,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         Button More(Control row) => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
         bool MenuPresented(Control row) => (bool)Get(Field(row, "state")!, "IsMenuPresented")!;
         bool Asking(Control row) => LogicalQuery.SelfAndDescendants<Popup>(row).Any(p => recorder.Calls.LastOrDefault(c => c.Popup == p) is { Presented: true }
-            && p.Child?.GetType() == Private("RemoveProjectPopover"));
+            && PopoverHost.Content(p)?.GetType() == Private("RemoveProjectPopover"));
         harness.Main.OnMain(() =>
         {
             Assert.True(model.Settings.ConfirmBeforeDeleting);
