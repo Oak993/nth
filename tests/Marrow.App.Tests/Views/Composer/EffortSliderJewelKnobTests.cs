@@ -47,8 +47,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-713,740-760; DEVIATION OD-0090: the knob is 1.4 x the 34 px track, 48 px
-    [Trait("Decision", "ED-252")]
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:712-713,740-760 (PR-COMPOSER-123's track; its 42 point lens superseded by OD-0090); DEVIATION OD-0090: the knob is 1.4 x the 34 px track, 48 px
     public void The_knob_is_one_point_four_times_the_track_and_the_control_is_as_tall_as_the_knob() => headless.OnUiThread(() =>
     {
         Assert.Equal(34, EffortSlider.TrackHeight);
@@ -65,8 +64,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:743-748,756: stop centres a knob radius in from each end, the fill to the knob's far edge
-    [Trait("Decision", "ED-252")]
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:743-748,756 (a part of PR-COMPOSER-123): stop centres a knob radius in from each end, the fill to the knob's far edge
     [InlineData(0, 24.0)]
     [InlineData(1, 24 + 250.0 / 3)]
     [InlineData(2, 24 + 500.0 / 3)]
@@ -83,8 +81,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:802-818 (spring 0.22/0.8 to the pointer, 0.32/0.78 back to the stop); OD-0090 page trackPress
-    [Trait("Decision", "ED-252")]
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:802-818 (PR-COMPOSER-125's springs, 0.22/0.8 to the pointer, 0.32/0.78 back to the stop, as the page's); OD-0090 page trackPress
     public void Pressing_the_track_springs_the_knob_to_the_pointer_and_release_springs_it_to_the_nearest_stop() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
@@ -103,8 +100,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:793 scaleEffect 1.06 while held; OD-0090: pressed on the knob it lifts where it is and keeps the grip
-    [Trait("Decision", "ED-252")]
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:793 scaleEffect 1.06 while held (a part of PR-COMPOSER-123); OD-0090: pressed on the knob it lifts where it is and keeps the grip
     public void Pressing_the_knob_lifts_it_where_it_is_and_the_drag_keeps_the_grip() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
@@ -399,10 +395,13 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
         // the page's tl.exAt for the knob at stop 1 (its centre 107.33): 2 px before the centre, on a quarter pixel (105.25)
         Assert.Equal(JewelFixtures.Expected.GetProperty("exit")[1].GetProperty("ex").GetDouble(), g.Knob, 9);
         Assert.Equal(24, g.KnobRadius);
-        // step to just before strike 1's leader: the knob is charging and the tube has no bolt yet
+        // step to just before a strike's leader: the knob is charging and the tube has no bolt yet. The strike is the first
+        // whose previous one has left the knob's reading (1.9 s after it, jewel-knob.html orbList) by then: the seed comes
+        // from how many tracks the process has made, and with some seeds strike 0's tail still lights strike 1's charge
         var seed = effect.StrikeSeed;
-        var leader = Strike.StrikeAt(1, seed) - Strike.Lead;
-        var charging = leader - KnobSignal.ChargeOf(1, seed) / 2;
+        var k = Enumerable.Range(1, 8).First(j => Strike.StrikeAt(j, seed) - Strike.Lead - KnobSignal.ChargeOf(j, seed) / 2 - Strike.StrikeAt(j - 1, seed) > 1.9);
+        var leader = Strike.StrikeAt(k, seed) - Strike.Lead;
+        var charging = leader - KnobSignal.ChargeOf(k, seed) / 2;
         rig.Frame(charging - effect.TimeAt(SwiftDate.Now));
         Assert.Equal(KnobPhase.Charge, rig.Slider.Signal.Phase);
         Assert.InRange(rig.Slider.Signal.Charge, 0.05, 0.95);

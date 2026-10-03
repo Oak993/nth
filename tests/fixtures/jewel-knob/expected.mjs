@@ -170,6 +170,8 @@ out.gate = [
   gateRun('239 Hz, each frame up to 0.4 ms early or late', jittered(239, 4, 0.4, 7)),
   gateRun('144 Hz, each frame up to 0.6 ms early or late', jittered(144, 2, 0.6, 11)),
   gateRun('240 Hz, then a 100 ms stall, then a frame 1 ms after the last', [...even(240, 1), 1000000, ...even(240, 0.5), 10000, ...even(240, 0.5)]),
+  // neither the stall (50 ms or more) nor frames under 2 ms apart are refreshes: the gate keeps the 240 Hz it measured
+  gateRun('240 Hz, then a 300 ms stall, then frames 1.5 ms apart', [...even(240, 0.5), 3000000, ...Array.from({ length: 60 }, () => 15000)]),
   gateRun('60 Hz, then 240 Hz (the window moved to a faster display)', [...even(60, 1), ...even(240, 1)]),
   gateRun('240 Hz, then 60 Hz (the window moved to a slower display)', [...even(240, 1), ...even(60, 1)]),
 ];

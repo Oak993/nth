@@ -26,7 +26,7 @@ namespace Marrow.App.Tests.Views.Composer;
 public sealed class EffortSliderSweepTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:802-818
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:802-818 (a part of PR-COMPOSER-123 and PR-COMPOSER-125, whose knob OD-0090 replaced: 48 px, the page's springs)
     public void Releasing_a_drag_springs_from_the_drag_position_to_the_nearest_stop()
     {
         headless.OnUiThread(() =>
@@ -711,9 +711,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:712-713,740-799
-    [Trait("Req", "PR-COMPOSER-125")] // App/Views/Composer/EffortSlider.swift:802-818,833-836 (windows_path silently drops haptics)
-    [Trait("Req", "UI-COMPOSER-035")] // App/Views/Composer/EffortSlider.swift:740-831
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:712-713,740-799, :802-818,833-836, :740-831 (parts of PR-COMPOSER-123, PR-COMPOSER-125 and UI-COMPOSER-035, whose 42 point knob OD-0090 replaced)
     public void Drag_clamps_and_snaps_to_each_stop_and_preserves_track_and_knob_sizes()
     {
         headless.OnUiThread(() =>
@@ -1193,7 +1191,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:802-810 the first drag change assigns dragX inside withAnimation(.spring(response: 0.22, dampingFraction: 0.8))
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:802-810 the first drag change assigns dragX inside withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) (a part of PR-COMPOSER-125; OD-0090's knob)
     public void The_first_contact_springs_the_knob_from_its_resting_stop_to_the_pointer()
     {
         headless.OnUiThread(() =>
@@ -1218,7 +1216,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:793 .scaleEffect(dragX == nil ? 1 : 1.06): SwiftUI scales about the centre
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:793 .scaleEffect(dragX == nil ? 1 : 1.06): SwiftUI scales about the centre (a part of PR-COMPOSER-123; OD-0090's knob)
     public void The_dragged_knob_scales_about_its_centre()
     {
         headless.OnUiThread(() =>
