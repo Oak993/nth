@@ -21,6 +21,24 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views.Chat;
 
 // Parity closure for DroppyCode/App/Views/Chat/ChatView.swift (1.7.0): the clauses the earlier parts left unproven.
+//
+// STOP App.Views.Chat.ChatView #6 (2026-10-03): the clauses still open after the parity pass, per record.
+// Records: PR-CHAT-159, PR-GIT-126, PR-GIT-129, PR-USAGE-071, UI-CHAT-006.
+// - PR-CHAT-159: the ChatView half (the veil over the pane, fed by the timeline's own ChromeScrollModel) is proven
+//   (ChatViewFollowupTests); the capture at travel 0/20/44 in both themes is not done. 2-chat-use.mov shows only the dark
+//   theme at full progress (CATALOGUE timeline.top-edge-scrim, frames/gap-R2-02/scrim_profile.json), and the port's veil
+//   there depends on the theme's glass tint (Chrome unit, PR-WIN-196). UNRESOLVED.
+// - PR-GIT-126: "status, branches and the web URL are read concurrently" (:1297-1299, three async lets) is not observed by
+//   any test; every other clause is (ChatViewPart1Tests, ChatViewPart4ReviewTests). UNRESOLVED.
+// - PR-GIT-129: the commit instructions reaching the model call (:1625) and the sheet's dismissal cancelling its task
+//   (.task, :1605) are not observed: the provider stand-in records no stdin. Every other clause is proven
+//   (ChatViewParityDetailTests, ChatViewPart3ReviewTests, ChatViewPart4ReviewTests). UNRESOLVED.
+// - PR-USAGE-071: the origin arithmetic is proven (ChatViewPart2ReviewTests, ChatViewReviewFixTests); its capture of a short
+//   panel in a top and a bottom corner is not done (the videos dock the floating panel top-aligned only). UNRESOLVED.
+// - UI-CHAT-006: the source arrives at .scale(0.6) (:1098); 2-chat-use.mov (CATALOGUE timeline.scroll-to-bottom-button,
+//   C 10.27-10.47) shows the ring at ~28 of 32 px (scale ~0.88) in its first visible frame at opacity 0.27. Source and
+//   reference runtime disagree: needs a ruling. The ThreadTimeline-side clauses (the 0.38/0.78 spring, the unanimated hide
+//   on a new row, the 0.35 s glide) are that unit's.
 [Collection("Headless")]
 public sealed class ChatViewParityTests(HeadlessSession headless)
 {
