@@ -62,9 +62,14 @@ public static class PopoverHost
 
     /// <summary>
     /// What the card adds round a popover's content, for a site that sizes its popup to its content (PromptEditor's
-    /// resize): the edge, the tip with its gap and the shadow's room; nothing for a sheet.
+    /// resize): the edge, the tip with its gap and the room the card keeps for its shadow; nothing for a sheet.
     /// </summary>
-    public static Size Room(Popup popup) => Facing(popup) is { } edge ? PopoverCard.RoomAround(edge) : default;
+    public static Size Room(Popup popup)
+    {
+        if (Facing(popup) is not { } edge) return default;
+        var (inside, shadow) = (PopoverCard.RoomAround(edge), PopoverCard.ShadowMargin(edge));
+        return new Size(inside.Width + shadow.Left + shadow.Right, inside.Height + shadow.Top + shadow.Bottom);
+    }
 
     /// <summary>Readies <paramref name="popup"/> to be presented as a popover: the panel class, its card (OD-0095), and its
     /// anchor as its logical parent until it closes (so it, and the top-level it opens, inherit the anchor's appearance).</summary>
@@ -106,7 +111,7 @@ public static class PopoverHost
         if (popup.Child is null or PopoverCard || Facing(popup) is not { } edge) return;
         var content = popup.Child;
         popup.Child = null;
-        var card = new PopoverCard { Child = content, TipEdge = edge, Anchor = popup.PlacementTarget };
+        var card = new PopoverCard { Child = content, TipEdge = edge, Anchor = popup.PlacementTarget, ShadowRoom = true };
         card.Bind(PopoverCard.BackgroundProperty, new DynamicResourceExtension(FillKey));
         card.Bind(PopoverCard.BorderBrushProperty, new DynamicResourceExtension(BorderKey));
         popup.Child = card;

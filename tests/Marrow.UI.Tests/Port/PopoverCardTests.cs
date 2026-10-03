@@ -87,10 +87,13 @@ public sealed class PopoverCardTests(HeadlessSession headless)
             var inside = At(101, edge + dy);
             Assert.True(Math.Abs(inside.Red - fill.Red) <= 3 && inside.Alpha >= 250, $"at {dy} pt by the tip's centre: {inside}");
         }
-        // Beside the tip the edge is drawn, and past it there is nothing.
+        // Beside the tip the edge is drawn, and past it only the card's faint black shadow (OD-0095: one shadow).
         Assert.True(At(40, edge - 0.5).Red > fill.Red + 8, $"the card's edge line away from the tip at {scale}: {At(40, edge - 0.5)}");
-        Assert.Equal(0, At(40, edge + 4).Alpha);
-        Assert.Equal(0, At(101 + PopoverCard.TipHalfWidth + 4, edge + 2).Alpha);
+        foreach (var (x, y) in new[] { (40.0, edge + 4), (101 + PopoverCard.TipHalfWidth + 4, edge + 2) })
+        {
+            var past = At(x, y);
+            Assert.True(past.Alpha <= PopoverCard.ShadowPeak * 255 + 2 && past.Red <= 2, $"past the outline at {x},{y}: {past}");
+        }
     });
 
     [Theory]
@@ -292,7 +295,10 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         PopoverHost.Prepare(popup);
         Assert.Equal(edge, Assert.IsType<PopoverCard>(popup.Child).TipEdge);
         var room = PopoverHost.Room(popup);
-        Assert.Equal(edge is PopoverTipEdge.Top or PopoverTipEdge.Bottom ? new Size(2, 2 + PopoverCard.TipHeight + PopoverCard.TipGap) : new Size(2 + PopoverCard.TipHeight + PopoverCard.TipGap, 2), room);
+        var shadow = PopoverCard.ShadowReach + PopoverCard.ShadowDrop; // the shadow's room, on the three sides away from the tip
+        Assert.Equal(edge is PopoverTipEdge.Top or PopoverTipEdge.Bottom
+            ? new Size(2 + 2 * shadow, 2 + PopoverCard.TipHeight + PopoverCard.TipGap + shadow)
+            : new Size(2 + PopoverCard.TipHeight + PopoverCard.TipGap + shadow, 2 + 2 * shadow), room);
     });
 
     // A popup that closes and is given new content keeps it as the site set it until it is presented again (a site may
@@ -362,6 +368,69 @@ public sealed class PopoverCardTests(HeadlessSession headless)
             popup.IsOpen = false;
             window.Close();
         }
+    });
+
+    // OD-0095: the card and its tip cast one shadow (the panel has no edge in Light, "only the window manager's shadow").
+    // It falls off with the distance from the outline, the same beside the tip as beside the card, in both appearances;
+    // the presented card keeps room for it inside its popup on the three sides away from the tip, and on the tip's side
+    // it fades to nothing at the popup's edge (1 pt past the point), never ending on a line.
+    [Theory]
+    [Trait("Decision", "ED-238")] // OD-0095
+    [InlineData("Light")]
+    [InlineData("Dark")]
+    public void The_card_and_its_tip_cast_one_soft_shadow_inside_the_popup(string name) => headless.OnUiThread(() =>
+    {
+        var appearance = name == "Dark" ? ThemeVariant.Dark : ThemeVariant.Light;
+        var card = new PopoverCard
+        {
+            Child = new Border { Width = 200, Height = 100 },
+            TipEdge = PopoverTipEdge.Bottom,
+            Background = new SolidColorBrush(PopoverHost.Fill.Resolve(appearance)),
+            BorderBrush = new SolidColorBrush(PopoverHost.Border.Resolve(appearance)),
+            ShadowRoom = true,
+        };
+        var host = new Border { Child = card }; // the popup's top-level, clear
+        host.Measure(Size.Infinity);
+        host.Arrange(new Rect(host.DesiredSize));
+        var margin = PopoverCard.ShadowReach + PopoverCard.ShadowDrop;
+        Assert.Equal(new Thickness(margin, margin, margin, 0), card.Margin);
+        Assert.Equal(new Size(202 + 2 * margin, 102 + PopoverCard.TipHeight + PopoverCard.TipGap + margin), host.DesiredSize);
+        using var bitmap = new RenderTargetBitmap(new PixelSize((int)host.Bounds.Width, (int)host.Bounds.Height));
+        bitmap.Render(host);
+        using var stream = new MemoryStream();
+        bitmap.Save(stream, new PngBitmapEncoderOptions());
+        stream.Position = 0;
+        using var image = SkiaSharp.SKBitmap.Decode(stream);
+        int Alpha(double x, double y) => image.GetPixel((int)(margin + x), (int)(margin + y)).Alpha;
+        // Left of the card, halfway down, going out: darkest by the outline, gone by its reach.
+        var left = Enumerable.Range(1, (int)margin).Select(d => Alpha(-d, 50)).ToList();
+        Assert.True(left[0] >= 30 && left[0] <= PopoverCard.ShadowPeak * 255 + 2, $"by the outline: {left[0]}");
+        for (var i = 1; i < left.Count; i++) Assert.True(left[i] <= left[i - 1], $"falls off: {string.Join(",", left)}");
+        Assert.True(left[^1] <= 2, $"gone by its reach: {left[^1]}");
+        // Above the card the same (the drop makes it a little fainter), and beside the tip's side as beside the card.
+        Assert.InRange(Alpha(100, -2), left[1] - 25, left[1] + 5);
+        var tip = card.TipPoint;
+        var besideTip = Alpha(tip.X + 6 + 2 * Math.Sqrt(2), 102 + 6); // 2 pt off the 45 degree side, 6 pt under the edge
+        Assert.InRange(besideTip, left[1] - 20, left[1] + 20);
+        // On the tip's side it has faded out by the popup's last row, under the point too.
+        var lastRow = (int)host.Bounds.Height - 1;
+        Assert.True(Enumerable.Range(0, image.Width).All(x => image.GetPixel(x, lastRow).Alpha <= 3), "the shadow is cut by the popup's edge under the tip");
+    });
+
+    // A presented card that flips (no room above its anchor) keeps its shadow's room on the three sides away from its
+    // new tip, none on the tip's side, so the tip still ends 1 pt from the anchor.
+    [Fact]
+    [Trait("Decision", "ED-238")] // OD-0095
+    public void A_flipped_card_keeps_its_shadow_room_away_from_its_new_tip() => headless.OnUiThread(() =>
+    {
+        var side = PopoverCard.ShadowReach + PopoverCard.ShadowDrop;
+        var card = new PopoverCard { TipEdge = PopoverTipEdge.Bottom, ShadowRoom = true };
+        Assert.Equal(new Thickness(side, side, side, 0), card.Margin);
+        card.TipEdge = PopoverTipEdge.Top;
+        Assert.Equal(new Thickness(side, 0, side, side), card.Margin);
+        card.TipEdge = PopoverTipEdge.Left;
+        Assert.Equal(new Thickness(0, side, side, side), card.Margin);
+        Assert.Equal(default, new PopoverCard { TipEdge = PopoverTipEdge.Top }.Margin); // a card drawn on its own keeps none
     });
 
     private static Avalonia.LogicalTree.ILogical? StyledParent(Control control) => ((Avalonia.LogicalTree.ILogical)control).LogicalParent;

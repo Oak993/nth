@@ -21,6 +21,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Avalonia.VisualTree;
 
 namespace Marrow.UI.Port;
@@ -44,6 +45,17 @@ public sealed class PopoverCard : Decorator
     internal const double TipGap = 1;
     private const double Edge = 1; // ED-238's 1 pt panel edge
 
+    // OD-0095: "one outline, one fill, one shadow". ENGINEERING DECISION (no number is published for NSPopover's window
+    // shadow; the videos show it soft and faint, more a lift than a drop): a Gaussian falloff, 0.22 black at the outline,
+    // sigma 3.5 pt, gone by 10 pt, 1 pt down, following the card and its tip as one outline, in Light and Dark alike. It is
+    // drawn as stacked strokes of the outline (cheap, no layer or blur per frame), and it fades out over the last 5 pt of
+    // the room on the tip's side (the popup ends 1 pt past the point), so it never ends on a hard line under the tip.
+    internal const double ShadowReach = 10;
+    internal const double ShadowSigma = 3.5;
+    internal const double ShadowPeak = 0.22;
+    internal const double ShadowDrop = 1;
+    private const double ShadowFade = 5;
+
     public static readonly StyledProperty<IBrush?> BackgroundProperty =
         AvaloniaProperty.Register<PopoverCard, IBrush?>(nameof(Background));
 
@@ -60,6 +72,38 @@ public sealed class PopoverCard : Decorator
     {
         AffectsRender<PopoverCard>(BackgroundProperty, BorderBrushProperty, TipEdgeProperty, TipOffsetProperty);
         AffectsMeasure<PopoverCard>(TipEdgeProperty);
+    }
+
+    /// <summary>
+    /// Whether the card keeps room round itself (its Margin, on the sides away from the tip) for its shadow inside the
+    /// popup it is the content of: the presenter's cards do; a card drawn on its own (a test, a probe) does not.
+    /// </summary>
+    internal bool ShadowRoom
+    {
+        get => shadowRoom;
+        set { shadowRoom = value; Margin = value ? ShadowMargin(TipEdge) : default; }
+    }
+
+    private bool shadowRoom;
+
+    /// <summary>The room a presented card keeps round itself for its shadow: none on the tip's side (the tip's own room
+    /// holds it there), the shadow's reach and its drop on the others.</summary>
+    internal static Thickness ShadowMargin(PopoverTipEdge edge)
+    {
+        var side = ShadowReach + ShadowDrop;
+        return edge switch
+        {
+            PopoverTipEdge.Top => new Thickness(side, 0, side, side),
+            PopoverTipEdge.Bottom => new Thickness(side, side, side, 0),
+            PopoverTipEdge.Left => new Thickness(0, side, side, side),
+            _ => new Thickness(side, side, 0, side),
+        };
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == TipEdgeProperty && shadowRoom) Margin = ShadowMargin(TipEdge); // the card flipped
     }
 
     public PopoverCard()
@@ -218,7 +262,54 @@ public sealed class PopoverCard : Decorator
     {
         var size = Bounds.Size;
         if (size.Width <= 0 || size.Height <= 0) return;
-        context.DrawGeometry(Background, BorderBrush is { } edge ? new Pen(edge, Edge) : null, Shape(size));
+        var shape = Shape(size);
+        using (context.PushTransform(Matrix.CreateTranslation(0, ShadowDrop)))
+            foreach (var pen in ShadowPens(size)) context.DrawGeometry(null, pen, shape);
+        context.DrawGeometry(Background, BorderBrush is { } edge ? new Pen(edge, Edge) : null, shape);
+    }
+
+    private (Size Size, PopoverTipEdge Edge) shadowKey;
+    private ImmutablePen[] shadowPens = [];
+
+    // One ring a point wide for each point of the shadow's reach, widest first: a stroke of width 2k on the outline covers
+    // k points outside it (the fill covers the inside), so the rings stack to the falloff, each ring's own share solved
+    // from the outside in. Each ring's black fades to nothing over the last points of the tip's side of the card.
+    private ImmutablePen[] ShadowPens(Size size)
+    {
+        if (shadowKey == (size, TipEdge) && shadowPens.Length > 0) return shadowPens;
+        shadowKey = (size, TipEdge);
+        var count = (int)ShadowReach;
+        double Falloff(double distance) => ShadowPeak * Math.Exp(-distance * distance / (2 * ShadowSigma * ShadowSigma));
+        var pens = new ImmutablePen[count];
+        var outside = 0.0; // what the rings further out already cover at this ring's middle
+        for (var k = count; k >= 1; k--)
+        {
+            var wanted = Falloff(k - 0.5);
+            var share = Math.Clamp(1 - (1 - wanted) / (1 - outside), 0, 1);
+            outside = wanted;
+            pens[count - k] = new ImmutablePen(Fade(size, share), 2 * k, lineJoin: PenLineJoin.Round);
+        }
+        return shadowPens = pens;
+    }
+
+    // Black at the ring's share, fading to nothing over ShadowFade points, gone in the last point before the card's bounds
+    // on the tip's side (in the shadow's own space, which is one drop lower than the card's).
+    private ImmutableLinearGradientBrush Fade(Size size, double share)
+    {
+        var solid = Color.FromArgb((byte)Math.Round(share * 255), 0, 0, 0);
+        var clear = Color.FromArgb(0, 0, 0, 0);
+        var (from, to) = TipEdge switch
+        {
+            PopoverTipEdge.Top => (new Point(0, 1 + ShadowFade - ShadowDrop), new Point(0, 1 - ShadowDrop)),
+            PopoverTipEdge.Bottom => (new Point(0, size.Height - 1 - ShadowFade - ShadowDrop), new Point(0, size.Height - 1 - ShadowDrop)),
+            PopoverTipEdge.Left => (new Point(1 + ShadowFade, 0), new Point(1, 0)),
+            _ => (new Point(size.Width - 1 - ShadowFade, 0), new Point(size.Width - 1, 0)),
+        };
+        return new ImmutableLinearGradientBrush(
+            [new ImmutableGradientStop(0, solid), new ImmutableGradientStop(1, clear)],
+            spreadMethod: GradientSpreadMethod.Pad,
+            startPoint: new RelativePoint(from, RelativeUnit.Absolute),
+            endPoint: new RelativePoint(to, RelativeUnit.Absolute));
     }
 
     /// <summary>

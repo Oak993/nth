@@ -47,7 +47,8 @@ public sealed class PopoverCardSitesTests(HeadlessSession headless)
             var card = Assert.IsType<PopoverCard>(popup.Child);
             Assert.Same(content, card.Child);
             Assert.Equal(PopoverTipEdge.Top, card.TipEdge);
-            var room = PopoverCard.RoomAround(PopoverTipEdge.Top);
+            var room = PopoverHost.Room(popup); // the card's edge, tip and gap, and the room it keeps for its shadow
+            Assert.Equal(new Size(2 + 2 * 11, 2 + 13 + 11), room);
             Assert.Equal(new Size(400 + room.Width, 100 + room.Height), new Size(popup.Width, popup.Height));
             window.UpdateLayout();
             Dispatcher.UIThread.RunJobs();
