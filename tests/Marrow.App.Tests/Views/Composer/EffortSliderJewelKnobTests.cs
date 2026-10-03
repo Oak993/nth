@@ -123,8 +123,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:808-813,833-836; OD-0090: the effort changes as the knob passes the midpoint between stops
-    [Trait("Decision", "ED-252")]
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:808-813,833-836 (nearestStop, PR-COMPOSER-125, not its springs or haptic); OD-0090: the effort changes as the knob passes the midpoint between stops
     public void The_effort_changes_where_the_knob_passes_the_midpoint_between_two_stops() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
@@ -157,8 +156,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:826-831: the slider is an accessibility element only, no focus ring; owner, 2026-10-03: no highlight boundary on a click
-    [Trait("Decision", "ED-252")]
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:826-831 (the accessibility element of PR-COMPOSER-126, not its label, value or actions): no focus ring; owner, 2026-10-03: no highlight boundary on a click
     public void A_pointer_press_and_drag_show_no_focus_ring() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
