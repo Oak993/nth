@@ -1,7 +1,8 @@
 // Records what the locked Jewel knob page computes (OD-0090), for the port's exactness tests (EffortSliderJewelTests):
 // the Jewel material of several makers (knob-variants.js liquidOf / material / mixMaterial / strikeTint / mixTint), the
 // uniforms the Violet Ember orb sends to its shader frame by frame (knob-orbs-1.js makeOrb().frame, run against a
-// recording WebGL2 stub), the page's knob springs (jewel-knob.html spring(), makeSlider / stepSlider) and its reading of
+// recording WebGL2 stub), the page's knob springs (jewel-knob.html spring(), makeSlider / stepSlider, tick()'s cap on a
+// frame's step), the bolt's exit (stepSlider's tl.exAt), the frame gate (strike-engine.js frameGate) and its reading of
 // the strike's signal (jewel-knob.html part(), shape(), rawSignal(), share(); strike-engine.js plan0 / orbAim / pulseI),
 // fed with the port's fast-mode strikes (A2 at strikeAt, each with the locked Mix rule's charge: 0.14 + 0.12 H(131)).
 //   node tests/fixtures/jewel-knob/expected.mjs [the locked folder] > tests/fixtures/jewel-knob/expected.json
@@ -32,6 +33,9 @@ out.materials140 = KV.material('jewel', KV.liquidOf(PAL, 'Claude', 'dark'), 140)
 out.materials24 = KV.material('jewel', KV.liquidOf(PAL, 'Claude', 'dark'), 24);
 const mc = KV.material('jewel', KV.liquidOf(PAL, 'Claude', 'dark'), 48), mo = KV.material('jewel', KV.liquidOf(PAL, 'OpenAI', 'dark'), 48);
 out.mix = [0.25, 0.5, 0.75].map((u) => ({ u, material: KV.mixMaterial(mc, mo, u), tint: KV.mixTint(KV.strikeTint(KV.liquidOf(PAL, 'Claude', 'dark')), KV.strikeTint(KV.liquidOf(PAL, 'OpenAI', 'dark')), u) }));
+// to a blue liquid, whose material takes a smaller share of the lightning (fx 0.36 / 0.15 against 0.58 / 0.24)
+const md = KV.material('jewel', KV.liquidOf(PAL, 'DeepSeek', 'dark'), 48);
+out.mixBlue = [0.25, 0.5, 0.75].map((u) => ({ u, material: KV.mixMaterial(mc, md, u) }));
 
 // ---- the orb's uniforms per frame (knob-orbs-1.js), through a recording WebGL2 stub
 function stubGL(log) {
@@ -88,6 +92,11 @@ function slider(W, kn, n, index) {
     },
   };
 }
+// tick()'s cap on the slider's step (jewel-knob.html: dt = min(CAP, max(0, t - sliderT))), read from the page
+const capMatch = html.match(/const dt = sliderT === null \? 0 : Math\.min\(([\d.]+), Math\.max\(0, t - sliderT\)\);/);
+if (!capMatch) throw new Error('not found: tick() dt cap');
+const DT_CAP = +capMatch[1];
+// a step's frames come 1/60 s apart unless it gives its own frame length (dt, s: a long frame, as after a stall)
 function run(W, events) {
   const s = slider(W, 48, 4, events.index);
   const rec = [];
@@ -97,22 +106,79 @@ function run(W, events) {
     if (e.move != null) s.move(e.move);
     if (e.up) s.up();
     if (e.key) s.key(e.key);
-    for (let i = 0; i < (e.frames || 0); i++) { t += 1 / 60; rec.push({ t: +t.toFixed(6), ...s.step(1 / 60) }); }
+    const frame = e.dt ?? 1 / 60;
+    for (let i = 0; i < (e.frames || 0); i++) { t += frame; rec.push({ t: +t.toFixed(6), ...s.step(Math.min(DT_CAP, Math.max(0, frame))) }); }
   }
   return rec;
 }
 out.slider = {
   W: 298,
+  dtCap: DT_CAP,
   trackPress: run(298, { index: 0, steps: [{ down: 200, frames: 36 }, { up: true, frames: 60 }] }),
   knobPress: run(298, { index: 0, steps: [{ down: 34, frames: 30 }, { move: 150, frames: 30 }, { up: true, frames: 60 }] }),
   key: run(298, { index: 1, steps: [{ key: 1, frames: 30 }] }),
+  // one frame 0.2 s long after a press on the track (a stall): the springs move by the cap, not the whole gap
+  longFrame: run(298, { index: 0, steps: [{ down: 200, frames: 1, dt: 0.2 }] }),
+  // held at 200 for a second, released, one frame 1 s long, then the springs settle onto the stop
+  longRelease: run(298, { index: 0, steps: [{ down: 200, frames: 60 }, { up: true, frames: 1, dt: 1 }, { frames: 90 }] }),
+  // the near end, on a 600 px track: from the last stop, pressed on the track at its start, the spring overshoots the
+  // first stop (24) and is held 3 px past it
+  nearEnd: run(600, { index: 3, steps: [{ down: 2, frames: 60 }] }),
+  // pressed 23.5 px from the knob's centre (inside its 24 px radius): it lifts where it is and keeps the grip
+  knobEdge: run(298, { index: 0, steps: [{ down: 47.5, frames: 20 }, { move: 150, frames: 10 }] }),
 };
+
+// ---- the bolt's exit (jewel-knob.html stepSlider, run as it is on a stub of its elements: tl.exAt, set from the
+// knob's centre x on the tube), at each stop of the app's 298 px track with its 48 px knob
+const STOPS = new Function(cut('const STOPS = ', '\n') + '\nreturn STOPS;')();
+const stopX = new Function('STOPS', cut('const stopX = (T, i)', '\n') + '\nreturn stopX;')(STOPS);
+const LIFT = new Function(cut('const LIFT = ', '\n') + '\nreturn LIFT;')();
+const f2 = new Function(cut('const f2 = (v)', '\n') + '\nreturn f2;')();
+function exitOf(T, index) {
+  const zap = {}, tl = {};
+  const stepSlider = new Function('spring', 'stopX', 'placeScenes', 'E', 'f2', 'LIFT', cut('function stepSlider(S, dt)', 'function build()') + '\nreturn stepSlider;')(
+    spring, stopX, () => {}, { state0: new Map([[zap, tl]]) }, f2, LIFT);
+  const S = { T, index, held: false, finger: 0, grab: 0, off: { p: 0, v: 0 }, sc: { p: 1, v: 0 }, resp: 0.32, zeta: 0.78,
+    kw: { style: {} }, lift: null, liq: { style: {} }, zap, x: stopX(T, index), shown: null };
+  stepSlider(S, 0);
+  return { index, x: S.x, ex: tl.exAt };
+}
+out.exit = [0, 1, 2, 3].map((i) => exitOf({ W: 298, kn: 48 }, i));
+const EX = out.exit[3].ex; // the knob at its top stop, 274: the page's bolt leaves at 272
+
+// ---- the frame gate (strike-engine.js frameGate, which jewel-knob.html's loop calls on every display refresh and draws
+// only when it passes), on the frames the port's rig delivers: the first, then each gap (whole ticks of 100 ns) after it.
+// Each run records the frames drawn (0 the first).
+function gateRun(name, gaps) {
+  const G = new Component({ dark: true });
+  let t = 0;
+  const draws = [];
+  if (G.frameGate(t)) draws.push(0);
+  gaps.forEach((ticks, i) => { t += ticks / 1e4; if (G.frameGate(t)) draws.push(i + 1); });
+  return { name, gaps, draws };
+}
+const even = (hz, seconds) => Array.from({ length: Math.round(hz * seconds) }, () => Math.round(1e7 / hz));
+const jittered = (hz, seconds, ms, seed) => {
+  let x = seed >>> 0;
+  const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) >>> 0; return (x >>> 8) / 16777216; };
+  return Array.from({ length: Math.round(hz * seconds) }, () => Math.round((1e3 / hz + (rnd() * 2 - 1) * ms) * 1e4));
+};
+out.gate = [
+  ...[60, 75, 90, 120, 144, 165, 240].map((hz) => gateRun(`${hz} Hz`, even(hz, 2))),
+  gateRun('239 Hz', even(239, 4)),
+  gateRun('60 Hz, frames 16, 17 and 17 ms apart', Array.from({ length: 60 }, (_, i) => [160000, 170000, 170000][i % 3])),
+  gateRun('239 Hz, each frame up to 0.4 ms early or late', jittered(239, 4, 0.4, 7)),
+  gateRun('144 Hz, each frame up to 0.6 ms early or late', jittered(144, 2, 0.6, 11)),
+  gateRun('240 Hz, then a 100 ms stall, then a frame 1 ms after the last', [...even(240, 1), 1000000, ...even(240, 0.5), 10000, ...even(240, 0.5)]),
+  gateRun('60 Hz, then 240 Hz (the window moved to a faster display)', [...even(60, 1), ...even(240, 1)]),
+  gateRun('240 Hz, then 60 Hz (the window moved to a slower display)', [...even(240, 1), ...even(60, 1)]),
+];
 
 // ---- the strike's signal as the knob reads it (jewel-knob.html), on the port's A2 strikes with the Mix charge
 const E = new Component({ dark: true });
 const H = (k, S, s) => E.hash(k, S * 13 + s);
 const seed = 13 * 97 + 13, W = 298, h = 34;
-const g = { w: W, h, cy: h / 2, xs: h * 0.32, ex: W - 24, kr: 24, k: Math.max(0.62, Math.min(1, h / 40)), seed, tl: { cache: {}, n: 0 } };
+const g = { w: W, h, cy: h / 2, xs: h * 0.32, ex: EX, kr: 24, k: Math.max(0.62, Math.min(1, h / 40)), seed, tl: { cache: {}, n: 0 } };
 const plans = new Map();
 const planOf = (k) => { if (!plans.has(k)) plans.set(k, Object.assign({}, E.plan0(g, k), { charge: 0.14 + 0.12 * H(k, seed, 131) })); return plans.get(k); };
 const E2 = Object.create(E);
@@ -120,7 +186,7 @@ E2.orbList = (tl, gg, T) => { const list = [], k0 = Math.floor(T / 2.4); for (le
 const sig = new Function('E', 'reduce', 'RAW', cut('const ss = (a, b, x)', '// ---- the loop') + '\nreturn { part, shape, rawSignal, signal, share };')(E2, false, false);
 const tl = { g, off: 0 };
 const st = { th: Math.PI }, raw = { th: Math.PI };
-out.signal = { seed, geometry: { w: W, h, knob: W - 24, radius: 24 }, strikes: [], frames: [] };
+out.signal = { seed, geometry: { w: W, h, knob: W - 24, ex: EX, radius: 24 }, strikes: [], frames: [] };
 for (let k = 0; k <= 4; k++) { const B = planOf(k); out.signal.strikes.push({ k, at: B.at, lead: B.lead, charge: B.charge, th: E.orbGeo(g, B).th, flick: B.flick }); }
 // orbGeo's exit angle for knob radii from 16 to 30 px (strikes 0 to 3), so the rim test (radius less half a pixel) is pinned
 out.signal.exits = [];
@@ -147,14 +213,17 @@ out.inkMix = [0.25, 0.5].map((u) => ({ u, tint: inkFns.mixTint2(inkFns.tintOf(KV
 
 // ---- bubble bursts (OD-0078 as the locked engine draws them: strike-engine.js events / near / process / contact on the
 // v22 bubbles, riseOf / laneAt / bubNow), on the port's fast mode: A2 strikes (lvl 0: plan0 at strikeAt), the bubbles at
-// real time (no simmer clock), the port's tube (298 x 34, the knob at 274), irregular frames with a few long gaps
+// real time (no simmer clock), the port's tube (298 x 34, the knob at 274: the bolt leaves at the page's exAt, 272),
+// irregular frames with a few long gaps
 function burstRun(strikeSeed, bubbleSeed, lanes, seconds) {
   const B = new Component({ dark: true });
   const tl = { seed: strikeSeed, off: 0, lvl: 0, bubKey: `${bubbleSeed},${lanes},0,0`, cache: {}, n: 0 };
-  const gg = { w: 298, h: 34, cy: 17, xs: 34 * 0.32, ex: 274, kr: 24, k: Math.max(0.62, Math.min(1, 34 / 40)), seed: strikeSeed, tl };
+  const gg = { w: 298, h: 34, cy: 17, xs: 34 * 0.32, ex: EX, kr: 24, k: Math.max(0.62, Math.min(1, 34 / 40)), seed: strikeSeed, tl };
   B.makeBubbles(tl, gg);
   const bursts = [];
-  tl.onBurst = (k, i, te, st) => bursts.push({ k, i, t: te, x: st.x, y: st.y, r: st.r, a: st.a, rise: st.k });
+  // with the burst's own number and turn (contact(): n = floor(hash(977 i + rise, seed) 1e6), rot = (n % 628) / 100),
+  // which place its ring's arcs and its glints
+  tl.onBurst = (k, i, te, st) => { const b = tl.bursts[tl.bursts.length - 1]; bursts.push({ k, i, t: te, x: st.x, y: st.y, r: st.r, a: st.a, rise: st.k, n: b.n, rot: b.rot }); };
   let t = 0, x = 12345;
   const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) >>> 0; return (x >>> 8) / 16777216; };
   const frames = [];

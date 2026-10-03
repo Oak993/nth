@@ -262,13 +262,18 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
         for (var i = 0; i < 60; i++) rig.Frame();
         Assert.Equal(200, rig.Slider.KnobX, 3);
         rig.Up(200);
+        // one frame 1 s long: the page's tick() moves the springs by 0.05 s of it (jewel-knob.html:813), as recorded by
+        // expected.mjs (slider.longRelease: the same press, hold, release and frame), then they settle onto the stop
+        var run = JewelFixtures.Expected.GetProperty("slider").GetProperty("longRelease").EnumerateArray().ToArray();
         rig.Frame(1);
+        Assert.True(Math.Abs(run[60].GetProperty("x").GetDouble() - rig.Slider.KnobX) < 1e-3, $"after the long frame: page {run[60].GetProperty("x")}, port {rig.Slider.KnobX}");
+        for (var i = 61; i < run.Length; i++) rig.Frame();
         Assert.Equal(24 + 500.0 / 3, rig.Slider.KnobX, 9);
         Assert.Equal(before, rig.Slider.Orb.Phase);
     });
 
     [Fact]
-    [Trait("Decision", "ED-252")] // jewel-knob.html frameGate (about 60 a second on any display), as the tube's 1/60 timeline (ED-232): measured natively, the knob ran at the display's 240
+    [Trait("Decision", "ED-252")] // jewel-knob.html:867-871 paces its loop by strike-engine.js:56-66 frameGate (at 240 Hz every 4th refresh, 60 a second); measured natively, the knob had run at the display's 240
     public void On_a_fast_display_the_knob_steps_sixty_times_a_second() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
@@ -285,7 +290,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-252")] // jewel-knob.html frameGate (strike-engine.js:57-66: at 60 to 75 Hz every refresh draws); the port's due times reach it with ED-117 (2)'s 1 ms slack
+    [Trait("Decision", "ED-252")] // strike-engine.js:56-66 frameGate: the refresh measured from the gaps (16 ms here), every = 1, a frame drawn once half a refresh has passed
     public void On_a_sixty_hertz_display_whose_frames_come_16_or_17_ms_apart_the_knob_steps_at_every_frame() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
@@ -358,7 +363,8 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
         var s = JewelFixtures.Expected.GetProperty("signal");
         var seed = s.GetProperty("seed").GetInt32();
         var geo = s.GetProperty("geometry");
-        var g = new StrikeGeometry(geo.GetProperty("w").GetDouble(), geo.GetProperty("h").GetDouble(), geo.GetProperty("knob").GetDouble(), geo.GetProperty("radius").GetDouble());
+        // the bolt leaves where the page's slider puts it for the knob at 274 (jewel-knob.html:593 tl.exAt: 272)
+        var g = new StrikeGeometry(geo.GetProperty("w").GetDouble(), geo.GetProperty("h").GetDouble(), geo.GetProperty("ex").GetDouble(), geo.GetProperty("radius").GetDouble());
         foreach (var strike in s.GetProperty("strikes").EnumerateArray())
         {
             var k = strike.GetProperty("k").GetInt32();
@@ -383,14 +389,15 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-252")] // OD-0084 with OD-0090's knob: the bolt leaves the 48 px knob's centre, and the orb charges before the leader
-    public void In_fast_mode_the_bolt_leaves_the_knobs_centre_and_the_orb_charges_first() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-252")] // OD-0084 with OD-0090's knob: the bolt leaves the 48 px knob where the page's does (jewel-knob.html:593, :335), and the orb charges before the leader
+    public void In_fast_mode_the_bolt_leaves_the_knob_and_the_orb_charges_first() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig(index: 1, fast: true);
         rig.Frame();
         var effect = Assert.Single(rig.Slider.GetVisualDescendants().OfType<TrackEffect>());
         var g = effect.StrikeGeometryFor(effect.Bounds.Size);
-        Assert.Equal(rig.Slider.KnobX, g.Knob, 9); // the fill ends a knob radius past the knob's centre
+        // the page's tl.exAt for the knob at stop 1 (its centre 107.33): 2 px before the centre, on a quarter pixel (105.25)
+        Assert.Equal(JewelFixtures.Expected.GetProperty("exit")[1].GetProperty("ex").GetDouble(), g.Knob, 9);
         Assert.Equal(24, g.KnobRadius);
         // step to just before strike 1's leader: the knob is charging and the tube has no bolt yet
         var seed = effect.StrikeSeed;

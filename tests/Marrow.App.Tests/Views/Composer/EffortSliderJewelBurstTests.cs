@@ -13,11 +13,14 @@ namespace Marrow.App.Tests.Views.Composer;
 // OD-0078 / OD-0084, required by the owner with OD-0090 (2026-10-03): every bubble the strike touches bursts on the spot, on
 // every maker, visible on pale liquids. The engine's contact rule (strike-engine.js events / near / process / contact) was
 // recorded from the locked engine itself (tests/fixtures/jewel-knob/expected.mjs burstRun: the engine's A2 strikes at strikeAt
-// on its v22 bubbles, the port's 298 x 34 tube with the knob at 274, 240 s of irregular frames with a few long gaps).
+// on its v22 bubbles, the port's 298 x 34 tube with the knob at 274, 240 s of irregular frames with a few long gaps). The
+// bolt leaves where the page's slider puts it for a knob at 274: tl.exAt = Math.round((274 - 2) * 4) / 4 = 272
+// (jewel-knob.html:593, run by expected.mjs), recorded as the signal's geometry.ex.
 [Collection("Headless")]
 public sealed class EffortSliderJewelBurstTests(HeadlessSession headless)
 {
-    private static readonly StrikeGeometry Tube = new(298, 34, 274, 24);
+    private static double PageExit => JewelFixtures.Expected.GetProperty("signal").GetProperty("geometry").GetProperty("ex").GetDouble();
+    private static StrikeGeometry Tube => new(298, 34, PageExit, 24);
 
     [Theory]
     [Trait("Decision", "ED-252")] // the port's bursts are the locked engine's: the same bubbles, the same rises, at the same instants
@@ -44,6 +47,9 @@ public sealed class EffortSliderJewelBurstTests(HeadlessSession headless)
             // where it was: the engine eases the rise through a 1024-step table, the port exactly (under 1e-3 px apart)
             Assert.True(Math.Abs(e.GetProperty("x").GetDouble() - b.X) < 1e-3 && Math.Abs(e.GetProperty("y").GetDouble() - b.Y) < 1e-3, $"burst {i} at {b.X},{b.Y}");
             Assert.True(Math.Abs(e.GetProperty("r").GetDouble() - b.R) < 1e-3, $"burst {i} radius {b.R}");
+            // its number and its turn, which place the ring's arcs and the glints (contact(): rot = (n % 628) / 100)
+            Assert.True(e.GetProperty("n").GetInt32() == b.N && Math.Abs(e.GetProperty("rot").GetDouble() - b.Rot) < 1e-12,
+                $"burst {i}: engine n {e.GetProperty("n")} rot {e.GetProperty("rot")}, port n {b.N} rot {b.Rot}");
         }
     }
 
@@ -178,7 +184,7 @@ public sealed class EffortSliderJewelBurstTests(HeadlessSession headless)
         var seed = s.GetProperty("seed").GetInt32();
         foreach (var e in s.GetProperty("exits").EnumerateArray())
         {
-            var g = new StrikeGeometry(298, 34, 274, e.GetProperty("kr").GetDouble());
+            var g = new StrikeGeometry(298, 34, PageExit, e.GetProperty("kr").GetDouble());
             Assert.Equal(e.GetProperty("th").GetDouble(), KnobSignal.ExitOf(g, seed, e.GetProperty("k").GetInt32()), 9);
         }
     }
