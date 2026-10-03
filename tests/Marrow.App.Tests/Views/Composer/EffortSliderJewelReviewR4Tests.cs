@@ -3,12 +3,12 @@ using Marrow.Testing;
 namespace Marrow.App.Tests.Views.Composer;
 
 // REVIEW (adversarial, unit jewel-knob, review round 4 on cb4310571): each test states what the unit's code or its tests
-// must do and fails on the head reviewed.
+// must do and failed on the head reviewed; both pass from 2a65c0fd5 and fc50f61f5 (round 4 answered), kept under plain names.
 public sealed class EffortSliderJewelReviewR4Tests
 {
     [Fact]
     [Trait("Rule", "R-TEST-1")] // a test that verifies a requirement carries that requirement's Req trait, not another's
-    public void REVIEW_no_jewel_knob_test_credits_the_pair_caption_requirement_it_does_not_test()
+    public void No_jewel_knob_test_credits_the_pair_caption_requirement_it_does_not_test()
     {
         // PR-COMPOSER-116 is the pair caption (EffortSlider.swift:642-651: .subheadline, secondary, one line, the -6 top
         // padding, softAppear). EffortSliderJewelKnobTests.An_accessibility_step_springs_the_knob_to_its_stop tests the
@@ -23,7 +23,7 @@ public sealed class EffortSliderJewelReviewR4Tests
 
     [Fact]
     [Trait("Decision", "ED-252")] // the knob's tests run in the unit's suites, every one of them filtered FullyQualifiedName!~Native
-    public void REVIEW_every_headless_jewel_test_runs_under_the_suites_filter()
+    public void Every_headless_jewel_test_runs_under_the_suites_filter()
     {
         // dotnet test's ~ is a case-insensitive contains: on cb4310571 the filter
         // 'FullyQualifiedName~The_native_bindings_match&FullyQualifiedName!~Native' matches no test. So every suite the
