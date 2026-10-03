@@ -281,6 +281,29 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 (the chevron comes with something to open and the time glides over to make room, ThreadTimeline.swift:2128-2135,2183 .animation(Self.change, value: canExpand)); capture comparison: 2-chat-use.mov 95.803-96.078 (the time's left edge, frame by frame: evidence/ThreadTimeline/chev)
+    public void The_time_glides_over_for_the_chevron_along_the_reference_runtimes_curve() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Model.Settings.ShowReasoning = true;
+        mount.SetEntries(new[] { User("prompt", Turn, "hello") }); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle();
+        var line = Line(mount); var time = Header(line).Children[1]; var restLeft = time.TranslatePoint(default, line)!.Value.X; var laidOutAt = time.Bounds.Left;
+        // Something to open: the chevron joins the header and the time, pushed left by its width and the header's 8 points of spacing, glides back from where it stood.
+        mount.SetEntries(new[] { User("prompt", Turn, "hello"), ToolEntry("tool-0", Turn) });
+        var chevron = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(line), image => image.SymbolName == "chevron.right");
+        var room = laidOutAt - time.Bounds.Left; Assert.Equal(8 + chevron.Bounds.Width, room, 1); // the header's 8 points of spacing and the chevron's width. (On the reference runtime the whole shift is 17 points: the chevron's symbol is 9 wide there and the port's is 12, so the port's travel is 20: not compared, the curve's shape is.)
+        double Shift() => restLeft - time.TranslatePoint(default, line)!.Value.X; // how far left of where it stood the time is now
+        // The time's left edge on the reference runtime, in points left of where it stood (17 in all; its fit: smooth(duration: 0.3) from the first moving frame), at seconds after that frame.
+        var measured = new (double Seconds, double Shift)[] { (0.0183, 0), (0.040, 4), (0.0617, 6), (0.0833, 9), (0.105, 11), (0.1267, 13), (0.148, 14), (0.168, 15), (0.19, 15), (0.2117, 16), (0.230, 16), (0.2517, 16), (0.273, 17), (0.2933, 17) };
+        var elapsed = 0.0;
+        foreach (var (seconds, shift) in measured)
+        {
+            while (elapsed < seconds - 0.0005) { mount.Advance(10); mount.Frames.Advance(TimeSpan.Zero); elapsed += 0.010; }
+            Assert.True(Math.Abs(Shift() / room - shift / 17.0) <= 0.12, $"at {seconds}: the time is {Shift() / room} of the way over, the capture's is {shift / 17.0}");
+        }
+        mount.Advance(600); Assert.Equal(room, Shift(), 1);
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-044")] // ThreadTimeline.swift:2157-2168,2278 (the thinking rows, only with the show-reasoning setting); TimelineRows.swift (reasoning is no row of its own)
     public void Thinking_rows_exist_only_behind_the_chevron_with_the_setting_on_indented_by_the_icon_column_and_arrive_softly() => ThreadTimelineRig.Run(headless, mount =>
     {
