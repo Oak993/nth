@@ -845,10 +845,34 @@ public sealed class SwiftImageTests(HeadlessSession headless)
         var palette = Base().SymbolRenderingMode(SymbolRenderingMode.Palette).ForegroundStyle(Red, SwiftColor.Rgb(0x0000FF));
         Assert.Equal(SymbolRenderingMode.Palette, palette.SymbolRendering);
         Assert.NotNull(palette.SecondaryForeground);
-        Assert.Equal(monochrome, Drawn(palette, 64));
+        // ED-NEW-composerview palette: two styles in palette mode on a .fill symbol with a container draw its two layers
+        // (the next test); every mode with one style, and every other mode, still draws monochrome.
+        Assert.NotEqual(monochrome, Drawn(palette, 64));
         foreach (var mode in Enum.GetValues<SymbolRenderingMode>())
             Assert.Equal(monochrome, Drawn(Base().SymbolRenderingMode(mode).ForegroundStyle(Red), 64));
+        foreach (var mode in Enum.GetValues<SymbolRenderingMode>().Where(mode => mode != SymbolRenderingMode.Palette))
+            Assert.Equal(monochrome, Drawn(Base().SymbolRenderingMode(mode).ForegroundStyle(Red, SwiftColor.Rgb(0x0000FF)), 64));
         Assert.Equal(SymbolRenderingMode.Monochrome, Base().SymbolRendering);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-182")]
+    [Trait("Oracle", "O-63")]
+    public void A_palette_fill_symbol_draws_the_container_in_the_second_style_and_the_elements_over_it_in_the_first() => headless.OnUiThread(() =>
+    {
+        // ComposerView.swift:1008-1010, EditorAttachments.swift:30: xmark.circle.fill, .symbolRenderingMode(.palette),
+        // .foregroundStyle(.white, .black.opacity(0.6)): a white x on a dark disc, not the monochrome disc with an x cut out of it.
+        var blue = SwiftColor.Rgb(0x0000FF);
+        var window = Show(Framed(SwiftImage.SystemName("xmark.circle.fill").Resizable().SymbolRenderingMode(SymbolRenderingMode.Palette).ForegroundStyle(Red, blue), 48), 64, 64);
+        using var bitmap = Capture(window);
+        Assert.True(IsRed(Pixel(bitmap, 24, 24)), "the x's crossing is the first style");
+        Assert.True(IsRed(Pixel(bitmap, 18, 18)), "so is the x's arm");
+        var disc = Pixel(bitmap, 40, 24);
+        Assert.True(disc.B > 200 && disc.R < 70 && disc.G < 70, "the disc is the second style");
+        var between = Pixel(bitmap, 24, 36); // below the crossing, off both arms
+        Assert.True(between.B > 200 && between.R < 70 && between.G < 70, "the disc runs under the x");
+        Assert.True(IsWhite(Pixel(bitmap, 1, 1)), "and stops at its edge");
+        window.Close();
     });
 
     [Fact]
