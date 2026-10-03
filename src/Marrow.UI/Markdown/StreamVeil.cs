@@ -294,7 +294,33 @@ public sealed class VeiledText : Decorator
     // Avalonia TextBlock does not unless asked: without Wrap a long message ran on one line and clipped at the bubble's
     // edge (the user bubble, MarkdownView.swift:1129-1133, and every link-free inline paragraph). The code block hosts
     // this in a horizontal ScrollView with fixedSize (:1223-1229), where the width offered is unbounded, so it stays on its lines.
-    private readonly TextBlock textBlock = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+    // MarkdownView.swift:318, :1131, :1229: every VeiledText (a prose block, a link-free inline paragraph such as the user's
+    // bubble, a code block's text) sits under MarkdownBlockSelection, whose live branch is .textSelection(.enabled)
+    // (B3 :854-863, the live branch :858; the environment value has no writer, dead_code.md 30): its text is selectable in
+    // its own block, so it is drawn by a SelectableTextBlock, with the system's selected-text colour as ParagraphTextPresenter uses (PR-CHAT-166).
+    // The I-beam a selectable text shows (a SelectableTextBlock has no cursor of its own with no control theme loaded):
+    // the reference video shows it over selectable timeline text, 2-chat-use.mov 14.74 s (PR-CHAT-166 windows_path).
+    private static readonly Avalonia.Input.Cursor TextCursor = new(Avalonia.Input.StandardCursorType.Ibeam);
+
+    /// <summary>The text of a block that sits under MarkdownBlockSelection (MarkdownView.swift:854-863 at B3, live branch
+    /// <c>.textSelection(.enabled)</c> at :858), or of any other text the source marks <c>.textSelection(.enabled)</c>: a
+    /// SelectableTextBlock with the I-beam over it and the system's selected-text colour, the one recipe the veiled text, a
+    /// table's cells (MarkdownView.swift:1287-1308) and the timeline's own selectable lines (TimelineRows.swift:1900, :1922,
+    /// :1982, :1989, :2000, :2124, :2152, :2394) share (PR-CHAT-166; ED-256 (5)).</summary>
+    public static SelectableTextBlock SelectableText(bool wraps) => SelectableText(new SelectableTextBlock(), wraps);
+
+    /// <summary>The same recipe on a text block the caller made: a SelectableTextBlock subclass that lays its text out its own way
+    /// (TimelineRows' tool detail, whose line limit also cuts at a hard line break; ED-256 (7)).</summary>
+    public static T SelectableText<T>(T block, bool wraps) where T : SelectableTextBlock
+    {
+        block.Cursor = TextCursor;
+        if (wraps) block.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+        // Resolved once the text is in a window (the system accent needs the running application).
+        block.AttachedToVisualTree += (_, _) => block.SelectionBrush ??= SwiftColor.SelectedTextBackgroundColor.Brush(block);
+        return block;
+    }
+
+    private readonly TextBlock textBlock = SelectableText(wraps: true);
     private readonly bool hasSegments;
     private bool isRedrawing;
     private bool wasFading;

@@ -128,6 +128,10 @@ public sealed class HydraMergeFaviconSeed : IDisposable
     public HydraMergeFaviconSeed(string host, Avalonia.Media.IImage? image, Task<Avalonia.Media.IImage?>? pending)
     {
         key = host;
+        // The seed is the host's whole state: a failure or an icon another test's fetch left behind (FaviconCache.image checks the
+        // memory and the failed set before the in-flight table, MarkdownView.swift:916-924) would otherwise bypass it.
+        ((System.Collections.Generic.HashSet<string>)Field("failed")!).Remove(key);
+        if (image is null) ((System.Collections.IDictionary)Field("memory")!).Remove(key);
         if (image is not null) ((System.Collections.IDictionary)Field("memory")!)[key] = image;
         if (pending is not null) ((System.Collections.IDictionary)Field("inFlight")!)[key] = pending;
     }

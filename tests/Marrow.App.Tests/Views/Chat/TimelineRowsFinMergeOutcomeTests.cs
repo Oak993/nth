@@ -147,11 +147,16 @@ public sealed class TimelineRowsFinMergeOutcomeTests(HeadlessSession headless)
     [InlineData("https://gitlab.com/g/p/-/merge_requests/7\n1 file (+2 −1) landed on `main` from `head`.", true)]
     [InlineData("1 file (+2 −1) landed on `main` from `head`.", false)]
     [InlineData("LONG", false)]
+    [InlineData("https://gitlab.com/g/p/-/merge_requests/7\nThe pipeline failed: see [the lint job](https://gitlab.com/g/p/-/jobs/12).", false)]
     [Trait("Req", "PR-HYDRAMERGE-090")] // TimelineRows.swift:1111-1120 the merge card only when all three conditions hold
     [Trait("Req", "UI-HYDRAMERGE-007")] // TimelineRows.swift:607-640 the generic report popover
     [Trait("Req", "UI-CHAT-050")] // TimelineRows.swift:607-639 the report panel
     public void The_report_opens_the_merge_card_for_a_leading_address_that_parses_with_a_files_line_and_the_460_point_report_otherwise(string body, bool merge) => headless.OnUiThread(() =>
     {
+        // No network (R-TEST-10; ED-256 (10)). The merge card and the merge-failed row's link paragraph both ask
+        // gitlab.com for its favicon, and a report is measured in a hidden window first (PopoverScroll.MeasuredHeight: attached,
+        // detached, its ask cancelled), so the host is named here for every row: the rig fails the test if anything else is asked.
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
         using var h = Harness();
         using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
         using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
@@ -198,6 +203,17 @@ public sealed class TimelineRowsFinMergeOutcomeTests(HeadlessSession headless)
                 Assert.Equal(12, MarkdownView.GetMarkdownPointSize(blocks[0]));
                 Assert.False(MarkdownView.GetMarkdownDimmed(blocks[0]));
                 Assert.Equal(12, Avalonia.Controls.Documents.TextElement.GetFontSize(stack));
+                // What those mean on screen (review round 5): every text of the report is drawn at 12 points, the callout text style
+                // (:630) and the markdown point size (:631) alike. A paragraph with a link (the markdown link of the last row; the bare
+                // https address line is veiled text in this port's parser, not asserted here) is InlineText's link branch, LinkParagraphView(pointSize: scaled)
+                // (MarkdownView.swift:1094, :1114 at B3), drawn at the markdown point size, which the report sets on blocks already built
+                // (InlineText runs body again: MarkdownView.cs InlineText).
+                var drawn = LogicalQuery.SelfAndDescendants<SelectableTextBlock>(report).ToArray();
+                Assert.NotEmpty(drawn);
+                if (body.Contains("](", StringComparison.Ordinal)) Assert.NotEmpty(LogicalQuery.SelfAndDescendants<LinkParagraphView>(report));
+                foreach (var text in drawn)
+                    Assert.True(DrawnProseSizes(text).SequenceEqual([12.0]),
+                        $"the report's \"{text.Inlines?.Text ?? text.Text}\" is drawn at {string.Join(", ", DrawnProseSizes(text))} points");
                 Assert.Equal(new Thickness(16, 14), Assert.IsAssignableFrom<Decorator>(stack.Parent).Padding);
                 Assert.True(MarkdownView.GetMarkdownBlockSelection(stack)); // :633 textSelection(.enabled)
             }

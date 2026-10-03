@@ -118,6 +118,56 @@ public sealed class TimelineRowsFinHeadStepsTests(HeadlessSession headless)
                 Face(report, 12, FontWeight.Normal, ".chat(.callout)");
                 Paints(report.Foreground, ChromeTokens.PrimaryText, report, "report");
                 Near("nHeadSteps:2", 8, Top(report, window) - (Top(TextNamed(body, "Report"), window) + TextNamed(body, "Report").Bounds.Height));
+                // :1900-1901, :1922, :1978-1983, :1984-1990, :1999-2000 .textSelection(.enabled): the pointer is an I-beam over each of the
+                // five selectable lines (PR-CHAT-166 windows_path; a SelectableTextBlock has no cursor of its own with no control theme).
+                // A selection in each of them is drawn, in the system's selected-text colour (a SelectableTextBlock has no SelectionBrush with
+                // no control theme loaded, so a drag would select text that is never painted; ED-256 (5)).
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
+                foreach (var selectable in new[] { task, reply, brief, notice, report })
+                {
+                    Hover(window, selectable);
+                    Assert.Equal("Ibeam", selectable.Cursor?.ToString());
+                    selectable.SelectAll();
+                    Assert.Equal(selectable.Text, selectable.SelectedText);
+                    Assert.True((selectable.SelectionBrush as ISolidColorBrush)?.Color == system,
+                        $"\"{selectable.Text}\": the selection is drawn with {selectable.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
+                }
+            }
+            finally { Close(window); }
+        });
+    });
+
+    // Review round 4 (mutant M7): the five selectable lines are Texts with .fixedSize(horizontal: false, vertical: true) (:1901,
+    // :1923, :1983, :1990, :2001), which wrap at the width the 440-point panel offers and grow downward; none runs on in one line.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-055 (the panel's lines wrap at its width): TimelineRows.swift:1896-1902, :1917-1924, :1978-1990, :1991-2002, :1927-1930
+    public void A_long_task_reply_brief_notice_and_report_each_wrap_inside_the_440_point_panel() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        runtime.OnMain(() =>
+        {
+            string Long(string word) => string.Join(" ", Enumerable.Repeat(word, 60));
+            var steps = new TimelineEntry[] { Reply(Long("reply")), UserEntry(Long("brief"), null), NoticeEntry(Notice.Level.Warning, Long("notice")) };
+            var start = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+            var head = TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Completed) with
+            {
+                Task = Long("task"), Summary = Long("report"), StartedAt = start, FinishedAt = start.AddSeconds(64), ToolCalls = 2,
+            };
+            var body = Body(head, steps);
+            var window = Show(new StackPanel { Children = { body } });
+            try
+            {
+                var panel = Mounted<Border>(body).First(border => border.Padding == new Thickness(16));
+                var right = Left(panel, window) + 440 - 16; // :1927-1930 the 440-point frame, padded 16
+                var lines = Mounted<SelectableTextBlock>(body).ToArray();
+                Assert.Equal(5, lines.Length);
+                foreach (var line in lines)
+                {
+                    Assert.True(line.TextLayout.TextLines.Count > 1, $"\"{line.Text![..8]}...\" runs on in one line {line.TextLayout.Width:0} points wide");
+                    Assert.True(Left(line, window) + line.TextLayout.Width <= right + 0.5, $"\"{line.Text![..8]}...\" runs past the panel's padding");
+                }
             }
             finally { Close(window); }
         });

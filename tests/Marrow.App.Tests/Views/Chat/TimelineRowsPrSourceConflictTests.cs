@@ -30,9 +30,15 @@ public sealed class TimelineRowsPrSourceConflictTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")]
     public void An_idle_loaded_legacy_summary_is_updated_in_memory_but_the_pinned_revision_guard_drops_it_on_restart()
     {
-        // STOP opencode-App.Views.Chat.TimelineRows #3 PR-CHAT-107 and PR-GIT-151.
+        // STOP opencode-App.Views.Chat.TimelineRows #3 PR-CHAT-107 (the same conflict as STOP #7 in TimelineRowsTests).
         // ThreadRuntime.swift:3797-3802 calls scheduleSave without incrementing saveRevision;
         // :3650-3664 saveNow rejects an unchanged revision. A ruling must resolve persistence vs pinned source.
+        // PR-GIT-151 is no longer under this STOP (adversarial review 2026-10-03: it was left under it by mistake when STOP #11
+        // was rewritten). Its record asks for the one-off parse of an older turn's diff and for the result "stored on the runtime
+        // as that turn's changes"; its persistence line is only "TurnSummary.changes carries the summary for turns recorded with
+        // it", which these assertions do not touch. The in-memory store the record names is asserted just below and in
+        // TimelineRowsPrRecordsTests; that the stored summary does not survive a restart is PR-CHAT-107's "survives into the
+        // thread document" line, and that record alone stays blocked on the ruling.
         headless.OnUiThread(() =>
         {
             Task.Run(() => LoginEnvironment.Load()).GetAwaiter().GetResult();

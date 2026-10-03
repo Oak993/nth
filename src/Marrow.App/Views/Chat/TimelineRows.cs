@@ -56,6 +56,15 @@ public static class TimelineMetrics
 /// <summary>The file's free functions (:31-54) and its <c>extension View</c> (:1415-1429), R-NAME-4.</summary>
 public static class TimelineRows
 {
+    /// <summary>A text a row lets the reader select (.textSelection(.enabled): :2121, :2124, :2152, :2394 and the head popover's
+    /// :1900, :1922, :1982, :1989, :2000), made by the one recipe every selectable text of the chat shares (VeiledText.SelectableText,
+    /// ED-256 (5)). The I-beam over it: SOURCE FACT for the notice's message, which the reference video shows
+    /// under the pointer at 2-chat-use.mov 14.74 s (CATALOG segment 15, "Pointer becomes an I-beam over message text"); the other
+    /// sites carry the same modifier. A selection drawn in the system's selected-text colour, as on the Mac. A SelectableTextBlock has
+    /// neither a cursor nor a SelectionBrush of its own (no control theme is loaded), so without them a drag selected text that was
+    /// never painted. PR-CHAT-166.</summary>
+    internal static SelectableTextBlock SelectableText(bool wraps) => VeiledText.SelectableText(wraps);
+
     // :2023, :2449; UI/Common/Components.swift:37-40. ED-197 / O-65: shared Components.Duration is still B2.
     internal static string Duration(double interval)
     {
@@ -225,8 +234,18 @@ public sealed class UserMessageRow : Decorator
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
 
-        // :198 .onDisappear { editor.close() }: the edit itself survives on the runtime.
-        DetachedFromVisualTree += (_, _) => editor.Close();
+        // :198 .onDisappear { editor.close() }: the edit itself survives on the runtime. The row has disappeared only if it is
+        // still out of the tree once the timeline's redraw is over: ThreadTimeline.Draw takes every kept row out of its old
+        // stack and puts it into a new one inside one synchronous pass, and an entry that arrives while the editor is open
+        // must not close it (its @State, MessageEditor.swift:26-29, would be built anew). The same reading of onDisappear
+        // as BadgePopoverCoordinator.Disappear and the row menu (PR-CHAT-080). ENGINEERING DECISION ED-256.
+        // This covers the row's own close only: the editor's real Popup hangs from the AttachmentAnchorCapture inside this row and
+        // closes itself in the very Remove call that takes the row out of its stack, and the anchor capture opens it again on a new
+        // MessageEditor, until ThreadTimeline.Draw keeps its kept rows in place (ThreadTimeline.swift:384-391; STOP #11).
+        DetachedFromVisualTree += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (!Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(this)) editor.Close();
+        });
     }
 
     /// <summary>The row handed whether its message can be edited again (:67-69, decided by the timeline, which flips it for every row at every turn start and end on a provider that
@@ -412,8 +431,12 @@ public sealed class UserMessageRow : Decorator
         };
         hoverLine = (line, message, isEditing);
         FillHoverLine(line, message, isEditing);
-        // :161 .opacity(isHovering || isEditing ? 1 : 0)
-        line.Track(() => state.IsHovering || isEditing(), shown => line.Opacity = shown ? 1 : 0);
+        // :161 .opacity(isHovering || isEditing ? 1 : 0). The Mac cuts here (2-chat-use.mov 23.415-24.187 s, catalogue
+        // hover.message-edit-pencil); OD-0076 rules every change transitioned (ENGINEERING DECISION ED-256), so the line fades in the Mac's own hover
+        // language for a message's hover line (the reply row's :1381 easeOut 0.12), and reduce motion stills it.
+        var opacity = new AnimatedOpacity(line, state.IsHovering || isEditing() ? 1 : 0);
+        line.Track(() => state.IsHovering || isEditing(), shown => opacity.Set(shown ? 1 : 0,
+            Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion ? null : Animation.EaseOut(duration: 0.12)));
         return line;
     }
 
@@ -2554,7 +2577,7 @@ public sealed class HydraHeadStepsPopover : Decorator
     private static TextBlock SectionTitle(string title) => TimelineRows.ChatText(title, SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText); // :1950-1952
     private static SelectableTextBlock Selectable(string text, SwiftColor color) // :1897-1902, :1919-1923, :1980-2001
     {
-        var label = new SelectableTextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+        var label = TimelineRows.SelectableText(wraps: true); label.Text = text;
         ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(label); label.Foreground = color.Brush(label); return label;
     }
 
@@ -2657,6 +2680,53 @@ public sealed class ToolStatusIcon : Decorator
     }
 }
 
+/// <summary>
+/// PORT-ONLY (ED-256 (7)). A selectable text whose line limit (<see cref="TextBlock.MaxLines"/>) ends its last
+/// line in its <see cref="TextBlock.TextTrimming"/> ellipsis whenever more text follows, as a SwiftUI Text cut by <c>.lineLimit</c>
+/// shows (<c>truncationMode</c> .tail, the default): the tool detail's <c>.lineLimit(12)</c>, TimelineRows.swift:2125. Avalonia
+/// 12.1.2's TextLayout collapses the last line only when the cut falls inside a wrapped line (TextLineBreak.IsSplit); a cut at a hard
+/// line break (a multi-line command, a heredoc) kept the twelfth line whole with no ellipsis, so the reader could not tell the text
+/// goes on. Here the layout's last line is collapsed in that case too: its words and the ellipsis when both fit the width, else the
+/// line cut short to fit with its ellipsis, as Avalonia cuts a wrapped line. The text, its selection and copying keep every line.
+/// </summary>
+internal sealed class LineLimitedSelectableText : SelectableTextBlock
+{
+    // The same style key as any SelectableTextBlock, so a control theme that styles one styles this one.
+    protected override Type StyleKeyOverride => typeof(SelectableTextBlock);
+
+    protected override Avalonia.Media.TextFormatting.TextLayout CreateTextLayout(string? text)
+    {
+        var layout = base.CreateTextLayout(text);
+        if (MaxLines <= 0 || TextTrimming == TextTrimming.None || text is null) return layout;
+        // TextLayout.TextLines is the layout's own array of lines (Avalonia 12.1.2), so the cut line can be put in its place.
+        if (layout.TextLines is not Avalonia.Media.TextFormatting.TextLine[] lines || lines.Length != MaxLines) return layout;
+        var last = lines[^1];
+        if (last.HasCollapsed || last.FirstTextSourceIndex + last.Length >= text.Length) return layout; // already cut, or nothing follows
+        var runProperties = new Avalonia.Media.TextFormatting.GenericTextRunProperties(
+            new Typeface(FontFamily, FontStyle, FontWeight, FontStretch), FontSize, TextDecorations, Foreground);
+        var trimming = TextTrimming.CreateCollapsingProperties(new TextCollapsingCreateInfo(layout.MaxWidth, runProperties, FlowDirection));
+        lines[^1] = last.Collapse(new EllipsisAfterBreak(trimming));
+        return layout;
+    }
+
+    // The trimming's own ellipsis, cut into a line too wide for it; a line with room for it keeps all its characters (its line break
+    // aside) and takes the ellipsis after them.
+    private sealed class EllipsisAfterBreak(Avalonia.Media.TextFormatting.TextCollapsingProperties trimming)
+        : Avalonia.Media.TextFormatting.TextCollapsingProperties
+    {
+        public override double Width => trimming.Width;
+
+        public override Avalonia.Media.TextFormatting.TextRun Symbol => trimming.Symbol;
+
+        public override FlowDirection FlowDirection => trimming.FlowDirection;
+
+        public override Avalonia.Media.TextFormatting.TextRun[]? Collapse(Avalonia.Media.TextFormatting.TextLine textLine) =>
+            trimming.Collapse(textLine)
+            ?? CreateCollapsedRuns(textLine, textLine.Length - textLine.NewLineLength,
+                Avalonia.Media.TextFormatting.TextFormatter.CreateSymbol(Symbol, FlowDirection));
+    }
+}
+
 /// <summary>:2094-2167 <c>private struct ToolDetailView: View</c>.</summary>
 public sealed class ToolDetailView : Decorator
 {
@@ -2683,7 +2753,12 @@ public sealed class ToolDetailView : Decorator
             stack.Children.Add(new ToolImagePreview(imagePath));
         if (call.Detail is { Length: > 0 } detail) // :2120-2126
         {
-            var text = new SelectableTextBlock { Text = detail, MaxLines = 12 }; // :2121, :2124 .textSelection(.enabled), :2125 .lineLimit(12)
+            // :2121 a Text with no fixedSize wraps at the width the row offers; :2124 .textSelection(.enabled).
+            var text = VeiledText.SelectableText(new LineLimitedSelectableText(), wraps: true);
+            // :2125 .lineLimit(12) counts the wrapped lines; a Text it cuts ends its last line in an ellipsis (SwiftUI's
+            // truncationMode .tail, the default; RequestCards.cs:111 takes a lineLimit the same way), wherever the cut falls, at a
+            // hard line break too (ED-256 (7); LineLimitedSelectableText).
+            text.Text = detail; text.MaxLines = 12; text.TextTrimming = TextTrimming.CharacterEllipsis;
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2122
             text.Foreground = Chrome.SecondaryText.Brush(text); // :2123
             stack.Children.Add(text);
@@ -2713,7 +2788,8 @@ public sealed class ToolDetailView : Decorator
                 if (character == '\n') lineCount++;
             }
             var outputStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = TimelineMetrics.RowSpacing }; // :2149
-            var text = new SelectableTextBlock(); // :2150, :2152 .textSelection(.enabled)
+            // :2150 a Text with no fixedSize wraps at its plate's width (.frame(maxWidth: .infinity) :2153); :2152 .textSelection(.enabled).
+            var text = TimelineRows.SelectableText(wraps: true);
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2151
             var plate = new Border // :2153-2155 .frame(maxWidth: .infinity, alignment: .leading).padding(10)
             {
@@ -2905,27 +2981,55 @@ public sealed class PlanCard : Decorator
         private bool isShowingPlan;
         public bool IsShowingPlan { get => Read(isShowingPlan); set => Set(ref isShowingPlan, value); }
     }
-    private readonly ViewState state = new(); // :2261
+    // :2261 @State private var isShowingPlan, and ChatBadge.swift:20's @State coordinator. SwiftUI keeps both for as long as the
+    // card's identity lives: ThreadTimeline.swift:1979-1984 ForEach(groups) in TurnRunningBlock keys the card by its plan
+    // entry, whichever render of the running turn's block holds it, so a plan popover that is open stays open while the
+    // turn's other rows arrive (PR-CHAT-113). The port builds a block's rows anew whenever the block changes, so the
+    // identity's state is held per plan entry and place here, and every card built for them reads it. A card in another
+    // place (the finished turn's steps, its folded answer: :2642, :2672) is another view in SwiftUI, a new @State with its
+    // own coordinator, as the running block's card going away closes its popover. ENGINEERING DECISION ED-256.
+    private sealed class Identity
+    {
+        public readonly ViewState State = new();
+        public readonly BadgePopoverCoordinator Coordinator = new();
+    }
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TimelineEntry, Dictionary<string, Identity>> identities = new();
+    private readonly Identity identity;
+    private readonly ViewState state; // :2261, the identity's
     private readonly TimelineEntry entry;
     private readonly ThreadRuntime runtime;
     /// <param name="entry">:2258 <c>let entry: TimelineEntry</c>.</param>
     /// <param name="runtime">:2259 <c>let runtime: ThreadRuntime</c>.</param>
+    /// <param name="place">PORT-ONLY: where the card sits, which with the entry is its SwiftUI identity: the running turn's
+    /// block and the plain groups (the default), or one of the finished turn's two places.</param>
     // :2263-2316 body
-    public PlanCard(TimelineEntry entry, ThreadRuntime runtime)
+    public PlanCard(TimelineEntry entry, ThreadRuntime runtime, string place = "turn")
     {
         this.entry = entry;
         this.runtime = runtime;
+        var places = identities.GetValue(entry, _ => []);
+        if (!places.TryGetValue(place, out var found)) places[place] = found = new Identity();
+        identity = found;
+        state = found.State;
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Plan item) { Child = null; return; }
             var plan = item.Value;
             var box = state;
+            Control Glyph() => plan.ProposedPlanState == ProposedPlan.State.Drafting
+                ? new Border { Child = new WorkingSpinner(3) { Width = 14 }, Width = 14 }
+                : SwiftImage.SystemName("list.bullet.clipboard").ForegroundStyle(Chrome.Accent);
+            // :2265 the same ChatBadge across every render of this card: its coordinator is the badge's @State
+            // (ChatBadge.swift:20), so an open plan popover outlives the plan's updates (PR-CHAT-113).
+            if (Child is ChatBadge badge)
+            {
+                badge.Update(Title(plan.ProposedPlanState), Glyph, () => Detail(plan), Caption(plan.ProposedPlanState),
+                    showsChevron: plan.Markdown.Length != 0, needsAttention: NeedsAttention(plan.ProposedPlanState), isEnabled: plan.Markdown.Length != 0);
+                return;
+            }
             Child = new ChatBadge(Title(plan.ProposedPlanState), new Binding<bool>(() => box.IsShowingPlan, value => box.IsShowingPlan = value),
-                glyph: () => plan.ProposedPlanState == ProposedPlan.State.Drafting
-                    ? new Border { Child = new WorkingSpinner(3) { Width = 14 }, Width = 14 }
-                    : SwiftImage.SystemName("list.bullet.clipboard").ForegroundStyle(Chrome.Accent),
-                detail: () => Detail(plan), caption: Caption(plan.ProposedPlanState), showsChevron: plan.Markdown.Length != 0,
-                needsAttention: NeedsAttention(plan.ProposedPlanState), isEnabled: plan.Markdown.Length != 0);
+                glyph: Glyph, detail: () => Detail(plan), caption: Caption(plan.ProposedPlanState), showsChevron: plan.Markdown.Length != 0,
+                needsAttention: NeedsAttention(plan.ProposedPlanState), isEnabled: plan.Markdown.Length != 0, coordinator: identity.Coordinator);
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
@@ -3088,7 +3192,7 @@ public sealed class NoticeRow : Decorator
             var notice = item.Value;
             var row = new TimelineBaselineRow { Spacing = 8 };
             row.Children.Add(SwiftImage.SystemName(Symbol(notice.NoticeLevel)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)).ForegroundStyle(Color(notice.NoticeLevel)));
-            var message = new SelectableTextBlock { Text = notice.Message, TextWrapping = TextWrapping.Wrap };
+            var message = TimelineRows.SelectableText(wraps: true); message.Text = notice.Message; // :2394 .textSelection(.enabled)
             ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(message);
             message.Foreground = (notice.NoticeLevel == Notice.Level.Info ? SwiftColor.Secondary : SwiftColor.Primary).Brush(message);
             row.Children.Add(message);
@@ -3417,7 +3521,7 @@ public sealed class TurnFinishedBlock : Decorator
                 {
                     TimelineEntry.Kind.Assistant => new AssistantMessageRow(single.Value, null, runtime), // :2638
                     TimelineEntry.Kind.Tool => new WorkGroup(new ValueList<TimelineEntry>([single.Value]), runtime, workingDirectory), // :2640
-                    TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime), // :2642
+                    TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime, "steps"), // :2642
                     TimelineEntry.Kind.Todos => new TodoListRow(single.Value), // :2644
                     TimelineEntry.Kind.Notice => new NoticeRow(single.Value), // :2646
                     TimelineEntry.Kind.User or TimelineEntry.Kind.Reasoning or TimelineEntry.Kind.TurnEnd => null, // :2647-2648
@@ -3455,7 +3559,7 @@ public sealed class TurnFinishedBlock : Decorator
             if (entry.Item.TimelineItemContent is TimelineItem.Content.Assistant assistant && assistant.Value.Text.Length != 0)
                 column.Children.Add(new FoldedAnswerView(assistant.Value.Text, runtime));
         }
-        foreach (var entry in turn.CollapsedPlans) column.Children.Add(new PlanCard(entry, runtime)); // :2672-2674
+        foreach (var entry in turn.CollapsedPlans) column.Children.Add(new PlanCard(entry, runtime, "folded")); // :2672-2674
         foreach (var entry in turn.CollapsedNotices) column.Children.Add(new NoticeRow(entry)); // :2675-2677
         return column.Transition(SwiftTransition.Identity); // PR-CHAT-104.windows_path
     }
