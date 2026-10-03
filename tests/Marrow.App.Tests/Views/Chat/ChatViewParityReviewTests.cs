@@ -10,6 +10,7 @@ using Marrow.App.Views.Terminal;
 using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
@@ -299,6 +300,143 @@ public sealed class ChatViewParityReviewTests(HeadlessSession headless)
                 Assert.Equal(open, ComposerBottom(), tolerance: 1);
             }
             finally { h.Main.OnMain(() => { window.Close(); model.Terminals.TerminateAll(); }); Drain(h, window); }
+        });
+    }
+
+    // PR-CHAT-173 / PR-CHAT-172 (round 1, second pass). ChatView.swift:1124-1131,1176-1180: `.animation(Chrome.panelSlide, value:
+    // sidebarVisible)` sits on the whole row, so when the window buttons move to the sidebar the Threads button leaves on its own
+    // softAppear while every other control's new place in the HStack is animated by that panelSlide: the row closes up by gliding,
+    // starting at once (a removed view keeps no slot in the stack). The port animates nothing in the row's layout: the controls
+    // are already at their new place 64 ms in, a 42 pt jump to the left instead of the spring's glide (OD-0076: never a cut).
+    [Fact]
+    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131,1179
+    [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1179 .animation(Chrome.panelSlide, value: sidebarVisible)
+    public void REVIEW_The_row_closes_up_on_the_panel_slide_as_the_Threads_button_leaves()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var (row, window) = ChromeRow(h, model, holds: false);
+            void Step(int milliseconds) => StepRow(h, window, time, frames, milliseconds);
+            Step(0);
+            var withButton = NewThreadX(h, row, window);
+            h.Main.OnMain(() => model.Sidebar.NoteLaidOutWidth(400)); // the window buttons move to the sidebar: the Threads button leaves.
+            Step(16);
+            Step(48); // 64 ms into the panelSlide spring (response 0.32, damping 0.9): about 38 % of the way.
+            var mid = NewThreadX(h, row, window);
+            for (var i = 0; i < 60; i++) Step(16);
+            var without = NewThreadX(h, row, window);
+            Assert.Equal(42, withButton - without, 1); // one 32 pt circle and the row's 10 pt spacing.
+            Assert.InRange(mid, without + 1, withButton - 1); // gliding on the spring, not already there.
+        });
+    }
+
+    // PR-CHAT-173 / PR-CHAT-172, the arrival: the same panelSlide carries the controls over to make room, from where they were.
+    // The port inserts the button and the controls jump 42 pt to the right on the first frame.
+    [Fact]
+    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131,1179
+    [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1179 .animation(Chrome.panelSlide, value: sidebarVisible)
+    public void REVIEW_The_row_opens_on_the_panel_slide_as_the_Threads_button_arrives()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var (row, window) = ChromeRow(h, model, holds: true);
+            void Step(int milliseconds) => StepRow(h, window, time, frames, milliseconds);
+            Step(0);
+            var without = NewThreadX(h, row, window);
+            h.Main.OnMain(() => model.Sidebar.NoteLaidOutWidth(0)); // the sidebar lets go of the window buttons: the Threads button arrives.
+            Step(0);
+            var first = NewThreadX(h, row, window);
+            for (var i = 0; i < 60; i++) Step(16);
+            var withButton = NewThreadX(h, row, window);
+            Assert.Equal(42, withButton - without, 1);
+            Assert.Equal(without, first, 1); // the first frame: the controls start where they were and glide over.
+        });
+    }
+
+    private static (ChatChromeRow Row, AvaloniaWindow Window) ChromeRow(AppModelHarness h, AppModel model, bool holds) => h.Main.OnMain(() =>
+    {
+        model.Settings.SidebarFloats = false;
+        model.Settings.HydraEnabled = false;
+        if (holds) model.Sidebar.NoteLaidOutWidth(400);
+        var runtime = model.Runtime(model.NewThread(model.AddProject(new Project("P", h.NewFolder("p")).Url))!.Id);
+        var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
+        var window = new AvaloniaWindow { Content = row, Width = 1400, Height = 300 };
+        ChatHeadlessFixtures.Track(window);
+        window.Show();
+        return (row, window);
+    });
+
+    private static void StepRow(AppModelHarness h, AvaloniaWindow window, ManualTimeProvider time, ManualFrameSource frames, int milliseconds)
+    {
+        time.Advance(TimeSpan.FromMilliseconds(milliseconds));
+        frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
+        h.Main.RunUntilIdle();
+        Dispatcher.UIThread.RunJobs();
+        h.Main.OnMain(() => window.UpdateLayout());
+        h.Main.RunUntilIdle();
+    }
+
+    // The New thread circle (ChatView.swift:1132-1134), the control right after the Threads button's slot.
+    private static double NewThreadX(AppModelHarness h, ChatChromeRow row, AvaloniaWindow window) => h.Main.OnMain(() =>
+    {
+        var circle = LogicalQuery.SelfAndDescendants<ChromeCircleButton>(row).Single(control =>
+            (ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(control).First()) as string ?? "").StartsWith("New thread", StringComparison.Ordinal));
+        return circle.TranslatePoint(default, window)!.Value.X;
+    });
+
+    // PR-CHAT-180 / UI-CHAT-080 (OD-0012 G4: Finder becomes File Explorer). ChatView.swift:1417-1419 the row runs
+    // `NSWorkspace.shared.open(URL(fileURLWithPath: directory))`: it OPENS the chat's directory, a window showing its contents. That is
+    // not Workspace.revealInFinder (Components.swift:163-165, activateFileViewerSelecting), which shows the folder's parent with the
+    // folder selected. The port's row calls Workspace.RevealInFileExplorer, whose native path is `explorer.exe /select,"<directory>"`
+    // (ShellWorkspace.cs:34-35): the parent folder, with the chat's directory highlighted, instead of the directory.
+    [Fact]
+    [Trait("Req", "PR-CHAT-180")] // App/Views/Chat/ChatView.swift:1417-1419; OD-0012 G4
+    [Trait("Req", "UI-CHAT-080")] // App/Views/Chat/ChatView.swift:1417-1419 "File Explorer opens the directory"
+    public void REVIEW_File_Explorer_opens_the_chats_directory_rather_than_selecting_it_in_its_parent()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var main = new TestRuntime();
+            using var workspace = new ChatWorkspaceFixture();
+            var opened = new List<string>();
+            var revealed = new List<string>();
+            var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+            var previousReveal = ShellWorkspace.RevealInFileExplorer;
+            ShellWorkspace.OpenWithDefaultApp = opened.Add; // fail closed: nothing reaches the shell.
+            ShellWorkspace.RevealInFileExplorer = revealed.Add;
+            try
+            {
+                const string directory = @"C:\work with spaces\project";
+                main.OnMain(() =>
+                {
+                    var row = LogicalQuery.SelfAndDescendants<PopoverItem>(OpenInMenu.BuildMenu(directory))
+                        .Single(item => Assert.Single(LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(item)).FullText == "File Explorer");
+                    ChatGitFixtures.Click(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row)));
+                });
+                Assert.Empty(workspace.Reveals); // not "select it in its parent folder"...
+                Assert.Empty(revealed);
+                var explorerOpens = workspace.Launches.Where(call => call.Executable == ChatWorkspaceFixture.Explorer).Select(call => call.Arguments.LastOrDefault() ?? "");
+                Assert.Contains(directory, opened.Concat(explorerOpens)); // ...but the directory itself, open in File Explorer.
+            }
+            finally
+            {
+                ShellWorkspace.OpenWithDefaultApp = previousOpen;
+                ShellWorkspace.RevealInFileExplorer = previousReveal;
+            }
         });
     }
 }
