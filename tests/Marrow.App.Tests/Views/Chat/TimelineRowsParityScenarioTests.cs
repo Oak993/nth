@@ -448,6 +448,65 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
     });
 
+    // ---------------------------------------------------------------- PR-CHAT-149
+
+    // The lead's reply streams in with its fenced hydra block (MarkdownView.swift:321-333 hands a hydra/hydra-sent fence to
+    // MarkdownDelegationCard.Render, set by the app at start-up, AppDelegate.swift:14), then the block is sent. At every
+    // flush the reply shows the card, never the JSON; each head appears as its brief closes; Writing the next brief shows
+    // while one is still open; once sent the verb is Summoned with the check.
+    [Fact]
+    [Trait("Req", "PR-CHAT-149")] // TimelineRows.swift:652-707, :711-741, :745-753, :771-782
+    public void A_streaming_delegation_block_is_read_into_the_card_flush_by_flush_and_never_shows_its_json() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var previous = MarkdownDelegationCard.Render;
+        MarkdownDelegationCard.Render = (json, sent) => new HydraDelegationBlock(json, sent); // AppDelegate.cs:50 (:14)
+        AvaloniaWindow window = null!;
+        const string hank = "{\"task\": \"Tidy the popover\", \"prompt\": \"Tidy it.\", \"name\": \"Hank\"}";
+        const string walter = "{\"task\": \"Write the tests\", \"prompt\": \"Write them.\", \"name\": \"Walter\"}";
+        var flushes = new (string Text, bool Streaming, string Title, string[] Tasks, bool Next, bool Check)[]
+        {
+            ("Sending two heads.\n\n```hydra\n[\n{\"task\": \"Ti", true, "Summoning heads", [], false, false),
+            ("Sending two heads.\n\n```hydra\n[\n" + hank + ",\n{\"task\": \"Wri", true, "Summoning heads", ["Tidy the popover"], true, false),
+            ("Sending two heads.\n\n```hydra\n[\n" + hank + ",\n" + walter + "\n]\n```", true, "Summoning 2 heads", ["Tidy the popover", "Write the tests"], false, false),
+            ("Sending two heads.\n\n```hydra-sent\n[\n" + hank + ",\n" + walter + "\n]\n```", false, "Summoned 2 heads", ["Tidy the popover", "Write the tests"], false, true),
+        };
+        try
+        {
+            var entry = Reply(flushes[0].Text);
+            h.Main.OnMain(() =>
+            {
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Assistant(new AssistantMessage { Text = flushes[0].Text, IsStreaming = true }) };
+                window = Show(new AssistantMessageRow(entry, null, h.Runtime));
+            });
+            foreach (var flush in flushes)
+            {
+                h.Main.OnMain(() =>
+                {
+                    entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Assistant(new AssistantMessage { Text = flush.Text, IsStreaming = flush.Streaming }) };
+                });
+                h.Main.OnMain(() =>
+                {
+                    Settle(window);
+                    var card = Assert.Single(window.GetVisualDescendants().OfType<HydraDelegationBlock>());
+                    var words = window.GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text ?? text.Inlines?.Text ?? "").ToArray();
+                    Assert.DoesNotContain(words, text => text.Contains("\"task\"", StringComparison.Ordinal) || text.Contains("```", StringComparison.Ordinal));
+                    Assert.Empty(window.GetVisualDescendants().OfType<CodeBlock>()); // the block is never drawn as code
+                    Assert.Contains(flush.Title, LogicalQuery.SelfAndDescendants<TextBlock>(card).Select(text => text.Text));
+                    foreach (var task in flush.Tasks) Assert.Contains(task, LogicalQuery.SelfAndDescendants<TextBlock>(card).Select(text => text.Text));
+                    Assert.Equal(flush.Next, LogicalQuery.SelfAndDescendants<TextBlock>(card).Any(text => text.Text == "Writing the next brief…"));
+                    Assert.Equal(flush.Check, LogicalQuery.SelfAndDescendants<SwiftImage>(card).Any(image => image.SymbolName == "checkmark.circle.fill"));
+                });
+            }
+        }
+        finally
+        {
+            h.Main.OnMain(() => { if (window is not null) Close(window); });
+            MarkdownDelegationCard.Render = previous;
+        }
+    });
+
     // ---------------------------------------------------------------- helpers
 
     private static Control Unwrap(Control content)
