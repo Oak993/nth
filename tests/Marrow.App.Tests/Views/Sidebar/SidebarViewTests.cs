@@ -243,6 +243,17 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   NOT done, and not claimed: SidebarThreadRow, SidebarHelperRow, HelperStubRow and the headers still take a new value by a
 //   rebuild where they stand (UpdateItemView), so their own @State (a hover, an open popover) may not survive a change of
 //   their record; it is the same gap, UNRESOLVED here (not read through for those rows), and no test covers it.
+// - UI-SIDEBAR-038 also: the chevron itself is a view of the card's stack (:1514 `if capped { ... }`), so it joins and leaves
+//   on the same default opacity transition when the head count crosses twelve (:1535 snappy, the card's row count changes
+//   with it): The_head_cards_chevron_fades_in_when_the_card_becomes_capped_and_out_when_it_stops_being.
+// - The engineering decisions this pass made (the system red pair, the leaving glyphs' layer over the card, row state handed
+//   in place) are ED-NEW-parity-sidebarview in porting/engineering_decisions.md (a placeholder the lead numbers at merge; a
+//   Decision trait cannot carry it, Traceability wants ED-nnn). That entry also records the checks OWED on a native window.
+// - Mutation sweep, finishing the reviewer's (E:\Droppy\work\parity\evidence\SidebarView\review\mutants_round1.txt,
+//   _round2, _round3, _round3b): 68 more mutants over the claimed records (PR-SIDEBAR-134's glide gate, UI-GIT-057,
+//   UI-HYDRAMERGE-030, UI-SIDEBAR-004, -007, -025, -033, -034, -038, -039, -040, -041, -042, -059) and the fixed defects
+//   D1a and D2-D14, every one killed: D6a (Red's dark member) by SwiftColorTests, the others by the Views.Sidebar namespace.
+//   One survived at first, D8a (the folded stub's fill set with no animation): its test now checks the fill mid-fade.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)

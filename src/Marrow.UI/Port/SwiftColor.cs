@@ -168,7 +168,7 @@ public sealed class SwiftColor
     /// (255, 66, 69), opaque; the increased contrast values are not modelled (ED-104). These are the same table
     /// edition as ED-104's Yellow: the macOS 27 UI Kit (OD-0045, E:\Droppy\work\apple-kit\macos27-uikit-controls.md
     /// "System colours Dark/Light") lists Yellow at #FFCC00 / #FFD600, exactly ED-104's (255, 204, 0) and (255, 214, 0),
-    /// and Red at #FF383C / #FF4245. ENGINEERING DECISION, pending an assigned ED number; UNVERIFIED under OD-0001 on
+    /// and Red at #FF383C / #FF4245. ENGINEERING DECISION ED-NEW-parity-sidebarview (1); UNVERIFIED under OD-0001 on
     /// the same footing as ED-104, no O-nn.
     /// This is the system red the SwiftUI literal names. The theme's own danger fallback is a different decision:
     /// PR-THEME-031's windows_path fixes one red for the three system-hue themes and keeps it constant
