@@ -14,6 +14,7 @@ using Marrow.UI.Common;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
+using static Marrow.UI.Tests.Fixtures.StreamVeilFlowHost;
 using Xunit;
 
 namespace Marrow.UI.Tests.Markdown;
@@ -31,52 +32,6 @@ namespace Marrow.UI.Tests.Markdown;
 [Collection("Headless")]
 public sealed class StreamVeilFlowTests(HeadlessSession headless)
 {
-    private sealed class Host
-    {
-        public readonly Decorator Decorator = new();
-        public readonly MarkdownVeils Veils = new();
-        public Window Window = null!;
-
-        public Host(TestRuntime runtime, string first, bool dimmed = false)
-        {
-            runtime.OnMain(() =>
-            {
-                Decorator.Child = View(first, dimmed);
-                Window = Show(Decorator);
-            });
-        }
-
-        public MarkdownView View(string text, bool dimmed)
-        {
-            var view = new MarkdownView(text, isStreaming: true, Veils.Root);
-            if (dimmed) MarkdownView.SetMarkdownDimmed(view, true);
-            return view;
-        }
-
-        // What a row does when a flush changes its text: a new MarkdownView replaces the old one.
-        public void Flush(TestRuntime runtime, string text, bool dimmed = false) =>
-            runtime.OnMain(() =>
-            {
-                Decorator.Child = View(text, dimmed);
-                Pump();
-            });
-    }
-
-    private static Window Show(Control content)
-    {
-        var window = new Window { Width = 400, Height = 600, Content = new StackPanel { Children = { content } } };
-        window.Show();
-        Pump();
-        return window;
-    }
-
-    private static void Pump()
-    {
-        Dispatcher.UIThread.RunJobs();
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        Dispatcher.UIThread.RunJobs();
-    }
-
     // The text of every run under the control, with the opacity it is painted at: the brush's opacity times its colour's alpha, 1 for a run that
     // wears no brush of its own.
     private static (string Text, double Opacity)[] Runs(Control root) =>
@@ -117,7 +72,7 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
         using var frameScope = FrameClock.Source.Override(frames);
         using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
         FreshVeilClock();
-        var host = new Host(runtime, "# Title\n\nHello\n\n- one\n\n```\ncode\n```\n");
+        var host = new StreamVeilFlowHost(runtime, "# Title\n\nHello\n\n- one\n\n```\ncode\n```\n");
         try
         {
             // What is on screen when the veils attach is the baseline: a heading, a paragraph, a list item and a code block, none of them veiled.
@@ -171,7 +126,7 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
         using var frameScope = FrameClock.Source.Override(frames);
         using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
         FreshVeilClock();
-        var host = new Host(runtime, $"Read [notes]({Local}) now");
+        var host = new StreamVeilFlowHost(runtime, $"Read [notes]({Local}) now");
         try
         {
             var first = Runs(host.Decorator);
@@ -264,7 +219,7 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
         using var frameScope = FrameClock.Source.Override(frames);
         using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
         FreshVeilClock();
-        var host = new Host(runtime, "Hello", dimmed);
+        var host = new StreamVeilFlowHost(runtime, "Hello", dimmed);
         try
         {
             host.Flush(runtime, "Hello there", dimmed);
@@ -335,7 +290,7 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
         FreshVeilClock();
         var lead = links ? $"Read [notes]({Local}) now" : "Hello";
         var shown = links ? "Read notes now" : "Hello"; // what the markdown reads as
-        var host = new Host(runtime, lead);
+        var host = new StreamVeilFlowHost(runtime, lead);
         try
         {
             host.Flush(runtime, lead + " there");
