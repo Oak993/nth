@@ -1196,6 +1196,60 @@ internal sealed class GlassEffectContainer : Decorator
     }
 }
 
+/// <summary>PORT-ONLY. The row's <c>HStack(alignment: .center, spacing: 10)</c> (ChatView.swift:1124) with the title's
+/// <c>.frame(maxWidth: .infinity, alignment: .leading)</c> (:1238) in it: every other control takes its own width, and the
+/// title's frame takes what is left, so the trailing capsules sit at the row's trailing end. A horizontal StackPanel gave
+/// the title only its text's width and drew the capsules straight after it.</summary>
+internal sealed class ChatChromeRowStack : StackPanel
+{
+    public ChatChromeRowStack() => Orientation = Orientation.Horizontal;
+
+    private static bool FillsRow(Control child) => child is ChatChromeTitle;
+
+    private IEnumerable<Control> Shown => Children.Where(child => child.IsVisible);
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var shown = Shown.ToArray();
+        var gaps = Math.Max(0, shown.Length - 1) * Spacing;
+        var used = gaps;
+        var height = 0.0;
+        foreach (var child in shown.Where(child => !FillsRow(child)))
+        {
+            child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+            used += child.DesiredSize.Width;
+            height = Math.Max(height, child.DesiredSize.Height);
+        }
+        var left = double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0, availableSize.Width - used);
+        var fills = false;
+        foreach (var child in shown.Where(FillsRow))
+        {
+            fills = true;
+            child.Measure(new Size(left, availableSize.Height));
+            height = Math.Max(height, child.DesiredSize.Height);
+            if (double.IsInfinity(left)) used += child.DesiredSize.Width;
+        }
+        // :1238 maxWidth .infinity: with a title the row is as wide as it is offered.
+        var width = fills && !double.IsInfinity(availableSize.Width) ? availableSize.Width : used;
+        return new Size(width, height);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var shown = Shown.ToArray();
+        var fixedWidth = shown.Where(child => !FillsRow(child)).Sum(child => child.DesiredSize.Width) + Math.Max(0, shown.Length - 1) * Spacing;
+        var left = Math.Max(0, finalSize.Width - fixedWidth);
+        var x = 0.0;
+        foreach (var child in shown)
+        {
+            var width = FillsRow(child) ? left : child.DesiredSize.Width;
+            child.Arrange(new Rect(x, 0, width, finalSize.Height));
+            x += width + Spacing;
+        }
+        return finalSize;
+    }
+}
+
 /// <summary>:1106-1182 <c>private struct ChatChromeRow: View</c>: the sticky glass controls across the top.</summary>
 internal sealed class ChatChromeRow : Decorator
 {
@@ -1220,7 +1274,7 @@ internal sealed class ChatChromeRow : Decorator
         // The row's own children persist across refreshes, as SwiftUI keeps a view's identity (and its @State, such as an open
         // popover) while its body re-evaluates: only the controls whose branch changes come and go, and the two that carry
         // .transition(.softAppear) (ThreadsButton :1129-1131, HydraButton :1139-1140) arrive and leave through it.
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center }; // :1124
+        var row = new ChatChromeRowStack { Spacing = 10, VerticalAlignment = VerticalAlignment.Center }; // :1124, :1238
         var container = new GlassEffectContainer(2, () => row); // :1123
         host.Children.Add(container);
         ThreadsButton? threadsButton = null;
@@ -1455,6 +1509,9 @@ internal sealed class ChatChromeTitle : Decorator
         };
         var button = PlainControls.Button(padded, () => state.IsPresented = !state.IsPresented); // :1199-1202
         button.HorizontalContentAlignment = HorizontalAlignment.Left;
+        // :1215-1217,1238 the button is the words' own width; the frame after it takes the row's leftover width, so the
+        // popover hangs under the words, and the leftover gap stays the title bar's (it drags the window, ED-063).
+        button.HorizontalAlignment = HorizontalAlignment.Left;
         // :1212 U+2014 em dash kept verbatim (deviation OD-0012 G3, as OD-0008 B14 keeps the other eight).
         ToolTip.SetTip(button, "Thread title — click to copy or rename");
         AutomationProperties.SetName(button, "Thread title"); // :1213
@@ -1463,7 +1520,9 @@ internal sealed class ChatChromeTitle : Decorator
             button,
             new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
             () => new PopoverMenu(() => BuildMenu(model, runtime, button, currentTitle))); // :1215-1230
-        Child = PlainControls.Background(new Panel { Children = { button, popover } }, new NoWindowDragArea());
+        var pressable = PlainControls.Background(button, new NoWindowDragArea());
+        pressable.HorizontalAlignment = HorizontalAlignment.Left;
+        Child = new Panel { Children = { pressable, popover } };
         HorizontalAlignment = HorizontalAlignment.Stretch; // :1238 .frame(maxWidth: .infinity, alignment: .leading)
     }
 

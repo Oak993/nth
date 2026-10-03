@@ -244,6 +244,13 @@ public sealed class ThreadTimeline : Decorator
         this.Track(() => FrontMonitor.Shared.Current.Revision, _ => { if (FrontMonitor.Shared.Current.Concerns(TopLevel.GetTopLevel(this) as Avalonia.Controls.Window)) tracking.NoteReturnToFront(); });
         this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { if (!active) SettleAfterResize(); else if (scrollFrame is not null) { scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; } });
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsSliding, sliding => { if (sliding) paneWidthAtSlideStart = Bounds.Width; });
+        // :203-207 the rail cancels the slide's padding and its glide on every frame of it (ChatView.swift:727-734, :756), so it
+        // stays on the column's leading edge while the rows move; read once at a draw, it rode the glide and the new padding.
+        PropertyChanged += (_, e) =>
+        {
+            if ((e.Property == ChatView.ReserveSlideLeadingProperty || e.Property == ChatView.ReserveSlideOffsetProperty) && currentRail is { } rail)
+                rail.RenderTransform = new TranslateTransform(-ChatView.GetReserveSlideLeading(this) - ChatView.GetReserveSlideOffset(this), 0);
+        };
     }
 
     // :59-67. No lower clamp in the ordinary width branch; only the sidebar-slide target is clamped to 12.
