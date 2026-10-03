@@ -6248,7 +6248,7 @@
       "cancellation": "not cancellable from this control",
       "windows_path": "Same four detail forms with their exact trailing periods and the same named relative-date phrasing. The product name changes under the rename to \"Marrow\" (OD-0002; OD-0012 F1), and the host name in the sentences follows the same rule as PR-SETTINGS-242; the sentence shape and punctuation stay. By owner ruling OD-0008 C6 the check queries no Droppy feed: until the owner's Windows release feed is set, Check now and the open-time check both end in failure, so the row shows the error-prefixed detail; the update feed is an internal value, empty by default, with no settings UI until the owner has a Windows feed; while it is empty no network request is made and the About pill shows upstream's \"Check failed\" with the note \"No update feed is set.\" (OD-0012 I1).",
       "verification_method": "interaction test over the four states with a stubbed checker, comparing the sentences byte for byte; a test with the empty feed asserting no network request and the detail \"No update feed is set. \" followed by the checked-suffix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6313,7 +6313,7 @@
       "cancellation": "not cancellable once the install starts",
       "windows_path": "Same four states and all six strings, with the product name changed by the rename to \"Marrow\" (OD-0012 F1) and the release host name replaced by whatever the Windows build checks. The seal deliberately does not claim \"Up to date\" before the first successful check; keep that three-way standing rather than collapsing it. By owner ruling OD-0008 C6 the port queries no Droppy feed: until the owner's Windows release feed is set, every check fails, so the pill shows the \"Check failed\" standing; the update feed is an internal value, empty by default, with no settings UI until the owner has a Windows feed; while it is empty no network request is made and the About pill shows upstream's \"Check failed\" with the note \"No update feed is set.\" (OD-0012 I1).",
       "verification_method": "interaction test over the four states with a stubbed checker and progress, comparing every string and tooltip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6347,7 +6347,7 @@
       "cancellation": "Leaving the page cancels the sweep and completes the celebration.",
       "windows_path": "Same open-time check and the same sweep timings. The haptics become no-op shims. The must-complete-on-disappear rule is load-bearing and must be kept, or the frame-driven slider would run forever. By owner ruling OD-0008 C6 the open-time check does not query Droppy's feed: until the owner's Windows release feed is set it ends in the \"Check failed\" standing with the note \"No update feed is set.\", and while the feed value is empty it makes no network request (OD-0012 I1).",
       "verification_method": "interaction test opening About after a simulated install and asserting the sweep timings and the settle; test that leaving mid-sweep settles immediately",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8542,7 +8542,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The icon is hidden from accessibility; the pill's accessibility label is the product name and version. Its leading padding is deliberately 4 less than its trailing padding, to balance the icon.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/AboutUpdateViews.swift:558-578 -> 1fbf81e6 :551-571."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/AboutUpdateViews.swift:558-578 -> 1fbf81e6 :551-571.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-056",
@@ -8573,7 +8574,8 @@
         "decision": "OD-0012 I1; OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:617-621, :692-699 - the standing follows the last GitLab check, and the tooltips read \"Droppy Code <version> is the latest version\", the check error or \"The last check did not reach GitLab\", and \"Droppy Code has not asked GitLab for a release yet\"",
         "port": "The update feed is an internal value, empty by default, with no settings UI; while it is empty the pill shows \"Check failed\" with the tooltip \"No update feed is set.\". The product name in the tooltips and labels is \"Marrow\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-057",
@@ -8598,7 +8600,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Icons are bundled assets named UpdateNewFeaturesIcon, UpdateBugFixesIcon and UpdateRefinementsIcon; the tints were sampled from them. The accessibility label is the long section title, not the short card title.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/AboutUpdateViews.swift:197-259 -> 1fbf81e6 :190-252; count `.system(size: 11)` -> `.system(.subheadline)`."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/AboutUpdateViews.swift:197-259 -> 1fbf81e6 :190-252; count `.system(size: 11)` -> `.system(.subheadline)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-058",
@@ -8627,7 +8630,8 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:421 `.accessibilityLabel(Text(\"Updating Droppy Code\"))`",
         "port": "The accessibility label reads \"Updating Marrow\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-059",
@@ -8954,7 +8958,8 @@
         "decision": "OD-0008 C6; OD-0012 I1",
         "upstream": "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:827-828 `Button(checker.isChecking ? \"Checking…\" : \"Check now\") { Task { await checker.check() } }` asks Droppy's GitLab release feed (DroppyCode/App/UpdateChecker.swift:70)",
         "port": "The update feed is an internal value, empty by default, with no settings UI until the owner has a Windows release feed; while it is empty Check now makes no network request and fails with \"No update feed is set.\" (OD-0012 I1)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-072",
