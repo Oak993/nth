@@ -72,7 +72,8 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-158")] // App/Views/Chat/ChatView.swift:98-153,280-288
-    [Trait("Req", "PR-CHAT-159")] // App/Views/Chat/ChatView.swift:143-145
+    // STOP (round 4, traceability), still open: PR-CHAT-159: the capture at travel 0, 20 and 44 in both themes is not done (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:143-145
     [Trait("Req", "PR-TERM-001")] // App/Views/Chat/ChatView.swift:275-288
     public void The_mounted_column_contains_the_timeline_composer_top_veil_and_chrome_without_a_terminal()
         => WithChat((view, runtime, _, _, _, _) =>
@@ -119,7 +120,8 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
         });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-159")] // App/Views/Chat/ChatView.swift:143-145; UI/Chrome/Chrome.swift:568-579,585-624
+    // STOP (round 4, traceability), still open: PR-CHAT-159: the capture at travel 0, 20 and 44 in both themes is not done (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:143-145; UI/Chrome/Chrome.swift:568-579,585-624
     public void The_mounted_top_veil_uses_the_same_scroll_chrome_model_as_the_timeline()
         => WithChat((view, runtime, _, h, _, _) =>
         {

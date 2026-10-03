@@ -177,7 +177,8 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ScriptsEditor: PR-TERM-074 --------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-TERM-074")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
+    // STOP (round 4, traceability), still open: PR-TERM-074: the sheet's capture against the reference is owed on native (ED-NEW-parity-chatview, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-020")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-021")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-022")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
@@ -237,7 +238,8 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ScriptsEditor: PR-TERM-076 --------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-TERM-076")] // App/Views/Chat/ChatView.swift:1666-1699
+    // STOP (round 4, traceability), still open: PR-TERM-076: the sheet's capture against the reference is owed on native (ED-NEW-parity-chatview, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-023")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-024")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-027")] // App/Views/Chat/ChatView.swift:1666-1699
@@ -578,7 +580,8 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ChatChromeRow states not covered by part 1: UI-CHAT-073 -----------------------------------------------
 
     [Fact]
-    [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1106-1182 (states: no project, not a repository)
+    // STOP (round 4, traceability), still open: UI-CHAT-073: the one-glass-pass clause (the glass over the row; ED-180, OD-0005 UNVERIFIED) is not proven. This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1106-1182 (states: no project, not a repository)
     public void With_no_project_the_Scripts_item_is_absent_and_with_no_repository_the_branch_and_git_items_are_absent()
     {
         ChatHeadlessFixtures.Run(headless, () =>

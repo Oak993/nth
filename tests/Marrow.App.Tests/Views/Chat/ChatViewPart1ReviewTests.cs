@@ -71,7 +71,8 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1128-1131
-    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1135-1142
+    // STOP (round 4, traceability), still open: PR-CHAT-171: the one-glass-pass clause (the glass over the row; ED-180, OD-0005 UNVERIFIED) is not proven. This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1135-1142
     public void Changing_the_sidebar_and_Hydra_settings_updates_the_conditional_slots_live()
     {
         ChatHeadlessFixtures.Run(headless, () =>

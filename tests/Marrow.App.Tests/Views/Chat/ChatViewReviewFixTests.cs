@@ -130,7 +130,8 @@ public sealed class ChatViewReviewFixTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-USAGE-071")] // App/Views/Chat/ChatView.swift:490-530,554-590
+    // STOP (round 4, traceability), still open: PR-USAGE-071: the capture of a short panel in a top and a bottom corner is not done (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:490-530,554-590
     [Trait("Rule", "R-VIEW-1")] // App/Views/Chat/ChatView.swift:85-90,533-551; layout changes preserve the active gesture/view identity.
     public void A_mounted_resize_grip_survives_multiple_real_pointer_moves_and_commits_once_on_release() => WithColumn((h, model, _, view, window, _) =>
     {
