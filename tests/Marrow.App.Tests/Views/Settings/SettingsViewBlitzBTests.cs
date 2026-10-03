@@ -489,5 +489,32 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
         });
     }
 
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-050: the field, the eye and their states; the refused-key line is asserted by Secure_key_presenter_masks_the_actual_rendered_text_and_refused_keys_show_the_owner_message_under_the_field, the 600 ms re-check by Edits_save_immediately_replace_debounce_and_recheck_at_600_ms
+    public void The_API_key_field_and_its_eye_prove_every_clause_of_the_record_in_one_place()
+    {
+        With(() => new StackPanel { Children = { new ProviderSettingsSection(ProviderKind.Meta, Binding<bool>.Constant(true)), new ProviderSettingsSection(ProviderKind.Zai, Binding<bool>.Constant(true)), new ProviderSettingsSection(ProviderKind.Commandcode, Binding<bool>.Constant(true)) } }, (view, model, h, w) =>
+        {
+            var meta = Nodes<ProviderSettingsSection>(view).Single(s => Field<ProviderKind>(s, "provider") == ProviderKind.Meta); var zai = Nodes<ProviderSettingsSection>(view).Single(s => Field<ProviderKind>(s, "provider") == ProviderKind.Zai); var commandCode = Nodes<ProviderSettingsSection>(view).Single(s => Field<ProviderKind>(s, "provider") == ProviderKind.Commandcode);
+            Assert.NotNull(Row(meta, "API key")); Assert.NotNull(Row(zai, "API key")); Assert.NotNull(Row(commandCode, "API key (optional)")); // the title by the kind of provider
+            var field = Assert.Single(Nodes<TextBox>(meta)); var other = Assert.Single(Nodes<TextBox>(zai));
+            // the field: a rounded border (the Apple kit's text field), 200 wide, 12 point monospaced, the prompt "sk-" and an ellipsis
+            Assert.Equal("sk-…", field.PlaceholderText); Assert.Equal("RoundedBorder", field.GetValue(Marrow.App.Port.ChatDialogControls.InputStyleProperty)); Assert.Equal(200, field.Width);
+            Assert.Equal(SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Resolve().FontSize, field.FontSize); Assert.Equal(SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Resolve().FontFamily, field.FontFamily);
+            var bezel = field.GetVisualDescendants().OfType<Border>().First(b => b.CornerRadius == new CornerRadius(6)); Assert.Equal(24, bezel.Bounds.Height, 1); Assert.Equal(200, bezel.Bounds.Width, 1);
+            // the eye: 8 points from the field, 12 point, secondary, hidden by default with its symbol and tip
+            var row = Assert.IsType<StackPanel>(field.Parent); Assert.Equal(8, row.Spacing); var eye = Assert.Single(Nodes<Button>(row)); var symbol = Assert.Single(Nodes<SwiftImage>(eye));
+            Assert.Equal('•', field.PasswordChar); Assert.Equal("eye", symbol.SymbolName); Assert.Equal("Show the API key", ToolTip.GetTip(eye)); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(symbol)); Ink(symbol, symbol.Foreground, Chrome.SecondaryText);
+            // the corners of the eye's frame belong to it, the symbol's own pixels or not
+            Assert.NotNull(w.InputHitTest(At(eye, w, new Point(1, 1))));
+            Click(w, eye); Assert.Equal('\0', field.PasswordChar); symbol = Assert.Single(Nodes<SwiftImage>(eye)); Assert.Equal("eye.slash", symbol.SymbolName); Assert.Equal("Hide the API key", ToolTip.GetTip(eye)); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(symbol)); Ink(symbol, symbol.Foreground, Chrome.SecondaryText);
+            Assert.Equal('•', other.PasswordChar); // the reveal state belongs to its section
+            // typing writes the setting at once
+            field.Text = "fixture-key-never-sent"; Drain(w); Assert.Equal("fixture-key-never-sent", model.Settings.ApiKeyInput(ProviderKind.Meta)); field.Text = ""; Drain(w);
+        });
+        // not persisted: another copy of the page starts hidden
+        With(() => new ProviderSettingsSection(ProviderKind.Meta, Binding<bool>.Constant(true)), (view, model, h, w) => { Assert.Equal('•', Assert.Single(Nodes<TextBox>(view)).PasswordChar); Assert.Equal("Show the API key", ToolTip.GetTip(Assert.Single(Nodes<Button>(Assert.IsType<StackPanel>(Assert.Single(Nodes<TextBox>(view)).Parent))))); });
+    }
+
     private static Control Opened(Popup popup) { Open(popup); return PopoverHost.Content(popup)!; }
 }
