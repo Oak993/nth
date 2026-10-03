@@ -58,14 +58,27 @@ public class MorphingTextBlock : TextBlock
     internal const double SpreadShare = 0.55; // the letters' turns, first to last, as a share of the change's duration
     internal const double ArrivalShare = 0.15; // how long, as a share of the duration, the first new letter waits
 
-    // The kept letters run ahead of the label's frame (video, High -> Extra High at 34.84 s, every frame: the gap between
-    // the kept "High" and the chevron goes 9, 1, 3, 4, 6, 7, then back to 9; "High" makes a third of its way before the
-    // chevron moves). ENGINEERING DECISION, fitted to those five frames (worst frame 1.5 px off, the frame's curve fitted on the
-    // chevron alone within 0.4 px): the kept letters run the change's own curve 23 ms ahead of the frame, drawn out by
+    // WIDENING: the kept letters run ahead of the label's frame (video, High -> Extra High at 34.84 s, every frame: the gap
+    // between the kept "High" and the chevron goes 9, 1, 3, 4, 6, 7, then back to 9; "High" makes a third of its way before
+    // the chevron moves). ENGINEERING DECISION, fitted to those five frames (worst frame 1.5 px off, the frame's curve fitted on
+    // the chevron alone within 0.4 px): the kept letters run the change's own curve 23 ms ahead of the frame, drawn out by
     // 1.22 (for the slider's snappy 0.2 spring, a 0.244 spring of the same damping), so they lead it at once, most at
     // about 20 ms, and meet it again without passing it.
     internal const double KeptLead = 0.023;
     internal const double KeptStretch = 1.22;
+
+    // NARROWING (final review, round 1: the widening's lead, applied to a narrowing, pulls "High" away from the chevron, as
+    // the gap is dW times the frame's progress less the letters', and the chevron is what moves first). SOURCE FACT, measured
+    // frame by frame in 2-chat-use.mov, Extra High -> High at 35.77-35.96 s (the change takes over the unfinished Max ->
+    // Extra High, as the drag goes down): the gap between the kept "High" and the chevron stays below its settled 8 px while
+    // the chevron goes, by 2, 5, 3 px at 60, 73 and 80 % of the chevron's way, then 1, 1, 2, 2, 2 px at 93 and 100 %, and is
+    // back at 8 px at 35.965. The kept letters never lead the frame here; they follow it. ENGINEERING DECISION, fitted to those
+    // frames by sweeping the kept letters' clock against the video (study effort-title-2026-10-03, sweep_*): 10 ms behind
+    // the frame on its own curve, not drawn out (-0.010, 1: 6, 5, 3, 3, 3, 2, 2, 2, 1, 1 px short; the widening's 0.023 and 1.22
+    // leave the gap 3 to 0 px wider than settled, the lock-step holds it at 0, and 0.0 with 1.2 keeps it 5 px short through
+    // most of the chevron's way).
+    internal const double NarrowingKeptLead = -0.010;
+    internal const double NarrowingKeptStretch = 1;
 
     private Morph? morph;
     private IFrameSource? frames;
@@ -385,7 +398,7 @@ public class MorphingTextBlock : TextBlock
     private static List<(GlyphState Glyph, double X)> Resolve(Morph state, string newText, TextLayout newLayout, double seconds)
     {
         var result = new List<(GlyphState, double)>();
-        foreach (var glyph in Glyphs(state.Old, newText, seconds, state.Animation))
+        foreach (var glyph in Glyphs(state.Old, newText, seconds, state.Animation, newLayout.WidthIncludingTrailingWhitespace < state.OldLayout.WidthIncludingTrailingWhitespace))
         {
             var x = glyph.X(state.OldLayout, newLayout);
             var drawn = glyph;
@@ -412,7 +425,9 @@ public class MorphingTextBlock : TextBlock
                         Blur = Math.Max(0, from.Glyph.Blur * (1 - q)),
                         Rise = from.Glyph.Rise * (1 - q),
                     };
-                    x = from.X + (x - from.X) * q;
+                    // From where it was to its place in the new line, along the change's own curve: not from where it was
+                    // to the point the change has brought it to (x), which eased the letter twice and left it behind.
+                    x = from.X + (newLayout.HitTestTextPosition(glyph.NewIndex!.Value).X - from.X) * q;
                 }
             }
             result.Add((drawn, x));
@@ -577,9 +592,11 @@ public class MorphingTextBlock : TextBlock
     }
 
     /// <summary>Every character of a change at <paramref name="seconds"/> into it (see the file note for the rules).</summary>
-    internal static List<GlyphState> Glyphs(string oldText, string newText, double seconds, Animation animation)
+    internal static List<GlyphState> Glyphs(string oldText, string newText, double seconds, Animation animation, bool narrowing = false)
     {
-        var keptTime = (seconds + KeptLead) / KeptStretch; // the kept letters' own clock (see KeptLead)
+        // The kept letters' own clock (see KeptLead, NarrowingKeptLead).
+        var keptTime = (seconds + (narrowing ? NarrowingKeptLead : KeptLead)) / (narrowing ? NarrowingKeptStretch : KeptStretch);
+        if (keptTime < 0) keptTime = 0;
         var shared = keptTime >= animation.Duration - 1e-9 ? 1 : animation.Progress(keptTime);
         var pairs = KeptLetters(oldText, newText);
         var result = new List<GlyphState>();
