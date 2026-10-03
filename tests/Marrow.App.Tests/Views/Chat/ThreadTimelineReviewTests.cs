@@ -102,4 +102,53 @@ public sealed class ThreadTimelineReviewTests(HeadlessSession headless)
         Assert.True(prompt.Opacity == 1, "the prompt inside the arriving block fades in a second time: its own opacity is " + prompt.Opacity); // no second fade multiplied over the block's
         Assert.True(prompt.RenderTransform is null || prompt.RenderTransform.Value.M32 == 0, "no second 4-point rise inside the block's own");
     });
+
+    private static HydraHeadInfo FinishedHead(long index, DateTimeOffset started, DateTimeOffset finished) =>
+        new(index, "task " + index, HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) { HydraHeadInfoStatus = HydraHeadInfo.Status.Completed, StartedAt = started, FinishedAt = finished };
+
+    private static void SetHeadStatus(TimelineMount mount, long index, HydraHeadInfo.Status status, DateTimeOffset? finished)
+    {
+        var head = mount.Model.Children(mount.Runtime.ThreadID).First(thread => thread.Hydra!.Index == index);
+        mount.Model.UpdateThread(head.Id, thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = status, FinishedAt = finished } });
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // REVIEW PR-CHAT-035 ("both id literals ... are the identity the list animates across"): ThreadTimeline.swift:332-334 `.id(block.id)`, :1615-1617; TimelineRows.swift:408-415 (ForEach(finished, id: \.index) with .transition(.settleGlide) under .animation(.smooth(duration: 0.3), value: finished.map(\.index)), :441 the pill's @State isShowingReport)
+    public void REVIEW_a_head_finishing_joins_the_pill_row_under_the_same_id_as_the_same_row_and_glides_in_beside_the_pills_already_there()
+    {
+        var s = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        var heads = new[] { FinishedHead(1, s, s.AddSeconds(1000)), FinishedHead(2, s, s.AddSeconds(100)), FinishedHead(3, s, s.AddSeconds(400)), FinishedHead(4, s, s.AddSeconds(200)) };
+        ThreadTimelineRig.RunWithTeam(headless, mount =>
+        {
+            SetHeadStatus(mount, 1, HydraHeadInfo.Status.Running, null); SetHeadStatus(mount, 3, HydraHeadInfo.Status.Running, null);
+            var turn = Guid.NewGuid();
+            mount.SetEntries(new[] { User("p1", turn), Reply("a1", turn), End("e1", turn) }); mount.Settle();
+            var row = mount.Blocks().Single(block => block.Id == "hydra-heads-working").Row;
+            var pills = LogicalQuery.SelfAndDescendants<FinishedHeadPill>(row).ToList(); Assert.Equal(2, pills.Count);
+            // Head 3 finishes: it joins the row under the same id.
+            SetHeadStatus(mount, 3, HydraHeadInfo.Status.Completed, s.AddSeconds(400)); mount.Advance(20);
+            var now = mount.Blocks().Single(block => block.Id == "hydra-heads-working");
+            Assert.Equal(new[] { 2, 4, 3 }, Assert.IsType<DisplayBlock.HeadsWorking>(now.Block).Heads);
+            Assert.Same(row, now.Row); // the same row ...
+            var after = LogicalQuery.SelfAndDescendants<FinishedHeadPill>(now.Row).ToList(); Assert.Equal(3, after.Count);
+            Assert.Same(pills[0], after[0]); Assert.Same(pills[1], after[1]); // ... and the pills already there are the same views (an open report stays open), the new one gliding in beside them
+        }, heads);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // REVIEW PR-CHAT-026 / PR-CHAT-160: ThreadTimeline.swift:136-141 (NewThreadPrompt(threadID:projectName:) with no .id: a new name is the same view, its .onAppear does not run again), NewThreadPrompt.swift:50-53 (@State isVisible stays true)
+    public void REVIEW_a_new_project_name_on_the_empty_threads_prompt_changes_its_words_without_the_prompt_appearing_again() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
+        mount.Advance(500); Assert.Equal(1, Assert.IsAssignableFrom<Control>(prompt.Child).Opacity);
+        // The reader picks another project in the prompt's picker: the chat hands the timeline the new name.
+        typeof(ThreadTimeline).GetMethod("UpdateInputs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(mount.View, ["Renamed", null, false, 480.0, true]);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+        var now = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
+        Assert.Contains("Renamed", string.Concat(LogicalQuery.SelfAndDescendants<TextBlock>(now).Select(text => text.Text)), StringComparison.Ordinal);
+        var content = Assert.IsAssignableFrom<Control>(now.Child);
+        Assert.True(content.Opacity == 1, "the prompt fades in again from nothing on a project pick: its opacity is " + content.Opacity);
+    });
 }
