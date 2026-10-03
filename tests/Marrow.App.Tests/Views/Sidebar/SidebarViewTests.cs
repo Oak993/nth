@@ -10165,6 +10165,101 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
+
+    // ---- REVIEW (pass 1, round 1, adversarial): hover that includes the trailing overlay ----
+    //
+    // SidebarView.swift:1375-1386 SidebarHelperRow: `.overlay(alignment: .trailing) { ... }` comes BEFORE
+    // `.onHover { ... }`, so the hover region is the button together with its ellipsis; the pointer resting on the
+    // ellipsis is still on the row and the ellipsis stays (UI-SIDEBAR-033 "hovered (fill plus ellipsis in place of the
+    // activity status)"). Chrome.swift:731-737 SidebarRow (the project row, PR-SIDEBAR-126, UI-SIDEBAR-058 "the
+    // project row's ellipsis and plus still work") has the same order. SidebarThreadRow gets this right
+    // (overlays.OnHover, SidebarView.cs, ":1816 hover includes the overlaid check and accessory buttons").
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // SidebarView.swift:1375-1386: .overlay then .onHover
+    public void REVIEW_A_helper_rows_ellipsis_stays_while_the_pointer_rests_on_it() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(60, 12), window)!.Value); // on the title
+        });
+        try
+        {
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                var more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+                window.MouseMove(more.TranslatePoint(new Point(more.Bounds.Width / 2, more.Bounds.Height / 2), window)!.Value); // onto the ellipsis
+            });
+            Tick(300);
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ActivityStatus>(row)); // still hovered: no status in its place
+                Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "More");
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-126")] // UI/Chrome/Chrome.swift:731-737 SidebarRow: .overlay then .onHover
+    [Trait("Req", "UI-SIDEBAR-058")] // "the project row's ellipsis and plus still work"
+    public void REVIEW_A_project_rows_ellipsis_and_plus_stay_while_the_pointer_rests_on_the_ellipsis() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // on the icon
+        });
+        try
+        {
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                var more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+                window.MouseMove(more.TranslatePoint(new Point(more.Bounds.Width / 2, more.Bounds.Height / 2), window)!.Value); // onto the ellipsis
+            });
+            Tick(300);
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "More"); // :1118 still offered
+                Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "New thread in Alpha"); // :1119-1125
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
 }
 
 // STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)
