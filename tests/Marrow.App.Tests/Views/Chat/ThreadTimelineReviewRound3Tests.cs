@@ -311,4 +311,21 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
         }
         Assert.Equal(1, shown[^1], 3);
     });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 (ED-NEW-parity-threadtimeline (3), OD-0076): reduce motion stills the swap; a timeline that faded out (opacity 0, out of the pointer's way) and is cut back in once reduce motion is on is whole and takes input
+    public void A_timeline_that_faded_out_comes_back_whole_and_taking_input_when_reduce_motion_was_turned_on_while_it_was_gone() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(3)); mount.Settle();
+        var scroll = mount.Scroll; var overlay = Assert.IsAssignableFrom<Control>(scroll.Parent);
+        RevertToEmpty(mount); mount.Advance(800); // faded out under the prompt, then out of the tree
+        Assert.False(overlay.IsAttachedToVisualTree()); Assert.Equal(0, overlay.Opacity, 3); Assert.False(overlay.IsHitTestVisible);
+        EnvironmentValues.SetAccessibilityReduceMotion(mount.Host, true);
+        Send(mount, "again");
+        Assert.Same(scroll, mount.Scroll); // the same timeline, cut back in
+        Assert.Equal(1, overlay.Opacity, 3); Assert.True(overlay.IsHitTestVisible);
+        Assert.Equal(1, Showing(Assert.Single(LogicalQuery.SelfAndDescendants<UserMessageRow>(mount.View)), mount.View), 3);
+        mount.Advance(400);
+        Assert.Equal(1, overlay.Opacity, 3); Assert.True(overlay.IsHitTestVisible);
+    });
 }
