@@ -207,6 +207,23 @@ public sealed class ComposerLightViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-251")] // REVIEW: OD-0083's bounded per-frame cost: Border beam draws inside the composer (its renderer's reach is 1 px), so the region it dirties every frame is the composer, not the Uiverse halo's reach (HaloSize + 3 HaloBlur + 4 = 96 px) of a light that is not shown
+    public void The_default_beam_dirties_only_the_composer_each_frame() => headless.OnUiThread(() =>
+    {
+        using var motion = new ComposerLightMotion();
+        var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
+        var (window, view) = Show(ComposerLightSettings.Default);
+        try
+        {
+            clock.Advance(TimeSpan.FromSeconds(1));
+            Tick();
+            var bounds = view.Handler!.GetRenderBounds();
+            Assert.True(bounds.Width <= 820 + 2 * 4 && bounds.Height <= 52 + 2 * 4, $"the beam's frames dirty {bounds} around the composer (40, 40, 820, 52)");
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
     [Trait("Decision", "ED-251")] // REVIEW: as ComposerLightSlot hosts it (no ComposerRect until LayoutUpdated, so the first snapshot is the unlaid 0 x 0 bounds), the Line light draws once laid out
     public void A_line_light_attached_before_layout_draws_once_laid_out() => headless.OnUiThread(() =>
     {
