@@ -1160,6 +1160,7 @@ namespace Marrow.UI.Chrome
             bool isEmphasized = false,
             double accessoryWidth = 0)
         {
+            selected = isSelected;
             var state = new ViewState();
             var iconSlot = icon(); // :712
             iconSlot.Width = Chrome.IconSize; // :713 .frame(width:, alignment: .center)
@@ -1168,8 +1169,8 @@ namespace Marrow.UI.Chrome
             var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :714, :718-719 .lineLimit(1).truncationMode(.tail)
             void ApplyText()
             {
-                SwiftFont.System(SwiftFont.TextStyle.Body, weight: isSelected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
-                text.Foreground = Chrome.PrimaryText.Opacity(isSelected ? 1 : 0.92).Brush(text); // :718
+                SwiftFont.System(SwiftFont.TextStyle.Body, weight: selected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
+                text.Foreground = Chrome.PrimaryText.Opacity(selected ? 1 : 0.92).Brush(text); // :718
             }
             ApplyText();
 
@@ -1191,31 +1192,82 @@ namespace Marrow.UI.Chrome
             }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
             var fill = new AnimatedColor(shape);
             shape.Background = fill.Brush;
-            fill.Set(FillFor(isSelected, false), null);
+            fill.Set(FillFor(selected, false), null);
 
-            var button = new SelectableButton(isSelected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
+            var button = new SelectableButton(() => selected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
             button.Click += (_, _) => action();
             button.Track(() => state.IsHovering, hovering =>
             {
-                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(isSelected, hovering), Transaction.Current)); // :729
+                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(selected, hovering), Transaction.Current)); // :729
             });
-            button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
-
+            // :729 `.background { shape.fill(fill).animation(Chrome.hover, value: isSelected) }`: a new isSelected eases the
+            // fill on Chrome.hover whatever transaction carried it (the modifier's own curve for a change of its value), from
+            // where the fill is drawn now. The title's weight and opacity (:717-718) and the trait (:738) have no animation
+            // of their own and take the new value under the change's transaction; every caller that changes a row's
+            // selection (SettingsView.swift:149, `page = item` and its other writes) carries none, so they change at once.
+            applySelection = () =>
+            {
+                ApplyText();
+                fill.Set(FillFor(selected, state.IsHovering), Chrome.Hover);
+            };
             var overlay = new Panel { Children = { button } };
-            button.Track(() => state.IsHovering, hovering =>
+            // :731-737 `.overlay(alignment: .trailing) { accessory }` comes BEFORE `.onHover`, so the hover region is the
+            // button together with its overlaid accessory: the pointer resting on the ellipsis or the plus is still on the
+            // row and keeps them (the hover is on the host, as SidebarThreadRow's overlays host carries its own).
+            overlay.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
+            // :731-734 `.overlay(alignment: .trailing) { accessory(isHovering).padding(.trailing, 6) }`. SwiftUI keeps the
+            // accessory's views under their own identity while the closure keeps returning them, and a view that a
+            // conditional inside it adds or drops runs the default .opacity transition under the transaction in force: the
+            // hover's withAnimation(Chrome.hover) (:735-737), so the project row's count and its ellipsis and plus
+            // (SidebarView.swift:1115-1133) crossfade (OD-0076). The closure says which it is by the control it returns: the
+            // control it returned last time is the same view and stays where it is, with its own state (an open popover's
+            // anchor, a hover); another control is another branch, and the two crossfade. The first body places it.
+            Control? shownAccessory = null;
+            void ShowAccessory(bool hovering)
             {
                 var built = accessory(hovering); // :732-733
+                if (ReferenceEquals(built, shownAccessory)) return;
                 built.Margin = new Thickness(0, 0, 6, 0); // :734
                 built.HorizontalAlignment = HorizontalAlignment.Right;
                 built.VerticalAlignment = VerticalAlignment.Center;
-                if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
-                overlay.Children.Add(built);
-            });
+                if (shownAccessory is { } previous)
+                {
+                    SwiftTransition.Remove(overlay, previous);
+                    SwiftTransition.Insert(overlay, overlay.Children.Count, built);
+                }
+                else SwiftTransition.Place(overlay, overlay.Children.Count, built);
+                shownAccessory = built;
+            }
+            refreshAccessory = () => ShowAccessory(state.IsHovering);
+            button.Track(() => state.IsHovering, ShowAccessory);
 
             AutomationProperties.SetName(button, title); // :738 AddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
 
             Child = overlay;
         }
+
+        private readonly Action refreshAccessory;
+        private readonly Action applySelection;
+        private bool selected;
+
+        /// <summary>:683 <c>let isSelected: Bool</c>, handed in anew when the view that owns the row renders it again under
+        /// the same identity (SettingsView.swift:148-149, a ForEach over the pages, so a page keeps its row): the fill eases
+        /// to the new state on Chrome.hover (:729), the title and the trait take it at once (:717-718, :738).</summary>
+        public bool IsSelected
+        {
+            get => selected;
+            set
+            {
+                if (selected == value) return;
+                selected = value;
+                applySelection();
+            }
+        }
+
+        /// <summary>The accessory closure asked again with the row's own hover state: SwiftUI re-reads
+        /// <c>accessory(isHovering)</c> whenever the view that owns the row renders, so a caller whose accessory reads its
+        /// own state (the project row's isMenuPresented, its count) asks through this when that state changes.</summary>
+        public void RefreshAccessory() => refreshAccessory();
 
         // :711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) } under a width the row's padding fixes. A plain
         // horizontal StackPanel measures every child at infinite width, so the title would never be cut at its tail
@@ -1243,7 +1295,7 @@ namespace Marrow.UI.Chrome
         // state; :738 `.accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)` is exposed through
         // ISelectionItemProvider, the platform's own selectable-item automation pattern, alongside the button's
         // invoke behaviour.
-        private sealed class SelectableButton(bool isSelected) : Button
+        private sealed class SelectableButton(Func<bool> isSelected) : Button
         {
             protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, isSelected);
 
@@ -1253,10 +1305,10 @@ namespace Marrow.UI.Chrome
                 if (IsEffectivelyEnabled) OnClick();
             }
 
-            private sealed class Peer(Control owner, bool isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
+            private sealed class Peer(Control owner, Func<bool> isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
             {
                 protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
-                bool ISelectionItemProvider.IsSelected => isSelected;
+                bool ISelectionItemProvider.IsSelected => isSelected();
                 ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
                 void ISelectionItemProvider.AddToSelection() { }
                 void ISelectionItemProvider.RemoveFromSelection() { }
@@ -1277,8 +1329,15 @@ namespace Marrow.UI.Chrome
         /// <summary>:748-757 <c>extension SidebarRow where Accessory == EmptyView</c>,
         /// <c>init(title:isSelected:action:icon:)</c>.</summary>
         public SidebarRow(string title, Action action, Func<Control> icon, bool isSelected = false)
-            : this(title, action, icon, _ => new Panel(), isSelected)
+            : this(title, action, icon, EmptyView(), isSelected)
         {
+        }
+
+        // :756 `{ _ in EmptyView() }`: one empty view, the same whatever the hover, so a hover changes nothing in it.
+        private static Func<bool, Control> EmptyView()
+        {
+            var none = new Panel();
+            return _ => none;
         }
 
         // :741-745. PR-WIN-200: the primary label colour at 0.12 selected, 0.06 hovered, clear otherwise.

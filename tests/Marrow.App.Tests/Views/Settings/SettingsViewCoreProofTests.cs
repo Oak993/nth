@@ -51,6 +51,14 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     private static ChromeRow Row(Control root, string name) => Nodes<ChromeRow>(root).Single(x => Text(x).First() == name);
     private static void Seed(AppModel model, ProviderKind kind, ProviderStatus status) => typeof(ProviderRegistry).GetProperty("Statuses")!.SetValue(model.Providers, model.Providers.Statuses.Mutating(map => map[kind] = status));
     private static void Hover(Control c, bool on) => c.RaiseEvent(new PointerEventArgs(on ? InputElement.PointerEnteredEvent : InputElement.PointerExitedEvent, c, new Avalonia.Input.Pointer(903, PointerType.Mouse, true), c, default, 0, default, default));
+    // A real pointer over a control, as the window's own input pipeline delivers it: Entered goes to the control and to every
+    // ancestor it is now inside (a SidebarRow's hover is on its overlay host, around the button and its accessory, Chrome.swift:731-737),
+    // which a PointerEntered raised on the control alone (Hover above) does not reach.
+    private static void PointerOver(Control control)
+    {
+        var window = (Avalonia.Controls.Window)TopLevel.GetTopLevel(control)!; Drain(control);
+        window.MouseMove(control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value); Sync();
+    }
     private static KeyEventArgs Key(Control c, Avalonia.Input.Key key) { var e = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Source = c, Key = key }; c.RaiseEvent(e); Sync(); return e; }
     private static Control Opened(Popup p) { ((EventHandler?)typeof(Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(p))?.Invoke(p, EventArgs.Empty); return PopoverHost.Content(p)!; } // the site's view, not the card the presenter hangs it on (OD-0095)
     private static void Press(Control control)
@@ -244,8 +252,9 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
             var badge = Nodes<SidebarIconBadge>(row).Single(); var glyph = ((Panel)badge.Child!).Children.Single(); Assert.Equal(Chrome.PrimaryText.Opacity(0.85).Resolve(glyph.ActualThemeVariant), ColorOf(Avalonia.Controls.Documents.TextElement.GetForeground(glyph)));
         }
         var models = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("Models")); var modelsButton = Nodes<Button>(models).Single(); var background = (Border)modelsButton.Content!;
-        Hover(modelsButton, true); Sync(); Frame(h, 50); Assert.NotEqual(SwiftColor.Clear.Resolve(background.ActualThemeVariant), ColorOf(background.Background)); Frame(h, 51); Assert.Equal(Chrome.Overlay(0.06).Resolve(background.ActualThemeVariant), ColorOf(background.Background));
+        PointerOver(modelsButton); Frame(h, 50); Assert.NotEqual(SwiftColor.Clear.Resolve(background.ActualThemeVariant), ColorOf(background.Background)); Frame(h, 51); Assert.Equal(Chrome.Overlay(0.06).Resolve(background.ActualThemeVariant), ColorOf(background.Background));
         Click(modelsButton); Sync(); Assert.Single(Nodes<ModelsSettingsPage>(view));
+        Frame(h, 110); // Chrome.swift:729 the wash leaves General on Chrome.hover (easeOut 0.1 s): read the rows once its 0.1 s are over
         var general = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("General")); var generalButton = Nodes<Button>(general).Single();
         Field<SettingsScrollTracker>(view, "scrollTracker").Note(); Sync(); Assert.False(rows.IsHitTestVisible);
         Press(generalButton); Assert.Single(Nodes<ModelsSettingsPage>(view)); // :182 real pointer hit testing blocks the click.

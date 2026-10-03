@@ -469,6 +469,37 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         Assert.Equal(Argb(64, 255, 255, 255), SwiftColor.PlaceholderTextColor.Resolve(Dark));
     }
 
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    public void REVIEW_Red_is_the_documented_system_red_pair_not_its_light_member_alone()
+    {
+        // REVIEW (unit/parity-sidebarview pass 1): App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red).
+        // ED-092: a system colour with no B2 value takes the macOS documented values; Color.red, like Color.yellow
+        // (ED-104), has distinct 'Default (light)' and 'Default (dark)' columns in the HIG system colours table, the dark
+        // member the lighter of the two. SwiftColor.Red resolves to the light member (255, 59, 48) in both appearances.
+        // Only the pair's shape is asserted here (which table edition is current is not this test's question).
+        var light = SwiftColor.Red.Resolve(Light);
+        var dark = SwiftColor.Red.Resolve(Dark);
+        Assert.Equal(255, light.R);
+        Assert.NotEqual(light, dark);
+        Assert.True(dark.G > light.G && dark.B > light.B, $"dark {dark} is not the lighter member of {light}");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-104")]
+    public void Red_is_the_system_red_pair_of_the_same_table_edition_as_Yellow_and_fades_both_members()
+    {
+        // UNVERIFIED under OD-0001, no O-nn, on ED-104's footing. The macOS 27 UI Kit (OD-0045, E:\Droppy\work\apple-kit\
+        // macos27-uikit-controls.md "System colours") lists Yellow at Light #FFCC00 and Dark #FFD600, ED-104's
+        // (255, 204, 0) and (255, 214, 0), so its Red is the same edition's: Light #FF383C, Dark #FF4245, opaque.
+        // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
+        Assert.Equal(Argb(255, 255, 56, 60), SwiftColor.Red.Resolve(Light));
+        Assert.Equal(Argb(255, 255, 66, 69), SwiftColor.Red.Resolve(Dark));
+        Assert.Equal(Argb(46, 255, 56, 60), SwiftColor.Red.Opacity(0.18).Resolve(Light));
+        Assert.Equal(Argb(46, 255, 66, 69), SwiftColor.Red.Opacity(0.18).Resolve(Dark));
+    }
+
     // ---- Opacity arithmetic and immutability ----
 
     [Fact]

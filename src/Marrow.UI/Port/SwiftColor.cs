@@ -172,6 +172,24 @@ public sealed class SwiftColor
     public static SwiftColor AccentColor => ControlAccentColor;
 
     /// <summary>
+    /// <c>Color.red</c> (SidebarView.swift:927 <c>Text("Delete").foregroundStyle(.red)</c>). ED-092 sends a system
+    /// colour with no B2 value to the macOS documented values, and ED-104 records the method for <c>Color.yellow</c>:
+    /// an appearance pair, the 'Default (light)' and 'Default (dark)' columns of the system colours table, the dark
+    /// member the lighter of the two. Red is the same kind of pair, light sRGB #FF383C (255, 56, 60) and dark #FF4245
+    /// (255, 66, 69), opaque; the increased contrast values are not modelled (ED-104). These are the same table
+    /// edition as ED-104's Yellow: the macOS 27 UI Kit (OD-0045, E:\Droppy\work\apple-kit\macos27-uikit-controls.md
+    /// "System colours Dark/Light") lists Yellow at #FFCC00 / #FFD600, exactly ED-104's (255, 204, 0) and (255, 214, 0),
+    /// and Red at #FF383C / #FF4245. ENGINEERING DECISION ED-258 (1); UNVERIFIED under OD-0001 on
+    /// the same footing as ED-104, no O-nn.
+    /// This is the system red the SwiftUI literal names. The theme's own danger fallback is a different decision:
+    /// PR-THEME-031's windows_path fixes one red for the three system-hue themes and keeps it constant
+    /// (AppTheme.cs FrameworkRed, AppTheme.swift:197 <c>?? .red</c>), so that literal does not follow this pair.
+    /// </summary>
+    public static SwiftColor Red { get; } = Dynamic(
+        light: Rgb(0xFF383C),
+        dark: Rgb(0xFF4245));
+
+    /// <summary>
     /// <c>Color.yellow</c> (EffortSlider.swift:80, :669, :673). ED-104: Apple's HIG Default values, light sRGB
     /// (255, 204, 0) and dark (255, 214, 0), opaque; the increased contrast values are not modelled.
     /// UNVERIFIED under OD-0001, no O-nn, per ED-104.

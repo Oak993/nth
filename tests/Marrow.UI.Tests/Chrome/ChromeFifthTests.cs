@@ -562,6 +562,152 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         window.Close();
     });
 
+    // Chrome.swift:729, :731-737: the hover flips isHovering inside withAnimation(Chrome.hover) (easeOut 0.1 s), so the fill
+    // eases to the 0.06 overlay rather than snapping, and an accessory branch the hover swaps crossfades on SwiftUI's default
+    // .opacity transition (OD-0076); an accessory the closure hands back unchanged is the same view and is left alone.
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:729-737, :741-745: the hover fill and the accessory under the hover's animation
+    public void SidebarRow_hover_eases_its_fill_crossfades_a_new_accessory_and_leaves_one_handed_back_alone() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var idle = new TextBlock { Text = "idle" };
+        var hovered = new TextBlock { Text = "hovered" };
+        var kept = new TextBlock { Text = "kept" };
+        var swapping = new SidebarRow("Chat", () => { }, () => new TextBlock(), hovering => hovering ? hovered : idle);
+        var keeping = new SidebarRow("Chat", () => { }, () => new TextBlock(), _ => kept);
+        var window = Show(new StackPanel { Width = 300, Children = { swapping, keeping } }, ThemeVariant.Light);
+        void Step(double seconds)
+        {
+            time.Advance(TimeSpan.FromSeconds(seconds));
+            frames.Advance(TimeSpan.FromSeconds(seconds));
+            Dispatcher.UIThread.RunJobs();
+        }
+        try
+        {
+            var shape = swapping.GetVisualDescendants().OfType<Border>().First(b => b.CornerRadius.TopLeft == Chrome.RowCornerRadius);
+            Assert.Equal(1d, idle.Opacity);
+            Assert.Null(hovered.Parent);
+            window.MouseMove(new Point(20, 14)); // onto the first row
+            Dispatcher.UIThread.RunJobs();
+            Step(0.05);
+            var p = Animation.EaseOut(0.1).Progress(0.05);
+            var end = Chrome.Overlay(0.06).Resolve(ThemeVariant.Light);
+            var fill = ((ISolidColorBrush)shape.Background!).Color;
+            Assert.Equal((byte)Math.Round(end.A * p), fill.A); // :729 part way along easeOut 0.1 s, not a snap
+            Assert.InRange(fill.A, (byte)1, (byte)(end.A - 1));
+            Assert.Equal(p, hovered.Opacity, 3); // the hovered branch fades in ...
+            Assert.Equal(1 - p, idle.Opacity, 3); // ... over the idle one fading out where it was
+            Assert.Same(hovered.Parent, idle.Parent);
+            Step(0.06);
+            Assert.Null(idle.Parent); // gone once the fade is over
+            Assert.Equal(1d, hovered.Opacity);
+            AssertColor(end, ((ISolidColorBrush)shape.Background!).Color);
+            var keptHost = kept.Parent;
+            Assert.NotNull(keptHost);
+            window.MouseMove(new Point(20, 42)); // onto the second row, whose closure hands back the view it gave before
+            Dispatcher.UIThread.RunJobs();
+            Step(0.05);
+            Assert.Same(keptHost, kept.Parent); // the same view, where it was ...
+            Assert.Equal(1d, kept.Opacity); // ... never faded
+            Assert.Single(((Panel)keptHost!).Children.OfType<TextBlock>(), t => t.Text == "kept");
+        }
+        finally { window.Close(); }
+    });
+
+    // Chrome.swift:729 `.background { shape.fill(fill).animation(Chrome.hover, value: isSelected) }`: a row handed a new
+    // isSelected (SettingsView.swift:149 `isSelected: page == item`, the row kept under its ForEach id) eases its fill to the
+    // new state (:741-745) on Chrome.hover, easeOut 0.1 s, whatever transaction carried the change: `.animation(_:value:)`
+    // puts its own curve on a change of its value, so a change carried by none and one carried by another curve both ease
+    // on it. The title's weight and opacity (:717-718) and the selected trait (:738) have no animation of their own, and the
+    // change here carries none, so they take the new value at once; the trait is the one the row's peer reports.
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:717-718, :729, :738, :741-745: a selection change eases the fill on Chrome.hover
+    public void SidebarRow_handed_a_new_selection_eases_its_fill_on_chrome_hover_and_sets_its_title_and_trait_at_once() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var row = new SidebarRow("Chat", () => { }, () => new TextBlock());
+        var window = Show(new StackPanel { Width = 300, Children = { row } }, ThemeVariant.Light);
+        void Step(double seconds)
+        {
+            time.Advance(TimeSpan.FromSeconds(seconds));
+            frames.Advance(TimeSpan.FromSeconds(seconds));
+            Dispatcher.UIThread.RunJobs();
+        }
+        try
+        {
+            var shape = row.GetVisualDescendants().OfType<Border>().First(b => b.CornerRadius.TopLeft == Chrome.RowCornerRadius);
+            var title = row.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Chat");
+            var button = row.GetVisualDescendants().OfType<Button>().First();
+            var provider = Assert.IsAssignableFrom<ISelectionItemProvider>(ControlAutomationPeer.CreatePeerForElement(button).GetProvider<ISelectionItemProvider>());
+            var selected = Label(0.12, ThemeVariant.Light); // :742
+            var p = Animation.EaseOut(0.1).Progress(0.05); // :729 Chrome.hover, half way through
+            byte Alpha() => Effective(shape.Background).A;
+            Assert.False(row.IsSelected);
+            Assert.False(provider.IsSelected);
+            Assert.Equal(0, Alpha()); // :744 clear
+
+            row.IsSelected = true; // no transaction
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(row.IsSelected);
+            Assert.Equal(FontWeight.Medium, TextElement.GetFontWeight(title)); // :717 at once
+            AssertColor(Label(1, ThemeVariant.Light), Effective(title.Foreground)); // :718 at once
+            Assert.True(provider.IsSelected); // :738 the peer it had reports the new state
+            Assert.Equal(0, Alpha()); // the fill has not jumped
+            Step(0.05);
+            Assert.InRange((int)Alpha(), (int)Math.Round(selected.A * p) - 1, (int)Math.Round(selected.A * p) + 1); // part way on easeOut 0.1 s
+            Assert.InRange(Alpha(), (byte)1, (byte)(selected.A - 1));
+            Step(0.06);
+            AssertColor(selected, Effective(shape.Background));
+
+            Transaction.WithAnimation(Animation.Linear(1), () => row.IsSelected = false); // another curve in force
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(FontWeight.Regular, TextElement.GetFontWeight(title)); // :717
+            AssertColor(Label(0.92, ThemeVariant.Light), Effective(title.Foreground)); // :718
+            Assert.False(provider.IsSelected); // :738
+            Step(0.05);
+            Assert.InRange((int)Alpha(), (int)Math.Round(selected.A * (1 - p)) - 1, (int)Math.Round(selected.A * (1 - p)) + 1); // on Chrome.hover, not the linear 1 s
+            Assert.InRange(Alpha(), (byte)1, (byte)(selected.A - 1));
+            Step(0.06);
+            Assert.Equal(0, Alpha()); // :744 clear again after 0.1 s
+
+            row.IsSelected = false; // the same value: nothing moves
+            Dispatcher.UIThread.RunJobs();
+            Step(0.05);
+            Assert.Equal(0, Alpha());
+
+            // :741-745 the fill is the selection's first and the hover's after it, whichever of the two changed.
+            var hovered = Label(0.06, ThemeVariant.Light); // :743
+            window.MouseMove(new Point(20, 14)); // onto the row
+            Dispatcher.UIThread.RunJobs();
+            Step(0.11);
+            AssertColor(hovered, Effective(shape.Background));
+            row.IsSelected = true; // selected under the pointer
+            Dispatcher.UIThread.RunJobs();
+            Step(0.11);
+            AssertColor(selected, Effective(shape.Background));
+            window.MouseMove(new Point(350, 250)); // off the row: still selected, so nothing changes
+            Dispatcher.UIThread.RunJobs();
+            Step(0.11);
+            AssertColor(selected, Effective(shape.Background));
+            window.MouseMove(new Point(20, 14)); // back onto it
+            Dispatcher.UIThread.RunJobs();
+            Step(0.11);
+            row.IsSelected = false; // deselected under the pointer: the hover's wash, not clear
+            Dispatcher.UIThread.RunJobs();
+            Step(0.05);
+            Assert.InRange(Alpha(), (byte)(hovered.A + 1), (byte)(selected.A - 1)); // on its way down from 0.12 to 0.06
+            Step(0.06);
+            AssertColor(hovered, Effective(shape.Background));
+        }
+        finally { window.Close(); }
+    });
+
     // ---- PR-WIN-201: RowAccessoryIcon ----
 
     [Fact]
