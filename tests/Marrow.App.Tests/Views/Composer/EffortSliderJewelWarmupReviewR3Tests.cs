@@ -10,7 +10,8 @@ using Marrow.UI.Port;
 namespace Marrow.App.Tests.Views.Composer;
 
 // REVIEW (adversarial, ED-252 warm-up v2, review round 3 on d864a73e8): each test states what the warm-up or the cache must
-// do and failed on the head reviewed; both pass from review round 4 (round 3 answered), kept under plain names.
+// do and failed on the head reviewed; both pass with round 3's answers (06a2d02b8: the adapter drawn with; 9040aabe0:
+// Avalonia's clock read), kept under plain names, assertions unchanged.
 [Collection("Headless")]
 public sealed class EffortSliderJewelWarmupReviewR3Tests(HeadlessSession headless)
 {
