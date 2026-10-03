@@ -129,4 +129,33 @@ public sealed class ComposerLightRendererTests
         };
         Assert.Equal(expected, kind == 4 ? centre : inner, 2);          // half precision: 1/100 of the turn
     }
+
+    [Theory]
+    [Trait("Decision", "ED-251")] // REVIEW: beamSlots() (logic.js): a structural change goes into the slot faded out longest, styled by its own key's sheet at once. A reused slot must never draw the blob field of the structure it held before (only a size change may stretch a settling bake), or the colours pop when the bake lands 150 ms in
+    [InlineData(BeamType.Large, true)]
+    [InlineData(BeamType.Small, false)]
+    public void A_reused_slot_never_draws_the_structure_it_held_before(BeamType type, bool dark)
+    {
+        using var renderer = new ComposerLightRenderer();
+        var b0 = BorderBeamOptions.Default.WithType(type);
+        var light = new ComposerLightAnimator(ComposerLightSettings.Default with { Beam = b0 }, ComposerLightPhase.Rest, dark, 820, 52, false);
+        var t = 0.0;
+        void Draw(double now) { light.Advance(now); using (ComposerLightRig.Render(light, dark, renderer: renderer, now: now)) { } }
+        Draw(0);
+        // Ocean and Sunset take the two fresh slots; Forest reuses the first (it held Colorful's blobs), Candy the second
+        foreach (var palette in new[] { BeamPalette.Ocean, BeamPalette.Sunset, BeamPalette.Forest, BeamPalette.Candy })
+        {
+            t += 1;
+            for (var s = t - 0.95; s < t; s += 0.05) light.Advance(s);
+            light.SetSettings(ComposerLightSettings.Default with { Beam = b0 with { Palette = palette } }, t);
+            foreach (var dt in new[] { 0.02, 0.1, 0.14 })
+            {
+                light.Advance(t + dt);
+                using var drawn = ComposerLightRig.Render(light, dark, renderer: renderer, now: t + dt);
+                using var correct = ComposerLightRig.Render(light, dark);                       // a renderer with every bake its key's own
+                var (max, off) = ComposerLightFixtures.Compare(correct, drawn);
+                Assert.True(max <= 8, $"{palette} at +{dt} s: {max} levels off on {off:F2} % of pixels (the slot's previous structure)");
+            }
+        }
+    }
 }
