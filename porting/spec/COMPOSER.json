@@ -1143,7 +1143,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim label; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
       "verification_method": "integration test with a provider stand-in that fails the listing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1170,7 +1170,7 @@
       "cancellation": "not cancellable by the user",
       "windows_path": "Same key shape (raw value, newline, directory), same freshness and cache size. Directory strings are Windows paths, so the key differs from macOS by path form only.",
       "verification_method": "integration test counting CLI launches across two composers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
