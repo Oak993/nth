@@ -1038,7 +1038,8 @@ public sealed class HydraMergeTrack : Decorator
         var from = body.AnimatableData;
         var newDone = mode == Mode.Running ? 0.0 : 1.0;
         var newRest = mode == Mode.Resting ? 1.0 : 0.0;
-        var duration = this.mode != mode ? 0.45 : 0.5;
+        // :838-839 .animation(.smooth(duration: 0.5), value: step) is the inner modifier, .smooth(duration: 0.45) value: mode the outer: a mode alone takes 0.45 s, a step (alone or with the mode) the inner 0.5 s (ED-NEW-timelinerows-cd).
+        var duration = this.step != step ? 0.5 : 0.45;
         this.step = step; this.mode = mode;
         // A single progress driver draws all three scalars with the same smooth timing.
         animation?.Cancel();
@@ -2564,7 +2565,7 @@ public sealed class HydraHeadStepsPopover : Decorator
     {
         var header = new DockPanel();
         var status = TimelineRows.ChatText(StatusLine(head), SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText, singleLine: true);
-        status.Margin = new Thickness(12 + TimelineMetrics.IconSpacing, 0, 0, 0);
+        status.Margin = new Thickness(12 + 2 * TimelineMetrics.IconSpacing, 0, 0, 0); // :1934-1946 Spacer(minLength: 12) between the stack's two 8-point gaps: 8 + 12 + 8
         status.VerticalAlignment = VerticalAlignment.Center;
         DockPanel.SetDock(status, Dock.Right); header.Children.Add(status);
         var name = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :1935: its children share one centre line
