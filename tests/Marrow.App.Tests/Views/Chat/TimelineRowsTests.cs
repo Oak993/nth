@@ -4608,7 +4608,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Kind: visual/interaction verification gap
 // Swift: App/Views/Chat/TimelineRows.swift:1-2859; individual exact sites remain beside each partial-proof test.
 // Decisions: OD-0001, ED-059, ED-117, ED-216, ED-217 do not turn structural evidence into capture comparisons.
-// Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019; UI-CHAT-020.
+// Proven and removed from this note on 2026-10-04 (the continuous-corners unit, ED-181 closed; OD-0098: where no frame shows a state the Swift source is the proof,
+// asserted on the mounted control, with mutation checks): UI-CHAT-020 (TimelineRowsFinReplyTests), UI-GIT-044 (TimelineRowsFinFileCardTests, the click),
+// UI-GIT-050 (TimelineRowsFinUserRowTests), UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests, the shimmer), UI-RUNTIME-002 and UI-RUNTIME-003 (TimelineRowsFinNoticeTests).
+// Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019.
 // Records: UI-CHAT-021; UI-CHAT-022; UI-CHAT-023; UI-CHAT-024; UI-CHAT-025.
 // Records: UI-CHAT-026; UI-CHAT-027; UI-CHAT-028; UI-CHAT-029; UI-CHAT-030.
 // Records: UI-CHAT-031; UI-CHAT-032; UI-CHAT-033; UI-CHAT-034; UI-CHAT-035.
@@ -4616,10 +4619,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Records: UI-CHAT-048; UI-CHAT-049; UI-CHAT-050; UI-CHAT-051.
 // Records: UI-CHAT-052; UI-CHAT-053; UI-CHAT-054; UI-CHAT-055; UI-CHAT-056.
 // Records: UI-CHAT-057; UI-CHAT-059; UI-CHAT-061.
-// Records: UI-GIT-044; UI-GIT-045.
-// Records: UI-GIT-046; UI-GIT-048; UI-GIT-049; UI-GIT-050; UI-HYDRAMERGE-002.
+// Records: UI-GIT-045.
+// Records: UI-GIT-046; UI-GIT-048; UI-GIT-049.
 // Records: UI-HYDRAMERGE-004; UI-HYDRAMERGE-005; UI-HYDRAMERGE-006; UI-HYDRAMERGE-007; UI-RUNTIME-001.
-// Records: UI-RUNTIME-002; UI-RUNTIME-003; UI-RUNTIME-004.
+// Records: UI-RUNTIME-004.
 // Missing: the source/Windows capture of every state each record lists, and record-specific mounted scenarios.
 // Reference runtime (2026-10-03): the owner's video of Droppy Code 1.7.0 (work/reference-video/2-chat-use.mov, catalogue
 // static.user-bubble, static.attachment-plate, static.timeline-rows, static.thread-timeline) shows, in the dark Monokai
@@ -4649,7 +4652,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // on ThreadTimeline.Draw.)
 // Records: PR-CHAT-020; PR-CHAT-078; PR-CHAT-079; PR-CHAT-080; PR-CHAT-082; PR-CHAT-088.
 // Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
-// Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-108; PR-CHAT-109.
+// Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-109. (PR-CHAT-108 proven and removed 2026-10-04: TimelineRowsPrRecordsTests and TimelineRowsFinFileCardTests carry every clause, the video's card numbers equal the Swift constants asserted there.)
 // Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
 // Records: PR-CHAT-116; PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
 // Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.
