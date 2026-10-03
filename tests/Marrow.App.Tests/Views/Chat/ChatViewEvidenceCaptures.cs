@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
@@ -32,9 +33,11 @@ public sealed class ChatViewEvidenceCaptures(HeadlessSession headless)
         frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 
+    // The Mac's state in 2-chat-use.mov at C 11 s: a project with no repository, Hydra on, the sidebar holding the window
+    // buttons, the thread "Establish LifeOS repo baseline framework"; the dark appearance. 2290 = the content width there.
     [Fact]
     [Trait("Evidence", "ChatView")]
-    public void Chrome_row_with_a_project_and_no_repository()
+    public void Chrome_row_as_in_the_reference_still()
     {
         if (Folder is null) return;
         ChatHeadlessFixtures.Run(headless, () =>
@@ -46,14 +49,63 @@ public sealed class ChatViewEvidenceCaptures(HeadlessSession headless)
                 model.Settings.HydraEnabled = true;
                 var project = model.AddProject(new Project("LifeOS-Migration", h.NewFolder("project")).Url);
                 var runtime = model.Runtime(model.NewThread(project)!.Id);
-                model.Sidebar.NoteLaidOutWidth(400); // the sidebar holds the window buttons, as in the video.
-                var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish LifeOS repo baseline framework", project, project.Path, new GitStatusModel());
-                var window = new AvaloniaWindow { Content = row, Width = 2290, Height = 80, Background = Avalonia.Media.Brushes.Black };
+                model.Sidebar.NoteLaidOutWidth(400);
+                var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish LifeOS repo baseline framework", project, project.Path, new GitStatusModel()) { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top }; // as ChatView places it
+                var window = new AvaloniaWindow { Content = row, Width = 2290, Height = 80, RequestedThemeVariant = ThemeVariant.Dark, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(38, 44, 52)) };
                 ChatHeadlessFixtures.Track(window);
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
-                Save(window, "chrome_row_port_2290");
+                Save(window, "chrome_row_port_dark");
             });
+        });
+    }
+
+    // The terminal open of 2-chat-use.mov C 132.2-132.55 on the port: frames at the same times after the start.
+    [Fact]
+    [Trait("Evidence", "ChatView")]
+    public void Terminal_open_frames()
+    {
+        if (Folder is null) return;
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            h.Main.Loop.Run(() => Marrow.Core.Support.LoginEnvironment.Load(), AppModelHarness.Bound);
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+            var frames = new ManualFrameSource();
+            using var clock = FrameClock.Source.Override(frames);
+            h.WriteLibrary([new Project("Project", h.NewFolder("project"))], []);
+            var model = h.MakeModel();
+            h.PrepareBootstrap(model);
+            AvaloniaWindow window = null!;
+            ThreadRuntime runtime = null!;
+            h.Main.OnMain(() =>
+            {
+                model.Settings.ShowsUsagePanel = false;
+                model.Settings.HydraEnabled = false;
+                runtime = model.Runtime(model.NewThread(model.Projects[0])!.Id);
+                window = new AvaloniaWindow { Content = new ChatView(runtime), Width = 1400, Height = 900, RequestedThemeVariant = ThemeVariant.Dark, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(38, 44, 52)) };
+                AppEnvironment.SetAppModel(window, model);
+                AppEnvironment.SetWindowLiveResize(window, new WindowLiveResize(window));
+                ChatHeadlessFixtures.Track(window);
+                window.Show();
+            });
+            void Drain() { h.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); h.Main.RunUntilIdle(); }
+            try
+            {
+                Drain();
+                h.Main.OnMain(() => runtime.IsTerminalVisible = true);
+                Drain();
+                var elapsed = 0.0;
+                foreach (var at in new[] { 0.0, 0.0317, 0.0533, 0.11, 0.145, 0.21, 0.338 })
+                {
+                    h.Main.Advance(TimeSpan.FromSeconds(at - elapsed)); elapsed = at;
+                    frames.Advance(TimeSpan.Zero);
+                    Drain();
+                    Save(window, $"terminal_port_{at * 1000:000}ms");
+                }
+            }
+            finally { h.Main.OnMain(() => { window.Close(); model.Terminals.TerminateAll(); }); Drain(); }
         });
     }
 }

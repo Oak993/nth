@@ -70,6 +70,7 @@ public sealed class ChatView : Decorator
     private readonly Panel floatingHost = new();
     private readonly Panel terminalHost = new();
     private readonly Dictionary<FloatingPanelID, (Control View, object Inputs)> mountedPanels = [];
+    private Dictionary<string, object?>? panelKeys; // the values the overlays' animations were last keyed on.
     private readonly Dictionary<Control, (Panel Host, Control Surface)> panelSurfaces = [];
     private ThreadTimeline? timeline;
     private ComposerArea? composer;
@@ -409,6 +410,32 @@ public sealed class ChatView : Decorator
     {
         if (model is null) return;
         var wanted = new HashSet<FloatingPanelID>();
+        // :163,180,224,232,240 each overlay animates on its own value only (`.animation(_, value:)`): the helper's id, the
+        // team panel's shown flag, the popped head's id, the automatic heads' ids, the usage providers. A panel that only
+        // waited for the pane's first measurement (the column's first frames, or a thread's) appears in place, as SwiftUI
+        // shows it when no keyed value changed; one whose value changed grows in and fades out on panelSlide.
+        var keys = new Dictionary<string, object?>
+        {
+            ["subagent"] = scene.Subagent?.Id,
+            ["hydra"] = scene.ShowsHydra,
+            ["popped"] = scene.Popped?.Id,
+            ["auto"] = string.Join(",", scene.AutoPopped.Select(head => head.Id)),
+            ["usage"] = scene.Usage,
+        };
+        var previousKeys = panelKeys;
+        panelKeys = keys;
+        bool Animates(FloatingPanelID id)
+        {
+            var key = id switch
+            {
+                FloatingPanelID.Subagent => "subagent",
+                FloatingPanelID.Hydra => "hydra",
+                FloatingPanelID.Popped => "popped",
+                FloatingPanelID.Auto => "auto",
+                _ => "usage",
+            };
+            return !switching && (previousKeys is null || !Equals(previousKeys[key], keys[key]));
+        }
         void Mount(FloatingPanelID id, object inputs, Func<Control> create)
         {
             wanted.Add(id);
@@ -438,7 +465,7 @@ public sealed class ChatView : Decorator
             mountedPanels[id] = (control, inputs);
             floatingHost.Children.Add(control);
             var panel = panelSurfaces[control];
-            Transaction.WithAnimation(!switching && prior.View is null ? Chrome.PanelSlide : null,
+            Transaction.WithAnimation(Animates(id) ? Chrome.PanelSlide : null,
                 () => SwiftTransition.Insert(panel.Host, 0, panel.Surface));
         }
         if (scene.Subagent is { } helper && scene.IsMeasured)
@@ -454,7 +481,7 @@ public sealed class ChatView : Decorator
         foreach (var id in mountedPanels.Keys.Where(id => !wanted.Contains(id)).ToArray())
         {
             var leaving = mountedPanels[id].View; mountedPanels.Remove(id);
-            Transaction.WithAnimation(switching ? null : Chrome.PanelSlide, () => RemovePanel(leaving));
+            Transaction.WithAnimation(Animates(id) ? Chrome.PanelSlide : null, () => RemovePanel(leaving));
         }
     }
 
