@@ -1123,20 +1123,43 @@ namespace Marrow.UI.Chrome
             // button together with its overlaid accessory: the pointer resting on the ellipsis or the plus is still on the
             // row and keeps them (the hover is on the host, as SidebarThreadRow's overlays host carries its own).
             overlay.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
-            button.Track(() => state.IsHovering, hovering =>
+            // :731-734 `.overlay(alignment: .trailing) { accessory(isHovering).padding(.trailing, 6) }`. SwiftUI keeps the
+            // accessory's views under their own identity while the closure keeps returning them, and a view that a
+            // conditional inside it adds or drops runs the default .opacity transition under the transaction in force: the
+            // hover's withAnimation(Chrome.hover) (:735-737), so the project row's count and its ellipsis and plus
+            // (SidebarView.swift:1115-1133) crossfade (OD-0076). The closure says which it is by the control it returns: the
+            // control it returned last time is the same view and stays where it is, with its own state (an open popover's
+            // anchor, a hover); another control is another branch, and the two crossfade. The first body places it.
+            Control? shownAccessory = null;
+            void ShowAccessory(bool hovering)
             {
                 var built = accessory(hovering); // :732-733
+                if (ReferenceEquals(built, shownAccessory)) return;
                 built.Margin = new Thickness(0, 0, 6, 0); // :734
                 built.HorizontalAlignment = HorizontalAlignment.Right;
                 built.VerticalAlignment = VerticalAlignment.Center;
-                if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
-                overlay.Children.Add(built);
-            });
+                if (shownAccessory is { } previous)
+                {
+                    SwiftTransition.Remove(overlay, previous);
+                    SwiftTransition.Insert(overlay, overlay.Children.Count, built);
+                }
+                else SwiftTransition.Place(overlay, overlay.Children.Count, built);
+                shownAccessory = built;
+            }
+            refreshAccessory = () => ShowAccessory(state.IsHovering);
+            button.Track(() => state.IsHovering, ShowAccessory);
 
             AutomationProperties.SetName(button, title); // :738 AddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
 
             Child = overlay;
         }
+
+        private readonly Action refreshAccessory;
+
+        /// <summary>The accessory closure asked again with the row's own hover state: SwiftUI re-reads
+        /// <c>accessory(isHovering)</c> whenever the view that owns the row renders, so a caller whose accessory reads its
+        /// own state (the project row's isMenuPresented, its count) asks through this when that state changes.</summary>
+        public void RefreshAccessory() => refreshAccessory();
 
         // :711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) } under a width the row's padding fixes. A plain
         // horizontal StackPanel measures every child at infinite width, so the title would never be cut at its tail
@@ -1198,8 +1221,15 @@ namespace Marrow.UI.Chrome
         /// <summary>:748-757 <c>extension SidebarRow where Accessory == EmptyView</c>,
         /// <c>init(title:isSelected:action:icon:)</c>.</summary>
         public SidebarRow(string title, Action action, Func<Control> icon, bool isSelected = false)
-            : this(title, action, icon, _ => new Panel(), isSelected)
+            : this(title, action, icon, EmptyView(), isSelected)
         {
+        }
+
+        // :756 `{ _ in EmptyView() }`: one empty view, the same whatever the hover, so a hover changes nothing in it.
+        private static Func<bool, Control> EmptyView()
+        {
+            var none = new Panel();
+            return _ => none;
         }
 
         // :741-745. PR-WIN-200: the primary label colour at 0.12 selected, 0.06 hovered, clear otherwise.

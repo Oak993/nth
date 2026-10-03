@@ -206,6 +206,7 @@ public sealed class SettingsView : Decorator
         rows.Children.Clear();
         foreach (var page in VisiblePages)
         {
+            var none = new Border(); // :149 SidebarRow(title:isSelected:action:icon:) has an EmptyView accessory: one view, whatever the hover
             var row = new SidebarRow(page.Title, () => state.Page = page, () =>
             {
                 var badge = new SidebarIconBadge(() => page == SettingsPage.Hydra
@@ -213,7 +214,7 @@ public sealed class SettingsView : Decorator
                     : new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1)); // :151-157
                 if (page != SettingsPage.About || !UpdateChecker.Shared.UpdateAvailable) return badge;
                 return new Panel { Children = { badge, new UpdateAvailableDot { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top } } }; // :159-163
-            }, _ => new Border(), isSelected: state.Page == page);
+            }, _ => none, isSelected: state.Page == page);
             rows.Children.Add(row);
         }
         if (VisiblePages.Count == 0)

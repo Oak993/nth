@@ -751,13 +751,21 @@ public sealed class RowActionsButton : Decorator
     /// <param name="isPresented">:387 <c>@Binding var isPresented: Bool</c>.</param>
     // :389-400 body
     public RowActionsButton(IReadOnlyList<RowAction> actions, Binding<bool> isPresented)
+        : this(() => actions, isPresented)
+    {
+    }
+
+    /// <summary>The same button for a row that keeps it while its own record changes under it: SwiftUI hands the kept
+    /// button the actions its owner's body builds now (:386), so the row passes how to build them and the menu reads
+    /// them as it opens. A menu already open keeps the items it opened with.</summary>
+    public RowActionsButton(Func<IReadOnlyList<RowAction>> actions, Binding<bool> isPresented)
     {
         var icon = new RowAccessoryIcon("ellipsis"); // :393
         var button = PlainControls.Button(icon, () => isPresented.Value = !isPresented.Value); // :390-392, :395 .buttonStyle(.plain)
         ToolTip.SetTip(button, "More"); // :396 .help("More")
         var popover = PlainControls.Popover(button, isPresented, () => // :397-399, arrowEdge .bottom is Popover's default placement
         {
-            var menu = new PopoverMenu(() => new RowActionItems(actions));
+            var menu = new PopoverMenu(() => new RowActionItems(actions()));
             // See the file header ENGINEERING DECISION: supplies dismiss()'s port counterpart.
             Popovers.SetClosePopover(menu, () => isPresented.Value = false);
             return menu;

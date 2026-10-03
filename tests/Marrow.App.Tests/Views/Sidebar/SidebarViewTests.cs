@@ -5965,9 +5965,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         using var harness = new AppModelHarness();
         var project = NewProject(harness, "Alpha") with { IsExpanded = false };
         var model = Model(harness, [project], []);
+        var windows = new List<AvaloniaWindow>();
         harness.Main.OnMain(() =>
         {
             var row = ShownProjectRow(model, project, 3);
+            windows.Add(WindowOf(row));
             var count = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "3"); // :1128, a bare decimal
             Assert.Equal(Chrome.SecondaryText.Resolve(count.ActualThemeVariant), ((ISolidColorBrush)count.Foreground!).Color); // :1130
             var wrapper = Assert.IsType<Border>(count.Parent); // SidebarRow (Chrome.cs) sets its own Margin on the returned
@@ -5978,9 +5980,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         // constructor argument, once attached; a row built after the model is expanded reflects that, not the
         // snapshot passed in.
         harness.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { IsExpanded = true }));
+        Control expandedRow = null!;
         harness.Main.OnMain(() =>
         {
-            var expandedRow = ShownProjectRow(model, project, 3);
+            expandedRow = ShownProjectRow(model, project, 3);
+            windows.Add(WindowOf(expandedRow));
             Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(expandedRow), t => t.Text == "3"); // :1127 !isExpanded
         });
 
@@ -5988,7 +5992,17 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() =>
         {
             var zeroRow = ShownProjectRow(model, project, 0);
+            windows.Add(WindowOf(zeroRow));
             Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(zeroRow), t => t.Text == "0"); // :1127 count > 0
+        });
+        // The rows stay live in their windows: the one built while the project was expanded draws its count now that the
+        // project is collapsed again (:1085, :1127 read the live project, not the snapshot it was built from). The windows
+        // are closed inside the test, so no layout of theirs is left for after its harness is gone.
+        harness.Main.OnMain(() =>
+        {
+            windows[1].UpdateLayout();
+            Assert.Contains("3", Texts(expandedRow));
+            windows.ForEach(window => window.Close());
         });
     });
 
@@ -6624,6 +6638,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // immediate post-click assertion pass identically whether or not any animation exists).
     public void The_head_cards_chevron_toggles_all_heads_with_the_right_glyph_and_tooltip() => headless.OnUiThread(() =>
     {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual); // the toggle's snappy animation runs on frames
         using var harness = new AppModelHarness();
         var project = NewProject(harness, "Alpha");
         var parent = NewThread(project, "Parent", 0);
@@ -6631,8 +6647,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var model = Model(harness, [project, ], heads.Prepend(parent).ToList());
         AvaloniaWindow window = null!;
         Control card = null!;
-        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
-            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        // The chevron the card draws now; the one it drew before the toggle fades out where it stood (:1516).
+        Button ChevronOf() => LiveChevron(card);
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
         harness.Main.OnMain(() =>
         {
             var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
@@ -6640,8 +6657,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 parent, heads, requests, (Action)(() => { }))!;
             var host = Hosted(model, card);
             window = WindowOf(host);
-            window.UpdateLayout();
-
+            window.UpdateLayout(); // the card's measured width reaches it on the turn this OnMain ends with, not in the click's
+            // own pass below (a pass that took both would run without the click's transaction: Tracked<T> captures the
+            // transaction of the change that schedules it, A_head_cards_row_count_change_animates_..., below)
+        });
+        harness.Main.OnMain(() =>
+        {
             var chevron = ChevronOf();
             var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).Single();
             Assert.Equal("chevron.down", glyph.SymbolName); // :1516, collapsed: 13 > 12
@@ -6661,6 +6682,14 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var expandedGlyph = LogicalQuery.SelfAndDescendants<SwiftImage>(expandedChevron).Single();
             Assert.Equal("chevron.up", expandedGlyph.SymbolName); // :1516
             Assert.Equal("Show fewer heads", ToolTip.GetTip(expandedChevron)); // :1526
+            Assert.Equal("chevron.down", ChevronSymbolOf(Assert.Single(ChevronButtons(card), OnGhostLayer))); // the one it replaces, on its way out
+        });
+        Frames(2);
+        harness.Main.OnMain(() => Assert.InRange(ShownOpacityWithin(Assert.Single(ChevronButtons(card), OnGhostLayer), card), 0.02, 0.98)); // fading
+        Frames(40);
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal("chevron.up", ChevronSymbolOf(Assert.Single(ChevronButtons(card)))); // and gone: only the up-chevron is left
             window.Close();
         });
     });
@@ -8053,7 +8082,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-010")] // App/Views/Sidebar/SidebarView.swift:1115-1125; UI/Chrome/Chrome.swift:766-772
     public void Project_count_is_tabular_and_hover_accessories_keep_source_frames_order_font_and_hit_rectangles() => headless.OnUiThread(() =>
     {
-        using var harness = new AppModelHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var manual = new ManualFrameSource();
+        using var harness = new AppModelHarness(); using var frames = FrameClock.Source.Override(manual);
         using var presenter = Presentation.Presenter.Override(new RecordingPresenter());
         var project = NewProject(harness, "Alpha") with { IsExpanded = false };
         var model = Model(harness, [project], []);
@@ -8069,10 +8099,15 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 var window = WindowOf(row);
                 window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // :1116 hovering true
             });
+            // Chrome.swift:735-737 the hover comes inside withAnimation(Chrome.hover): the count leaves on its default .opacity
+            // transition over easeOut 0.1 s (its curve is proven by REVIEW_Round2_A_search_results_project_row_crossfades_...).
+            harness.Main.OnMain(() => Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "3")); // still drawn as it starts to fade
+            harness.Main.AdvanceMilliseconds(100);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(100)));
             harness.Main.OnMain(() =>
             {
                 WindowOf(row).UpdateLayout(); // the accessory rebuild (applied by the Track posted above) needs a real layout pass before the Bounds reads below
-                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "3"); // :1116 count branch no longer drawn
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "3"); // :1116 count branch no longer drawn, its fade over
                 // The cluster is the Horizontal, zero-spacing StackPanel (:1117) whose two children together
                 // contain exactly two real Buttons: the ellipsis (Popovers.cs:569 RowActionsButton, a
                 // Decorator wrapping a Button) and the plus button (a Button directly).
@@ -10411,6 +10446,18 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     private static double ShownOpacityWithin(Control control, Control root) =>
         control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => !ReferenceEquals(v, root)).Aggregate(1d, (o, v) => o * v.Opacity);
 
+    // A head card's leaving glyphs and chevrons fade on the canvas layer over the card, which takes no input
+    // (ED-NEW-parity-sidebarview (2)); the live ones sit in the card's own rows.
+    private static bool OnGhostLayer(Control control) => control.GetVisualAncestors().OfType<Canvas>().Any(canvas => !canvas.IsHitTestVisible);
+
+    private static List<Button> ChevronButtons(Control card) => LogicalQuery.SelfAndDescendants<Button>(card)
+        .Where(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true)).ToList();
+
+    // The chevron the card draws now (:1514-1526), not one still fading out where it stood.
+    private static Button LiveChevron(Control card) => ChevronButtons(card).Single(b => !OnGhostLayer(b));
+
+    private static string ChevronSymbolOf(Button chevron) => LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).First(i => i.SymbolName is not null).SymbolName!;
+
     [Fact]
     [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1466-1516: the toggle's snappy animation carries the glyphs' default opacity transition
     public void REVIEW_The_head_cards_chevron_fades_the_glyphs_past_twelve_in_and_out_on_its_snappy_toggle() => headless.OnUiThread(() =>
@@ -10491,12 +10538,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         AvaloniaWindow window = null!;
         Control card = null!;
         List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
-        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
-            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        // The chevron the card draws now; on its own toggle the one it drew before fades out where it stood (:1516,
+        // 2-chat-use.mov 5.340-5.378 s), on the ghost layer.
+        Button ChevronOf() => LiveChevron(card);
         void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
         static void Near(double expected, double actual, string what) => Assert.True(Math.Abs(expected - actual) < 0.5, $"{what}: expected {expected}, was {actual}");
         Rect lastGlyphWhenExpanded = default;
-        double collapsedChevronTop = 0;
+        double collapsedChevronTop = 0, expandedChevronTop = 0;
         harness.Main.OnMain(() =>
         {
             var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
@@ -10523,7 +10571,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal(15, glyphs.Count);
                 Assert.All(glyphs, g => Assert.Equal(1d, ShownOpacityWithin(g, card))); // all whole once it has ended
                 lastGlyphWhenExpanded = Frame(glyphs[^1], card); // alone on the third row
-                Assert.True(Frame(ChevronOf(), card).Y > collapsedChevronTop); // the chevron sits below that third row
+                Assert.Single(ChevronButtons(card)); // the down-chevron the expansion took away is gone
+                expandedChevronTop = Frame(ChevronOf(), card).Y;
+                Assert.True(expandedChevronTop > collapsedChevronTop); // the chevron sits below that third row
                 Click(ChevronOf()); // back to twelve
             });
             harness.Main.OnMain(() => { });
@@ -10542,13 +10592,20 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 // ... and holds no room: the chevron is already where the collapsed card puts it, not held down until
                 // the leaving row is gone, to jump at the end.
                 Near(collapsedChevronTop, Frame(ChevronOf(), card).Y, "chevron y");
+                Assert.Equal("chevron.down", ChevronSymbolOf(ChevronOf())); // :1516
                 Assert.Contains(leaving[^1].GetVisualAncestors().OfType<Canvas>(), c => !c.IsHitTestVisible); // never a target while it goes
+                // The up-chevron it replaces is not cut away: it fades out where it stood, under the grown card's third row.
+                var leavingChevron = Assert.Single(ChevronButtons(card), OnGhostLayer);
+                Assert.Equal("chevron.up", ChevronSymbolOf(leavingChevron));
+                Assert.InRange(ShownOpacityWithin(leavingChevron, card), 0.02, 0.98);
+                Near(expandedChevronTop, Frame(leavingChevron, card).Y, "leaving chevron y");
             });
             Frames(40);
             harness.Main.OnMain(() =>
             {
                 window.UpdateLayout();
                 Assert.Equal(12, Glyphs().Count); // gone, the ghost layer empty
+                Assert.Single(ChevronButtons(card)); // the up-chevron too
                 Near(collapsedChevronTop, Frame(ChevronOf(), card).Y, "chevron y");
                 // A rebuild that changes no membership (the selection moves) fades nothing, in or out.
                 model.SelectedThreadID = heads[3].Id;
