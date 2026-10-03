@@ -343,6 +343,9 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     {
         if (Anchor is not { } anchor || this.GetVisualParent() is not Visual parent || TopLevel.GetTopLevel(this) is not { } top
             || TopLevel.GetTopLevel(anchor) is not { } anchorTop) return;
+        // A top-level that has closed (the anchor's row rebuilt while the popover showed) is no longer on screen: leave
+        // the card as it is (PointToScreen would throw out of the layout pass).
+        if (!parent.IsAttachedToVisualTree() || !anchor.IsAttachedToVisualTree()) return;
         // From the parents, so a grow-in's scale (a render transform on the card) does not move what is measured.
         var cardOrigin = parent.PointToScreen(Bounds.Position);
         var anchorOrigin = anchor.PointToScreen(default);

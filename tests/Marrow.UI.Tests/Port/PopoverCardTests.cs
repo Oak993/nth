@@ -417,6 +417,31 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         Assert.True(Enumerable.Range(0, image.Width).All(x => image.GetPixel(x, lastRow).Alpha <= 3), "the shadow is cut by the popup's edge under the tip");
     });
 
+    // An anchor whose window is gone (closed, or never shown: a row a refresh rebuilt while its popover was open) leaves
+    // the card as it is; following it must never throw out of a layout pass (found through the card-wrapping recording
+    // presenter: MCPSettingsPageProofsMcpATests, "Visual does not belong to a visual tree" from PointToScreen).
+    [Fact]
+    [Trait("Decision", "ED-238")] // OD-0095
+    public void An_anchor_out_of_any_shown_window_leaves_the_card_as_it_is() => headless.OnUiThread(() =>
+    {
+        var anchor = new Border { Width = 20, Height = 20 };
+        var gone = new Window { Content = anchor };
+        gone.Show();
+        Dispatcher.UIThread.RunJobs();
+        gone.Close(); // closed: still its top-level, but in no visual tree on screen
+        var card = new PopoverCard { Child = new Border { Width = 60, Height = 30 }, TipEdge = PopoverTipEdge.Bottom, Anchor = anchor };
+        var window = new Window { Width = 300, Height = 200, Content = card };
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            Assert.Equal(PopoverTipEdge.Bottom, card.TipEdge);
+            Assert.NotNull(TopLevel.GetTopLevel(anchor));
+        }
+        finally { window.Close(); }
+    });
+
     // The clear surround beside the tip (and the shadow's room) is not the popover: the card takes a press only inside
     // its one outline, and a press anywhere else in the popover's top-level light-dismisses it, as a press outside an
     // NSPopover's panel does; a press on the card leaves it open, and a popover that is not light-dismissed stays.
