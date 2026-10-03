@@ -80,10 +80,18 @@ public sealed class ComposerController
         if (TextViewInstance is not { } textView) return;
         var text = textView.Text ?? "";
         if (location < 0 || location + length > text.Length) return;
-        textView.Text = text[..location] + replacement + text[(location + length)..];
+        // :45-47 shouldChangeText, replaceCharacters, didChangeText: one edit, so the undo stack sees the replacement as one
+        // step (PR-COMPOSER-049 windows_path). Assigning Text would clear the box's undo history (Avalonia 12.1.2); the
+        // selection's replacement keeps it, and one undo brings the replaced run back.
+        textView.SelectionStart = location;
+        textView.SelectionEnd = location + length;
+        textView.SelectedText = replacement;
         var caret = location + replacement.Length;
         textView.SelectionStart = caret;
         textView.SelectionEnd = caret;
+        // :46 didChangeText(): the owner has the new text at once, as the Swift text view tells it, not on the dispatcher's
+        // later TextChanged (the pick that follows writes the draft, which must not hold the replaced run still).
+        textView.OnDidChangeText?.Invoke();
     }
 
     // :51-84 func showSuggestions(_ content: AnyView, itemCount: Int)
@@ -173,6 +181,7 @@ public sealed class ComposerNSTextView : TextBox
     public Action<IReadOnlyList<AttachmentSource>>? OnAttach { get; set; } // :120
     public Action? OnWidthChange { get; set; } // :121
     public Action? OnResign { get; set; } // :122
+    public Action? OnDidChangeText { get; set; } // :46 didChangeText(), called by the controller's replacement
     public Func<ComposerKey, bool>? OnKeyCallback { get; set; } // the Coordinator's doCommandBy, :329-357
 
     // :124-128 override func setFrameSize(_ newSize: NSSize): width-change detection.
@@ -450,6 +459,7 @@ public sealed class ComposerTextView : Decorator
         textView.OnWidthChange = () => MainActor.Spawn(RunUpdateHeight); // :277-279
         textView.OnResign = () => MainActor.Spawn(() => { this.onBlur(); return Task.CompletedTask; }); // :280-282 Task { @MainActor in ... }
         textView.TextChanged += (_, _) => OnTextDidChange(); // :317-322 Coordinator.textDidChange
+        textView.OnDidChangeText = OnTextDidChange; // :46 didChangeText() reaches the same method at once
         textView.PropertyChanged += (_, e) =>
         {
             if (e.Property == TextBox.SelectionStartProperty || e.Property == TextBox.SelectionEndProperty)

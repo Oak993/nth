@@ -1540,6 +1540,10 @@ internal sealed class DraftChips : Decorator
     private readonly ThreadRuntime runtime;
     private readonly Panel rows = new();
     private Control? current;
+    private StackPanel? chipRow; // :881 the HStack the scroller holds
+    private ForEach<ChipItem, string>? chips; // :882, :908 the command's chip and ForEach(quotes), by their identities
+    private readonly Dictionary<string, ChipItem> drawn = new(SwiftStringComparer.Instance);
+    private ChipKey? shownKey;
     private bool evaluated;
     /// <summary>:871-874 <c>private struct ChipKey: Equatable</c>.</summary>
     private sealed record ChipKey
@@ -1547,6 +1551,9 @@ internal sealed class DraftChips : Decorator
         public required ValueList<Guid> QuoteIDs { get; init; } // :872
         public string? CommandName { get; init; } // :873
     }
+
+    /// <summary>One chip of the row: the command's (identity "command", :882) or a quote's (its id, :908).</summary>
+    private sealed record ChipItem(string Id, string Symbol, string Text, string Detail, string RemoveLabel, bool CommandChip);
 
     // :869 let runtime; :876-943 body
     public DraftChips(ThreadRuntime runtime)
@@ -1560,63 +1567,114 @@ internal sealed class DraftChips : Decorator
     {
         var wasEvaluated = evaluated;
         evaluated = true;
+        var key = new ChipKey { QuoteIDs = new ValueList<Guid>(quotes.Select(quote => quote.Id)), CommandName = command?.Name }; // :941
         // :879 nothing to show: no row, so the column's zero spacing leaves no room for it
         if (quotes.Count == 0 && command is null)
         {
             if (current is { } leaving) Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Remove(rows, leaving));
             current = null;
+            chipRow = null;
+            chips = null;
+            drawn.Clear();
+            shownKey = key;
             return;
         }
-        var chipRow = Row(quotes, command);
-        chipRow.Margin = new Thickness(0, 0, 0, 8); // :939 .padding(.bottom, 8)
-        chipRow.Transition(SwiftTransition.Modifier(new ChipRowCollapse(true), new ChipRowCollapse(false))); // :940
-        if (current is null && wasEvaluated)
-            Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Insert(rows, 0, chipRow));
-        else if (current is null) SwiftTransition.Insert(rows, 0, chipRow);
+
+        var items = Items(quotes, command);
+        if (current is null)
+        {
+            // The row arrives whole: its chips are there as it grows from nothing, none of them arriving of their own.
+            var scroller = Scroller();
+            Transaction.WithAnimation(null, () => chips!.Apply(items));
+            scroller.Margin = new Thickness(0, 0, 0, 8); // :939 .padding(.bottom, 8)
+            scroller.Transition(SwiftTransition.Modifier(new ChipRowCollapse(true), new ChipRowCollapse(false))); // :940
+            if (wasEvaluated)
+                Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Insert(rows, 0, scroller));
+            else SwiftTransition.Insert(rows, 0, scroller);
+            current = scroller;
+        }
+        else if (!key.Equals(shownKey))
+        {
+            // :941 .animation(Chrome.panelSlide, value: ChipKey): a chip arriving or leaving the row that stays moves
+            // under the spring; the scroller, and where it is scrolled to, are the same ones throughout.
+            Transaction.WithAnimation(Chrome.PanelSlide, () => chips!.Apply(items));
+        }
         else
         {
-            // :941 Text edits leave the animation key alone. A nonempty single-line scroller keeps its height.
-            rows.Children.Clear();
-            SwiftTransition.Insert(rows, 0, chipRow);
+            // Nothing in the key moved (a text edit re-evaluated the draft; a command's detail): drawn again in place,
+            // with no animation.
+            Transaction.WithAnimation(null, () => chips!.Apply(items));
         }
-        current = chipRow;
+        shownKey = key;
     }
 
-    // :880-938 the chips' scroller, and :940-941 its transition; internal movement awaits STOP #7.
-    private Control Row(ValueList<ReplyQuote> quotes, DraftCommand? command)
+    private static List<ChipItem> Items(ValueList<ReplyQuote> quotes, DraftCommand? command)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 }; // :881
+        var items = new List<ChipItem>();
         if (command is not null) // :882
-            row.Children.Add(Chip(command.IsBuiltIn ? "command" : "sparkles", "/" + command.Name, command.Detail,
-                "Remove command", () => runtime.Draft = runtime.Draft with { Command = null }, true)); // :883-906
+            items.Add(new ChipItem("command", command.IsBuiltIn ? "command" : "sparkles", "/" + command.Name, command.Detail, "Remove command", true)); // :883-906
         foreach (var quote in quotes) // :908
-            row.Children.Add(Chip("text.quote", quote.Excerpt, quote.Text, "Remove quote",
-                () => runtime.Draft = runtime.Draft with { Quotes = new ValueList<ReplyQuote>(runtime.Draft.Quotes.Where(held => held.Id != quote.Id)) }, false)); // :909-935
-        return new ScrollViewer { Content = row, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
+            items.Add(new ChipItem(quote.Id.ToString(), "text.quote", quote.Excerpt, quote.Text, "Remove quote", false)); // :909-935
+        return items;
+    }
+
+    // :880-881 the horizontal scroller and its HStack(spacing: 6)
+    private ScrollViewer Scroller()
+    {
+        chipRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        chips = new ForEach<ChipItem, string>(chipRow, item => item.Id, Make, Update);
+        drawn.Clear();
+        return new ScrollViewer { Content = chipRow, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; // :880
     }
 
-    // :883-906,909-935 Each capsule combines the label and remove action; full detail is its tooltip.
-    private static Control Chip(string symbol, string text, string detail, string removeLabel, Action remove, bool commandChip)
+    private Control Make(ChipItem item)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 }; // :883,909
-        row.Children.Add(SwiftImage.SystemName(symbol)
-            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText)); // :884-886,910-912
-        var title = new TextBlock { Text = text, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :887,913,916-917
-        SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: commandChip ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(title); // :888,914
-        title.Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(title); // :889,915
-        if (!commandChip) { title.MaxWidth = 260; title.HorizontalAlignment = HorizontalAlignment.Left; } // :918
-        row.Children.Add(title);
-        var x = SwiftImage.SystemName("xmark").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText); // :895-897,924-926
-        var button = PlainControls.Button(x, () => Transaction.WithAnimation(Chrome.PanelSlide, remove)); // :890-899,919-928
-        button.Focusable = false; // :900,929
-        ToolTip.SetTip(button, removeLabel); // :901,930
-        AutomationProperties.SetName(button, removeLabel); // :902,931
-        row.Children.Add(button);
-        var chrome = new ChipChrome().Body(row); // :904,933
-        ToolTip.SetTip(chrome, detail); // :905,934
-        AutomationProperties.SetName(chrome, text); // :906,935 combined chip name
+        drawn[item.Id] = item;
+        var chrome = new ChipChrome().Body(Content(item)); // :904, :933
+        Describe(chrome, item);
         return chrome;
+    }
+
+    private void Update(Control chrome, ChipItem item)
+    {
+        if (drawn.TryGetValue(item.Id, out var old) && old == item) return;
+        drawn[item.Id] = item;
+        ((Border)chrome).Child = Content(item);
+        Describe(chrome, item);
+    }
+
+    // :905-906, :934-935 the chip's help and its combined accessibility name
+    private static void Describe(Control chrome, ChipItem item)
+    {
+        ToolTip.SetTip(chrome, item.Detail);
+        AutomationProperties.SetName(chrome, item.Text);
+    }
+
+    // :883-906, :909-935 Each capsule combines the label and the remove action; full detail is its tooltip.
+    private Control Content(ChipItem item)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 }; // :883, :909
+        row.Children.Add(SwiftImage.SystemName(item.Symbol)
+            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText)); // :884-886, :910-912
+        var title = new TextBlock { Text = item.Text, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :887, :913, :916-917
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: item.CommandChip ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(title); // :888, :914
+        title.Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(title); // :889, :915
+        if (!item.CommandChip) { title.MaxWidth = 260; title.HorizontalAlignment = HorizontalAlignment.Left; } // :918
+        row.Children.Add(title);
+        var x = SwiftImage.SystemName("xmark").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText); // :895-897, :924-926
+        var button = PlainControls.Button(x, () => Transaction.WithAnimation(Chrome.PanelSlide, () => Remove(item))); // :890-899, :919-928
+        button.Focusable = false; // :900, :929
+        ToolTip.SetTip(button, item.RemoveLabel); // :901, :930
+        AutomationProperties.SetName(button, item.RemoveLabel); // :902, :931
+        row.Children.Add(button);
+        return row;
+    }
+
+    private void Remove(ChipItem item)
+    {
+        if (item.CommandChip) runtime.Draft = runtime.Draft with { Command = null }; // :891-893
+        else runtime.Draft = runtime.Draft with { Quotes = new ValueList<ReplyQuote>(runtime.Draft.Quotes.Where(held => held.Id.ToString() != item.Id)) }; // :920-922
     }
 }
 
