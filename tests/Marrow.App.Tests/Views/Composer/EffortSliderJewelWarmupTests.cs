@@ -786,6 +786,227 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
         Assert.Equal(GpuProgramCache.BuildOf(module, installed), GpuProgramCache.Build);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-252")] // an Avalonia transition counts while it runs, and stops counting once it ended
+    public void An_avalonia_transition_counts_as_animating_only_while_it_runs() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        var box = new Border { Width = 40, Height = 20, Background = Avalonia.Media.Brushes.Black };
+        box.Transitions = [new Avalonia.Animation.DoubleTransition { Property = Visual.OpacityProperty, Duration = TimeSpan.FromSeconds(0.1) }];
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = box };
+        window.Show();
+        try
+        {
+            Assert.NotNull(GpuWarmup.AvaloniaClockSubscribers()); // the pinned Avalonia's clock is read
+            FramesFor(TimeSpan.FromMilliseconds(100), () => false);
+            Assert.False(GpuWarmup.Animating(frames), "precondition: nothing animates");
+            box.Opacity = 0.2;                                    // the transition starts
+            FramesFor(TimeSpan.FromMilliseconds(30), () => false);
+            Assert.True(box.Opacity > 0.2 && box.Opacity < 1, $"precondition: the transition runs (opacity {box.Opacity})");
+            Assert.True(GpuWarmup.Animating(frames), "the warm-up saw nothing animating while an Avalonia transition runs");
+            FramesFor(TimeSpan.FromMilliseconds(400), () => false);
+            Assert.Equal(0.2, box.Opacity, 3);
+            Assert.False(GpuWarmup.Animating(frames), "a transition that ended still holds the warm-up back");
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // a new GPU context first seen with a step waiting: the step compiles nothing on it and the run starts again from its first step
+    public void A_new_gpu_context_seen_with_a_step_waiting_starts_the_run_again() => headless.OnUiThread(() =>
+    {
+        var source = GpuProgramCache.MachineSource;
+        var adapter = "10de:2704:13bc196e:a1 NVIDIA GeForce RTX 4080 32.0.15.6094";
+        GpuProgramCache.MachineSource = () => adapter;
+        GpuWarmup.PretendGpu = true;
+        GpuWarmup.PretendContext = 0x7E570001;
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
+        window.Show();
+        try
+        {
+            var first = adapter;
+            string? preparedFirst = null;
+            var reports = new List<GpuWarmupStep>();
+            var done = GpuWarmup.StepsDone;
+            var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(step =>
+            {
+                reports.Add(step);
+                if (reports.Count != 1) return;
+                // reported before the second step is asked: the display moved to the iGPU (DXGI's adapter 0 now) and the
+                // next frame draws on a new context, the second step waiting in it
+                preparedFirst = GpuProgramCache.Prepared;
+                adapter = "1002:13c0:d0001458:cb AMD Radeon(TM) Graphics 31.0.24033.1003";
+                GpuWarmup.PretendContext = 0x7E570002;
+            }));
+            FramesFor(TimeSpan.FromSeconds(10), () => task.IsCompleted);
+            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
+            // the first step on the old context, then all four on the new one; the step waiting compiled nothing
+            Assert.Equal(new[] { "noise" }.Concat(GpuWarmup.Programs), reports.Select(r => r.Program));
+            Assert.Equal(1 + GpuWarmup.Steps, GpuWarmup.StepsDone - done);
+            Assert.Equal(first, preparedFirst);
+            Assert.Equal(adapter, GpuProgramCache.Prepared);     // the pass again read the adapter: the new context's key names it
+        }
+        finally { GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; GpuProgramCache.MachineSource = source; window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // a pass cut short by a new GPU context marks nothing warm: the entries it saw were made on the old context
+    public void A_pass_cut_short_by_a_new_gpu_context_marks_nothing_warm() => headless.OnUiThread(() =>
+    {
+        using var cache = new GpuProgramCacheFolder();
+        var source = GpuProgramCache.MachineSource;
+        GpuProgramCache.MachineSource = () => "10de:2704:00000000:a1 Test GPU 1.2.3.4";
+        GpuWarmup.PretendGpu = true;
+        GpuWarmup.PretendContext = 0x7E570001;
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
+        window.Show();
+        try
+        {
+            var reports = 0;
+            var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(_ =>
+            {
+                if (reports++ != 0) return;
+                // the first step's link wrote as many entries as the warm-up has steps (its program's and others'), none
+                // follow; and the second step, asked next, is drawn on a new context
+                Interlocked.Add(ref GpuProgramCache.Writes, GpuWarmup.Steps);
+                GpuWarmup.PretendContext = 0x7E570002;
+            }));
+            FramesFor(TimeSpan.FromSeconds(10), () => task.IsCompleted);
+            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
+            Assert.True(reports == 1 + GpuWarmup.Steps, $"precondition: the run started again ({reports} steps)");
+            Assert.False(File.Exists(Path.Combine(cache.Root, "warm.txt")), "a pass cut short by a new GPU context marked the cache warm");
+        }
+        finally { GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; GpuProgramCache.MachineSource = source; window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // a new GPU context with no step waiting warms again, in quiet frames like the fallback
+    public void A_new_gpu_context_with_no_step_waiting_warms_again_in_quiet_frames() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        var cap = GpuWarmup.IdleCap;
+        GpuWarmup.IdleCap = TimeSpan.FromSeconds(60);
+        GpuWarmup.PretendGpu = true;
+        GpuWarmup.PretendContext = 0x7E570001;
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
+        window.Show();
+        try
+        {
+            var task = GpuWarmup.WarmAsync(window);
+            FramesFor(TimeSpan.FromSeconds(10), () => task.IsCompleted);
+            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
+            frames.RequestFrame(_ => { });                       // animating
+            var asked = GpuWarmup.StepsAsked;
+            GpuWarmup.PretendContext = 0x7E570002;
+            window.Background = Avalonia.Media.Brushes.Gray;     // the window drawn whole on the new context, the primer with it
+            FramesFor(TimeSpan.FromMilliseconds(600), () => false);
+            Assert.True(asked == GpuWarmup.StepsAsked, $"{GpuWarmup.StepsAsked - asked} steps asked at once while animating");
+            frames.Advance(TimeSpan.FromMilliseconds(16));       // quiet
+            FramesFor(TimeSpan.FromSeconds(10), () => GpuWarmup.StepsAsked > asked);
+            Assert.True(GpuWarmup.StepsAsked > asked, "no warm-up on the new GPU context");
+        }
+        finally { GpuWarmup.IdleCap = cap; GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // after a give-up, single frames more than 100 ms apart are not a window drawing again: no resume
+    public void After_a_give_up_single_frames_far_apart_do_not_resume_the_idle_warm_up() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        var (cap, timeout) = (GpuWarmup.IdleCap, GpuWarmup.StepTimeout);
+        GpuWarmup.IdleCap = TimeSpan.FromMilliseconds(300);
+        GpuWarmup.StepTimeout = TimeSpan.FromMilliseconds(300);
+        var host = new Border { Width = 40, Height = 20 };
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = host };
+        window.Show();
+        try
+        {
+            GpuWarmup.WhenIdle(host);
+            var asked = GpuWarmup.StepsAsked;
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();              // the window's first frame: the fallback starts
+            Dispatcher.UIThread.RunJobs();
+            Pump(TimeSpan.FromSeconds(2), () => false, render: false);   // then not drawn (minimised): its step is given up on
+            Assert.True(GpuWarmup.StepsAsked == asked + 1, $"precondition: one step asked and given up on ({GpuWarmup.StepsAsked - asked} asked)");
+            for (var k = 0; k < 3; k++)
+            {
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();          // drawn in one frame (a flicker of the window)
+                Dispatcher.UIThread.RunJobs();
+                Pump(TimeSpan.FromMilliseconds(250), () => false, render: false); // and not again for 250 ms
+            }
+            Pump(TimeSpan.FromSeconds(1), () => GpuWarmup.StepsAsked > asked + 1, render: false);
+            Assert.True(GpuWarmup.StepsAsked == asked + 1, $"{GpuWarmup.StepsAsked - asked - 1} steps asked on single frames 250 ms apart");
+            Pump(TimeSpan.FromSeconds(5), () => GpuWarmup.StepsAsked > asked + 1, render: true);
+            Assert.True(GpuWarmup.StepsAsked > asked + 1, "the warm-up never resumed once its window was drawn steadily");
+        }
+        finally { (GpuWarmup.IdleCap, GpuWarmup.StepTimeout) = (cap, timeout); window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the chip's own run (WhenIdle) warms again when its window's scaling changes, idle-gated
+    public void An_idle_warm_up_warms_again_when_its_hosts_window_changes_scaling() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        var cap = GpuWarmup.IdleCap;
+        GpuWarmup.IdleCap = TimeSpan.FromSeconds(60);
+        var host = new Border { Width = 40, Height = 20 };
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = host };
+        window.Show();
+        try
+        {
+            GpuWarmup.WhenIdle(host);
+            var asked = GpuWarmup.StepsAsked;
+            FramesFor(TimeSpan.FromSeconds(10), () => GpuWarmup.StepsAsked > asked);
+            FramesFor(TimeSpan.FromMilliseconds(200), () => false); // the CPU renderer's answer ends the run
+            Assert.True(GpuWarmup.StepsAsked == asked + 1, $"precondition: the chip's run asked one step ({GpuWarmup.StepsAsked - asked})");
+            var report = (Action<double>)typeof(Avalonia.Platform.ITopLevelImpl).GetProperty("ScalingChanged")!.GetValue(window.PlatformImpl)!;
+            report(1.5);
+            FramesFor(TimeSpan.FromSeconds(10), () => GpuWarmup.StepsAsked > asked + 1);
+            Assert.True(GpuWarmup.StepsAsked > asked + 1, "the chip's warm-up did not warm again for its window's new scaling");
+        }
+        finally { GpuWarmup.IdleCap = cap; window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0096's screen calling WarmAsync while a chip's idle run waits in the window: that run steps now too
+    public void Warm_async_hurries_the_idle_warm_ups_going_in_its_window() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        var cap = GpuWarmup.IdleCap;
+        GpuWarmup.IdleCap = TimeSpan.FromSeconds(60);
+        GpuWarmup.PretendGpu = true;
+        var host = new Border { Width = 40, Height = 20 };
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = host };
+        window.Show();
+        try
+        {
+            frames.RequestFrame(_ => { }); // animating throughout: the chip's run waits
+            GpuWarmup.WhenIdle(host);
+            var (asked, done) = (GpuWarmup.StepsAsked, GpuWarmup.StepsDone);
+            FramesFor(TimeSpan.FromMilliseconds(500), () => false);
+            Assert.Equal(asked, GpuWarmup.StepsAsked);
+            var task = GpuWarmup.WarmAsync(window);
+            FramesFor(TimeSpan.FromSeconds(5), () => task.IsCompleted && GpuWarmup.StepsDone - done >= 2 * GpuWarmup.Steps);
+            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
+            Assert.True(GpuWarmup.StepsDone - done == 2 * GpuWarmup.Steps, $"{GpuWarmup.StepsDone - done} steps: the chip's run still waits for idle frames");
+        }
+        finally { GpuWarmup.IdleCap = cap; GpuWarmup.PretendGpu = false; window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the record of steps done keeps the last ones only (a chip's warm-up adds four, one for each composer made)
+    public void The_record_of_steps_done_keeps_the_last_ones_only()
+    {
+        for (var k = 0; k < GpuWarmup.DoneKept + 10; k++)
+            GpuWarmup.Record(new GpuWarmupStep(k % GpuWarmup.Steps, GpuWarmup.Steps, GpuWarmup.Programs[k % GpuWarmup.Steps], k, false));
+        Assert.Equal(GpuWarmup.DoneKept, GpuWarmup.Done.Count);
+        Assert.Equal(GpuWarmup.DoneKept + 9, GpuWarmup.Done.Last().Milliseconds);
+    }
+
     // frames (or none) about every 10 ms until done or the time is up, the dispatcher's jobs run between
     private static void Pump(TimeSpan span, Func<bool> done, bool render)
     {

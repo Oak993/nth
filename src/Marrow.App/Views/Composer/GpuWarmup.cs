@@ -16,20 +16,25 @@ namespace Marrow.App.Views.Composer;
 //     "Getting ready" screen, OD-0096, awaits it; the screen itself is designed separately). It completes when every program
 //     is compiled and, where the GPU keeps them (GpuProgramCache, ANGLE's program binaries on disk), in the cache. It fails
 //     (never completes as if prepared) when a step is not drawn within 10 s (the window hidden or minimised), when the window
-//     closes meanwhile, or when the window is not shown.
-//   IsWarm: a cheap check (a marker file and DXGI) that this build's programs are in the cache, made on this machine's
-//     graphics adapters with the drivers they have now, so later launches can skip that screen: they only load the programs'
+//     closes meanwhile, or when the window is not shown. The idle runs going in the same window (its model chips') step
+//     now too; the runs share the window's GPU context and step through the programs in one order, so a frame still makes
+//     one program at most (a run behind another finds its programs made).
+//   IsWarm: a cheap check (a marker file and DXGI) that this build's programs are in the cache, made on the graphics adapter
+//     the app draws with, with the driver it has now, so later launches can skip that screen: they only load the programs'
 //     binaries (about 4 to 17 ms a step, measured, no compile).
 //   WhenIdle(host): the fallback the composer's model chip starts. It steps only in frames where nothing animates (no
-//     frame-clock request waiting: the liquid, the knob, the port's transitions; nor any animation registered with
-//     AddActivity: the composer's working dots), and once 3 s have passed since it began it steps anyway, one step a frame,
-//     so the popover is ready. A step its window does not draw (minimised, the chip hidden) is given up after 10 s, compiles
-//     nothing when drawn later, and the warm-up resumes, idle again, once its host is drawn again (in two frames in a row,
-//     not a single one). It holds its host only while the host is in a window.
+//     frame-clock request waiting: the liquid, the knob, the port's transitions; no Avalonia transition or animation
+//     running: the drag handles' grips and glows, the shortcuts page; nor any animation registered with AddActivity: the
+//     composer's working dots), and once 3 s have passed since it began it steps anyway, one step a frame, so the popover
+//     is ready. A step its window does not draw (minimised, the chip hidden) is given up after 10 s, compiles nothing when
+//     drawn later, and the warm-up resumes, idle again, once its host is drawn again (in two frames in a row, not a single
+//     one). It holds its host only while the host is in a window.
 // Each step runs on the render thread in a 1 px composition visual that draws nothing on screen: it draws one of the knob's
 // four programs (the noise, the fluid, the orb, the page with the shadows and the blit) offscreen into the knob's own
-// surfaces on the window's GPU context, so the knob's first visible draw finds them made. A new GPU context or a new scaling
-// warms again, idle-gated. The CPU renderer has nothing to compile ahead: no steps.
+// surfaces on the window's GPU context, so the knob's first visible draw finds them made. A new scaling warms again,
+// idle-gated. A new GPU context (a device lost, a display change) warms again too: idle-gated when no step waits, and when a
+// step waits it is answered at once, compiling nothing on the new context, and its run starts again from its first step (the
+// programs it made are on the old one). The CPU renderer has nothing to compile ahead: no steps.
 
 /// <summary>One step of the GPU warm-up: which program, how long it took on the render thread, and whether it waited for an
 /// idle frame and was forced at the cap.</summary>
@@ -54,15 +59,29 @@ public static class GpuWarmup
     /// GPU). Never set in the app.</summary>
     internal static bool PretendGpu { get; set; }
 
+    /// <summary>Tests only, with <see cref="PretendGpu"/>: the GPU context the CPU renderer pretends to draw with (0: none
+    /// told apart); a change is a new GPU context. Never set in the app.</summary>
+    internal static nint PretendContext { get => Volatile.Read(ref pretendContext); set => Volatile.Write(ref pretendContext, value); }
+    private static nint pretendContext;
+
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Visual, Driver> drivers = new();
     private static readonly List<Activity> activities = [];
 
-    // the native record and tests: every step done in this process, with its time
+    // the native record and tests: every step done in this process, with its time (the last DoneKept kept: a model chip's
+    // warm-up adds four, and one runs for every composer made in a session)
     internal static int stepsDone, stepsAsked;
     internal static int StepsDone => Volatile.Read(ref stepsDone);
     internal static int StepsAsked => Volatile.Read(ref stepsAsked);
     internal static readonly System.Collections.Concurrent.ConcurrentQueue<GpuWarmupStep> Done = new();
+    internal const int DoneKept = 64;
     internal static long FirstStepTicks;
+
+    /// <summary>Keeps a step done in <see cref="Done"/>, the oldest let go beyond <see cref="DoneKept"/>.</summary>
+    internal static void Record(GpuWarmupStep step)
+    {
+        Done.Enqueue(step);
+        while (Done.Count > DoneKept) Done.TryDequeue(out _);
+    }
 
     /// <summary>Why the last automatic (idle) warm-up stopped short, for the native record (null: none did).</summary>
     internal static volatile string? LastGiveUp;
@@ -90,14 +109,48 @@ public static class GpuWarmup
     internal static int ActivityCount { get { lock (activities) return activities.Count; } }
 
     /// <summary>True when something on screen animates: a frame-clock request is waiting (on <paramref name="frames"/>, the
-    /// frame clock's source by default), or a registered activity runs.</summary>
+    /// frame clock's source by default), an Avalonia transition or animation runs, or a registered activity runs.</summary>
     internal static bool Animating(IFrameSource? frames = null)
     {
         if ((frames ?? FrameClock.Source.Current).Pending > 0) return true;
+        if (AvaloniaAnimates()) return true;
         lock (activities)
             foreach (var activity in activities)
                 if (activity.IsAnimating()) return true;
         return false;
+    }
+
+    // Avalonia's own animations: a transition (DoubleTransition and the others: the drag handles' grips and glows, the
+    // shortcuts page's reset buttons and key caps) or a keyframe animation runs on Avalonia's global clock, which the frame
+    // clock does not see. Each subscribes to that clock while it runs and lets go a frame after it ends (Avalonia 12.1.2,
+    // decompiled: TransitionInstance's TransitionClock and AnimationInstance subscribe to the IGlobalClock that Application
+    // binds to MediaContext.Instance.Clock, a MediaContextClock holding its subscribers in _observers; all internal, so read
+    // by reflection, once per MediaContext). The UI thread's to read; elsewhere, or where it cannot be read, false.
+    private static readonly System.Reflection.PropertyInfo? mediaContextInstance = typeof(Avalonia.Animation.Animatable).Assembly
+        .GetType("Avalonia.Media.MediaContext")?.GetProperty("Instance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+    private static object? clockOwner;
+    private static System.Collections.ICollection? clockSubscribers;
+
+    /// <summary>True when an Avalonia transition or animation runs: its global clock has subscribers (the UI thread).</summary>
+    internal static bool AvaloniaAnimates() => AvaloniaClockSubscribers() is { Count: > 0 };
+
+    /// <summary>The subscribers of Avalonia's global clock (null where they cannot be read: off the UI thread, or an
+    /// Avalonia that keeps them elsewhere; tests pin that the pinned Avalonia is read).</summary>
+    internal static System.Collections.ICollection? AvaloniaClockSubscribers()
+    {
+        if (!Dispatcher.UIThread.CheckAccess()) return null;
+        try
+        {
+            if (mediaContextInstance?.GetValue(null) is not { } context) return null;
+            if (!ReferenceEquals(context, clockOwner))
+            {
+                var clock = context.GetType().GetProperty("Clock", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)?.GetValue(context);
+                clockSubscribers = clock?.GetType().GetField("_observers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(clock) as System.Collections.ICollection;
+                clockOwner = context;
+            }
+            return clockSubscribers;
+        }
+        catch (Exception) { return null; }
     }
 
     /// <summary>
@@ -132,12 +185,15 @@ public static class GpuWarmup
     /// screen meant for it), reporting each step; completes when they are compiled and cached (at once on the CPU renderer).
     /// Faults with a <see cref="TimeoutException"/> when a step is not drawn in time (the window minimised or hidden) and an
     /// <see cref="InvalidOperationException"/> when the window is not shown or closes meanwhile. Called while a warm-up of
-    /// the window runs, it hurries that one and reports its remaining steps.
+    /// the window runs, it hurries that one and reports its remaining steps; the idle runs going in the window (its hosts')
+    /// are hurried too, so none of them waits to compile after the screen meant for it.
     /// </summary>
     public static Task WarmAsync(TopLevel window, IProgress<GpuWarmupStep>? progress = null, CancellationToken cancellation = default)
     {
         Dispatcher.UIThread.VerifyAccess();
         var driver = drivers.GetValue(window, _ => new Driver(window, FrameClock.Source.Current));
+        foreach (var (host, other) in drivers)
+            if (other != driver && TopLevel.GetTopLevel(host) == window) other.Hurry();
         return driver.Run(idle: false, progress, cancellation);
     }
 
@@ -194,6 +250,12 @@ public static class GpuWarmup
             if (running is { IsCompleted: true }) Start();
         }
 
+        // WarmAsync in its window: the run going steps now, no more idle waits
+        public void Hurry()
+        {
+            if (running is { IsCompleted: false }) hurry = true;
+        }
+
         // an automatic run: idle-gated, nobody awaits it (why it stopped short is kept for the native record)
         private void Start()
         {
@@ -234,14 +296,16 @@ public static class GpuWarmup
 
         private async Task Steps(TopLevel top, bool idle, CancellationToken cancellation)
         {
-            // the SkSL compile and the machine's identity (DXGI), on a pool thread
-            await Task.Run(() => { JewelKnobShader.Prepare(); GpuProgramCache.Prepare(); }, cancellation);
             do
             {
                 again = false;
+                // the SkSL compile and the identity of the adapter drawn with (DXGI), on a pool thread, each pass (a pass
+                // after a new GPU context installs the cache on it naming the adapter as it is then)
+                await Task.Run(() => { JewelKnobShader.Prepare(); GpuProgramCache.Prepare(); }, cancellation);
                 var (size, _) = JewelOrb.RenderSize(EffortSlider.ThumbSize, top.RenderScaling);
                 var entries = GpuProgramCache.Entries;
                 var since = DateTime.UtcNow; // the cap counts from the warm-up's start: once it ran out, one step a frame
+                var restarted = false;
                 for (var step = 0; step < Programs.Count; step++)
                 {
                     cancellation.ThrowIfCancellationRequested();
@@ -251,7 +315,7 @@ public static class GpuWarmup
                     var request = new StepRequest(size, step);
                     Interlocked.Increment(ref stepsAsked);
                     visual!.SendHandlerMessage(request);
-                    (double Ms, bool Gpu) answer;
+                    StepAnswer answer;
                     try { answer = await request.Answer.Task.WaitAsync(StepTimeout, cancellation); }
                     catch (TimeoutException)
                     {
@@ -262,15 +326,16 @@ public static class GpuWarmup
                         throw new TimeoutException($"GPU warm-up: the {Programs[step]} step was not drawn within {StepTimeout.TotalSeconds:0.###} s (its window minimised or hidden, or its host hidden).");
                     }
                     catch (OperationCanceledException) { request.Withdrawn = true; throw; }
-                    var (ms, gpu) = answer;
-                    if (!gpu) return; // the CPU renderer: nothing to compile ahead
-                    var report = new GpuWarmupStep(step, Programs.Count, Programs[step], ms, forced);
-                    Done.Enqueue(report);
+                    // drawn on a new GPU context: the programs made so far are on the old one, so the run starts again
+                    if (answer.NewContext) { restarted = again = true; break; }
+                    if (!answer.Gpu) return; // the CPU renderer: nothing to compile ahead
+                    var report = new GpuWarmupStep(step, Programs.Count, Programs[step], answer.Ms, forced);
+                    Record(report);
                     progress?.Report(report);
                 }
                 // warm only when the cache took (or gave back) an entry for every step: the programs are on disk (the marker and
                 // the clean-up of other builds' folders on a pool thread, the UI thread's frames untouched)
-                if (GpuProgramCache.Folder is { } cached && GpuProgramCache.Entries - entries >= Programs.Count)
+                if (!restarted && GpuProgramCache.Folder is { } cached && GpuProgramCache.Entries - entries >= Programs.Count)
                     await Task.Run(() => GpuProgramCache.MarkWarm(cached), CancellationToken.None);
             }
             while (again);
@@ -297,12 +362,16 @@ public static class GpuWarmup
         }
     }
 
+    // a step's answer: its time on the render thread, whether a GPU context drew it, and whether that context was new (the
+    // step then compiled nothing and its run starts again)
+    private readonly record struct StepAnswer(double Ms, bool Gpu, bool NewContext = false);
+
     // one step asked of the render thread; withdrawn when its driver stopped waiting for it
     private sealed class StepRequest(int size, int step)
     {
         public int Size { get; } = size;
         public int Step { get; } = step;
-        public TaskCompletionSource<(double Ms, bool Gpu)> Answer { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<StepAnswer> Answer { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private volatile bool withdrawn;
         public bool Withdrawn { get => withdrawn; set => withdrawn = value; }
     }
@@ -325,11 +394,25 @@ public static class GpuWarmup
         {
             using var lease = drawing.TryGetFeature<ISkiaSharpApiLeaseFeature>()?.Lease();
             var gpu = lease?.GrContext;
-            // the window drawn whole on another GPU context: warm again (the primer is drawn with it)
-            if (gpu is not null && context != 0 && gpu.Handle != context && pending is null) { context = gpu.Handle; contextChanged(); return; }
+            var handle = gpu?.Handle ?? (PretendGpu ? PretendContext : 0);
+            // the window drawn whole on another GPU context (the primer is drawn with it): seen first, whether a step waits
+            // or not. A step that waits is answered at once, compiling nothing on the new context, and its run starts again
+            // from its first step (the programs it made are on the old one); with none waiting, warm again, idle-gated.
+            if (handle != 0 && context != 0 && handle != context)
+            {
+                context = handle;
+                if (pending is { Withdrawn: false } waiting)
+                {
+                    pending = null;
+                    waiting.Answer.TrySetResult(new StepAnswer(0, true, NewContext: true));
+                    return;
+                }
+                contextChanged();
+                if (pending is null) return;
+            }
             if (pending is not { } request) return;
             pending = null;
-            if (gpu is not null) context = gpu.Handle;
+            if (handle != 0) context = handle;
             if (request.Withdrawn)
             {
                 // the warm-up gave up on it, its host not drawn: it answers (compiling nothing) once the host is drawn in two
@@ -338,7 +421,7 @@ public static class GpuWarmup
                 if (drawnOnce != 0 && System.Diagnostics.Stopwatch.GetElapsedTime(drawnOnce, now) <= TimeSpan.FromMilliseconds(100))
                 {
                     drawnOnce = 0;
-                    request.Answer.TrySetResult((0, gpu is not null));
+                    request.Answer.TrySetResult(new StepAnswer(0, gpu is not null));
                     return;
                 }
                 drawnOnce = now;
@@ -346,7 +429,7 @@ public static class GpuWarmup
                 Invalidate();
                 return;
             }
-            if (gpu is null && !PretendGpu) { request.Answer.TrySetResult((0, false)); return; }
+            if (gpu is null && !PretendGpu) { request.Answer.TrySetResult(new StepAnswer(0, false)); return; }
             if (gpu is not null) GpuProgramCache.EnsureInstalled(gpu.Handle); // before the knob's programs are first linked: a later launch finds them made
             var start = System.Diagnostics.Stopwatch.GetTimestamp();
             Interlocked.CompareExchange(ref FirstStepTicks, Environment.TickCount64, 0);
@@ -354,7 +437,7 @@ public static class GpuWarmup
             gpu?.Flush(); // the compile happens here, in this frame (one with nothing animating, for the idle fallback)
             var ms = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
             Interlocked.Increment(ref stepsDone);
-            request.Answer.TrySetResult((ms, true));
+            request.Answer.TrySetResult(new StepAnswer(ms, true));
         }
     }
 }
