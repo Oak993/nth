@@ -161,7 +161,8 @@ public sealed class EffortSliderModelListRecordsTests(HeadlessSession headless)
         Assert.Equal([0d, 0d, 0d], rows.Select(Tick)); // the chat leads the pair: no model row is ticked, the pair is
         Assert.Equal(1, Tick(Pairs(panel).Single()));
         Assert.Equal([true, true, false], rows.Select(row => RowButton(row).IsEnabled));
-        Assert.Equal("New chats only", Detail(ModelRow(panel, "Cx"))); Assert.Equal(0.45, RowButton(ModelRow(panel, "Cx")).Opacity);
+        Assert.Equal([ProviderKind.Claude.DisplayName, ProviderKind.Claude.DisplayName, "New chats only"], rows.Select(Detail)); // two providers are listed: the provider's name is the detail; a locked row says it is for new chats
+        Assert.Equal(0.45, RowButton(ModelRow(panel, "Cx")).Opacity);
         Click(window, ModelRow(panel, "Cx")); // locked: nothing happens
         Assert.Equal("opus", env.Model.Thread(env.Thread.Id)!.Model); Assert.Equal(pair.Id, env.Model.Thread(env.Thread.Id)!.HydraPairID);
         // a press on a row of the thread's own provider sets the model, leaves the pair, keeps the session and the running turn
