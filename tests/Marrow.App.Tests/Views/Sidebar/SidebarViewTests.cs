@@ -5074,6 +5074,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 var strokeIdle = HelperConnector.Color(false).Resolve(connector.ActualThemeVariant);
                 var strokeHovered = HelperConnector.Color(true).Resolve(connector.ActualThemeVariant);
                 Assert.InRange((double)ColorOf(connector.Stroke).A, strokeIdle.A + 1, strokeHovered.A - 1);
+                // :1607 the fill is one of them: clear to the 0.06 overlay along the same Chrome.hover, not cut
+                // (round 3 mutant D8a-stub-fill-snaps survived the test without this line)
+                var fillHovered = Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant);
+                Assert.InRange((double)ColorOf(shape.Background).A, 1, fillHovered.A - 1);
             });
             Tick(200);
             harness.Main.OnMain(() =>
