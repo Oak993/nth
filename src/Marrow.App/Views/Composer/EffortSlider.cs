@@ -897,9 +897,20 @@ public sealed class EffortSlider : Decorator
         AutomationProperties.SetItemStatus(this, title); LayoutTrack(); RequestFrame();
     }
 
-    private TrackLook Look => new(count > 1 && index.Value == count - 1
-        ? fastMode ? TrackLook.Kind.Fusion : TrackLook.Kind.Supercharged
-        : fastMode ? TrackLook.Kind.Fast : TrackLook.Kind.Plain, brand, pair);
+    // the look, made again only when what it reads changes (a frame reads it several times: no new record a frame, ED-252)
+    private TrackLook Look
+    {
+        get
+        {
+            var kind = count > 1 && index.Value == count - 1
+                ? fastMode ? TrackLook.Kind.Fusion : TrackLook.Kind.Supercharged
+                : fastMode ? TrackLook.Kind.Fast : TrackLook.Kind.Plain;
+            if (cachedLook is { } kept && kept.TrackLookKind == kind && ReferenceEquals(kept.Pair, pair)) return kept;
+            return cachedLook = new TrackLook(kind, brand, pair);
+        }
+    }
+
+    private TrackLook? cachedLook;
 
     private bool ReduceMotion => EnvironmentValues.GetAccessibilityReduceMotion(this);
 
@@ -951,6 +962,8 @@ public sealed class EffortSlider : Decorator
             u = u * u * (3 - 2 * u);
             Material = JewelMaterial.Mix(from, material, u);
             if (u >= 1) fadeFromMaterial = null;
+            // the effects' liquid and tint fade with it; under reduce motion their own timelines are paused, so draw them
+            foreach (var child in effects.Children) if (child is TrackEffect fading) fading.Redraw();
         }
         else Material = material;
         if (!ReferenceEquals(recolored, Material)) { Orb.Recolor(Material); recolored = Material; }
@@ -1101,8 +1114,8 @@ public sealed class EffortSlider : Decorator
     private TrackEffect NewEffect(TrackLook look)
     {
         var effect = new TrackEffect(look);
-        // (under reduce motion the effect draws one still frame, so its colours are the new maker's at once)
-        if (fadeFrom is { } from && fadeFromMaterial is not null && !ReduceMotion)
+        // (0.2 s under reduce motion, as the knob: the still effect is drawn again each frame of the fade by the slider)
+        if (fadeFrom is { } from && fadeFromMaterial is not null)
             effect.FadeFrom(LiquidSpec.For(look with { Brand = from }), StrikeTint.For(from), fadeStart, ColourFade);
         return effect;
     }
@@ -1132,6 +1145,7 @@ public sealed class JewelKnobView : Control
     internal JewelKnobView(EffortSlider owner)
     {
         this.owner = owner;
+        giveBack = op => { lock (free) if (free.Count < 4) free.Push(op); };
         IsHitTestVisible = false;
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
     }
@@ -1139,11 +1153,27 @@ public sealed class JewelKnobView : Control
     /// <summary>How far the knob's shadows reach past its box, px.</summary>
     internal const double ShadowReach = 40;
 
+    // the knob's operations, kept and reused once Avalonia gives them back (ED-252: no new object a frame)
+    private readonly Stack<JewelKnobOperation> free = new();
+    private readonly Action<JewelKnobOperation> giveBack;
+
+    /// <summary>The knob's state on the CPU renderer (render thread).</summary>
+    internal JewelCpuKnob Cpu { get; } = new();
+
+    /// <summary>How many operations the view has made (tests: a few, reused).</summary>
+    internal int OperationsMade { get; private set; }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        if (owner.Uniforms.Values[0] <= 0) return;
-        context.Custom(new JewelKnobOperation(new Rect(Bounds.Size).Inflate(ShadowReach), new Rect(Bounds.Size), (float[])owner.Uniforms.Values.Clone()));
+        var values = owner.Uniforms.Values;
+        if (values[0] <= 0) return;
+        JewelKnobOperation? op;
+        lock (free) free.TryPop(out op);
+        var bounds = new Rect(Bounds.Size).Inflate(ShadowReach);
+        if (op is null) { op = new JewelKnobOperation(bounds, new Rect(Bounds.Size), (float[])values.Clone(), Cpu, giveBack); OperationsMade++; }
+        else op.Reuse(bounds, new Rect(Bounds.Size), values);
+        context.Custom(op);
     }
 }
 
@@ -1555,6 +1585,9 @@ public sealed class TrackEffect : Decorator
     // :1024-1026 pair kind changes preserve this view's clock and trait cache.
     internal void SetLook(TrackLook value) { look = value; canvas.InvalidateVisual(); }
 
+    /// <summary>Draws again now (a colour fade while its own timeline is paused under reduce motion).</summary>
+    internal void Redraw() => canvas.InvalidateVisual();
+
     /// <summary>The look this effect draws.</summary>
     internal TrackLook Look => look;
 
@@ -1576,7 +1609,9 @@ public sealed class TrackEffect : Decorator
     internal double FadeAt(double time)
     {
         if (fade is not { } f) return 1;
-        var u = Math.Clamp((startedAt.AddSeconds(time) - f.Start).TotalSeconds / f.Duration, 0, 1);
+        // under reduce motion 0.2 s, as the knob's (read here: the effect may be made before it is in the tree)
+        var duration = EnvironmentValues.GetAccessibilityReduceMotion(this) ? 0.2 : f.Duration;
+        var u = Math.Clamp((startedAt.AddSeconds(time) - f.Start).TotalSeconds / duration, 0, 1);
         return u * u * (3 - 2 * u);
     }
 
@@ -1621,7 +1656,14 @@ public sealed class TrackEffect : Decorator
     internal double KnobInset { get; set; } = EffortSlider.ThumbSize / 2;
     internal double KnobRadius { get; set; } = EffortSlider.ThumbSize / 2;
 
-    internal StrikeGeometry StrikeGeometryFor(Size size) => new(size.Width, size.Height, size.Width - KnobInset, KnobRadius);
+    internal StrikeGeometry StrikeGeometryFor(Size size)
+    {
+        // kept while the size and the knob hold (a frame asks for it several times: no new record a frame, ED-252)
+        if (geometry is { } kept && kept.Width == size.Width && kept.Height == size.Height && kept.Knob == size.Width - KnobInset && kept.KnobRadius == KnobRadius) return kept;
+        return geometry = new StrikeGeometry(size.Width, size.Height, size.Width - KnobInset, KnobRadius);
+    }
+
+    private StrikeGeometry? geometry;
 
     /// <summary>
     /// The whole track's width (the slider sets it; the effect itself spans only the filled part). The liquid's currents,
@@ -1680,7 +1722,8 @@ public sealed class TrackEffect : Decorator
             // bubbles), one frame of the lightning 35 ms into strike 1
             var still = fast && EnvironmentValues.GetAccessibilityReduceMotion(owner);
             IReadOnlyList<StrikeOp>? strike = null;
-            var (gradient, tint) = owner.Colours(spec, size.Width, ActualThemeVariant, time);
+            // the fade runs on the wall clock (a reduce-motion still has a frozen time)
+            var (gradient, tint) = owner.Colours(spec, size.Width, ActualThemeVariant, owner.TimeAt(SwiftDate.Now));
             IReadOnlyList<BubbleBurst>? rings = null;
             IReadOnlyCollection<(int, int)>? popped = null;
             if (fast)

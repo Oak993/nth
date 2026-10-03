@@ -271,6 +271,56 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090: under reduce motion the gem is still, so once the springs settle the knob asks for no more frames
+    public void Under_reduce_motion_the_knob_stops_asking_for_frames_once_settled() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(reduceMotion: true);
+        rig.Frame();
+        rig.Down(200);
+        for (var i = 0; i < 10; i++) rig.Frame();
+        Assert.True(rig.Frames.Pending > 0, "the springs ask for frames while they move");
+        rig.Up(200);
+        for (var i = 0; i < 90 && rig.Frames.Pending > 0; i++) rig.Frame();
+        Assert.Equal(24 + 500.0 / 3, rig.Slider.KnobX, 9);
+        Assert.Equal(0, rig.Frames.Pending);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // jewel-knob.html stepSlider: the knob may overshoot its end by 3 px while it springs, no more
+    public void The_knob_may_overshoot_the_end_by_three_pixels() => headless.OnUiThread(() =>
+    {
+        // a 600 px track: from the first stop the spring (0.22 s, 0.8) to the far end would overshoot about 4.6 px
+        using var rig = JewelFixtures.Rig(width: 600);
+        rig.Frame();
+        rig.Down(598); // the pointer target clamps to the last stop, 576
+        var most = 0.0;
+        for (var i = 0; i < 60; i++) { rig.Frame(); most = Math.Max(most, rig.Slider.KnobX); }
+        Assert.Equal(576 + 3, most, 9); // held at the room's edge
+        Assert.Equal(576, rig.Slider.KnobX, 6);
+        rig.Up(598);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090 (jewel-knob.html stepFade: reduce ? 0.2 : FADE): under reduce motion the knob, the liquid and the strike tint fade over 0.2 s
+    public void Under_reduce_motion_a_model_change_fades_over_two_tenths_of_a_second() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: 3, fast: true, brand: EffortBrand.Silver, fadeFrom: EffortBrand.Claude, reduceMotion: true);
+        var claude = JewelMaterial.For(EffortBrand.Claude);
+        var openAI = JewelMaterial.For(EffortBrand.Silver);
+        rig.Frame(0);
+        var effect = Assert.Single(rig.Slider.GetVisualDescendants().OfType<TrackEffect>());
+        rig.Frame(0.1);
+        Assert.Equal(JewelColor.Hex(JewelMaterial.Mix(claude, openAI, 0.5).Think.ColorC), JewelColor.Hex(rig.Slider.Material.Think.ColorC));
+        var now = effect.TimeAt(SwiftDate.Now);
+        Assert.Equal(0.5, effect.FadeAt(now), 3); // not a cut: the liquid and the tint are halfway too
+        var (_, tint) = effect.Colours(LiquidSpec.For(effect.Look), 200, Avalonia.Styling.ThemeVariant.Dark, now);
+        Assert.Equal(StrikeTint.Mix(StrikeTint.For(EffortBrand.Claude), StrikeTint.For(EffortBrand.Silver), 0.5), tint);
+        rig.Frame(0.1);
+        Assert.Same(openAI, rig.Slider.Material);
+        Assert.Equal(1, effect.FadeAt(effect.TimeAt(SwiftDate.Now)));
+    });
+
+    [Fact]
     [Trait("Decision", "ED-252")] // OD-0090 / OD-0084: the knob reads the lightning as the page's part()/shape()/orbAim() read it (A2 strikes with the Mix charge)
     public void The_knob_reads_the_strikes_signal_as_the_page_does()
     {

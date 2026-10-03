@@ -332,8 +332,9 @@ public static class JewelKnobShader
             if (clearFa > 0.0) {
                 float3 greenSample = glsPresetFluid(refractedP, t);
                 fcol = greenSample;
-                // the three dispersion samples differ only where the glass refracts (the same values elsewhere)
-                if (channelSplit > 0.0) {
+                // the three dispersion samples differ only where the glass refracts (the same values elsewhere); the CPU
+                // fallback takes the middle one only (u[6].w)
+                if (channelSplit > 0.0 && u[6].w < 0.5) {
                     fcol.r = glsPresetFluid(refractedP - normal * channelSplit, t).r;
                     fcol.b = glsPresetFluid(refractedP + normal * channelSplit, t).b;
                 }
@@ -455,7 +456,7 @@ internal sealed class JewelKnobRenderer
 {
     [ThreadStatic] private static Dictionary<(nint Context, int Size), JewelKnobRenderer>? pool;
 
-    /// <summary>Tests and evidence frames: the CPU renderer draws the GPU's 2x supersample too (off in the app).</summary>
+    /// <summary>Tests and evidence frames: the CPU renderer draws the GPU's path too (2x, every frame, all three samples).</summary>
     internal static bool SupersampleOnCpu { get; set; }
 
     /// <summary>The 1x size of a frame made for a 2x render (null when it was already at 1x).</summary>
@@ -473,12 +474,10 @@ internal sealed class JewelKnobRenderer
     private SKRect circleFor;
     private readonly nint block = Marshal.AllocHGlobal(JewelUniforms.ShaderBytes); // the uniforms' native copy, kept
     private readonly int size;
-    private readonly nint context;
 
     private JewelKnobRenderer(GRContext? gpu, int size)
     {
         this.size = size;
-        context = gpu?.Handle ?? 0;
         var info = new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Premul);
         surface = (gpu is not null ? SKSurface.Create(gpu, false, info) : null) ?? SKSurface.Create(info)
             ?? throw new InvalidOperationException("The Jewel knob's surface could not be made.");
@@ -500,10 +499,17 @@ internal sealed class JewelKnobRenderer
 
     private void Dispose() { surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
 
-    /// <summary>Draws one frame of the knob into <paramref name="canvas"/> over <paramref name="box"/>.</summary>
+    /// <summary>The GPU's frame: the shadows, the program at the frame's own size, filtered into the knob's box.</summary>
     public void Draw(SKCanvas canvas, float[] uniforms, SKRect box, float opacity)
     {
-        // the shadows, outside the knob's circle as CSS box-shadows are: the knob's own, then the lift's under the orb
+        Shadows(canvas, uniforms, box, opacity);
+        Program(surface, size, uniforms);
+        Blit(canvas, surface, size, box, opacity);
+    }
+
+    /// <summary>The shadows, outside the knob's circle as CSS box-shadows are: the knob's own, then the lift's.</summary>
+    internal void Shadows(SKCanvas canvas, float[] uniforms, SKRect box, float opacity)
+    {
         if (circleFor != box) { circle.Rewind(); circle.AddOval(box); circleFor = box; }
         float cx = box.MidX, cy = box.MidY, r = box.Width / 2;
         var dark = uniforms[21] > 0.5f;
@@ -520,16 +526,26 @@ internal sealed class JewelKnobRenderer
             canvas.DrawCircle(cx, cy + 7, r, liftFar);
         }
         canvas.Restore();
-        var target = surface.Canvas;
-        target.Clear(SKColors.Transparent);
+    }
+
+    /// <summary>Runs the program into <paramref name="target"/> (<paramref name="px"/> square).</summary>
+    internal void Program(SKSurface target, int px, float[] uniforms)
+    {
+        var c = target.Canvas;
+        c.Clear(SKColors.Transparent);
         Marshal.Copy(uniforms, 0, block, JewelUniforms.ShaderBytes / sizeof(float));
         var shader = JewelNative.Shader(JewelKnobShader.Effect, block, JewelUniforms.ShaderBytes);
         JewelNative.SetShader(program, shader);
         JewelNative.Release(shader);
-        target.DrawRect(new SKRect(0, 0, size, size), program);
+        c.DrawRect(new SKRect(0, 0, px, px), program);
         JewelNative.SetShader(program, 0);
-        var image = JewelNative.Snapshot(surface);
-        var matrix = SKMatrix.CreateScale(box.Width / size, box.Height / size).PostConcat(SKMatrix.CreateTranslation(box.Left, box.Top));
+    }
+
+    /// <summary>Draws <paramref name="source"/> (<paramref name="px"/> square) into the knob's box, filtered linearly.</summary>
+    internal void Blit(SKCanvas canvas, SKSurface source, int px, SKRect box, float opacity)
+    {
+        var image = JewelNative.Snapshot(source);
+        var matrix = SKMatrix.CreateScale(box.Width / px, box.Height / px).PostConcat(SKMatrix.CreateTranslation(box.Left, box.Top));
         var sampled = JewelNative.ImageShader(image, matrix);
         JewelNative.ReleaseImage(image);
         JewelNative.SetShader(blit, sampled);
@@ -537,6 +553,97 @@ internal sealed class JewelKnobRenderer
         blit.Color = SKColors.White.WithAlpha((byte)Math.Clamp(Math.Round(opacity * 255), 0, 255));
         canvas.DrawRect(box, blit);
         JewelNative.SetShader(blit, 0);
+    }
+}
+
+/// <summary>
+/// One knob on the CPU renderer (the software fallback, no GPU context; render thread only). The page's look costs too much
+/// there (measured p50 21 and 31 ms a frame at 1.5x and 2x display scale), so on the CPU only: the orb renders at 48 px at
+/// most, whatever the scale, and is filtered up into the knob; the gem's program runs every other frame (30 Hz), the frame
+/// between reusing its picture; the two dispersion samples at the rim are skipped (the middle one only); and the knob measures
+/// its own program: when the median of its last 16 runs exceeds 7 ms it steps the render size down (48, 40, 32, 24 px), and
+/// back up when the median falls under 2.5 ms. The shadows are drawn every frame (they follow the knob and its lift).
+/// </summary>
+internal sealed class JewelCpuKnob
+{
+    /// <summary>The render sizes it steps through, px.</summary>
+    internal static readonly int[] Sizes = [48, 40, 32, 24];
+
+    /// <summary>The program's median over 16 runs above which it steps down, and below which it steps back up, ms.</summary>
+    internal const double StepDown = 7, StepUp = 2.5;
+
+    [ThreadStatic] private static JewelCpuKnob? shared;
+
+    private SKSurface? surface;
+    private int size;
+    private long frames;
+    private readonly float[] scratch = new float[(JewelUniforms.Slots + 1) * 4];
+    private readonly double[] times = new double[16], sorted = new double[16];
+    private int filled, next;
+
+    /// <summary>A knob without its own state (a drawing made outside a slider).</summary>
+    internal static JewelCpuKnob Shared => shared ??= new JewelCpuKnob();
+
+    /// <summary>The step: an index into <see cref="Sizes"/>.</summary>
+    public int Level { get; private set; }
+
+    /// <summary>How many frames it has drawn, and how many of them ran the program.</summary>
+    public long Frames => frames;
+    public long Programs { get; private set; }
+
+    /// <summary>The size it last rendered at, px.</summary>
+    public int RenderedSize => size;
+
+    /// <summary>Its last picture of the gem (tests).</summary>
+    internal SKSurface? Picture => surface;
+
+    /// <summary>The render size for a frame: its 1x device size, at most this step's.</summary>
+    internal int SizeFor(float[] values)
+    {
+        var device = CpuSize(values)?.Size ?? (int)values[0];
+        return Math.Max(2, Math.Min(device, Sizes[Level]));
+    }
+
+    private static (int Size, double PerPx)? CpuSize(float[] values) => JewelKnobRenderer.CpuSize(values);
+
+    public void Draw(SKCanvas canvas, float[] values, SKRect box, float opacity)
+    {
+        var px = SizeFor(values);
+        var renderer = JewelKnobRenderer.For(null, px);
+        var fresh = surface is null || size != px;
+        if (fresh)
+        {
+            surface?.Dispose();
+            surface = SKSurface.Create(new SKImageInfo(px, px, SKColorType.Rgba8888, SKAlphaType.Premul))
+                ?? throw new InvalidOperationException("The Jewel knob's surface could not be made.");
+            size = px;
+        }
+        renderer.Shadows(canvas, values, box, opacity);
+        if (fresh || frames % 2 == 0)
+        {
+            Array.Copy(values, scratch, scratch.Length);
+            JewelUniforms.Resize(scratch, px, px / Math.Max(1, (double)values[3]));
+            scratch[27] = 1; // the middle sample only
+            var start = System.Diagnostics.Stopwatch.GetTimestamp();
+            renderer.Program(surface!, px, scratch);
+            Record(System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds);
+            Programs++;
+        }
+        frames++;
+        renderer.Blit(canvas, surface!, px, box, opacity);
+    }
+
+    /// <summary>One program run's time, ms; steps the size when the median of 16 calls for it.</summary>
+    internal void Record(double ms)
+    {
+        times[next] = ms; next = (next + 1) % times.Length;
+        if (++filled < times.Length) return;
+        Array.Copy(times, sorted, times.Length);
+        Array.Sort(sorted);
+        var median = (sorted[7] + sorted[8]) / 2;
+        if (median > StepDown && Level < Sizes.Length - 1) { Level++; filled = 0; }
+        else if (median < StepUp && Level > 0) { Level--; filled = 0; }
+        else filled = times.Length - 1; // a sliding window
     }
 }
 
@@ -604,28 +711,47 @@ internal static class JewelNative
     public static void ReleaseImage(nint image) { if (image != 0) sk_image_unref(image); }
 }
 
-/// <summary>One frame of the knob, its values fixed on the UI thread, drawn on the render thread.</summary>
-internal sealed class JewelKnobOperation(Rect bounds, Rect box, float[] values) : ICustomDrawOperation
+/// <summary>
+/// One frame of the knob, its values fixed on the UI thread, drawn on the render thread. A slider's view keeps a few and
+/// takes one back when Avalonia disposes it (Avalonia disposes a drawing operation only once it will not be drawn again:
+/// on the UI thread before it is sent, on the render thread when the next frame's drawing replaces it), so a frame makes
+/// no new operation or uniform block.
+/// </summary>
+internal sealed class JewelKnobOperation : ICustomDrawOperation
 {
-    public Rect Bounds { get; } = bounds;
+    private readonly Action<JewelKnobOperation>? giveBack;
+    private int given;
+
+    public JewelKnobOperation(Rect bounds, Rect box, float[] values, JewelCpuKnob? cpu = null, Action<JewelKnobOperation>? giveBack = null)
+    {
+        Bounds = bounds; Box = box; Values = values; Cpu = cpu; this.giveBack = giveBack;
+    }
+
+    public Rect Bounds { get; private set; }
+    public Rect Box { get; private set; }
+    public float[] Values { get; }
+    public JewelCpuKnob? Cpu { get; }
+
+    /// <summary>Makes a returned operation the next frame's.</summary>
+    internal void Reuse(Rect bounds, Rect box, float[] values)
+    {
+        Bounds = bounds; Box = box;
+        Array.Copy(values, Values, Values.Length);
+        Volatile.Write(ref given, 0);
+    }
+
     public bool HitTest(Point p) => false;
     public bool Equals(ICustomDrawOperation? other) => false;
-    public void Dispose() { }
+    public void Dispose() { if (Interlocked.Exchange(ref given, 1) == 0) giveBack?.Invoke(this); }
 
     public void Render(ImmediateDrawingContext context)
     {
         var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()
             ?? throw new InvalidOperationException("The Jewel knob needs the Skia renderer (ISkiaSharpApiLeaseFeature).");
         using var lease = feature.Lease();
-        var size = (int)values[0];
-        // the CPU renderer (no GPU context): the knob at 1x, not 2x (a 48 px knob's program costs 4x less; OD-0090's bounded
-        // per-frame cost on the software fallback); the GPU draws the page's 2x supersample
-        if (lease.GrContext is null && !JewelKnobRenderer.SupersampleOnCpu && JewelKnobRenderer.CpuSize(values) is { } cpu)
-        {
-            JewelUniforms.Resize(values, cpu.Size, cpu.PerPx);
-            size = cpu.Size;
-        }
-        JewelKnobRenderer.For(lease.GrContext, size).Draw(lease.SkCanvas, values,
-            new SKRect((float)box.Left, (float)box.Top, (float)box.Right, (float)box.Bottom), (float)lease.CurrentOpacity);
+        var box = new SKRect((float)Box.Left, (float)Box.Top, (float)Box.Right, (float)Box.Bottom);
+        var opacity = (float)lease.CurrentOpacity;
+        if (lease.GrContext is null && !JewelKnobRenderer.SupersampleOnCpu) (Cpu ?? JewelCpuKnob.Shared).Draw(lease.SkCanvas, Values, box, opacity);
+        else JewelKnobRenderer.For(lease.GrContext, (int)Values[0]).Draw(lease.SkCanvas, Values, box, opacity);
     }
 }

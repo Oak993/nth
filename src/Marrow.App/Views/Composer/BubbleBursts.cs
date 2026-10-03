@@ -155,13 +155,16 @@ public sealed class BubbleBursts
             if (u < 0.6) Pool(ops, tint, b.X, b.Y, r0 + 5 * g.K, 0.34 * Math.Pow(1 - u / 0.6, 2));
             int m = 3 + b.N % 2;
             double e2 = 1 - (1 - u) * (1 - u), ga = Math.Pow(1 - u, 2) * 0.95;
+            // one path of m discs filled once, as the engine fills them (overlapping glints do not add up)
+            var discs = new double[m * 3];
             for (var j = 0; j < m; j++)
             {
                 var an = b.Rot + j * 2 * Math.PI / m + (Strike.Hash(b.N, j) - 0.5) * 0.9;
                 var d = r0 + (2.5 + 4 * Strike.Hash(b.N, j + 7)) * sk * e2;
-                var sz = (0.6 + 0.45 * Strike.Hash(b.N, j + 13)) * (1 - 0.5 * u) * Math.Max(0.8, g.K);
-                ops.Add(StrikeOp.Disc(b.X + d * Math.Cos(an), b.Y + d * Math.Sin(an), sz, tint.Inner, Strike.Fixed3(ga)));
+                discs[j * 3] = b.X + d * Math.Cos(an); discs[j * 3 + 1] = b.Y + d * Math.Sin(an);
+                discs[j * 3 + 2] = (0.6 + 0.45 * Strike.Hash(b.N, j + 13)) * (1 - 0.5 * u) * Math.Max(0.8, g.K);
             }
+            ops.Add(StrikeOp.Discs(discs, tint.Inner, Strike.Fixed3(ga)));
         }
 
         static void Pool(List<StrikeOp> ops, StrikeTint tint, double x, double y, double r, double a)
@@ -183,15 +186,20 @@ public sealed class BubbleBursts
         return (rr, n, b.Rot + 0.35 * e + gap / 2, span, gap, Math.Max(0.45, 1.25 - 0.8 * u), al);
     }
 
+    [ThreadStatic] private static SKPaint? ringPaint;
+    [ThreadStatic] private static SKPath? ringPath;
+
     /// <summary>Draws the rings at <paramref name="t"/> (render thread): on a pale liquid the neutral arcs 1.4 px wider at
     /// .5 al ink under the white ones.</summary>
     public static void DrawRings(SKCanvas canvas, IReadOnlyList<BubbleBurst> rings, double k, double t, double ink)
     {
         if (rings.Count == 0) return;
-        using var paint = new SKPaint { Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
-        using var path = new SKPath();
-        foreach (var b in rings)
+        // the render thread's own paint and path, kept (no managed objects a frame, ED-252)
+        var paint = ringPaint ??= new SKPaint { Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
+        var path = ringPath ??= new SKPath();
+        for (var r = 0; r < rings.Count; r++)
         {
+            var b = rings[r];
             if (Ring(b, k, t) is not { } ring) continue;
             path.Rewind();
             var oval = new SKRect((float)(b.X - ring.Radius), (float)(b.Y - ring.Radius), (float)(b.X + ring.Radius), (float)(b.Y + ring.Radius));

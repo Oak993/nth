@@ -93,7 +93,7 @@ public sealed record StrikeGeometry(double Width, double Height, double Knob, do
     public double CapEnd => Height * 0.32;
 }
 
-/// <summary>A stroke, a light pool, or (OD-0078) a burst's glint: a filled disc.</summary>
+/// <summary>A stroke, a light pool, or (OD-0078) a burst's glints: discs filled as one path.</summary>
 public enum StrikeOpKind { Stroke, Wash, Disc }
 
 /// <summary>
@@ -122,8 +122,8 @@ public sealed class StrikeOp
 
     public static StrikeOp Wash(double x, double y, double rx, double ry, double alpha, SKColor color) => new(StrikeOpKind.Wash, [], 0, color, alpha, x, y, rx, ry);
 
-    /// <summary>OD-0078: a burst's glint, a disc of radius <paramref name="r"/> at (x, y) in a colour at an alpha.</summary>
-    public static StrikeOp Disc(double x, double y, double r, SKColor color, double alpha) => new(StrikeOpKind.Disc, [], 0, color, alpha, x, y, r, r);
+    /// <summary>OD-0078: a burst's glints, discs (x, y, r triples) filled once as one path in a colour at an alpha.</summary>
+    public static StrikeOp Discs(double[] discs, SKColor color, double alpha) => new(StrikeOpKind.Disc, discs, 0, color, alpha, 0, 0, 0, 0);
 }
 
 /// <summary>The canvas's strike maths (strikeAt, hash, vn, fbm, the pulses, the leader's steps, the spark's timing).</summary>
@@ -285,7 +285,9 @@ public static class Strike
             {
                 fill.Shader = null;
                 fill.ColorF = new SKColorF(op.Color.Red / 255f, op.Color.Green / 255f, op.Color.Blue / 255f, (float)op.Alpha);
-                canvas.DrawCircle((float)op.X, (float)op.Y, (float)op.Rx, fill);
+                path.Rewind();
+                for (var i = 0; i + 2 < op.Points.Length; i += 3) path.AddCircle((float)op.Points[i], (float)op.Points[i + 1], (float)op.Points[i + 2]);
+                canvas.DrawPath(path, fill); // non-zero fill: where glints overlap, once
             }
             else
             {

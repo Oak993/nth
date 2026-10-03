@@ -156,6 +156,21 @@ public sealed class EffortSliderJewelBurstTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-252")] // drawBubbles fills a burst's glints as one path: where two overlap the light is the same, never added
+    public void A_bursts_glints_are_filled_once()
+    {
+        using var bitmap = new SKBitmap(new SKImageInfo(40, 20, SKColorType.Rgba8888, SKAlphaType.Premul));
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.Transparent);
+            Strike.Render(canvas, [StrikeOp.Discs([10, 10, 4, 14, 10, 4, 30, 10, 3], new SKColor(255, 222, 204), 0.5)]);
+        }
+        var single = bitmap.GetPixel(30, 10).Alpha;
+        Assert.InRange(single, 120, 135);                 // 0.5 of the way
+        Assert.Equal(single, bitmap.GetPixel(12, 10).Alpha); // inside both discs: the same, not 0.75
+    }
+
+    [Fact]
     [Trait("Decision", "ED-252")] // strike-engine.js orbGeo: the exit is the first vertex at or past the knob's radius less half a pixel
     public void The_bolts_exit_is_where_its_channel_crosses_the_rim_less_half_a_pixel()
     {
