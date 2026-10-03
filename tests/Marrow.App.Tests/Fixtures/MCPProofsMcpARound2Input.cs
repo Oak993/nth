@@ -64,6 +64,7 @@ public static class MCPProofsMcpARound2Input
         if (TopLevel.GetTopLevel(control) is not Avalonia.Controls.Window)
         {
             if (control.Parent is Avalonia.Controls.Primitives.Popup popup) popup.Child = null;
+            PopoverCardContent.Lift(control); // a popover's view comes off the card the presenter hung it on
             new Avalonia.Controls.Window { Width = 800, Height = 800, Content = control }.Show();
         }
         if (!entered) { MoveAway(control); return; }

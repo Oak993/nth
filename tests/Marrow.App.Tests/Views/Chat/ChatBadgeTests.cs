@@ -109,7 +109,7 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
             coordinator.Show(content);
 
             var popup = Assert.Single(presenter.Calls).Popup;
-            var fixedFrame = Assert.IsType<Border>(popup.Child);
+            var fixedFrame = Assert.IsType<Border>(PopoverHost.Content(popup)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             Assert.Equal(123, fixedFrame.Width);
             Assert.Equal(77, fixedFrame.Height);
 
@@ -125,7 +125,7 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
             fallback.Show(new Border { Width = 0, Height = 0 });
 
             var fallbackPopup = Assert.Single(presenter.Calls.Where(call => call.Presented).Skip(1)).Popup;
-            var fallbackFrame = Assert.IsType<Border>(fallbackPopup.Child);
+            var fallbackFrame = Assert.IsType<Border>(PopoverHost.Content(fallbackPopup));
             Assert.Equal(460, fallbackFrame.Width);
             Assert.Equal(320, fallbackFrame.Height);
             window.Close();
@@ -166,7 +166,7 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
 
             coordinator.Show(new QuestionSheet(request, null!));
 
-            var frame = Assert.IsType<Border>(Assert.Single(presenter.Calls).Popup.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(Assert.Single(presenter.Calls).Popup));
             Assert.Equal(expected.Width, frame.Width);
             Assert.Equal(expected.Height, frame.Height);
             coordinator.Close();

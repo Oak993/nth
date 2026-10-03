@@ -32,6 +32,7 @@ internal static class ChatSheetPresentation
                 ?? (Control?)anchor.GetVisualAncestors().OfType<ChatChromeRow>().FirstOrDefault() ?? anchor;
         var presenter = Presentation.Presenter.Current;
         var popup = new Popup { PlacementTarget = anchor, Placement = PlacementMode.Center, IsLightDismissEnabled = false };
+        PopoverHost.SetIsSheet(popup, true); // a SwiftUI .sheet: no popover tip (OD-0095), ED-238's panel on its top-level
         var closed = false;
         EventHandler<VisualTreeAttachmentEventArgs>? detached = null;
         void Cleanup()

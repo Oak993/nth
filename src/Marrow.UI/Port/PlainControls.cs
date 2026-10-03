@@ -170,7 +170,7 @@ public static class PlainControls
         };
         popup.Opened += (_, _) =>
         {
-            if (popup.Child is DeferredPopoverContent) popup.Child = content();
+            if (PopoverHost.Content(popup) is DeferredPopoverContent) popup.Child = content(); // OD-0095: the presenter may have hung it on its card
             else popup.Child ??= content();
         };
         popup.Closed += (_, _) =>

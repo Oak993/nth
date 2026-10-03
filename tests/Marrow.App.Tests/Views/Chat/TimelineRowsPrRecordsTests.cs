@@ -1781,7 +1781,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         h.Main.OnMain(() =>
         {
             var shown = Assert.Single(presenter.Calls, call => call.Presented);
-            Assert.IsType<MessageEditor>(shown.Popup.Child);
+            Assert.IsType<MessageEditor>(PopoverHost.Content(shown.Popup));
             Assert.Equal(1, HoverLine080(row!).Opacity); // editing keeps the line up without a hover
             Click(window!, Assert.Single(HoverLine080(row!).GetVisualDescendants().OfType<Button>()));
             Assert.Null(h.Runtime.MessageEdit);

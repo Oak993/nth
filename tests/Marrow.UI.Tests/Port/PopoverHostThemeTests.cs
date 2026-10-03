@@ -100,19 +100,23 @@ public sealed class PopoverHostThemeTests(HeadlessSession headless)
             var secondary = new TextBlock { Text = "Select model" };
             secondary.Foreground = Marrow.UI.Chrome.Chrome.SecondaryText.Brush(secondary);
             var plain = new TextBlock { Text = "Opus" }; // no colour of its own: labelColor from the top-level's default
-            using var root = HeadlessPopupHost.Open(popup, window, new StackPanel { Children = { secondary, plain } });
+            // OD-0095: the panel is drawn by the card the presenter hangs the content on (one outline with its tip).
+            var card = Assert.IsType<PopoverCard>(popup.Child);
+            popup.Child = null;
+            card.Child = new StackPanel { Children = { secondary, plain } };
+            using var root = HeadlessPopupHost.Open(popup, window, card);
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(ThemeVariant.Dark, root.ActualThemeVariant);
-            Assert.Equal(DarkPanel, Drawn(root.Background));
-            Assert.Equal(new SwiftColor(white: 1, opacity: 0.2).Resolve(ThemeVariant.Dark), Drawn(root.BorderBrush)); // Panels / Dark: border 1 px #FFFFFF@0.2
-            Assert.Equal(new Thickness(1), root.BorderThickness);
+            Assert.Equal(DarkPanel, Drawn(card.Background));
+            Assert.Equal(new SwiftColor(white: 1, opacity: 0.2).Resolve(ThemeVariant.Dark), Drawn(card.BorderBrush)); // Panels / Dark: border 1 px #FFFFFF@0.2
+            Assert.Null(root.Background); // the top-level is clear around the card's tip, with no fill to take a press (OD-0095)
             Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(ThemeVariant.Dark), Drawn(secondary.Foreground)); // white, not black, at 0.7
             Assert.Equal(SwiftColor.LabelColor.Resolve(ThemeVariant.Dark), Drawn(plain.Foreground));
 
             setAppearance(ThemeVariant.Light);
             Assert.Equal(ThemeVariant.Light, root.ActualThemeVariant);
-            Assert.Equal(LightPanel, Drawn(root.Background));
+            Assert.Equal(LightPanel, Drawn(card.Background));
             Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(ThemeVariant.Light), Drawn(secondary.Foreground));
             Assert.Equal(SwiftColor.LabelColor.Resolve(ThemeVariant.Light), Drawn(plain.Foreground));
         });
@@ -128,12 +132,15 @@ public sealed class PopoverHostThemeTests(HeadlessSession headless)
             Presentation.Presenter.Current.SetPresented(popup, true);
             Dispatcher.UIThread.RunJobs();
             var plain = new TextBlock { Text = "Opus" };
-            using var root = HeadlessPopupHost.Open(popup, window, plain);
+            var card = Assert.IsType<PopoverCard>(popup.Child); // OD-0095: the card draws the panel
+            popup.Child = null;
+            card.Child = plain;
+            using var root = HeadlessPopupHost.Open(popup, window, card);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(ThemeVariant.Light, root.ActualThemeVariant);
-            Assert.Equal(LightPanel, Drawn(root.Background));
-            Assert.Equal(SwiftColor.Clear.Resolve(ThemeVariant.Light), Drawn(root.BorderBrush)); // Panels / Light draws no edge, only the window manager's shadow
-            Assert.Equal(new Thickness(1), root.BorderThickness);
+            Assert.Equal(LightPanel, Drawn(card.Background));
+            Assert.Equal(SwiftColor.Clear.Resolve(ThemeVariant.Light), Drawn(card.BorderBrush)); // Panels / Light draws no edge, only the window manager's shadow
+            Assert.Equal(new Thickness(0), root.BorderThickness);
             Assert.Equal(SwiftColor.LabelColor.Resolve(ThemeVariant.Light), Drawn(plain.Foreground));
         });
     });

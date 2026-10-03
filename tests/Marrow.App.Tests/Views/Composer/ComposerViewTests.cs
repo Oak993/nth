@@ -1321,7 +1321,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         var (popup, presented) = presenter.Calls[^1];
         Assert.True(presented);
-        return Assert.IsType<Border>(popup.Child);
+        return Assert.IsType<Border>(PopoverHost.Content(popup)); // the site's frame, not the card the presenter hangs it on (OD-0095)
     }
 
     private static string HeaderText(Control menu) => Assert.IsType<TextBlock>(One<PopoverSectionHeader>(menu).Child).Text!;
@@ -3249,7 +3249,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
                 var title=LogicalQuery.SelfAndDescendants<TextBlock>(popup.Child!).Single(t=>t.Text=="Usage"); Assert.Equal(12,title.FontSize); Assert.Equal(FontWeight.SemiBold,title.FontWeight); Assert.Equal(Chrome.SecondaryText.Resolve(title.ActualThemeVariant),Assert.IsAssignableFrom<ISolidColorBrush>(title.Foreground).Color);
                 var header=Assert.IsType<Grid>(title.GetLogicalParent()); Assert.Equal(new Thickness(16,10,16,0),header.Margin); Assert.Equal(8,header.ColumnDefinitions[1].MinWidth);
                 var panel=One<UsagePanel>(popup.Child!); var frame=Assert.IsType<Border>(panel.Child); Assert.Equal(360,frame.Width); Assert.Equal(new Thickness(16),frame.Padding);
-                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(popup.Child!)); Assert.Equal(ThemeManager.Spec.Accent,Popovers.GetTint(popup.Child!)); Click(One<Button>(meter));
+                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(PopoverHost.Content(popup)!)); Assert.Equal(ThemeManager.Spec.Accent,Popovers.GetTint(PopoverHost.Content(popup)!)); Click(One<Button>(meter));
             }); Pump(h,window); Assert.False(presenter.Calls[^1].Presented); Close(h,window);
         });
     }

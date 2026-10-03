@@ -129,7 +129,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
         try
         {
             LinkPopover.Shared.Show(SwiftURL.Create("https://example.com/x")!, null, new Rect(0, 0, 10, 10), anchor);
-            var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             var content = (LinkPopoverContent)frame.Child!;
             content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity)); // the same constraint Show() itself used
             Assert.Equal(content.DesiredSize.Width, frame.Width);
@@ -154,7 +154,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
         try
         {
             LinkPopover.Shared.Show(url, null, new Rect(0, 0, 10, 10), anchor);
-            var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             var content = (LinkPopoverContent)frame.Child!;
             var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
             Assert.Equal(2, stack.Children.Count); // Open Link, Copy Link only - no Merge row, no divider
@@ -270,7 +270,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
         {
             LinkPopover.Shared.Show(url, target, new Rect(0, 0, 10, 10), anchor);
             // SetFixedContent wraps the content in a clipping frame Border (Popovers.cs SetFixedContent).
-            var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             var content = (LinkPopoverContent)frame.Child!;
             var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
             var mergeButton = (Button)((PopoverItem)stack.Children[0]).Child!;

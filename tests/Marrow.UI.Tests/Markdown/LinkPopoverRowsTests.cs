@@ -46,7 +46,7 @@ public sealed class LinkPopoverRowsTests(HeadlessSession headless)
     // The rows of the content the shared popover is showing, as the popup holds them.
     private static List<Control> ShownRows()
     {
-        var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+        var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
         var content = Assert.IsType<LinkPopoverContent>(frame.Child);
         return Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child).Children.ToList();
     }

@@ -32,7 +32,7 @@ public static class PopoverAppear
     public static void Play(Control content, PlacementMode placement)
     {
         if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) return; // a site's own transform is kept
-        content.RenderTransformOrigin = Origin(placement);
+        content.RenderTransformOrigin = Origin(content, placement);
         var scale = new ScaleTransform(StartScale, StartScale);
         content.RenderTransform = scale;
         content.Opacity = 0;
@@ -64,7 +64,7 @@ public static class PopoverAppear
     public static Action Dismiss(Control content, PlacementMode placement, Action closed)
     {
         if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) { closed(); return () => { }; }
-        content.RenderTransformOrigin = Origin(placement);
+        content.RenderTransformOrigin = Origin(content, placement);
         var from = content.RenderTransform is ScaleTransform current ? current.ScaleX : 1;
         var scale = new ScaleTransform(from, from);
         content.RenderTransform = scale;
@@ -101,6 +101,11 @@ public static class PopoverAppear
             content.Opacity = 1;
         };
     }
+
+    // OD-0095: a popover on its card grows out of the card's tip, wherever it stands (the card may have flipped); any
+    // other content from the side facing its anchor.
+    private static RelativePoint Origin(Control content, PlacementMode placement) =>
+        content is PopoverCard card ? card.TipOrigin : Origin(placement);
 
     internal static RelativePoint Origin(PlacementMode placement) => placement switch
     {

@@ -89,7 +89,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
     private static Control OpenContent(Popup popup)
     {
         ((EventHandler)typeof(Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup)!).Invoke(popup, EventArgs.Empty);
-        return Assert.IsAssignableFrom<Control>(popup.Child);
+        return Assert.IsAssignableFrom<Control>(PopoverHost.Content(popup)); // the site's view, not the card the presenter hangs it on (OD-0095)
     }
 
     [Theory]

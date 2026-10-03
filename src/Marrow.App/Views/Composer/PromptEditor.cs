@@ -416,7 +416,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
             popup.Closed += (_, _) => presented = false;
             popup.LayoutUpdated += (_, _) =>
             {
-                if (popup.Child is { } currentContent)
+                if (PopoverHost.Content(popup) is { } currentContent) // the hosted view, not the card it hangs on (OD-0095)
                     ResizeToContent(popup, currentContent, initial: false);
             };
             shownPopup = popup;
@@ -452,6 +452,10 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
             size = content.DesiredSize;
         }
         if (size.Width <= 0 || size.Height <= 0) return;
+        // OD-0095: the popover hangs on its tipped card when it opens; the popup takes the card's room as well as the
+        // content's size, every time it is measured.
+        var room = PopoverHost.Room(popup);
+        size = new Size(size.Width + room.Width, size.Height + room.Height);
 
         if (initial || !popupSized)
         {

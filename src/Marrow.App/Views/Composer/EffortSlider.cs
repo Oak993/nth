@@ -84,7 +84,10 @@ public sealed class ModelEffortButton : Decorator
         var presented = false;
         double? naturalWidth = null;
         double? lockedWidth = null;
-        var popup = new Popup { Placement = PlacementMode.Bottom, IsLightDismissEnabled = true };
+        // :120 .popover(isPresented:arrowEdge: .bottom): the reference runtime opens it ABOVE the chip, its arrow on the
+        // card's bottom edge (2-chat-use.mov 33.74-33.94 s; the main window's other arrowEdge .bottom menus open above
+        // with room below, 19.28 s, 21.73 s). Without room above, the positioner flips it below (FlipY, the default).
+        var popup = new Popup { Placement = PlacementMode.Top, IsLightDismissEnabled = true };
         Button button = null!;
         button = PlainControls.Button(frame, () =>
         {
@@ -108,6 +111,7 @@ public sealed class ModelEffortButton : Decorator
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         Child = button;
         ProviderRegistry registry = null!; // :60 `let registry = model.providers`, set by every body evaluation below
+        TextBlock? shownName = null, shownEffort = null;
         this.Track(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
@@ -119,6 +123,8 @@ public sealed class ModelEffortButton : Decorator
         {
             var (model, currentThread, current, pair) = snapshot;
             registry = model.Providers;
+            var (oldName, oldEffort) = (shownName, shownEffort);
+            (shownName, shownEffort) = (null, null);
             frame.Children.Clear();
             Control mark = pair is null
                 ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 real provider artwork from Components.
@@ -133,10 +139,12 @@ public sealed class ModelEffortButton : Decorator
             {
                 var name = EffortView.Text(pair?.CustomName ?? current?.ChipName ?? currentThread.Model ?? currentThread.Provider.DisplayName, SwiftFont.Callout, Chrome.PrimaryText);
                 name.TextTrimming = TextTrimming.CharacterEllipsis; Grid.SetColumn(name, 2); frame.Children.Add(name); // :90-94
+                CrossFade(frame, oldName, name, 2); shownName = name;
                 if (current is { Efforts.Count: > 0 })
                 {
                     var effort = EffortView.Text(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""), SwiftFont.Callout, Chrome.PrimaryText.Opacity(0.72));
                     effort.Margin = new Thickness(5, 0, 0, 0); Grid.SetColumn(effort, 3); frame.Children.Add(effort); // :95-99
+                    CrossFade(frame, oldEffort, effort, 3); shownEffort = effort;
                 }
                 var chevron = SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText);
                 chevron.Margin = new Thickness(5, 0, 0, 0); Grid.SetColumn(chevron, 4); frame.Children.Add(chevron); // :101-103
@@ -150,6 +158,34 @@ public sealed class ModelEffortButton : Decorator
         // never looks the environment up, so a task left queued by a chip that has since left the tree still has it.
         this.Task(() => thread.Provider, async provider => await registry.LoadCatalog(provider)); // :138
         // :125-137 capture-only anchor/frame sites remain outside the shipped path (ED-001).
+    }
+
+    // :90-99 plain Texts: a change made inside an animation (the slider's withAnimation(.snappy(duration: 0.2)), :631)
+    // cross-fades the old text into the new one in place, SwiftUI's default for a Text without a content transition.
+    // Reference runtime, 2-chat-use.mov 34.84-34.97 s: the chip's "Sonnet High" fades under "S... Extra High", the new
+    // text's weight 0.37, 0.66, 0.80, 0.90, 0.96 at 27, 49, 69, 90 and 112 ms. The old text keeps its laid-out width (so
+    // its own truncation) and takes no room: it sits in a sizeless layer over its cell until it has faded. ENGINEERING
+    // DECISION, fitted to those five frames (worst 0.02): the fade runs the change's own curve 13 ms ahead (on the curve
+    // alone it trailed the video by about a frame: 0.22 and 0.50 at 27 and 49 ms).
+    internal const double FadeLead = 0.013;
+
+    private static void CrossFade(Grid frame, TextBlock? old, TextBlock fresh, int column)
+    {
+        if (Transaction.Current is not { } change || old is null || old.Text == fresh.Text || old.Bounds.Width <= 0) return;
+        var animation = change.Delay(-FadeLead); // ahead: at the change's moment already FadeLead into the curve
+        var width = old.Bounds.Width;
+        var height = old.Bounds.Height;
+        old.Width = width;
+        var from = old.Opacity; // a text still fading in when the next change comes fades out from where it was
+        var layer = new Canvas { Height = height, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false, Children = { old } };
+        Grid.SetColumn(layer, column);
+        frame.Children.Add(layer);
+        EffortView.Animate(old, animation, progress => // replaces the fade-in it may still be running
+        {
+            old.Opacity = from * (1 - Math.Clamp(progress, 0, 1));
+            if (progress >= 1) frame.Children.Remove(layer);
+        });
+        EffortView.Animate(fresh, animation, progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
     }
 }
 
@@ -469,7 +505,10 @@ public sealed class EffortSliderCard : Decorator
         header.Children.Add(sides);
         var centre = new StackPanel { Spacing = 2, Margin = new Thickness(44, 0), HorizontalAlignment = HorizontalAlignment.Center };
         // :573-574 Text(verbatim: title).font(.system(.title2, weight: .medium)).contentTransition(.numericText())
-        var title = new MorphingTextBlock { Text = "", MaxLines = 1, VerticalAlignment = VerticalAlignment.Center };
+        // :566-567 the title row is centred in the card's VStack: new letters appear where they settle (GrowthAnchor).
+        // DEVIATION OD-0094 (owner ruling): a gradient title (a pair, the brand at maximum, maximum with fast mode's gold)
+        // drifts along its letters at rest, once round its mirrored loop in 7 s; a single colour stays (MorphingTextBlock).
+        var title = new MorphingTextBlock { Text = "", MaxLines = 1, VerticalAlignment = VerticalAlignment.Center, GrowthAnchor = 0.5, DriftPeriod = 7 };
         SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium).Apply(title);
         title.Foreground = Chrome.PrimaryText.Brush(title);
         var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { title } };
@@ -478,6 +517,9 @@ public sealed class EffortSliderCard : Decorator
         var titleFill = new AnimatedColor(titlePlate); titlePlate.Background = titleFill.Brush;
         var titleButton = PlainControls.Button(titlePlate, () => onTitleTap?.Invoke()); // :568-597
         titleButton.IsEnabled = onTitleTap is not null;
+        // :589 .buttonStyle(.plain) draws its label unclipped: the title's leaving letters, carried right past the chevron
+        // as the label narrows, fade there (reference runtime, 2-chat-use.mov 35.12-35.29 s).
+        titleButton.ClipToBounds = false;
         titleButton.OnHover(hovering => titleFill.Set(hovering && onTitleTap is not null ? Chrome.Overlay(0.08) : SwiftColor.Clear, Chrome.Hover));
         ToolTip.SetTip(titleButton, onTitleTap is null ? "" : "Choose a model");
         titleButton.HorizontalAlignment = HorizontalAlignment.Center; // :567 a VStack centres each child at its own width, so the hover plate fits the title
@@ -520,22 +562,39 @@ public sealed class EffortSliderCard : Decorator
         }
         Child = new Border { Padding = new Thickness(16, 14, 16, 16), Child = rows }; // :653-655
         string? previousTitle = null;
+        var previousMaximum = false;
+        var previousFast = false;
         this.Track(() => (ResolvedIndex(), supportsFast && fastMode.Value, ActualThemeVariant), value =>
         {
             var (index, fast, theme) = value;
             var maximum = efforts.Count > 1 && index == efforts.Count - 1; // :527-529
             var nextTitle = efforts.Count == 0 ? "Standard" : ModelOption.EffortTitle(efforts[index]);
-            // :574 .contentTransition(.numericText()): inside the change's animation (the slider's
-            // withAnimation(.snappy(duration: 0.2)), :631) the letters morph; outside one the text simply changes.
-            title.SetText(nextTitle, previousTitle is null ? null : Transaction.Current);
+            // :574 .contentTransition(.numericText()) morphs the title inside the change's animation (the slider's
+            // withAnimation(.snappy(duration: 0.2)), :631). :582-583 .animation(.smooth(duration: 0.3), value: isMaxEffort)
+            // and (value: isFast): a change into or out of maximum, or one that turns fast mode on or off, runs the title's
+            // HStack (the morph, the label's width, the chevron) on smooth(0.3) whatever the transaction around it, the
+            // slider's or none (onReset, :219-224); the reference video's chevron follows smooth(0.3) there and snappy(0.2)
+            // elsewhere (ED-238 final round 5). DEVIATION OD-0076 (owner ruling: every change transitioned, never cut): a
+            // change the Mac makes with no animation (onReset from an effort neither maximum nor fast) still morphs, in the
+            // title's own motion, :582's smooth(0.3); OD-0076's reduce-motion clause cuts that added transition.
+            var animation = previousTitle is null ? null
+                : maximum != previousMaximum || fast != previousFast ? Animation.Smooth(duration: 0.3)
+                : Transaction.Current ?? (EnvironmentValues.GetAccessibilityReduceMotion(this) ? null : Animation.Smooth(duration: 0.3));
+            var morphing = previousTitle is not null && previousTitle != nextTitle && animation is not null;
+            title.SetText(nextTitle, animation);
+            previousMaximum = maximum;
+            previousFast = fast;
             // :543-555 AnyShapeStyle is represented by Avalonia's brush; every literal colour comes from Swift.
             var titleBrush = pair is not null
                 ? EffortView.Gradient(new[] { brand.TitleColor }.Concat(pair.Brand.TitleColors).Concat(fast ? new[] { EffortPalette.Fast } : Array.Empty<SwiftColor>()), theme)
                 : maximum && fast ? EffortView.Gradient([brand.TitleColor, EffortPalette.Fast], theme)
                 : maximum ? EffortView.BrandTitle(brand, theme)
                 : (fast ? EffortPalette.Fast : EffortPalette.Title).Brush(title);
-            if (previousTitle is null) title.Foreground = titleBrush;
-            else EffortView.AnimateBrush(title, () => title.Foreground, brush => title.Foreground = brush, titleBrush, Animation.Smooth(0.3)); // :582-583
+            // :582-583 the colour fades over smooth 0.3 when only it changes (fast mode, the pair's heads); when the text
+            // morphs too, its leaving letters keep the old colour and the arriving ones wear the new one from their first
+            // frame (reference runtime, 2-chat-use.mov 35.10-35.21 s: an orange "M" beside the pink leaving "High").
+            if (previousTitle is null || morphing) EffortView.SetBrush(title, brush => title.Foreground = brush, titleBrush);
+            else EffortView.AnimateBrush(title, () => title.Foreground, brush => title.Foreground = brush, titleBrush, Animation.Smooth(0.3));
             previousTitle = nextTitle;
             if (efforts.Count == 0) return;
             // :626-637 keep the gesture's own binding alive; changes to look/title update it without replacing the dragging view.
@@ -951,6 +1010,13 @@ internal static class EffortView
             else frames.RequestFrame(tick!);
         };
         playback.Source = frames; playback.Tick = tick; frames.RequestFrame(tick);
+    }
+
+    // A brush set at once: any fade still running on the owner is stopped first, so it cannot overwrite it.
+    internal static void SetBrush(Control owner, Action<IBrush> apply, IBrush target)
+    {
+        if (playbacks.TryGetValue(owner, out var playback)) playback.Stop();
+        apply(target);
     }
 
     internal static void AnimateBrush(Control owner, Func<IBrush?> read, Action<IBrush> apply, IBrush target, Animation animation)

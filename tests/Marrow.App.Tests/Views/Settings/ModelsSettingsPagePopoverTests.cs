@@ -120,6 +120,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         rig.Main.OnMain(() =>
         {
             popup.Child = null;
+            PopoverCardContent.Lift(card); // the card the presenter hung the view on lets it go
             window = new AvaloniaWindow { Content = card, Width = 330, Height = 260 };
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -277,7 +278,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         Assert.True(popup.IsOpen);
         Assert.Same(block, popup.PlacementTarget);
         Assert.Equal(PlacementMode.Right, popup.Placement);
-        var card = Assert.IsType<EffortSliderCard>(popup.Child);
+        var card = Assert.IsType<EffortSliderCard>(Assert.IsType<Marrow.UI.Port.PopoverCard>(popup.Child).Child); // OD-0095: the presenter hangs it on the panel card
         Assert.Equal(330, card.Width);
         rig.Main.OnMain(() => ChooseLow(Assert.Single(LogicalQuery.SelfAndDescendants<EffortSlider>(card))));
         Assert.Equal("low", rig.Model.Settings.Preference(Pin.Provider, Pin.ModelID).Effort);
@@ -297,7 +298,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         rig.FinishAnimations();
         Assert.True(popup.IsOpen);
         Assert.Same(block, popup.PlacementTarget);
-        var reopened = Assert.IsType<EffortSliderCard>(popup.Child);
+        var reopened = Assert.IsType<EffortSliderCard>(Assert.IsType<Marrow.UI.Port.PopoverCard>(popup.Child).Child);
         Assert.NotSame(card, reopened);
         Assert.Contains(LogicalQuery.SelfAndDescendants<Button>(reopened), button => ToolTip.GetTip(button) is "Fast mode is on");
     }, realPopup: true);

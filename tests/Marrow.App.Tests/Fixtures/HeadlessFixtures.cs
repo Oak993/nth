@@ -103,7 +103,13 @@ public sealed class RecordingPresenter : IPopoverPresenter
 {
     public List<(Popup Popup, bool Presented)> Calls { get; } = [];
 
-    public void SetPresented(Popup popup, bool presented) => Calls.Add((popup, presented));
+    public void SetPresented(Popup popup, bool presented)
+    {
+        // What the real presenter does to a popup before it opens it (PopoverHost.Prepare: the panel class, the anchor's
+        // appearance, and OD-0095's tipped card round the content), so every site's tests run its content on the card.
+        if (presented) PopoverHost.Prepare(popup);
+        Calls.Add((popup, presented));
+    }
 }
 
 /// <summary>A tiny Avalonia logical-tree query (popover content is not in a visual tree while headless).</summary>

@@ -39,6 +39,7 @@ public static class MCPSettingsPageFixture
         ((Dictionary<string, MCPConnection>)typeof(MCPStore).GetField("connectionsField", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(model.Mcp)!)[connection.CatalogID] = connection;
     public static IDisposable Attach(Control control, AppModel model)
     {
+        PopoverCardContent.Lift(control); // a popover's view comes off the card the presenter hung it on
         AppEnvironment.SetAppModel(control, model);
         var window = new Avalonia.Controls.Window { Content = control, Width = 800, Height = 800 };
         window.Show(); Dispatcher.UIThread.RunJobs(); return new MCPSettingsWindowScope(window);

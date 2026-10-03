@@ -296,7 +296,7 @@ public sealed class LinkPopoverTests(HeadlessSession headless)
         {
             LinkPopover.Shared.Show(url, withMerge ? new MergeRequestTarget(Guid.NewGuid(), _ => { }) : null, new Rect(0, 0, 10, 10), anchor);
 
-            var frame = Assert.IsType<Border>(Assert.Single(recorder.Calls).Popup.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(Assert.Single(recorder.Calls).Popup)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             Assert.Equal(expected.Width, frame.Width);
             Assert.Equal(expected.Height, frame.Height);
         }

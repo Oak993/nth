@@ -293,7 +293,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             Assert.Equal(turn, edit.Id);
             Assert.Equal("same words", edit.Text);
             var shown = Assert.Single(presenter.Calls, call => call.Presented);
-            Assert.IsType<MessageEditor>(shown.Popup.Child);
+            Assert.IsType<MessageEditor>(PopoverHost.Content(shown.Popup));
             var pencil = Assert.Single(Mounted<Button>(HoverLine(row)));
             Assert.Same(Mounted<AttachmentAnchorCapture>((Visual)pencil.Parent!).Single(), shown.Popup.PlacementTarget);
             // :141 tinted while the editor is open; :161 the line stays visible even without the pointer.

@@ -176,7 +176,7 @@ public sealed class TimelineRowsFinMergeOutcomeTests(HeadlessSession headless)
                 Assert.Equal(PlacementMode.Bottom, popup.Placement);
                 var opened = Assert.IsAssignableFrom<System.Delegate>(typeof(Popup).GetField("Opened", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(popup));
                 opened.DynamicInvoke(popup, EventArgs.Empty);
-                var content = Assert.IsAssignableFrom<Control>(popup.Child);
+                var content = Assert.IsAssignableFrom<Control>(PopoverHost.Content(popup)); // the site's view, not the card the presenter hangs it on (OD-0095)
                 Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); // :1115, :1118 presentedChrome()
                 if (merge)
                 {
