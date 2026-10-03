@@ -111,8 +111,9 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
                 ("Extra High -> Max in the slider's snappy(0.2), into maximum", () => Slider("max"), smooth),
                 ("Max -> Extra High in the slider's snappy(0.2), out of maximum", () => Slider("xhigh"), smooth),
                 ("Extra High -> Medium in the slider's snappy(0.2)", () => Slider("medium"), snappy),
-                ("Medium -> High with fast mode turned on, in snappy(0.2)", () => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => { effort.Value = "high"; fast.Value = true; }), smooth),
-                ("High -> Max with no animation, into maximum", () => effort.Value = "max", smooth),
+                ("Medium -> Extra High with fast mode turned on, in snappy(0.2)", () => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => { effort.Value = "xhigh"; fast.Value = true; }), smooth),
+                ("Extra High -> Medium in fast mode, in snappy(0.2)", () => Slider("medium"), snappy),
+                ("Medium -> Max with no animation, into maximum", () => effort.Value = "max", smooth),
             };
             var seen = new List<string>();
             foreach (var (name, change, expected) in steps)

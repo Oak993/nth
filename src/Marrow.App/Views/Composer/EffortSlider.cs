@@ -562,15 +562,28 @@ public sealed class EffortSliderCard : Decorator
         }
         Child = new Border { Padding = new Thickness(16, 14, 16, 16), Child = rows }; // :653-655
         string? previousTitle = null;
+        var previousMaximum = false;
+        var previousFast = false;
         this.Track(() => (ResolvedIndex(), supportsFast && fastMode.Value, ActualThemeVariant), value =>
         {
             var (index, fast, theme) = value;
             var maximum = efforts.Count > 1 && index == efforts.Count - 1; // :527-529
             var nextTitle = efforts.Count == 0 ? "Standard" : ModelOption.EffortTitle(efforts[index]);
-            // :574 .contentTransition(.numericText()): inside the change's animation (the slider's
-            // withAnimation(.snappy(duration: 0.2)), :631) the letters morph; outside one the text simply changes.
-            var morphing = previousTitle is not null && previousTitle != nextTitle && Transaction.Current is not null;
-            title.SetText(nextTitle, previousTitle is null ? null : Transaction.Current);
+            // :574 .contentTransition(.numericText()) morphs the title inside the change's animation (the slider's
+            // withAnimation(.snappy(duration: 0.2)), :631). :582-583 .animation(.smooth(duration: 0.3), value: isMaxEffort)
+            // and (value: isFast): a change into or out of maximum, or one that turns fast mode on or off, runs the title's
+            // HStack (the morph, the label's width, the chevron) on smooth(0.3) whatever the transaction around it, the
+            // slider's or none (onReset, :219-224); the reference video's chevron follows smooth(0.3) there and snappy(0.2)
+            // elsewhere (ED-238 final round 5). DEVIATION OD-0076 (owner ruling: every change transitioned, never cut): a
+            // change the Mac makes with no animation (onReset from an effort neither maximum nor fast) still morphs, in the
+            // title's own motion, :582's smooth(0.3); OD-0076's reduce-motion clause cuts that added transition.
+            var animation = previousTitle is null ? null
+                : maximum != previousMaximum || fast != previousFast ? Animation.Smooth(duration: 0.3)
+                : Transaction.Current ?? (EnvironmentValues.GetAccessibilityReduceMotion(this) ? null : Animation.Smooth(duration: 0.3));
+            var morphing = previousTitle is not null && previousTitle != nextTitle && animation is not null;
+            title.SetText(nextTitle, animation);
+            previousMaximum = maximum;
+            previousFast = fast;
             // :543-555 AnyShapeStyle is represented by Avalonia's brush; every literal colour comes from Swift.
             var titleBrush = pair is not null
                 ? EffortView.Gradient(new[] { brand.TitleColor }.Concat(pair.Brand.TitleColors).Concat(fast ? new[] { EffortPalette.Fast } : Array.Empty<SwiftColor>()), theme)

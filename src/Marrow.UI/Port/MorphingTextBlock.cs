@@ -55,8 +55,23 @@ public class MorphingTextBlock : TextBlock
     internal const double StartScale = 0.5;
     internal const double MaxBlur = 4;
     internal const double Travel = 0.4; // of the font size: how far below its place a letter starts, and how far up one leaves
-    internal const double SpreadShare = 0.55; // the letters' turns, first to last, as a share of the change's duration
-    internal const double ArrivalShare = 0.15; // how long, as a share of the duration, the first new letter waits
+    internal const double SpreadShare = 0.55; // the letters' turns, first to last, as a share of the letters' pace's duration
+    internal const double ArrivalShare = 0.15; // how long, as a share of that duration, the first new letter waits
+
+    // LETTERS' PACE (final review round 5). SOURCE FACT (EffortSlider.swift:579-583): a change into or out of maximum runs the
+    // effort title on smooth(0.3), not the slider's snappy(0.2) (:631); 2-chat-use.mov agrees for the label's frame (the
+    // chevron's centre x, frame by frame: Extra High -> Max and Max -> Extra High follow smooth(0.3), rms 0.013 and 0.007, and
+    // High -> Extra High snappy(0.2), rms 0.008; work/claude-verify/resume-2026-10-03/effort-rev-r5-chevron/chevron_fit.out).
+    // The letters do not slow with the frame: in those smooth(0.3) changes "Max" arrives about 70 ms a letter and the nine
+    // leaving letters of "Extra High" go about 20 ms apart, the snappy changes' 0.14 s of turns (55 % of smooth(0.3)'s settling
+    // would be 0.18 s); and the narrowing takeover's "a" (TAKEOVER below) keeps the video's ink only if it arrives at the
+    // snappy pace (on smooth(0.3) it is still 0.76 arrived at its fullest frame). ENGINEERING DECISION, with no new number:
+    // a change's arriving and leaving letters take their turns and run their curve at one pace, the slider's snappy(0.2) on
+    // which they were measured (the first new letter 0.04 s in, the turns over 0.14 s), whatever the change's animation; the
+    // change's own animation moves the label's frame (its width, so the chevron, and where arriving letters stand from it)
+    // and the kept letters, which ride with the frame (KeptLead, NarrowingKeptLead). The other sites (the usage count on
+    // Chrome.panelSlide, the copy label and MiddleTruncatingText on snappy(0.22)) roll at the same pace: extrapolated, no
+    // video shows them.
     internal static readonly Animation LetterPace = Animation.Snappy(0.2);
 
     // WIDENING: the kept letters run ahead of the label's frame (video, High -> Extra High at 34.84 s, every frame: the gap
@@ -237,8 +252,10 @@ public class MorphingTextBlock : TextBlock
         return showing;
     }
 
-    // The last new letter takes its turn (ArrivalShare + SpreadShare) of the change's duration in, then runs its curve.
-    internal static double Length(Animation animation) => animation.Duration * (1 + ArrivalShare + SpreadShare);
+    // The last new letter takes its turn (ArrivalShare + SpreadShare) of its pace's duration in, then runs its curve; the frame
+    // and the kept letters end within the same share past the change's own duration (KeptStretch, NarrowingKeptLead): the
+    // change lasts until both have.
+    internal static double Length(Animation animation) => Math.Max(animation.Duration, LetterPace.Duration) * (1 + ArrivalShare + SpreadShare);
 
     private void CancelTick()
     {
@@ -674,30 +691,30 @@ public class MorphingTextBlock : TextBlock
         // this one interrupted were among them, each counted by how much of it still shows (lingering; TAKEOVER).
         for (var k = 0; k < leaving.Count; k++)
         {
-            var p = Turn(k, leaving.Count + lingering, seconds, animation, 0);
+            var p = Turn(k, leaving.Count + lingering, seconds, 0);
             var faded = Math.Clamp(p, 0, 1);
             result.Add(new GlyphState(true, leaving[k], leaving[k], null, p, 1 - faded, 1 - (1 - StartScale) * p, MaxBlur * faded, -Travel * p));
         }
         for (var k = 0; k < arriving.Count; k++)
         {
-            var p = Turn(k, arriving.Count, seconds, animation, ArrivalShare * animation.Duration);
+            var p = Turn(k, arriving.Count, seconds, ArrivalShare * LetterPace.Duration);
             var shown = Math.Clamp(p, 0, 1);
             result.Add(new GlyphState(false, arriving[k], null, arriving[k], p, shown, StartScale + (1 - StartScale) * p, MaxBlur * (1 - shown), Travel * (1 - p)));
         }
         return result;
     }
 
-    // One letter's progress: the change's own curve from its turn, the turns spread evenly, first to last, over
-    // SpreadShare of the change's duration (so a short word's letters go far apart and a long one's close together).
-    // New letters start a little after the change (the video's first arriving letter about 40 ms after the glide of
-    // the kept "High" began, and "M" of Max about as late), leaving ones at once.
+    // One letter's progress: the letters' pace's curve from its turn, the turns spread evenly, first to last, over
+    // SpreadShare of its duration (so a short word's letters go far apart and a long one's close together), whatever the
+    // change's own animation (LETTERS' PACE). New letters start a little after the change (the video's first arriving
+    // letter about 40 ms after the glide of the kept "High" began, and "M" of Max about as late), leaving ones at once.
     // The count need not be whole: a leaving letter of an interrupted change still half shown counts a half (TAKEOVER).
-    private static double Turn(int order, double count, double seconds, Animation animation, double wait)
+    private static double Turn(int order, double count, double seconds, double wait)
     {
-        var delay = wait + (count <= 1 ? 0 : order * SpreadShare * animation.Duration / (count - 1));
+        var delay = wait + (count <= 1 ? 0 : order * SpreadShare * LetterPace.Duration / (count - 1));
         var local = seconds - delay;
         if (local <= 0) return 0;
-        return local >= animation.Duration - 1e-9 ? 1 : animation.Progress(local);
+        return local >= LetterPace.Duration - 1e-9 ? 1 : LetterPace.Progress(local);
     }
 
     /// <summary>
