@@ -128,7 +128,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1012-1056
     public void Legal_popover_inherits_presented_chrome_and_selectable_markdown_with_all_missing_resource_names() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
-        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var show = Button(view, "Show"); Assert.True(show.IsEnabled); Click(show); Sync(); var popup = presenter.Calls.Last(x => x.Presented).Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, popup.Placement); var content = Opened(popup); Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); foreach (var body in Nodes<MarkdownView>(content)) Assert.True(MarkdownView.GetMarkdownBlockSelection(body)); var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) Assert.Equal($"The {resource} file is missing from this copy of the app.", reader.Invoke(null, [resource]));
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var show = Button(view, "Show"); Assert.True(show.IsEnabled); Click(show); Sync(); var popup = presenter.Calls.Last(x => x.Presented).Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, popup.Placement); var content = Opened(popup); Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); foreach (var body in Nodes<MarkdownView>(content)) Assert.True(MarkdownView.GetMarkdownBlockSelection(body)); var reader = typeof(LicensesRow).GetMethod("Read", BindingFlags.Static | BindingFlags.NonPublic, [typeof(string), typeof(string)])!; var withoutFiles = Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, "licenses-missing-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(withoutFiles); foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) Assert.Equal($"The {resource} file is missing from this copy of the app.", reader.Invoke(null, [resource, withoutFiles])); /* the fallback names the RESOURCE (:1051); the app itself now ships the three files (LicensesShippingTests) */
     });
 
     [Fact]
@@ -541,8 +541,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     // Keep the Terminal title/divider and the AGPL sentence prefix; only its CreditLink, component detail and trailing licence fragment are blocked.
     // STOP App.Views.Settings.SettingsView #5
     // Kind: dependency. Swift: SettingsView.swift:1046-1056. Records: PR-SETTINGS-249 (shipping only).
-    // Missing: the App project bundles only Assets/icon.png, not the three legal documents.
-    // Needed: the packaging unit to ship LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md.
+    // RESOLVED (defects-priority): Marrow.App.csproj now ships LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside the executable
+    // (Legal\ content, copied to the build output and the publish folder); LicensesShippingTests proves them byte for byte.
+    // (It said: the App project bundles only Assets/icon.png, not the three legal documents.)
     // The independent reader, caching, missing-file path and popover are covered below.
 
     [Fact]
@@ -713,11 +714,12 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Licences_are_read_once_and_the_three_markdown_blocks_use_fixed_popover_geometry() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(view, "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup);
-        var scroll = Assert.Single(Nodes<ScrollViewer>(content)); Assert.Equal(480, scroll.Width); Assert.Equal(440, scroll.Height);
+        var scroll = Assert.Single(Nodes<ScrollViewer>(content), x => x.Width == 480); Assert.Equal(480, scroll.Width); Assert.Equal(440, scroll.Height); /* the real documents carry code blocks that scroll on their own, so the popover's is the one 480 wide */
         var blocks = Assert.Single(Nodes<StackPanel>(content), x => x.Spacing == 18); Assert.Equal(new Thickness(18), blocks.Margin); Assert.Equal(3, blocks.Children.Count);
         Assert.Equal(new[] { "Marrow", "Third-party notices", "Trademarks" }, blocks.Children.Select(x => Text(x).First()));
         foreach (var markdown in Nodes<MarkdownView>(content)) Assert.Equal(12, MarkdownView.GetMarkdownPointSize(markdown)); Assert.Equal(3, Nodes<MarkdownView>(content).Length);
-        var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; Assert.Equal("The THIRD_PARTY_NOTICES file is missing from this copy of the app.", reader.Invoke(null, ["THIRD_PARTY_NOTICES"]));
+        var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; var notices = (string)reader.Invoke(null, ["THIRD_PARTY_NOTICES"])!; Assert.Same(notices, reader.Invoke(null, ["THIRD_PARTY_NOTICES"])); /* read once (:1046-1056): the same string instance every time */
+        Assert.Equal(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "THIRD_PARTY_NOTICES.md")), notices); Assert.NotEqual("The THIRD_PARTY_NOTICES file is missing from this copy of the app.", notices); /* shipped (Marrow.App.csproj, LicensesShippingTests) */
     });
 
     [Fact]
