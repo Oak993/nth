@@ -30,6 +30,7 @@ using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -3946,16 +3947,26 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
-    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:927: Delete's label is red (Chrome.danger, whose default is .red, AppTheme.swift:197)
-    public void The_delete_button_in_the_archive_popover_is_drawn_in_danger() => headless.OnUiThread(() =>
+    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:927: Delete's label is the fixed `.red`
+    [Trait("Req", "UI-SIDEBAR-031")] // :927 "Delete's label is .red"
+    // `.foregroundStyle(.red)` is SwiftUI's system red, not the theme's Chrome.danger (AppTheme.swift:197 only FALLS BACK
+    // to .red): under a theme whose palette names its own danger (Nord, :121 "BF616A") the label stays system red.
+    public void The_delete_button_in_the_archive_popover_is_drawn_in_system_red_whatever_the_themes_danger() => headless.OnUiThread(() =>
     {
-        using var harness = new AppModelHarness();
-        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
-        var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
-        var popover = ShownArchivePopover(thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }));
-        var delete = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text == "Delete");
-        Assert.Equal(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color);
-        WindowOf(popover).Close();
+        var saved = ThemeManager.Current;
+        ThemeManager.Current = AppTheme.Nord;
+        try
+        {
+            using var harness = new AppModelHarness();
+            var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+            var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
+            var popover = ShownArchivePopover(thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }));
+            var delete = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text == "Delete");
+            Assert.Equal(Color.FromRgb(255, 59, 48), ((ISolidColorBrush)delete.Foreground!).Color); // systemRed (the theme's own framework red, AppTheme.cs FrameworkRed)
+            Assert.NotEqual(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color); // not Nord's BF616A
+            WindowOf(popover).Close();
+        }
+        finally { ThemeManager.Current = saved; }
     });
 
     [Fact]

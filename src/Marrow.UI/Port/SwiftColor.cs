@@ -161,6 +161,13 @@ public sealed class SwiftColor
     public static SwiftColor AccentColor => ControlAccentColor;
 
     /// <summary>
+    /// <c>Color.red</c> (SidebarView.swift:927). systemRed at its HIG Default light value, the same literal the theme
+    /// falls back to for its danger colour (AppTheme.cs FrameworkRed, AppTheme.swift:197 <c>?? .red</c>); UNVERIFIED
+    /// under OD-0001 on the same footing.
+    /// </summary>
+    public static SwiftColor Red { get; } = Rgb(0xFF3B30);
+
+    /// <summary>
     /// <c>Color.yellow</c> (EffortSlider.swift:80, :669, :673). ED-104: Apple's HIG Default values, light sRGB
     /// (255, 204, 0) and dark (255, 214, 0), opaque; the increased contrast values are not modelled.
     /// UNVERIFIED under OD-0001, no O-nn, per ED-104.

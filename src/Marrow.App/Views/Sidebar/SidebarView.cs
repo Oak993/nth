@@ -1575,7 +1575,7 @@ internal sealed class ArchiveThreadPopover : Decorator
         // :926-929 Text("Delete").foregroundStyle(.red), .buttonStyle(.glass). UNVERIFIED O-63: controlSize(.small)'s
         // exact height and horizontal padding have no sourced Windows number yet (only the regular capsule height,
         // Chrome.CapsuleContentHeight, is settled); the button below sizes to its content instead of a guessed height.
-        var deleteLabel = new TextBlock { Text = "Delete", Foreground = Chrome.Danger.Brush(this) }; // :927
+        var deleteLabel = new TextBlock { Text = "Delete", Foreground = SwiftColor.Red.Brush(this) }; // :927 .foregroundStyle(.red): system red, not the theme's Chrome.danger
         var delete = GlassButton(deleteLabel, onDelete);
         ToolTip.SetTip(delete, "Remove the thread and its history"); // :929 .help(...)
 
