@@ -122,6 +122,12 @@ const tl = { g, off: 0 };
 const st = { th: Math.PI }, raw = { th: Math.PI };
 out.signal = { seed, geometry: { w: W, h, knob: W - 24, radius: 24 }, strikes: [], frames: [] };
 for (let k = 0; k <= 4; k++) { const B = planOf(k); out.signal.strikes.push({ k, at: B.at, lead: B.lead, charge: B.charge, th: E.orbGeo(g, B).th, flick: B.flick }); }
+// orbGeo's exit angle for knob radii from 16 to 30 px (strikes 0 to 3), so the rim test (radius less half a pixel) is pinned
+out.signal.exits = [];
+for (let kr = 16; kr <= 30; kr += 0.125) for (let k = 0; k <= 3; k++) {
+  const g2 = { ...g, kr, tl: { cache: {}, n: 0 } };
+  out.signal.exits.push({ kr, k, th: E.orbGeo(g2, Object.assign({}, E.plan0(g2, k))).th });
+}
 for (let i = 0; i <= 600; i++) {
   const t = i / 60;
   sig.signal(tl, t, st);
@@ -138,6 +144,29 @@ out.ink = {};
 for (const m of ['Claude', 'OpenAI', 'Gemini', 'DeepSeek', 'Meta', 'Grok', 'Cursor', 'OpenCode', 'OpenCodeGo', 'Zai', 'Devin', 'Copilot', 'CommandCode', 'Pi'])
   out.ink[m] = inkFns.inkOf(KV.liquidOf(PAL, m, 'dark'));
 out.inkMix = [0.25, 0.5].map((u) => ({ u, tint: inkFns.mixTint2(inkFns.tintOf(KV.liquidOf(PAL, 'Claude', 'dark')), inkFns.tintOf(KV.liquidOf(PAL, 'OpenAI', 'dark')), u) }));
+
+// ---- bubble bursts (OD-0078 as the locked engine draws them: strike-engine.js events / near / process / contact on the
+// v22 bubbles, riseOf / laneAt / bubNow), on the port's fast mode: A2 strikes (lvl 0: plan0 at strikeAt), the bubbles at
+// real time (no simmer clock), the port's tube (298 x 34, the knob at 274), irregular frames with a few long gaps
+function burstRun(strikeSeed, bubbleSeed, lanes, seconds) {
+  const B = new Component({ dark: true });
+  const tl = { seed: strikeSeed, off: 0, lvl: 0, bubKey: `${bubbleSeed},${lanes},0,0`, cache: {}, n: 0 };
+  const gg = { w: 298, h: 34, cy: 17, xs: 34 * 0.32, ex: 274, kr: 24, k: Math.max(0.62, Math.min(1, 34 / 40)), seed: strikeSeed, tl };
+  B.makeBubbles(tl, gg);
+  const bursts = [];
+  tl.onBurst = (k, i, te, st) => bursts.push({ k, i, t: te, x: st.x, y: st.y, r: st.r, a: st.a, rise: st.k });
+  let t = 0, x = 12345;
+  const rnd = () => { x = (Math.imul(x, 1103515245) + 12345) >>> 0; return (x >>> 8) / 16777216; };
+  const frames = [];
+  while (t < seconds) {
+    const r = rnd();
+    t += r < 0.01 ? 0.5 : 0.008 + 0.05 * rnd();
+    frames.push(+t.toFixed(6));
+    B.process(tl, gg, +t.toFixed(6));
+  }
+  return { strikeSeed, bubbleSeed, lanes, frames, bursts };
+}
+out.bursts = [burstRun(1274, 13, 9, 240), burstRun(97 * 5 + 13, 5, 9, 240)];
 
 // ---- the crossfade (jewel-knob.html stepFade): smoothstep over 0.6 s
 const ease = new Function(cut('const ease = (x)', 'let liquid') + '\nreturn ease;')();

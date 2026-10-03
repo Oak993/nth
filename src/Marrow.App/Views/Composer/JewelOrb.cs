@@ -392,6 +392,7 @@ public static class JewelKnobShader
             float perPx = u[5].z;
             half4 o = orb(float2(coord.x, size.y - coord.y));
             float kn = u[0].w; float R = kn * 0.5;
+            if (kn <= 0.0) return o; // the orb alone (tests compare it with knob-orbs-1.js's canvas)
             float2 q = coord / perPx;
             float d = length(q - float2(R));
             float cov = clamp((R - d) * perPx + 0.5, 0.0, 1.0);

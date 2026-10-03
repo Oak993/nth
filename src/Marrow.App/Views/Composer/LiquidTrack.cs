@@ -169,15 +169,34 @@ public sealed class BubbleLanes(int seed, double width, double height)
 {
     private readonly (int K, LiquidBubble Rise, double Start)?[] lanes = new (int, LiquidBubble, double)?[Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles)];
 
+    // OD-0078 (strike-engine.js laneAt): each lane keeps its last four rises, so a look a little into the past (a contact
+    // between two frames) finds the rise as it was; a seek further back starts the lane again
+    private readonly (int K, LiquidBubble Rise, double Start)[][] history = Enumerable.Range(0, Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles))
+        .Select(_ => new (int, LiquidBubble, double)[4]).ToArray();
+    private readonly int[] kept = new int[Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles)];
+
+    public int Seed => seed;
+
     /// <summary>How many bubbles the track has: about one per 32 px, between 4 and 24.</summary>
     public int Count => lanes.Length;
     public double Width => width;
     public double Height => height;
 
-    /// <summary>Bubble <paramref name="i"/> at a time: its current rise and how far through it, or null between rises.</summary>
-    public (LiquidBubble Rise, double Progress)? At(int i, double time)
+    /// <summary>Bubble <paramref name="i"/> at a time: its current rise, how far through it and its number, or null between rises.</summary>
+    public (LiquidBubble Rise, double Progress, int K)? At(int i, double time)
     {
         var lane = lanes[i];
+        if (lane is { } shown && time < shown.Start)
+        {
+            for (var j = kept[i] - 1; j >= 0; j--)
+            {
+                var old = history[i][j];
+                if (time < old.Start) continue;
+                var p = (time - old.Start) / old.Rise.Duration;
+                return p is >= 0 and < 1 ? (old.Rise, p, old.K) : null;
+            }
+            kept[i] = 0;
+        }
         if (lane is not { } current || time < current.Start)
         {
             // the first rise is already under way when the track appears, at a random point of it
@@ -186,12 +205,14 @@ public sealed class BubbleLanes(int seed, double width, double height)
         }
         while (time >= current.Start + current.Rise.Duration + current.Rise.Gap)
         {
+            if (kept[i] == 4) { Array.Copy(history[i], 1, history[i], 0, 3); kept[i] = 3; }
+            history[i][kept[i]++] = current;
             var k = current.K + 1;
             current = (k, LiquidTrack.Rise(seed, i, k, Count, width, height), current.Start + current.Rise.Duration + current.Rise.Gap);
         }
         lanes[i] = current;
         var progress = (time - current.Start) / current.Rise.Duration;
-        return progress is >= 0 and < 1 ? (current.Rise, progress) : null;
+        return progress is >= 0 and < 1 ? (current.Rise, progress, current.K) : null;
     }
 }
 
@@ -605,7 +626,8 @@ public static class LiquidTrack
 
     /// <summary>One frame's values, resolved on the UI thread.</summary>
     internal sealed record Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
-        IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double BubbleInk = 0);
+        IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double BubbleInk = 0,
+        IReadOnlyList<BubbleBurst>? Rings = null, IReadOnlyCollection<(int Lane, int Rise)>? Popped = null);
 
     /// <summary>
     /// Draws the liquid tube and its bubbles into <paramref name="context"/> at <paramref name="time"/>: its currents and
@@ -614,9 +636,10 @@ public static class LiquidTrack
     /// pale-liquid look (OD-0090, the Strike's ink on a pale liquid).
     /// </summary>
     public static void Draw(DrawingContext context, Size size, double track, double time, LiquidSpec spec, SKColor[] gradient,
-        BubbleLanes? bubbles, bool darkBubbles, ThemeVariant theme, LiquidFlow? flow = null, IReadOnlyList<StrikeOp>? strike = null, double bubbleInk = 0) =>
+        BubbleLanes? bubbles, bool darkBubbles, ThemeVariant theme, LiquidFlow? flow = null, IReadOnlyList<StrikeOp>? strike = null, double bubbleInk = 0,
+        IReadOnlyList<BubbleBurst>? rings = null, IReadOnlyCollection<(int Lane, int Rise)>? popped = null) =>
         context.Custom(new Operation(new Frame(size, track, time, gradient, spec, bubbles, darkBubbles,
-            spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray(), flow ?? LiquidFlow.At(time, false), strike, bubbleInk)));
+            spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray(), flow ?? LiquidFlow.At(time, false), strike, bubbleInk, rings, popped)));
 
     /// <summary>The gradient row for a spec at a device width.</summary>
     public static SKColor[] GradientFor(LiquidSpec spec, int pixels, ThemeVariant theme) =>
@@ -709,6 +732,7 @@ public static class LiquidTrack
         for (var i = 0; i < count; i++)
         {
             if (f.Bubbles!.At(i, f.Time) is not { } now) continue; // between rises
+            if (f.Popped is { } popped && popped.Contains((i, now.K))) continue; // OD-0078: burst, gone until its next rise
             var (centre, radius, opacity) = BubbleAt(now.Rise, f.Size.Height, now.Progress);
             if (opacity <= 0.003) continue;
             list.Add((new[] { (float)centre.X, (float)centre.Y, (float)(radius / (now.Rise.Outer / 2)), (float)opacity },
@@ -769,6 +793,9 @@ public static class LiquidTrack
                 var reach = (b[0] * 0.5f + 6f) * a[2];
                 liquid.DrawRect(new SKRect(a[0] - reach, a[1] - reach, a[0] + reach, a[1] + reach), paint);
             }
+            // OD-0078: the bursts' rings, with the bubbles (on a pale liquid with their neutral rings under them)
+            if (frame.Rings is { Count: > 0 } rings)
+                BubbleBursts.DrawRings(liquid, rings, Math.Max(0.62, Math.Min(1, h / 40)), frame.Time, frame.BubbleInk);
             Layer(CoverEffect, SKBlendMode.DstIn);
 
             // OD-0073: the Strike lightning, drawn source-over into its own layer at device scale; the glass screens it over

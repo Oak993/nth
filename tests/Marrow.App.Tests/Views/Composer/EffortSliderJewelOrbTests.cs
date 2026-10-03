@@ -145,6 +145,62 @@ public sealed class EffortSliderJewelOrbTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-252")] // OD-0090: the SkSL orb draws what knob-orbs-1.js's GLSL draws (Chrome's WebGL2 on SwiftShader, tests/fixtures/jewel-knob/orb-pixels.cjs)
+    public void The_orb_draws_the_locked_orbs_pixels()
+    {
+        using var document = JsonDocument.Parse(File.ReadAllBytes(StrikeFixtures.FixturePath("jewel-knob", "orb-pixels.json")));
+        var report = new List<string>();
+        foreach (var shot in document.RootElement.GetProperty("shots").EnumerateArray())
+        {
+            var maker = shot.GetProperty("maker").GetString()!;
+            var dark = shot.GetProperty("dark").GetBoolean();
+            var last = shot.GetProperty("frame").GetInt32();
+            var orb = new JewelOrb(JewelMaterial.For(JewelFixtures.BrandOf(maker)));
+            var u = new JewelUniforms();
+            for (var i = 0; i <= last; i++)
+            {
+                var t = i / 60.0;
+                var c = t < 0.5 ? 0 : t < 0.7 ? 0.58 * ((t - 0.5) / 0.2) : t < 1.2 ? 0.58 : 0;
+                var f = t < 0.7 ? 0 : t < 1.2 ? 0.24 * Math.Exp(-(t - 0.7) / 0.3) : 0;
+                orb.Frame(t, c, f, Math.PI * 0.9, false, 96, 2, dark, u);
+            }
+            var page = Convert.FromBase64String(shot.GetProperty("rgba").GetString()!);
+            using var surface = SKSurface.Create(new SKImageInfo(96, 96, SKColorType.Rgba8888, SKAlphaType.Premul));
+            var block = System.Runtime.InteropServices.Marshal.AllocHGlobal(JewelUniforms.ShaderBytes);
+            try
+            {
+                System.Runtime.InteropServices.Marshal.Copy(u.Values, 0, block, JewelUniforms.ShaderBytes / 4);
+                var shader = JewelNative.Shader(JewelKnobShader.Effect, block, JewelUniforms.ShaderBytes);
+                using var paint = new SKPaint();
+                JewelNative.SetShader(paint, shader);
+                JewelNative.Release(shader);
+                surface.Canvas.Clear(SKColors.Transparent);
+                surface.Canvas.DrawRect(new SKRect(0, 0, 96, 96), paint);
+            }
+            finally { System.Runtime.InteropServices.Marshal.FreeHGlobal(block); }
+            using var image = surface.Snapshot();
+            using var port = SKBitmap.FromImage(image);
+            double sum = 0; int n = 0, far = 0, alphaOff = 0;
+            for (var y = 0; y < 96; y++)
+                for (var x = 0; x < 96; x++)
+                {
+                    var o = (y * 96 + x) * 4;
+                    var p = port.GetPixel(x, y); // unpremultiplied, as getImageData gives the page's
+                    if (Math.Abs(p.Alpha - page[o + 3]) > 8) alphaOff++;
+                    if (page[o + 3] < 255 || p.Alpha < 255) continue;
+                    var d = Math.Max(Math.Abs(p.Red - page[o]), Math.Max(Math.Abs(p.Green - page[o + 1]), Math.Abs(p.Blue - page[o + 2])));
+                    sum += d; n++;
+                    if (d > 3) far++;
+                }
+            var mean = sum / n;
+            report.Add($"{maker} {(dark ? "dark" : "light")} {shot.GetProperty("state").GetString()}: mean {mean:F2}, over 3: {far}/{n}, alpha off: {alphaOff}");
+            Assert.True(n > 6000, $"{maker}: the ball covers the canvas");
+            Assert.True(mean < 0.3 && far <= n / 1000 && alphaOff <= 2, string.Join("; ", report)); // measured: mean 0.03-0.05, none over 3, alpha exact
+        }
+        File.WriteAllLines(Path.Combine(Path.GetTempPath(), "jewel-orb-pixels.txt"), report);
+    }
+
+    [Fact]
     [Trait("Decision", "ED-252")] // OD-0090: the orb is an SkSL runtime effect (no WebGL)
     public void The_knob_program_is_valid_sksl_with_one_uniform_block()
     {

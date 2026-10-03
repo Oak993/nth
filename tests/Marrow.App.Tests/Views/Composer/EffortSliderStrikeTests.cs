@@ -371,7 +371,9 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
         Assert.Equal(0.9 * 34 * 1.2, wash.Rx, 9);
         using var drawn = Frame(effect, quiet);
         var spec = LiquidSpec.For(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude));
-        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, quiet, LiquidFlow.At(quiet, true), null, 1, effect.Bubbles(260, 34));
+        // OD-0078 (required with OD-0090): the bubbles the last strikes touched have burst and are gone until their next rise
+        var (_, _, popped) = StrikeFixtures.WithBursts(ops, effect.StrikeGeometryFor(new Size(260, 34)), seed, effect.Bubbles(260, 34).Seed, 260, quiet, StrikeTint.Claude);
+        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, quiet, LiquidFlow.At(quiet, true), null, 1, effect.Bubbles(260, 34), null, null, popped);
         Assert.True(MaxDelta(drawn, bare, 0, (int)(239 - wash.Rx) - 1, 3, 31) <= 1);                 // left of the pool: the liquid alone
         Assert.True(MaxDelta(drawn, bare, 225, 250, 12, 22) >= 5);                                   // at the knob: the pool
     });
@@ -406,9 +408,11 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
         Assert.Equal(new StrikeGeometry(260, 34, 260 - EffortSlider.ThumbSize / 2, EffortSlider.ThumbSize / 2), geometry); // the knob's centre and radius
         var ops = new StrikeChannels(effect.StrikeSeed).Scene(geometry, t, StrikeTint.DeepSeek);
         var spec = LiquidSpec.For(look);
-        using var expected = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), ops, 1, effect.Bubbles(260, 34));
+        // OD-0078 (required with OD-0090): the bubbles the strikes touched have burst
+        var (lit, rings, popped) = StrikeFixtures.WithBursts(ops, geometry, effect.StrikeSeed, effect.Bubbles(260, 34).Seed, 260, t, StrikeTint.DeepSeek);
+        using var expected = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), lit, 1, effect.Bubbles(260, 34), null, rings, popped);
         Assert.True(MaxDelta(drawn, expected, 0, 260, 0, 34) <= 1, "the track draws the scene of its own seed in the lead's tint");
-        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), null, 1, effect.Bubbles(260, 34));
+        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), null, 1, effect.Bubbles(260, 34), null, null, popped);
         Assert.True(MaxDelta(drawn, bare, 150, 238, 4, 30) > 60, "the strike shows");
     });
 

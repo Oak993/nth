@@ -93,7 +93,8 @@ public sealed record StrikeGeometry(double Width, double Height, double Knob, do
     public double CapEnd => Height * 0.32;
 }
 
-public enum StrikeOpKind { Stroke, Wash }
+/// <summary>A stroke, a light pool, or (OD-0078) a burst's glint: a filled disc.</summary>
+public enum StrikeOpKind { Stroke, Wash, Disc }
 
 /// <summary>
 /// One drawing step: a stroke of a polyline (x, y pairs) at a width in a colour at an alpha (the canvas's rgba, rounded
@@ -120,6 +121,9 @@ public sealed class StrikeOp
     public static StrikeOp Stroke(double[] points, double width, SKColor color, double alpha) => new(StrikeOpKind.Stroke, points, width, color, alpha, 0, 0, 0, 0);
 
     public static StrikeOp Wash(double x, double y, double rx, double ry, double alpha, SKColor color) => new(StrikeOpKind.Wash, [], 0, color, alpha, x, y, rx, ry);
+
+    /// <summary>OD-0078: a burst's glint, a disc of radius <paramref name="r"/> at (x, y) in a colour at an alpha.</summary>
+    public static StrikeOp Disc(double x, double y, double r, SKColor color, double alpha) => new(StrikeOpKind.Disc, [], 0, color, alpha, x, y, r, r);
 }
 
 /// <summary>The canvas's strike maths (strikeAt, hash, vn, fbm, the pulses, the leader's steps, the spark's timing).</summary>
@@ -276,6 +280,12 @@ public static class Strike
                 stroke.StrokeWidth = (float)op.Width;
                 stroke.ColorF = new SKColorF(op.Color.Red / 255f, op.Color.Green / 255f, op.Color.Blue / 255f, (float)op.Alpha);
                 canvas.DrawPath(path, stroke);
+            }
+            else if (op.Kind == StrikeOpKind.Disc)
+            {
+                fill.Shader = null;
+                fill.ColorF = new SKColorF(op.Color.Red / 255f, op.Color.Green / 255f, op.Color.Blue / 255f, (float)op.Alpha);
+                canvas.DrawCircle((float)op.X, (float)op.Y, (float)op.Rx, fill);
             }
             else
             {

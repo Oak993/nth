@@ -1628,6 +1628,9 @@ public sealed class TrackEffect : Decorator
     internal double TrackWidth { get; set; }
 
     private BubbleLanes? bubbles;
+
+    /// <summary>OD-0078: this track's bursts (fast mode), with lanes of their own.</summary>
+    internal BubbleBursts Bursts { get; } = new();
     private readonly int bubbleSeed = System.Threading.Interlocked.Increment(ref bubbleSeeds);
     private static int bubbleSeeds;
 
@@ -1676,14 +1679,31 @@ public sealed class TrackEffect : Decorator
             var still = fast && EnvironmentValues.GetAccessibilityReduceMotion(owner);
             IReadOnlyList<StrikeOp>? strike = null;
             var (gradient, tint) = owner.Colours(spec, size.Width, ActualThemeVariant, time);
+            IReadOnlyList<BubbleBurst>? rings = null;
+            IReadOnlyCollection<(int, int)>? popped = null;
             if (fast)
             {
                 owner.strikes ??= new StrikeChannels(owner.StrikeSeed);
-                strike = owner.strikes.Scene(owner.StrikeGeometryFor(size), still ? Strike.StillTime(owner.StrikeSeed) : time, tint);
+                var geometry = owner.StrikeGeometryFor(size);
+                var scene = owner.strikes.Scene(geometry, still ? Strike.StillTime(owner.StrikeSeed) : time, tint);
+                strike = scene;
+                if (!still)
+                {
+                    // OD-0078: every bubble the strike touches bursts on the spot (contacts between frames, in time order)
+                    owner.Bursts.Process(owner.strikes, geometry, owner.StrikeSeed, owner.bubbleSeed, track, time);
+                    if (owner.Bursts.Recent.Count > 0)
+                    {
+                        var lit = new List<StrikeOp>(scene);
+                        owner.Bursts.Light(lit, geometry, tint, time);
+                        strike = lit;
+                        rings = owner.Bursts.Recent.ToArray();
+                    }
+                    popped = owner.Bursts.Dead();
+                }
             }
             LiquidTrack.Draw(context, size, track, still ? 0 : time, spec, gradient,
                 still ? null : owner.Bubbles(track, size.Height), darkBubbles, ActualThemeVariant, still ? default(LiquidFlow) : owner.pace.At(time, fast), strike,
-                fast ? tint.Ink : 0); // OD-0090: in fast mode the bubbles on a pale liquid take the pale-liquid look by its ink
+                fast ? tint.Ink : 0, rings, popped); // OD-0090: in fast mode the bubbles on a pale liquid take the pale-liquid look by its ink
         }
     }
 }
