@@ -126,11 +126,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
             });
         });
 
-        // GitActionsMenu reads git.Status?.ChangedFiles, which is private-set and only populated through
-        // GitStatusModel.Refresh (real git via ProcessLauncher, WINDOWS-ONLY per part 1's own precedent): the
-        // "N changed files" tooltip text at N=1 (never singularised) is instead proven directly against
-        // BuildMenu's own `changed` parameter below (The_note_is_singular_at_one...), which the menu's tooltip
-        // and the note share the same never-singularised-at-the-tooltip, singular-at-the-note-only shape for.
+        // The "1 changed files" tooltip (never singularised): ChatViewPart4ReviewTests.A_git_status_change_updates_the_actions_help...
     }
 
     [Fact]
@@ -246,9 +242,8 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
             });
         });
 
-        // The present case (git.RemoteURL set to an https origin) needs GitStatusModel.Refresh, which is
-        // WINDOWS-ONLY for the same reason as part 1's PR-GIT-126 tests (real git via ProcessLauncher); no
-        // dedicated test for that state this part - see the CLOUD REPORT.
+        // The present case and its click: ChatViewPart3ReviewTests.Open_repository_uses_the_refreshed_remote_url and
+        // ChatViewParityDetailTests.Push_sends_HEAD_to_origin_with_tracking_and_Open_repository_opens_the_remote_page.
     }
 
     // ---- BranchMenu: UI-GIT-039, UI-GIT-043 (UI-GIT-040/041/042 covered by part 1) --------------------------------
@@ -359,17 +354,13 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
         });
     }
 
-    // ---- UI-GIT-060: the seven alert titles, verified by direct source reading (no click-driven test; see notes) --
-    // "Could not switch branch" / "Could not create branch" (BranchMenu.SwitchBranch/CreateBranch, ChatView.cs),
-    // "Push failed" (GitActionsMenu.Push), "Could not open a pull request" (GitActionsMenu.OpenPullRequest),
-    // "Commit failed" (CommitSheet.Commit): all five call `MainActor.Spawn(async () => ...)` with a real Git(...)
-    // call inside, the exact shape that crashed this container's test host with a background, unobserved
-    // DllNotFoundException (kernel32.dll, via LoginEnvironment's PATH fallback) when reproduced in isolation - a
-    // background ThreadPool task, not a headless-timing issue RunUntilIdle can wait out. Driving any of them to
-    // observe the alert would risk aborting the whole test run, not just this one test, so none are click-tested
-    // this part; each title is a SOURCE FACT read directly against ChatView.cs (byte-identical to the five
-    // corresponding PopoverItem/Button handlers). "Worktree unavailable" / "Could not create a worktree" belong to
-    // AppModel.CreateWorktree (AppModel.cs:1099,1119), an already-DONE prior unit, out of this unit's scope.
+    // ---- UI-GIT-060 (updated 2026-10-03): the alert titles are now driven on Windows with real git ------------------
+    // ChatViewPart3ReviewTests.Git_failure_paths_alert_and_refresh_without_dismissing_the_error (switch, create, push,
+    // pull request), Commit_disables_while_running_trims_text_and_dismisses_only_after_success and
+    // ChatViewParityTests.A_failed_push_after_the_commit_raises_Commit_failed... (commit), and
+    // ChatViewParityDetailTests.The_worktree_offer_outside_a_repository_raises_Worktree_unavailable... (the worktree
+    // offer's fixed body). "Could not create a worktree" is AppModel.swift:1138-1140's catch, reached from this menu only
+    // by a git failure after the repository check passed: AppModelTests.Create_worktree_shows_the_git_refusal_under_could_not_create_a_worktree.
 
     // ---- ScriptsMenu header: UI-TERM-016, UI-TERM-017 (covered by part 1's PR-TERM-062/063 tests) ------------------
 }

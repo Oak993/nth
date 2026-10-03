@@ -569,13 +569,10 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
         });
     }
 
-    // ---- UI-CHAT-006, PR-USAGE-071/073/074: deferred, same category as PR-CHAT-159/PR-TERM-001 in part 1 --------
-    // JumpToLatestButton cites ThreadTimeline (ChatView.swift:1085-1104, ThreadTimeline.swift:402-409,673-677), a
-    // separate TODO unit; it stays MARROW_STUB. usagePanel's origin arithmetic (:491-531, PR-USAGE-071), the resize
-    // grips (:533-590, PR-USAGE-073) and the double-click reset (:574-577, PR-USAGE-074), and dockUsage's own drag
-    // reassignment (:611-639, the rest of PR-USAGE-070) are all private members of ChatView's own body/methods,
-    // which is not built here (it composes ThreadTimeline, TerminalPanel and ComposerView, all still TODO units per
-    // porting/deps/units.json). No test for these four exists this part; see the CLOUD REPORT.
+    // ---- UI-CHAT-006, PR-USAGE-071/073/074 (updated 2026-10-03): the column is built and these are proven elsewhere -----
+    // UI-CHAT-006: ChatViewFollowupTests.Jump_to_latest_has_the_source_action_zero_height_and_asymmetric_transitions.
+    // PR-USAGE-071/073/074 and the drag half of PR-USAGE-070: ChatViewPart2ReviewTests, ChatViewReviewFixTests (a real
+    // grip drag), ChatViewParityChromeTests and ChatViewParityMountedTests (a real drag of the panel by its strip).
 
     // ---- ChatChromeRow states not covered by part 1: UI-CHAT-073 -----------------------------------------------
 

@@ -206,8 +206,10 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-160")] // App/Views/Chat/ChatView.swift:105-109 (the minimap flag is one of the handed values)
     [Trait("Req", "UI-CHAT-003")] // App/Views/Chat/ChatView.swift:108-109
     public void The_column_hands_the_timeline_the_minimap_flag_from_the_docked_sides_and_the_free_width(double width, PanelDockCorner? dock, bool shown)
-        => WithColumn((h, model, _, view, window, _) =>
+        => WithColumn((h, model, _, view, window, frames) =>
         {
+            // The first measurement may turn the flag off: the rail then fades with panelSlide (ThreadTimeline.swift:197-199).
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero); Drain(h, window);
             Assert.Equal(shown, LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view).Any());
             var scene = Field<PanelScene>(view, "scene");
             var pane = Field<Size>(view, "paneSize");
@@ -241,4 +243,52 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
             });
         });
     }
+
+    // ---- UI-CHAT-003: the rail fades with the slide of the panel that takes its edge ---------------------------------
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-003")] // App/Views/Chat/ChatView.swift:108-109; ThreadTimeline.swift:178-199 .transition(.opacity), .animation(panelSlide, value: showsMinimap)
+    public void A_leading_dock_fades_the_rail_out_with_the_panel_slide_and_an_undock_fades_it_back()
+        => WithColumn((h, model, _, view, window, frames) =>
+        {
+            TimelineMinimapColumn[] Rails() => LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view).ToArray();
+            double Seen(Control rail)
+            {
+                var opacity = 1.0;
+                for (Control? at = rail; at is not null && at != view; at = at.Parent as Control) opacity *= at.Opacity;
+                return opacity;
+            }
+            var rail = Assert.Single(Rails());
+            Assert.Equal(1, Seen(rail));
+            h.Main.OnMain(() => { model.Settings.UsagePanelDock = PanelDockCorner.BottomLeading; model.Settings.ShowsUsagePanel = true; });
+            Drain(h, window);
+            var leaving = Assert.Single(Rails()); // still on screen: fading, not cut.
+            Assert.True(Seen(leaving) > 0.5);
+            h.Main.AdvanceMilliseconds(90); frames.Advance(TimeSpan.Zero); Drain(h, window);
+            Assert.InRange(Seen(Assert.Single(Rails())), 0.001, 0.999);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero); Drain(h, window);
+            Assert.Empty(Rails());
+            h.Main.OnMain(() => model.Settings.ShowsUsagePanel = false);
+            Drain(h, window);
+            var arriving = Assert.Single(Rails());
+            Assert.True(Seen(arriving) < 0.5);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero); Drain(h, window);
+            Assert.Equal(1, Seen(Assert.Single(Rails())), 3);
+        }, messages: true);
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-003")] // ThreadTimeline.swift:197-199 held mid-resize: no fade while the pane is reshaped
+    public void While_the_window_is_resized_the_rail_leaves_at_once()
+        => WithColumn((h, model, _, view, window, _) =>
+        {
+            Assert.Single(LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view));
+            h.Main.OnMain(() =>
+            {
+                typeof(WindowLiveResize).GetProperty(nameof(WindowLiveResize.IsActive))!.SetValue(AppEnvironment.GetWindowLiveResize(view), true);
+                model.Settings.UsagePanelDock = PanelDockCorner.BottomLeading;
+                model.Settings.ShowsUsagePanel = true;
+            });
+            Drain(h, window);
+            Assert.Empty(LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view));
+        }, messages: true);
 }

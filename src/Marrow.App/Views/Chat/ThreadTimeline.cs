@@ -49,6 +49,8 @@ public sealed class ThreadTimeline : Decorator
     // new. Each draw swaps only its content; these are the current draw's pieces the long-lived handlers read.
     private Grid? scrollOverlay;
     private Control? currentRail;
+    private Control? leavingRail; // a rail fading out after its edge was taken: it keeps cancelling the slide until it is gone.
+    private bool? railMinimap; // the showsMinimap the rail was last drawn for (:197-199 keys the fade on it).
     private Control? drawnColumn;
     private StackPanel? drawnBody;
     private Control? drawnSentinel;
@@ -214,9 +216,19 @@ public sealed class ThreadTimeline : Decorator
                 drawnColumn = column; drawnSentinel = sentinel; drawnEarlier = earlier; drawnBlocks = blocks;
                 if (!ReferenceEquals(scroll.Content, column)) scroll.Content = column;
                 var overlay = scrollOverlay!;
-                if (currentRail is not null) overlay.Children.Remove(currentRail);
-                currentRail = CreateRail(blocks, showsMinimap, columnHeight);
-                if (currentRail is not null) overlay.Children.Add(currentRail);
+                // :178-199 the rail carries .transition(.opacity) under .animation(panelSlide, value: showsMinimap), held
+                // (nil) while the pane is reshaped: it fades with the slide of the panel that takes its edge, and any other
+                // redraw replaces it in place.
+                var previousRail = currentRail;
+                var nextRail = CreateRail(blocks, showsMinimap, columnHeight);
+                var fades = railMinimap is { } drawnMinimap && drawnMinimap != showsMinimap && !AppEnvironment.GetWindowLiveResize(this).IsReshaping;
+                railMinimap = showsMinimap;
+                Transaction.WithAnimation(fades ? Chrome.PanelSlide : null, () =>
+                {
+                    if (previousRail is not null) { leavingRail = fades ? previousRail : null; SwiftTransition.Remove(overlay, previousRail); }
+                    if (nextRail is not null) SwiftTransition.Insert(overlay, overlay.Children.Count, nextRail.Transition(SwiftTransition.Opacity));
+                });
+                currentRail = nextRail;
                 if (!ReferenceEquals(host.Child, overlay)) host.Child = overlay;
                 MainActor.Post(() => { if (!ReferenceEquals(currentScroll, scroll)) return; if (tracking.IsPinnedToBottom) SnapEnd(); else scroll.Offset = oldOffset; });
                 if (!initialHistoryStarted) StartInitialHistoryLoad(blocks); // :594-607; task starts only with a timeline, never with the empty prompt.
@@ -248,8 +260,9 @@ public sealed class ThreadTimeline : Decorator
         // stays on the column's leading edge while the rows move; read once at a draw, it rode the glide and the new padding.
         PropertyChanged += (_, e) =>
         {
-            if ((e.Property == ChatView.ReserveSlideLeadingProperty || e.Property == ChatView.ReserveSlideOffsetProperty) && currentRail is { } rail)
-                rail.RenderTransform = new TranslateTransform(-ChatView.GetReserveSlideLeading(this) - ChatView.GetReserveSlideOffset(this), 0);
+            if (e.Property != ChatView.ReserveSlideLeadingProperty && e.Property != ChatView.ReserveSlideOffsetProperty) return;
+            foreach (var rail in new[] { currentRail, leavingRail })
+                if (rail is not null) rail.RenderTransform = new TranslateTransform(-ChatView.GetReserveSlideLeading(this) - ChatView.GetReserveSlideOffset(this), 0);
         };
     }
 

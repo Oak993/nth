@@ -169,10 +169,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     // Save_is_unreachable_while_any_script_is_incomplete and A_blank_command_is_outlined_in_danger... (the two
     // exact tooltip strings) tests.
 
-    // ---- UI-USAGE-041: deferred, same category as PR-USAGE-073/074 (part 2) ---------------------------------------
-    // The resize grips (usageResizer, commitPanelResize, ChatView.swift:533-590) are private members of ChatView's
-    // own body, which is not built here: it composes ThreadTimeline, TerminalPanel and ComposerView, all still TODO
-    // units per porting/deps/units.json. The geometry they would drive (PanelScene.Layout, .UsageHeight, the
-    // usageMinimumHeight floor) is fully built and tested (part 2's PR-USAGE-072); only the grip's own drag/commit
-    // wiring waits on those dependency units, exactly as already flagged for PR-USAGE-073/074.
+    // ---- UI-USAGE-041 (updated 2026-10-03): proven by ChatViewPart4ReviewTests.Grip_resize_pins_the_start_commit_is_exact... ----
+    // (every corner), ChatViewReviewFixTests.A_mounted_resize_grip_survives_multiple_real_pointer_moves... (a real drag,
+    // one write on release) and ChatViewParityChromeTests.Resetting_the_usage_height_removes_the_key... (the reset).
 }

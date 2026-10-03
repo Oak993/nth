@@ -86,6 +86,7 @@ public sealed class ChatView : Decorator
     private string? composerDirectory;
     private bool? terminalWasVisible;
     private string? terminalDirectory;
+    private readonly ChatFrameAnimation terminalPush;
     private long? seenDiffRevision;
 
     // :7 @Bindable var runtime: ThreadRuntime; :76-321 body
@@ -102,6 +103,15 @@ public sealed class ChatView : Decorator
         column.Children.Add(terminalHost); // :98,275-280 zero gap, terminal outside the conversation pane.
         Child = column.DetailSheet(); // :281-282
         this.Transition(SwiftTransition.Identity); // :283-288, no column transition on a switch.
+        terminalPush = new ChatFrameAnimation(pane);
+        terminalPush.AttachLifetime();
+        // A drawer that has finished leaving gives its row back; the pane no longer reaches under it.
+        terminalHost.Children.CollectionChanged += (_, _) =>
+        {
+            if (terminalHost.Children.Count != 0) return;
+            terminalPush.Stop();
+            pane.Margin = default;
+        };
 
         this.Track(() => AppEnvironment.GetAppModel(this), attachedModel =>
         {
@@ -336,21 +346,39 @@ public sealed class ChatView : Decorator
         var changed = terminalWasVisible is { } was && was != visible;
         void Apply()
         {
+            var animation = Transaction.Current;
             if (terminal is not null && (!visible || terminalDirectory != directory))
             {
-                SwiftTransition.Remove(terminalHost, terminal);
+                var leaving = terminal;
+                SwiftTransition.Remove(terminalHost, leaving);
                 terminal = null;
+                if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height);
             }
             if (visible && terminal is null)
             {
                 terminalDirectory = directory;
                 terminal = new TerminalPanel(runtime, directory).Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
                 SwiftTransition.Insert(terminalHost, terminalHost.Children.Count, terminal);
+                if (changed && animation is not null)
+                    PushTerminal(showing: true, animation, double.IsNaN(terminal.Height) ? model!.Settings.TerminalHeight : terminal.Height);
             }
         }
         if (changed && sceneThreadID == runtime.ThreadID) Transaction.WithAnimation(Chrome.PanelSlide, Apply);
         else Apply();
         terminalWasVisible = visible;
+    }
+
+    // :96,276-279,290 the drawer joins the column's VStack under `.animation(_, value: isTerminalVisible)`: the layout change
+    // is animated, so the thread view above it (timeline, chat box, panels) is pushed up and let back down in lock-step with
+    // the drawer's move from the bottom edge, never cut to its new height (2-chat-use.mov C 132.2-132.55, the push measured
+    // frame by frame; OD-0076). The drawer's row takes its height at once, so the pane reaches under it by the part of the
+    // drawer still below its resting place: its bottom edge is the drawer's top on every frame.
+    private void PushTerminal(bool showing, Animation animation, double height)
+    {
+        terminalPush.Stop();
+        var from = showing ? -height : pane.Margin.Bottom;
+        var to = showing ? 0 : -height;
+        terminalPush.Start(animation, progress => pane.Margin = new Thickness(0, 0, 0, from + (to - from) * progress));
     }
 
     private static SwiftTransition PanelTransition => SwiftTransition.Asymmetric(
@@ -1253,6 +1281,14 @@ internal sealed class ChatChromeRowStack : StackPanel
 /// <summary>:1106-1182 <c>private struct ChatChromeRow: View</c>: the sticky glass controls across the top.</summary>
 internal sealed class ChatChromeRow : Decorator
 {
+    // :1130,1140 .transition(.softAppear) (Chrome.swift:938-955): arrives fading in with a 4-point rise under
+    // Animation.softAppear, leaves with .opacity.animation(.easeOut(duration: 0.12)). SwiftUI animates the opacity and offset
+    // the modifier's body sets; the shared SoftAppear (a modifier with no animatable data) switched them at once, so the
+    // insertion is decomposed into those layer effects, as ThreadTimeline's SoftAppearTransition does.
+    private static SwiftTransition SoftAppear => SwiftTransition.Asymmetric(
+        SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear),
+        SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
+
     private Action<string, Project?, string>? updateInputs;
     internal void UpdateInputs(string title, Project? project, string directory) => updateInputs?.Invoke(title, project, directory); // :1112-1115,1147-1151
     // :1109-1114 the view's inputs, plus AppModel explicitly (no Avalonia @Environment). scrollChrome is not read
@@ -1366,7 +1402,7 @@ internal sealed class ChatChromeRow : Decorator
                 }
                 if (threadsButton is null)
                 {
-                    threadsButton = new ThreadsButton(model).Transition(SwiftTransition.SoftAppear); // :1129-1131
+                    threadsButton = new ThreadsButton(model).Transition(SoftAppear); // :1129-1131
                     threadsFloats = floats;
                     if (renewed) silent.Add(threadsButton);
                 }
@@ -1385,7 +1421,7 @@ internal sealed class ChatChromeRow : Decorator
                 {
                     // :1139-1140 the view keeps its identity and its state while its `thread` input changes.
                     if (hydraButton is null)
-                        hydraButton = new HydraButton(thread, runtime).Transition(SwiftTransition.SoftAppear);
+                        hydraButton = new HydraButton(thread, runtime).Transition(SoftAppear);
                     else
                         hydraButton.Update(thread);
                     desired.Add(hydraButton);
@@ -1509,9 +1545,6 @@ internal sealed class ChatChromeTitle : Decorator
         };
         var button = PlainControls.Button(padded, () => state.IsPresented = !state.IsPresented); // :1199-1202
         button.HorizontalContentAlignment = HorizontalAlignment.Left;
-        // :1215-1217,1238 the button is the words' own width; the frame after it takes the row's leftover width, so the
-        // popover hangs under the words, and the leftover gap stays the title bar's (it drags the window, ED-063).
-        button.HorizontalAlignment = HorizontalAlignment.Left;
         // :1212 U+2014 em dash kept verbatim (deviation OD-0012 G3, as OD-0008 B14 keeps the other eight).
         ToolTip.SetTip(button, "Thread title — click to copy or rename");
         AutomationProperties.SetName(button, "Thread title"); // :1213
@@ -1520,6 +1553,8 @@ internal sealed class ChatChromeTitle : Decorator
             button,
             new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
             () => new PopoverMenu(() => BuildMenu(model, runtime, button, currentTitle))); // :1215-1230
+        // :1215-1217,1238 the button is the words' own width; the frame after it takes the row's leftover width, so the
+        // popover hangs under the words, and the leftover gap stays the title bar's (it drags the window, ED-063).
         var pressable = PlainControls.Background(button, new NoWindowDragArea());
         pressable.HorizontalAlignment = HorizontalAlignment.Left;
         Child = new Panel { Children = { pressable, popover } };
@@ -2081,6 +2116,7 @@ internal sealed class CommitSheet : Decorator
         messagePlaceholder = new TextBlock { Text = "Commit message", IsHitTestVisible = false,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(13, 8) }; // :1562-1567.
         messagePlaceholder.Foreground = Chrome.SecondaryText.Brush(messagePlaceholder);
+        SwiftFont.Body.Apply(messagePlaceholder); // :1563 no font of its own: the default body style, the editor's 13 pt (ED-059).
         messageFrame = new Border // :1557-1571
         {
             Child = new Panel { Children = { messageField, messagePlaceholder } },

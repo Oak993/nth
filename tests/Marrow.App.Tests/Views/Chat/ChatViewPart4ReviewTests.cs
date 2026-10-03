@@ -272,14 +272,17 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
         });
     }
 
-    // STOP App.Views.Chat.ChatView #5
-    // Kind: missing dependency / native style metrics.
-    // Swift: App/Views/Chat/ChatView.swift:1582-1584,1672-1673,1681-1682.
-    // Records: UI-GIT-035, UI-TERM-024, UI-TERM-026 (also PR-TERM-076).
-    // The theme-less port has no common roundedBorder TextField or small ProgressView template.
-    // Keep the source style kind and small-control-size metadata, and draw the text/interaction already defined;
-    // leave the native bezel and spinner styling unwritten. Do not invent their metric values.
-    // Needed: a shared primitive or an approved native-control metric mapping/oracle. Fonts/validation are independent.
+    // STOP App.Views.Chat.ChatView #5 (rewritten 2026-10-03)
+    // The native-control dependency it named is resolved under OD-0042/OD-0045: `.textFieldStyle(.roundedBorder)` draws the
+    // Apple-kit bezel of ChatDialogControls.TextEditor(style: "RoundedBorder") and ProgressView().controlSize(.small) draws
+    // SystemSpinner (PortControlThemes). Proofs: ChatViewParityDetailTests.Name_and_Command_draw_the_rounded_border_bezel...
+    // (UI-TERM-024, UI-TERM-026) and Appearing_with_an_empty_message_writes_a_draft_showing_the_small_spinner... (UI-GIT-035).
+    // Kind: capture UNRESOLVED (no reference frame). Swift: App/Views/Chat/ChatView.swift:1652-1730.
+    // Records: PR-TERM-074, PR-TERM-076.
+    // Neither reference video shows the Project scripts sheet: 2-chat-use.mov opens only the scripts menu (C 131.3-132.2,
+    // "Add a script…"), never the sheet, and 1-settings-tour.mov never reaches a chat. Every other clause of both records is
+    // proven (ChatViewPart2Tests, ChatViewPart2ReviewTests, ChatViewPart4Tests, ChatViewParityTests, ChatViewParityDetailTests);
+    // their capture comparison stays UNRESOLVED until a frame of the sheet exists.
 
     [Fact]
     [Trait("Req", "UI-TERM-023")] // App/Views/Chat/ChatView.swift:1667-1699
