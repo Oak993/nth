@@ -1865,10 +1865,11 @@ namespace Marrow.UI.Chrome
             var line = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Height = 1 };
             // :1084 `Divider()`: SwiftUI's own separator, drawn in the system divider colour, which the framework paints
             // (B2 gives it no literal). SOURCE FACT (the reference runtime, work/reference-video): measured on
-            // the Mac as the label colour at 0.10, 1 px: dark card S 199.5 (frames/w-1-settings-tour-198.0/stills/win_199.5.png,
+            // the Mac as a 1 px line of 0.10 opacity (the pixel's own alpha): dark card S 199.5 (frames/w-1-settings-tour-198.0/stills/win_199.5.png,
             // y402: (22,66,72) over (43,86,92), white at 0.09-0.11) and light card S 141.5 (frames/gap-R2-05, black at 0.10);
-            // CATALOGUE static.settings-light-theme says the same (row separators 10 % light, 9-10 % dark).
-            line.BorderBrush = Chrome.Overlay(0.10).Brush(line);
+            // CATALOGUE static.settings-light-theme says the same (row separators 10 % light, 9-10 % dark). The label colour is 0.85 opaque,
+            // so Overlay(0.12) is the line at 0.102 (alpha 26).
+            line.BorderBrush = Chrome.Overlay(0.12).Brush(line);
             Child = line;
             Margin = new Thickness(16, 0, 0, 0); // :1085 .padding(.leading, 16)
         }

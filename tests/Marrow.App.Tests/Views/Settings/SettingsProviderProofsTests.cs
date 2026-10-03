@@ -189,7 +189,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         // Chrome.swift:1082-1087 leading 16 only; the hairline is the label colour at 0.10 (SOURCE FACT, reference runtime S 199.5 dark and gap-R2-05 S 141.5 light).
         Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin); var line = Assert.IsType<Border>(divider.Child);
         Assert.Equal(new Thickness(0, 0, 0, 1), line.BorderThickness); Assert.Equal(1, line.Height);
-        Assert.Equal(Chrome.Overlay(0.10).Resolve(line.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(line.BorderBrush).Color);
+        Assert.Equal(Chrome.Overlay(0.12).Resolve(line.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(line.BorderBrush).Color); // the label colour is 0.85 opaque: Overlay(0.12) is the 0.10 line
     }
     private static void PrecededByDivider(ChromeRow row)
     {
