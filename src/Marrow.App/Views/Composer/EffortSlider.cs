@@ -80,7 +80,13 @@ public sealed class ModelEffortButton : Decorator
     // :59-138 body
     public ModelEffortButton(ChatThread thread, bool hasHistory, bool compact = false)
     {
-        var frame = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto") };
+        // :105-108 the held box (.frame(width: lockedWidth)) with the label's HStack(spacing: 5) centred in it. A DockPanel is that
+        // HStack: its marks and its effort and chevron keep their size, and the name, the one flexible part and the last
+        // child, takes what is left and is what gets cut (:89-94); every item after the first carries the 5 point gap, so
+        // an icon alone has none (:65, a one-child HStack has no spacing).
+        var frame = new Grid();
+        var row = new DockPanel { LastChildFill = !compact, HorizontalAlignment = HorizontalAlignment.Center };
+        frame.Children.Add(row);
         var presented = false;
         double? naturalWidth = null;
         double? lockedWidth = null;
@@ -126,29 +132,35 @@ public sealed class ModelEffortButton : Decorator
             registry = model.Providers;
             var (oldName, oldEffort) = (shownName, shownEffort);
             (shownName, shownEffort) = (null, null);
-            frame.Children.Clear();
+            row.Children.Clear();
             Control mark = pair is null
                 ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 real provider artwork from Components.
                 : new HydraFusedPairIcon(pair.Provider, model.HydraHeadsProvider(pair), 15); // :70-72
-            mark.Margin = new Thickness(0, 0, 5, 0); frame.Children.Add(mark);
+            DockPanel.SetDock(mark, Dock.Left); row.Children.Add(mark);
             if (currentThread.FastMode && current?.SupportsFast == true)
             {
-                var bolt = SwiftImage.SystemName("bolt.fill").Font(Chrome.InlineIconFont).ForegroundStyle(SwiftColor.Yellow); bolt.Margin = new Thickness(0, 0, 5, 0);
-                Grid.SetColumn(bolt, 1); frame.Children.Add(bolt); // :77-80
+                var bolt = SwiftImage.SystemName("bolt.fill").Font(Chrome.InlineIconFont).ForegroundStyle(SwiftColor.Yellow); bolt.Margin = new Thickness(5, 0, 0, 0);
+                DockPanel.SetDock(bolt, Dock.Left); row.Children.Add(bolt); // :77-80
             }
             if (!compact)
             {
-                var name = EffortView.Text(pair?.CustomName ?? current?.ChipName ?? currentThread.Model ?? currentThread.Provider.DisplayName, SwiftFont.Callout, Chrome.PrimaryText);
-                name.TextTrimming = TextTrimming.CharacterEllipsis; Grid.SetColumn(name, 2); frame.Children.Add(name); // :90-94
-                CrossFade(frame, oldName, name, 2); shownName = name;
+                // the right-docked items come before the name that fills the rest, the chevron first so it ends the row
+                var chevron = SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText);
+                chevron.Margin = new Thickness(5, 0, 0, 0); DockPanel.SetDock(chevron, Dock.Right); row.Children.Add(chevron); // :101-103
+                Grid? effortCell = null;
+                TextBlock? effort = null;
                 if (current is { Efforts.Count: > 0 })
                 {
-                    var effort = EffortView.Text(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""), SwiftFont.Callout, Chrome.PrimaryText.Opacity(0.72));
-                    effort.Margin = new Thickness(5, 0, 0, 0); Grid.SetColumn(effort, 3); frame.Children.Add(effort); // :95-99
-                    CrossFade(frame, oldEffort, effort, 3); shownEffort = effort;
+                    effort = EffortView.Text(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""), SwiftFont.Callout, Chrome.PrimaryText.Opacity(0.72));
+                    effortCell = new Grid { Margin = new Thickness(5, 0, 0, 0), Children = { effort } }; // :95-99
+                    DockPanel.SetDock(effortCell, Dock.Right); row.Children.Add(effortCell);
                 }
-                var chevron = SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText);
-                chevron.Margin = new Thickness(5, 0, 0, 0); Grid.SetColumn(chevron, 4); frame.Children.Add(chevron); // :101-103
+                var name = EffortView.Text(pair?.CustomName ?? current?.ChipName ?? currentThread.Model ?? currentThread.Provider.DisplayName, SwiftFont.Callout, Chrome.PrimaryText);
+                name.TextTrimming = TextTrimming.CharacterEllipsis; // :90-94
+                var nameCell = new Grid { Children = { name } };
+                row.Children.Add(new TruncationFill(name) { Margin = new Thickness(5, 0, 0, 0), Child = nameCell });
+                CrossFade(nameCell, oldName, name); shownName = name;
+                if (effortCell is not null && effort is not null) { CrossFade(effortCell, oldEffort, effort); shownEffort = effort; }
             }
             var parts = new System.Collections.Generic.List<string> { current?.ShortName ?? currentThread.Model ?? currentThread.Provider.DisplayName };
             if (current is { Efforts.Count: > 0 }) parts.Add(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""));
@@ -161,6 +173,18 @@ public sealed class ModelEffortButton : Decorator
         // :125-137 capture-only anchor/frame sites remain outside the shipped path (ED-001).
     }
 
+    /// <summary>:92-94 a Text cut short by the width it is offered takes the whole of it, as SwiftUI sizes a truncated Text to its
+    /// proposal: the name's cell then spans what the held box leaves, and not the last whole character's width.</summary>
+    private sealed class TruncationFill(TextBlock text) : Decorator
+    {
+        protected override Size MeasureOverride(Size available)
+        {
+            var size = base.MeasureOverride(available);
+            return !double.IsInfinity(available.Width) && size.Width < available.Width && text.TextLayout.TextLines.Any(line => line.HasCollapsed)
+                ? new Size(available.Width, size.Height) : size;
+        }
+    }
+
     // :90-99 plain Texts: a change made inside an animation (the slider's withAnimation(.snappy(duration: 0.2)), :631)
     // cross-fades the old text into the new one in place, SwiftUI's default for a Text without a content transition.
     // Reference runtime, 2-chat-use.mov 34.84-34.97 s: the chip's "Sonnet High" fades under "S... Extra High", the new
@@ -170,21 +194,21 @@ public sealed class ModelEffortButton : Decorator
     // alone it trailed the video by about a frame: 0.22 and 0.50 at 27 and 49 ms).
     internal const double FadeLead = 0.013;
 
-    private static void CrossFade(Grid frame, TextBlock? old, TextBlock fresh, int column)
+    private static void CrossFade(Grid cell, TextBlock? old, TextBlock fresh)
     {
         if (Transaction.Current is not { } change || old is null || old.Text == fresh.Text || old.Bounds.Width <= 0) return;
         var animation = change.Delay(-FadeLead); // ahead: at the change's moment already FadeLead into the curve
         var width = old.Bounds.Width;
         var height = old.Bounds.Height;
+        (old.Parent as Panel)?.Children.Remove(old); // it leaves the cell it was laid out in
         old.Width = width;
         var from = old.Opacity; // a text still fading in when the next change comes fades out from where it was
         var layer = new Canvas { Height = height, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false, Children = { old } };
-        Grid.SetColumn(layer, column);
-        frame.Children.Add(layer);
+        cell.Children.Add(layer); // over the fresh text's own cell, taking no room
         EffortView.Animate(old, animation, progress => // replaces the fade-in it may still be running
         {
             old.Opacity = from * (1 - Math.Clamp(progress, 0, 1));
-            if (progress >= 1) frame.Children.Remove(layer);
+            if (progress >= 1) cell.Children.Remove(layer);
         });
         EffortView.Animate(fresh, animation, progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
     }
