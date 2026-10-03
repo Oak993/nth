@@ -3076,8 +3076,11 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            // The ring is an if-branch: it leaves and returns through the opacity transition (UI-COMPOSER-013), so its end is read once the fade has run.
+            var frames = new ManualFrameSource(); using var frameScope = FrameClock.Source.Override(frames);
             using var h = RuntimeHarness(); var meter = h.Main.OnMain(() => new ContextMeter(h.Runtime, ProviderKind.Codex,null)); var window = h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(meter));
-            h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=true); Pump(h,window); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=false); Pump(h,window); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
+            void Fade() { h.Main.Advance(TimeSpan.FromSeconds(2)); h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(2))); Pump(h,window); }
+            h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=true); Pump(h,window); Fade(); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=false); Pump(h,window); Fade(); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
             var noLimits = h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Cursor,null)); var other = h.Main.OnMain(() => Show(noLimits,h.App,200)); Pump(h,other); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(noLimits));
             h.Main.OnMain(() => h.Runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens=5,WindowTokens=10 }))); Pump(h,other); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(noLimits)); Close(h,other);
         });
@@ -3093,7 +3096,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness(); var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window);
-            h.Main.OnMain(() => { var button=One<Button>(meter); Assert.False(button.Focusable); Assert.Equal(new Thickness(6,5),button.Padding); var ring=Assert.IsType<Grid>(button.Content); Assert.Equal(15,ring.Width); Assert.Equal(15,ring.Height); var track=Assert.IsType<Avalonia.Controls.Shapes.Ellipse>(ring.Children[0]); var arc=Assert.IsType<Avalonia.Controls.Shapes.Path>(ring.Children[1]); Assert.Equal(2.5,track.StrokeThickness); Assert.Equal(2.5,arc.StrokeThickness); Assert.Equal(PenLineCap.Round,arc.StrokeLineCap); Assert.Equal(-90,Assert.IsType<RotateTransform>(arc.RenderTransform).Angle); }); Close(h,window);
+            h.Main.OnMain(() => { var button=One<Button>(meter); Assert.False(button.Focusable); Assert.Equal(new Thickness(6,5),button.Padding); var ring=Assert.IsType<Grid>(button.Content); Assert.Equal(15,ring.Width); Assert.Equal(15,ring.Height); var track=Assert.IsType<Avalonia.Controls.Shapes.Path>(ring.Children[0]); Assert.Equal(new Rect(0,0,15,15),Assert.IsType<EllipseGeometry>(track.Data).Rect); /* the circle's centre line is the 15 point frame's edge, as the arc's (VIDEO static.composer-context-ring: radius 7.53) */ var arc=Assert.IsType<Avalonia.Controls.Shapes.Path>(ring.Children[1]); Assert.Equal(2.5,track.StrokeThickness); Assert.Equal(2.5,arc.StrokeThickness); Assert.Equal(PenLineCap.Round,arc.StrokeLineCap); Assert.Equal(-90,Assert.IsType<RotateTransform>(arc.RenderTransform).Angle); }); Close(h,window);
         });
     }
 
@@ -3118,11 +3121,12 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            var frames=new ManualFrameSource(); using var frameScope=FrameClock.Source.Override(frames); // the ring's fade (UI-COMPOSER-013) runs on the frame clock
             using var h=RuntimeHarness(); var presenter=new RecordingPresenter(); using var ps=Presentation.Presenter.Override(presenter);
             var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window);
             h.Main.OnMain(() => Click(One<Button>(meter))); Pump(h,window); var popup=presenter.Calls[^1].Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom,popup.Placement); Assert.NotNull(popup.Child);
             var content=popup.Child!; Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(content), t=>t.Text=="Usage");
-            h.Main.OnMain(() => Click(Named(content,"Open as a floating panel beside the chat"))); Pump(h,window); Assert.True(h.App.Settings.ShowsUsagePanel); Assert.False(presenter.Calls[^1].Presented); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
+            h.Main.OnMain(() => Click(Named(content,"Open as a floating panel beside the chat"))); Pump(h,window); h.Main.Advance(TimeSpan.FromSeconds(2)); h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(2))); Pump(h,window); Assert.True(h.App.Settings.ShowsUsagePanel); Assert.False(presenter.Calls[^1].Presented); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
         });
     }
 
@@ -3207,7 +3211,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
             h.Main.OnMain(() => h.Runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens=used,WindowTokens=1000 })));
             var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null));
             var window=h.Main.OnMain(() => { Popovers.SetTint(meter, SwiftColor.White); return Show(meter,h.App,200); }); Pump(h,window);
-            h.Main.OnMain(() => { var arc=One<Avalonia.Controls.Shapes.Path>(meter); Assert.Equal((warns ? Chrome.Warning : SwiftColor.White).Resolve(arc.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(arc.Stroke).Color); }); Close(h,window);
+            h.Main.OnMain(() => { var arc=LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(meter).Last(); Assert.Equal((warns ? Chrome.Warning : SwiftColor.White).Resolve(arc.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(arc.Stroke).Color); }); Close(h,window);
         });
     }
 

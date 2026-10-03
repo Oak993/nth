@@ -1339,9 +1339,15 @@ internal sealed class ContextMeter : Decorator
     // :698-700 the view's inputs; :704-762 body
     public ContextMeter(ThreadRuntime runtime, ProviderKind provider, ProviderKind? headsProvider)
     {
+        // :713 `if !isPoppedOut, ... { Button }`: the ring is an if-branch, so it arrives and leaves through the default opacity
+        // transition under the change's own transaction (ED-NEW-composerview-ring). The slot holds it while it is there.
+        var slot = new Panel();
+        Child = slot;
         ContextButton? button = null;
         Popup? popup = null;
         var presented = false;
+        var inTree = false; // whether the ring is in the slot (a leaving ring is not)
+        var arrived = false; // the first showing is the view arriving with its parent, which runs no transition
         this.Track(() => (Usage: runtime.Usage, Model: AppEnvironment.GetAppModel(this),
                 Credits: CreditsReader.ExposesCredits(provider) && AppEnvironment.GetAppModel(this).Settings.HasAPIKey(provider),
                 PoppedOut: AppEnvironment.GetAppModel(this).Settings.ShowsUsagePanel), input =>
@@ -1352,13 +1358,20 @@ internal sealed class ContextMeter : Decorator
                 if (presented && popup is not null) Presentation.Presenter.Current.SetPresented(popup, false);
                 presented = false;
                 state.IsPresented = false;
-                Child = null;
-                button = null;
-                popup = null;
+                if (inTree && button is { } leaving)
+                {
+                    inTree = false;
+                    leaving.IsHitTestVisible = false; // a view on its way out takes no click
+                    Transaction.WithAnimation(Transaction.Current ?? Chrome.PanelSlide, () => SwiftTransition.Remove(slot, leaving));
+                }
+                arrived = true;
                 return;
             }
             var ring = new Grid { Width = 15, Height = 15 }; // :717,725
-            var track = new Avalonia.Controls.Shapes.Ellipse { StrokeThickness = 2.5 }; // :718-719
+            // :718-719 Circle().stroke(.quaternary, lineWidth: 2.5): the stroke is centred on the 15 point circle, as the arc's is. An Avalonia
+            // Ellipse insets its outline by half the stroke, which drew the track 1.25 inside the arc (VIDEO static.composer-context-ring:
+            // track centre-line radius 7.53), so the track is the same 15 by 15 circle geometry as a Path.
+            var track = new Avalonia.Controls.Shapes.Path { StrokeThickness = 2.5, Data = new EllipseGeometry(new Rect(0, 0, 15, 15)) };
             track.Stroke = SwiftColor.Quaternary.Brush(track);
             var arc = new Avalonia.Controls.Shapes.Path
             {
@@ -1376,9 +1389,17 @@ internal sealed class ContextMeter : Decorator
                 button.Padding = new Thickness(6, 5); // :726-728 rectangular hit area
                 popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :737
                 popup.Closed += (_, _) => state.IsPresented = false;
-                Child = button;
             }
             else button.Content = ring;
+            if (!inTree)
+            {
+                inTree = true;
+                button.IsHitTestVisible = true;
+                var arriving = button;
+                if (!arrived) SwiftTransition.Place(slot, 0, arriving);
+                else Transaction.WithAnimation(Transaction.Current ?? Chrome.PanelSlide, () => SwiftTransition.Insert(slot, 0, arriving));
+            }
+            arrived = true;
             var sentence = fraction is { } value ? ((long)(value * 100)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "% of the context window used" : "";
             ToolTip.SetTip(button, fraction is not null ? sentence : input.Credits ? "Remaining credits" : "Usage limits"); // :732,764-767
             AutomationProperties.SetName(button, fraction is not null ? "Context window" : input.Credits ? "Remaining credits" : "Usage limits"); // :733,769-772

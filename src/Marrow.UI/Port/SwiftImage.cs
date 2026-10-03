@@ -28,7 +28,10 @@ namespace Marrow.UI.Port;
 //        knocks every other element out; with no such shape it draws the outline;
 //   (Q5) composed renderings (SymbolCatalogue.Composition): the glyph at 50 % in the centre of its container, the
 //        (2,2)-(22,22) slash, the radius 4 badge at (18,6) knocked out 1.5 around, text in Inter Semibold 11 of 24 units;
-//   (Q6) .symbolRenderingMode draws monochrome in the foreground colour (named visual compromise).
+//   (Q6) .symbolRenderingMode draws monochrome in the foreground colour (named visual compromise), except .palette with
+//        two styles on a .fill name that has a container (ED-NEW-composerview palette; ComposerView.swift:1008-1010,
+//        EditorAttachments.swift:30): the container is painted in the secondary style and the elements that Q4 knocks
+//        out are drawn in the primary one, as the symbol's second and first layers are on the Mac (a white x on a disc).
 //
 // ED-182 symbol effects (2026-10-01: played, measured from the reference runtime): SymbolEffect and
 // ContentTransitionSymbolEffect only record the effect on the image; the call sites play it, because SwiftUI plays it on
@@ -245,7 +248,7 @@ public sealed class SwiftImage : Control
         set => SetValue(ForegroundProperty, value);
     }
 
-    /// <summary>The second style of <c>.foregroundStyle(_:_:)</c>; recorded, not drawn (ED-182 (Q6): monochrome).</summary>
+    /// <summary>The second style of <c>.foregroundStyle(_:_:)</c>: the container's paint of a palette .fill symbol (ED-182 (Q6)); recorded only otherwise.</summary>
     public IBrush? SecondaryForeground { get; private set; }
 
     /// <summary><c>.fontWeight(_:)</c>; recorded only, the stroke stays Lucide's 2 of 24 units (ED-182 (Q2)).</summary>
@@ -313,8 +316,8 @@ public sealed class SwiftImage : Control
         return this;
     }
 
-    /// <summary><c>.foregroundStyle(_:_:)</c>: the primary style draws the symbol; the secondary is recorded only
-    /// (ED-182 (Q6): no hierarchical, palette or multicolour layers).</summary>
+    /// <summary><c>.foregroundStyle(_:_:)</c>: the primary style draws the symbol; the secondary paints the container of a
+    /// palette .fill symbol and is recorded only otherwise (ED-182 (Q6): no hierarchical or multicolour layers).</summary>
     public SwiftImage ForegroundStyle(SwiftColor primary, SwiftColor secondary)
     {
         Foreground = primary.Brush(this);
@@ -477,6 +480,15 @@ public sealed class SwiftImage : Control
             return;
         }
         if (Foreground is not { } foreground) return;
+        if (SymbolRendering == Port.SymbolRenderingMode.Palette && SecondaryForeground is { } secondary && drawing.Palette() is { } layers)
+        {
+            // Palette: the symbol's second layer (the container) in the secondary style, its first (what the monochrome
+            // drawing knocks out) in the primary one, over it.
+            using (context.PushTransform(ViewBoxTransform(drawing.ViewBox, destination)))
+                context.DrawGeometry(secondary, null, layers.Container);
+            DrawVector(context, drawing.ViewBox, layers.Elements, destination, template);
+            return;
+        }
         using (context.PushTransform(ViewBoxTransform(drawing.ViewBox, destination)))
             context.DrawGeometry(foreground, null, area);
     }
@@ -681,6 +693,14 @@ public sealed class SwiftImage : Control
             if (badge)
                 result = result is null ? dot : Union(new CombinedGeometry(GeometryCombineMode.Exclude, result, gap), dot);
             return area = result;
+        }
+
+        /// <summary>The two layers of a palette .fill symbol with a container (no badge): the container's painted area (its inside
+        /// and its own stroke) and every other element; null for any other drawing.</summary>
+        public (Geometry Container, IReadOnlyList<SvgShape> Elements)? Palette()
+        {
+            if (!fill || badge || Container() is not { } container || Painted(container) is not { } painted) return null;
+            return (Union(container.Geometry, painted)!, Shapes.Where(shape => !ReferenceEquals(shape, container)).ToArray());
         }
 
         /// <summary>ED-182 (Q4): the outermost closed shape whose bounds enclose every other element's bounds.</summary>
