@@ -455,7 +455,10 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // flush the reply shows the card, never the JSON; each head appears as its brief closes; Writing the next brief shows
     // while one is still open; once sent the verb is Summoned with the check.
     [Fact]
-    [Trait("Req", "PR-CHAT-149")] // TimelineRows.swift:652-707, :711-741, :745-753, :771-782
+    // Partial proof PR-CHAT-149 (STOP #11): the reading, the titles, the rows and the never-JSON clauses hold here; the card's
+    // changes do not animate with Chrome.panelSlide (:703-704), because every streamed flush rebuilds the reply's
+    // MarkdownView and with it a new card (AssistantMessageRow.Body), where SwiftUI keeps the card's identity.
+    [Trait("Rule", "R-TEST-4")] // TimelineRows.swift:652-707, :711-741, :745-753, :771-782
     public void A_streaming_delegation_block_is_read_into_the_card_flush_by_flush_and_never_shows_its_json() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -505,6 +508,37 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
             h.Main.OnMain(() => { if (window is not null) Close(window); });
             MarkdownDelegationCard.Render = previous;
         }
+    });
+
+    // ---------------------------------------------------------------- PR-CHAT-077 (renders like the answers)
+
+    // :119-122 InlineText(parts.body, hugsContent: true): the user's own words take the answers' inline renderer, so a bare
+    // domain types as a link (MarkdownView.swift:1134-1191 LinkParagraphView, which puts the favicon in front once it is
+    // fetched) and plain words stay the selectable veiled text; the bubble hugs either.
+    [Fact]
+    [Trait("Req", "PR-CHAT-077")] // TimelineRows.swift:118-129; MarkdownView.swift:1121-1208
+    public void The_bubble_renders_its_words_with_the_answers_inline_renderer_so_a_bare_domain_is_a_link() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        AvaloniaWindow window = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var linked = new UserMessageRow(UserEntry("see example.com for it", Guid.NewGuid()), h.Runtime, canRevert: false);
+                var plain = new UserMessageRow(UserEntry("plain words", Guid.NewGuid()), h.Runtime, canRevert: false);
+                window = Show(new StackPanel { Spacing = 40, Children = { linked, plain } });
+                var linkText = Assert.Single(linked.GetVisualDescendants().OfType<InlineText>());
+                Assert.True(linkText.HugsContent);
+                Assert.Single(linkText.GetVisualDescendants().OfType<LinkParagraphView>());
+                var plainText = Assert.Single(plain.GetVisualDescendants().OfType<InlineText>());
+                Assert.True(plainText.HugsContent);
+                Assert.Empty(plainText.GetVisualDescendants().OfType<LinkParagraphView>());
+                Assert.Single(plainText.GetVisualDescendants().OfType<SelectableTextBlock>());
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
     });
 
     // ---------------------------------------------------------------- helpers
