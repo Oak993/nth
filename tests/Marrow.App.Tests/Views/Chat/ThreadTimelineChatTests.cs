@@ -118,10 +118,12 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             var rail = Rail(view)!; var edge = rail.TranslatePoint(default, window)!.Value.X;
             // A panel docks on the leading side: the conversation slides over to make room and the rail stays on the pane's edge through the slide, then goes.
             h.Main.OnMain(() => model.Settings.ShowsUsagePanel = true); Drain(h);
-            var shifted = false;
+            var shifted = false; var rowWidth = -1.0;
             for (var step = 0; step < 14 && Rail(view) is { } showing; step++)
             {
                 Assert.Equal(edge, showing.TranslatePoint(default, window)!.Value.X, 0.6);
+                // The padding lands once, at the final width, and the glide is a transform: the rows wrap once and keep their width through every frame of it (no re-wrap per frame).
+                var width = LogicalQuery.SelfAndDescendants<DisplayBlockView>(view).First().Bounds.Width; if (rowWidth < 0) rowWidth = width; Assert.Equal(rowWidth, width, 3);
                 shifted |= ChatView.GetReserveSlideOffset(Timeline(view)) != 0 || ChatView.GetReserveSlideLeading(Timeline(view)) != 0;
                 h.Main.Advance(TimeSpan.FromMilliseconds(30)); frames.Advance(TimeSpan.FromMilliseconds(30)); Drain(h);
             }
