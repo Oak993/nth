@@ -101,4 +101,23 @@ public sealed class AboutUpdateViewsPillStateTests(HeadlessSession headless)
             window.Close(); progress.CompleteCelebration();
         });
     });
+
+    // :387,408 the sparkles are `reduceMotion ? [] : Self.sparkles` and the environment is read live: a Reduce Motion that turns on
+    // (or off) while the slider shows drops (or brings back) the 14 sparkles without a new slider.
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-058")] // App/Views/Settings/AboutUpdateViews.swift:387,408: "Reduce Motion: no sparkles", read live from the environment
+    public void The_sparkles_follow_Reduce_Motion_while_the_slider_shows() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var slider = new UpdateProgressSlider(0.5) { Width = 104 };
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = slider };
+        window.Show(); Dispatcher.UIThread.RunJobs();
+        int Sparkles() => slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().Count(e => e.Classes.Contains("update-sparkle"));
+        Assert.Equal(14, Sparkles());
+        EnvironmentValues.SetAccessibilityReduceMotion(window, true); Dispatcher.UIThread.RunJobs();
+        Assert.Equal(0, Sparkles()); // the system setting turned on: gone at once
+        EnvironmentValues.SetAccessibilityReduceMotion(window, false); Dispatcher.UIThread.RunJobs();
+        Assert.Equal(14, Sparkles()); // and back when it turns off
+        window.Close();
+    });
 }

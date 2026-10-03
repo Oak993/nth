@@ -149,4 +149,30 @@ public sealed class AboutUpdateViewsHapticTests(HeadlessSession headless)
         Assert.Single(server.Requests); Assert.Equal(1, probe.Requests);
         runtime.OnMain(() => window.Close());
     });
+
+    // The record's "Every step re-checks cancellation and the phase / A phase change mid-sweep aborts it at the next guard" is stronger than
+    // the pinned Swift (the Swift wins): :801 checks the phase once, after the first 550 ms; every later step checks only cancellation, and
+    // the final completeCelebration() guards its own phase (AppUpdater.swift:174-176). A phase change after :801 therefore does not stop
+    // the sweep: its haptics still fire and its last step changes nothing.
+    [Fact]
+    [Trait("Req", "PR-UPDATE-061")] // App/Views/Settings/AboutUpdateViews.swift:801-816; App/AppUpdater.swift:168-176: the phase is checked once (:801); a later phase change leaves the haptics and the guarded last step
+    public void A_phase_change_after_the_first_guard_does_not_stop_the_sweep_and_its_last_step_changes_nothing() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
+        var progress = UpdateInstallProgressFixtures.NewProgress(); using var running = UpdateInstallProgress.Running.Override(progress);
+        using var checker = UpdateChecker.OverrideShared(runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], "")));
+        var haptics = new List<HapticPattern>(); using var sink = Haptics.Sink.Override(haptics.Add);
+        var page = new AboutSoftwareUpdateSection(); Avalonia.Controls.Window window = null!;
+        runtime.OnMain(() => { progress.ArmCelebration(); EnvironmentValues.SetAccessibilityReduceMotion(page, false); window = Show(page); });
+        runtime.AdvanceMilliseconds(550); // the :801 guard has passed, the target is 1
+        runtime.OnMain(() => { Assert.Equal(1, progress.Fraction); progress.CompleteCelebration(); Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); });
+        runtime.AdvanceMilliseconds(3000);
+        runtime.OnMain(() =>
+        {
+            Seen(haptics, HapticPattern.Alignment, HapticPattern.LevelChange); // :809 and :812 ran although the phase was no longer celebrating
+            Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); Assert.Equal(0, progress.Fraction); // :816's guarded complete changed nothing
+            window.Close();
+        });
+    });
 }

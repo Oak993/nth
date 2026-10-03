@@ -384,8 +384,10 @@ public sealed class UpdateReleaseSectionCards : Decorator
                 PlacementTarget = button,
                 IsLightDismissEnabled = true,
             };
-            // STOP opencode-proofs-aboutupdate #5 UI-UPDATE-015: real outside-click dismissal and presentedChrome
-            // need a native popup/overlay presenter; the ED-071 headless presenter only records requests.
+            // STOP opencode-proofs-aboutupdate #5 UI-UPDATE-015 (NATIVE-ONLY): the headless platform cannot open a Popup
+            // ("Unable to create IPopupImpl"), so the real open above the card, light dismissal by an outside press and the
+            // same-card re-click (a press on the open popover's own anchor first dismisses it, then the card's Click toggles
+            // presented again) need a real window; the ED-071 headless presenter only records the requests.
             popover.Opened += (_, _) => popover.Child = section is null
                 ? new Border()
                 : new UpdateReleaseSectionPopover(section, version).PresentedChrome();
@@ -484,8 +486,9 @@ public sealed class UpdateReleaseSectionCards : Decorator
 
 internal sealed class UpdateReleaseSectionPopover : Decorator
 {
-    // STOP opencode-proofs-aboutupdate #1 PR-SETTINGS-246: capture comparison with and without rollup needs
-    // matching About-page macOS reference captures; OD-0001/0004 provide none for this view.
+    // STOP opencode-proofs-aboutupdate #1 PR-SETTINGS-246 (CAPTURE-ONLY): geometry, type and colours are asserted, but the record's
+    // capture comparison needs a Mac showing a waiting release (with and without a rollup line); neither reference video shows a
+    // release or its popover (the recorded app was up to date, S 199.5-214.5).
     public UpdateReleaseSectionPopover(UpdateReleaseNotesDigest.Section section, string version)
     {
         var headerIcon = SwiftImage.Named(section.Category.AssetName) // :261 the same ED-215 release artwork.
@@ -678,6 +681,13 @@ public sealed class UpdateProgressSlider : Decorator
         AutomationProperties.SetName(this, "Updating Marrow");
         AttachedToVisualTree += (_, _) =>
             track.SetReduceMotion(EnvironmentValues.GetAccessibilityReduceMotion(this));
+        // :387,408 @Environment(\.accessibilityReduceMotion) is read by body on every evaluation, so a change while the slider
+        // shows (the system setting, WM_SETTINGCHANGE, ED-084) drops or brings back the sparkles at once.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == EnvironmentValues.AccessibilityReduceMotionProperty)
+                track.SetReduceMotion(EnvironmentValues.GetAccessibilityReduceMotion(this));
+        };
         ActualThemeVariantChanged += (_, _) => track.UpdateTheme(ActualThemeVariant);
     }
 
@@ -1101,8 +1111,9 @@ internal sealed class AboutVersionPill : Decorator
     {
         if (snapshot.Phase is not (UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed))
         {
-            // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-074: exact source geometry and every phase are
-            // tested; capture comparison needs matching macOS reference captures (OD-0001/0004).
+            // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-074 (CAPTURE-ONLY): the 104 pt slider in the capsule, every phase and the
+            // chase's response and minimum speed per phase are tested; the capture comparison needs a Mac showing an install or its
+            // celebration, which neither reference video does (the recorded app was up to date).
             var slider = new SmoothedUpdateProgressSlider(
                 progress.UpdateInstallProgressFractionTarget,
                 response: EnvironmentValues.GetAccessibilityReduceMotion(this)
@@ -1129,8 +1140,8 @@ internal sealed class AboutVersionPill : Decorator
             return padded.ChromeGlassCapsule();
         }
 
-        // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-072: all standing properties are tested, but the
-        // required capture comparison has no matching macOS reference (OD-0001/0004).
+        // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-072 (CAPTURE-ONLY): the Up to date chip is compared with the reference frame
+        // (AboutUpdateViewsChipCaptureTests); Check failed and Not checked yet appear on no reference frame (the recorded feed answered).
         var isReady = snapshot.UpdateAvailable && snapshot.Update is not null;
         var wasReady = previousReady;
         previousReady = isReady;
@@ -1213,8 +1224,9 @@ internal sealed class AboutVersionPill : Decorator
         AutomationProperties.SetName(button, isReady
             ? "Update & restart"
             : $"Marrow {AppInfo.Current.Version}, {Title(standing).ToLowerInvariant()}");
-        // STOP opencode-proofs-aboutupdate #3 UI-UPDATE-005: glass press response awaits F.GlassMaterial;
-        // ED-180 currently stores the interactive flag and material metadata, without rendering the response.
+        // STOP opencode-proofs-aboutupdate #3 UI-UPDATE-005 - RESOLVED 2026-10-04: F.GlassMaterial renders the interactive response
+        // (Marrow.UI.Tests GlassMaterialTests.InteractiveGlassRespondsToHoverAndPress) and the press reaches this glass's host
+        // (AboutUpdateViewsPillGlassTests).
         var glass = button.ChromeGlassCapsule();
         // :674-680 `.help` is applied after `.allowsHitTesting(isReady)` and `.chromeGlassCapsule()`, and :676-677 says
         // the seal still says what it means: the tooltip belongs to the whole capsule, which takes the hover even while
@@ -1424,10 +1436,10 @@ public sealed class AboutSoftwareUpdateSection : Decorator
 
     private void StartCelebrationSweep()
     {
-        // STOP opencode-proofs-aboutupdate #2 PR-UPDATE-061: HostedEnvironment does not bind Windows animation
-        // effects to accessibilityReduceMotion (ED-084). Injected environment timing is not system-setting proof.
-        // The record's every-step phase-abort clause is also stronger than pinned Swift :795-818: only :801
-        // checks the phase in this task; finish/complete guard their own writes. No unstated guards are invented.
+        // STOP opencode-proofs-aboutupdate #2 PR-UPDATE-061 - RESOLVED 2026-10-04: SystemReduceMotion (ED-084) puts the Windows
+        // animation-effects setting on every window the app opens, and AboutUpdateViewsHapticTests drives the sweep from it.
+        // The record's every-step phase-abort clause is stronger than pinned Swift :795-818: only :801 checks the phase in this
+        // task; finish/complete guard their own writes. No unstated guards are invented (the Swift wins).
         celebration?.Cancel();
         var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
         celebration = MainActor.Spawn(async () =>
