@@ -80,6 +80,12 @@ public static class PopoverHost
     internal static void Prepare(Popup popup)
     {
         if (!popup.Classes.Contains(PopoverClass)) popup.Classes.Add(PopoverClass);
+        // A popup presented with no child, whose site builds its content as it opens (AboutUpdateViews' release-note
+        // sections, HydraSettingsPage's cookbook and pair editor set popup.Child in their own Opened handlers, which run
+        // before Follow's): Avalonia 12.1.2's Popup.Open hands its host that null child, and content set while a popup is
+        // open reaches the host only through the child it replaces (Follow; Popup.Host is internal), so the first showing was
+        // an empty, clear window. It opens with an empty placeholder instead, which the site's content then replaces.
+        if (popup.Child is null && !popup.IsOpen) popup.Child = new PendingContent();
         var tipped = Facing(popup) is not null;
         popup.Classes.Set(TippedClass, tipped);
         if (tipped) Wrap(popup);
@@ -97,6 +103,11 @@ public static class PopoverHost
     }
 
     private static readonly ConditionalWeakTable<Popup, object> carded = new();
+
+    /// <summary>What a popup presented with no child shows until its site sets its content (Prepare): nothing, no size.</summary>
+    internal sealed class PendingContent : Control
+    {
+    }
 
     // What a presented popup does while it is open, from the one time it is prepared (the popup keeps these handlers for its
     // life; each acts only while it is open).
