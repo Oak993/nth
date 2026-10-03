@@ -305,7 +305,7 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     [Trait("Decision", "ED-252")] // ANGLE asks for an entry's size, then hands a buffer of that size: it gets the entry
     public void A_cache_entry_is_given_to_a_buffer_of_exactly_its_size()
     {
-        using var cache = new CacheFolder();
+        using var cache = new GpuProgramCacheFolder();
         var entry = new byte[] { 7, 6, 5, 4, 3, 2, 1, 0, 9, 8 };
         File.WriteAllBytes(cache.FileFor(), entry);
         var hits = GpuProgramCache.Hits;
@@ -321,7 +321,7 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     [Trait("Decision", "ED-252")] // a kept entry is replaced whole: another instance reading the old one never sees the new one written into it
     public void A_cache_entry_is_replaced_whole_never_written_in_place()
     {
-        using var cache = new CacheFolder();
+        using var cache = new GpuProgramCacheFolder();
         var file = cache.FileFor();
         File.WriteAllBytes(file, [1, 1, 1, 1]);
         using (var reader = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
@@ -338,7 +338,7 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     [Trait("Decision", "ED-252")] // the cache is marked warm when the warm-up's steps all went through the cache, and only then
     public void A_completed_warm_up_marks_the_cache_warm_only_when_its_entries_cover_its_steps() => headless.OnUiThread(() =>
     {
-        using var cache = new CacheFolder();
+        using var cache = new GpuProgramCacheFolder();
         var source = GpuProgramCache.MachineSource;
         GpuProgramCache.MachineSource = () => "10de:2704:00000000:a1 Test GPU 1.2.3.4";
         GpuWarmup.PretendGpu = true;
@@ -613,47 +613,6 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
         finally { window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs(); }
         Assert.Equal(registered, GpuWarmup.ActivityCount);
     });
-
-    // a cache folder of its own, with the cache's private entry points (ANGLE's callbacks) at hand
-    private sealed class CacheFolder : IDisposable
-    {
-        private static readonly System.Reflection.FieldInfo folderField = typeof(GpuProgramCache).GetField("folder", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-        private readonly object? saved = folderField.GetValue(null);
-        private readonly nint key = System.Runtime.InteropServices.Marshal.AllocHGlobal(8), value = System.Runtime.InteropServices.Marshal.AllocHGlobal(64);
-        public string Root { get; } = Path.Combine(Path.GetTempPath(), "jewel-cache-" + Guid.NewGuid().ToString("N"));
-        public string Folder => Path.Combine(Root, "0123456789abcdef01234567");
-
-        public CacheFolder()
-        {
-            Directory.CreateDirectory(Folder);
-            System.Runtime.InteropServices.Marshal.Copy(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }, 0, key, 8);
-            System.Runtime.InteropServices.Marshal.Copy(new byte[64], 0, value, 64);
-            folderField.SetValue(null, Folder);
-            GpuProgramCache.FolderOverride = Root;
-        }
-
-        private static object? Call(string name, params object[] args) =>
-            typeof(GpuProgramCache).GetMethod(name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.Invoke(null, args);
-
-        public string FileFor() => (string)Call("FileFor", key, (nint)8)!;
-        public nint Take(bool buffer, int size) => (nint)Call("Take", key, (nint)8, buffer ? value : (nint)0, (nint)size)!;
-        public byte[] Taken(int count) { var bytes = new byte[count]; System.Runtime.InteropServices.Marshal.Copy(value, bytes, 0, count); return bytes; }
-
-        public void Put(byte[] bytes)
-        {
-            System.Runtime.InteropServices.Marshal.Copy(bytes, 0, value, bytes.Length);
-            Call("Put", key, (nint)8, value, (nint)bytes.Length);
-        }
-
-        public void Dispose()
-        {
-            folderField.SetValue(null, saved);
-            GpuProgramCache.FolderOverride = null;
-            System.Runtime.InteropServices.Marshal.FreeHGlobal(key);
-            System.Runtime.InteropServices.Marshal.FreeHGlobal(value);
-            Directory.Delete(Root, recursive: true);
-        }
-    }
 
     // frames (or none) about every 10 ms until done or the time is up, the dispatcher's jobs run between
     private static void Pump(TimeSpan span, Func<bool> done, bool render)
