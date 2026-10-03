@@ -58,7 +58,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:641-650
     [Trait("Req", "UI-COMPOSER-037")] // App/Views/Composer/EffortSlider.swift:641-650
     [Trait("Req", "UI-COMPOSER-033")] // App/Views/Composer/EffortSlider.swift:659-683
-    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:543-555
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-112 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:543-555
     public void Pair_card_uses_a_gradient_and_lifts_its_single_line_caption_by_six_points()
     {
         headless.OnUiThread(() =>
@@ -660,7 +660,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")] // App/Views/Composer/EffortSlider.swift:568-597
-    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:568-597
+    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-031 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:568-597
     [Trait("Req", "UI-COMPOSER-034")] // App/Views/Composer/EffortSlider.swift:564
     public void Title_and_reset_are_real_buttons_with_exact_help_and_actions()
     {
@@ -760,7 +760,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:729-737
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-127 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:729-737
     // App/Views/Composer/EffortSlider.swift:985-998; capture method remains STOP #4, no whole-record Req.
     [InlineData(0, false, TrackLook.Kind.Plain)]
     [InlineData(2, false, TrackLook.Kind.Supercharged)]
@@ -1280,7 +1280,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:889-909 brand.fill: Meta and silver are two-stop gradients at maximum effort
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:889-909 brand.fill: Meta and silver are two-stop gradients at maximum effort
     [InlineData(EffortBrand.Meta, 0.0, 0.39, 0.88, 0.0, 0.51, 0.98)]
     [InlineData(EffortBrand.Silver, 1.0, 1.0, 1.0, 0.88, 0.88, 0.91)]
     public void Meta_and_silver_maximum_effort_fills_are_their_source_gradients(EffortBrand brand, double r1, double g1, double b1, double r2, double g2, double b2)
@@ -1315,6 +1315,31 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // low, medium, high, xhigh, max. Offered, unoffered and absent-pair resets now use that catalog
 // and a production-written nondefault precondition, so restart assertions can fail.
 //
-// Former STOP #1 (PR-COMPOSER-132) and #4 (PR-COMPOSER-128) are resolved: the effect's identity and clock and the fills per brand and pair
-// are asserted in EffortSliderTrackTests; the capture comparison they asked for would compare the fusion's seam and the Mac's per-brand
-// fills, which OD-0048/OD-0051/OD-0073 replaced by the liquid (the clock continuity on a real window stays EffortSliderNativeFrameTests').
+// Former STOP #1 (PR-COMPOSER-132) is resolved: the effect's identity and clock are asserted in EffortSliderTrackTests and, with the popover
+// open in the real composer, in EffortChipLiveInComposerTests (the clock continuity on a real window stays EffortSliderNativeFrameTests').
+// Former STOP #4 (PR-COMPOSER-128) is OPEN again: see STOP effortslider-fix #2 below.
+
+// STOP effortslider-fix #1
+// Kind: UNRESOLVED fact (the colour space of Color.mix(with:by:))
+// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:841 `Chrome.accent.mix(with: .white, by: 0.22)` and :964 `mix(with: .white, by: 0.18)` (B3 52bc792)
+// Requirements: PR-COMPOSER-112, UI-COMPOSER-031
+// What is proven: which colour the title takes in each of the four (maximum, fast) cases and in a pair, the gradient's order, the 0.3 s
+// smooth fade of a colour change (and, with the popover open in the real composer, that the fade is on screen: EffortChipLiveInComposerTests).
+// What is missing: the lightened colours themselves. SwiftUI's Color.mix(with:by:in:) takes a colour space argument whose default is
+// .perceptual; the port's SwiftColor.Mix interpolates the sRGB components linearly, and the tests build their expectation with that same
+// Mix, so for these two clauses they check the port against itself. No ED or OD records the choice. Measured evidence (reference runtime,
+// 2-chat-use.mov 34.0-35.0 s, frames of 2-chat-use_034.000-035.000, plain "High" title over a pink accent that measures (246, 32, 102) on the
+// track): the glyphs' brightest plateau is about (255, 91, 133); the component-wise mix of that accent with white by 0.22 predicts
+// (248, 81, 136) and an Oklab mix predicts (255, 103, 134), so the frames fit neither and anti-aliasing leaves no cleaner sample.
+// Needed to proceed: an owner or ED ruling on the colour space, or a capture of a large flat title colour in the reference runtime.
+
+// STOP effortslider-fix #2
+// Kind: owner decision not built (OD-0075, "liquid at every effort level")
+// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:729-738,985-998 (B3 52bc792) with OD-0075 and OD-0063
+// Requirements: PR-COMPOSER-127, PR-COMPOSER-128
+// What is proven: the 2x2 mapping of (maximum, fast) onto the kinds, every fill per brand and pair, the 0.3 s fill change (EffortSliderTrackTests).
+// What is missing: OD-0075 settles that the liquid is drawn at every effort level (each model and effort at its OD-0063 intensity) and that
+// ends the source's plain look (no effect, the accent fill). The port still draws the source's plain look, because the intensity rule
+// (how model strength and effort map to a shade within a maker's palette, OD-0063 to OD-0066) is approved on a canvas but is not built, and
+// no deviation is recorded on either record. The tests that assert the plain look carry no Req.
+// Needed to proceed: the intensity engine (OD-0063 to OD-0066), then the plain track as the liquid at its intensity, test-first.

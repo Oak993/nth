@@ -80,7 +80,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
     // ---- UI-COMPOSER-031: the title button ---------------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:531-534,543-597
+    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-031 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:531-534,543-597
     public void The_title_button_is_the_efforts_title_in_its_colour_with_a_chevron_a_hover_plate_and_a_tap_that_opens_the_list() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
@@ -226,7 +226,10 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
             Step(clock, frames, 30);
             var moving = Colour(circle.Fill);
             Assert.False(Near(moving, Chrome.PrimaryText.Opacity(0.1).Resolve(circle.ActualThemeVariant)), $"30 ms into the spring the plate is on its way: {moving}");
-            Step(clock, frames, 2000);
+            Step(clock, frames, 70);
+            Assert.True(Bolt().RenderTransform is Avalonia.Media.ScaleTransform { ScaleX: > 1.2 }, "100 ms in, the bolt is at the swell of its one bounce (:670 .symbolEffect(.bounce, value: isOn))");
+            Step(clock, frames, 1930);
+            Assert.Equal(1, (Bolt().RenderTransform as Avalonia.Media.ScaleTransform)?.ScaleX ?? 1); // back at rest
             Assert.Equal("bolt.fill", Bolt().SymbolName);
             Assert.Equal(SwiftColor.Yellow.Resolve(Bolt().ActualThemeVariant), Colour(Bolt().Foreground));
             Assert.Equal(SwiftColor.Yellow.Opacity(0.18).Resolve(circle.ActualThemeVariant), Colour(circle.Fill)); // hovering or not, on is the yellow plate

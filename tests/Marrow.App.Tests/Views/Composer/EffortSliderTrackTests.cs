@@ -62,7 +62,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     // ---- PR-COMPOSER-127: the 2x2 mapping of maximum effort and fast mode onto the four looks ---------------------------------
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:729-738 look: (isMax, fastMode) -> fusion, supercharged, fast, plain; no effect for plain
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-127 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:729-738 look: (isMax, fastMode) -> fusion, supercharged, fast, plain; no effect for plain
     [InlineData(0, false, TrackLook.Kind.Plain)]
     [InlineData(2, false, TrackLook.Kind.Supercharged)]
     [InlineData(0, true, TrackLook.Kind.Fast)]
@@ -95,7 +95,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:799 .animation(.smooth(duration: 0.3), value: look): the fill follows a look change over 0.3 s
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-127 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:799 .animation(.smooth(duration: 0.3), value: look): the fill follows a look change over 0.3 s
     public void A_fast_toggle_crossfades_the_fill_over_smooth_point_three_and_back() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
@@ -131,7 +131,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     // ---- PR-COMPOSER-128: the fill per brand and per pair ------------------------------------------------------------------
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:889-909 brand.fill, :862-871 init(provider:): the source's six brands at maximum
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:889-909 brand.fill, :862-871 init(provider:): the source's six brands at maximum
     [InlineData(ProviderKind.Claude, 0.80, 0.42, 0.28)]
     [InlineData(ProviderKind.Deepseek, 0.24, 0.36, 0.98)]
     [InlineData(null, 0.55, 0.34, 0.97)]
@@ -145,7 +145,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:893-908 the source's gradients: Meta two stops, Codex's silver two stops, Antigravity's Gemini sweep
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:893-908 the source's gradients: Meta two stops, Codex's silver two stops, Antigravity's Gemini sweep
     [InlineData(ProviderKind.Meta, "0,0.39,0.88|0,0.51,0.98")]
     [InlineData(ProviderKind.Codex, "1,1,1|0.88,0.88,0.91")]
     [InlineData(ProviderKind.Antigravity, "0.26,0.52,0.96|0.61,0.45,0.80|0.85,0.40,0.44")]
@@ -166,7 +166,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     // OD-0047 (locked canvas work/design/effort-liquid-approved-v15.dc.html:360-373): every other provider has its own colours;
     // the track's fill under the liquid is the canvas's three stops.
     [Theory]
-    [Trait("Req", "PR-COMPOSER-128")] // DEVIATION OD-0047: the nine providers that shared the source's silver wear their own brand
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): DEVIATION OD-0047: the nine providers that shared the source's silver wear their own brand
     [InlineData(ProviderKind.Cursor, "#d93f00", "#f54e00", "#ff8040")]
     [InlineData(ProviderKind.Grok, "#030304", "#121218", "#26262e")]
     [InlineData(ProviderKind.Opencode, "#168a3a", "#25b34f", "#45dc6c")]
@@ -186,7 +186,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:985-988 a pair's fill is [lead fill] + the heads' colours, at every effort; :942-961 the heads' colours
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:985-988 a pair's fill is [lead fill] + the heads' colours, at every effort; :942-961 the heads' colours
     [InlineData(ProviderKind.Claude, ProviderKind.Claude, 5, 0)]    // heads on the lead's provider: the roster's first four persona colours
     [InlineData(ProviderKind.Claude, ProviderKind.Antigravity, 4, 0)] // heads on Antigravity: the Gemini sweep
     [InlineData(ProviderKind.Claude, ProviderKind.Codex, 3, 0)]     // silver heads: two greys
@@ -214,7 +214,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:990 plain is Chrome.accent and :992-996 fast and fusion keep the brand's fill (DEVIATION OD-0073) for every brand
+    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:990 plain is Chrome.accent and :992-996 fast and fusion keep the brand's fill (DEVIATION OD-0073) for every brand
     public void The_fast_and_fusion_fills_are_the_brands_fill_for_each_source_brand() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
