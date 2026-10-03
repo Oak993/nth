@@ -18,13 +18,16 @@ namespace Marrow.UI.Tests.Port;
 // withAnimation(.snappy(duration: 0.2)) (:631). SOURCE FACT, 2-chat-use.mov (the chevron's centre x frame by frame,
 // work/claude-verify/resume-2026-10-03/effort-rev-r5-chevron/chevron_fit.out): the label's frame follows smooth(0.3) in Extra
 // High -> Max from 35.051 s and Max -> Extra High from 35.623 s (rms 0.013 and 0.007; snappy(0.2) 0.097 and 0.099), and
-// snappy(0.2) in High -> Extra High (rms 0.008). The letters do not slow with the frame: in those smooth(0.3) changes "Max"
-// arrives about 70 ms a letter and the nine leaving letters of "Extra High" go about 20 ms apart (MorphingTextBlock's file
-// note), the 0.14 s spread of the snappy changes' letters, not the 0.18 s that 55 % of smooth(0.3)'s settling would give; and
-// the narrowing takeover's "a" (below) keeps the video's ink only if it arrives at that pace. ENGINEERING DECISION (ED-238
-// final round 5): a change's arriving and leaving letters take their turns and run their curve at one pace,
-// MorphingTextBlock.LetterPace (the slider's snappy(0.2), on which they were measured), whatever the change's animation;
-// the change's animation moves the label's frame and the kept letters riding with it.
+// snappy(0.2) in High -> Extra High (rms 0.008). The letters do not slow with the frame. SOURCE FACT, read by eye (final
+// review round 6; 2-chat-use.mov, Extra High -> Max from 35.051 s, frames 35.037-35.337 s, work/claude-verify/resume-2026-10-03/
+// r6rev/vinc_max_zoom.png): "Max" arrives about 70 ms a letter (the snappy pace's 0.142 s of turns gives 71 ms, the 0.181 s that
+// 55 % of smooth(0.3)'s settling would give 90 ms), its "x" is already visible at 35.250 s (the snappy pace turns it at 35.232 s,
+// smooth's at 35.282 s) and the leaving "h" is already faint there (smooth's pace would still draw it whole). The nine leaving
+// letters of "Extra High" going about 20 ms apart (MorphingTextBlock's file note) are consistent with either pace (17.8 ms on
+// snappy's, 22.6 ms on smooth's) and tell them apart by nothing. The narrowing takeover's "a" (below) keeps the video's ink
+// only if it arrives at the snappy pace. ENGINEERING DECISION (ED-238 final round 5): a change's arriving and leaving letters
+// take their turns and run their curve at one pace, MorphingTextBlock.LetterPace (the slider's snappy(0.2), on which they were
+// measured), whatever the change's animation; the change's animation moves the label's frame and the kept letters riding with it.
 [Collection("Headless")]
 public sealed class MorphingTextBlockPaceTests(HeadlessSession headless)
 {

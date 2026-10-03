@@ -63,16 +63,19 @@ public class MorphingTextBlock : TextBlock
     // effort title on smooth(0.3), not the slider's snappy(0.2) (:631); 2-chat-use.mov agrees for the label's frame (the
     // chevron's centre x, frame by frame: Extra High -> Max and Max -> Extra High follow smooth(0.3), rms 0.013 and 0.007, and
     // High -> Extra High snappy(0.2), rms 0.008; work/claude-verify/resume-2026-10-03/effort-rev-r5-chevron/chevron_fit.out).
-    // The letters do not slow with the frame: in those smooth(0.3) changes "Max" arrives about 70 ms a letter and the nine
-    // leaving letters of "Extra High" go about 20 ms apart, the snappy changes' 0.14 s of turns (55 % of smooth(0.3)'s settling
-    // would be 0.18 s); and the narrowing takeover's "a" (TAKEOVER below) keeps the video's ink only if it arrives at the
-    // snappy pace (on smooth(0.3) it is still 0.76 arrived at its fullest frame). ENGINEERING DECISION, with no new number:
-    // a change's arriving and leaving letters take their turns and run their curve at one pace, the slider's snappy(0.2) on
-    // which they were measured (the first new letter 0.04 s in, the turns over 0.14 s), whatever the change's animation; the
-    // change's own animation moves the label's frame (its width, so the chevron, and where arriving letters stand from it)
-    // and the kept letters, which ride with the frame (KeptLead, NarrowingKeptLead). The other sites (the usage count on
-    // Chrome.panelSlide, the copy label and MiddleTruncatingText on snappy(0.22)) roll at the same pace: extrapolated, no
-    // video shows them.
+    // The letters do not slow with the frame. SOURCE FACT, read by eye (2-chat-use.mov, Extra High -> Max from 35.051 s, frames
+    // 35.037-35.337 s; final review round 6): "Max" arrives about 70 ms a letter (the snappy pace's 0.142 s of turns gives 71 ms,
+    // the 0.181 s that 55 % of smooth(0.3)'s settling would give 90 ms), its "x" is already visible at 35.250 s (the snappy pace
+    // turns it at 35.232 s, smooth's at 35.282 s) and the leaving "h" is already faint there (smooth's pace would still draw it
+    // whole); the nine leaving letters of "Extra High" going about 20 ms apart are consistent with either pace (17.8 ms on
+    // snappy's, 22.6 ms on smooth's) and tell them apart by nothing. The narrowing takeover's "a" (TAKEOVER below) keeps the
+    // video's ink only if it arrives at the snappy pace (on smooth(0.3) it is still 0.76 arrived at its fullest frame).
+    // ENGINEERING DECISION, with no new number: a change's arriving and leaving letters take their turns and run their curve
+    // at one pace, the slider's snappy(0.2) on which they were measured (the first new letter 0.04 s in, the turns over 0.14
+    // s), whatever the change's animation; the change's own animation moves the label's frame (its width, so the chevron, and
+    // where arriving letters stand from it) and the kept letters, which ride with the frame (KeptLead, NarrowingKeptLead). The
+    // other sites (the usage count on Chrome.panelSlide, the copy label and MiddleTruncatingText on snappy(0.22)) roll at the
+    // same pace: extrapolated, no video shows them.
     internal static readonly Animation LetterPace = Animation.Snappy(0.2);
 
     // WIDENING: the kept letters run ahead of the label's frame (video, High -> Extra High at 34.84 s, every frame: the gap

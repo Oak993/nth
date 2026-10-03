@@ -54,27 +54,49 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         finally { window.Close(); }
     });
 
-    // The title's width, as a share of its way from the old text's width to the new one's, <paramref name="ms"/> after a change
-    // made by <paramref name="change"/> (the chevron rides the label's frame, so this is its way too).
-    private static double WidthWay(Avalonia.Controls.Window window, MorphingTextBlock title, ManualFrameSource frames, Marrow.Testing.ManualTimeProvider clock, Action change, int ms)
+    // The moments (ms after a change) at which the title's way is read: along the whole of a 0.2 to 0.3 s curve, early (where
+    // the two curves of :582 and :631 part most), through its middle and into its tail. ED-238 final review round 6 (finding 2):
+    // the 0.3 of :582-583 is a Swift literal and a single reading 40 ms in (smooth(0.3) 0.205 of its way, smooth(0.35) 0.162)
+    // within 0.06 let smooth(0.35) pass (mutants C4 and C6); the label's width follows its animation's progress to 1e-5 of the
+    // way, so a tolerance of 0.01 at ten moments holds smooth(0.3) from smooth(0.25) and smooth(0.35) (and snappy) as well.
+    private static readonly int[] CurveMoments = [20, 40, 60, 80, 100, 130, 160, 200, 250, 300];
+
+    // The title's way, from the old text's width to the new one's, <paramref name="moments"/> ms after a change made by
+    // <paramref name="change"/>: its width (the label's frame) and its chevron's position (the chevron rides that frame, centred
+    // in the card, so it moves half the width's way: read from where the chevron is drawn, not from the width it follows).
+    private static List<(int Ms, double Width, double Chevron)> Ways(Avalonia.Controls.Window window, MorphingTextBlock title, Control chevron,
+        ManualFrameSource frames, Marrow.Testing.ManualTimeProvider clock, Action change, int[] moments)
     {
+        double ChevronX() => chevron.TranslatePoint(new Point(0, 0), window)!.Value.X;
         window.UpdateLayout();
         var from = title.Bounds.Width;
+        var fromX = ChevronX();
         change();
         Dispatcher.UIThread.RunJobs();
-        double at = 0;
+        var at = new Dictionary<int, (double Width, double X)>();
         for (var t = 1; t <= 700; t++)
         {
             clock.Advance(TimeSpan.FromMilliseconds(1));
             frames.Advance(TimeSpan.FromMilliseconds(1));
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
-            if (t == ms) at = title.Bounds.Width;
+            if (moments.Contains(t)) at[t] = (title.Bounds.Width, ChevronX());
         }
         var to = title.Bounds.Width;
+        var toX = ChevronX();
         Assert.False(title.IsMorphing);
         Assert.True(Math.Abs(to - from) > 5, $"the title's width does not change: {from:F1} -> {to:F1}");
-        return (at - from) / (to - from);
+        Assert.True(Math.Abs(toX - fromX) > 2.5, $"the title's chevron does not move: {fromX:F1} -> {toX:F1}");
+        return moments.Select(ms => (ms, (at[ms].Width - from) / (to - from), (at[ms].X - fromX) / (toX - fromX))).ToList();
+    }
+
+    // The way a change made by <paramref name="change"/> takes along <paramref name="curve"/>: the width and the chevron's
+    // position at every moment of CurveMoments within <paramref name="tolerance"/> of the curve's own progress there.
+    private static void AssertOnCurve(string name, List<(int Ms, double Width, double Chevron)> ways, Animation curve, string curveName, double tolerance = 0.01)
+    {
+        var worst = ways.Max(way => Math.Max(Math.Abs(way.Width - curve.Progress(way.Ms / 1000.0)), Math.Abs(way.Chevron - curve.Progress(way.Ms / 1000.0))));
+        var seen = string.Join(", ", ways.Select(way => $"{way.Ms} ms {way.Width:F2}/{way.Chevron:F2} ({curve.Progress(way.Ms / 1000.0):F2})"));
+        Assert.True(worst <= tolerance, $"{name}: the title's width and chevron are not on {curveName} (worst {worst:F3} off, allowed {tolerance:F2}); width/chevron (the curve) {seen}");
     }
 
     // SOURCE FACT, EffortSlider.swift:579-583: the title's HStack (the text, so its width and the chevron after it) carries
@@ -83,7 +105,8 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
     // the effort and fastMode = false). So a change into or out of maximum, or one that turns fast mode on or off with the
     // effort, runs on smooth(0.3) whatever comes around it, and any other runs on the slider's snappy(0.2). SOURCE FACT, the
     // reference video (chevron_fit.out, REVIEW a7c682bf6): High -> Extra High follows snappy(0.2), Extra High -> Max and
-    // Max -> Extra High smooth(0.3). 40 ms in, snappy(0.2) has made 0.39 of its way and smooth(0.3) 0.21.
+    // Max -> Extra High smooth(0.3). Read along the whole curve (CurveMoments, AssertOnCurve): the label's width and the
+    // chevron's drawn position at ten moments from 20 to 300 ms, each within 0.01 of its curve's own progress.
     [Fact]
     [Trait("Decision", "ED-238")] // ED-238 final round 5: :582-583 at PR-COMPOSER-111 / UI-COMPOSER-031's title
     public void The_title_runs_on_smooth_0_3_when_maximum_or_fast_mode_changes_and_on_the_sliders_snappy_otherwise() => headless.OnUiThread(() =>
@@ -96,32 +119,28 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         var fast = new ObservableBoolBox { Value = false };
         var card = new EffortSliderCard("Sonnet", ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "xhigh", "max"]), "medium", true,
             effort.AsBinding(), fast.AsBinding(), () => { }, onTitleTap: () => { });
-        var window = new Avalonia.Controls.Window { Width = 360, Height = 200, Content = card };
+        var window = new Avalonia.Controls.Window { Width = 360, Height = 200, Content = card, UseLayoutRounding = false }; // read the curve, not the pixel grid (CurveMoments)
         window.Show();
         Dispatcher.UIThread.RunJobs();
         try
         {
             var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
-            var snappy = Animation.Snappy(duration: 0.2).Progress(0.04);
-            var smooth = Animation.Smooth(duration: 0.3).Progress(0.04);
+            var chevron = Assert.IsAssignableFrom<Control>(Assert.IsAssignableFrom<Panel>(title.Parent).Children[1]);
+            var snappy = Animation.Snappy(duration: 0.2);
+            var smooth = Animation.Smooth(duration: 0.3);
             void Slider(string value) => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => effort.Value = value);
-            var steps = new (string Name, Action Change, double Expected)[]
+            var steps = new (string Name, Action Change, Animation Expected, string Curve)[]
             {
-                ("High -> Extra High in the slider's snappy(0.2)", () => Slider("xhigh"), snappy),
-                ("Extra High -> Max in the slider's snappy(0.2), into maximum", () => Slider("max"), smooth),
-                ("Max -> Extra High in the slider's snappy(0.2), out of maximum", () => Slider("xhigh"), smooth),
-                ("Extra High -> Medium in the slider's snappy(0.2)", () => Slider("medium"), snappy),
-                ("Medium -> Extra High with fast mode turned on, in snappy(0.2)", () => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => { effort.Value = "xhigh"; fast.Value = true; }), smooth),
-                ("Extra High -> Medium in fast mode, in snappy(0.2)", () => Slider("medium"), snappy),
-                ("Medium -> Max with no animation, into maximum", () => effort.Value = "max", smooth),
+                ("High -> Extra High in the slider's snappy(0.2)", () => Slider("xhigh"), snappy, "snappy(0.2)"),
+                ("Extra High -> Max in the slider's snappy(0.2), into maximum", () => Slider("max"), smooth, "smooth(0.3)"),
+                ("Max -> Extra High in the slider's snappy(0.2), out of maximum", () => Slider("xhigh"), smooth, "smooth(0.3)"),
+                ("Extra High -> Medium in the slider's snappy(0.2)", () => Slider("medium"), snappy, "snappy(0.2)"),
+                ("Medium -> Extra High with fast mode turned on, in snappy(0.2)", () => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => { effort.Value = "xhigh"; fast.Value = true; }), smooth, "smooth(0.3)"),
+                ("Extra High -> Medium in fast mode, in snappy(0.2)", () => Slider("medium"), snappy, "snappy(0.2)"),
+                ("Medium -> Max with no animation, into maximum", () => effort.Value = "max", smooth, "smooth(0.3)"),
             };
-            var seen = new List<string>();
-            foreach (var (name, change, expected) in steps)
-            {
-                var way = WidthWay(window, title, frames, clock, change, 40);
-                seen.Add($"{name}: {way:F2} (expected {expected:F2})");
-                Assert.True(Math.Abs(way - expected) <= 0.06, $"the title does not run on the source's curve 40 ms in: {string.Join("; ", seen)}");
-            }
+            foreach (var (name, change, expected, curve) in steps)
+                AssertOnCurve(name, Ways(window, title, chevron, frames, clock, change, CurveMoments), expected, curve);
         }
         finally { window.Close(); }
     });
@@ -142,15 +161,15 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         var effort = new ObservableStringBox { Value = "high" };
         var card = new EffortSliderCard("Sonnet", ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "xhigh", "max"]), "medium", false,
             effort.AsBinding(), Binding<bool>.Constant(false), () => { }, onTitleTap: () => { });
-        var window = new Avalonia.Controls.Window { Width = 360, Height = 200, Content = card };
+        var window = new Avalonia.Controls.Window { Width = 360, Height = 200, Content = card, UseLayoutRounding = false }; // read the curve, not the pixel grid (CurveMoments)
         window.Show();
         Dispatcher.UIThread.RunJobs();
         try
         {
             var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
-            var smooth = Animation.Smooth(duration: 0.3).Progress(0.04);
-            var way = WidthWay(window, title, frames, clock, () => effort.Value = "medium", 40); // as Reset writes it
-            Assert.True(Math.Abs(way - smooth) <= 0.06, $"High -> Medium with no animation is not morphed on smooth(0.3): {way:F2} of its way 40 ms in (smooth {smooth:F2})");
+            var chevron = Assert.IsAssignableFrom<Control>(Assert.IsAssignableFrom<Panel>(title.Parent).Children[1]);
+            var smooth = Animation.Smooth(duration: 0.3);
+            AssertOnCurve("High -> Medium with no animation, as Reset writes it", Ways(window, title, chevron, frames, clock, () => effort.Value = "medium", CurveMoments), smooth, "smooth(0.3)");
 
             EnvironmentValues.SetAccessibilityReduceMotion(window, true);
             Dispatcher.UIThread.RunJobs();
@@ -159,8 +178,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
             Assert.Equal("Extra High", title.Text);
             Assert.False(title.IsMorphing, "with reduce motion an effort change the Mac does not animate is still morphed");
 
-            way = WidthWay(window, title, frames, clock, () => effort.Value = "max", 40);
-            Assert.True(Math.Abs(way - smooth) <= 0.06, $"with reduce motion, Extra High -> Max (into maximum, :582) is not on smooth(0.3): {way:F2} of its way 40 ms in");
+            AssertOnCurve("with reduce motion, Extra High -> Max (into maximum, :582)", Ways(window, title, chevron, frames, clock, () => effort.Value = "max", CurveMoments), smooth, "smooth(0.3)");
         }
         finally { window.Close(); }
     });
@@ -212,6 +230,67 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
                 Assert.True(drawn.TryGetValue("High", out var leaving) && leaving.SetEquals([old]), $"a leaving letter of \"High\" is not drawn in the old colour {old}: {seen}");
             }
             Assert.True(first > 0, "no letter of \"Max\" is drawn within 110 ms");
+        }
+        finally { window.Close(); }
+    });
+
+    // The same with no transaction around the change: Reset (onReset, EffortSlider.swift:219-224) writes the effort with none,
+    // and a change out of maximum (or into it, written so) runs the title on :582's smooth(0.3) all the same, so it morphs. ED-238
+    // final review round 6 (finding 3): cad125620 made the card's colour follow the title's morph (the animation it runs on)
+    // instead of the change's transaction, and only the transaction's change was tested, so mutant C12 (the colour flag read
+    // from the transaction again) survived every test: a Reset from Max cross-faded its arriving letters from the old colour
+    // over 0.3 s. The new colour is set at once, SOURCE FACT as above (35.10-35.21 s: the arriving letters wear it from their
+    // first frame, the leaving ones keep the old); that it is the same with no transaction is the card's own rule
+    // (ENGINEERING DECISION: one rule for a morphing title, whatever started it).
+    [Theory]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574) with :582-583's colour, with no transaction
+    [InlineData("max", "low", "Max", "Low")] // Reset from Max, :219-224 with :582
+    [InlineData("low", "max", "Low", "Max")] // into maximum with no animation
+    public void A_change_with_no_transaction_into_or_out_of_maximum_sets_the_new_colour_at_once(string from, string to, string leavingLine, string arrivingLine) => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new Marrow.Testing.ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var effort = new ObservableStringBox { Value = from };
+        var card = new EffortSliderCard("Sonnet", ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "max"]), "medium", false,
+            effort.AsBinding(), Binding<bool>.Constant(false), () => { });
+        var window = new Avalonia.Controls.Window { Width = 360, Height = 200, Content = card };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try
+        {
+            var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
+            var brand = EffortBrand.Create(ProviderKind.Claude).TitleColor.Resolve(title.ActualThemeVariant); // :551 brand.title at Max
+            var plain = EffortPalette.Title.Resolve(title.ActualThemeVariant); // :841 EffortPalette.title, :554
+            var old = from == "max" ? brand : plain;
+            var fresh = from == "max" ? plain : brand;
+            Assert.NotEqual(old, fresh);
+            Assert.Equal(old, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color);
+            effort.Value = to; // no transaction, as onReset writes it
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(arrivingLine, title.Text);
+            Assert.True(title.IsMorphing, "a change into or out of maximum with no transaction is not morphed (:582 animates it on smooth(0.3))");
+            // At once: the title's colour is the new one before any frame, not the old one on its way over 0.3 s.
+            Assert.Equal(fresh, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color);
+            // Every frame from the first an arriving letter is drawn to 110 ms in: every letter of the new line in the new colour,
+            // every leaving letter of the old line in the old one.
+            var first = -1;
+            for (var ms = 1; ms <= 110; ms++)
+            {
+                clock.Advance(TimeSpan.FromMilliseconds(1));
+                frames.Advance(TimeSpan.FromMilliseconds(1));
+                Dispatcher.UIThread.RunJobs();
+                var drawn = DrawnColours(title);
+                if (first < 0 && drawn.ContainsKey(arrivingLine)) first = ms;
+                var seen = $"{from} -> {to}, {ms} ms: {Show(drawn)}";
+                Assert.Equal(fresh, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color);
+                if (first < 0) continue;
+                Assert.True(drawn.TryGetValue(arrivingLine, out var arriving) && arriving.SetEquals([fresh]), $"an arriving letter of \"{arrivingLine}\" is not drawn in the new colour {fresh} from its first frame: {seen}");
+                Assert.True(!drawn.TryGetValue(leavingLine, out var leaving) || leaving.SetEquals([old]), $"a leaving letter of \"{leavingLine}\" is not drawn in the old colour {old}: {seen}");
+            }
+            Assert.True(first > 0, $"no letter of \"{arrivingLine}\" is drawn within 110 ms");
+            Assert.True(DrawnColours(title).ContainsKey(leavingLine), $"no leaving letter of \"{leavingLine}\" is still drawn 110 ms in");
         }
         finally { window.Close(); }
     });

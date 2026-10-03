@@ -21,8 +21,13 @@ namespace Marrow.UI.Tests.Port;
 // - only a common beginning or end of the two titles is kept ("High" in High <-> Extra High); "Extra High" -> "Max",
 //   "Max" -> "Extra High" and "Medium" -> "High" keep nothing (no shared "a", "x" or "i" glides);
 // - letters go one after another, left to right, over about 0.14 s whatever their number ("Max" arrives M, a, x about
-//   70 ms apart, "Extra" about 30 ms apart, the nine leaving letters of "Extra High" about 20 ms apart);
-// - each letter then follows the change's own curve (the first arriving "E" tracks the snappy spring from its start);
+//   70 ms apart, "Extra" about 30 ms apart, the nine leaving letters of "Extra High" about 20 ms apart: read by eye, and
+//   17.8 ms on the 0.142 s of snappy(0.2)'s turns against 22.6 ms on the 0.181 s smooth(0.3)'s would give, so this last
+//   figure does not tell those paces apart; Max's spacing and the frames of Extra High -> Max do, ED-238 final round 6);
+// - each letter then follows the letters' pace, the slider's snappy(0.2) curve, from its turn, whatever curve the change
+//   itself runs on (the first arriving "E" of the snappy High -> Extra High tracks that spring from its start; the letters
+//   of the smooth(0.3) changes into and out of maximum keep the pace: ENGINEERING DECISION, ED-238 final round 5 (3),
+//   MorphingTextBlock.LetterPace, MorphingTextBlockPaceTests; they do not follow the change's own curve);
 // - a gradient title is filled through the new text's own box set at the label's moving leading edge: its colours span
 //   the new text from the first frame, gliding letters pass through them, and nothing outside the box shows (6 Luna +
 //   6 Luna pair: "Medi" coloured across the whole sweep and "um" gone at once, 184.24 s; "Extra" cut through its "a" and
@@ -89,17 +94,22 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
-    public void Each_letter_follows_the_changes_own_curve_from_its_turn()
+    public void Each_letter_follows_the_letters_pace_from_its_turn_whatever_the_changes_animation()
     {
+        // The letters' pace is the slider's snappy(0.2) (MorphingTextBlock.LetterPace, ED-238 final round 5 (3)): the first new
+        // letter waits ArrivalShare of its 0.2 s, and each letter then runs that curve from its turn, whatever curve the change
+        // itself runs on (the smooth(0.3) of the changes into and out of maximum, a spring, a linear one).
+        Assert.Equal(Slider.Duration, MorphingTextBlock.LetterPace.Duration, 9);
         var wait = MorphingTextBlock.ArrivalShare * Slider.Duration;
-        foreach (var t in new[] { 0.05, 0.07, 0.09, 0.11, 0.15, 0.2 })
-        {
-            // Video, the arriving "E" (34.84 s): its rise left 6.0, 4.6, 3.2, 2.2, 0.5 px at 49, 69, 90, 112, 155 ms.
-            var first = MorphingTextBlock.Glyphs("High", "Extra High", t, Slider).Single(g => g.NewIndex == 0);
-            Assert.Equal(Slider.Progress(t - wait), first.Progress, 6);
-            var leaving = MorphingTextBlock.Glyphs("Extra High", "Max", t, Slider).Single(g => g.OldIndex == 0);
-            Assert.Equal(Slider.Progress(t), leaving.Progress, 6); // a leaving letter goes at once
-        }
+        foreach (var animation in new[] { Slider, Animation.Smooth(0.3), Animation.Spring(response: 0.32, dampingFraction: 0.9), Animation.Linear(0.5) })
+            foreach (var t in new[] { 0.05, 0.07, 0.09, 0.11, 0.15, 0.2 })
+            {
+                // Video, the arriving "E" of the snappy change (34.84 s): its rise left 6.0, 4.6, 3.2, 2.2, 0.5 px at 49, 69, 90, 112, 155 ms.
+                var first = MorphingTextBlock.Glyphs("High", "Extra High", t, animation).Single(g => g.NewIndex == 0);
+                Assert.Equal(Slider.Progress(t - wait), first.Progress, 6);
+                var leaving = MorphingTextBlock.Glyphs("Extra High", "Max", t, animation).Single(g => g.OldIndex == 0);
+                Assert.Equal(Slider.Progress(t), leaving.Progress, 6); // a leaving letter goes at once
+            }
     }
 
     [Fact]
