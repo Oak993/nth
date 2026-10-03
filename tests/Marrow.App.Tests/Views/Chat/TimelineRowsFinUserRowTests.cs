@@ -365,6 +365,10 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             // :223-225 the click only posts an intent; the row takes it up and confirms on itself (:184-196).
             menu = HostMenu(popup);
             var edit = LogicalQuery.SelfAndDescendants<PopoverItem>(second).Single(item => Title(item) == "Edit from here");
+            // :216-228 each item is a PopoverItem whose hover surface is `RoundedRectangle(cornerRadius: 6, style: .continuous)` on a 26 pt row (Chrome.swift:322-326;
+            // ED-181 closed): the 18 pt two run-ins of a 6 pt corner fit, so each is cut to Apple's corner.
+            Settle(menu);
+            foreach (var item in LogicalQuery.SelfAndDescendants<PopoverItem>(second)) ContinuousCornerChecks.Drawn(Mounted<Border>(item).First(border => SwiftShapes.GetCornerStyle(border) is not null), expectApple: true);
             Assert.Empty(dialogs.Shown);
             ClickButton(menu, Assert.Single(LogicalQuery.SelfAndDescendants<Button>(edit)));
         });

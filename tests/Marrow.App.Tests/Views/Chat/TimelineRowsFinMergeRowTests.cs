@@ -85,6 +85,9 @@ public sealed class TimelineRowsFinMergeRowTests(HeadlessSession headless)
                 // :959 HStack(spacing: 8): the track and the stage words share one centre line.
                 Near("stage words after the track (spacing 8, slot padded 2 then given back)", 8, Left(shown, window) - (Left(track, window) + track.Bounds.Width));
                 OnOneCentreLine(window, track, shown);
+                // :1056-1062 the running state's words shimmer: the visible words sit in the shimmer's own panel, beside its masked band layer.
+                var shimmer = Assert.IsType<Panel>(shown.Parent);
+                Assert.Contains(shimmer.Children, child => child is Panel { OpacityMask: not null });
                 // :1044-1079 the still copy that sizes the slot is set in the same callout medium as the words that show.
                 Assert.All(words, text => Near("still copy and visible words alike", shown.Bounds.Width, text.Bounds.Width));
                 Assert.All(words, text => Assert.Equal(FontWeight.Medium, text.FontWeight));
