@@ -1490,22 +1490,15 @@ public sealed class AboutUpdateCheckRow : Decorator
     private Control Build(Snapshot snapshot)
     {
         var detail = Detail(snapshot);
-        var label = new TextBlock { Text = snapshot.IsChecking ? "Checking…" : "Check now" };
-        // STOP opencode-proofs-aboutupdate #4 PR-SETTINGS-240 UI-SETTINGS-071 UI-UPDATE-022: the shared
-        // .buttonStyle(.glass).controlSize(.small) renderer/metrics are absent; 9x5 and callout below have no
-        // pinned system-small oracle or approved adaptation. Interaction and trailing-row proofs are retained.
-        // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-076: foreground/no-notify and every string are tested,
-        // but the required capture comparison has no matching About-row macOS reference (OD-0001/0004).
-        SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium).Apply(label);
-        var face = new Border { Padding = new Thickness(9, 5), Child = label };
-        var button = PlainControls.Button(face, () =>
+        // :826-833 Button(checker.isChecking ? "Checking…" : "Check now") { Task { await checker.check() } }.buttonStyle(.glass)
+        // .controlSize(.small).disabled(checker.isChecking): the small accent glass capsule the recorded Mac runtime shows
+        // (SmallAccentGlassButton, ED-NEW-aboutupdateviews); the label and the disabled look share isChecking.
+        var button = SmallAccentGlassButton.Create(snapshot.IsChecking ? "Checking…" : "Check now", () =>
         {
             if (!snapshot.IsChecking)
                 MainActor.Spawn(async () => await checker.Check());
-        });
-        button.IsEnabled = !snapshot.IsChecking;
-        var glass = button.ChromeGlassCapsule();
-        return new ChromeRow("Software update", () => glass, detail);
+        }, enabled: !snapshot.IsChecking);
+        return new ChromeRow("Software update", () => button, detail);
     }
 
     private static string Detail(Snapshot snapshot)

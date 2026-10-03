@@ -74,7 +74,10 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
         var button = Assert.Single(view.GetVisualDescendants().OfType<Button>()); Assert.Equal(!checking, button.IsEnabled);
         Assert.Equal(checking ? "Checking…" : "Check now", Assert.Single(button.GetVisualDescendants().OfType<TextBlock>()).Text);
         var surface = Assert.Single(view.GetVisualDescendants().OfType<Control>().Select(SwiftGlass.GetEffect).OfType<GlassEffect>());
-        Assert.Equal(GlassShapeKind.Capsule, surface.Shape.Kind); Assert.Equal(0.3, surface.TintOpacity);
+        // :830-831 .buttonStyle(.glass).controlSize(.small) under the window's accent tint (WindowManager.swift:162,191): the reference
+        // video shows an accent capsule (interactive while enabled), grey and translucent while disabled; the looks are measured in
+        // AboutUpdateViewsCheckNowLookTests, so this row test only pins which material goes with which state.
+        Assert.Equal(GlassShapeKind.Capsule, surface.Shape.Kind); Assert.Equal(!checking, surface.IsInteractive); Assert.Equal(checking ? 0.11 : 1.0, surface.TintOpacity);
         window.Close();
     });
 
