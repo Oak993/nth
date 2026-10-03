@@ -10633,6 +10633,75 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         finally { harness.Main.OnMain(() => Close(view)); }
     });
 
+    // :1514 `if capped { chevron }`: the chevron is a view of the card's own stack, so it joins and leaves on the same default
+    // opacity transition as a glyph when the head count crosses twelve; the card's row count changes with it, so :1535's
+    // snappy is the animation in force.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :1514, :1535
+    public void The_head_cards_chevron_fades_in_when_the_card_becomes_capped_and_out_when_it_stops_being() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var twelve = Enumerable.Range(0, 12).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var thirteen = twelve.Append(HeadHelper(project, parent.Id, 99, -1)).ToList(); // the oldest: the last of the card
+        var model = Model(harness, [project], twelve.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Chevrons() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Where(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true)).ToList();
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, twelve, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Empty(Chevrons()); // twelve heads: not capped, no chevron
+                CallOn(card, "Update", thirteen); // a thirteenth head: capped
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var chevron = Assert.Single(Chevrons());
+                Assert.InRange(ShownOpacityWithin(chevron, card), 0.02, 0.98); // joining
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(1d, ShownOpacityWithin(Assert.Single(Chevrons()), card));
+                CallOn(card, "Update", twelve); // back to twelve: no longer capped
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var chevron = Assert.Single(Chevrons()); // still drawn, on its way out
+                Assert.InRange(ShownOpacityWithin(chevron, card), 0.02, 0.98);
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Empty(Chevrons()); // gone
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
     // ---- REVIEW (pass 1, round 1, adversarial): the Remove project question outlives a re-render of its row ----
     //
     // OD-0008 A9 / OD-0012 E2 put the question on the project row "in the style of the thread delete question"
