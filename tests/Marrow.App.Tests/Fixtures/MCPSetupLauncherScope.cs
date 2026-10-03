@@ -33,6 +33,10 @@ public sealed class MCPSetupLauncherScope : IDisposable
         LifetimeField.SetValue(Application.Current, new ClassicDesktopStyleApplicationLifetime { MainWindow = mainWindow });
     }
 
+    /// <summary>The application's main window, whose launcher is the recorder: content shown in it (a popover's view) reaches the
+    /// browser boundary through <c>TopLevel.GetTopLevel(owner).Launcher</c> as well as through the lifetime's main window.</summary>
+    public Avalonia.Controls.Window MainWindow => mainWindow;
+
     /// <summary>Every page the panel asked the browser to open, in order.</summary>
     public MCPProofsMcpALauncher Launcher { get; } = new();
 
