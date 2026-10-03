@@ -2,6 +2,7 @@ using System;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -154,7 +155,7 @@ public sealed class NewThreadPrompt : Decorator
         button.PointerExited += (_, _) => SetUnderlineColor(false);
         ToolTip.SetTip(button, "Choose another project"); // :34
 
-        var popover = PlainControls.Popover(button, stateHolder, () => MakeProjectChoices(model, threadID, () => stateHolder.Value = false));
+        var popover = PlainControls.Popover(button, stateHolder, () => MakeProjectChoices(model, threadID, () => stateHolder.Value = false), PlacementMode.Bottom); // :35 arrowEdge: .bottom
 
         var host = new Panel();
         host.Children.Add(button);
