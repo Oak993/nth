@@ -12,6 +12,7 @@ using Marrow.App.Views.Composer;
 using Marrow.App.Views.Diff;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Services.Providers;
 using Marrow.Testing;
 using Marrow.UI.Common;
 using Marrow.UI.Markdown;
@@ -300,6 +301,7 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
                 var stat = Assert.Single(Mounted<DiffStatLabel>(popover));
                 Paints(TextNamed(stat, "+3").Foreground, ChromeTokens.Success, stat, "additions");
                 Paints(TextNamed(stat, "−2").Foreground, ChromeTokens.Danger, stat, "deletions");
+                Assert.Empty(Mounted<Button>(popover)); // "none; the rows are not interactive"
             }
             finally { Close(window); }
         });
@@ -636,5 +638,48 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
             }
             finally { Close(window); }
         });
+    });
+
+    // ---------------------------------------------------------------- UI-CHAT-055, UI-CHAT-070
+
+    // :1877-1893, :1906-1909 the panel reads the head's own runtime straight from the model, so "the list grows while the head still
+    // works": a head with no step yet reads No steps yet. in the Steps section, and the line is gone once a tool call arrives, which
+    // shows as a step in the icon column.
+    [Fact]
+    [Trait("Req", "UI-CHAT-055")] // TimelineRows.swift:1884-1931 the panel grows while the head still works; the Report section is appended once finished
+    [Trait("Req", "UI-CHAT-070")] // TimelineRows.swift:1906-1909 No steps yet. is shown while the head has produced no step and goes with the first
+    public void The_head_panel_grows_with_the_heads_own_runtime_and_No_steps_yet_goes_with_its_first_step() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var (store, app, _) = TimelineRowsFinTeam.Make(TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Running) with { Task = "Tidy the popover" });
+        using (store)
+        {
+            ThreadRuntime head = null!;
+            HydraHeadStepsPopover view = null!;
+            AvaloniaWindow window = null!;
+            store.Main.OnMain(() =>
+            {
+                var id = app.Threads.Single(thread => thread.IsHydraHead).Id;
+                head = app.Runtime(id);
+                view = new HydraHeadStepsPopover(id);
+                var host = new Border { Child = view };
+                Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                window = Show(host);
+                var empty = TextNamed(view, "No steps yet.");
+                Assert.Same(empty.Parent, TextNamed(view, "Steps").Parent); // in the Steps section
+                head.Rehearse(new ProviderEvent.ToolStarted("head-read", Call(ToolCall.Kind.Read, "Read head", ToolCall.Status.Running)));
+            });
+            store.Main.OnMain(() =>
+            {
+                try
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    Settle(window);
+                    Assert.DoesNotContain("No steps yet.", Texts(view));
+                    Assert.Contains("Reading head", Texts(view));
+                }
+                finally { Close(window); }
+            });
+        }
     });
 }
