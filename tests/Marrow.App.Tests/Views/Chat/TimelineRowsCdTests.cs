@@ -9,6 +9,7 @@ using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Composer;
+using Marrow.App.Views.Diff;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
@@ -462,6 +463,176 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
                 var prose = Assert.Single(Mounted<ParagraphTextPresenter>(narration));
                 prose.SelectAll();
                 Assert.Equal("now the build", prose.SelectedText);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    // ---------------------------------------------------------------- UI-CHAT-052
+
+    // :411-415 ForEach(finished, id: \.index) { FinishedHeadPill(head: head).transition(.settleGlide) } under
+    // .animation(.smooth(duration: 0.3), value: finished.map(\.index)): a head that finishes while its batch still works joins the
+    // column, in the order of the list, in that animation; the pills already there stay the same views. (The settle glide's
+    // leaving half is in TimelineRowsFinHeadRowsTests; its soft arrival is not claimed here: see the notes of unit
+    // blitz-timelinerows-cd, SoftAppearModifier takes its identity at once under ED-098 (2).)
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-052 (a head joins in order under .smooth(duration: 0.3)): TimelineRows.swift:411-415
+    public void A_finished_head_joins_the_column_in_list_order_under_the_smooth_animation_and_the_pills_already_there_stay() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        var (store, app, runtime) = TimelineRowsFinTeam.Make(
+            TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Failed), TimelineRowsFinTeam.Head(1, HydraHeadInfo.Status.Completed));
+        using (store)
+        {
+            HydraHeadsWorkingRow row = null!;
+            AvaloniaWindow window = null!;
+            FinishedHeadPill walter = null!;
+            var seen = new List<(int Index, Animation? Animation)>();
+            store.Main.OnMain(() =>
+            {
+                row = new HydraHeadsWorkingRow(new ValueList<int>([1, 0]), runtime);
+                var host = new Border { Width = 500, Child = row };
+                Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                window = Show(new StackPanel { Children = { host } });
+                row.ApplyTeam(app.Children(runtime.ThreadID).ToList());
+                Settle(window);
+                Assert.Equal(["Walter finished working", "Hank failed"], Mounted<FinishedHeadPill>(row).Select(pill => AutomationProperties.GetName(pill)));
+                walter = Mounted<FinishedHeadPill>(row).First();
+                row.ApplyTeam(app.Children(runtime.ThreadID).Where(thread => thread.Hydra?.Index == 1).ToList()); // Hank leaves
+                Settle(window);
+            });
+            frames.Advance(TimeSpan.Zero);
+            store.Main.AdvanceMilliseconds(3000);
+            frames.Advance(TimeSpan.FromMilliseconds(3000));
+            store.Main.OnMain(() =>
+            {
+                try
+                {
+                    Settle(window);
+                    Assert.Equal(["Walter finished working"], Mounted<FinishedHeadPill>(row).Select(pill => AutomationProperties.GetName(pill)));
+                    var column = Assert.IsType<StackPanel>(Field(row, "headsColumn"));
+                    column.Children.CollectionChanged += (_, change) =>
+                    {
+                        if (change.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add) seen.Add((change.NewStartingIndex, Transaction.Current));
+                    };
+                    row.ApplyTeam(app.Children(runtime.ThreadID).ToList()); // Hank is back, listed second
+                    Settle(window);
+                    Assert.Equal(["Walter finished working", "Hank failed"], Mounted<FinishedHeadPill>(row).Select(pill => AutomationProperties.GetName(pill)));
+                    Assert.Same(walter, Mounted<FinishedHeadPill>(row).First());
+                    Assert.Equal([1], seen.Select(entry => entry.Index));
+                    Assert.All(seen, entry => Assert.Equal(Animation.Smooth(duration: 0.3), entry.Animation));
+                }
+                finally { Close(window); }
+            });
+        }
+    });
+
+    // ---------------------------------------------------------------- UI-CHAT-048
+
+    // :241-300 HydraReportRow: the details are the body, or the body past its address line when the note leads with one; the
+    // pill is disabled with no details; the popover is HydraMergePopover for a note whose address parses as a merge request and
+    // whose details parse as a merge note, else HydraReportPopover(text: body) (:293-300), the whole body, address included.
+    // R-TEST-10 / ED-256 (10): every test that shows link text takes the NoLinkNetwork rig.
+    [Theory]
+    [InlineData("Hydra merged !7.\nhttps://gitlab.com/g/p/-/merge_requests/7\n1 file (+2 −1) landed on `main` from `head`.", "merge")]
+    [InlineData("Hydra opened !7 but could not merge it.\nhttps://gitlab.com/g/p/-/merge_requests/7\nThe pipeline failed.", "report")]
+    [InlineData("Held the heads back.\nThe lead is busy.", "report")]
+    [InlineData("Hydra merged !7.\nhttps://gitlab.com/g/p/-/merge_requests/7", "none")]
+    [Trait("Req", "UI-CHAT-048")] // TimelineRows.swift:241-300 which popover a Hydra note's pill opens, and when it opens none
+    public void A_notes_pill_opens_the_merge_card_for_a_merge_request_the_report_for_any_other_note_and_nothing_without_details(string text, string expected) => headless.OnUiThread(() =>
+    {
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
+        using var runtime = new TestRuntime();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        HydraReportRow row = null!;
+        AvaloniaWindow window = null!;
+        runtime.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow; // warms the lazy event subscription before Show presses its key
+            row = new HydraReportRow(new UserMessage { Text = text, HydraHeads = null });
+            window = Show(new StackPanel { Children = { row } });
+            var pill = Mounted<Button>(row).First(button => !Texts(button).Contains("Open"));
+            if (expected == "none") { Assert.False(pill.IsEnabled); return; }
+            Assert.True(pill.IsEnabled);
+            Click(window, pill);
+        });
+        runtime.OnMain(() =>
+        {
+            try
+            {
+                Settle(window);
+                if (expected == "none") { Assert.DoesNotContain(presenter.Calls, call => call.Presented); return; }
+                var popup = Assert.Single(presenter.Calls, call => call.Presented).Popup;
+                var content = Assert.IsAssignableFrom<Control>(PopoverHost.Content(popup)); // the site's view, in its badge card (OD-0095)
+                if (expected == "merge") { Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergePopover>(content)); Assert.Empty(LogicalQuery.SelfAndDescendants<HydraReportPopover>(content)); return; }
+                var report = Assert.Single(LogicalQuery.SelfAndDescendants<HydraReportPopover>(content));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMergePopover>(content));
+                var body = text[(text.IndexOf('\n', StringComparison.Ordinal) + 1)..].Trim();
+                Assert.True(MarkdownView.Blocks(body).SequenceEqual(LogicalQuery.SelfAndDescendants<MarkdownBlockView>(report).Select(block => block.Block)),
+                    "the report is not the note's whole body past its title");
+            }
+            finally { Close(window); }
+        });
+    });
+
+    // ---------------------------------------------------------------- UI-CHAT-028
+
+    // :2135 DiffLinesView(file:, showsLineNumbers: false) under DiffInspector.swift:407 .textSelection(.enabled): the diff's
+    // lines are selectable text, here as in the inspector.
+    [Fact]
+    [Trait("Req", "UI-CHAT-028")] // TimelineRows.swift:2135; DiffInspector.swift:407 text selection within the diff view
+    public void The_diff_lines_of_an_edit_block_are_selectable_text() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var view = new ToolDetailView(Call(ToolCall.Kind.Edit, "e") with { Edits = new ValueList<FileEdit>([new FileEdit("src/a.swift", "@@ -1 +1 @@\n-old line\n+new line\n", 1, 1)]) });
+            var lines = Assert.Single(LogicalQuery.SelfAndDescendants<DiffLinesView>(view));
+            var line = Assert.Single(LogicalQuery.SelfAndDescendants<SelectableTextBlock>(lines), text => (text.Text ?? "").Contains("new line", StringComparison.Ordinal));
+            line.SelectAll();
+            Assert.Equal(line.Text, line.SelectedText);
+        });
+    });
+
+    // ---------------------------------------------------------------- UI-CHAT-059
+
+    // :2640-2657 the steps card's switch: an assistant row, a work group, a plan, a checklist and a notice each draw; "case .user,
+    // .reasoning, .turnEnd: EmptyView()". Entries of those kinds that reach the card draw nothing.
+    [Fact]
+    [Trait("Req", "UI-CHAT-059")] // TimelineRows.swift:2640-2657 user, reasoning and turn-end entries render nothing in the steps card
+    public void The_steps_card_draws_no_row_for_a_stray_user_reasoning_or_turn_end_entry() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var content = new ValueList<TimelineEntry>(
+            [
+                UserEntry("stray user words", turn),
+                new TimelineEntry(new TimelineItem(turn, new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "stray thoughts" }))),
+                ToolEntry(Call(ToolCall.Kind.Read, "Read a"), turn),
+                new TimelineEntry(new TimelineItem(turn, new TimelineItem.Content.TurnEnd(Summary(turn) with { Duration = 64 }))),
+                PlanEntry(ProposedPlan.State.Accepted, turn: turn),
+                Reply("```\nthe answer\n```"),
+            ]);
+            var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn) with { Duration = 64 }, ValueList<TimelineEntry>.Empty, content, null, canUndo: false, chronological: true);
+            var window = Show(new StackPanel { Children = { block } });
+            try
+            {
+                var card = Assert.Single(Mounted<Border>(block), border => border.Padding == new Thickness(14));
+                Assert.Single(Mounted<WorkGroup>(card));
+                Assert.Single(Mounted<PlanCard>(card));
+                Assert.Single(Mounted<AssistantMessageRow>(card));
+                Assert.Empty(Mounted<UserMessageRow>(card));
+                Assert.Empty(Mounted<TurnEndRow>(card));
+                var words = string.Join("|", Texts(card));
+                Assert.DoesNotContain("stray", words, StringComparison.Ordinal);
+                Assert.DoesNotContain("Worked for", words, StringComparison.Ordinal); // the header above the card carries it, not a row inside
             }
             finally { Close(window); }
         });
