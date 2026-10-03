@@ -144,4 +144,33 @@ public sealed class EffortTitleMaximumReviewTests(HeadlessSession headless)
         }
         finally { window.Close(); }
     });
+
+    // OD-0076 (owner ruling 2026-10-02, "every change is transitioned, never cut"; named by this review's brief): where the Mac
+    // changes state with no animation, the port still transitions ("content that swaps crossfades ... a label whose width
+    // changes eases its container's width"). Reset from an effort that is neither maximum nor fast (:219-224, no withAnimation,
+    // :582-583 not triggered) changes the Mac's title at once; the port's card cuts it too (EffortSlider.cs:571-573 "outside one
+    // the text simply changes"), the text and the chevron jumping in one frame. No ED or OD records an exception for it.
+    [Fact]
+    [Trait("Decision", "ED-238")] // OD-0076 at PR-COMPOSER-111 / UI-COMPOSER-031's title: an effort change with no animation around it (Reset)
+    public void REVIEW_An_effort_change_with_no_animation_around_it_is_transitioned_not_cut() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var (_, effort, window, title, chevron) = Card("high");
+        try
+        {
+            effort.Value = "medium"; // as Reset writes it from High: no withAnimation, maximum and fast unchanged
+            Dispatcher.UIThread.RunJobs();
+            var morphing = title.IsMorphing;
+            var xs = ChevronTrack(window, chevron, clock, frames, 600);
+            Assert.Equal("Medium", title.Text);
+            var from = xs[0];
+            var to = xs[^1];
+            var firstFrame = Math.Abs(to - from) < 0.5 ? 1 : (xs[16] - from) / (to - from);
+            Assert.True(morphing && firstFrame < 0.5, $"the title is cut from High to Medium (morphing {morphing}; the chevron {from:F1} -> {to:F1}, {firstFrame:F2} of its way one 60 Hz frame in), OD-0076");
+        }
+        finally { window.Close(); }
+    });
 }
