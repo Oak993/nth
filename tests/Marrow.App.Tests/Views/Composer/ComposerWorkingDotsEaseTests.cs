@@ -40,7 +40,7 @@ public sealed class ComposerWorkingDotsEaseTests(HeadlessSession headless)
 
     private static double Ease(double seconds) => CssCurve.At(CssCurve.Ease, seconds * 1000, 320);
 
-    private void InWindow(Func<DotFieldControl> make, Action<Avalonia.Controls.Window, TestRuntime, ManualFrameSource> body) => headless.OnUiThread(() =>
+    private void InWindow(Func<Control> make, Action<Avalonia.Controls.Window, TestRuntime, ManualFrameSource> body) => headless.OnUiThread(() =>
     {
         var (theme, choice) = (ThemeManager.Current, AccentChoice.Current);
         using var runtime = new TestRuntime();
@@ -164,6 +164,29 @@ public sealed class ComposerWorkingDotsEaseTests(HeadlessSession headless)
             var red = Chrome.AccentNSColor.Resolve(ThemeVariant.Dark);
             Assert.NotEqual(blue, red);
             Assert.Equal(red, FrameColor(field));
+        });
+
+    // Outside a window that turns over (the main window; ED-254 marks only Settings) a change of appearance cuts every accent use,
+    // the dots with them: the dots and a plain accent brush beside them take the new appearance's colour in the same frame
+    // (the accent-picker final review's M13: easing in every window passed every other test).
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void Outside_a_window_that_turns_over_the_dots_cut_with_every_other_accent_use_on_a_change_of_appearance() =>
+        InWindow(() => new StackPanel(), (window, runtime, _) =>
+        {
+            var panel = (StackPanel)window.Content!;
+            var plate = new Border { Width = 20, Height = 10 };
+            plate.Background = Chrome.AccentNSColor.Brush(plate);
+            var field = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false) { Width = 40, Height = 12 };
+            panel.Children.Add(plate);
+            panel.Children.Add(field);
+            Render(window);
+            Assert.Equal(AccentPalette.Pick("orchid")!.Resolve(ThemeVariant.Dark), FrameColor(field));
+            window.RequestedThemeVariant = ThemeVariant.Light;
+            Render(window);
+            var light = AccentPalette.Pick("orchid")!.Resolve(ThemeVariant.Light);
+            Assert.Equal(light, Assert.IsAssignableFrom<ISolidColorBrush>(plate.Background).Color);
+            Assert.Equal(light, FrameColor(field));
         });
 
     // A field with nothing left to draw (a sweep, once its wave has passed) asks the render server for frames only while a blend
