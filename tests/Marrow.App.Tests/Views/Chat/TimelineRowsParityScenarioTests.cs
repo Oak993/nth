@@ -276,6 +276,78 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
     });
 
+    // ---------------------------------------------------------------- PR-CHAT-113
+
+    // :2263-2316 PlanCard re-renders as the plan streams and changes state, and ChatBadge's coordinator is its @State
+    // (ChatBadge.swift:20), so the same badge and the same open popover outlive every re-render; the popover holds the
+    // content it was opened with (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147) while the
+    // badge's own label follows the plan. Opening it again builds the detail from the plan as it now is: the drafting
+    // plan rendered by the streaming renderer, the proposed one by the finished surface with its two buttons (:2287).
+    [Fact]
+    [Trait("Req", "PR-CHAT-113")] // TimelineRows.swift:2263-2316, :2287; ChatBadge.swift:20, :67-75, :138-147
+    public void A_plan_opened_while_drafting_keeps_its_popover_through_the_switch_to_proposed_and_reopens_on_the_finished_surface() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presenter = new TimelineRowsPrPopupPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var entry = new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.Plan(new ProposedPlan
+            { Markdown = "First paragraph.\n\nSecond paragraph.", ProposedPlanState = ProposedPlan.State.Drafting })));
+        PlanCard card = null!;
+        AvaloniaWindow window = null!;
+        Popup popup = null!;
+        string[] Words(Control root) => LogicalQuery.SelfAndDescendants<TextBlock>(root).Select(text => text.Text ?? "").ToArray();
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                _ = AppCurrentEvent.CurrentWindow; // the badge's window anchor reads the current event's window
+                card = new PlanCard(entry, h.Runtime) { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+                window = Show(card);
+                Assert.Contains("Writing a plan", Words(card));
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(card).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                popup = presenter.Calls.Last(call => call.Presented).Popup;
+                Assert.True(popup.IsOpen);
+                Assert.True(Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(popup.Child!)).IsStreaming); // :2287 drafting
+                // The plan finishes drafting while its popover is open.
+                entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Plan(new ProposedPlan
+                    { Markdown = "First paragraph.\n\nSecond paragraph.\n\nThird.", ProposedPlanState = ProposedPlan.State.Proposed }) };
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                // The same popover is still up (nothing closed it), holding what it opened with; the badge reads Plan ready.
+                Assert.True(popup.IsOpen, "the open plan popover closed when the plan changed");
+                Assert.True(presenter.Calls.Last(call => ReferenceEquals(call.Popup, popup)).Presented);
+                Assert.True(Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(popup.Child!)).IsStreaming);
+                Assert.Contains("Plan ready", Words(card));
+                Assert.DoesNotContain("Writing a plan", Words(card));
+                // Closed and opened again: the detail is built from the proposed plan.
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(card).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.False(popup.IsOpen);
+                Click(window, LogicalQuery.SelfAndDescendants<Button>(card).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                var reopened = presenter.Calls.Last(call => call.Presented).Popup;
+                Assert.True(reopened.IsOpen);
+                var markdown = Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(reopened.Child!));
+                Assert.False(markdown.IsStreaming); // :2287 the finished-prose surface once the state has left drafting
+                Assert.Contains("Implement plan", Words(reopened.Child!));
+                Assert.Contains("Dismiss", Words(reopened.Child!));
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
+    });
+
     // ---------------------------------------------------------------- helpers
 
     private static Control Unwrap(Control content)

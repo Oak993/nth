@@ -2824,11 +2824,19 @@ public sealed class PlanCard : Decorator
             if (content is not TimelineItem.Content.Plan item) { Child = null; return; }
             var plan = item.Value;
             var box = state;
+            Control Glyph() => plan.ProposedPlanState == ProposedPlan.State.Drafting
+                ? new Border { Child = new WorkingSpinner(3) { Width = 14 }, Width = 14 }
+                : SwiftImage.SystemName("list.bullet.clipboard").ForegroundStyle(Chrome.Accent);
+            // :2265 the same ChatBadge across every render of this card: its coordinator is the badge's @State
+            // (ChatBadge.swift:20), so an open plan popover outlives the plan's updates (PR-CHAT-113).
+            if (Child is ChatBadge badge)
+            {
+                badge.Update(Title(plan.ProposedPlanState), Glyph, () => Detail(plan), Caption(plan.ProposedPlanState),
+                    showsChevron: plan.Markdown.Length != 0, needsAttention: NeedsAttention(plan.ProposedPlanState), isEnabled: plan.Markdown.Length != 0);
+                return;
+            }
             Child = new ChatBadge(Title(plan.ProposedPlanState), new Binding<bool>(() => box.IsShowingPlan, value => box.IsShowingPlan = value),
-                glyph: () => plan.ProposedPlanState == ProposedPlan.State.Drafting
-                    ? new Border { Child = new WorkingSpinner(3) { Width = 14 }, Width = 14 }
-                    : SwiftImage.SystemName("list.bullet.clipboard").ForegroundStyle(Chrome.Accent),
-                detail: () => Detail(plan), caption: Caption(plan.ProposedPlanState), showsChevron: plan.Markdown.Length != 0,
+                glyph: Glyph, detail: () => Detail(plan), caption: Caption(plan.ProposedPlanState), showsChevron: plan.Markdown.Length != 0,
                 needsAttention: NeedsAttention(plan.ProposedPlanState), isEnabled: plan.Markdown.Length != 0);
         }
         Build(entry.Item.TimelineItemContent);

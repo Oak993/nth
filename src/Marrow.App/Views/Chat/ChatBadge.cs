@@ -19,6 +19,10 @@ namespace Marrow.App.Views.Chat;
 /// <summary>ChatBadge (:4-81).</summary>
 public sealed class ChatBadge : Decorator
 {
+    private readonly Button button;
+    // :16 the detail builder, read when the popover opens (:69): the latest render's, as SwiftUI's body would hand it.
+    private Func<Control> detail;
+
     // :10-17. `isPresented`, `glyph` and `detail` have no default and move before the defaulted ones (ED-095).
     public ChatBadge(
         string title,
@@ -30,9 +34,75 @@ public sealed class ChatBadge : Decorator
         bool needsAttention = false,
         bool isEnabled = true)
     {
+        this.detail = detail;
         // :20-21
         var coordinator = new BadgePopoverCoordinator();
 
+        button = PlainControls.Button(Label(title, glyph, caption, showsChevron, needsAttention),
+            () => isPresented.Value = !isPresented.Value); // :23 Button { isPresented.toggle() }
+        // :66 windowRectAnchor is applied here, BEFORE :76's outer .frame(maxWidth: .infinity, alignment: .leading):
+        // the reported rect is the button's own natural/compact pill size, left-aligned inside the wider `aligned`
+        // wrapper below, not stretched to it (R-VIEW review fix; was HorizontalAlignment.Stretch with no citation,
+        // which inflated the anchor rect WindowRectAnchor reports to the full row width).
+        button.HorizontalAlignment = HorizontalAlignment.Left;
+        Describe(title, needsAttention, isEnabled);
+
+        // :66
+        button.WindowRectAnchor(coordinator.SetAnchor);
+
+        // :67-73
+        button.Track(() => isPresented.Value, shown =>
+        {
+            if (shown)
+            {
+                if (!coordinator.IsShown) coordinator.Show(this.detail().PresentedChrome()); // :69
+            }
+            else
+            {
+                coordinator.Close(); // :71
+            }
+        });
+
+        // :74-75
+        button.AttachedToVisualTree += (_, _) => coordinator.OnClose = () => isPresented.Value = false;
+        button.DetachedFromVisualTree += (_, _) => coordinator.Close();
+
+        // :76-79
+        var aligned = new Border
+        {
+            Child = button,
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :76 .frame(maxWidth: .infinity, alignment: .leading)
+            Padding = new Thickness(0, 0, 96, 0), // :77 .padding(.trailing, 96)
+        };
+        Child = aligned;
+        HorizontalAlignment = HorizontalAlignment.Stretch;
+    }
+
+    /// <summary>PORT-ONLY (ED-095 form): the host's body ran again with new values for the same badge. In SwiftUI the badge
+    /// keeps its identity across its host's re-renders, so its @State coordinator (:20) and an open popover survive while
+    /// the label shows the new values; the popover keeps the content it was opened with (:138-147 setFixedContent) and
+    /// the next opening builds the new detail. Hosts whose values change under an open badge call this instead of
+    /// building a new badge (PlanCard, TimelineRows.swift:2263-2316; PR-CHAT-113).</summary>
+    public void Update(string title, Func<Control> glyph, Func<Control> detail, string? caption = null, bool showsChevron = true,
+        bool needsAttention = false, bool isEnabled = true)
+    {
+        this.detail = detail;
+        button.Content = Label(title, glyph, caption, showsChevron, needsAttention);
+        Describe(title, needsAttention, isEnabled);
+    }
+
+    private void Describe(string title, bool needsAttention, bool isEnabled)
+    {
+        button.IsEnabled = isEnabled; // :53 .disabled(!isEnabled)
+        AutomationProperties.SetName(button, title); // :78 .accessibilityLabel(Text(title))
+        AutomationProperties.SetItemStatus(button, needsAttention ? "Needs your attention" : ""); // :79 .accessibilityValue(...)
+        AutomationProperties.SetName(this, title);
+        AutomationProperties.SetItemStatus(this, needsAttention ? "Needs your attention" : "");
+    }
+
+    // :23-65 the button's label: the pill and, above it, the attention dot field.
+    private Control Label(string title, Func<Control> glyph, string? caption, bool showsChevron, bool needsAttention)
+    {
         // :23-53
         var row = new StackPanel
         {
@@ -111,48 +181,7 @@ public sealed class ChatBadge : Decorator
                 () => EnvironmentValues.GetAccessibilityReduceMotion(layers),
                 motion => dotField.UpdateAnimated(!motion));
         }
-
-        var button = PlainControls.Button(layers, () => isPresented.Value = !isPresented.Value); // :23 Button { isPresented.toggle() }
-        button.IsEnabled = isEnabled; // :53 .disabled(!isEnabled)
-        // :66 windowRectAnchor is applied here, BEFORE :76's outer .frame(maxWidth: .infinity, alignment: .leading):
-        // the reported rect is the button's own natural/compact pill size, left-aligned inside the wider `aligned`
-        // wrapper below, not stretched to it (R-VIEW review fix; was HorizontalAlignment.Stretch with no citation,
-        // which inflated the anchor rect WindowRectAnchor reports to the full row width).
-        button.HorizontalAlignment = HorizontalAlignment.Left;
-        AutomationProperties.SetName(button, title); // :78 .accessibilityLabel(Text(title))
-        AutomationProperties.SetItemStatus(button, needsAttention ? "Needs your attention" : ""); // :79 .accessibilityValue(...)
-        AutomationProperties.SetName(this, title);
-        AutomationProperties.SetItemStatus(this, needsAttention ? "Needs your attention" : "");
-
-        // :66
-        button.WindowRectAnchor(coordinator.SetAnchor);
-
-        // :67-73
-        button.Track(() => isPresented.Value, shown =>
-        {
-            if (shown)
-            {
-                if (!coordinator.IsShown) coordinator.Show(detail().PresentedChrome()); // :69
-            }
-            else
-            {
-                coordinator.Close(); // :71
-            }
-        });
-
-        // :74-75
-        button.AttachedToVisualTree += (_, _) => coordinator.OnClose = () => isPresented.Value = false;
-        button.DetachedFromVisualTree += (_, _) => coordinator.Close();
-
-        // :76-79
-        var aligned = new Border
-        {
-            Child = button,
-            HorizontalAlignment = HorizontalAlignment.Stretch, // :76 .frame(maxWidth: .infinity, alignment: .leading)
-            Padding = new Thickness(0, 0, 96, 0), // :77 .padding(.trailing, 96)
-        };
-        Child = aligned;
-        HorizontalAlignment = HorizontalAlignment.Stretch;
+        return layers;
     }
 }
 
