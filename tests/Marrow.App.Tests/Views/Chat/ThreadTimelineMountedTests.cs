@@ -325,7 +325,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-045")] // ThreadTimeline.swift:1804-1811,81,257-268,384-391,595-608,703-707; PR-CHAT-191 (appended blocks add to the window)
-    public void The_window_opens_at_three_blocks_anchors_on_the_newest_twenty_four_a_beat_later_pages_back_by_twenty_four_drops_back_past_ninety_six_and_a_thread_closed_in_the_beat_loads_nothing()
+    public void The_window_opens_at_three_blocks_anchors_a_beat_later_on_the_block_twenty_four_from_the_end_of_the_list_the_task_started_with_pages_back_by_twenty_four_drops_back_past_ninety_six_and_a_thread_closed_in_the_beat_loads_nothing()
     {
         // The failure case: a thread closed within the 250 ms beat (:600 `guard !Task.isCancelled`, the task is the thread's and goes with it) does nothing further.
         ThreadTimelineRig.Run(headless, mount =>
@@ -355,23 +355,29 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     private static void OpensPagesAndDropsBack(TimelineMount mount)
     {
         mount.Settle();
-        var entries = Turns(60, sentences: 14, unique: true).ToList(); // tall blocks: the newest three fill the pane, so the earlier pill is out of view at the open
-        var finished = entries.Where(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Assistant).Select(entry => ((TimelineItem.Content.Assistant)entry.Item.TimelineItemContent).Value.Text).ToList();
+        var entries = Turns(58, sentences: 14, unique: true).ToList(); // tall blocks: the newest three fill the pane, so the earlier pill is out of view at the open
+        var late = Turns(2, "beat-", sentences: 14, unique: true).ToList(); // two blocks that land while the beat is running
+        var finished = entries.Concat(late).Where(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Assistant).Select(entry => ((TimelineItem.Content.Assistant)entry.Item.TimelineItemContent).Value.Text).ToList();
         Assert.Equal(24, Marrow.UI.Markdown.MarkdownView.WarmTexts(finished).Count); // none parsed yet (at most 24 are asked for at a time, MarkdownView.swift:221-235)
         mount.SetEntries(entries);
         // :1805 firstPaint: the thread opens at once with its newest three blocks (:277), the rows in a plain stack (:388, eager, not virtualized).
+        Assert.Equal(new[] { BlockID(entries, 55), BlockID(entries, 56), BlockID(entries, 57) }, mount.Blocks().Select(block => block.Id));
+        Assert.Equal("Show 55 earlier messages", PillText(mount));
+        // :594-607 the task is started with the 58 blocks of this pass and sleeps the 250 ms beat; two blocks land in it (the window of the first paint follows the end, :277).
+        mount.Advance(100);
+        entries.AddRange(late); mount.SetEntries(entries);
         Assert.Equal(new[] { BlockID(entries, 57), BlockID(entries, 58), BlockID(entries, 59) }, mount.Blocks().Select(block => block.Id));
-        Assert.Equal("Show 57 earlier messages", PillText(mount));
         // :599 the 250 ms beat: not a moment before.
-        mount.Advance(249); Assert.Equal(3, mount.Blocks().Length);
+        mount.Advance(149); Assert.Equal(3, mount.Blocks().Length);
         mount.Advance(1);
         Assert.True(mount.Field<TimelineScrollTracking>("tracking").IsArriving, "the end is held as the window loads"); // :601 tracking.holdEnd(for: 1.0)
         mount.Advance(100);
-        // :603 the window's start is the block 24 from the end of the list; :81 anchored by identity; every block in it is built (:384-391).
-        Assert.Equal(BlockID(entries, 36), mount.Field<string?>("windowStartID"));
-        Assert.Equal(24, mount.Blocks().Length);
-        Assert.Equal("Show 36 earlier messages", PillText(mount));
-        // The 24 landed above the viewport, the reader is still looking at the end.
+        // :603 the window's start is the block 24 from the end of the list the task captured when it started (:594-607: its 58 blocks, block 34), not of the list now (60: block 36):
+        // the two that landed since stand in the window with the 24, :81 anchored by identity; every block in it is built (:384-391).
+        Assert.Equal(BlockID(entries, 34), mount.Field<string?>("windowStartID"));
+        Assert.Equal(26, mount.Blocks().Length);
+        Assert.Equal("Show 34 earlier messages", PillText(mount));
+        // The 26 landed above the viewport, the reader is still looking at the end.
         mount.Advance(2000);
         Assert.True(mount.Scroll.Extent.Height - (mount.Scroll.Offset.Y + mount.Scroll.Viewport.Height) < 2, "the reader stays on the end");
         // :289-297 every finished reply's markdown is parsed off the main thread (a real task: wait for it).
@@ -379,9 +385,9 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         while (Marrow.UI.Markdown.MarkdownView.WarmTexts(finished.Take(24)).Count != 0 && waited.ElapsedMilliseconds < 20000) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
         // The pass takes the replies oldest first and no more than 24 of them (:289-297, MarkdownView.swift:221-235).
         Assert.Empty(Marrow.UI.Markdown.MarkdownView.WarmTexts(finished.Take(24)));
-        Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.WarmTexts(finished.Skip(24)).Count); // replies 24 to 35: neither warmed (the cap) nor in the window (36 to 59, parsed by their own rows)
+        Assert.Equal(10, Marrow.UI.Markdown.MarkdownView.WarmTexts(finished.Skip(24)).Count); // replies 24 to 33: neither warmed (the cap) nor in the window (34 to 59, parsed by their own rows)
         // :263 each later page moves the start 24 blocks further back, floored at the first block.
-        ToTheTop(mount); Assert.Equal(BlockID(entries, 12), mount.Field<string?>("windowStartID")); Assert.Equal(48, mount.Blocks().Length);
+        ToTheTop(mount); Assert.Equal(BlockID(entries, 10), mount.Field<string?>("windowStartID")); Assert.Equal(50, mount.Blocks().Length);
         ToTheTop(mount); Assert.Equal(BlockID(entries, 0), mount.Field<string?>("windowStartID")); Assert.Equal(60, mount.Blocks().Length);
         Assert.Null(PillText(mount));
         // :77-80 blocks appended at the end add to the window rather than pushing older rows out.
