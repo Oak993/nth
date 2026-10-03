@@ -21,13 +21,6 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class ChatBadgeTests(HeadlessSession headless)
 {
-    // An observable presented flag (PlanCard's @State isShowingPlan, TimelineRows.swift:2261): the badge's body tracks it.
-    private sealed class PresentedFlag : MainActorModel
-    {
-        private bool shown;
-        public bool Value { get => Read(shown); set => Set(ref shown, value); }
-    }
-
     [Fact]
     [Trait("Req", "PR-CHAT-140")] // App/Views/Chat/ChatBadge.swift:22-52,76-80
     public void The_badge_uses_its_title_as_its_accessibility_label_and_click_toggles_presentation()

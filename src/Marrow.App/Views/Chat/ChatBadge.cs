@@ -216,9 +216,13 @@ public static class ChatBadgeExtensions
             }
         });
 
-        // :108-109
-        host.AttachedToVisualTree += (_, _) => coordinator.OnClose = () => isPresented.Value = false;
-        host.DetachedFromVisualTree += (_, _) => coordinator.Close();
+        // :108-109 .onAppear { coordinator.onClose = { isPresented = false } } and .onDisappear { coordinator.close() }. The same
+        // reading of onDisappear as ChatBadge's own (:74-75): gone only if still out of the tree once the pass is over, so a
+        // row the timeline merely re-parents (ThreadTimeline.Draw; the Hydra report, heads and brief pills,
+        // TimelineRows.swift:293, :470, :583) keeps its open popover (PR-CHAT-143). ENGINEERING DECISION
+        // ED-NEW-parity-timelinerows.
+        host.AttachedToVisualTree += (_, _) => coordinator.Appear(host, () => isPresented.Value = false);
+        host.DetachedFromVisualTree += (_, _) => coordinator.Disappear(host);
         return host;
     }
 }

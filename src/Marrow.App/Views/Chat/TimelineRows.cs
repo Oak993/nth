@@ -234,8 +234,15 @@ public sealed class UserMessageRow : Decorator
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
 
-        // :198 .onDisappear { editor.close() }: the edit itself survives on the runtime.
-        DetachedFromVisualTree += (_, _) => editor.Close();
+        // :198 .onDisappear { editor.close() }: the edit itself survives on the runtime. The row has disappeared only if it is
+        // still out of the tree once the timeline's redraw is over: ThreadTimeline.Draw takes every kept row out of its old
+        // stack and puts it into a new one inside one synchronous pass, and an entry that arrives while the editor is open
+        // must not close it (its @State, MessageEditor.swift:26-29, would be built anew). The same reading of onDisappear
+        // as BadgePopoverCoordinator.Disappear and the row menu (PR-CHAT-080). ENGINEERING DECISION ED-NEW-parity-timelinerows.
+        DetachedFromVisualTree += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (!Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(this)) editor.Close();
+        });
     }
 
     // :79-199

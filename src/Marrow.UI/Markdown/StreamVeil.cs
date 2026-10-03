@@ -301,7 +301,20 @@ public sealed class VeiledText : Decorator
     // The I-beam a selectable text shows (a SelectableTextBlock has no cursor of its own with no control theme loaded):
     // the reference video shows it over selectable timeline text, 2-chat-use.mov 14.74 s (PR-CHAT-166 windows_path).
     private static readonly Avalonia.Input.Cursor TextCursor = new(Avalonia.Input.StandardCursorType.Ibeam);
-    private readonly TextBlock textBlock = new SelectableTextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap, Cursor = TextCursor };
+
+    /// <summary>The text of a block that sits under MarkdownBlockSelection (MarkdownView.swift:890-899, live branch
+    /// <c>.textSelection(.enabled)</c>): a SelectableTextBlock with the I-beam over it and the system's selected-text colour,
+    /// the one recipe the veiled text and a table's cells (MarkdownView.swift:1287-1308) share (PR-CHAT-166).</summary>
+    internal static SelectableTextBlock SelectableText(bool wraps)
+    {
+        var block = new SelectableTextBlock { Cursor = TextCursor };
+        if (wraps) block.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+        // Resolved once the text is in a window (the system accent needs the running application).
+        block.AttachedToVisualTree += (_, _) => block.SelectionBrush ??= SwiftColor.SelectedTextBackgroundColor.Brush(block);
+        return block;
+    }
+
+    private readonly TextBlock textBlock = SelectableText(wraps: true);
     private readonly bool hasSegments;
     private bool isRedrawing;
     private bool wasFading;
@@ -334,8 +347,6 @@ public sealed class VeiledText : Decorator
     // StreamVeil.swift:273-279.
     private void Build()
     {
-        // Resolved once the text is in a window (the system accent needs the running application).
-        textBlock.AttachedToVisualTree += (_, _) => ((SelectableTextBlock)textBlock).SelectionBrush ??= SwiftColor.SelectedTextBackgroundColor.Brush(textBlock);
         Child = textBlock;
         PropertyChanged += OnEnvironmentChanged;
         this.Track(

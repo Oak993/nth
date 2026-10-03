@@ -1909,7 +1909,12 @@ public sealed class TableBlock : Decorator
         for (var row = 0; row <= cells.Count; row++) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         for (var column = 0; column < head.Count; column++) // :1364-1368 GridRow (header)
         {
-            var text = new TextBlock { Text = head[column].PlainText, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, cells.Count > 0 ? 8 : 0) }; // :1292 verticalSpacing 8 sits only between rows
+            // :1308 .modifier(MarkdownBlockSelection()) on the grid: its live branch is .textSelection(.enabled) (:890-899), so
+            // each cell's text is selectable in its own block and shows the I-beam (PR-CHAT-166).
+            var text = VeiledText.SelectableText(wraps: false);
+            text.Text = head[column].PlainText;
+            text.FontWeight = FontWeight.SemiBold;
+            text.Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, cells.Count > 0 ? 8 : 0); // :1292 verticalSpacing 8 sits only between rows
             Grid.SetRow(text, 0);
             Grid.SetColumn(text, column);
             grid.Children.Add(text);
@@ -1919,7 +1924,9 @@ public sealed class TableBlock : Decorator
             for (var column = 0; column < head.Count; column++)
             {
                 var value = column < cells[row].Count ? cells[row][column].PlainText : ""; // :1373
-                var text = new TextBlock { Text = value, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, row == cells.Count - 1 ? 0 : 8) };
+                var text = VeiledText.SelectableText(wraps: false); // :1308, as the header's cells above
+                text.Text = value;
+                text.Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, row == cells.Count - 1 ? 0 : 8);
                 text.Foreground = SwiftColor.LabelColor.Opacity(0.9).Brush(text); // :1374 .foregroundStyle(.primary.opacity(0.9))
                 Grid.SetRow(text, row + 1);
                 Grid.SetColumn(text, column);
