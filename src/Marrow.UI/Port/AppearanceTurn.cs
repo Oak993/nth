@@ -28,7 +28,14 @@ public static class AppearanceTurn
     public static void SetTurnsOver(Control control, bool value)
     {
         control.SetValue(TurnsOverProperty, value);
-        if (value && control is TopLevel top && !Painted.TryGetValue(top, out _)) Watch(top);
+        if (value && control is TopLevel top && !Painted.TryGetValue(top, out _))
+        {
+            Watch(top);
+            // ED-253: the text and glyphs that set no colour of their own draw in labelColor (PortControlThemes'
+            // TopLevel default, a theme resource that changes in one frame); a marked window holds it as a SwiftColor brush,
+            // which eases with the rest.
+            top.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, SwiftColor.LabelColor.Brush(top));
+        }
     }
 
     /// <summary>

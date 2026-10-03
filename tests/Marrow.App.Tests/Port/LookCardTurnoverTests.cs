@@ -52,19 +52,22 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
     }
 
     private void Open(AppTheme theme, Action<SettingsRiseRig, HostWindow, LookCard, AppModel> check, bool reduceMotion = false) =>
+        OpenPage(SettingsPage.Appearance, theme, (rig, window, view, model) => check(rig, window, Nodes<LookCard>(view).Single(), model), reduceMotion);
+
+    private void OpenPage(SettingsPage page, AppTheme theme, Action<SettingsRiseRig, HostWindow, SettingsView, AppModel> check, bool reduceMotion = false) =>
         WithManager((h, manager) =>
         {
             using var rig = new SettingsRiseRig { Accepts = false };
             using var accent = SwiftColor.AccentSource.Override(() => Color.Parse("#0067C0"));
             manager.Model.Settings.Theme = theme;
             manager.SettingsCloak = rig.Cloak;
-            manager.ShowSettings(SettingsPage.Appearance);
+            manager.ShowSettings(page);
             Dispatcher.UIThread.RunJobs();
             var window = Settings(manager);
             if (reduceMotion) EnvironmentValues.SetAccessibilityReduceMotion(window, true);
             Drain(window);
             Step(rig, window, 60);
-            check(rig, window, Nodes<LookCard>(View(manager)).Single(), manager.Model);
+            check(rig, window, View(manager), manager.Model);
         });
 
     private static double Ease(int k) => CssCurve.At(CssCurve.Ease, k * 1000.0 / 60, 320);
@@ -267,4 +270,116 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
         }
         Assert.Equal(to, Top());
     });
+
+    // ED-253: every page of the window turns over without a cut, and ends as a fresh drawing of the new appearance would.
+    [Theory]
+    [InlineData(SettingsPage.General)]
+    [InlineData(SettingsPage.Hydra)]
+    [InlineData(SettingsPage.Providers)]
+    [InlineData(SettingsPage.Mcp)]
+    [InlineData(SettingsPage.Models)]
+    [InlineData(SettingsPage.SourceControl)]
+    [InlineData(SettingsPage.Shortcuts)]
+    [InlineData(SettingsPage.Archive)]
+    [InlineData(SettingsPage.About)]
+    [Trait("Decision", "ED-253")]
+    public void Every_page_turns_over_without_a_cut_and_ends_on_the_new_appearance(SettingsPage page) => OpenPage(page, AppTheme.Dark, (rig, window, view, model) =>
+        TurnsOverWithoutACut(page, rig, window, () => model.Settings.Theme = AppTheme.Light));
+
+    // ED-253: under System the system's own appearance change (no theme change, so no ThemeManager.DidChange) turns the General
+    // page over all the same, the heatmap's cells included.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void Under_system_the_general_page_turns_over_when_the_system_appearance_changes() => OpenPage(SettingsPage.General, AppTheme.System, (rig, window, view, model) =>
+    {
+        var application = Application.Current!;
+        Assert.Equal(ThemeVariant.Light, window.ActualThemeVariant); // the headless system's
+        // The system turns dark (WindowManager.SetAppearance leaves System to it), and light again.
+        TurnsOverWithoutACut(SettingsPage.General, rig, window, () => application.RequestedThemeVariant = ThemeVariant.Dark);
+        Assert.Equal(ThemeVariant.Dark, window.ActualThemeVariant);
+        var canvas = window.GetVisualDescendants().OfType<TokenActivityHeatmapCanvas>().Single();
+        // The middle of a past day's cell in the first row, two fifths across (the grid's first cells may hold no day).
+        var gap = TokenActivityStyle.CellGap;
+        var size = (canvas.Bounds.Height - gap * (Marrow.Services.Store.TokenActivityGrid.Rows - 1)) / Marrow.Services.Store.TokenActivityGrid.Rows;
+        var columns = (int)Math.Round((canvas.Bounds.Width + gap) / (size + gap));
+        var cell = canvas.TranslatePoint(new Point(columns * 2 / 5 * (size + gap) + size / 2, size / 2), window)!.Value;
+        var frames = TurnsOverWithoutACut(SettingsPage.General, rig, window, () => application.RequestedThemeVariant = ThemeVariant.Light);
+        // The cell (Chrome.overlay(0.07) over the easing window) on the curve every frame: [0] before, [^1] the end.
+        var (px, py) = ((int)cell.X, (int)cell.Y);
+        for (var k = 0; k < frames.Count - 2; k++)
+            for (var c = 0; c < 4; c++)
+            {
+                var from = At(frames[0], px, py, c);
+                var to = At(frames[^1], px, py, c);
+                var expected = from + (to - from) * Ease(k);
+                var seen = At(frames[k + 1], px, py, c);
+                Assert.True(Math.Abs(seen - expected) <= 0.03 * Math.Abs(to - from) + 1.5, $"heatmap cell ({px}, {py}) channel {c} frame {k}: {seen}, curve {expected:F1} ({from} to {to})");
+            }
+    });
+
+    // The frames of the turnover (the change's own first), checked: none cuts, and it ends as a fresh drawing would.
+    private static List<(byte[] Pixels, int Width, int Height, int Stride)> TurnsOverWithoutACut(SettingsPage page, SettingsRiseRig rig, HostWindow window, Action change)
+    {
+        // A page still filling in (a list loading in the background) is let settle first: two frames alike in a row.
+        var pre = Capture(window);
+        for (var i = 0; i < 120; i++)
+        {
+            Step(rig, window);
+            var next = Capture(window);
+            var same = next.Pixels.AsSpan().SequenceEqual(pre.Pixels);
+            pre = next;
+            if (same) break;
+        }
+        change();
+        Drain(window);
+        var frames = new List<(byte[] Pixels, int Width, int Height, int Stride)> { Capture(window) };
+        for (var k = 1; k <= 24; k++)
+        {
+            Step(rig, window);
+            frames.Add(Capture(window));
+        }
+        Step(rig, window, 40);
+        var end = Capture(window);
+        foreach (var visual in window.GetVisualDescendants()) visual.InvalidateVisual();
+        Drain(window);
+        var fresh = Capture(window);
+        var stale = 0;
+        var staleAt = default(PixelPoint);
+        for (var y = 0; y < pre.Height; y++)
+            for (var x = 0; x < pre.Width; x++)
+                for (var c = 0; c < 4; c++)
+                    if (Math.Abs(At(end, x, y, c) - At(fresh, x, y, c)) > 2) { stale++; staleAt = new PixelPoint(x, y); }
+        Assert.True(stale == 0, $"{page}: {stale} pixel channels end apart from a fresh drawing, e.g. at {staleAt}");
+        var changed = 0;
+        var total = new int[pre.Width, pre.Height];
+        for (var y = 0; y < pre.Height; y++)
+            for (var x = 0; x < pre.Width; x++)
+            {
+                var d = 0;
+                for (var c = 0; c < 4; c++) d = Math.Max(d, Math.Abs(At(end, x, y, c) - At(pre, x, y, c)));
+                total[x, y] = d;
+                if (d > 8) changed++;
+            }
+        Assert.True(changed > pre.Width * pre.Height / 2, $"only {changed} pixels turned over");
+        for (var k = 0; k < frames.Count; k++)
+        {
+            var before = k == 0 ? pre : frames[k - 1];
+            var jumps = 0;
+            var jumpAt = default(PixelPoint);
+            for (var y = 0; y < pre.Height; y++)
+                for (var x = 0; x < pre.Width; x++)
+                {
+                    if (total[x, y] <= 8) continue;
+                    var d = 0;
+                    for (var c = 0; c < 4; c++) d = Math.Max(d, Math.Abs(At(frames[k], x, y, c) - At(before, x, y, c)));
+                    if (d > total[x, y] / 2 || (k == 0 && d > 2)) { jumps++; jumpAt = new PixelPoint(x, y); }
+                }
+            // The click frame draws what the frame before it did; no later frame takes more than 1 % of the turning pixels over
+            // half their change at once (LookCardTurnoverTests' rule above; a few blended pixels are not monotonic).
+            Assert.True(k == 0 ? jumps == 0 : jumps <= changed / 100, $"{page} frame {k}: {jumps} of {changed} turning pixels jumped, e.g. at {jumpAt} ({string.Join(",", Enumerable.Range(0, 4).Select(c => At(before, jumpAt.X, jumpAt.Y, c)))} to {string.Join(",", Enumerable.Range(0, 4).Select(c => At(frames[k], jumpAt.X, jumpAt.Y, c)))}, end {string.Join(",", Enumerable.Range(0, 4).Select(c => At(end, jumpAt.X, jumpAt.Y, c)))}) DIAG {string.Join(" < ", window.GetVisualsAt(new Point(jumpAt.X + 0.5, jumpAt.Y + 0.5)).Take(1).SelectMany(v => v.GetSelfAndVisualAncestors()).Take(8).Select(v => v.GetType().Name + (v is TextBlock t ? "[" + t.Text + "]" : "")))}");
+        }
+        frames.Add(end);
+        frames.Insert(0, pre);
+        return frames;
+    }
 }
