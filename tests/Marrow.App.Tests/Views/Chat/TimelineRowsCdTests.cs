@@ -730,4 +730,41 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
             finally { if (menu is not null) Close(menu); Close(window); }
         });
     });
+
+    // ---------------------------------------------------------------- UI-GIT-046, UI-CHAT-038
+
+    // :2770-2799 the revert disc is the label of a Button that carries the .popover(isPresented: $isConfirmingRevert, arrowEdge:
+    // .bottom): the confirmation hangs from that disc, below it.
+    [Fact]
+    [Trait("Req", "UI-GIT-046")] // TimelineRows.swift:2770-2777 click opens the revert confirmation popover below the button
+    [Trait("Req", "UI-CHAT-038")] // TimelineRows.swift:2770-2799 click: opens the Revert up to this point? confirmation popover
+    public void The_revert_disc_hangs_its_confirmation_from_itself_below_it() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        TurnFileCard card = null!;
+        AvaloniaWindow window = null!;
+        runtime.OnMain(() =>
+        {
+            card = new TurnFileCard(Files(2), canUndo: true, onRevert: () => { }, onReview: _ => { });
+            window = Show(new StackPanel { Margin = new Thickness(20), Children = { card } });
+            Assert.Empty(presenter.Calls);
+            Click(window, Mounted<Button>(card).Single(button => Mounted<SwiftImage>(button).Any(image => image.SymbolName == "arrow.uturn.backward")));
+        });
+        runtime.OnMain(() =>
+        {
+            try
+            {
+                Settle(window);
+                var disc = Mounted<Button>(card).Single(button => Mounted<SwiftImage>(button).Any(image => image.SymbolName == "arrow.uturn.backward"));
+                var popup = Assert.Single(presenter.Calls, call => call.Presented).Popup;
+                Assert.Equal(PlacementMode.Bottom, popup.Placement);
+                Assert.Same(disc, popup.PlacementTarget);
+                Assert.Equal("Revert up to this point?", Assert.Single(Mounted<TextBlock>((Visual)popup.Child!), text => text.Text == "Revert up to this point?").Text);
+            }
+            finally { Close(window); }
+        });
+    });
 }
