@@ -101,6 +101,9 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         var open = Sample(mount, line, 700);
         Assert.Equal(90, open[^1].Angle, 1); Assert.True(open[^1].Height > open[0].Height + 20);
         Assert.True(mount.Scroll.Offset.Y > before + 50, "the timeline went to the end with it");
+        // :2106 the body sits one row spacing under the button, :2174-2175 its own padding 14 at the sides and 11 below.
+        var body = LogicalQuery.SelfAndDescendants<Border>(line).Single(border => border.Padding == new Thickness(14, 0, 14, 11));
+        Assert.Equal(open[0].Height + TimelineMetrics.RowSpacing + body.Bounds.Height, open[^1].Height, 1);
         tracking.IsPinnedToBottom = false; mount.Scroll.Offset = new Vector(0, 100); mount.Advance(400); tracking.EndActivity(); var held = mount.Scroll.Offset.Y;
         Click(line);
         var close = Sample(mount, line, 700);
@@ -115,6 +118,8 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
             Assert.Equal((open[i].Height - open[0].Height) / (open[^1].Height - open[0].Height), 1 - (close[i].Height - open[0].Height) / (open[^1].Height - open[0].Height), 0.03);
         }
         Assert.True(open.Count(sample => sample.Angle is > 1 and < 89) >= 3, "an animation, not a cut");
+        // .snappy(duration: 0.24): it has arrived a quarter of a second in (one frame of the harness's lag), both ways.
+        Assert.InRange(open[13].Angle, 88, 92); Assert.InRange(close[13].Angle, -2, 2);
     });
 
     private static string[] Texts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(text => text.Text ?? "").ToArray();
@@ -157,6 +162,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         mount.SetEntries(mount.Runtime.Entries.Append(ToolEntry("tool-new", Turn)).ToList()); mount.Advance(600);
         Assert.Same(line, Line(mount)); Assert.Same(bar, LogicalQuery.SelfAndDescendants<HydraProgressBar>(line).Single());
         Assert.Equal(90, AngleOf(line), 1); Assert.Single(LogicalQuery.SelfAndDescendants<WorkSteps>(line)); Assert.Equal(2, LogicalQuery.SelfAndDescendants<ToolRow>(line).Count());
+        Assert.Contains("4 commands", Texts(line)); // the bar was handed the new step and went on
         Assert.True(DistanceFromEnd(mount) < 2, "and the reader following it stays at the end");
     });
 
@@ -179,9 +185,154 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         mount.SetEntries(new[] { User("prompt", Turn, "hello"), ToolEntry("tool-0", Turn) }); mount.Advance(20);
         var time = header.Children[1]; var chevron = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(line), image => image.SymbolName == "chevron.right");
         Assert.Equal(0, chevron.Opacity);
-        mount.Advance(60); Assert.InRange(chevron.Opacity, 0.001, 0.999);
-        mount.Advance(800);
+        var timeShift = Assert.IsType<Avalonia.Media.TranslateTransform>(time.RenderTransform);
+        mount.Advance(60); Assert.InRange(chevron.Opacity, 0.001, 0.999); Assert.True(timeShift.X > 1, $"the time glides over to make room: {timeShift.X}");
+        mount.Advance(800); Assert.Equal(0, timeShift.X, 3);
         Assert.Equal(1, chevron.Opacity); Assert.Equal(header.Bounds.Width, chevron.Bounds.Right, 1); Assert.Equal(chevron.Bounds.Left - 8, time.Bounds.Right, 1);
         Assert.Equal("Show these steps", ToolTip.GetTip(Chevron(line)));
+    });
+
+    // A thread whose first turn ended without its marker (a run the next turn left behind), so its prose is an earlier segment's: a card of its own, finished.
+    private static void EarlierSegmentThread(TimelineMount mount, bool withTool)
+    {
+        var earlier = Guid.NewGuid(); var date = SwiftDate.Now;
+        var entries = new List<TimelineEntry> { User("first", earlier, "a question"), Reply("answer", earlier, "an answer the turn never closed") };
+        if (withTool) entries.Insert(1, ToolEntry("ran", earlier));
+        entries.Add(Entry("note", new TimelineItem.Content.Notice(new Marrow.Core.Models.Notice { NoticeLevel = Marrow.Core.Models.Notice.Level.Info, Message = "a note between the runs" })));
+        entries.Add(User("second", Turn, "the next question")); entries.Add(Reply("second-answer", Turn, "an answer in progress"));
+        mount.SetEntries(entries); mount.SetTurnStartedAt(date); mount.SetPhase(RuntimePhase.Running); mount.Settle();
+    }
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-043")] // ThreadTimeline.swift:2075-2197; HydraProgressBar.swift:504,558 (title and time fonts); Chrome.swift:79 (secondaryText); porting/extracts WorkingWords (the 22 words, 7 s)
+    public void The_working_line_has_its_type_colours_and_each_of_its_states_the_word_the_summary_the_earlier_label_and_the_open_body() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        // No tools yet, no reasoning: the rotating word with its ellipsis, in the card.
+        mount.Model.Settings.ShowReasoning = false;
+        mount.SetEntries(new[] { User("prompt", Turn, "hello") }); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
+        var line = Line(mount); var seed = WorkingWords.Seed(SwiftUUID.UuidString(mount.Runtime.ThreadID));
+        // Typography (:2123 the title .system(.body, .medium), HydraProgressBar.swift:504; :2125 the time .system(.subheadline), :558; :2131 the chevron).
+        var header = Header(line); var theme = line.ActualThemeVariant;
+        var title = LogicalQuery.SelfAndDescendants<TextBlock>(header.Children[0]).Single(text => text.Text is { Length: > 0 }); var time = LogicalQuery.SelfAndDescendants<TextBlock>(header.Children[1]).Single();
+        Assert.Equal(13, title.FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, title.FontWeight); Assert.Equal(11, time.FontSize);
+        Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(time.Foreground).Color);
+        // Colours (:2179-2180 the card's fill is the quaternary at 0.32).
+        var shell = LogicalQuery.SelfAndDescendants<Border>(line).First(border => border.CornerRadius.TopLeft == TimelineMetrics.PillRadius);
+        Assert.Equal(SwiftColor.Quaternary.Opacity(0.32).Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(shell.Background).Color);
+        Assert.Equal(18, shell.CornerRadius.TopLeft);
+        // The word, and the whole line without a chevron (nothing to open).
+        Assert.Contains(WorkingWords.Word(seed, 0) + "…", Texts(line)); Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(line), image => image.SymbolName == "chevron.right");
+        // It changes every seven seconds (the fixed list of twenty-two, seeded by the thread): the new word takes the old one's place over the one motion, then it is alone.
+        Assert.NotEqual(WorkingWords.Word(seed, 0), WorkingWords.Word(seed, 7));
+        mount.Advance(6500); Assert.Contains(WorkingWords.Word(seed, 6) + "…", Texts(line));
+        mount.Advance(1000); Assert.Contains(WorkingWords.Word(seed, 7) + "…", Texts(line));
+        Assert.Equal(2, header.Children[0] is Grid host ? host.Children.Count : 0);
+        mount.Advance(600); Assert.Single(((Grid)header.Children[0]).Children);
+        Assert.DoesNotContain(WorkingWords.Word(seed, 0) + "…", Texts(line));
+        // A tool call is running: the label is the group's summary (:2104), and there is something to open.
+        mount.SetEntries(new[] { User("prompt", Turn, "hello"), ToolEntry("tool-0", Turn) }); mount.Advance(800);
+        Assert.Contains("Running commands", Texts(line)); Assert.DoesNotContain(WorkingWords.Word(seed, 7) + "…", Texts(line));
+        var chevron = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(line), image => image.SymbolName == "chevron.right");
+        Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), SwiftImage.GetFont(chevron));
+        Assert.Equal(SwiftColor.Tertiary.Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(chevron.Foreground).Color);
+        // The card on, the bar drawn; off, a badge with none (the layout is PR-CHAT-117's).
+        Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line));
+        mount.Model.Settings.ShowsWorkingCard = false; mount.Advance(300); Assert.Empty(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line)); mount.Model.Settings.ShowsWorkingCard = true; mount.Advance(300);
+        // Open: the live steps beneath, padded 14 at the sides and 11 below (:2174-2175).
+        Click(line); mount.Advance(900);
+        var body = LogicalQuery.SelfAndDescendants<Border>(line).Single(border => border.Padding == new Thickness(14, 0, 14, 11));
+        Assert.Single(LogicalQuery.SelfAndDescendants<WorkSteps>(body)); Assert.Equal("Hide these steps", ToolTip.GetTip(Chevron(line)));
+        // An earlier segment, finished and holding no tool: "Earlier steps", its clock stopped at the span it ran (:2102-2104, :2125).
+        EarlierSegmentThread(mount, withTool: false);
+        var earlierLine = LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View).First(candidate => Texts(candidate).Contains("Earlier steps"));
+        var frozen = Texts(Header(earlierLine).Children[1]).Single(); mount.Advance(3000);
+        Assert.Equal(frozen, Texts(Header(earlierLine).Children[1]).Single());
+        // One that held a tool call: the label is the summary of its work, derived the same way (:2104).
+        EarlierSegmentThread(mount, withTool: true);
+        var work = new ValueList<TimelineEntry>(mount.Runtime.Entries.Where(entry => entry.Id is "ran" or "answer"));
+        Assert.Contains(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View), candidate => Texts(candidate).Contains(WorkGroupSummary.Text(work)) && !Texts(candidate).Contains("Earlier steps"));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-044")] // ThreadTimeline.swift:2157-2168,2278 (the thinking rows, only with the show-reasoning setting); TimelineRows.swift (reasoning is no row of its own)
+    public void Thinking_rows_exist_only_behind_the_chevron_with_the_setting_on_indented_by_the_icon_column_and_arrive_softly() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        // Reasoning is never a row of its own: the thinking is in the thread's entries and nowhere on screen until it is opened.
+        RunningThread(mount, steps: 0);
+        var line = Line(mount);
+        Assert.DoesNotContain(mount.Window.GetVisualDescendants().OfType<TextBlock>(), text => text.Text is { } shown && shown.Contains("First I look", StringComparison.Ordinal));
+        Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(line));
+        // The setting on and thinking produced: it opens, indented 24 (the icon width 16 and its 8), in rows 20 apart, at point size 12 and dimmed.
+        Click(line);
+        var markdown = LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(line).ToList(); Assert.Equal(2, markdown.Count);
+        var column = Assert.IsType<StackPanel>(markdown[0].Parent); Assert.Same(column, markdown[1].Parent);
+        Assert.Equal(new Thickness(TimelineMetrics.IconWidth + TimelineMetrics.IconSpacing, 0, 0, 0), column.Margin); Assert.Equal(24, column.Margin.Left); Assert.Equal(20, column.Spacing);
+        Assert.All(markdown, view => { Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.GetMarkdownPointSize(view)); Assert.True(Marrow.UI.Markdown.MarkdownView.GetMarkdownDimmed(view)); });
+        // The soft appear: invisible and 4 points down at the start, settled over its own time (Chrome.swift:938-960).
+        Assert.Equal(0, column.Opacity); Assert.Equal(4, Assert.IsType<Avalonia.Media.TranslateTransform>(column.RenderTransform).Y);
+        mount.Advance((int)(Animation.SoftAppear.Duration * 1000) + 600); Assert.Equal(1, column.Opacity); Assert.Equal(0, Assert.IsType<Avalonia.Media.TranslateTransform>(column.RenderTransform).Y);
+        Assert.Equal(20, markdown[1].TranslatePoint(default, column)!.Value.Y - (markdown[0].TranslatePoint(default, column)!.Value.Y + markdown[0].Bounds.Height), 1.5);
+        // The setting off: the same thinking is in the thread and none of it can be opened (no tool run to open either, so no chevron).
+        Click(line); mount.Advance(800);
+        mount.Model.Settings.ShowReasoning = false; mount.Advance(400);
+        var after = Line(mount);
+        Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(after), image => image.SymbolName == "chevron.right"); Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(after));
+        // The setting on and the turn has produced no reasoning: nothing to show.
+        mount.Model.Settings.ShowReasoning = true; mount.SetEntries(new[] { User("prompt", Turn, "hello") }); mount.Advance(400);
+        Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(Line(mount)), image => image.SymbolName == "chevron.right");
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-069")] // ThreadTimeline.swift:2104,2123; HydraProgressBar.swift:487-534 (HydraWorkingTitle at rest draws no breathing)
+    public void The_earlier_steps_label_is_what_a_finished_segment_without_a_tool_call_shows_steady_and_it_still_opens() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        EarlierSegmentThread(mount, withTool: false);
+        var line = LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View).First(candidate => Texts(candidate).Contains("Earlier steps"));
+        var header = Header(line); var theme = line.ActualThemeVariant;
+        // In the header in place of the rotating word, at the title's type, in the primary text colour.
+        var label = LogicalQuery.SelfAndDescendants<TextBlock>(header.Children[0]).Single(text => text.Text == "Earlier steps");
+        Assert.Equal(13, label.FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, label.FontWeight);
+        var primary = Marrow.UI.Chrome.Chrome.PrimaryText.Resolve(theme);
+        Assert.All(label.Foreground switch { Avalonia.Media.IGradientBrush gradient => gradient.GradientStops.Select(stop => stop.Color), Avalonia.Media.ISolidColorBrush solid => new[] { solid.Color }, _ => [] }, color => Assert.Equal(primary, color));
+        // No breathing: the label does not move in opacity through seconds of frames (a running line's does).
+        var seen = new HashSet<double>(); for (var step = 0; step < 40; step++) { mount.Advance(100); seen.Add(label.Opacity); }
+        Assert.Equal(new[] { 1.0 }, seen.ToArray());
+        // It is never a rotating word and not a summary: the running line below it shows a word.
+        Assert.DoesNotContain(Texts(line), text => text.EndsWith("…", StringComparison.Ordinal));
+        // The line still opens: the segment's prose is behind it.
+        Assert.Equal("Show these steps", ToolTip.GetTip(Chevron(line)));
+        Click(line); mount.Advance(900);
+        Assert.Single(LogicalQuery.SelfAndDescendants<WorkSteps>(line)); Assert.Equal("Hide these steps", ToolTip.GetTip(Chevron(line)));
+        // A segment with a tool call shows the summary of its work instead; a running one the word.
+        EarlierSegmentThread(mount, withTool: true);
+        Assert.Contains(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.View), candidate => Texts(candidate).Any(text => text.EndsWith("…", StringComparison.Ordinal)));
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-CHAT-125")] // ThreadTimeline.swift:325-331 (every row gets chronological false),:2185-2188,:1912-1920,:1990-1997; TimelineRows.swift:1523-1536,:2499-2509; AppSettings.swift:128,237-239,719
+    public void Whatever_the_chronological_setting_holds_the_working_card_and_a_finished_turn_open_folded(bool stored) => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Model.Settings.ChronologicalTimeline = stored;
+        RunningThread(mount, steps: 4);
+        var line = Line(mount);
+        // :2155 `if isExpanded, canExpand`: closed to start, no thinking and no steps shown until it is opened.
+        Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(line)); Assert.Empty(LogicalQuery.SelfAndDescendants<WorkSteps>(line));
+        Assert.Equal(0, AngleOf(line), 1);
+        // Opened it shows only the two latest steps, with the earlier ones behind one line (TimelineRows.swift:1523-1536).
+        Click(line); mount.Advance(900);
+        var steps = LogicalQuery.SelfAndDescendants<WorkSteps>(line).Single();
+        Assert.Equal(2, LogicalQuery.SelfAndDescendants<ToolRow>(steps).Count()); Assert.Contains("2 earlier steps", Texts(steps));
+        // What goes into the card is the same either way: the work and the prose of the turn, never the prompt (:1959-1976).
+        Assert.DoesNotContain("Please make the build faster", Texts(line));
+        // The turn ends: its block folds to its answer, whatever the setting says (:2507-2508 `isExpanded` from the flag the timeline passes, which is false).
+        var entries = mount.Runtime.Entries.Append(Reply("final", Turn, "The workflow now caches the store.")).Append(End("end", Turn)).ToList();
+        mount.SetEntries(entries); mount.SetPhase(RuntimePhase.Idle); mount.Advance(900);
+        var turn = mount.Blocks().Last(block => block.Block is DisplayBlock.Turn { Summary: not null });
+        Assert.Empty(LogicalQuery.SelfAndDescendants<ToolRow>(turn.Row)); Assert.Empty(LogicalQuery.SelfAndDescendants<WorkingIndicator>(turn.Row));
+        Assert.Contains(LogicalQuery.SelfAndDescendants<FoldedAnswerView>(turn.Row), answer => LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(answer).Any(view => view.Text.Contains("caches the store", StringComparison.Ordinal)));
+        var chevron = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(turn.Row), image => image.SymbolName == "chevron.right");
+        Assert.Equal(0, Assert.IsType<Avalonia.Media.RotateTransform>(chevron.RenderTransform).Angle);
     });
 }

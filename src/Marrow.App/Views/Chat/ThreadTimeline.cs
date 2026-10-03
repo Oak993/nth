@@ -1237,6 +1237,10 @@ public sealed class TimelineGroupView : Decorator
 public sealed class WorkingIndicator : Decorator
 {
     private Action<ValueList<ThinkingStep>, ValueList<TimelineEntry>, ValueList<TimelineEntry>, bool>? applyInputs;
+    private readonly DateTimeOffset startedAtValue;
+    private readonly DateTimeOffset? finishedAtValue;
+    /// <summary>Whether this is the line for a turn that began at <paramref name="startedAt"/> (null: not known, as the app's clock gives it) and, for an earlier segment, ended at <paramref name="finishedAt"/>.</summary>
+    internal bool Matches(DateTimeOffset? startedAt, DateTimeOffset? finishedAt) => (startedAt is null || startedAt == startedAtValue) && finishedAt == finishedAtValue;
     // :2080-2092. Updating view values retains the indicator's local expansion state.
     internal void UpdateValues(ValueList<ThinkingStep> thinkingSteps, ValueList<TimelineEntry> liveWork, ValueList<TimelineEntry> turnEntries, bool showsCard) => applyInputs?.Invoke(thinkingSteps, liveWork, turnEntries, showsCard);
     // :2083 private static let change = Animation.smooth(duration: 0.3)
@@ -1273,6 +1277,7 @@ public sealed class WorkingIndicator : Decorator
         bool chronological = false,
         string? workingDirectory = null)
     {
+        startedAtValue = startedAt; finishedAtValue = finishedAt;
         var isExpanded = chronological; var showsAllSteps = chronological; var now = SwiftDate.Now;
         var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null;
         var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this) }; Child = shell;
@@ -1513,8 +1518,11 @@ public sealed class WorkingBlockView : Decorator
     private void Apply((bool ShowsWorkingCard, bool ShowReasoning, ValueList<ThinkingStep>) values)
     {
         var thinking = earlierEntries is null && values.ShowReasoning ? values.Item3 : new([]); var entries = earlierEntries ?? TurnEntries(runtime);
-        if (Child is WorkingIndicator indicator) indicator.UpdateValues(thinking, liveWork, entries, values.ShowsWorkingCard);
-        else Child = new WorkingIndicator(runtime, earlierEntries?.FirstOrDefault()?.Item.Date ?? runtime.TurnStartedAt ?? SwiftDate.Now, WorkingWords.Seed(SwiftUUID.UuidString(runtime.ThreadID)), thinking, liveWork, entries, values.ShowsWorkingCard, earlierEntries?.LastOrDefault()?.Item.Date, chronological, workingDirectory);
+        var startedAt = earlierEntries?.FirstOrDefault()?.Item.Date ?? runtime.TurnStartedAt; var finishedAt = earlierEntries?.LastOrDefault()?.Item.Date;
+        // :2100-2102 a running line and an earlier segment's are different lines (a live clock and a bar in motion, or a clock stopped): when which one it is
+        // changes, the line is made again; otherwise it is the same line with new values.
+        if (Child is WorkingIndicator indicator && indicator.Matches(startedAt, finishedAt)) indicator.UpdateValues(thinking, liveWork, entries, values.ShowsWorkingCard);
+        else Child = new WorkingIndicator(runtime, startedAt ?? SwiftDate.Now, WorkingWords.Seed(SwiftUUID.UuidString(runtime.ThreadID)), thinking, liveWork, entries, values.ShowsWorkingCard, finishedAt, chronological, workingDirectory);
     }
 
     /// <summary>The view with new inputs (:1990-1999 the turn's block hands it its live work and its entries again): its state, the line's expansion above all, stays.</summary>
