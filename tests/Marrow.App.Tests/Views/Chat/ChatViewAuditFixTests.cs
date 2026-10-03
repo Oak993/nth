@@ -110,6 +110,7 @@ public sealed class ChatViewAuditFixTests(HeadlessSession headless)
         ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the toggle capsule's circle fades on the frame clock (OD-0076).
             var model = h.MakeModel();
             ThreadRuntime runtime = null!;
             ChatChromeRow row = null!;

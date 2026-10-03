@@ -22,7 +22,7 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class ChatViewParityAppearTests(HeadlessSession headless)
 {
-    private static (ChatChromeRow Row, AvaloniaWindow Window) MakeRow(AppModelHarness h, AppModel model, bool sidebarHoldsButtons, bool hydra) => h.Main.OnMain(() =>
+    private static (ChatChromeRow Row, AvaloniaWindow Window, ThreadRuntime Runtime) MakeRow(AppModelHarness h, AppModel model, bool sidebarHoldsButtons, bool hydra) => h.Main.OnMain(() =>
     {
         model.Settings.SidebarFloats = false;
         model.Settings.HydraEnabled = hydra;
@@ -32,7 +32,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
         var window = new AvaloniaWindow { Content = row, Width = 1400, Height = 300 };
         ChatHeadlessFixtures.Track(window);
         window.Show();
-        return (row, window);
+        return (row, window, runtime);
     });
 
     private static void Step(AppModelHarness h, AvaloniaWindow window, ManualTimeProvider time, ManualFrameSource frames, int milliseconds)
@@ -66,7 +66,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             using var timeScope = SwiftClock.Provider.Override(time);
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
-            var (row, window) = MakeRow(h, model, sidebarHoldsButtons, hydra);
+            var (row, window, _) = MakeRow(h, model, sidebarHoldsButtons, hydra);
             Step(h, window, time, frames, 0);
             Assert.Empty(LogicalQuery.SelfAndDescendants<T>(row));
             h.Main.OnMain(() => trigger(model));
@@ -104,7 +104,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             using var timeScope = SwiftClock.Provider.Override(time);
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
-            var (row, window) = MakeRow(h, model, sidebarHoldsButtons, hydra);
+            var (row, window, _) = MakeRow(h, model, sidebarHoldsButtons, hydra);
             Step(h, window, time, frames, 0);
             Step(h, window, time, frames, 400);
             var settled = Look<T>(h, row, window);
@@ -150,4 +150,66 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // ChatView.swift:1138-1140; Chrome.swift:948-956 (the Hydra slot of PR-CHAT-171, the departure half); ED-NEW-parity-chatview
     public void The_Hydra_button_leaves_on_an_ease_out_fade_of_0_12_seconds_without_sinking() =>
         AssertLeaves<HydraButton>(sidebarHoldsButtons: true, hydra: true, model => model.Settings.HydraEnabled = false);
+
+    // The toggle capsule (ChatView.swift:1164-1172): the buttons keep their identity across a refresh, and the "on" circle of each fades in and out
+    // where its flag changes: the terminal's on the panel slide (the column's `.animation(Chrome.panelSlide, value: runtime.isTerminalVisible)`, :290),
+    // the Changes button's, which the Mac snaps, on the hover curve (OD-0076).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:290,1164-1172; Chrome.swift:344-350; OD-0076; ED-NEW-parity-chatview (5)
+    public void The_toggle_capsules_on_circles_fade_in_and_out_on_the_panel_slide_and_the_hover_curve_while_the_buttons_keep_their_identity()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var (row, window, runtime) = MakeRow(h, model, sidebarHoldsButtons: false, hydra: false);
+            Step(h, window, time, frames, 0);
+            Control Button(string tip) => h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ChromeIconButton>(row)
+                .Single(button => ((string?)ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(button).Single()) ?? "").StartsWith(tip, StringComparison.Ordinal)));
+            // The circle's shown opacity (the product along its ancestry up to the button), or null with no circle.
+            double? Circle(Control button) => h.Main.OnMain(() =>
+            {
+                var circle = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(button).SingleOrDefault();
+                if (circle is null) return (double?)null;
+                var opacity = 1.0;
+                for (Control? at = circle; at is not null && !ReferenceEquals(at, button); at = at.Parent as Control) opacity *= at.Opacity;
+                return opacity;
+            });
+            var terminal = Button("Terminal");
+            var changes = Button("Changes");
+            Assert.Null(Circle(terminal));
+            Assert.Null(Circle(changes));
+            Assert.Equal(Animation.EaseOut(duration: 0.1), Chrome.Hover); // Chrome.swift's hover curve: `.easeOut(duration: 0.1)`.
+            void Fade(Control button, Action<bool> set, Animation curve, bool on)
+            {
+                h.Main.OnMain(() => set(on));
+                Step(h, window, time, frames, 0);
+                Assert.Equal(on ? 0 : 1, Circle(button)!.Value, 3); // the first frame: the circle has not started to move, no cut.
+                var elapsed = 0;
+                foreach (var at in new[] { 30, 70, 120 })
+                {
+                    Step(h, window, time, frames, at - elapsed); elapsed = at;
+                    var progress = curve.Progress(at / 1000.0);
+                    if (progress >= 0.999) { if (on) Assert.Equal(1, Circle(button)!.Value, 2); else Assert.Null(Circle(button)); continue; }
+                    Assert.InRange(progress, 0.02, 0.98);
+                    Assert.Equal(on ? progress : 1 - progress, Circle(button)!.Value, 2);
+                }
+                Step(h, window, time, frames, 600 - elapsed);
+                if (on) Assert.Equal(1, Circle(button)!.Value, 3); else Assert.Null(Circle(button));
+            }
+            Fade(terminal, on => runtime.IsTerminalVisible = on, Chrome.PanelSlide, on: true);
+            Assert.Same(terminal, Button("Terminal")); // the same button, kept across the refresh.
+            Assert.Same(changes, Button("Changes"));
+            Fade(terminal, on => runtime.IsTerminalVisible = on, Chrome.PanelSlide, on: false);
+            Fade(changes, on => runtime.IsDiffVisible = on, Chrome.Hover, on: true);
+            Fade(changes, on => runtime.IsDiffVisible = on, Chrome.Hover, on: false);
+            Assert.Same(terminal, Button("Terminal"));
+            Assert.Same(changes, Button("Changes"));
+        });
+    }
 }

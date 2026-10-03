@@ -23,7 +23,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // Parity closure for DroppyCode/App/Views/Chat/ChatView.swift (1.7.0): the clauses the earlier parts left unproven.
 //
 // STOP App.Views.Chat.ChatView #6 (2026-10-03): the clauses still open after the parity pass, per record.
-// Records: PR-CHAT-159, PR-GIT-126, PR-GIT-129, PR-USAGE-071, UI-CHAT-006.
+// Records: PR-CHAT-159, PR-GIT-126, PR-GIT-129, PR-USAGE-071 (UI-CHAT-006 was listed here and is closed: see the last item).
 // - PR-CHAT-159: the ChatView half (the veil over the pane, fed by the timeline's own ChromeScrollModel) is proven
 //   (ChatViewFollowupTests); the capture at travel 0/20/44 in both themes is not done. 2-chat-use.mov shows only the dark
 //   theme at full progress (CATALOGUE timeline.top-edge-scrim, frames/gap-R2-02/scrim_profile.json), and the port's veil
@@ -35,10 +35,11 @@ namespace Marrow.App.Tests.Views.Chat;
 //   (ChatViewParityDetailTests, ChatViewPart3ReviewTests, ChatViewPart4ReviewTests). UNRESOLVED.
 // - PR-USAGE-071: the origin arithmetic is proven (ChatViewPart2ReviewTests, ChatViewReviewFixTests); its capture of a short
 //   panel in a top and a bottom corner is not done (the videos dock the floating panel top-aligned only). UNRESOLVED.
-// - UI-CHAT-006: the source arrives at .scale(0.6) (:1098); 2-chat-use.mov (CATALOGUE timeline.scroll-to-bottom-button,
-//   C 10.27-10.47) shows the ring at ~28 of 32 px (scale ~0.88) in its first visible frame at opacity 0.27. Source and
-//   reference runtime disagree: needs a ruling. The ThreadTimeline-side clauses (the 0.38/0.78 spring, the unanimated hide
-//   on a new row, the 0.35 s glide) are that unit's.
+// - UI-CHAT-006 (closed by the round 1 review, 2026-10-03): the source and the reference runtime agree. The transition is on
+//   the zero-height frame (:1094-1101), so the circle scales about that frame's centre, 26 points below its own, and rises by more
+//   than the offset's 10; the ring's 28 of 32 px in 2-chat-use.mov C 10.285 is that scale (0.6 at the start) seen 14 px low. Proven in
+//   ChatViewParityReviewTests (both directions, position against the spring's own progress) and ChatViewFollowupTests. The
+//   ThreadTimeline-side clauses (the 0.38/0.78 spring, the unanimated hide on a new row, the 0.35 s glide) are that unit's.
 [Collection("Headless")]
 public sealed class ChatViewParityTests(HeadlessSession headless)
 {
@@ -519,6 +520,10 @@ public sealed class ChatViewParityTests(HeadlessSession headless)
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames); // the toggle capsule's circles fade on the frame clock (OD-0076).
             ThreadRuntime runtime = null!;
             ChatChromeRow row = null!;
             string terminalTip = "", changesTip = "";
@@ -531,7 +536,12 @@ public sealed class ChatViewParityTests(HeadlessSession headless)
             });
             ChromeCapsule Capsule() => LogicalQuery.SelfAndDescendants<ChromeCapsule>(row).Last(); // :1164 the last slot.
             bool Active(string tip) => LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(ButtonWithTip(row, tip)).Any();
-            void Drain() { h.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs(); }
+            void Drain()
+            {
+                h.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs();
+                time.Advance(TimeSpan.FromMilliseconds(500)); frames.Advance(TimeSpan.FromMilliseconds(500)); // the fade ends.
+                h.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs();
+            }
             h.Main.OnMain(() =>
             {
                 var parts = LogicalQuery.SelfAndDescendants<StackPanel>(Capsule()).Single(panel => panel.Children.Count == 3).Children;

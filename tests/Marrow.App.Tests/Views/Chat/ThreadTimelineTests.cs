@@ -376,11 +376,9 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
         var request = new QuestionRequest("q", new([new QuestionRequest.Question("choice", "Header", "Choose", new([]), false, false, false)])); typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { Reply("reply", Turn) })); typeof(ThreadRuntime).GetProperty("Questions")!.SetValue(runtime, new ValueList<QuestionRequest>(new[] { request })); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single(); Assert.Equal("question-q", badge.Name); var stack = Assert.IsType<StackPanel>(badge.Parent); Assert.Same(badge, stack.Children[^1]);
     });
 
-    // Former STOP App.Views.Chat.ThreadTimeline #5 (ChatView.swift:108-111; ThreadTimeline.swift:26-35,180) is resolved: the mounted
-    // ChatView now hands the timeline memoized inputs and the free-width/docked-side minimap flag. Proofs (2026-10-03):
-    // ChatViewParityMountedTests.A_title_effort_or_mode_change_leaves_the_timeline_alone_while_a_handed_value_redraws_it (PR-CHAT-160),
-    // The_column_hands_the_timeline_the_minimap_flag_from_the_docked_sides_and_the_free_width and
-    // Before_the_pane_is_measured_the_timeline_is_handed_a_shown_minimap (the ChatView clauses of UI-CHAT-003).
+    // STOP App.Views.Chat.ThreadTimeline #5
+    // Kind: dependency. Swift: ChatView.swift:108-111; ThreadTimeline.swift:26-35,180. Records: PR-CHAT-160/UI-CHAT-003 (caller mounting/free-width flag only).
+    // Missing: external ChatView is still a skeleton. Needed: caller memoization and free-width/docked-side showsMinimap expression; the timeline honors its supplied flag.
 
     [Fact]
     [Trait("Req", "UI-CHAT-001")] // App/Views/Chat/ThreadTimeline.swift:416-422

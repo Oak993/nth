@@ -74,6 +74,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
         ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
+            using var frames = Marrow.UI.Port.FrameClock.Source.Override(new Marrow.UI.Port.ManualFrameSource()); // the toggle capsule's circle fades on the frame clock (OD-0076).
             var model = harness.MakeModel();
             ChatChromeRow row = null!;
             Marrow.App.Runtime.ThreadRuntime runtime = null!;
