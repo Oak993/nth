@@ -11841,6 +11841,58 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         finally { harness.Main.OnMain(() => window.Close()); }
     });
 
+    // :1378-1380 the status branch is ActivityStatus(thread:) over the live thread: a helper that turns unread while the pointer
+    // is elsewhere draws the 7 pt dot (:2421-2425), in the danger colour once its last turn failed (:2423). The status the row
+    // keeps while its branch holds (ED-NEW-parity-sidebarview (3)) is drawn again for that (mutant R4M9: never drawn again).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")]
+    public void A_helper_rows_status_follows_its_thread_turning_unread_and_then_failed() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        List<Avalonia.Controls.Shapes.Ellipse> Dots() => LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(row).ToList();
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(Dots()); // read, nothing to show (:2426)
+                model.UpdateThread(helper.Id, t => t with { HasUnread = true });
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                var dot = Assert.Single(Dots()); // :2421-2425
+                Assert.Equal(7d, dot.Width);
+                Assert.Equal(Chrome.Accent.Resolve(dot.ActualThemeVariant), ((ISolidColorBrush)dot.Fill!).Color);
+                model.UpdateThread(helper.Id, t => t with { LastStatus = TurnStatus.Failed });
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                var dot = Assert.Single(Dots());
+                Assert.Equal(Chrome.Danger.Resolve(dot.ActualThemeVariant), ((ISolidColorBrush)dot.Fill!).Color); // :2423
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
     // The list keeps a helper row whose own item changes in a new pass (:470-472 its ForEach id; :1320, :1326 its snapshot and
     // isLast handed in place, UpdateItemView): its open ellipsis menu keeps its button, the title is the record's as it is
     // now, and the connector ends at the row once the helper below it is gone (:1349, :1665-1669).
@@ -11901,14 +11953,14 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             {
                 Assert.Single(presenter.Calls, call => call.Presented);
                 var keptID = goneTitle == "Helper one" ? second.Id : first.Id;
-                model.UpdateThread(keptID, t => t with { Title = "Helper kept" }); // its own record changes ...
+                model.UpdateThread(keptID, t => t with { Title = "Helper kept" }); // its own thread changes ...
                 model.Delete(goneTitle == "Helper one" ? first.Id : second.Id); // ... and the list takes a new pass without the other helper
             });
             Tick(1600);
             harness.Main.OnMain(() =>
             {
                 Assert.Same(kept, Assert.Single(HelperRows())); // the row the list had, not one built where it stood
-                Assert.Same(kept, HelperRowTitled("Helper kept")); // drawing the record as it is now
+                Assert.Same(kept, HelperRowTitled("Helper kept")); // drawing its thread as it is now
                 Assert.True(EndsHere(kept)); // :1349 isLast handed in: the connector ends at this row
                 Assert.Same(more, More(kept)); // its open menu still on the button it opened from
                 Assert.Single(presenter.Calls, call => call.Presented); // and not presented again
