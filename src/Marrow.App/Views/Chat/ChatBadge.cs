@@ -167,7 +167,7 @@ public sealed class ChatBadge : Decorator
             Child = row,
             HorizontalAlignment = HorizontalAlignment.Left,
         };
-        pill.CornerRadius = new CornerRadius(TimelineMetrics.PillRadius); // :49 RoundedRectangle(cornerRadius:, style: .continuous)
+        pill.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :49 RoundedRectangle(cornerRadius:, style: .continuous): drawn through the one helper of ED-181, as every other pill is
 
         // :54-65
         var layers = new BadgeLayers(pill); // :49-50 the pill and, above it, the attention dot field
