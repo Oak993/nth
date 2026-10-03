@@ -37,7 +37,9 @@ public sealed class ChatViewParityReviewTests(HeadlessSession headless)
     // 10.300: 12.75, 12.0; 10.357: 15.0, 5.5; 10.375: 15.5, 4.0; 10.397: 16.0, 2.5; 10.432: 16.5, 1.0), which a scale about
     // the circle's own centre (drop = 10 (1 - p) <= 10) cannot produce. The port scales the circle about its own centre.
     [Fact]
-    [Trait("Req", "UI-CHAT-006")] // App/Views/Chat/ChatView.swift:1094-1101
+    // STOP (review round 2): the ChatView half of UI-CHAT-006 only; the ThreadTimeline clauses (the 1 percent sentinel, the 0.38/0.78 spring, the
+    // unanimated hide on a new row, the 0.35 s glide) are not exercised here and the button is driven under panelSlide, so no Req trait.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1094-1101 (UI-CHAT-006, the ChatView half)
     public void REVIEW_Jump_to_latest_grows_from_the_zero_height_frames_centre_not_from_its_own_centre()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -77,7 +79,8 @@ public sealed class ChatViewParityReviewTests(HeadlessSession headless)
     // C 13.447-13.51, same crop: radius 16.75 -> 16.25 -> 15.75 -> 15.5 while the centre drops 0.5 -> 2.0 -> 3.5 -> 4.5,
     // i.e. drop = 9.9 q with r = 16.75 (1 - 0.15 q); a drop of 6 q would need r = 14.9 at 13.51).
     [Fact]
-    [Trait("Req", "UI-CHAT-006")] // App/Views/Chat/ChatView.swift:1094-1101
+    // STOP (review round 2): the ChatView half of UI-CHAT-006 only (see the test above), so no Req trait.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1094-1101 (UI-CHAT-006, the ChatView half)
     public void REVIEW_Jump_to_latest_leaves_toward_the_zero_height_frames_centre()
     {
         ChatHeadlessFixtures.Run(headless, () =>

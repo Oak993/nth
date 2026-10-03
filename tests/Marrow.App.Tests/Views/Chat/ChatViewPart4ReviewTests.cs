@@ -552,7 +552,9 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [InlineData(PanelDockCorner.TopTrailing, -1, 1)]
     [InlineData(PanelDockCorner.BottomLeading, 1, -1)]
     [InlineData(PanelDockCorner.BottomTrailing, -1, -1)]
-    [Trait("Req", "UI-USAGE-041")] // App/Views/Chat/ChatView.swift:527,554-590
+    // A part of UI-USAGE-041 (the pinned start, the exact commit, the stepped live width); it neither double-clicks nor drags below the 94 pt floor,
+    // so the record is carried by ChatViewParityRound2Tests.The_usage_panels_grips_sit_on_its_free_edges... (review round 2).
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:527,554-590,595-598
     public void Grip_resize_pins_the_start_commit_is_exact_and_the_live_width_is_stepped(PanelDockCorner corner, int across, int down)
     {
         ChatHeadlessFixtures.Run(headless, () =>
