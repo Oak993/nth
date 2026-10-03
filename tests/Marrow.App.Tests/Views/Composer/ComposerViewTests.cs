@@ -2167,6 +2167,8 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:245
+    [Trait("Req", "UI-COMPOSER-022")] // App/Views/Composer/ComposerView.swift:245-247: the retry row only with the error and only in the command list
+    [Trait("Rule", "R-TEST-4")] // The row's symbol, label and place: A_failed_command_load_shows_its_description_then_a_Retry_...; the forced reload: B3_retry_enters_a_new_command_load_even_when_the_cached_commands_are_fresh
     public void The_failure_rows_belong_to_the_command_list_only()
     {
         headless.OnUiThread(() =>
