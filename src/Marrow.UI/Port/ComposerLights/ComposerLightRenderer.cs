@@ -202,7 +202,8 @@ public sealed class ComposerLightRenderer : IDisposable
         SKShader shader;
         if (rotate)
         {
-            if (g.Blobs.Settle.Due((key, w, h, scale), now, out var stale)) { BakeBlobs(gpu, g, f, scale); g.Blobs.Settle.Done((key, w, h, scale)); stale = false; }
+            // Only a size or scale change waits for stillness: a slot reused for another structure bakes at once (ED-251 review N1).
+            if (g.Blobs.Settle.Due((key, w, h, scale), now, out var stale) || (stale && g.Blobs.Settle.Baked is { } held && !held.Item1.Equals(key))) { BakeBlobs(gpu, g, f, scale); g.Blobs.Settle.Done((key, w, h, scale)); stale = false; }
             Settling |= stale;
             c["innerTex"] = g.Blobs.Inner; c["strokeTex"] = g.Blobs.Stroke;
             Set(u, "bakeMap", g.Blobs.W / w, g.Blobs.H / h, 0, 0);       // a stale bake stretched over the moving size
