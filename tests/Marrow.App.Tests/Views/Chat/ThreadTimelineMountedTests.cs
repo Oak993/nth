@@ -545,6 +545,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (the rail's frame, its overlay and when it shows); ThreadTimeline.swift:176-208
     public void The_rail_is_a_thirty_point_overlay_below_the_titlebar_that_takes_no_layout_and_shows_with_two_sent_messages_and_the_flag() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -577,6 +578,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003 and PR-CHAT-158
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 and PR-CHAT-158 (the rail cancels the slide's padding and its offset); ThreadTimeline.swift:201-207
     public void The_rail_stays_on_the_columns_leading_edge_through_every_frame_of_a_panel_slide() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -595,6 +597,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003; ThreadTimeline.swift:179-200 (the rail fades with the panel slide; the same rail goes on across a redraw)
     public void The_rail_fades_in_and_out_on_the_panel_slide_and_survives_a_redraw_with_its_state() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -625,6 +628,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (a tick's release is one 0.35 s smooth glide to the landing block, a scrub is unanimated); ThreadTimeline.swift:188,224-252
     public void A_jump_to_a_block_glides_over_a_third_of_a_second_and_a_scrub_lands_at_once() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -806,6 +810,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (expanded: the base tick opacity rises from 0.25 to 0.4 under hover or press; the lit tick and the hovered one); TimelineMinimap.swift:258-282, mounted in the timeline
     public void Ticks_rest_at_a_quarter_and_rise_to_four_tenths_while_the_rail_is_hovered_or_pressed() => ThreadTimelineRig.Run(headless, mount =>
     {

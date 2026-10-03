@@ -9,6 +9,8 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
+using Capsule = (Avalonia.Controls.StackPanel Content, Avalonia.Controls.Border Padded, Avalonia.Controls.Panel GlassHost, Avalonia.Controls.Grid Stage);
+
 namespace Marrow.App.Tests.Views.Chat;
 
 /// <summary>
@@ -26,8 +28,6 @@ public sealed class HydraPanelStageCapsuleTests(HeadlessSession headless)
         test(context);
     });
 
-    private sealed record Capsule(StackPanel Content, Border Padded, Panel GlassHost, Grid Stage);
-
     private static Capsule CapsuleOf(HydraPanelContext c)
     {
         return CapsulesOf(c).Single();
@@ -40,7 +40,7 @@ public sealed class HydraPanelStageCapsuleTests(HeadlessSession headless)
         var padded = Assert.IsType<Border>(content.Parent);
         var glassHost = Assert.IsType<Panel>(padded.Parent);
         var stage = Assert.IsType<Grid>(glassHost.Parent);
-        return new Capsule(content, padded, glassHost, stage);
+        return (content, padded, glassHost, stage);
     }).ToArray();
 
     private static Color Ink(Control on, SwiftColor expected) => expected.Resolve(on.ActualThemeVariant);
@@ -151,7 +151,7 @@ public sealed class HydraPanelStageCapsuleTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-HYDRA-019")] // HydraPanel.swift:164: a head change brings the next capsule in soft (opacity and a four-point rise); a window live resize does it at once
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-019: the head-change state as the record words it (the Swift keeps one capsule view across a head change, UNVERIFIED without a Mac)
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-019: the head-change state as the ledger entry words it (the Swift keeps one capsule view across a head change, UNVERIFIED without a Mac)
     public void A_head_change_brings_the_capsule_in_soft_and_a_live_resize_does_it_at_once() => Run(c =>
     {
         c.Select(c.Second);

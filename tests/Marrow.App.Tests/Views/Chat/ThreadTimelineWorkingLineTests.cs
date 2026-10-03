@@ -212,7 +212,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-CHAT-043")] // ThreadTimeline.swift:2107-2119: click toggles; only OPENING follows the end (unconditionally), closing does not
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-CHAT-043: the follow on open and not on close; the rest of the record is the test below
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-CHAT-043: the follow on open and not on close; the rest of the entry is the test below
     public void Only_opening_the_line_follows_the_end_and_closing_it_does_not() => ThreadTimelineRig.Run(headless, mount =>
     {
         RunningThread(mount);
@@ -283,6 +283,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 (the label's change, ThreadTimeline.swift:2182 .animation(Self.change, value: label)); capture comparison: 2-chat-use.mov 94.943-95.20, "Dancing..." to "Thinking..." (the weight of the new word, fitted frame by frame to the two clean frames either side, evidence/ThreadTimeline/verb)
     public void The_word_changes_over_a_cross_dissolve_that_matches_the_reference_runtimes() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -304,6 +305,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 (the chevron comes with something to open and the time glides over to make room, ThreadTimeline.swift:2128-2135,2183 .animation(Self.change, value: canExpand)); capture comparison: 2-chat-use.mov 95.803-96.078 (the time's left edge, frame by frame: evidence/ThreadTimeline/chev)
     public void The_time_glides_over_for_the_chevron_along_the_reference_runtimes_curve() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -327,6 +329,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043 and PR-CHAT-117
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and PR-CHAT-117 (the chevron goes with nothing left to open: ThreadTimeline.swift:2128-2135 `.transition(.opacity)`, :2183 `.animation(Self.change, value: canExpand)`; OD-0076: every change is transitioned; ED-255 (3))
     public void The_chevron_fades_out_where_it_stood_when_nothing_is_left_to_open_and_the_time_glides_back_over_the_same_motion() => ThreadTimelineRig.Run(headless, mount =>
     {
