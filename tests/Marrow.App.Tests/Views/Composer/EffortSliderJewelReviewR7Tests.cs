@@ -4,12 +4,12 @@ using Marrow.Testing;
 namespace Marrow.App.Tests.Views.Composer;
 
 // REVIEW (adversarial, unit jewel-knob, review round 7 on a45e0fd9b): each test states what the unit's tests must do and
-// fails on the head reviewed.
+// failed on the head reviewed; it passes from d89ed614d (round 7 answered), kept under a plain name.
 public sealed class EffortSliderJewelReviewR7Tests
 {
     [Fact]
     [Trait("Rule", "R-TEST-1")] // a test that carries a Req trait proves every clause of that record
-    public void REVIEW_no_test_credits_a_record_whose_42_point_height_OD_0090_made_48()
+    public void No_test_credits_a_record_whose_42_point_height_OD_0090_made_48()
     {
         // OD-0090 made EffortSlider.ThumbSize 48 (ED-252: EffortSlider.swift:713 thumbSize 42, now 48; the control's height is
         // the knob's). Two of the source's uses of that constant are records of their own, each stating 42 points:
