@@ -7,6 +7,7 @@ using Avalonia.Input.Platform;
 using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
+using Marrow.Testing;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -214,6 +215,63 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 Settle(window);
                 Assert.False(presenter.Calls.Last().Presented); // :259-261 the button toggles the report shut again
             });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
+    });
+
+    // ---------------------------------------------------------------- PR-CHAT-080 under OD-0076
+
+    private static Control PencilLine(UserMessageRow row) =>
+        row.GetVisualDescendants().OfType<Control>().Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
+
+    // :161 .opacity(isHovering || isEditing ? 1 : 0) cuts on the Mac (2-chat-use.mov 23.415-24.187 s: the pencil appears and
+    // goes in one frame, catalogue hover.message-edit-pencil). OD-0076 rules that nothing cuts: the line fades in the Mac's
+    // hover language, the reply row's own hover line (:1381 easeOut 0.12), and reduce motion stills it.
+    [Fact]
+    [Trait("Req", "PR-CHAT-080")] // TimelineRows.swift:158-161
+    [Trait("Decision", "OD-0076")]
+    public void The_pencil_line_fades_in_and_out_over_the_hover_curve_and_reduce_motion_stills_it() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var genie = new FakeGeniePlatform();
+        using var motion = Chrome.ReduceMotionPlatform.Override(genie);
+        UserMessageRow row = null!;
+        AvaloniaWindow window = null!;
+        void Step(int ms) { h.Main.AdvanceMilliseconds(ms); frames.Advance(TimeSpan.FromMilliseconds(ms)); }
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                row = new UserMessageRow(UserEntry("edit me", Guid.NewGuid()), h.Runtime, canRevert: true);
+                window = Show(new StackPanel { Children = { row, new Border { Height = 200, Background = Avalonia.Media.Brushes.Transparent } } });
+                Assert.Equal(0, PencilLine(row).Opacity);
+                Hover(window, Assert.Single(LogicalQuery.SelfAndDescendants<InlineText>(row)));
+                Assert.Equal(0, PencilLine(row).Opacity); // no cut to 1 in the frame the pointer arrives
+            });
+            frames.Advance(TimeSpan.Zero);
+            Step(60);
+            h.Main.OnMain(() => Assert.InRange(PencilLine(row).Opacity, 0.01, 0.99));
+            Step(80);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal(1, PencilLine(row).Opacity);
+                window.MouseMove(new Point(450, 650), RawInputModifiers.None); // off the row
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1, PencilLine(row).Opacity);
+            });
+            frames.Advance(TimeSpan.Zero);
+            Step(60);
+            h.Main.OnMain(() => Assert.InRange(PencilLine(row).Opacity, 0.01, 0.99));
+            Step(80);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal(0, PencilLine(row).Opacity);
+                genie.AccessibilityDisplayShouldReduceMotion = true;
+                Hover(window, Assert.Single(LogicalQuery.SelfAndDescendants<InlineText>(row)));
+            });
+            h.Main.OnMain(() => Assert.Equal(1, PencilLine(row).Opacity)); // reduce motion: lands at once, no frame advanced
         }
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
     });

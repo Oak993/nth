@@ -221,6 +221,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
     public void The_pencil_lives_on_a_reserved_hover_line_that_shows_on_hover_and_never_moves_the_message() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
         var presenter = new RecordingPresenter();
         using var seam = Presentation.Presenter.Override(presenter);
         var turn = Guid.NewGuid();
@@ -261,6 +262,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             rowHeight = row.Bounds.Height;
             Hover(window, Assert.Single(Mounted<InlineText>(row)));
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Settle(window);
@@ -272,6 +274,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             Assert.Equal(rowHeight, row.Bounds.Height, 0.01);
             window.MouseMove(new Point(450, 680), RawInputModifiers.None);
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Settle(window);
@@ -280,12 +283,14 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             Assert.Null(h.Runtime.CachedRevertPreview(turn));
             Hover(window, Assert.Single(Mounted<Button>(HoverLine(row))));
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Assert.NotNull(h.Runtime.CachedRevertPreview(turn));
             // :132-135 a click opens the editor on the turn's message; :148-155 anchored to the pencil.
             Click(window, Assert.Single(Mounted<Button>(HoverLine(row))));
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Settle(window);
@@ -300,6 +305,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             Paints(Assert.Single(Mounted<SwiftImage>(pencil)).Foreground, ChromeTokens.Accent, pencil, "editing tint");
             window.MouseMove(new Point(450, 680), RawInputModifiers.None);
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Settle(window);
@@ -308,12 +314,14 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             // :134 a second click while open closes the editor.
             Click(window, Assert.Single(Mounted<Button>(HoverLine(row))));
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Settle(window);
             Assert.Null(h.Runtime.MessageEdit);
             window.MouseMove(new Point(450, 680), RawInputModifiers.None);
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Settle(window);

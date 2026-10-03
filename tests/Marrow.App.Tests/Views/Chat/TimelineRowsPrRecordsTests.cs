@@ -1730,6 +1730,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     public void A_revertable_message_shows_a_pencil_only_on_hover_and_a_locked_one_shows_none() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
         UserMessageRow? row = null;
         UserMessageRow? locked = null;
         AvaloniaWindow? window = null;
@@ -1748,6 +1749,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Assert.Equal(0, HoverLine080(row).Opacity);
             Hover(window, row.GetVisualDescendants().OfType<InlineText>().Single());
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Assert.Equal(1, HoverLine080(row!).Opacity);
@@ -1761,6 +1763,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     public void The_pencil_opens_the_edit_on_the_runtime_through_the_editor_popover_and_a_second_tap_closes_it() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
         var presenter = new RecordingPresenter();
         using var seam = Presentation.Presenter.Override(presenter);
         var turn = Guid.NewGuid();
@@ -1778,6 +1781,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Assert.Equal(turn, edit.Id);
             Assert.Equal("edit me", edit.Text);
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             var shown = Assert.Single(presenter.Calls, call => call.Presented);
@@ -4429,7 +4433,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         using var h = Harness();
         var presenter = new RecordingPresenter();
         using var seam = Presentation.Presenter.Override(presenter);
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var pencilClock = new ManualFrameSource(); using var frames = FrameClock.Source.Override(pencilClock);
         var turn = Guid.NewGuid();
         UserMessageRow? row = null;
         AvaloniaWindow? window = null;
@@ -4443,12 +4447,14 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         });
         try
         {
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
             h.Main.OnMain(() =>
             {
                 Settle(window!);
                 Assert.Equal(1, HoverLine080(row!).Opacity);
                 h.Runtime.MessageEdit = null;
             });
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
             h.Main.OnMain(() =>
             {
                 Settle(window!);

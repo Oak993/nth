@@ -1315,6 +1315,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
+            var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
             UserMessageRow? row = null;
             UserMessageRow? locked = null;
             AvaloniaWindow? window = null;
@@ -1332,6 +1333,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(HoverLine(noTurn)));
                 Hover(window, LogicalQuery.SelfAndDescendants<InlineText>(row).Single());
             });
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
             h.Main.OnMain(() =>
             {
                 Assert.Equal(1, HoverLine(row!).Opacity);
@@ -1349,6 +1351,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
+            var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
             var presenter = new RecordingPresenter();
             using var seam = Presentation.Presenter.Override(presenter);
             var turn = System.Guid.NewGuid();
@@ -1377,11 +1380,16 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.IsType<MessageEditor>(shown.Popup.Child);
                 var pencil = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(HoverLine(row!)));
                 Assert.Same(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(pencil.Parent!).Single(), shown.Popup.PlacementTarget);
+            });
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
+            h.Main.OnMain(() =>
+            {
                 // Editing: the line stays up without a hover.
                 Assert.Equal(1, HoverLine(row!).Opacity);
                 Click(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(HoverLine(row!))));
                 Assert.Null(h.Runtime.MessageEdit);
             });
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
             h.Main.OnMain(() =>
             {
                 Settle(window!);

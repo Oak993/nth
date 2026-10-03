@@ -29,6 +29,7 @@ public sealed class TimelineRowsUiPointerTests(HeadlessSession headless)
     public void Real_pointer_prefetches_and_toggles_the_pencil_editor_on_its_actual_anchor() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
         var presenter = new RecordingPresenter();
         using var seam = Presentation.Presenter.Override(presenter);
         h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);

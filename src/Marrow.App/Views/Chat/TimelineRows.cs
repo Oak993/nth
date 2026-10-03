@@ -417,8 +417,12 @@ public sealed class UserMessageRow : Decorator
                 SyncEditor(isEditing());
             })));
         }
-        // :161 .opacity(isHovering || isEditing ? 1 : 0)
-        line.Track(() => state.IsHovering || isEditing(), shown => line.Opacity = shown ? 1 : 0);
+        // :161 .opacity(isHovering || isEditing ? 1 : 0). The Mac cuts here (2-chat-use.mov 23.415-24.187 s, catalogue
+        // hover.message-edit-pencil); OD-0076 rules every change transitioned, so the line fades in the Mac's own hover
+        // language for a message's hover line (the reply row's :1381 easeOut 0.12), and reduce motion stills it.
+        var opacity = new AnimatedOpacity(line, state.IsHovering || isEditing() ? 1 : 0);
+        line.Track(() => state.IsHovering || isEditing(), shown => opacity.Set(shown ? 1 : 0,
+            Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion ? null : Animation.EaseOut(duration: 0.12)));
         return line;
     }
 
