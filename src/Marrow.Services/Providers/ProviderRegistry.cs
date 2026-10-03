@@ -1534,6 +1534,18 @@ public sealed partial class ProviderRegistry : MainActorModel
         UserDefaults.Standard.Current.Set("recentSlashCommands", encoded); // :758
     }
 
+    // PORT-ONLY (per-site decision, R-ERR-2, O-14, as PiCLI.StartFailureDescription and the ThreadRuntime
+    // catches at :1733 and :2599, UI-RUNTIME-042): Swift stores `error.localizedDescription` (:857). For a CLI
+    // that cannot even be launched (the thread's folder is gone, the executable cannot be started, the command
+    // line is too long) macOS has Foundation's text for the POSIX/Cocoa launch error; Windows raises a plain BCL
+    // Win32Exception, InvalidOperationException or CommandLineTooLongException, none of them an ILocalizedError
+    // or an ISwiftErrorIdentity, for which SwiftErrors.LocalizedDescription throws NotSupportedException by
+    // design. That exception escaped LoadCommands' catch block, out of the non-throwing main task, and ended
+    // the process, where Swift stores the text and the composer shows it with its Retry row. A launch failure
+    // therefore stores its own Message (Windows' text for it); every error that has a Swift description keeps it.
+    private static string CommandFailureDescription(Exception error) =>
+        error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
+
     // :762-784. Swift: loadCommands(_:directory:force:). PR-PROVREG-217/218: only Codex and Claude ever
     // list commands; a second caller for the same (provider, directory) key awaits the first in-flight
     // task instead of spawning a second CLI; the freshness window is exactly 600 seconds and force bypasses
@@ -1567,7 +1579,7 @@ public sealed partial class ProviderRegistry : MainActorModel
             catch (Exception error) when (SwiftTry.IsThrownError(error)) // :776
             {
                 if (commandErrors.Count >= 32) CommandErrors = new ValueMap<string, string>([], SwiftStringComparer.Instance); // :856
-                CommandErrors = commandErrors.Mutating(d => d[key] = SwiftErrors.LocalizedDescription(error)); // :857
+                CommandErrors = commandErrors.Mutating(d => d[key] = CommandFailureDescription(error)); // :857
             }
         });
         commandLoads[key] = task; // :781
