@@ -11183,6 +11183,66 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         }
         finally { harness.Main.OnMain(() => window.Close()); }
     });
+
+    // (3) SidebarView.swift:1338-1409: SidebarHelperRow reads its live thread through the model's cell (:1324-1325) and keeps
+    // @State isMenuPresented (:1340) under its own identity, so its ellipsis menu (:1375-1377 RowActionsButton(actions:,
+    // isPresented: $isMenuPresented)) stays open on the same button while the helper's record changes under it (its title,
+    // an unread mark, a new updatedAt): only the title re-renders. The port's SidebarHelperRow builds a new RowActionsButton,
+    // with a popup of its own, on every change of the record (its overlay Track), so the open menu's anchor is replaced
+    // under it and the menu is presented again on another popup.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // :1340-1341 showsActions = isHovering || isMenuPresented; :1375-1377 the ellipsis
+    public void REVIEW_Round2_A_helper_rows_open_ellipsis_menu_keeps_its_button_while_the_helpers_record_changes() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var presenter = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(presenter);
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Button More() => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(100, 12), window)!.Value); // hovered: the ellipsis in place of the status
+        });
+        try
+        {
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                more = More();
+                PointerClick(more); // :391 the ellipsis menu opens: isMenuPresented
+            });
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Single(presenter.Calls, call => call.Presented); // the menu, presented once
+                Assert.True(ReferenceEquals(more, More()), "the ellipsis was rebuilt as its menu opened");
+                model.UpdateThread(helper.Id, t => t with { Title = "Helper renamed" }); // the helper's record changes under the open menu
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("Helper renamed", Texts(row)); // :1359 the title follows the live record
+                Assert.True(ReferenceEquals(more, More()), "the open menu's ellipsis was rebuilt when the helper's record changed"); // the open menu hangs on the button it had
+                Assert.Single(presenter.Calls, call => call.Presented); // and is not presented again on another popup
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
 }
 
 // STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)
