@@ -1070,7 +1070,10 @@ public sealed class HydraMergeTrackBody : Decorator
     private double position, done, rest;
     private int count;
     private bool hops;
-    private readonly Canvas canvas = new() { Background = Brushes.Transparent }; // :966-971 the track is a tap target.
+    // :966-971 the track is a tap target. :912-915 .frame(width: <glided width>, height: 20, alignment: .topLeading): the drawing keeps its full width and stays at
+    // the leading edge while the frame shrinks to the resting head ("centred in it, the stack overhung the frame on both sides and the settled head sat half outside
+    // the pill"), so the canvas is pinned top-leading and not left to the Decorator's centring of a child wider than its frame.
+    private readonly Canvas canvas = new() { Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
     private readonly Canvas dots = new();
     private readonly HydraMarkImage head;
     private const double Dot = 4;          // :861
