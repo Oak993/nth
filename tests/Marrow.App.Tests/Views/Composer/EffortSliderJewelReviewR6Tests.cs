@@ -6,7 +6,7 @@ using Marrow.Testing;
 namespace Marrow.App.Tests.Views.Composer;
 
 // REVIEW (adversarial, unit jewel-knob, review round 6 on ebb2bfc58): each test states what the unit's code must do and
-// fails on the head reviewed. The frame gate: ED-252 says the knob's frame gate is the locked page's frameGate, "every refresh at 60 to 75
+// failed on the head reviewed; they pass from 111a8a675 (round 6 answered), kept under plain names. The frame gate: ED-252 says the knob's frame gate is the locked page's frameGate, "every refresh at 60 to 75
 // Hz, every 4th at 240 Hz" (strike-engine.js:56-66, OD-0090's locked page). The page's gate measures the refresh r (the
 // smallest recent frame gap), draws every Nth refresh with N = max(1, floor(1000 / 60 / r + 0.05)), and so paces its
 // frames evenly on the display's refresh: at 75 Hz every refresh (75 a second), at 144 Hz every 2nd (72 a second), at
@@ -31,7 +31,7 @@ public sealed class EffortSliderJewelReviewR6Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // strike-engine.js:56 "60 to 75 Hz: every refresh", :63-64 (r = 13.33 ms: N = 1, draw when 6.67 ms have passed)
-    public void REVIEW_on_a_seventy_five_hertz_display_the_knob_steps_at_every_frame() => headless.OnUiThread(() =>
+    public void On_a_seventy_five_hertz_display_the_knob_steps_at_every_frame() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
         var steps = StepFrames(rig, 75, 75);
@@ -40,7 +40,7 @@ public sealed class EffortSliderJewelReviewR6Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // strike-engine.js:56 "120 to 165 Hz: every 2nd", :63-64 (r = 6.94 ms: N = 2, draw when 10.4 ms have passed)
-    public void REVIEW_on_a_144_hertz_display_the_knob_steps_on_every_second_frame() => headless.OnUiThread(() =>
+    public void On_a_144_hertz_display_the_knob_steps_on_every_second_frame() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
         var steps = StepFrames(rig, 144, 144);
@@ -51,7 +51,7 @@ public sealed class EffortSliderJewelReviewR6Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // strike-engine.js:63-64 (r = 4.184 ms: N = 4, draw when 14.6 ms have passed); the owner's display runs at 239 Hz (ED-252's native note)
-    public void REVIEW_on_a_239_hertz_display_the_knob_steps_on_every_fourth_frame_and_never_sooner() => headless.OnUiThread(() =>
+    public void On_a_239_hertz_display_the_knob_steps_on_every_fourth_frame_and_never_sooner() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
         var steps = StepFrames(rig, 239, 239 * 4);
@@ -67,7 +67,7 @@ public sealed class EffortSliderJewelReviewR6Tests(HeadlessSession headless)
     // (the same as one 0.05 s frame).
     [Fact]
     [Trait("Decision", "ED-252")] // jewel-knob.html:813 (the 0.05 s cap), :448-452 spring(), :582-586 stepSlider()
-    public void REVIEW_a_long_frame_moves_the_knob_by_no_more_than_fifty_milliseconds_of_its_springs() => headless.OnUiThread(() =>
+    public void A_long_frame_moves_the_knob_by_no_more_than_fifty_milliseconds_of_its_springs() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
         rig.Frame();
@@ -83,7 +83,7 @@ public sealed class EffortSliderJewelReviewR6Tests(HeadlessSession headless)
     // fixture expected.mjs records the bursts and the exit angles at ex = 274 for a knob at 274, where the page uses 272.
     [Fact]
     [Trait("Decision", "ED-252")] // jewel-knob.html:593 tl.exAt = Math.round((x - 2) * 4) / 4; :335 ex: tl.exAt
-    public void REVIEW_the_bolt_leaves_two_pixels_before_the_knobs_centre_on_a_quarter_pixel() => headless.OnUiThread(() =>
+    public void The_bolt_leaves_two_pixels_before_the_knobs_centre_on_a_quarter_pixel() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig(index: 1, fast: true);
         for (var i = 0; i < 6; i++) rig.Frame();
