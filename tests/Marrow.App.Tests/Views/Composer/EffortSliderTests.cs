@@ -495,7 +495,7 @@ public sealed class EffortSliderTests(HeadlessSession headless)
 // The shared Haptics.Perform no-op is the specified adaptation, not an unported dependency (port_impacts X6).
 // The source Alignment call remains once per index change; drag rounding, clamping, capture and springs are tested.
 
-// Former STOP #5 resolved by ED-213: DrawFusion uses a private Skia-lease operation with Plus save layers,
-// Gaussian sigma equal to the source radius, and anti-aliased side clips. EffortSliderFusionTests covers PR-COMPOSER-138.
+// Former STOP #5: ED-213's DrawFusion is replaced by the liquid tube (DEVIATION OD-0048/OD-0051/OD-0052, no seam, plasma, sparks or
+// glow); PR-COMPOSER-138's tests are EffortSliderLiquidTests (EffortSliderFusionTests holds only the pair caption's first paint now).
 // Former STOP #6 resolved by ED-214: TextScaling measures before trimming, with 0.85 subtitle and 0.9 caption.
 // TextScalingTests and TextScalingSitesTests exercise the primitive and both finite-width sites.

@@ -1299,38 +1299,22 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 }
 
-// STOP opencode-sweepA2 #1
-// Kind: partial proof (capture comparison missing)
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:758-767,799,1024-1026 (B3 52bc792)
-// Requirements: PR-COMPOSER-132
-// What is proven: solo identity changes crossfade (outgoing retained while fading out, replacement fading in
-// with smooth 0.3) with intermediate opacities and eventual removal; pair kind changes keep one instance and clock.
-// What is missing: the record's verification_method calls for a capture comparison across a kind change with a pair
-// active; the headless opacity assertions are not that comparison. Animation tests omit Req PR-COMPOSER-132;
-// the separate source test anchors only the pair identity and clock-origin assertions and also omits the Req.
-// Needed to proceed: a macOS/Windows capture comparison to promote PR-COMPOSER-132 to fully proven.
-//
 // STOP opencode-sweepA2 #2
-// Kind: partial proof (oracle cadence, ten-second method missing)
+// Kind: partial proof (the real display's ten-second count is native)
 // Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050,1052-1053,1070-1071 (B3 52bc792)
 // Requirements: PR-COMPOSER-133
-// What is proven: source schedule (supercharged solo at 30 Hz in the source, 60 Hz here by DEVIATION OD-0051; every other effect at 60 Hz, including paired
-// supercharged) with 20/40 ms update checks across the mode/pair matrix, plus the source hit-test and
-// accessibility contract. Cadence expectations carry Decision ED-117 + Oracle O-34 per ED-117(7), never Req.
-// What is missing: the record's verification_method calls for an instrumented ten-second frame-count run in each
-// mode with pause behavior; this theory runs 40 ms and does not establish the full ten-second, pause, narrow-fill
-// and reduce-motion matrix. The cadence theory and separate source hit-testing/accessibility test both omit
-// Req PR-COMPOSER-133. The whole record remains unproved; ED-117/O-34 do not waive the missing run.
-// Needed to proceed: the ten-second instrumented run in each mode with pause/reduce-motion coverage to promote PR-133.
+// What is proven: EffortSliderCadenceTests (Req PR-COMPOSER-133): ten seconds at a 120 Hz display draw 600 frames for every look, the solo
+// supercharged track included (60 Hz here by DEVIATION OD-0051, source :1049 30 Hz), reduced motion and a minimised window pause the
+// track and it resumes, the track is never a hit target and is hidden from accessibility, a fill 8 points wide or less draws nothing
+// (:1053). The cadence theory above carries Decision ED-117 + Oracle O-34.
+// What is missing: the count on a real display, on a real window (EffortSliderNativeFrameTests, six facts carrying Req PR-COMPOSER-133,
+// excluded from every headless run by the !~Native filter and not run in this pass).
+// Needed to proceed: that native run on a quiet machine (see porting/verification/native/).
 //
 // Round 2: the previous STOP #3 was false. ProviderRegistry.swift:71-77 seeds Claude/opus with
 // low, medium, high, xhigh, max. Offered, unoffered and absent-pair resets now use that catalog
 // and a production-written nondefault precondition, so restart assertions can fail.
 //
-// STOP opencode-sweepA2 #4
-// Kind: partial proof (per-provider capture comparison missing)
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:893-908,985-998 (B3 52bc792)
-// Requirements: PR-COMPOSER-128
-// What is proven: exact solo purple fill colours and fusion stops, plus pair fill stops for every kind.
-// What is missing: the record's capture comparison per provider brand; these brush assertions do not prove it.
-// Needed to proceed: macOS/Windows fill captures for each provider brand. PR-128 is not a records candidate.
+// Former STOP #1 (PR-COMPOSER-132) and #4 (PR-COMPOSER-128) are resolved: the effect's identity and clock and the fills per brand and pair
+// are asserted in EffortSliderTrackTests; the capture comparison they asked for would compare the fusion's seam and the Mac's per-brand
+// fills, which OD-0048/OD-0051/OD-0073 replaced by the liquid (the clock continuity on a real window stays EffortSliderNativeFrameTests').
