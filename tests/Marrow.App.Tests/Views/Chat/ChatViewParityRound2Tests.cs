@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
@@ -186,6 +187,86 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
             h.Main.OnMain(() => window.Close());
         });
     }
+
+    // UI-USAGE-041 on a mounted usage panel, by the pointer: the grips sit on the panel's free edges for its corner (a bottom-docked panel's height
+    // grip on its top edge, a trailing-docked panel's width grip on its left edge), a held drag changes only the live values and writes the settings
+    // on release, a trailing panel grows leftwards and a bottom one upwards, the width is the shared panel width fitted to the pane, the height is
+    // floored at 94 points (PanelScene.UsageMinimumHeight, ChatView.swift:527 `HydraPanel.stripHeight + 44`), and a double-click clears the stored
+    // height inside Chrome.panelSlide. (The round 2 review: the only UI-USAGE-041 test never double-clicked nor dragged below the floor.)
+    [Theory]
+    [InlineData(PanelDockCorner.BottomLeading)]
+    [InlineData(PanelDockCorner.TopTrailing)]
+    [Trait("Req", "UI-USAGE-041")] // App/Views/Chat/ChatView.swift:527,554-590; SubagentPanel.swift (PanelResizeGrips, the free edges)
+    public void The_usage_panels_grips_sit_on_its_free_edges_resize_on_release_floor_at_94_and_reset_on_a_double_click(PanelDockCorner corner)
+        => WithColumn((h, model, _, view, window, frames) =>
+        {
+            Advance(h, window, frames, 1);
+            var panel = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.App.Views.Usage.UsageFloatingPanel>(view));
+            Rect Frame(Control control) => new(control.TranslatePoint(default, window)!.Value, control.Bounds.Size);
+            var box = Frame(panel);
+            // The panel's own grips: the handles at its frame (the window's other panels and the drawer's handle are elsewhere).
+            var handles = LogicalQuery.SelfAndDescendants<PanelDragHandle>(view).Where(x => box.Inflate(8).Contains(Frame(x).Center)
+                && (ToolTip.GetTip(x) as string ?? "").StartsWith("Drag to resize", StringComparison.Ordinal)).ToArray();
+            Assert.Equal(3, handles.Length); // the width, height and corner grips (SubagentPanel.swift:594-615).
+            var heightGrip = Assert.Single(handles, x => double.IsNaN(x.Width) && !double.IsNaN(x.Height));
+            var widthGrip = Assert.Single(handles, x => !double.IsNaN(x.Width) && double.IsNaN(x.Height));
+            var up = !corner.IsTop; // a bottom-docked panel grows upwards...
+            var left = corner.Side == PanelDockSide.Trailing; // ...a trailing one leftwards.
+            // On the free edges, inside the panel: a 6 pt grip's centre is 3 pt in from the edge.
+            Assert.Equal(up ? box.Top + 3 : box.Bottom - 3, Frame(heightGrip).Center.Y, tolerance: 0.5); // the free horizontal edge.
+            Assert.Equal(left ? box.Left + 3 : box.Right - 3, Frame(widthGrip).Center.X, tolerance: 0.5); // the free vertical edge.
+            Assert.Equal(box.Width, Frame(heightGrip).Width, tolerance: 0.5);
+            Assert.Equal(box.Height, Frame(widthGrip).Height, tolerance: 0.5);
+            var storedSize = model.Settings.PanelSize;
+            Assert.Null(model.Settings.UsagePanelHeight);
+            // The width grip, held: 60 points outwards.
+            var at = Frame(widthGrip).Center;
+            var outwards = left ? -60 : 60;
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+            foreach (var step in new[] { 20, 40, 60 })
+            {
+                window.MouseMove(at + new Point(left ? -step : step, 0), Avalonia.Input.RawInputModifiers.LeftMouseButton);
+                Drain(h, window);
+            }
+            Advance(h, window, frames, 1);
+            Assert.Equal(storedSize, model.Settings.PanelSize); // held: nothing written...
+            Assert.Equal(box.Width + 60, panel.Bounds.Width, tolerance: 6); // ...the live width grows (shown stepped to 12 points, :595-598).
+            window.MouseUp(at + new Point(outwards, 0), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+            Drain(h, window);
+            Assert.Equal(box.Width + 60, Assert.IsType<Size>(model.Settings.PanelSize).Width, 0.5); // written on release, exact.
+            Advance(h, window, frames, 1);
+            box = Frame(panel);
+            // The height grip, held: 600 points inwards, far past the floor.
+            at = Frame(heightGrip).Center;
+            var inwards = up ? 600 : -600;
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+            foreach (var step in new[] { 200, 400, 600 })
+            {
+                window.MouseMove(at + new Point(0, up ? step : -step), Avalonia.Input.RawInputModifiers.LeftMouseButton);
+                Drain(h, window);
+            }
+            Advance(h, window, frames, 1);
+            Assert.Null(model.Settings.UsagePanelHeight); // held: nothing written...
+            Assert.Equal(94, PanelScene.UsageMinimumHeight);
+            Assert.Equal(94, panel.Bounds.Height, 0.5); // ...the live height stops at the floor.
+            window.MouseUp(at + new Point(0, inwards), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+            Drain(h, window);
+            Assert.Equal(94, model.Settings.UsagePanelHeight);
+            Advance(h, window, frames, 1);
+            Assert.Equal(94, panel.Bounds.Height, 0.5);
+            // A double-click on the height grip: the stored height is cleared inside panelSlide.
+            Animation? during = null;
+            var tracker = h.Main.OnMain(() => ObservationTracking.Track(() => model.Settings.UsagePanelHeight, () => during = Transaction.Current).Tracker);
+            at = Frame(heightGrip).Center;
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+            window.MouseUp(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+            window.MouseUp(at, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+            Drain(h, window);
+            Assert.Null(model.Settings.UsagePanelHeight);
+            Assert.Equal<Animation?>(Chrome.PanelSlide, during);
+            GC.KeepAlive(tracker);
+        }, configure: (model, _) => { model.Settings.UsagePanelDock = corner; model.Settings.ShowsUsagePanel = true; });
 
     // ED-NEW-parity-chatview (4), the surface's presented size (ChatView.SizeSurface): SubagentPanel.swift:299,340-354 frames the panel's scrim and
     // its glass shape explicitly at the panel's size, so when the pane changes size under a mounted helper panel the inner glass follows every size
