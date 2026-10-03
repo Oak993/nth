@@ -4610,17 +4610,23 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Decisions: OD-0001, ED-059, ED-117, ED-216, ED-217 do not turn structural evidence into capture comparisons.
 // Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019; UI-CHAT-020.
 // Records: UI-CHAT-021; UI-CHAT-022; UI-CHAT-023; UI-CHAT-024; UI-CHAT-025.
-// Records: UI-CHAT-026; UI-CHAT-027; UI-CHAT-028; UI-CHAT-029; UI-CHAT-030.
-// Records: UI-CHAT-031; UI-CHAT-032; UI-CHAT-033; UI-CHAT-034; UI-CHAT-035.
-// Records: UI-CHAT-036; UI-CHAT-037; UI-CHAT-038; UI-CHAT-040; UI-CHAT-041.
-// Records: UI-CHAT-048; UI-CHAT-049; UI-CHAT-050; UI-CHAT-051.
-// Records: UI-CHAT-052; UI-CHAT-053; UI-CHAT-054; UI-CHAT-055; UI-CHAT-056.
-// Records: UI-CHAT-057; UI-CHAT-059; UI-CHAT-061.
-// Records: UI-GIT-044; UI-GIT-045.
-// Records: UI-GIT-046; UI-GIT-048; UI-GIT-049; UI-GIT-050; UI-HYDRAMERGE-002.
-// Records: UI-HYDRAMERGE-004; UI-HYDRAMERGE-005; UI-HYDRAMERGE-006; UI-HYDRAMERGE-007; UI-RUNTIME-001.
-// Records: UI-RUNTIME-002; UI-RUNTIME-003; UI-RUNTIME-004.
-// Missing: the source/Windows capture of every state each record lists, and record-specific mounted scenarios.
+// Records: UI-CHAT-028; UI-CHAT-029.
+// Records: UI-CHAT-033; UI-CHAT-034.
+// Records: UI-CHAT-036; UI-CHAT-037.
+// Records: UI-CHAT-048; UI-CHAT-051.
+// Records: UI-CHAT-052; UI-CHAT-053; UI-CHAT-054; UI-CHAT-056.
+// Records: UI-CHAT-057; UI-CHAT-059.
+// Records: UI-GIT-044.
+// Records: UI-HYDRAMERGE-002.
+// Records: UI-RUNTIME-002; UI-RUNTIME-003.
+// 2026-10-04, unit blitz-timelinerows-cd, OD-0098 (where a record asks for a comparison with a frame the reference videos do not
+// contain, the pinned Swift is the proof): taken out of the lists above as fully proven from the Swift lines by mounted scenarios,
+// with mutation checks (TimelineRowsCdTests and the Fin tests they extend; STOP #12 in TimelineRowsCdTests lists the tests per record):
+// UI-CHAT-026, -027, -030, -031, -032, -035, -038, -040, -041, -049, -050, -055, -061; UI-GIT-045, -046, -048, -049, -050;
+// UI-HYDRAMERGE-004, -005, -006, -007; UI-RUNTIME-001, -004. What stays above is CORNER-ONLY (ED-181's continuous curve is the
+// one open clause) except UI-CHAT-052 (also the soft arrival of the settle glide, STOP #12).
+// Missing: ED-181's continuous corner curve for the records above, and the .controlSize(.small) metric of UI-CHAT-039 and
+// UI-GIT-047 (STOP #5, #12); every other clause of these records is proven. (Formerly: the source/Windows capture of every state.)
 // Reference runtime (2026-10-03): the owner's video of Droppy Code 1.7.0 (work/reference-video/2-chat-use.mov, catalogue
 // static.user-bubble, static.attachment-plate, static.timeline-rows, static.thread-timeline) shows, in the dark Monokai
 // theme only: the sent bubble at several lengths (UI-CHAT-007: geometry, tint, hug and type now compared in
