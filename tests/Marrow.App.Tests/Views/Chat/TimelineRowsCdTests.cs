@@ -878,7 +878,7 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
 
 // STOP App.Views.Chat.TimelineRows #12 (unit blitz-timelinerows-cd, 2026-10-04; OD-0098: where a record asks for a comparison with
 // a frame the reference videos do not contain, the pinned Swift is the proof). Kind: record audit, clause by clause, against
-// TimelineRows.swift (B3 52bc792) and the tests, with mutation checks of every proof added here (M1 to M26 of the unit's log).
+// TimelineRows.swift (B3 52bc792) and the tests, with a mutation check of every proof added here (its source line broken, the test seen to fail, the line restored).
 // Test names are the classes in tests/Marrow.App.Tests/Views/Chat: FT FinToolRow, FD FinToolDetail, FP FinPlan, FN FinNotice,
 // FE FinTurnEnd, FB FinTurnBlock, FC FinFileCard, FR FinRevert, FF FinFilesPopover, FRR FinReportRow, FMO FinMergeOutcome,
 // FMR FinMergeRow, FHS FinHeadSteps, FHR FinHeadRows, FWG FinWorkGroup, FUR FinUserRow, UL UiLabels, CD this file.
