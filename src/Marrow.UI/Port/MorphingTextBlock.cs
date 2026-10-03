@@ -29,8 +29,10 @@
 // spread over 55 % of the change's duration (0.14 s for the slider's snappy 0.2), new letters starting 15 % of it
 // (0.04 s) late, scaling about each letter's centre.
 // Side by side with the video in study\effort-title-2026-10-03\sbs_*.png.
-// While a change runs every letter is drawn as its own outline (so no neighbour is drawn with it and a gradient can be
-// pinned to that box); the blur is seventeen offset copies (Avalonia's DrawingContext has no per-draw blur).
+// While a change runs every letter is drawn as its own glyph run of one (so no neighbour is drawn with it and a gradient
+// can be pinned to that box), by the text renderer as at rest, so a kept letter keeps its weight and edges as a change
+// takes it over and hands it back (REVIEW round 1: drawn as outlines it snapped between greyscale geometry and the text
+// renderer's drawing); the blur is seventeen offset copies (Avalonia's DrawingContext has no per-draw blur).
 // DEVIATION OD-0094 (owner ruling 2026-10-03): with DriftPeriod set (the effort title: 7 s), a gradient's colours also
 // drift at rest, mirrored so the loop never jumps, on one phase shared with the change's own drawing (a change takes it
 // over and hands it back without a jump); still under reduce motion; frames only while the label is shown. ENGINEERING
@@ -224,26 +226,27 @@ public class MorphingTextBlock : TextBlock
     // window never meets an edge) is rebuilt; every frame then only moves its two ends.
     private void Adopt()
     {
-        driftBrush = null;
+        driftBrushes.Clear();
         UpdateDrift();
     }
 
-    private LinearGradientBrush? driftBrush;
+    private readonly List<LinearGradientBrush> driftBrushes = [];
 
-    // The title's gradient through the box, its ends moved by the drift; one brush kept and moved, frame after frame.
-    private LinearGradientBrush Drifted(ILinearGradientBrush gradient, Rect box)
+    // The title's gradient through the box, its ends moved by the drift, in the space of the line's run number
+    // <paramref name="index"/> (drawn moved by origin, then by its place); one brush per run kept and moved.
+    private LinearGradientBrush Drifted(ILinearGradientBrush gradient, Rect box, Point origin, Matrix place, int index)
     {
-        if (driftBrush is null)
+        while (driftBrushes.Count <= index)
         {
             var stops = new GradientStops();
             foreach (var stop in gradient.GradientStops) stops.Add(new GradientStop(stop.Color, stop.Offset));
-            driftBrush = new LinearGradientBrush { GradientStops = stops, SpreadMethod = GradientSpreadMethod.Reflect, Opacity = gradient.Opacity };
+            driftBrushes.Add(new LinearGradientBrush { GradientStops = stops, SpreadMethod = GradientSpreadMethod.Reflect, Opacity = gradient.Opacity });
         }
-        var along = new Vector(DriftOffset(box.Width), 0);
-        // In the layout's own space (the caller draws it moved by origin).
-        driftBrush.StartPoint = new RelativePoint(gradient.StartPoint.ToPixels(box) + along - (Vector)box.Position, RelativeUnit.Absolute);
-        driftBrush.EndPoint = new RelativePoint(gradient.EndPoint.ToPixels(box) + along - (Vector)box.Position, RelativeUnit.Absolute);
-        return driftBrush;
+        var brush = driftBrushes[index];
+        var along = new Vector(DriftOffset(box.Width), 0) - (Vector)origin - new Vector(place.M31, place.M32);
+        brush.StartPoint = new RelativePoint(gradient.StartPoint.ToPixels(box) + along, RelativeUnit.Absolute);
+        brush.EndPoint = new RelativePoint(gradient.EndPoint.ToPixels(box) + along, RelativeUnit.Absolute);
+        return brush;
     }
 
     // Frames only while there is a gradient to move, the title is shown, and motion is not reduced.
@@ -291,17 +294,30 @@ public class MorphingTextBlock : TextBlock
         return size.WithWidth(Math.Max(0, morph.OldWidth + (size.Width - morph.OldWidth) * progress));
     }
 
+    // The text's own box: from where its line starts (a line aligned inside a wider label starts in from its edge), its
+    // width, down the label.
+    private Rect TextBox(TextLayout layout, Point origin)
+    {
+        var start = layout.TextLines.Count > 0 ? layout.TextLines[0].Start : 0;
+        return new Rect(origin.X + start, origin.Y, layout.WidthIncludingTrailingWhitespace, Math.Max(layout.Height, Bounds.Height - origin.Y));
+    }
+
     protected override void RenderTextLayout(DrawingContext context, Point origin)
     {
         if (morph is not { } state || TextLayout is not { } layout)
         {
-            if (driftPeriod > 0 && Foreground is ILinearGradientBrush gradient && TextLayout is { } still && Outline(still) is { } outline)
+            if (driftPeriod > 0 && Foreground is ILinearGradientBrush gradient && TextLayout is { } still)
             {
-                // At rest a drifting gradient is drawn through the same box and phase as during a change (OD-0094).
-                var box = new Rect(origin, new Size(still.WidthIncludingTrailingWhitespace, Math.Max(still.Height, Bounds.Height - origin.Y)));
-                var brush = Drifted(gradient, box);
+                // At rest a drifting gradient is drawn through the same box and phase as during a change (OD-0094), by the
+                // text renderer as the line's own glyph runs (as a change draws its letters, so neither snaps to the other).
+                var box = TextBox(still, origin);
                 using (context.PushTransform(Matrix.CreateTranslation(origin.X, origin.Y)))
-                    context.DrawGeometry(brush, null, outline);
+                {
+                    var runs = LineRuns(still);
+                    for (var i = 0; i < runs.Count; i++)
+                        using (context.PushTransform(runs[i].Place))
+                            context.DrawGlyphRun(Drifted(gradient, box, origin, runs[i].Place, i), runs[i].Run);
+                }
                 return;
             }
             base.RenderTextLayout(context, origin);
@@ -311,7 +327,7 @@ public class MorphingTextBlock : TextBlock
         // spans the new text's width from the first frame and nothing outside that box shows (video, the 6 Luna pair:
         // "Medium" -> "High" at 184.24 s shows "Medi" coloured across the whole sweep and its "um" gone at once; "Extra
         // High" -> "Max" at 184.715 s cuts "Extra" through its "a" and drops "High"). A plain colour draws every letter.
-        var frame = new Rect(origin, new Size(layout.WidthIncludingTrailingWhitespace, Math.Max(layout.Height, Bounds.Height - origin.Y)));
+        var frame = TextBox(layout, origin);
         using var mask = Foreground is ILinearGradientBrush ? context.PushClip(frame) : default(DrawingContext.PushedState?);
         // The leaving letters of the changes this one interrupted, oldest first, each on its own clock.
         var chain = new List<(Morph State, TextLayout Next)>();
@@ -382,34 +398,65 @@ public class MorphingTextBlock : TextBlock
         var centre = rect.Center;
         var transform = Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateScale(glyph.Scale, glyph.Scale)
             * Matrix.CreateTranslation(centre.X + drawX - rect.X, centre.Y + glyph.Rise * FontSize) * Matrix.CreateTranslation(origin.X, origin.Y);
-        // The letter's own outline, placed as the line places it (so kerning stays): nothing of its neighbours is drawn
-        // with it. Each line carries its own brush: the old line the old colour, the live one the new colour.
-        if (brush is null || !LetterOutlines(source).TryGetValue(glyph.SourceIndex, out var letter)) return;
+        // The letter's own glyph, drawn by the text renderer as a run of one placed as the line places it (so kerning
+        // stays, and a kept letter is drawn exactly as the label draws it at rest: no snap of weight or edge as a change
+        // takes it over or hands it back): nothing of its neighbours is drawn with it. Each line carries its own brush:
+        // the old line the old colour, the live one the new colour.
+        if (brush is null || !LetterRuns(source).TryGetValue(glyph.SourceIndex, out var letter)) return;
         using (context.PushTransform(transform))
         {
-            if (brush is ILinearGradientBrush gradient && transform.TryInvert(out var inverse))
+            if (brush is ILinearGradientBrush gradient)
                 DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) =>
                 {
                     var shift = Matrix.CreateTranslation(dx, dy);
+                    if (!(letter.Place * shift * transform).TryInvert(out var toLetter)) return;
                     using (context.PushTransform(shift))
-                        context.DrawGeometry(Pinned(gradient, frame, shift.Invert() * inverse), null, letter);
+                    using (context.PushTransform(letter.Place))
+                        context.DrawGlyphRun(Pinned(gradient, frame, toLetter), letter.Run);
                 });
             else
                 DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) =>
                 {
                     using (context.PushTransform(Matrix.CreateTranslation(dx, dy)))
-                        context.DrawGeometry(brush, null, letter);
+                    using (context.PushTransform(letter.Place))
+                        context.DrawGlyphRun(brush, letter.Run);
                 });
         }
     }
 
-    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextLayout, Dictionary<int, Geometry>> letterOutlines = new();
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextLayout, Dictionary<int, (GlyphRun Run, Matrix Place)>> letterRuns = new();
 
-    // Each letter's outline by its character index, in the layout's own coordinates, as TextLayout.Draw places them.
-    private Dictionary<int, Geometry> LetterOutlines(TextLayout layout)
+    // Each letter as a glyph run of one by its character index, with where it goes in the layout's own coordinates, as
+    // TextLayout.Draw places it.
+    private Dictionary<int, (GlyphRun Run, Matrix Place)> LetterRuns(TextLayout layout)
     {
-        if (letterOutlines.TryGetValue(layout, out var known)) return known;
-        var letters = new Dictionary<int, Geometry>();
+        if (letterRuns.TryGetValue(layout, out var known)) return known;
+        var letters = new Dictionary<int, (GlyphRun, Matrix)>();
+        foreach (var (shaped, place) in ShapedRuns(layout))
+        {
+            var buffer = shaped.ShapedBuffer;
+            var baseline = shaped.GlyphRun.BaselineOrigin.Y;
+            var at = 0.0;
+            for (var i = 0; i < buffer.Length; i++)
+            {
+                var info = buffer[i];
+                if (!letters.ContainsKey(info.GlyphCluster))
+                {
+                    var single = new GlyphRun(buffer.GlyphTypeface, buffer.FontRenderingEmSize, shaped.Text,
+                        new[] { new GlyphInfo(info.GlyphIndex, info.GlyphCluster, info.GlyphAdvance, info.GlyphOffset) }, new Point(0, baseline));
+                    letters[info.GlyphCluster] = (single, Matrix.CreateTranslation(at, 0) * place);
+                }
+                at += info.GlyphAdvance;
+            }
+        }
+        letterRuns.AddOrUpdate(layout, letters);
+        return letters;
+    }
+
+    // The line's shaped runs, each with where TextLayout.Draw puts it (TextLine.Draw: the run moved along the line and
+    // down to the line's baseline less the run's own), in the layout's own coordinates.
+    private static IEnumerable<(ShapedTextRun Run, Matrix Place)> ShapedRuns(TextLayout layout)
+    {
         double top = 0;
         foreach (var line in layout.TextLines)
         {
@@ -417,35 +464,33 @@ public class MorphingTextBlock : TextBlock
             foreach (var run in line.TextRuns)
             {
                 if (run is ShapedTextRun shaped)
-                {
-                    var buffer = shaped.ShapedBuffer;
-                    var baseline = shaped.GlyphRun.BaselineOrigin.Y;
-                    var at = x;
-                    for (var i = 0; i < buffer.Length; i++)
-                    {
-                        var info = buffer[i];
-                        var single = new GlyphRun(buffer.GlyphTypeface, buffer.FontRenderingEmSize, shaped.Text,
-                            new[] { new GlyphInfo(info.GlyphIndex, info.GlyphCluster, info.GlyphAdvance, info.GlyphOffset) }, new Point(0, baseline));
-                        if (single.BuildGeometry() is { } outline && !letters.ContainsKey(info.GlyphCluster))
-                        {
-                            outline.Transform = new MatrixTransform(Matrix.CreateTranslation(at, top + line.Baseline - baseline));
-                            letters[info.GlyphCluster] = outline;
-                        }
-                        at += info.GlyphAdvance;
-                    }
-                }
+                    yield return (shaped, Matrix.CreateTranslation(x, top + line.Baseline - shaped.GlyphRun.BaselineOrigin.Y));
                 if (run is DrawableTextRun drawable) x += drawable.Size.Width;
             }
             top += line.Height;
         }
-        letterOutlines.AddOrUpdate(layout, letters);
-        return letters;
+    }
+
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextLayout, List<(GlyphRun Run, Matrix Place)>> lineRuns = new();
+
+    // The line's own glyph runs with their places, as TextLayout.Draw draws them.
+    private List<(GlyphRun Run, Matrix Place)> LineRuns(TextLayout layout)
+    {
+        if (lineRuns.TryGetValue(layout, out var known)) return known;
+        var runs = ShapedRuns(layout).Select(pair => (pair.Run.GlyphRun, pair.Place)).ToList();
+        lineRuns.AddOrUpdate(layout, runs);
+        return runs;
     }
 
     private static void DrawBlurred(DrawingContext context, double opacity, double blur, Action<double, double> draw)
     {
         void Draw(double dx, double dy, double alpha)
         {
+            if (alpha >= 1)
+            {
+                draw(dx, dy); // whole: no layer, so the text renderer draws it as the label does at rest
+                return;
+            }
             using (context.PushOpacity(alpha))
                 draw(dx, dy);
         }
@@ -482,32 +527,6 @@ public class MorphingTextBlock : TextBlock
             SpreadMethod = driftPeriod > 0 ? GradientSpreadMethod.Reflect : gradient.SpreadMethod,
             Opacity = gradient.Opacity,
         };
-    }
-
-    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextLayout, Geometry> outlines = new();
-
-    // The line's glyph outlines in the layout's own coordinates, as TextLayout.Draw places its runs.
-    private Geometry? Outline(TextLayout layout)
-    {
-        if (outlines.TryGetValue(layout, out var known)) return known;
-        var group = new GeometryGroup();
-        double top = 0;
-        foreach (var line in layout.TextLines)
-        {
-            var x = line.Start;
-            foreach (var run in line.TextRuns)
-            {
-                if (run is ShapedTextRun shaped && shaped.GlyphRun.BuildGeometry() is { } glyphs)
-                {
-                    glyphs.Transform = new MatrixTransform(Matrix.CreateTranslation(x, top + line.Baseline - shaped.GlyphRun.BaselineOrigin.Y));
-                    group.Children.Add(glyphs);
-                }
-                if (run is DrawableTextRun drawable) x += drawable.Size.Width;
-            }
-            top += line.Height;
-        }
-        outlines.AddOrUpdate(layout, group);
-        return group;
     }
 
     /// <summary>One character's state at a moment of a change; <see cref="Rise"/> is its roll in font sizes, down positive.</summary>

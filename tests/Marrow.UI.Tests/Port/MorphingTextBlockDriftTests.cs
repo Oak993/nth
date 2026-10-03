@@ -26,13 +26,14 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
         GradientStops = { new GradientStop(Colors.Red, 0), new GradientStop(Colors.Blue, 1) },
     };
 
-    private static void Run(Action<MorphingTextBlock, Window, Action<int>> body, string text = "HHHH", IBrush? brush = null)
+    private static void Run(Action<MorphingTextBlock, Window, Action<int>> body, string text = "HHHH", IBrush? brush = null, Action<MorphingTextBlock>? setup = null)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
         var clock = new ManualTimeProvider();
         using var time = SwiftClock.Provider.Override(clock);
         var label = new MorphingTextBlock { Text = text, FontSize = 30, Foreground = brush ?? RedToBlue(), DriftPeriod = Period, Margin = new Thickness(10) };
+        setup?.Invoke(label);
         var window = new Window { Width = 400, Height = 80, Background = Brushes.Black, Content = new Border { Child = label, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top } };
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -130,6 +131,31 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
         Assert.InRange(label.DriftPhase - last, 0.001, 0.01); // the drift goes on from where the change left it
         Assert.True(MaxDifference(lastMorphing, RenderedPixels.Capture(window)) <= 3, "no jump as the rest takes the drift back");
     }, text: "2024"));
+
+    // The same hand-over where the line does not start at the label's edge (aligned right in a wider label): the letters
+    // at rest are drawn as the line's glyph runs, each where the line places it, and their colours still come from the
+    // box the change pins its letters' colours to, not from the run's own place.
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    public void A_line_set_in_from_the_labels_edge_keeps_its_colours_as_a_change_takes_the_drift_over() => headless.OnUiThread(() => Run((label, window, step) =>
+    {
+        step(1500);
+        var rest = RenderedPixels.Capture(window);
+        label.SetText("2025", Animation.Snappy(0.2));
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        var taken = RenderedPixels.Capture(window);
+        var kept = new Func<RenderedPixels, RenderedPixels>(pixels => pixels.Crop((int)(pixels.Width * 0.3), 0, (int)(pixels.Width * 0.22), pixels.Height));
+        static int Ink(RenderedPixels pixels)
+        {
+            var most = 0;
+            for (var y = 0; y < pixels.Height; y++)
+                for (var x = 0; x < pixels.Width; x++) most = Math.Max(most, pixels.Level(x, y));
+            return most;
+        }
+        Assert.True(Ink(kept(rest)) > 120, $"the kept figures are drawn at rest ({Ink(kept(rest))})");
+        Assert.True(MaxDifference(kept(rest), kept(taken)) <= 2, $"the kept figures keep their colours as the change takes over ({MaxDifference(kept(rest), kept(taken))} levels; ink {Ink(kept(rest))} at rest, {Ink(kept(taken))} taken)");
+    }, text: "2024", setup: label => { label.Width = 220; label.TextAlignment = TextAlignment.Right; }));
 
     // The window's left 15 %: the kept "202" of the label at its left.
     private static RenderedPixels Left(RenderedPixels pixels) => pixels.Crop(0, 0, (int)(pixels.Width * 0.15), pixels.Height);

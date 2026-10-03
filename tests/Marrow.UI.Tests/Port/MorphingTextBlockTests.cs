@@ -118,4 +118,66 @@ public sealed class MorphingTextBlockTests(HeadlessSession headless)
         var end = MorphingTextBlock.Glyphs("Extra High", "Max", MorphingTextBlock.Length(Change), Change).Where(glyph => glyph.NewIndex is null);
         Assert.All(end, glyph => Assert.Equal(0, glyph.Opacity, 3));
     }
+
+    // A letter a change keeps is drawn by the text renderer through the whole change as at rest: the same weight and
+    // edges on the frame the change takes it over, every frame while it runs, and the frame it hands it back (round 1
+    // drew it as an outline, greyscale and thinner, so it snapped at both ends; REVIEW ede6bf6fa). "2024" -> "2025" keeps
+    // "202" where it stands; its pixels stay those of the label at rest at every scale.
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-111")]
+    [InlineData(1.0)]
+    [InlineData(1.25)]
+    [InlineData(1.5)]
+    [InlineData(1.75)]
+    public void A_kept_letter_is_drawn_as_at_rest_from_the_changes_first_frame_to_after_its_last(double scale) => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var label = new MorphingTextBlock { Text = "2024", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Brushes.White };
+        var host = new Border { Background = Brushes.Black, Child = label, Padding = new Thickness(4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        host.Measure(Size.Infinity);
+        host.Arrange(new Rect(host.DesiredSize));
+        var size = host.Bounds.Size;
+        SkiaSharp.SKBitmap Draw()
+        {
+            host.Measure(Size.Infinity);
+            host.Arrange(new Rect(host.DesiredSize));
+            var pixels = new PixelSize((int)Math.Ceiling(size.Width * scale), (int)Math.Ceiling(size.Height * scale));
+            using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(pixels, new Vector(96 * scale, 96 * scale));
+            bitmap.Render(host);
+            using var stream = new MemoryStream();
+            bitmap.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+            stream.Position = 0;
+            return SkiaSharp.SKBitmap.Decode(stream);
+        }
+        using var rest = Draw();
+        int Worst(SkiaSharp.SKBitmap other)
+        {
+            var worst = 0;
+            for (var y = 0; y < rest.Height; y++)
+                for (var x = 0; x < (int)(rest.Width * 0.55); x++) // the kept "202", clear of the rolling last figure's blur
+                {
+                    var a = rest.GetPixel(x, y);
+                    var b = other.GetPixel(x, y);
+                    worst = Math.Max(worst, Math.Max(Math.Abs(a.Red - b.Red), Math.Max(Math.Abs(a.Green - b.Green), Math.Abs(a.Blue - b.Blue))));
+                }
+            return worst;
+        }
+        label.SetText("2025", Animation.Snappy(0.2));
+        var seen = 0;
+        while (label.IsMorphing && seen < 60)
+        {
+            using (var during = Draw()) Assert.True(Worst(during) <= 24, $"at {scale}x, {seen * 20} ms into the change, the kept letters differ by {Worst(during)} levels from the label at rest");
+            clock.Advance(TimeSpan.FromMilliseconds(20));
+            frames.Advance(TimeSpan.FromMilliseconds(20));
+            Dispatcher.UIThread.RunJobs();
+            seen++;
+        }
+        Assert.False(label.IsMorphing);
+        Assert.True(seen >= 5, $"the change ran {seen} frames");
+        using var after = Draw();
+        Assert.True(Worst(after) <= 24, $"at {scale}x the kept letters differ by {Worst(after)} levels once the change hands them back");
+    });
 }
