@@ -106,7 +106,7 @@ public sealed class SmallAccentGlassButtonTests(HeadlessSession headless)
             AssertNear("hover", hover, (254, 68, 141), 14);
             Assert.True(hover.G > rest.G + 8 && hover.B > rest.B + 8, $"hover is lighter than rest: ({rest.R},{rest.G},{rest.B}) -> ({hover.R},{hover.G},{hover.B})");
             window.MouseDown(centre, MouseButton.Left); Advance(200); var pressed = Pixel(window, x, y);
-            Assert.True(pressed.G >= hover.G + 12 && pressed.B >= hover.B + 8, $"press lights further (the wash steps from 12 % to 20 % white): ({hover.R},{hover.G},{hover.B}) -> ({pressed.R},{pressed.G},{pressed.B})"); // reference (254,79,189)
+            Assert.True(pressed.G >= hover.G + 12 && pressed.B >= hover.B + 8, $"press lights further (the wash steps from 8 % to 13 % white: HoverLight and PressLight): ({hover.R},{hover.G},{hover.B}) -> ({pressed.R},{pressed.G},{pressed.B})"); // reference (254,79,189)
             // The reference's press frame also has a violet glow under the pointer (blue 189 against 141 on hover), which the port does not
             // draw: red and green are compared, blue only has to be lighter than on hover and not past the reference.
             Assert.True(Math.Abs(pressed.R - 254) <= 20 && Math.Abs(pressed.G - 79) <= 20 && pressed.B <= 189 + 10, $"press: ({pressed.R},{pressed.G},{pressed.B}) against the reference (254,79,189)");
