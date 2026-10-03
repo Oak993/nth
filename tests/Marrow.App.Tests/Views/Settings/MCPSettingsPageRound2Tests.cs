@@ -102,7 +102,7 @@ public sealed class MCPSettingsPageRound2Tests(HeadlessSession headless)
         Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(surface));
         ColorIs(surface, surface.Background, Chrome.PrimaryText.Opacity(0.06));
         Assert.Equal(field.Bounds.Size, surface.Bounds.Size); // the surface is exactly the padded field
-        Assert.Equal(args ? new Thickness(6, 4) : new Thickness(10, 7), field.Padding);
+        Assert.Equal(args ? new Thickness(11, 4) : new Thickness(10, 7), field.Padding); // OD-0032: the source's 6 plus the TextEditor's own 5
         // Plain style: the rendered template draws no bezel, background or border of its own.
         var chrome = Assert.IsType<Border>(Assert.Single(field.GetVisualChildren()));
         Assert.Null(chrome.Background); Assert.Equal(default, chrome.BorderThickness); Assert.Equal(field.Padding, chrome.Padding);

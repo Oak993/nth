@@ -22,21 +22,12 @@ namespace Marrow.App.Tests.Views.Settings;
 // Follow-up closes STOP #2: refused deletions, including both OAuth items, are reported under PR-MCP-228 / OD-0012 E6.
 // Follow-up closes STOP #3: PR-MCP-202 corrected in fa697dd35; ED-009 / R-STR-6 accent-sensitive search stands.
 [Collection("Headless")]
-// STOP App.Views.Settings.MCPSettingsPage #5
-// Kind: verification gap. Swift: SettingsView.swift:252; MCPSettingsPage.swift:77-85.
-// Records: PR-MCP-202. Missing: SettingsView search-field interaction (its existing STOP #3 still omits MCP).
-// Needed: type into the SettingsView MCP search field and assert filtering; matcher assertions remain intact.
-// STOP App.Views.Settings.MCPSettingsPage #10
-// Kind: verification gap. Swift: MCPSettingsPage.swift:1002-1020. Records: PR-MCP-213.
-// Missing: optional-field link interaction on gitlab and a custom server. Needed: invoke links and inspect opened panels.
-// STOP App.Views.Settings.MCPSettingsPage #11
-// Kind: verification gap. Swift: MCPSettingsPage.swift:629-658,687-704. Records: PR-MCP-230.
-// Missing: scroll five stdio variables down/back, compare save position, then force error and check visibility.
-// Needed: layout-backed scrolling interaction; current structural assertions remain intact.
-// STOP App.Views.Settings.MCPSettingsPage #12
-// Kind: verification gap. Swift: MCPSettingsPage.swift:718-728. Records: PR-MCP-231.
-// Missing: UI Automation discovery and corner click, with custom-mcp.json unchanged.
-// Needed: native UI Automation verification (OD-0001); logical button invocation is only a subset.
+// STOP #5 (SettingsView search-field interaction, PR-MCP-202) is CLOSED: SettingsViewFinishPaneSearchTests types into the real ChromeSearchField.
+// STOP #10 (the info popover's links on gitlab and a custom server, PR-MCP-213) is CLOSED: MCPSettingsPageInfoLinksTests presses them on the real catalogue.
+// STOP #11 (scrolling five stdio variables, PR-MCP-230) is CLOSED: MCPSettingsPageTestFirstTests.Error_line_and_save_button_stay_below_the_scrolling_form_...
+// STOP App.Views.Settings.MCPSettingsPage #12 (PR-MCP-231): the Close button is found through Avalonia's automation peer by the name "Close", 24 x 24, and a
+// real press near its corner closes the REAL presenter's popover with custom-mcp.json unchanged (MCPCustomEditorRealPresenterTests). STILL OPEN, NATIVE-ONLY:
+// the same through the real UI Automation provider of a native popup window (headless cannot open a PopupRoot).
 public sealed class MCPSettingsPageTests(HeadlessSession headless)
 {
     private void Ui(Action<AppModel, TestRuntime> test) => headless.OnUiThread(() =>
