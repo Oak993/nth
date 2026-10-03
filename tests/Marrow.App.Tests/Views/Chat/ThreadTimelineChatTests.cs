@@ -199,6 +199,23 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
         });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-021")] // ThreadTimeline.swift:416-420 and ComposerView.swift:52-55 (the same column as the composer: "messages line up with its edges"); map/CATALOGUE.md C 9.000 (rows x 1004-1824), C 8.403-13.900 (the composer pill x 1003-1824)
+    public void The_messages_line_up_with_the_composer_at_every_pane_width()
+        => WithChat((view, runtime, model, h, window, frames) =>
+        {
+            h.Main.OnMain(() => SetEntries(runtime, TimelineMount.Turns(3, sentences: 4).ToList())); Settle(h, frames, window, 2200);
+            foreach (var width in new[] { 2290.0, 1400.0, 1000.0, 860.0, 700.0 })
+            {
+                h.Main.OnMain(() => { window.Width = width; window.UpdateLayout(); }); Drain(h); Settle(h, frames, window, 400);
+                var rows = LogicalQuery.SelfAndDescendants<DisplayBlockView>(view).ToList(); Assert.NotEmpty(rows);
+                var column = LogicalQuery.SelfAndDescendants<Decorator>(LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.ComposerArea>(view).Single()).First(candidate => candidate.MaxWidth == 820);
+                var edge = column.TranslatePoint(default, window)!.Value.X; var wide = column.Bounds.Width;
+                Assert.Equal(Math.Min(820, window.Bounds.Width - 40), wide, 1);
+                Assert.All(rows, row => { Assert.Equal(edge, row.TranslatePoint(default, window)!.Value.X, 1); Assert.Equal(wide, row.Bounds.Width, 1); });
+            }
+        });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-006")] // ThreadTimeline.swift:402-409 (the end sentinel's spring, response 0.38 and damping 0.78, both ways); ChatView.swift:1089-1103 (the scale, opacity and offset of each side; 10 points of bottom padding in a zero-height frame at the top of the composer)
     public void The_jump_button_comes_and_goes_on_the_sentinels_spring_through_its_scale_opacity_and_rise_and_sits_ten_points_above_the_composer()
         => WithChat((view, runtime, model, h, window, frames) =>
