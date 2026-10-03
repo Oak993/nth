@@ -53,6 +53,11 @@ public sealed class ThreadTimeline : Decorator
     private Control? currentRail;
     private Control? drawnColumn;
     private StackPanel? drawnBody;
+    private StackPanel? drawnRows; // :388 the stack of the rows, one for the life of the content: each pass diffs it (ED-NEW-parity-threadtimeline)
+    private readonly HashSet<Control> leavingViews = []; // badges fading out where they stood: still in the stack, in nobody's order
+    private bool rowsPlaced; // a first pass places its views with the stack; the passes after it bring new ones in with their transitions
+    private int earlierHidden; // the count the drawn earlier pill says
+    private string? promptProject; // the project name the shown new-thread prompt says
     private Control? drawnSentinel;
     private Control? drawnEarlier;
     private IReadOnlyList<DisplayBlock> drawnBlocks = [];
@@ -134,55 +139,86 @@ public sealed class ThreadTimeline : Decorator
             MarkdownView.SetHydraMentionTargets(this, MentionTargets(modelInputs.Heads)); // :123-131,209-210; the open-URL action for them is set in the constructor (:209-217).
             if (blocks.Count == 0 && !runtime.IsRunning)
             {
-                host.Child = new NewThreadPrompt(runtime.ThreadID, projectName); scrollChrome.Update(0); scrollState.ShowsJumpButton = false; // :136-141
+                // :136-141 the prompt is one view while the thread stays empty and idle, and `.onAppear` runs when it appears, not at every pass of the body: a pass that
+                // finds it shown (for the same project) leaves it, with its fade over, instead of replaying it. A new project name is a new prompt here.
+                if (host.Child is not NewThreadPrompt || promptProject != projectName)
+                {
+                    host.Child = new NewThreadPrompt(runtime.ThreadID, projectName); promptProject = projectName; scrollChrome.Update(0); scrollState.ShowsJumpButton = false;
+                }
             }
             else
             {
-                var rows = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
+                // :388-391 the stack of rows is one view for the life of the timeline's content, and each pass diffs it: a row whose id survives is the same
+                // view in the same place and is never taken out of the tree and put back (a popover anchored in it, its selection, its hover and its focus
+                // stay, and a long thread's pass costs the rows that changed, not all of them). ED-NEW-parity-threadtimeline.
+                var rows = drawnRows ??= MakeRows();
                 var rewindable = modelInputs.Rewindable.ToHashSet();
-                foreach (var id in laidOutRows.Keys) tracking.SetVisible(id, false); laidOutRows.Clear();
+                var shownBefore = laidOutRows.Keys.ToArray(); laidOutRows.Clear();
+                // This pass's views in order: the blocks' rows, then the questions' badges. A view arrives (with its transition) when it joins a stack that is already
+                // on screen under an id that was not there; a first pass places its views with the stack, as a SwiftUI parent brings its children when it appears.
+                var wanted = new List<(Control View, bool Arrives)>();
+                var stale = new List<Control>(); var leaving = new List<Control>();
                 foreach (var block in blocks.Skip(WindowStartIndex(blocks)))
                 {
                     var context = new RowContext(workingDirectory, block.TurnID is { } id && rewindable.Contains(id), false);
                     var hadIdentity = rowViews.TryGetValue(block.Id, out var existing);
                     // :332-334 `.id(block.id)`: a block whose id survives keeps its view. A running turn's block changes with every step that lands in it, and its
                     // working line, its expansion and its bar must go on through that, so the row is told its new block instead of being made again.
-                    var row = hadIdentity && existing.Block == block && existing.Context == context ? existing.Row
+                    var same = hadIdentity && existing.Block == block && existing.Context == context;
+                    var row = same ? existing.Row
                         : hadIdentity && existing.Row is DisplayBlockView alive && alive.TryUpdate(block, context) ? alive
                         : new DisplayBlockView(block, runtime, context).Transition(Transition(block));
-                    if (row.Parent is Panel parent) parent.Children.Remove(row);
+                    var made = !same && !(hadIdentity && ReferenceEquals(row, existing.Row));
+                    if (made && hadIdentity) stale.Add(existing.Row);
                     rowViews[block.Id] = (block, context, row);
                     laidOutRows[block.Id] = row;
-                    if (hadIdentity) rows.Children.Add(row); else SwiftTransition.Insert(rows, rows.Children.Count, row);
+                    wanted.Add((row, made && !hadIdentity && rowsPlaced)); // a view made again for an id that stood takes its place: no arrival
                 }
-                foreach (var gone in rowViews.Keys.Except(laidOutRows.Keys).ToArray()) rowViews.Remove(gone);
+                // Rows whose blocks left the window or the thread leave at once (:339 removal: .identity, whatever a row's own transition says).
+                foreach (var gone in rowViews.Keys.Except(laidOutRows.Keys).ToArray()) { stale.Add(rowViews[gone].Row); rowViews.Remove(gone); }
+                // :338 `.onDisappear { tracking.setVisible(block.id, false) }`: only for a row that leaves; the rows that stay report themselves as they cross the viewport's edge.
+                foreach (var gone in shownBefore) if (!laidOutRows.ContainsKey(gone)) tracking.SetVisible(gone, false);
                 foreach (var request in runtime.Questions)
                 {
                     var id = "question-" + request.Id; var hadIdentity = questionViews.TryGetValue(id, out var existing);
-                    var badge = hadIdentity && existing.Request == request ? existing.Row : new QuestionBadgeRow(request, runtime) { Name = id }.Transition(SoftAppearTransition);
-                    if (badge.Parent is Panel parent) parent.Children.Remove(badge);
+                    var same = hadIdentity && existing.Request == request;
+                    var badge = same ? existing.Row : new QuestionBadgeRow(request, runtime) { Name = id }.Transition(SoftAppearTransition);
+                    if (!same && hadIdentity) stale.Add(existing.Row);
                     questionViews[id] = (request, badge);
-                    if (hadIdentity) rows.Children.Add(badge); else SwiftTransition.Insert(rows, rows.Children.Count, badge);
+                    wanted.Add((badge, !same && !hadIdentity && rowsPlaced));
                 } // :393-397
                 foreach (var gone in questionViews.Keys.Except(runtime.Questions.Select(request => "question-" + request.Id)).ToArray())
                 {
-                    // :396 .transition(.softAppear): an answered question's badge leaves with a quick fade where it stood, at the end of the stack.
-                    var leaving = questionViews[gone].Row; questionViews.Remove(gone);
-                    if (leaving.Parent is Panel from) from.Children.Remove(leaving);
-                    rows.Children.Add(leaving); SwiftTransition.Remove(rows, leaving);
+                    // :396 .transition(.softAppear): an answered question's badge leaves with a quick fade where it stood.
+                    leaving.Add(questionViews[gone].Row); questionViews.Remove(gone);
                 }
-                new ScrollFreeze(tracking).Body(rows);
+                foreach (var row in stale) rows.Children.Remove(SwiftTransition.Container(row));
+                foreach (var row in leaving) SwiftTransition.Remove(rows, row);
+                leavingViews.RemoveWhere(view => !rows.Children.Contains(view)); foreach (var row in leaving) if (rows.Children.Contains(SwiftTransition.Container(row))) leavingViews.Add(SwiftTransition.Container(row));
+                for (var index = 0; index < wanted.Count; index++)
+                {
+                    var (view, arrives) = wanted[index]; var container = SwiftTransition.Container(view); var slot = SlotOf(rows, index); var at = rows.Children.IndexOf(container);
+                    if (at == slot) continue;
+                    if (at >= 0) rows.Children.Move(at, slot);
+                    else if (arrives) SwiftTransition.Insert(rows, slot, view);
+                    else SwiftTransition.Place(rows, slot, view);
+                }
+                rowsPlaced = true;
                 if (tracking.SetOutline(blocks.Skip(WindowStartIndex(blocks)).Select(block => (block.Id, block.HasUserMessage)).ToArray()))
                 {
                     tracking.ArmBlankWatch(); if (tracking.IsPinnedToBottom && !tracking.IsArriving) tracking.ArmViewportRefresh();
                 } // :346-354
                 // The column and its stack stay, like the ScrollView below: replacing them made the content extent collapse
                 // and regrow inside one draw, which moved the offset and read as the reader scrolling.
-                var body = drawnBody ??= new StackPanel(); body.Children.Clear(); var hidden = WindowStartIndex(blocks);
-                Button? earlier = hidden > 0 ? EarlierPill(hidden, () => { LoadEarlier(blocks); Draw(); }) : null;
-                if (earlier is not null) body.Children.Add(earlier);
-                body.Children.Add(rows);
-                var sentinel = new Border { Height = 1, Background = Brushes.Transparent }; body.Children.Add(sentinel); // :402-409
+                // :361-409 the column's stack is the pill (while history is hidden), the rows and the end sentinel: the rows and the sentinel stay as they are, and
+                // the pill comes and goes in front of them, made again only when what it says changed (its count).
+                var body = drawnBody ??= new StackPanel(); var hidden = WindowStartIndex(blocks);
+                var sentinel = drawnSentinel as Border ?? new Border { Height = 1, Background = Brushes.Transparent }; // :402-409
+                if (body.Children.Count == 0) { body.Children.Add(rows); body.Children.Add(sentinel); }
+                Button? earlier = hidden == 0 ? null : drawnEarlier is Button shown && earlierHidden == hidden ? shown : EarlierPill(hidden, () => { LoadEarlier(drawnBlocks); Draw(); });
+                if (!ReferenceEquals(body.Children[0], rows) && !ReferenceEquals(body.Children[0], earlier)) body.Children.RemoveAt(0);
+                if (earlier is not null && !ReferenceEquals(body.Children[0], earlier)) body.Children.Insert(0, earlier);
+                earlierHidden = hidden;
                 var width = CurrentLayoutWidth();
                 Control column;
                 if (drawnColumn is Grid kept) { column = kept; kept.Width = width ?? double.NaN; }
@@ -305,6 +341,20 @@ public sealed class ThreadTimeline : Decorator
 
     // :446-449,891-893
     private static double SteppedHeight(double height, double topInset, double bottomInset) => Math.Floor(Math.Max(0, height - topInset - bottomInset) / ResizeStep) * ResizeStep;
+    // :388,400 VStack(alignment: .leading, spacing: TimelineMetrics.rowSpacing) with the scroll freeze on it.
+    private StackPanel MakeRows()
+    {
+        var rows = new StackPanel { Spacing = TimelineMetrics.RowSpacing }; new ScrollFreeze(tracking).Body(rows); return rows;
+    }
+
+    // Where the live-th view that is not on its way out belongs in the stack (the badges fading out stand in it still, and are no part of its order).
+    private int SlotOf(StackPanel rows, int live)
+    {
+        var seen = 0;
+        for (var at = 0; at < rows.Children.Count; at++) { if (leavingViews.Contains(rows.Children[at])) continue; if (seen++ == live) return at; }
+        return rows.Children.Count;
+    }
+
     // :416-422,325. The star row is Spacer(minLength: 0), not a fixed gap.
     private Control CreateColumn(Control rows, double viewportHeight, double? layoutWidth)
     {

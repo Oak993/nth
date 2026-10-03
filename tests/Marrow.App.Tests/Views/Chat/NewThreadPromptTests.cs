@@ -27,6 +27,8 @@ public sealed class NewThreadPromptTests(HeadlessSession headless)
         AppEnvironment.SetAppModel(host, model);
         host.Child = new NewThreadPrompt(threadID, projectName);
         var window = new AvaloniaWindow { Content = host };
+        // The prompt fades in on the frame clock as it attaches (NewThreadPrompt.swift:50-53); no frame is delivered here.
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
         window.Show();
         return host;
     }

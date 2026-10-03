@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Marrow.App.Port;
+using Marrow.App.Views.Tour;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -70,20 +71,13 @@ public sealed class NewThreadPrompt : Decorator
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;
 
-        // :50-53 fades and scales in from 0.97 over .easeOut(duration: 0.3) on appear
-        content.Opacity = 0;
-        content.RenderTransform = new ScaleTransform(0.97, 0.97);
+        // :50-53 fades and scales in from 0.97 over .easeOut(duration: 0.3) on appear. This build runs as the prompt attaches (Track applies on attach), so the
+        // appearance is now: a handler a build adds to AttachedToVisualTree is not called for the attach it is running in, which left the prompt invisible.
         content.RenderTransformOrigin = RelativePoint.Center;
         Child = content;
-
-        AttachedToVisualTree += (_, _) =>
-        {
-            Transaction.WithAnimation(Animation.EaseOut(duration: 0.3), () =>
-            {
-                content.Opacity = 1;
-                content.RenderTransform = new ScaleTransform(1, 1);
-            });
-        };
+        var fade = new AnimatedDouble(value => content.Opacity = value); fade.Set(0, null);
+        var grow = new AnimatedDouble(value => content.RenderTransform = new ScaleTransform(value, value)); grow.Set(0.97, null);
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.3), () => { fade.Set(1, Transaction.Current); grow.Set(1, Transaction.Current); });
     }
 
     // :23-38 the project name button, its dotted underline and its picker popover

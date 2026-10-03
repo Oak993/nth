@@ -228,9 +228,12 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         // It changes every seven seconds (the fixed list of twenty-two, seeded by the thread): the new word takes the old one's place over the one motion, then it is alone.
         Assert.NotEqual(WorkingWords.Word(seed, 0), WorkingWords.Word(seed, 7));
         mount.Advance(6500); Assert.Contains(WorkingWords.Word(seed, 6) + "…", Texts(line));
-        mount.Advance(1000); Assert.Contains(WorkingWords.Word(seed, 7) + "…", Texts(line));
-        Assert.Equal(2, header.Children[0] is Grid host ? host.Children.Count : 0);
-        mount.Advance(600); Assert.Single(((Grid)header.Children[0]).Children);
+        // The word changes on the clock's tick after its seventh second (not at a time the test can know to the frame): wait for it, and look at the moment it comes.
+        var host = Assert.IsType<Grid>(header.Children[0]);
+        for (var waited = 0; waited < 2000 && !Texts(line).Contains(WorkingWords.Word(seed, 7) + "…"); waited += 20) mount.Advance(20);
+        Assert.Contains(WorkingWords.Word(seed, 7) + "…", Texts(line));
+        Assert.Equal(2, host.Children.Count);
+        mount.Advance(600); Assert.Single(host.Children);
         Assert.DoesNotContain(WorkingWords.Word(seed, 0) + "…", Texts(line));
         // A tool call is running: the label is the group's summary (:2104), and there is something to open.
         mount.SetEntries(new[] { User("prompt", Turn, "hello"), ToolEntry("tool-0", Turn) }); mount.Advance(800);

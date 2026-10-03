@@ -418,6 +418,8 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource(); using var clock = FrameClock.Source.Override(frames);
         typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { Reply("reply", Turn) }));
+        // The thread is on screen before the question comes: a view joining a stack that is already shown arrives with its transition (a first pass places its views with the stack).
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var request = new QuestionRequest("q", new([new QuestionRequest.Question("choice", "Header", "Choose", new([]), false, false, false)]));
         typeof(ThreadRuntime).GetProperty("Questions")!.SetValue(runtime, new ValueList<QuestionRequest>(new[] { request })); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single();
