@@ -199,6 +199,59 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
         });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-006")] // ThreadTimeline.swift:402-409 (the end sentinel's spring, response 0.38 and damping 0.78, both ways); ChatView.swift:1089-1103 (the scale, opacity and offset of each side; 10 points of bottom padding in a zero-height frame at the top of the composer)
+    public void The_jump_button_comes_and_goes_on_the_sentinels_spring_through_its_scale_opacity_and_rise_and_sits_ten_points_above_the_composer()
+        => WithChat((view, runtime, model, h, window, frames) =>
+        {
+            h.Main.OnMain(() => SetEntries(runtime, TimelineMount.Turns(8, sentences: 10).ToList())); Settle(h, frames, window, 2500);
+            var scroll = Scroller(view); var end = scroll.Extent.Height - scroll.Viewport.Height; var spring = Animation.Spring(response: 0.38, dampingFraction: 0.78);
+            Assert.True(end > 600); Assert.Null(JumpButton(view));
+            // The reader leaves the end: the sentinel goes out of sight, and the button begins to arrive from scale 0.6, opacity 0, 10 points low.
+            h.Main.OnMain(() => { scroll.Offset = new Vector(0, end - 150); window.UpdateLayout(); }); Drain(h);
+            var jump = LogicalQuery.SelfAndDescendants<JumpToLatestButton>(view).Single(); var circle = LogicalQuery.SelfAndDescendants<ChromeCircleButton>(jump).Single();
+            // :1094-1101 the transition is on the zero-height frame (the circle and its 10 points of bottom padding), whose centre is the point at the top of the composer.
+            var frame = Assert.IsAssignableFrom<Control>(circle.Parent); Assert.Equal(0, frame.Bounds.Height);
+            double Scale() => Assert.IsType<Avalonia.Media.TransformGroup>(frame.RenderTransform).Children.OfType<Avalonia.Media.ScaleTransform>().Single().ScaleX;
+            double Rise() => Assert.IsType<Avalonia.Media.TransformGroup>(frame.RenderTransform).Children.OfType<Avalonia.Media.TranslateTransform>().Single().Y;
+            Assert.Equal(0, frame.Opacity); Assert.Equal(0.6, Scale(), 6); Assert.Equal(10, Rise(), 6);
+            // Where the circle is while it arrives: scaled about the frame's centre and lowered by the offset, so its centre sits (1 - scale) * (10 + radius) + the offset below its place
+            // at rest: 19.6 points at the start, where scaling about the circle's own centre could give 10 (the reference runtime's rise fits the first, 2-chat-use.mov 10.357-10.478).
+            var radius = circle.Bounds.Height / 2; double Centre() => circle.TranslatePoint(new Point(circle.Bounds.Width / 2, radius), window)!.Value.Y;
+            var resting = window.Bounds.Height; // replaced below, once the circle has settled
+            var below = Centre();
+            // Each frame is the spring's own progress at that time: opacity, scale from 0.6 to 1 and the rise from 10 to 0 move together.
+            var elapsed = 0;
+            foreach (var step in new[] { 40, 60, 100, 200 })
+            {
+                h.Main.Advance(TimeSpan.FromMilliseconds(step)); frames.Advance(TimeSpan.FromMilliseconds(step)); Drain(h); elapsed += step;
+                var progress = spring.Progress(elapsed / 1000.0);
+                Assert.Equal(progress, frame.Opacity, 4); Assert.Equal(0.6 + 0.4 * progress, Scale(), 4); Assert.Equal(10 * (1 - progress), Rise(), 4);
+            }
+            h.Main.Advance(TimeSpan.FromSeconds(2)); frames.Advance(TimeSpan.FromSeconds(2)); Drain(h);
+            Assert.Equal(1, frame.Opacity); Assert.Equal(1, Scale(), 6); Assert.Equal(0, Rise(), 6);
+            resting = Centre(); Assert.Equal(resting + (1 - 0.6) * (10 + radius) + 10, below, 0.6); // at the start
+            Assert.True(below - resting > 15, $"the circle starts {below - resting} points below its place; the offset alone is 10");
+            // :1094-1095 the button's bottom is 10 points above the top of the composer, in a frame of no height there, centred on the column.
+            var composerTop = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.ComposerArea>(view).Single().TranslatePoint(default, window)!.Value.Y;
+            Assert.Equal(0, jump.Bounds.Height); Assert.Equal(composerTop, jump.TranslatePoint(default, window)!.Value.Y, 0.5);
+            Assert.Equal(composerTop - 10, circle.TranslatePoint(new Point(0, circle.Bounds.Height), window)!.Value.Y, 0.5);
+            Assert.Equal(window.Bounds.Width / 2, circle.TranslatePoint(new Point(circle.Bounds.Width / 2, 0), window)!.Value.X, 1.5);
+            // The reader returns to the end: it leaves on the same spring, to scale 0.85, opacity 0 and 6 points low.
+            h.Main.OnMain(() => { scroll.Offset = new Vector(0, end); window.UpdateLayout(); }); Drain(h);
+            Assert.Equal(1, frame.Opacity);
+            elapsed = 0;
+            foreach (var step in new[] { 40, 60, 100 })
+            {
+                h.Main.Advance(TimeSpan.FromMilliseconds(step)); frames.Advance(TimeSpan.FromMilliseconds(step)); Drain(h); elapsed += step;
+                var progress = spring.Progress(elapsed / 1000.0);
+                Assert.Equal(1 - progress, frame.Opacity, 4); Assert.Equal(1 - 0.15 * progress, Scale(), 4); Assert.Equal(6 * progress, Rise(), 4);
+                Assert.Equal(resting + 0.15 * progress * (10 + radius) + 6 * progress, Centre(), 0.6); // leaving: scaled about the same point, then lowered by the offset
+            }
+            h.Main.Advance(TimeSpan.FromSeconds(2)); frames.Advance(TimeSpan.FromSeconds(2)); Drain(h);
+            Assert.Null(JumpButton(view));
+        });
+
+    [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-159 (the timeline's half: every measured frame hands its travel to the chrome, which maps it from 10 to 44 points, quantized to 0.04, and draws nothing at rest); ThreadTimeline.swift:488,1376; Chrome.swift:568-579,585-624. The veil's gradients are the Chrome unit's, and the capture comparison is not made here.
     public void Scrolling_the_timeline_drives_the_veil_from_ten_to_forty_four_points_of_travel_in_quarter_hundredths_and_nothing_at_rest()
         => WithChat((view, runtime, model, h, window, frames) =>

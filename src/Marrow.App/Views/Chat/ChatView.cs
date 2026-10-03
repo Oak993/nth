@@ -1159,22 +1159,26 @@ public sealed class JumpToLatestButton : Decorator
     {
         var host = new Panel();
         Height = 0; // :1095 zero flow height, above the composer.
-        Child = new ChatBottomOverlay(host, 10); // :1094 bottom padding.
-        ChromeCircleButton? button = null;
+        Child = host;
+        ChatBottomOverlay? frame = null;
         this.Track(() => scrollState.ShowsJumpButton, shown =>
         {
-            if (shown && button is null)
+            if (shown && frame is null)
             {
-                button = new ChromeCircleButton("arrow.down", "Jump to latest", scrollState.JumpToLatest)
-                { HorizontalAlignment = HorizontalAlignment.Center }
+                var button = new ChromeCircleButton("arrow.down", "Jump to latest", scrollState.JumpToLatest)
+                { HorizontalAlignment = HorizontalAlignment.Center };
+                // :1094-1101 the transition is on the zero-height frame with the button's 10 points of bottom padding, not on the button: it scales about the frame's centre (the
+                // point at the top of the composer, centred on the column), so the circle rises by more than the offset's 10 points while it grows. Measured on the reference
+                // runtime (2-chat-use.mov 10.357-10.478: the rise fits 19.6 points of travel on the spring, 20.4 for this geometry, and cannot fit the offset's 10).
+                frame = new ChatBottomOverlay(button, 10) // :1094 bottom padding.
                     .Transition(SwiftTransition.Asymmetric(
                         SwiftTransition.Scale(0.6).Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 10)),
                         SwiftTransition.Scale(0.85).Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 6)))); // :1096-1101
-                SwiftTransition.Insert(host, host.Children.Count, button);
+                SwiftTransition.Insert(host, host.Children.Count, frame);
             }
-            else if (!shown && button is { } leaving)
+            else if (!shown && frame is { } leaving)
             {
-                button = null;
+                frame = null;
                 SwiftTransition.Remove(host, leaving);
             }
         });
