@@ -229,13 +229,65 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View)); mount.Advance(500);
         string Words() => string.Concat(LogicalQuery.SelfAndDescendants<TextBlock>(prompt).Select(text => text.Text));
         Assert.Contains("What should we build in ", Words(), StringComparison.Ordinal);
+        // Each change crossfades over the move's motion (OD-0076; NewThreadPrompt.swift:77-78 Chrome.panelSlide, about 0.39 s): the words are read once it is over.
         Inputs(mount, null, false); mount.Advance(20);
+        Assert.Equal(1, Assert.IsAssignableFrom<Control>(prompt.Child).Opacity); // the prompt is not faded in again
+        mount.Advance(800);
         Assert.Same(prompt, Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View)));
         Assert.Equal("What should we build?", Words()); Assert.Equal(1, Assert.IsAssignableFrom<Control>(prompt.Child).Opacity);
         Inputs(mount, "Another", false); mount.Advance(20);
+        Assert.Equal(1, Assert.IsAssignableFrom<Control>(prompt.Child).Opacity);
+        mount.Advance(800);
         Assert.Same(prompt, Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View)));
         Assert.Contains("Another", Words(), StringComparison.Ordinal); Assert.Equal(1, Assert.IsAssignableFrom<Control>(prompt.Child).Opacity);
-        Inputs(mount, "A third", false); mount.Advance(20); // a name for a name: the same button, its words changed
+        Inputs(mount, "A third", false); mount.Advance(800); // a name for a name: the same button, its words changed
         Assert.Contains("A third", Words(), StringComparison.Ordinal); Assert.DoesNotContain("Another", Words(), StringComparison.Ordinal);
+    });
+
+    private static double Shown(Control control, Control upTo)
+    {
+        var opacity = 1.0;
+        for (Avalonia.Visual? at = control; at is not null; at = Avalonia.VisualTree.VisualExtensions.GetVisualParent(at)) { opacity *= at.Opacity; if (ReferenceEquals(at, upTo)) break; }
+        return opacity;
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-026 (ED-NEW-parity-threadtimeline (3), OD-0076 content that swaps crossfades and a label whose width changes eases its container's width): NewThreadPrompt.swift:22-46 the line, :25-37 the name's button, :74-80 the move under withAnimation(Chrome.panelSlide)
+    public void Another_project_on_the_empty_threads_prompt_crossfades_its_words_in_the_same_button_and_eases_the_line_to_its_new_width() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
+        var slots = LogicalQuery.SelfAndDescendants<Panel>(prompt).Where(panel => panel.GetType().Name == "SwapSlot").ToList();
+        var line = Assert.Single(slots, slot => slot.Parent is StackPanel { Spacing: 26 }); var name = Assert.Single(slots, slot => slot != line);
+        var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(prompt), b => ToolTip.GetTip(b) as string == "Choose another project");
+        TextBlock Text(string words) => LogicalQuery.SelfAndDescendants<TextBlock>(prompt).Single(text => text.Text == words);
+        var before = name.Bounds.Width; var lineBefore = line.Bounds.Width;
+        // A longer name: the same button (its picker, its hover); the old name at full opacity and the new one not yet showing when the change lands ...
+        Inputs(mount, "A much longer project name", false); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+        Assert.Same(button, Assert.Single(LogicalQuery.SelfAndDescendants<Button>(prompt), b => ToolTip.GetTip(b) as string == "Choose another project"));
+        Assert.Equal(1, Shown(Text("Project"), prompt), 3); Assert.Equal(0, Shown(Text("A much longer project name"), prompt), 3);
+        // ... part way, both partly showing, the button between its widths and the line between its widths ...
+        mount.Advance(100);
+        var old = Shown(Text("Project"), prompt); var fresh = Shown(Text("A much longer project name"), prompt);
+        Assert.InRange(old, 0.01, 0.99); Assert.InRange(fresh, 0.01, 0.99);
+        var after = Text("A much longer project name").DesiredSize.Width; var fontSize = Text("A much longer project name").FontSize;
+        Assert.True(name.Bounds.Width > before + 1 && name.Bounds.Width < after - 1, $"the name's slot glides: {before} -> {name.Bounds.Width} -> {after}");
+        Assert.True(line.Bounds.Width > lineBefore + 1, "the line widens with it");
+        // ... and at the end only the new name, at full opacity and at the size it was drawn at all along, the slot at its width.
+        mount.Advance(800);
+        Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(prompt), text => text.Text == "Project");
+        Assert.Equal(1, Shown(Text("A much longer project name"), prompt), 3); Assert.Equal(after, name.Bounds.Width, 1); Assert.Equal(fontSize, Text("A much longer project name").FontSize);
+        var lineWide = line.Bounds.Width;
+        // No project: the line's other branch crossfades in over the old one, and the line eases to the shorter question.
+        Inputs(mount, null, false); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+        Assert.Equal(1, Shown(Text("A much longer project name"), prompt), 3); Assert.Equal(0, Shown(Text("What should we build?"), prompt), 3);
+        mount.Advance(100);
+        Assert.InRange(Shown(Text("What should we build?"), prompt), 0.01, 0.99);
+        var shortWidth = Text("What should we build?").DesiredSize.Width;
+        Assert.True(line.Bounds.Width < lineWide - 1 && line.Bounds.Width > shortWidth + 1, $"the line glides: {lineWide} -> {line.Bounds.Width} -> {shortWidth}");
+        mount.Advance(800);
+        Assert.Equal("What should we build?", string.Concat(LogicalQuery.SelfAndDescendants<TextBlock>(prompt).Select(text => text.Text)));
+        Assert.Equal(1, Shown(Text("What should we build?"), prompt), 3); Assert.Equal(shortWidth, line.Bounds.Width, 1);
+        Assert.Equal(1, Assert.IsAssignableFrom<Control>(prompt.Child).Opacity); // and the prompt never appeared again
     });
 }

@@ -217,7 +217,8 @@ public sealed class NewThreadPromptTests(HeadlessSession headless)
             Assert.Equal(0, content.Opacity); // held: no frame has been delivered
             void Step() { harness.Main.Advance(System.TimeSpan.FromMilliseconds(400)); frames.Advance(System.TimeSpan.FromMilliseconds(400)); }
             Step(); Assert.Equal(1, content.Opacity); // the manual source was the one the fade was asked of
-            harness.Main.OnMain(() => prompt.Update("Another")); Assert.Equal(1, content.Opacity); // at once: it does not start again from nothing
+            // The name crossfades on the frame clock (OD-0076), which the app always has bound: the manual source is in force for the change, as the app's is.
+            harness.Main.OnMain(() => { using (FrameClock.Source.Override(frames)) prompt.Update("Another"); }); Assert.Equal(1, content.Opacity); // at once: it does not start again from nothing
             Step(); Assert.Equal(1, content.Opacity); Assert.Contains("Another", Texts(prompt));
             harness.Main.OnMain(() => window.Close());
         });
