@@ -126,14 +126,14 @@ public static class JewelFixtures
 
     /// <summary>A slider <paramref name="width"/> px wide in a window, its index box, with the frame clock and time held.</summary>
     public static JewelRig Rig(int count = 4, int index = 0, double width = 298, bool fast = false, EffortBrand brand = EffortBrand.Claude, EffortBrand? fadeFrom = null,
-        bool reduceMotion = false)
+        bool reduceMotion = false, EffortPairBrand? pair = null)
     {
         var time = new ManualTimeProvider();
         var frames = new ManualFrameSource();
         var source = FrameClock.Source.Override(frames);
         var clock = SwiftClock.Provider.Override(time);
         var box = new ObservableIntBox { Value = index };
-        var slider = new EffortSlider(count, box.AsBinding(), "Title", fast, brand, null, fadeFrom) { Width = width };
+        var slider = new EffortSlider(count, box.AsBinding(), "Title", fast, brand, pair, fadeFrom) { Width = width };
         var window = new Avalonia.Controls.Window { Width = width + 40, Height = 160, Content = new Border { Padding = new Thickness(20), Child = slider } };
         if (reduceMotion) EnvironmentValues.SetAccessibilityReduceMotion(window, true);
         window.Show();

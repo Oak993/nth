@@ -383,6 +383,100 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
             Assert.Equal(shared[1], signal.Flare * m.FxFlare, 9);
         }
     }
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: KnobSignal.Settled, which the knob's loop reads under reduce motion: the shaped light has reached the raw (the charge's settle over, the flare's hold over and both its stages within 1e-4 of it)
+    public void The_signal_is_settled_only_once_the_shaped_light_has_reached_what_the_bolt_shows()
+    {
+        var s = JewelFixtures.Expected.GetProperty("signal");
+        var seed = s.GetProperty("seed").GetInt32();
+        var geo = s.GetProperty("geometry");
+        var g = new StrikeGeometry(geo.GetProperty("w").GetDouble(), geo.GetProperty("h").GetDouble(), geo.GetProperty("ex").GetDouble(), geo.GetProperty("radius").GetDouble());
+        const double frame = 1.0 / 60;
+        var signal = new KnobSignal();
+        var clock = 0.0;
+        void Read(StrikeGeometry? geometry, double t) { signal.Read(geometry, seed, t, clock); clock += frame; }
+        Assert.True(signal.Settled); // nothing read yet: nothing to reach
+
+        // a flare only (0.3 s after strike 2: its charge is over, its glow is not), then the lightning gone: the flare is
+        // held 0.18 s and then falls on its two stages while the charge, 0 throughout, has nothing to settle
+        var glowing = Strike.StrikeAt(2, seed) + 0.3;
+        Read(g, glowing);
+        Assert.Equal(0, signal.RawCharge);
+        Assert.True(signal.RawFlare > 0.1, $"flare {signal.RawFlare}");
+        Assert.True(signal.Settled, "the first reading starts the envelope on the raw values");
+        for (var i = 0; i < 5; i++) Read(g, glowing);
+        Assert.True(signal.Settled, "the same reading again changes nothing");
+        Read(null, 0);
+        Assert.Equal(0, signal.RawFlare);
+        Assert.False(signal.Settled, "the flare is held before it falls: the knob is lit and the raw is not");
+        var frames = 1;
+        while (!signal.Settled && frames < 600) { Read(null, 0); frames++; }
+        Assert.InRange(frames, 12, 599); // the hold alone is 0.18 s
+        Assert.Equal(0, signal.Flare);
+        Assert.Equal(0, signal.Charge);
+
+        // a charge only (the orb charging before a leader), then the lightning gone: the charge settles over 0.65 s while the
+        // flare, 0 throughout, has nothing to hold or fall
+        var k = Enumerable.Range(1, 8).First(j => Strike.StrikeAt(j, seed) - Strike.Lead - KnobSignal.ChargeOf(j, seed) / 2 - Strike.StrikeAt(j - 1, seed) > 1.9);
+        var charging = Strike.StrikeAt(k, seed) - Strike.Lead - KnobSignal.ChargeOf(k, seed) / 2;
+        Read(g, charging);
+        Assert.InRange(signal.RawCharge, 0.05, 0.95);
+        Assert.Equal(0, signal.RawFlare);
+        Assert.True(signal.Settled, "a rising charge is the raw at once");
+        Read(null, 0);
+        Assert.Equal(0, signal.RawCharge);
+        Assert.True(signal.Charge > 0.05, "the charge lets go over 0.65 s, not at once");
+        Assert.False(signal.Settled, "the charge is settling; the flare has nothing to do");
+        frames = 1;
+        while (!signal.Settled && frames < 600) { Read(null, 0); frames++; }
+        Assert.InRange(frames, 30, 60); // 0.65 s at 60 frames a second
+        Assert.Equal(0, signal.Charge);
+    }
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: KnobSignal.Settled looks at the flare's first stage as well as its second: the second passing through the raw on its way (the light coming back to where the slower stage is) is not the light at rest
+    public void The_signal_is_not_settled_while_the_flares_first_stage_is_away_from_the_raw()
+    {
+        var s = JewelFixtures.Expected.GetProperty("signal");
+        var seed = s.GetProperty("seed").GetInt32();
+        var geo = s.GetProperty("geometry");
+        var g = new StrikeGeometry(geo.GetProperty("w").GetDouble(), geo.GetProperty("h").GetDouble(), geo.GetProperty("ex").GetDouble(), geo.GetProperty("radius").GetDouble());
+        const double frame = 1.0 / 60;
+        var glowing = Strike.StrikeAt(2, seed) + 0.3; // a flare and no charge
+        // a flare held, then falling for <fall> frames (its first stage ahead of its second), then, if asked, the glow back at
+        // <gain> of its flare for one frame
+        (KnobSignal Signal, double Clock) Build(int fall, double? gain)
+        {
+            var made = new KnobSignal();
+            var clock = 0.0;
+            for (var i = 0; i < 6; i++) { made.Read(g, seed, glowing, clock); clock += frame; }
+            for (var i = 0; i < fall; i++) { made.Read(null, seed, 0, clock); clock += frame; }
+            if (gain is { } x) { made.Read(g, seed, glowing, clock, x); clock += frame; }
+            return (made, clock);
+        }
+        var unit = new KnobSignal();
+        unit.Read(g, seed, glowing, 0);
+        var full = unit.RawFlare;
+        foreach (var fall in new[] { 14, 20, 30, 40 })
+        {
+            var (falling, _) = Build(fall, null);
+            Assert.InRange(falling.Flare, 0.002, full * 0.95);
+            var onTheRaw = 0;
+            for (var i = 0; i < 4000; i++)
+            {
+                // around where the slower stage is: the raw comes back and, in the frame it does, the second stage lands within 1e-4 of it
+                var gain = falling.Flare / full * (0.9 + 0.2 * i / 4000);
+                var (signal, clock) = Build(fall, gain);
+                if (Math.Abs(signal.Flare - signal.RawFlare) >= 1e-4 || signal.Charge != signal.RawCharge) continue;
+                var settled = signal.Settled;
+                var now = signal.Flare;
+                var drift = 0.0; // how far the flare strays from here while the same raw is read on
+                for (var j = 0; j < 90; j++) { signal.Read(g, seed, glowing, clock, gain); clock += frame; drift = Math.Max(drift, Math.Abs(signal.Flare - now)); }
+                if (drift > 3e-4) onTheRaw++;
+                Assert.True(!settled || drift <= 3e-4, $"{fall} frames of fall, gain {gain}: settled with the second stage on the raw ({now}), and it then strayed by {drift}");
+            }
+            Assert.True(onTheRaw > 0, $"{fall} frames of fall: the scan reached a frame where the second stage is on the raw and the first is not");
+        }
+    }
 
     [Fact]
     [Trait("Decision", "ED-252")] // OD-0084 with OD-0090's knob: the bolt leaves the 48 px knob where the page's does (jewel-knob.html:593, :335), and the orb charges before the leader

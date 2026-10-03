@@ -107,6 +107,13 @@ public sealed class KnobSignal
     public double Flare { get; private set; }
     public KnobPhase Phase { get; private set; }
 
+    /// <summary>
+    /// True when the shaped light has reached the raw one: the charge's settle is over, the flare's hold is over and both of
+    /// its stages are within 1e-4 of it (the 1e-4 under which shape() reads a flare as 0). Read by the knob's loop under
+    /// reduce motion, which idles only then (EffortSlider.LightMoves).
+    /// </summary>
+    public bool Settled => Charge == RawCharge && held == RawFlare && Math.Abs(y1 - held) < 1e-4 && Math.Abs(y2 - held) < 1e-4;
+
     private static double Ss(double a, double b, double x) { var u = Math.Clamp((x - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); }
 
     /// <summary>part(B, a): one strike's charge, flare and phase <paramref name="a"/> s after it strikes.</summary>

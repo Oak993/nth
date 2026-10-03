@@ -941,10 +941,10 @@ public sealed class EffortSlider : Decorator
         Advance(dt, (now - born).TotalSeconds);
         var visible = FrontMonitor.Shared.Current.IsVisible;
         var springing = held || !offset.AtRest(0) || !scale.AtRest(1);
-        var lit = Signal.Flare > 0 || Signal.Charge > 0;
         // the gem flows while shown; under reduce motion it is still, so frames run only while something moves (the
-        // springs, a fade, the light letting go after fast mode); the springs and a fade always run to their end
-        if (springing || fadeFromMaterial is not null || visible && (ReduceMotion ? !IsFast && lit : true)) RequestFrame();
+        // springs, a fade, the light on its way to the bolt's: coming up with a fast effect's own fade and the flare's two
+        // stages, or letting go after fast mode); the springs and a fade always run to their end
+        if (springing || fadeFromMaterial is not null || visible && (!ReduceMotion || LightMoves)) RequestFrame();
         else lastFrame = null; // idle until something asks again
     }
 
@@ -952,6 +952,13 @@ public sealed class EffortSlider : Decorator
     internal const double MaxStep = 0.05;
 
     private bool IsFast => currentEffect is { } effect && TrackEffect.IsFast(effect.Look);
+
+    /// <summary>
+    /// The knob's light still has somewhere to go: the shaped signal has not reached the bolt's, or the fast effect the
+    /// signal reads is still fading in (its opacity scales the signal, so its next value is not the one read). Under reduce
+    /// motion the knob's loop runs while this holds, so the knob comes to the strike's still moment and then idles.
+    /// </summary>
+    internal bool LightMoves => !Signal.Settled || currentEffect is { } fast && TrackEffect.IsFast(fast.Look) && fast.Opacity < 1;
 
     /// <summary>One frame: <paramref name="dt"/> s since the last, <paramref name="time"/> s since the slider was made.</summary>
     internal void Advance(double dt, double time)

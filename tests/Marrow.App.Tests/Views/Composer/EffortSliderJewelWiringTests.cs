@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Models;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using SkiaSharp;
@@ -221,6 +222,124 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         Assert.True(still.RawFlare > 0);
         Assert.True(Math.Abs(still.RawCharge * opacity - rig.Slider.Signal.RawCharge) < 1e-12, $"the bolt at {opacity}: the knob's charge {rig.Slider.Signal.RawCharge}, not {still.RawCharge * opacity}");
         Assert.True(Math.Abs(still.RawFlare * opacity - rig.Slider.Signal.RawFlare) < 1e-12, $"the bolt at {opacity}: the knob's flare {rig.Slider.Signal.RawFlare}, not {still.RawFlare * opacity}");
+    });
+    // ---- under reduce motion the knob's loop runs only while the light has somewhere to go (ED-252): the springs, a colour
+    // fade, and the shaped light on its way to what the bolt shows. It comes to the strike's still moment (35 ms into strike
+    // 1: charge 1, the flare of that moment) as the tube draws it, and only then asks for no more frames.
+
+    // the flare the strike's still moment gives this effect's seed (the knob reads that moment under reduce motion)
+    private static double StillFlare(TrackEffect effect)
+    {
+        var still = new KnobSignal();
+        still.Read(effect.StrikeGeometryFor(effect.Bounds.Size), effect.StrikeSeed, Strike.StillTime(effect.StrikeSeed), 0);
+        Assert.Equal(1, still.RawCharge);
+        Assert.True(still.RawFlare > 0.1, $"the still moment's flare is {still.RawFlare}");
+        return still.RawFlare;
+    }
+
+    // 60 Hz frames until nothing is waiting for one (the knob has stopped asking and so has everything else), at most ten seconds
+    private static int RunUntilIdle(JewelRig rig)
+    {
+        var frames = 0;
+        while (rig.Frames.Pending > 0 && frames < 600) { rig.Frame(); frames++; }
+        Assert.Equal(0, rig.Frames.Pending);
+        return frames;
+    }
+
+    private static void AssertStillLight(JewelRig rig, TrackEffect effect, string when)
+    {
+        var flare = StillFlare(effect);
+        var signal = rig.Slider.Signal;
+        Assert.True(effect.Opacity == 1 && signal.RawCharge == 1 && signal.Charge == 1 && Math.Abs(signal.Flare - flare) < 1e-3,
+            $"{when}: the bolt is in (opacity {effect.Opacity}) and the knob has stopped asking for frames, reading charge {signal.RawCharge} (shaped {signal.Charge}) and flare {signal.RawFlare} (shaped {signal.Flare}); the still moment is charge 1, flare {flare}");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: under reduce motion fast mode turned on fades the effect in over 0.3 s and the knob follows the bolt in, to the still moment's light (charge 1, its flare), and only then asks for no frames
+    public void Under_reduce_motion_turning_fast_mode_on_brings_the_knob_to_the_still_moments_light_before_it_idles() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: 1, reduceMotion: true);
+        for (var i = 0; i < 4; i++) rig.Frame();
+        Assert.Equal(0, rig.Frames.Pending); // dark and still: no frames
+        rig.Slider.UpdateLook(true, "Title", null);
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single(e => TrackEffect.IsFast(e.Look));
+        RunUntilIdle(rig);
+        AssertStillLight(rig, effect, "a fast look fading in");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: a pair's effect stays when fast mode turns on (the look changes, not the effect), so the bolt is in at once; the knob's flare still rises through shape()'s two stages before the knob idles
+    public void Under_reduce_motion_turning_fast_mode_on_over_a_pair_brings_the_knob_to_the_still_moments_light_before_it_idles() => headless.OnUiThread(() =>
+    {
+        var pair = new EffortPairBrand(new HydraPair(ProviderKind.Deepseek) { WorkerProvider = ProviderKind.Claude });
+        using var rig = JewelFixtures.Rig(index: 1, reduceMotion: true, pair: pair);
+        for (var i = 0; i < 4; i++) rig.Frame();
+        var before = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
+        Assert.False(TrackEffect.IsFast(before.Look));
+        Assert.Equal(0, rig.Frames.Pending);
+        rig.Slider.UpdateLook(true, "Title", pair);
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
+        Assert.Same(before, effect); // no new effect, no fade: the bolt is fully in at once
+        Assert.True(TrackEffect.IsFast(effect.Look));
+        Assert.Equal(1, effect.Opacity);
+        RunUntilIdle(rig);
+        AssertStillLight(rig, effect, "a fast look on a kept pair effect");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: a pair joining while fast mode is on is a new effect fading in over the old (the effect's identity changes, the fast look does not): the knob follows the new bolt in to the still moment's light before it idles
+    public void Under_reduce_motion_a_pair_joining_in_fast_mode_brings_the_knob_to_the_new_bolts_light_before_it_idles() => headless.OnUiThread(() =>
+    {
+        var pair = new EffortPairBrand(new HydraPair(ProviderKind.Deepseek) { WorkerProvider = ProviderKind.Claude });
+        using var rig = JewelFixtures.Rig(index: 1, fast: true, reduceMotion: true);
+        for (var i = 0; i < 4; i++) rig.Frame();
+        var old = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
+        Assert.Equal(0, rig.Frames.Pending);
+        rig.Slider.UpdateLook(true, "Title", pair);
+        Assert.Equal(2, rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Count()); // the old one fading out, the new one fading in
+        RunUntilIdle(rig);
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
+        Assert.NotSame(old, effect);
+        AssertStillLight(rig, effect, "a new fast effect fading in over the old");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: under reduce motion fast mode turned off lets the light go (the charge's 0.65 s settle, the flare's hold and fall) and then the knob asks for no frames
+    public void Under_reduce_motion_turning_fast_mode_off_lets_the_light_go_before_the_knob_idles() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: 1, fast: true, reduceMotion: true);
+        for (var i = 0; i < 4; i++) rig.Frame();
+        Assert.Equal(0, rig.Frames.Pending);
+        Assert.Equal(1, rig.Slider.Signal.Charge);
+        Assert.True(rig.Slider.Signal.Flare > 0.1);
+        rig.Slider.UpdateLook(false, "Title", null);
+        var frames = RunUntilIdle(rig);
+        Assert.InRange(frames, 39, 600); // the charge's settle takes 0.65 s
+        Assert.Equal(0, rig.Slider.Signal.Charge);
+        Assert.Equal(0, rig.Slider.Signal.Flare);
+        Assert.Empty(rig.Slider.GetVisualDescendants().OfType<TrackEffect>()); // the bolt has faded out and gone
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: under reduce motion the light is still moving while the fast effect it reads is not yet fully in, even where the shaped signal has nothing to settle (the effect's opacity is 0 until its first step)
+    public void Under_reduce_motion_the_light_moves_while_the_fast_effect_is_not_fully_in() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(index: 1, reduceMotion: true);
+        for (var i = 0; i < 4; i++) rig.Frame();
+        Assert.False(rig.Slider.LightMoves); // dark, no fast effect: at rest
+        rig.Slider.UpdateLook(true, "Title", null);
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single(e => TrackEffect.IsFast(e.Look));
+        Assert.Equal(0, effect.Opacity);
+        Assert.True(rig.Slider.Signal.Settled, "the signal has nothing to settle: it still reads the dark");
+        Assert.True(rig.Slider.LightMoves, "but the bolt about to fade in is the light's next value");
+        RunUntilIdle(rig);
+        Assert.False(rig.Slider.LightMoves); // lit and in: at rest again
+        Assert.True(rig.Slider.Signal.Settled);
+        effect.Opacity = 0.7; // the bolt not fully in (the signal, settled on the last frame's opacity, reads it at the next one)
+        Assert.True(rig.Slider.Signal.Settled);
+        Assert.True(rig.Slider.LightMoves);
+        effect.Opacity = 1;
+        Assert.False(rig.Slider.LightMoves);
     });
 
     [Fact]
