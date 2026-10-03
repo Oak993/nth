@@ -440,6 +440,23 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         typeof(ThreadTimeline).GetMethod("UpdateInputs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(mount.View, ["Project", null, false, columnHeight, showsMinimap]);
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-006 (the button is shown only while the end marker is out of sight); ThreadTimeline.swift:402-409 (the marker is 1 point tall: a whole point is in view or none of it, at whole-point offsets, so the 0.01 threshold itself is not told apart from others here)
+    public void The_button_is_shown_exactly_while_the_one_point_end_marker_is_out_of_sight() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(8, sentences: 8).ToList()); mount.Settle();
+        var sentinel = mount.Field<Control>("drawnSentinel"); var top = sentinel.TranslatePoint(default, mount.Column)!.Value.Y; Assert.Equal(1, sentinel.Bounds.Height);
+        // The offset at which the viewport's bottom edge is `below` points under the marker's top: 1 shows the marker whole, 0 just misses it.
+        void Scroll(double below) { mount.Scroll.Offset = new Vector(0, top + below - mount.Scroll.Viewport.Height); mount.Advance(300); Assert.Equal(top + below - mount.Scroll.Viewport.Height, mount.Scroll.Offset.Y, 3); }
+        Assert.False(mount.State.ShowsJumpButton, "at the end");
+        // (A move of a point or less is not the reader scrolling, and the timeline puts back a pinned reader within it: each step here is a real move.)
+        Scroll(0); Assert.True(mount.State.ShowsJumpButton, "the viewport ends at the marker's top");
+        Scroll(-30); Assert.True(mount.State.ShowsJumpButton, "well above it");
+        Scroll(1); Assert.False(mount.State.ShowsJumpButton, "the marker whole in view");
+        Scroll(-30); Assert.True(mount.State.ShowsJumpButton, "away again");
+        Scroll(19); Assert.False(mount.State.ShowsJumpButton, "at the end");
+    });
+
+    [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (the rail's frame, its overlay and when it shows); ThreadTimeline.swift:176-208
     public void The_rail_is_a_thirty_point_overlay_below_the_titlebar_that_takes_no_layout_and_shows_with_two_sent_messages_and_the_flag() => ThreadTimelineRig.Run(headless, mount =>
     {
