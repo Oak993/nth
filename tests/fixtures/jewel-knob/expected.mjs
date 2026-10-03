@@ -172,9 +172,42 @@ out.gate = [
   gateRun('240 Hz, then a 100 ms stall, then a frame 1 ms after the last', [...even(240, 1), 1000000, ...even(240, 0.5), 10000, ...even(240, 0.5)]),
   // neither the stall (50 ms or more) nor frames under 2 ms apart are refreshes: the gate keeps the 240 Hz it measured
   gateRun('240 Hz, then a 300 ms stall, then frames 1.5 ms apart', [...even(240, 0.5), 3000000, ...Array.from({ length: 60 }, () => 15000)]),
+  // nor is a gap of 80 ms (the bound is 50 ms, not some longer one: measured, it would set the refresh to 11.75 ms)
+  gateRun('240 Hz, then an 80 ms stall, then frames 1.5 ms apart', [...even(240, 0.5), 800000, ...Array.from({ length: 60 }, () => 15000)]),
   gateRun('60 Hz, then 240 Hz (the window moved to a faster display)', [...even(60, 1), ...even(240, 1)]),
   gateRun('240 Hz, then 60 Hz (the window moved to a slower display)', [...even(240, 1), ...even(60, 1)]),
 ];
+
+// ---- the knob behind the gate (jewel-knob.html:867-871: the loop asks frameGate on every display refresh and runs tick()
+// on the refreshes it passes; tick(), :813, steps the slider by the time since the last DRAWN frame, at most the cap), on a
+// 240 Hz display: the rig's first frame (1/60 s), 240 refreshes (the refresh measured), a press on the track at 200, 40
+// refreshes held, the release, 360 refreshes (1.5 s: settled on the stop). Each refresh after the press is recorded, drawn
+// or not (the knob as shown).
+function gated(W, index, events) {
+  const G = new Component({ dark: true });
+  const s = slider(W, 48, 4, index);
+  let t = 0, sliderT = null;
+  let shown = { x: s.S.x, scale: s.S.sc.p, lift: 0, index: s.S.index };
+  const rec = [];
+  for (const e of events) {
+    if (e.down != null) s.down(e.down);
+    if (e.up) s.up();
+    for (let i = 0; i < e.frames; i++) {
+      t += e.ticks / 1e4;
+      const drawn = G.frameGate(t);
+      if (drawn) {
+        const tt = t / 1000;
+        const dt = sliderT === null ? 0 : Math.min(DT_CAP, Math.max(0, tt - sliderT));
+        sliderT = tt;
+        shown = s.step(dt);
+      }
+      if (e.keep) rec.push({ ticks: e.ticks, drawn, ...shown, index: s.S.index });
+    }
+  }
+  return rec;
+}
+out.slider.hz240 = gated(298, 0, [{ ticks: 166667, frames: 1 }, { ticks: 41667, frames: 240 }, { down: 200, ticks: 41667, frames: 40, keep: true },
+  { up: true, ticks: 41667, frames: 360, keep: true }]);
 
 // ---- the strike's signal as the knob reads it (jewel-knob.html), on the port's A2 strikes with the Mix charge
 const E = new Component({ dark: true });

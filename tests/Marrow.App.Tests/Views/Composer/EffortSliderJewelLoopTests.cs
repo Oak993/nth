@@ -2,6 +2,7 @@ using System.Text.Json;
 using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Port;
 using Marrow.Testing;
 
 namespace Marrow.App.Tests.Views.Composer;
@@ -9,8 +10,9 @@ namespace Marrow.App.Tests.Views.Composer;
 // OD-0090's locked page (E:/Droppy/work/design/jewel-knob-locked/jewel-knob.html) runs the knob in one loop: each display
 // refresh it asks the locked board's frameGate (strike-engine.js:56-66) whether to draw (:867-871), and a drawn frame steps
 // the springs by the time since the last drawn frame, at most 50 ms (tick(), :808-814), then puts the bolt's exit at
-// tl.exAt = Math.round((x - 2) * 4) / 4 for the knob's centre x (stepSlider, :593). The expected values are the page's own
-// functions run by node (tests/fixtures/jewel-knob/expected.mjs: gate, slider.longFrame / longRelease, exit).
+// tl.exAt = Math.round((x - 2) * 4) / 4 for the knob's centre x (stepSlider, :593), which the bolt drawn and the knob's
+// signal then read on that same frame (:815-822). The expected values are the page's own functions run by node
+// (tests/fixtures/jewel-knob/expected.mjs: gate, slider.longFrame / longRelease / hz240, exit).
 [Collection("Headless")]
 public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
 {
@@ -75,6 +77,68 @@ public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
         AssertRun(rig, run.Skip(60), run[59].GetProperty("t").GetDouble()); // a 1 s frame, then 1/60 s frames
         Assert.Equal(24 + 500.0 / 3, rig.Slider.KnobX, 9);
         Assert.Equal(1, rig.Slider.KnobScale);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // jewel-knob.html:813 tick(): dt = min(0.05, max(0, t - sliderT)), sliderT the last DRAWN frame's; :867-871 drawn on the refreshes strike-engine.js:56-66 frameGate passes
+    public void On_a_240_hertz_display_each_drawn_frame_moves_the_springs_by_the_time_since_the_last_drawn_frame() => headless.OnUiThread(() =>
+    {
+        // expected.mjs slider.hz240: the page's gate and tick() over the rig's frames (one 1/60 s frame, 240 refreshes of
+        // 41667 ticks, a press on the track at 200, 40 refreshes, the release, 360 refreshes), each refresh after the press
+        // as shown: drawn on every 4th, each drawn one moving the springs by 4 refreshes (16.7 ms), not by the one refresh
+        // since the last frame the gate held back (a knob springing at a quarter of its speed)
+        var run = Slider.GetProperty("hz240").EnumerateArray().ToArray();
+        Assert.Equal(400, run.Length);
+        Assert.Equal(100, run.Count(e => e.GetProperty("drawn").GetBoolean()));
+        using var rig = JewelFixtures.Rig();
+        rig.Frame();
+        for (var i = 0; i < 240; i++) rig.Frame(41667 / 1e7);
+        rig.Down(200);
+        for (var i = 0; i < run.Length; i++)
+        {
+            if (i == 40) rig.Up(200);
+            var e = run[i];
+            rig.Frame(e.GetProperty("ticks").GetInt64() / 1e7);
+            var x = e.GetProperty("x").GetDouble();
+            Assert.True(Math.Abs(rig.Slider.KnobX - x) < 1e-3, $"refresh {i + 1} after the press ({(e.GetProperty("drawn").GetBoolean() ? "drawn" : "held back")}): page x {x}, port {rig.Slider.KnobX}");
+            Assert.True(Math.Abs(rig.Slider.KnobScale - e.GetProperty("scale").GetDouble()) < 1e-5, $"refresh {i + 1}: page scale {e.GetProperty("scale")}, port {rig.Slider.KnobScale}");
+            Assert.Equal(e.GetProperty("index").GetInt32(), rig.Index.Value);
+        }
+        Assert.Equal(24 + 500.0 / 3, rig.Slider.KnobX, 9); // settled on the stop the press chose
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // jewel-knob.html:808-822 tick(): stepSlider sets tl.exAt for the knob's new x (:593), then drawAll draws the bolt from it (:335 g.ex) and signal() reads the same exit (orbAim)
+    public void While_the_knob_moves_it_reads_the_exit_of_the_bolt_the_tube_draws_on_the_same_frame() => headless.OnUiThread(() =>
+    {
+        using var rig = JewelFixtures.Rig(fast: true);
+        rig.Frame();
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single(e => e.Opacity >= 1);
+        var seed = effect.StrikeSeed;
+        // into strike 0's reading (from its charge, 0.14 + its charge s before it strikes, to 1.9 s after): every frame below
+        // reads it, so the knob's exit angle is the strike's, from where its bolt leaves
+        var reading = Strike.StrikeAt(0, seed) - Strike.Lead - KnobSignal.ChargeOf(0, seed);
+        rig.Frame(Math.Max(1.0 / 60, reading + 0.02 - effect.TimeAt(SwiftDate.Now)));
+        rig.Down(250); // on the track: the knob springs from its stop to the pointer
+        var last = rig.Slider.KnobX;
+        var moved = 0;
+        for (var i = 1; i <= 40; i++)
+        {
+            rig.Frame();
+            var x = rig.Slider.KnobX;
+            var g = effect.StrikeGeometryFor(effect.Bounds.Size); // the bolt the tube draws this frame, laid out for the knob at x
+            Assert.Equal(TrackEffect.ExitAt(x), g.Knob, 9);
+            var t = effect.TimeAt(SwiftDate.Now);
+            var page = new KnobSignal();
+            Assert.True(page.Strikes(g, seed, t) > 0, $"frame {i}: strike 0 is read at {t}");
+            page.Read(g, seed, t, 0);
+            Assert.True(Math.Abs(page.ExitAngle - rig.Slider.Signal.ExitAngle) < 1e-12,
+                $"frame {i}, the knob at {x} (from {last}): the bolt drawn leaves at {g.Knob} for an exit angle {page.ExitAngle}; the knob read {rig.Slider.Signal.ExitAngle}");
+            if (TrackEffect.ExitAt(x) != TrackEffect.ExitAt(last)) moved++;
+            last = x;
+        }
+        Assert.True(moved >= 10, $"the exit moved on {moved} frames");
+        rig.Up(250);
     });
 
     [Fact]

@@ -112,10 +112,17 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
                 canvas.DrawCircle(box.MidX, box.MidY + (float)y, box.Width / 2, paint);
             }
             // the knob's own (on .kw), then the lift's (s.lift, z-index -1 inside .kw's stacking context: over it), its
-            // later shadow first (a box-shadow list paints its first shadow on top)
+            // later shadow first (a box-shadow list paints its first shadow on top). s.lift's opacity is the element's: CSS
+            // composites its two shadows together and then draws the group at the lift's opacity, lift (a over b), not
+            // (lift a) over (lift b)
             if (dark) Shadow(2, 6, new SKColor(0, 0, 0), 0.24); else Shadow(2, 6, new SKColor(20, 32, 50), 0.2);
-            Shadow(2, 5, new SKColor(0, 0, 0), 0.2 * lift);
-            Shadow(7, 18, new SKColor(0, 0, 0), 0.34 * lift);
+            using (var group = new SKPaint { Color = SKColors.Black.WithAlpha((byte)Math.Round(lift * 255)) })
+            {
+                canvas.SaveLayer(group);
+                Shadow(2, 5, new SKColor(0, 0, 0), 0.2);
+                Shadow(7, 18, new SKColor(0, 0, 0), 0.34);
+                canvas.Restore();
+            }
             canvas.Restore();
         }
         var differ = 0;
@@ -191,6 +198,29 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         var phase = rig.Slider.Orb.Phase;
         rig.Frame(0.5);
         Assert.Equal(phase, rig.Slider.Orb.Phase);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: the knob's signal is scaled by the fast effect's opacity (the page has no fast toggle; the port's crossfades the effect in over :799 .smooth(0.3))
+    public void Turning_fast_mode_on_lights_the_knob_only_as_far_as_the_bolt_has_faded_in() => headless.OnUiThread(() =>
+    {
+        // under reduce motion the knob reads the strike's still moment, 35 ms into strike 1 (charge 1 and a flare), whatever
+        // the effect's clock: so the frame inside the 0.3 s fade is lit for every seed
+        using var rig = JewelFixtures.Rig(index: 1, reduceMotion: true);
+        for (var i = 0; i < 4; i++) rig.Frame();
+        Assert.Equal(0, rig.Slider.Signal.RawCharge);
+        rig.Slider.UpdateLook(true, "Title", null);
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single(e => TrackEffect.IsFast(e.Look));
+        Assert.Equal(0, effect.Opacity);
+        rig.Frame(0.1);
+        var opacity = effect.Opacity;
+        Assert.InRange(opacity, 0.01, 0.99); // the bolt partly faded in
+        var still = new KnobSignal();
+        still.Read(effect.StrikeGeometryFor(effect.Bounds.Size), effect.StrikeSeed, Strike.StillTime(effect.StrikeSeed), 0);
+        Assert.Equal(1, still.RawCharge);
+        Assert.True(still.RawFlare > 0);
+        Assert.True(Math.Abs(still.RawCharge * opacity - rig.Slider.Signal.RawCharge) < 1e-12, $"the bolt at {opacity}: the knob's charge {rig.Slider.Signal.RawCharge}, not {still.RawCharge * opacity}");
+        Assert.True(Math.Abs(still.RawFlare * opacity - rig.Slider.Signal.RawFlare) < 1e-12, $"the bolt at {opacity}: the knob's flare {rig.Slider.Signal.RawFlare}, not {still.RawFlare * opacity}");
     });
 
     [Fact]
@@ -282,9 +312,11 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         }
         using var none = Draw(0);
         using var below = Draw(0.009);
+        using var at = Draw(0.01);
         using var faint = Draw(0.05);
         int Differ(SKBitmap a, SKBitmap b) { var n = 0; for (var y = 0; y < 34; y++) for (var x = 0; x < 298; x++) if (a.GetPixel(x, y) != b.GetPixel(x, y)) n++; return n; }
         Assert.Equal(0, Differ(none, below));
+        Assert.True(Differ(none, at) > 0, "an ink of exactly 0.01 blends the pale-liquid look in (the page returns only below it: k < 0.01)");
         Assert.True(Differ(none, faint) > 0, "an ink of 0.05 blends the pale-liquid look into the bubbles");
     });
 }
