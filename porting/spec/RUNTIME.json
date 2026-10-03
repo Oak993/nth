@@ -6158,7 +6158,7 @@
       ],
       "notes": "An info notice is deliberately unpilled: zero padding and a clear background, so it reads as a quiet aside rather than a card. Only warning and error get the pill. The icon is SF Symbol \"info.circle\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one).",
       "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` read @Environment(\\.chatZoom); B2 TimelineRows.swift:2397 `.font(.chat(.callout))`, and Font.chat (UI/Common/ChatFont.swift:6-10) takes no zoom. NoticeRow moved from B1 :2400 to B2 :2385. Geometry and colours are unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter).",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "B3 adds a fourth info-level message, appended by finishTurnUpdatingCLI at ThreadRuntime.swift:2263 when a Claude or Codex error matches ProviderRegistry.needsNewerCLI (see PR-RUNTIME-265 and UI-RUNTIME-039). The row chrome itself (padding, colours, unpilled presentation) is unchanged. Found during B3 re-verification of this area's bundle (impacts.json R3-05); not itself listed in recite_flags or impacts.json's records_affected, but the same source change both name."
     },
     {
@@ -6231,7 +6231,8 @@
         "DroppyCode/UI/Common/ChatFont.swift:4-10 - the comment \"The app-wide zoom scales the window, not the type.\"; static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font { let resolvedWeight = weight ?? (style == .headline ? .semibold : nil); let font = Font.system(style, design: design); return resolvedWeight.map { font.weight($0) } ?? font }"
       ],
       "notes": "The .running case shares the \"Worked for\" wording with .completed; a synthetic turn-end written by install() for a turn the app quit under carries the turn's stored status, which install() has already forced to .interrupted, so it reads \"Stopped after\".",
-      "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` and `.foregroundStyle(.tertiary)`; B2 :2442-2443 `.font(.chat(.caption))` and `.foregroundStyle(Chrome.secondaryText)`. TurnEndRow moved from B1 :2449 to B2 :2433; the label wording is unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter)."
+      "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` and `.foregroundStyle(.tertiary)`; B2 :2442-2443 `.font(.chat(.caption))` and `.foregroundStyle(Chrome.secondaryText)`. TurnEndRow moved from B1 :2449 to B2 :2433; the label wording is unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-005",

@@ -3582,7 +3582,8 @@
       "notes": "It is one animatable drawing of three interpolated values (position, done, rest), not three separate animations. Step animates over 0.5 s, mode over 0.45 s. Once an outcome exists the step is pinned to count - 1 = 6, because the runtime clears hydraMergeStep as the note lands.",
       "engineering_decisions": [
         "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-005",
@@ -3615,7 +3616,8 @@
         "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52), caption2 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
         "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
       ],
-      "b3_note": "1.7.0 drops 'Hydra did not merge: a rebase or merge is underway', 'Hydra did not merge: the checkout moved while it worked' and 'Hydra is waiting for another chat's files' and adds 'Hydra did not merge: `<target>` changed the same lines' and 'Hydra did not merge: the checkout kept moving' (B3 AppModel+HydraMerge.swift:290, :330)."
+      "b3_note": "1.7.0 drops 'Hydra did not merge: a rebase or merge is underway', 'Hydra did not merge: the checkout moved while it worked' and 'Hydra is waiting for another chat's files' and adds 'Hydra did not merge: `<target>` changed the same lines' and 'Hydra did not merge: the checkout kept moving' (B3 AppModel+HydraMerge.swift:290, :330).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-006",
@@ -3643,7 +3645,8 @@
       "engineering_decisions": [
         "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: caption 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
         "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-007",
@@ -3669,7 +3672,8 @@
       "b2_change": "B1 TimelineRows.swift:632-636 `.font(.system(size: 12))` plus `.environment(\\.chatZoom, 1)` -> B2 :629-632 `.font(.system(.callout))` with no chatZoom environment; markdownPointSize 12 and markdownDimmed false are unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
       "engineering_decisions": [
         "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-008",

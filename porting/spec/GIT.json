@@ -5327,7 +5327,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "At most twelve rows. Paths are truncated in the middle, unlike the popover's file cards which truncate at the head. A binary file shows the literal \"Binary\"; the overflow line is exactly \"and 1 more file\" at thirteen files and \"and <n minus 12> more files\" beyond. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "`.font(.chat(.callout, zoom: zoom))`, `.font(.chat(.caption, zoom: zoom))` (B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2854, :2860, :2871) -> `.font(.chat(.callout))`, `.font(.chat(.caption))` (B2 :2835, :2841, :2852); Binary marker and overflow line `.foregroundStyle(.secondary)` (B1 :2861, :2872) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :2842, :2853); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). The popover moved from B1 :2848-2877 to B2 :2829-2858."
+      "b2_change": "`.font(.chat(.callout, zoom: zoom))`, `.font(.chat(.caption, zoom: zoom))` (B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2854, :2860, :2871) -> `.font(.chat(.callout))`, `.font(.chat(.caption))` (B2 :2835, :2841, :2852); Binary marker and overflow line `.foregroundStyle(.secondary)` (B1 :2861, :2872) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :2842, :2853); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). The popover moved from B1 :2848-2877 to B2 :2829-2858.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-046",
@@ -5347,7 +5348,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2770-2776"
       ],
-      "notes": "Its tooltip is \"Revert this turn's files and conversation\". It is not focusable."
+      "notes": "Its tooltip is \"Revert this turn's files and conversation\". It is not focusable.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-047",
@@ -5389,7 +5391,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2800-2816"
       ],
-      "notes": "Its tooltip is \"Show this turn's changes\". The anchor is only created on hover because a folded turn is one block of a lazy stack and a click must hover first."
+      "notes": "Its tooltip is \"Show this turn's changes\". The anchor is only created on hover because a folded turn is one block of a lazy stack and a click must hover first.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-049",
@@ -5411,7 +5414,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:130-156"
       ],
-      "notes": "Its tooltip is \"Edit message\". The hover-to-prefetch is deliberate: the preview costs hundreds of milliseconds, so the click finds it done or nearly so."
+      "notes": "Its tooltip is \"Edit message\". The hover-to-prefetch is deliberate: the preview costs hundreds of milliseconds, so the click finds it done or nearly so.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-050",
@@ -5432,7 +5436,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:216-228",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:172-190"
       ],
-      "notes": "The two items above it are \"Copy message\" and \"Copy as markdown\", which are outside this area. The menu outlives the click, so its callbacks pass an intent through a binding rather than acting directly."
+      "notes": "The two items above it are \"Copy message\" and \"Copy as markdown\", which are outside this area. The menu outlives the click, so its callbacks pass an intent through a binding rather than acting directly.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-051",

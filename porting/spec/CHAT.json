@@ -5060,7 +5060,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2156-2162"
       ],
       "notes": "The number is the total line count, in parentheses, followed by a space and lines. There is no singular form.",
-      "b2_change": "B1 TimelineRows.swift:2174 `.font(.chat(.caption, zoom: zoom))` -> B2 :2161 `.font(.chat(.caption))`. Moved from B1 :2169-2175 to B2 :2156-2162."
+      "b2_change": "B1 TimelineRows.swift:2174 `.font(.chat(.caption, zoom: zoom))` -> B2 :2161 `.font(.chat(.caption))`. Moved from B1 :2169-2175 to B2 :2156-2162.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-027",
@@ -5082,7 +5083,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2120-2126"
       ],
       "notes": "The 12-line cap is a display limit only; the stored detail is untouched.",
-      "b2_change": "B1 TimelineRows.swift:2135-2136 `.font(.chat(.caption, design: .monospaced, zoom: zoom))` `.foregroundStyle(.secondary)` -> B2 :2122-2123 `.font(.chat(.caption, design: .monospaced))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2133-2139 to B2 :2120-2126."
+      "b2_change": "B1 TimelineRows.swift:2135-2136 `.font(.chat(.caption, design: .monospaced, zoom: zoom))` `.foregroundStyle(.secondary)` -> B2 :2122-2123 `.font(.chat(.caption, design: .monospaced))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2133-2139 to B2 :2120-2126.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-028",
@@ -5155,7 +5157,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2279-2313"
       ],
       "notes": "The disabled tooltip is exactly Wait for the current turn to finish, and the empty string when enabled. The buttons stay in place while busy because a plan whose buttons vanish mid-turn reads as already dealt with.",
-      "b2_change": "B1 TimelineRows.swift:2296 `Text(\"Plan\").font(.chat(.headline, zoom: zoom))` -> B2 :2282 `Text(\"Plan\").font(.chat(.headline))`. Moved from B1 :2293-2327 to B2 :2279-2313."
+      "b2_change": "B1 TimelineRows.swift:2296 `Text(\"Plan\").font(.chat(.headline, zoom: zoom))` -> B2 :2282 `Text(\"Plan\").font(.chat(.headline))`. Moved from B1 :2293-2327 to B2 :2279-2313.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-031",
@@ -5176,7 +5179,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2296-2300"
       ],
-      "notes": "Lowercase p in plan."
+      "notes": "Lowercase p in plan.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-032",
@@ -5197,7 +5201,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2301-2305"
       ],
-      "notes": "Not marked destructive."
+      "notes": "Not marked destructive.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-033",
@@ -5268,7 +5273,8 @@
       ],
       "notes": "The duration is RelativeTime.duration: the interval rounded to whole seconds and clamped at zero, formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width, at most two units and the fraction hidden and rounded down (PR-CHAT-116). Its exact strings are UNRESOLVED until captured on the reference runtime (B3_PLAN.md 6.1 E1).",
       "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :2442-2443 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2449-2473 to B2 :2433-2456.",
-      "b3_note": "1.7.0 formats the duration with Duration.UnitsFormatStyle instead of the hand-built 'Ns' / 'Mm Ss' / 'Hh Mm' (B3 Components.swift:37-40)."
+      "b3_note": "1.7.0 formats the duration with Duration.UnitsFormatStyle instead of the hand-built 'Ns' / 'Mm Ss' / 'Hh Mm' (B3 Components.swift:37-40).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-036",
@@ -5339,7 +5345,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2463-2478"
       ],
       "notes": "Tooltip is exactly Revert this turn's files and conversation. Glyph arrow.uturn.backward. Deliberately a flat overlay disc, not a solid accent disc.",
-      "b2_change": "Citation moved, behaviour unchanged: B1 TimelineRows.swift:2789-2818 -> B2 :2770-2799. MutedRoundGlyph and the revert disc are unchanged in code, but the Chrome.iconFont MutedRoundGlyph draws in (TimelineRows.swift:2469) was respelled as a text style of the same macOS size: B1 Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`."
+      "b2_change": "Citation moved, behaviour unchanged: B1 TimelineRows.swift:2789-2818 -> B2 :2770-2799. MutedRoundGlyph and the revert disc are unchanged in code, but the Chrome.iconFont MutedRoundGlyph draws in (TimelineRows.swift:2469) was respelled as a text style of the same macOS size: B1 Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-039",
@@ -5382,7 +5389,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2800-2816"
       ],
-      "notes": "Tooltip is exactly Show this turn's changes. Glyph plusminus. Clicking without ever hovering leaves the anchor unset and the control silently does nothing."
+      "notes": "Tooltip is exactly Show this turn's changes. Glyph plusminus. Clicking without ever hovering leaves the anchor unset and the control silently does nothing.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-041",
@@ -5404,7 +5412,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2829-2858"
       ],
       "notes": "Paths use middle truncation so the file name stays readable.",
-      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:2854, :2860 -> B2 :2835, :2841); the Binary label went `.foregroundStyle(.secondary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :2861 -> B2 :2842). Moved from B1 :2848-2877 to B2 :2829-2858."
+      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:2854, :2860 -> B2 :2835, :2841); the Binary label went `.foregroundStyle(.secondary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :2861 -> B2 :2842). Moved from B1 :2848-2877 to B2 :2829-2858.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-042",
@@ -5426,7 +5435,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2850-2856"
       ],
       "notes": "The count is the total minus twelve. The leading word and is lowercase.",
-      "b2_change": "B1 TimelineRows.swift:2871-2872 `.font(.chat(.callout, zoom: zoom))` `.foregroundStyle(.secondary)` -> B2 :2852-2853 `.font(.chat(.callout))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2869-2875 to B2 :2850-2856."
+      "b2_change": "B1 TimelineRows.swift:2871-2872 `.font(.chat(.callout, zoom: zoom))` `.foregroundStyle(.secondary)` -> B2 :2852-2853 `.font(.chat(.callout))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2869-2875 to B2 :2850-2856.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-043",
@@ -5591,7 +5601,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1121-1126"
       ],
       "notes": "Tooltip is exactly Open in the browser. It must be a sibling: a link nested in a button takes the button's clicks and the pill stops opening its popover.",
-      "b2_change": "B1 TimelineRows.swift:308 `.font(.chat(.caption, weight: .semibold, zoom: zoom))` -> B2 :307 `.font(.chat(.caption, weight: .semibold))`. Moved from B1 :305-312 to B2 :304-311."
+      "b2_change": "B1 TimelineRows.swift:308 `.font(.chat(.caption, weight: .semibold, zoom: zoom))` -> B2 :307 `.font(.chat(.caption, weight: .semibold))`. Moved from B1 :305-312 to B2 :304-311.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-050",
@@ -5613,7 +5624,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:607-639"
       ],
       "notes": "The note reads at the popover's own compact size: the popover sets markdownPointSize 12 and the callout text style itself rather than inheriting the timeline's.",
-      "b2_change": "B1 TimelineRows.swift:633-636 `.font(.system(size: 12))` and `.environment(\\.chatZoom, 1)` -> B2 :630-632 `.font(.system(.callout))` with no chatZoom pin, since the chat zoom no longer exists at B2 (Font.chat has no zoom parameter, DroppyCode/UI/Common/ChatFont.swift:6). Moved from B1 :610-643 to B2 :607-639."
+      "b2_change": "B1 TimelineRows.swift:633-636 `.font(.system(size: 12))` and `.environment(\\.chatZoom, 1)` -> B2 :630-632 `.font(.system(.callout))` with no chatZoom pin, since the chat zoom no longer exists at B2 (Font.chat has no zoom parameter, DroppyCode/UI/Common/ChatFont.swift:6). Moved from B1 :610-643 to B2 :607-639.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-051",
@@ -5736,7 +5748,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1877-2064"
       ],
       "notes": "Section titles are exactly Steps and Report. The status line is Working…, Done, Failed or Stopped, then 1 tool or N tools when above zero, then the duration once finished, joined with a space, U+00B7 and a space.",
-      "b2_change": "Fonts dropped zoom; the tool-step label went `.foregroundStyle(.secondary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 TimelineRows.swift:1982 -> B2 :1971). Moved from B1 :1887-2075 to B2 :1877-2064."
+      "b2_change": "Fonts dropped zoom; the tool-step label went `.foregroundStyle(.secondary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 TimelineRows.swift:1982 -> B2 :1971). Moved from B1 :1887-2075 to B2 :1877-2064.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-056",
@@ -5877,7 +5890,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1546-1553"
       ],
       "notes": "What the agent said between two steps reads as a step of the work: small and dimmed like its thinking.",
-      "b2_change": "B1 TimelineRows.swift:1559 `.foregroundStyle(.secondary)` -> B2 :1550 `.foregroundStyle(Chrome.secondaryText)`; point size 12 and markdownDimmed are unchanged. Moved from B1 :1555-1562 to B2 :1546-1553."
+      "b2_change": "B1 TimelineRows.swift:1559 `.foregroundStyle(.secondary)` -> B2 :1550 `.foregroundStyle(Chrome.secondaryText)`; point size 12 and markdownDimmed are unchanged. Moved from B1 :1555-1562 to B2 :1546-1553.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-062",
@@ -6077,7 +6091,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1906-1909"
       ],
       "notes": "Ends in a full stop, unlike most other empty-state strings in this area.",
-      "b2_change": "B1 TimelineRows.swift:1919 `.font(.chat(.callout, zoom: zoom))` -> B2 :1908 `.font(.chat(.callout))`. Moved from B1 :1917-1920 to B2 :1906-1909."
+      "b2_change": "B1 TimelineRows.swift:1919 `.font(.chat(.callout, zoom: zoom))` -> B2 :1908 `.font(.chat(.callout))`. Moved from B1 :1917-1920 to B2 :1906-1909.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-071",
@@ -6098,7 +6113,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:680-687"
       ],
       "notes": "The ellipsis is U+2026.",
-      "b2_change": "B1 TimelineRows.swift:689 `.font(.chat(.caption, zoom: zoom))` -> B2 :684 `.font(.chat(.caption))`. Moved from B1 :685-692 to B2 :680-687."
+      "b2_change": "B1 TimelineRows.swift:689 `.font(.chat(.caption, zoom: zoom))` -> B2 :684 `.font(.chat(.caption))`. Moved from B1 :685-692 to B2 :680-687.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-072",
@@ -6120,7 +6136,8 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:137-138"
       ],
       "notes": "The same literal is used in the message editor's file list.",
-      "b2_change": "B1 TimelineRows.swift:2860-2861 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.secondary)` -> B2 :2841-2842 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`; in the message editor B1 MessageEditor.swift:138 `.foregroundStyle(.secondary)` -> B2 :138 `.foregroundStyle(Chrome.secondaryText)`. Moved: TimelineRows.swift B1 :2858-2861 -> B2 :2839-2842; the editor citation :399-400 pointed past the end of the file and is corrected to :137-138."
+      "b2_change": "B1 TimelineRows.swift:2860-2861 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.secondary)` -> B2 :2841-2842 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`; in the message editor B1 MessageEditor.swift:138 `.foregroundStyle(.secondary)` -> B2 :138 `.foregroundStyle(Chrome.secondaryText)`. Moved: TimelineRows.swift B1 :2858-2861 -> B2 :2839-2842; the editor citation :399-400 pointed past the end of the file and is corrected to :137-138.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-073",
