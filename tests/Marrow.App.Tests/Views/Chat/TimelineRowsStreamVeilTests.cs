@@ -478,4 +478,148 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
         Tick(h, frames, window, 1000);
         h.Main.OnMain(() => Close(window));
     });
+
+    // The end of a stream. MarkdownView.swift:69-83 draws a finished reply as prose runs, a different view: on the Mac the words still dissolving
+    // when the stream ends jump to the full colour, and words that land with the completion (ThreadRuntime.swift:3248-3265: completeMessage sets
+    // the final text and isStreaming false in one change) never dissolve. OD-0076 (owner, 2026-10-02): nothing on screen changes by a cut. The
+    // reply's own row is StreamEndVeilReviewTests; these are the final batch and the other two paths that draw a streaming MarkdownView.
+    private static string ProseText(Control view) =>
+        Assert.Single(view.GetVisualDescendants().OfType<ParagraphTextPresenter>()).Text.String;
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-12 (each append registers its tail as a chunk); ThreadRuntime.swift:3248-3265; MarkdownView.swift:69-83
+    [Trait("Decision", "OD-0076")]
+    public void The_last_words_that_arrive_with_the_end_of_the_stream_dissolve_in_through_the_real_row() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        TimelineEntry entry = null!;
+        AssistantMessageRow row = null!;
+        Avalonia.Controls.Window window = null!;
+        h.Main.OnMain(() =>
+        {
+            entry = Streaming("Hello");
+            row = new AssistantMessageRow(entry, null, h.Runtime);
+            window = Show(row);
+        });
+        try
+        {
+            var settled = Runs(row)[0].Opacity;
+            // The last delta and the completion land in one change: " there" was never on screen while the reply streamed.
+            h.Main.OnMain(() => { Flush(entry, "Hello there", streaming: false); Settle(window); });
+            var atEnd = Runs(row);
+            Assert.Equal(["Hello", " there"], atEnd.Select(run => run.Text));
+            Assert.Equal(settled, atEnd[0].Opacity, 0.001);
+            Assert.Equal(0, atEnd[1].Opacity, 0.001); // a chunk starts at nothing
+            Tick(h, frames, window, 100);
+            Assert.Equal(settled * Alpha(0.25), Runs(row)[1].Opacity, 0.01);
+
+            // Settled: the row draws the Swift's prose runs and keeps nothing of the stream.
+            Tick(h, frames, window, 1000);
+            Assert.Equal("Hello there", ProseText(row));
+            Assert.Equal(0, row.Veils.Places);
+            Assert.False(row.Veils.HoldsText);
+            Assert.Equal(0, frames.Pending);
+        }
+        finally
+        {
+            h.Main.OnMain(() => Close(window));
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:102-107 (a veil no longer fed finishes its chunks in flight); ThreadTimeline.swift:2156-2168; MarkdownView.swift:69-83
+    [Trait("Decision", "OD-0076")]
+    public void A_thinking_step_that_ends_while_its_words_dissolve_carries_them_on_through_the_rebuilds_of_the_steps() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        WorkingIndicator indicator = null!;
+        Avalonia.Controls.Window window = null!;
+        void Steps(params ThinkingStep[] steps) => indicator.UpdateValues(new ValueList<ThinkingStep>(steps), new([]), new([]), false);
+        h.Main.OnMain(() =>
+        {
+            indicator = new WorkingIndicator(h.Runtime, SwiftDate.Now, 1, new ValueList<ThinkingStep>([new ThinkingStep("Hmm", true)]), new([]), new([]), false, chronological: true);
+            window = Show(indicator);
+        });
+        MarkdownView Step(int index) => Mounted<MarkdownView>(indicator).ElementAt(index);
+        try
+        {
+            var settled = Runs(Step(0))[0].Opacity;
+            h.Main.OnMain(() => { Steps(new ThinkingStep("Hmm let me see", true)); Settle(window); });
+            Tick(h, frames, window, 100);
+            var inFlight = Runs(Step(0))[1].Opacity;
+            Assert.InRange(inFlight, 0.01, settled - 0.01); // the premise: part way through its fade
+
+            // The step ends while " let me see" dissolves, and the next step starts in the same flush: every step is built again.
+            h.Main.OnMain(() => { Steps(new ThinkingStep("Hmm let me see", false), new ThinkingStep("Next", true)); Settle(window); });
+            var atEnd = Runs(Step(0));
+            Assert.Equal(["Hmm", " let me see"], atEnd.Select(run => run.Text));
+            Assert.Equal(inFlight, atEnd[1].Opacity, 0.01);
+            Tick(h, frames, window, 100);
+            var later = Runs(Step(0))[1].Opacity;
+            Assert.True(later > inFlight + 0.05, $"the ended step's words keep dissolving ({inFlight:0.00} then {later:0.00})");
+            Assert.True(later < settled - 0.01);
+
+            // A flush of the second step builds the first one again while it still dissolves: it carries on from where it was.
+            h.Main.OnMain(() => { Steps(new ThinkingStep("Hmm let me see", false), new ThinkingStep("Next up", true)); Settle(window); });
+            Assert.Equal(later, Runs(Step(0))[1].Opacity, 0.01);
+
+            // Settled: the first step is the Swift's prose runs.
+            Tick(h, frames, window, 1000);
+            Assert.Empty(Runs(Step(0)));
+            Assert.Equal("Hmm let me see", ProseText(Step(0)));
+        }
+        finally
+        {
+            h.Main.OnMain(() => Close(window));
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:102-107; TimelineRows.swift:1546-1553 (the narration is a MarkdownView of the streaming entry); MarkdownView.swift:69-83
+    [Trait("Decision", "OD-0076")]
+    public void The_narration_that_ends_while_its_words_dissolve_carries_them_on() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        TimelineEntry said = null!;
+        WorkSteps steps = null!;
+        Avalonia.Controls.Window window = null!;
+        h.Main.OnMain(() =>
+        {
+            said = Streaming("now the build");
+            steps = new WorkSteps(new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a")), said, ToolEntry(Call(ToolCall.Kind.Command, "make"))]), h.Runtime, Binding<bool>.Constant(true));
+            window = Show(steps);
+        });
+        MarkdownView Narration() => Assert.Single(Mounted<MarkdownView>(steps));
+        try
+        {
+            var settled = Runs(Narration())[0].Opacity;
+            h.Main.OnMain(() => { Flush(said, "now the build runs"); Settle(window); });
+            Tick(h, frames, window, 100);
+            var inFlight = Runs(Narration())[1].Opacity;
+            Assert.InRange(inFlight, 0.01, settled - 0.01);
+
+            h.Main.OnMain(() => { Flush(said, "now the build runs", streaming: false); Settle(window); });
+            var atEnd = Runs(Narration());
+            Assert.Equal(["now the build", " runs"], atEnd.Select(run => run.Text));
+            Assert.Equal(inFlight, atEnd[1].Opacity, 0.01);
+
+            Tick(h, frames, window, 1000);
+            Assert.Empty(Runs(Narration()));
+            Assert.Equal("now the build runs", ProseText(Narration()));
+            Assert.Equal(0, frames.Pending);
+        }
+        finally
+        {
+            h.Main.OnMain(() => Close(window));
+        }
+    });
 }

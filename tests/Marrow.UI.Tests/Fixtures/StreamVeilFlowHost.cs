@@ -40,6 +40,15 @@ public sealed class StreamVeilFlowHost
             Pump();
         });
 
+    /// <summary>What a row does when the provider completes the reply (ThreadRuntime.swift:3248-3265 completeMessage sets the final text and
+    /// isStreaming false in one change): a new MarkdownView, no longer streaming, replaces the old one.</summary>
+    public void Finish(TestRuntime runtime, string text) =>
+        runtime.OnMain(() =>
+        {
+            Decorator.Child = new MarkdownView(text, isStreaming: false, Veils.Root);
+            Pump();
+        });
+
     public static Window Show(Control content)
     {
         var window = new Window { Width = 400, Height = 600, Content = new StackPanel { Children = { content } } };

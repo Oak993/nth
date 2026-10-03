@@ -331,6 +331,178 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
         }
     });
 
+    // The end of a stream. MarkdownView.swift:69-83 draws a finished reply as prose runs, a different view, so on the Mac the words still dissolving
+    // when the stream ends jump to the full colour, and words that arrive with the completion (ThreadRuntime.swift:3248-3265: completeMessage sets
+    // the final text and isStreaming false in one change) never dissolve at all: "a token that popped in whole read as a glitch" (StreamVeil.swift:4-8).
+    // OD-0076 (owner, 2026-10-02): nothing on screen changes by a cut, and where the Mac changes state without animation the port still transitions.
+    private static ParagraphTextPresenter ProseRun(Control root) =>
+        Assert.Single(Assert.Single(root.GetVisualDescendants().OfType<ProseRunView>()).GetVisualDescendants().OfType<ParagraphTextPresenter>());
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-8, :102-107 (a veil that is no longer fed finishes the chunks in flight); MarkdownView.swift:69-83
+    [Trait("Decision", "OD-0076")]
+    public void A_reply_that_ends_while_its_tail_dissolves_carries_the_tail_on_and_draws_prose_runs_once_it_has_settled(bool links) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var lead = links ? $"Read [notes]({Local}) now" : "Hello";
+        var host = new StreamVeilFlowHost(runtime, lead);
+        try
+        {
+            var settled = links ? 1.0 : Runs(host.Decorator)[0].Opacity; // a link paragraph's painted run carries the alpha alone (see the link test above)
+            host.Flush(runtime, lead + " there");
+            Tick(runtime, frames, 100); // the first chunk fades over 0.40 s: a quarter through
+            var before = Runs(host.Decorator);
+            Assert.Equal(" there", before[^1].Text);
+            Assert.Equal(settled * Alpha(0.25), before[^1].Opacity, 0.01);
+
+            // The provider completes the reply: the stream ends with " there" a quarter through its fade. It carries on from where it was.
+            host.Finish(runtime, lead + " there");
+            var atEnd = Runs(host.Decorator);
+            Assert.Equal(Texts(before), Texts(atEnd));
+            Assert.Equal(settled * Alpha(0.25), atEnd[^1].Opacity, 0.01);
+            Assert.Empty(host.Decorator.GetVisualDescendants().OfType<ProseRunView>()); // not yet the prose runs: they would draw the tail whole
+            Assert.True(host.Veils.HoldsText, "the places the tail dissolves in are kept while it dissolves");
+
+            Tick(runtime, frames, 100);
+            Assert.Equal(settled * Alpha(0.5), Runs(host.Decorator)[^1].Opacity, 0.01);
+
+            // Past its settle (0.40 s): the reply is the Swift's prose runs, and nothing of the stream is kept, no place, no text, no clock.
+            Tick(runtime, frames, 300);
+            Assert.Equal((links ? "Read notes now" : "Hello") + " there", ProseRun(host.Decorator).Text.String);
+            Assert.Equal(0, host.Veils.Places);
+            Assert.False(host.Veils.HoldsText);
+            Assert.Equal(0, frames.Pending);
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            host.Window.Close();
+        }
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "UI-THEME-047")] // StreamVeil.swift:4-8, :10-12 (each append registers the new tail as a chunk); ThreadRuntime.swift:3248-3265
+    [Trait("Decision", "OD-0076")]
+    public void The_words_that_arrive_with_the_end_of_the_stream_dissolve_in_before_the_reply_is_drawn_as_prose_runs(bool links) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var lead = links ? $"Read [notes]({Local}) now" : "Hello";
+        var host = new StreamVeilFlowHost(runtime, lead);
+        try
+        {
+            var settled = links ? 1.0 : Runs(host.Decorator)[0].Opacity;
+            // The last delta and the completion land together: " there" was never on screen while the reply streamed.
+            host.Finish(runtime, lead + " there");
+            var atEnd = Runs(host.Decorator);
+            Assert.Equal(" there", atEnd[^1].Text);
+            Assert.Equal(0, atEnd[^1].Opacity, 0.001); // a chunk starts at nothing
+            Assert.Empty(host.Decorator.GetVisualDescendants().OfType<ProseRunView>());
+
+            Tick(runtime, frames, 100);
+            Assert.Equal(settled * Alpha(0.25), Runs(host.Decorator)[^1].Opacity, 0.01);
+
+            Tick(runtime, frames, 400);
+            Assert.Equal((links ? "Read notes now" : "Hello") + " there", ProseRun(host.Decorator).Text.String);
+            Assert.Equal(0, host.Veils.Places);
+            Assert.False(host.Veils.HoldsText);
+            Assert.Equal(0, frames.Pending);
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            host.Window.Close();
+        }
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "UI-THEME-047")] // MarkdownView.swift:69-83; StreamVeil.swift:245 (@State per view: each thinking step is a MarkdownView of its own, ThreadTimeline.swift:2158)
+    [Trait("Decision", "OD-0076")]
+    public void A_step_that_ends_with_nothing_in_flight_is_drawn_as_prose_runs_at_once_while_another_step_still_dissolves(bool otherIsLink) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var veils = new MarkdownVeils();
+        var first = veils.Root.Child("s1");
+        var second = veils.Root.Child("s10"); // a name the first one's is a prefix of
+        var other = otherIsLink ? $"Read [notes]({Local}) now" : "There";
+        Window window = null!;
+        StackPanel panel = null!;
+        runtime.OnMain(() =>
+        {
+            panel = new StackPanel { Children = { new MarkdownView("Hello", isStreaming: true, first), new MarkdownView(other, isStreaming: true, second) } };
+            window = Show(panel);
+        });
+        try
+        {
+            // The second step (a link paragraph or a plain one) takes a flush: its words dissolve and its place keeps its text.
+            runtime.OnMain(() => { panel.Children[1] = new MarkdownView(other + " please", isStreaming: true, second); Pump(); });
+            Tick(runtime, frames, 100);
+            Assert.Equal(2, veils.Places);
+
+            // The first step ends with nothing of its own in flight: it is the prose runs at once, whatever the other step still does.
+            runtime.OnMain(() =>
+            {
+                var ended = new MarkdownView("Hello", isStreaming: false, first);
+                Assert.Single(ended.GetVisualDescendants().OfType<ProseRunView>());
+                Assert.Equal(1, veils.Places); // its own place went, the other step's stays
+                panel.Children[0] = ended;
+                Pump();
+            });
+            var tail = Runs(panel.Children[1])[^1];
+            Assert.Equal(" please", tail.Text);
+            Assert.InRange(tail.Opacity, 0.01, 0.6); // and the other step's words go on dissolving (a quarter through: 0.37 of their colour)
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            runtime.OnMain(window.Close);
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // MarkdownView.swift:69-83 (a finished reply is prose runs); StreamVeil.swift:18-19 (a veil that attaches adopts what is on screen)
+    [Trait("Decision", "OD-0076")]
+    public void A_reply_that_ends_after_a_reset_has_nothing_to_carry_on_and_is_drawn_as_prose_runs_at_once() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var host = new StreamVeilFlowHost(runtime, "Hello");
+        try
+        {
+            host.Flush(runtime, "Hello there");
+            Tick(runtime, frames, 100);
+            runtime.OnMain(() => host.Veils.Reset()); // the row left the screen with " there" in flight: what it shows when it is back is the baseline
+            host.Finish(runtime, "Hello there and more");
+            Assert.Equal("Hello there and more", ProseRun(host.Decorator).Text.String);
+            Assert.Equal(0, host.Veils.Places);
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            host.Window.Close();
+        }
+    });
+
     [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:291-295 and :245 (@State per view), for the thinking steps: each step is a MarkdownView of its own (ThreadTimeline.swift:2158)
     public void A_step_that_stops_streaming_releases_its_own_places_and_those_of_no_other_step() => headless.OnUiThread(() =>
