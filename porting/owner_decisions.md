@@ -827,3 +827,15 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 
 - **Owner ruling, 2026-10-03 (chat, after a still of the reference video at 34.4 s, `work/reference-video/study/effort-title-2026-10-03/popover_above_chip_34.4.png`, showing the model and effort popover above the "Sonnet High" chip with a small pointed tip at the middle of its bottom edge aimed at the chip; the port's popovers have no tip and touch the chip):** asked whether the port's popovers should get the Mac-style tip, the owner chose: "Yes: every popover (the model and effort menu, and the others built the same way) gets the small tip pointing at its button, and sits at the Mac's distance from it."
 - **Effect:** every popover the source presents with SwiftUI `.popover` (an NSPopover) is drawn in the port with the Mac's arrow: a small tip centred on the anchor, on the edge facing it (the arrow edge the source names, flipped with the popover when there is no room), the card at the Mac's distance from the anchor (the video: the card's edge about 11 pt from the chip, the tip about 24 pt wide), the tip part of the card's own shape and material (one outline, one fill, one shadow), and the grow-in and shrink-out from the tip as the port's PopoverAppear already does. Measured from the reference videos (every popover they show) and checked against macOS's own popover geometry; built test-first. This settles the tip and the distance only; the card's corners and material stay with the glass pass (OD-0005).
+
+## OD-0096 A "Getting ready" screen on first run, while the app prepares everything
+
+- **Owner ruling, 2026-10-03 (chat, after the jewel-knob warm-up measured two ~115 ms render-thread stalls at startup while it compiles the knob's GPU programs, ED-252):** "You can add "Getting ready for first run" screen/menu while the first run loads and prepares everything?" Taken as a yes: the owner asks for it.
+- **Effect:** on the first run after install (and again only when the prepared state is invalid: a new GPU or driver, or a new app build), the window first shows a "Getting ready" screen, in the app's glass language, before the Mac's own first screen (`WelcomeView`, RootView.swift:299, shown while there are no projects). While it is up, the app does its one-time preparation, where a stall cannot be seen:
+  - compiling and caching the GPU programs (the jewel knob, composer lights, liquid track and strike; the persistent program cache of ED-252);
+  - the hardware check that picks the voice model (OD-0092);
+  - any other first-run setup that would otherwise cost frames.
+
+  It shows real progress and steps (no fake timer), never blocks for longer than the work takes, and hands over to the Welcome screen with a transition (OD-0076: nothing cuts). Later launches skip it.
+- **Process:** this is a new screen, so it is designed first as an interactive variants page (OD-0070). The owner picks, then it is built test-first.
+- **Not yet decided:** the words, the look, and whether model downloads happen here or on first use. These are set on the variants page.
