@@ -44,6 +44,7 @@ public sealed class ThreadTimeline : Decorator
     private readonly TimelineRevealBox revealBox = new(); // :90
     private bool anchorsBottomOnGrowth = true; // :74
     private double viewportHeight; // :52
+    private double paneWidth; // :52 `@State private var paneWidth: CGFloat = 0`: the scroll view's width, for the stepped layout width.
     private ScrollViewer? currentScroll;
     // :384-440 the ScrollView is one view for the life of the timeline: its geometry handler sees every change as old ->
     // new. Each draw swaps only its content; these are the current draw's pieces the long-lived handlers read.
@@ -169,8 +170,7 @@ public sealed class ThreadTimeline : Decorator
                 if (earlier is not null) body.Children.Add(earlier);
                 body.Children.Add(rows);
                 var sentinel = new Border { Height = 1, Background = Brushes.Transparent }; body.Children.Add(sentinel); // :402-409
-                var resize = AppEnvironment.GetWindowLiveResize(this);
-                var width = SteppedWidth(resize.IsReshaping, Bounds.Width, model.Sidebar.IsSliding, paneWidthAtSlideStart, model.Sidebar.SlideDelta);
+                var width = CurrentLayoutWidth();
                 Control column;
                 if (drawnColumn is Grid kept) { column = kept; kept.Width = width ?? double.NaN; }
                 else column = CreateColumn(body, SteppedHeight(columnHeight, 0, 0), width);
@@ -183,7 +183,7 @@ public sealed class ThreadTimeline : Decorator
                     tracking.HoldEnd(1.5);
                     scroll = new ScrollViewer { Template = TimelineScrollTemplate, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
                     currentScroll = scroll;
-                    scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); if (drawnColumn is { } current) current.MinHeight = viewportHeight; }; // :446-449
+                    scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); if (drawnColumn is { } current) current.MinHeight = viewportHeight; paneWidth = scroll.Bounds.Width; RefreshLayoutWidth(); }; // :446-450
                     var oldMetrics = new ScrollMetrics();
                     scroll.ScrollChanged += (_, change) =>
                     {
@@ -242,12 +242,29 @@ public sealed class ThreadTimeline : Decorator
             if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window window) { FrontMonitor.Shared.Current.Observe(window); tracking.Probe = this; }
         };
         this.Track(() => FrontMonitor.Shared.Current.Revision, _ => { if (FrontMonitor.Shared.Current.Concerns(TopLevel.GetTopLevel(this) as Avalonia.Controls.Window)) tracking.NoteReturnToFront(); });
-        this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { if (!active) SettleAfterResize(); else if (scrollFrame is not null) { scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; } });
-        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsSliding, sliding => { if (sliding) paneWidthAtSlideStart = Bounds.Width; });
+        // :59-67 layoutWidth is read by the body, which runs again when the reshape starts or ends, when the pane's width moves (onGeometryChange,
+        // :450) and while the sidebar slides: the stepped width follows all of them, and the exact width lands when the drag ends (:454-457).
+        this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { RefreshLayoutWidth(); if (!active) SettleAfterResize(); else if (scrollFrame is not null) { scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; } });
+        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsSliding, sliding => { if (sliding) paneWidthAtSlideStart = paneWidth; RefreshLayoutWidth(); }); // :458-462
+        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.SlideDelta, _ => RefreshLayoutWidth());
     }
 
     // :59-67. No lower clamp in the ordinary width branch; only the sidebar-slide target is clamped to 12.
     private static double? SteppedWidth(bool reshaping, double paneWidth, bool sliding, double slideStart, double slideDelta) => !reshaping || paneWidth <= 0 ? null : sliding && slideStart > 0 ? Math.Min(860, Math.Max(ResizeStep, slideStart + slideDelta)) : Math.Min(860, Math.Floor(paneWidth / ResizeStep) * ResizeStep);
+    // :59-67 private var layoutWidth: CGFloat? with this view's own inputs.
+    private double? CurrentLayoutWidth()
+    {
+        var model = AppEnvironment.GetAppModel(this);
+        return SteppedWidth(AppEnvironment.GetWindowLiveResize(this).IsReshaping, paneWidth, model.Sidebar.IsSliding, paneWidthAtSlideStart, model.Sidebar.SlideDelta);
+    }
+
+    // :418 .frame(width: layoutWidth, alignment: .leading), taken again whenever one of layoutWidth's inputs changed.
+    private void RefreshLayoutWidth()
+    {
+        if (drawnColumn is not { } column) return;
+        column.Width = CurrentLayoutWidth() ?? double.NaN;
+    }
+
     // :446-449,891-893
     private static double SteppedHeight(double height, double topInset, double bottomInset) => Math.Floor(Math.Max(0, height - topInset - bottomInset) / ResizeStep) * ResizeStep;
     // :416-422,325. The star row is Spacer(minLength: 0), not a fixed gap.
