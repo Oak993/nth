@@ -651,7 +651,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var texts = window.GetVisualDescendants().OfType<TextBlock>().ToArray();
             Assert.Contains(texts, text => text.Text == "Standard");
             var note = Assert.Single(texts, text => text.Text == "This model has one reasoning level.");
-            Assert.Equal(48, note.Height); // OD-0090: the thumb size the note takes is the 48 px knob
+            Assert.Equal(48, Assert.IsAssignableFrom<Panel>(note.Parent).Height); // OD-0090: the thumb size the note's slot takes is the 48 px knob (the line is centred in it)
             Assert.Equal(12, note.FontSize);
             Assert.Empty(window.GetVisualDescendants().OfType<EffortSlider>());
             window.Close();

@@ -356,7 +356,7 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-142")] // App/Views/Composer/EffortSlider.swift:286 a locked cross-provider row makes every row 46 even with one listed provider
-    public void A_locked_cross_provider_row_makes_every_row_46_tall_even_beside_the_chats_own() => headless.OnUiThread(() =>
+    public void Rows_stay_34_tall_when_the_chat_has_history_but_every_row_is_its_own_provider() => headless.OnUiThread(() =>
     {
         using var env = Make(() => new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "c1", "medium", RuntimeMode.Supervised),
             model => { foreach (var option in Options("c", 2)) model.Settings.AddToModelList(Pin(ProviderKind.Codex, option.Id)); },

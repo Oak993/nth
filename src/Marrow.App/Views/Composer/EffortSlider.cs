@@ -590,8 +590,10 @@ public sealed class EffortSliderCard : Decorator
         var sliderSlot = new Panel(); rows.Children.Add(sliderSlot);
         if (efforts.Count == 0)
         {
+            // :620-624 .frame(height: EffortSlider.thumbSize): the slot the slider would fill, with the line centred in it (a TextBlock
+            // given that height draws its line at the top, so the slot is the Panel and the line sits in the middle of it)
             var note = EffortView.Text("This model has one reasoning level.", SwiftFont.Callout, Chrome.SecondaryText);
-            note.Height = EffortSlider.ThumbSize; note.HorizontalAlignment = HorizontalAlignment.Center; sliderSlot.Children.Add(note); // :620-624
+            sliderSlot.Height = EffortSlider.ThumbSize; note.HorizontalAlignment = HorizontalAlignment.Center; note.VerticalAlignment = VerticalAlignment.Center; sliderSlot.Children.Add(note);
         }
         // :642-651 `if let pair, !efforts.isEmpty { Text(...).transition(.softAppear) }`: a transition runs only for a view that
         // joins or leaves a card already on screen (SwiftUI). A card made with a pair has its caption whole from its first paint
@@ -829,7 +831,7 @@ public sealed class EffortSlider : Decorator
     private bool fastMode;
     private EffortPairBrand? pair;
     private SwiftColor?[] stopTargets = [];
-    private readonly Canvas canvas = new();
+    private readonly Canvas canvas = new() { Background = Brushes.Transparent }; // :800 .contentShape(.rect): the whole frame takes a press, the knob's proud 7 px above and below the track and the rounded ends too
     private readonly Border track = new() { Height = TrackHeight };
     private readonly Border fill = new() { Name = "EffortFill", Height = TrackHeight };
     private readonly Panel effects = new();
