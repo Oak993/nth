@@ -87,7 +87,7 @@ public sealed class TimelineRowsBlitzAbBlockTests(HeadlessSession headless)
             var turn = Guid.NewGuid();
             var finished = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty, new ValueList<TimelineEntry>([Tool(ToolCall.Kind.Command), Reply("an answer")]), null, false, true);
             foreach (var row in new Control[] { todo, file, finished }) panel.Children.Add(row);
-            var window = Show(new ScrollViewerlessHost(panel));
+            var window = Show(new Border { Child = panel });
             try
             {
                 foreach (var (name, row) in heads)
@@ -102,11 +102,6 @@ public sealed class TimelineRowsBlitzAbBlockTests(HeadlessSession headless)
             finally { Close(window); }
         });
     });
-
-    private sealed class ScrollViewerlessHost : Decorator
-    {
-        public ScrollViewerlessHost(Control child) => Child = child;
-    }
 
     [Fact]
     [Trait("Req", "PR-CHAT-020")] // TimelineRows.swift:164, :326, :417, :589, :1017, :2369; ChatBadge.swift:77: the 96-point side insets of the rows, laid out

@@ -175,6 +175,54 @@ public sealed class TimelineRowsBlitzAbUserTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-079")] // TimelineRows.swift:1328-1331 contentShape pinned to the cell, :1295-1304 a fill image overflowing its plate; the tap opens the strip's one shared panel on the tapped photo
+    public void A_wide_picture_that_overflows_its_plate_never_takes_a_neighbours_tap_and_each_tap_opens_the_shared_preview_for_its_own_photo() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presenter = new TimelineRowsPrPopupPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var first = Path.Combine(h.Project.Path, "wide-one.png");
+        var second = Path.Combine(h.Project.Path, "wide-two.png");
+        AttachmentStrip strip = null!;
+        AvaloniaWindow window = null!;
+        h.Main.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow;
+            // Eight by two pixels: drawn aspect-fill into a square, it is wider than its 56-point plate before it is clipped.
+            foreach (var path in new[] { first, second }) ThumbnailMemory.Store(new DecodedBitmap(8, 2, 32, [.. Enumerable.Repeat(new byte[] { 40, 40, 200, 255 }, 16).SelectMany(pixel => pixel)]), path, 56);
+            strip = new AttachmentStrip(new ValueList<Attachment>([
+                new Attachment { Name = "wide-one.png", Path = first, MimeType = "image/png" },
+                new Attachment { Name = "wide-two.png", Path = second, MimeType = "image/png" }]));
+            window = Show(new Border { Child = strip, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(20) });
+            var thumbnails = Mounted<AttachmentThumbnail>(strip).ToList();
+            var cells = thumbnails.Select(thumbnail => BlitzAbRender.BoxIn(thumbnail, window)).ToList();
+            // The neighbour's first point and this plate's last point belong to their own cells (6 apart): a press there reaches that cell's button.
+            Control? Hit(double x, double y) => (window.InputHitTest(new Point(x, y)) as Visual)?.GetSelfAndVisualAncestors().OfType<AttachmentThumbnail>().FirstOrDefault();
+            Assert.Same(thumbnails[0], Hit(cells[0].Right - 1, cells[0].Top + 28));
+            Assert.Same(thumbnails[1], Hit(cells[1].Left + 1, cells[1].Top + 28));
+            Assert.Null(Hit(cells[0].Right + 3, cells[0].Top + 28)); // the gap between them belongs to neither, however far the pictures overflow
+            Assert.Equal(6, cells[1].Left - cells[0].Right, 0.5);
+            Assert.All(cells, cell => { Assert.Equal(56, cell.Width, 0.5); Assert.Equal(56, cell.Height, 0.5); }); // the hit area is the 56-point cell, whatever is drawn in it
+            Hover(window, thumbnails[1]); // a tap always follows a hover (:1332-1334)
+        });
+        h.Main.OnMain(() =>
+        {
+            Settle(window);
+            Click(window, Mounted<Button>(Mounted<AttachmentThumbnail>(strip).Last()).Single());
+        });
+        h.Main.OnMain(() =>
+        {
+            try
+            {
+                Settle(window);
+                Assert.Equal(1, presenter.Calls.Count(call => call.Presented)); // one shared panel for the strip, opened by one tap
+            }
+            finally { Close(window); }
+        });
+    });
+
     // ---- PR-CHAT-080: the pencil ----
 
     [Fact]

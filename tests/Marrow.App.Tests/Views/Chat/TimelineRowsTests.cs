@@ -4644,24 +4644,31 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // TimelineRowsTimelineScenarioTests and TimelineRowsCaptureTests, or the earlier Req tests re-verified by mutation):
 // PR-CHAT-077, -089, -105, -106, -123, -125, -144, -155, -166; PR-GIT-122, -151, -152;
 // PR-HYDRAMERGE-088, -090, -104, -105. (PR-CHAT-113 was listed here and is back below after the adversarial review of
-// 2026-10-03: a record/source conflict. PR-CHAT-080 was listed here and is back below after round 3 of that review: blocked
-// on ThreadTimeline.Draw.)
-// Records: PR-CHAT-020; PR-CHAT-078; PR-CHAT-079; PR-CHAT-080; PR-CHAT-082; PR-CHAT-088.
-// Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
-// Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-108; PR-CHAT-109.
-// Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
-// Records: PR-CHAT-116; PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
+// 2026-10-03: a record/source conflict. PR-CHAT-080 was listed here and went back below after round 3 of that review, blocked
+// on ThreadTimeline.Draw; that change (unit/parity-threadtimeline a48fd1ae9) is merged and 080 is proven again, next paragraph.)
+// Proven and removed from this note on 2026-10-04 under OD-0098 (unit blitz-timelinerows-ab: every state the Swift names mounted,
+// laid out and rendered headless in both themes, popovers opened by real clicks and read through PopoverHost.Content (OD-0095), each
+// new proof mutation checked; TimelineRowsBlitzAbToolTests, -UserTests, -FileCardTests, -CardTests, -BlockTests):
+// PR-CHAT-020, -078, -080, -082, -088, -092, -094, -098, -100, -101, -104, -109, -110, -111, -112, -114, -116.
+// Records: PR-CHAT-079; PR-CHAT-099; PR-CHAT-102; PR-CHAT-108; PR-CHAT-113; PR-CHAT-115.
+// Records: PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
 // Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.
 // Records: PR-CHAT-153; PR-CHAT-154; PR-CHAT-161; PR-COMPOSER-211.
 // Records: PR-HYDRAMERGE-101; PR-HYDRAMERGE-102; PR-HYDRAMERGE-103; PR-HYDRAMERGE-106; PR-HYDRAMERGE-107; PR-HYDRAMERGE-108.
-// Capture comparisons with no frame in the reference video (UNRESOLVED until a capture exists): PR-CHAT-078 (quote chips),
-// -082 (the confirmation dialog), -088 (the reply's duration hover line), -092, -094 (seven of the eight kinds), -098, -099,
-// -100, -101, -104 (expanded state), -109, -110, -111, -112, -114, -115 (info and warning, light theme), -146, -147, -148,
+// Capture comparisons with no frame in the reference video (UNRESOLVED until a capture exists): PR-CHAT-146, -147, -148,
 // -150, -151, -152, -153 (running and failed), -154, PR-COMPOSER-211, PR-HYDRAMERGE-101, -102, -103, -106, -107.
-// In a frame but drawn in an ED-181 .continuous shape (STOP opencode #1): PR-CHAT-079 (plate), -108 (Edited card),
-// -143 (report pill), -153 (sent badge). PR-CHAT-020 also needs the per-site static check (STOP cloud #13).
-// PR-CHAT-116: the video gives the reference formatter's "5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
-// (catalogue static.timeline-rows); 0 s, a negative interval and the hour cases (3599, 3725 s) appear in no frame.
+// What is left of this unit's records after OD-0098 (2026-10-04, unit blitz-timelinerows-ab; everything else of them is proven):
+// - CORNER-ONLY: PR-CHAT-079 (the attachment plate), -108 (the Edited card; its 40-point height is the frame's, measured on
+//   2-chat-use.mov 9.0 s), -143 (the report pill): in a frame, drawn in an ED-181 .continuous shape (STOP opencode #1).
+// - PR-CHAT-115: the error notice is in a frame (2-chat-use.mov 9.0 s, "No message found ...") and its pill measures 33 points tall
+//   there against 31 in the port (the first-baseline row of an SF symbol against a Lucide one, ED-182 / O-63), with its corner
+//   ED-181's; info and warning, and the light theme, are proven under OD-0098.
+// - PR-CHAT-099: the running spinner is `.controlSize(.mini)`; no source value, no kit symbol (the macOS 27 kit has the small and the
+//   regular spinner only) and no frame gives its size, and the port draws the small one: OWNER. The other states are proven.
+// - PR-CHAT-102, -113: record vs source (below). PR-CHAT-145: NATIVE-ONLY (the first tap's frame time).
+// Defects found and fixed by that unit: ChatBadge's pill was set to its radius directly and so would have stayed circular when the
+// ED-181 curve lands (now through the helper, as every other pill); TodoListRow built its update inside the snappy transaction
+// but changed every colour and row at once (now tweened and faded, :2372).
 // PR-CHAT-102: record vs source (STOP opencode #2): RecentCache(limit: 60) keeps two generations, so more than sixty
 // parsed files can be held; the record's "at most sixty" needs correcting before a counting test can claim it.
 // PR-CHAT-145, PR-HYDRAMERGE-108: the first-tap frame time / first-open latency must be measured on a quiet PC (native
@@ -4682,7 +4689,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // only moved to another stack, as ThreadTimeline.Draw does on every change, keeps its menu); the GC release asked for cannot
 // be observed headless: Avalonia 12.1.2 keeps any element that took a pointer press reachable after it leaves the tree (a
 // bare Border the same way), so the record's unit stays unproven by GC.
-// Observed (measured, not inferred), outside this unit (ThreadTimeline.Draw): a real Avalonia Popup closes itself in the Remove
+// History, before the ThreadTimeline change below was merged: observed (measured, not inferred), outside this unit (ThreadTimeline.Draw): a real Avalonia Popup closes itself in the Remove
 // call that takes its placement target out of the tree (probed 2026-10-03 with the overlay presenter, the row's handler disabled
 // too), and ThreadTimeline.Draw takes every kept row out of its stack and puts it into a new one on each change of the thread.
 // So on the real timeline every popover whose placement target is a view inside a row closes when another row arrives, whatever
@@ -4694,10 +4701,11 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // (:1864-1867, on the row's content), the merge outcome's report (on its title, :1111-1120) and the turn-end card's files
 // popover and revert confirmation (on the files label and the revert disc, :2742-2766, :2777). Badge popovers (ChatBadge and
 // the badgePopover modifier: the plan, the Hydra report, heads and brief pills) hang from the window and are not affected (the
-// overlay-presenter tests of TimelineRowsParityScenarioTests; the reviewer's probe of a Hydra note's report). Needed:
-// ThreadTimeline.Draw keeping its kept rows in place, as the eager VStack does (ThreadTimeline.swift:384-391): the ThreadTimeline
-// unit's change, made on its own branch (unit/parity-threadtimeline a48fd1ae9, "a pass diffs the stack of rows instead of
-// rebuilding it") and not here.
+// overlay-presenter tests of TimelineRowsParityScenarioTests; the reviewer's probe of a Hydra note's report).
+// RESOLVED (checked 2026-10-04): the ThreadTimeline change that keeps its kept rows in place (unit/parity-threadtimeline a48fd1ae9,
+// "a pass diffs the stack of rows instead of rebuilding it") is an ancestor of staging 6c2be4982, and the message editor stays open
+// on the real timeline while another row arrives (TimelineRowsParityReview2Tests.REVIEW_An_open_message_editor_stays_open_...,
+// TimelineRowsTimelineScenarioTests) and across a row leaving and returning (TimelineRowsBlitzAbUserTests, PR-CHAT-080).
 // PR-CHAT-080 (round 3 of the adversarial review, 2026-10-03): BLOCKED on that change. The record's cancellation clause ("The
 // editor closes when the row disappears") and its windows_path ("must leave the editor open exactly where it was") fail on the
 // real Popup: an entry arriving below an open editor (a row that never disappeared) closes it once, and the anchor capture opens
