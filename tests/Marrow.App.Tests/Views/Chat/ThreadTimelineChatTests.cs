@@ -315,5 +315,21 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             h.Main.OnMain(() => model.Sidebar.BeginDrag()); Drain(h);
             Dock(true); Assert.Equal(0, Offset());
             h.Main.OnMain(() => model.Sidebar.EndDrag()); Drain(h);
+            Dock(false); Rest();
+            // A panel's grip held (a panel being resized), and the terminal's: held. The padding lands in one layout all the same.
+            var grips = Field<PanelResizeState>(view, "panelResize");
+            h.Main.OnMain(() => grips.Begin(new Size(300, 200))); Drain(h);
+            Dock(true); Assert.Equal(0, Offset()); Assert.True(Timeline(view).Margin.Left > 0);
+            h.Main.OnMain(() => grips.End()); Drain(h); Dock(false); Rest();
+            h.Main.OnMain(() => runtime.IsTerminalResizing = true); Drain(h);
+            Dock(true); Assert.Equal(0, Offset());
+            h.Main.OnMain(() => runtime.IsTerminalResizing = false); Drain(h); Dock(false); Rest();
+            // A thread switch: the scene is of another thread than the runtime's, so nothing glides.
+            var scene = typeof(ChatView).GetField("sceneThreadID", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            var own = scene.GetValue(view); scene.SetValue(view, Guid.NewGuid());
+            Dock(true); Assert.Equal(0, Offset());
+            scene.SetValue(view, own); Dock(false); Rest();
+            // Nothing holding it: it glides again.
+            Dock(true); Assert.True(Offset() < 0, $"offset {Offset()}"); Rest();
         });
 }
