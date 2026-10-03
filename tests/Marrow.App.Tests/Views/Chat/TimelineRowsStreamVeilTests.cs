@@ -358,6 +358,7 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
         Tick(h, frames, window, 1000);
 
         h.Main.OnMain(() => Click(window, Header())); // fold: the steps leave the screen
+        Tick(h, frames, window, 1000); // the body closes with the glide it opens with (ThreadTimeline.swift:2107-2119, ED-255), and is gone when it is done
         Assert.Empty(Mounted<MarkdownView>(indicator));
         h.Main.OnMain(() => { Steps("Hmm let me see what"); Settle(window); }); // the reasoning goes on while they are folded
         h.Main.OnMain(() => Click(window, Header())); // open again

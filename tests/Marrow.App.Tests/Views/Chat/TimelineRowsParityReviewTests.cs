@@ -201,7 +201,7 @@ public sealed class TimelineRowsParityReviewTests(HeadlessSession headless)
                 {
                     ("notice", CursorOver(Assert.Single(notice.GetVisualDescendants().OfType<SelectableTextBlock>()))),
                     ("bubble", CursorOver(Assert.Single(bubble.GetVisualDescendants().OfType<SelectableTextBlock>()))),
-                    ("code", CursorOver(Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<SelectableTextBlock>()))),
+                    ("code", CursorOver(Assert.Single(Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<VeiledText>()).GetVisualDescendants().OfType<SelectableTextBlock>()))), // the code lines' text, in the block's VeiledText (the header's caption is a SelectableTextBlock too, selectable only where an ancestor enables text selection: ED-259)
                 };
                 Assert.All(cursors, pair => Assert.True(pair.Item2 == "Ibeam", $"{pair.Item1}: {pair.Item2 ?? "arrow (no cursor)"}"));
             });
