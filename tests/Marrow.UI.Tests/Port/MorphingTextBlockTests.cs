@@ -150,7 +150,7 @@ public sealed class MorphingTextBlockTests(HeadlessSession headless)
     // drew it as an outline, greyscale and thinner, so it snapped at both ends; REVIEW ede6bf6fa). "2024" -> "2025" keeps
     // "202" where it stands; its pixels stay those of the label at rest at every scale.
     [Theory]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     [InlineData(1.0)]
     [InlineData(1.25)]
     [InlineData(1.5)]

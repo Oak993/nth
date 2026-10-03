@@ -52,7 +52,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
     // colour together (Extra High -> Max), the arriving letters wear the new colour from their first frame (an orange
     // "M", R/G 1.4 over the glass, beside the pink leaving "High"); only a colour change without a new text fades.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void A_title_that_morphs_into_new_letters_draws_them_in_the_new_colour_at_once() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -77,7 +77,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
     // SOURCE FACT (reference runtime, 2-chat-use.mov 35.12-35.29 s): as "Extra High" narrows to "Max", the leaving "High"
     // is carried right past the chevron and fades there, raised; a plain SwiftUI button does not clip its label.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void Leaving_letters_carried_past_the_chevron_are_drawn_not_clipped() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

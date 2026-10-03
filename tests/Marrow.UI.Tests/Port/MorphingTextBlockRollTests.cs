@@ -33,7 +33,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     private static readonly Animation Slider = Animation.Snappy(0.2);
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void Arriving_letters_rise_from_below_and_leaving_letters_rise_away_upward()
     {
         Assert.InRange(MorphingTextBlock.Travel, 0.35, 0.45);
@@ -52,7 +52,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void Only_a_common_beginning_or_end_is_kept()
     {
         Assert.Equal([(0, 6), (1, 7), (2, 8), (3, 9)], MorphingTextBlock.KeptLetters("High", "Extra High"));
@@ -67,7 +67,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void The_letters_go_left_to_right_over_about_0_14_s_whatever_their_number()
     {
         Assert.InRange(MorphingTextBlock.SpreadShare * Slider.Duration, 0.12, 0.16);
@@ -88,7 +88,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void Each_letter_follows_the_changes_own_curve_from_its_turn()
     {
         var wait = MorphingTextBlock.ArrivalShare * Slider.Duration;
@@ -103,7 +103,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void The_morph_runs_until_its_last_letter_has_settled() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -131,7 +131,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void A_morph_draws_the_leaving_letters_above_the_line_and_the_arriving_ones_below_it() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -160,7 +160,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     // Video, the 6 Luna pair: as "Extra" arrives the kept "High" glides right through the colours (blue, green, purple
     // at 184.50 s where it was orange and blue at rest), the gradient spanning the new text from the frame's edge.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void A_gradient_spans_the_new_text_so_gliding_letters_pass_through_its_colours() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -186,7 +186,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void A_gradient_title_shows_nothing_outside_the_new_texts_box() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -248,7 +248,7 @@ public sealed class MorphingTextBlockRollTests(HeadlessSession headless)
     // Video 35.12-35.40 s: the arriving orange "M" of Max has its left edge at x 150-152 from its first frame to the end,
     // while the centred label's leading edge is still narrowing towards it.
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void In_a_centred_label_arriving_letters_appear_where_they_will_settle() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
