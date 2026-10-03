@@ -123,8 +123,20 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     /// <summary>Where along that edge the tip's centre is, from the card's left or top; null: the middle.</summary>
     public double? TipOffset { get => GetValue(TipOffsetProperty); set => SetValue(TipOffsetProperty, value); }
 
-    /// <summary>The control the popover hangs from: the tip turns to face it and points at its middle.</summary>
-    public Control? Anchor { get; set; }
+    /// <summary>The control the popover hangs from: the tip turns to face it and points at its middle. Read live from
+    /// <see cref="AnchorSource"/> when there is one (a Popup shown again from another control while it still shows moves to
+    /// that control, and the tip follows it), else the control set here.</summary>
+    public Control? Anchor
+    {
+        get => AnchorSource is { } source ? source() : anchor;
+        set => anchor = value;
+    }
+
+    private Control? anchor;
+
+    /// <summary>Where the anchor is read from after every layout, for a popover whose anchor can change while its card stays
+    /// (PopoverHost: the popup's PlacementTarget).</summary>
+    public Func<Control?>? AnchorSource { get; set; }
 
     /// <summary>The rect in the anchor's own coordinates the popover was shown relative to (NSPopover.show(relativeTo:of:),
     /// a Popup's PlacementRect), read after every layout; null: the whole anchor.</summary>

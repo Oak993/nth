@@ -362,6 +362,11 @@ public sealed class PopoverCardTests(HeadlessSession headless)
             Assert.True(popup.IsOpen);
             var card = Assert.IsType<PopoverCard>(popup.Child);
             Assert.Same(built, card.Child);
+            // On screen, not only the popup's Child: Avalonia 12.1.2 gives its host the child once, when the popup opens, so
+            // the content a site sets while it is open has to be given to the host (PopoverHost.Follow).
+            Assert.True(Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(card), "the card the content hangs on is not shown");
+            Assert.True(Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(built), "the content built once the popup had opened is not shown");
+            Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<PopoverCard>()); // and the placeholder's card is gone
         }
         finally
         {
