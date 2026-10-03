@@ -335,4 +335,28 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         var chevron = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(turn.Row), image => image.SymbolName == "chevron.right");
         Assert.Equal(0, Assert.IsType<Avalonia.Media.RotateTransform>(chevron.RenderTransform).Angle);
     });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-155 (the timeline's half: a running turn renders its heads after its other rows and before the working line, and under the folded turn once it ends); ThreadTimeline.swift:1955-1958,1985-1989; the folded turn's own layout is TimelineRowsFinTurnBlockTests
+    public void A_running_turn_shows_its_heads_after_its_rows_and_above_the_working_line_and_the_heads_stay_under_the_answer_when_it_folds() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Model.Settings.ShowReasoning = true;
+        var entries = new List<TimelineEntry> { User("prompt", Turn, "send out two heads"), Entry("note", new TimelineItem.Content.Notice(new Marrow.Core.Models.Notice { NoticeLevel = Marrow.Core.Models.Notice.Level.Warning, Message = "a warning" }), Turn), ToolEntry("head-a", Turn, head: true), ToolEntry("run", Turn), ToolEntry("head-b", Turn, head: true) };
+        mount.SetEntries(entries); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle();
+        var block = mount.Blocks().Last().Row;
+        double Top(Control control) => control.TranslatePoint(default, mount.Column)!.Value.Y;
+        var user = LogicalQuery.SelfAndDescendants<UserMessageRow>(block).Single(); var notice = LogicalQuery.SelfAndDescendants<NoticeRow>(block).Single();
+        var heads = LogicalQuery.SelfAndDescendants<HydraHeadsList>(block).Single(); var line = LogicalQuery.SelfAndDescendants<WorkingIndicator>(block).Single();
+        // The heads are one list after the turn's own rows and before the working line, never inside it.
+        Assert.True(Top(user) < Top(notice) && Top(notice) < Top(heads) && Top(heads) + heads.Bounds.Height <= Top(line), "rows, heads, working line");
+        Assert.Equal(2, LogicalQuery.SelfAndDescendants<ToolRow>(heads).Count()); Assert.Empty(LogicalQuery.SelfAndDescendants<HydraHeadsList>(line));
+        // Their badges stack 8 points apart (not at the row spacing).
+        var badges = LogicalQuery.SelfAndDescendants<ToolRow>(heads).ToList();
+        Assert.Equal(8, Top(badges[1]) - (Top(badges[0]) + badges[0].Bounds.Height), 1);
+        // The turn ends with an answer: folded, the heads sit under the response and the working line is gone.
+        mount.SetEntries(entries.Append(Reply("answer", Turn, "Both heads are out.")).Append(End("end", Turn)).ToList()); mount.SetPhase(RuntimePhase.Idle); mount.Advance(900);
+        var folded = mount.Blocks().Last().Row; var answer = LogicalQuery.SelfAndDescendants<FoldedAnswerView>(folded).Single(); var under = LogicalQuery.SelfAndDescendants<HydraHeadsList>(folded).Single();
+        Assert.True(Top(answer) + answer.Bounds.Height <= Top(under), "the heads under the response");
+        Assert.Empty(LogicalQuery.SelfAndDescendants<WorkingIndicator>(folded));
+    });
 }
