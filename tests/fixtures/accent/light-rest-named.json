@@ -1,0 +1,162 @@
+{
+ "still": "rest-named",
+ "note": "Theme Catppuccin Latte, accent the theme's own (first swatch), Signature line open",
+ "sample": {
+  "card": [
+   237,
+   89,
+   520,
+   273
+  ],
+  "ringC": {
+   "x": 0,
+   "o": 1,
+   "s": 1
+  },
+  "ringS": {
+   "x": 0,
+   "o": 0,
+   "s": 0.8
+  },
+  "fold": {
+   "h": 36,
+   "o": 1,
+   "rowY": 0
+  },
+  "more": {
+   "cls": "more open",
+   "ringO": 0,
+   "ringS": 0.9,
+   "lab": [
+    {
+     "t": "Less",
+     "o": 1
+    }
+   ],
+   "labW": 21,
+   "chvO": 0.8,
+   "chvW": 7,
+   "chvML": 0,
+   "chvT": {
+    "a": -1,
+    "b": 0,
+    "e": 0,
+    "f": 0
+   },
+   "dotW": 0,
+   "dotMR": -3,
+   "dotO": 0,
+   "dotS": 0.4,
+   "dotC": "rgba(0, 0, 0, 0)",
+   "mpBg": "rgba(255, 255, 255, 0.55)",
+   "mpT": null,
+   "color": "rgba(28, 28, 30, 0.68)",
+   "outline": "rgba(0, 0, 0, 0)"
+  },
+  "pill": {
+   "l": 161,
+   "w": 125,
+   "bg": "rgb(255, 255, 255)"
+  },
+  "segs": [
+   {
+    "w": 61,
+    "color": "rgba(28, 28, 30, 0.68)",
+    "t": null,
+    "outline": "rgba(0, 0, 0, 0)",
+    "lab": [
+     {
+      "t": "System",
+      "o": 1
+     }
+    ],
+    "labW": 39
+   },
+   {
+    "w": 50,
+    "color": "rgba(28, 28, 30, 0.68)",
+    "t": null,
+    "outline": "rgba(0, 0, 0, 0)",
+    "lab": [
+     {
+      "t": "Light",
+      "o": 1
+     }
+    ],
+    "labW": 28
+   },
+   {
+    "w": 48,
+    "color": "rgba(28, 28, 30, 0.68)",
+    "t": null,
+    "outline": "rgba(0, 0, 0, 0)",
+    "lab": [
+     {
+      "t": "Dark",
+      "o": 1
+     }
+    ],
+    "labW": 26
+   },
+   {
+    "w": 125,
+    "color": "rgb(28, 28, 30)",
+    "t": null,
+    "outline": "rgba(0, 0, 0, 0)",
+    "lab": [
+     {
+      "t": "Catppuccin Latte",
+      "o": 1
+     }
+    ],
+    "labW": 92
+   }
+  ],
+  "themeDetail": [
+   {
+    "t": "Light · Mauve",
+    "o": 1
+   }
+  ],
+  "accDetail": [
+   {
+    "t": "Set by Catppuccin Latte",
+    "o": 0
+   },
+   {
+    "t": "Mauve · the theme's own",
+    "o": 1
+   }
+  ],
+  "mini": {
+   "ac": "rgb(136, 57, 239)",
+   "aon": "rgb(255, 255, 255)",
+   "surf": "rgb(239, 241, 245)",
+   "ink": "rgb(28, 28, 30)"
+  },
+  "win": {
+   "cls": "win wl",
+   "tx": "rgb(28, 28, 30)",
+   "tx2": "rgba(28, 28, 30, 0.68)",
+   "pac": "rgb(136, 57, 239)",
+   "tint": "rgba(239, 241, 245, 0.16)",
+   "cap": "rgba(255, 255, 255, 0.55)",
+   "cardfill": "rgba(0, 0, 0, 0.03)",
+   "ring": "rgba(0, 0, 0, 0.78)",
+   "lightBackdrop": 1
+  },
+  "pop": {
+   "o": 0,
+   "t": {
+    "a": 0.96,
+    "b": 0,
+    "e": 0,
+    "f": -4
+   },
+   "vis": "hidden"
+  },
+  "sw": [],
+  "firstSwatch": "rgb(136, 57, 239)",
+  "focus": null
+ }
+}

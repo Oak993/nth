@@ -63,6 +63,14 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                 Assert.Single(Column(withoutDetail).Children);
                 Assert.Single(Column(emptyDetail).Children);
                 Assert.DoesNotContain(Mounted<SelectableTextBlock>(withoutDetail), block => block.MaxLines == 12);
+                // :2124 .textSelection(.enabled): the detail selects, and a selection is drawn in the system's selected-text colour (a
+                // SelectableTextBlock has no SelectionBrush with no control theme loaded; ED-256 (5); review round 4).
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
+                detail.SelectAll();
+                Assert.Equal(detailText, detail.SelectedText);
+                Assert.True((detail.SelectionBrush as ISolidColorBrush)?.Color == system,
+                    $"the detail: the selection is drawn with {detail.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
             }
             finally { Close(window); }
         });
@@ -95,6 +103,15 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                 Assert.Equal(10, text.FontSize);
                 Assert.Equal(Mono, text.FontFamily);
                 Paints(text.Foreground, SwiftColor.Primary, text, "output text");
+                // :2152 .textSelection(.enabled): the output selects, and a selection is drawn in the system's selected-text colour
+                // (ED-256 (5); review round 4).
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
+                text.SelectAll();
+                Assert.Equal(Lines(30), text.SelectedText);
+                Assert.True((text.SelectionBrush as ISolidColorBrush)?.Color == system,
+                    $"the output: the selection is drawn with {text.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
+                text.ClearSelection();
                 // :2153-2155 padding 10, a 10-point rounded plate of .quaternary at 0.45, as wide as the detail.
                 Assert.Equal(new CornerRadius(10), plate.CornerRadius);
                 Paints(plate.Background, SwiftColor.Quaternary.Opacity(0.45), plate, "output plate");
@@ -140,6 +157,145 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
     });
 
     private static double Top(Control control, Visual root) => control.TranslatePoint(default, root)!.Value.Y;
+
+    // Review round 4 (PR-CHAT-101, found in passing): the detail and the output are SwiftUI Texts with no fixedSize, so a long
+    // line wraps at the width the row offers (:2121-2125; :2150-2155 inside the .frame(maxWidth: .infinity) plate, padded 10).
+    // The detail's .lineLimit(12) counts the lines it wraps into, and a Text cut by its line limit ends its last line in an
+    // ellipsis (SwiftUI's truncationMode .tail, the default; the port's convention for a lineLimit with no truncationMode,
+    // RequestCards.cs:111 and CommandPalette.cs:346; ED-256 (7)). The output has no line limit: all of its
+    // wrapped lines show.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101, UI-CHAT-027 and UI-CHAT-025 (long lines wrap; the detail stops at twelve wrapped lines): TimelineRows.swift:2120-2126, :2149-2155
+    public void A_long_detail_wraps_to_at_most_twelve_lines_ending_in_an_ellipsis_and_a_long_output_line_wraps_inside_its_plate() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var detailText = "run " + string.Join(" ", Enumerable.Repeat("segment", 600));
+            var outputText = "out " + string.Join(" ", Enumerable.Repeat("segment", 120));
+            var view = new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = detailText, Output = outputText });
+            var panel = new StackPanel { Width = 500 };
+            panel.Children.Add(view);
+            var window = Show(panel);
+            try
+            {
+                var detail = Assert.Single(Mounted<SelectableTextBlock>(view), block => block.Text == detailText);
+                Assert.Equal(12, detail.TextLayout.TextLines.Count); // wrapped, and cut at the twelfth line
+                Assert.True(detail.TextLayout.Width <= 500 + 0.5, $"the detail is {detail.TextLayout.Width:0} points wide in a 500-point row");
+                Assert.True(detail.TextLayout.TextLines[^1].HasCollapsed, "the twelfth line does not end in an ellipsis");
+                Assert.All(detail.TextLayout.TextLines.SkipLast(1), line => Assert.False(line.HasCollapsed));
+                Assert.Equal(detailText, detail.Text); // a display limit only
+                var plate = Mounted<Border>(view).Single(border => border.Padding == new Thickness(10));
+                var output = Assert.Single(Mounted<SelectableTextBlock>(plate));
+                Assert.True(output.TextLayout.TextLines.Count > 1, $"the output runs on in one line {output.TextLayout.Width:0} points wide");
+                Assert.True(output.TextLayout.Width <= 500 - 20 + 0.5, $"the output is {output.TextLayout.Width:0} points wide inside a 480-point plate");
+                Assert.DoesNotContain(output.TextLayout.TextLines, line => line.HasCollapsed);
+                Assert.Equal(500, plate.Bounds.Width, 0.5);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    // Review round 5: ED-256 (7) ends a detail cut by its .lineLimit(12) (:2125) in an ellipsis wherever the cut
+    // falls, at a hard line break too (a multi-line command, a heredoc), so the reader can tell the text goes on. Here: the twelfth
+    // line keeps all its words, and takes the ellipsis after them, when both fit the row (thirteen short lines). A detail of exactly
+    // twelve lines is not cut and shows no ellipsis, and neither does a line above the cut. The third case is a line wider than the
+    // row, which wraps: its twelfth wrapped line is cut inside the line, Avalonia's own collapse of a split line (the code of (7) is
+    // not on that path); the twelfth line that fills the row at a hard line break, the code's own cut, is the next test's.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-256 (7): TimelineRows.swift:2120-2126
+    public void A_detail_cut_at_a_hard_line_break_ends_its_twelfth_line_in_an_ellipsis_and_one_of_exactly_twelve_lines_is_not_cut() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var wide = string.Concat(Enumerable.Repeat("w", 400));
+            var cases = new[]
+            {
+                (Text: Lines(13), Cut: true),
+                (Text: Lines(12), Cut: false),
+                (Text: Lines(11) + "\n" + wide + "\nline 13", Cut: true),
+            };
+            var views = cases.Select(@case => new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = @case.Text })).ToArray();
+            var panel = new StackPanel { Width = 500 };
+            foreach (var view in views) panel.Children.Add(view);
+            var window = Show(panel);
+            try
+            {
+                for (var index = 0; index < cases.Length; index++)
+                {
+                    var detail = Assert.Single(Mounted<SelectableTextBlock>(views[index]));
+                    var lines = detail.TextLayout.TextLines;
+                    Assert.Equal(12, lines.Count);
+                    Assert.All(lines.SkipLast(1), line => Assert.False(line.HasCollapsed));
+                    Assert.Equal(cases[index].Cut, lines[^1].HasCollapsed);
+                    Assert.Equal(cases[index].Text, detail.Text); // a display limit only: the text and its selection keep every line
+                    Assert.True(detail.TextLayout.Width <= 500 + 0.5, $"case {index}: the detail is {detail.TextLayout.Width:0} points wide in a 500-point row");
+                }
+                // The thirteen-line detail: "line 12" whole, then the ellipsis (its runs: the line's characters and one ellipsis run).
+                var cut = Assert.Single(Mounted<SelectableTextBlock>(views[0])).TextLayout.TextLines[^1];
+                var shown = string.Concat(cut.TextRuns.Select(run => run.Text.ToString()));
+                Assert.StartsWith("line 12", shown, StringComparison.Ordinal);
+                Assert.NotEqual("line 12", shown.TrimEnd('\n', '\r'));
+                Assert.True(cut.Width <= 500 + 0.5);
+                // The line wider than the row: wrapped, and its twelfth wrapped line cut inside it to fit the row with its ellipsis.
+                var wideCut = Assert.Single(Mounted<SelectableTextBlock>(views[2])).TextLayout.TextLines[^1];
+                Assert.True(wideCut.Width <= 500 + 0.5, $"the cut wide line is {wideCut.Width:0} points wide in a 500-point row");
+            }
+            finally { Close(window); }
+        });
+    });
+
+    // ED-256 (7), the branch of LineLimitedSelectableText that is its own code: the twelfth line ends at a hard line
+    // break, so Avalonia's TextLayout does not collapse it (only a split line is), and the line is as wide as the row, so its words and
+    // the ellipsis do not both fit. It is cut short to fit, with its ellipsis, as a wrapped line is. The width of one monospaced
+    // character comes from a one-line detail of the same face; n of them are the most that fit 500 points. Controls: with no line
+    // after it that line is the twelfth of exactly twelve, kept whole in 500 points, and one more character would not fit.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-256 (7): TimelineRows.swift:2120-2126
+    public void A_twelfth_line_that_fills_the_row_and_ends_at_a_hard_line_break_is_cut_short_to_fit_its_ellipsis() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var probe = new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = "w" });
+            var panel = new StackPanel { Width = 500 };
+            panel.Children.Add(probe);
+            var window = Show(panel);
+            try
+            {
+                var one = Assert.Single(Mounted<SelectableTextBlock>(probe)).TextLayout.TextLines[0].Width; // one character of the face
+                Assert.InRange(one, 1, 50);
+                var fits = (int)Math.Floor(500 / one);
+                var fill = new string('w', fits);
+                var whole = new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = Lines(11) + "\n" + fill });
+                var cut = new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = Lines(11) + "\n" + fill + "\nline 13" });
+                panel.Children.Add(whole);
+                panel.Children.Add(cut);
+                Settle(window);
+
+                // Control: twelve lines, the twelfth as wide as the row: nothing follows, so it is kept whole.
+                var kept = Assert.Single(Mounted<SelectableTextBlock>(whole)).TextLayout.TextLines;
+                Assert.Equal(12, kept.Count);
+                Assert.False(kept[^1].HasCollapsed);
+                Assert.True(kept[^1].Width <= 500 + 0.5, $"the whole line is {kept[^1].Width:0} points wide");
+                Assert.True(kept[^1].Width + one > 500, "control: the line's words and an ellipsis would still fit the row, so no cut is needed");
+
+                // With a thirteenth line after it: still twelve lines, the twelfth cut short to fit its ellipsis.
+                var detail = Assert.Single(Mounted<SelectableTextBlock>(cut));
+                var lines = detail.TextLayout.TextLines;
+                Assert.Equal(12, lines.Count);
+                Assert.All(lines.SkipLast(1), line => Assert.False(line.HasCollapsed));
+                Assert.True(lines[^1].HasCollapsed, "the twelfth line is not cut");
+                Assert.True(lines[^1].Width <= 500 + 0.5, $"the cut line is {lines[^1].Width:0} points wide in a 500-point row");
+                var shown = string.Concat(lines[^1].TextRuns.Select(run => run.Text.ToString())).TrimEnd('\n', '\r');
+                Assert.EndsWith("…", shown, StringComparison.Ordinal); // the ellipsis, after fewer of the line's characters
+                Assert.True(shown.Count(character => character == 'w') < fits, "no character went to make room for the ellipsis");
+                Assert.Equal(Lines(11) + "\n" + fill + "\nline 13", detail.Text); // a display limit only
+            }
+            finally { Close(window); }
+        });
+    });
 
     [Fact]
     [Trait("Req", "UI-CHAT-028")] // TimelineRows.swift:2127-2140 the per-file diff block
@@ -219,7 +375,8 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                         // :2117-2119 the preview is the first thing in the detail, above the detail text.
                         var rows = Column(view).Children;
                         var preview = Assert.IsType<ToolImagePreview>(rows[0]);
-                        Assert.IsType<SelectableTextBlock>(rows[1]);
+                        // The detail text: a SelectableTextBlock whose line limit also cuts at a hard line break (ED-256 (7)).
+                        Assert.IsAssignableFrom<SelectableTextBlock>(Assert.IsType<LineLimitedSelectableText>(rows[1]));
                         Assert.Equal(480, preview.Bounds.Width, 0.5); // as wide as the row
                         Assert.Equal(20, Top(rows[1], window) - (Top(preview, window) + preview.Bounds.Height), 0.5);
                         // :408-421 the box: at most 420 tall, a 10-point rounded plate of .quaternary at 0.45, clipped.

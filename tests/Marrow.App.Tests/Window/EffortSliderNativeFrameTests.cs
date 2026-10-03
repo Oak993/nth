@@ -223,4 +223,240 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
             });
         }, factType: typeof(EffortSliderNativeFrameTests));
     }
+
+    // OD-0090 (ED-252, review): the Jewel knob's SkSL on the real GPU path (ANGLE on D3D11, the app's default backend). The
+    // liquid's one-shader form overflowed ANGLE's shader compile and killed the process (ED-233); the knob's program inlines
+    // the fluid up to three times. This hosts the real slider (fast mode at Max: the knob, the liquid and the strike) on a
+    // real window with the real frame clock, and checks from inside the process (the screen itself cannot be read in every
+    // session: the liquid tests' screen-pixel checks fail where the window is not on top): every knob frame was drawn on a
+    // GPU context, the program's picture read back from the GPU at the knob's centre is the gem's terracotta, the knob runs
+    // at the frame clock's 60 a second and the gem flows. The timings are written to jewel-native.txt (the run's data folder).
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_jewel_knob_draws_on_the_gpu_of_a_real_window()
+    {
+        native.Run(_ =>
+        {
+            var index = 3;
+            JewelKnobRenderer.Probe = true;
+            var shownAt = System.Diagnostics.Stopwatch.StartNew();
+            var (gpu0, cpu0) = (JewelKnobOperation.GpuFrames, JewelKnobOperation.CpuFrames);
+            var (window, frames, slider) = native.OnUi(() =>
+            {
+                EffortSlider slider = null!;
+                var hosted = Host(() => slider = new EffortSlider(4, new Binding<int>(() => index, value => index = value), "Max", true, EffortBrand.Claude) { Width = 320 });
+                return (hosted.Window, hosted.Frames, slider);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            static bool Gem(long bgra) => bgra >= 0 && ((bgra >> 16) & 0xFF) > (bgra & 0xFF) + 30 && ((bgra >> 16) & 0xFF) > 60; // red over blue: terracotta
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (!Gem(JewelKnobRenderer.ProbedCentre) && DateTime.UtcNow < deadline) Thread.Sleep(20);
+            var firstGem = shownAt.Elapsed.TotalMilliseconds;
+            var centre = JewelKnobRenderer.ProbedCentre;
+            var screen = native.OnUi(() => slider.PointToScreen(new Avalonia.Point(slider.KnobX, EffortSlider.ThumbSize / 2)));
+            var screenPixel = ScreenPixels.At(screen.X, screen.Y);
+            Thread.Sleep(500);
+            var (startFrame, gpuStart, phaseStart) = native.OnUi(() => (frames.Stamps.Count, JewelKnobOperation.GpuFrames, slider.Orb.Phase));
+            Thread.Sleep(TimeSpan.FromSeconds(5));
+            var (delivered, span, gaps, gpuFrames, phase) = native.OnUi(() =>
+            {
+                var stamps = frames.Stamps;
+                return (stamps.Count - startFrame, stamps[^1] - stamps[startFrame], frames.GapHistogram(startFrame),
+                    JewelKnobOperation.GpuFrames - gpuStart, slider.Orb.Phase - phaseStart);
+            });
+            JewelKnobRenderer.Probe = false;
+            var state = native.OnUi(() =>
+            {
+                var view = slider.GetVisualDescendants().OfType<JewelKnobView>().Single();
+                return $"knob view recorded {view.Recorded} times, {view.OperationsMade} operations, bounds {view.Bounds}, visible {view.IsEffectivelyVisible}; " +
+                    $"slider {slider.Bounds}; window {window.Bounds} state {window.WindowState} active {window.IsActive} scaling {window.RenderScaling}; " +
+                    $"track effects {slider.GetVisualDescendants().OfType<TrackEffect>().Count()}; GPU knob frames in all {JewelKnobOperation.GpuFrames - gpu0}, " +
+                    $"the last {Environment.TickCount64 - JewelKnobOperation.LastGpuFrameTicks} ms ago; read-backs failed {JewelKnobRenderer.ProbeFailures}; " +
+                    $"render-thread error: {JewelKnobOperation.LastError ?? "none"}";
+            });
+            var report = $"first gem read back from the GPU {firstGem:F0} ms after the window was made (centre BGRA {centre:X8}); knob frames on a GPU context " +
+                $"{gpuFrames} in {span:F0} ms ({gpuFrames * 1000.0 / span:F1} a second), on the CPU renderer {JewelKnobOperation.CpuFrames - cpu0}; frames delivered " +
+                $"{delivered} ({delivered * 1000.0 / span:F1} a second), gaps ms {gaps}; the gem's phase moved {phase:F2} in 5 s (2.6 a second at rest, " +
+                $"4.2 charged); the first knob draw call on the render thread (the programs' compile) {JewelKnobOperation.FirstGpuRenderMs:F1} ms, the longest after it {JewelKnobOperation.MaxGpuRenderMs:F2} ms (each with the test's GPU read-back); the screen at the knob's centre {screenPixel}; {state}";
+            File.WriteAllText(Record("jewel-native.txt"), report + Environment.NewLine);
+            Assert.True(Gem(centre), report);
+            Assert.True(JewelKnobOperation.CpuFrames == cpu0, report); // a GPU window draws the knob on the GPU
+            Assert.True(gpuFrames * 1000.0 / span >= 55, report);
+            Assert.True(delivered * 1000.0 / span >= 58, report);
+            Assert.InRange(phase, 2.6 * 5 * 0.8, 4.2 * 5 * 1.1);
+        }, factType: typeof(EffortSliderNativeFrameTests));
+    }
+
+    // OD-0090 / ED-252 (lead's ruling, 2026-10-03): the composer primes the knob's programs after its window's first frame, at
+    // idle, so the first open of the effort popover does not wait for their compile. A window hosts the primer (as the
+    // composer's model chip does) and an animating liquid track; once primed, the slider opens in a popup from it, as the
+    // effort popover does, and its first knob draw on the GPU must fit a 60 Hz frame. Recorded: jewel-warm.txt (the run's data folder).
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_knob_warm_up_keeps_the_popovers_first_knob_draw_within_a_frame()
+    {
+        native.Run(_ =>
+        {
+            var index = 3;
+            var (window, frames, host) = native.OnUi(() =>
+            {
+                Border host = null!;
+                var hosted = Host(() => new StackPanel { Children = { (host = new Border { Width = 300, Height = 26, Child = new TrackEffect(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)) { Width = 300, Height = 26 } }) } });
+                GpuWarmup.WhenIdle(host);
+                return (hosted.Window, hosted.Frames, host);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (GpuWarmup.StepsDone < GpuWarmup.Steps && DateTime.UtcNow < deadline) Thread.Sleep(20);
+            var steps = string.Join(", ", GpuWarmup.Done.Select(d => $"{d.Program} {d.Milliseconds:F1} ms{(d.Forced ? " (forced)" : "")}"));
+            Assert.True(GpuWarmup.StepsDone >= GpuWarmup.Steps, $"the warm-up did not finish: {GpuWarmup.StepsDone} steps ({steps})");
+            Thread.Sleep(300);
+            var slider = native.OnUi(() =>
+            {
+                var slider = new EffortSlider(4, new Binding<int>(() => index, value => index = value), "Max", true, EffortBrand.Claude) { Width = 320 };
+                var popup = new Avalonia.Controls.Primitives.Popup { PlacementTarget = host, Placement = PlacementMode.Bottom, Child = new Border { Width = 340, Height = 60, Child = slider } };
+                ((Panel)window.Content!).Children.Add(popup);
+                popup.IsOpen = true;
+                return slider;
+            });
+            deadline = DateTime.UtcNow.AddSeconds(10);
+            while (JewelKnobOperation.GpuFrames < 30 && DateTime.UtcNow < deadline) Thread.Sleep(20);
+            var report = $"warm-up steps {steps}; the popover's first knob draw {JewelKnobOperation.FirstGpuRenderMs:F2} ms, the longest after it " +
+                $"{JewelKnobOperation.MaxGpuRenderMs:F2} ms over {JewelKnobOperation.GpuFrames} GPU knob frames ({JewelKnobOperation.CpuFrames} on the CPU)";
+            File.WriteAllText(Record("jewel-warm.txt"), report + Environment.NewLine);
+            Assert.True(JewelKnobOperation.GpuFrames >= 30, report);
+            Assert.True(JewelKnobOperation.FirstGpuRenderMs < 1000.0 / 60, report);
+        }, factType: typeof(EffortSliderNativeFrameTests));
+    }
+
+    // The warm-up's own frames: the window's frame gaps over its first 5 s with a liquid track animating throughout (the worst
+    // case: the idle fallback finds no quiet frame and steps at its 3 s cap), with the primer and without it; and with the
+    // track animating for 2 s only (the fallback waits for it to stop). Recorded in jewel-warm-frames.txt (the run's data folder).
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_knob_warm_up_waits_for_the_first_frame_and_its_frames_are_measured() => WarmFrames(true);
+
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void Without_the_warm_up_the_windows_frames_are_measured_the_same_way() => WarmFrames(false);
+
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_knob_warm_up_waits_until_the_animation_stops() => WarmFrames(true, stopAfter: 2000);
+
+    private void WarmFrames(bool warm, int stopAfter = 0, [System.Runtime.CompilerServices.CallerMemberName] string fact = "")
+    {
+        native.Run(_ =>
+        {
+            var shown = Environment.TickCount64;
+            var (window, frames, host) = native.OnUi(() =>
+            {
+                Border host = null!;
+                var hosted = Host(() => host = new Border { Width = 300, Height = 26, Child = new TrackEffect(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)) { Width = 300, Height = 26 } });
+                if (warm) GpuWarmup.WhenIdle(host);
+                return (hosted.Window, hosted.Frames, host);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            long stopped = 0, stoppedAt = 0;
+            if (stopAfter > 0)
+            {
+                Thread.Sleep(stopAfter);
+                // the track leaves the window: its frame requests go with it, nothing animates any more
+                (stopped, stoppedAt) = native.OnUi(() => { host.Child = null; return (Environment.TickCount64, (long)frames.Stamps.Count); });
+                Thread.Sleep(5000 - stopAfter);
+            }
+            else Thread.Sleep(5000);
+            var (gaps, count, longest) = native.OnUi(() =>
+            {
+                var stamps = stopAfter > 0 ? frames.Stamps.Take((int)stoppedAt).ToList() : frames.Stamps; // the animating frames
+                var longest = stamps.Zip(stamps.Skip(1), (a, b) => (Gap: b - a, At: b)).OrderByDescending(x => x.Gap).Take(3).ToArray();
+                return (frames.GapHistogram(0), stamps.Count, string.Join(" ", longest.Select(x => $"{x.Gap:F0}@{x.At:F0}")));
+            });
+            var first = native.OnUi(() => frames.Stamps.Count > 0 ? frames.Stamps[0] : -1);
+            var line = $"warm-up {(warm ? "on" : "off")}{(stopAfter > 0 ? $", the track stopped after {stopAfter} ms (the frames while it animated)" : "")}: " +
+                $"{count} frames{(stopAfter > 0 ? "" : " in 5 s")}, gaps ms {gaps}; the longest (ms@ms since the frame clock started) {longest}" +
+                (warm ? $"; its steps {string.Join(", ", GpuWarmup.Done.Select(d => $"{d.Program} {d.Milliseconds:F1} ms{(d.Forced ? " (forced)" : "")}"))}, the first {GpuWarmup.FirstStepTicks - shown} ms after the window was made" : "") +
+                (stopAfter > 0 ? $", {GpuWarmup.FirstStepTicks - stopped} ms after the track stopped" : "");
+            File.AppendAllText(Record("jewel-warm-frames.txt"), line + Environment.NewLine);
+            if (warm)
+            {
+                Assert.True(GpuWarmup.StepsDone == GpuWarmup.Steps, line); // one program a frame
+                Assert.True(first >= 0 && GpuWarmup.FirstStepTicks > shown, line); // after the window's first frame
+                if (stopAfter > 0)
+                {
+                    Assert.True(GpuWarmup.FirstStepTicks > stopped, line);   // nothing compiled while the track animated
+                    Assert.True(GpuWarmup.Done.All(d => !d.Forced), line);   // each in a quiet frame, within the cap
+                }
+                else Assert.True(GpuWarmup.Done.All(d => d.Forced), line);   // never quiet: stepped at the cap
+            }
+            else Assert.Equal(0, GpuWarmup.StepsDone);
+        }, fact, typeof(EffortSliderNativeFrameTests));
+    }
+
+    // ED-252 (lead's ruling): ANGLE's program binaries kept on disk, so only the first launch on a machine compiles the knob's
+    // programs. Both launches share one folder under the run's data folder (never the user's). Recorded: jewel-cache.txt.
+    private static string SharedProgramCache() => Path.Combine(RunFolder(), "jewel-gpu-programs");
+
+    // the run's data folder (it outlives the native child, whose own temp folder is removed with it)
+    private static string RunFolder()
+    {
+        var data = Marrow.Testing.TestDataDirectory.Read()!;
+        // a native child's data folder is <the run's data folder>\WindowManagerNative\<nonce>\data
+        return WindowManagerNativeChildProtocol.IsChild ? Path.GetFullPath(Path.Combine(data, "..", "..", "..")) : data;
+    }
+
+    // a native record, kept in the run's data folder
+    private static string Record(string name) => Path.Combine(RunFolder(), name);
+
+    private void Launch(string what)
+    {
+        native.Run(_ =>
+        {
+            GpuProgramCache.FolderOverride = SharedProgramCache();
+            var (window, _) = native.OnUi(() =>
+            {
+                Border host = null!;
+                var hosted = Host(() => host = new Border { Width = 300, Height = 26 });
+                GpuWarmup.WhenIdle(host);
+                return (hosted.Window, host);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (GpuWarmup.StepsDone < GpuWarmup.Steps && DateTime.UtcNow < deadline) Thread.Sleep(20);
+            Thread.Sleep(200);
+            var line = $"{what}: cache {GpuProgramCache.State ?? "on"} ({GpuProgramCache.Folder}); entries written {GpuProgramCache.Writes}, found {GpuProgramCache.Hits}, " +
+                $"missing {GpuProgramCache.Misses}; warm-up steps {string.Join(", ", GpuWarmup.Done.Select(d => $"{d.Program} {d.Milliseconds:F1} ms{(d.Forced ? " (forced)" : "")}"))}";
+            File.AppendAllText(Record("jewel-cache.txt"), line + Environment.NewLine);
+            Assert.True(GpuProgramCache.State is null, line);
+            Assert.True(GpuWarmup.StepsDone == GpuWarmup.Steps, line);
+            if (what == "first launch") Assert.True(GpuProgramCache.Writes > 0, line);
+            else
+            {
+                Assert.True(GpuProgramCache.Hits > 0, line);
+                Assert.True(GpuWarmup.Done.All(d => d.Milliseconds < 1000.0 / 60), line); // nothing compiled on the render thread
+            }
+        }, what == "first launch" ? nameof(The_knob_programs_are_compiled_on_a_first_launch_and_kept) : nameof(On_a_second_launch_the_knob_programs_come_from_the_cache),
+            typeof(EffortSliderNativeFrameTests));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_knob_programs_are_compiled_on_a_first_launch_and_kept()
+    {
+        if (!WindowManagerNativeChildProtocol.IsChild && Directory.Exists(SharedProgramCache())) Directory.Delete(SharedProgramCache(), true);
+        Launch("first launch");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void On_a_second_launch_the_knob_programs_come_from_the_cache()
+    {
+        if (!WindowManagerNativeChildProtocol.IsChild)
+        {
+            // the first launch, in a process of its own, fills the folder this launch reads
+            if (Directory.Exists(SharedProgramCache())) Directory.Delete(SharedProgramCache(), true);
+            WindowManagerNativeChildHost.RunParent(WindowManagerNativeChildProtocol.FactName(nameof(The_knob_programs_are_compiled_on_a_first_launch_and_kept), typeof(EffortSliderNativeFrameTests)));
+        }
+        Launch("second launch");
+    }
 }

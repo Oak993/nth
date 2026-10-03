@@ -6,8 +6,8 @@ decisions in section 7 (ED-064 to ED-086) are proposals: each says what it touch
 orchestrator action (a project setting, a new project, a tool install). Nothing here changes a recorded decision
 silently; where a rule restates or refines one, it names it.
 
-- Baseline B2: Droppy Code 1.6.2, commit `1fbf81e61e28a079508a074c01ee1830a9cc23dc`, read-only at
-  `E:\Droppy\reference\droppy-code-v1.6.2`.
+- Baseline B3: Droppy Code 1.7.0, commit `52bc7926097cd622d08d6294e0d8b08a48c7516e`, read-only at
+  `E:\Droppy\reference\droppy-code-v1.7.0` (B2 and B1 are history; see CLAUDE.md).
 - Target: C# on .NET 10 (SDK 10.0.401), Avalonia 12.1.2, xUnit 2.9.3, four layers (HANDOFF section 9, ADR-0002).
 - Judged: `E:\Droppy\work\conventions\survey.md`; `draft-A.md` (fidelity first) with proto-A, 134 of 134 tests
   passing; `draft-B.md` (concurrency and lifecycle first) with proto-B, 71 of 71 plus an Avalonia 12.1.2 headless
@@ -33,9 +33,9 @@ prototype passes on this machine; a C#-side proof never proves the Swift side.
 | What | Where |
 |---|---|
 | The port (branch `port/windows-exact-parity`); you work here, you never commit | `E:\Droppy\port` |
-| Pinned Swift source, B2, **read-only** | `E:\Droppy\reference\droppy-code-v1.6.2` |
-| B1 history (1.6.0); never implement from it, although HANDOFF.md and WORKER_BRIEF.md still name it | `E:\Droppy\reference\droppy-code` |
-| Contract, amendments, owner rulings (OD-0001 to OD-0014) | `porting/PORT_CONTRACT.md`, `porting/contract_amendments.md`, `porting/owner_decisions.md` |
+| Pinned Swift source, B3, **read-only** | `E:\Droppy\reference\droppy-code-v1.7.0` |
+| B2 (1.6.2) and B1 (1.6.0) history; never implement from them | `E:\Droppy\reference\droppy-code-v1.6.2`, `E:\Droppy\reference\droppy-code` |
+| Contract, amendments, owner rulings (every OD entry) | `porting/PORT_CONTRACT.md`, `porting/contract_amendments.md`, `porting/owner_decisions.md` |
 | Recorded engineering decisions (ED-001 to ED-063), platform adaptations, stack decision | `porting/engineering_decisions.md`, `porting/platform_adaptations.md`, `porting/adr/0002-stack-avalonia.md` |
 | Requirements and UI records, quarantine list | `porting/parity_matrix.json` (PR-...), `porting/ui_contract.json` (UI-...), `porting/blocked_requirements.json` |
 | Upstream defects the port reproduces | `porting/upstream_defects.md` |

@@ -5604,7 +5604,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five fields and the same localized case-insensitive containment: SwiftString.LocalizedCaseInsensitiveContains (R-STR-6, ED-009), current culture, case-insensitive, accent-sensitive, an empty needle never contained. localizedCaseInsensitiveContains (MCPSettingsPage.swift:80-84) is a case-insensitive search only; the diacritic-insensitive Foundation call is localizedStandardContains, which this page does not use. Corrected 2026-09-27: the earlier text claimed diacritics are ignored here, contradicting the source call and ED-009.",
       "verification_method": "unit over each of the five fields plus an interaction test on the field",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5906,7 +5906,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same labels including the trailing single-character ellipsis U+2026, and the same lowercasing of the field label.",
       "verification_method": "interaction test on gitlab and on a custom server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6220,7 +6220,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute the popover height from the same formula on every change of kind or row count; keep the width at 380 and the cap at 560.",
       "verification_method": "unit over the height function for stdio and http with 0, 3, 4, 7 and 8 rows, plus a capture comparison of the editor with an empty stdio form and with four stdio rows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6245,7 +6245,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Put the error line and the save row in a fixed footer outside the scrolling region of the popover. The save button's prominent glass style follows OD-0005 (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
       "verification_method": "interaction test: open a stdio editor with five variable rows, scroll the form to the bottom and back, and assert the save button keeps its position; then force a validation error and assert the error line appears above the button with the button still visible",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6269,7 +6269,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Expose the button to UI Automation with the name \"Close\" and a 24 by 24 hit target.",
       "verification_method": "UI Automation test finding the button by the name \"Close\", then a click near a corner of its 24 by 24 frame asserting the popover closes and custom-mcp.json is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6991,7 +6991,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:324-330",
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:352-358"
       ],
-      "notes": "OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content)."
+      "notes": "OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-025",
@@ -7011,7 +7012,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:328"
       ],
-      "notes": "Fourteen catalog entries show this label; gitlab's only field is optional, so it too connects without the key panel. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content)."
+      "notes": "Fourteen catalog entries show this label; gitlab's only field is optional, so it too connects without the key panel. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-026",
@@ -7075,7 +7077,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:341-344"
       ],
-      "notes": "The panel also opens by itself the moment the state becomes needsSetup, so this button is a way back to a panel that was closed. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content)."
+      "notes": "The panel also opens by itself the moment the state becomes needsSetup, so this button is a way back to a panel that was closed. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-029",
@@ -7095,7 +7098,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:345-348"
       ],
-      "notes": "OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content)."
+      "notes": "OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-030",
@@ -7116,7 +7120,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:346",
         "DroppyCode/Services/MCP/MCPStore.swift:93-96"
       ],
-      "notes": "The sign-out is what distinguishes this from Try again; it deletes both the session and the registered client. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content)."
+      "notes": "The sign-out is what distinguishes this from Try again; it deletes both the session and the registered client. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-031",
@@ -7282,7 +7287,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:503-507",
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:534-540"
       ],
-      "notes": "There is no \"Sign in\" variant here: a custom server is never an OAuth entry. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content)."
+      "notes": "There is no \"Sign in\" variant here: a custom server is never an OAuth entry. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-038",
@@ -7345,7 +7351,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:521-524"
       ],
-      "notes": "Unlike the catalog card, the custom row has NO automatic presentation when the state becomes needsSetup: only this button opens the panel. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content)."
+      "notes": "Unlike the catalog card, the custom row has NO automatic presentation when the state becomes needsSetup: only this button opens the panel. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-041",
@@ -7365,7 +7372,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:525-528"
       ],
-      "notes": "OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content)."
+      "notes": "OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-042",
@@ -7607,7 +7615,8 @@
         "decision": "OD-0008 B4",
         "upstream": "Upstream option \"stdio — a command on this Mac\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:637 - :637 options: [(MCPCustomServer.Kind.stdio, \"stdio — a command on this Mac\"), (.http, \"http — a remote server\")],",
         "port": "Marrow option \"stdio — a command on this PC\"; the em dash stays (OD-0008 B14)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-052",
@@ -7660,7 +7669,8 @@
         "upstream": "macOS TextEditor includes its own inset plus explicit horizontal 6 / vertical 4 padding.",
         "port": "Adjust Windows padding for its built-in inset so the visible space around text matches; preserve fixed height, surface, typography, hint and argument semantics.",
         "verification": "Approved deviation; measured visual and interaction evidence still required. No padding value is inferred here."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-054",
@@ -7905,7 +7915,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:864-889"
       ],
       "notes": "Unlike the key panel's save, this button has no disabled state; pressing it with an empty name produces \"The server needs a name.\" in the error line. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
-      "b2_change": "Moved: B1 :658-662 -> B2 :698-702, inside the footer. B1 :659 Spacer() -> B2 :699 Spacer(minLength: 0). Labels, style and action are the same."
+      "b2_change": "Moved: B1 :658-662 -> B2 :698-702, inside the footer. B1 :659 Spacer() -> B2 :699 Spacer(minLength: 0). Labels, style and action are the same.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-064",
@@ -7926,7 +7937,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:967-1024 - :971 private static let width: CGFloat = 340 | :974 VStack(alignment: .leading, spacing: 14) { | :1022 .padding(16) | :1023 .frame(width: Self.width, alignment: .leading)"
       ],
       "notes": "The popover width is a private constant of 340; the card grid is unaffected by it.",
-      "b2_change": "Moved: B1 :936-993 -> B2 :967-1024. The container (width 340, padding 16, spacing 14) is unchanged."
+      "b2_change": "Moved: B1 :936-993 -> B2 :967-1024. The container (width 340, padding 16, spacing 14) is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-065",
@@ -8015,7 +8027,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:1002-1009 - :1002 if let optional = entry.fields.first(where: { !$0.isRequired }) { | :1003 Button(\"Change the \\(optional.label.lowercased())…\") { | :1004 MCPKeyPanel.shared.present(entry: entry, model: model) | :1006 .font(.system(.callout, weight: .medium)) | :1007 .foregroundStyle(Chrome.accent) | :1008 .buttonStyle(.plain)"
       ],
       "notes": "Three catalog entries reach it: gitlab gives \"Change the gitlab address…\", context7 gives \"Change the api key…\", huggingface gives \"Change the access token…\". The trailing character is the single-glyph ellipsis U+2026.",
-      "b2_change": "Moved: B1 :971-978 -> B2 :1002-1009. B1 :975 .font(.system(size: 12, weight: .medium)) -> B2 :1006 .font(.system(.callout, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "Moved: B1 :971-978 -> B2 :1002-1009. B1 :975 .font(.system(size: 12, weight: .medium)) -> B2 :1006 .font(.system(.callout, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-069",
@@ -8036,7 +8049,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:1010-1020 - :1010 if let url = URL(string: entry.docsURL) { | :1011 Link(destination: url) { | :1012 HStack(spacing: 5) { | :1013 Text(\"Read the docs\") | :1014 Image(systemName: \"arrow.up.right\") | :1015 .font(.system(.caption2, weight: .bold)) | :1017 .font(.system(.callout, weight: .medium)) | :1018 .foregroundStyle(Chrome.accent)"
       ],
       "notes": "The hover-open popover keeps itself open while the pointer is on it, which is what makes this link reachable at all.",
-      "b2_change": "Moved: B1 :979-989 -> B2 :1010-1020. Arrow B1 :984 .font(.system(size: 9, weight: .bold)) -> B2 :1015 .font(.system(.caption2, weight: .bold)): 9 -> 10 points nominal. Text B1 :986 .font(.system(size: 12, weight: .medium)) -> B2 :1017 .font(.system(.callout, weight: .medium)) (12 nominal). \"Read the docs\" and spacing 5 are the same. Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "Moved: B1 :979-989 -> B2 :1010-1020. Arrow B1 :984 .font(.system(size: 9, weight: .bold)) -> B2 :1015 .font(.system(.caption2, weight: .bold)): 9 -> 10 points nominal. Text B1 :986 .font(.system(size: 12, weight: .medium)) -> B2 :1017 .font(.system(.callout, weight: .medium)) (12 nominal). \"Read the docs\" and spacing 5 are the same. Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-070",

@@ -126,9 +126,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-UPDATE-031")] // App/Views/Settings/SettingsView.swift:1018-1023
     [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1012-1056
-    public void Legal_popover_inherits_presented_chrome_and_selectable_markdown_with_all_missing_resource_names() => WithView(() => new LicensesRow(), (view, _, _) =>
+    public void Legal_popover_inherits_presented_chrome_with_all_missing_resource_names() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
-        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var show = Button(view, "Show"); Assert.True(show.IsEnabled); Click(show); Sync(); var popup = presenter.Calls.Last(x => x.Presented).Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, popup.Placement); var content = Opened(popup); Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); foreach (var body in Nodes<MarkdownView>(content)) Assert.True(MarkdownView.GetMarkdownBlockSelection(body)); var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) Assert.Equal($"The {resource} file is missing from this copy of the app.", reader.Invoke(null, [resource]));
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var show = Button(view, "Show"); Assert.True(show.IsEnabled); Click(show); Sync(); var popup = presenter.Calls.Last(x => x.Presented).Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, popup.Placement); var content = Opened(popup); Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); var reader = typeof(LicensesRow).GetMethod("Read", BindingFlags.Static | BindingFlags.NonPublic, [typeof(string), typeof(string)])!; var withoutFiles = Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, "licenses-missing-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(withoutFiles); foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) Assert.Equal($"The {resource} file is missing from this copy of the app.", reader.Invoke(null, [resource, withoutFiles])); /* the fallback names the RESOURCE (:1051); the app itself now ships the three files (LicensesShippingTests) */
     });
 
     [Fact]
@@ -196,7 +196,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     private static Control Opened(Avalonia.Controls.Primitives.Popup popup)
     {
         ((EventHandler?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.Invoke(popup, EventArgs.Empty);
-        return popup.Child!;
+        return PopoverHost.Content(popup)!; // the site's view, not the card the presenter hangs it on (OD-0095)
     }
 
     private static void AdvanceFrames(AppModelHarness h, double milliseconds)
@@ -403,7 +403,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Appearance_uses_three_cards_10_apart_and_title_only_chrome_with_22_top_padding() => WithSettings((view, _, _) =>
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.Appearance; Sync(); var appearance = Assert.Single(Nodes<AppearanceSettingsPage>(view));
-        Assert.Equal(3, Nodes<ChromeCard>(appearance).Length); var group = Assert.Single(Nodes<StackPanel>(appearance), stack => stack.Children.Count == 3 && stack.Children[1] is WallpaperCard);
+        // DEVIATION OD-0088 (ED-250): the Look card stands first, then the source's three cards, all 10 apart.
+        Assert.Equal(4, Nodes<ChromeCard>(appearance).Length); var group = Assert.Single(Nodes<StackPanel>(appearance), stack => stack.Children.Count == 4 && stack.Children[0] is Marrow.App.Port.LookCard && stack.Children[2] is WallpaperCard);
         Assert.Equal(10, group.Spacing); Assert.Equal(22, Field<Control>(view, "pageStack").Margin.Top);
         var heading = Nodes<TextBlock>(appearance).First(); Assert.Equal("Appearance", heading.Text); Assert.Equal(13, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight);
         Assert.Empty(Nodes<ChromeSearchField>(Field<Control>(view, "detail"))); Assert.Empty(Nodes<AboutUpdateChromeAccessory>(view)); Assert.Empty(Nodes<ProvidersRefreshButton>(view));
@@ -446,7 +447,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-004")] // App/Views/Settings/SettingsView.swift:1196
     [Trait("Req", "UI-THEME-005")] // App/Views/Settings/SettingsView.swift:1198
     [Trait("Req", "UI-THEME-006")] // App/Views/Settings/SettingsView.swift:1204-1208
-    public void Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
+    public void Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail() => WithView(Marrow.App.Tests.Fixtures.ThemePickerHost.Page, (view, model, _) => // OD-0088: the capsule beside the page
     {
         var picker = Assert.Single(Nodes<ThemePickerButton>(view)); var label = Assert.Single(Nodes<StackPanel>(picker), stack => stack.Height == 28); Assert.Equal(6, label.Spacing); Assert.Equal(new Thickness(12, 0), label.Margin);
         Assert.Equal(12.5, Nodes<TextBlock>(picker).Single().FontSize); Assert.Equal(SwiftFont.System(8, SwiftFont.Weight.Bold), SwiftImage.GetFont(Nodes<SwiftImage>(picker).Single()));
@@ -541,8 +542,12 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     // Keep the Terminal title/divider and the AGPL sentence prefix; only its CreditLink, component detail and trailing licence fragment are blocked.
     // STOP App.Views.Settings.SettingsView #5
     // Kind: dependency. Swift: SettingsView.swift:1046-1056. Records: PR-SETTINGS-249 (shipping only).
-    // Missing: the App project bundles only Assets/icon.png, not the three legal documents.
-    // Needed: the packaging unit to ship LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md.
+    // RESOLVED for the build (defects-priority): Marrow.App.csproj now ships LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside the executable
+    // (Legal\ content, copied to the build output and the publish folder); LicensesShippingTests proves them byte for byte.
+    // OPEN (reopened in review round 2) for the installer clause of PR-SETTINGS-249's windows_path ("Ship all three documents with the installer"):
+    // no pack was built and nothing installed, so no test claims PR-SETTINGS-249. Needed: a vpk pack or an installed %LOCALAPPDATA%\Marrow Code
+    // checked for the three files beside Marrow.App.exe, after an install and after an update.
+    // (It said: the App project bundles only Assets/icon.png, not the three legal documents.)
     // The independent reader, caching, missing-file path and popover are covered below.
 
     [Fact]
@@ -565,8 +570,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Appearance_rows_follow_the_source_and_selected_details_are_live() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
     {
         var section = Assert.Single(Nodes<ChromeSection>(view)); Assert.Equal("Appearance", Text(section).First());
-        Assert.Equal(new[] { "Theme", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch", "Wallpaper", "Zoom" }, Nodes<ChromeRow>(view).Select(x => Text(x).First()));
-        Assert.Contains("Follows Windows", Text(Row(view, "Theme"))); model.Settings.Theme = AppTheme.CatppuccinMocha; Sync(); Assert.Contains("Dark \u00b7 Mauve", Text(Row(view, "Theme")));
+        // DEVIATION OD-0088 (ED-250): the Theme row is the Look card's (with its Accent row); System's detail reads "System · <accent>".
+        Assert.Equal(new[] { "Theme", "Accent", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch", "Wallpaper", "Zoom" }, Nodes<ChromeRow>(view).Select(x => Text(x).First()));
+        Assert.Contains("System · Windows accent", Text(Row(view, "Theme"))); model.Settings.Theme = AppTheme.CatppuccinMocha; Sync(); Assert.Contains("Dark \u00b7 Mauve", Text(Row(view, "Theme")));
         var sidebar = Row(view, "Sidebar"); Assert.Equal(new[] { "Column", "Floating", "Panel only" }, Nodes<Button>(sidebar).Select(x => Text(x).Last()));
         Click(Button(sidebar, "Panel only")); Sync(); Assert.Equal(SidebarMode.PanelOnly, model.Settings.SidebarMode); Assert.Contains("No column and no toolbar button; the floating panel is the sidebar", Text(sidebar));
         var open = Row(view, "Open the sidebar at launch"); Assert.False(open.IsEnabled); Assert.Equal(0.5, open.Opacity);
@@ -707,17 +713,19 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy), image => image.AssetName is not null); Assert.Equal("droppy-logo", mark.AssetName); Assert.Equal(40, mark.Width); Assert.Single(Nodes<SwiftImage>(droppy), image => image.SymbolName == "arrow.up.right");
     });
 
+    // Not PR-SETTINGS-249 (withdrawn, defects-priority review round 2): its windows_path ships the three documents with the installer, which no test
+    // checks (STOP #5 above, reopened for that clause).
     [Fact]
-    [Trait("Req", "PR-SETTINGS-249")] // App/Views/Settings/SettingsView.swift:1009-1057
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1007-1057
     public void Licences_are_read_once_and_the_three_markdown_blocks_use_fixed_popover_geometry() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(view, "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup);
-        var scroll = Assert.Single(Nodes<ScrollViewer>(content)); Assert.Equal(480, scroll.Width); Assert.Equal(440, scroll.Height);
+        var scroll = Assert.Single(Nodes<ScrollViewer>(content), x => x.Width == 480); Assert.Equal(480, scroll.Width); Assert.Equal(440, scroll.Height); /* the real documents carry code blocks that scroll on their own, so the popover's is the one 480 wide */
         var blocks = Assert.Single(Nodes<StackPanel>(content), x => x.Spacing == 18); Assert.Equal(new Thickness(18), blocks.Margin); Assert.Equal(3, blocks.Children.Count);
         Assert.Equal(new[] { "Marrow", "Third-party notices", "Trademarks" }, blocks.Children.Select(x => Text(x).First()));
         foreach (var markdown in Nodes<MarkdownView>(content)) Assert.Equal(12, MarkdownView.GetMarkdownPointSize(markdown)); Assert.Equal(3, Nodes<MarkdownView>(content).Length);
-        var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; Assert.Equal("The THIRD_PARTY_NOTICES file is missing from this copy of the app.", reader.Invoke(null, ["THIRD_PARTY_NOTICES"]));
+        var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; var notices = (string)reader.Invoke(null, ["THIRD_PARTY_NOTICES"])!; Assert.Same(notices, reader.Invoke(null, ["THIRD_PARTY_NOTICES"])); /* read once (:1046-1056): the same string instance every time */
+        Assert.Equal(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "THIRD_PARTY_NOTICES.md")), notices); Assert.NotEqual("The THIRD_PARTY_NOTICES file is missing from this copy of the app.", notices); /* shipped (Marrow.App.csproj, LicensesShippingTests) */
     });
 
     [Fact]
@@ -818,7 +826,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("One").Replace('\\', '/'))); model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("Two").Replace('\\', '/'))); Sync(); Assert.True(edit.IsEnabled); Click(edit); Sync();
         var popup = presenter.Calls.Last(x => x.Presented).Popup;
         ((EventHandler?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.Invoke(popup, EventArgs.Empty);
-        var list = Assert.IsType<StackPanel>(popup.Child); Assert.Equal(400, list.Width);
+        var list = Assert.IsType<StackPanel>(PopoverHost.Content(popup)); Assert.Equal(400, list.Width);
         Assert.Equal(model.Projects.Select(x => x.Name), Nodes<ChromeRow>(list).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(list)); Assert.Equal(2, Nodes<ProjectIconButton>(list).Length);
     });
 

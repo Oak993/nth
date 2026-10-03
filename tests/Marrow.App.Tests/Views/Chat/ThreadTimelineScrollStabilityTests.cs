@@ -19,7 +19,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // Finding F-1 (porting/reality/F1_TIMELINE_ED_DRAFT.md): the port keeps an eager row stack instead of the Swift lazy
 // stack and its repair machinery (ThreadTimeline.swift:747-893, :1153-1235). These tests check the behaviour that
 // machinery protects, on the real timeline with a real runtime: after the conversation changes shape the pane is never
-// blank, a pinned reader stays at the end, and a reader who scrolled up stays where they are (PR-CHAT-170).
+// blank, a pinned reader stays at the end, and a reader who scrolled up stays where they are (ED-255).
 [Collection("Headless")]
 public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
 {
@@ -154,7 +154,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:770-835 (repairLayout's goal: never blank, a pinned reader on the end)
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:770-835 (repairLayout's goal: never blank, a pinned reader on the end)
     public void A_long_thread_opens_at_the_end_with_rows_on_screen() => WithLongThread(30, (view, _, _, _) =>
     {
         var scroller = Scroller(view);
@@ -164,7 +164,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:440 .defaultScrollAnchor(.bottom, for: .sizeChanges) while pinned; :578-590 a pinned reader at rest is put back on the end after a reflow
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:440 .defaultScrollAnchor(.bottom, for: .sizeChanges) while pinned; :578-590 a pinned reader at rest is put back on the end after a reflow
     public void Narrowing_and_widening_the_window_keeps_a_pinned_reader_on_the_end_with_rows_on_screen() => WithLongThread(30, (view, _, window, frames) =>
     {
         window.Width = 560;
@@ -179,7 +179,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:686-709 a row landing at the end brings a reader at the end down to it
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:686-709 a row landing at the end brings a reader at the end down to it
     public void A_new_turn_arriving_keeps_a_pinned_reader_on_the_end() => WithLongThread(20, (view, runtime, window, frames) =>
     {
         AppendTurn(runtime);
@@ -189,7 +189,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:686-709 "a reader who scrolled up to read is left there"; :440 top anchor for size changes while not pinned
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:686-709 "a reader who scrolled up to read is left there"; :440 top anchor for size changes while not pinned
     public void A_new_turn_arriving_leaves_a_reader_scrolled_up_mid_thread_where_they_were() => WithLongThread(30, (view, runtime, window, frames) =>
     {
         Assert.True(Wheel(view, window, 30) > 1000, "the wheel did not move the reader up: " + Where(Scroller(view)));
@@ -204,7 +204,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:742-748, :770-835: a reflow while reading mid-thread never leaves the pane blank
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:742-748, :770-835: a reflow while reading mid-thread never leaves the pane blank
     public void Resizing_while_scrolled_up_mid_thread_never_leaves_the_pane_blank() => WithLongThread(30, (view, _, window, frames) =>
     {
         Assert.True(Wheel(view, window, 30) > 1000, "the wheel did not move the reader up: " + Where(Scroller(view)));
@@ -219,7 +219,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:594-607 the initial window lands a beat later, above the viewport, "while the reader is already looking at the end"; :380-382 a visible pill loads a page
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:594-607 the initial window lands a beat later, above the viewport, "while the reader is already looking at the end"; :380-382 a visible pill loads a page
     public void A_long_thread_loads_its_initial_window_above_the_viewport_and_the_reader_stays_on_the_end() => WithLongThread(60, (view, _, _, _) =>
     {
         // 60 turns are 60 blocks. The first paint shows the newest TimelineWindow.FirstPaint; its earlier-messages pill
@@ -231,7 +231,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:366-382 history loads itself as the reader nears the top; :556-571 it lands above the viewport, the reader's place kept
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:366-382 history loads itself as the reader nears the top; :556-571 it lands above the viewport, the reader's place kept
     public void Earlier_messages_load_above_without_moving_the_reader_to_the_top_or_the_end() => WithLongThread(90, (view, _, window, frames) =>
     {
         var oldest = OldestQuestion(view);
@@ -267,7 +267,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:624-638 "The turn's end folds its steps into its answer ... A reader at the end is put back on the end once that has laid out"
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:624-638 "The turn's end folds its steps into its answer ... A reader at the end is put back on the end once that has laid out"
     public void A_finishing_turn_reshapes_its_block_and_a_pinned_reader_stays_on_the_end() => WithLongThread(20, (view, runtime, window, frames) =>
     {
         var turn = Guid.NewGuid();
@@ -282,7 +282,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:624-638 and :686-709: a reader who scrolled up is not moved by the turn ending; :542-556 never left past the end
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:624-638 and :686-709: a reader who scrolled up is not moved by the turn ending; :542-556 never left past the end
     public void A_finishing_turn_leaves_a_reader_scrolled_up_mid_thread_where_they_were() => WithLongThread(30, (view, runtime, window, frames) =>
     {
         var turn = Guid.NewGuid();
@@ -302,7 +302,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:615-623 the reader coming back (window to the front) checks the timeline; :1295-1348 FrontMonitor
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:615-623 the reader coming back (window to the front) checks the timeline; :1295-1348 FrontMonitor
     public void Changes_made_while_the_window_was_minimised_are_on_screen_at_the_end_when_it_returns() => WithLongThread(20, (view, runtime, window, frames) =>
     {
         window.WindowState = WindowState.Minimized;
@@ -323,7 +323,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:2320-2325 ScrollFreeze turns off hit-testing on the rows only; the NSScrollView still takes every wheel event
+    [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:2320-2325 ScrollFreeze turns off hit-testing on the rows only; the NSScrollView still takes every wheel event
     public void Every_wheel_notch_scrolls_even_while_the_rows_are_frozen() => WithLongThread(30, (view, _, window, _) =>
     {
         // One notch is 50 points; the first freezes the rows for 150 ms, and the other nine come inside that window.

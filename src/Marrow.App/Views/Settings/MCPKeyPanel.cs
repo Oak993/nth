@@ -55,7 +55,7 @@ public sealed class MCPKeyPanel : FloatingGuidePanel
 }
 
 /// <summary>:24-195 <c>struct MCPKeyPanelView: View</c>: numbered steps, one field per entry field, and Save.</summary>
-public sealed class MCPKeyPanelView : Decorator
+public sealed class MCPKeyPanelView : FloatingGuidePanelView
 {
     private readonly MCPCatalogEntry entry; // :25
     private readonly AppModel model; // :26
@@ -124,7 +124,7 @@ public sealed class MCPKeyPanelView : Decorator
 
         // :52-58
         var layers = new Grid();
-        layers.Children.Add(new WindowBackdrop(0.5));
+        layers.Children.Add(new WindowBackdrop(BackdropOpacity));
         layers.Children.Add(new WindowDragArea());
         layers.Children.Add(content);
         Child = layers;

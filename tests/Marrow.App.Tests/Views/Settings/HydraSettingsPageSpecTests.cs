@@ -94,7 +94,7 @@ public sealed class HydraSettingsPageSpecTests(HeadlessSession headless)
         Click(button);
         Assert.True(mark.IsPopoverPresented);
         var popup = LastPresented(scene);
-        var body = Assert.IsType<Border>(popup.Child);
+        var body = Assert.IsType<Border>(PopoverHost.Content(popup)); // the site's view, not the card the presenter hangs it on (OD-0095)
         Assert.Equal(360, body.Width);
         var topic = Of<HydraInfoPopover>(body).Single();
         var text = Text(topic);

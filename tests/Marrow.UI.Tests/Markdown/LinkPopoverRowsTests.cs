@@ -46,7 +46,7 @@ public sealed class LinkPopoverRowsTests(HeadlessSession headless)
     // The rows of the content the shared popover is showing, as the popup holds them.
     private static List<Control> ShownRows()
     {
-        var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+        var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
         var content = Assert.IsType<LinkPopoverContent>(frame.Child);
         return Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child).Children.ToList();
     }
@@ -137,6 +137,7 @@ public sealed class LinkPopoverRowsTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-043")] // DroppyCode/UI/Markdown/LinkPopover.swift:80: "Merge" semibold, then one space, then the request label regular
     public void The_merge_row_reads_Merge_in_semibold_then_one_space_then_the_label_in_the_regular_weight() => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork("gitlab.com"); // R-TEST-10: the content asks gitlab.com for its favicon when it appears (found by the network audit, ED-256 (10))
         var url = SwiftURL.Create("https://gitlab.com/g/p/-/merge_requests/7")!;
         var content = new LinkPopoverContent(url, MergeRequestLink.Create(url), _ => { });
         var window = Host(content);
@@ -222,6 +223,7 @@ public sealed class LinkPopoverRowsTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-045")] // DroppyCode/UI/Markdown/LinkPopover.swift:91-94 with Popovers.swift:271: close, and the clipboard holds the absolute URL as plain text
     public void Clicking_Copy_Link_closes_the_popover_and_replaces_the_clipboard_with_the_absolute_url_not_the_pretty_title() => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork("github.com"); // R-TEST-10: the content asks github.com (the URL's host, lowercased) for its favicon when it appears (found by the network audit, ED-256 (10))
         var url = SwiftURL.Create("https://GitHub.com/Org/Repo/pull/5?Tab=files")!; // a merge request: the row above shows "Merge #5", the clipboard must not
         var content = new LinkPopoverContent(url, MergeRequestLink.Create(url), _ => { });
         var closes = 0;

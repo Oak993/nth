@@ -64,9 +64,9 @@ using Marrow.UI.Sound;
 // Make and MakeContextMenu in full (:2193-2312); ThreadGhostBadge in full (:2083-2109; it was still MARROW_STUB, but
 // Glide and ArchiveWithGenie need a real badge to carry, not a stub); SidebarHelperRow.TitleWeight, TitleOpacity,
 // TrailingPadding, BackgroundFill, HeadGlyph and BuildTrailingOverlay (:1361-1384) as directly testable static pieces
-// of that row's body. renamePopover (:239-252) stays MARROW_STUB: STOP #6 (SidebarViewTests.cs), RenameThreadPopover's
-// `.textFieldStyle(.roundedBorder)` and `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` have no Windows
-// chrome or governing decision yet.
+// of that row's body. renamePopover (:239-252) and RenameThreadPopover were built later (2026-10-01); what STOP #6
+// (SidebarViewTests.cs) still holds open is only the Windows chrome of `.textFieldStyle(.roundedBorder)`,
+// `.buttonStyle(.bordered)`/`.borderedProminent` and presentedChrome's capsule border shape (Popovers.swift:10).
 // Part 5 of 8 adds: HelperStubRow in full (:1552-1618), reusing HelperConnector.Dash (now internal) and
 // HelperConnectorShape as :1583 reuses HelperConnector.style directly; HeadCardsRow.Usable, PerRow, RowGap, Chunk,
 // Capped, Visible, CardRows and ChevronTooltip (:1450-1461, :1442-1443, :1526, :1545-1547) as directly testable
@@ -96,8 +96,8 @@ using Marrow.UI.Sound;
 // Done so far: ProjectRow (PR-SIDEBAR-130, PR-SIDEBAR-133, UI-SIDEBAR-014/-015/-016) and SidebarThreadRow
 // (PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half) are proven; SidebarHelperRow and HeadCardsRow are not.
 // Window sweep assembles SidebarThreadRow, ThreadRow, the three helper dispatch arms and FrameHolder.Note.
-// Still unwritten: rename presentation (STOP #6) and the SidebarHelperRow/HeadCardsRow right-click menu attachment
-// (STOP #7, narrowed). Job SB (ROUND3.md) closed the empty-needle search match (STOP #1), ProjectRow's and
+// Rename presentation and the SidebarHelperRow/HeadCardsRow right-click menus have since been written (STOP #6 now
+// holds only the controls' chrome; STOP #7 is closed). Job SB (ROUND3.md) closed the empty-needle search match (STOP #1), ProjectRow's and
 // SidebarThreadRow's own live context menus (STOP #7 narrowed, STOP #8 in SidebarViewTests.cs closed). Row state,
 // frame reports and glides are now live.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
@@ -531,7 +531,13 @@ public sealed class SidebarView : Decorator
             if (index > 0) // :706-708
                 entries.Add(new ListEntry(group + ":gap", Chrome.GroupGap, null, () => new Border { Height = Chrome.GroupGap }, null));
             entries.Add(new ListEntry(group + ":project", (result.Project, result.Count), null, // :709
-                () => new ProjectRow(result.Project, result.Count, togglesExpansion: false), null));
+                () => new ProjectRow(result.Project, result.Count, togglesExpansion: false),
+                (control, value) => // :709 the same row under the same ForEach id takes its new snapshot and count in place
+                {
+                    if (control is not ProjectRow projectRow || value is not ValueTuple<Project, long> pair) return false;
+                    projectRow.Update(pair.Item1, pair.Item2);
+                    return true;
+                }));
             foreach (var thread in result.Threads) // :711 ForEach(result.threads, id: \.sidebarItemID)
             {
                 var hasHelpers = !thread.IsSettled && helpers.TryGetValue(thread.Id, out var own) && own.Count > 0; // :712
@@ -675,7 +681,9 @@ public sealed class SidebarView : Decorator
         _ => throw new UnreachableException(),
     };
 
-    // A surviving row takes its item's new value in place where its view can; the others are rebuilt where they stand.
+    // A surviving row takes its item's new value in place where its view can; the others are rebuilt where they stand
+    // (ENGINEERING DECISION ED-258 (3): SwiftUI keeps a row's @State under its ForEach id; the thread
+    // and stub rows and the activity headers still rebuild, UNRESOLVED there).
     private static bool UpdateItemView(Control control, SidebarItem item)
     {
         if (item.SidebarItemKind is SidebarItem.Kind.SettledHeader header && control is SettledHeader settled)
@@ -683,10 +691,31 @@ public sealed class SidebarView : Decorator
             settled.Update(header.Count, header.IsFirst); // :337-338, :2364-2366: one view whose count and isFirst change under it
             return true;
         }
+        if (item.SidebarItemKind is SidebarItem.Kind.Project project && control is ProjectRow projectRow)
+        {
+            projectRow.Update(project.Value, project.Count); // :333-334, :1081-1089: one view whose snapshot and count change under it
+            return true;
+        }
+        if (item.SidebarItemKind is SidebarItem.Kind.HeadCards cards && control is Decorator { Child: HeadCardsRow card })
+        {
+            card.Update(cards.Heads); // :368-371, :1430: one view whose headSnapshots change under it (the card rides its parent inside the Decorator)
+            return true;
+        }
+        if (item.SidebarItemKind is SidebarItem.Kind.Helper helper && HelperRowIn(control) is { } helperRow)
+        {
+            helperRow.Update(helper.Value, helper.IsLast); // :347-367, :1320, :1326: one view whose snapshot and isLast change under it
+            return true;
+        }
         if (item.SidebarItemKind is not SidebarItem.Kind.Gap gap || control is not Border border) return false;
         border.Height = gap.Value; // :332
         return true;
     }
+
+    // The helper row inside its item's view (HelperItemView): the riding host, the archive popover's panel, then the
+    // delete popover's panel, whose first child is the row.
+    private static SidebarHelperRow? HelperRowIn(Control control) =>
+        control is Decorator { Child: Panel archive } && archive.Children.Count > 0 && archive.Children[0] is Panel delete
+        && delete.Children.Count > 0 && delete.Children[0] is SidebarHelperRow row ? row : null;
 
     // :339-347 the thread arm: reorderableRow with its height and frame reports.
     private Control ThreadItemView(SidebarItem item, SidebarItem.Kind.Thread thread) =>
@@ -730,11 +759,47 @@ public sealed class SidebarView : Decorator
         ReportsHeightAndRides(new HelperStubRow(stub.Parent, stub.Helpers, () => Fold(stub.Parent.Id)), item.Id, stub.Parent.Id);
 
     // :347-375 Height reports stay in the non-observable table; every dependent rides the same live parent drag.
+    // The riders' .offset (:1629) reads the same `drag` the row's own .offset (:760) does, so a change made inside
+    // withAnimation (dragEnded's spring, :805-809; a swap's slide, :767) moves them along that animation together with
+    // the row, and at once when there is none, exactly as Lifted moves the row (PR-SIDEBAR-055, PR-SIDEBAR-056).
     private Control ReportsHeightAndRides(Control content, string itemID, Guid? parentID)
     {
-        var host = new Decorator { Child = content };
+        var translate = new TranslateTransform();
+        var host = new Decorator { Child = content, RenderTransform = translate };
         host.SizeChanged += (_, e) => rowHeights.Note(itemID, e.NewSize.Height);
-        host.Track(() => state.Drag, drag => new RidesWithDraggedParent(parentID, drag).Body(host));
+        double target = 0;
+        IFrameSource? frames = null;
+        Action<TimeSpan>? pending = null;
+        host.Track(() => state.Drag, drag =>
+        {
+            var rides = new RidesWithDraggedParent(parentID, drag);
+            host.ZIndex = rides.ZIndex; // :1630
+            var to = rides.Offset; // :1629
+            if (to == target) return;
+            target = to;
+            if (pending is { } running) frames?.CancelFrame(running);
+            pending = null;
+            if (Transaction.Current is not { } animation)
+            {
+                translate.Y = to;
+                return;
+            }
+            var from = translate.Y;
+            var start = SwiftClock.Now;
+            var source = FrameClock.Source.Current;
+            Action<TimeSpan>? tick = null;
+            tick = _ =>
+            {
+                var seconds = (SwiftClock.Now - start).TotalSeconds;
+                var complete = seconds >= animation.Duration;
+                translate.Y = complete ? to : from + (to - from) * animation.Progress(seconds);
+                if (complete) pending = null;
+                else source.RequestFrame(tick!);
+            };
+            frames = source;
+            pending = tick;
+            source.RequestFrame(tick);
+        });
         return host;
     }
 
@@ -754,9 +819,9 @@ public sealed class SidebarView : Decorator
 
     // :870-897 threadRow(_:projectName:projectIcon:hasHelpers:isDragged:), the popovers around SidebarThreadRow (parts 3
     // and 4).
-    // STOP opencode-App.Views.Sidebar.SidebarView #5: SidebarThreadRow's own constructor (and this ThreadRow
-    // wiring) is still unassembled; needs a follow-up unit. Names PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017
-    // and the end-to-end half of UI-SIDEBAR-060.
+    // CLOSED STOP opencode-App.Views.Sidebar.SidebarView #5: SidebarThreadRow's own constructor and this ThreadRow
+    // wiring are assembled (Window sweep) and driven by the mounted row tests (PR-SIDEBAR-134, UI-SIDEBAR-017,
+    // UI-SIDEBAR-060); PR-SIDEBAR-135's capture comparison stays open under STOP #9 (SidebarViewTests.cs).
     private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
         // :874 archivePopover(for:on: renamePopover(for:on: deletePopover(for:on: SidebarThreadRow(...))))
         ArchivePopover(thread, RenamePopover(thread, DeletePopover(thread, new SidebarThreadRow(thread, projectName, projectIcon, menuRequests,
@@ -1575,7 +1640,7 @@ internal sealed class ArchiveThreadPopover : Decorator
         // :926-929 Text("Delete").foregroundStyle(.red), .buttonStyle(.glass). UNVERIFIED O-63: controlSize(.small)'s
         // exact height and horizontal padding have no sourced Windows number yet (only the regular capsule height,
         // Chrome.CapsuleContentHeight, is settled); the button below sizes to its content instead of a guessed height.
-        var deleteLabel = new TextBlock { Text = "Delete", Foreground = Chrome.Danger.Brush(this) }; // :927
+        var deleteLabel = new TextBlock { Text = "Delete", Foreground = SwiftColor.Red.Brush(this) }; // :927 .foregroundStyle(.red): system red, not the theme's Chrome.danger
         var delete = GlassButton(deleteLabel, onDelete);
         ToolTip.SetTip(delete, "Remove the thread and its history"); // :929 .help(...)
 
@@ -1688,6 +1753,28 @@ internal sealed class DeleteThreadPopover : Decorator
             return stack;
         });
         menu.Width = 280; // :980 .frame(width: 280)
+        Child = menu;
+    }
+}
+
+/// <summary>The Remove project question: port-only by owner rulings OD-0008 A9 and OD-0012 E2 (PR-SIDEBAR-130,
+/// PR-SIDEBAR-131), in the shape of the thread delete question above (:966-981): a 280 pt popover menu with the
+/// section header, the note naming the project in U+201C/U+201D, a divider and one destructive trash item.</summary>
+internal sealed class RemoveProjectPopover : Decorator
+{
+    public RemoveProjectPopover(Project project, Action onRemove)
+    {
+        var menu = new PopoverMenu(() =>
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+            stack.Children.Add(new PopoverSectionHeader("Remove this project?")); // OD-0012 E2
+            stack.Children.Add(new PopoverNote(
+                "“" + project.Name + "” and its threads will be removed. Files in your project stay as they are.")); // OD-0012 E2
+            stack.Children.Add(new PopoverDivider()); // as :975
+            stack.Children.Add(new PopoverItem("Remove project", onRemove, symbol: "trash", isDestructive: true)); // OD-0012 E2, as :976
+            return stack;
+        });
+        menu.Width = 280; // as :980 .frame(width: 280)
         Child = menu;
     }
 }
@@ -1812,9 +1899,28 @@ internal sealed class ProjectRow : Decorator
     private sealed class ViewState : MainActorModel
     {
         private bool isMenuPresented;
+        private bool isRemovalPresented;
 
         public bool IsMenuPresented { get => Read(isMenuPresented); set => Set(ref isMenuPresented, value); }
+
+        // Port-only state, owner rulings OD-0008 A9 and OD-0012 E2 (PR-SIDEBAR-130, PR-SIDEBAR-131): upstream removes a
+        // project at once from both menus (:1183-1186, :1212-1214); the port asks first while confirmBeforeDeleting is
+        // on, in the thread delete question's own shape (deletePopover, :217-237, and DeleteThreadPopover, :966-981).
+        public bool IsRemovalPresented { get => Read(isRemovalPresented); set => Set(ref isRemovalPresented, value); }
+
+        // The confirmed removal waits for the question's popup to be gone, as a confirmed thread deletion does
+        // (confirmDeletion/carryOutConfirmedDeletion, :256-306): removing the project removes this row, popup included.
+        public bool RemovalConfirmed;
+        public bool IsRemovalPopoverShown;
     }
+
+    private readonly ViewState state = new();
+
+    private Action<Project, long>? update;
+
+    /// <summary>One row whose inputs change under it: the list hands a surviving project row its new snapshot and count
+    /// (:1081, :1088), and the row keeps its own state.</summary>
+    internal void Update(Project snapshot, long count) => update?.Invoke(snapshot, count);
 
     /// <param name="snapshot">:1081 <c>let snapshot: Project</c>.</param>
     /// <param name="count">:1088 <c>let count: Int</c>.</param>
@@ -1833,36 +1939,57 @@ internal sealed class ProjectRow : Decorator
     // FIX, part 6: both Tracks were reviewer findings against the initial part 6 implementation).
     public ProjectRow(Project snapshot, long count, bool togglesExpansion = true)
     {
-        var state = new ViewState();
         var current = snapshot; // :1085, refreshed by the Track below
+        var shownCount = count; // :1088, refreshed by Update
         var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         SidebarIconBadge? iconBadge = null;
         Control BuildIconGlyph() => // :1108-1112, re-read fresh wherever this is invoked, matching Swift's computed `project.icon`
             current.Icon is { } icon ? new ProjectIconMark(icon, 12) : new SidebarSymbol("folder.fill");
-        Control BuildAccessory(bool hovering) // :1115-1133, invoked by SidebarRow's own hover Track and, below, this row's own isMenuPresented Track
+        // :1115-1133 the accessory is one conditional: the ellipsis-and-plus HStack, else the count Text, else nothing.
+        // SwiftUI keeps the view of the branch that holds under its identity, so the HStack keeps its ellipsis button (and
+        // an open menu its anchor) however often the row renders, and the Text takes a new count in place; a branch that is
+        // entered again is a new view. SidebarRow (Chrome.cs) keeps a control it is handed again where it is and
+        // crossfades a new one in for an old one.
+        StackPanel? cluster = null;
+        TextBlock? countText = null;
+        Border? countHost = null;
+        Border? none = null;
+        Control BuildAccessory(bool hovering) // :1115-1133, asked by SidebarRow on a hover change and by RefreshAccessory below
         {
             if (hovering || state.IsMenuPresented) // :1116
             {
-                var isActive = Model.Settings.IsProjectActive(current.Id); // :1096, read fresh at invocation time
-                var cluster = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1117
-                cluster.Children.Add(new RowActionsButton(Actions(Model, current, isActive), isMenuPresented)); // :1118
+                countHost = null;
+                none = null;
+                if (cluster is not null) return cluster;
+                cluster = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1117
+                // :1118 RowActionsButton(actions: actions(isActive: isActive), ...): the actions the body builds now, with
+                // :1096's isActive and :1085's project read when the menu opens.
+                cluster.Children.Add(new RowActionsButton(() => Actions(Model, current, Model.Settings.IsProjectActive(current.Id), RequestRemoval), isMenuPresented));
                 var plus = PlainControls.Button(new RowAccessoryIcon("plus"), () => Model.NewThread(current)); // :1119-1123, :1124 .buttonStyle(.plain)
                 ToolTip.SetTip(plus, "New thread in " + current.Name); // :1125
                 cluster.Children.Add(plus);
                 return cluster;
             }
-            if (!current.IsExpanded && count > 0) // :1127
+            cluster = null;
+            if (!current.IsExpanded && shownCount > 0) // :1127
             {
-                var text = new TextBlock { Text = count.ToString(CultureInfo.InvariantCulture) }; // :1128
-                SwiftFont.Subheadline.MonospacedDigit().Apply(text); // :1129
-                text.Foreground = Chrome.SecondaryText.Brush(text); // :1130
-                // SidebarRow (UI/Chrome/Chrome.cs) sets `built.Margin` itself, unconditionally, once accessory()
-                // returns; a Margin set here would be overwritten. :1131's own .padding(.trailing, 4) nests
-                // inside SidebarRow's own trailing space the same way SwiftUI composes nested paddings, so it is
-                // carried as this wrapper's own Padding, which SidebarRow's Margin assignment does not touch.
-                return new Border { Padding = new Thickness(0, 0, 4, 0), Child = text };
+                none = null;
+                if (countHost is null)
+                {
+                    countText = new TextBlock();
+                    SwiftFont.Subheadline.MonospacedDigit().Apply(countText); // :1129
+                    countText.Foreground = Chrome.SecondaryText.Brush(countText); // :1130
+                    // SidebarRow (UI/Chrome/Chrome.cs) sets `built.Margin` itself, unconditionally, once accessory()
+                    // returns; a Margin set here would be overwritten. :1131's own .padding(.trailing, 4) nests
+                    // inside SidebarRow's own trailing space the same way SwiftUI composes nested paddings, so it is
+                    // carried as this wrapper's own Padding, which SidebarRow's Margin assignment does not touch.
+                    countHost = new Border { Padding = new Thickness(0, 0, 4, 0), Child = countText };
+                }
+                countText!.Text = shownCount.ToString(CultureInfo.InvariantCulture); // :1128
+                return countHost;
             }
-            return new Border(); // :1115-1133, no branch matched: EmptyView, nothing drawn
+            countHost = null;
+            return none ??= new Border(); // :1115-1133, no branch matched: EmptyView, nothing drawn
         }
         var row = new SidebarRow(
             snapshot.Name, // :1098; no source path renames a project, so the title itself needs no reactivity
@@ -1896,27 +2023,25 @@ internal sealed class ProjectRow : Decorator
             // the way this method's own header comment describes the whole constructor doing (surgical update,
             // not a fresh SidebarRow).
             if (iconBadge is not null) ReplaceGlyph(iconBadge, BuildIconGlyph());
+            row.RefreshAccessory(); // :1127 `!project.isExpanded`: the live project's expansion picks the accessory's branch
         });
-        // REVIEW FIX (part 6): SidebarRow's own hover Track (Chrome.cs:1120-1128) rebuilds the trailing accessory
-        // only when ITS OWN `state.IsHovering` changes; `isMenuPresented` (:1091) lives on this row's own ViewState,
-        // which nothing in SidebarRow ever reads, so closing the ellipsis popover while the pointer is not back
-        // over the row left the ellipsis+plus cluster on screen indefinitely. Swift's `body` re-evaluates in full
-        // on any @State write, so any write to `isMenuPresented` alone must refresh this same accessory; there is
-        // no external hook to re-invoke SidebarRow's own hover Track, so this reaches into the already-built
-        // overlay the same way SidebarRow's own Track does (Chrome.cs:1119-1128), using the button's own
-        // Avalonia-tracked IsPointerOver as this row's outside view of `state.IsHovering` (both are driven by the
-        // same PointerEntered/PointerExited pair, UI/Port/PlainControls.cs OnHover).
-        row.Track(() => state.IsMenuPresented, _ =>
+        // :1091 isMenuPresented is this row's own @State, which SidebarRow's hover Track never reads; SwiftUI's body
+        // re-reads the accessory on any write to it, so a change of it asks SidebarRow for the accessory again, with the
+        // row's own hover state (Chrome.swift:731-737, .overlay before .onHover: the pointer resting on the ellipsis or
+        // the plus is still on the row). A menu closed with the pointer elsewhere drops the ellipsis and plus; one closed
+        // with the pointer on them keeps them.
+        row.Track(() => state.IsMenuPresented, _ => row.RefreshAccessory());
+        // :1081-1089 `snapshot`, `count` and `togglesExpansion` are plain inputs of a struct the list re-evaluates with each
+        // pass; SwiftUI keeps the row it already has under the same ForEach id ("project-<uuid>", :524) and hands it the
+        // new inputs, so its @State (isMenuPresented, the hover, and the port's own removal question) survives them
+        // (UpdateItemView). The accessory is the one part that reads them, :1127-1131: the count Text takes the new count
+        // in place, and an open menu keeps the button it hangs on.
+        update = (newSnapshot, newCount) =>
         {
-            if (row.Child is not Panel overlay || overlay.Children.Count == 0) return;
-            var hovering = overlay.Children[0] is InputElement button && button.IsPointerOver;
-            var built = BuildAccessory(hovering); // :732-733/:1122
-            built.Margin = new Thickness(0, 0, 6, 0); // :734, matching SidebarRow's own treatment of the built accessory
-            built.HorizontalAlignment = HorizontalAlignment.Right;
-            built.VerticalAlignment = VerticalAlignment.Center;
-            if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
-            overlay.Children.Add(built);
-        });
+            shownCount = newCount; // :1088
+            current = Model.Project(newSnapshot.Id) ?? newSnapshot; // :1085
+            row.RefreshAccessory();
+        };
         // :1138-1161 .contextMenu: SwiftUI re-evaluates this closure's captures (project, isActive, hasOverride,
         // pairsSnapshot) fresh every time the menu opens, not once at construction. ENGINEERING DECISION (closes
         // STOP #7/#4 for ProjectRow only; SidebarHelperRow's and HeadCardsRow's own .contextMenu sites are unchanged
@@ -1940,11 +2065,62 @@ internal sealed class ProjectRow : Decorator
                 .Select(pair => new ProjectPairChoice { Id = pair.Id, Title = HydraPairSummary.Title(pair, Model.Providers) })
                 .ToList();
             contextMenu.Items.Clear();
-            foreach (var item in BuildContextMenuItems(projectSnapshot, activeSnapshot, overrideSnapshot, Model, pairsSnapshot))
+            foreach (var item in BuildContextMenuItems(projectSnapshot, activeSnapshot, overrideSnapshot, Model, pairsSnapshot, RequestRemoval))
                 contextMenu.Items.Add(item);
         };
         row.ContextMenu = contextMenu; // :1138 .contextMenu { ... }; UI-SIDEBAR-014/-015/-016, PR-SIDEBAR-130/-133
-        Child = row;
+        Child = new Panel { Children = { row, RemovalPopover(row, snapshot) } };
+    }
+
+    // OD-0008 A9 (PR-SIDEBAR-131): Remove project honours confirmBeforeDeleting the way the three thread-deletion paths
+    // do (:190-197, :359-365, :890-896 `if model.settings.confirmBeforeDeleting { pendingDeletionID = thread.id } else
+    // { model.delete(thread.id) }`); with it off the removal runs at once, as upstream's :1183-1186 and :1212-1214.
+    private void RequestRemoval(Project project)
+    {
+        if (Model.Settings.ConfirmBeforeDeleting) state.IsRemovalPresented = true;
+        else Model.RemoveProject(project);
+    }
+
+    // OD-0012 E2: the question on the row itself, in the thread delete question's style (:217-237 deletePopover,
+    // arrowEdge .trailing). Dismissing it (click away, Escape) closes the popup, whose Closed handler clears the
+    // presentation through the binding, and removes nothing.
+    private Popup RemovalPopover(Control row, Project snapshot)
+    {
+        removalSnapshot = snapshot;
+        var isPresented = new Binding<bool>(() => state.IsRemovalPresented, value => state.IsRemovalPresented = value);
+        var popup = PlainControls.Popover(row, isPresented, () => new RemoveProjectPopover(
+            Model.Project(snapshot.Id) ?? snapshot, ConfirmRemoval), PlacementMode.Right); // :220 arrowEdge: .trailing
+        popup.Opened += (_, _) => state.IsRemovalPopoverShown = true; // :229 .onAppear
+        popup.Closed += (_, _) =>
+        {
+            state.IsRemovalPopoverShown = false; // :231 .onDisappear
+            CarryOutConfirmedRemoval(); // :232
+        };
+        return popup;
+    }
+
+    private Project? removalSnapshot;
+
+    // :256-263 confirmDeletion's shape: record the deed, close the question, and run it now unless the popup is
+    // still on screen.
+    private void ConfirmRemoval()
+    {
+        state.RemovalConfirmed = true;
+        state.IsRemovalPresented = false;
+        if (!state.IsRemovalPopoverShown) CarryOutConfirmedRemoval();
+    }
+
+    // :295-306 carryOutConfirmedDeletion's shape: once, on the main actor's next turn.
+    private void CarryOutConfirmedRemoval()
+    {
+        if (!state.RemovalConfirmed || removalSnapshot is not { } snapshot) return;
+        state.RemovalConfirmed = false;
+        var model = Model;
+        MainActor.Spawn(() =>
+        {
+            model.RemoveProject(model.Project(snapshot.Id) ?? snapshot); // AppModel.swift:558-567, upstream's removal
+            return Task.CompletedTask;
+        });
     }
 
     // REVIEW FIX (part 6): SidebarIconBadge (UI/Chrome/Chrome.cs :674-677) sets its glyph's own foreground and
@@ -1968,7 +2144,8 @@ internal sealed class ProjectRow : Decorator
     // wired to the live ContextMenu at Job SB (this class's own constructor, ContextMenu.Opening). The weak-model
     // capture mirrors ThreadActions.MakeContextMenu's own reasoning (the AppKit menu outlives the right-click).
     // PR-SIDEBAR-127, PR-SIDEBAR-129, PR-SIDEBAR-130; OD-0008 B1 ("Reveal in File Explorer" replaces "Reveal in Finder").
-    private static ValueList<RowAction> ContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model)
+    // OD-0008 A9: `requestRemoval` is the row's RequestRemoval, which asks first while confirmBeforeDeleting is on.
+    private static ValueList<RowAction> ContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model, Action<Project> requestRemoval)
     {
         var projectID = project.Id; // :1169
         var weakModel = new WeakReference<AppModel>(model); // [weak model]
@@ -1977,7 +2154,7 @@ internal sealed class ProjectRow : Decorator
             new() { Title = "New thread", Symbol = "square.and.pencil", Action = () => { if (weakModel.TryGetTarget(out var live)) live.NewThread(project); } }, // :1171-1174
             new() { Title = "New thread in worktree", Symbol = "square.stack.3d.up", Action = () => { if (weakModel.TryGetTarget(out var live)) live.NewThread(project, WorkspaceMode.Worktree); } }, // :1175-1178
             new() { Title = "Reveal in File Explorer", Symbol = "folder", StartsGroup = true, Action = () => { if (weakModel.TryGetTarget(out _)) ShellWorkspace.RevealInFileExplorer(project.Path); } }, // :1179-1182, OD-0008 B1
-            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => { if (weakModel.TryGetTarget(out var live)) live.RemoveProject(project); } }, // :1183-1186
+            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => { if (weakModel.TryGetTarget(out _)) requestRemoval(project); } }, // :1183-1186, asking first by OD-0008 A9
         };
         items.Add(new RowAction // :1188-1195
         {
@@ -1997,14 +2174,14 @@ internal sealed class ProjectRow : Decorator
     // closures over the model and project, unlike ContextMenuActions' weak snapshots above (the popover button owns
     // its own lifetime; there is no AppKit menu to outlive it, matching ThreadActions.Make's own reasoning).
     // PR-SIDEBAR-127, PR-SIDEBAR-129; OD-0008 B1.
-    private static ValueList<RowAction> Actions(AppModel model, Project project, bool isActive)
+    private static ValueList<RowAction> Actions(AppModel model, Project project, bool isActive, Action<Project> requestRemoval)
     {
         var items = new List<RowAction>
         {
             new() { Title = "New thread", Symbol = "square.and.pencil", Action = () => model.NewThread(project) }, // :1207
             new() { Title = "New thread in worktree", Symbol = "square.stack.3d.up", Action = () => model.NewThread(project, WorkspaceMode.Worktree) }, // :1208-1210
             new() { Title = "Reveal in File Explorer", Symbol = "folder", StartsGroup = true, Action = () => ShellWorkspace.RevealInFileExplorer(project.Path) }, // :1211, OD-0008 B1
-            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => model.RemoveProject(project) }, // :1212-1214
+            new() { Title = "Remove project", Symbol = "trash", IsDestructive = true, StartsGroup = true, Action = () => requestRemoval(project) }, // :1212-1214, asking first by OD-0008 A9
         };
         items.Add(new RowAction // :1216-1220
         {
@@ -2025,9 +2202,9 @@ internal sealed class ProjectRow : Decorator
     // class's own constructor installs the result on a live ContextMenu.Items, freshly, on every open (Job SB).
     // PR-SIDEBAR-129, UI-SIDEBAR-014, UI-SIDEBAR-015, UI-SIDEBAR-016.
     private static IReadOnlyList<Control> BuildContextMenuItems(
-        Project project, bool isActive, bool hasOverride, AppModel model, IReadOnlyList<ProjectPairChoice> pairs)
+        Project project, bool isActive, bool hasOverride, AppModel model, IReadOnlyList<ProjectPairChoice> pairs, Action<Project> requestRemoval)
     {
-        var items = new List<Control>(new RowActionMenuButtons(ContextMenuActions(project, isActive, hasOverride, model)).Items); // :1143-1148
+        var items = new List<Control>(new RowActionMenuButtons(ContextMenuActions(project, isActive, hasOverride, model, requestRemoval)).Items); // :1143-1148
         if (pairs.Count > 0) // :1154 pairsSnapshot.isEmpty
         {
             items.Add(new Separator()); // :1155
@@ -2148,14 +2325,25 @@ internal sealed class SidebarHelperRow : Decorator
     {
         private bool isHovering; // :1339 @State private var isHovering = false
         private bool isMenuPresented; // :1340 @State private var isMenuPresented = false
+        private ChatThread snapshot = null!;
 
         public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
         public bool IsMenuPresented { get => Read(isMenuPresented); set => Set(ref isMenuPresented, value); }
+
+        // :1320 `let snapshot`, an input of the struct the list hands a new value with each pass (Update), not @State.
+        public ChatThread Snapshot { get => Read(snapshot); set => Set(ref snapshot, value); }
     }
+
+    private Action<ChatThread, bool>? update;
+
+    /// <summary>:1320, :1326 the list hands a surviving helper row its new <c>snapshot</c> and <c>isLast</c>; SwiftUI keeps
+    /// the row it already has under the same ForEach id (the helper's sidebar item id, :470-472), so its @State (the hover
+    /// and an open ellipsis menu) survives them.</summary>
+    internal void Update(ChatThread snapshot, bool isLast) => update?.Invoke(snapshot, isLast);
 
     public SidebarHelperRow(ChatThread snapshot, bool isLast, SidebarMenuRequests menuRequests, Action onFold, Action onRename, Action onDelete)
     {
-        var state = new ViewState();
+        var state = new ViewState { Snapshot = snapshot };
         var current = snapshot; // :1324-1325, refreshed by the Track below
         var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
 
@@ -2163,6 +2351,11 @@ internal sealed class SidebarHelperRow : Decorator
         {
             Width = ThreadRowMetrics.ConnectorWidth,
             Height = ThreadRowMetrics.HelperHeight,
+        };
+        update = (newSnapshot, newIsLast) =>
+        {
+            state.Snapshot = newSnapshot; // :1324-1325 the fallback for a thread that has just been deleted
+            connector.EndsHere = newIsLast; // :1349 HelperConnector(endsHere: isLast, ...)
         };
 
         // :1359-1364 Text(...).lineLimit(1).truncationMode(.tail) then Spacer(minLength: 4), inside HStack(spacing: 6).
@@ -2196,7 +2389,10 @@ internal sealed class SidebarHelperRow : Decorator
         var overlayHost = new Panel { Children = { button } };
         Control? overlayControl = null;
 
-        button.OnHover(hovering => // :1401-1404
+        // :1375-1404 `.overlay(alignment: .trailing) { ... }` comes BEFORE `.onHover`, so the hover region is the button
+        // together with its overlaid status or ellipsis: the pointer resting on the ellipsis is still on the row and keeps
+        // it (the hover is on the overlay host, as SidebarThreadRow's overlays host carries its own, :1816).
+        overlayHost.OnHover(hovering => // :1401-1404
         {
             Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering);
             if (hovering) Model.WarmDocuments([current.Id]); // :1404
@@ -2218,9 +2414,11 @@ internal sealed class SidebarHelperRow : Decorator
         };
         overlayHost.ContextMenu = contextMenu;
 
+        bool? selectedBefore = null, actionsBefore = null;
+        (bool HasUnread, TurnStatus? LastStatus) statusBefore = default;
         overlayHost.Track(() =>
         {
-            var thread = Model.Thread(snapshot.Id) ?? snapshot; // :1324-1325
+            var thread = Model.Thread(snapshot.Id) ?? state.Snapshot; // :1324-1325, the snapshot the list last handed the row
             var isSelected = Model.IsSelected(thread.Id); // :1340
             var showsActions = state.IsHovering || state.IsMenuPresented; // :1341
             var isHidden = RowGlideAnimator.Shared.Current.IsHiding(thread.ParentThreadID ?? thread.Id); // :1343, :1409
@@ -2246,11 +2444,37 @@ internal sealed class SidebarHelperRow : Decorator
                 glyph = null;
             }
             shape.Padding = new Thickness(6, 0, TrailingPadding(showsActions), 0); // :1365-1367
-            fill.Set(Chrome.Overlay(BackgroundFill(isSelected, state.IsHovering)), Transaction.Current); // :1370-1372
-            if (overlayControl is { } previous) overlayHost.Children.Remove(previous);
-            var actionsButton = new RowActionsButton(ThreadActions.Make(Model, thread, onRename, onDelete), isMenuPresented); // :1375-1376
-            overlayControl = BuildTrailingOverlay(showsActions, thread, actionsButton); // :1375-1384
-            overlayHost.Children.Add(overlayControl);
+            // :1370-1372 `.animation(Chrome.hover, value: isSelected)`: a selection change eases on Chrome.hover whatever
+            // transaction carried it; a hover change rides its own withAnimation(Chrome.hover) (:1386).
+            fill.Set(Chrome.Overlay(BackgroundFill(isSelected, state.IsHovering)),
+                selectedBefore is { } before && before != isSelected ? Chrome.Hover : Transaction.Current);
+            selectedBefore = isSelected;
+            // :1375-1384 the Group's two branches swap when showsActions flips inside withAnimation(Chrome.hover) (:1386),
+            // so they crossfade on SwiftUI's default .opacity transition. While a branch holds SwiftUI keeps its view under
+            // its identity and hands it the live record (REVIEW round 2, UI-SIDEBAR-033): the ellipsis keeps its button, so
+            // an open menu keeps its anchor and is not presented again, and its actions are the ones the body builds now
+            // (:1375-1376 makeActions(), read as the menu opens); the status is drawn again only when what it shows of the
+            // record (:2421-2423 hasUnread, lastStatus) changed. A status redrawn with no transaction replaces in place.
+            var statusInput = (thread.HasUnread, thread.LastStatus);
+            var branchHolds = actionsBefore == showsActions && overlayControl is not null;
+            var keep = branchHolds && (showsActions || statusInput == statusBefore);
+            var crossfade = actionsBefore is { } wasShowing && wasShowing != showsActions && Transaction.Current is not null;
+            actionsBefore = showsActions;
+            statusBefore = statusInput;
+            if (!keep)
+            {
+                if (overlayControl is { } previous)
+                {
+                    if (crossfade) SwiftTransition.Remove(overlayHost, previous);
+                    else overlayHost.Children.Remove(SwiftTransition.Container(previous));
+                }
+                var actionsButton = showsActions
+                    ? new RowActionsButton(() => ThreadActions.Make(Model, current, onRename, onDelete), isMenuPresented) // :1375-1376
+                    : null;
+                overlayControl = BuildTrailingOverlay(showsActions, thread, actionsButton!); // :1375-1384
+                if (crossfade) SwiftTransition.Insert(overlayHost, overlayHost.Children.Count, overlayControl);
+                else overlayHost.Children.Add(overlayControl);
+            }
             Opacity = isHidden ? 0 : 1; // :1409, on this SidebarHelperRow itself (the whole HStack)
         });
 
@@ -2323,11 +2547,22 @@ internal sealed class HeadCardsRow : Decorator
         private double width;
         private Guid? hoveredID;
         private bool showsAllHeads;
+        private IReadOnlyList<ChatThread> heads = [];
 
         public double Width { get => Read(width); set => Set(ref width, value); }
         public Guid? HoveredID { get => Read(hoveredID); set => Set(ref hoveredID, value); }
         public bool ShowsAllHeads { get => Read(showsAllHeads); set => Set(ref showsAllHeads, value); }
+
+        // :1430 `let headSnapshots`, an input of the struct the list hands a new value with each pass (Update), not @State.
+        public IReadOnlyList<ChatThread> Heads { get => Read(heads); set => Set(ref heads, value); }
     }
+
+    private Action<IReadOnlyList<ChatThread>>? update;
+
+    /// <summary>:1430 the list hands a surviving card its new <c>headSnapshots</c>; SwiftUI keeps the card it already has
+    /// under the same ForEach id ("heads-&lt;uuid&gt;", :470-472), so its @State (the width, the hovered glyph and
+    /// whether every head shows) survives them.</summary>
+    internal void Update(IReadOnlyList<ChatThread> headSnapshots) => update?.Invoke(headSnapshots);
 
     // PORT-ONLY: animates a ScaleTransform's uniform scale along a Chrome.hover-style transaction, the same
     // frame-tick technique PlainControls.AnimatedColor already uses for a colour (UI/Port/PlainControls.cs:186), here
@@ -2433,8 +2668,9 @@ internal sealed class HeadCardsRow : Decorator
     // (ContextMenu.Opening, as the other rows' menus are) for the head the glyph was last built for.
     public HeadCardsRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> headSnapshots, SidebarMenuRequests menuRequests, Action onFold)
     {
-        var state = new ViewState();
-        var connector = new HelperConnector(true, onFold); // :1436-1437, endsHere: true
+        var state = new ViewState { Heads = headSnapshots };
+        update = heads => state.Heads = heads;
+        var connector = new HelperConnector(true, onFold) { Width = ThreadRowMetrics.ConnectorWidth }; // :1433-1437, endsHere: true, .frame(width: connectorWidth, ...)
         var connectorHeight = new AnimatedDouble(v => connector.Height = v); // :1439, :1541
         long? previousCardRows = null; // :1535 .animation(.snappy(duration: 0.18), value: cardRows)
         ValueList<Guid>? previousHeadIDs = null; // :1541 .animation(Chrome.panelSlide, value: heads.map(\.id))
@@ -2448,14 +2684,40 @@ internal sealed class HeadCardsRow : Decorator
             Child = rows,
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1519-1521 background + clipShape
         card.Background = Chrome.Overlay(0.04).Brush(card); // :1520
-        var cardHeightAnimated = new AnimatedDouble(v => card.Height = v); // :1518, :1535
+        card.ClipToBounds = true; // :1521 .clipShape: while the card grows its lower rows show only as its edge reaches them
+        // (2-chat-use.mov 5.33-5.53 s, CATALOGUE sidebar.activity-grid-expand)
+        // PORT-ONLY (ENGINEERING DECISION ED-258 (2), UI-SIDEBAR-038 review, 2-chat-use.mov 5.33-5.40 s CATALOGUE sidebar.activity-grid-expand):
+        // a view that leaves under SwiftUI's default .opacity transition no longer takes part in the layout the others
+        // settle into, it fades where it stood while the card clips it. A control Avalonia keeps in its panel until it has
+        // faded would hold its slot, and a whole leaving row would hold the chevron down and let it jump up at the end.
+        // So a leaving glyph (or chevron) is lifted out of its row onto this canvas, at the place it was drawn, and fades
+        // there; the layer sits over the card, the same size and clipped to the same rounded shape, and takes no input.
+        var ghosts = new Canvas { IsHitTestVisible = false };
+        var ghostLayer = new Border // the card's own area (:1516 padding, :1517-1518 frame, :1521 clipShape)
+        {
+            Padding = new Thickness(ThreadRowMetrics.HeadCardPadding),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Top,
+            IsHitTestVisible = false,
+            ClipToBounds = true,
+            Child = ghosts,
+        }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
+        var cardHeightAnimated = new AnimatedDouble(v => { card.Height = v; ghostLayer.Height = v; }); // :1518, :1535
 
         var outer = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :1440 HStack(spacing: 0)
         Grid.SetColumn(connector, 0);
         Grid.SetColumn(card, 1);
+        Grid.SetColumn(ghostLayer, 1);
         outer.Children.Add(connector);
         outer.Children.Add(card);
+        outer.Children.Add(ghostLayer);
         outer.SizeChanged += (_, e) => state.Width = e.NewSize.Width; // :1544 onGeometryChange(width)
+
+        // The glyphs the last build drew, by their row's id and their own (:1466-1467), and its chevron (:1514) with the
+        // symbol it drew (:1516).
+        var drawnGlyphs = new Dictionary<(Guid Row, Guid Head), Control>();
+        Control? drawnChevron = null;
+        string? drawnChevronSymbol = null;
 
         void Rebuild(ValueList<ChatThread> heads, double width, bool showsAllHeads, bool isHidden)
         {
@@ -2480,8 +2742,43 @@ internal sealed class HeadCardsRow : Decorator
             var cardRowsChanged = previousCardRows is not null && previousCardRows.Value != cardRows;
             connectorHeight.Set(cardHeight, headIDsChanged ? Chrome.PanelSlide : Transaction.Current); // :1439, :1541
             cardHeightAnimated.Set(cardHeight, cardRowsChanged ? Animation.Snappy(duration: 0.18) : Transaction.Current); // :1518, :1535
+            var firstBuild = previousHeadIDs is null;
             previousHeadIDs = headIDs;
             previousCardRows = cardRows;
+
+            // :1466-1467 ForEach(rows, id: \.first?.id) { ForEach(row, id: \.id) { glyph } } and :1514 `if capped { chevron }`:
+            // a view that joins or leaves a parent that is already on screen runs SwiftUI's default .opacity transition under
+            // the animation in force for the change (REVIEW, UI-SIDEBAR-038, 2-chat-use.mov 5.33-5.40 s: the glyphs past
+            // twelve fade in on the chevron's snappy toggle and out again). A glyph's identity is its row's id and its own,
+            // so one that moves to another row on a reflow leaves one and joins the other. That animation is the innermost
+            // `.animation` whose value changed over the glyphs, :1535 snappy for a change of cardRows, then :1541 panelSlide
+            // for a change of the head ids, otherwise the transaction the change came in (the chevron's own withAnimation,
+            // :1515-1516); none at all when the change carries none, and none for the first build.
+            var membership = firstBuild ? null
+                : cardRowsChanged ? Animation.Snappy(duration: 0.18)
+                : headIDsChanged ? Chrome.PanelSlide
+                : Transaction.Current;
+            var drawn = new HashSet<(Guid Row, Guid Head)>();
+            foreach (var line in chunked)
+                foreach (var head in line)
+                    if (head.Hydra is not null) drawn.Add((line[0].Id, head.Id)); // :1471
+            // :1516 `Image(systemName: showsAllHeads ? "chevron.up" : "chevron.down")`: on the chevron's own toggle the
+            // down-chevron does not vanish. 2-chat-use.mov 5.340-5.378 s (REVIEW round 2): 17-27 ms after the press it is
+            // still drawn, faint, exactly where it stood, and the up-chevron comes in under the grown card's last row; so the
+            // symbol that goes leaves as a view that leaves does (on the ghost layer, where it stood) and the one that comes
+            // joins as a view that joins does, under the same animation (OD-0076).
+            var chevronSymbol = capped ? (showsAllHeads ? "chevron.up" : "chevron.down") : null;
+            var chevronChanged = drawnChevron is not null && chevronSymbol != drawnChevronSymbol;
+            if (membership is not null)
+            {
+                foreach (var glyph in drawnGlyphs.Where(pair => !drawn.Contains(pair.Key)).Select(pair => pair.Value).ToList()) Leave(glyph, membership);
+                if (chevronChanged && drawnChevron is { } leavingChevron) Leave(leavingChevron, membership); // :1514 `capped` turned false, or :1516 its symbol changed
+            }
+            var previous = drawnGlyphs;
+            drawnGlyphs = [];
+            var chevronJoins = membership is not null && capped && (drawnChevron is null || chevronChanged);
+            drawnChevron = null;
+            drawnChevronSymbol = chevronSymbol;
 
             rows.Children.Clear();
             foreach (var line in chunked)
@@ -2545,13 +2842,16 @@ internal sealed class HeadCardsRow : Decorator
                     };
                     button.ContextMenu = headMenu;
                     AutomationProperties.SetName(button, $"{info.Persona.Name}, {info.Task}"); // :1499
-                    lineHost.Children.Add(button);
+                    var glyphKey = (line[0].Id, headID);
+                    drawnGlyphs[glyphKey] = button;
+                    if (membership is not null && !previous.ContainsKey(glyphKey)) Join(lineHost, button, membership);
+                    else lineHost.Children.Add(button);
                 }
                 rows.Children.Add(lineHost);
             }
             if (capped) // :1514
             {
-                var chevronGlyph = SwiftImage.SystemName(showsAllHeads ? "chevron.up" : "chevron.down") // :1516
+                var chevronGlyph = SwiftImage.SystemName(chevronSymbol!) // :1516
                     .Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Semibold)); // :1517
                 chevronGlyph.ForegroundStyle(Chrome.SecondaryText); // :1518
                 chevronGlyph.Width = ThreadRowMetrics.HeadGlyphSize; // :1519
@@ -2568,13 +2868,33 @@ internal sealed class HeadCardsRow : Decorator
                 var chevronButton = PlainControls.Button(chevronHost, () => // :1515-1516
                     Transaction.WithAnimation(Animation.Snappy(duration: 0.18), () => state.ShowsAllHeads = !state.ShowsAllHeads));
                 ToolTip.SetTip(chevronButton, ChevronTooltip(showsAllHeads, heads.Count)); // :1526
-                rows.Children.Add(chevronButton);
+                chevronButton.HorizontalAlignment = HorizontalAlignment.Left; // :1465 VStack(alignment: .leading): the 14 pt button sits at the leading edge
+                drawnChevron = chevronButton;
+                if (chevronJoins && membership is not null) Join(rows, chevronButton, membership); // :1514 the chevron joins as `capped` turns true, :1516 or as its symbol changes
+                else rows.Children.Add(chevronButton);
             }
             Opacity = isHidden ? 0 : 1; // :1543
         }
 
+        // The animation's own transition: SwiftUI's default .opacity, with no .transition modifier on any of these views.
+        // The animation is the one in force for the change (Rebuild's `membership`), whatever transaction is current here.
+        static void Join(Panel host, Control child, Animation animation) =>
+            Transaction.WithAnimation(animation, () => SwiftTransition.Insert(host, host.Children.Count, child));
+
+        // A leaving glyph or chevron is lifted out of its row onto the ghost layer where it was drawn and fades there.
+        void Leave(Control child, Animation animation)
+        {
+            var container = SwiftTransition.Container(child);
+            if (container.GetVisualParent() is not Panel host || child.TranslatePoint(default, ghosts) is not { } at) return; // not laid out: it just goes
+            host.Children.Remove(container);
+            Canvas.SetLeft(container, at.X);
+            Canvas.SetTop(container, at.Y);
+            SwiftTransition.Place(ghosts, ghosts.Children.Count, child);
+            Transaction.WithAnimation(animation, () => SwiftTransition.Remove(ghosts, child));
+        }
+
         outer.Track(() => (
-            SidebarView.OrderedHeads(headSnapshots.Select(head => Model.Thread(head.Id) ?? head).ToList()), // :1441
+            SidebarView.OrderedHeads(state.Heads.Select(head => Model.Thread(head.Id) ?? head).ToList()), // :1441
             state.Width,
             state.ShowsAllHeads,
             RowGlideAnimator.Shared.Current.IsHiding(parentSnapshot.Id), // :1543
@@ -2656,7 +2976,9 @@ internal sealed class HelperStubRow : Decorator
             Width = ThreadRowMetrics.ConnectorWidth, // :1584 .frame(width: connectorWidth, height: helperHeight)
             Height = ThreadRowMetrics.HelperHeight,
         };
-        connector.SizeChanged += (_, e) => connector.Data = new HelperConnectorShape(true).Path(new Rect(e.NewSize)); // :1583 endsHere: true
+        // :1583 endsHere: true, in the 28 x 24 frame of :1584 (a Path with no Data measures to nothing, so drawing it on
+        // its own SizeChanged never happened: the stub showed no guide at all beside 2-chat-use.mov 162 s's dots).
+        connector.Data = new HelperConnectorShape(true).Path(new Rect(0, 0, ThreadRowMetrics.ConnectorWidth, ThreadRowMetrics.HelperHeight));
 
         var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(8, weight: SwiftFont.Weight.Bold)); // :1586-1587
         var label = new TextBlock { TextWrapping = TextWrapping.NoWrap }; // :1588-1589
@@ -2683,6 +3005,12 @@ internal sealed class HelperStubRow : Decorator
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1580 RoundedRectangle(cornerRadius:, style: .continuous)
         var fill = new AnimatedColor(shape);
         shape.Background = fill.Brush;
+        var stroke = new AnimatedColor(connector);
+        connector.Stroke = stroke.Brush;
+        var chevronColor = new AnimatedColor(chevron);
+        chevron.Foreground = chevronColor.Brush;
+        var labelColor = new AnimatedColor(label);
+        label.Foreground = labelColor.Brush;
 
         // :1581 HStack(spacing: 0). A horizontal StackPanel arranges every child at its own DesiredSize along the
         // stack axis (HorizontalAlignment.Stretch is a no-op there), so shape's :1603 frame(maxWidth: .infinity)
@@ -2716,10 +3044,12 @@ internal sealed class HelperStubRow : Decorator
         {
             var (count, working, noun, isHidden, hovering) = value;
             label.Text = count == 1 ? $"1 {noun}" : $"{count} {noun}s"; // :1591
-            connector.Stroke = HelperConnector.Color(hovering).Brush(connector); // :1583 HelperConnector.color(hovering:)
+            // :1611-1613 withAnimation(Chrome.hover) { isHovering = hovering }: everything isHovering drives eases with it,
+            // the stroke (:1583), the label and chevron's foreground (:1596) and the fill (:1607).
+            stroke.Set(HelperConnector.Color(hovering), Transaction.Current); // :1583 HelperConnector.color(hovering:)
             var foreground = Chrome.SecondaryText.Opacity(hovering ? 1 : 0.85); // :1596
-            chevron.ForegroundStyle(foreground);
-            label.Foreground = foreground.Brush(label);
+            chevronColor.Set(foreground, Transaction.Current);
+            labelColor.Set(foreground, Transaction.Current);
             fill.Set(hovering ? Chrome.Overlay(0.06) : SwiftColor.Clear, Transaction.Current); // :1607
             if (working) // :1592-1594
             {
@@ -2761,11 +3091,16 @@ internal sealed record RidesWithDraggedParent(Guid? ParentID, RowDrag<Guid> Drag
     // move together.
     public Control Body(Control content)
     {
-        var rides = ParentID is not null && Drag.Id == ParentID; // :1627
-        content.RenderTransform = new TranslateTransform(0, rides ? Drag.VisualOffset : 0); // :1629 .offset(y:)
-        content.ZIndex = rides ? 1 : 0; // :1630 .zIndex()
+        content.RenderTransform = new TranslateTransform(0, Offset); // :1629 .offset(y:)
+        content.ZIndex = ZIndex; // :1630 .zIndex()
         return content;
     }
+
+    private bool Rides => ParentID is not null && Drag.Id == ParentID; // :1627
+
+    public double Offset => Rides ? Drag.VisualOffset : 0; // :1629
+
+    public int ZIndex => Rides ? 1 : 0; // :1630
 }
 
 /// <summary>:1636-1660 <c>private struct HelperConnector: View</c>: the dotted connector beside a helper's row.
@@ -2783,15 +3118,17 @@ internal sealed class HelperConnector : Decorator
     public HelperConnector(bool endsHere, Action action)
     {
         var state = new ViewState();
+        this.endsHere = endsHere;
         var stroke = new Avalonia.Controls.Shapes.Path // :1649 HelperConnectorShape(endsHere: endsHere).stroke(...)
         {
             StrokeThickness = 1, // :1642 lineWidth: 1
             StrokeLineCap = PenLineCap.Round, // :1642 lineCap: .round
             StrokeDashArray = new Avalonia.Collections.AvaloniaList<double>(Dash), // :1642 dash: [0.1, 3.6]
         };
+        this.stroke = stroke;
         var fill = new AnimatedColor(stroke);
         stroke.Stroke = fill.Brush;
-        stroke.SizeChanged += (_, e) => stroke.Data = new HelperConnectorShape(endsHere).Path(new Rect(e.NewSize)); // :1649-1651
+        stroke.SizeChanged += (_, e) => stroke.Data = new HelperConnectorShape(this.endsHere).Path(new Rect(e.NewSize)); // :1649-1651
         stroke.Track(() => state.IsHovering, hovering => fill.Set(Color(hovering), Transaction.Current)); // :1650 .animation(Chrome.hover, value:)
         // :1651 .contentShape(.rect): the whole rect is the hit area, not just the sparse dashed stroke. REVIEW FIX
         // (part 4): IsHitTestVisible alone does not expand hit-testing past whatever paints; Background =
@@ -2799,10 +3136,35 @@ internal sealed class HelperConnector : Decorator
         // already uses for its own check glyph (glyphHost, below) and Chrome.cs (e.g. :577, :812, :875, :1195, :1448).
         var label = new Border { Child = stroke, IsHitTestVisible = true, Background = Brushes.Transparent };
         var button = PlainControls.Button(label, action); // :1648 Button(action:)
+        // :1649-1651 the shape fills the frame its caller gives (28 x 24 beside a helper, 28 x the card's height beside
+        // a head card). A Path with no Data measures to nothing and never changes size, so its own SizeChanged never
+        // drew it: the shape is drawn in the connector's own rect instead.
+        SizeChanged += (_, e) =>
+        {
+            stroke.Width = e.NewSize.Width;
+            stroke.Height = e.NewSize.Height;
+            stroke.Data = new HelperConnectorShape(this.endsHere).Path(new Rect(e.NewSize));
+        };
         button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :1656 .onHover
         ToolTip.SetTip(button, "Hide helpers"); // :1657 .help("Hide helpers")
         AutomationProperties.SetName(button, "Hide helpers"); // :1658 .accessibilityLabel(Text("Hide helpers"))
         Child = button;
+    }
+
+    private bool endsHere;
+    private readonly Avalonia.Controls.Shapes.Path stroke;
+
+    /// <summary>:1637 <c>let endsHere: Bool</c>, handed in anew by a row the list keeps (SidebarHelperRow.Update): the
+    /// shape is drawn again for it, the stem to the row's middle on the last helper and through the row otherwise.</summary>
+    internal bool EndsHere
+    {
+        get => endsHere;
+        set
+        {
+            if (endsHere == value) return;
+            endsHere = value;
+            if (Bounds.Width > 0 && Bounds.Height > 0) stroke.Data = new HelperConnectorShape(value).Path(new Rect(Bounds.Size));
+        }
     }
 
     // :1640 @State private var isHovering = false
@@ -2915,7 +3277,7 @@ internal sealed class SidebarThreadRow : Decorator
         Child = ApplyDraggedLift(overlays, () => isDragged); // :1838-1849
         var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         Control? check = null, trailing = null, fold = null;
-        bool? selectedBefore = null;
+        bool? selectedBefore = null, actionsBefore = null;
         this.Track(() =>
         {
             var thread = Thread();
@@ -2938,16 +3300,31 @@ internal sealed class SidebarThreadRow : Decorator
             fill.Set(colors.Background, selectedBefore is not null && selectedBefore != selected ? Chrome.Hover : Transaction.Current); // :1750-1754
             selectedBefore = selected;
             pinnedOverlay.Background = colors.PinnedOverlay?.Brush(pinnedOverlay); // :1756-1758
-            if (check is not null) overlays.Children.Remove(check);
-            if (trailing is not null) overlays.Children.Remove(trailing);
-            if (fold is not null) overlays.Children.Remove(fold);
-            check = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
-            if (check is not null) overlays.Children.Add(check);
-            trailing = BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
-                actions ? MakeActions() : [], menuPresented); // :1772-1801 actions are built only when visible
-            overlays.Children.Add(trailing);
-            fold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
-            if (fold is not null) overlays.Children.Add(fold);
+            // :1816-1817 the hover flips `showsActions` inside withAnimation(Chrome.hover): the branches that come and go
+            // with it (the check, the trailing buttons or status or time, the fold chevron) leave and join on SwiftUI's
+            // default .opacity transition, so they crossfade (2-chat-use.mov 70.74-71.30 s). Any other rebuild is an
+            // update of the same branch and replaces in place.
+            var hoverFlip = actionsBefore is { } before && before != actions && Transaction.Current is not null;
+            actionsBefore = actions;
+            void Swap(ref Control? slot, Control? next, bool branchChanged)
+            {
+                var crossfade = hoverFlip && branchChanged;
+                if (slot is not null)
+                {
+                    if (crossfade) SwiftTransition.Remove(overlays, slot);
+                    else overlays.Children.Remove(SwiftTransition.Container(slot));
+                }
+                slot = next;
+                if (next is null) return;
+                if (crossfade) SwiftTransition.Insert(overlays, overlays.Children.Count, next);
+                else overlays.Children.Add(next);
+            }
+            var nextCheck = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
+            Swap(ref check, nextCheck, (check is null) != (nextCheck is null)); // a settled row keeps its check: same branch
+            Swap(ref trailing, BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
+                actions ? MakeActions() : [], menuPresented), branchChanged: true); // :1772-1801 the hover always changes the branch
+            var nextFold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
+            Swap(ref fold, nextFold, (fold is null) != (nextFold is null));
             SetHidden(hidden); // :1834-1838
             AutomationProperties.SetName(selectButton, thread.Title); // :1871-1872
         });
@@ -3098,7 +3475,6 @@ internal sealed class SidebarThreadRow : Decorator
     private static Control ApplyDraggedLift(Control content, Func<bool> isDragged)
     {
         var scale = new ScaleTransform(1, 1);
-        content.RenderTransform = scale;
         var lift = new Border // :1841-1843
         {
             Background = Chrome.Overlay(0.12).Brush(content), // :1842
@@ -3106,7 +3482,9 @@ internal sealed class SidebarThreadRow : Decorator
             Opacity = 0,
             IsHitTestVisible = false,
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1735 shape, followed by both the row's own background and this lift
-        var host = new Panel { Children = { lift, content } };
+        // :1838-1846 `.background { lift }.scaleEffect(isDragged ? 1.02 : 1)`: the scale is applied after the
+        // background, so it grows the row together with its lifted fill and shadow (UI-SIDEBAR-060).
+        var host = new Panel { Children = { lift, content }, RenderTransform = scale };
         var spring = Animation.Spring(response: 0.25, dampingFraction: 0.8); // :1847, a fixed animation (R-VIEW-4):
         // .animation(_, value:) ignores whatever ambient transaction changed isDragged.
         var current = 0d;
@@ -3856,6 +4234,8 @@ internal sealed class ActivityViewToggle : Decorator
         glyph.Width = 30; // :2328 .frame(width: 30, height: 30)
         glyph.Height = 30;
         glyph.IsHitTestVisible = false;
+        var glyphColor = new AnimatedColor(glyph);
+        glyph.Foreground = glyphColor.Brush;
         var label = new Panel { Width = 30, Height = 30, Children = { circle, glyph } };
         var button = PlainControls.Button(label, () => // :2322-2324, :2335 .buttonStyle(.plain)
             Transaction.WithAnimation(Chrome.PanelSlide, () => isOn.Value = !isOn.Value));
@@ -3865,7 +4245,7 @@ internal sealed class ActivityViewToggle : Decorator
         button.Track(() => (isOn.Value, state.IsHovering, ShortcutStore.Shared.Current.Chord(AppShortcut.ToggleActivityView)), value =>
         {
             var (on, hovering, chord) = value;
-            glyph.ForegroundStyle(on ? Chrome.Accent : Chrome.SecondaryText); // :2327
+            glyphColor.Set(on ? Chrome.Accent : Chrome.SecondaryText, Transaction.Current); // :2327, eased with the toggle's panelSlide (:2323)
             fill.Set(on ? Chrome.Accent.Opacity(0.16) : (hovering ? Chrome.Overlay(0.08) : SwiftColor.Clear), Transaction.Current); // :2331
             // :2321 DEVIATION OD-0008 B7: the chord's description is Windows notation (Ctrl+Alt+U), Shortcuts.cs.
             var hint = chord is { } bound ? " (" + bound.Description + ")" : "";

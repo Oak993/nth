@@ -6,6 +6,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -19,6 +21,10 @@ namespace Marrow.App.Views.Chat;
 /// <summary>ChatBadge (:4-81).</summary>
 public sealed class ChatBadge : Decorator
 {
+    private readonly Button button;
+    // :16 the detail builder, read when the popover opens (:69): the latest render's, as SwiftUI's body would hand it.
+    private Func<Control> detail;
+
     // :10-17. `isPresented`, `glyph` and `detail` have no default and move before the defaulted ones (ED-095).
     public ChatBadge(
         string title,
@@ -28,11 +34,80 @@ public sealed class ChatBadge : Decorator
         string? caption = null,
         bool showsChevron = true,
         bool needsAttention = false,
-        bool isEnabled = true)
+        bool isEnabled = true,
+        BadgePopoverCoordinator? coordinator = null)
     {
-        // :20-21
-        var coordinator = new BadgePopoverCoordinator();
+        this.detail = detail;
+        // :20-21 @State private var coordinator. PORT-ONLY (ED-256, not ED-095, which covers only the order of parameters): a host whose own view identity outlives the badge
+        // control (PlanCard, kept by ForEach(groups) in SwiftUI while the port rebuilds the block that holds it) hands in
+        // the coordinator it keeps for that identity, so a popover that is open stays the same popover.
+        var held = coordinator ?? new BadgePopoverCoordinator();
 
+        button = PlainControls.Button(Label(title, glyph, caption, showsChevron, needsAttention),
+            () => isPresented.Value = !isPresented.Value); // :23 Button { isPresented.toggle() }
+        // :66 windowRectAnchor is applied here, BEFORE :76's outer .frame(maxWidth: .infinity, alignment: .leading):
+        // the reported rect is the button's own natural/compact pill size, left-aligned inside the wider `aligned`
+        // wrapper below, not stretched to it (R-VIEW review fix; was HorizontalAlignment.Stretch with no citation,
+        // which inflated the anchor rect WindowRectAnchor reports to the full row width).
+        button.HorizontalAlignment = HorizontalAlignment.Left;
+        Describe(title, needsAttention, isEnabled);
+
+        // :66
+        button.WindowRectAnchor(held.SetAnchor);
+
+        // :67-73
+        button.Track(() => isPresented.Value, shown =>
+        {
+            if (shown)
+            {
+                if (!held.IsShown) held.Show(this.detail().PresentedChrome()); // :69
+            }
+            else
+            {
+                held.Close(); // :71
+            }
+        });
+
+        // :74-75 .onAppear { coordinator.onClose = ... } and .onDisappear { coordinator.close() }
+        button.AttachedToVisualTree += (_, _) => held.Appear(button, () => isPresented.Value = false);
+        button.DetachedFromVisualTree += (_, _) => held.Disappear(button);
+
+        // :76-79
+        var aligned = new Border
+        {
+            Child = button,
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :76 .frame(maxWidth: .infinity, alignment: .leading)
+            Padding = new Thickness(0, 0, 96, 0), // :77 .padding(.trailing, 96)
+        };
+        Child = aligned;
+        HorizontalAlignment = HorizontalAlignment.Stretch;
+    }
+
+    /// <summary>PORT-ONLY (ED-256, not ED-095, which covers only the order of parameters): the host's body ran again with new values for the same badge. In SwiftUI the badge
+    /// keeps its identity across its host's re-renders, so its @State coordinator (:20) and an open popover survive while
+    /// the label shows the new values; the popover keeps the content it was opened with (:138-147 setFixedContent) and
+    /// the next opening builds the new detail. Hosts whose values change under an open badge call this instead of
+    /// building a new badge (PlanCard, TimelineRows.swift:2263-2316; PR-CHAT-113).</summary>
+    public void Update(string title, Func<Control> glyph, Func<Control> detail, string? caption = null, bool showsChevron = true,
+        bool needsAttention = false, bool isEnabled = true)
+    {
+        this.detail = detail;
+        button.Content = Label(title, glyph, caption, showsChevron, needsAttention);
+        Describe(title, needsAttention, isEnabled);
+    }
+
+    private void Describe(string title, bool needsAttention, bool isEnabled)
+    {
+        button.IsEnabled = isEnabled; // :53 .disabled(!isEnabled)
+        AutomationProperties.SetName(button, title); // :78 .accessibilityLabel(Text(title))
+        AutomationProperties.SetItemStatus(button, needsAttention ? "Needs your attention" : ""); // :79 .accessibilityValue(...)
+        AutomationProperties.SetName(this, title);
+        AutomationProperties.SetItemStatus(this, needsAttention ? "Needs your attention" : "");
+    }
+
+    // :23-65 the button's label: the pill and, above it, the attention dot field.
+    private Control Label(string title, Func<Control> glyph, string? caption, bool showsChevron, bool needsAttention)
+    {
         // :23-53
         var row = new StackPanel
         {
@@ -92,7 +167,7 @@ public sealed class ChatBadge : Decorator
             Child = row,
             HorizontalAlignment = HorizontalAlignment.Left,
         };
-        pill.CornerRadius = new CornerRadius(TimelineMetrics.PillRadius); // :49 RoundedRectangle(cornerRadius:, style: .continuous)
+        pill.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :49 RoundedRectangle(cornerRadius:, style: .continuous), through the one helper of ED-181
 
         // :54-65
         var layers = new BadgeLayers(pill); // :49-50 the pill and, above it, the attention dot field
@@ -111,48 +186,7 @@ public sealed class ChatBadge : Decorator
                 () => EnvironmentValues.GetAccessibilityReduceMotion(layers),
                 motion => dotField.UpdateAnimated(!motion));
         }
-
-        var button = PlainControls.Button(layers, () => isPresented.Value = !isPresented.Value); // :23 Button { isPresented.toggle() }
-        button.IsEnabled = isEnabled; // :53 .disabled(!isEnabled)
-        // :66 windowRectAnchor is applied here, BEFORE :76's outer .frame(maxWidth: .infinity, alignment: .leading):
-        // the reported rect is the button's own natural/compact pill size, left-aligned inside the wider `aligned`
-        // wrapper below, not stretched to it (R-VIEW review fix; was HorizontalAlignment.Stretch with no citation,
-        // which inflated the anchor rect WindowRectAnchor reports to the full row width).
-        button.HorizontalAlignment = HorizontalAlignment.Left;
-        AutomationProperties.SetName(button, title); // :78 .accessibilityLabel(Text(title))
-        AutomationProperties.SetItemStatus(button, needsAttention ? "Needs your attention" : ""); // :79 .accessibilityValue(...)
-        AutomationProperties.SetName(this, title);
-        AutomationProperties.SetItemStatus(this, needsAttention ? "Needs your attention" : "");
-
-        // :66
-        button.WindowRectAnchor(coordinator.SetAnchor);
-
-        // :67-73
-        button.Track(() => isPresented.Value, shown =>
-        {
-            if (shown)
-            {
-                if (!coordinator.IsShown) coordinator.Show(detail().PresentedChrome()); // :69
-            }
-            else
-            {
-                coordinator.Close(); // :71
-            }
-        });
-
-        // :74-75
-        button.AttachedToVisualTree += (_, _) => coordinator.OnClose = () => isPresented.Value = false;
-        button.DetachedFromVisualTree += (_, _) => coordinator.Close();
-
-        // :76-79
-        var aligned = new Border
-        {
-            Child = button,
-            HorizontalAlignment = HorizontalAlignment.Stretch, // :76 .frame(maxWidth: .infinity, alignment: .leading)
-            Padding = new Thickness(0, 0, 96, 0), // :77 .padding(.trailing, 96)
-        };
-        Child = aligned;
-        HorizontalAlignment = HorizontalAlignment.Stretch;
+        return layers;
     }
 }
 
@@ -182,9 +216,13 @@ public static class ChatBadgeExtensions
             }
         });
 
-        // :108-109
-        host.AttachedToVisualTree += (_, _) => coordinator.OnClose = () => isPresented.Value = false;
-        host.DetachedFromVisualTree += (_, _) => coordinator.Close();
+        // :108-109 .onAppear { coordinator.onClose = { isPresented = false } } and .onDisappear { coordinator.close() }. The same
+        // reading of onDisappear as ChatBadge's own (:74-75): gone only if still out of the tree once the pass is over, so a
+        // row the timeline merely re-parents (ThreadTimeline.Draw; the Hydra report, heads and brief pills,
+        // TimelineRows.swift:293, :470, :583) keeps its open popover (PR-CHAT-143). ENGINEERING DECISION
+        // ED-256.
+        host.AttachedToVisualTree += (_, _) => coordinator.Appear(host, () => isPresented.Value = false);
+        host.DetachedFromVisualTree += (_, _) => coordinator.Disappear(host);
         return host;
     }
 }
@@ -203,7 +241,9 @@ public sealed class BadgePopoverCoordinator
 {
     private readonly Popup popover = new(); // :118
     private Rect? anchorRect; // :119
-    private Avalonia.Controls.Window? shownIn; // :121
+    // :121 private weak var shownIn: NSWindow?: weak, so a coordinator the host keeps (PlanCard's identity outlives the badge,
+    // TimelineRows.cs) never keeps a closed window alive. ENGINEERING DECISION ED-256 (the source's weak).
+    private WeakReference<Avalonia.Controls.Window>? shownInWindow;
     private Rect shownRect; // :122
     private bool isShown;
     private bool closeCallbackPending;
@@ -211,6 +251,29 @@ public sealed class BadgePopoverCoordinator
 
     // :123. A `(() -> Void)?` is an Action?.
     public Action? OnClose { get; set; }
+
+    // The badge control that last appeared over this coordinator (the view whose onAppear/onDisappear it follows).
+    private Control? presence;
+
+    /// <summary>:74 <c>.onAppear { coordinator.onClose = { isPresented = false } }</c>, for the badge control now in the tree.</summary>
+    internal void Appear(Control view, Action onClose)
+    {
+        presence = view;
+        OnClose = onClose;
+    }
+
+    /// <summary>:75 <c>.onDisappear { coordinator.close() }</c>. ENGINEERING DECISION ED-256: SwiftUI's onDisappear fires when the view
+    /// has left the hierarchy; it never fires for a view that merely moved. The port's timeline lays its rows out again
+    /// by taking each kept row out of its old stack and putting it into a new one (ThreadTimeline.Draw), so a badge is
+    /// detached and attached again inside one synchronous pass. The badge has disappeared only if, once the pass is over,
+    /// no control is attached over this coordinator any more: another badge that appeared over it (a host's rebuilt copy
+    /// of the same identity) or the same badge back in the tree is the view still being there.</summary>
+    internal void Disappear(Control view) => Dispatcher.UIThread.Post(() =>
+    {
+        if (!ReferenceEquals(presence, view) || view.IsAttachedToVisualTree()) return;
+        presence = null; // the detached control is not kept alive by the identity's coordinator
+        Close();
+    });
 
     // :125-130
     public BadgePopoverCoordinator()
@@ -244,9 +307,10 @@ public sealed class BadgePopoverCoordinator
         if (size.Width <= 0 || size.Height <= 0) size = new Size(460, 320); // :146
         popover.SetFixedContent(content, size); // :147 measured once and frozen
 
-        shownIn = anchor.View as Avalonia.Controls.Window
+        var window = anchor.View as Avalonia.Controls.Window
             ?? TopLevel.GetTopLevel(anchor.View) as Avalonia.Controls.Window; // :148
-        var origin = shownIn is { } window
+        shownInWindow = window is null ? null : new WeakReference<Avalonia.Controls.Window>(window);
+        var origin = window is not null
             ? anchor.View.TranslatePoint(anchor.Rect.TopLeft, window) ?? anchor.Rect.TopLeft
             : anchor.Rect.TopLeft;
         shownRect = new Rect(origin, anchor.Rect.Size); // :149 window coordinates for outside-click tests
@@ -272,10 +336,19 @@ public sealed class BadgePopoverCoordinator
         Presentation.Presenter.Current.SetPresented(popover, false); // :159 popover.performClose(nil)
     }
 
+    private Avalonia.Controls.Window? ShownIn =>
+        shownInWindow is not null && shownInWindow.TryGetTarget(out var window) ? window : null;
+
     // :162-167. Swift: popoverDidClose(_:), nonisolated.
     public void PopoverDidClose()
     {
         StopMonitors(); // :164
+        // A closed NSPopover lets go of its content view controller and its positioning view; the Popup keeps its Child and
+        // its PlacementTarget until told otherwise, and a coordinator a host keeps for longer than the badge (PlanCard's
+        // identity, as long as the thread keeps the entry) would hold the window and the frozen detail tree. ENGINEERING
+        // DECISION ED-256. The next Show sets both again.
+        popover.PlacementTarget = null;
+        popover.Child = null;
         if (isShown)
         {
             isShown = false;
@@ -292,7 +365,7 @@ public sealed class BadgePopoverCoordinator
     // :169-187
     private void StartMonitors()
     {
-        if (shownIn is not { } window) return;
+        if (ShownIn is not { } window) return;
         window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true); // :171-179
         window.AddHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true); // :182-186
 
@@ -303,7 +376,7 @@ public sealed class BadgePopoverCoordinator
     // :189-194
     private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!isShown || shownIn is not { } window) return;
+        if (!isShown || ShownIn is not { } window) return;
         var kind = e.GetCurrentPoint(window).Properties.PointerUpdateKind;
         if (kind is not (PointerUpdateKind.LeftButtonPressed or PointerUpdateKind.RightButtonPressed)) return; // :182 .leftMouseDown, .rightMouseDown
         if (shownRect.Contains(e.GetPosition(window))) return; // :191 a click inside the badge's recorded rect passes through
@@ -329,7 +402,7 @@ public sealed class BadgePopoverCoordinator
     // :196-199
     private void StopMonitors()
     {
-        if (shownIn is { } window)
+        if (ShownIn is { } window)
         {
             window.RemoveHandler(InputElement.KeyDownEvent, OnWindowKeyDown);
             window.RemoveHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed);
@@ -372,7 +445,7 @@ internal sealed class BadgeLayers : Panel
     protected override Size ArrangeOverride(Size finalSize)
     {
         var pillSize = Children.Count > 0 ? Children[0].DesiredSize : default;
-        Clip = new RectangleGeometry(new Rect(pillSize), CornerRadius.TopLeft, CornerRadius.TopLeft); // :65 clipped to the pill shape
+        Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(pillSize), CornerRadius.TopLeft, RoundedCornerStyle.Continuous); // :65 .clipShape(RoundedRectangle(cornerRadius:, style: .continuous)), through the one helper of ED-181
         if (Children.Count > 0)
             Children[0].Arrange(new Rect(pillSize)); // :49-50 the pill keeps its intrinsic size at the leading edge
         for (var i = 1; i < Children.Count; i++)

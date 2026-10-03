@@ -169,15 +169,38 @@ public sealed class BubbleLanes(int seed, double width, double height)
 {
     private readonly (int K, LiquidBubble Rise, double Start)?[] lanes = new (int, LiquidBubble, double)?[Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles)];
 
+    // OD-0078 (strike-engine.js laneAt): each lane keeps its last four rises, so a look a little into the past (a contact
+    // between two frames) finds the rise as it was; a seek further back starts the lane again
+    private readonly (int K, LiquidBubble Rise, double Start)[][] history = Enumerable.Range(0, Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles))
+        .Select(_ => new (int, LiquidBubble, double)[4]).ToArray();
+    private readonly int[] kept = new int[Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles)];
+
+    public int Seed => seed;
+
+    /// <summary>How many times a look into the past went further back than a lane's history and started it again (tests:
+    /// the history's cost; the bubbles found are the same either way).</summary>
+    internal int Restarts { get; private set; }
+
     /// <summary>How many bubbles the track has: about one per 32 px, between 4 and 24.</summary>
     public int Count => lanes.Length;
     public double Width => width;
     public double Height => height;
 
-    /// <summary>Bubble <paramref name="i"/> at a time: its current rise and how far through it, or null between rises.</summary>
-    public (LiquidBubble Rise, double Progress)? At(int i, double time)
+    /// <summary>Bubble <paramref name="i"/> at a time: its current rise, how far through it and its number, or null between rises.</summary>
+    public (LiquidBubble Rise, double Progress, int K)? At(int i, double time)
     {
         var lane = lanes[i];
+        if (lane is { } shown && time < shown.Start)
+        {
+            for (var j = kept[i] - 1; j >= 0; j--)
+            {
+                var old = history[i][j];
+                if (time < old.Start) continue;
+                var p = (time - old.Start) / old.Rise.Duration;
+                return p is >= 0 and < 1 ? (old.Rise, p, old.K) : null;
+            }
+            kept[i] = 0; Restarts++;
+        }
         if (lane is not { } current || time < current.Start)
         {
             // the first rise is already under way when the track appears, at a random point of it
@@ -186,12 +209,14 @@ public sealed class BubbleLanes(int seed, double width, double height)
         }
         while (time >= current.Start + current.Rise.Duration + current.Rise.Gap)
         {
+            if (kept[i] == 4) { Array.Copy(history[i], 1, history[i], 0, 3); kept[i] = 3; }
+            history[i][kept[i]++] = current;
             var k = current.K + 1;
             current = (k, LiquidTrack.Rise(seed, i, k, Count, width, height), current.Start + current.Rise.Duration + current.Rise.Gap);
         }
         lanes[i] = current;
         var progress = (time - current.Start) / current.Rise.Duration;
-        return progress is >= 0 and < 1 ? (current.Rise, progress) : null;
+        return progress is >= 0 and < 1 ? (current.Rise, progress, current.K) : null;
     }
 }
 
@@ -537,7 +562,7 @@ public static class LiquidTrack
     private const string BubbleShader = """
         uniform float scale;   // device pixels per px
         uniform float4 A;      // centre x, centre y, scale, opacity
-        uniform float4 B;      // border box side, dark rim, unused, unused
+        uniform float4 B;      // border box side, dark rim, pale-liquid look (OD-0090 ink), unused
         float erf(float x) { float a = 0.147; float x2 = x * x; float r = sqrt(max(0.0, 1.0 - exp(-x2 * (1.2732395 + a * x2) / (1.0 + a * x2)))); return x < 0.0 ? -r : r; }
         half4 over(half4 dst, half4 src) { return src + dst * (1.0 - src.a); }
         half4 main(float2 p) {
@@ -562,7 +587,17 @@ public static class LiquidTrack
             float ring = clamp(0.5 - d / px, 0.0, 1.0) * clamp(0.5 + (d + 1.0) / px, 0.0, 1.0);
             half4 rc = dark ? half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.5, 0.5) : half4(0.72);
             col = over(col, rc * half(ring));
-            return col * half(A.w);
+            col = col * half(A.w);
+            // OD-0090 (jewel-knob.html drawBub): on a pale liquid the bubble takes the pale-liquid look (FastC .bub.dark: the
+            // highlight with a faint dark falloff, a neutral 1 px rim at .5), drawn over it at the liquid's paleness
+            if (B.z > 0.0 && !dark) {
+                half4 d0 = half4(0.98); half4 d1 = half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.06, 0.06); half4 d2 = half4(0.0);
+                half4 dg;
+                if (t <= 0.18) dg = d0; else if (t <= 0.50) dg = mix(d0, d1, half((t - 0.18) / 0.32)); else if (t <= 0.72) dg = mix(d1, d2, half((t - 0.50) / 0.22)); else dg = d2;
+                half4 pale = over(dg * half(inside), half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.5, 0.5) * half(ring));
+                col = over(col, pale * half(B.z * min(1.0, A.w)));
+            }
+            return col;
         }
         """;
 
@@ -595,17 +630,20 @@ public static class LiquidTrack
 
     /// <summary>One frame's values, resolved on the UI thread.</summary>
     internal sealed record Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
-        IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike);
+        IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double BubbleInk = 0,
+        IReadOnlyList<BubbleBurst>? Rings = null, IReadOnlyCollection<(int Lane, int Rise)>? Popped = null);
 
     /// <summary>
     /// Draws the liquid tube and its bubbles into <paramref name="context"/> at <paramref name="time"/>: its currents and
     /// caustic at <paramref name="flow"/> (by default a normal pace since time 0), and the Strike lightning
-    /// <paramref name="strike"/> over it when given (OD-0073).
+    /// <paramref name="strike"/> over it when given (OD-0073). <paramref name="bubbleInk"/>: how far the bubbles take the
+    /// pale-liquid look (OD-0090, the Strike's ink on a pale liquid).
     /// </summary>
     public static void Draw(DrawingContext context, Size size, double track, double time, LiquidSpec spec, SKColor[] gradient,
-        BubbleLanes? bubbles, bool darkBubbles, ThemeVariant theme, LiquidFlow? flow = null, IReadOnlyList<StrikeOp>? strike = null) =>
+        BubbleLanes? bubbles, bool darkBubbles, ThemeVariant theme, LiquidFlow? flow = null, IReadOnlyList<StrikeOp>? strike = null, double bubbleInk = 0,
+        IReadOnlyList<BubbleBurst>? rings = null, IReadOnlyCollection<(int Lane, int Rise)>? popped = null) =>
         context.Custom(new Operation(new Frame(size, track, time, gradient, spec, bubbles, darkBubbles,
-            spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray(), flow ?? LiquidFlow.At(time, false), strike)));
+            spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray(), flow ?? LiquidFlow.At(time, false), strike, bubbleInk, rings, popped)));
 
     /// <summary>The gradient row for a spec at a device width.</summary>
     public static SKColor[] GradientFor(LiquidSpec spec, int pixels, ThemeVariant theme) =>
@@ -698,10 +736,11 @@ public static class LiquidTrack
         for (var i = 0; i < count; i++)
         {
             if (f.Bubbles!.At(i, f.Time) is not { } now) continue; // between rises
+            if (f.Popped is { } popped && popped.Contains((i, now.K))) continue; // OD-0078: burst, gone until its next rise
             var (centre, radius, opacity) = BubbleAt(now.Rise, f.Size.Height, now.Progress);
             if (opacity <= 0.003) continue;
             list.Add((new[] { (float)centre.X, (float)centre.Y, (float)(radius / (now.Rise.Outer / 2)), (float)opacity },
-                new[] { (float)now.Rise.Outer, f.DarkBubbles ? 1f : 0f, 0f, 0f }));
+                new[] { (float)now.Rise.Outer, f.DarkBubbles ? 1f : 0f, f.BubbleInk < 0.01 ? 0f : (float)f.BubbleInk, 0f }));
         }
         return list;
     }
@@ -758,6 +797,9 @@ public static class LiquidTrack
                 var reach = (b[0] * 0.5f + 6f) * a[2];
                 liquid.DrawRect(new SKRect(a[0] - reach, a[1] - reach, a[0] + reach, a[1] + reach), paint);
             }
+            // OD-0078: the bursts' rings, with the bubbles (on a pale liquid with their neutral rings under them)
+            if (frame.Rings is { Count: > 0 } rings)
+                BubbleBursts.DrawRings(liquid, rings, Math.Max(0.62, Math.Min(1, h / 40)), frame.Time, frame.BubbleInk);
             Layer(CoverEffect, SKBlendMode.DstIn);
 
             // OD-0073: the Strike lightning, drawn source-over into its own layer at device scale; the glass screens it over

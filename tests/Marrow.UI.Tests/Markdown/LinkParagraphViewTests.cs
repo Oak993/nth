@@ -1197,4 +1197,99 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
         Assert.Equal(click.MoreStart, click.SelectionStart);
         Assert.Equal(click.MoreStart + "more".Length, click.SelectionEnd);
     });
+
+    // ---- Review round 4 of the TimelineRows parity pass (2026-10-03): the paragraph path's own text block ----
+
+    // :312-313 `isEditable = false; isSelectable = true`: an NSTextView draws a selection in the system's selected-text colour.
+    // The paragraph draws into its own SelectableTextBlock (LinkTextView's constructor), which has no SelectionBrush of its own
+    // with no control theme loaded (Avalonia 12.1.2), so a drag selected text that was never painted (a sent bubble with a bare
+    // domain, a report paragraph with a link). It takes the attach-time brush the veiled text takes (StreamVeil.cs
+    // VeiledText.SelectableText; ED-256 (5)).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-140 (selectable: a selection is drawn): DroppyCode/UI/Markdown/LinkParagraphView.swift:312-313
+    public void A_selection_in_a_link_paragraph_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
+    {
+        var paragraph = new LinkParagraphView("words before [a link](https://selection-brush.invalid/x) and after");
+        var window = new Window { Content = paragraph, Width = 420, Height = 200 };
+        window.Show();
+        try
+        {
+            var block = (SelectableTextBlock)((LinkTextView)paragraph.Child!).Child!;
+            var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+            Assert.NotEqual(0, system.A);
+            block.SelectAll();
+            Assert.False(string.IsNullOrEmpty(block.SelectedText));
+            Assert.True((block.SelectionBrush as ISolidColorBrush)?.Color == system,
+                $"the selection is drawn with {block.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
+        }
+        finally { window.Close(); }
+    });
+
+    // :36-58 updateNSView: `revision` (:15-16, "Bumped when favicons finish loading, so the icons appear") is read (:40-41) and
+    // compared with the coordinator's last one (:45); a new revision builds the string again, so an icon that reached the cache
+    // after the paragraph was drawn now stands in front of its link with one space (:134-150), and the same revision again builds
+    // nothing (:43-46). The host hands the new revision in from InlineText's @State faviconRevision (MarkdownView.swift, B3: :1077,
+    // :1114), which fetchLinkAssets bumps once an icon lands (:1163).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-141 and PR-THEME-148 (the paragraph is rebuilt with the icon once the fetch lands): DroppyCode/UI/Markdown/LinkParagraphView.swift:36-58, :134-150
+    public void A_new_revision_draws_the_paragraph_again_with_an_icon_that_arrived_since_and_the_same_revision_draws_nothing() => headless.OnUiThread(() =>
+    {
+        const string host = "revision-redraw.com";
+        var icon = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(4, 4), new Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        var paragraph = new LinkParagraphView("see [the page](https://revision-redraw.com/a) now");
+        var block = (SelectableTextBlock)((LinkTextView)paragraph.Child!).Child!;
+        InlineUIContainer[] Icons() => block.Inlines!.OfType<InlineUIContainer>().ToArray();
+        Assert.Empty(Icons()); // drawn before the icon arrived
+        FaviconCacheSeed.Seed(host, icon);
+        try
+        {
+            paragraph.Update(revision: 0); // nothing new: the coordinator's inputs all match, so nothing is built
+            Assert.Empty(Icons());
+            paragraph.Update(revision: 1); // the favicon-load bump
+            var container = Assert.Single(Icons());
+            Assert.Same(icon, Assert.IsType<Image>(container.Child).Source);
+            var inlines = block.Inlines!.ToList();
+            var at = inlines.IndexOf(container);
+            Assert.Equal(" ", Assert.IsType<Run>(inlines[at + 1]).Text);
+            Assert.Equal("the page", Assert.IsType<Run>(inlines[at + 2]).Text);
+            paragraph.Update(revision: 1); // the same revision: not built again
+            Assert.Same(container, Assert.Single(Icons()));
+        }
+        finally { FaviconCacheSeed.Remove(host); }
+    });
+
+    // ---- Review round 5 of the TimelineRows parity pass (2026-10-03): the cached measurement ----
+
+    // :490-494 render(_:): a new string drops the cached measurement (lastMeasuredHeight = 0; measuredWidth = 0), so height(forWidth:)
+    // (:498-507) measures the new text instead of handing back the old text's height for the same width (:500). A favicon-load bump
+    // draws the string again with the icon and a space in front of the link (:134-150), which can push the paragraph onto a second
+    // line at a width the text alone fitted.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-152 (height(forWidth:) measures the text on screen): DroppyCode/UI/Markdown/LinkParagraphView.swift:490-494, :498-507
+    public void A_string_drawn_again_drops_the_cached_height_so_an_icon_that_wraps_the_line_is_measured() => headless.OnUiThread(() =>
+    {
+        const string host = "measure-reset.com";
+        var icon = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(4, 4), new Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        var paragraph = new LinkParagraphView("see [the page](https://measure-reset.com/a) now");
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        block.Measure(Size.Infinity);
+        var width = Math.Ceiling(block.DesiredSize.Width) + 1; // the text alone fits on one line, with a point to spare
+        var oneLine = view.HeightForWidth(width);
+        Assert.True(oneLine > 0);
+        Assert.Equal(oneLine, view.HeightForWidth(width)); // the same width again: the cached height (:500)
+        FaviconCacheSeed.Seed(host, icon);
+        try
+        {
+            paragraph.Update(revision: 1); // the icon and a space now stand in front of the link: wider than the width
+            Assert.Single(block.Inlines!.OfType<InlineUIContainer>());
+            block.Measure(Size.Infinity);
+            Assert.True(block.DesiredSize.Width > width, "the icon did not widen the line past the width");
+            Assert.True(view.HeightForWidth(width) > oneLine,
+                $"the paragraph's height at {width} points is still the one-line height {oneLine} of the text drawn before the icon");
+        }
+        finally { FaviconCacheSeed.Remove(host); }
+    });
 }

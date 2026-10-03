@@ -93,6 +93,15 @@ internal static class TimelineRowsPrSupport
     internal static TurnSummary Summary(Guid turn) => new() { TurnID = turn, Status = TurnStatus.Completed, Duration = 5, FilesChanged = 0, Additions = 0, Deletions = 0 };
     internal static TimelineEntry UserEntry(string text, Guid? turn, ValueList<Attachment>? attachments = null) =>
         new(new TimelineItem(turn, new TimelineItem.Content.User(new UserMessage { Text = text, Attachments = attachments ?? ValueList<Attachment>.Empty })));
+    // The point sizes a selectable text is drawn at: its own size and every run's, its monospaced code runs aside (inline code reads
+    // in its own face and size: StreamVeil.swift:309-338 .body monospaced in a Text; LinkParagraphView.swift:117 pointSize - 1).
+    internal static double[] DrawnProseSizes(SelectableTextBlock text)
+    {
+        var mono = SwiftFont.System(SwiftFont.TextStyle.Body, design: SwiftFont.Design.Monospaced).Resolve().FontFamily;
+        return (text.Inlines ?? []).OfType<Avalonia.Controls.Documents.Run>()
+            .Where(run => !Equals(run.FontFamily, mono) && run.Text is { Length: > 0 })
+            .Select(run => run.FontSize).Append(text.FontSize).Distinct().ToArray();
+    }
     internal static Color Resolved(SwiftColor color, Control on) => color.Resolve(on.ActualThemeVariant);
     internal static Color BrushColor(IBrush? brush) => (brush as ISolidColorBrush)!.Color;
     internal static string[] Texts(Control control) =>

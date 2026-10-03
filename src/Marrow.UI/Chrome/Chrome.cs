@@ -130,12 +130,14 @@ namespace Marrow.UI.Chrome
         public static SwiftColor SecondaryText { get; } = PrimaryText.Opacity(0.7); // :79
         private static SwiftColor SystemAccent { get; } = SwiftColor.ControlAccentColor; // :80
 
-        // :85 PR-WIN-209: the theme's accent, or the system control accent for System/Light/Dark.
-        public static SwiftColor Accent => ThemeManager.Spec.Accent ?? SystemAccent;
+        // :85 PR-WIN-209: the theme's accent, or the system control accent for System/Light/Dark. DEVIATION OD-0088
+        // (ED-250): the spec's accent is the user's pick when it is not the default; the value is ThemeManager.Accent, the
+        // spec's accent ?? SystemAccent read whenever it is resolved, so what was drawn with it follows a later change.
+        public static SwiftColor Accent => ThemeManager.Accent;
 
         // :87 accentNSColor: NSColor is SwiftColor too (ED-092); the AppKit twin falls back to the control accent
-        // directly rather than to a wrapped copy (PR-WIN-209), so it is the same as Accent under ED-092.
-        public static SwiftColor AccentNSColor => ThemeManager.Spec.Accent ?? SwiftColor.ControlAccentColor;
+        // directly rather than to a wrapped copy (PR-WIN-209), so it is the same as Accent under ED-092 (and ED-250).
+        public static SwiftColor AccentNSColor => ThemeManager.Accent;
 
         // :91 PR-WIN-209: re-read on every access, never cached.
         public static SwiftColor Success => ThemeManager.Spec.Success;
@@ -313,7 +315,8 @@ namespace Marrow.UI.Chrome
             var wash = new Rectangle();
             wash.Fill = SwiftColor.Dynamic(light: SwiftColor.White.Opacity(0.3), dark: SwiftColor.Black.Opacity(0.22)).Brush(wash); // :195
             var tint = new Rectangle();
-            tint.Fill = SwiftColor.Dynamic(light: Chrome.GlassTint.Opacity(0.16), dark: Chrome.GlassTint.Opacity(0.22)).Brush(tint); // :196
+            // ED-254 (OD-0088): Chrome.glassTint read whenever it is drawn (ThemeManager.LiveSurface), so the wash follows the theme.
+            tint.Fill = SwiftColor.Dynamic(light: ThemeManager.LiveSurface.Opacity(0.16), dark: ThemeManager.LiveSurface.Opacity(0.22)).Brush(tint); // :196
             return new Panel { Children = { wash, tint, content } }; // :194 .background { ... }
         }
     }
@@ -340,15 +343,30 @@ namespace Marrow.UI.Chrome
             this.opacity = opacity;
             this.wallpaper = wallpaper;
             var tint = Shape();
-            tint.Background = Chrome.GlassTint.Opacity(0.12).Brush(tint); // :263-265
+            tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-254)
             // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
             // which is how an Avalonia Border draws its border.
             var hairline = Shape();
             hairline.BorderThickness = new Thickness(1);
             hairline.BorderBrush = Chrome.Overlay(0.14).Brush(hairline);
             Child = new Panel { Children = { group, tint, hairline } };
-            ActualThemeVariantChanged += (_, _) => Draw(); // :203 @Environment(\.colorScheme)
+            ActualThemeVariantChanged += (_, _) => Turn(); // :203 @Environment(\.colorScheme)
             Draw();
+        }
+
+        // ED-254 (OD-0088, OD-0076): the scrim's strength follows the appearance (:258, 0.26 dark, 0.18 light); in a tree
+        // that turns over (AppearanceTurn, the Settings window) it eases there with the window's colours instead of
+        // changing in one frame.
+        private Action stopTurn = static () => { };
+
+        private void Turn()
+        {
+            var from = scrim?.Opacity;
+            Draw();
+            if (scrim is not { } layer || from is not { } start || layer.Opacity == start || !AppearanceTurn.Eases(this)) return;
+            var end = layer.Opacity;
+            layer.Opacity = start;
+            stopTurn = AppearanceTurn.Run(this, progress => layer.Opacity = start + (end - start) * progress);
         }
 
         /// <summary>
@@ -365,6 +383,9 @@ namespace Marrow.UI.Chrome
             else
                 Draw();
         }
+
+        // :220-224 `opacity >= 0.98`: from here up the window is a solid fill, not glass under a scrim (Draw, and the corner wedge's fill).
+        public static bool IsSolid(double opacity) => opacity >= 0.98;
 
         // :211-215 static func scrim(for:isDark:)
         public static double Scrim(double @for, bool isDark)
@@ -389,8 +410,10 @@ namespace Marrow.UI.Chrome
 
         private void Draw()
         {
+            stopTurn();
+            stopTurn = static () => { };
             var isDark = PlainControls.IsDark(ActualThemeVariant); // :219
-            var isSolid = opacity >= 0.98; // :220-224
+            var isSolid = IsSolid(opacity); // :220-224
             var next = wallpaper is not null ? Base.Wallpaper : isSolid ? Base.Solid : Base.Glass; // :226, :249, :251
             if (next != drawn)
             {
@@ -946,6 +969,13 @@ namespace Marrow.UI.Chrome
         private readonly Panel host = new() { Height = Chrome.VeilHeight }; // :623 .frame(height:)
         private Border? baseFade;
         private Border? tintFade;
+        private Color baseShown;
+        private Color tintShown;
+        private Action stopTurn = static () => { };
+        // ED-253 (round 4): the running turnover, from what the fades showed to the colours it is heading for.
+        private bool turning;
+        private (Color Base, Color Tint) turnFrom;
+        private (Color Base, Color Tint) turnTo;
 
         /// <param name="model">:582 <c>let model: ChromeScrollModel</c>.</param>
         // :585-611 body. PR-WIN-196, UI-CHAT-058: two 72-point gradients, never hit-testable, drawn only once
@@ -954,11 +984,25 @@ namespace Marrow.UI.Chrome
         {
             IsHitTestVisible = false; // :624 .allowsHitTesting(false)
             Child = host;
-            this.Track(() => model.Progress, _ => Draw());
-            ActualThemeVariantChanged += (_, _) => Draw(); // :585 model.progress via colorScheme
-            Draw();
+            this.Track(() => model.Progress, _ => Draw(turn: false));
+            ActualThemeVariantChanged += (_, _) => Draw(turn: true); // :585 model.progress via colorScheme
+            // :589 Chrome.glassTint is the theme's surface, read as the body is drawn: a theme of the same appearance redraws
+            // it too (ED-253).
+            AttachedToVisualTree += (_, _) => ThemeManager.DidChange += OnThemeChanged;
+            DetachedFromVisualTree += (_, _) => ThemeManager.DidChange -= OnThemeChanged;
+            Draw(turn: false);
 
-            void Draw()
+            void OnThemeChanged()
+            {
+                if (CheckAccess()) Draw(turn: true);
+                else Dispatcher.Post(() => Draw(turn: true));
+            }
+
+            // ED-253 (OD-0076, SPEC 6.5): in a tree that turns over (AppearanceTurn, the Settings window) a change of
+            // appearance or theme eases both fades from what they show to the new colours over 0.32 s, as every other
+            // colour of the window does, instead of redrawing them in the click's frame. A scroll redraws at once, but one
+            // during that turnover keeps it running, retargeted at the colours of the new position (round 4: "nothing cuts").
+            void Draw(bool turn)
             {
                 var progress = model.Progress; // :585
                 var isDark = PlainControls.IsDark(ActualThemeVariant); // :586
@@ -966,43 +1010,83 @@ namespace Marrow.UI.Chrome
                 if (progress > 0) // :590 `if progress > 0`
                 {
                     var scrim = isDark ? 0.14 + 0.18 * progress : 0.30 + 0.26 * progress; // :587
-                    var baseColor = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(scrim); // :588, :596
-                    var tintColor = Chrome.GlassTint.Opacity(isDark ? 0.30 : 0.18); // :589, :597
+                    var baseColor = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(scrim).Resolve(ActualThemeVariant); // :588, :596
+                    var tintColor = Chrome.GlassTint.Opacity(isDark ? 0.30 : 0.18).Resolve(ActualThemeVariant); // :589, :597
+                    var drawn = baseFade is not null;
                     if (baseFade is null)
                     {
-                        baseFade = new Border { IsHitTestVisible = false };
-                        tintFade = new Border { IsHitTestVisible = false };
+                        baseFade = new Border { IsHitTestVisible = false, Background = Fade() };
+                        tintFade = new Border { IsHitTestVisible = false, Background = Fade() };
                         host.Children.Add(baseFade);
                         host.Children.Add(tintFade!);
                     }
-                    Fade(baseFade, baseColor);
-                    Fade(tintFade!, tintColor);
+                    if (!turn && turning && drawn)
+                    {
+                        turnTo = (baseColor, tintColor); // the next frame of the turn heads there
+                        return;
+                    }
+                    StopTurn();
+                    if (turn && drawn && (baseShown != baseColor || tintShown != tintColor) && AppearanceTurn.Eases(this))
+                    {
+                        turnFrom = (baseShown, tintShown);
+                        turnTo = (baseColor, tintColor);
+                        turning = true;
+                        stopTurn = AppearanceTurn.Run(this, p =>
+                        {
+                            Paint(SwiftColor.PremultipliedMix(turnFrom.Base, turnTo.Base, p), SwiftColor.PremultipliedMix(turnFrom.Tint, turnTo.Tint, p));
+                            if (p >= 1) turning = false;
+                        });
+                    }
+                    else Paint(baseColor, tintColor);
                 }
-                else if (baseFade is not null)
+                else
                 {
-                    host.Children.Clear();
-                    baseFade = null;
-                    tintFade = null;
+                    StopTurn();
+                    if (baseFade is not null)
+                    {
+                        host.Children.Clear();
+                        baseFade = null;
+                        tintFade = null;
+                    }
                 }
             }
         }
 
-        // :613-627 the fade held over the top 28%, eased out by 62%, clear at the bottom.
-        private void Fade(Border layer, SwiftColor color)
+        private void StopTurn()
         {
-            var resolved = color.Resolve(ActualThemeVariant);
-            layer.Background = new LinearGradientBrush
+            stopTurn();
+            stopTurn = static () => { };
+            turning = false;
+        }
+
+        private void Paint(Color baseColor, Color tintColor)
+        {
+            baseShown = baseColor;
+            tintShown = tintColor;
+            Fade((LinearGradientBrush)baseFade!.Background!, baseColor);
+            Fade((LinearGradientBrush)tintFade!.Background!, tintColor);
+        }
+
+        // :613-627 the fade held over the top 28%, eased out by 62%, clear at the bottom.
+        private static LinearGradientBrush Fade() => new()
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops =
             {
-                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-                EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-                GradientStops =
-                {
-                    new GradientStop(resolved, 0), // :618
-                    new GradientStop(resolved, 0.28), // :619
-                    new GradientStop(WithAlphaFactor(resolved, 0.45), 0.62), // :620
-                    new GradientStop(WithAlphaFactor(resolved, 0), 1), // :621
-                },
-            };
+                new GradientStop(default, 0), // :618
+                new GradientStop(default, 0.28), // :619
+                new GradientStop(default, 0.62), // :620
+                new GradientStop(default, 1), // :621
+            },
+        };
+
+        private static void Fade(LinearGradientBrush brush, Color resolved)
+        {
+            brush.GradientStops[0].Color = resolved; // :618
+            brush.GradientStops[1].Color = resolved; // :619
+            brush.GradientStops[2].Color = WithAlphaFactor(resolved, 0.45); // :620
+            brush.GradientStops[3].Color = WithAlphaFactor(resolved, 0); // :621
         }
 
         private static Color WithAlphaFactor(Color color, double factor) =>
@@ -1096,6 +1180,7 @@ namespace Marrow.UI.Chrome
             bool isEmphasized = false,
             double accessoryWidth = 0)
         {
+            selected = isSelected;
             var state = new ViewState();
             var iconSlot = icon(); // :712
             iconSlot.Width = Chrome.IconSize; // :713 .frame(width:, alignment: .center)
@@ -1104,8 +1189,8 @@ namespace Marrow.UI.Chrome
             var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :714, :718-719 .lineLimit(1).truncationMode(.tail)
             void ApplyText()
             {
-                SwiftFont.System(SwiftFont.TextStyle.Body, weight: isSelected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
-                text.Foreground = Chrome.PrimaryText.Opacity(isSelected ? 1 : 0.92).Brush(text); // :718
+                SwiftFont.System(SwiftFont.TextStyle.Body, weight: selected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
+                text.Foreground = Chrome.PrimaryText.Opacity(selected ? 1 : 0.92).Brush(text); // :718
             }
             ApplyText();
 
@@ -1127,31 +1212,82 @@ namespace Marrow.UI.Chrome
             }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
             var fill = new AnimatedColor(shape);
             shape.Background = fill.Brush;
-            fill.Set(FillFor(isSelected, false), null);
+            fill.Set(FillFor(selected, false), null);
 
-            var button = new SelectableButton(isSelected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
+            var button = new SelectableButton(() => selected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
             button.Click += (_, _) => action();
             button.Track(() => state.IsHovering, hovering =>
             {
-                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(isSelected, hovering), Transaction.Current)); // :729
+                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(selected, hovering), Transaction.Current)); // :729
             });
-            button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
-
+            // :729 `.background { shape.fill(fill).animation(Chrome.hover, value: isSelected) }`: a new isSelected eases the
+            // fill on Chrome.hover whatever transaction carried it (the modifier's own curve for a change of its value), from
+            // where the fill is drawn now. The title's weight and opacity (:717-718) and the trait (:738) have no animation
+            // of their own and take the new value under the change's transaction; every caller that changes a row's
+            // selection (SettingsView.swift:149, `page = item` and its other writes) carries none, so they change at once.
+            applySelection = () =>
+            {
+                ApplyText();
+                fill.Set(FillFor(selected, state.IsHovering), Chrome.Hover);
+            };
             var overlay = new Panel { Children = { button } };
-            button.Track(() => state.IsHovering, hovering =>
+            // :731-737 `.overlay(alignment: .trailing) { accessory }` comes BEFORE `.onHover`, so the hover region is the
+            // button together with its overlaid accessory: the pointer resting on the ellipsis or the plus is still on the
+            // row and keeps them (the hover is on the host, as SidebarThreadRow's overlays host carries its own).
+            overlay.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
+            // :731-734 `.overlay(alignment: .trailing) { accessory(isHovering).padding(.trailing, 6) }`. SwiftUI keeps the
+            // accessory's views under their own identity while the closure keeps returning them, and a view that a
+            // conditional inside it adds or drops runs the default .opacity transition under the transaction in force: the
+            // hover's withAnimation(Chrome.hover) (:735-737), so the project row's count and its ellipsis and plus
+            // (SidebarView.swift:1115-1133) crossfade (OD-0076). The closure says which it is by the control it returns: the
+            // control it returned last time is the same view and stays where it is, with its own state (an open popover's
+            // anchor, a hover); another control is another branch, and the two crossfade. The first body places it.
+            Control? shownAccessory = null;
+            void ShowAccessory(bool hovering)
             {
                 var built = accessory(hovering); // :732-733
+                if (ReferenceEquals(built, shownAccessory)) return;
                 built.Margin = new Thickness(0, 0, 6, 0); // :734
                 built.HorizontalAlignment = HorizontalAlignment.Right;
                 built.VerticalAlignment = VerticalAlignment.Center;
-                if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
-                overlay.Children.Add(built);
-            });
+                if (shownAccessory is { } previous)
+                {
+                    SwiftTransition.Remove(overlay, previous);
+                    SwiftTransition.Insert(overlay, overlay.Children.Count, built);
+                }
+                else SwiftTransition.Place(overlay, overlay.Children.Count, built);
+                shownAccessory = built;
+            }
+            refreshAccessory = () => ShowAccessory(state.IsHovering);
+            button.Track(() => state.IsHovering, ShowAccessory);
 
             AutomationProperties.SetName(button, title); // :738 AddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
 
             Child = overlay;
         }
+
+        private readonly Action refreshAccessory;
+        private readonly Action applySelection;
+        private bool selected;
+
+        /// <summary>:683 <c>let isSelected: Bool</c>, handed in anew when the view that owns the row renders it again under
+        /// the same identity (SettingsView.swift:148-149, a ForEach over the pages, so a page keeps its row): the fill eases
+        /// to the new state on Chrome.hover (:729), the title and the trait take it at once (:717-718, :738).</summary>
+        public bool IsSelected
+        {
+            get => selected;
+            set
+            {
+                if (selected == value) return;
+                selected = value;
+                applySelection();
+            }
+        }
+
+        /// <summary>The accessory closure asked again with the row's own hover state: SwiftUI re-reads
+        /// <c>accessory(isHovering)</c> whenever the view that owns the row renders, so a caller whose accessory reads its
+        /// own state (the project row's isMenuPresented, its count) asks through this when that state changes.</summary>
+        public void RefreshAccessory() => refreshAccessory();
 
         // :711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) } under a width the row's padding fixes. A plain
         // horizontal StackPanel measures every child at infinite width, so the title would never be cut at its tail
@@ -1179,7 +1315,7 @@ namespace Marrow.UI.Chrome
         // state; :738 `.accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)` is exposed through
         // ISelectionItemProvider, the platform's own selectable-item automation pattern, alongside the button's
         // invoke behaviour.
-        private sealed class SelectableButton(bool isSelected) : Button
+        private sealed class SelectableButton(Func<bool> isSelected) : Button
         {
             protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, isSelected);
 
@@ -1189,10 +1325,10 @@ namespace Marrow.UI.Chrome
                 if (IsEffectivelyEnabled) OnClick();
             }
 
-            private sealed class Peer(Control owner, bool isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
+            private sealed class Peer(Control owner, Func<bool> isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
             {
                 protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
-                bool ISelectionItemProvider.IsSelected => isSelected;
+                bool ISelectionItemProvider.IsSelected => isSelected();
                 ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
                 void ISelectionItemProvider.AddToSelection() { }
                 void ISelectionItemProvider.RemoveFromSelection() { }
@@ -1213,8 +1349,15 @@ namespace Marrow.UI.Chrome
         /// <summary>:748-757 <c>extension SidebarRow where Accessory == EmptyView</c>,
         /// <c>init(title:isSelected:action:icon:)</c>.</summary>
         public SidebarRow(string title, Action action, Func<Control> icon, bool isSelected = false)
-            : this(title, action, icon, _ => new Panel(), isSelected)
+            : this(title, action, icon, EmptyView(), isSelected)
         {
+        }
+
+        // :756 `{ _ in EmptyView() }`: one empty view, the same whatever the hover, so a hover changes nothing in it.
+        private static Func<bool, Control> EmptyView()
+        {
+            var none = new Panel();
+            return _ => none;
         }
 
         // :741-745. PR-WIN-200: the primary label colour at 0.12 selected, 0.06 hovered, clear otherwise.

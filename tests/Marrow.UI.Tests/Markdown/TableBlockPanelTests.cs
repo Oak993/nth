@@ -128,6 +128,33 @@ public sealed class TableBlockPanelTests(HeadlessSession headless)
         window.Close();
     });
 
+    // :1308 .modifier(MarkdownBlockSelection()) on the grid: its live branch is .textSelection(.enabled) (:854-863, :858; the
+    // environment value has no writer, dead_code.md 30), so every cell's text, header and body, is selectable in its own block, with
+    // the I-beam over it (PR-CHAT-166 windows_path) and a selection drawn in the system's selected-text colour (a SelectableTextBlock
+    // draws none with no control theme loaded). Selection runs within one cell: whether a Mac drag runs on across cells of the grid is
+    // UNRESOLVED (ED-256).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-THEME-126 and PR-CHAT-166 for the table block, no drag across cells: MarkdownView.swift:1308, :854-863
+    public void Every_header_and_body_cell_is_selectable_text_with_the_I_beam_and_a_selection_in_the_system_colour() => headless.OnUiThread(() =>
+    {
+        var table = new TableBlock(["Name", "Age"], Rows(["Ada", "30"], ["Lin", "40"]));
+        var window = MarkdownVisualProbe.Show(table);
+
+        var system = MarkdownVisualProbe.Drawn(SwiftColor.SelectedTextBackgroundColor, window);
+        Assert.NotEqual(0, system.A);
+        var cells = Cells(table).Children.OfType<TextBlock>().ToList();
+        Assert.Equal(6, cells.Count); // 2 header + 2 x 2 body
+        foreach (var cell in cells)
+        {
+            var text = Assert.IsType<SelectableTextBlock>(cell);
+            Assert.Equal("Ibeam", text.Cursor?.ToString());
+            Assert.Equal(system, MarkdownVisualProbe.ColorOf(text.SelectionBrush));
+            text.SelectAll();
+            Assert.Equal(text.Text, text.SelectedText);
+        }
+        window.Close();
+    });
+
     // :1302 column < cells[row].count ? cells[row][column] : "": short rows are padded, extra cells never appear.
     [Fact]
     [Trait("Req", "UI-THEME-038")]

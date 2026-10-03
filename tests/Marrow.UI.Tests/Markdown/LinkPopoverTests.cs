@@ -123,6 +123,7 @@ public sealed class LinkPopoverTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-043")] // DroppyCode/UI/Markdown/LinkPopover.swift:83-85
     public void Merge_hands_the_parsed_request_to_the_callback() => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork("gitlab.com"); // R-TEST-10: the content asks gitlab.com for its favicon when it appears (found by the network audit, ED-256 (10))
         var url = SwiftURL.Create("https://gitlab.com/g/p/-/merge_requests/7")!;
         MergeRequestLink? received = null;
         var content = new LinkPopoverContent(url, MergeRequestLink.Create(url), r => received = r);
@@ -277,6 +278,7 @@ public sealed class LinkPopoverTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-042")] // DroppyCode/UI/Markdown/LinkPopover.swift:35-37: the popover is its content's measured size
     public void The_popover_is_exactly_as_big_as_its_content_measured_in_a_window(bool withMerge) => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork(withMerge ? "gitlab.com" : "example.com"); // R-TEST-10: the Merge content, hosted in a window to measure it, asks its host's favicon (found by the network audit, ED-256 (10))
         var url = SwiftURL.Create(withMerge ? "https://gitlab.com/g/p/-/merge_requests/7" : "https://example.com/x")!;
         LinkPopoverContent Make() => new(url, withMerge ? MergeRequestLink.Create(url) : null, _ => { });
         var hosted = Make();
@@ -296,7 +298,7 @@ public sealed class LinkPopoverTests(HeadlessSession headless)
         {
             LinkPopover.Shared.Show(url, withMerge ? new MergeRequestTarget(Guid.NewGuid(), _ => { }) : null, new Rect(0, 0, 10, 10), anchor);
 
-            var frame = Assert.IsType<Border>(Assert.Single(recorder.Calls).Popup.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(Assert.Single(recorder.Calls).Popup)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             Assert.Equal(expected.Width, frame.Width);
             Assert.Equal(expected.Height, frame.Height);
         }

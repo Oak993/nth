@@ -158,15 +158,37 @@ public sealed class MCPSettingsPage : Decorator
     }
     // :91-93,172-176,721-725,928-932
     internal static SwiftImage Symbol(string name, double size, SwiftColor color) => SwiftImage.SystemName(name).Font(SwiftFont.System(size)).ForegroundStyle(color);
-    // :328-330,342-348. ENGINEERING DECISION: shared capsule recipe from FollowUpEditor/WelcomeView.
-    // Native .small metrics remain UNVERIFIED under OD-0001; SwiftGlass draws the material.
-    internal static Control ActionButton(string title, Action action, bool prominent = false)
+    // :328-330,342-348,505-507,522-528 `.buttonStyle(.glass)` or `.glassProminent` with `.controlSize(.small)`; the editor's
+    // button (:700) has no controlSize, so it is regular.
+    // SOURCE FACT (reference video 1-settings-tour.mov, stills scene-1-settings-tour-186.00 and -187.00, S 174.50): a small
+    // `.glass` button under the window's `.tint(accent)` draws as a solid accent capsule 20 pt tall with a white label
+    // (Connect 65 x 20, Sign in 56 x 20); a regular text-only one is 22 pt tall (Providers "Login", S 174.50).
+    // ENGINEERING DECISION (ED-257): the tint is read from the inherited Popovers.TintProperty that ThemeTint sets
+    // (WindowManager.cs:818, Popovers.swift:11), so an untinted window (System, Light, Dark: nil) keeps the neutral glass and the
+    // primary label colour, UNVERIFIED (no video of that case); `.glassProminent`'s own look is UNVERIFIED (no frame in the video),
+    // only its size follows the control size; a regular label is 13 pt, a small one 11 pt (UNVERIFIED for the prominent style).
+    internal const double SmallControlHeight = 20, RegularControlHeight = 22;
+    internal static Control ActionButton(string title, Action action, bool prominent = false, bool regular = false)
     {
-        var label = Text(title, 11, Chrome.PrimaryText);
-        if (prominent) return WelcomeView.GlassProminentButton(label, Chrome.CapsuleContentHeight, action);
-        var surface = new Border { Child = label, Background = Brushes.Transparent, Height = Chrome.CapsuleContentHeight, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) }.Capsule(RoundedCornerStyle.Continuous); // :328-330 keep the interactive material's full hit area while ED-180 is deferred
-        SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive());
-        return PlainControls.Button(surface, action);
+        var label = Text(title, regular ? 13 : 11, Chrome.PrimaryText); var height = regular ? RegularControlHeight : SmallControlHeight;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        var surface = new TintedGlassPill(label, prominent) { Child = label, Background = Brushes.Transparent, Height = height, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) }.Capsule(RoundedCornerStyle.Continuous); // :328-330 keep the interactive material's full hit area while ED-180 is deferred
+        surface.Apply(); return PlainControls.Button(surface, action);
+    }
+    // The capsule: filled with the window's tint at full strength under a white label when the window is tinted. `.glassProminent`
+    // is always tinted: by the window's tint, else by the accent (ENGINEERING DECISION, its look UNVERIFIED).
+    private sealed class TintedGlassPill(TextBlock label, bool prominent) : Border
+    {
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) { base.OnAttachedToVisualTree(e); Apply(); }
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) { base.OnPropertyChanged(change); if (change.Property == Popovers.TintProperty) Apply(); }
+        public void Apply()
+        {
+            var tint = Popovers.GetTint(this) ?? (prominent ? Chrome.Accent : null);
+            Background = tint is null ? Brushes.Transparent : tint.Brush(this);
+            label.Foreground = (tint is null ? Chrome.PrimaryText : SwiftColor.White).Brush(label);
+            var glass = GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive();
+            SwiftGlass.SetEffect(this, prominent && tint is not null ? glass.Tint(tint, 0.3) : glass);
+        }
     }
     // :169-179,543-553
     internal static Button Options(Action action)
@@ -643,7 +665,7 @@ internal sealed class MCPCustomEditor : Decorator
         if (kind == MCPCustomServer.Kind.Stdio)
         {
             form.Children.Add(Field("Command", MCPSettingsPage.McpFieldSurface(EditorField("npx", () => command, v => command = v))));
-            var args = EditorField("", () => argsText, v => argsText = v); args.AcceptsReturn = true; args.TextWrapping = TextWrapping.Wrap; args.Height = 66; args.Padding = new Thickness(6, 4);
+            var args = EditorField("", () => argsText, v => argsText = v); args.AcceptsReturn = true; args.TextWrapping = TextWrapping.Wrap; args.Height = 66; args.Padding = new Thickness(11, 4); // :783-784 padding 6 and 4, plus the inset a TextEditor's text has of its own: DEVIATION OD-0032 "Windows argument-editor inset compensation" (6 + 5, the 5 being SettingsView.swift:829's placeholder alignment, video S 199.50 the placeholder starts 16.7 px in = 12 + 5)
             form.Children.Add(Field("Arguments", MCPSettingsPage.McpFieldSurface(args), MCPSettingsPage.Text("One argument per line; empty lines are dropped.", 10.5, Chrome.SecondaryText))); // :777-790 editor and hint are two children of field()
         }
         else form.Children.Add(Field("URL", MCPSettingsPage.McpFieldSurface(EditorField("https://\U00002026", () => url, v => url = v)))); // U+2026 HORIZONTAL ELLIPSIS
@@ -757,7 +779,7 @@ internal sealed class MCPCustomEditor : Decorator
     private void BuildFooter(string? error)
     {
         footer.Children.Clear(); if (error is not null) footer.Children.Add(MCPSettingsPage.Text(error, 11, Chrome.Danger, lines: 3));
-        var save = MCPSettingsPage.ActionButton(server is null ? "Add server" : "Save", Save, true); save.HorizontalAlignment = HorizontalAlignment.Right; footer.Children.Add(save);
+        var save = MCPSettingsPage.ActionButton(server is null ? "Add server" : "Save", Save, prominent: true, regular: true); save.HorizontalAlignment = HorizontalAlignment.Right; footer.Children.Add(save);
     }
     // :864-889
     private void Save()

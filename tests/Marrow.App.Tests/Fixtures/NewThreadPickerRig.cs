@@ -37,6 +37,8 @@ public sealed class NewThreadPickerRig : IDisposable
         border.Child = new NewThreadPrompt(threadID, projectName);
         host = border;
         window = new AvaloniaWindow { Content = host };
+        // The prompt fades in on the frame clock as it attaches (NewThreadPrompt.swift:50-53); no frame is delivered here.
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
         window.Show();
     }
 

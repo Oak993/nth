@@ -90,7 +90,37 @@ public sealed class CaptionButton : Control
         Height = ButtonHeight;
         tick = OnFrame;
         DetachedFromVisualTree += (_, _) => Stop();
-        ActualThemeVariantChanged += (_, _) => InvalidateVisual(); // OD-0068: draw again in the new appearance
+        ActualThemeVariantChanged += (_, _) => OnAppearance(); // OD-0068: draw again in the new appearance
+        drawnDark = PlainControls.IsDark(ActualThemeVariant);
+    }
+
+    // ED-254 (OD-0088, OD-0076): in a window that turns over (AppearanceTurn, the Settings window) the glyph and ring
+    // colours ease 0.32 s from the old appearance's to the new one's with the window, 1 standing for dark and 0 for light.
+    private bool drawnDark;
+    private double? turn;
+    private Action stopTurn = static () => { };
+
+    /// <summary>ED-254: how dark the colours are drawn now, 0 (light) to 1 (dark), while the appearance turns over.</summary>
+    public double Darkness => turn ?? (PlainControls.IsDark(ActualThemeVariant) ? 1 : 0);
+
+    private void OnAppearance()
+    {
+        var dark = PlainControls.IsDark(ActualThemeVariant);
+        var from = turn ?? (drawnDark ? 1 : 0);
+        drawnDark = dark;
+        stopTurn();
+        stopTurn = static () => { };
+        turn = null;
+        var to = dark ? 1.0 : 0.0;
+        if (from != to && AppearanceTurn.Eases(this))
+        {
+            stopTurn = AppearanceTurn.Run(this, progress =>
+            {
+                turn = progress >= 1 ? null : from + (to - from) * progress;
+                InvalidateVisual();
+            });
+        }
+        InvalidateVisual();
     }
 
     public Kind ButtonKind { get; }
@@ -190,13 +220,14 @@ public sealed class CaptionButton : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        var dark = PlainControls.IsDark(ActualThemeVariant);
+        var darkness = Darkness;
         var centre = new Point(Bounds.Width / 2, Bounds.Height / 2);
         var enabled = IsEffectivelyEnabled;
-        var ink = GlyphColor(dark, windowActive || (enabled && (hovered || pressed)));
+        var active = windowActive || (enabled && (hovered || pressed));
+        var ink = SwiftColor.PremultipliedMix(GlyphColor(false, active), GlyphColor(true, active), darkness);
         if (hovered && enabled)
         {
-            var ring = RingColor(ButtonKind, dark);
+            var ring = SwiftColor.PremultipliedMix(RingColor(ButtonKind, false), RingColor(ButtonKind, true), darkness);
             if (ReduceMotion) DrawRing(context, centre, ring, 1, 0.45);
             else
                 for (var index = 0; index < 2; index++)

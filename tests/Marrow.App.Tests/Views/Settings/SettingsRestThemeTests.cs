@@ -25,12 +25,15 @@ public sealed class SettingsRestThemeTests(HeadlessSession headless) : SettingsR
     {
         With(() => new AppearanceSettingsPage(), (view, model, _, w) =>
         {
-            var card = Nodes<ChromeCard>(view)[0]; var rows = Nodes<ChromeRow>(card); Assert.Equal(new[] { "Theme", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch" }, rows.Select(r => Text(r).First()));
-            CheckRow(rows[0], "Theme", "Follows Windows"); CheckRow(rows[1], "Transparency", "How much shows through the window");
+            // DEVIATION OD-0088 (ED-250): the Theme row is the Look card's (Port/LookCard.cs), first on the page; the source's first
+            // card keeps its other rows. The Look card's own rows are proven by LookCardTests.
+            var look = Assert.Single(Nodes<Marrow.App.Port.LookCard>(view)); Assert.Same(look.Card, Nodes<ChromeCard>(view)[0]);
+            var card = Nodes<ChromeCard>(view)[1]; var rows = Nodes<ChromeRow>(card); Assert.Equal(new[] { "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch" }, rows.Select(r => Text(r).First()));
+            var theme = look.ThemeRow; Assert.Equal("Theme", Text(theme).First()); Assert.Equal("System · Windows accent", look.ThemeDetail.Text); CheckRow(rows[0], "Transparency", "How much shows through the window");
             var content = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(card.Child).Child).Children[0]); Assert.IsType<ChromeRowDivider>(content.Children[1]); Assert.Same(rows[1], content.Children[2]);
-            Click(w, Assert.IsType<Grid>(Assert.IsType<Border>(rows[0].Child).Child).Children[0]); Assert.Equal(Marrow.UI.Theme.AppTheme.System, model.Settings.Theme); Assert.False(Assert.Single(Nodes<Popup>(rows[0])).IsOpen);
-            model.Settings.Theme = AppTheme.Nord; Drain(w); CheckRow(rows[0], "Theme", "Dark · Frost"); Assert.True(rows[1].IsEffectivelyEnabled);
-            Click(w, Assert.IsType<Grid>(Assert.IsType<Border>(rows[1].Child).Child).Children[0]); Assert.Equal(0.5, model.Settings.BackdropOpacity);
+            Click(w, Assert.IsType<Grid>(Assert.IsType<Border>(theme.Child).Child).Children[0]); Assert.Equal(Marrow.UI.Theme.AppTheme.System, model.Settings.Theme); Assert.False(look.Menu.IsOpen);
+            model.Settings.Theme = AppTheme.Nord; Drain(w); Assert.Equal("Dark · Frost", look.ThemeDetail.Text); Assert.True(rows[0].IsEffectivelyEnabled);
+            Click(w, Assert.IsType<Grid>(Assert.IsType<Border>(rows[0].Child).Child).Children[0]); Assert.Equal(0.5, model.Settings.BackdropOpacity);
         });
     }
 

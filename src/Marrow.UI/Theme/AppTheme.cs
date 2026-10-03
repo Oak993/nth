@@ -256,15 +256,49 @@ public static class ThemeManager
         set
         {
             current = value;
-            Spec = value.Spec(); // :225
+            themeSpec = value.Spec();
+            Spec = Picked(themeSpec); // :225; DEVIATION OD-0088: with the user's accent (see Picked)
+            Accent = NewAccent();
             DidChange?.Invoke(); // :226-227, nil object: this event carries no payload either
         }
     }
+
+    // DEVIATION OD-0088 (ED-250): the accent is the user's preference (Port/AccentPalette.cs). A pick other than the
+    // default replaces the theme's accent in the spec everything reads (Chrome.accent, the window tint); the default
+    // ("windows") keeps the theme's own, nil for System, Light and Dark, exactly as the source.
+    // The current theme's spec as AppTheme.spec builds it, before the pick.
+    private static ThemeSpec themeSpec = AppTheme.System.Spec();
+
+    private static ThemeSpec Picked(ThemeSpec spec) => AccentPalette.Pick(AccentChoice.Current) is { } pick ? spec with { Accent = pick } : spec;
+
+    /// <summary>PORT-ONLY (OD-0088): <see cref="AccentChoice.Current"/> changed: the spec is rebuilt with it and
+    /// <see cref="DidChange"/> posted, as a theme change does (:225-227).</summary>
+    internal static void AccentChanged()
+    {
+        Spec = Picked(themeSpec); // the theme's own colours (surface and the rest) stay the same values
+        Accent = NewAccent();
+        DidChange?.Invoke();
+    }
+
+    /// <summary>
+    /// PORT-ONLY (OD-0088, ED-250): Chrome.accent (Chrome.swift:85, :87) as one colour per spec, which is the spec's accent,
+    /// else the system control accent, whenever it is resolved, so a brush made from it follows a later pick or theme. A new
+    /// instance for each spec, as the source's computed property gives a new value with each theme.
+    /// </summary>
+    internal static SwiftColor Accent { get; private set; } = NewAccent();
+
+    private static SwiftColor NewAccent() => SwiftColor.Live(() => Spec.Accent ?? SwiftColor.ControlAccentColor);
 
     // :230-233 nonisolated(unsafe) private(set) static var spec: ThemeSpec = AppTheme.system.spec. PR-THEME-037:
     // built once per change here, in Current's setter, and simply read by everything else (Chrome.accent and
     // friends), never rebuilt on the read path.
     public static ThemeSpec Spec { get; private set; } = AppTheme.System.Spec();
+
+    /// <summary>
+    /// PORT-ONLY (OD-0088, ED-254): Chrome.glassTint (Chrome.swift:96, the spec's surface) whenever it is resolved, so the
+    /// window's and the sheet's wash made from it follow a later theme, easing over 0.32 s as the accent does (SPEC 6.5).
+    /// </summary>
+    internal static SwiftColor LiveSurface { get; } = SwiftColor.Live(() => Spec.Surface);
 }
 
 /// <summary>

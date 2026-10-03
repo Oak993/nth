@@ -31,13 +31,24 @@ public static class LinkHover
     public static void Attach(
         Control paragraph,
         Func<LinkTextView?> hostTextView,
-        IReadOnlyList<HydraPersona> personas,
-        IReadOnlyDictionary<string, HydraMentionTarget> targets)
+        Func<IReadOnlyList<HydraPersona>> personas,
+        Func<IReadOnlyDictionary<string, HydraMentionTarget>> targets) =>
+        Track(paragraph, hostTextView, personas, targets);
+
+    /// <summary><see cref="Attach"/>, returning the hover's state (for the tests). The mentions and targets are read when the pointer
+    /// moves, not when the hover is attached: SwiftUI hands the modifier the values of the body that ran last (:7-11, :14), and a
+    /// port host changes the environment under a paragraph it has already built (InlineText, MarkdownView.swift:1074-1075 at B3).</summary>
+    internal static HoverState Track(
+        Control paragraph,
+        Func<LinkTextView?> hostTextView,
+        Func<IReadOnlyList<HydraPersona>> personas,
+        Func<IReadOnlyDictionary<string, HydraMentionTarget>> targets)
     {
         var state = new HoverState();
-        paragraph.PointerMoved += (_, e) => Moved(paragraph, hostTextView(), e.GetPosition(paragraph), personas, targets, state);
+        paragraph.PointerMoved += (_, e) => Moved(paragraph, hostTextView(), e.GetPosition(paragraph), personas(), targets(), state);
         paragraph.PointerExited += (_, _) => End(paragraph, state); // :37-39 case .ended
         paragraph.DetachedFromVisualTree += (_, _) => End(paragraph, state); // :41-43 .onDisappear
+        return state;
     }
 
     internal sealed class HoverState

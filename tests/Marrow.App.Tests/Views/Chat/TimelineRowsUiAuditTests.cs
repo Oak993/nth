@@ -37,6 +37,10 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // FinishedHeadPill.Pill :464-467, UI-CHAT-052; HydraMergeRow.Pill :1012-1017, UI-CHAT-053/UI-HYDRAMERGE-002.
 // HydraDelegationBlock.Pill :691-694, UI-CHAT-054.
 // UserMessageRow.UserActions -> PopoverItem continuous hover surface :216-228, UI-GIT-050.
+// 2026-10-04 (unit blitz-timelinerows-cd, OD-0098): the sites above (and the tool badge, the notice pills and the merge pill) are
+// pinned, each with the radius and the .continuous style the source states, in TimelineRowsCdTests.Every_pill_card_and_plate_of_the_
+// timeline_rows_is_a_continuous_rounded_rectangle_of_the_radius_the_source_states; ChatBadge's pill and its clip and the delegation
+// card's wave clip (:698), which bypassed SwiftShapes, now go through it. Only the curve itself stays open: those records are CORNER-ONLY.
 //
 // STOP opencode-App.Views.Chat.TimelineRows #2
 // Kind: external symbol/native-style oracle. Missing: measured reference metrics/drawing for the requested
@@ -62,12 +66,19 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // Missing: reference-backed SwiftUI .buttonStyle(.link) underline/hover style. The site itself names
 // OD-0001 UNVERIFIED, and no approved native link-style adapter resolves it on impl/b2.
 // Needed: the foundation/owner's reference-backed link mapping. Real pointer toggling now passes locally.
+// RESOLVED 2026-10-04 (OD-0088, ED-253: the link style draws in the view's tint, the theme's accent, with the pointing hand;
+// OD-0098): UI-CHAT-026 is proven in TimelineRowsCdTests.The_Show_full_output_link_is_drawn_in_the_accent_with_the_pointing_hand_in_
+// both_of_its_states and TimelineRowsFinToolDetailTests.
 //
 // STOP opencode-App.Views.Chat.TimelineRows #5
 // Kind: external formatter oracle. TimelineRows.Duration / TurnEndRow.Label :2448-2455, UI-CHAT-035/UI-RUNTIME-004;
 // AssistantMessageRow.Body duration :1368-1372, UI-CHAT-019. Missing: reference-runtime narrow Duration.UnitsFormatStyle
 // results in the current locale (O-65, ED-197/ED-086). The ported formatter has landed, but ED-197 requires
 // Decision/Oracle classification for its unverified strings. Needed: approved pinned-runtime formatter results.
+// RESOLVED 2026-10-04 for UI-CHAT-035 and UI-RUNTIME-004 (OD-0098; ED-197, Oracle O-65): the formatter is swift-foundation's own
+// algorithm (SwiftFormatters.DurationUnits, boundary tests in SwiftFormattersSecondTests), six of its strings are SOURCE FACT in the
+// reference video (TimelineRowsCaptureTests), and TimelineRowsCdTests.The_turn_duration_reads_the_reference_runtimes_narrow_units_
+// at_every_boundary_the_code_names holds those and the boundaries (1m, 59m 59s, 1h, 1h 2m, rounding). UI-CHAT-019 stays with its own record.
 //
 // STOP opencode-App.Views.Chat.TimelineRows #6
 // Kind: external native text layout/selection oracle. The remaining records delegate native layout to SwiftUI,
@@ -83,6 +94,9 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // HydraReportPopover native popover chrome and selection/scroll :607-639, UI-CHAT-050/UI-HYDRAMERGE-007.
 // HydraHeadStepsPopover two-line wrapped middle placement :1969-1973 (ED-217 explicitly UNVERIFIED), UI-CHAT-055.
 // HydraMergeRow outcome single-line tail elision/native popover :1099-1120/:1142-1155, UI-HYDRAMERGE-005.
+// 2026-10-04 (OD-0098): the layout those sites delegate to the framework is read from the values the code states (line limits,
+// truncation modes, text selection, the popovers' widths and insets) and proven headless: UI-CHAT-027, -041/UI-GIT-045, -049/
+// UI-HYDRAMERGE-006, -050/UI-HYDRAMERGE-007, -055, -061 and UI-HYDRAMERGE-005 are closed (UI-CHAT-007 is another unit's).
 //
 // STOP opencode-App.Views.Chat.TimelineRows #7
 // Kind: external native animation oracle. HydraMergeTrack's .smooth duration 0.5/0.45 :821-841 and the
@@ -92,3 +106,6 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // in the source. F.SwiftAnimation uses ED-117 completion/cadence choices; ED-117(7) requires O-34/Decision
 // classification for those expectations, never a Req. Needed: reference-backed native animation results,
 // under OD-0001, before whole duration/trajectory parity can be credited. Existing Oracle tests stay.
+// 2026-10-04 (OD-0098): UI-HYDRAMERGE-004 states its durations in the code (:838-839 .smooth 0.5 s and 0.45 s); the curve is the
+// documented smooth spring of F.SwiftAnimation (ED-117, an ENGINEERING DECISION), the drawing's three values, its durations and its
+// settle are proven in TimelineRowsFinMergeRowTests: the record is closed.

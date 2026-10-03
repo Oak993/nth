@@ -4,7 +4,10 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using Avalonia.Platform;
 using Avalonia.Rendering.Composition;
+using Avalonia.Threading;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -115,6 +118,12 @@ public sealed class DotFieldControl : Canvas
     internal DotFieldCompositionHandler? CompositionHandler => compositionHandler;
     internal DotFieldCompositionFrame? LastRenderedFrame => compositionHandler?.LastFrame;
     private ContinuousInstant sweepStart;
+    // ED-253 (round 4): the resolved colour the field is drawn in, and the blend to it from what it showed (render server).
+    private Color? target;
+    private Color? blendFrom;
+    private ContinuousInstant blendStart;
+    private IPlatformSettings? platformSettings;
+    private IDisposable? warmupActivity;
 
     public DotFieldControl(SwiftColor color, bool animated, bool sweeps)
     {
@@ -132,8 +141,23 @@ public sealed class DotFieldControl : Canvas
         dotCanvas = new Canvas { IsVisible = !animated };
         Children.Add(dotCanvas);
         // :113-122 Window attachment installs motion; theme-aware brushes also follow system accent changes.
-        AttachedToVisualTree += (_, _) => InstallAnimation();
-        DetachedFromVisualTree += (_, _) => RemoveComposition();
+        AttachedToVisualTree += (_, _) =>
+        {
+            InstallAnimation();
+            warmupActivity ??= GpuWarmup.AddActivity(IsAnimatingOnCompositor);
+            Marrow.UI.Theme.ThemeManager.DidChange += OnThemeChanged;
+            platformSettings = Application.Current?.PlatformSettings;
+            if (platformSettings is not null) platformSettings.ColorValuesChanged += OnColorValuesChanged;
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            Marrow.UI.Theme.ThemeManager.DidChange -= OnThemeChanged;
+            if (platformSettings is not null) platformSettings.ColorValuesChanged -= OnColorValuesChanged;
+            platformSettings = null;
+            RemoveComposition();
+            warmupActivity?.Dispose();
+            warmupActivity = null;
+        };
         ActualThemeVariantChanged += (_, _) => OnAppearanceChanged();
     }
 
@@ -161,6 +185,7 @@ public sealed class DotFieldControl : Canvas
 
         // Clear and recreate the dot layers
         dotCanvas?.Children.Clear();
+        var fill = StillBrush();
 
         // :139-148 Position dots based on grid
         for (int row = 0; row < rowCount; row++)
@@ -170,7 +195,7 @@ public sealed class DotFieldControl : Canvas
                 var x = Pitch / 2 + col * Pitch;
                 // :137-145 AppKit's origin is bottom-left. Avalonia's is top-left.
                 var y = size.Height - (Pitch / 2 + row * Pitch);
-                var dot = CreateDot(row, rowCount);
+                var dot = CreateDot(row, rowCount, fill);
                 dotCanvas?.Children.Add(dot);
                 Canvas.SetLeft(dot, x - DotSize / 2);
                 Canvas.SetTop(dot, y - DotSize / 2);
@@ -180,13 +205,13 @@ public sealed class DotFieldControl : Canvas
         SynchronizeComposition();
     }
 
-    private Ellipse CreateDot(int row, int rowCount)
+    private Ellipse CreateDot(int row, int rowCount, IBrush fill)
     {
         var ellipse = new Ellipse
         {
             Width = DotSize,
             Height = DotSize,
-            Fill = GetBrush(),
+            Fill = fill,
         };
 
         // :148 Apply per-row alpha offset
@@ -197,9 +222,30 @@ public sealed class DotFieldControl : Canvas
         return ellipse;
     }
 
-    private IBrush GetBrush()
+    // ED-253 (round 4): the colour is resolved here and sent as it is (an immutable brush); a SwiftColor brush made at each
+    // resend kept a binding listening to the field for as long as the field lived. The still dots (shown under Reduce Motion)
+    // take a change at once, as every accent use does under Reduce Motion.
+    private Color Resolved() => color.Resolve(ActualThemeVariant);
+
+    private IBrush StillBrush() => new ImmutableSolidColorBrush(target ??= Resolved());
+
+    /// <summary>
+    /// Draws the field in the colour it resolves now. With <paramref name="ease"/> the animated field blends there on the
+    /// render server from what it shows, over the accent's 0.32 s ease (SPEC 6.4), a later change retargeting from where
+    /// the blend has got to; otherwise it is at once.
+    /// </summary>
+    private void Retarget(bool ease)
     {
-        return color.Brush(this);
+        var to = Resolved();
+        var now = SwiftClock.Now;
+        var shown = target is { } current ? DotFieldCompositionFrame.Shown(current, blendFrom, blendStart, now) : to;
+        if (ease && animated && shown != to)
+        {
+            blendFrom = shown;
+            blendStart = now;
+        }
+        else blendFrom = null;
+        target = to;
     }
 
     private void InstallAnimation()
@@ -232,9 +278,15 @@ public sealed class DotFieldControl : Canvas
         compositionVisual.Visible = animated;
         // :5-11,177-190 Core Animation plays on the render server. Capture the Swift clock provider once
         // per state update; never use Avalonia's animation time and never request a UI-thread frame.
-        compositionVisual.SendHandlerMessage(new DotFieldCompositionFrame(laidOutSize,
-            GetBrush().ToImmutable(), animated, sweeps, SwiftClock.Provider.Current, sweepStart, SwiftClock.Now));
+        var now = SwiftClock.Now;
+        var drawn = target ??= Resolved();
+        compositionVisual.SendHandlerMessage(DotFieldCompositionFrame.Create(laidOutSize, drawn, blendFrom, blendStart,
+            animated, sweeps, SwiftClock.Provider.Current, sweepStart, now));
     }
+
+    // PORT-ONLY (ED-252): the dots move on the render server, where the frame clock cannot see them; while attached they
+    // tell GpuWarmup's idle fallback when they move, so it compiles the effort knob's programs in other frames.
+    private bool IsAnimatingOnCompositor() => compositionHandler?.IsAnimating == true;
 
     private void RemoveComposition()
     {
@@ -250,7 +302,7 @@ public sealed class DotFieldControl : Canvas
         if (newColor != color)
         {
             color = newColor;
-            UpdateBrushes();
+            UpdateBrushes(ease: false);
         }
     }
 
@@ -264,16 +316,35 @@ public sealed class DotFieldControl : Canvas
         }
     }
 
-    public void OnAppearanceChanged()
+    // OD-0088 (ED-253): Chrome.accentNSColor (:15-16) is the theme's accent or the user's pick, read as the body is drawn
+    // again (:104-111 configure(color:)); a pick or a theme posts ThemeManager.DidChange, and the field sends the colour it
+    // now resolves to the render server (the still dots take it too).
+    // A pick or a theme eases the animated dots with every other use of the accent (SPEC 6.4, round 4).
+    private void OnThemeChanged()
     {
-        // :118-122 viewDidChangeEffectiveAppearance re-resolves the dynamic accent
-        UpdateBrushes();
+        if (CheckAccess()) UpdateBrushes(ease: true);
+        else Dispatcher.Post(() => { if (TopLevel.GetTopLevel(this) is not null) UpdateBrushes(ease: true); });
     }
 
-    private void UpdateBrushes()
+    // The system accent changed (a colour that uses it): at once, as SwiftColor's own brushes take it.
+    private void OnColorValuesChanged(object? sender, PlatformColorValues values)
     {
-        // Re-apply the color to static dots and send one immutable brush to the render server.
-        var brush = GetBrush();
+        if (Dispatcher.UIThread.CheckAccess()) UpdateBrushes(ease: false);
+        else Dispatcher.UIThread.Post(() => { if (TopLevel.GetTopLevel(this) is not null) UpdateBrushes(ease: false); });
+    }
+
+    public void OnAppearanceChanged()
+    {
+        // :118-122 viewDidChangeEffectiveAppearance re-resolves the dynamic accent; inside a tree that turns over (ED-254) it
+        // eases, as SwiftColor's brushes there do.
+        UpdateBrushes(ease: AppearanceTurn.Eases(this));
+    }
+
+    private void UpdateBrushes(bool ease)
+    {
+        // Re-apply the color to static dots and send it to the render server.
+        Retarget(ease);
+        var brush = StillBrush();
         if (dotCanvas != null)
         {
             foreach (var child in dotCanvas.Children)

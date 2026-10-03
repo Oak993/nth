@@ -105,7 +105,10 @@ public sealed record SwiftTransition
         return child;
     }
 
-    public static void Insert(Panel panel, int index, Control child)
+    // `elapsed` is PORT-ONLY (UI-THEME-047): how far into its arrival the child already is. SwiftUI keeps a view's insertion running while the
+    // rest of the tree updates around it; a tree that is built again for every flush (a streaming reply's markdown) puts a new view in the place of the one
+    // whose arrival is part way, which then carries on from here instead of starting again or finishing at once. Zero is an insertion that starts now.
+    public static void Insert(Panel panel, int index, Control child, TimeSpan elapsed = default)
     {
         // A view with no `.transition(_:)` uses SwiftUI's default `.opacity`: documented SwiftUI behaviour, UNVERIFIED
         // under OD-0001 as ED-092 records for the other documented defaults.
@@ -127,8 +130,13 @@ public sealed record SwiftTransition
             state.Present(child, 1, inserting: true);
             return;
         }
-        state.Present(child, 0, inserting: true);
-        state.Run(animation, (p, _) => state.Present(child, p, inserting: true));
+        if (elapsed > TimeSpan.Zero && elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(animation.Duration).Ticks)
+        {
+            state.Present(child, 1, inserting: true); // ED-117 (2): complete 1 ms early at most
+            return;
+        }
+        state.Present(child, elapsed > TimeSpan.Zero ? animation.Progress(elapsed.TotalSeconds) : 0, inserting: true);
+        state.Run(animation, (p, _) => state.Present(child, p, inserting: true), elapsed);
     }
 
     /// <summary>
@@ -190,7 +198,7 @@ public sealed record SwiftTransition
             return;
         }
         state.Present(child, from, inserting: true);
-        state.Run(animation, (p, _) => state.Present(child, from + (1 - from) * p, inserting: true), from);
+        state.Run(animation, (p, _) => state.Present(child, from + (1 - from) * p, inserting: true), from: from);
     }
 
     // ED-218: disposal belongs after removal finishes, including immediate/identity removals.
@@ -228,7 +236,7 @@ public sealed record SwiftTransition
             if (panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
             state.CompleteRemoval();
-        }, from);
+        }, from: from);
     }
 
     private SwiftTransition ForInsert() => kind == Kind.Asym ? first! : this;
@@ -475,11 +483,11 @@ public sealed record SwiftTransition
             callback = null;
         }
 
-        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply, double from = 0)
+        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply, TimeSpan elapsed = default, double from = 0)
         {
             Stop();
             source = FrameClock.Source.Current;
-            var start = SwiftClock.Now;
+            var start = SwiftClock.Now - elapsed;
             runAnimation = animation;
             runStart = start;
             runFrom = from;
@@ -525,6 +533,10 @@ public abstract partial record Animation
     public static Animation EaseOut(double duration = 0.35) => new TimingAnimation(duration, 0, 0, 0.58, 1);
     public static Animation EaseInOut(double duration = 0.35) => new TimingAnimation(duration, 0.42, 0, 0.58, 1);
     public static Animation Linear(double duration = 0.35) => new TimingAnimation(duration, 0, 0, 1, 1);
+    // SwiftUI Animation.timingCurve(_:_:_:_:duration:): a cubic Bezier from (0, 0) to (1, 1) through the two control points
+    // (used by the port-only accent picker, OD-0088, for the CSS curves its locked board names).
+    public static Animation TimingCurve(double c0x, double c0y, double c1x, double c1y, double duration = 0.35) =>
+        new TimingAnimation(duration, c0x, c0y, c1x, c1y);
 
     private sealed record SpringAnimation(double Response, double DampingRatio, double BlendDuration) : Animation
     {

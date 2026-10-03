@@ -785,6 +785,7 @@ public sealed class HydraMergePopoverCardTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var noNetwork = new NoLinkNetwork(FaviconHost); // R-TEST-10: the card asks gitlab.com for its favicon when it appears (found by the network audit, ED-256 (10))
             using var runtime = new TestRuntime();
             using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the label morphs (numericText, :202-203)
             var popover = new HydraMergePopover(Plain());
@@ -813,6 +814,7 @@ public sealed class HydraMergePopoverCardTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var noNetwork = new NoLinkNetwork(FaviconHost); // R-TEST-10: the card asks gitlab.com for its favicon when it appears (found by the network audit, ED-256 (10))
             using var runtime = new TestRuntime();
             using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the label morphs (numericText, :202-203)
             var popover = new HydraMergePopover(Plain());

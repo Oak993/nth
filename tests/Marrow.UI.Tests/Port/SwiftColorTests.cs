@@ -348,25 +348,29 @@ public sealed class SwiftColorTests(HeadlessSession headless)
     [Fact]
     [Trait("Decision", "ED-051")]
     [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-250")]
     public void AccentColor_and_controlAccentColor_are_the_Windows_personalization_accent() => headless.OnUiThread(() =>
     {
         // UI/Chrome/Chrome.swift:80, :87 and :83 fall back to the system control accent; ED-051: on Windows that is the
         // personalization accent, which Avalonia exposes as the platform's AccentColor1. B2 ships no AccentColor asset,
-        // so Color.accentColor is the same system accent.
+        // so Color.accentColor is the same system accent. ED-250 (amending ED-238 (3)): drawn as the accent picker lifts it
+        // for its appearance; the headless #0078D7 is #0073CF in Light and #409FFF in Dark (SPEC 3.2's table).
         var accent = Application.Current!.PlatformSettings!.GetColorValues().AccentColor1;
-        foreach (var theme in new[] { Light, Dark })
+        Assert.Equal(Color.FromRgb(0x00, 0x78, 0xD7), accent);
+        foreach (var (theme, drawn) in new[] { (Light, Color.FromRgb(0x00, 0x73, 0xCF)), (Dark, Color.FromRgb(0x40, 0x9F, 0xFF)) })
         {
-            Assert.Equal(accent, SwiftColor.AccentColor.Resolve(theme));
-            Assert.Equal(accent, SwiftColor.ControlAccentColor.Resolve(theme));
+            Assert.Equal(drawn, SwiftColor.AccentColor.Resolve(theme));
+            Assert.Equal(drawn, SwiftColor.ControlAccentColor.Resolve(theme));
         }
         // Opacity multiplies whatever alpha the accent has (255 * 0.4 = 102 for an opaque accent).
         var fadedAlpha = (byte)Math.Round(accent.A * 0.4, MidpointRounding.AwayFromZero);
-        Assert.Equal(Color.FromArgb(fadedAlpha, accent.R, accent.G, accent.B), SwiftColor.AccentColor.Opacity(0.4).Resolve(Light));
+        Assert.Equal(Color.FromArgb(fadedAlpha, 0x00, 0x73, 0xCF), SwiftColor.AccentColor.Opacity(0.4).Resolve(Light));
     });
 
     [Fact]
     [Trait("Decision", "ED-051")]
     [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-250")]
     public void Opacity_on_an_already_faded_accent_multiplies_the_factor() => headless.OnUiThread(() =>
     {
         // ED-092: .opacity(x) multiplies alpha. App/Views/Chat/HydraProgressBar.swift:350-351 fades a tint that is
@@ -375,10 +379,11 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         // Replacing the factor instead would give 0.5*255 = 127.5.
         var accent = Application.Current!.PlatformSettings!.GetColorValues().AccentColor1;
         Assert.Equal(255, accent.A);
-        foreach (var theme in new[] { Light, Dark })
+        // ED-250: the headless #0078D7 as lifted for each appearance (SPEC 3.2).
+        foreach (var (theme, drawn) in new[] { (Light, Color.FromRgb(0x00, 0x73, 0xCF)), (Dark, Color.FromRgb(0x40, 0x9F, 0xFF)) })
         {
-            Assert.Equal(Color.FromArgb(64, accent.R, accent.G, accent.B), SwiftColor.AccentColor.Opacity(0.5).Opacity(0.5).Resolve(theme));
-            Assert.Equal(Color.FromArgb(64, accent.R, accent.G, accent.B), SwiftColor.ControlAccentColor.Opacity(0.5).Opacity(0.5).Resolve(theme));
+            Assert.Equal(Color.FromArgb(64, drawn.R, drawn.G, drawn.B), SwiftColor.AccentColor.Opacity(0.5).Opacity(0.5).Resolve(theme));
+            Assert.Equal(Color.FromArgb(64, drawn.R, drawn.G, drawn.B), SwiftColor.ControlAccentColor.Opacity(0.5).Opacity(0.5).Resolve(theme));
         }
     });
 
@@ -462,6 +467,37 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         // 0.25*255 = 63.75
         Assert.Equal(Argb(64, 0, 0, 0), SwiftColor.PlaceholderTextColor.Resolve(Light));
         Assert.Equal(Argb(64, 255, 255, 255), SwiftColor.PlaceholderTextColor.Resolve(Dark));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    public void REVIEW_Red_is_the_documented_system_red_pair_not_its_light_member_alone()
+    {
+        // REVIEW (unit/parity-sidebarview pass 1): App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red).
+        // ED-092: a system colour with no B2 value takes the macOS documented values; Color.red, like Color.yellow
+        // (ED-104), has distinct 'Default (light)' and 'Default (dark)' columns in the HIG system colours table, the dark
+        // member the lighter of the two. SwiftColor.Red resolves to the light member (255, 59, 48) in both appearances.
+        // Only the pair's shape is asserted here (which table edition is current is not this test's question).
+        var light = SwiftColor.Red.Resolve(Light);
+        var dark = SwiftColor.Red.Resolve(Dark);
+        Assert.Equal(255, light.R);
+        Assert.NotEqual(light, dark);
+        Assert.True(dark.G > light.G && dark.B > light.B, $"dark {dark} is not the lighter member of {light}");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-104")]
+    public void Red_is_the_system_red_pair_of_the_same_table_edition_as_Yellow_and_fades_both_members()
+    {
+        // UNVERIFIED under OD-0001, no O-nn, on ED-104's footing. The macOS 27 UI Kit (OD-0045, E:\Droppy\work\apple-kit\
+        // macos27-uikit-controls.md "System colours") lists Yellow at Light #FFCC00 and Dark #FFD600, ED-104's
+        // (255, 204, 0) and (255, 214, 0), so its Red is the same edition's: Light #FF383C, Dark #FF4245, opaque.
+        // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
+        Assert.Equal(Argb(255, 255, 56, 60), SwiftColor.Red.Resolve(Light));
+        Assert.Equal(Argb(255, 255, 66, 69), SwiftColor.Red.Resolve(Dark));
+        Assert.Equal(Argb(46, 255, 56, 60), SwiftColor.Red.Opacity(0.18).Resolve(Light));
+        Assert.Equal(Argb(46, 255, 66, 69), SwiftColor.Red.Opacity(0.18).Resolve(Dark));
     }
 
     // ---- Opacity arithmetic and immutability ----
@@ -632,6 +668,7 @@ public sealed class SwiftColorTests(HeadlessSession headless)
     [Fact]
     [Trait("Decision", "ED-051")]
     [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-250")]
     public void An_accent_brush_follows_the_system_accent_when_the_platform_colours_change() => headless.OnUiThread(() =>
     {
         // UI/Chrome/Chrome.swift:75 "Dynamic system colors resolve at draw time", :80 Color(nsColor: .controlAccentColor):
@@ -653,8 +690,11 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         var accentBrush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.AccentColor.Brush(target));
         var controlBrush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.ControlAccentColor.Brush(target));
         var fadedBrush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.AccentColor.Opacity(0.4).Brush(target));
-        Assert.Equal(original.AccentColor1, accentBrush.Color);
-        Assert.Equal(original.AccentColor1, controlBrush.Color);
+        // ED-250: drawn lifted for the (Light) window, SPEC 3.2: #0078D7 is #0073CF, #E81123 is #E4051F.
+        var drawnOriginal = Argb(255, 0x00, 0x73, 0xCF);
+        Assert.Equal(Color.FromRgb(0x00, 0x78, 0xD7), original.AccentColor1);
+        Assert.Equal(drawnOriginal, accentBrush.Color);
+        Assert.Equal(drawnOriginal, controlBrush.Color);
 
         var changed = new PlatformColorValues
         {
@@ -668,10 +708,10 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         {
             RaiseColorValuesChanged(settings, changed);
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal(Argb(255, 0xE8, 0x11, 0x23), accentBrush.Color);
-            Assert.Equal(Argb(255, 0xE8, 0x11, 0x23), controlBrush.Color);
+            Assert.Equal(Argb(255, 0xE4, 0x05, 0x1F), accentBrush.Color);
+            Assert.Equal(Argb(255, 0xE4, 0x05, 0x1F), controlBrush.Color);
             // 0.4*255 = 102
-            Assert.Equal(Argb(102, 0xE8, 0x11, 0x23), fadedBrush.Color);
+            Assert.Equal(Argb(102, 0xE4, 0x05, 0x1F), fadedBrush.Color);
         }
         finally
         {
@@ -679,7 +719,7 @@ public sealed class SwiftColorTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             window.Close();
         }
-        Assert.Equal(original.AccentColor1, accentBrush.Color);
+        Assert.Equal(drawnOriginal, accentBrush.Color);
     });
 
     private static void RaiseColorValuesChanged(IPlatformSettings settings, PlatformColorValues values)

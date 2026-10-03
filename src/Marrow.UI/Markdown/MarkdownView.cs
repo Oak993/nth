@@ -83,47 +83,150 @@ public sealed class MarkdownView : Decorator
     // :63-103 body. The prose-run branch (PR-THEME-105) builds ProseRunView for each prose run (part 2's sibling
     // ProseRunView unit; MARROW_STUB there is expected and left alone). The block branch is fully implemented,
     // via MarkdownBlockView.
-    public MarkdownView(string text, bool isStreaming = false)
+    // PORT-ONLY `veils` (UI-THEME-047): the identity a row that builds this view again for every flush keeps for the tree, so the veil of each
+    // place survives the rebuild as SwiftUI's @State does (StreamVeil.cs, MarkdownVeils).
+    public MarkdownView(string text, bool isStreaming = false, MarkdownVeilScope? veils = null)
     {
         Text = text;
         IsStreaming = isStreaming;
         var parse = isStreaming ? StreamingParse(text) : (Blocks: Blocks(text), Stable: 0); // :67
         var blocks = parse.Blocks;
         var stable = parse.Stable;
-        var last = blocks.Count - 1;
         var proseRuns = GetMarkdownProseRuns(this); // :71 @Environment(\.markdownProseRuns)
-        Control root;
-        if (!isStreaming && proseRuns) // :71-83
+        Control? root = null;
+        if (!isStreaming && proseRuns && veils is { HoldsText: true } or { TreeKnown: true })
         {
-            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :72
-            foreach (var segment in Segments(blocks)) // :73-80
+            // PORT-ONLY, owner-ruled (OD-0076, UI-THEME-047): the reply has just stopped streaming on screen. The Swift draws it as prose runs at once
+            // (:71-83), a different view, so the words still dissolving jump to the full colour and words that arrive with the completion
+            // (ThreadRuntime.swift:3248-3265) never dissolve: a cut, and "a token that popped in whole read as a glitch" (StreamVeil.swift:4-8). The
+            // reply is drawn as its veiled blocks a little longer instead, at the same places, still veiled so the last batch registers as a chunk;
+            // the paragraphs feed their veils as they are built (the inherited \.markdownVeiled reaches them here), so whether anything dissolves
+            // is known now. A block that the last batch OPENS arrives with the soft appear all the same (MarkdownView.swift:92), so it is on its way in for as long
+            // as that takes. When nothing does (and no link paragraph, which feeds its veil only once it is in the tree, may still take a last
+            // batch), the prose runs are drawn at once, as before.
+            var veiled = VeiledBlocks(blocks, stable, isStreaming: false, veils);
+            StreamVeil.SetMarkdownVeiled(veiled, true);
+            if (veils.FadingUntil(SwiftDate.Now) is not null || veils.HoldsLinkText)
             {
-                Control child = segment switch
-                {
-                    MarkdownSegment.Prose prose => new ProseRunView(prose.Value), // :75-76
-                    MarkdownSegment.Block block => new MarkdownBlockView(block.Value).Transition(Transition(block.Value)), // :77-79
-                    _ => throw new UnreachableException(),
-                };
-                stack.Children.Add(child);
+                closingVeils = veils;
+                root = veiled;
             }
-            stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :82 frame(maxWidth: .infinity, alignment: .leading)
-            root = stack;
+        }
+
+        if (closingVeils is not null)
+        {
+            closingBlocks = blocks;
+            AttachedToVisualTree += (_, _) => closingClock ??= new Tracked<DateTimeOffset>(() => VeilClock.Shared.Now, _ => MainActor.Post(CloseWhenSettled));
+            DetachedFromVisualTree += (_, _) => StopClosingClock();
+        }
+        else if (!isStreaming && proseRuns) // :71-83
+        {
+            // PORT-ONLY (UI-THEME-047): the reply is drawn as prose runs now, so the veiled views that kept its places have left (StreamVeil.swift:291-295:
+            // "once the reply has finished the veil is emptied too, so a settled paragraph keeps no copy of itself"): the places are released.
+            veils?.Release();
+            root = ProseRuns(blocks);
+            StreamVeil.SetMarkdownVeiled(root, isStreaming); // :80 .environment(\.markdownVeiled, isStreaming)
         }
         else // :84-98
         {
-            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :86
-            for (var index = 0; index < blocks.Count; index++) // :87
+            root = VeiledBlocks(blocks, stable, isStreaming, veils);
+            StreamVeil.SetMarkdownVeiled(root, isStreaming); // :96 .environment(\.markdownVeiled, isStreaming)
+        }
+
+        Child = root;
+    }
+
+    // :72-82 the prose-run branch. PR-THEME-105: ProseRunView for each prose run; code, tables and rules stand alone.
+    private static StackPanel ProseRuns(IReadOnlyList<MarkdownBlock> blocks)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :72
+        foreach (var segment in Segments(blocks)) // :73-80
+        {
+            Control child = segment switch
             {
-                var block = blocks[index];
-                var view = new MarkdownBlockView(block, settled: index < stable); // :88
-                SetMarkdownStreaming(view, isStreaming && index == last); // :89-91
+                MarkdownSegment.Prose prose => new ProseRunView(prose.Value), // :75-76
+                MarkdownSegment.Block block => new MarkdownBlockView(block.Value).Transition(Transition(block.Value)), // :77-79
+                _ => throw new UnreachableException(),
+            };
+            stack.Children.Add(child);
+        }
+        stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :82 frame(maxWidth: .infinity, alignment: .leading)
+        return stack;
+    }
+
+    // :86-97 the block branch, each block at its place in the veils (b{n}).
+    private static StackPanel VeiledBlocks(IReadOnlyList<MarkdownBlock> blocks, int stable, bool isStreaming, MarkdownVeilScope? veils)
+    {
+        var last = blocks.Count - 1;
+        var known = veils?.TreeKnown ?? false; // PORT-ONLY (UI-THEME-047): a tree that has been built before, so a block that is new in it is an insertion
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :86
+        for (var index = 0; index < blocks.Count; index++) // :87
+        {
+            var block = blocks[index];
+            var place = veils?.Child("b" + index);
+            var view = new MarkdownBlockView(block, settled: index < stable, veils: place); // :88
+            SetMarkdownStreaming(view, isStreaming && index == last); // :89-91
+            if (place?.Arrival(known) is { } elapsed)
+            {
+                // PORT-ONLY (UI-THEME-047, OD-0076): a block a flush opens is an insertion in the Swift's ForEach (:87, id: \.offset), and :92's soft appear runs on
+                // it (opacity and a 4 point offset, 0.32 s); it runs on through the flushes after, which each build the tree again, from where it was.
+                view.Transition(Arrival(block));
+                SwiftTransition.Insert(stack, stack.Children.Count, view, elapsed);
+            }
+            else
+            {
                 view.Transition(Transition(block)); // :92
                 stack.Children.Add(view);
             }
-            stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :97 frame(maxWidth: .infinity, alignment: .leading)
-            root = stack;
         }
-        StreamVeil.SetMarkdownVeiled(root, isStreaming); // :80, :96 .environment(\.markdownVeiled, isStreaming)
+        veils?.TreeBuilt(blocks.Count);
+        stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :97 frame(maxWidth: .infinity, alignment: .leading)
+        return stack;
+    }
+
+    // PORT-ONLY (UI-THEME-047). :51-56's transition as a block ARRIVES, which the soft appear of Chrome.swift:949-955 does: opacity 0 -> 1 with a 4 point offset -> 0
+    // over Animation.softAppear. Chrome.SoftAppear's modifier carries a Bool alone, which the transition mechanics apply at its identity at once (SwiftAnimation.cs
+    // Gather, the reason ThreadTimeline.RowTransition and HydraPanel give), so the insertion is decomposed into the modifier's layer effects (Chrome.swift:940-944).
+    // The removal half is :51-56's own.
+    private static SwiftTransition Arrival(MarkdownBlock @for) =>
+        SwiftTransition.Asymmetric(
+            insertion: SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear),
+            removal: @for is MarkdownBlock.Code { Language: { } language } && IsDelegationInfo(SwiftString.Lowercased(language))
+                ? SwiftTransition.Identity
+                : SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
+
+    // PORT-ONLY (OD-0076, UI-THEME-047): the places of a reply that stopped streaming while words were still dissolving (or with a link paragraph that may
+    // take a last batch once it is in the tree), the finished reply's blocks, and the shared veil clock watched until they settle.
+    private MarkdownVeilScope? closingVeils;
+    private IReadOnlyList<MarkdownBlock> closingBlocks = [];
+    private Tracked<DateTimeOffset>? closingClock;
+
+    private void StopClosingClock()
+    {
+        closingClock?.Dispose();
+        closingClock = null;
+    }
+
+    // PORT-ONLY (OD-0076). Runs after the pass that put this view in the tree (posted: the link paragraphs have fed their veils by then) and on every
+    // tick of the shared veil clock (StreamVeil.swift:161-194). While something under this view still dissolves, the clock is kept running to its
+    // settle (StreamVeil.swift:171-181); once nothing does, the reply is drawn as the Swift's prose runs (:71-83) and its places are released
+    // (StreamVeil.swift:291-295). A view that is not in the tree does nothing: a newer view may have taken its places, and one that comes back
+    // looks again.
+    private void CloseWhenSettled()
+    {
+        if (closingVeils is not { } veils || !Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(this)) return;
+        if (veils.FadingUntil(SwiftDate.Now) is { } settlesAt)
+        {
+            VeilClock.Shared.Run(until: settlesAt);
+            return;
+        }
+
+        closingVeils = null;
+        StopClosingClock();
+        veils.Release();
+        var root = ProseRuns(closingBlocks);
+        StreamVeil.SetMarkdownVeiled(root, false); // :80 .environment(\.markdownVeiled, isStreaming)
+        closingBlocks = [];
         Child = root;
     }
 
@@ -468,6 +571,23 @@ public sealed class MarkdownView : Decorator
 
     public static void SetMarkdownDimmed(Control control, bool value) => control.SetValue(MarkdownDimmedProperty, value);
 
+    // :1110 @Environment(\.openURL): the OpenURLAction an ancestor supplies, `.handled` when it took the URL (true) and `.systemAction` when it did not (false).
+    // The timeline supplies one that selects a head's chat for a head mention's URL (ThreadTimeline.swift:211-217); anything it declines, and every view
+    // outside a timeline, goes to the system's handling (the App's hook, InlineText.OpenUrl).
+    public static readonly AttachedProperty<Func<SwiftURL, bool>?> OpenUrlActionProperty =
+        AvaloniaProperty.RegisterAttached<Control, Func<SwiftURL, bool>?>("OpenUrlAction", typeof(MarkdownView), null, inherits: true);
+
+    public static Func<SwiftURL, bool>? GetOpenUrlAction(Control control) => control.GetValue(OpenUrlActionProperty);
+
+    public static void SetOpenUrlAction(Control control, Func<SwiftURL, bool>? value) => control.SetValue(OpenUrlActionProperty, value);
+
+    /// <summary>:1148 <c>{ url in openURL(url) }</c> read from <paramref name="control"/>'s environment.</summary>
+    public static void OpenUrl(Control control, SwiftURL url)
+    {
+        if (GetOpenUrlAction(control)?.Invoke(url) == true) return;
+        InlineText.OpenUrl?.Invoke(url);
+    }
+
     // :875-878 var markdownStreaming: Bool
     public static readonly AttachedProperty<bool> MarkdownStreamingProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>(
@@ -485,6 +605,17 @@ public sealed class MarkdownView : Decorator
     public static bool GetMarkdownBlockSelection(Control control) => control.GetValue(MarkdownBlockSelectionProperty);
 
     public static void SetMarkdownBlockSelection(Control control, bool value) => control.SetValue(MarkdownBlockSelectionProperty, value);
+
+    // PORT-ONLY (PR-THEME-126, UI-UPDATE-032): SwiftUI's own `.textSelection(.enabled)` as an environment value an ANCESTOR of the markdown view sets (the licences popover's
+    // documents, SettingsView.swift:1033). SwiftUI applies it to every Text below, which includes the caption of a code block (MarkdownView.swift:1286-1289), a Text that
+    // MarkdownView's own MarkdownBlockSelection (:1131, :1229, :1308) does not cover; in a chat message nothing above the view sets it and the caption is not selectable.
+    public static readonly AttachedProperty<bool> TextSelectionEnabledProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>(
+            "TextSelectionEnabled", typeof(MarkdownView), false, inherits: true);
+
+    public static bool GetTextSelectionEnabled(Control control) => control.GetValue(TextSelectionEnabledProperty);
+
+    public static void SetTextSelectionEnabled(Control control, bool value) => control.SetValue(TextSelectionEnabledProperty, value);
 
     // :883-886 var markdownProseRuns: Bool
     public static readonly AttachedProperty<bool> MarkdownProseRunsProperty =
@@ -511,12 +642,16 @@ public sealed class MarkdownBlockView : Decorator
     // file's own InlineText/CodeBlock and into part 2's mention helpers above, which stay MARROW_STUB until
     // part 2 and the sibling StreamVeil/ProseRunView/LinkParagraphView units land (see the unit's dependency
     // cycle note); this body is otherwise complete and does not stand in for any of them.
-    public MarkdownBlockView(MarkdownBlock block, bool settled = false)
+    public MarkdownBlockView(MarkdownBlock block, bool settled = false, MarkdownVeilScope? veils = null)
     {
         Block = block;
         Settled = settled;
+        this.veils = veils;
         Child = Build(block);
     }
+
+    // PORT-ONLY (UI-THEME-047): where this block's veils live (see MarkdownView); null for a view that is not rebuilt flush after flush.
+    private readonly MarkdownVeilScope? veils;
 
     // Each list row's marker and each nested block of a list, kept so the markers follow the environment.
     private readonly List<(StackPanel Row, bool Ordered, int Number, bool? Checked)> markerRows = [];
@@ -551,7 +686,7 @@ public sealed class MarkdownBlockView : Decorator
         {
             case MarkdownBlock.Heading heading: // :302-304
             {
-                var text = new InlineText(heading.Text).Font(HeadingFont(heading.Level));
+                var text = new InlineText(heading.Text, veils: veils).Font(HeadingFont(heading.Level));
                 text.Margin = new Thickness(0, heading.Level <= 2 ? 6 : 2, 0, 0);
                 return text;
             }
@@ -560,15 +695,15 @@ public sealed class MarkdownBlockView : Decorator
                 var text = paragraph.Text;
                 var streaming = MarkdownView.GetMarkdownStreaming(this);
                 var listDepth = MarkdownView.GetMarkdownListDepth(this);
-                if (RichLink.ContainsLinks(text, streaming)) return new InlineText(text, hasLinks: true); // :313
-                if (!streaming && listDepth == 0 && MentionsTarget(text)) return new InlineText(text, hasLinks: true); // :314
+                if (RichLink.ContainsLinks(text, streaming)) return new InlineText(text, hasLinks: true, veils: veils); // :313
+                if (!streaming && listDepth == 0 && MentionsTarget(text)) return new InlineText(text, hasLinks: true, veils: veils); // :314
                 if (listDepth == 0 && MentionSegments(text) is { } segments) // :315-319
                 {
-                    var veiled = new VeiledText(segments); // .modifier(MarkdownBlockSelection()) is identity (:1010-1012)
+                    var veiled = new VeiledText(segments, veils); // .modifier(MarkdownBlockSelection()) (:318): VeiledText draws a SelectableTextBlock, see MarkdownBlockSelection.Body
                     veiled.HorizontalAlignment = HorizontalAlignment.Stretch; // :318 frame(maxWidth: .infinity, alignment: .leading)
                     return veiled;
                 }
-                return new InlineText(text, hasLinks: false); // :320
+                return new InlineText(text, hasLinks: false, veils: veils); // :320
             }
             case MarkdownBlock.Code code: // :321-333
             {
@@ -586,7 +721,7 @@ public sealed class MarkdownBlockView : Decorator
                     card.IsHitTestVisible = !leaving; // :329
                     return card;
                 }
-                return new CodeBlock(code.Language, code.CodeText); // :331, and B3's new no-renderer-yet fallback
+                return new CodeBlock(code.Language, code.CodeText, veils); // :331, and B3's new no-renderer-yet fallback
             }
             case MarkdownBlock.List list: // :334-353
             {
@@ -602,10 +737,11 @@ public sealed class MarkdownBlockView : Decorator
                     markerRows.Add((row, list.Ordered, list.Start + index, item.Checked));
                     var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 6 }; // :339
                     if (item.Text.Length > 0) // :340
-                        content.Children.Add(new InlineText(item.Text, hasLinks: RichLink.ContainsLinks(item.Text, MarkdownView.GetMarkdownStreaming(this))));
+                        content.Children.Add(new InlineText(item.Text, hasLinks: RichLink.ContainsLinks(item.Text, MarkdownView.GetMarkdownStreaming(this)), veils: veils?.Child("i" + index)));
+                    var childPlace = 0;
                     foreach (var child in item.Children) // :341-343
                     {
-                        var childView = new MarkdownBlockView(child);
+                        var childView = new MarkdownBlockView(child, veils: veils?.Child("i" + index + "." + childPlace++));
                         MarkdownView.SetMarkdownListDepth(childView, MarkdownView.GetMarkdownListDepth(this) + 1); // :345-346
                         listChildren.Add(childView);
                         content.Children.Add(childView);
@@ -624,9 +760,10 @@ public sealed class MarkdownBlockView : Decorator
                 }.RoundedRectangle(1.5, RoundedCornerStyle.Continuous);
                 capsule.Background = SwiftColor.Quaternary.Brush(capsule);
                 var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 8 }; // :358
+                var quotePlace = 0;
                 foreach (var child in quote.Blocks) // :359-361
                 {
-                    var childView = new MarkdownBlockView(child);
+                    var childView = new MarkdownBlockView(child, veils: veils?.Child("q" + quotePlace++));
                     MarkdownView.SetMarkdownDimmed(childView, true); // :364 .environment(\.markdownDimmed, true)
                     content.Children.Add(childView);
                 }
@@ -1310,17 +1447,32 @@ file static class MarkdownProseRunsKey
     public const bool DefaultValue = true; // :863
 }
 
-/// <summary>:890-899 <c>struct MarkdownBlockSelection: ViewModifier</c>: <c>.textSelection(.enabled)</c> only while
+/// <summary>:854-863 <c>struct MarkdownBlockSelection: ViewModifier</c>: <c>.textSelection(.enabled)</c> only while
 /// the environment allows blocks their own selection.</summary>
 public sealed record MarkdownBlockSelection
 {
-    // :892-898 func body(content: Content) -> some View. PR-THEME-126: the environment's value is always true
+    // :856-862 func body(content: Content) -> some View. PR-THEME-126: the environment's value is always true
     // (dead_code.md entry 30: markdownBlockSelection has no writer, so the else branch -- .textSelection(.disabled)
     // -- is dead and, per ED-061, is not implemented). Avalonia has no per-subtree "enable text selection"
-    // modifier the way SwiftUI's `.textSelection` is: the content this wraps (InlineText, VeiledText, the code
-    // and table text) renders its own selectable text directly, so the modifier's one live effect is already
-    // true of its content, and this is the identity transform.
+    // modifier the way SwiftUI's `.textSelection` is, so this is the identity transform and the selection is the
+    // content's own: VeiledText (which InlineText's paragraphs and headings, the mention paragraphs and the code
+    // lines draw through) and the table's cells draw their words in a SelectableTextBlock painted with the
+    // system's selection colour. That is proven by dragging and copying in VeiledTextSelectionTests; before
+    // the defects-priority review this comment said the content "renders its own selectable text" while it drew a
+    // plain TextBlock, which cannot be selected.
     public Control Body(Control content) => content;
+}
+
+/// <summary>PORT-ONLY (PR-THEME-126). The selection highlight of the selectable text a markdown view draws (VeiledText, a table cell, a code block's caption): the system's
+/// selection colour, as ParagraphTextPresenter paints it (SelectableTextBlock's own brush is null with no Fluent theme loaded). It follows the system accent, which needs a running
+/// application, so it is made when the text is on screen, the only time a selection is seen (a view built outside an application, in a unit test of the control tree, has none).</summary>
+internal static class MarkdownSelection
+{
+    public static T Painted<T>(T text) where T : SelectableTextBlock
+    {
+        text.AttachedToVisualTree += (_, _) => text.SelectionBrush ??= SwiftColor.SelectedTextBackgroundColor.Brush(text);
+        return text;
+    }
 }
 
 /// <summary>:901-1099 <c>@MainActor enum FaviconCache</c>.</summary>
@@ -1609,67 +1761,147 @@ public sealed class InlineText : Decorator
     public bool? HasLinks { get; }
     public bool HugsContent { get; }
 
+    // B3 :1077 @State private var faviconRevision = 0, read by body (B3 :1092-1093, :1114; R-VIEW-2), kept as ProseRunView keeps its own.
+    private sealed class ViewState : MainActorModel
+    {
+        private int faviconRevision;
+
+        public int FaviconRevision { get => Read(faviconRevision); set => Set(ref faviconRevision, value); }
+    }
+
+    private readonly ViewState state = new();
+
     // :1121-1125 init(_:hasLinks:hugsContent:); :1127-1208 body. PR-THEME-144, PR-THEME-148, PR-THEME-151.
     // The hasLinkText branch (:1134-1191) builds LinkParagraphView, whose whole constructor is part of the
     // sibling LinkParagraphView unit and stays MARROW_STUB (see the file header's dependency-cycle note); this
     // wiring is otherwise complete and does not stand in for it. The link-free branch (:1193-1198) similarly
     // depends on the sibling StreamVeil unit's VeiledText(AttributedString) constructor.
-    public InlineText(string source, bool? hasLinks = null, bool hugsContent = false)
+    public InlineText(string source, bool? hasLinks = null, bool hugsContent = false, MarkdownVeilScope? veils = null)
     {
         Source = source;
         HasLinks = hasLinks;
         HugsContent = hugsContent;
+        this.veils = veils;
+        Body();
+        // body reads faviconRevision (B3 :1092-1093, :1114): a bump runs it again, and SwiftUI hands the paragraph its new revision
+        // (LinkParagraphView.updateNSView, LinkParagraphView.swift:36-58), which draws the text again with the icon.
+        this.Track(() => state.FaviconRevision, _ => Body());
+    }
 
-        var pointSize = MarkdownView.GetMarkdownPointSize(this); // :1108
-        var dimmed = MarkdownView.GetMarkdownDimmed(this); // :1109
-        var streaming = MarkdownView.GetMarkdownStreaming(this); // :1110
-        var personas = MarkdownView.GetHydraMentionPersonas(this); // :1111
-        var targets = MarkdownView.GetHydraMentionTargets(this); // :1112
+    // The inputs body last ran with, and what it built from them. The link branch's paragraph is a representable: SwiftUI keeps it while
+    // the branch stays (the same view in the same place) and hands it its new values (updateNSView, LinkParagraphView.swift:36-58).
+    private bool hasBody;
+    private double lastPointSize;
+    private bool lastDimmed;
+    private bool lastStreaming;
+    private int lastRevision;
+    private ValueList<HydraPersona> lastPersonas = ValueList<HydraPersona>.Empty;
+    private ValueMap<string, HydraMentionTarget> lastTargets = ValueMap<string, HydraMentionTarget>.Empty;
+    private LinkParagraphView? linkView;
+    private string? linkHostKey;
+    private bool builtVeiledStreaming;
+    // PORT-ONLY (UI-THEME-047): the place in the row's veils this paragraph's text takes its veil from (MarkdownVeils), for every run of body.
+    private readonly MarkdownVeilScope? veils;
 
-        var scaled = SwiftNumber.Rounded(pointSize * 2) / 2; // :1130
+    // B3 :1071-1075 @Environment(\.markdownPointSize), (\.markdownDimmed), (\.markdownStreaming), (\.hydraMentionPersonas) and
+    // (\.hydraMentionTargets): SwiftUI runs body again whenever one of them changes. A port host often sets one on a control it has
+    // already built (HydraReportPopover's markdownPointSize 12, TimelineRows.swift:631; the narration's 12 and dimmed, :1551-1552;
+    // MarkdownView's streaming flag on its last block, MarkdownView.swift:89-91), and an inherited value reaches this view only once
+    // its ancestors hold it, so a change of any of them runs body again here (review round 5 of TimelineRows: a report paragraph with a
+    // link was drawn at the 13-point default instead of the report's 12).
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (!hasBody) return;
+        if (change.Property == MarkdownView.MarkdownPointSizeProperty || change.Property == MarkdownView.MarkdownDimmedProperty
+            || change.Property == MarkdownView.MarkdownStreamingProperty || change.Property == MarkdownView.HydraMentionPersonasProperty
+            || change.Property == MarkdownView.HydraMentionTargetsProperty)
+            Body();
+    }
+
+    // :1127-1208 body (B3 :1091-1136).
+    private void Body()
+    {
+        var source = Source;
+        var hugsContent = HugsContent;
+        var pointSize = MarkdownView.GetMarkdownPointSize(this); // :1108 (B3 :1071)
+        var dimmed = MarkdownView.GetMarkdownDimmed(this); // :1109 (B3 :1072)
+        var streaming = MarkdownView.GetMarkdownStreaming(this); // :1110 (B3 :1073)
+        var personas = MarkdownView.GetHydraMentionPersonas(this); // :1111 (B3 :1074)
+        var targets = MarkdownView.GetHydraMentionTargets(this); // :1112 (B3 :1075)
+        var revision = state.FaviconRevision; // B3 :1092-1093 `let _ = faviconRevision`
+        if (hasBody && pointSize == lastPointSize && dimmed == lastDimmed && streaming == lastStreaming && revision == lastRevision
+            && personas.Equals(lastPersonas) && targets.Equals(lastTargets))
+            return; // nothing body reads has changed
+        hasBody = true;
+        lastPointSize = pointSize;
+        lastDimmed = dimmed;
+        lastStreaming = streaming;
+        lastRevision = revision;
+        lastPersonas = personas;
+        lastTargets = targets;
+
+        var scaled = SwiftNumber.Rounded(pointSize * 2) / 2; // :1130 (B3 :1094)
         // B3 :1095-1096: local file links have no host, but still need the native link opener, so a hint-less
         // call site (a heading, or the user's own message bubble) checks ContainsLinks itself rather than
         // whether any host was found (PR-THEME-186).
-        var hasLinkText = hasLinks ?? RichLink.ContainsLinks(source, streaming);
+        var hasLinkText = HasLinks ?? RichLink.ContainsLinks(source, streaming);
         Control child;
         if (hasLinkText) // :1134-1191
         {
             var metrics = Metrics(scaled); // :1141 the baseline numbers (PR-THEME-151), measured once per size
             _ = metrics; // consumed by the alignment-guide wiring once LinkParagraphView exists (:1156-1157)
+            // :1189-1191 .task(id: hostKey): stable hosts and video ids key the work (PR-THEME-148), so a
+            // streamed token with no new link leaves it alone.
+            var hostKey = RichLink.LinkAssetKey(source, streaming);
+            // The same paragraph while the branch and the task's id stay: SwiftUI keeps the representable (its NSTextView, its selection)
+            // and hands updateNSView the new values, the mentions and targets among them (B3 :1114; LinkParagraphView.swift:36-58); the
+            // hover reads the mentions the environment holds when the pointer moves (below), as SwiftUI's modifier is handed the new
+            // ones. Only a new task id (hostKey) builds the paragraph again, with its own task.
+            if (linkView is { } kept && hostKey == linkHostKey && ReferenceEquals(Child, kept))
+            {
+                kept.Update(scaled, dimmed, streaming, revision, personas, targets); // B3 :1114
+                return;
+            }
             LinkTextView? hostTextView = null;
-            var linkView = new LinkParagraphView( // :1148
+            var paragraph = new LinkParagraphView( // :1148
                 source,
                 pointSize: scaled,
                 dimmed: dimmed,
                 streaming: streaming,
-                revision: 0, // :1113 @State private var faviconRevision = 0
+                revision: revision, // B3 :1114 revision: faviconRevision
                 mentions: personas,
                 targets: targets,
-                onOpenHead: url => OpenUrl?.Invoke(url), // :1148 { url in openURL(url) }
-                onHost: view => hostTextView = view); // :1148 { [weak linkBox] view in linkBox?.value = view }
-            linkView.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
+                onOpenHead: url => MarkdownView.OpenUrl(this, url), // :1148 { url in openURL(url) }
+                onHost: view => hostTextView = view, // :1148 { [weak linkBox] view in linkBox?.value = view }
+                veils: veils); // PORT-ONLY (UI-THEME-047)
+            paragraph.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
             // :1159-1188 the continuous hover: pushes/pops the pointing hand over a link, shows/hides the head
             // hover card over a mention, only on change (PR-THEME-144). B3 :1159-1160 moves this into the shared
             // UI.Markdown.LinkHover (N9), also used identically by ProseRunView.swift:27-59.
-            LinkHover.Attach(linkView, () => hostTextView, personas, targets);
-            // :1189-1191 .task(id: hostKey): stable hosts and video ids key the work (PR-THEME-148), so a
-            // streamed token with no new link leaves it alone.
-            var hostKey = RichLink.LinkAssetKey(source, streaming);
+            LinkHover.Attach(paragraph, () => hostTextView, () => MarkdownView.GetHydraMentionPersonas(this), () => MarkdownView.GetHydraMentionTargets(this));
             if (hostKey.Length > 0)
             {
-                var revision = 0;
+                // B3 :1123-1125 `[source, streaming, revision = $faviconRevision]`: the task bumps the view's own state (:1163).
                 var viewTask = new ViewTask<string>(hostKey, async _ =>
-                    await FetchLinkAssets(source, streaming, new Binding<int>(() => revision, v => revision = v)));
-                linkView.AttachedToVisualTree += (_, _) => viewTask.Appear();
-                linkView.DetachedFromVisualTree += (_, _) => viewTask.Disappear();
+                    await FetchLinkAssets(source, streaming, new Binding<int>(() => state.FaviconRevision, v => state.FaviconRevision = v)));
+                paragraph.AttachedToVisualTree += (_, _) => viewTask.Appear();
+                paragraph.DetachedFromVisualTree += (_, _) => viewTask.Disappear();
             }
-            child = linkView;
+            linkView = paragraph;
+            linkHostKey = hostKey;
+            child = paragraph;
         }
         else // :1193-1198
         {
-            var veiled = new VeiledText(RichLink.PrettyAttributed(source, streaming)); // :1203
+            // The veiled text reads only the streaming flag of these (:1203); another change leaves it as it is.
+            if (linkView is null && Child is not null && streaming == builtVeiledStreaming) return;
+            var veiled = new VeiledText(RichLink.PrettyAttributed(source, streaming), veils); // :1203
             var selected = new MarkdownBlockSelection().Body(veiled); // :1204 .modifier(MarkdownBlockSelection())
             selected.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1206
+            linkView = null;
+            linkHostKey = null;
+            builtVeiledStreaming = streaming;
             child = selected;
         }
         Child = child;
@@ -1782,14 +2014,14 @@ public sealed class CodeBlock : Decorator
     // :1278-1321 body. UI-THEME-034 to 037. The code text itself renders through VeiledText(verbatim:), the
     // sibling StreamVeil unit's own MARROW_STUB (see the file header's dependency-cycle note); this wiring is
     // otherwise complete and does not stand in for it.
-    public CodeBlock(string? language, string code)
+    public CodeBlock(string? language, string code, MarkdownVeilScope? veils = null)
     {
         var hover = new BlockHover(); // :1270 @State private var hover = BlockHover()
         var state = new ViewState();
 
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 }; // :1281
-        stack.Track(() => state.ShowsAll, _ => Rebuild(stack, language, code, hover, state));
-        Rebuild(stack, language, code, hover, state);
+        stack.Track(() => state.ShowsAll, _ => Rebuild(stack, language, code, hover, state, veils));
+        Rebuild(stack, language, code, hover, state, veils);
 
         var background = new Border { Child = stack }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1317
         background.Background = SwiftColor.Quaternary.Opacity(0.45).Brush(background); // :1317
@@ -1798,7 +2030,24 @@ public sealed class CodeBlock : Decorator
         Child = background;
     }
 
-    private static void Rebuild(StackPanel stack, string? language, string code, BlockHover hover, ViewState state)
+    // PORT-ONLY (TextSelectionEnabledProperty): the caption of the header as it is now, so a change of the inherited value (it arrives once the block has a parent) reaches it.
+    private SelectableTextBlock? caption;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == MarkdownView.TextSelectionEnabledProperty && caption is { } text) SetCaptionSelectable(text, MarkdownView.GetTextSelectionEnabled(this));
+    }
+
+    // Selectable only where an ancestor enables text selection; otherwise nothing of a plain caption: no pointer, no focus, no selection left over from when it was.
+    private static void SetCaptionSelectable(SelectableTextBlock text, bool enabled)
+    {
+        text.IsHitTestVisible = enabled;
+        text.Focusable = enabled;
+        if (!enabled) text.ClearSelection();
+    }
+
+    private void Rebuild(StackPanel stack, string? language, string code, BlockHover hover, ViewState state, MarkdownVeilScope? veils)
     {
         stack.Children.Clear();
         var newlines = Encoding.UTF8.GetBytes(code).Count(b => b == 0x0A); // :1281 code.utf8.count { $0 == 0x0A }
@@ -1807,7 +2056,11 @@ public sealed class CodeBlock : Decorator
         var visible = truncated ? Head(code, CollapsedLineLimit) : code; // :1283
 
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :1286 HStack { ... Spacer() ... }
-        var langText = new TextBlock { Text = language ?? "code" }; // :1287 Text(language ?? "code")
+        // :1287 Text(language ?? "code"). A SelectableTextBlock that selects only where an ancestor of the markdown view enables text selection (TextSelectionEnabledProperty:
+        // the licences popover's documents, SettingsView.swift:1033, whose environment reaches this Text); everywhere else it is the plain caption it is in a chat message.
+        var langText = MarkdownSelection.Painted(new SelectableTextBlock { Text = language ?? "code" });
+        SetCaptionSelectable(langText, MarkdownView.GetTextSelectionEnabled(this));
+        caption = langText;
         ChatFont.Chat(SwiftFont.TextStyle.Caption).Apply(langText); // :1288
         langText.Foreground = Chrome.Chrome.SecondaryText.Brush(langText); // :1289
         Grid.SetColumn(langText, 0);
@@ -1818,7 +2071,7 @@ public sealed class CodeBlock : Decorator
         header.Margin = new Thickness(12, 6, 6, 0); // :1293-1295 leading 12, trailing 6, top 6
         stack.Children.Add(header);
 
-        var veiled = new VeiledText(visible).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced)); // :1299-1300
+        var veiled = new VeiledText(visible, veils).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced)); // :1299-1300
         var selected = new MarkdownBlockSelection().Body(veiled); // :1301
         selected.Margin = new Thickness(12, 4, 12, 12); // :1302-1304 horizontal 12, bottom 12, top 4
         var scroll = new ScrollViewer
@@ -1909,7 +2162,12 @@ public sealed class TableBlock : Decorator
         for (var row = 0; row <= cells.Count; row++) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         for (var column = 0; column < head.Count; column++) // :1364-1368 GridRow (header)
         {
-            var text = new TextBlock { Text = head[column].PlainText, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, cells.Count > 0 ? 8 : 0) }; // :1292 verticalSpacing 8 sits only between rows
+            // :1308 .modifier(MarkdownBlockSelection()) on the grid: its live branch is .textSelection(.enabled) (:854-863, :858), so
+            // each cell's text is selectable in its own block and shows the I-beam (PR-CHAT-166, PR-THEME-126).
+            var text = VeiledText.SelectableText(wraps: false);
+            text.Text = head[column].PlainText;
+            text.FontWeight = FontWeight.SemiBold;
+            text.Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, cells.Count > 0 ? 8 : 0); // :1292 verticalSpacing 8 sits only between rows
             Grid.SetRow(text, 0);
             Grid.SetColumn(text, column);
             grid.Children.Add(text);
@@ -1919,7 +2177,9 @@ public sealed class TableBlock : Decorator
             for (var column = 0; column < head.Count; column++)
             {
                 var value = column < cells[row].Count ? cells[row][column].PlainText : ""; // :1373
-                var text = new TextBlock { Text = value, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, row == cells.Count - 1 ? 0 : 8) };
+                var text = VeiledText.SelectableText(wraps: false); // :1308, as the header's cells above
+                text.Text = value;
+                text.Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, row == cells.Count - 1 ? 0 : 8);
                 text.Foreground = SwiftColor.LabelColor.Opacity(0.9).Brush(text); // :1374 .foregroundStyle(.primary.opacity(0.9))
                 Grid.SetRow(text, row + 1);
                 Grid.SetColumn(text, column);

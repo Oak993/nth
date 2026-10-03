@@ -129,7 +129,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
         try
         {
             LinkPopover.Shared.Show(SwiftURL.Create("https://example.com/x")!, null, new Rect(0, 0, 10, 10), anchor);
-            var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             var content = (LinkPopoverContent)frame.Child!;
             content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity)); // the same constraint Show() itself used
             Assert.Equal(content.DesiredSize.Width, frame.Width);
@@ -154,7 +154,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
         try
         {
             LinkPopover.Shared.Show(url, null, new Rect(0, 0, 10, 10), anchor);
-            var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             var content = (LinkPopoverContent)frame.Child!;
             var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
             Assert.Equal(2, stack.Children.Count); // Open Link, Copy Link only - no Merge row, no divider
@@ -171,6 +171,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-043")] // :81 favicon == nil -> the placeholder symbol
     public void The_merge_row_shows_the_placeholder_symbol_until_the_favicon_loads() => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork("gitlab.com"); // R-TEST-10: its favicon fetch is in flight and never ends, so the placeholder stays; nothing is sent (found by the network audit, ED-256 (10))
         var url = SwiftURL.Create("https://gitlab.com/g/p/-/merge_requests/7")!;
         var request = MergeRequestLink.Create(url)!;
         var content = new LinkPopoverContent(url, request, _ => { });
@@ -230,6 +231,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
     [Trait("Req", "UI-THEME-043")] // :80 "Merge" semibold + " " + request.Label regular; :332 AutomationProperties.SetName(button, title) with request.Title
     public void The_merge_row_shows_Merge_semibold_then_the_label_in_regular_weight() => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork("gitlab.com"); // R-TEST-10: the content asks gitlab.com for its favicon when it appears (found by the network audit, ED-256 (10))
         var url = SwiftURL.Create("https://gitlab.com/g/p/-/merge_requests/7")!;
         var request = MergeRequestLink.Create(url)!;
         var content = new LinkPopoverContent(url, request, _ => { });
@@ -270,7 +272,7 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
         {
             LinkPopover.Shared.Show(url, target, new Rect(0, 0, 10, 10), anchor);
             // SetFixedContent wraps the content in a clipping frame Border (Popovers.cs SetFixedContent).
-            var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+            var frame = Assert.IsType<Border>(PopoverHost.Content(LinkPopover.Shared.PopoverForTests)); // the site's frame, not the card the presenter hangs it on (OD-0095)
             var content = (LinkPopoverContent)frame.Child!;
             var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
             var mergeButton = (Button)((PopoverItem)stack.Children[0]).Child!;

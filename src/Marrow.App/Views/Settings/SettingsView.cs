@@ -136,6 +136,8 @@ public sealed class SettingsView : Decorator
     private readonly ChromeScrollModel scrollChrome = new();
     private readonly SettingsScrollTracker scrollTracker = new();
     private readonly StackPanel rows = new() { Spacing = 1, Margin = new Thickness(Chrome.ListInset, 12, Chrome.ListInset, 8) }; // :147,179-181
+    private readonly Dictionary<SettingsPage, SidebarRow> pageRows = new(); // :148 the row each listed page keeps under its ForEach id
+    private Control? noResults; // :166-177 the "No results" block while it shows
     private readonly Control sidebar;
     private readonly Border detail = new();
     private readonly Border frame;
@@ -143,11 +145,13 @@ public sealed class SettingsView : Decorator
     private SettingsPage? builtPage;
     private readonly SidebarSearchField search;
     private readonly WindowBackdrop backdrop;
+    private readonly WindowCornerWedge cornerWedge = new(0); // OD-0075: the wedge between the window's rectangle and its 26 pt shape, in the scrim
     private Control? riseChrome;
     private Control? risePage;
 
     // PORT-ONLY (OD-0074, ED-249): the parts the Settings window's open (Port/SettingsRise.cs) fades and raises.
     internal WindowBackdrop RiseBackdrop => backdrop;
+    internal WindowCornerWedge RiseWedge => cornerWedge; // fades in with the glass (OD-0074), as the corners belong to it
     internal Panel? RiseSheet => detail.Child as Panel; // DetailSheetModifier: wash, tint, content
     internal SidebarSearchField RiseSearch => search;
     internal Controls RiseSidebarRows => rows.Children;
@@ -180,8 +184,11 @@ public sealed class SettingsView : Decorator
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("212,*") }; Grid.SetColumn(detail, 1); grid.Children.Add(sidebar); grid.Children.Add(detail);
         backdrop = new WindowBackdrop(0); // :118
         frame = new Border { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous); frame.ClipToBounds = true; // :119-120
-        Child = frame;
-        this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => backdrop.Update(value, null));
+        // OD-0075 (owner, 2026-10-02): the wedge between the window's rectangle (system Acrylic, ED-236) and the 26 pt shape is filled with the window's
+        // scrim. Painted first (ZIndex -1), under the clipped frame, so the glass and its hairline still stop at the curve.
+        cornerWedge.ZIndex = -1;
+        Child = new Panel { Children = { frame, cornerWedge } };
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => { backdrop.Update(value, null); cornerWedge.Update(value); });
         this.Track(() => SettingsNavigation.Shared.RequestedPage, requested => // :123-127
         {
             if (requested is not { } page) return;
@@ -193,35 +200,69 @@ public sealed class SettingsView : Decorator
             if (pages.Count > 0 && !pages.Contains(state.Page)) state.Page = pages[0];
             RebuildSidebar();
         });
-        this.Track(() => state.Page, _ => { RebuildSidebar(); RebuildDetail(); });
-        this.Track(() => UpdateChecker.Shared.UpdateAvailable, _ => RebuildSidebar());
+        this.Track(() => state.Page, _ => { SelectRows(); RebuildDetail(); });
         this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, count => { if (state.Page == SettingsPage.Archive && (count == 0) != (pageStack is null)) RebuildDetail(); }); // :198 observe the collection behind the computed archive count; the page's ScrollView identity is its page (:231), so only the empty placeholder swap rebuilds.
         rows.Track(() => scrollTracker.IsFrozen, value => rows.IsHitTestVisible = !value); // :182
         DetachedFromVisualTree += (_, _) => scrollTracker.End(); // :117
     }
 
-    // :148-177
+    // :148-177. `ForEach(visiblePages) { item in SidebarRow(title:, isSelected: page == item, ...) }`: a page keeps its row
+    // under its ForEach id while it stays listed (its hover with it), and a page change hands the row its isSelected
+    // (SelectRows), which eases the row's fill on Chrome.hover (Chrome.swift:729; 1-settings-tour.mov 47.765-47.85 s). A page that leaves the
+    // list drops its row and its state; one that comes back is built anew. Kept rows stay where they are in the panel
+    // (the pages keep their declaration order, :4-15), so a new pass only takes out and puts in the rows that change.
     private void RebuildSidebar()
     {
-        rows.Children.Clear();
-        foreach (var page in VisiblePages)
+        var pages = VisiblePages;
+        foreach (var gone in pageRows.Keys.Where(page => !pages.Contains(page)).ToList()) pageRows.Remove(gone);
+        var wanted = new List<Control>();
+        foreach (var page in pages) wanted.Add(RowFor(page));
+        if (pages.Count == 0) wanted.Add(noResults ??= NoResults());
+        else noResults = null;
+        for (var i = rows.Children.Count - 1; i >= 0; i--)
+            if (!wanted.Contains(rows.Children[i])) rows.Children.RemoveAt(i);
+        for (var i = 0; i < wanted.Count; i++)
+            if (i >= rows.Children.Count || !ReferenceEquals(rows.Children[i], wanted[i])) rows.Children.Insert(i, wanted[i]);
+    }
+
+    // :149 `isSelected: page == item`, handed to every listed row whenever the page changes (a row built anew is built with it).
+    private void SelectRows()
+    {
+        foreach (var (page, row) in pageRows) row.IsSelected = state.Page == page;
+    }
+
+    private SidebarRow RowFor(SettingsPage page)
+    {
+        if (pageRows.TryGetValue(page, out var kept)) return kept;
+        var none = new Border(); // :149 SidebarRow(title:isSelected:action:icon:) has an EmptyView accessory: one view, whatever the hover
+        var row = new SidebarRow(page.Title, () => state.Page = page, () =>
         {
-            var row = new SidebarRow(page.Title, () => state.Page = page, () =>
+            var badge = new SidebarIconBadge(() => page == SettingsPage.Hydra
+                ? new HydraMarkImage { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 }
+                : new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1)); // :151-157
+            if (page != SettingsPage.About) return badge;
+            // :158-163 the dot is a conditional inside the About row's icon overlay: the row keeps its identity (and its @State
+            // isHovering, its fill) when UpdateChecker.shared.updateAvailable changes; only the dot comes and goes.
+            badge.Width = Chrome.IconSize; // the row frames its icon at 20 (:151-157); the badge keeps that frame inside the overlay host
+            var icon = new Panel { Children = { badge } };
+            icon.Track(() => UpdateChecker.Shared.UpdateAvailable, available =>
             {
-                var badge = new SidebarIconBadge(() => page == SettingsPage.Hydra
-                    ? new HydraMarkImage { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 }
-                    : new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1)); // :151-157
-                if (page != SettingsPage.About || !UpdateChecker.Shared.UpdateAvailable) return badge;
-                return new Panel { Children = { badge, new UpdateAvailableDot { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top } } }; // :159-163
-            }, _ => new Border(), isSelected: state.Page == page);
-            rows.Children.Add(row);
-        }
-        if (VisiblePages.Count == 0)
-        {
-            var noResults = new TextBlock { Text = "No results", Foreground = Chrome.PrimaryText.Opacity(0.92).Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold));
-            var note = new TextBlock { Text = "Try a setting or a provider name.", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline));
-            rows.Children.Add(new StackPanel { Spacing = 6, Margin = new Thickness(8, 14, 8, 0), Children = { noResults, note } }); // :166-177
-        }
+                var dot = icon.Children.OfType<UpdateAvailableDot>().FirstOrDefault();
+                if (available && dot is null) icon.Children.Add(new UpdateAvailableDot { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top });
+                else if (!available && dot is not null) icon.Children.Remove(dot);
+            });
+            return icon;
+        }, _ => none, isSelected: state.Page == page);
+        pageRows[page] = row;
+        return row;
+    }
+
+    // :166-177
+    private Control NoResults()
+    {
+        var title = new TextBlock { Text = "No results", Foreground = Chrome.PrimaryText.Opacity(0.92).Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold));
+        var note = new TextBlock { Text = "Try a setting or a provider name.", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline));
+        return new StackPanel { Spacing = 6, Margin = new Thickness(8, 14, 8, 0), Children = { title, note } };
     }
 
     // :196-215
@@ -431,8 +472,10 @@ internal sealed class AppearanceSettingsPage : Decorator
         this.Track(() => AppEnvironment.GetAppModel(this), model =>
         {
             var settings = model.Settings;
-            var theme = new ChromeRow("Theme", () => new ThemePickerButton(new Binding<AppTheme>(() => settings.Theme, value => settings.Theme = value))); // :424-426
-            theme.Track(() => settings.Theme, value => SettingsRowDetails.Update(theme, value.Detail()));
+            // DEVIATION OD-0088 (ED-250): the Theme row (:424-426, ThemePickerButton :1155-1212) is replaced by the Look card,
+            // the page's first card: a mini window, the Theme segmented control with the named-theme menu and the Accent row
+            // (Port/LookCard.cs). The source's first card keeps its other rows.
+            var look = new LookCard(settings) { ZIndex = 1 }; // its theme menu hangs over the cards below
             var sidebar = new ChromeRow("Sidebar", () => new ChromeVisualPicker<SidebarMode, Control>(SwiftEnum<SidebarMode>.AllCases.Select(mode => (mode, mode.Title)).ToArray(), new Binding<SidebarMode>(() => settings.SidebarMode, value => settings.SidebarMode = value), mode => SwiftImage.SystemName(mode == SidebarMode.Column ? "sidebar.left" : mode == SidebarMode.Floating ? "macwindow.on.rectangle" : "macwindow"))); // :432-436
             sidebar.Track(() => settings.SidebarMode, value => SettingsRowDetails.Update(sidebar, value.Detail));
             var activity = new ChromeRow("Activity list", () => new ChromeVisualPicker<ActivityThreadStyle, Control>(SwiftEnum<ActivityThreadStyle>.AllCases.Select(style => (style, style.Title)).ToArray(), new Binding<ActivityThreadStyle>(() => settings.ActivityThreadStyle, value => settings.ActivityThreadStyle = value), style => SwiftImage.SystemName(style == ActivityThreadStyle.Icon ? "list.bullet" : "text.alignleft"))); // :438-442
@@ -440,8 +483,8 @@ internal sealed class AppearanceSettingsPage : Decorator
             var open = new ChromeRow("Open the sidebar at launch", () => new SettingsSwitch(new Binding<bool>(() => model.Sidebar.StartsOpen, value => model.Sidebar.StartsOpen = value)), "Collapsed otherwise; the list button in the toolbar shows and hides it any time"); // :444-448
             open.Track(() => settings.SidebarMode, mode => { open.IsEnabled = mode != SidebarMode.PanelOnly; open.Opacity = mode == SidebarMode.PanelOnly ? 0.5 : 1; }); // :449-450
             var rows = new StackPanel();
-            foreach (var row in new Control[] { theme, new ChromeRow("Transparency", () => new BackdropOpacitySlider(new Binding<double>(() => settings.BackdropOpacity, value => settings.BackdropOpacity = value)), "How much shows through the window"), sidebar, activity, open }) { if (rows.Children.Count > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(row); }
-            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)) } }); // :452-454
+            foreach (var row in new Control[] { new ChromeRow("Transparency", () => new BackdropOpacitySlider(new Binding<double>(() => settings.BackdropOpacity, value => settings.BackdropOpacity = value)), "How much shows through the window"), sidebar, activity, open }) { if (rows.Children.Count > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(row); }
+            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { look, new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)) } }); // :452-454
         });
     }
 }
@@ -916,7 +959,7 @@ internal sealed class LicensesRow : Decorator
             var stack = new StackPanel { Spacing = 18, Margin = new Thickness(18) };
             foreach (var file in files)
             {
-                var markdown = new MarkdownView(Text(file.Resource)); MarkdownView.SetMarkdownPointSize(markdown, 12); Avalonia.Controls.Documents.TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(this));
+                var markdown = new MarkdownView(Text(file.Resource)); MarkdownView.SetMarkdownPointSize(markdown, 12); Avalonia.Controls.Documents.TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(this)); MarkdownView.SetTextSelectionEnabled(markdown, true); /* :1033 .textSelection(.enabled): the environment reaches every Text of the document, a code block's caption included */
                 stack.Children.Add(new StackPanel { Spacing = 8, Children = { new TextBlock { Text = file.Title }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), markdown } });
             }
             return new ScrollViewer { Width = 480, Height = 440, Content = stack, HorizontalContentAlignment = HorizontalAlignment.Left }.PresentedChrome(); // :1043
@@ -926,11 +969,19 @@ internal sealed class LicensesRow : Decorator
 
     // :1077-1079 private static func text(of:) -> String
     private static string Text(string of) => texts.Value[of]; // :1055
-    private static string Read(string resource)
+    // The three files ship beside the executable (Marrow.App.csproj: Legal\ content, OD-0002), the folder the bundle's resources
+    // are on macOS (:1049 Bundle.main.url).
+    private static string Read(string resource) => Read(resource, AppContext.BaseDirectory);
+
+    // PORT-ONLY test seam: the folder the files are read from. :1049-1051: `try? String(contentsOf:encoding: .utf8)` gives nil for a file that
+    // cannot be read AND for bytes that are not valid UTF-8, and both give the sentence naming the resource: File.ReadAllText would
+    // replace invalid bytes with U+FFFD instead, so the decoder here throws on them.
+    private static string Read(string resource, string directory)
     {
-        try { return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, resource == "LICENSE" ? resource : resource + ".md")); }
+        try { return new System.Text.UTF8Encoding(false, true).GetString(File.ReadAllBytes(Path.Combine(directory, resource == "LICENSE" ? resource : resource + ".md"))); }
         catch (IOException) { return $"The {resource} file is missing from this copy of the app."; }
         catch (UnauthorizedAccessException) { return $"The {resource} file is missing from this copy of the app."; }
+        catch (System.Text.DecoderFallbackException) { return $"The {resource} file is missing from this copy of the app."; }
     }
 }
 
@@ -995,7 +1046,8 @@ internal sealed class ProjectMarksRow : Decorator
     }
 }
 
-/// <summary>:1182-1232 <c>private struct ThemePickerButton: View</c>: the theme menu.</summary>
+/// <summary>:1182-1232 <c>private struct ThemePickerButton: View</c>: the theme menu. DEVIATION OD-0088 (ED-250): no longer on
+/// the Appearance page, whose Look card (Port/LookCard.cs) replaces the Theme row; kept as the source's twin.</summary>
 internal sealed class ThemePickerButton : Decorator
 {
     // :1183 @Binding var selection: AppTheme; :1191-1225 body

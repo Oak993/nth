@@ -69,7 +69,7 @@ public sealed class RootViewPaletteInputTests(HeadlessSession headless)
                 Assert.True(launch.Manager.Model.IsCommandPalettePresented);
                 var first = Assert.Single(LogicalQuery.SelfAndDescendants<CommandPalette>(root));
                 var layers = Assert.IsType<Panel>(root.Child);
-                Assert.Equal(4, layers.Children.Count);
+                Assert.Equal(5, layers.Children.Count); // the four layers of the source, and (OD-0075) the corner wedge painted beneath them
                 Assert.IsType<GenieLayer>(layers.Children[1]);
                 var glideLayer = Assert.IsType<RowGlideLayer>(layers.Children[2]);
                 var paletteLayer = Assert.IsType<Panel>(layers.Children[3]);

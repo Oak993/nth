@@ -115,7 +115,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Enter key handler on the Windows search input.",
       "verification_method": "interaction test.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -467,7 +467,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Spring animation with the same response and damping; Reduce Motion reads the Windows client-area-animation system setting.",
       "verification_method": "capture comparison of the motion, plus a unit test that reduced motion swaps the curve.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3054,7 +3054,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation.",
       "verification_method": "interaction test plus a restart test on the expansion state.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3162,7 +3162,7 @@
       "cancellation": "Dismissing the menu does nothing.",
       "windows_path": "`Reveal in File Explorer` (owner ruling OD-0008 B1) opens File Explorer at the project path. `Remove project` honours `confirmBeforeDeleting` (owner ruling OD-0008 A9, PR-SIDEBAR-131). By owner ruling OD-0010 the item symbols are drawn as Lucide icons from the published table porting/icons/sf-symbols-to-lucide.json: `square.and.pencil` as `square-pen`, `square.stack.3d.up` as `layers` (confidence `close`), `folder` as `folder`, `trash` as `trash` (confidence `close`), `power` as `power` and `arrow.uturn.backward` as `undo-2`.",
       "verification_method": "contract fixture over active, inactive, with and without an override, asserting the exact title sequence (including `Reveal in File Explorer`) and separators.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -3256,7 +3256,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows submenu with a checked item; the asymmetry with the ellipsis popover is reproduced.",
       "verification_method": "interaction test with zero, one and several pairs asserting the check mark placement.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3281,7 +3281,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The Windows implementation must keep this gate; reporting every row's rectangle on every scroll frame through the reactive system would make the list stutter.",
       "verification_method": "unit test asserting no frame writes during a scroll with no glide in flight.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4163,7 +4163,8 @@
         "upstream": "SidebarView.swift:2321 and Shortcuts.swift:32-33, :232 render the default chord as `⌥⌘U`.",
         "port": "The chord renders as `Ctrl+Alt+U`."
       },
-      "b2_change": "Chrome.iconFont B1 Chrome.swift:28 `.system(size: 12, weight: .semibold)` -> B2 :28 `.system(.callout, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token) (the off glyph). Toggle behaviour unchanged."
+      "b2_change": "Chrome.iconFont B1 Chrome.swift:28 `.system(size: 12, weight: .semibold)` -> B2 :28 `.system(.callout, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token) (the off glyph). Toggle behaviour unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-005",
@@ -4231,7 +4232,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:533-537",
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1281"
       ],
-      "notes": "A project whose threads are all settled shows no gap, only the header."
+      "notes": "A project whose threads are all settled shows no gap, only the header.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-008",
@@ -4408,7 +4410,8 @@
         "decision": "OD-0008 B1; OD-0008 A9; OD-0012 E2",
         "upstream": "SidebarView.swift:1179 and :1212 title the item `Reveal in Finder`; :1184-1187 and :1213-1215 remove the project with no confirmation. Upstream has no confirmation text.",
         "port": "The item reads `Reveal in File Explorer`; `Remove project` confirms first while confirmBeforeDeleting is on. The confirmation reads `Remove this project?` / `“<name>” and its threads will be removed. Files in your project stay as they are.` / `Remove project`."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-015",
@@ -4674,7 +4677,8 @@
         "decision": "OD-0008 B1",
         "upstream": "SidebarView.swift:2217 and :2283 title the item `Reveal worktree in Finder`.",
         "port": "The item reads `Reveal worktree in File Explorer`."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-026",
@@ -4873,7 +4877,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1317-1425"
       ],
       "notes": "A helper row has no settle check, no archive button, no fold chevron and no time label. It is never reorderable, because it reports no frame to the grab table.",
-      "b2_change": "Title B1 SidebarView.swift:1361 `.font(.system(size: 12, weight: ...))` -> B2 :1361 `.font(.system(.callout, weight: ...))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "Title B1 SidebarView.swift:1361 `.font(.system(size: 12, weight: ...))` -> B2 :1361 `.font(.system(.callout, weight: ...))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-034",
@@ -4896,7 +4901,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1636-1676"
       ],
-      "notes": "Stroke is lineWidth 1, lineCap .round, dash [0.1, 3.6], which draws round dots on a 3.7 pt pitch. A plain [1, 3] dash looks visibly wrong. Tooltip and accessibility label are both `Hide helpers`."
+      "notes": "Stroke is lineWidth 1, lineCap .round, dash [0.1, 3.6], which draws round dots on a 3.7 pt pitch. A plain [1, 3] dash looks visibly wrong. Tooltip and accessibility label are both `Hide helpers`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-035",
@@ -4998,7 +5004,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1514-1526"
       ],
       "notes": "Tooltip is `Show all <n> heads` collapsed and `Show fewer heads` expanded. The expanded state is transient view state and resets when the card leaves the list.",
-      "b2_change": "Chevron B1 SidebarView.swift:1520 `.font(.system(size: 9, weight: .semibold))` -> B2 :1520 `.font(.system(.caption2, weight: .semibold))`: 9 pt -> 10 pt by upstream's own table (B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`), adopted by ED-059 (fixed per style, Inter, app zoom only); visual size parity UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). Citation corrected from :1517-1530 to the chevron block `if capped { Button { ... } }` at :1515-1527."
+      "b2_change": "Chevron B1 SidebarView.swift:1520 `.font(.system(size: 9, weight: .semibold))` -> B2 :1520 `.font(.system(.caption2, weight: .semibold))`: 9 pt -> 10 pt by upstream's own table (B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`), adopted by ED-059 (fixed per style, Inter, app zoom only); visual size parity UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). Citation corrected from :1517-1530 to the chevron block `if capped { Button { ... } }` at :1515-1527.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-039",
@@ -5021,7 +5028,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:677-686"
       ],
       "notes": "Beyond the four literals, day headers carry the locale's wide weekday name, wide month with day, or wide month with day and year. `Today` and `Yesterday` are app literals and are not localised in the source.",
-      "b2_change": "Font B1 SidebarView.swift:2352 `.font(.system(size: 12, weight: .semibold))` -> B2 :2352 `.font(.system(.callout, weight: .semibold))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token)."
+      "b2_change": "Font B1 SidebarView.swift:2352 `.font(.system(size: 12, weight: .semibold))` -> B2 :2352 `.font(.system(.callout, weight: .semibold))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-040",
@@ -5044,7 +5052,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:2363-2406"
       ],
       "notes": "The count uses .fixedSize() and .contentTransition(.identity) so the digits do not roll while the whole header moves. Tooltip `Show settled threads` / `Hide settled threads`; accessibility label `Settled, <count> threads` (always plural) with value `Collapsed` / `Expanded`.",
-      "b2_change": "Fonts B1 SidebarView.swift:2378 `.system(size: 9, weight: .semibold)`, :2382 `.system(size: 12, weight: .semibold)`, :2386 `.system(size: 12)` -> B2 `.system(.caption2, weight: .semibold)`, `.system(.callout, weight: .semibold)`, `.system(.callout)`. Chevron 9 pt -> 10 pt by upstream's table (B1:DroppyCode/UI/Common/ChatZoom.swift:54), per ED-059, visual size parity UNVERIFIED under OD-0001; title and count stay 12 pt; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token)."
+      "b2_change": "Fonts B1 SidebarView.swift:2378 `.system(size: 9, weight: .semibold)`, :2382 `.system(size: 12, weight: .semibold)`, :2386 `.system(size: 12)` -> B2 `.system(.caption2, weight: .semibold)`, `.system(.callout, weight: .semibold)`, `.system(.callout)`. Chevron 9 pt -> 10 pt by upstream's table (B1:DroppyCode/UI/Common/ChatZoom.swift:54), per ED-059, visual size parity UNVERIFIED under OD-0001; title and count stay 12 pt; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-041",
@@ -5065,7 +5074,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:692-703"
       ],
       "notes": "The second line is exactly `Try a thread title or a project name.` with a trailing full stop; the first line has none.",
-      "b2_change": "Fonts B1 SidebarView.swift:695 `.system(size: 13, weight: .semibold)` and :698 `.system(size: 11)` -> B2 `.system(.body, weight: .semibold)` and `.system(.subheadline)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token)."
+      "b2_change": "Fonts B1 SidebarView.swift:695 `.system(size: 13, weight: .semibold)` and :698 `.system(size: 11)` -> B2 `.system(.body, weight: .semibold)` and `.system(.subheadline)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-042",
@@ -5087,7 +5097,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:165-167"
       ],
       "notes": "The icon is SidebarSymbol(\"plus\") at the default 14 pt inside the 20 pt badge box, not the 11 pt RowAccessoryIcon plus used on the project row.",
-      "b2_change": "SidebarRow title B1 Chrome.swift:684 `.font(.system(size: 13, weight: isSelected || isEmphasized ? .medium : .regular))` -> B2 Chrome.swift:717 `.font(.system(.body, weight: ...))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. The row's own lines in SidebarView are unchanged. Citation corrected (wrong at B1 and B2 alike; SidebarView.swift keeps the same line numbers at B2): the Add project row is SidebarView.swift:164-166, not :158-161."
+      "b2_change": "SidebarRow title B1 Chrome.swift:684 `.font(.system(size: 13, weight: isSelected || isEmphasized ? .medium : .regular))` -> B2 Chrome.swift:717 `.font(.system(.body, weight: ...))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. The row's own lines in SidebarView are unchanged. Citation corrected (wrong at B1 and B2 alike; SidebarView.swift keeps the same line numbers at B2): the Add project row is SidebarView.swift:164-166, not :158-161.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-043",
@@ -5475,7 +5486,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:703-712"
       ],
-      "notes": "Groups are keyed by project id and rows by sidebarItemID, so a thread settled from within the search results changes rows there too. The project row's count is the project's full candidate count, not the number of matches."
+      "notes": "Groups are keyed by project id and rows by sidebarItemID, so a thread settled from within the search results changes rows there too. The project row's count is the project's full candidate count, not the number of matches.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-059",
@@ -5497,7 +5509,8 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:317-325",
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1063-1076"
       ],
-      "notes": "The asymmetry exists so a departing row is gone before its replacement appears; rows moving past each other never draw over one another. Settled rows are exempt because a settle or reopen is carried by the glide instead."
+      "notes": "The asymmetry exists so a departing row is gone before its replacement appears; rows moving past each other never draw over one another. Settled rows are exempt because a settle or reopen is carried by the glide instead.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-060",

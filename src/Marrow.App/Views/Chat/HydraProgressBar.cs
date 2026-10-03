@@ -35,11 +35,16 @@ public sealed class HydraProgressBar : Decorator
     public const long SweepSlots = 3; // :59
 
     private readonly ThreadRuntime runtime;
-    private readonly DateTimeOffset startedAt;
-    private readonly DateTimeOffset? finishedAt;
-    private readonly HydraHeadInfo.Status status;
+    private DateTimeOffset startedAt;      // :21, handed again by the view that holds the bar (UpdateTimes)
+    private DateTimeOffset? finishedAt;    // :22
+    private HydraHeadInfo.Status status    // :23, read by the clock's schedule, so it is observed
+    {
+        get => motion.Status;
+        set => motion.Status = value;
+    }
+    private WorkItem? settleTask;
     private readonly SwiftColor tint;
-    private readonly IReadOnlyList<TimelineEntry>? suppliedEntries;
+    private IReadOnlyList<TimelineEntry>? suppliedEntries;
     private readonly StaveCache cache = new();
     private readonly BarDrawing bar;
     private readonly StackPanel content;
@@ -51,7 +56,7 @@ public sealed class HydraProgressBar : Decorator
     private double width;
     private int? hoveredIndex;
     private DateTimeOffset drawDate = SwiftDate.Now;
-    private readonly MotionState motion = new();
+    private readonly MotionState motion;
     private WorkItem? riseTask;
     private long taskEventCount = -1;
     private bool attached;
@@ -61,12 +66,40 @@ public sealed class HydraProgressBar : Decorator
     private bool cardShown;
     private double? cardTargetX;
 
-    private sealed class MotionState : MainActorModel
+    private sealed class MotionState(HydraHeadInfo.Status status) : MainActorModel
     {
         private bool rising;
         private bool settled;
+        private HydraHeadInfo.Status status = status; // seeded, not set: a bar may be made before it reaches the main actor's tree
         public bool Rising { get => Read(rising); set => Set(ref rising, value); }
         public bool Settled { get => Read(settled); set => Set(ref settled, value); }
+        public HydraHeadInfo.Status Status { get => Read(status); set => Set(ref status, value); }
+    }
+
+    /// <summary>The entries the bar draws its staves from, handed down again by the view that holds it (ThreadTimeline.swift:2139 <c>entries: turnEntries</c>):
+    /// a view whose inputs changed keeps its state, so the bar goes on from where it was instead of starting again.</summary>
+    internal void UpdateEntries(IReadOnlyList<TimelineEntry>? entries) => suppliedEntries = entries;
+
+    /// <summary>The times and the status handed again by the view that holds the bar (ThreadTimeline.swift:2139 `startedAt`, `finishedAt`, `status: isRunning ? .running :
+    /// .stopped`: a running line that becomes an earlier segment's): the same bar, its staves and its rise kept, with what the status decides (:129-134 the sweep and its clock,
+    /// :186-191 `.task(id: isRunning ? -1 : events.count)` unsettled and then settled once the last stave has risen, :192-198 `.task(id: isRunning)` the sweep slot joined or
+    /// given back, :204 the label). ED-255 (5).</summary>
+    internal void UpdateTimes(DateTimeOffset nextStartedAt, DateTimeOffset? nextFinishedAt, HydraHeadInfo.Status nextStatus)
+    {
+        if (nextStartedAt == startedAt && nextFinishedAt == finishedAt && nextStatus == status) return;
+        var wasRunning = status == HydraHeadInfo.Status.Running;
+        startedAt = nextStartedAt; finishedAt = nextFinishedAt; status = nextStatus;
+        var isRunning = status == HydraHeadInfo.Status.Running;
+        if (attached && isRunning != wasRunning)
+        {
+            var id = (object)runtime;
+            if (isRunning) SweepBudget.Shared.Join(id); else SweepBudget.Shared.Leave(id); // :192-198
+            settleTask?.Cancel(); settleTask = null;
+            motion.Settled = false; // :187
+            if (!isRunning)
+                settleTask = MainActor.AsyncAfter(TimeSpan.FromSeconds(Rise + 0.1), () => { if (attached && status != HydraHeadInfo.Status.Running) motion.Settled = true; }); // :188-190
+        }
+        Refresh();
     }
 
     // :20-27, :122-209
@@ -81,7 +114,7 @@ public sealed class HydraProgressBar : Decorator
         this.runtime = runtime;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
-        this.status = status;
+        motion = new MotionState(status); // the bar's status (:23), observed by its clock's schedule
         this.tint = tint;
         suppliedEntries = entries;
 
@@ -155,7 +188,7 @@ public sealed class HydraProgressBar : Decorator
         {
             attached = true;
             taskEventCount = -1;
-            if (status == HydraHeadInfo.Status.Running)
+            if (this.status == HydraHeadInfo.Status.Running) // the status as it is now (UpdateTimes), not the one the bar was made with
                 SweepBudget.Shared.Join(id);
             Refresh();
         };
@@ -163,6 +196,7 @@ public sealed class HydraProgressBar : Decorator
         {
             attached = false;
             riseTask?.Cancel();
+            settleTask?.Cancel(); settleTask = null;
             hideCard?.Cancel();
             cardOpacity.Set(0, null);
             cardX.Set(0, null);
@@ -178,7 +212,7 @@ public sealed class HydraProgressBar : Decorator
                 var stavesNow = Resolve().Staves;
                 var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
                 var isRising = motion.Rising;
-                var isSweeping = status == HydraHeadInfo.Status.Running &&
+                var isSweeping = this.status == HydraHeadInfo.Status.Running && // observed: a status handed again (UpdateTimes) reschedules the clock
                     !reduceMotion &&
                     stavesNow.Count > 0 &&
                     SweepBudget.Shared.Sweeps(id);
@@ -780,39 +814,78 @@ public sealed class HydraWorkingTitle : Decorator
 /// <summary>:541-562 <c>struct HydraElapsedTime: View</c>.</summary>
 public sealed class HydraElapsedTime : Decorator
 {
+    private readonly TextBlock label;
+    private DateTimeOffset startedAt; // :544
+    private DateTimeOffset? finishedAt; // :545
+    private bool isRunning; // :546
+    private ITimer? nextTick;
+    private bool attached;
+    private int ticking; // the generation of the tick in force: a tick of an earlier one does nothing
+    private Action<TimeSpan>? swap;
+    private IFrameSource? swapFrames;
+
     // :544-546, :548-561
     public HydraElapsedTime(DateTimeOffset startedAt, DateTimeOffset? finishedAt, bool isRunning)
     {
-        var label = new TextBlock
+        label = new TextBlock
         {
             Foreground = Chrome.SecondaryText.Brush(this),
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, // :137 beside the 16-point glyph an HStack centres the clock on it
         };
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).MonospacedDigit().Apply(label);
         Child = label;
+        this.startedAt = startedAt; this.finishedAt = finishedAt; this.isRunning = isRunning;
+        if (!isRunning) label.Text = Finished(); // :555
+        label.AttachedToVisualTree += (_, _) => { attached = true; if (this.isRunning) Tick(++ticking); };
+        label.DetachedFromVisualTree += (_, _) => { attached = false; ticking++; nextTick?.Dispose(); nextTick = null; };
+    }
 
-        if (!isRunning)
-        {
-            label.Text = RelativeTime.Duration((finishedAt ?? SwiftDate.Now) - startedAt);
-            return;
-        }
+    private string Finished() => RelativeTime.Duration((finishedAt ?? SwiftDate.Now) - startedAt); // :555
 
-        // :551 ED-117: periodic-from-date is separate from the display's animation clock.
-        ITimer? nextTick = null;
-        var attached = false;
-        void Tick()
+    // :551 ED-117: periodic-from-date is separate from the display's animation clock.
+    private void Tick(int generation)
+    {
+        nextTick?.Dispose(); nextTick = null;
+        if (!attached || !isRunning || generation != ticking) return;
+        var now = SwiftDate.Now;
+        var n = Math.Floor((now - startedAt).TotalSeconds);
+        var gridDate = startedAt.AddSeconds(n);
+        label.Text = RelativeTime.Duration(gridDate - startedAt); // :552
+        nextTick = SwiftClock.Provider.Current.CreateTimer(_ => MainActor.Post(() => Tick(generation)), null,
+            startedAt.AddSeconds(n + 1) - now, Timeout.InfiniteTimeSpan);
+    }
+
+    /// <summary>The view handed its inputs again (:544-546 `let`s of a view that stays: a body run again): the same text, now counting from <paramref name="nextStartedAt"/>,
+    /// ticking only while it runs (:549-556 the branch). When the words it says change under <paramref name="change"/> they swap with a fade (OD-0076, content that swaps
+    /// crossfades: the old time fades out, the new one comes in where it stood, each over half the motion), else at once. ED-255 (5).</summary>
+    internal void Update(DateTimeOffset nextStartedAt, DateTimeOffset? nextFinishedAt, bool nextIsRunning, Animation? change)
+    {
+        if (nextStartedAt == startedAt && nextFinishedAt == finishedAt && nextIsRunning == isRunning) return;
+        startedAt = nextStartedAt; finishedAt = nextFinishedAt; isRunning = nextIsRunning;
+        var generation = ++ticking; nextTick?.Dispose(); nextTick = null;
+        void Show() { if (isRunning) Tick(generation); else label.Text = Finished(); }
+        StopSwap();
+        var next = isRunning ? RelativeTime.Duration(startedAt.AddSeconds(Math.Floor((SwiftDate.Now - startedAt).TotalSeconds)) - startedAt) : Finished();
+        if (change is null || !attached || label.Text == next) { label.Opacity = 1; Show(); return; }
+        var half = change.Duration / 2; var frames = FrameClock.Source.Current; var since = SwiftClock.Now; var shown = false;
+        Action<TimeSpan>? frame = null;
+        frame = _ =>
         {
-            nextTick?.Dispose();
-            if (!attached) return;
-            var now = SwiftDate.Now;
-            var n = Math.Floor((now - startedAt).TotalSeconds);
-            var gridDate = startedAt.AddSeconds(n);
-            label.Text = RelativeTime.Duration(gridDate - startedAt);
-            nextTick = SwiftClock.Provider.Current.CreateTimer(_ => MainActor.Post(Tick), null,
-                startedAt.AddSeconds(n + 1) - now, Timeout.InfiniteTimeSpan);
-        }
-        label.AttachedToVisualTree += (_, _) => { attached = true; Tick(); };
-        label.DetachedFromVisualTree += (_, _) => { attached = false; nextTick?.Dispose(); };
+            var elapsed = (SwiftClock.Now - since).TotalSeconds;
+            if (elapsed < half) { label.Opacity = 1 - Animation.EaseIn(half).Progress(elapsed); frames.RequestFrame(frame!); return; }
+            if (!shown) { shown = true; Show(); }
+            var done = elapsed + 0.001 >= 2 * half;
+            label.Opacity = done ? 1 : Animation.EaseOut(half).Progress(elapsed - half);
+            if (done) { swap = null; return; }
+            frames.RequestFrame(frame!);
+        };
+        swap = frame; swapFrames = frames; frames.RequestFrame(frame);
+    }
+
+    private void StopSwap()
+    {
+        if (swap is { } pending) swapFrames?.CancelFrame(pending);
+        swap = null;
     }
 }
 

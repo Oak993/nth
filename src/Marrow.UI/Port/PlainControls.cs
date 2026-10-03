@@ -170,7 +170,7 @@ public static class PlainControls
         };
         popup.Opened += (_, _) =>
         {
-            if (popup.Child is DeferredPopoverContent) popup.Child = content();
+            if (PopoverHost.Content(popup) is DeferredPopoverContent) popup.Child = content(); // OD-0095: the presenter may have hung it on its card
             else popup.Child ??= content();
         };
         popup.Closed += (_, _) =>
@@ -188,7 +188,7 @@ public static class PlainControls
                 if (buildBeforeOpen) popup.Child ??= content(); // Build before native Popup.Open captures its child; lazy per presentation.
                 else if (popup.Child is null) popup.Child = new DeferredPopoverContent();
             }
-            Presentation.Presenter.Current.SetPresented(popup, presented);
+            Presentation.SetPresented(popup, presented, anchor, () => isPresented.Value = false);
         });
         return popup;
     }
@@ -259,6 +259,12 @@ public sealed class AnimatedColor
         owner.ActualThemeVariantChanged += (_, _) =>
         {
             if (color is null) return;
+            // ED-254 (OD-0076, SPEC 6.5): inside a tree that turns over, the new appearance's colour is eased to.
+            if (AppearanceTurn.Eases(owner))
+            {
+                Set(color, AppearanceTurn.Curve);
+                return;
+            }
             Stop();
             Brush.Color = color.Resolve(owner.ActualThemeVariant);
         };

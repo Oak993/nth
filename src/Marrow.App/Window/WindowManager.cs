@@ -41,7 +41,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // the guide panels carry it too), proved on real screen pixels by GlassWindowNativeTests (the stripes behind the main
 // window read 42.9 bare and 0.0 through it, active and inactive), and the boot hand-over (Port/BootStageWindow.cs,
 // WindowCloak) keeps the ~230 ms between the Acrylic's tint and its blur (probes P13, P14; OD-0041) out of sight at launch.
-// What ED-236 leaves open is its UNRESOLVED list: the wedge between the 26 pt shape and the rectangular window, and the same
+// What ED-236 leaves open is its UNRESOLVED list: the wedge between the 26 pt shape and the rectangular window (built since: OD-0075
+// fills it with the window's scrim, UI.Chrome.WindowCornerWedge in RootView and SettingsView and FloatingGuidePanelView in the two guide panels; its native capture is owed), and the same
 // gap on a user-opened Settings window, which ED-249 (OD-0074) closes: every open of Settings is shown cloaked and revealed at
 // glass-ready with Rise (Port/SettingsRise.cs). The three
 // window.center() calls (:43, :68, :82) use ED-225; Apple's exact bias remains UNVERIFIED OD-0001.
@@ -285,6 +286,9 @@ public sealed class WindowManager
     {
         var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow()); // :81
         WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
+        // DEVIATION OD-0088, OD-0076 (ED-254): the Settings window turns over on a change of appearance, every colour in it
+        // easing 0.32 s as the locked accent board's window does (SPEC 6.5), where the source changes it in one frame.
+        AppearanceTurn.SetTurnsOver(window, true);
         return window; // :83
     }
 
@@ -785,11 +789,11 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
         // sidebar, settings and composer move together.
         var zoomed = new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content);
         Popovers.SetIsCapsuleButtonBorderShape(zoomed, true); // :176 .buttonBorderShape(.capsule)
-        var tinted = new ThemeTint(Model.Settings.Theme).Body(zoomed); // :177
+        var tinted = new ThemeTint(Model.Settings.Theme, Model.Settings.Accent).Body(zoomed); // :177
         // The body reads model.settings.appZoom (:175) and model.settings.theme (:177), so SwiftUI evaluates it again
         // when either changes; AppZoomModifier keeps its layout and ThemeTint its view when they are evaluated again.
         tinted.Track(() => Model.Settings.AppZoom, percent => new AppZoomModifier(Percent(percent)).Body(content));
-        tinted.Track(() => Model.Settings.Theme, theme => new ThemeTint(theme).Body(zoomed));
+        tinted.Track(() => (Model.Settings.Theme, Model.Settings.Accent), pair => new ThemeTint(pair.Theme, pair.Accent).Body(zoomed)); // and the accent (OD-0088)
         return tinted;
     }
 
@@ -801,7 +805,8 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
 /// <summary>:181-193 <c>private struct ThemeTint: ViewModifier</c>: tints prominent glass buttons, toggles and progress
 /// views with the theme's accent. System/Light/Dark keep the system control accent.</summary>
 /// <param name="Theme">:184 <c>let theme: AppTheme</c>.</param>
-internal sealed record ThemeTint(AppTheme Theme)
+/// <param name="Accent">PORT-ONLY (OD-0088, ED-250): the user's accent (AppSettings.Accent).</param>
+internal sealed record ThemeTint(AppTheme Theme, string Accent = AccentPalette.WindowsId)
 {
     // :186-192 func body(content: Content) -> some View
     public Control Body(Control content)
@@ -809,7 +814,9 @@ internal sealed record ThemeTint(AppTheme Theme)
         // :187-191 One branch, never two: an `if` here made the whole window's content a different view once a theme
         // with an accent replaced one without, so every page was built afresh and Settings jumped back to its top on a
         // theme change. A nil tint keeps the system accent.
-        Popovers.SetTint(content, Theme.Spec().Accent);
+        // DEVIATION OD-0088 (ED-250): a picked accent tints the window; the default keeps theme.spec.accent, nil for
+        // System, Light and Dark as in the source.
+        Popovers.SetTint(content, AccentPalette.Pick(Accent) ?? Theme.Spec().Accent);
         return content;
     }
 }

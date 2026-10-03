@@ -7,6 +7,7 @@ using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Providers;
+using Marrow.UI.Port;
 using Marrow.UI.Theme;
 
 // Source: DroppyCode/App/AppSettings.swift (B3 52bc792), :1-951. Skeleton (c100 group 1): the four enums' cases
@@ -257,6 +258,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         public const string ActivityThreadStyle = "activityThreadStyle";
         public const string SettledCollapsed = "settledSectionCollapsed";
         public const string AppTheme = "appTheme";
+        public const string Accent = "accent"; // PORT-ONLY (OD-0088, ED-250): the accent picked in Settings > Appearance
         public const string BackdropOpacity = "backdropOpacity";
         public const string Appearance = "appearance";
         public const string BinaryPaths = "providerBinaryPaths";
@@ -371,6 +373,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     private ActivityThreadStyle activityThreadStyle;
     private bool settledCollapsed;
     private AppTheme theme;
+    private string accent = AccentPalette.WindowsId;
     private double backdropOpacity;
     private ComposerLightSettings composerLight;
     private TextGenerationChoice textGeneration;
@@ -556,6 +559,19 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         {
             defaults.Set(Key.AppTheme, SwiftEnum<AppTheme>.RawValue(value));
             ThemeManager.Current = value;
+        });
+    }
+
+    // PORT-ONLY (OD-0088, OD-0075; ED-250): the accent the user picked (Port/AccentPalette.cs ids), mirrored into
+    // AccentChoice as the theme is into ThemeManager (:286-291). "windows" is the default accent: the Windows accent
+    // under System, Light and Dark, the theme's own under a named theme. Independent of the theme: a theme change keeps it.
+    public string Accent
+    {
+        get => Read(accent);
+        set => Set(ref accent, AccentPalette.Normalize(value), _ =>
+        {
+            defaults.Set(Key.Accent, accent);
+            AccentChoice.Current = accent;
         });
     }
 
@@ -1146,6 +1162,10 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             ?? SwiftEnum<AppTheme>.FromRawValue(defaults.String(Key.Appearance) ?? "")
             ?? Marrow.UI.Theme.AppTheme.System;
         theme = initialTheme;
+        // PORT-ONLY (OD-0088): a missing or unknown accent reads as the default, and nothing is written until a pick. It is
+        // mirrored before the theme, so the one ThemeManager change of :732 builds the spec with it and posts once.
+        accent = AccentPalette.Normalize(defaults.String(Key.Accent));
+        AccentChoice.Restore(accent);
         ThemeManager.Current = initialTheme;
         textGeneration = SwiftEnum<TextGenerationChoice>.FromRawValue(defaults.String(Key.TextGeneration) ?? "") ?? TextGenerationChoice.Automatic;
         commitInstructions = defaults.String(Key.CommitInstructions) ?? "";

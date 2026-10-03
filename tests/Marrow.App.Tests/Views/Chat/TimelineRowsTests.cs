@@ -140,7 +140,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 
     [Fact]
     // Partial proof PR-CHAT-104 (STOP #11); App/Views/Chat/TimelineRows.swift:2580-2585
-    // Partial proof PR-CHAT-155 (STOP #11); App/Views/Chat/TimelineRows.swift:2580-2585
+    // PR-CHAT-155 full proof: TimelineRowsTimelineScenarioTests and TimelineRowsFinTurnBlockTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:2580-2585
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Expanded_turns_use_real_groups_and_exclude_the_separate_head_list() => headless.OnUiThread(() =>
     {
@@ -325,7 +325,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 // PlainControls.Popover's real lazy content builder runs, without creating a native window.
                 var opened = Assert.IsAssignableFrom<System.Delegate>(typeof(Popup).GetField("Opened", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(popup));
                 opened.DynamicInvoke(popup, System.EventArgs.Empty);
-                var content = Assert.IsAssignableFrom<Control>(popup.Child);
+                var content = Assert.IsAssignableFrom<Control>(PopoverHost.Content(popup)); // the site's view, not the card the presenter hangs it on (OD-0095)
                 Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content));
                 if (merge) Assert.IsType<HydraMergePopover>(content);
                 else { var report = Assert.IsType<HydraReportPopover>(content); Assert.Equal(460, report.Width); }
@@ -666,7 +666,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-155 (STOP #11); App/Views/Chat/TimelineRows.swift:1564-1577, :2682-2686
+    // PR-CHAT-155 full proof: TimelineRowsTimelineScenarioTests and TimelineRowsFinTurnBlockTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1564-1577, :2682-2686
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Heads_list_is_an_unfolded_leading_stack_with_eight_point_spacing_and_no_header()
     {
@@ -719,7 +719,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-166 (STOP #6); App/Views/Chat/TimelineRows.swift:633, :2394, :2152
+    // PR-CHAT-166 full proof: TimelineRowsParityScenarioTests with the Fin notice, tool-detail and head-steps tests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:633, :2394, :2152
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Selection_is_owned_by_each_notice_report_and_output_block()
     {
@@ -748,29 +748,31 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 {
                     var detail = new ToolDetailView(Call(kind, path) with { Detail = "image detail" }, h.Project.Path);
                     Assert.Single(LogicalQuery.SelfAndDescendants<ToolImagePreview>(detail));
-                    Assert.Equal(new[] { typeof(ToolImagePreview), typeof(SelectableTextBlock) }, Assert.IsType<StackPanel>(detail.Child).Children.Select(child => child.GetType()));
+                    // The detail text is the SelectableTextBlock whose line limit also cuts at a hard line break (ED-256 (7)).
+                    Assert.Equal(new[] { typeof(ToolImagePreview), typeof(LineLimitedSelectableText) }, Assert.IsType<StackPanel>(detail.Child).Children.Select(child => child.GetType()));
+                    Assert.IsAssignableFrom<SelectableTextBlock>(Assert.IsType<StackPanel>(detail.Child).Children[1]);
                 }
             });
         });
     }
 
     [Fact]
-    // Partial proof PR-GIT-122 (STOP #11); App/Views/Chat/TimelineRows.swift:2695, :2770-2799
+    // PR-GIT-122 full proof: TimelineRowsFinRevertTests (restoration and trimming: ThreadRuntimePart1GitTests); this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:2695, :2770-2799
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_revert_has_one_confirmation_with_only_Cancel_and_Revert() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
     [Fact]
     [Trait("Req", "PR-GIT-123")] // App/Views/Chat/TimelineRows.swift:184-206
     public void Message_revert_posts_the_intent_before_the_STOP_2_dialog() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
     [Fact]
-    // Partial proof PR-GIT-151 (STOP #11); App/Views/Chat/TimelineRows.swift:2707-2714, :2739-2740
+    // PR-GIT-151 full proof: TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:2707-2714, :2739-2740
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Legacy_changes_and_singular_file_titles_follow_the_source() { An_older_turn_with_files_but_no_per_file_summary_works_its_changes_out_and_stores_them_while_one_with_none_never_does(); The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron(); }
     [Fact]
-    // Partial proof PR-GIT-152 (STOP #11); App/Views/Chat/TimelineRows.swift:2829-2857
+    // PR-GIT-152 full proof: TimelineRowsPrFileTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:2829-2857
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_list_is_twelve_then_the_literal_overflow_line() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
-    // Partial proof PR-HYDRAMERGE-088 (STOP #11); App/Views/Chat/TimelineRows.swift:802-808
+    // PR-HYDRAMERGE-088 full proof: TimelineRowsPrMergeTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:802-808
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Merge_outcome_splits_once_drops_one_stop_and_keeps_the_leading_URL_separate()
     {
@@ -784,7 +786,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Silent_merge_completion_removes_the_pill() => The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note();
     [Fact]
-    // Partial proof PR-HYDRAMERGE-090 (STOP #11); App/Views/Chat/TimelineRows.swift:1111-1120
+    // PR-HYDRAMERGE-090 full proof: TimelineRowsParityScenarioTests and TimelineRowsFinMergeOutcomeTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1111-1120
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Generic_merge_report_uses_the_460_point_fallback() => The_report_popover_is_460_wide_with_a_460_point_scroller_at_the_callout_style_with_12_point_markdown();
     [Fact]
@@ -800,11 +802,11 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Track_geometry_is_one_three_value_drawing() => The_track_is_drawn_from_its_three_values_dots_lit_as_the_head_reaches_them_and_the_head_arcing_between_dots();
     [Fact]
-    // Partial proof PR-HYDRAMERGE-104 (STOP #11); App/Views/Chat/TimelineRows.swift:1020-1027
+    // PR-HYDRAMERGE-104 full proof: TimelineRowsPrInlineTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1020-1027
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Failure_outcome_has_no_success_flourish() => An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled();
     [Fact]
-    // Partial proof PR-HYDRAMERGE-105 (STOP #9); App/Views/Chat/TimelineRows.swift:1095-1128
+    // PR-HYDRAMERGE-105 full proof: TimelineRowsPrMergeTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1095-1128
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Outcome_title_without_details_is_disabled_and_has_no_chevron() => An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled();
     [Fact]
@@ -1160,7 +1162,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-077 UserBubble
 
     [Fact]
-    // Partial proof PR-CHAT-077 (STOP #11); App/Views/Chat/TimelineRows.swift:1167-1206
+    // PR-CHAT-077 full proof: TimelineRowsCaptureTests and TimelineRowsParityScenarioTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1167-1206
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_bubble_path_rounds_three_corners_and_draws_the_tail_through_the_exact_control_points()
     {
@@ -1198,7 +1200,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-077 (STOP #11); App/Views/Chat/TimelineRows.swift:118-129, :163-164
+    // PR-CHAT-077 full proof: TimelineRowsCaptureTests and TimelineRowsParityScenarioTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:118-129, :163-164
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_sent_message_is_a_trailing_bubble_with_14_18_and_9_point_insets_96_points_clear_on_the_leading_side_tinted_at_14_percent()
     {
@@ -1285,7 +1287,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         LogicalQuery.SelfAndDescendants<Control>(row).Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
 
     [Fact]
-    // Partial proof PR-CHAT-080 (STOP #11); App/Views/Chat/TimelineRows.swift:130-142, :158-161
+    // Partial proof PR-CHAT-080 (STOP #11; the other parts are in TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests);App/Views/Chat/TimelineRows.swift:130-142, :158-161
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_revertable_message_keeps_a_22_point_hover_line_with_a_22_point_pencil_that_shows_only_on_hover()
     {
@@ -1308,13 +1310,14 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-080 (STOP #11); App/Views/Chat/TimelineRows.swift:131, :158-161
+    // Partial proof PR-CHAT-080 (STOP #11; the other parts are in TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests);App/Views/Chat/TimelineRows.swift:131, :158-161
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Hovering_the_row_shows_the_line_and_a_message_that_cannot_revert_has_no_pencil()
     {
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
+            var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
             UserMessageRow? row = null;
             UserMessageRow? locked = null;
             AvaloniaWindow? window = null;
@@ -1332,6 +1335,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(HoverLine(noTurn)));
                 Hover(window, LogicalQuery.SelfAndDescendants<InlineText>(row).Single());
             });
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
             h.Main.OnMain(() =>
             {
                 Assert.Equal(1, HoverLine(row!).Opacity);
@@ -1342,13 +1346,14 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-080 (STOP #11); App/Views/Chat/TimelineRows.swift:87, :132-134, :141
+    // Partial proof PR-CHAT-080 (STOP #11; the other parts are in TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests);App/Views/Chat/TimelineRows.swift:87, :132-134, :141
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_pencil_opens_the_edit_on_the_runtime_and_a_second_tap_closes_it()
     {
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
+            var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
             var presenter = new RecordingPresenter();
             using var seam = Presentation.Presenter.Override(presenter);
             var turn = System.Guid.NewGuid();
@@ -1374,14 +1379,19 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 // :197, :208-212 the edit opening syncs the editor popover, which presents a MessageEditor on the edit,
                 // hung from the pencil's anchor (:148-155).
                 var shown = Assert.Single(presenter.Calls, call => call.Presented);
-                Assert.IsType<MessageEditor>(shown.Popup.Child);
+                Assert.IsType<MessageEditor>(PopoverHost.Content(shown.Popup));
                 var pencil = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(HoverLine(row!)));
                 Assert.Same(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(pencil.Parent!).Single(), shown.Popup.PlacementTarget);
+            });
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
+            h.Main.OnMain(() =>
+            {
                 // Editing: the line stays up without a hover.
                 Assert.Equal(1, HoverLine(row!).Opacity);
                 Click(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(HoverLine(row!))));
                 Assert.Null(h.Runtime.MessageEdit);
             });
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
             h.Main.OnMain(() =>
             {
                 Settle(window!);
@@ -1392,7 +1402,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-080 (STOP #11); App/Views/Chat/TimelineRows.swift:143-147
+    // Partial proof PR-CHAT-080 (STOP #11; the other parts are in TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests);App/Views/Chat/TimelineRows.swift:143-147
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Settling_the_pointer_on_the_pencil_starts_the_revert_preview()
     {
@@ -1604,7 +1614,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-089 the reply's menu
 
     [Fact]
-    // Partial proof PR-CHAT-089 (STOP #11); App/Views/Chat/TimelineRows.swift:38-54
+    // PR-CHAT-089 full proof: TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:38-54
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_last_code_block_is_the_last_closed_fence_and_an_unclosed_fence_yields_none()
     {
@@ -1618,7 +1628,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-089 (STOP #11); App/Views/Chat/TimelineRows.swift:1394-1412
+    // PR-CHAT-089 full proof: TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1394-1412
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_replys_menu_is_the_two_copies_then_the_last_code_block_when_there_is_one_then_Add_to_reply_in_its_own_group()
     {
@@ -1643,7 +1653,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-089 (STOP #11); App/Views/Chat/TimelineRows.swift:1406-1410
+    // PR-CHAT-089 full proof: TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1406-1410
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Add_to_reply_quotes_the_reply_into_the_draft_once()
     {
@@ -1664,7 +1674,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-089 (STOP #11); App/Views/Chat/TimelineRows.swift:1383, :1415-1429
+    // PR-CHAT-089 full proof: TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1383, :1415-1429
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Right_clicking_a_reply_offers_its_menu_with_the_last_code_block()
     {
@@ -2239,6 +2249,40 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         });
     }
 
+    // OD-0088 (ED-253): "Show full output" is a `.buttonStyle(.link)` button (TimelineRows.swift:2156-2160), drawn in the view's
+    // tint, which the window root sets to the theme's accent (WindowManager.swift:186-192): Chrome.accent, the user's pick.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void The_full_output_link_wears_the_picked_accent()
+    {
+        headless.OnUiThread(() =>
+        {
+            var (theme, choice) = (Marrow.UI.Theme.ThemeManager.Current, AccentChoice.Current);
+            using var h = RuntimeHarness();
+            try
+            {
+                h.Main.OnMain(() =>
+                {
+                    Marrow.UI.Theme.ThemeManager.Current = Marrow.UI.Theme.AppTheme.System;
+                    AccentChoice.Current = "orchid";
+                    var view = new ToolDetailView(Call(ToolCall.Kind.Command, "cat") with { Output = Lines(31) });
+                    var window = Show(view);
+                    var title = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(view))));
+                    Assert.Equal(AccentPalette.Pick("orchid")!.Resolve(title.ActualThemeVariant), BrushColor(title.Foreground));
+                    Marrow.UI.Theme.ThemeManager.Current = Marrow.UI.Theme.AppTheme.Dracula;
+                    AccentChoice.Current = "windows"; // the theme's own
+                    Assert.Equal(Color.Parse("#BD93F9"), BrushColor(title.Foreground));
+                    Close(window);
+                });
+            }
+            finally
+            {
+                AccentChoice.Current = choice;
+                Marrow.UI.Theme.ThemeManager.Current = theme;
+            }
+        });
+    }
+
     [Fact]
     // Partial proof PR-CHAT-101 (STOP #11); App/Views/Chat/TimelineRows.swift:2120-2126, :2145-2147, :2156
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
@@ -2690,7 +2734,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-105 Derived
 
     [Fact]
-    // Partial proof PR-CHAT-105 (STOP #11); App/Views/Chat/TimelineRows.swift:2547-2579, :2664-2680
+    // PR-CHAT-105 full proof: TimelineRowsPrDerivationTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:2547-2579, :2664-2680
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_folded_turns_answer_is_the_replies_after_its_last_tool_with_plans_and_warnings_below_and_info_folded_away()
     {
@@ -2735,7 +2779,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-105 (STOP #11); App/Views/Chat/TimelineRows.swift:2551-2559, :2578-2579, :2597
+    // PR-CHAT-105 full proof: TimelineRowsPrDerivationTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:2551-2559, :2578-2579, :2597
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_turn_that_ended_on_a_tool_shows_its_last_reply_a_blank_reply_is_none_and_a_plan_alone_is_a_response()
     {
@@ -2775,7 +2819,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-106 memo
 
     [Fact]
-    // Partial proof PR-CHAT-106 (STOP #11); App/Views/Chat/TimelineRows.swift:2511-2521, :2590-2591, :2703-2706
+    // PR-CHAT-106 full proof: TimelineRowsPrDerivationTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:2511-2521, :2590-2591, :2703-2706
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_turns_derivation_is_read_back_while_its_entries_and_fold_are_the_same_and_stored_once_the_body_has_run()
     {
@@ -3342,7 +3386,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-113 (STOP #11); App/Views/Chat/TimelineRows.swift:2287
+    // Partial proof PR-CHAT-113 (STOP #11, record/source conflict): the streaming flag is the drafting state alone; App/Views/Chat/TimelineRows.swift:2287
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_drafting_plan_renders_with_the_streaming_markdown_and_a_proposed_one_with_the_finished_prose()
     {
@@ -3574,7 +3618,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-123 reveal call sites
 
     [Fact]
-    // Partial proof PR-CHAT-123 (STOP #11); App/Views/Chat/TimelineRows.swift:1473, :1527-1528, :1697-1698
+    // PR-CHAT-123 full proof: TimelineRowsPrInlineTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:1473, :1527-1528, :1697-1698
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_reveal_fires_only_on_open_outside_the_work_groups_animation_and_inside_the_steps_and_the_tool_rows()
     {
@@ -3780,7 +3824,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-144 (STOP #11); App/Views/Chat/TimelineRows.swift:375-387
+    // PR-CHAT-144 full proof: TimelineRowsPrRecordsTests and TimelineRowsParityScenarioTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:375-387
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_leading_address_is_a_first_line_of_http_or_https_and_nothing_else_and_the_rest_is_the_body_past_it()
     {
@@ -3797,7 +3841,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial proof PR-CHAT-144 (STOP #11); App/Views/Chat/TimelineRows.swift:252-257, :304-311
+    // PR-CHAT-144 full proof: TimelineRowsPrRecordsTests and TimelineRowsParityScenarioTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:252-257, :304-311
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_note_that_leads_with_an_address_gets_an_Open_link_beside_the_pill_that_opens_it_in_the_browser()
     {
@@ -4533,88 +4577,187 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // actions are implemented and tested. Generic .green is allowed by ED-092 (1), with the existing AppTheme
 // FrameworkGreen mapping precedent; its visual appearance remains UNVERIFIED under OD-0001.
 //
-// STOP App.Views.Chat.TimelineRows #6 (review fixes, 2026-09-27)
-// Kind: verification gap
-// Swift: App/Views/Chat/TimelineRows.swift:633, :2152, :2394.
-// Records: PR-CHAT-166.
-// Missing: actual pointer drag selection across a reply and a code block, with per-block selection assertions.
-// Needed: mounted pointer-selection interactions on both surfaces. Structural selection-enabled tests stay,
-// but their Req trait is withdrawn by the explicit review-fix instruction; no assertion or test was removed.
+// STOP App.Views.Chat.TimelineRows #6: RESOLVED 2026-10-03 (parity pass). PR-CHAT-166's real pointer drags across a reply's
+// prose run, its code block and a bubble are in TimelineRowsParityScenarioTests; the drag exposed that VeiledText (the code
+// block's text and every link-free bubble or paragraph) was a plain TextBlock, fixed to the SelectableTextBlock that
+// MarkdownBlockSelection's .textSelection(.enabled) asks for (MarkdownView.swift:318, :1131, :1229). Adversarial review round 1
+// (2026-10-03): those selectable texts, the notice's message and a tool's detail and output also carry the I-beam the reference
+// video shows over selectable timeline text (2-chat-use.mov 14.74 s), and a selection in a bubble or a code block is drawn.
 //
-// STOP App.Views.Chat.TimelineRows #7 (review fixes, 2026-09-27)
-// Kind: verification gap
-// Swift: App/Views/Chat/TimelineRows.swift:2707-2714; App/Runtime/ThreadRuntime.swift:3751-3757.
+// STOP App.Views.Chat.TimelineRows #7 (review fixes, 2026-09-27; checked again 2026-10-03)
+// Kind: source conflict, needs a lead ruling (with STOP opencode #3 in TimelineRowsPrSourceConflictTests).
+// Swift: App/Views/Chat/TimelineRows.swift:2707-2714; App/Runtime/ThreadRuntime.swift:3797-3803, :3650-3664.
 // Records: PR-CHAT-107.
-// Missing: persisted legacy-summary reuse after restart. Current tests only observe the in-memory summary.
-// Needed: flush, dispose, reload the model/runtime from the same temporary store, then assert summary reuse.
-// The existing fixture and summary assertions remain, without a full-proof Req claim.
+// The record says the worked-out summary "survives into the thread document" and asks for a restart test. In the pinned
+// source storeLegacyChanges only calls scheduleSave, which saveNow drops because saveRevision was not bumped, so after a
+// restart the turn is parsed again; the port reproduces the source (TimelineRowsPrSourceConflictTests proves it). The
+// in-memory store, the document snapshot and the guards are proven in TimelineRowsFinLegacyChangesTests.
 //
-// STOP App.Views.Chat.TimelineRows #8 (review fixes, 2026-09-27)
+// STOP App.Views.Chat.TimelineRows #8 (review fixes, 2026-09-27; unchanged 2026-10-03)
 // Kind: verification gap
 // Swift: App/Views/Chat/TimelineRows.swift:937-952; App/Models/AppModel+HydraMerge.swift:229-249, :302-304.
 // Records: PR-HYDRAMERGE-089.
 // Missing: coordinator-driven mid-rebase, repeated-identical-failure and first-retryable-failure scenarios.
-// Needed: temporary repository fixtures driving those outcomes and mounted-pill disappearance assertions.
-// Manually lowering IsHydraMerging still tests the view transition, not those coordinator scenarios.
+// Needed: temporary repository fixtures driving those outcomes and mounted-pill disappearance assertions (the
+// coordinator belongs to AppModel+HydraMerge). Manually lowering IsHydraMerging tests the view transition only.
 //
-// STOP App.Views.Chat.TimelineRows #9 (review fixes, 2026-09-27)
-// Kind: verification gap
-// Swift: App/Views/Chat/TimelineRows.swift:966-971, :1095-1128.
-// Records: PR-HYDRAMERGE-105.
-// Missing: clicking title, track and the separate Open link, rather than delegating to structural wrappers.
-// Needed: mounted clicks asserting popover toggle, separate link routing and exact tooltips for all three.
-// Current disabled/no-details/failure assertions remain; the incomplete Req claim is withdrawn.
+// STOP App.Views.Chat.TimelineRows #9: RESOLVED. PR-HYDRAMERGE-105's real clicks on title, track and Open, with the tooltips,
+// are in TimelineRowsPrMergeTests.Real_pointer_clicks_on_title_track_and_Open_route_to_their_separate_destinations.
 //
-// STOP App.Views.Chat.TimelineRows #10 (review fixes, 2026-09-27)
+// STOP App.Views.Chat.TimelineRows #10 (review fixes, 2026-09-27; updated 2026-10-03)
 // Kind: visual/interaction verification gap
 // Swift: App/Views/Chat/TimelineRows.swift:1-2859; individual exact sites remain beside each partial-proof test.
 // Decisions: OD-0001, ED-059, ED-117, ED-216, ED-217 do not turn structural evidence into capture comparisons.
 // Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019; UI-CHAT-020.
 // Records: UI-CHAT-021; UI-CHAT-022; UI-CHAT-023; UI-CHAT-024; UI-CHAT-025.
-// Records: UI-CHAT-026; UI-CHAT-027; UI-CHAT-028; UI-CHAT-029; UI-CHAT-030.
-// Records: UI-CHAT-031; UI-CHAT-032; UI-CHAT-033; UI-CHAT-034; UI-CHAT-035.
-// Records: UI-CHAT-036; UI-CHAT-037; UI-CHAT-038; UI-CHAT-040; UI-CHAT-041.
-// Records: UI-CHAT-048; UI-CHAT-049; UI-CHAT-050; UI-CHAT-051.
-// Records: UI-CHAT-052; UI-CHAT-053; UI-CHAT-054; UI-CHAT-055; UI-CHAT-056.
-// Records: UI-CHAT-057; UI-CHAT-059; UI-CHAT-061.
-// Records: UI-GIT-044; UI-GIT-045.
-// Records: UI-GIT-046; UI-GIT-048; UI-GIT-049; UI-GIT-050; UI-HYDRAMERGE-002.
-// Records: UI-HYDRAMERGE-004; UI-HYDRAMERGE-005; UI-HYDRAMERGE-006; UI-HYDRAMERGE-007; UI-RUNTIME-001.
-// Records: UI-RUNTIME-002; UI-RUNTIME-003; UI-RUNTIME-004.
-// Missing: the required source/Windows captures and remaining record-specific mounted interaction scenarios.
-// Needed: compare approved reference captures and exercise each verification_method before restoring Req.
+// Records: UI-CHAT-028; UI-CHAT-029.
+// Records: UI-CHAT-033; UI-CHAT-034.
+// Records: UI-CHAT-036; UI-CHAT-037.
+// Records: UI-CHAT-048; UI-CHAT-051.
+// Records: UI-CHAT-052; UI-CHAT-053; UI-CHAT-054; UI-CHAT-056.
+// Records: UI-CHAT-057; UI-CHAT-059.
+// Records: UI-GIT-044.
+// Records: UI-HYDRAMERGE-002.
+// Records: UI-RUNTIME-002; UI-RUNTIME-003.
+// 2026-10-04, unit blitz-timelinerows-cd, OD-0098 (where a record asks for a comparison with a frame the reference videos do not
+// contain, the pinned Swift is the proof): taken out of the lists above as fully proven from the Swift lines by mounted scenarios,
+// with mutation checks (TimelineRowsCdTests and the Fin tests they extend; STOP #12 in TimelineRowsCdTests lists the tests per record):
+// UI-CHAT-026, -027, -030, -031, -032, -035, -038, -040, -041, -049, -050, -055, -061; UI-GIT-045, -046, -048, -049, -050;
+// UI-HYDRAMERGE-004, -005, -006, -007; UI-RUNTIME-001, -004. What stays above is CORNER-ONLY (ED-181's continuous curve is the
+// one open clause) except UI-CHAT-052 (also the soft arrival of the settle glide, STOP #12).
+// Missing: ED-181's continuous corner curve for the records above, and the .controlSize(.small) metric of UI-CHAT-039 and
+// UI-GIT-047 (STOP #5, #12); every other clause of these records is proven. (Formerly: the source/Windows capture of every state.)
+// Reference runtime (2026-10-03): the owner's video of Droppy Code 1.7.0 (work/reference-video/2-chat-use.mov, catalogue
+// static.user-bubble, static.attachment-plate, static.timeline-rows, static.thread-timeline) shows, in the dark Monokai
+// theme only: the sent bubble at several lengths (UI-CHAT-007: geometry, tint, hug and type now compared in
+// TimelineRowsCaptureTests and selection by a real drag; its "editing" state is in no frame, so that clause stays
+// UNRESOLVED), the hover pencil (UI-CHAT-010, one-frame cut; the port fades it under OD-0076), the attachment plate,
+// the folded-turn header and rule (UI-CHAT-036; the expanded state is in no frame), the error notice pill (UI-CHAT-034,
+// UI-RUNTIME-003; info and warning levels and the light theme are in no frame), the Edited-files card (UI-CHAT-037,
+// UI-GIT-044), the heads' report and note pills (UI-CHAT-048) and a sent-head badge (UI-CHAT-056). Every one of those
+// pills, cards and plates is drawn in a .continuous rounded rectangle, which ED-181 still draws with circular arcs
+// (STOP opencode #1), so none of them can match yet; no frame shows any other record of this list.
 // Six explicit label contracts are closed by TimelineRowsUiLabelsTests with clause-by-clause mutations.
 // Precise remaining UI dependency sites are recorded in TimelineRowsUiAuditTests.
 // UI-CHAT-024's finite-width defect is fixed and mounted long/short labels are now regression tested for
 // ordinary tools, head badges and MCP badges. That geometry proof is not a complete visual-capture claim.
 // All existing appearance/state assertions remain. UI-CHAT-039/UI-GIT-047 remain separately in STOP #5.
 //
-// STOP App.Views.Chat.TimelineRows #11 (review fixes, 2026-09-27)
+// STOP App.Views.Chat.TimelineRows #11 (review fixes, 2026-09-27; rewritten 2026-10-03 by the parity pass)
 // Kind: partial scenario/capture/performance verification
 // Swift: App/Views/Chat/TimelineRows.swift:1-2859; exact member ranges remain beside each partial-proof test.
-// Records: PR-CHAT-020; PR-CHAT-077; PR-CHAT-078; PR-CHAT-079; PR-CHAT-080.
-// Records: PR-CHAT-082; PR-CHAT-088; PR-CHAT-089; PR-CHAT-092; PR-CHAT-094.
-// Records: PR-CHAT-098; PR-CHAT-099; PR-CHAT-100; PR-CHAT-101; PR-CHAT-102.
-// Records: PR-CHAT-104; PR-CHAT-105; PR-CHAT-106; PR-CHAT-108; PR-CHAT-109.
-// Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114.
-// Records: PR-CHAT-115; PR-CHAT-116; PR-CHAT-123; PR-CHAT-143; PR-CHAT-144.
-// Records: PR-CHAT-145; PR-CHAT-146; PR-CHAT-147; PR-CHAT-148; PR-CHAT-149.
-// Records: PR-CHAT-150; PR-CHAT-151; PR-CHAT-152; PR-CHAT-153; PR-CHAT-154.
-// Records: PR-CHAT-155; PR-CHAT-161; PR-COMPOSER-211; PR-GIT-122; PR-GIT-151.
-// Records: PR-GIT-152; PR-HYDRAMERGE-088; PR-HYDRAMERGE-090; PR-HYDRAMERGE-101; PR-HYDRAMERGE-102.
-// Records: PR-HYDRAMERGE-103; PR-HYDRAMERGE-104; PR-HYDRAMERGE-106; PR-HYDRAMERGE-107; PR-HYDRAMERGE-108.
-// Missing: full verification_methods, including capture comparison where specified. Existing tests prove
-// useful subsets, not complete records. Needed before restoring each Req: its missing checks listed below.
-// PR-CHAT-080: scroll editor away/back; -089: click the quote menu item; -113: one mounted draft/proposed
-// transition; -123: all five reveal triggers; -144: pill-popover interaction; -149: one streaming fixture;
-// -155: fold the actual sent-head turn; -161: open menu and scroll the mounted row away.
-// PR-CHAT-102/-106: count parses/derivations, not identity only; -105: turn ending on a failed tool;
-// -116: ED-197/O-65 reference-runtime formatter cases, not just the oracle-labelled port expectations.
-// PR-CHAT-145/PR-HYDRAMERGE-108: measure first-tap frame time/first-open latency; ED-117 is not a waiver.
-// PR-GIT-122: runtime restoration, trimming and swallowed refusal; -151: complete legacy/card scenarios;
-// -152: click mounted title to open FilesPopover at the required 12/13/20-file cases.
-// PR-HYDRAMERGE-088: failed note fixture; -090: both merged/failed outcome interactions; -104: merged
-// outcome interaction. Other listed records retain their structural/state evidence while capture and
-// complete scenario proof stays unverified. No production defect is inferred from a missing proof.
-// The review-fix instruction explicitly permits withdrawing partial Req traits. No tests, assertions,
-// source-derived expectations, Rule/Decision/Oracle traits, or passing fully proven Req traits were removed.
+// Proven and removed from this note on 2026-10-03 (mounted scenarios, captures and mutations in TimelineRowsParityScenarioTests,
+// TimelineRowsTimelineScenarioTests and TimelineRowsCaptureTests, or the earlier Req tests re-verified by mutation):
+// PR-CHAT-077, -089, -105, -106, -123, -125, -144, -155, -166; PR-GIT-122, -151, -152;
+// PR-HYDRAMERGE-088, -090, -104, -105. (PR-CHAT-113 was listed here and is back below after the adversarial review of
+// 2026-10-03: a record/source conflict. PR-CHAT-080 was listed here and is back below after round 3 of that review: blocked
+// on ThreadTimeline.Draw.)
+// Records: PR-CHAT-020; PR-CHAT-078; PR-CHAT-079; PR-CHAT-080; PR-CHAT-082; PR-CHAT-088.
+// Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
+// Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-108; PR-CHAT-109.
+// Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
+// Records: PR-CHAT-116; PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
+// Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.
+// Records: PR-CHAT-153; PR-CHAT-154; PR-CHAT-161; PR-COMPOSER-211.
+// Records: PR-HYDRAMERGE-101; PR-HYDRAMERGE-102; PR-HYDRAMERGE-103; PR-HYDRAMERGE-106; PR-HYDRAMERGE-107; PR-HYDRAMERGE-108.
+// Capture comparisons with no frame in the reference video (UNRESOLVED until a capture exists): PR-CHAT-078 (quote chips),
+// -082 (the confirmation dialog), -088 (the reply's duration hover line), -092, -094 (seven of the eight kinds), -098, -099,
+// -100, -101, -104 (expanded state), -109, -110, -111, -112, -114, -115 (info and warning, light theme), -146, -147, -148,
+// -150, -151, -152, -153 (running and failed), -154, PR-COMPOSER-211, PR-HYDRAMERGE-101, -102, -103, -106, -107.
+// In a frame but drawn in an ED-181 .continuous shape (STOP opencode #1): PR-CHAT-079 (plate), -108 (Edited card),
+// -143 (report pill), -153 (sent badge). PR-CHAT-020 also needs the per-site static check (STOP cloud #13).
+// PR-CHAT-116: the video gives the reference formatter's "5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
+// (catalogue static.timeline-rows); 0 s, a negative interval and the hour cases (3599, 3725 s) appear in no frame.
+// PR-CHAT-102: record vs source (STOP opencode #2): RecentCache(limit: 60) keeps two generations, so more than sixty
+// parsed files can be held; the record's "at most sixty" needs correcting before a counting test can claim it.
+// PR-CHAT-145, PR-HYDRAMERGE-108: the first-tap frame time / first-open latency must be measured on a quiet PC (native
+// gate); the warm-off-main mechanism is tested, a timing under the shared build load is not evidence.
+// PR-CHAT-149: the streamed fixture is read flush by flush and never shows JSON (TimelineRowsParityScenarioTests), but the
+// card's changes do not animate with Chrome.panelSlide (:703-704): every flush rebuilds the reply's MarkdownView and a new
+// card, where SwiftUI keeps the card's identity. Needed: block identity kept across streaming re-renders (UI.Markdown).
+// PR-CHAT-113: record vs source. The record's action is "the popover is open while the markdown arrives" and its result
+// that the plan "switches to the finished-prose surface the moment the state leaves drafting". The pinned source freezes
+// the popover's content when it opens (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147: the hosted
+// view is built once, from the plan as it was), so an open popover never switches; only one opened again builds the
+// finished surface (:2287). The port reproduces the source (TimelineRowsParityScenarioTests.A_plan_opened_while_drafting_...,
+// a Rule test for that reason), and the record needs correcting before a Req test can claim it. Proven and unaffected by the
+// conflict: the streaming flag is the drafting state alone (:2287); the open popover survives the plan's own updates
+// (ChatBadge.Update) and, on the real timeline, the running turn's other rows arriving (a PlanCard keeps one identity per plan
+// entry: TimelineRowsParityReviewTests.REVIEW_An_open_plan_popover_stays_open_on_the_real_timeline_...).
+// PR-CHAT-161: a row's open menu lets go of the row when the row is gone (MessagePopoverMenu fix, structural test: a row
+// only moved to another stack, as ThreadTimeline.Draw does on every change, keeps its menu); the GC release asked for cannot
+// be observed headless: Avalonia 12.1.2 keeps any element that took a pointer press reachable after it leaves the tree (a
+// bare Border the same way), so the record's unit stays unproven by GC.
+// Observed (measured, not inferred), outside this unit (ThreadTimeline.Draw): a real Avalonia Popup closes itself in the Remove
+// call that takes its placement target out of the tree (probed 2026-10-03 with the overlay presenter, the row's handler disabled
+// too), and ThreadTimeline.Draw takes every kept row out of its stack and puts it into a new one on each change of the thread.
+// So on the real timeline every popover whose placement target is a view inside a row closes when another row arrives, whatever
+// the row's own handler does (the handlers' deferred reading of onDisappear, ED-256 (1), covers only their
+// own close). Corrected by round 3 of the adversarial review (2026-10-03), which found the list too short: the message editor
+// (PromptEditorPopover, target the AttachmentAnchorCapture behind the pencil, :148-155), the row menu (MessagePopoverMenu, target
+// the row's content, MessagePopoverMenu.swift:6-18), the attachment previews of AttachmentStrip and ToolRow
+// (AttachmentPreviewCoordinator, target the strip, a thumbnail or the tool row's label), the tool row's head-steps popover
+// (:1864-1867, on the row's content), the merge outcome's report (on its title, :1111-1120) and the turn-end card's files
+// popover and revert confirmation (on the files label and the revert disc, :2742-2766, :2777). Badge popovers (ChatBadge and
+// the badgePopover modifier: the plan, the Hydra report, heads and brief pills) hang from the window and are not affected (the
+// overlay-presenter tests of TimelineRowsParityScenarioTests; the reviewer's probe of a Hydra note's report). Needed:
+// ThreadTimeline.Draw keeping its kept rows in place, as the eager VStack does (ThreadTimeline.swift:384-391): the ThreadTimeline
+// unit's change, made on its own branch (unit/parity-threadtimeline a48fd1ae9, "a pass diffs the stack of rows instead of
+// rebuilding it") and not here.
+// PR-CHAT-080 (round 3 of the adversarial review, 2026-10-03): BLOCKED on that change. The record's cancellation clause ("The
+// editor closes when the row disappears") and its windows_path ("must leave the editor open exactly where it was") fail on the
+// real Popup: an entry arriving below an open editor (a row that never disappeared) closes it once, and the anchor capture opens
+// it again on a new MessageEditor whose @State (restoresFiles, error, isSending, MessageEditor.swift:26-29) starts over.
+// TimelineRowsParityReview3Tests.REVIEW_An_open_message_editor_popover_stays_open_... (the overlay presenter, a real window)
+// fails on this branch alone, twice ("closed 1 time(s)"), and is kept unchanged as the regression guard of the ThreadTimeline fix.
+// Measured 2026-10-03: on the combined tree of this branch and unit/parity-threadtimeline (38dc11052; git merge-tree, which
+// conflicts only in porting/engineering_decisions.md), applied to this worktree for the run and removed after, it passes alone
+// twice, and the TimelineRows, ChatBadge, MessagePopoverMenu and ThreadTimeline tests pass (748). Every Req PR-CHAT-080 trait
+// (seven tests: TimelineRowsFinUserRowTests, TimelineRowsParityReview2Tests' REVIEW test, TimelineRowsParityScenarioTests,
+// three in TimelineRowsPrRecordsTests, TimelineRowsTimelineScenarioTests) is a Rule R-TEST-4 partial proof now; the record
+// can be claimed again once the ThreadTimeline change is merged and the REVIEW test passes on the integration branch.
+// PR-CHAT-080 waits for the ThreadTimeline merge (unit/parity-threadtimeline first, then this unit; round 4 of the review,
+// 2026-10-03, kept the withdrawal: the lead merges ThreadTimeline first and re-runs the REVIEW test on staging).
+// No production defect is inferred from a missing proof. No tests, assertions, source-derived expectations,
+// Rule/Decision/Oracle traits, or passing fully proven Req traits were removed. Round 1 of the adversarial review
+// (2026-10-03) withdrew the Req trait of two tests that claimed PR-CHAT-113 in full (they are Rule R-TEST-4 partial proofs
+// now), strengthened the assertions behind UI-CHAT-063/-064 (the room reserved beside the outcome is exactly 24) and the
+// pencil fade (the ease-out curve), and added PR-CHAT-080's Req trait to the pencil test that asserts the hover prefetch.
+// Correction, round 2 of the adversarial review (2026-10-03): round 1's withdrawal left three tests that still claimed PR-CHAT-113
+// in full, and req_verify counted the record as proven by them. They are Rule R-TEST-4 partial proofs now (the record's open-popover
+// result conflicts with the source, above): TimelineRowsPrRecordsTests.A_drafting_plan_renders_with_the_streaming_markdown_...,
+// the same file's A_plan_popover_dismissed_from_outside_... (it keeps its Req PR-CHAT-112), and the round 1 REVIEW test in
+// TimelineRowsParityReviewTests (trait only; its assertions are the reviewer's, untouched). No PR-CHAT-113 Req trait is left.
+// Round 2 fixes: the badgePopover pills (the Hydra report, heads and brief) and the message editor take the badge's and the row menu's
+// reading of onDisappear (an entry arriving no longer closes an open report or editor: PR-CHAT-143, PR-CHAT-080); a reply's table
+// cells are selectable with the I-beam and the selected-text colour (PR-CHAT-166); a coordinator a host keeps lets go of its window
+// and detail once its popover has closed (weak shownIn, ChatBadge.swift:119); the head popover's I-beam is asserted (it was
+// unproven: a mutant that removed it survived). Not claimed, UNRESOLVED: a drag across the cells of one table (the Mac's behaviour is
+// not in the reference video). Owed on the native app, recorded in ED-256: an open report and plan popover
+// surviving a real row arrival; the I-beam and the selection colour over table cells and the head popover's lines; the memory of a
+// closed secondary window after a plan popover was opened in it. (Round 3 removed "the editor" from this list: its survival under
+// the overlay presenter runs headless and fails, above.)
+// Round 3 fixes (2026-10-03): a selection in a notice's message, a tool's detail and output and the head popover's five lines is
+// drawn in the system's selected-text colour (they took only the I-beam of ED-256 (5)'s recipe; now they are
+// made by it, VeiledText.SelectableText through TimelineRows.SelectableText); PR-CHAT-080 is back in this note (above); the B2
+// citations of MarkdownBlockSelection are re-pointed to B3 (MarkdownView.swift:854-863, the live branch :858).
+// Round 4 fixes (2026-10-03): a selection in text with a link (a sent bubble with a bare domain, a report paragraph with a link)
+// is drawn: LinkTextView's own SelectableTextBlock takes the attach-time SelectionBrush (LinkParagraphView.swift:312-313;
+// ED-256 (5), corrected to cover link text); a favicon that lands after its bubble is on screen is drawn in
+// front of the link: InlineText's faviconRevision is real state and LinkParagraphView.Update runs updateNSView
+// (MarkdownView.swift:1077, :1114 at B3; LinkParagraphView.swift:36-58); a tool's detail and output wrap at the row's width,
+// the detail cut at its twelfth wrapped line with an ellipsis (:2121-2125, :2150-2155; ED (7); PR-CHAT-101 stays in this
+// note for its capture at 29, 30 and 31 lines). The Req tests of PR-CHAT-077 (the favicon in front of the link, a drawn
+// selection), PR-HYDRAMERGE-090 (a drawn selection in the generic report, a link paragraph included) and PR-CHAT-166 (the
+// notice, the tool's detail and output: a drawn selection) now prove those clauses; the head popover's five lines wrap
+// (R-TEST-4). Owed on the native app (ED (5), (7), (8)): the selection colour in link text on screen, a favicon appearing on a
+// host's first sight, a long tool detail's twelve lines.
+// Round 5 fixes (2026-10-03): a report paragraph with a link is drawn at the report's 12 points: InlineText runs its body again
+// when an environment value it reads changes after it was built, and hands its link paragraph the new values in place
+// (MarkdownView.swift:1071-1075, :1094, :1114 at B3; LinkParagraphView.swift:36-58; ED (9)); the PR-HYDRAMERGE-090 Req tests
+// assert the drawn size of every text of the report, a link paragraph included, not the attached property. A tool detail cut at
+// a hard line break ends its twelfth line in an ellipsis too (ED (7), corrected; PR-CHAT-101 stays in this note: not claimed).
+// The PR-CHAT-166 drag test hovers the link text at both of the record's sites (a sent bubble with a bare domain, a report
+// paragraph with a link): the pointing hand over the link, the I-beam over the prose, a drag on the prose. LinkTextView's dropped
+// measurement on a new string has its test (LinkParagraphViewTests). PR-CHAT-080 still waits for the ThreadTimeline merge (above).
+// Owed on the native app (ED (7)): a detail cut at a hard line break, whose ellipsis there is UNRESOLVED on the Mac.

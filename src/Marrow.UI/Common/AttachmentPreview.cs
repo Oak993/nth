@@ -509,7 +509,9 @@ public sealed class AttachmentLargePreview : Border
     {
         var label = new TextBlock { Text = title };
         SwiftFont.Caption.Apply(label);
-        label.Foreground = SwiftColor.AccentColor.Brush(label);
+        // OD-0088 (ED-253): `.buttonStyle(.link)` draws its label in the view's tint, which the window root sets to the theme's
+        // accent (WindowManager.swift:186-192, Popovers.swift:7-12): Chrome.accent, the user's pick when there is one.
+        label.Foreground = Chrome.Accent.Brush(label);
         var button = PlainControls.Button(label, action);
         button.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
         return button;
@@ -596,7 +598,7 @@ public sealed class ToolImagePreview : StackPanel
         name.Foreground = Chrome.SecondaryText.Brush(name); // :425
         var open = new TextBlock { Text = "Open" }; // :429-433
         SwiftFont.Caption.Apply(open);
-        open.Foreground = SwiftColor.AccentColor.Brush(open);
+        open.Foreground = Chrome.Accent.Brush(open); // :425 .buttonStyle(.link): the tint, Chrome.accent (ED-253)
         var openButton = PlainControls.Button(open, () => ShellWorkspace.OpenWithDefaultApp(path));
 
         openButton.Margin = new Thickness(8, 0, 0, 0); // :428 Spacer(minLength: 8)

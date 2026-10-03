@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Marrow.Core.Port;
+using Marrow.Testing;
 
 namespace Marrow.App.Tests.Fixtures;
 
@@ -11,6 +13,11 @@ namespace Marrow.App.Tests.Fixtures;
 // the answer ("Connection: close"), so each request the checker sends is recorded once, in arrival order. The
 // answer comes from the test's respond function; a null answer closes the connection without a response, and a
 // respond task that never completes holds the request open until the server is disposed.
+// While the server lives, the flow's HTTP client is a fail-closed handler (Marrow.Testing.InProcessHttpHandler with no answer): a
+// request to this server goes through to its socket, and a request to any other address is refused in process and listed in
+// Refused. A feed names the download in its own asset link (https://example.com/Marrow.exe in most of these tests), and the
+// checker's size HEAD asks that address; without this a test that did not point the link at the server sent the HEAD to the
+// internet (found by the network audit, ED-256 (10)). A refused HEAD gives the checker no size, as an unreachable host does.
 public sealed class LoopbackFeedServer : IDisposable
 {
     private readonly TcpListener listener;
@@ -18,10 +25,13 @@ public sealed class LoopbackFeedServer : IDisposable
     private readonly CancellationTokenSource stop = new();
     private readonly Lock gate = new();
     private readonly List<ReceivedRequest> requests = [];
+    private readonly InProcessHttpHandler offline = new();
+    private readonly IDisposable transport;
 
     public LoopbackFeedServer(Func<ReceivedRequest, Task<CannedResponse?>> respond)
     {
         this.respond = respond;
+        transport = URLSession.Transport.Override(offline);
         listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         Port = ((IPEndPoint)listener.LocalEndpoint).Port;
@@ -44,10 +54,15 @@ public sealed class LoopbackFeedServer : IDisposable
         get { lock (gate) return requests.ToArray(); }
     }
 
+    /// <summary>The requests to another address that the fail-closed client refused while this server lived, as "METHOD address".</summary>
+    public IReadOnlyList<string> Refused => [.. offline.Received.Select(request => request.Method + " " + request.Url)];
+
     public void Dispose()
     {
         stop.Cancel();
         listener.Stop();
+        transport.Dispose();
+        offline.Dispose();
     }
 
     private async Task AcceptLoop()

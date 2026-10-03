@@ -96,15 +96,16 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             Hover(w, models); Tick(h, 50); Ink(fill, fill.Background, Chrome.Overlay(0.06 * Animation.EaseOut(0.1).Progress(0.05))); Tick(h, 51); Ink(fill, fill.Background, Chrome.Overlay(0.06));
             w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 101); Ink(fill, fill.Background, SwiftColor.Clear);
             // :149 a click selects the page; the selected row keeps 0.12 even while the pointer is on it (:740 selected before hovering).
-            Click(w, models); Assert.Single(Nodes<ModelsSettingsPage>(view)); Check("Models"); fill = Assert.IsType<Border>(RowButton(view, "Models").Content); Hover(w, RowButton(view, "Models")); Tick(h, 150); Ink(fill, fill.Background, Chrome.Overlay(0.12));
-            foreach (var title in titles.Skip(1)) { Click(w, RowButton(view, title)); Check(title); if (title == "Archive") Assert.Empty(Nodes<ChromeCompactTitle>(view)); /* :198 the empty archive is one symbol */ else Assert.Equal(title, Text(Assert.Single(Nodes<ChromeCompactTitle>(view)))[0]); }
+            // Chrome.swift:729 the wash moves to the new row on Chrome.hover (easeOut 0.1 s), so the rows are read once its 0.1 s are over.
+            Click(w, models); Assert.Single(Nodes<ModelsSettingsPage>(view)); Tick(h, 110); Check("Models"); fill = Assert.IsType<Border>(RowButton(view, "Models").Content); Hover(w, RowButton(view, "Models")); Tick(h, 150); Ink(fill, fill.Background, Chrome.Overlay(0.12));
+            foreach (var title in titles.Skip(1)) { Click(w, RowButton(view, title)); Tick(h, 110); Check(title); if (title == "Archive") Assert.Empty(Nodes<ChromeCompactTitle>(view)); /* :198 the empty archive is one symbol */ else Assert.Equal(title, Text(Assert.Single(Nodes<ChromeCompactTitle>(view)))[0]); }
             // :182 frozen while the pane scrolls: a wheel turn over the page holds every row away from the pointer (no hover fill, no click) until 150ms after the last movement.
-            Click(w, RowButton(view, "General")); var scroll = Assert.Single(Nodes<ScrollViewer>(Field<Control>(view, "detail"))); var at = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), w)!.Value;
+            Click(w, RowButton(view, "General")); Tick(h, 110); var scroll = Assert.Single(Nodes<ScrollViewer>(Field<Control>(view, "detail"))); var at = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), w)!.Value;
             Assert.True(list.IsHitTestVisible); w.MouseMove(at); w.MouseWheel(at, new Vector(0, -3)); Drain(w); Assert.True(scroll.Offset.Y > 0); Assert.False(list.IsHitTestVisible);
             var about = RowButton(view, "About"); var aboutFill = Assert.IsType<Border>(about.Content); var point = about.TranslatePoint(new Point(10, 10), w)!.Value;
             w.MouseMove(point); Drain(w); Tick(h, 30); Assert.False(about.IsPointerOver); Ink(aboutFill, aboutFill.Background, SwiftColor.Clear);
             w.MouseDown(point, MouseButton.Left); w.MouseUp(point, MouseButton.Left); Drain(w); Assert.Single(Nodes<GeneralSettingsPage>(view)); Check("General");
-            Tick(h, 200); Assert.True(list.IsHitTestVisible); Click(w, RowButton(view, "About")); Assert.Single(Nodes<AboutSettingsPage>(view)); Check("About");
+            Tick(h, 200); Assert.True(list.IsHitTestVisible); Click(w, RowButton(view, "About")); Assert.Single(Nodes<AboutSettingsPage>(view)); Tick(h, 110); Check("About");
         });
     }
 }

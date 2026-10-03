@@ -30,6 +30,7 @@ using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -143,10 +144,14 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //    DECISION above SidebarView.cs Contains (:1339): an empty needle answers true (SE-0357). Proven by
 //    Return_with_an_empty_query_selects_the_first_thread_of_the_first_project. Non-empty Return and no-result
 //    remain proven by Return_selects_the_first_thread_of_the_first_search_result and Return_with_no_result_changes_nothing.
-// #2 PR-SIDEBAR-019: surviving rows' positional slide needs a UI/Port layout-animation foundation plus an ED;
-//    site ListPassNow/ApplyList (SidebarView.cs:460-484; entering/leaving fades ride panelSlide, stayers jump).
-// #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: `.roundedBorder`/`.bordered`/`.borderedProminent`
-//    chrome needs an ED/owner ruling; sites RenamePopover (:239) and RenameThreadPopover (:995).
+// #2 PR-SIDEBAR-019: CLOSED (STOP #3 above; parity pass 2026-10-03 adds the mounted entering/leaving proof and the
+//    capture comparison: the rows below a deleted thread in 2-chat-use.mov 154.43-154.79 s follow panelSlide's
+//    spring(0.32, 0.9) to an rms of 0.020 of the travel, against 0.038-0.146 for the other curves tried; evidence
+//    E:\Droppy\work\parity\evidence\SidebarView\slide_fit.py and slide_fit.txt).
+// #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: the popover is built and its text and behaviour
+//    are proven, but `.roundedBorder`/`.bordered`/`.borderedProminent` and presentedChrome's `.buttonBorderShape(.capsule)`
+//    (Popovers.swift:10) still have no Windows chrome or decision (SystemButtons.cs draws a radius-6 rectangle and
+//    reads no capsule flag); sites SidebarView.cs RenamePopover and RenameThreadPopover.
 // #4 PR-SIDEBAR-130, PR-SIDEBAR-133: CLOSED (Job SB, ROUND3.md item 2) - see the CLOSED STOP #4 block above
 //    SidebarView.cs ProjectRow's own header, and its own constructor's ContextMenu.Opening wiring (:1886-1899).
 //    Proven by A_real_right_click_opens_the_project_rows_context_menu_rebuilt_fresh_on_every_open and
@@ -160,6 +165,144 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //    (SidebarView.cs :2899-2911). PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half is proven by the same
 //    closure. UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait
 //    tests; the constructor/ThreadRow wiring assembly this entry originally named is no longer outstanding.
+
+//
+// PARITY PASS 2026-10-03 (unit/parity-sidebarview). Captures: E:\Droppy\work\parity\evidence\SidebarView\ (never in
+// git): sbs_162*.png, z_*.png (the whole sidebar beside 2-chat-use.mov 162 s, rendered by SidebarCaptureTests),
+// delete-note-sbs.png (152.6 s), slide_fit.py/.txt (154.43-154.79 s). What the captures settle and what stays open:
+// - Geometry beside the video: row pitch, 28 pt rows, 24 pt stub, 20 pt icon slot, 46 pt title inset, the footer rows,
+//   the head card's 9 columns at 248 pt, the delete note's line breaks and the panelSlide slide all match. Every text
+//   line box is about 2 pt shorter than the Mac's (SF Pro vs Inter, OD-0009/ED-059: e.g. the callout note's line pitch
+//   14.3 vs 16.5, so each 12 pt header sits 2-3 pt higher): UNRESOLVED, a font-metric question, not a sidebar one.
+// - SF Symbols draw narrower than their Lucide stand-ins (OD-0010): the stub's 8 pt chevron box is 10 pt wide where
+//   the Mac's glyph is about 5.5 pt, so "4 heads" sits 2.5 pt further right; the Settled header's 10 pt chevron the
+//   same (+3 pt). UNRESOLVED, a symbol-width question for the icon table, not a sidebar one.
+// Still open per record (each is otherwise proven by the tests that carry its trait):
+// - PR-SIDEBAR-013, UI-SIDEBAR-043, UI-UPDATE-010: the update dot appears and disappears by a cut. UI-UPDATE-010 says
+//   it "disappears immediately"; OD-0076 says nothing changes by a cut; no ruling settles the conflict. No frame of the
+//   video shows the dot (the feed is empty by OD-0012 I1), so PR-SIDEBAR-013's capture clause is UNRESOLVED.
+// - PR-SIDEBAR-055: proven on a mounted release (On_a_real_release_the_row_and_everything_riding_it_spring_home...);
+//   its capture clause is UNRESOLVED: no reorder drag appears in either video.
+// - PR-SIDEBAR-127: the unmapped-symbol placeholder has no decision (the record's open_question); no project layout
+//   appears in the videos (capture UNRESOLVED); the glyph swap is a cut (OD-0076).
+// - PR-SIDEBAR-129, UI-SIDEBAR-008: the 0.55 dim is a cut (the Mac snaps; OD-0076 asks for a transition in the Mac's
+//   motion language, which no decision has fixed for this site); PR-SIDEBAR-129's capture is UNRESOLVED (no inactive
+//   project in the videos). UI-SIDEBAR-008's accessory (count <-> buttons) crossfades on the hover's Chrome.hover since
+//   review round 2 (below); the dim is still the cut.
+// - PR-SIDEBAR-135: STOP #9 below (the reopen glide's two faces against a pinned capture).
+// - UI-SIDEBAR-001: "pressing it drags the window" has no hit-test proof; UI-SIDEBAR-005: the real scroll wiring
+//   (ScrollGestureEvent/Offset) that arms the freeze is untested; UI-SIDEBAR-006: the gap's mounted transition needs
+//   the project-removal reactivity STOP #11 names.
+// - UI-SIDEBAR-015/-016: the native submenu opening and the absence of a reserved check column cannot be observed on
+//   a headless Avalonia MenuItem.
+// - UI-SIDEBAR-017/-018/-019/-021/-022/-023/-024: per-clause gaps the parity audit listed (the face's paddings and
+//   minimum heights, the Settled accessibility value, the pin's 0.9 scale, MiniSpinner cellSize 2.4, the dot's offset,
+//   the project line's fonts and spacing, monospaced digits on the time label, the failed dot in ActivityStatus, the
+//   fold chevron's symbols, the title-width glide on hover). UI-SIDEBAR-020: the settle pop (:1909 spring 0.3/0.45) is
+//   a cut: SettleCheck is rebuilt with its 1.35 scale fixed.
+// - UI-SIDEBAR-026/-027: dismissal by click-away/Escape and the Closed -> carryOutConfirmedDeletion hookup cannot run
+//   headless (STOP #12); UI-SIDEBAR-028/-029/-030/PR-SIDEBAR-091: STOP #6 (the controls' chrome);
+//   UI-SIDEBAR-031/-032: `.controlSize(.small)`'s metrics are unverified.
+// - UI-SIDEBAR-035: "click anywhere, including the connector stub" is UNRESOLVED: :1583 strokes a bare shape with no
+//   content shape, so whether SwiftUI hit-tests the stub's empty column is not settled by the source; the port's
+//   column is hit only on its dots.
+// - UI-SIDEBAR-036: the snappy curve between the card's two heights, and panelSlide on the connector and card heights
+//   when the head set changes (:1541), are unproven; the surviving glyphs of a card whose heads change or reorder jump
+//   to their new places where the Mac glides them (OD-0076 asks for the glide; not done in this pass). What is proven:
+//   the glyphs that join or leave fade (UI-SIDEBAR-038, below) and the card keeps its own state under new heads.
+// - UI-SIDEBAR-037: the outcome badge's 3 pt overhang position and the hover scale easing back are unproven.
+// - UI-SIDEBAR-044: the Windows dialog's prompt/message/folder flags (OpenPanel.cs) need an IFileOpenDialog fake.
+// - UI-SIDEBAR-060: `.shadow(radius: 10)` is passed as BoxShadow.Blur 10; SwiftUI's radius-to-blur mapping has no
+//   decision (the same literal in FollowUpQueueTab.cs and ModelsSettingsPage.cs); the pointer style and the
+//   neighbours' slide are proven only through DragChanged/DragEnded, not a real press-drag.
+//
+// REVIEW PASS 1 (2026-10-03, adversarial; the tests named REVIEW_ are the reviewer's, kept as written). What it refuted and
+// what was done, each against the Swift:
+// - UI-SIDEBAR-033, PR-SIDEBAR-126, UI-SIDEBAR-058: SidebarHelperRow (SidebarView.swift:1375-1386) and SidebarRow
+//   (Chrome.swift:731-737) put .overlay before .onHover, so the hover covers the row and its ellipsis; the port hovered the
+//   button alone and lost the ellipsis the moment the pointer rested on it. Both rows hover their overlay host now (as
+//   SidebarThreadRow does). REVIEW_A_helper_rows_ellipsis_stays..., REVIEW_A_project_rows_ellipsis_and_plus_stay....
+// - PR-SIDEBAR-095 (the archive popover's Delete label, :927): SwiftColor.Red was the light member of systemRed
+//   in both appearances; it is the documented light/dark pair now (ED-092, ED-104; Light #FF383C, Dark #FF4245, the macOS
+//   27 UI Kit's System colours, the same edition as ED-104's Yellow). AppTheme's FrameworkRed is a different decision and
+//   stays: PR-THEME-031's windows_path fixes one red for the system-hue themes and keeps it constant.
+// - UI-SIDEBAR-038: the head card's glyphs past twelve join and leave on SwiftUI's default .opacity transition under the
+//   chevron's snappy toggle (2-chat-use.mov 5.33-5.40 s); the port refilled the rows whole. REVIEW_The_head_cards_chevron_
+//   fades_the_glyphs_past_twelve_in_and_out_on_its_snappy_toggle and the proofs beside it. A leaving glyph fades on a layer
+//   over the card (it takes no room, so the chevron does not wait for it); the Mac's glide of the surviving glyphs to their
+//   new places is not done (above, UI-SIDEBAR-036).
+// - PR-SIDEBAR-005: Return_with_no_result_changes_nothing started with nothing selected, so a Return that cleared the
+//   selection passed it (mutant PR005-noresult-clears); Return_with_no_result_leaves_the_current_selection_as_it_was.
+// - PR-SIDEBAR-130, UI-SIDEBAR-014 (OD-0008 A9, OD-0012 E2): the Remove project question's popup lifecycle was never run
+//   (the recording presenter raises neither Opened nor Closed): the tests below raise them. Dismissing removes nothing; the
+//   red action closes the question and removes only once its popup is gone, on the main actor's next turn. The question
+//   lives in the ProjectRow control, which the list rebuilt whenever its item's value changed (a new thread in the project
+//   dropped an open question): the list hands a surviving project row its new snapshot and count in place now
+//   (UpdateItemView), as SwiftUI keeps the row's @State under its ForEach id; the head card likewise (its showsAllHeads).
+//   NOT done, and not claimed: SidebarThreadRow, HelperStubRow and the headers still take a new value by a rebuild where
+//   they stand (UpdateItemView), so their own @State (a hover, an open popover) may not survive a change of their record;
+//   it is the same gap, UNRESOLVED here (not read through for those rows), and no test covers it. (SidebarHelperRow was in
+//   this list until review round 2, below.)
+// - UI-SIDEBAR-038 also: the chevron itself is a view of the card's stack (:1514 `if capped { ... }`), so it joins and leaves
+//   on the same default opacity transition when the head count crosses twelve (:1535 snappy, the card's row count changes
+//   with it): The_head_cards_chevron_fades_in_when_the_card_becomes_capped_and_out_when_it_stops_being.
+// - The engineering decisions this pass made (the system red pair, the leaving glyphs' layer over the card, row state handed
+//   in place) are ED-258 in porting/engineering_decisions.md (a placeholder the lead numbers at merge; a
+//   Decision trait cannot carry it, Traceability wants ED-nnn). That entry also records the checks OWED on a native window.
+// - Mutation sweep, finishing the reviewer's (E:\Droppy\work\parity\evidence\SidebarView\review\mutants_round1.txt,
+//   _round2, _round3, _round3b): 68 more mutants over the claimed records (PR-SIDEBAR-134's glide gate, UI-GIT-057,
+//   UI-HYDRAMERGE-030, UI-SIDEBAR-004, -007, -025, -033, -034, -038, -039, -040, -041, -042, -059) and the fixed defects
+//   D1a and D2-D14, every one killed: D6a (Red's dark member) by SwiftColorTests, the others by the Views.Sidebar namespace.
+//   One survived at first, D8a (the folded stub's fill set with no animation): its test now checks the fill mid-fade.
+//   That sweep did not cover every decision of this pass: review round 2's own mutants RA1, RA2, RA3, RA4, RA5, RA7 and RA16
+//   survived (mutants_review2.txt); round 2, below, kills them.
+// - PR-SIDEBAR-126's hover fill was proven only by FillFor's value: A_project_rows_hover_fill_is_drawn_on_a_real_hover_and_
+//   kept_while_the_pointer_rests_on_its_ellipsis proves it on the live row (mutants H2b and P126 in _round3c, both killed).
+//
+// REVIEW PASS 2, ROUND 2 (2026-10-03, adversarial; its REVIEW_Round2_ tests kept as written). What it refuted and what was
+// done, each against the Swift and the videos:
+// - UI-SIDEBAR-038: on the chevron's own toggle (:1515-1516) the old chevron vanished in the first frame; in 2-chat-use.mov
+//   5.340-5.378 s it is still drawn, faint, where it stood. The chevron whose symbol changes (:1516) now leaves on the ghost
+//   layer where it stood and the new one joins (REVIEW_Round2_The_head_cards_down_chevron_fades_out_where_it_stood...). The
+//   head-card tests pick the live chevron (LiveChevron) and check the old one fading where it stood; the toggle test lets the
+//   card's measured width land before its click (a pass that took both ran without the click's transaction).
+// - UI-SIDEBAR-058, PR-SIDEBAR-126, PR-WIN-200: SidebarRow swapped its accessory by a cut where Chrome.swift:735-737 flips
+//   the hover inside withAnimation(Chrome.hover); it now keeps a control its closure hands back and crossfades a new one in
+//   (ED-258 (4)), and ProjectRow keeps its branch's view (:1115-1133): the count Text changes in place, the
+//   ellipsis-and-plus HStack keeps its button, and its accessory follows the live project's expansion
+//   (REVIEW_Round2_A_search_results_project_row_crossfades_its_count_out..., ChromeFifthTests.SidebarRow_hover_eases_its_fill_
+//   crossfades_a_new_accessory_and_leaves_one_handed_back_alone). Project_count_is_tabular_... follows the fade to its end.
+// - UI-SIDEBAR-033: SidebarHelperRow built a new RowActionsButton on every change of its record, so an open menu lost its
+//   anchor; it keeps the button while the ellipsis shows, builds its actions as the menu opens (RowActionsButton's new
+//   overload), and the list hands a surviving helper row its snapshot and isLast in place
+//   (REVIEW_Round2_A_helper_rows_open_ellipsis_menu_keeps_its_button..., The_real_list_keeps_a_helper_row_and_its_open_menu...,
+//   A_helper_rows_kept_ellipsis_opens_on_the_actions..., A_project_rows_kept_ellipsis_opens_on_the_activation...).
+// - Proofs the round asked for, each killing the mutant that had survived: the card's clip on leaving glyphs (RA1, RA2:
+//   A_leaving_glyph_is_drawn_inside_the_card_and_cut_by_its_edge...), the toggle's snappy on its curve (RA7:
+//   The_chevrons_toggle_fades_the_glyphs_past_twelve_and_its_symbols_on_snappy_0_18...), :1535 inside :1541 (RA5:
+//   A_head_that_joins_on_a_new_row_fades_in_on_the_cards_snappy...), a search result's project row through a new pass (RA3:
+//   A_search_results_project_row_keeps_its_open_menu_and_its_Remove_question...), a menu closed from the ellipsis (RA4:
+//   Closing_the_ellipsis_menu_with_the_pointer_resting_on_the_ellipsis...), the hover fill's ease (RA16:
+//   A_project_rows_hover_fill_eases_in_on_chrome_hover, The_Add_project_rows_hover_fill_eases_in_on_chrome_hover).
+// - The_collapsed_count_label_shows_only_while_collapsed_... now asserts the live row's count and closes its windows inside
+//   the test (a row left open laid its new count out after the test body, and that late layout threw "Could not create
+//   glyphTypeface" headless, twice alone; a layout inside the body did not).
+// - Mutation records: E:\Droppy\work\parity\evidence\SidebarView\review\mutants_round4.txt (and .json): 27 mutants:
+//   the round-2 survivors RA1, RA2, RA3, RA4 (restated as RA4b and RA4c for the new RefreshAccessory), RA5, RA7, RA16 and
+//   RA16b, and R4M1-R4M14 over this round's changes. Every one killed but R4M9 (a helper's kept status never drawn again),
+//   which A_helper_rows_status_follows_its_thread_turning_unread_and_then_failed now kills, with R4M9b (mutants_round4b.json).
+//
+// REVIEW PASS 2, ROUND 3 (2026-10-03, adversarial; its REVIEW_Round3_ test kept as written). What it refuted and what was done:
+// - PR-WIN-200 ('with the selection change animated on the 0.1-second hover curve', Chrome.swift:729): SidebarRow took
+//   isSelected once and SettingsView built every row again on a page change, so the wash moved by a cut (1-settings-tour.mov
+//   47.765-47.85 s eases it over about 0.1 s). SidebarRow.IsSelected now hands a kept row its selection, easing the fill on
+//   Chrome.hover whatever the transaction; SettingsView keeps a row per listed page (ED-258 (5);
+//   SidebarRowSelectionReviewTests, SettingsSidebarSelectionTests, ChromeFifthTests.SidebarRow_handed_a_new_selection_...).
+//   Three Settings tests that read a row right after a click had encoded the cut; they now read it after Chrome.hover's 0.1 s.
+// - The kept helper's isLast was proven one way only (RR6, RR7 survived the namespace):
+//   A_kept_last_helper_row_runs_its_connector_through_once_an_older_helper_lands_below_it, the reviewer's proposed test.
+// - Mutation records: mutants_round5.txt and mutants_round5b.txt (and .json): 19 mutants, every one killed but S17 and RR1,
+//   both recorded in the ED entry as not told apart by any headless check.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -488,7 +631,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-005 / -006: Return and the arrows ----
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:86-90
+    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:86-90
+    // (was Rule R-TEST-6 for STOP #5; these needles and titles are ASCII, where the canonical and the ordinal readings of
+    // `lowercased().contains` agree, so the expectations do not rest on that open item)
     public void Return_selects_the_first_thread_of_the_first_search_result()
     {
         headless.OnUiThread(() =>
@@ -517,7 +662,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:87
+    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:87 (ASCII only, as above: STOP #5 does not bear on it)
     public void Return_with_no_result_changes_nothing()
     {
         headless.OnUiThread(() =>
@@ -534,6 +679,40 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 box.Text = "nothing matches this";
                 Press(box, Key.Enter);
                 Assert.Null(model.SelectedThreadID);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:86-90 `if let first = ... { selectedThreadID = first.id }`: no result, no assignment
+    // REVIEW (pass 1, mutant PR005-noresult-clears): the test above starts with nothing selected, so a Return that clears
+    // the selection on no result passed it. Here a selection stands (not the first thread, so selecting the first thread
+    // of the list would show too) and a Return with no result must leave exactly that.
+    public void Return_with_no_result_leaves_the_current_selection_as_it_was()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var beta = NewProject(harness, "Beta");
+            var older = NewThread(alpha, "Fix the build", 1);
+            var newer = NewThread(alpha, "Fix the docs", 2);
+            var other = NewThread(beta, "Fix the tests", 3);
+            var model = Model(harness, [alpha, beta], [older, newer, other]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                model.SelectedThreadID = other.Id; // not the first thread the list would offer (newer)
+                var box = SearchBox(view);
+                box.Text = "nothing matches this";
+                Press(box, Key.Enter);
+                Assert.Equal(other.Id, model.SelectedThreadID);
+                box.Text = "docs"; // a result: Return selects its first thread
+                Press(box, Key.Enter);
+                Assert.Equal(newer.Id, model.SelectedThreadID);
+                box.Text = "still nothing here"; // no result again: the selection the last Return made stands
+                Press(box, Key.Enter);
+                Assert.Equal(newer.Id, model.SelectedThreadID);
             });
         });
     }
@@ -2900,9 +3079,17 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             });
             static double ScaleOf(Control control) => control.RenderTransform is ScaleTransform scale ? scale.ScaleX : 1;
             static double LiftOpacity(Control host) => ((Panel)host).Children[0].Opacity;
+            // :1838-1846 .background { lift }.scaleEffect(isDragged ? 1.02 : 1): the scale applies to the row WITH its
+            // lifted fill and shadow, so it sits on the host that holds both, and neither carries a scale of its own.
+            static void OneScale(Control host, Control content, double expected)
+            {
+                Assert.Equal(expected, ScaleOf(host), 3);
+                Assert.Equal(1d, ScaleOf(content));
+                Assert.Equal(1d, ScaleOf(((Panel)host).Children[0]));
+            }
             harness.Main.OnMain(() =>
             {
-                Assert.Equal(1d, ScaleOf(content));
+                OneScale(host, content, 1d);
                 Assert.Equal(0d, LiftOpacity(host));
                 Call(view, "DragChanged", grabbed, 5d);
             });
@@ -2913,7 +3100,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             }
             harness.Main.OnMain(() =>
             {
-                Assert.Equal(1.02d, ScaleOf(content), 3); // :1846
+                OneScale(host, content, 1.02d); // :1846
                 Assert.Equal(1d, LiftOpacity(host)); // :1842-1843 fully faded in
                 Call(view, "DragEnded");
             });
@@ -2924,7 +3111,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             }
             harness.Main.OnMain(() =>
             {
-                Assert.Equal(1d, ScaleOf(content), 3); // springs back out
+                OneScale(host, content, 1d); // springs back out
                 Assert.Equal(0d, LiftOpacity(host));
                 window.Close();
             });
@@ -3612,9 +3799,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // `.textFieldStyle(.roundedBorder)` and for `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)`.
     // The ellipsis popover's Rename action currently silently does nothing: it cannot present the missing
     // rename form. This no-op is part of STOP #6, not a completed rename path.
-    // Done so far: nothing implemented at RenameThreadPopover or SidebarView.RenamePopover; both stay MARROW_STUB.
-    // liveRenameTarget (PR-SIDEBAR-093, the ellipsis path's live-thread lookup, :882-887) does not depend on this
-    // site and is proven below. Nothing is claimed for UI-SIDEBAR-028, -029 or -030, and no test names them.
+    // Done so far (updated 2026-10-03): RenameThreadPopover and SidebarView.RenamePopover were built on 2026-10-01 and
+    // their strings, pre-fill, disabled rule, Return and the model rename are proven in the PR-SIDEBAR-091 section
+    // below, so the "silently does nothing" sentence above no longer holds. What stays open is only the chrome named
+    // under Needed (and presentedChrome's capsule shape, Popovers.swift:10); PR-SIDEBAR-091, UI-SIDEBAR-028, -029 and
+    // -030 are not certified.
 
     private static object? SetProp(object target, string name, object? value)
     {
@@ -3938,16 +4127,35 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
-    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:927: Delete's label is red (Chrome.danger, whose default is .red, AppTheme.swift:197)
-    public void The_delete_button_in_the_archive_popover_is_drawn_in_danger() => headless.OnUiThread(() =>
+    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:927: Delete's label is the fixed `.red`
+    [Trait("Req", "UI-SIDEBAR-031")] // :927 "Delete's label is .red"
+    // `.foregroundStyle(.red)` is SwiftUI's system red, not the theme's Chrome.danger (AppTheme.swift:197 only FALLS BACK
+    // to .red): under a theme whose palette names its own danger (Nord, :121 "BF616A") the label stays system red.
+    public void The_delete_button_in_the_archive_popover_is_drawn_in_system_red_whatever_the_themes_danger() => headless.OnUiThread(() =>
     {
-        using var harness = new AppModelHarness();
-        var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
-        var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
-        var popover = ShownArchivePopover(thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }));
-        var delete = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text == "Delete");
-        Assert.Equal(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color);
-        WindowOf(popover).Close();
+        var saved = ThemeManager.Current;
+        ThemeManager.Current = AppTheme.Nord;
+        try
+        {
+            using var harness = new AppModelHarness();
+            var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
+            var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
+            var popover = ShownArchivePopover(thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }));
+            var delete = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text == "Delete");
+            var window = WindowOf(popover);
+            // ED-092/ED-104 (REVIEW pass 1): Color.red is the documented light/dark pair, not its light member alone; the
+            // label follows the appearance (macOS 27 UI Kit "System colours": Red Light #FF383C, Dark #FF4245).
+            window.RequestedThemeVariant = ThemeVariant.Light;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Color.FromRgb(255, 56, 60), ((ISolidColorBrush)delete.Foreground!).Color); // systemRed, Default (light)
+            Assert.NotEqual(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color); // not Nord's BF616A
+            window.RequestedThemeVariant = ThemeVariant.Dark;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Color.FromRgb(255, 66, 69), ((ISolidColorBrush)delete.Foreground!).Color); // systemRed, Default (dark): the lighter member
+            Assert.NotEqual(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color);
+            window.Close();
+        }
+        finally { ThemeManager.Current = saved; }
     });
 
     [Fact]
@@ -4866,6 +5074,85 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-035")] // SidebarView.swift:1581-1613 HelperStubRow body
+    public void A_folded_stub_keeps_its_recorded_geometry_and_its_colours_ease_with_the_hover_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var head = HeadHelper(project, parent.Id, 0, 1);
+        var model = Model(harness, [project], [parent, head]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        Border shape = null!;
+        TextBlock label = null!;
+        SwiftImage chevron = null!;
+        Avalonia.Controls.Shapes.Path connector = null!;
+        static Color ColorOf(IBrush? brush) => ((ISolidColorBrush)brush!).Color;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { head }, (Action)(() => { }))!;
+            window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                shape = LogicalQuery.SelfAndDescendants<Border>(row).Single(border => border.Height == ThreadRowMetrics.HelperHeight);
+                label = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(text => text.Text == "1 head"); // :1577-1578, :1591 one head says "head"
+                chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(i => i.SymbolName == "chevron.right"); // :1586
+                connector = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(row).Single();
+                Assert.Equal(new Thickness(6, 0, Chrome.RowHorizontalPadding, 0), shape.Padding); // :1600-1601
+                Assert.Equal(new CornerRadius(Chrome.RowCornerRadius), shape.CornerRadius); // :1580
+                Assert.Equal(ThreadRowMetrics.ConnectorWidth, Frame(shape, row).X); // :1584 the 28 pt stub, then the row
+                Assert.Equal(5d, Assert.IsType<StackPanel>(chevron.Parent).Spacing); // :1585 HStack(spacing: 5)
+                Assert.Equal(8d, SwiftImage.GetFont(chevron)!.PointSize); // :1587 .system(size: 8, weight: .bold)
+                Assert.Equal(FontWeight.Bold, SwiftImage.GetFont(chevron)!.Resolve().FontWeight);
+                Assert.Equal(11d, label.FontSize); // :1590 .subheadline
+                var idle = Chrome.SecondaryText.Opacity(0.85).Resolve(label.ActualThemeVariant); // :1596 not hovered
+                Assert.Equal(idle, ColorOf(label.Foreground));
+                Assert.Equal(idle, ColorOf(chevron.Foreground));
+                Assert.Equal(HelperConnector.Color(false).Resolve(connector.ActualThemeVariant), ColorOf(connector.Stroke)); // :1584
+                Assert.Equal(0, ColorOf(shape.Background).A); // :1607 clear
+                window.MouseMove(shape.TranslatePoint(new Point(80, 12), window)!.Value); // :1611-1613 withAnimation(Chrome.hover)
+            });
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s: the label, chevron and stroke are on their way, not cut
+            harness.Main.OnMain(() =>
+            {
+                var idle = Chrome.SecondaryText.Opacity(0.85).Resolve(label.ActualThemeVariant);
+                var hovered = Chrome.SecondaryText.Resolve(label.ActualThemeVariant);
+                Assert.InRange((double)ColorOf(label.Foreground).A, idle.A + 1, hovered.A - 1);
+                Assert.InRange((double)ColorOf(chevron.Foreground).A, idle.A + 1, hovered.A - 1);
+                var strokeIdle = HelperConnector.Color(false).Resolve(connector.ActualThemeVariant);
+                var strokeHovered = HelperConnector.Color(true).Resolve(connector.ActualThemeVariant);
+                Assert.InRange((double)ColorOf(connector.Stroke).A, strokeIdle.A + 1, strokeHovered.A - 1);
+                // :1607 the fill is one of them: clear to the 0.06 overlay along the same Chrome.hover, not cut
+                // (round 3 mutant D8a-stub-fill-snaps survived the test without this line)
+                var fillHovered = Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant);
+                Assert.InRange((double)ColorOf(shape.Background).A, 1, fillHovered.A - 1);
+            });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                var hovered = Chrome.SecondaryText.Resolve(label.ActualThemeVariant); // :1596 hovered: 1
+                Assert.Equal(hovered, ColorOf(label.Foreground));
+                Assert.Equal(hovered, ColorOf(chevron.Foreground));
+                Assert.Equal(HelperConnector.Color(true).Resolve(connector.ActualThemeVariant), ColorOf(connector.Stroke));
+                Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), ColorOf(shape.Background)); // :1607
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-SIDEBAR-113")] // App/Views/Sidebar/SidebarView.swift:1585 HStack(spacing: 5), centre alignment by default
     public void The_folded_stubs_chevron_and_label_sit_on_the_centre_line_of_its_24_point_row() => headless.OnUiThread(() =>
     {
@@ -5278,10 +5565,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     private static ValueList<RowAction> ProjectRowContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model) =>
-        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "ContextMenuActions", project, isActive, hasOverride, model)!;
+        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "ContextMenuActions", project, isActive, hasOverride, model, (Action<Project>)model.RemoveProject)!;
 
     private static ValueList<RowAction> ProjectRowActions(AppModel model, Project project, bool isActive) =>
-        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "Actions", model, project, isActive)!;
+        (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "Actions", model, project, isActive, (Action<Project>)model.RemoveProject)!;
 
     private static object ProjectPairChoices(params (Guid Id, string Title)[] pairs)
     {
@@ -5298,7 +5585,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     private static IReadOnlyList<Control> ProjectRowBuildContextMenuItems(Project project, bool isActive, bool hasOverride, AppModel model, object pairs) =>
-        (IReadOnlyList<Control>)CallStatic(Private("ProjectRow"), "BuildContextMenuItems", project, isActive, hasOverride, model, pairs)!;
+        (IReadOnlyList<Control>)CallStatic(Private("ProjectRow"), "BuildContextMenuItems", project, isActive, hasOverride, model, pairs, (Action<Project>)model.RemoveProject)!;
 
     // ---- PR-SIDEBAR-160: the Archive item ----
 
@@ -5626,9 +5913,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         }
     }
 
-    // ShownProjectRow returns the outer ProjectRow (a Decorator); ContextMenu is set on its own Child (the inner
-    // SidebarRow this constructor builds and wraps), not on ProjectRow itself.
-    private static ContextMenu ContextMenuOf(Control row) => ((Decorator)row).Child!.ContextMenu!;
+    // ShownProjectRow returns the outer ProjectRow (a Decorator); ContextMenu is set on the inner SidebarRow this
+    // constructor builds and wraps (beside the removal question's popup, OD-0008 A9), not on ProjectRow itself.
+    private static ContextMenu ContextMenuOf(Control row) => LogicalQuery.SelfAndDescendants<SidebarRow>(row).First().ContextMenu!;
 
     private static string MenuItemTitle(object item) => item switch
     {
@@ -5725,9 +6012,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         using var harness = new AppModelHarness();
         var project = NewProject(harness, "Alpha") with { IsExpanded = false };
         var model = Model(harness, [project], []);
+        var windows = new List<AvaloniaWindow>();
         harness.Main.OnMain(() =>
         {
             var row = ShownProjectRow(model, project, 3);
+            windows.Add(WindowOf(row));
             var count = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "3"); // :1128, a bare decimal
             Assert.Equal(Chrome.SecondaryText.Resolve(count.ActualThemeVariant), ((ISolidColorBrush)count.Foreground!).Color); // :1130
             var wrapper = Assert.IsType<Border>(count.Parent); // SidebarRow (Chrome.cs) sets its own Margin on the returned
@@ -5738,9 +6027,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         // constructor argument, once attached; a row built after the model is expanded reflects that, not the
         // snapshot passed in.
         harness.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { IsExpanded = true }));
+        Control expandedRow = null!;
         harness.Main.OnMain(() =>
         {
-            var expandedRow = ShownProjectRow(model, project, 3);
+            expandedRow = ShownProjectRow(model, project, 3);
+            windows.Add(WindowOf(expandedRow));
             Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(expandedRow), t => t.Text == "3"); // :1127 !isExpanded
         });
 
@@ -5748,7 +6039,17 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() =>
         {
             var zeroRow = ShownProjectRow(model, project, 0);
+            windows.Add(WindowOf(zeroRow));
             Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(zeroRow), t => t.Text == "0"); // :1127 count > 0
+        });
+        // The rows stay live in their windows: the one built while the project was expanded draws its count now that the
+        // project is collapsed again (:1085, :1127 read the live project, not the snapshot it was built from). The windows
+        // are closed inside the test, so no layout of theirs is left for after the test body.
+        harness.Main.OnMain(() =>
+        {
+            windows[1].UpdateLayout();
+            Assert.Contains("3", Texts(expandedRow));
+            windows.ForEach(window => window.Close());
         });
     });
 
@@ -6206,7 +6507,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() => window.MouseMove(selectButton.TranslatePoint(new Point(10, 10), window)!.Value)); // :1401-1404 .onHover, pumps the posted Track update on return
         harness.Main.OnMain(() =>
         {
-            Assert.IsType<RowActionsButton>(overlayHost.Children[1]); // :1376 showsActions -> the ellipsis
+            Assert.IsType<RowActionsButton>(overlayHost.Children[^1]); // :1376 showsActions -> the ellipsis, joining over the outgoing status (crossfade, :1386)
             window.Close();
         });
     });
@@ -6384,6 +6685,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // immediate post-click assertion pass identically whether or not any animation exists).
     public void The_head_cards_chevron_toggles_all_heads_with_the_right_glyph_and_tooltip() => headless.OnUiThread(() =>
     {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual); // the toggle's snappy animation runs on frames
         using var harness = new AppModelHarness();
         var project = NewProject(harness, "Alpha");
         var parent = NewThread(project, "Parent", 0);
@@ -6391,8 +6694,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var model = Model(harness, [project, ], heads.Prepend(parent).ToList());
         AvaloniaWindow window = null!;
         Control card = null!;
-        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
-            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        // The chevron the card draws now; the one it drew before the toggle fades out where it stood (:1516).
+        Button ChevronOf() => LiveChevron(card);
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
         harness.Main.OnMain(() =>
         {
             var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
@@ -6400,8 +6704,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 parent, heads, requests, (Action)(() => { }))!;
             var host = Hosted(model, card);
             window = WindowOf(host);
-            window.UpdateLayout();
-
+            window.UpdateLayout(); // the card's measured width reaches it on the turn this OnMain ends with, not in the click's
+            // own pass below (a pass that took both would run without the click's transaction: Tracked<T> captures the
+            // transaction of the change that schedules it, A_head_cards_row_count_change_animates_..., below)
+        });
+        harness.Main.OnMain(() =>
+        {
             var chevron = ChevronOf();
             var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).Single();
             Assert.Equal("chevron.down", glyph.SymbolName); // :1516, collapsed: 13 > 12
@@ -6421,6 +6729,65 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var expandedGlyph = LogicalQuery.SelfAndDescendants<SwiftImage>(expandedChevron).Single();
             Assert.Equal("chevron.up", expandedGlyph.SymbolName); // :1516
             Assert.Equal("Show fewer heads", ToolTip.GetTip(expandedChevron)); // :1526
+            Assert.Equal("chevron.down", ChevronSymbolOf(Assert.Single(ChevronButtons(card), OnGhostLayer))); // the one it replaces, on its way out
+        });
+        Frames(2);
+        harness.Main.OnMain(() => Assert.InRange(ShownOpacityWithin(Assert.Single(ChevronButtons(card), OnGhostLayer), card), 0.02, 0.98)); // fading
+        Frames(40);
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal("chevron.up", ChevronSymbolOf(Assert.Single(ChevronButtons(card)))); // and gone: only the up-chevron is left
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // SidebarView.swift:1440-1544 HeadCardsRow body; :1291-1311 ThreadRowMetrics
+    [Trait("Req", "UI-SIDEBAR-034")] // :1433-1436 the connector column beside a head card is connectorWidth wide and the card's height tall
+    [Trait("Req", "UI-SIDEBAR-038")] // :1514-1527 the chevron row: 14x14, caption2 semibold, secondaryText
+    public void A_mounted_head_card_keeps_the_28pt_connector_column_6pt_padding_and_gaps_and_twelve_glyphs_in_rows_of_perRow() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 13).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        Control card = null!;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            WindowOf(Hosted(model, card)).UpdateLayout();
+        });
+        harness.Main.OnMain(() =>
+        {
+            var window = WindowOf(card);
+            window.UpdateLayout();
+            var connector = LogicalQuery.SelfAndDescendants<HelperConnector>(card).Single();
+            Assert.Equal(ThreadRowMetrics.ConnectorWidth, connector.Bounds.Width); // :1434 .frame(width: connectorWidth)
+            var cardBorder = LogicalQuery.SelfAndDescendants<Border>(card).First(b => b.Padding == new Thickness(ThreadRowMetrics.HeadCardPadding)); // :1516 .padding(headCardPadding)
+            Assert.Equal(28d, Frame(cardBorder, card).X); // HStack(spacing: 0): the card starts right after the 28 pt column
+            Assert.Equal(new CornerRadius(Chrome.RowCornerRadius), cardBorder.CornerRadius); // :1519-1521
+            Assert.Equal(Chrome.Overlay(0.04).Resolve(cardBorder.ActualThemeVariant), ((ISolidColorBrush)cardBorder.Background!).Color); // :1520
+            Assert.True(cardBorder.ClipToBounds); // :1521 .clipShape
+            Assert.Equal(connector.Bounds.Height, cardBorder.Bounds.Height); // :1435-1436 the column is the card's height
+            var rows = Assert.IsType<StackPanel>(cardBorder.Child);
+            Assert.Equal(ThreadRowMetrics.HeadRowGap, rows.Spacing); // :1465 VStack(spacing: headRowGap)
+            var perRow = HeadCardsRow.PerRow(200); // :1451 at this host's 200 pt
+            var lines = rows.Children.OfType<StackPanel>().ToList();
+            Assert.Equal(new[] { (int)perRow, 12 - (int)perRow }, lines.Select(l => l.Children.Count)); // :1443 prefix(12), :1545-1547 chunked by perRow
+            foreach (var line in lines)
+            {
+                Assert.Equal(HeadCardsRow.RowGap(200, perRow), line.Spacing); // :1467 HStack(spacing: rowGap)
+                Assert.Equal(new Thickness(0, 0, ThreadRowMetrics.HeadBadgeOverhang, 0), line.Margin); // :1512-1513
+            }
+            var chevron = Assert.IsType<Button>(rows.Children[^1]); // :1514 the chevron's own row below the glyph rows
+            Assert.Equal(new Size(ThreadRowMetrics.HeadGlyphSize, ThreadRowMetrics.HeadGlyphSize), chevron.Bounds.Size); // :1519 14x14
+            Assert.Equal(ThreadRowMetrics.HeadCardPadding, Frame(chevron, cardBorder).X); // :1465 VStack(alignment: .leading), inside the 6 pt padding
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).Single();
+            Assert.Equal(10d, SwiftImage.GetFont(glyph)!.PointSize); // :1517 .caption2 (10 pt)
+            Assert.Equal(FontWeight.SemiBold, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
+            Assert.Equal(Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color); // :1518
             window.Close();
         });
     });
@@ -6588,6 +6955,62 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Activator.CreateInstance(Private("SidebarMenuRequests")), (Action)(() => { }), (Action)(() => { }),
             dragged, listFrame, fold)!);
 
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:1772-1814 the trailing branches, swapped inside :1816-1817 withAnimation(Chrome.hover)
+    [Trait("Req", "UI-SIDEBAR-023")] // the time label gives way to the hover buttons
+    // A view that leaves or joins under an animation uses SwiftUI's default .opacity transition, so the age label fades
+    // out while the buttons fade in (2-chat-use.mov 70.74-71.30 s, CATALOGUE hover.main-sidebar-thread-row: "the trailing
+    // age label crossfades OUT while the row's buttons crossfade IN", ~90-110 ms).
+    public void Hovering_a_thread_row_crossfades_its_time_label_out_and_its_buttons_in_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Row", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        static double ShownOpacity(Control control) =>
+            control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => v.GetType() != Private("SidebarThreadRow")).Aggregate(1d, (o, v) => o * v.Opacity);
+        harness.Main.OnMain(() =>
+        {
+            row = LiveThreadRow(thread);
+            window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+        });
+        try
+        {
+            RelativeTimeLabel time = null!;
+            harness.Main.OnMain(() =>
+            {
+                time = LogicalQuery.SelfAndDescendants<RelativeTimeLabel>(row).Single();
+                Assert.Empty(LogicalQuery.SelfAndDescendants<RowActionsButton>(row));
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s
+            harness.Main.OnMain(() =>
+            {
+                var ellipsis = LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single();
+                Assert.InRange(ShownOpacity(ellipsis), 0.05, 0.95); // fading in
+                Assert.Same(time, LogicalQuery.SelfAndDescendants<RelativeTimeLabel>(row).Single()); // the old label is still there,
+                Assert.InRange(ShownOpacity(time), 0.05, 0.95); // fading out
+            });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<RelativeTimeLabel>(row)); // gone once faded
+                Assert.Equal(1d, ShownOpacity(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single()));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
     private static Control WithNaturalRowHeight(Control row)
     {
         row.VerticalAlignment = VerticalAlignment.Top;
@@ -6720,7 +7143,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 manual.Advance(TimeSpan.FromSeconds(1)); // :1849 let the lift's spring finish
-                Assert.Equal(1.02, ((ScaleTransform)((Control)Field(row, "overlays")!).RenderTransform!).ScaleX); // :1847
+                Assert.Equal(1.02, ((ScaleTransform)((Decorator)row).Child!.RenderTransform!).ScaleX); // :1847
                 var window = WindowOf(row);
                 window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
             });
@@ -7198,6 +7621,66 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
+    [Trait("Req", "PR-SIDEBAR-055")] // SidebarView.swift:803-807 dragEnded: withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) { drag = RowDrag() }
+    [Trait("Req", "UI-SIDEBAR-060")] // "release springs the offset home on response 0.32 damping 0.8"
+    [Trait("Req", "PR-SIDEBAR-056")] // :1622-1632 the riders' offset reads the same drag, so it springs home with the row
+    public void On_a_real_release_the_row_and_everything_riding_it_spring_home_together_from_where_the_pointer_let_go() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var first = NewThread(project, "First helper", 1) with { ParentThreadID = parent.Id };
+        var head = HeadHelper(project, parent.Id, 0, 3);
+        var model = Model(harness, [project], [parent, first, head]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        Point start = default;
+        void Tick(int milliseconds)
+        {
+            harness.Main.AdvanceMilliseconds(milliseconds);
+            harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(milliseconds)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        double OffsetOf(Control dependent) =>
+            ((TranslateTransform)dependent.GetVisualAncestors().OfType<Control>().First(c => c.RenderTransform is TranslateTransform).RenderTransform!).Y;
+        IEnumerable<Control> Moving() => LogicalQuery.SelfAndDescendants<Control>(view)
+            .Where(c => c.GetType() == Private("SidebarThreadRow") || c.GetType() == Private("SidebarHelperRow") || c.GetType() == Private("HeadCardsRow"));
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.HydraAutoHidesIdleHeads = false;
+            view = Attached(model);
+            window = WindowOf(view);
+            var row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarThreadRow"));
+            start = row.TranslatePoint(new Point(12, 12), window)!.Value;
+            window.MouseDown(start, MouseButton.Left);
+            window.MouseMove(start + new Vector(0, 3), RawInputModifiers.LeftMouseButton);
+            window.MouseMove(start + new Vector(0, 17), RawInputModifiers.LeftMouseButton);
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(parent.Id, Drag(view).Id);
+                Assert.Equal(3, Moving().Count());
+                foreach (var moving in Moving()) Assert.Equal(17, OffsetOf(moving), 3);
+                window.MouseUp(start + new Vector(0, 17), MouseButton.Left); // :803-807
+            });
+            Tick(90);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(Drag(view).Id); // drag reset at once; only the offset travels
+                var expected = 17 * (1 - Animation.Spring(response: 0.32, dampingFraction: 0.8).Progress(0.09));
+                Assert.InRange(expected, 1, 16); // the fixture really samples mid-flight
+                foreach (var moving in Moving()) Assert.Equal(expected, OffsetOf(moving), 1); // the row and its riders together
+            });
+            Tick(1600);
+            harness.Main.OnMain(() => { foreach (var moving in Moving()) Assert.Equal(0, OffsetOf(moving), 3); });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:347-375,1622-1633
     [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1622-1633: a helper rides with its dragged parent at the same offset and zIndex 1
     [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:128-137,1838-1849
@@ -7258,7 +7741,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Tick(1600); // settle the exact response 0.25/damping 0.8 lift, while still holding the pointer
             harness.Main.OnMain(() =>
             {
-                var overlays = (Control)Field(row, "overlays")!;
+                var overlays = ((Decorator)row).Child!; // the lift host: :1846 scales the row together with its lift (:1838-1843)
                 Assert.Equal(1.02, ((ScaleTransform)overlays.RenderTransform!).ScaleX, 3); // :1846
                 var lift = Assert.IsType<Border>(Assert.IsType<Panel>(row is Decorator d ? d.Child : null).Children[0]);
                 Assert.Equal(1, lift.Opacity);
@@ -7279,7 +7762,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarThreadRow"));
                 AssertRider(row, 0);
                 AssertRider(LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("HelperStubRow")), 0);
-                Assert.Equal(1, ((ScaleTransform)((Control)Field(row, "overlays")!).RenderTransform!).ScaleX, 3);
+                Assert.Equal(1, ((ScaleTransform)((Decorator)row).Child!.RenderTransform!).ScaleX, 3);
                 Assert.Equal(0, Assert.IsType<Border>(Assert.IsType<Panel>(((Decorator)row).Child).Children[0]).Opacity);
                 window.MouseMove(new Point(-20, -20));
                 window.MouseMove(row.TranslatePoint(new Point(12, 12), window)!.Value); // re-enter the newly released row's live instance
@@ -7391,8 +7874,58 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-004")] // SidebarView.swift:2323 withAnimation(Chrome.panelSlide) { isOn.toggle() } drives :2327 and :2331
+    public void The_bells_glyph_turns_to_the_accent_with_its_disc_on_panelSlide_and_the_on_disc_wins_over_hover() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var model = harness.MakeModel();
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        var button = ButtonNamed(view, "Activity view");
+        var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(button).Single();
+        var circle = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(button).Single();
+        Color GlyphColor() => ((ISolidColorBrush)glyph.Foreground!).Color;
+        Color DiscColor() => ((ISolidColorBrush)circle.Fill!).Color;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant), GlyphColor()); // :2327 off
+                window.MouseMove(button.TranslatePoint(new Point(15, 15), window)!.Value);
+            });
+            Tick(300);
+            harness.Main.OnMain(() => PointerClick(button)); // :2323 inside Chrome.panelSlide
+            Tick(50);
+            harness.Main.OnMain(() =>
+            {
+                var off = Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant);
+                var on = Chrome.Accent.Resolve(glyph.ActualThemeVariant);
+                Assert.NotEqual(off, GlyphColor()); // on its way along the spring, not cut at either end
+                Assert.NotEqual(on, GlyphColor());
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Chrome.Accent.Resolve(glyph.ActualThemeVariant), GlyphColor()); // :2327 on
+                Assert.Equal(Chrome.Accent.Opacity(0.16).Resolve(circle.ActualThemeVariant), DiscColor()); // :2331 on wins over the hover's 0.08
+                Assert.True(button.IsPointerOver);
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
     // PR-SIDEBAR-019: the ED-218 foundation has landed; this caller proof must go red before wiring it.
-    // The record's pinned capture comparison is still STOP #10, so this test has no Req trait.
+    // The capture comparison STOP #10 asked for is in the header ledger (#2, 2026-10-03); this ED proof keeps its
+    // Decision trait.
     [Theory]
     [Trait("Decision", "ED-218")] // App/Views/Sidebar/SidebarView.swift:117-119; pinned capture remains STOP
     [InlineData(false)]
@@ -7596,7 +8129,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-010")] // App/Views/Sidebar/SidebarView.swift:1115-1125; UI/Chrome/Chrome.swift:766-772
     public void Project_count_is_tabular_and_hover_accessories_keep_source_frames_order_font_and_hit_rectangles() => headless.OnUiThread(() =>
     {
-        using var harness = new AppModelHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var manual = new ManualFrameSource();
+        using var harness = new AppModelHarness(); using var frames = FrameClock.Source.Override(manual);
         using var presenter = Presentation.Presenter.Override(new RecordingPresenter());
         var project = NewProject(harness, "Alpha") with { IsExpanded = false };
         var model = Model(harness, [project], []);
@@ -7612,10 +8146,15 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 var window = WindowOf(row);
                 window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // :1116 hovering true
             });
+            // Chrome.swift:735-737 the hover comes inside withAnimation(Chrome.hover): the count leaves on its default .opacity
+            // transition over easeOut 0.1 s (its curve is proven by REVIEW_Round2_A_search_results_project_row_crossfades_...).
+            harness.Main.OnMain(() => Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "3")); // still drawn as it starts to fade
+            harness.Main.AdvanceMilliseconds(100);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(100)));
             harness.Main.OnMain(() =>
             {
                 WindowOf(row).UpdateLayout(); // the accessory rebuild (applied by the Track posted above) needs a real layout pass before the Bounds reads below
-                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "3"); // :1116 count branch no longer drawn
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "3"); // :1116 count branch no longer drawn, its fade over
                 // The cluster is the Horizontal, zero-spacing StackPanel (:1117) whose two children together
                 // contain exactly two real Buttons: the ellipsis (Popovers.cs:569 RowActionsButton, a
                 // Decorator wrapping a Button) and the plus button (a Button directly).
@@ -7655,6 +8194,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // round trip PR-SIDEBAR-126 depends on). Needs tracing ListPassNow/ThreadPlacements/HelpersByParent's actual
     // reads against Swift's :317-325,1064-1076 dependency set before a fix or a firm STOP is written; not
     // resolved in this pass.
+    // UPDATE (parity pass 2026-10-03): UI-SIDEBAR-059's mounted fades are proven through threads instead
+    // (Mounted_rows_fade_in_after_the_delay_leave_on_the_short_fade_and_a_settled_row_fades_in_on_the_lists_panelSlide:
+    // insertion after 0.12 s on easeIn 0.18, removal on easeOut 0.06, a settled row on the list's panelSlide). The
+    // project-removal question above is still unexamined; it bears on UI-SIDEBAR-006's mounted gap transition only.
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-026")] // App/Views/Sidebar/SidebarView.swift:965-983; UI/Chrome/Popovers.swift:102-157
@@ -7682,6 +8225,33 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal(Chrome.Danger.Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
             }
             Assert.DoesNotContain("Cancel", Texts(popover));
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-026")] // SidebarView.swift:974; UI/Chrome/Popovers.swift:142-149 PopoverNote: a Text with no line limit wraps
+    [Trait("Req", "UI-GIT-057")] // the note under the question, over the 280 pt menu
+    // Measured beside 2-chat-use.mov 152.6 s (frames/gap-R1-07/d_confirm_hold): "“New thread” and its history will be /
+    // removed. Files in your project stay as they / are." wraps onto three lines inside the ~280 pt confirm; the port's
+    // note ran on one line and was cut at the menu's edge (evidence: E:\Droppy\work\parity\evidence\SidebarView\
+    // delete-note-*.png).
+    public void The_delete_questions_note_wraps_inside_the_280_point_menu_onto_the_lines_it_needs() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha"); var thread = NewThread(project, "New thread", 0);
+        var popover = (Control)Activator.CreateInstance(Private("DeleteThreadPopover"), thread, (Action<bool>)(_ => { }))!;
+        popover.HorizontalAlignment = HorizontalAlignment.Left;
+        popover.VerticalAlignment = VerticalAlignment.Top;
+        new AvaloniaWindow { Content = popover, Width = 300, Height = 160, RequestedThemeVariant = ThemeVariant.Dark, Background = new SolidColorBrush(Color.FromRgb(70, 66, 62)) }.Show(); // about the video's glass grey, for the side-by-side
+        try
+        {
+            WindowOf(popover).UpdateLayout();
+            SidebarCaptureTests.SaveIfAsked(WindowOf(popover), "delete-note-port.png");
+            var note = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text!.EndsWith("stay as they are.", StringComparison.Ordinal));
+            Assert.Equal(TextWrapping.Wrap, note.TextWrapping);
+            Assert.True(note.Bounds.Width <= 280 - 2 * 6 - 2 * 8); // wrapped inside the menu's inner width less the note's own 8 pt sides
+            Assert.Equal(3, note.TextLayout.TextLines.Count); // as the Mac draws it at this width
         }
         finally { WindowOf(popover).Close(); }
     });
@@ -7757,6 +8327,76 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal(displacement * (1 - curve.Progress(0.09)), container.RenderTransform!.Value.M32, 5);
             Tick(1600);
             Assert.Equal(0, container.RenderTransform?.Value.M32 ?? 0, 5);
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-059")] // SidebarView.swift:317-325 rowTransition, :1064-1076 AnyTransition.sidebarRow
+    [Trait("Req", "PR-SIDEBAR-019")] // :114-117 the list's animations also carry the rows' own transitions: a settled row's plain opacity rides panelSlide
+    public void Mounted_rows_fade_in_after_the_delay_leave_on_the_short_fade_and_a_settled_row_fades_in_on_the_lists_panelSlide() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var project = NewProject(harness, "Alpha");
+        var kept = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [kept]);
+        harness.Main.OnMain(() => model.Settings.SettledCollapsed = false);
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Control ContainerOf(string title) => ListPanel(view).Children.Single(c => c.GetLogicalDescendants().OfType<Button>().Any(b => AutomationProperties.GetName(b) == title));
+        bool Listed(string title) => ListPanel(view).Children.Any(c => c.GetLogicalDescendants().OfType<Button>().Any(b => AutomationProperties.GetName(b) == title));
+        try
+        {
+            Tick(1600);
+            ChatThread added = null!;
+            harness.Main.OnMain(() => added = model.NewThread(project)!); // a plain write: the row's own transition times it
+            Tick(0);
+            var insertion = Animation.EaseIn(0.18);
+            harness.Main.OnMain(() => Assert.Equal(0d, ContainerOf(added.Title).Opacity)); // :1072 nothing during the 0.12 s delay
+            Tick(100);
+            harness.Main.OnMain(() => Assert.Equal(0d, ContainerOf(added.Title).Opacity));
+            Tick(110); // 0.21 s: 0.09 s into the 0.18 s easeIn
+            harness.Main.OnMain(() => Assert.Equal(insertion.Progress(0.09), ContainerOf(added.Title).Opacity, 2));
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1d, ContainerOf(added.Title).Opacity);
+                model.Delete(added.Id); // :1073 removal: easeOut 0.06 s
+            });
+            Tick(30);
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(Listed(added.Title)); // still leaving
+                Assert.Equal(1 - Animation.EaseOut(0.06).Progress(0.03), ContainerOf(added.Title).Opacity, 2);
+            });
+            Tick(60);
+            harness.Main.OnMain(() =>
+            {
+                Assert.False(Listed(added.Title)); // gone once faded
+                Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settle(kept.Id, sounds: false)); // :1910 settle()'s own withAnimation(Chrome.panelSlide)
+            });
+            // :319-320 a settled row's transition is plain .opacity, so it rides the animation that carried the change:
+            // the panelSlide spring (response 0.32, damping fraction 0.9), not the open rows' delayed easeIn.
+            Tick(90);
+            harness.Main.OnMain(() => Assert.Equal(Animation.Spring(response: 0.32, dampingFraction: 0.9).Progress(0.09), ContainerOf("Kept").Opacity, 2));
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1d, ContainerOf("Kept").Opacity);
+                model.Settings.SettledCollapsed = true; // a plain write: only the list's own :117 .animation(panelSlide, value: settledCollapsed) can time it
+            });
+            Tick(90); // the settled row leaves on its plain opacity, carried by the list's panelSlide
+            harness.Main.OnMain(() => Assert.Equal(1 - Animation.Spring(response: 0.32, dampingFraction: 0.9).Progress(0.09), ContainerOf("Kept").Opacity, 2));
+            Tick(1600);
+            harness.Main.OnMain(() => Assert.False(Listed("Kept")));
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
@@ -8063,7 +8703,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
         harness.Main.OnMain(() =>
         {
-            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single();
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null); // the ellipsis popover (the removal question's is not presented)
             var texts = LogicalQuery.SelfAndDescendants<Button>(popup.Child!).Select(b => AutomationProperties.GetName(b)).ToList(); // each item's title
             Assert.Contains("New thread", texts); // the popover is the plain action list
             Assert.DoesNotContain("Start new chats on", texts);
@@ -8155,6 +8795,102 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal(1d, row.Opacity);
             window.Close();
         });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // SidebarView.swift:1370-1372 `.fill(isSelected ? ...).animation(Chrome.hover, value: isSelected)`
+    public void A_helper_rows_selection_fill_eases_in_and_out_on_chrome_hover_even_with_no_ambient_animation() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        Border shape = null!;
+        double Alpha() => ((ISolidColorBrush)shape.Background!).Color.A / 255.0;
+        var selectedAlpha = 0d;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 24);
+            selectedAlpha = Chrome.Overlay(0.12).Resolve(shape.ActualThemeVariant).A / 255.0;
+            Assert.Equal(0d, Alpha());
+        });
+        try
+        {
+            harness.Main.OnMain(() => model.SelectedThreadID = helper.Id); // a plain write: no withAnimation around it
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s
+            harness.Main.OnMain(() => Assert.InRange(Alpha(), 0.2 * selectedAlpha, 0.95 * selectedAlpha)); // easing, not cut
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(selectedAlpha, Alpha(), 2);
+                model.SelectedThreadID = parent.Id; // and out again
+            });
+            Tick(50);
+            harness.Main.OnMain(() => Assert.InRange(Alpha(), 0.05 * selectedAlpha, 0.8 * selectedAlpha));
+            Tick(200);
+            harness.Main.OnMain(() => Assert.Equal(0d, Alpha()));
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // SidebarView.swift:1375-1386 the ellipsis/status Group swaps inside withAnimation(Chrome.hover)
+    public void Hovering_a_helper_row_crossfades_its_status_out_and_its_ellipsis_in_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        static double ShownOpacity(Control control) =>
+            control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => v.GetType() != Private("SidebarHelperRow")).Aggregate(1d, (o, v) => o * v.Opacity);
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+        });
+        try
+        {
+            ActivityStatus status = null!;
+            harness.Main.OnMain(() =>
+            {
+                status = LogicalQuery.SelfAndDescendants<ActivityStatus>(row).Single(); // :1379 the idle branch
+                window.MouseMove(row.TranslatePoint(new Point(100, 12), window)!.Value);
+            });
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s
+            harness.Main.OnMain(() =>
+            {
+                Assert.InRange(ShownOpacity(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single()), 0.05, 0.95); // fading in
+                Assert.Same(status, LogicalQuery.SelfAndDescendants<ActivityStatus>(row).Single());
+                Assert.InRange(ShownOpacity(status), 0.05, 0.95); // fading out
+            });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ActivityStatus>(row));
+                Assert.Equal(1d, ShownOpacity(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single()));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
     });
 
     private static object? DocumentPrefetchTake(Guid id) => DocumentPrefetch.Shared.Take(id);
@@ -8497,7 +9233,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
         harness.Main.OnMain(() =>
         {
-            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single();
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null); // the ellipsis popover (the removal question's is not presented)
             var stack = Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<RowActionItems>(popup.Child!).Single().Child);
             // dividers before Reveal in File Explorer, before Remove project and before the activation item
             Assert.Equal(
@@ -8574,6 +9310,124 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             OpenMenu(out var items);
             Choose(items[^2]); // Activate project
             Assert.True(model.Settings.IsProjectActive(project.Id));
+            WindowOf(row).Close();
+        });
+    });
+
+    // ---- PR-SIDEBAR-130/-131, UI-SIDEBAR-014: Remove project asks first (owner rulings OD-0008 A9, OD-0012 E2) ----
+    //
+    // Upstream removes at once from both menus (SidebarView.swift:1183-1186, :1212-1214). By OD-0008 A9 the port asks
+    // first while confirmBeforeDeleting is on, in the thread delete question's own style (DeleteThreadPopover,
+    // :966-981) with the OD-0012 E2 wording; with the setting off it removes at once, as upstream.
+
+    private static Popup RemovalPopup(Control row) =>
+        LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => PopoverHost.Content(p)?.GetType() == Private("RemoveProjectPopover"));
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // SidebarView.swift:1183-1186, :1212-1214; OD-0008 A9; OD-0012 E2
+    [Trait("Req", "UI-SIDEBAR-014")] // SidebarView.swift:1168-1231: Remove project confirms first while confirmBeforeDeleting is on
+    public void Remove_project_asks_first_from_both_menus_and_only_the_red_action_removes_the_project() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Settings.ConfirmBeforeDeleting); // AppSettings.swift:710 default true
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+        });
+        // The context menu's Remove project only asks.
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var remove = ContextMenuOf(row).Items.Cast<Control>().Single(i => i is MenuItem && MenuItemTitle(i) == "Remove project");
+            remove.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.NotNull(model.Project(project.Id)); // nothing removed yet
+        });
+        harness.Main.OnMain(() =>
+        {
+            var popup = RemovalPopup(row);
+            Assert.Contains(recorder.Calls, c => c.Popup == popup && c.Presented);
+            Assert.Equal(PlacementMode.Right, popup.Placement); // the thread delete question's own arrowEdge: .trailing (:220)
+            var menu = Assert.IsType<PopoverMenu>(Get(PopoverHost.Content(popup)!, "Child"));
+            Assert.Equal(280d, menu.Width); // :980 .frame(width: 280)
+            var inner = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(Assert.IsType<ScrollViewer>(menu.Child).Content).Child).Children.Single());
+            Assert.Equal(new[] { typeof(PopoverSectionHeader), typeof(PopoverNote), typeof(PopoverDivider), typeof(PopoverItem) }, inner.Children.Select(c => c.GetType()));
+            Assert.Equal("Remove this project?", Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(inner.Children[0])).Text); // OD-0012 E2
+            Assert.Equal("“Alpha” and its threads will be removed. Files in your project stay as they are.", Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(inner.Children[1])).Text);
+            var item = (PopoverItem)inner.Children[3];
+            var button = LogicalQuery.SelfAndDescendants<Button>(item).Single();
+            Assert.Equal("Remove project", AutomationProperties.GetName(button));
+            Assert.Equal("trash", LogicalQuery.SelfAndDescendants<SwiftImage>(item).First(g => g.SymbolName is not null).SymbolName);
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(button).First();
+            Assert.Equal(Chrome.Danger.Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color); // the red action
+            // Dismissing (click away, Escape) closes the popup, whose Closed handler writes false through the binding:
+            // the project stays.
+            SetProp(Field(row, "state")!, "IsRemovalPresented", false);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Contains(recorder.Calls, c => c.Popup == RemovalPopup(row) && !c.Presented);
+            Assert.NotNull(model.Project(project.Id));
+            Assert.NotNull(model.Thread(thread.Id));
+            // The ellipsis popover's Remove project asks too, one turn after its own popover closes.
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+        });
+        harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
+        harness.Main.OnMain(() =>
+        {
+            var actions = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null && LogicalQuery.SelfAndDescendants<RowActionItems>(p.Child).Any());
+            Click(LogicalQuery.SelfAndDescendants<Button>(actions.Child!).Single(b => AutomationProperties.GetName(b) == "Remove project"));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.Project(project.Id)); // asked, not removed
+            var popup = RemovalPopup(row);
+            Assert.Equal(2, recorder.Calls.Count(c => c.Popup == popup && c.Presented));
+            // Only the red action removes the project (upstream's removal, AppModel.swift:558-567).
+            Click(LogicalQuery.SelfAndDescendants<Button>(PopoverHost.Content(popup)!).Single(b => AutomationProperties.GetName(b) == "Remove project"));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Null(model.Project(project.Id));
+            Assert.Null(model.Thread(thread.Id));
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9: with confirmBeforeDeleting off the removal runs at once, as upstream (:1183-1186)
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void With_confirm_before_deleting_off_remove_project_removes_at_once_from_the_context_menu() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.ConfirmBeforeDeleting = false;
+            row = ShownProjectRow(model, project, 0);
+        });
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            ContextMenuOf(row).Items.Cast<Control>().Single(i => i is MenuItem && MenuItemTitle(i) == "Remove project")
+                .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.Null(model.Project(project.Id)); // removed inside the click, nothing asked
+            Assert.DoesNotContain(recorder.Calls, c => c.Presented);
             WindowOf(row).Close();
         });
     });
@@ -8730,7 +9584,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
         harness.Main.OnMain(() =>
         {
-            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single();
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null); // the ellipsis popover (the removal question's is not presented)
             var stack = Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<RowActionItems>(popup.Child!).Single().Child);
             Assert.Equal(
                 [typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverDivider), typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverItem)],
@@ -8942,6 +9796,2288 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal(5, after.Length);
                 Assert.NotSame(rows[1], after[1]); // a fresh row stands where the open one was
                 Assert.Equal(24d, ThreadRowOf(after[1]).Bounds.Height); // a settled thread's one grey line
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // ---- Parity pass (2026-10-03): the remaining clauses of UI-SIDEBAR-015, -034, -038, -039, -042, UI-GIT-057,
+    // PR-SIDEBAR-130 and PR-SIDEBAR-134 on mounted controls ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1442 capped = heads.count > 12; :1436 @State showsAllHeads is the card's own
+    public void The_head_cards_chevron_is_absent_at_twelve_heads_and_a_rebuilt_card_starts_collapsed_again() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 13).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        static IEnumerable<Button> Chevrons(Control card) => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Where(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        Control Card(IReadOnlyList<ChatThread> shown) => (Control)Activator.CreateInstance(Private("HeadCardsRow"),
+            parent, shown, Activator.CreateInstance(Private("SidebarMenuRequests"))!, (Action)(() => { }))!;
+        Control twelve = null!, first = null!, second = null!;
+        harness.Main.OnMain(() =>
+        {
+            twelve = Card(heads.Take(12).ToList());
+            Hosted(model, twelve);
+            Assert.Empty(Chevrons(twelve)); // :1514 `if capped`: twelve is not capped
+            Assert.Equal(12, LogicalQuery.SelfAndDescendants<HydraGlyph>(twelve).Count());
+            first = Card(heads);
+            Hosted(model, first);
+            PointerClick(Chevrons(first).Single()); // shows all thirteen
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(13, LogicalQuery.SelfAndDescendants<HydraGlyph>(first).Count());
+            WindowOf(first).Close(); // the card leaves the list: its @State goes with it
+            second = Card(heads);
+            Hosted(model, second);
+            Assert.Equal(12, LogicalQuery.SelfAndDescendants<HydraGlyph>(second).Count()); // collapsed again
+            Assert.Equal("chevron.down", LogicalQuery.SelfAndDescendants<SwiftImage>(Chevrons(second).Single()).Single().SymbolName);
+            WindowOf(twelve).Close();
+            WindowOf(second).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-015")] // SidebarView.swift:1159 Label("Start new chats on", systemImage: "point.3.connected.trianglepath.dotted"), after a Divider
+    public void The_pair_submenu_is_labelled_with_its_symbol_after_a_divider() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        harness.Main.OnMain(() =>
+        {
+            var items = ProjectRowBuildContextMenuItems(project, true, false, model, ProjectPairChoices((Guid.NewGuid(), "Claude, GPT")));
+            Assert.IsType<Separator>(items[^2]); // :1155 Divider()
+            var submenu = Assert.IsType<MenuItem>(items[^1]);
+            Assert.Equal("Start new chats on", MenuItemTitle(submenu));
+            var symbol = LogicalQuery.SelfAndDescendants<SwiftImage>((Control)submenu.Header!).Single();
+            Assert.Equal("point.3.connected.trianglepath.dotted", symbol.SymbolName);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // windows_path: OD-0010 draws each item symbol as its Lucide icon (porting/icons/sf-symbols-to-lucide.json)
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void The_project_menus_symbols_are_drawn_as_their_lucide_icons() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        harness.Main.OnMain(() => model.Settings.SetProjectActive(true, project.Id)); // an override, so all six items show
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+        harness.Main.OnMain(() => WindowOf(row).MouseMove(row.TranslatePoint(new Point(10, 10), WindowOf(row))!.Value));
+        harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
+        harness.Main.OnMain(() =>
+        {
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => p.Child is not null);
+            var glyphs = LogicalQuery.SelfAndDescendants<PopoverItem>(popup.Child!)
+                .Select(i => LogicalQuery.SelfAndDescendants<SwiftImage>(i).First(g => g.SymbolName is not null)).ToList();
+            Assert.Equal(["square-pen", "layers", "folder", "trash", "power", "undo-2"], glyphs.Select(g => g.Mapping!.Lucide));
+            Assert.All(glyphs, g => Assert.NotNull(g.Icon)); // each one draws
+            WindowOf(row).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-GIT-057")] // SidebarView.swift:977-980 the two rows hand their worktree choice to confirmDeletion (:256-263)
+    [Trait("Req", "UI-SIDEBAR-027")]
+    public void The_delete_questions_rows_record_the_deletion_with_or_without_the_worktree_and_wait_for_the_popover_to_go() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Has worktree", 0) with { WorktreePath = harness.NewFolder("worktree") };
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        harness.Main.OnMain(() =>
+        {
+            view = Detached(model);
+        });
+        foreach (var (title, removeWorktree) in new[] { ("Delete thread", false), ("Delete thread and worktree", true) })
+        {
+            harness.Main.OnMain(() =>
+            {
+                var state = Field(view, "state")!;
+                SetProp(state, "IsDeletePopoverShown", true); // :229 the question is on screen
+                var content = (Control)Call(view, "BuildDeletePopoverContent", thread)!; // :225-227, the content the popover shows
+                var rows = LogicalQuery.SelfAndDescendants<PopoverItem>(content).ToList();
+                Assert.All(rows, r => Assert.Equal("trash", LogicalQuery.SelfAndDescendants<SwiftImage>(r).First(g => g.SymbolName is not null).SymbolName)); // :976, :978
+                Click(LogicalQuery.SelfAndDescendants<Button>(content).Single(b => AutomationProperties.GetName(b) == title)); // PopoverItem acts a turn later
+            });
+            harness.Main.OnMain(() =>
+            {
+                var state = Field(view, "state")!;
+                var confirmed = Get(state, "ConfirmedDeletion")!;
+                Assert.Equal(thread.Id, Get(confirmed, "ThreadID"));
+                Assert.Equal(removeWorktree, Get(confirmed, "RemoveWorktree")); // :977-980 the worktree only from the second row
+                Assert.NotNull(model.Thread(thread.Id)); // :261 nothing deleted while the popover is still shown
+                SetProp(state, "ConfirmedDeletion", null);
+            });
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-042")] // SidebarView.swift:164-166; UI/Chrome/Chrome.swift:710-746 SidebarRow
+    public void The_mounted_Add_project_row_has_the_sidebar_rows_geometry_type_colours_and_hover_fill() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        var model = harness.MakeModel();
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        try
+        {
+            Border shape = null!;
+            harness.Main.OnMain(() =>
+            {
+                var row = RowNamed(view, "Add project");
+                Assert.Equal(28d, row.Bounds.Height); // Chrome.rowHeight
+                shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 28);
+                Assert.Equal(new Thickness(8, 0, 8, 0), shape.Padding); // :725-726 with accessoryWidth 0
+                Assert.Equal(new CornerRadius(Chrome.RowCornerRadius), shape.CornerRadius);
+                var badge = LogicalQuery.SelfAndDescendants<SidebarIconBadge>(row).Single();
+                Assert.Equal(20d, badge.Bounds.Width); // :713 Chrome.iconSize
+                Assert.Equal(8d, Frame(badge, row).X); // the leading padding
+                var title = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "Add project");
+                Assert.Equal(8 + 20 + 8, Frame(title, row).X, 0.5); // HStack(spacing: 8)
+                Assert.Equal(13d, title.FontSize); // .body
+                Assert.Equal(FontWeight.Normal, title.FontWeight);
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
+                var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single();
+                Assert.Equal("plus", glyph.SymbolName); // :165 SidebarSymbol("plus") at the default 14 pt
+                Assert.Equal(Chrome.SymbolSize, glyph.Width);
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.85).Resolve(glyph.ActualThemeVariant), ((ISolidColorBrush)glyph.GetValue(SwiftImage.ForegroundProperty)!).Color); // SidebarIconBadge
+                Assert.Equal(0, ((ISolidColorBrush)shape.Background!).Color.A);
+                var window = WindowOf(view);
+                window.MouseMove(row.TranslatePoint(new Point(40, 14), window)!.Value);
+            });
+            harness.Main.AdvanceMilliseconds(300);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(300)));
+            harness.Main.OnMain(() => Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), ((ISolidColorBrush)shape.Background!).Color)); // :729 hovered
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-034")] // SidebarView.swift:1662-1674 the last helper's connector stops at the tick; :1348-1349 on a mounted helper row
+    public void A_mounted_last_helpers_connector_stops_at_its_tick_and_an_earlier_one_runs_to_the_bottom() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        harness.Main.OnMain(() =>
+        {
+            foreach (var isLast in new[] { true, false })
+            {
+                var row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!, isLast);
+                var path = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(row).Single();
+                WindowOf(row).UpdateLayout();
+                Assert.Equal(new Size(28, 24), path.Bounds.Size); // the 28 x 24 column
+                var bounds = path.Data!.Bounds;
+                Assert.Equal(18d, bounds.Left, 3); // the line at x = 18 (connectorLineX)
+                Assert.Equal(28 - 2, bounds.Right, 3); // the tick to maxX - 2
+                Assert.Equal(isLast ? 12 : 24, bounds.Bottom, 3); // ends at midY on the last helper, else runs to the bottom
+                WindowOf(row).Close();
+            }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-134")] // SidebarView.swift:1820-1833 `guard isDragged || isHovering || ...`: the dragged branch
+    public void A_dragged_row_records_its_window_frame_with_no_hover_and_no_glide() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Dragged", 0);
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        harness.Main.OnMain(() =>
+        {
+            var row = LiveThreadRow(thread, dragged: true);
+            var window = WindowOf(Hosted(model, row));
+            try
+            {
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Empty(animator.Glides);
+                var holder = Field(row, "windowFrame")!;
+                Assert.Equal(Frame(row, window), Get(holder, "Frame")); // recorded although nothing hovers it
+                row.Margin = new Thickness(0, 30, 0, 0); // it moves, as a dragged row does
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(Frame(row, window), Get(holder, "Frame")); // in window space (:1903-1905), following it
+            }
+            finally { window.Close(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-039")] // SidebarView.swift:335-336 itemView's header arm builds ActivityHeader(title:isFirst:) in the mounted list
+    public void The_mounted_activity_list_draws_its_day_headers_with_the_first_ones_short_top_padding() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var today = ThreadAt(project, "Fresh", Now.AddHours(-1));
+        var yesterday = ThreadAt(project, "Older", Now.AddDays(-1));
+        var model = Model(harness, [project], [today, yesterday]);
+        InDays(() =>
+        {
+            SidebarView view = null!;
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.SidebarActivityView = true;
+                view = Attached(model);
+            });
+            harness.Main.AdvanceMilliseconds(1600); // any arrival transition has finished
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(1600)); WindowOf(view).UpdateLayout(); });
+            harness.Main.OnMain(() =>
+            {
+                var headers = LogicalQuery.SelfAndDescendants<ActivityHeader>(ListPanel(view)).ToList();
+                Assert.Equal(["Today", "Yesterday"], headers.Select(h => ((TextBlock)h.Child!).Text));
+                Assert.Equal(new Thickness(8, 2, 8, 4), ((TextBlock)headers[0].Child!).Margin); // first item
+                Assert.True(new Thickness(8, 14, 8, 4) == ((TextBlock)headers[1].Child!).Margin, // the list as drawn, should this ever differ:
+                    string.Join(" | ", ListPanel(view).Children.Select(c => c.GetType().Name + ":" + c.Opacity + ":" + string.Join(",", Texts(c)))));
+                Close(view);
+            });
+        });
+    });
+
+    // The dotted guide beside a helper and beside the folded stub (2-chat-use.mov 162 s: a column of dots then the
+    // tick, left of "> 4 heads"; evidence E:\Droppy\work\parity\evidence\SidebarView\z_stub.png). Counts the drawn
+    // dots down the connector's line at x = 18 on a real rendered frame.
+    private static int DotsDownTheLine(AvaloniaWindow window, Control column, int bottom)
+    {
+        window.UpdateLayout();
+        var origin = column.TranslatePoint(default, window)!.Value;
+        var x = (int)Math.Round(origin.X + 18);
+        var background = FramePixels.Levels(window, ((int)origin.X + 2, (int)origin.Y + 2))[0];
+        var levels = FramePixels.Levels(window, Enumerable.Range(0, bottom).Select(y => (x, (int)origin.Y + y)).ToArray());
+        var dots = 0;
+        var inDot = false;
+        foreach (var level in levels)
+        {
+            var drawn = Math.Abs(level - background) > 0.04;
+            if (drawn && !inDot) dots++;
+            inDot = drawn;
+        }
+        return dots;
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-034")] // SidebarView.swift:1648-1651 HelperConnectorShape(...).stroke(color, style: [0.1, 3.6] round) in a 28 x 24 frame
+    [Trait("Req", "UI-SIDEBAR-035")] // :1583-1584 the stub's own ending connector
+    public void The_helper_rows_and_the_folded_stubs_connectors_draw_their_dotted_line() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        harness.Main.OnMain(() =>
+        {
+            var row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!, isLast: false);
+            var window = WindowOf(row);
+            try
+            {
+                var column = Assert.IsType<Grid>(Get(row, "Child")).Children[0];
+                Assert.InRange(DotsDownTheLine(window, column, 24), 5, 8); // 24 pt on a 3.7 pt pitch
+            }
+            finally { window.Close(); }
+            var stub = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helper }, (Action)(() => { }))!;
+            stub.VerticalAlignment = VerticalAlignment.Top;
+            var stubWindow = WindowOf(Hosted(model, stub));
+            try
+            {
+                var path = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(stub).Single();
+                Assert.InRange(DotsDownTheLine(stubWindow, path, 12), 3, 5); // ends at midY: 12 pt of dots
+            }
+            finally { stubWindow.Close(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-030")] // SidebarView.swift:1980-1984 mergeStage; :2053-2063 the detailed row's second line; :2090 the ghost badge
+    public void A_live_detailed_row_swaps_its_project_line_for_the_merge_stage_while_merging_and_back_and_its_ghost_badge_counts_merging_as_running() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the running spinner animates
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Lead", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            var runtime = model.Runtime(thread.Id); // the thread has run, so its runtime exists (AppModel.swift:108 runtimes are unobserved)
+            row = LiveThreadRow(thread, projectName: "Alpha");
+            WindowOf(Hosted(model, row)).UpdateLayout();
+            Assert.Contains("Alpha", Texts(row)); // no merge: the project name
+            runtime.IsHydraMerging = true;
+            runtime.HydraMergeStage = "Alpha: Reviewing heads"; // the multi-project prefix comes with the stage words
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("Alpha: Reviewing heads…", Texts(row)); // :1981-1983 the words and one U+2026, in place of the name
+                Assert.DoesNotContain("Alpha", Texts(row));
+                Assert.True(new ThreadGhostBadge(thread, model.Runtime(thread.Id)).IsRunning); // :2090 merging counts as running
+                model.Runtime(thread.Id).HydraMergeStage = null;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("Merging…", Texts(row)); // :1983 the fallback while merging with no stage
+                model.Runtime(thread.Id).IsHydraMerging = false;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("Alpha", Texts(row)); // :1980 nil once the merge is over: the name again
+                Assert.DoesNotContain(Texts(row), t => t.EndsWith('…'));
+                Assert.False(new ThreadGhostBadge(thread, model.Runtime(thread.Id)).IsRunning);
+            });
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // SidebarView.swift:1361 regular while idle and read; :1346 a continuous rounded rect; :128-133 only rows that report a frame are grabbed
+    public void A_helper_row_is_regular_while_idle_has_continuous_corners_and_never_starts_a_reorder() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var other = NewThread(project, "Other", 2);
+        var model = Model(harness, [project], [parent, helper, other]);
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarHelperRow"));
+                var title = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "Helper");
+                Assert.Equal(FontWeight.Normal, title.FontWeight); // :1361 not selected, not unread
+                var shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 24);
+                Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); // :1346
+                var start = title.TranslatePoint(new Point(4, 6), window)!.Value;
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(start + new Vector(0, 10), RawInputModifiers.LeftMouseButton);
+                window.MouseMove(start + new Vector(0, 30), RawInputModifiers.LeftMouseButton);
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(Drag(view).Id); // a helper reports no frame to the grab table: nothing to move
+                window.MouseUp(new Point(10, 10), MouseButton.Left);
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // SidebarView.swift:1433-1437 the connector folds the helpers away; :1540 hidden while the parent's ghost is in the air
+    [Trait("Req", "UI-SIDEBAR-035")] // :1617 the folded stub hides the same way
+    public void The_head_cards_connector_folds_and_the_card_and_the_stub_hide_while_their_parents_glide_is_in_the_air() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 3).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        var folded = 0;
+        Control card = null!, stub = null!;
+        harness.Main.OnMain(() =>
+        {
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, Activator.CreateInstance(Private("SidebarMenuRequests"))!, (Action)(() => folded++))!;
+            WindowOf(Hosted(model, card)).UpdateLayout();
+            stub = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, heads, (Action)(() => { }))!;
+            WindowOf(Hosted(model, stub)).UpdateLayout();
+            var connector = LogicalQuery.SelfAndDescendants<HelperConnector>(card).Single();
+            Click(LogicalQuery.SelfAndDescendants<Button>(connector).Single()); // :1436 action: onFold
+            Assert.Equal(1, folded);
+            Assert.Equal(1d, card.Opacity);
+            Assert.Equal(1d, LogicalQuery.SelfAndDescendants<Button>(stub).Single().Opacity);
+            animator.Launch(parent.Id, RowGlideAnimator.Glide.Direction.Settle, new Rect(0, 300, 200, 24),
+                new Rect(0, -28, 200, 28), new Rect(0, 0, 200, 400), new FaceSample(200, 24), new FaceSample(200, 28), 0, 0);
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(animator.IsHiding(parent.Id));
+                Assert.Equal(0d, card.Opacity); // out of sight the moment the ghost takes off
+                Assert.Equal(0d, LogicalQuery.SelfAndDescendants<Button>(stub).Single().Opacity);
+                animator.Arrive(animator.Glides[0].Id);
+            });
+            harness.Main.OnMain(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1d, card.Opacity);
+                Assert.Equal(1d, LogicalQuery.SelfAndDescendants<Button>(stub).Single().Opacity);
+            });
+        }
+        finally { harness.Main.OnMain(() => { WindowOf(card).Close(); WindowOf(stub).Close(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // windows_path: Reveal in File Explorer (OD-0008 B1) opens File Explorer at the project path (:1179-1182, :1211)
+    public void Reveal_in_File_Explorer_from_either_menu_opens_File_Explorer_at_the_projects_path() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        var revealed = new List<string>();
+        var previous = ShellWorkspace.RevealInFileExplorer;
+        ShellWorkspace.RevealInFileExplorer = revealed.Add; // the shell seam: no real Explorer window in a test
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                ProjectRowActions(model, project, isActive: true).Single(a => a.Title == "Reveal in File Explorer").Action();
+                ProjectRowContextMenuActions(project, true, false, model).Single(a => a.Title == "Reveal in File Explorer").Action();
+                Assert.Equal([project.Path, project.Path], revealed);
+            });
+        }
+        finally { ShellWorkspace.RevealInFileExplorer = previous; }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-040")] // SidebarView.swift:2384-2389 the count: .fixedSize() and .contentTransition(.identity)
+    public void The_settled_headers_count_keeps_its_full_width_when_squeezed_and_changes_its_digits_in_place() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        harness.Main.OnMain(() =>
+        {
+            var header = new SettledHeader(1234, isFirst: false);
+            var host = new Border { Width = 60, Child = header }; // narrower than chevron + "Settled" + count
+            AppEnvironment.SetAppModel(host, model);
+            var window = new AvaloniaWindow { Content = host, Width = 200, Height = 80 };
+            window.Show();
+            try
+            {
+                window.UpdateLayout();
+                var count = LogicalQuery.SelfAndDescendants<TextBlock>(header).Single(t => t.Text == "1234");
+                var natural = new TextBlock { Text = "1234", FontSize = count.FontSize, FontWeight = count.FontWeight, FontFamily = count.FontFamily, FontFeatures = count.FontFeatures };
+                natural.Measure(Size.Infinity);
+                Assert.Equal(natural.DesiredSize.Width, count.Bounds.Width, 1.0); // .fixedSize(): its own full width (unrounded in the baseline row), never cut or wrapped
+                Assert.Single(count.TextLayout.TextLines);
+                Transaction.WithAnimation(Chrome.PanelSlide, () => header.Update(1235, isFirst: false)); // even inside an animation
+                Assert.Same(count, LogicalQuery.SelfAndDescendants<TextBlock>(header).Single(t => t.Text == "1235")); // :2388 .identity: the same text, its digits swapped at once
+                Assert.Equal(0.8, count.Opacity); // no fade on the digits
+            }
+            finally { window.Close(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-058")] // SidebarView.swift:705-708 the search list's project row keeps its ellipsis, and it works
+    public void In_search_results_the_inert_project_rows_ellipsis_still_opens_its_actions() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        using var harness = new AppModelHarness();
+        var alpha = NewProject(harness, "Alpha");
+        var fix = NewThread(alpha, "Fix one", 0);
+        var model = Model(harness, [alpha], [fix]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        void Settle(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        try
+        {
+            harness.Main.OnMain(() => { view = Attached(model); window = WindowOf(view); });
+            Settle(1600);
+            harness.Main.OnMain(() => SearchBox(view).Text = "fix");
+            Settle(1600);
+            Control projectRow = null!;
+            harness.Main.OnMain(() =>
+            {
+                projectRow = ListPanel(view).Children[0];
+                Assert.Equal("ProjectRow", projectRow.GetType().Name);
+                window.MouseMove(projectRow.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            Settle(300);
+            harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(projectRow).Single(b => ToolTip.GetTip(b) as string == "More")));
+            harness.Main.OnMain(() =>
+            {
+                var popup = LogicalQuery.SelfAndDescendants<Popup>(projectRow).Single(p => p.Child is not null);
+                var titles = LogicalQuery.SelfAndDescendants<PopoverItem>(popup.Child!)
+                    .Select(i => AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(i).Single())).ToList();
+                Assert.Equal("New thread", titles[0]); // :1207 the project's own actions, as outside a search
+                Assert.Contains("Remove project", titles);
+                Assert.DoesNotContain("Start new chats on", titles); // the popover never offers the pair submenu
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // ---- REVIEW (pass 1, round 1, adversarial): hover that includes the trailing overlay ----
+    //
+    // SidebarView.swift:1375-1386 SidebarHelperRow: `.overlay(alignment: .trailing) { ... }` comes BEFORE
+    // `.onHover { ... }`, so the hover region is the button together with its ellipsis; the pointer resting on the
+    // ellipsis is still on the row and the ellipsis stays (UI-SIDEBAR-033 "hovered (fill plus ellipsis in place of the
+    // activity status)"). Chrome.swift:731-737 SidebarRow (the project row, PR-SIDEBAR-126, UI-SIDEBAR-058 "the
+    // project row's ellipsis and plus still work") has the same order. SidebarThreadRow gets this right
+    // (overlays.OnHover, SidebarView.cs, ":1816 hover includes the overlaid check and accessory buttons").
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // SidebarView.swift:1375-1386: .overlay then .onHover
+    public void REVIEW_A_helper_rows_ellipsis_stays_while_the_pointer_rests_on_it() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(60, 12), window)!.Value); // on the title
+        });
+        try
+        {
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                var more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+                window.MouseMove(more.TranslatePoint(new Point(more.Bounds.Width / 2, more.Bounds.Height / 2), window)!.Value); // onto the ellipsis
+            });
+            Tick(300);
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ActivityStatus>(row)); // still hovered: no status in its place
+                Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "More");
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-126")] // UI/Chrome/Chrome.swift:731-737 SidebarRow: .overlay then .onHover
+    [Trait("Req", "UI-SIDEBAR-058")] // "the project row's ellipsis and plus still work"
+    public void REVIEW_A_project_rows_ellipsis_and_plus_stay_while_the_pointer_rests_on_the_ellipsis() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // on the icon
+        });
+        try
+        {
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                var more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+                window.MouseMove(more.TranslatePoint(new Point(more.Bounds.Width / 2, more.Bounds.Height / 2), window)!.Value); // onto the ellipsis
+            });
+            Tick(300);
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "More"); // :1118 still offered
+                Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "New thread in Alpha"); // :1119-1125
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // PR-SIDEBAR-126 "the row's own hover fill is the label colour at 0.06" on the live path, not only FillFor's value: a real
+    // hover of the project row draws it once Chrome.hover's ease has run (Chrome.swift:729, :743), and it stays while the
+    // pointer rests on the overlaid ellipsis, as the hover covers the overlay (:731-737).
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-126")] // Chrome.swift:729, :731-737, :741-745 via SidebarView.swift:1097-1133
+    public void A_project_rows_hover_fill_is_drawn_on_a_real_hover_and_kept_while_the_pointer_rests_on_its_ellipsis() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        Border shape = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Color FillNow() => ((ISolidColorBrush)shape.Background!).Color;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+            shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 28 && b.Padding.Right > 40);
+            Assert.Equal(0, FillNow().A); // :744 clear while the pointer is elsewhere
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // onto the icon
+        });
+        try
+        {
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), FillNow()); // :743 hovered, never selected
+                var more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+                window.MouseMove(more.TranslatePoint(new Point(more.Bounds.Width / 2, more.Bounds.Height / 2), window)!.Value); // onto the ellipsis
+            });
+            Tick(300);
+            Tick(300);
+            harness.Main.OnMain(() => Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), FillNow())); // still the row's hover
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // ---- REVIEW (pass 1, round 1, adversarial): the head card's chevron fades the glyphs past twelve ----
+    //
+    // SidebarView.swift:1466-1513 the glyphs are `ForEach(row, id: \.id)` inside `ForEach(rows, id: \.first?.id)`, and
+    // :1515-1516 toggles showsAllHeads inside withAnimation(.snappy(duration: 0.18)): the heads past the first twelve
+    // join (and leave) on SwiftUI's default .opacity transition under that snappy animation, while the clipped card
+    // grows (:1521, :1535). 2-chat-use.mov 5.33-5.40 s (CATALOGUE sidebar.activity-grid-expand; frames extracted to
+    // E:\Droppy\work\parity\evidence\SidebarView\review\grid\zoom345.png): in the first frames of the expansion the new
+    // glyphs, including the six that join the second row, are drawn faint and reach full strength over the next frames,
+    // while the first twelve stay whole. The port's Rebuild cleared and refilled every row, so the new glyphs were whole
+    // at once (and the leaving ones gone at once).
+
+    private static double ShownOpacityWithin(Control control, Control root) =>
+        control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => !ReferenceEquals(v, root)).Aggregate(1d, (o, v) => o * v.Opacity);
+
+    // A head card's leaving glyphs and chevrons fade on the canvas layer over the card, which takes no input
+    // (ED-258 (2)); the live ones sit in the card's own rows.
+    private static bool OnGhostLayer(Control control) => control.GetVisualAncestors().OfType<Canvas>().Any(canvas => !canvas.IsHitTestVisible);
+
+    private static List<Button> ChevronButtons(Control card) => LogicalQuery.SelfAndDescendants<Button>(card)
+        .Where(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true)).ToList();
+
+    // The chevron the card draws now (:1514-1526), not one still fading out where it stood.
+    private static Button LiveChevron(Control card) => ChevronButtons(card).Single(b => !OnGhostLayer(b));
+
+    private static string ChevronSymbolOf(Button chevron) => LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).First(i => i.SymbolName is not null).SymbolName!;
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1466-1516: the toggle's snappy animation carries the glyphs' default opacity transition
+    public void REVIEW_The_head_cards_chevron_fades_the_glyphs_past_twelve_in_and_out_on_its_snappy_toggle() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 15).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(12, Glyphs().Count); // :1443 prefix(12)
+                Click(ChevronOf()); // :1515-1516 withAnimation(.snappy(duration: 0.18))
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3); // about 48 ms into the 0.18 s snappy curve
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count);
+                Assert.Equal(1d, ShownOpacityWithin(glyphs[0], card)); // one of the first twelve: whole throughout
+                Assert.InRange(ShownOpacityWithin(glyphs[^1], card), 0.02, 0.98); // a joining glyph: still fading in
+            });
+            Frames(30);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(1d, ShownOpacityWithin(Glyphs()[^1], card));
+                Click(ChevronOf()); // and back to twelve
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count); // the three leaving glyphs are still on their way out
+                Assert.InRange(ShownOpacityWithin(glyphs[^1], card), 0.02, 0.98);
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // Every claim the record makes about the toggle's motion, each against a different way to get it wrong: the glyphs that
+    // stay never fade (a rebuild that fades everything), the joiners start faint and the leavers end gone (the full curve,
+    // not one frame), a leaver fades where it stood and the chevron does not wait for it (a leaver that holds its slot
+    // makes the chevron jump when it is gone), and a rebuild that changes no membership (a selection) fades nothing.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1466-1516, :1535: the glyphs' default opacity transition under the toggle's snappy animation
+    public void The_head_cards_leaving_glyphs_fade_where_they_stood_without_holding_the_chevron_and_the_stayers_never_fade() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 15).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        // The chevron the card draws now; on its own toggle the one it drew before fades out where it stood (:1516,
+        // 2-chat-use.mov 5.340-5.378 s), on the ghost layer.
+        Button ChevronOf() => LiveChevron(card);
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        static void Near(double expected, double actual, string what) => Assert.True(Math.Abs(expected - actual) < 0.5, $"{what}: expected {expected}, was {actual}");
+        Rect lastGlyphWhenExpanded = default;
+        double collapsedChevronTop = 0, expandedChevronTop = 0;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                collapsedChevronTop = Frame(ChevronOf(), card).Y; // under the second row of twelve
+                Assert.True(collapsedChevronTop > 40, "the head card has not been laid out");
+                Click(ChevronOf());
+            });
+            harness.Main.OnMain(() => { });
+            Frames(40); // the 0.18 s toggle has run its course
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count);
+                Assert.All(glyphs, g => Assert.Equal(1d, ShownOpacityWithin(g, card))); // all whole once it has ended
+                lastGlyphWhenExpanded = Frame(glyphs[^1], card); // alone on the third row
+                Assert.Single(ChevronButtons(card)); // the down-chevron the expansion took away is gone
+                expandedChevronTop = Frame(ChevronOf(), card).Y;
+                Assert.True(expandedChevronTop > collapsedChevronTop); // the chevron sits below that third row
+                Click(ChevronOf()); // back to twelve
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count); // the leaving three are still drawn, fading
+                for (var i = 0; i < 12; i++) Assert.Equal(1d, ShownOpacityWithin(glyphs[i], card)); // the twelve that stay never fade
+                var leaving = glyphs.Skip(12).ToList();
+                Assert.All(leaving, g => Assert.InRange(ShownOpacityWithin(g, card), 0.02, 0.98));
+                // A leaver fades where it stood: the last one is drawn at the place it had on the third row ...
+                Near(lastGlyphWhenExpanded.X, Frame(leaving[^1], card).X, "leaver x");
+                Near(lastGlyphWhenExpanded.Y, Frame(leaving[^1], card).Y, "leaver y");
+                // ... and holds no room: the chevron is already where the collapsed card puts it, not held down until
+                // the leaving row is gone, to jump at the end.
+                Near(collapsedChevronTop, Frame(ChevronOf(), card).Y, "chevron y");
+                Assert.Equal("chevron.down", ChevronSymbolOf(ChevronOf())); // :1516
+                Assert.Contains(leaving[^1].GetVisualAncestors().OfType<Canvas>(), c => !c.IsHitTestVisible); // never a target while it goes
+                // The up-chevron it replaces is not cut away: it fades out where it stood, under the grown card's third row.
+                var leavingChevron = Assert.Single(ChevronButtons(card), OnGhostLayer);
+                Assert.Equal("chevron.up", ChevronSymbolOf(leavingChevron));
+                Assert.InRange(ShownOpacityWithin(leavingChevron, card), 0.02, 0.98);
+                Near(expandedChevronTop, Frame(leavingChevron, card).Y, "leaving chevron y");
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(12, Glyphs().Count); // gone, the ghost layer empty
+                Assert.Single(ChevronButtons(card)); // the up-chevron too
+                Near(collapsedChevronTop, Frame(ChevronOf(), card).Y, "chevron y");
+                // A rebuild that changes no membership (the selection moves) fades nothing, in or out.
+                model.SelectedThreadID = heads[3].Id;
+            });
+            harness.Main.OnMain(() => { });
+            Frames(2);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(12, glyphs.Count);
+                Assert.All(glyphs, g => Assert.Equal(1d, ShownOpacityWithin(g, card)));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // The card the list keeps is the card it had (SidebarView.swift:470-472 ForEach id "heads-<uuid>"; :1434-1437 @State): a
+    // head that joins, or whose record changes, is handed to it as new headSnapshots, and what the user chose (every head
+    // showing) and what is hovered stay. A head that joins fades in under :1541's panelSlide (the head ids changed, the
+    // row count did not).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :1434-1437, :1541
+    [Trait("Req", "UI-SIDEBAR-036")] // :1541 .animation(Chrome.panelSlide, value: heads.map(\.id))
+    public void A_head_card_handed_new_heads_keeps_every_head_showing_and_fades_a_joining_head_in_on_panel_slide() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 13).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var joining = HeadHelper(project, parent.Id, 99, -1); // the oldest: the card's last glyph, so no other glyph changes place
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        string ChevronSymbol() => LogicalQuery.SelfAndDescendants<SwiftImage>(ChevronOf()).First(i => i.SymbolName is not null).SymbolName!;
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(12, Glyphs().Count); // :1443 prefix(12)
+                Click(ChevronOf()); // every head shows
+            });
+            harness.Main.OnMain(() => { });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(13, Glyphs().Count);
+                Assert.Equal("chevron.up", ChevronSymbol());
+                CallOn(card, "Update", heads.Append(joining).ToList()); // :1430 the list's next pass: one head more
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3); // about 48 ms into panelSlide
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(14, glyphs.Count);
+                Assert.Equal("chevron.up", ChevronSymbol()); // still every head: the card's own state survived the new heads
+                Assert.Equal(1d, ShownOpacityWithin(glyphs[0], card));
+                Assert.Equal(1d, ShownOpacityWithin(glyphs[12], card)); // the last of the thirteen already there
+                Assert.InRange(ShownOpacityWithin(glyphs[13], card), 0.02, 0.98); // the one that joined, still coming in
+                Assert.Equal(Chrome.PanelSlide.Progress(0.048), ShownOpacityWithin(glyphs[13], card), 3); // on :1541's panelSlide, 48 ms in
+            });
+            Frames(60);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(14, glyphs.Count);
+                Assert.All(glyphs, g => Assert.Equal(1d, ShownOpacityWithin(g, card)));
+                Assert.Equal("chevron.up", ChevronSymbol());
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :470-472, :1434-1437: the list keeps the card whose head changed, with its @State
+    public void The_real_list_keeps_an_expanded_head_card_when_a_new_pass_hands_it_changed_heads() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var heads = Enumerable.Range(0, 14).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        StackPanel list = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Control CardNow() => LogicalQuery.SelfAndDescendants<Control>(list).Single(c => c.GetType() == Private("HeadCardsRow"));
+        List<Button> Glyphs(Control from) => LogicalQuery.SelfAndDescendants<Button>(from).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        Control card = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.HydraAutoHidesIdleHeads = false;
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                card = CardNow();
+                Assert.Equal(12, Glyphs(card).Count);
+                Click(LogicalQuery.SelfAndDescendants<Button>(card).Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName == "chevron.down")));
+            });
+            Tick(600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(14, Glyphs(card).Count); // every head showing
+                model.UpdateThread(heads[3].Id, t => t with { Title = "Renamed head" }); // one head's thread changes: the card reads its live thread
+                model.NewThread(project); // and the list takes a new pass (a thread more): its item for the card carries the heads as they are now
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(card, CardNow()); // the card the list had, not one built where it stood
+                Assert.Equal(14, Glyphs(card).Count); // and every head still showing
+                Assert.Contains(LogicalQuery.SelfAndDescendants<SwiftImage>(card), i => i.SymbolName == "chevron.up");
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // :1514 `if capped { chevron }`: the chevron is a view of the card's own stack, so it joins and leaves on the same default
+    // opacity transition as a glyph when the head count crosses twelve; the card's row count changes with it, so :1535's
+    // snappy is the animation in force.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :1514, :1535
+    public void The_head_cards_chevron_fades_in_when_the_card_becomes_capped_and_out_when_it_stops_being() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var twelve = Enumerable.Range(0, 12).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var thirteen = twelve.Append(HeadHelper(project, parent.Id, 99, -1)).ToList(); // the oldest: the last of the card
+        var model = Model(harness, [project], twelve.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Chevrons() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Where(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true)).ToList();
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, twelve, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Empty(Chevrons()); // twelve heads: not capped, no chevron
+                CallOn(card, "Update", thirteen); // a thirteenth head: capped
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var chevron = Assert.Single(Chevrons());
+                Assert.InRange(ShownOpacityWithin(chevron, card), 0.02, 0.98); // joining
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(1d, ShownOpacityWithin(Assert.Single(Chevrons()), card));
+                CallOn(card, "Update", twelve); // back to twelve: no longer capped
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var chevron = Assert.Single(Chevrons()); // still drawn, on its way out
+                Assert.InRange(ShownOpacityWithin(chevron, card), 0.02, 0.98);
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Empty(Chevrons()); // gone
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // ---- REVIEW (pass 1, round 1, adversarial): the Remove project question outlives a re-render of its row ----
+    //
+    // OD-0008 A9 / OD-0012 E2 put the question on the project row "in the style of the thread delete question"
+    // (SidebarView.swift:217-237): that question's state lives in the list (pendingDeletionID) and survives every
+    // re-render of the row it hangs on, and a SwiftUI row's own @State survives a new value under the same ForEach id
+    // ("project-<uuid>", :524). The port kept IsRemovalPresented in the ProjectRow control, and the list rebuilt that
+    // control whenever its item's value changed (UpdateItemView updated only gaps and the Settled header), so a new
+    // thread in the project (its count changes, :522-524) while the question was up dropped the question.
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9, OD-0012 E2: Remove project asks first; the question stays until answered or dismissed
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void REVIEW_The_Remove_project_question_stays_up_when_the_projects_count_changes_under_it() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        StackPanel list = null!; // taken once: a popup's content, once built, brings a ScrollViewer of its own into the view's logical tree
+        Control ProjectRowNow() => list.Children.Single(c => c.GetType() == Private("ProjectRow"));
+        bool Asking(Control row) => LogicalQuery.SelfAndDescendants<Popup>(row).Any(p => recorder.Calls.LastOrDefault(c => c.Popup == p) is { Presented: true } call
+            && PopoverHost.Content(p)?.GetType() == Private("RemoveProjectPopover"));
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Settings.ConfirmBeforeDeleting);
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                var row = ProjectRowNow();
+                PointerRightClick(row);
+                ContextMenuOf(row).Items.Cast<Control>().Single(i => i is MenuItem && MenuItemTitle(i) == "Remove project")
+                    .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            });
+            Tick(16);
+            harness.Main.OnMain(() => Assert.True(Asking(ProjectRowNow()))); // the question is up
+            harness.Main.OnMain(() => model.NewThread(project)); // a new thread in the project: its count goes from 1 to 2
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.NotNull(model.Project(project.Id)); // nothing answered
+                Assert.True(Asking(ProjectRowNow())); // still asking on the project's row
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // The row a surviving project keeps is the row it had: its question, its open ellipsis menu and the count it draws are
+    // all one state, and the count it draws is the new one (:1127-1132, :521-523).
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-026")] // SidebarView.swift:521-523, :1127-1132: the collapsed project's count
+    [Trait("Req", "UI-SIDEBAR-009")]
+    [Trait("Req", "PR-SIDEBAR-126")] // :333-334 the row under its ForEach id takes its new snapshot and count
+    public void A_surviving_project_row_draws_its_new_count_in_place_and_keeps_its_open_ellipsis_menu() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false };
+        var first = NewThread(project, "First", 0);
+        var second = NewThread(project, "Second", 1);
+        var third = NewThread(project, "Third", 2);
+        var model = Model(harness, [project], [first, second, third]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        StackPanel list = null!; // taken once: a popup's content, once built, brings a ScrollViewer of its own into the view's logical tree
+        Control ProjectRowNow() => list.Children.Single(c => c.GetType() == Private("ProjectRow"));
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                row = ProjectRowNow();
+                Assert.Contains("3", Texts(row)); // :1127-1132 the collapsed project's count
+                model.Delete(third.Id); // the count goes from 3 to 2 and the project stays collapsed
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(row, ProjectRowNow()); // the same row, not a new one built where it stood
+                Assert.Contains("2", Texts(row));
+                Assert.DoesNotContain("3", Texts(row));
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // hovered: the ellipsis and plus take the count's place
+            });
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+                PointerClick(more); // :391 the ellipsis menu opens: isMenuPresented
+                Assert.True((bool)Get(Field(row, "state")!, "IsMenuPresented")!);
+            });
+            Tick(16); // the accessory is drawn again for the open menu (:1116 hovering || isMenuPresented)
+            harness.Main.OnMain(() =>
+            {
+                more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More"); // the one the open menu hangs on
+                model.Delete(second.Id); // the count goes from 2 to 1 under the open menu
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(row, ProjectRowNow());
+                Assert.True((bool)Get(Field(row, "state")!, "IsMenuPresented")!); // still open
+                Assert.Same(more, LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")); // its anchor not rebuilt under it
+                window.MouseMove(new Point(1, 1)); // the pointer leaves the row; the menu is still open
+            });
+            Tick(300);
+            harness.Main.OnMain(() => Click(more)); // closes the menu: isMenuPresented false
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("1", Texts(row)); // the count the open menu held back is drawn now
+                Assert.DoesNotContain("2", Texts(row));
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // The question's life in the popup (OD-0008 A9, OD-0012 E2, the thread delete question's own: confirmDeletion and
+    // carryOutConfirmedDeletion, SidebarView.swift:256-306): the popup's own Opened and Closed run here, which the
+    // recording presenter never raises. Dismissing removes nothing; the red action closes the question and removes the
+    // project only on the next main-actor turn after the popup is gone; never in the click that confirms.
+
+    private static void RaisePopup(Popup popup, string name)
+    {
+        var field = typeof(Popup).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new InvalidOperationException("Popup." + name + " backing field not found");
+        ((Delegate?)field.GetValue(popup))?.DynamicInvoke(popup, EventArgs.Empty);
+    }
+
+    // Both menus' Remove project call the row's RequestRemoval (the context menu's own click is proven above); the
+    // lifecycle tests ask through it directly, so no menu popup stays open beside the question under test.
+    private static void AskToRemove(Control row, Project project) => CallOn(row, "RequestRemoval", project);
+
+    private static Button RemoveAction(Popup popup) =>
+        LogicalQuery.SelfAndDescendants<Button>(PopoverHost.Content(popup)!).Single(b => AutomationProperties.GetName(b) == "Remove project");
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9: a dismissal of the question removes nothing
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void Dismissing_the_Remove_project_question_through_its_popup_removes_nothing_and_closes_it() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        Popup popup = null!;
+        bool Presented() => (bool)Get(Field(row, "state")!, "IsRemovalPresented")!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 1));
+        harness.Main.OnMain(() => AskToRemove(row, project)); // the row is mounted and settled first: the question's presentation follows the ask by a turn
+        harness.Main.OnMain(() =>
+        {
+            popup = RemovalPopup(row);
+            Assert.True(Presented());
+            Assert.True(recorder.Calls.Last(c => c.Popup == popup).Presented);
+            RaisePopup(popup, "Opened"); // :229 .onAppear: on screen
+            RaisePopup(popup, "Closed"); // :231-232 .onDisappear, by a click away or Escape: the popup's own Closed
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.False(Presented(), "the question is still presented after its popup closed");
+            Assert.False(recorder.Calls.Last(c => c.Popup == popup).Presented, "the presenter was not told the question is down");
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.Project(project.Id)); // and nothing was removed, however many turns later
+            Assert.NotNull(model.Thread(thread.Id));
+            AskToRemove(row, project); // asking again works, and the dismissal left no half-confirmed removal behind
+        });
+        harness.Main.OnMain(() =>
+        {
+            popup = RemovalPopup(row);
+            RaisePopup(popup, "Opened");
+            RaisePopup(popup, "Closed");
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.Project(project.Id));
+            Assert.NotNull(model.Thread(thread.Id));
+            WindowOf(row).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9 via PR-SIDEBAR-131: the red action removes after the question's popup is gone
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void The_Remove_project_red_action_closes_the_question_and_removes_once_its_popup_is_gone() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        Popup popup = null!;
+        bool Presented() => (bool)Get(Field(row, "state")!, "IsRemovalPresented")!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 1));
+        harness.Main.OnMain(() => AskToRemove(row, project));
+        harness.Main.OnMain(() =>
+        {
+            popup = RemovalPopup(row);
+            RaisePopup(popup, "Opened"); // :229 .onAppear: the popup is on screen
+            Click(RemoveAction(popup)); // the red action: PopoverItem closes its popover and runs the action on the next turn (Popovers.swift:271-273)
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            // :256-263 confirmDeletion closed the question ...
+            Assert.False(Presented(), "the question is still presented after the red action");
+            Assert.False(recorder.Calls.Last(c => c.Popup == popup).Presented, "the presenter was not told to close the question");
+            // ... and, the popup still being on screen (removing the project removes this row, popup included), waits.
+            Assert.NotNull(model.Project(project.Id));
+            Assert.NotNull(model.Thread(thread.Id));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.Project(project.Id)); // still waiting, however many turns it is
+            Assert.NotNull(model.Thread(thread.Id));
+            RaisePopup(popup, "Closed"); // :231-232 .onDisappear -> carryOutConfirmedDeletion
+            Assert.NotNull(model.Project(project.Id)); // on the main actor's next turn (:295-306), not inside Closed
+            Assert.NotNull(model.Thread(thread.Id));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Null(model.Project(project.Id));
+            Assert.Null(model.Thread(thread.Id));
+            WindowOf(row).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // :256-263, :295-306 confirmDeletion with no popup on screen: carryOutConfirmedDeletion on the next main-actor turn
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void Confirming_the_Remove_project_question_with_no_popup_on_screen_removes_on_the_next_turn_not_in_the_call() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 1));
+        harness.Main.OnMain(() => AskToRemove(row, project));
+        harness.Main.OnMain(() =>
+        {
+            RemovalPopup(row); // asked, and never shown (Opened never raised): there is no popup to wait for
+            CallOn(row, "ConfirmRemoval"); // the red action's own action, which PopoverItem runs on a turn of its own
+            Assert.False((bool)Get(Field(row, "state")!, "IsRemovalPresented")!);
+            Assert.NotNull(model.Project(project.Id)); // not synchronously in the confirmation
+            Assert.NotNull(model.Thread(thread.Id));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Null(model.Project(project.Id)); // the next main-actor turn
+            Assert.Null(model.Thread(thread.Id));
+            WindowOf(row).Close();
+        });
+    });
+
+    // ---- REVIEW (pass 2, round 1, adversarial): two changes the port makes by a cut where the Mac fades ----
+    //
+    // (1) Chrome.swift:735-737 SidebarRow flips isHovering inside withAnimation(Chrome.hover), and the project row's
+    // accessory (SidebarView.swift:1115-1133) is `if hovering || isMenuPresented { HStack { ellipsis; plus } } else if
+    // !project.isExpanded, count > 0 { Text(count) }`: the two branches swap on SwiftUI's default .opacity transition under
+    // that easeOut 0.1 s, as the helper row's status and ellipsis do (Hovering_a_helper_row_crossfades_its_status_out_...).
+    // OD-0076: nothing on screen changes by a cut. The port's SidebarRow (Chrome.cs) removes the old accessory and adds the
+    // new one at once, so a search result's inert project row (UI-SIDEBAR-058 "still shows its hover accessories") shows
+    // them by a cut.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-058")] // SidebarView.swift:709, :1115-1133; Chrome.swift:731-737
+    public void REVIEW_Round2_A_search_results_project_row_crossfades_its_count_out_and_its_hover_accessories_in_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false }; // folded: the idle accessory is the count (:1127-1131)
+        var thread = NewThread(project, "Fix it", 1);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1, togglesExpansion: false); // :709 the search result's own project row
+            window = WindowOf(row);
+        });
+        try
+        {
+            TextBlock count = null!;
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                count = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "1"); // :1127-1131 while the pointer is elsewhere
+                Assert.Empty(LogicalQuery.SelfAndDescendants<RowActionsButton>(row));
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // onto the row's icon
+            });
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s
+            harness.Main.OnMain(() =>
+            {
+                Assert.InRange(ShownOpacityWithin(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single(), row), 0.05, 0.95); // fading in
+                Assert.Contains(count, LogicalQuery.SelfAndDescendants<TextBlock>(row)); // the count is still drawn ...
+                Assert.InRange(ShownOpacityWithin(count, row), 0.05, 0.95); // ... fading out
+            });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "1");
+                Assert.Equal(1d, ShownOpacityWithin(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single(), row));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // (2) 2-chat-use.mov 5.340-5.378 s (frames python frames.py extract 2-chat-use.mov 5.30 5.56 --crop 80:50:20:285): on the
+    // chevron's own toggle (SidebarView.swift:1515-1516 withAnimation(.snappy(duration: 0.18))) the down-chevron does not
+    // vanish. At 5.340 s it is whole; at 5.357 s it is still drawn, faint, exactly where it stood, over the first joining
+    // glyph fading in at the same place; it is gone once the toggle has run (and the up-chevron is under the grown card's
+    // last row). OD-0076 asks the same. The port rebuilds the card's stack and puts a new up-chevron in at once, so the
+    // down-chevron is gone in the first frame.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1514-1526 the chevron, :1515-1516 its snappy toggle; 2-chat-use.mov 5.340-5.378 s
+    public void REVIEW_Round2_The_head_cards_down_chevron_fades_out_where_it_stood_on_its_own_toggle_instead_of_vanishing() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 15).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<SwiftImage> Chevrons(string symbol) => LogicalQuery.SelfAndDescendants<SwiftImage>(card).Where(i => i.SymbolName == symbol).ToList();
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        Rect downWhenCollapsed = default;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var down = Chevrons("chevron.down").Single();
+                downWhenCollapsed = Frame(down, card);
+                Assert.True(downWhenCollapsed.Y > 40, "the head card has not been laid out"); // under the second row of twelve
+                Click(LogicalQuery.SelfAndDescendants<Button>(card).Single(b => b.GetLogicalDescendants().Contains(down)));
+            });
+            harness.Main.OnMain(() => { });
+            Frames(2); // about 32 ms into the 0.18 s snappy toggle (the video's 5.357 s frame is 17-27 ms after the press)
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var down = Assert.Single(Chevrons("chevron.down")); // still drawn ...
+                Assert.InRange(ShownOpacityWithin(down, card), 0.02, 0.98); // ... fading out ...
+                Assert.True(Math.Abs(Frame(down, card).Y - downWhenCollapsed.Y) < 0.5, "the down-chevron fades where it stood"); // ... in place
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Empty(Chevrons("chevron.down")); // gone once the toggle has run
+                Assert.Equal(1d, ShownOpacityWithin(Chevrons("chevron.up").Single(), card));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // (3) SidebarView.swift:1338-1409: SidebarHelperRow reads its live thread through the model's cell (:1324-1325) and keeps
+    // @State isMenuPresented (:1340) under its own identity, so its ellipsis menu (:1375-1377 RowActionsButton(actions:,
+    // isPresented: $isMenuPresented)) stays open on the same button while the helper's record changes under it (its title,
+    // an unread mark, a new updatedAt): only the title re-renders. The port's SidebarHelperRow builds a new RowActionsButton,
+    // with a popup of its own, on every change of the record (its overlay Track), so the open menu's anchor is replaced
+    // under it and the menu is presented again on another popup.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // :1340-1341 showsActions = isHovering || isMenuPresented; :1375-1377 the ellipsis
+    public void REVIEW_Round2_A_helper_rows_open_ellipsis_menu_keeps_its_button_while_the_helpers_record_changes() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var presenter = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(presenter);
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Button More() => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(100, 12), window)!.Value); // hovered: the ellipsis in place of the status
+        });
+        try
+        {
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                more = More();
+                PointerClick(more); // :391 the ellipsis menu opens: isMenuPresented
+            });
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Single(presenter.Calls, call => call.Presented); // the menu, presented once
+                Assert.True(ReferenceEquals(more, More()), "the ellipsis was rebuilt as its menu opened");
+                model.UpdateThread(helper.Id, t => t with { Title = "Helper renamed" }); // the helper's thread changes under the open menu
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("Helper renamed", Texts(row)); // :1359 the title follows the live record
+                Assert.True(ReferenceEquals(more, More()), "the open menu's ellipsis was rebuilt when the helper's thread changed"); // the open menu hangs on the button it had
+                Assert.Single(presenter.Calls, call => call.Presented); // and is not presented again on another popup
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // ---- Review round 2 (pass 2): the proofs the round asked for, each against the mutant that survived it ----
+    // (mutants RA1-RA16 in E:\Droppy\work\parity\evidence\SidebarView\review\mutants_review2.txt)
+
+    // The leaving glyphs' layer (ED-258 (2)) is the card's own area under the card's clip (:1521
+    // .clipShape): a leaving glyph is drawn whole while the shrinking card still holds its row, and cut by the card's edge
+    // once the card has shrunk past it, where SwiftUI's clip cuts it (RA1: the layer keeps no height and hides every leaver;
+    // RA2: the layer does not clip and leavers draw outside the card).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :1514-1516 the toggle; :1521 .clipShape; :1535 snappy
+    public void A_leaving_glyph_is_drawn_inside_the_card_and_cut_by_its_edge_once_the_card_shrinks_past_its_row() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        // Twenty-two heads, seven to a row at the host's 200 pt (:1451): the last one alone on a fourth row, which the
+        // collapsed card (two rows of glyphs and the chevron's, :1461) no longer reaches.
+        Assert.Equal(7, HeadCardsRow.PerRow(200));
+        var heads = Enumerable.Range(0, 22).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        Button Leaver() => Glyphs().Where(OnGhostLayer).OrderBy(g => Frame(g, card).Y).Last(); // the one from the fourth row
+        Border Face() => LogicalQuery.SelfAndDescendants<Border>(card).Single(b => b.Child is StackPanel && b.Padding == new Thickness(ThreadRowMetrics.HeadCardPadding)); // :1516-1521
+        List<Control> ClipsOf(Control leaver) => leaver.GetVisualAncestors().OfType<Control>().TakeWhile(a => !ReferenceEquals(a, card)).Where(a => a.ClipToBounds).ToList();
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.Height = 300; // room for the expanded card's five rows
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() => Click(LiveChevron(card))); // every head
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(22, glyphs.Count);
+                // The last glyph on the fourth row: 6 pt of padding and three rows of 14 pt with 6 pt between them above it (:1465, :1516).
+                Assert.Equal(6 + 3 * (14 + 6), Frame(glyphs[^1], card).Y - Frame(Face(), card).Y, 3);
+                Click(LiveChevron(card)); // back to twelve: the card shrinks from five rows to three on snappy (:1535)
+            });
+            harness.Main.OnMain(() => { });
+            Frames(1); // 16 ms in: the card still holds the fourth row
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var leaver = Leaver();
+                Assert.InRange(ShownOpacityWithin(leaver, card), 0.02, 0.98); // fading where it stood
+                var at = Frame(leaver, card);
+                Assert.True(at.Bottom <= Frame(Face(), card).Bottom, "the card should still hold the leaver's row");
+                Assert.NotEmpty(ClipsOf(leaver)); // under the card's clip
+                foreach (var clip in ClipsOf(leaver))
+                    Assert.True(Frame(clip, card).Contains(at), $"a {clip.GetType().Name} of {Frame(clip, card)} cuts the leaver at {at}, which the card still holds");
+            });
+            Frames(4); // 80 ms in: snappy has the card at about 72 pt of its way from 106 to 66, short of the fourth row's bottom (80)
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var leaver = Leaver();
+                Assert.InRange(ShownOpacityWithin(leaver, card), 0.02, 0.98); // still drawn, still fading
+                var at = Frame(leaver, card);
+                var face = Frame(Face(), card);
+                Assert.True(face.Bottom > at.Top && face.Bottom < at.Bottom, $"the card's edge at {face.Bottom} should cross the leaver at {at.Top}-{at.Bottom}");
+                // :1521 the card's own clip cuts it there, at the card's edge, not outside the card
+                Assert.Contains(ClipsOf(leaver), clip => Math.Abs(Frame(clip, card).Bottom - face.Bottom) < 0.5);
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(12, Glyphs().Count); // gone
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // :1515-1516 the record's "click toggles ... animated with .snappy(duration: 0.18)", on its curve: with fourteen heads,
+    // seven to a row, the card keeps two rows of glyphs either way (:1461) and the same heads (:1541), so no .animation of
+    // the card's takes over and the toggle's own snappy carries the glyphs that join and the chevrons that swap (RA7: the
+    // toggle on panelSlide).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :1515-1516 withAnimation(.snappy(duration: 0.18)) { showsAllHeads.toggle() }
+    public void The_chevrons_toggle_fades_the_glyphs_past_twelve_and_its_symbols_on_snappy_0_18_when_the_cards_rows_stay() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        Assert.Equal(7, HeadCardsRow.PerRow(200));
+        var heads = Enumerable.Range(0, 14).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        var snappy = Animation.Snappy(duration: 0.18).Progress(0.032);
+        Assert.True(Math.Abs(snappy - Chrome.PanelSlide.Progress(0.032)) > 0.1); // the fixture tells the two curves apart
+        double cardHeight = 0;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                cardHeight = card.Bounds.Height;
+                Assert.Equal(12, Glyphs().Count);
+                Click(LiveChevron(card));
+            });
+            harness.Main.OnMain(() => { });
+            Frames(2); // 32 ms into the toggle
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(14, glyphs.Count);
+                Assert.Equal(cardHeight, card.Bounds.Height); // the card's rows stay: nothing of the card's own animates
+                foreach (var joining in glyphs.Skip(12)) Assert.Equal(snappy, ShownOpacityWithin(joining, card), 3); // the two past twelve, on snappy
+                Assert.Equal(snappy, ShownOpacityWithin(LiveChevron(card), card), 3); // the up-chevron comes in on it
+                Assert.Equal(1 - snappy, ShownOpacityWithin(Assert.Single(ChevronButtons(card), OnGhostLayer), card), 3); // and the down-chevron goes on it
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // A head that joins on a row of its own changes the card's row count and its head ids together: the innermost
+    // .animation over the glyphs, :1535 snappy for cardRows, is the one in force for it, not :1541 panelSlide around the
+    // card (RA5: panelSlide first).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :1535 inside :1541
+    [Trait("Req", "UI-SIDEBAR-036")] // "row count changes animate with .snappy(duration: 0.18)"
+    public void A_head_that_joins_on_a_new_row_fades_in_on_the_cards_snappy_and_not_on_panel_slide() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        Assert.Equal(7, HeadCardsRow.PerRow(200));
+        var heads = Enumerable.Range(0, 14).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var joining = HeadHelper(project, parent.Id, 99, -1); // the oldest: the card's last glyph, alone on a third row
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        var snappy = Animation.Snappy(duration: 0.18).Progress(0.032);
+        Assert.True(Math.Abs(snappy - Chrome.PanelSlide.Progress(0.032)) > 0.1);
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.Height = 300;
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() => Click(LiveChevron(card))); // every head: two full rows of seven
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(14, Glyphs().Count);
+                CallOn(card, "Update", heads.Append(joining).ToList()); // :1430 the list's next pass: a fifteenth head, on a third row
+            });
+            harness.Main.OnMain(() => { });
+            Frames(2);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count);
+                var last = glyphs.OrderBy(g => Frame(g, card).Y).Last(); // alone on the third row
+                Assert.Equal(snappy, ShownOpacityWithin(last, card), 3);
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // A search result's project row is the same row through a new pass of the results (:705-709, the group's ForEach id
+    // the project's; :1081-1089 its inputs handed in place): an open ellipsis menu keeps its button, and the Remove project
+    // question stays up, when a new thread changes the results under them (RA3: the search list rebuilds the row).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-058")] // :709 the inert project row keeps its hover accessories and menus
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9, OD-0012 E2: the question stays until it is answered or dismissed
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void A_search_results_project_row_keeps_its_open_menu_and_its_Remove_question_through_a_new_pass_of_the_results() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        StackPanel list = null!; // taken once: a popup's content, once built, brings a ScrollViewer of its own into the view's logical tree
+        Control ProjectRowNow() => list.Children.Single(c => c.GetType() == Private("ProjectRow"));
+        Button More(Control row) => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+        bool MenuPresented(Control row) => (bool)Get(Field(row, "state")!, "IsMenuPresented")!;
+        bool Asking(Control row) => LogicalQuery.SelfAndDescendants<Popup>(row).Any(p => recorder.Calls.LastOrDefault(c => c.Popup == p) is { Presented: true }
+            && PopoverHost.Content(p)?.GetType() == Private("RemoveProjectPopover"));
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Settings.ConfirmBeforeDeleting);
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            harness.Main.OnMain(() => SearchBox(view).Text = "alpha"); // :743 the project's name matches: its threads are the results
+            Tick(1600);
+            Control row = null!;
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                row = ProjectRowNow();
+                Assert.DoesNotContain(list.Children, c => c.GetType() == Private("ProjectRow") && !ReferenceEquals(c, row)); // the search list's own row
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // hovered: the ellipsis and plus
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                more = More(row);
+                PointerClick(more); // :391 the ellipsis menu opens
+            });
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(MenuPresented(row));
+                model.NewThread(project); // a thread more among the results: the row's count goes from 1 to 2
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal("alpha", SearchBox(view).Text); // still the search list
+                Assert.Same(row, ProjectRowNow()); // the row the results had, handed its new count
+                Assert.True(MenuPresented(row)); // its menu still open ...
+                Assert.Same(more, More(row)); // ... on the button it opened from
+                Assert.Single(recorder.Calls, call => call.Presented && ReferenceEquals(call.Popup.PlacementTarget, more)); // and presented once
+                Click(more); // closed
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                PointerRightClick(row);
+                ContextMenuOf(row).Items.Cast<Control>().Single(i => i is MenuItem && MenuItemTitle(i) == "Remove project")
+                    .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            });
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(Asking(row)); // the question is up
+                model.NewThread(project); // and the results change again under it: 2 to 3
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(row, ProjectRowNow());
+                Assert.NotNull(model.Project(project.Id)); // nothing answered
+                Assert.True(Asking(row)); // still asking, on the same row
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // Chrome.swift:731-737 puts .overlay before .onHover, so a pointer resting on the ellipsis is on the row: the ellipsis menu
+    // opened and closed from there leaves the ellipsis and plus drawn (:1116 hovering || isMenuPresented), not the count
+    // (RA4: the accessory asked again with the row button's own hover, which the ellipsis is not part of).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-010")] // :1116-1125 "visible only while the row is hovered or its ellipsis menu is open"
+    [Trait("Req", "PR-SIDEBAR-126")] // Chrome.swift:731-737 the row's hover covers its accessory
+    public void Closing_the_ellipsis_menu_with_the_pointer_resting_on_the_ellipsis_keeps_the_ellipsis_and_plus() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var presenter = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(presenter);
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false }; // folded: the idle accessory is the count
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Button More() => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+        bool MenuPresented() => (bool)Get(Field(row, "state")!, "IsMenuPresented")!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // onto the icon
+        });
+        try
+        {
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                more = More();
+                window.MouseMove(more.TranslatePoint(new Point(more.Bounds.Width / 2, more.Bounds.Height / 2), window)!.Value); // onto the ellipsis, and resting there
+            });
+            Tick(300);
+            harness.Main.OnMain(() => PointerClick(more)); // :391 opens the menu
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(MenuPresented());
+                PointerClick(more); // and closes it, the pointer still on the ellipsis
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.False(MenuPresented());
+                Assert.Same(more, More()); // the ellipsis it rests on, still drawn ...
+                Assert.Equal(1d, ShownOpacityWithin(more, row));
+                var plus = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "New thread in Alpha"); // ... with the plus
+                Assert.Equal(1d, ShownOpacityWithin(plus, row));
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "1"); // and the count not back
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // Chrome.swift:729, :735-737: the row's fill follows the hover on Chrome.hover (easeOut 0.1 s), not by a snap; half way
+    // it is part way between clear and the 0.06 overlay (RA16: the fill set with no animation).
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-126")] // the project row is a SidebarRow: its hover fill
+    public void A_project_rows_hover_fill_eases_in_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        Border shape = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1);
+            shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 28 && b.Padding.Right > 40);
+            Assert.Equal(0, ((ISolidColorBrush)shape.Background!).Color.A); // :744 clear
+        });
+        try
+        {
+            harness.Main.OnMain(() => WindowOf(row).MouseMove(row.TranslatePoint(new Point(10, 10), WindowOf(row))!.Value));
+            harness.Main.AdvanceMilliseconds(50);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(50)));
+            harness.Main.OnMain(() =>
+            {
+                var end = Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant); // :743
+                var now = ((ISolidColorBrush)shape.Background!).Color;
+                Assert.Equal((byte)Math.Round(end.A * Animation.EaseOut(0.1).Progress(0.05)), now.A);
+                Assert.InRange(now.A, (byte)1, (byte)(end.A - 1)); // neither clear nor there yet
+            });
+            harness.Main.AdvanceMilliseconds(60);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(60)));
+            harness.Main.OnMain(() => Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), ((ISolidColorBrush)shape.Background!).Color));
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    // :165-167 the Add project row is a SidebarRow too: its hover fill eases the same way (UI-SIDEBAR-042 "hover fill
+    // Chrome.overlay(0.06)"; RA16).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-042")]
+    public void The_Add_project_rows_hover_fill_eases_in_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        SidebarView view = null!;
+        Border shape = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var addProject = LogicalQuery.SelfAndDescendants<SidebarRow>(view).Single(r => LogicalQuery.SelfAndDescendants<TextBlock>(r).Any(t => t.Text == "Add project"));
+                shape = LogicalQuery.SelfAndDescendants<Border>(addProject).First(b => b.Height == 28);
+                Assert.Equal(0, ((ISolidColorBrush)shape.Background!).Color.A); // :744 clear
+                WindowOf(view).MouseMove(shape.TranslatePoint(new Point(40, 14), WindowOf(view))!.Value);
+            });
+            harness.Main.AdvanceMilliseconds(50);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(50)));
+            harness.Main.OnMain(() =>
+            {
+                var end = Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant);
+                var now = ((ISolidColorBrush)shape.Background!).Color;
+                Assert.Equal((byte)Math.Round(end.A * Animation.EaseOut(0.1).Progress(0.05)), now.A);
+                Assert.InRange(now.A, (byte)1, (byte)(end.A - 1));
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // The ellipsis a row keeps (above) opens on the actions its body builds now (:1375-1376 makeActions() over the live
+    // thread, :1118 actions(isActive:) over the live project and activation): the kept button reads them as its menu opens,
+    // not when the button was first drawn.
+    private static string[] MenuTitles(RecordingPresenter presenter, Button more) =>
+        LogicalQuery.SelfAndDescendants<Button>(presenter.Calls.Last(call => call.Presented && ReferenceEquals(call.Popup.PlacementTarget, more)).Popup.Child!)
+            .Select(b => AutomationProperties.GetName(b) ?? "").Where(name => name.Length > 0).ToArray();
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // :1375-1376 RowActionsButton(actions: makeActions(), ...) over the live thread (:2214 Reveal worktree)
+    public void A_helper_rows_kept_ellipsis_opens_on_the_actions_of_the_record_as_it_is_when_it_opens() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var presenter = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(presenter);
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Button More() => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(100, 12), window)!.Value); // hovered: the ellipsis
+        });
+        try
+        {
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                more = More();
+                model.UpdateThread(helper.Id, t => t with { WorktreePath = "C:/Alpha/wt" }); // the helper gets a worktree under the drawn ellipsis
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(more, More()); // the ellipsis is the one it had
+                PointerClick(more);
+            });
+            Tick(16);
+            harness.Main.OnMain(() => Assert.Contains("Reveal worktree in File Explorer", MenuTitles(presenter, more))); // :2214, as it is now
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // :1216-1220 Activate/Deactivate by the current activation, :1096 isActive read live
+    [Trait("Req", "UI-SIDEBAR-014")] // "Activate project and Deactivate project are mutually exclusive by current activation"
+    public void A_project_rows_kept_ellipsis_opens_on_the_activation_as_it_is_when_it_opens() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var presenter = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(presenter);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Button More() => LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // hovered: the ellipsis and plus
+        });
+        try
+        {
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(model.Settings.IsProjectActive(project.Id));
+                more = More();
+                model.Settings.SetProjectActive(false, project.Id); // switched off under the drawn ellipsis
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(more, More()); // the ellipsis is the one it had
+                PointerClick(more);
+            });
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                var titles = MenuTitles(presenter, more);
+                Assert.Contains("Activate project", titles); // :1217 isActive false now
+                Assert.DoesNotContain("Deactivate project", titles);
+                Assert.Contains("Follow global setting", titles); // :1223 the override this switch made
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // :1378-1380 the status branch is ActivityStatus(thread:) over the live thread: a helper that turns unread while the pointer
+    // is elsewhere draws the 7 pt dot (:2421-2425), in the danger colour once its last turn failed (:2423). The status the row
+    // keeps while its branch holds (ED-258 (3)) is drawn again for that (mutant R4M9: never drawn again).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")]
+    public void A_helper_rows_status_follows_its_thread_turning_unread_and_then_failed() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        List<Avalonia.Controls.Shapes.Ellipse> Dots() => LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(row).ToList();
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(Dots()); // read, nothing to show (:2426)
+                model.UpdateThread(helper.Id, t => t with { HasUnread = true });
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                var dot = Assert.Single(Dots()); // :2421-2425
+                Assert.Equal(7d, dot.Width);
+                Assert.Equal(Chrome.Accent.Resolve(dot.ActualThemeVariant), ((ISolidColorBrush)dot.Fill!).Color);
+                model.UpdateThread(helper.Id, t => t with { LastStatus = TurnStatus.Failed });
+            });
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                var dot = Assert.Single(Dots());
+                Assert.Equal(Chrome.Danger.Resolve(dot.ActualThemeVariant), ((ISolidColorBrush)dot.Fill!).Color); // :2423
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // The list keeps a helper row whose own item changes in a new pass (:470-472 its ForEach id; :1320, :1326 its snapshot and
+    // isLast handed in place, UpdateItemView): its open ellipsis menu keeps its button, the title is the record's as it is
+    // now, and the connector ends at the row once the helper below it is gone (:1349, :1665-1669).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")]
+    public void The_real_list_keeps_a_helper_row_and_its_open_menu_when_a_new_pass_hands_it_a_changed_record() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var presenter = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(presenter);
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var first = NewThread(project, "Helper one", 1) with { ParentThreadID = parent.Id };
+        var second = NewThread(project, "Helper two", 2) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, first, second]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        StackPanel list = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        List<Control> HelperRows() => LogicalQuery.SelfAndDescendants<Control>(list).Where(c => c.GetType() == Private("SidebarHelperRow")).ToList();
+        Control HelperRowTitled(string title) => HelperRows().Single(r => Texts(r).Any(t => t.StartsWith(title, StringComparison.Ordinal)));
+        bool EndsHere(Control helperRow) => LogicalQuery.SelfAndDescendants<HelperConnector>(helperRow).Single()
+            .GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single().Data!.Bounds.Bottom < ThreadRowMetrics.HelperHeight - 4; // :1669 the stem stops at the row's middle
+        Button More(Control helperRow) => LogicalQuery.SelfAndDescendants<Button>(helperRow).Single(b => ToolTip.GetTip(b) as string == "More");
+        harness.Main.OnMain(() =>
+        {
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            Control kept = null!;
+            string goneTitle = null!;
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(2, HelperRows().Count);
+                kept = Assert.Single(HelperRows(), r => !EndsHere(r)); // the helper with another below it
+                goneTitle = Texts(Assert.Single(HelperRows(), EndsHere)).First(t => t.StartsWith("Helper", StringComparison.Ordinal));
+                window.MouseMove(kept.TranslatePoint(new Point(100, 12), window)!.Value); // hovered: its ellipsis
+            });
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                more = More(kept);
+                PointerClick(more); // its menu opens
+            });
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Single(presenter.Calls, call => call.Presented);
+                var keptID = goneTitle == "Helper one" ? second.Id : first.Id;
+                model.UpdateThread(keptID, t => t with { Title = "Helper kept" }); // its own thread changes ...
+                model.Delete(goneTitle == "Helper one" ? first.Id : second.Id); // ... and the list takes a new pass without the other helper
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(kept, Assert.Single(HelperRows())); // the row the list had, not one built where it stood
+                Assert.Same(kept, HelperRowTitled("Helper kept")); // drawing its thread as it is now
+                Assert.True(EndsHere(kept)); // :1349 isLast handed in: the connector ends at this row
+                Assert.Same(more, More(kept)); // its open menu still on the button it opened from
+                Assert.Single(presenter.Calls, call => call.Presented); // and not presented again
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // The other way round (review pass 2, round 3): SidebarView.swift:1325-1326 `let isLast`, :1348-1349
+    // HelperConnector(endsHere: isLast), :1665-1674 the stem stops at the row's middle only on the last helper and runs
+    // through every other. Helpers are listed newest first (:419, createdAt descending) and an archived one is not listed
+    // (:414), so an older helper coming back from the archive lands below the last one, which the list keeps (its ForEach id,
+    // UpdateItemView) and hands isLast false: its connector runs on down to the new last row instead of stopping at its own
+    // middle. A list that handed every kept row true, or an EndsHere that always drew the end, leaves a gap above the new
+    // last row. Each connector is the full 28 x 24 shape: the stem down x = 18 (:1292 connectorLineX) from the top, the tick
+    // across the middle to 2 pt short of the trailing edge (x = 26).
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-111")] // App/Views/Sidebar/SidebarView.swift:1325-1326, :1348-1349, :1662-1676, :409-420
+    public void A_kept_last_helper_row_runs_its_connector_through_once_an_older_helper_lands_below_it() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var newer = NewThread(project, "Helper newer", 2) with { ParentThreadID = parent.Id };
+        var older = NewThread(project, "Helper older", 1) with { ParentThreadID = parent.Id, IsArchived = true };
+        var model = Model(harness, [project], [parent, newer, older]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        StackPanel list = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        List<Control> HelperRows() => LogicalQuery.SelfAndDescendants<Control>(list).Where(c => c.GetType() == Private("SidebarHelperRow")).ToList();
+        Control HelperRowTitled(string title) => HelperRows().Single(r => Texts(r).Contains(title));
+        void Connector(Control helperRow, bool endsHere)
+        {
+            var shape = LogicalQuery.SelfAndDescendants<HelperConnector>(helperRow).Single().GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single().Data!.Bounds;
+            Assert.Equal(18d, shape.Left, 3); // :1668, :1670 the stem and the tick start at x = 18
+            Assert.Equal(26d, shape.Right, 3); // :1671 the tick ends at rect.maxX - 2
+            Assert.Equal(0d, shape.Top, 3); // :1668 from rect.minY
+            Assert.Equal(endsHere ? ThreadRowMetrics.HelperHeight / 2 : ThreadRowMetrics.HelperHeight, shape.Bottom, 3); // :1669 midY on the last helper, maxY otherwise
+        }
+        harness.Main.OnMain(() =>
+        {
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            Control kept = null!;
+            harness.Main.OnMain(() =>
+            {
+                kept = Assert.Single(HelperRows()); // the archived helper is not listed (:414)
+                Connector(kept, endsHere: true); // the only helper: the connector ends at it
+                model.UpdateThread(older.Id, t => t with { IsArchived = false }); // the older helper is back, below it (:419)
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(2, HelperRows().Count);
+                Assert.Same(kept, HelperRowTitled("Helper newer")); // the row the list had
+                Assert.Same(kept, HelperRows()[0]); // above the older one
+                Connector(HelperRowTitled("Helper older"), endsHere: true); // the new last helper ends the connector
+                Connector(kept, endsHere: false); // :1349 isLast false now: the stem runs through to the row below
             });
         }
         finally { harness.Main.OnMain(() => Close(view)); }

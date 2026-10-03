@@ -211,8 +211,95 @@ public sealed class TimelineRowsFinMergeRowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-HYDRAMERGE-004")] // TimelineRows.swift:838-839 a step animates over 0.5 s, the mode over 0.45 s
-    public void A_new_step_glides_over_half_a_second_and_the_mode_change_settles_over_0_45_seconds() => headless.OnUiThread(() =>
+    [Trait("Req", "UI-HYDRAMERGE-004")] // TimelineRows.swift:838-839 a step animates over 0.5 s, the mode over 0.45 s: each alone, at its own boundary
+    public void A_step_alone_glides_over_half_a_second_and_a_mode_alone_settles_over_0_45_seconds() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        HydraMergeTrack track = null!;
+        AvaloniaWindow window = null!;
+        HydraMergeTrackBody Body() => Assert.Single(Mounted<HydraMergeTrackBody>(track));
+        void Frames(double milliseconds)
+        {
+            frames.Advance(TimeSpan.Zero);
+            runtime.AdvanceMilliseconds(milliseconds);
+            frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
+        }
+        // The step alone (:838 .animation(.smooth(duration: 0.5), value: step)): mode unchanged, so only the 0.5 s animation fires.
+        runtime.OnMain(() =>
+        {
+            track = new HydraMergeTrack(step: 0, count: 7, mode: HydraMergeTrack.Mode.Running);
+            window = Show(new StackPanel { Children = { track } });
+            track.Update(step: 3, count: 7, mode: HydraMergeTrack.Mode.Running);
+        });
+        Frames(460); // past 0.45 s: a 0.45 s step animation would be over, the 0.5 s one is not
+        runtime.OnMain(() => Assert.InRange(Body().AnimatableData.Position, 0.01, 2.999));
+        Frames(30); // 490 ms
+        runtime.OnMain(() => Assert.InRange(Body().AnimatableData.Position, 0.01, 2.999));
+        Frames(20); // 510 ms
+        runtime.OnMain(() =>
+        {
+            Assert.Equal(3, Body().AnimatableData.Position);
+            Close(window);
+        });
+        // The mode alone (:839 .animation(.smooth(duration: 0.45), value: mode)): the flourish at the last dot, resting to done.
+        runtime.OnMain(() =>
+        {
+            track = new HydraMergeTrack(step: 6, count: 7, mode: HydraMergeTrack.Mode.Resting);
+            window = Show(new StackPanel { Children = { track } });
+            Assert.Equal((6.0, (1.0, 1.0)), Body().AnimatableData);
+            track.Update(step: 6, count: 7, mode: HydraMergeTrack.Mode.Done);
+        });
+        Frames(430);
+        runtime.OnMain(() => Assert.InRange(Body().AnimatableData.Outcome.Resting, 0.0001, 0.9999)); // still settling at 430 ms
+        Frames(25); // 455 ms: a 0.5 s animation would still be moving
+        runtime.OnMain(() =>
+        {
+            try { Assert.Equal((6.0, (1.0, 0.0)), Body().AnimatableData); }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ED-260: when the step and the mode change in one pass (:962-964) SwiftUI applies the inner .animation (0.5 s); the record's own clauses are proven alone above
+    public void A_step_and_a_mode_changing_together_take_the_inner_half_second_animation() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        HydraMergeTrack track = null!;
+        AvaloniaWindow window = null!;
+        HydraMergeTrackBody Body() => Assert.Single(Mounted<HydraMergeTrackBody>(track));
+        void Frames(double milliseconds)
+        {
+            frames.Advance(TimeSpan.Zero);
+            runtime.AdvanceMilliseconds(milliseconds);
+            frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
+        }
+        runtime.OnMain(() =>
+        {
+            track = new HydraMergeTrack(step: 3, count: 7, mode: HydraMergeTrack.Mode.Running);
+            window = Show(new StackPanel { Children = { track } });
+            track.Update(step: 6, count: 7, mode: HydraMergeTrack.Mode.Resting);
+        });
+        Frames(460);
+        runtime.OnMain(() =>
+        {
+            Assert.InRange(Body().AnimatableData.Position, 3.0001, 5.9999);
+            Assert.InRange(Body().AnimatableData.Outcome.Resting, 0.0001, 0.9999);
+        });
+        Frames(50);
+        runtime.OnMain(() =>
+        {
+            try { Assert.Equal((6.0, (1.0, 1.0)), Body().AnimatableData); }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // the combined step and mode glide, drawn values and the accessibility hiding (:971); the durations are proven alone above
+    public void A_new_step_glides_and_the_mode_change_settles_and_the_track_is_hidden_from_accessibility() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
         var frames = new ManualFrameSource();

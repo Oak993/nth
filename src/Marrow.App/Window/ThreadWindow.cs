@@ -154,6 +154,9 @@ public sealed class SecondaryWindow : AvaloniaWindow
             ((ChordModifiers)e.KeyModifiers & KeyChord.AllowedModifiers) == ChordModifiers.None &&
             FocusManager?.GetFocusedElement() is not TextBox)
         {
+            // PORT-ONLY (OD-0088, ED-253): a popover or menu open over the window is a window of its own on the Mac, which
+            // takes this Escape and closes; the port draws it over this window, so the newest one closes and this stays.
+            if (Marrow.UI.Port.WindowTransients.DismissNewest(this)) return true;
             Close(); // :52 performClose(nil)
             return true; // :53
         }

@@ -155,7 +155,10 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     // expected strings below ("1m 4s", "1h 2m", ...) are the port's own expectations, so they cannot prove the clause; the
     // rest of the record (the three phrasings, the rounding, the clamp at zero, the caption/secondary styling, the row
     // suppressed when a reply exists) does run here (under the local /tmp/icushim; ordinary tests on Windows) and passes,
-    // but the record is not claimed: these tests carry Rule R-TEST-4 until the reference-runtime capture exists. ----
+    // but the record is not claimed: these tests carry Rule R-TEST-4 until the reference-runtime capture exists.
+    // 2026-10-03: the reference video now gives "5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
+    // (TimelineRowsCaptureTests.The_turn_end_label_reads_as_the_reference_video_shows); 0 s, a negative interval and the
+    // hour cases are in no frame, so the record stays open (STOP #11 in TimelineRowsTests). ----
 
     [Theory]
     [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: TimelineRows.Duration needs icu.dll for the current locale.
@@ -1243,7 +1246,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-113")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11): freshly built cards switch with the state (:2287); the record's open-popover result conflicts with the source (setFixedContent, ChatBadge.swift:138-147)
     public void A_drafting_plan_renders_with_the_streaming_markdown_and_it_switches_the_moment_the_state_leaves_drafting() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -1726,10 +1729,11 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         row.GetVisualDescendants().OfType<Control>().Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:130-161
     public void A_revertable_message_shows_a_pencil_only_on_hover_and_a_locked_one_shows_none() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
         UserMessageRow? row = null;
         UserMessageRow? locked = null;
         AvaloniaWindow? window = null;
@@ -1748,6 +1752,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Assert.Equal(0, HoverLine080(row).Opacity);
             Hover(window, row.GetVisualDescendants().OfType<InlineText>().Single());
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             Assert.Equal(1, HoverLine080(row!).Opacity);
@@ -1757,10 +1762,11 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:132-135, :148-155
     public void The_pencil_opens_the_edit_on_the_runtime_through_the_editor_popover_and_a_second_tap_closes_it() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        var pencilClock = new ManualFrameSource(); using var pencilFrames = FrameClock.Source.Override(pencilClock); // OD-0076: the pencil line fades on the frame clock
         var presenter = new RecordingPresenter();
         using var seam = Presentation.Presenter.Override(presenter);
         var turn = Guid.NewGuid();
@@ -1778,10 +1784,11 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Assert.Equal(turn, edit.Id);
             Assert.Equal("edit me", edit.Text);
         });
+        pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
         h.Main.OnMain(() =>
         {
             var shown = Assert.Single(presenter.Calls, call => call.Presented);
-            Assert.IsType<MessageEditor>(shown.Popup.Child);
+            Assert.IsType<MessageEditor>(PopoverHost.Content(shown.Popup));
             Assert.Equal(1, HoverLine080(row!).Opacity); // editing keeps the line up without a hover
             Click(window!, Assert.Single(HoverLine080(row!).GetVisualDescendants().OfType<Button>()));
             Assert.Null(h.Runtime.MessageEdit);
@@ -4423,13 +4430,13 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:87, :161
     public void A_message_being_edited_keeps_its_hover_line_up_with_no_pointer_over_it() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         var presenter = new RecordingPresenter();
         using var seam = Presentation.Presenter.Override(presenter);
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var pencilClock = new ManualFrameSource(); using var frames = FrameClock.Source.Override(pencilClock);
         var turn = Guid.NewGuid();
         UserMessageRow? row = null;
         AvaloniaWindow? window = null;
@@ -4443,12 +4450,14 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         });
         try
         {
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
             h.Main.OnMain(() =>
             {
                 Settle(window!);
                 Assert.Equal(1, HoverLine080(row!).Opacity);
                 h.Runtime.MessageEdit = null;
             });
+            pencilClock.Advance(TimeSpan.Zero); h.Main.AdvanceMilliseconds(200); pencilClock.Advance(TimeSpan.FromMilliseconds(200)); // OD-0076: let the pencil line's fade finish
             h.Main.OnMain(() =>
             {
                 Settle(window!);
@@ -4527,7 +4536,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         ((MulticastDelegate?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Closed", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.DynamicInvoke(popup, EventArgs.Empty);
 
     [Fact]
-    [Trait("Req", "PR-CHAT-113")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11): reopening after a dismissal; the record's open-popover result conflicts with the source (setFixedContent, ChatBadge.swift:138-147)
     [Trait("Req", "PR-CHAT-112")]
     public void A_plan_popover_dismissed_from_outside_can_be_opened_again_and_its_two_buttons_sit_8_apart_the_first_one_prominent() => headless.OnUiThread(() =>
     {

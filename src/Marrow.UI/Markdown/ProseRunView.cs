@@ -44,7 +44,7 @@ public sealed class ProseRunView : Decorator
         this.blocks = blocks;
         var sources = ProseRunRepresentable.JoinedSources(blocks); // :18
         var linkKey = RichLink.LinkAssetKey(sources); // :19
-        openHead = url => InlineText.OpenUrl?.Invoke(url); // :22 { url in openURL(url) } (the App's openURL hook)
+        openHead = url => MarkdownView.OpenUrl(this, url); // :22 { url in openURL(url) }: the environment's action first, then the App's openURL hook
         host = view => linkView = view; // :22 { [weak linkBox] view in linkBox?.value = view }
         representable = new ProseRunRepresentable( // :22
             blocks,

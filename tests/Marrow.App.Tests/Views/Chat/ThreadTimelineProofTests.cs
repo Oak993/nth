@@ -99,8 +99,7 @@ public sealed class ThreadTimelineProofTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2105,2155,2169-2172; UI/Chrome/Chrome.swift:938-944,949-952,960
-    [Trait("Req", "PR-CHAT-125")] // App/Views/Chat/ThreadTimeline.swift:2091-2092,2155,2185-2188; App/Views/Chat/TimelineRows.swift:1523-1536
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and PR-CHAT-125 (the opened body's live work arriving with the soft appear and folded to the two latest steps, the line starting closed): App/Views/Chat/ThreadTimeline.swift:2105,2155,2169-2172; UI/Chrome/Chrome.swift:938-944,949-952,960; ThreadTimeline.swift:2091-2092,2155,2185-2188; App/Views/Chat/TimelineRows.swift:1523-1536
     public void Opening_the_line_soft_reveals_its_live_work_with_the_two_latest_steps_under_the_earlier_line() => WithHost((runtime, host, advance) =>
     {
         var liveWork = new ValueList<TimelineEntry>(new[] { Tool("a"), Tool("b"), Tool("c") });
@@ -120,7 +119,7 @@ public sealed class ThreadTimelineProofTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2155-2172; UI/Chrome/Chrome.swift:949-955
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 (the opened body's parts across new values and as they go): App/Views/Chat/ThreadTimeline.swift:2155-2172; UI/Chrome/Chrome.swift:949-955
     public void An_open_line_keeps_its_steps_across_new_values_and_fades_out_the_part_that_goes() => WithHost((runtime, host, advance) =>
     {
         var a = Tool("a"); var b = Tool("b");

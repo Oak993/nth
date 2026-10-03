@@ -490,7 +490,7 @@ public sealed class StreamVeilTests(HeadlessSession headless)
             var window = Show(veiled);
             try
             {
-                var block = Assert.IsType<TextBlock>(veiled.Child);
+                var block = Assert.IsType<SelectableTextBlock>(veiled.Child);
                 // SettledText's own fold and Styled()'s each seed with an empty StyledText(""), and
                 // StyledText.Render does not skip an empty run, so leading empty Inlines precede the real ones:
                 // filter to the non-empty runs rather than hard-coding how many there are.
@@ -507,7 +507,7 @@ public sealed class StreamVeilTests(HeadlessSession headless)
                 // had").
                 MarkdownView.SetMarkdownDimmed(veiled, true);
                 Dispatcher.UIThread.RunJobs();
-                var afterDimmedBlock = Assert.IsType<TextBlock>(veiled.Child);
+                var afterDimmedBlock = Assert.IsType<SelectableTextBlock>(veiled.Child);
                 var afterDimmed = afterDimmedBlock.Inlines!.OfType<Run>().Where(run => run.Text!.Length > 0).ToList()[1];
                 Assert.Equal(accent, Assert.IsAssignableFrom<ISolidColorBrush>(afterDimmed.Foreground).Color);
             }
@@ -533,7 +533,7 @@ public sealed class StreamVeilTests(HeadlessSession headless)
             var window = Show(veiled);
             try
             {
-                var block = Assert.IsType<TextBlock>(veiled.Child);
+                var block = Assert.IsType<SelectableTextBlock>(veiled.Child);
                 var text = string.Concat(block.Inlines!.OfType<Run>().Select(run => run.Text));
                 Assert.Equal("Ping @Hank now", text);
             }

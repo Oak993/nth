@@ -32,8 +32,9 @@ public sealed class HydraHeadHoverPopoverReviewTests(HeadlessSession headless)
         Assert.Equal(first.ThreadID, popover.ShownThreadID);
         var popup = Assert.Single(recorder.Calls).Popup;
         Assert.False(popup.IsLightDismissEnabled);
-        Assert.Equal(300, popup.Child!.Width);
-        Assert.True(popup.Child.Height > 0);
+        var shown = PopoverHost.Content(popup)!; // the site's frame, not the card the presenter hangs it on (OD-0095)
+        Assert.Equal(300, shown.Width);
+        Assert.True(shown.Height > 0);
         runtime.OnMain(() => popover.Show(persona, first, rect, anchor));
         runtime.AdvanceMilliseconds(250);
         Assert.Single(recorder.Calls);

@@ -230,6 +230,32 @@ public sealed class AppModelHydraMergeForgeTests
         Assert.Equal(300d, calls.Single(call => call.Arguments.Contains("create")).Timeout);
     }
 
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // PR-HYDRAMERGE-048 only in what it adds: the git processes the source starts before glab, App/AppModel+HydraMerge.swift:433-442
+    public void The_origin_remote_is_read_three_times_before_glab_starts_once_for_the_forge_and_once_each_for_the_host_and_the_repo_argument()
+    {
+        using var f = new HydraMergeProofFixture();
+        var p = f.AddProject("Project", origin: false);
+        f.Repos[p.Id].Git("remote", "add", "origin", "https://gitlab.example/group/repo.git");
+        var lead = f.AddLead(p, "Lead", []);
+        f.Start(lead);
+        var script = new ForgeScript(p.Path);
+        script.Reply(1, stdout: ForgeUrl("gitlab"));
+        var calls = new List<ShellInvocation>();
+
+        f.H.Main.Loop.Run(async () =>
+        {
+            using var scope = ShellObserver.Observe(calls.Add);
+            return await (Task<SwiftURL?>)HydraMergeProofFixture.Call("HydraCreateMergeRequest", f.Model, new Git(p.Path), "Subject", "Body", "hydra/source", "main")!;
+        }, AppModelHarness.Bound);
+
+        // :434 git.forge() reads the remote, :437 reads its web page for the host, :442 reads it again for --repo.
+        var firstForge = calls.FindIndex(IsForge);
+        Assert.True(firstForge > 0);
+        var reads = calls.Take(firstForge).Count(call => HydraMergeReviewFixture.IsGit(call, "remote") && call.Arguments.Contains("get-url"));
+        Assert.Equal(3, reads);
+    }
+
     [Theory]
     [InlineData("https://user:pass@gitlab.example/group/repo.git", "https://gitlab.example/group/repo")]
     [InlineData("https://token@gitlab.example/group/repo.git", "https://gitlab.example/group/repo")]

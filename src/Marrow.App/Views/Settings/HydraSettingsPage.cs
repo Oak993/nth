@@ -322,7 +322,7 @@ internal sealed class HydraCookbookButton : Decorator
         {
             if (presented == shown) return;
             shown = presented;
-            Presentation.Presenter.Current.SetPresented(popover, presented);
+            Presentation.SetPresented(popover, presented, button, () => state.IsOpen = false); // ED-253: Escape closes it
         });
 
         Child = button;
@@ -443,7 +443,7 @@ internal sealed class HydraPairRow : Decorator
         {
             if (presented == shown) return;
             shown = presented;
-            Presentation.Presenter.Current.SetPresented(editorPopover, presented);
+            Presentation.SetPresented(editorPopover, presented, openButton, () => state.IsEditing = false); // ED-253
         });
 
         var removeButton = new Button

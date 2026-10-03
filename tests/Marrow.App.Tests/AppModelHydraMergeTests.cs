@@ -291,7 +291,7 @@ public sealed class AppModelHydraMergeTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-189")] // AppModel+HydraMerge.swift:902-906 (B3): recordHydraSettlement's `guard
+    [Trait("Rule", "R-TEST-4")] // PR-CHAT-189's skip-while-unmerged clause only (the other clauses are in AppModelHydraMergeCoordinatorTests): AppModel+HydraMerge.swift:902-906 (B3): recordHydraSettlement's `guard
     // hydraUnmergedFileCount(of: leadID) == 0 else { return }` -- while the lead still has a file a project
     // claims that has not gone out yet, no settled record and no note are written at all.
     public void Record_settlement_is_skipped_entirely_while_the_lead_still_has_unmerged_files()
@@ -337,7 +337,7 @@ public sealed class AppModelHydraMergeTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-189")] // AppModel+HydraMerge.swift:148-160 (B3): a legacy held entry
+    [Trait("Rule", "R-TEST-4")] // PR-CHAT-189's legacy-held-last clause only (the not-last case is in AppModelHydraMergeCoordinatorTests): AppModel+HydraMerge.swift:148-160 (B3): a legacy held entry
     // saved is still read as the last record for the settlement check -- when nothing is left to send and no
     // file lies outside every project, that legacy `held` last record turns the "nothing to send" branch into
     // a settled one.
@@ -627,13 +627,22 @@ public sealed class AppModelHydraMergeTests
         Assert.True(result.Runtime.HasHydraMergeRetryPending);
     }
 
+    /// <summary>Gives <paramref name="repository"/> an empty local bare repository as its origin, so the pass's `git fetch`
+    /// succeeds offline instead of resolving a host name (a DNS lookup is a network touch).</summary>
+    private static void AddLocalOrigin(AppModelHarness h, AppModelGitRepo repository)
+    {
+        var bare = h.NewFolder("local-origin-" + Guid.NewGuid().ToString("N") + ".git");
+        repository.Git("init", "--bare", "-b", "main", bare);
+        repository.Git("remote", "add", "origin", bare);
+    }
+
     /// <summary>A checkout with one commit and a remote, shared by the PR-HYDRAMERGE-122/123 tests below: a
     /// remote so a merge can reach the tree comparison at :308 instead of failing at the unconditional :242
     /// remote check first.</summary>
     private static (AppModelGitRepo Repository, Project Project) QueuedMergeProject(AppModelHarness h, string label)
     {
         var repository = AppModelGitRepo.WithCommit(h.NewFolder(label));
-        repository.Git("remote", "add", "origin", "https://example.invalid/group/project.git");
+        AddLocalOrigin(h, repository); // a local bare origin: `git fetch` (:285) never touches the network
         return (repository, AppModelSamples.Project("Project", repository.Root));
     }
 
@@ -653,6 +662,7 @@ public sealed class AppModelHydraMergeTests
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-010")] // AppModel+HydraMerge.swift:79-101 (B3): the second job waits behind the running merge and starts within one poll
     [Trait("Req", "PR-HYDRAMERGE-122")] // AppModel+HydraMerge.swift:80-101 (B3, new): a job that finishes while
     // another chat's merge is running sets isHydraMergeQueued, polls isAnyHydraMergeRunning every 400 ms, and
     // goes the moment that merge ends -- every precondition read again with no suspension before isHydraMerging
@@ -710,6 +720,7 @@ public sealed class AppModelHydraMergeTests
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-010")] // AppModel+HydraMerge.swift:91-94 (B3): cancelling the wait returns at once, clears the queued flag, writes nothing
     [Trait("Req", "PR-HYDRAMERGE-122")] // AppModel+HydraMerge.swift:89-95 (B3, new): isHydraMergeQueued is
     // cleared on every exit from the wait, including cancellation, and a cancelled wait leaves no record or note.
     public void Cancelling_the_wait_clears_the_queued_flag_and_leaves_no_record_or_note()
@@ -920,7 +931,7 @@ public sealed class AppModelHydraMergeTests
     {
         using var h = new AppModelHarness();
         var repository = AppModelGitRepo.WithCommit(h.NewFolder("tree-already-on-head"));
-        repository.Git("remote", "add", "origin", "https://example.invalid/group/project.git");
+        AddLocalOrigin(h, repository); // a local bare origin: `git fetch` (:285) never touches the network
         var originalHead = repository.Git("rev-parse", "HEAD").Trim();
 
         var project = AppModelSamples.Project("Project", repository.Root);
@@ -1693,7 +1704,7 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
     {
         using var h = new AppModelHarness();
         var repository = AppModelGitRepo.WithCommit(h.NewFolder("stray-plural-project"));
-        repository.Git("remote", "add", "origin", "https://example.invalid/group/project.git");
+        AddLocalOrigin(h, repository); // a local bare origin: `git fetch` (:285) never touches the network
         var originalHead = repository.Git("rev-parse", "HEAD").Trim();
 
         var project = AppModelSamples.Project("Project", repository.Root);
