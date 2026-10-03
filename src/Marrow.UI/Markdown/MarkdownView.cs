@@ -1609,6 +1609,16 @@ public sealed class InlineText : Decorator
     public bool? HasLinks { get; }
     public bool HugsContent { get; }
 
+    // B3 :1077 @State private var faviconRevision = 0, read by body (B3 :1092-1093, :1114; R-VIEW-2), kept as ProseRunView keeps its own.
+    private sealed class ViewState : MainActorModel
+    {
+        private int faviconRevision;
+
+        public int FaviconRevision { get => Read(faviconRevision); set => Set(ref faviconRevision, value); }
+    }
+
+    private readonly ViewState state = new();
+
     // :1121-1125 init(_:hasLinks:hugsContent:); :1127-1208 body. PR-THEME-144, PR-THEME-148, PR-THEME-151.
     // The hasLinkText branch (:1134-1191) builds LinkParagraphView, whose whole constructor is part of the
     // sibling LinkParagraphView unit and stays MARROW_STUB (see the file header's dependency-cycle note); this
@@ -1642,7 +1652,7 @@ public sealed class InlineText : Decorator
                 pointSize: scaled,
                 dimmed: dimmed,
                 streaming: streaming,
-                revision: 0, // :1113 @State private var faviconRevision = 0
+                revision: state.FaviconRevision, // B3 :1114 revision: faviconRevision
                 mentions: personas,
                 targets: targets,
                 onOpenHead: url => OpenUrl?.Invoke(url), // :1148 { url in openURL(url) }
@@ -1657,12 +1667,15 @@ public sealed class InlineText : Decorator
             var hostKey = RichLink.LinkAssetKey(source, streaming);
             if (hostKey.Length > 0)
             {
-                var revision = 0;
+                // B3 :1123-1125 `[source, streaming, revision = $faviconRevision]`: the task bumps the view's own state (:1163).
                 var viewTask = new ViewTask<string>(hostKey, async _ =>
-                    await FetchLinkAssets(source, streaming, new Binding<int>(() => revision, v => revision = v)));
+                    await FetchLinkAssets(source, streaming, new Binding<int>(() => state.FaviconRevision, v => state.FaviconRevision = v)));
                 linkView.AttachedToVisualTree += (_, _) => viewTask.Appear();
                 linkView.DetachedFromVisualTree += (_, _) => viewTask.Disappear();
             }
+            // body reads faviconRevision (B3 :1092-1093, :1114): a bump runs it again, and SwiftUI hands the paragraph its new revision
+            // (LinkParagraphView.updateNSView, LinkParagraphView.swift:36-58), which draws the text again with the icon.
+            this.Track(() => state.FaviconRevision, linkView.Update);
             child = linkView;
         }
         else // :1193-1198

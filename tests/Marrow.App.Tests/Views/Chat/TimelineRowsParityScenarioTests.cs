@@ -639,10 +639,18 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 window = Show(tool);
                 var texts = tool.GetVisualDescendants().OfType<SelectableTextBlock>().ToArray();
                 Assert.Equal(["cat notes.txt", "the printed result"], texts.Select(text => text.Text ?? "").ToArray());
+                // Review round 4: a selection in either is drawn too, in the system's selected-text colour (a SelectableTextBlock has
+                // no SelectionBrush with no control theme loaded; ED-NEW-parity-timelinerows (5)).
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
                 foreach (var text in texts)
                 {
                     Hover(window, text);
                     Assert.Equal("Ibeam", text.Cursor?.ToString());
+                    text.SelectAll();
+                    Assert.Equal(text.Text, text.SelectedText);
+                    Assert.True((text.SelectionBrush as Avalonia.Media.ISolidColorBrush)?.Color == system,
+                        $"\"{text.Text}\": the selection is drawn with {text.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
                 }
             });
         }
@@ -792,22 +800,45 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-077 (renders like the answers)
 
     // :119-122 InlineText(parts.body, hugsContent: true): the user's own words take the answers' inline renderer, so a bare
-    // domain types as a link (MarkdownView.swift:1134-1191 LinkParagraphView, which puts the favicon in front once it is
-    // fetched) and plain words stay the selectable veiled text; the bubble hugs either.
+    // domain types as a link (MarkdownView.swift, B3: :1095-1126 the link branch, LinkParagraphView) and plain words stay the
+    // selectable veiled text; the bubble hugs either. The link's favicon goes in front of it once fetched: the paragraph's
+    // .task(id: hostKey) (:1123-1125) awaits the host's icon (fetchLinkAssets :1153-1164) and bumps @State faviconRevision
+    // (:1077, the bump :1163), and LinkParagraphView(revision: faviconRevision) (:1114) draws the text again, the icon, one
+    // space and then the link (LinkParagraphView.swift:36-58, :134-150). A bubble is on screen before the icon of a host it
+    // names for the first time arrives, so the icon reaches it through that redraw. No network: the host's fetch is a seeded
+    // in-flight task (R-TEST-10). The text of either bubble is selectable (:123), and a selection in it is drawn in the system's
+    // selected-text colour (the link text's NSTextView, LinkParagraphView.swift:312-313, like the veiled text;
+    // ED-NEW-parity-timelinerows (5)).
     [Fact]
-    [Trait("Req", "PR-CHAT-077")] // TimelineRows.swift:118-129; MarkdownView.swift:1121-1208
+    [Trait("Req", "PR-CHAT-077")] // TimelineRows.swift:118-129; MarkdownView.swift (B3) :1065-1164; LinkParagraphView.swift:36-58, :134-150, :312-313
     public void The_bubble_renders_its_words_with_the_answers_inline_renderer_so_a_bare_domain_is_a_link() => headless.OnUiThread(() =>
     {
+        const string host = "bubble-favicon.com";
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var icon = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(4, 4), new Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        var pending = new TaskCompletionSource<Avalonia.Media.IImage?>();
+        using var inFlight = new HydraMergeFaviconSeed(host, null, pending.Task);
         AvaloniaWindow window = null!;
+        UserMessageRow linked = null!, plain = null!;
+        void Pump()
+        {
+            for (var pass = 0; pass < 10; pass++) { h.Main.RunUntilIdle(); Settle(window); }
+        }
+        Avalonia.Media.IImage?[] Icons(SelectableTextBlock text) => (text.Inlines ?? [])
+            .OfType<Avalonia.Controls.Documents.InlineUIContainer>().Select(container => (container.Child as Image)?.Source).ToArray();
         try
         {
             h.Main.OnMain(() =>
             {
-                var linked = new UserMessageRow(UserEntry("see example.com for it", Guid.NewGuid()), h.Runtime, canRevert: false);
-                var plain = new UserMessageRow(UserEntry("plain words", Guid.NewGuid()), h.Runtime, canRevert: false);
+                linked = new UserMessageRow(UserEntry("see " + host + " for it", Guid.NewGuid()), h.Runtime, canRevert: false);
+                plain = new UserMessageRow(UserEntry("plain words", Guid.NewGuid()), h.Runtime, canRevert: false);
                 window = Show(new StackPanel { Spacing = 40, Children = { linked, plain } });
+            });
+            Pump();
+            h.Main.OnMain(() =>
+            {
                 var linkText = Assert.Single(linked.GetVisualDescendants().OfType<InlineText>());
                 Assert.True(linkText.HugsContent);
                 Assert.Single(linkText.GetVisualDescendants().OfType<LinkParagraphView>());
@@ -815,6 +846,32 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 Assert.True(plainText.HugsContent);
                 Assert.Empty(plainText.GetVisualDescendants().OfType<LinkParagraphView>());
                 Assert.Single(plainText.GetVisualDescendants().OfType<SelectableTextBlock>());
+                // The icon is still on its way: the link stands alone, no icon and no space (LinkParagraphView.swift:134-150).
+                Assert.Empty(Icons(Assert.Single(linkText.GetVisualDescendants().OfType<SelectableTextBlock>())));
+            });
+            // The fetch lands: image(for:) keeps the icon (MarkdownView.swift:896-898, B3) and hands it to the task that awaited it.
+            using var stored = new HydraMergeFaviconSeed(host, icon, null);
+            pending.SetResult(icon);
+            Pump();
+            h.Main.OnMain(() =>
+            {
+                var words = Assert.Single(linked.GetVisualDescendants().OfType<SelectableTextBlock>());
+                var inlines = words.Inlines!.ToList();
+                var container = Assert.Single(inlines.OfType<Avalonia.Controls.Documents.InlineUIContainer>());
+                Assert.Same(icon, Assert.IsType<Image>(container.Child).Source); // the favicon ...
+                var at = inlines.IndexOf(container);
+                Assert.Equal(" ", Assert.IsType<Avalonia.Controls.Documents.Run>(inlines[at + 1]).Text); // ... one space ...
+                Assert.Equal(host, Assert.IsType<Avalonia.Controls.Documents.Run>(inlines[at + 2]).Text); // ... in front of the link
+                // :123 .textSelection(.enabled): selectable, and a selection is drawn in the system's selected-text colour.
+                var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+                Assert.NotEqual(0, system.A);
+                foreach (var text in new[] { words, Assert.Single(plain.GetVisualDescendants().OfType<SelectableTextBlock>()) })
+                {
+                    text.SelectAll();
+                    Assert.False(string.IsNullOrEmpty(text.SelectedText));
+                    Assert.True((text.SelectionBrush as Avalonia.Media.ISolidColorBrush)?.Color == system,
+                        $"\"{text.Inlines?.Text ?? text.Text}\": the selection is drawn with {text.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
+                }
             });
         }
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }

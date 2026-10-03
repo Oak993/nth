@@ -1197,4 +1197,65 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
         Assert.Equal(click.MoreStart, click.SelectionStart);
         Assert.Equal(click.MoreStart + "more".Length, click.SelectionEnd);
     });
+
+    // ---- Review round 4 of the TimelineRows parity pass (2026-10-03): the paragraph path's own text block ----
+
+    // :312-313 `isEditable = false; isSelectable = true`: an NSTextView draws a selection in the system's selected-text colour.
+    // The paragraph draws into its own SelectableTextBlock (LinkTextView's constructor), which has no SelectionBrush of its own
+    // with no control theme loaded (Avalonia 12.1.2), so a drag selected text that was never painted (a sent bubble with a bare
+    // domain, a report paragraph with a link). It takes the attach-time brush the veiled text takes (StreamVeil.cs
+    // VeiledText.SelectableText; ED-NEW-parity-timelinerows (5)).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-140 (selectable: a selection is drawn): DroppyCode/UI/Markdown/LinkParagraphView.swift:312-313
+    public void A_selection_in_a_link_paragraph_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
+    {
+        var paragraph = new LinkParagraphView("words before [a link](https://selection-brush.invalid/x) and after");
+        var window = new Window { Content = paragraph, Width = 420, Height = 200 };
+        window.Show();
+        try
+        {
+            var block = (SelectableTextBlock)((LinkTextView)paragraph.Child!).Child!;
+            var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
+            Assert.NotEqual(0, system.A);
+            block.SelectAll();
+            Assert.False(string.IsNullOrEmpty(block.SelectedText));
+            Assert.True((block.SelectionBrush as ISolidColorBrush)?.Color == system,
+                $"the selection is drawn with {block.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
+        }
+        finally { window.Close(); }
+    });
+
+    // :36-58 updateNSView: `revision` (:15-16, "Bumped when favicons finish loading, so the icons appear") is read (:40-41) and
+    // compared with the coordinator's last one (:45); a new revision builds the string again, so an icon that reached the cache
+    // after the paragraph was drawn now stands in front of its link with one space (:134-150), and the same revision again builds
+    // nothing (:43-46). The host hands the new revision in from InlineText's @State faviconRevision (MarkdownView.swift, B3: :1077,
+    // :1114), which fetchLinkAssets bumps once an icon lands (:1163).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-141 and PR-THEME-148 (the paragraph is rebuilt with the icon once the fetch lands): DroppyCode/UI/Markdown/LinkParagraphView.swift:36-58, :134-150
+    public void A_new_revision_draws_the_paragraph_again_with_an_icon_that_arrived_since_and_the_same_revision_draws_nothing() => headless.OnUiThread(() =>
+    {
+        const string host = "revision-redraw.com";
+        var icon = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(4, 4), new Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        var paragraph = new LinkParagraphView("see [the page](https://revision-redraw.com/a) now");
+        var block = (SelectableTextBlock)((LinkTextView)paragraph.Child!).Child!;
+        InlineUIContainer[] Icons() => block.Inlines!.OfType<InlineUIContainer>().ToArray();
+        Assert.Empty(Icons()); // drawn before the icon arrived
+        FaviconCacheSeed.Seed(host, icon);
+        try
+        {
+            paragraph.Update(revision: 0); // nothing new: the coordinator's inputs all match, so nothing is built
+            Assert.Empty(Icons());
+            paragraph.Update(revision: 1); // the favicon-load bump
+            var container = Assert.Single(Icons());
+            Assert.Same(icon, Assert.IsType<Image>(container.Child).Source);
+            var inlines = block.Inlines!.ToList();
+            var at = inlines.IndexOf(container);
+            Assert.Equal(" ", Assert.IsType<Run>(inlines[at + 1]).Text);
+            Assert.Equal("the page", Assert.IsType<Run>(inlines[at + 2]).Text);
+            paragraph.Update(revision: 1); // the same revision: not built again
+            Assert.Same(container, Assert.Single(Icons()));
+        }
+        finally { FaviconCacheSeed.Remove(host); }
+    });
 }

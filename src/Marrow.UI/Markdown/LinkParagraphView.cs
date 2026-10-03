@@ -36,7 +36,7 @@ public sealed class LinkParagraphView : Decorator
     /// <param name="targets">:18 <c>var targets: [String: HydraMentionTarget] = [:]</c>.</param>
     /// <param name="onOpenHead">:19 <c>var onOpenHead: ((URL) -> Void)?</c>.</param>
     /// <param name="onHost">:24 <c>var onHost: ((LinkTextView) -> Void)?</c>.</param>
-    // :26-34 makeNSView(context:)
+    // :26-34 makeNSView(context:), then the first updateNSView (:36-58) that draws the text.
     public LinkParagraphView(
         string source,
         double pointSize = 13,
@@ -48,14 +48,68 @@ public sealed class LinkParagraphView : Decorator
         Action<SwiftURL>? onOpenHead = null,
         Action<LinkTextView>? onHost = null)
     {
-        _ = revision;
-        var view = new LinkTextView
+        this.source = source;
+        this.pointSize = pointSize;
+        this.dimmed = dimmed;
+        this.streaming = streaming;
+        Revision = revision;
+        this.mentions = mentions ?? [];
+        this.targets = targets ?? new Dictionary<string, HydraMentionTarget>();
+        view = new LinkTextView
         {
             OnOpenHead = onOpenHead,
         };
-        view.RenderText(source, pointSize, dimmed, streaming, mentions ?? [], targets ?? new Dictionary<string, HydraMentionTarget>());
+        UpdateNSView();
         Child = view;
         onHost?.Invoke(view);
+    }
+
+    // :10-18 the inputs. Only the revision is handed in again in place (Update); a host with new text builds a new paragraph.
+    private readonly string source;
+    private readonly double pointSize;
+    private readonly bool dimmed;
+    private readonly bool streaming;
+    private readonly IReadOnlyList<HydraPersona> mentions;
+    private readonly IReadOnlyDictionary<string, HydraMentionTarget> targets;
+    private readonly LinkTextView view;
+    private readonly Coordinator coordinator = new(); // :67-69 context.coordinator
+
+    /// <summary>:15-16 <c>var revision: Int = 0</c>, "bumped when favicons finish loading, so the icons appear".</summary>
+    public int Revision { get; private set; }
+
+    /// <summary>The host's body ran again with a new <c>revision</c> (InlineText's <c>@State faviconRevision</c>,
+    /// MarkdownView.swift:1077 at B3, handed in at :1114 and bumped by fetchLinkAssets at :1163): SwiftUI calls
+    /// updateNSView (:36-58), which builds the string again when the revision moved, so an icon that reached the cache
+    /// after the paragraph was drawn now stands in front of its link (:134-150).</summary>
+    public void Update(int revision)
+    {
+        Revision = revision;
+        UpdateNSView();
+    }
+
+    // :36-58 updateNSView(_:context:): builds the string only when an input differs from the coordinator's last one (:43-46).
+    // The veil (:42, :45, :52 markdownVeiled; :56-57 streamVeil.update) is not wired on this path, as before.
+    private void UpdateNSView()
+    {
+        _ = Revision; // :39-40 "Read so a favicon-load bump rebuilds the string with icons."
+        var mentionNames = new ValueList<string>(mentions.Select(persona => persona.Name));
+        var targetMap = new ValueMap<string, HydraMentionTarget>(targets, SwiftStringComparer.Instance);
+        if (coordinator.LastSource is not { } lastSource || !SwiftString.Equal(lastSource, source) // :43
+            || coordinator.LastPointSize != pointSize
+            || coordinator.LastDimmed != dimmed || coordinator.LastStreaming != streaming // :44
+            || coordinator.LastRevision != Revision // :45
+            || !coordinator.LastMentions.SequenceEqual(mentionNames, SwiftStringComparer.Instance) // :46
+            || !coordinator.LastTargets.Equals(targetMap))
+        {
+            coordinator.LastSource = source; // :47
+            coordinator.LastPointSize = pointSize; // :48
+            coordinator.LastDimmed = dimmed; // :49
+            coordinator.LastStreaming = streaming; // :50
+            coordinator.LastRevision = Revision; // :51
+            coordinator.LastMentions = mentionNames; // :53
+            coordinator.LastTargets = targetMap; // :54
+            view.RenderText(source, pointSize, dimmed, streaming, mentions, targets); // :55
+        }
     }
 
     // :67-69 func makeCoordinator() -> Coordinator
@@ -478,6 +532,13 @@ public sealed class LinkTextView : Decorator
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
         };
         Child = textBlock;
+        // :312-313 isSelectable = true: an NSTextView draws a selection in the system's selected-text colour. A
+        // SelectableTextBlock has no SelectionBrush of its own with no control theme loaded, so a drag selected text that was
+        // never painted; it takes the brush the veiled text takes (StreamVeil.cs VeiledText.SelectableText), resolved once the
+        // text is in a window (the system accent needs the running application). The cursor stays this view's own
+        // (OnPointerMoved: the I-beam over prose, the pointing hand over a link, the arrow over a head mention).
+        var block = textBlock;
+        block.AttachedToVisualTree += (_, _) => block.SelectionBrush ??= SwiftColor.SelectedTextBackgroundColor.Brush(block);
         // Tunnel: a head or link press is the view's (mouseDown :444-451, clickedOnLink :90-100; rightMouseDown and
         // menu(for:) :453-461) before the SelectableTextBlock's own class handler takes the press to move the
         // selection and marks it handled, which a bubbling instance handler never sees (fix/links), as Render's
@@ -788,6 +849,9 @@ public sealed class LinkTextView : Decorator
         linkHits.Clear();
         heads.Clear();
         textLength = 0;
+        // :492-493 a new string drops the cached measurement (a favicon-load bump draws the text again, LinkParagraphView.Update).
+        measuredHeight = 0;
+        measuredWidth = 0;
         block.Inlines!.Clear();
 
         var pretty = RichLink.PrettyAttributed(source, streaming);
