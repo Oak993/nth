@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Marrow.App.Runtime;
@@ -681,5 +682,52 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
                 finally { Close(window); }
             });
         }
+    });
+
+    // ---------------------------------------------------------------- UI-CHAT-039, UI-GIT-047
+
+    // :2789-2791 Button("Revert") { isConfirmingRevert = false; onRevert() }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction):
+    // "Revert is the default action, so Return activates it". The panel is hosted in a window of its own (the popover never opens
+    // headless), and Return pressed there reverts once and closes the popover first.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-039 and UI-GIT-047 (Return activates Revert; the small control size of :2796 is STOP #5): TimelineRows.swift:2789-2791
+    public void Return_pressed_in_the_revert_confirmation_activates_Revert() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var reverts = 0;
+        TurnFileCard card = null!;
+        AvaloniaWindow window = null!, menu = null!;
+        runtime.OnMain(() =>
+        {
+            card = new TurnFileCard(Files(2), canUndo: true, onRevert: () => reverts++, onReview: _ => { });
+            window = Show(new StackPanel { Margin = new Thickness(20), Children = { card } });
+            Click(window, Mounted<Button>(card).Single(button => Mounted<SwiftImage>(button).Any(image => image.SymbolName == "arrow.uturn.backward")));
+        });
+        runtime.OnMain(() =>
+        {
+            try
+            {
+                Settle(window);
+                menu = TimelineRowsFinRig.HostMenu(Assert.Single(presenter.Calls, call => call.Presented).Popup);
+                Assert.Equal(0, reverts);
+                menu.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1, reverts);
+            }
+            catch { Close(window); throw; }
+        });
+        runtime.OnMain(() =>
+        {
+            try
+            {
+                Settle(window);
+                Assert.Contains(presenter.Calls, call => !call.Presented);
+                Assert.Equal(1, reverts);
+            }
+            finally { if (menu is not null) Close(menu); Close(window); }
+        });
     });
 }
