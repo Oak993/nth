@@ -614,6 +614,178 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
         Assert.Equal(registered, GpuWarmup.ActivityCount);
     });
 
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0096: a change of the GPU the app draws with, or of its driver, shows the screen again, and nothing else does
+    public void The_machine_is_the_adapter_the_app_draws_with_alone_with_its_driver()
+    {
+        var machine = GpuProgramCache.Machine();
+        var adapters = GpuProgramCache.Adapters();
+        Assert.False(string.IsNullOrEmpty(machine), "DXGI named no adapter drawn with");
+        Assert.True(adapters is { Count: > 0 }, "DXGI named no graphics adapter");
+        Assert.DoesNotContain(" | ", machine, StringComparison.Ordinal);                 // one adapter: another adapter's driver update changes nothing
+        Assert.Equal(adapters![0], machine);                   // DXGI's first (an x64 process: Avalonia's ANGLE draws with adapter 0)
+        Assert.Matches(@" (\d+\.\d+\.\d+\.\d+|no driver version)$", machine);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the adapter drawn with, picked as Avalonia 12.1.2's AngleWin32EglDisplay picks it
+    public void The_adapter_drawn_with_is_picked_as_avalonia_picks_it()
+    {
+        Assert.Equal(0, GpuProgramCache.Drawn(["AMD Radeon(TM) Graphics", "NVIDIA GeForce RTX 4080"], arm64: false));     // DXGI's first
+        Assert.Equal(0, GpuProgramCache.Drawn(["Qualcomm(R) Adreno(TM) X1-85 GPU", "Microsoft Basic Render Driver"], arm64: false));
+        Assert.Equal(1, GpuProgramCache.Drawn(["Qualcomm(R) Adreno(TM) X1-85 GPU", "Microsoft Basic Render Driver"], arm64: true)); // ARM64: the Adreno blocklist
+        Assert.Equal(0, GpuProgramCache.Drawn(["Qualcomm(R) Adreno(TM) X1-85 GPU"], arm64: true));                        // the only one
+        Assert.Equal(0, GpuProgramCache.Drawn(["NVIDIA GeForce RTX 4080", "Qualcomm(R) Adreno(TM) X1-85 GPU"], arm64: true));
+        Assert.Equal(0, GpuProgramCache.Drawn(["Qualcomm Adreno A", "Qualcomm ADRENO B"], arm64: true));                  // all Adreno: the first
+        Assert.Equal(1, GpuProgramCache.Drawn(["Qualcomm Adreno A", null], arm64: true));                                  // no description: not an Adreno
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the clean-up keeps a folder made on the machine's other adapter as it is now, and removes its old drivers'
+    public void A_completed_warm_up_keeps_the_folders_of_the_machines_other_adapter_as_it_is_now()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "jewel-clean-adapters-" + Guid.NewGuid().ToString("N"));
+        var (source, adapters) = (GpuProgramCache.MachineSource, GpuProgramCache.AdaptersSource);
+        const string gpu = "10de:2704:13bc196e:a1 NVIDIA GeForce RTX 4080 32.0.15.6094", igpu = "1002:13c0:d0001458:cb AMD Radeon(TM) Graphics 31.0.24033.1003";
+        GpuProgramCache.MachineSource = () => gpu;              // the app draws with the RTX 4080
+        GpuProgramCache.AdaptersSource = () => [igpu, gpu];
+        GpuProgramCache.FolderOverride = root;
+        string Folder(string name, string made)
+        {
+            var folder = Path.Combine(root, name);
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, "key.txt"), string.Join("\n", "ANGLE (Test)", "OpenGL ES 3.0.0", GpuProgramCache.Build, made, ""));
+            File.WriteAllBytes(Path.Combine(folder, "a.bin"), [1, 2, 3]);
+            return folder;
+        }
+        try
+        {
+            var current = Folder("aaaaaaaaaaaaaaaaaaaaaaaa", gpu);
+            var otherAdapter = Folder("bbbbbbbbbbbbbbbbbbbbbbbb", igpu); // made when the app drew with the iGPU
+            var otherOldDriver = Folder("cccccccccccccccccccccccc", "1002:13c0:d0001458:cb AMD Radeon(TM) Graphics 31.0.21000.1000");
+            var oldDriver = Folder("dddddddddddddddddddddddd", "10de:2704:13bc196e:a1 NVIDIA GeForce RTX 4080 31.0.15.5222");
+            GpuProgramCache.MarkWarm(current);
+            Assert.True(Directory.Exists(current));
+            Assert.True(Directory.Exists(otherAdapter), "the folder made on the machine's other adapter, as it is now, was removed");
+            Assert.False(Directory.Exists(otherOldDriver), "the other adapter's folder of a driver it no longer has is kept");
+            Assert.False(Directory.Exists(oldDriver), "the folder of a driver the adapter drawn with no longer has is kept");
+        }
+        finally
+        {
+            (GpuProgramCache.MachineSource, GpuProgramCache.AdaptersSource) = (source, adapters);
+            GpuProgramCache.FolderOverride = null;
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the key names the adapter as the install read it, the marker as the warm-up's end read it: the app moved between them is not warm
+    public void Is_warm_is_false_when_the_folders_key_names_another_adapter_than_the_marker()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "jewel-warm-key-" + Guid.NewGuid().ToString("N"));
+        var gpu = Path.Combine(root, "0123456789abcdef01234567");
+        var source = GpuProgramCache.MachineSource;
+        const string machine = "10de:2704:13bc196e:a1 NVIDIA GeForce RTX 4080 32.0.15.6094";
+        GpuProgramCache.MachineSource = () => machine;
+        GpuProgramCache.FolderOverride = root;
+        void Key(string made) => File.WriteAllText(Path.Combine(gpu, "key.txt"), string.Join("\n", "ANGLE (Test)", "OpenGL ES 3.0.0", GpuProgramCache.Build, made, ""));
+        try
+        {
+            Directory.CreateDirectory(gpu);
+            for (var k = 0; k < GpuWarmup.Steps; k++) File.WriteAllBytes(Path.Combine(gpu, k + ".bin"), [1, 2, 3]);
+            File.WriteAllLines(Path.Combine(root, "warm.txt"), [GpuProgramCache.Build, Path.GetFileName(gpu), machine]);
+            // installed when the pass began on the iGPU (DXGI's adapter 0 then), marked when it ended on the RTX 4080 (its
+            // adapter 0 now): the programs kept are the iGPU's
+            Key("1002:13c0:d0001458:cb AMD Radeon(TM) Graphics 31.0.24033.1003");
+            Assert.False(GpuWarmup.IsWarm, "warm over a folder of programs made on another adapter");
+            Key(machine);
+            Assert.True(GpuWarmup.IsWarm);
+        }
+        finally
+        {
+            GpuProgramCache.MachineSource = source;
+            GpuProgramCache.FolderOverride = null;
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the callbacks are installed once per GPU context: again on a new one (a device lost, a display change)
+    public void The_cache_is_installed_once_per_gpu_context()
+    {
+        var installer = GpuProgramCache.Installer;
+        var installs = 0;
+        GpuProgramCache.Installer = () => { installs++; return "installed (test)"; };
+        try
+        {
+            GpuProgramCache.EnsureInstalled(0x7E570001);
+            GpuProgramCache.EnsureInstalled(0x7E570001);
+            Assert.Equal(1, installs);
+            Assert.Equal("installed (test)", GpuProgramCache.State);
+            GpuProgramCache.EnsureInstalled(0x7E570002);
+            Assert.Equal(2, installs);                            // a new context: installed on it
+            GpuProgramCache.EnsureInstalled(0x7E570002);
+            Assert.Equal(2, installs);
+        }
+        finally
+        {
+            GpuProgramCache.Installer = () => "not tried";
+            GpuProgramCache.EnsureInstalled(0);                   // the state before: no context, not tried
+            GpuProgramCache.Installer = installer;
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the entries written count (a warm-up marks warm only when its steps went through the cache), a failed one does not
+    public void A_cache_entry_written_is_counted_and_a_failed_one_is_not()
+    {
+        using var cache = new GpuProgramCacheFolder();
+        var writes = GpuProgramCache.Writes;
+        cache.Put([1, 2, 3]);
+        Assert.Equal(writes + 1, GpuProgramCache.Writes);
+        using (new FileStream(cache.FileFor(), FileMode.Open, FileAccess.Read, FileShare.Read)) // held by another instance: the move fails
+            cache.Put([4, 5, 6]);
+        Assert.Equal(writes + 1, GpuProgramCache.Writes);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // a file written whole (an entry, a key) leaves no part beside it when its move fails, and says so
+    public void A_file_replaced_whole_leaves_no_part_when_its_move_fails()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "jewel-whole-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var file = Path.Combine(folder, "key.txt");
+        try
+        {
+            File.WriteAllText(file, "old");
+            using (new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)) // another instance reading it
+                Assert.ThrowsAny<Exception>(() => GpuProgramCache.ReplaceWhole(file, [1, 2, 3]));
+            Assert.Empty(Directory.EnumerateFiles(folder, "*.part"));
+            Assert.Equal("old", File.ReadAllText(file));
+            GpuProgramCache.ReplaceWhole(file, "new"u8.ToArray());
+            Assert.Equal("new", File.ReadAllText(file));
+            Assert.Empty(Directory.EnumerateFiles(folder, "*.part"));
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // OD-0096: a new app build shows the screen again, and a release that patches only Skia or ANGLE is one
+    public void The_build_names_the_native_libraries_the_programs_are_made_with()
+    {
+        var module = typeof(GpuProgramCache).Assembly.ManifestModule.ModuleVersionId.ToString("N");
+        string[] natives = ["libSkiaSharp.dll 3.119.0.0 11264000", "av_libglesv2.dll 2.1.25000.0 5120000"];
+        Assert.StartsWith(module + "-", GpuProgramCache.BuildOf(module, natives), StringComparison.Ordinal);
+        Assert.Equal(GpuProgramCache.BuildOf(module, natives), GpuProgramCache.BuildOf(module, natives));
+        Assert.NotEqual(GpuProgramCache.BuildOf(module, natives), GpuProgramCache.BuildOf(module, ["libSkiaSharp.dll 3.119.1.0 11264000", natives[1]]));
+        Assert.NotEqual(GpuProgramCache.BuildOf(module, natives), GpuProgramCache.BuildOf(module, [natives[0], "av_libglesv2.dll 2.1.25000.0 5120512"]));
+        Assert.NotEqual(GpuProgramCache.BuildOf(module, natives), GpuProgramCache.BuildOf(Guid.NewGuid().ToString("N"), natives));
+        // this build's: the libraries as installed beside it (here under runtimes\<rid>\native), each found
+        var installed = GpuProgramCache.NativeLibraries.Select(GpuProgramCache.Installed).ToList();
+        Assert.All(installed, line => Assert.Matches(@"^\S+\.dll \S+ \d+$", line));
+        Assert.Equal(GpuProgramCache.BuildOf(module, installed), GpuProgramCache.Build);
+    }
+
     // frames (or none) about every 10 ms until done or the time is up, the dispatcher's jobs run between
     private static void Pump(TimeSpan span, Func<bool> done, bool render)
     {
