@@ -476,7 +476,7 @@ internal sealed class PinnedModelRow : Decorator
             return;
         }
         liftLayer.Background = Chrome.Overlay(0.12).Brush(liftLayer);
-        liftLayer.BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 });
+        liftLayer.BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), radius: 10, y: 4); // :259 (sigma 10, ED-NEW-rec-shadow)
         liftLayer.Opacity = Math.Clamp(amount, 0, 1);
         var scale = 1 + 0.02 * amount;
         host.RenderTransform = new ScaleTransform(scale, scale);

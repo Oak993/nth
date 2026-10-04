@@ -509,7 +509,7 @@ public sealed class FloatingSidebarPanelTests(HeadlessSession headless)
         // :100 .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)
         var shadow = rig.Shadow;
         Assert.Equal(SwiftColor.Black.Opacity(dark ? 1 : 0.65).Resolve(theme), shadow.Color);
-        Assert.Equal(28, shadow.Blur);
+        Assert.Equal((28 - 0.5) / 0.288675, shadow.Blur, 6); // radius 28 drawn as sigma 28 (ED-NEW-rec-shadow; measured by SwiftShadowHeadlessTests)
         Assert.Equal(10, shadow.OffsetY);
         Assert.Equal(0, shadow.OffsetX);
         Assert.Equal(0, shadow.Spread);

@@ -681,7 +681,7 @@ public sealed class KeycapView : Decorator
         var frame = new Panel { Height = CapHeight, Children = { stack, label } };
         if (cap.IsModifier) frame.Width = ModifierWidth; // :341
         else frame.MinWidth = KeyMinWidth; // :342
-        frame.Effect = new Avalonia.Media.DropShadowEffect { Color = Colors.Black, Opacity = 0.45, BlurRadius = 3, OffsetX = 0, OffsetY = 1 }; // :344, ~radius 1.5
+        frame.Effect = SwiftShadow.DropShadowEffect(Colors.Black, opacity: 0.45, radius: 1.5, x: 0, y: 1); // :344 (sigma 1.5, ED-NEW-rec-shadow)
 
         var accessibilityLabel = cap.Name ?? cap.Symbol; // :347
         AutomationProperties.SetName(frame, accessibilityLabel);

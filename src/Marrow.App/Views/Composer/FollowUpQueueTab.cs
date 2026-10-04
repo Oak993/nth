@@ -783,7 +783,7 @@ public sealed class FollowUpRow : Decorator
             : isPairTarget ? Chrome.Accent.Opacity(0.18).Brush(this) : null;
         rowSurface.CornerRadius = isDragged || isPairTarget ? new CornerRadius(999) : new CornerRadius(0);
         rowSurface.BoxShadow = isDragged
-            ? new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 })
+            ? SwiftShadow.BoxShadows(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), radius: 10, y: 4) // :477 (sigma 10, ED-NEW-rec-shadow)
             : default;
         pairFrame.IsVisible = isPairTarget;
         if (isPairTarget)

@@ -321,13 +321,8 @@ public sealed class RowGlideView : Control
         using (context.PushClip(glide.Bounds)) // :223, FrameShape(frame: glide.bounds)
         {
             var shape = new RoundedRect(frameRect, Chrome.RowCornerRadius); // :172, :207
-            var shadow = new BoxShadows(new BoxShadow
-            {
-                Color = Color.FromArgb((byte)Math.Round(0.28 * lift * 255), 0, 0, 0), // :208 .black.opacity(0.28 * lift)
-                OffsetX = 0,
-                OffsetY = 4, // :208 y: 4
-                Blur = 10, // :208 radius: 10
-            });
+            // :208 .shadow(color: .black.opacity(0.28 * lift), radius: 10, y: 4) (sigma 10, ED-NEW-rec-shadow)
+            var shadow = SwiftShadow.BoxShadows(Color.FromArgb((byte)Math.Round(0.28 * lift * 255), 0, 0, 0), radius: 10, y: 4);
             context.DrawRectangle(Chrome.Overlay(fill).Brush(this), null, shape, boxShadows: shadow); // :206-208
 
             using (context.PushClip(shape)) // :203 .clipShape(shape)
