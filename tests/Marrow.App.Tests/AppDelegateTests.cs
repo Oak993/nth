@@ -713,8 +713,8 @@ public sealed class AppDelegateTests
 // with the existing offline blocked updater stand-in test in AppModelBootstrapSweepTests.
 // PR-LAUNCH-046: the shell-to-UpdateChecker.HandleActivation binding (Port/AppShell.cs, WM_ACTIVATEAPP) and the launch-activation
 // ruling (OD-0040) landed (STOP Boot #2, RESOLVED). ED-225 centering landed; the ED-103 stage and the Acrylic material landed
-// (ED-236). What PR-LAUNCH-028 and UI-LAUNCH-001 still wait for is the first-run vertical centring measured on the real frame
-// (top 164 where ED-225 gives 175 to 177; the WindowManager unit's PR-WIN-006).
+// (ED-236). The first-run vertical centring on the real frame landed with ED-284 (WindowManagerNativeCentringTests); PR-LAUNCH-028's
+// boot outline is the visible window, not the HWND with its invisible strip (BootStageWindowTests, GlassWindowNativeTests, ED-284 (1)).
 
 // STOP App.AppDelegate #2 — RESOLVED (the minimized-window reading of STOP Boot #5 by OD-0038).
 // Kind: dependency landed
