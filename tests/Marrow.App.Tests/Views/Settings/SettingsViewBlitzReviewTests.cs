@@ -47,6 +47,36 @@ public sealed class SettingsViewBlitzReviewTests(HeadlessSession headless) : Set
         });
     }
 
+    // UI-SETTINGS-012, SOURCE FACT (the reference runtime), second review: the pressed OFF switch's lens is whiter over its grey track than the ON
+    // lens is over the accent. work/reference-video/frames/w-1-settings-tour-24.0/win, row y 346, the off knob's centre x 726: held (000043-000044,
+    // 000109-000110) the centre pixel is (171-178,178-186,180-187) over the off track's (46-47,78-80,78-80), 0.58-0.61 white in every channel;
+    // CATALOGUE settings.switch-toggle gives the off lens as "grey glass (~190,199,202)", about 0.68. The port draws one white alpha, 0x7A (0.48),
+    // fitted to the ON case only (SmallSwitch.LensAlpha), so its off lens is about 0.48 white over the track.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // REVIEW: UI-SETTINGS-012 (the system switch's pressed look, off)
+    public void REVIEW_a_pressed_off_switch_is_a_lens_about_six_tenths_white_over_its_track()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var s = model.Settings; s.ShowReasoning = false; Drain(w); Tick(h, 400);
+            var toggle = Assert.Single(Nodes<SmallSwitch>(Row(view, "Show thinking")));
+            var at = At(toggle, w); w.MouseMove(at); Drain(w); w.MouseDown(at, MouseButton.Left); Drain(w); Tick(h, 150);
+            Assert.False(s.ShowReasoning);
+            var held = toggle.KnobNow();
+            using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)toggle.Bounds.Width, (int)toggle.Bounds.Height));
+            using (var context = bitmap.CreateDrawingContext()) toggle.Render(context);
+            using var stream = new MemoryStream(); bitmap.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+            using var pixels = SkiaSharp.SKBitmap.Decode(stream.ToArray());
+            // drawn alone on a transparent bitmap: the track's coverage beside the knob, and the knob's centre over it
+            var track = pixels.GetPixel((int)toggle.Bounds.Width - 6, (int)toggle.Bounds.Height / 2).Alpha / 255.0;
+            var knob = pixels.GetPixel((int)(held.X + held.Width / 2), (int)(held.Y + held.Height / 2)).Alpha / 255.0;
+            Assert.InRange(track, 0.05, 0.15); // the off track (the label colour at 0.10), clear of the knob
+            var lens = (knob - track) / (1 - track);
+            Assert.InRange(lens, 0.54, 0.75); // the reference: 0.58-0.61 measured, about 0.68 catalogued
+            w.MouseUp(at, MouseButton.Left); Drain(w); Tick(h, 400);
+        });
+    }
+
     // OD-0076: "Every transition runs on the frame clock ... and the system's reduce-motion setting stills them." The clear button's fade is the
     // unit's OD-0076 deviation (UI-SETTINGS-009, UI-SETTINGS-010, UI-MCP-090): under reduce motion it must not fade.
     [Fact]
