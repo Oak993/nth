@@ -2471,7 +2471,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same composition. chipName's separator list ([\" (\", \" · \", \" — \", \" – \", \" - \", \": \"]) and vendor list must be carried verbatim, em dash included, because they are data, not prose. Icons follow OD-0010 (SF Symbols such as \"bolt.fill\" and \"chevron.down\" map to Lucide through the published symbol-by-symbol table); the provider marks are first-party artwork (PR-COMPOSER-139). The name and effort text use Inter (OD-0009).",
       "verification_method": "unit test of chipName plus a capture comparison of the chip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2494,7 +2494,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note helpText uses shortName, not chipName.",
       "verification_method": "capture comparison of a head panel's chip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2515,7 +2515,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Freeze the measured width on open, restore on close.",
       "verification_method": "interaction test dragging the slider from Low to Extra High with the popover open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2538,7 +2538,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed 330 width, same cross-fade.",
       "verification_method": "capture comparison of both faces",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2562,7 +2562,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim effortTitle mapping; uppercase only the first character, do not title-case the whole word.",
       "verification_method": "unit test of effortTitle and resolvedIndex over the fallback chain",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2582,7 +2582,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim tooltip; the numeric-text content transition becomes a cross-fade of the changed characters or a plain cross-fade. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test opening the list from the title",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2651,7 +2651,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same layout and the same 44 point insets.",
       "verification_method": "capture comparison with a long pair title",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2698,7 +2698,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same negative top margin and the same minimum scale. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison at the panel's 330 point width",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2747,7 +2747,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3146,7 +3146,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same maths; the colour is look.spark.",
       "verification_method": "capture comparison at a fixed time offset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3167,7 +3167,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same maths and the same two-pass stroke; the blur filter radius is 3.",
       "verification_method": "capture comparison at a fixed time offset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3188,7 +3188,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same band width, period, lean and opacity.",
       "verification_method": "capture comparison at three phases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3213,7 +3213,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Requires additive blending, per-path clipping and blur filters in the 2D drawing layer. Same constants throughout.",
       "verification_method": "capture comparison at a fixed time offset against the tour capture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3277,7 +3277,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3302,7 +3302,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three literals and the same one-pass sizing.",
       "verification_method": "capture comparison with one provider and with three",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3322,7 +3322,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same geometry; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison of selected, hovered and locked rows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3346,7 +3346,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim string; the history test is the presence of any turn record.",
       "verification_method": "interaction test on a fresh chat and one with a turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3371,7 +3371,7 @@
       "cancellation": "The load task is cancelled when the provider changes.",
       "windows_path": "Verbatim string including the single ellipsis character. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test with a delayed catalogue",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3396,7 +3396,7 @@
       "cancellation": "The catalogue loads run in a task tied to the view.",
       "windows_path": "Verbatim headers.",
       "verification_method": "interaction test with Hydra on and off",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3443,7 +3443,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exclusivity.",
       "verification_method": "interaction test with a chat in a pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3465,7 +3465,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: thread update, leave pair, stop session, remember, set default.",
       "verification_method": "integration test switching provider mid-thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3487,7 +3487,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: enter, leave the list, dismiss.",
       "verification_method": "interaction test entering a pair twice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5639,7 +5639,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:599-617 `HStack(spacing: 5) { if pair != nil { HydraMarkImage().foregroundStyle(Chrome.primaryText.opacity(0.75)).frame(width: 12, height: 12) } else if let provider { ProviderIcon(provider: provider, size: 12) }; Text(verbatim: pair?.title ?? modelName).font(.system(.body)).foregroundStyle(Chrome.primaryText.opacity(0.7)).lineLimit(1).truncationMode(.tail).minimumScaleFactor(0.85) }`"
       ],
       "notes": "This uses shortName, not chipName; the chip above uses chipName.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:610 `.font(.system(size: 13))` -> B2 :610 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:610 `.font(.system(size: 13))` -> B2 :610 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-033",
@@ -5685,7 +5686,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:685-708 `private struct RoundIconButton` - `Image(systemName: symbol).font(.system(.body, weight: .medium)).foregroundStyle(Chrome.secondaryText).frame(width: 30, height: 30).background { Circle().fill(isHovering ? Chrome.overlay(0.1) : Color.clear) }`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "Tooltip and accessibility label are the same string.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:695 `.font(.system(size: 13, weight: .medium))` -> B2 :695 `.font(.system(.body, weight: .medium))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:695 `.font(.system(size: 13, weight: .medium))` -> B2 :695 `.font(.system(.body, weight: .medium))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-035",
@@ -5764,7 +5766,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:642-651 `if let pair, !efforts.isEmpty { Text(verbatim: pair.caption).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText).lineLimit(1).truncationMode(.tail).minimumScaleFactor(0.9).padding(.top, -6).transition(.softAppear) }`"
       ],
       "notes": "The effort name is lowercased, so \"Extra High\" reads \"extra high\"; the separator is U+00B7. Which branch shows is decided by pair.workerEffort, falling back to the launch's resolved worker effort.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:644 `.font(.system(size: 11))` -> B2 :644 `.font(.system(.subheadline))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:644 `.font(.system(size: 11))` -> B2 :644 `.font(.system(.subheadline))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-038",
@@ -5783,7 +5786,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:290-298 `Button(action: onBack) { Image(systemName: \"chevron.left\").font(.system(.subheadline, weight: .semibold)).frame(width: 20, height: 20).contentShape(.rect) }.buttonStyle(.plain).foregroundStyle(Chrome.secondaryText).help(\"Back\")`"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:292 `.font(.system(size: 11, weight: .semibold))` -> B2 :292 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:292 `.font(.system(size: 11, weight: .semibold))` -> B2 :292 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-039",
@@ -5802,7 +5806,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:299-301 `Text(\"Select model\").font(.system(.body)).foregroundStyle(Chrome.secondaryText)`"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:300 `.font(.system(size: 13))` -> B2 :300 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:300 `.font(.system(size: 13))` -> B2 :300 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-040",
@@ -5823,7 +5828,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:310-311"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-041",
@@ -5844,7 +5850,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:325"
       ],
       "notes": "With no pairs the models stand alone with no header at all.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-042",
@@ -5868,7 +5875,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:364-420 detail(for:) joining with \" · \" (364-367) and `private struct HydraPairListRow` - title `.font(.system(size: 14))`, detail `.font(.system(.callout)).foregroundStyle(Chrome.secondaryText)`, checkmark `.font(.system(.body, weight: .semibold))`, `.padding(.horizontal, 10)`, `RoundedRectangle(cornerRadius: 9, style: .continuous).fill(isHovering && isEnabled ? Chrome.overlay(0.1) : Color.clear)`, `.opacity(isEnabled ? 1 : 0.45)`"
       ],
       "notes": "The detail names the models only when the user gave the pair a custom name, because otherwise the title already names them.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:395 `.font(.system(size: 12))` and :401 `.font(.system(size: 13, weight: .semibold))` -> B2 :395 `.font(.system(.callout))` and :401 `.font(.system(.body, weight: .semibold))`, 12 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The title stays a fixed 14 (B2 EffortSlider.swift:391)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:395 `.font(.system(size: 12))` and :401 `.font(.system(size: 13, weight: .semibold))` -> B2 :395 `.font(.system(.callout))` and :401 `.font(.system(.body, weight: .semibold))`, 12 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The title stays a fixed 14 (B2 EffortSlider.swift:391).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-043",
@@ -5892,7 +5900,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:422-477 `private struct ModelListRow` - name `.font(.system(size: 14))`, detail `.font(.system(.callout))`, bolt `.font(.system(.footnote))`, checkmark `.font(.system(.body, weight: .semibold))`, `.padding(.horizontal, 10)`, `RoundedRectangle(cornerRadius: 9, style: .continuous)`, `.opacity(isEnabled ? 1 : 0.45)`"
       ],
       "notes": "The checkmark keeps its column whether or not it is shown, so names never shift.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:447 `.font(.system(size: 12))`, :454 `.font(.system(size: 10))`, :458 `.font(.system(size: 13, weight: .semibold))` -> B2 :447 `.font(.system(.callout))`, :454 `.font(.system(.footnote))`, :458 `.font(.system(.body, weight: .semibold))`, 12, 10 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :54 `case .footnote, .caption, .caption2: 10`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The name stays a fixed 14 (B2 EffortSlider.swift:443)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:447 `.font(.system(size: 12))`, :454 `.font(.system(size: 10))`, :458 `.font(.system(size: 13, weight: .semibold))` -> B2 :447 `.font(.system(.callout))`, :454 `.font(.system(.footnote))`, :458 `.font(.system(.body, weight: .semibold))`, 12, 10 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :54 `case .footnote, .caption, .caption2: 10`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The name stays a fixed 14 (B2 EffortSlider.swift:443).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-044",
@@ -5913,7 +5922,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:340-345 `if entries.isEmpty { Text(\"Loading models…\").font(.system(.body)).foregroundStyle(Chrome.secondaryText).padding(10) }`"
       ],
       "notes": "One ellipsis character, U+2026. The list still reserves one row's height.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:342 `.font(.system(size: 13))` -> B2 :342 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:342 `.font(.system(size: 13))` -> B2 :342 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-045",
@@ -5934,7 +5944,8 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:271-287",
         "DroppyCode/App/Views/Composer/EffortSlider.swift:348-351"
       ],
-      "notes": "Fixed row heights let the popover size itself in one pass instead of measuring and resizing; a port that measures rows will show the panel jumping."
+      "notes": "Fixed row heights let the popover size itself in one pass instead of measuring and resizing; a port that measures rows will show the panel jumping.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-046",
