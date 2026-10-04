@@ -34,4 +34,6 @@ public sealed class FakeToolOffer : IToolRequestOffer
     }
 
     public void Answer(ToolRequestOutcome outcome) => answer.SetResult(outcome);
+
+    public void Fail(Exception error) => answer.SetException(error);
 }

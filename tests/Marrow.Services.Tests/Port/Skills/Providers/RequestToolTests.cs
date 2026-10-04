@@ -9,7 +9,9 @@ namespace Marrow.Services.Tests.Port.Skills.Providers;
 [Trait("Feature", "SK-11f")]
 public sealed class RequestToolTests
 {
-    private static Task<NativeToolResult> Request(NativeSkillTools tools, string json) => tools.Execute("request_tool", JSONValue.Parse(json)!);
+    // A call that is never answered must fail the test, not hang it.
+    private static Task<NativeToolResult> Request(NativeSkillTools tools, string json) =>
+        tools.Execute("request_tool", JSONValue.Parse(json)!).WaitAsync(TimeSpan.FromSeconds(10));
 
     [Fact, Trait("Rule", "R-TEST-4")]
     public void The_schema_takes_a_name_and_a_reason_and_requires_both()

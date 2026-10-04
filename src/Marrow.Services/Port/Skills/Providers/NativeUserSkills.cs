@@ -48,9 +48,15 @@ public sealed class NativeUserSkills
     private List<OwnSkill> Scan()
     {
         var result = new List<OwnSkill>();
-        foreach (var folder in files.SkillFolders(root))
+        IReadOnlyList<string> folders;
+        try { folders = files.SkillFolders(root); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return result; } // a folder that cannot be read lists nothing; it never fails the session
+        foreach (var folder in folders)
         {
-            if (files.ReadText(root, Path.Combine(folder, "SKILL.md")) is not { } text) continue;
+            string? text;
+            try { text = files.ReadText(root, Path.Combine(folder, "SKILL.md")); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
+            if (text is null) continue;
             ExistingSkill disclosure;
             try { disclosure = SkillFrontmatter.Disclosure(text); }
             catch (Exception error) when (error is InvalidDataException or System.Text.Json.JsonException) { continue; } // unusable metadata: not listed, the rest still load

@@ -1347,6 +1347,14 @@ public class OpenAICompatibleSession : ProviderSession
         NativeToolResult result;
         try { result = await skillTools.Execute(tool.Name, args); }
         catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+            // ED-NEW-f-sk-11f 7 (the per-site decision LocalizedDescription asks for): these tools are port code with no Swift twin, so an error that is not a Swift one speaks with its own message.
+            var description = error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
+            OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed }));
+            return $"Error: {description}";
+        }
         if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
         OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
         {

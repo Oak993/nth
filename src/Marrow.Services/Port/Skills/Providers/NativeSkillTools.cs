@@ -79,8 +79,10 @@ public sealed class NativeSkillTools
     /// </summary>
     public Task<NativeToolResult> Execute(string toolName, JSONValue arguments)
     {
-        if (!Owns(toolName)) throw new InvalidOperationException($"{toolName} is not a tool offered now.");
-        return toolName == UseSkillName ? Task.FromResult(UseSkill(arguments)) : RequestTool(arguments);
+        // The session asks Owns first (is the tool offered now). A request_tool already in flight when the last item is removed still reaches its offer, which answers it.
+        if (toolName == UseSkillName && UseSkillOffered) return Task.FromResult(UseSkill(arguments));
+        if (toolName == RequestToolName && offer is not null) return RequestTool(arguments);
+        throw new InvalidOperationException($"{toolName} is not a tool this object runs.");
     }
 
     /// <summary>The timeline row's title for a call, known before it runs (U+00B7 MIDDLE DOT, as the MCP rows use).</summary>

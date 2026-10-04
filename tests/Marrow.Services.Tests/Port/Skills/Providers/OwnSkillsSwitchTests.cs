@@ -149,4 +149,16 @@ public sealed class OwnSkillsSwitchTests
         Assert.Single(own.Existing());
         Assert.Single(files.Accesses, a => a.StartsWith("list:", StringComparison.Ordinal));
     }
+
+    [Fact, Trait("Rule", "R-TEST-10")]
+    public void A_folder_that_cannot_be_read_lists_nothing_instead_of_failing_the_session()
+    {
+        var own = new NativeUserSkills(Root, enabled: true, new UnreadableUserSkillFiles());
+        Assert.Empty(own.List());
+        Assert.Empty(own.Existing());
+        using var kit = new NativeSkillsKit();
+        kit.Add("A1", "pdf");
+        using var generation = kit.Start();
+        Assert.Equal("Skills (call use_skill with a skill's name to read its instructions):\npdf: Fixture description", new NativeSkillTools(generation, own).CatalogueBlock());
+    }
 }

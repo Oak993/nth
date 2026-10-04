@@ -108,4 +108,32 @@ public sealed class NativeProviderRequestToolTurnTests
         Assert.Single(rig.RequestBodies);
         Assert.Equal(TurnStatus.Interrupted, Assert.IsType<ProviderEvent.TurnCompleted>(rig.Events[^1]).Status);
     }
+
+    [Fact, Trait("Rule", "R-TEST-4")]
+    public async Task An_offer_that_fails_comes_back_as_an_error_row_and_the_turn_goes_on()
+    {
+        var offer = new FakeToolOffer(true, "soffice");
+        await using var rig = Rig(["request-tool-call.sse", "final-answer.sse"], offer, []);
+        await rig.Begin();
+        var turn = rig.StartTurn("convert report.docx");
+        rig.RunUntil(() => offer.Asks.Count == 1);
+        offer.Fail(new InvalidOperationException("the offer card could not be shown"));
+        rig.RunUntil(() => turn.IsCompleted);
+        await turn;
+
+        Assert.Equal("Error: the offer card could not be shown", LastToolMessage(rig, 1));
+        Assert.Equal(ToolCall.Status.Failed, Assert.Single(rig.Events.OfType<ProviderEvent.ToolUpdated>()).Update.Status);
+        Assert.Equal(TurnStatus.Completed, Assert.IsType<ProviderEvent.TurnCompleted>(rig.Events[^1]).Status);
+    }
+
+    [Fact, Trait("Rule", "R-TEST-4")]
+    public async Task A_call_to_request_tool_after_nothing_is_installed_any_more_is_the_unknown_tool_again()
+    {
+        var offer = new AvailabilityFlip("soffice");
+        await using var rig = NativeSessionRig.Create(["request-tool-call.sse", "final-answer.sse"], configure: session => session.SkillTools = new NativeSkillTools(null, offer: offer));
+        await rig.Begin();
+        offer.IsAvailable = false; // the user removed the last item after the request went out
+        await rig.Turn("convert report.docx");
+        Assert.Equal("Error: unknown tool request_tool.", LastToolMessage(rig, 1));
+    }
 }
