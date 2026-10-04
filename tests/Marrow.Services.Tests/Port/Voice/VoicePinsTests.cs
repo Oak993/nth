@@ -270,7 +270,7 @@ public sealed class VoicePinsTests
     [Trait("Feature", Feature)]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T2")]
-    public void Whisper_net_1_9_1_exposes_no_per_frame_speech_probability_so_the_native_export_fallback_is_the_route()
+    public void Whisper_net_1_9_1_exposes_no_per_frame_speech_probability_so_the_whisper_dll_export_fallback_is_the_route()
     {
         // V-6.1: "the per-frame probability API is UNVERIFIED". Verified here: the VAD types hand out segments only.
         foreach (var name in new[] { "WhisperVadProcessor", "WhisperVadFactory", "WhisperVadProcessorBuilder" })
@@ -298,7 +298,7 @@ public sealed class VoicePinsTests
     [Fact]
     [Trait("Feature", Feature)]
     [Trait("Decision", "ED-267")]
-    public void The_build_output_holds_exactly_the_win_x64_CPU_and_Vulkan_natives_and_no_other_platform()
+    public void The_build_output_holds_exactly_the_win_x64_CPU_and_Vulkan_runtime_files_and_no_other_platform()
     {
         var runtimes = Path.Combine(AppContext.BaseDirectory, "runtimes");
         var actual = Directory.EnumerateFiles(runtimes, "*", SearchOption.AllDirectories)
@@ -317,7 +317,7 @@ public sealed class VoicePinsTests
     [Fact]
     [Trait("Feature", Feature)]
     [Trait("Decision", "ED-267")]
-    public void The_record_lists_the_same_natives_and_totals_them_against_the_50_MB_budget_honestly()
+    public void The_record_lists_the_same_runtime_files_and_totals_them_against_the_50_MB_budget_honestly()
     {
         var natives = Pins().GetProperty("natives");
         var listed = natives.GetProperty("files").EnumerateArray()
@@ -337,7 +337,7 @@ public sealed class VoicePinsTests
     [Fact]
     [Trait("Feature", Feature)]
     [Trait("Decision", "ED-267")]
-    public void The_natives_import_the_Visual_C_runtime_DLLs_the_record_lists_and_the_record_states_who_carries_them()
+    public void The_runtime_DLLs_import_the_Visual_C_runtime_DLLs_the_record_lists_and_the_record_states_who_carries_them()
     {
         var recorded = Pins().GetProperty("vcRuntime");
         var listed = recorded.GetProperty("importedByNatives").EnumerateArray().Select(e => e.GetString()!).Order(StringComparer.OrdinalIgnoreCase).ToArray();
@@ -758,6 +758,97 @@ public sealed class VoicePinsTests
         // Inline code is never linked, so the name is written as code; dotted package names (Whisper.net.Runtime) and URLs are not domains here.
         var bare = System.Text.RegularExpressions.Regex.Matches(VoiceNoticesSection(), @"(?<![A-Za-z0-9./`])Whisper\.net(?![A-Za-z0-9`]|\.[A-Za-z])", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
         Assert.Empty(bare);
+    }
+
+    // ---- Review round 2: the VC++ finding is backed by a saved publish listing; the pins record does not ship; the notices carry no more than their sources ----
+
+    // porting/probes/vt-0-publish/publish-listing.txt: the file list of `dotnet publish src/Marrow.App -c Release -r win-x64 --self-contained`
+    // taken once (header lines start with '#', then one "path<TAB>bytes<TAB>sha256" line per file, paths relative to the publish folder).
+    private const string PublishListingPath = "porting/probes/vt-0-publish/publish-listing.txt";
+
+    private static List<(string Path, long Bytes, string Sha256)> PublishListing()
+    {
+        var text = ReadRepositoryText("porting", "probes", "vt-0-publish", "publish-listing.txt");
+        return text.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.Length > 0 && l[0] != '#')
+            .Select(l => l.Split('\t')).Select(c => (c[0], long.Parse(c[1], CultureInfo.InvariantCulture), c[2])).ToList();
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    public void The_saved_publish_listing_holds_exactly_the_nine_runtime_files_the_record_pins_and_the_two_bundled_assets()
+    {
+        var header = ReadRepositoryText("porting", "probes", "vt-0-publish", "publish-listing.txt");
+        Assert.Contains("# command: dotnet publish src/Marrow.App -c Release -r win-x64 --self-contained", header, StringComparison.Ordinal);
+        var listing = PublishListing();
+        Assert.True(listing.Count > 100, "a self-contained publish lists its whole folder: " + listing.Count);
+        var runtimes = listing.Where(f => f.Path.StartsWith("runtimes/", StringComparison.Ordinal)).OrderBy(f => f.Path, StringComparer.Ordinal).ToArray();
+        var expected = PinnedNatives.Select(n => (Path: n.Directory + "/" + n.Name, n.Bytes, n.Sha256)).OrderBy(f => f.Path, StringComparer.Ordinal).ToArray();
+        Assert.Equal(expected, runtimes);
+        var assets = listing.Where(f => f.Path.StartsWith("Port/Voice/Assets/", StringComparison.Ordinal)).OrderBy(f => f.Path, StringComparer.Ordinal).ToArray();
+        Assert.Equal(
+            new[] { "Port/Voice/Assets/ggml-silero-v6.2.0.bin", "Port/Voice/Assets/selftest-clip.wav" },
+            assets.Select(f => f.Path).ToArray());
+        foreach (var asset in assets) Assert.Equal(Sha256(Path.Combine(AssetsDirectory, Path.GetFileName(asset.Path))), asset.Sha256);
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    public void The_record_says_the_publish_carries_the_Visual_C_runtime_only_if_the_saved_publish_listing_does()
+    {
+        var recorded = Pins().GetProperty("vcRuntime");
+        Assert.Equal(PublishListingPath, recorded.GetProperty("evidence").GetString());
+        var carriedInListing = PublishListing()
+            .Select(f => System.IO.Path.GetFileName(f.Path))
+            .Any(n => System.Text.RegularExpressions.Regex.IsMatch(n, @"^(msvcp|vcruntime|vcomp|concrt|vccorlib|vcamp)[0-9_]*\.dll$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant));
+        Assert.Equal(carriedInListing, recorded.GetProperty("carriedByPublish").GetBoolean());
+        // The four DLLs the whisper libraries import (the previous test) are the ones the listing is searched for by name as well.
+        foreach (var dll in new[] { "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll", "vcomp140.dll" })
+            Assert.DoesNotContain(PublishListing(), f => string.Equals(System.IO.Path.GetFileName(f.Path), dll, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    public void The_recorded_pins_file_is_a_developer_record_and_is_not_copied_to_the_app_or_the_publish_folder()
+    {
+        // V-3.4 and V-3.5 bundle the VAD model and the clip only. voice-pins.json holds the owner PC's paths and hardware and review notes.
+        var project = System.Xml.Linq.XDocument.Load(Path.Combine(Root, "src", "Marrow.Services", "Marrow.Services.csproj"));
+        var copied = project.Descendants("None")
+            .Where(e => e.Attribute("CopyToOutputDirectory") is { Value: not "Never" })
+            .Select(e => (e.Attribute("Update") ?? e.Attribute("Include"))?.Value.Replace('\\', '/') ?? "")
+            .Where(v => v.StartsWith("Port/Voice/", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal).ToArray();
+        Assert.Equal(new[] { "Port/Voice/Assets/ggml-silero-v6.2.0.bin", "Port/Voice/Assets/selftest-clip.wav" }, copied);
+        Assert.DoesNotContain(PublishListing(), f => f.Path.EndsWith("voice-pins.json", StringComparison.Ordinal));
+        Assert.True(File.Exists(Path.Combine(AssetsDirectory, "voice-pins.json")), "the pins file stays in the repository for later units");
+    }
+
+    private static string Flat(string text) => System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ", System.Text.RegularExpressions.RegexOptions.CultureInvariant).Trim();
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T4")]
+    public void The_orb_and_glow_scope_statements_say_what_the_design_NOTICES_and_V_3_6_say_and_no_more()
+    {
+        // Sources: E:\Droppy\work\voice\design\NOTICES.md (the orb and voice-glow sections) and SPEC.md V-3.6 ("translated to SkSL").
+        var orb = Flat(Split(NoticesBlock("### Liquid Orb Editor (LerSent001): the voice orb")).Bullets);
+        Assert.Contains("and the shader (effect.wgsl and shader-source.ts) translated to SkSL. The Toolcraft UI code of the same project (MIT, Pixel Point) is not used.", orb, StringComparison.Ordinal);
+        // No SkSL code exists yet, so the notice names no SkSL function or its naming.
+        Assert.DoesNotContain("function by function", orb, StringComparison.Ordinal);
+        Assert.DoesNotContain("same names", orb, StringComparison.Ordinal);
+        Assert.DoesNotContain("glsSiriBand", orb, StringComparison.Ordinal);
+        Assert.Contains("Marrow's own (not covered by this licence): the button framing through the source's radius and edge softness, the state layer's speed, the glow amount (through the source's Outer Glow), the lift shadow and the error desaturation, and the 2x render below 128 device px.", orb, StringComparison.Ordinal);
+        Assert.DoesNotContain("framing of the ball", orb, StringComparison.Ordinal);
+
+        var glow = Flat(Split(NoticesBlock("### voice-glow 0.2.1 (Jakub Antalik): the composer's voice glow")).Bullets);
+        Assert.Contains("Marrow's own: mountVoiceGlow, the stand-in for the package's React component.", glow, StringComparison.Ordinal);
+        Assert.DoesNotContain("drawing of the layers", glow, StringComparison.Ordinal);
+
+        var whisper = Flat(Split(NoticesBlock("### `Whisper.net`")).Bullets);
+        Assert.Contains("(NuGet `Whisper.net`, Whisper.net.Runtime, Whisper.net.Runtime.Vulkan 1.9.1)", whisper, StringComparison.Ordinal);
     }
 
     private static int CountOf(string text, string needle)

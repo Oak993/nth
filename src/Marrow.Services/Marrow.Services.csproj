@@ -19,9 +19,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- VT-0 (V-3.3 to V-3.5): the bundled VAD model, the self-test clip and the recorded pins (voice-pins.json) are copied beside the
-         app, to the build output and to the publish folder, under Port\Voice\Assets. -->
-    <None Update="Port\Voice\Assets\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- VT-0 (V-3.4, V-3.5): the bundled VAD model and the self-test clip are copied beside the app, to the build output and to the
+         publish folder, under Port\Voice\Assets. voice-pins.json (the developer record of the pins) stays in the repository: it holds
+         the owner PC's paths and hardware and review notes, and V-3.4 and V-3.5 bundle only these two files (ENGINEERING DECISION,
+         ED-NEW-f-vt-0 item 13). -->
+    <None Update="Port\Voice\Assets\ggml-silero-v6.2.0.bin" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Port\Voice\Assets\selftest-clip.wav" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--

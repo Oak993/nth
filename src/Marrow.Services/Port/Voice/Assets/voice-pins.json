@@ -154,6 +154,8 @@
       "VCRUNTIME140_1.dll"
     ],
     "carriedByPublish": false,
+    "evidence": "porting/probes/vt-0-publish/publish-listing.txt",
+    "evidenceNote": "The file list (names, sizes, sha256) of dotnet publish src/Marrow.App -c Release -r win-x64 --self-contained: 251 files, none of msvcp140, vcruntime140, vcruntime140_1 or vcomp140, and under runtimes only the nine files listed in natives.files. VoicePinsTests holds carriedByPublish to that listing.",
     "finding": "The whisper natives import the Visual C++ 2015-2022 x64 runtime (MSVCP140, VCRUNTIME140, VCRUNTIME140_1 and the OpenMP runtime VCOMP140). The self-contained app does NOT carry it and does not need it itself: coreclr.dll, hostpolicy.dll, Marrow.App.exe, libSkiaSharp.dll, libHarfBuzzSharp.dll and av_libglesv2.dll import only the Windows Universal CRT (api-ms-win-crt-*) or nothing. On a PC without the redistributable the voice natives fail to load. This PC has all four DLLs in System32. Not changed in this unit: either Velopack gets its vcredist143-x64 prerequisite or the four DLLs are shipped app-local; both are installer or packaging decisions that need the owner (V-3.2). Item F of BUILD-PLAN section 4 (Windows Sandbox) settles it on a clean PC.",
     "vulkanDriverDll": "vulkan-1.dll is imported by ggml-vulkan-whisper.dll and comes from the GPU driver, not from the app."
   },

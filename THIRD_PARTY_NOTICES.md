@@ -181,7 +181,7 @@ SOFTWARE.
 
 ### `Whisper.net`
 
-- Source: https://github.com/sandrohanea/whisper.net (NuGet `Whisper.net`, Whisper.net.Runtime and Whisper.net.Runtime.Vulkan 1.9.1).
+- Source: https://github.com/sandrohanea/whisper.net (NuGet `Whisper.net`, Whisper.net.Runtime, Whisper.net.Runtime.Vulkan 1.9.1).
   Licence: MIT, "Copyright (c) 2024 sandrohanea".
 
 ```
@@ -345,11 +345,8 @@ SOFTWARE.
 - Source: https://github.com/LerSent001/orb. Licence: MIT, "Copyright (c) 2026 LerSent001". The port carries the site's
   Web export of the Siri Wave and Voice Membrane presets: their state seeds (136 values each), the export's runtime
   (applyAudioUniforms with audioRules and audioFlowStrengths, the sRGB transitions, the integrated motion phase) and the
-  shader (effect.wgsl and shader-source.ts) translated to SkSL function by function with the same names (mfEdgeD,
-  mfEdgeGlow, glsFinishPresetFluid, glsFinishEmissionFluid, glsSiriBand, glsSiriFluid, glsVoiceWaveFluid, glsPresetFluid,
-  glsOver, glsRefractionProfile, glsHighlightLobe, glsContourWave, glsContourStrength, glsContourScale, glsContourNormal,
-  glsRefractionNormal, orbGlassLiquidAnim, fs_main). The Toolcraft UI code of the same project (MIT, Pixel Point) is not used.
-- Marrow's own (not covered by this licence): the framing of the ball through the source's radius and edge softness, the
+  shader (effect.wgsl and shader-source.ts) translated to SkSL. The Toolcraft UI code of the same project (MIT, Pixel Point) is not used.
+- Marrow's own (not covered by this licence): the button framing through the source's radius and edge softness, the
   state layer's speed, the glow amount (through the source's Outer Glow), the lift shadow and the error desaturation, and
   the 2x render below 128 device px.
 
@@ -384,7 +381,7 @@ SOFTWARE.
   lobes, band polyline, hue drift), its theme presets, palettes and type presets, and its layer recipe.
 - The code carried is dist/index.es.js lines 3-997 and 1014-1016 of the package (colour helpers, theme presets, lobes and
   palettes, the stylesheet generator, the shared audio context, the frame driver, defaults and type presets). Marrow's own:
-  mountVoiceGlow, the stand-in for the package's React component, and the drawing of the layers.
+  mountVoiceGlow, the stand-in for the package's React component.
 
 ```
 MIT License
