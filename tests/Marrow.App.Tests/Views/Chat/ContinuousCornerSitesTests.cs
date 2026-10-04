@@ -76,12 +76,14 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Composer/ComposerTextView.cs", "0", 1, Other),
         ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "12, 12, 0, 0", 1, Fit),
         ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "isDragged || isPairTarget ? new CornerRadius(999) : new CornerRadius(0)", 1, Capsule), // :784 a lifted or pair-target row is a capsule (FollowUpQueueTab.swift:467-475); at rest 0
         ("Marrow.App/Views/Composer/HydraFusedPairIcon.cs", "0.5", 1, Tiny),
         ("Marrow.App/Views/Composer/PromptEditor.cs", "12", 1, Routed),
         ("Marrow.App/Views/Composer/QuestionTab.cs", "3", 1, Circle),
         ("Marrow.App/Views/Composer/ThreadChangesTab.cs", "12, 12, 0, 0", 1, Fit),
         ("Marrow.App/Views/Diff/DiffInspector.cs", "1000", 1, Capsule),
         ("Marrow.App/Views/Diff/DiffInspector.cs", "12", 1, Routed),
+        ("Marrow.App/Views/Diff/DiffInspector.cs", "rounding", 1, Capsule), // :897 DiffLineRow, Swift UnevenRoundedRectangle(8, .continuous) (DiffInspector.swift:439, :477-481): a one-line run measures 16 pt headless, 2 r, the capsule edge, not in the band; a wrapped run is taller than 3.057 r
         ("Marrow.App/Views/Settings/AboutUpdateViews.cs", "1.5", 1, Tiny),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "8", 1, Fit),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "9", 1, Circle),
@@ -96,6 +98,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "16, 16, 0, 0", 1, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Tour/TourView.cs", "CardCornerRadius", 4, Fit),
+        ("Marrow.App/Views/Usage/UsageFloatingPanel.cs", "cornerRadius", 2, Fit), // :84, :92 the panel and its scrim, r 22 (HydraPanel.CornerRadius), tall panels
         ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
         ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Circle),
         ("Marrow.UI/Chrome/ChromeSegmentedPicker.cs", "11", 1, Capsule),
@@ -105,9 +108,11 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Port/PortControlThemes.cs", "2", 1, Tiny),
         ("Marrow.UI/Port/PortControlThemes.cs", "7", 1, Circle),
         ("Marrow.UI/Port/PortControlThemes.cs", "7 + 3 * fraction", 1, Circle),
+        ("Marrow.UI/Port/SwiftShapeBorder.cs", "cornerRadii", 1, Other),
         ("Marrow.UI/Port/SwiftShapeBorder.cs", "cornerRadius", 1, Other),
         ("Marrow.UI/Port/SwiftShapes.cs", "CapsuleCornerRadius(border.Bounds.Size)", 1, Other),
         ("Marrow.UI/Port/SwiftShapes.cs", "CapsuleCornerRadius(e.NewSize)", 1, Other),
+        ("Marrow.UI/Port/SwiftShapes.cs", "cornerRadii", 1, Other),
         ("Marrow.UI/Port/SwiftShapes.cs", "cornerRadius", 1, Other),
         ("Marrow.UI/Port/SystemButtons.cs", "Radius", 2, Fit),
         ("Marrow.UI/Port/SystemButtons.cs", "Radius + FocusBand", 1, Fit),
@@ -116,21 +121,49 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
     private static string SourceRoot([System.Runtime.CompilerServices.CallerFilePath] string path = "") =>
         System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!, "..", "..", "..", "..", "src"));
 
-    // Every `CornerRadius = new CornerRadius(<arg>)` assignment under src, with the statement it sits in (to the `;` that ends it, past the initializer's closing brace).
-    private static List<(string File, string Radius, string Statement)> Found()
+    // Every assignment to a CornerRadius under src: `CornerRadius = new CornerRadius(<arg>)` (the radius is the argument) and any other value (a variable, a ternary: the radius is
+    // the expression as written), with the statement it sits in (to the `;` that ends it, past the initializer's closing brace) and its 1-based line. A constant named
+    // CornerRadius is a declaration, not an assignment to a Border, and is not read.
+    private static List<(string File, string Radius, string Statement, int Line)> Found()
     {
         var root = SourceRoot();
-        var found = new List<(string, string, string)>();
+        var found = new List<(string, string, string, int)>();
+        var constructor = new Regex(@"\Gnew\s*(?:CornerRadius)?\s*\(");
         foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
         {
             var relative = System.IO.Path.GetRelativePath(root, path).Replace('\\', '/');
             if (relative.Contains("/obj/", StringComparison.Ordinal) || relative.Contains("/bin/", StringComparison.Ordinal)) continue;
             var text = File.ReadAllText(path);
-            foreach (Match m in Regex.Matches(text, @"CornerRadius\s*=\s*new\s*(?:CornerRadius)?\s*\("))
+            foreach (Match m in Regex.Matches(text, @"\bCornerRadius\s*=(?![=>])\s*"))
             {
-                int i = m.Index + m.Length, depth = 1, j = i;
-                while (depth > 0 && j < text.Length) { depth += text[j] == '(' ? 1 : text[j] == ')' ? -1 : 0; j++; }
-                var radius = text[i..(j - 1)].Trim();
+                var before = text[(text.LastIndexOf('\n', m.Index) + 1)..m.Index];
+                if (before.Contains("const ", StringComparison.Ordinal) || before.Contains("double ", StringComparison.Ordinal)) continue;
+                var line = 1 + text.AsSpan(0, m.Index).Count('\n');
+                int i = m.Index + m.Length, j = i;
+                string radius;
+                var ctor = constructor.Match(text, i);
+                if (ctor.Success)
+                {
+                    i += ctor.Length;
+                    var depth = 1;
+                    j = i;
+                    while (depth > 0 && j < text.Length) { depth += text[j] == '(' ? 1 : text[j] == ')' ? -1 : 0; j++; }
+                    radius = text[i..(j - 1)].Trim();
+                }
+                else
+                {
+                    // an expression: to the `,` or `;` that ends it, or the closer of the initializer it sits in
+                    var depth = 0;
+                    while (j < text.Length)
+                    {
+                        var c = text[j];
+                        if (c is '(' or '[' or '{') depth++;
+                        else if (c is ')' or ']' or '}') { if (depth == 0) break; depth--; }
+                        else if (c is ',' or ';' && depth == 0) break;
+                        j++;
+                    }
+                    radius = text[i..j].Trim();
+                }
                 int braces = 0, k = j;
                 while (k < text.Length)
                 {
@@ -139,7 +172,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
                     else if (text[k] == ';' && braces <= 0) break;
                     k++;
                 }
-                found.Add((relative, radius, text[m.Index..Math.Min(k + 1, text.Length)]));
+                found.Add((relative, radius, text[m.Index..Math.Min(k + 1, text.Length)], line));
             }
         }
         return found;
@@ -212,26 +245,26 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
     // ---- REVIEW (blitz-cornerband CB-0 re-check, 2026-10-04) ------------------------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // REVIEW: the table's census reads only `CornerRadius = new CornerRadius(...)`; a Border given its radius from a variable or a ternary is never counted
+    [Trait("Rule", "R-TEST-4")] // REVIEW: the census must read every CornerRadius assignment (a variable, a ternary, a property set), not only `new CornerRadius(...)`; each is then in the table
     public void REVIEW_every_CornerRadius_assignment_in_src_is_in_the_census_not_only_the_new_CornerRadius_ones()
     {
         var root = SourceRoot();
+        var census = Found().Select(f => (f.File, f.Line)).ToHashSet();
         var missed = new List<string>();
         foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
         {
             var relative = System.IO.Path.GetRelativePath(root, path).Replace('\\', '/');
             if (relative.Contains("/obj/", StringComparison.Ordinal) || relative.Contains("/bin/", StringComparison.Ordinal)) continue;
-            if (relative is "Marrow.UI/Port/SwiftShapes.cs" or "Marrow.UI/Port/SwiftShapeBorder.cs") continue; // the shape helpers themselves
             var lines = File.ReadAllLines(path);
             for (var i = 0; i < lines.Length; i++)
             {
-                // an assignment (object initializer or property set) of a Border's CornerRadius whose value is not a `new CornerRadius(...)` the census reads
-                var m = Regex.Match(lines[i], @"\bCornerRadius\s*=(?![=>])(?!\s*new\s*(?:CornerRadius)?\s*\()(.+)");
+                // an assignment (object initializer or property set) of a Border's CornerRadius, whatever its value
+                var m = Regex.Match(lines[i], @"\bCornerRadius\s*=(?![=>])(.+)");
                 if (!m.Success) continue;
                 var line = lines[i].TrimStart();
                 if (line.StartsWith("private const", StringComparison.Ordinal) || line.StartsWith("public const", StringComparison.Ordinal)
                     || line.StartsWith("internal const", StringComparison.Ordinal) || line.Contains("double CornerRadius", StringComparison.Ordinal)) continue;
-                missed.Add($"{relative}:{i + 1}: {line}");
+                if (!census.Contains((relative, i + 1))) missed.Add($"{relative}:{i + 1}: {line}");
             }
         }
         Assert.True(missed.Count == 0, "CornerRadius assignments outside the census (each is a raw Border the table neither routes nor classes):" + Environment.NewLine + string.Join(Environment.NewLine, missed));
