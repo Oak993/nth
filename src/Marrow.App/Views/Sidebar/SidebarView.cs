@@ -3407,7 +3407,7 @@ internal sealed class SidebarThreadRow : Decorator
         overlays.OnHover(hovering => // :1816 hover includes the overlaid check and accessory buttons
         {
             Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering); // :1816-1818
-            NoteHover(Model, Thread(), hovering); // :1819
+            if (hovering) NoteHover(Model, Thread(), hovering); // :1819 `if hovering { ... }`: the model is read only then, so the exit a row sends as it leaves the tree (the pointer was over it) never asks a detached row for it
             ReportFrame();
         });
         void ReportFrame()
