@@ -126,6 +126,27 @@ public static class HardwareKey
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
     }
 
+    /// <summary>
+    /// The HARDWARE part of the key (lead ruling R5, 2026-10-04, from the OD-0099 Q-V-1 C amendment): adapter description, driver version,
+    /// processor name and memory GB, without the app version and build or the Whisper.net runtime version. The slow-PC answer is stored
+    /// with it (<c>voiceTyping.liveWordsChoiceKey</c>), so the question comes back on new hardware only, never after an app update.
+    /// Same encoding as <see cref="Compute(HardwareKeyInputs)"/>, under its own leading name so it never equals a full key.
+    /// </summary>
+    public static string ComputeHardwarePart(HardwareKeyInputs inputs)
+    {
+        var builder = new StringBuilder();
+        Append(builder, "part", "hardware");
+        Append(builder, "adapter", inputs.AdapterDescription);
+        Append(builder, "driver", inputs.DriverVersion);
+        Append(builder, "cpu", inputs.CpuName);
+        Append(builder, "ramGB", inputs.RamGB.ToString(CultureInfo.InvariantCulture));
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
+    }
+
+    /// <summary>The hardware part of a probe's profile (R5).</summary>
+    public static string ComputeHardwarePart(HardwareProfile profile) =>
+        ComputeHardwarePart(new HardwareKeyInputs(profile.GpuDescription, profile.DriverVersion, profile.CpuName, profile.MemoryGB, "", ""));
+
     /// <summary>The key of a probe's profile under this app build and Whisper.net runtime.</summary>
     public static string Compute(HardwareProfile profile, string app, string runtimeVersion) =>
         Compute(new HardwareKeyInputs(profile.GpuDescription, profile.DriverVersion, profile.CpuName, profile.MemoryGB, app, runtimeVersion));

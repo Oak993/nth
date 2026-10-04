@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text;
 using Marrow.Core.Port.Voice;
 
@@ -21,34 +20,17 @@ public sealed class VoiceCoreReview4Tests
 
     private static readonly HardwareKeyInputs PcA = new("AMD Radeon RX 7900 XTX", "31.0.24027.1012", "AMD Ryzen 7 7700X 8-Core Processor", 31, "1.0.0+100", "1.8.1");
 
-    // ---- the API the rulings add, by reflection so that this file compiles before it exists ----
+    // The REVIEW commit (46af30d03) reached these by reflection so that the file compiled before they existed; now plain calls.
+    private static string HardwarePart(HardwareKeyInputs inputs) => HardwareKey.ComputeHardwarePart(inputs);
 
-    private static MethodInfo Method(Type type, string name, params Type[] parameters)
-    {
-        var method = type.GetMethod(name, BindingFlags.Public | BindingFlags.Static, null, parameters, null);
-        Assert.True(method is not null, type.Name + "." + name + "(" + string.Join(", ", parameters.Select(p => p.Name)) + ") does not exist");
-        return method!;
-    }
-
-    private static string HardwarePart(HardwareKeyInputs inputs) =>
-        (string)Method(typeof(HardwareKey), "ComputeHardwarePart", typeof(HardwareKeyInputs)).Invoke(null, [inputs])!;
-
-    private static bool AnsweredFor(VoiceTypingSettings typing, string currentHardwarePart) =>
-        (bool)Method(typeof(SelfTestPlan), "AnsweredFor", typeof(VoiceTypingSettings), typeof(string)).Invoke(null, [typing, currentHardwarePart])!;
+    private static bool AnsweredFor(VoiceTypingSettings typing, string currentHardwarePart) => SelfTestPlan.AnsweredFor(typing, currentHardwarePart);
 
     private static VoiceTypingSettings WithSlowAnswer(VoiceTypingSettings typing, LiveWordsChoice? answer, string hardwarePart) =>
-        (VoiceTypingSettings)Method(typeof(SelfTestPlan), "WithSlowAnswer", typeof(VoiceTypingSettings), typeof(LiveWordsChoice?), typeof(string))
-            .Invoke(null, [typing, answer, hardwarePart])!;
+        SelfTestPlan.WithSlowAnswer(typing, answer, hardwarePart);
 
-    private static SelfTestDecision ApplyAnswer(string modelId, LiveWordsChoice answer) =>
-        (SelfTestDecision)Method(typeof(SelfTestPlan), "ApplyAnswer", typeof(string), typeof(LiveWordsChoice)).Invoke(null, [modelId, answer])!;
+    private static SelfTestDecision ApplyAnswer(string modelId, LiveWordsChoice answer) => SelfTestPlan.ApplyAnswer(modelId, answer);
 
-    private static string? AnswerKey(VoiceTypingSettings typing)
-    {
-        var property = typeof(VoiceTypingSettings).GetProperty("SlowChoiceKey");
-        Assert.True(property is not null, "VoiceTypingSettings has no SlowChoiceKey (voiceTyping.liveWordsChoiceKey)");
-        return (string?)property!.GetValue(typing);
-    }
+    private static string? AnswerKey(VoiceTypingSettings typing) => typing.SlowChoiceKey;
 
     private static SelfTestDecision SlowCpu(string model, VoiceTypingSettings typing, string hardwarePart) =>
         SelfTestPlan.Decide(model, 0.3, false, RecommendationBasis.Cpu, AnsweredFor(typing, hardwarePart));

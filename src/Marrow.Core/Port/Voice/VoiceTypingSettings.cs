@@ -32,6 +32,12 @@ public sealed record VoiceTypingSettings
     public string? Mic { get; init; }
     public LiveWordsChoice? SlowChoice { get; init; }
 
+    /// <summary>
+    /// The hardware part of the key (<see cref="HardwareKey.ComputeHardwarePart(HardwareKeyInputs)"/>) the answer was given under, stored
+    /// as <c>liveWordsChoiceKey</c> beside it (lead ruling R5, 2026-10-04, from the OD-0099 Q-V-1 C amendment); null when none is stored.
+    /// </summary>
+    public string? SlowChoiceKey { get; init; }
+
     public static VoiceTypingSettings Default { get; } = new();
 
     private static readonly string[] EngineNames = ["local", "cloud"];
@@ -39,7 +45,7 @@ public sealed record VoiceTypingSettings
 
     /// <summary>
     /// Compact JSON: <c>{"engine":"local","lang":null,"model":null}</c> for the defaults (V-16.2 as written). ED: <c>mic</c> and
-    /// <c>liveWordsChoice</c> are written only when set, so the default bytes stay V-16.2's.
+    /// <c>liveWordsChoice</c> (and its <c>liveWordsChoiceKey</c>, R5) are written only when set, so the default bytes stay V-16.2's.
     /// </summary>
     public byte[] ToJson()
     {
@@ -52,6 +58,7 @@ public sealed record VoiceTypingSettings
             if (Model is null) w.WriteNull("model"); else w.WriteString("model", Model);
             if (Mic is not null) w.WriteString("mic", Mic);
             if (SlowChoice is { } choice && (int)choice >= 0 && (int)choice < ChoiceNames.Length) w.WriteString("liveWordsChoice", ChoiceNames[(int)choice]); // an unknown answer is no answer
+            if (SlowChoiceKey is not null) w.WriteString("liveWordsChoiceKey", SlowChoiceKey);
             w.WriteEndObject();
         }
         return stream.ToArray();
@@ -59,7 +66,7 @@ public sealed record VoiceTypingSettings
 
     /// <summary>
     /// Lenient read (V-16.2, V-16.6): a missing <c>lang</c> is null and so is an unknown string (a code outside the list, any case other
-    /// than the list's); an unknown engine is Local; a model that is not in the catalogue is null; an empty or non-string <c>mic</c> is null.
+    /// than the list's); an unknown engine is Local; a model that is not in the catalogue is null; an empty or non-string <c>mic</c> or <c>liveWordsChoiceKey</c> is null.
     /// </summary>
     public static VoiceTypingSettings FromJson(ReadOnlySpan<byte> json) => VoiceJson.ReadObject(json, Default, o =>
     {
@@ -67,6 +74,7 @@ public sealed record VoiceTypingSettings
         var model = VoiceJson.Text(o, "model");
         var mic = VoiceJson.Text(o, "mic");
         var choiceText = VoiceJson.Text(o, "liveWordsChoice");
+        var choiceKey = VoiceJson.Text(o, "liveWordsChoiceKey");
         var choice = choiceText is null ? -1 : Array.IndexOf(ChoiceNames, choiceText);
         return new VoiceTypingSettings
         {
@@ -75,6 +83,7 @@ public sealed record VoiceTypingSettings
             Model = ModelCatalog.Find(model) is not null ? model : null,
             Mic = string.IsNullOrEmpty(mic) ? null : mic,
             SlowChoice = choice < 0 ? null : (LiveWordsChoice)choice,
+            SlowChoiceKey = string.IsNullOrEmpty(choiceKey) ? null : choiceKey,
         };
     });
 }

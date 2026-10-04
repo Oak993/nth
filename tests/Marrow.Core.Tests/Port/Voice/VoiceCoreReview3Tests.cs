@@ -24,7 +24,9 @@ public sealed class VoiceCoreReview3Tests
 
     private static readonly HardwareKeyInputs PcA = new("AMD Radeon RX 7900 XTX", "31.0.24027.1012", "AMD Ryzen 7 7700X 8-Core Processor", 31, "1.0.0+100", "1.8.1");
 
-    private static readonly VoiceTypingSettings Answered = VoiceTypingSettings.Default with { SlowChoice = LiveWordsChoice.Accurate };
+    // Calls changed to the R5 API (lead ruling R5, 2026-10-04): the answer is stored with the hardware part it was given under (PC A),
+    // and AnsweredFor compares that with today's hardware part; the scenarios and assertions are unchanged.
+    private static readonly VoiceTypingSettings Answered = VoiceTypingSettings.Default with { SlowChoice = LiveWordsChoice.Accurate, SlowChoiceKey = HardwareKey.ComputeHardwarePart(PcA) };
 
     // ---- finding 1: the outcome for a new key depends on whether its first check asked ----
 
@@ -37,19 +39,20 @@ public sealed class VoiceCoreReview3Tests
         var keyA = HardwareKey.Compute(PcA);
         var keyB = HardwareKey.Compute(PcA with { DriverVersion = "32.0.11021.1011" }); // a new GPU driver
         Assert.NotEqual(keyA, keyB);
+        var partB = HardwareKey.ComputeHardwarePart(PcA with { DriverVersion = "32.0.11021.1011" });
 
         // The question was answered under key A; the stored check has key A.
         var storedA = new VoiceHardwareRecord { Key = keyA, Model = "large-v3-turbo-q5_0", Rtf = 0.3 };
 
         // Order 1: the first timing under key B is slow (smaller rung exists): the stored check still has key A.
-        var firstSlow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.3, false, RecommendationBasis.Cpu, SelfTestPlan.AnsweredFor(storedA, keyB, Answered));
+        var firstSlow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.3, false, RecommendationBasis.Cpu, SelfTestPlan.AnsweredFor(Answered, partB));
 
         // Order 2: the first timing under key B is fast (no question), so the check under B is stored with key B; then "Check again" under
         // the same key B times slow.
-        var fastUnderB = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.14, false, RecommendationBasis.Cpu, SelfTestPlan.AnsweredFor(storedA, keyB, Answered));
+        var fastUnderB = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.14, false, RecommendationBasis.Cpu, SelfTestPlan.AnsweredFor(Answered, partB));
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", true, false), fastUnderB);
         var storedB = storedA with { Key = keyB, Rtf = 0.14, LiveWords = true };
-        var laterSlow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.3, false, RecommendationBasis.Cpu, SelfTestPlan.AnsweredFor(storedB, keyB, Answered));
+        var laterSlow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.3, false, RecommendationBasis.Cpu, SelfTestPlan.AnsweredFor(Answered, partB)); // storedB is not consulted (R5)
 
         Assert.True(firstSlow.AskUser == laterSlow.AskUser,
             "under key B the question is " + (firstSlow.AskUser ? "asked" : "not asked") + " when B's first timing is slow, but "
@@ -71,7 +74,7 @@ public sealed class VoiceCoreReview3Tests
         var after = HardwareKey.Compute(PcA with { App = app, RuntimeVersion = runtime });
         Assert.NotEqual(before, after); // the check itself re-runs (V-10.5); only the question is in doubt
         var stored = new VoiceHardwareRecord { Key = before, Model = "large-v3-turbo-q5_0", Rtf = 0.3 };
-        var d = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.3, false, RecommendationBasis.Cpu, SelfTestPlan.AnsweredFor(stored, after, Answered));
+        var d = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.3, false, RecommendationBasis.Cpu, SelfTestPlan.AnsweredFor(Answered, HardwareKey.ComputeHardwarePart(PcA with { App = app, RuntimeVersion = runtime })));
         Assert.False(d.AskUser, "the same PC is asked the slow-PC question again after every app update");
     }
 

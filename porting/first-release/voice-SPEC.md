@@ -351,6 +351,14 @@ live words off by default (text after the stop); RTF > 0.5 step down. This confl
 slow machines: UNRESOLVED (Q-V-1). The code carries one internal switch `LiveWords` from the hardware record (V-10.5) and
 both paths are built and tested; with live words off the pill still shows Listening/Transcribing from the VAD and the
 words arrive in the final pass by its schedule.
+RESOLVED (lead ruling 2026-10-04): by OD-0099 Q-V-1 C (the amendment of 2026-10-04) and engineering_decisions.md
+ED-NEW-f-vt-1 item 13 (rulings R1 to R7). A timing on a working GPU backend stays live with the model, never stepped down
+or asked. A processor timing too slow for live words with a smaller rung on the model's ladder keeps the model and asks
+once (also after the one step down); with no smaller rung the model is kept with live words off and nothing is asked.
+The answer is `voiceTyping.liveWordsChoice` with the hardware part of the key it was given under
+(`liveWordsChoiceKey`: adapter, driver, processor, memory; not the app build or the runtime), so the question comes back
+on new hardware only; `live` takes the next smaller rung with live words on (not timed again), `accurate` keeps the
+model with text after the stop; a dismissed question stores nothing and is asked again at the next self-test.
 
 V-7.8 **No hallucinated text** (RESEARCH 6): no pass on VAD-silent audio; a session whose VAD never saw speech never calls
 the engine; the final pass drops segments whose words all lie in VAD-silent spans (ED).
@@ -548,6 +556,9 @@ V-10.3 **Self-test** (BENCH): with the candidate installed, a warm-up load, then
   `large-v3-turbo-q8_0 -> large-v3-turbo-q5_0 -> medium-q8_0 -> small-q8_0 -> small-q5_1`; English ladder
   `small.en-q8_0 -> base.en -> tiny.en`.
 The thresholds are BENCH proposals, not measurements (BENCH says so); kept as named constants.
+Lead ruling 2026-10-04 (R1, from the OD-0099 Q-V-1 C amendment "a fast PC (every GPU) is never asked and stays live
+with the accurate model"): the step down and the live-words bands above apply to the processor basis only; a timing on
+a working GPU backend keeps the model with live words on at any RTF. The question and its answer: V-7.7.
 
 V-10.4 **Reason text**: UNRESOLVED wording (Q-V-4). Proposed templates from the design's two examples (voice.js:22, 24),
 filled with measured numbers: GPU `Your {GPU name} runs it on the graphics card: text about {t} seconds after you stop

@@ -25,8 +25,8 @@ public sealed class VoiceCoreReview2Tests
     private static SelfTestDecision Decide(string modelId, double rtf, bool steppedDown, RecommendationBasis basis, bool answeredForThisKey) =>
         SelfTestPlan.Decide(modelId, rtf, steppedDown, basis, answeredForThisKey);
 
-    private static bool AnsweredFor(VoiceHardwareRecord? stored, string currentKey, VoiceTypingSettings typing) =>
-        SelfTestPlan.AnsweredFor(stored, currentKey, typing);
+    private static bool AnsweredFor(VoiceTypingSettings typing, string currentHardwarePart) =>
+        SelfTestPlan.AnsweredFor(typing, currentHardwarePart);
 
     // ---- R1 ----
 
@@ -110,16 +110,17 @@ public sealed class VoiceCoreReview2Tests
     [Fact]
     [Trait("Feature", Feature)]
     [Trait("Spec", "V-T16")]
-    [Trait("Decision", "ED-267")] // lead ruling R3: "the same hardware key" is the stored check's key (V-10.5), with an answer stored
-    public void R3_an_answer_counts_for_this_hardware_key_only_when_the_stored_check_has_this_key_and_an_answer_is_stored()
+    [Trait("Decision", "ED-267")] // lead ruling R3 as R5 settles it: "the same hardware key" is the hardware part the answer was stored with
+    public void R3_an_answer_counts_for_this_hardware_key_only_when_it_was_stored_with_this_hardware_part()
     {
-        var answered = VoiceTypingSettings.Default with { SlowChoice = LiveWordsChoice.Accurate };
-        var stored = new VoiceHardwareRecord { Key = CurrentKey };
-        Assert.True(AnsweredFor(stored, CurrentKey, answered));
-        Assert.True(AnsweredFor(stored, CurrentKey, answered with { SlowChoice = LiveWordsChoice.Live }));
-        Assert.False(AnsweredFor(stored, CurrentKey, VoiceTypingSettings.Default));                  // never answered
-        Assert.False(AnsweredFor(stored with { Key = "2" + CurrentKey[1..] }, CurrentKey, answered)); // a new GPU, driver or app build
-        Assert.False(AnsweredFor(null, CurrentKey, answered));                                        // no stored check
+        // Adjusted to lead ruling R5 (2026-10-04): this test first read "the same hardware key" as the stored voiceHardware check's key;
+        // R5 stores the answer with its own key (liveWordsChoiceKey, the hardware part) and never consults the stored check.
+        var answered = VoiceTypingSettings.Default with { SlowChoice = LiveWordsChoice.Accurate, SlowChoiceKey = CurrentKey };
+        Assert.True(AnsweredFor(answered, CurrentKey));
+        Assert.True(AnsweredFor(answered with { SlowChoice = LiveWordsChoice.Live }, CurrentKey));
+        Assert.False(AnsweredFor(VoiceTypingSettings.Default, CurrentKey));                         // never answered
+        Assert.False(AnsweredFor(answered, "2" + CurrentKey[1..]));                                 // a new GPU, driver, processor or memory
+        Assert.False(AnsweredFor(answered with { SlowChoiceKey = null }, CurrentKey));              // an answer stored with no key
     }
 
     // ---- R4 ----

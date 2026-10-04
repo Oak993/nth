@@ -93,10 +93,31 @@ public static class SelfTestPlan
     }
 
     /// <summary>
-    /// R3's "the same hardware key": the slow-PC question counts as answered for this PC when an answer is stored
-    /// (<c>voiceTyping.liveWordsChoice</c>) and the stored check (<c>voiceHardware</c>) has today's key (V-10.5). A new GPU, driver or app
-    /// build (a stale record) asks again.
+    /// R3's "the same hardware key", with lead ruling R5 (2026-10-04, from the OD-0099 Q-V-1 C amendment): the slow-PC question counts as
+    /// answered when an answer is stored (<c>voiceTyping.liveWordsChoice</c>) with the hardware part it was given under
+    /// (<c>liveWordsChoiceKey</c>) and that equals today's (<see cref="HardwareKey.ComputeHardwarePart(HardwareKeyInputs)"/>). The stored
+    /// <c>voiceHardware</c> check, which every check rewrites, is not consulted, so the outcome never depends on the order of the timings;
+    /// a new GPU, driver, processor or memory asks again, an app or runtime update does not. An answer stored without a key asks again.
     /// </summary>
-    public static bool AnsweredFor(VoiceHardwareRecord? stored, string currentKey, VoiceTypingSettings typing) =>
-        typing.SlowChoice is not null && !HardwareKey.IsStale(stored, currentKey);
+    public static bool AnsweredFor(VoiceTypingSettings typing, string currentHardwarePart) =>
+        typing.SlowChoice is not null && typing.SlowChoiceKey is not null
+        && string.Equals(typing.SlowChoiceKey, currentHardwarePart, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Stores the answer to the slow-PC question with the hardware part it was given under (R5). Lead ruling R7: a question dismissed
+    /// without an answer (<paramref name="answer"/> null) stores nothing, so the next self-test on the same key asks again (the default
+    /// until the question's design, OD-0070, says otherwise); an earlier answer for other hardware is left as it was.
+    /// </summary>
+    public static VoiceTypingSettings WithSlowAnswer(VoiceTypingSettings typing, LiveWordsChoice? answer, string hardwarePart) =>
+        answer is { } given ? typing with { SlowChoice = given, SlowChoiceKey = hardwarePart } : typing;
+
+    /// <summary>
+    /// Lead ruling R6: what a stored answer does for a model the processor is too slow to run live. Live takes the next smaller rung on the
+    /// model's ladder with live words on, not timed again; accurate keeps the model with text after the user stops. With no smaller rung
+    /// (never asked then, R2) live keeps the model with text after the stop, as R2 does.
+    /// </summary>
+    public static SelfTestDecision ApplyAnswer(string modelId, LiveWordsChoice answer) =>
+        answer == LiveWordsChoice.Live && StepDown(modelId) is { } smaller
+            ? new SelfTestDecision(SelfTestAction.Keep, smaller, true, false)
+            : new SelfTestDecision(SelfTestAction.Keep, modelId, false, false);
 }
