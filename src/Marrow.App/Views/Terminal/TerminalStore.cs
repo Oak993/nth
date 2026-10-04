@@ -118,14 +118,15 @@ public sealed class TerminalSession : MainActorModel
 
     // :65-76 Whether the shell owns the foreground of its terminal: true at the prompt, false while a job it
     // started (vim, claude, less) has the terminal.
-    // PLATFORM BOUNDARY (DEVIATION ED-046, not yet owner-accepted -- see Port/ProcessDescendants.cs header):
+    // PLATFORM BOUNDARY (accepted deviation OD-0031 / ED-046 -- see Port/ProcessDescendants.cs header):
     // ConPTY has no process groups and no tpgid; approximated by whether the shell has a live descendant process.
     public static bool ForegroundJobIsTheShell(int shell)
     {
         // :70
         if (shell <= 0) return false;
-        // :74-75 fail closed on any error or empty result, as the source's sysctl failure path does.
-        return !ProcessDescendants.HasLiveDescendant(shell);
+        // :74-75 fail closed: "cannot tell" (null: no snapshot, timeout, shell not in the table) answers false, as the
+        // source's failed sysctl does, so Escape goes to the terminal; only an explicit "no live child" answers true.
+        return ProcessDescendants.HasLiveDescendant(shell) is false;
     }
 
     // :78-80 fileprivate func processEnded() -- fileprivate crosses into TerminalBridge below, in the same Swift

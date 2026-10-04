@@ -416,10 +416,17 @@ internal sealed class TerminalTab : Border
 
         PointerEntered += (_, _) => SetHover(true);
         PointerExited += (_, _) => SetHover(false);
-        PointerPressed += (_, e) =>
+        // :178 .onTapGesture(perform: select): a tap completes when the pointer is lifted inside the capsule, so a press
+        // that leaves the chip before its release selects nothing (the same port of a tap as HydraPanel's capsule).
+        var pressed = false;
+        PointerPressed += (_, e) => pressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
+        PointerExited += (_, _) => pressed = false;
+        PointerCaptureLost += (_, _) => pressed = false;
+        PointerReleased += (_, _) =>
         {
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-                select();
+            if (!pressed) return;
+            pressed = false;
+            select();
         };
     }
 

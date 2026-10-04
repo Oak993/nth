@@ -6,6 +6,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Terminal;
 using Marrow.UI.Chrome;
@@ -127,6 +128,62 @@ public sealed class TerminalTabChipTests(HeadlessSession headless)
         var after = Tabs(host);
         Assert.Equal(SwiftColor.Primary.Opacity(0.08).Resolve(after[0].ActualThemeVariant), SolidColor(after[0].Background));
         Assert.Equal(Colors.Transparent, SolidColor(after[1].Background));
+    });
+
+    // PR-TERM-024: SwiftUI's .onTapGesture(perform: select) (TerminalPanel.swift:178) completes when the pointer is lifted
+    // inside the shape (.contentShape(.capsule), :177). ENGINEERING DECISION (framework semantics, OD-0098: no video of a
+    // tab click): a tap is a press and a release that both land in the capsule; the port's own HydraPanel capsule ports a
+    // tap the same way. The tests below drive real pointer events through the window.
+    [Fact]
+    [Trait("Req", "PR-TERM-024")] // App/Views/Terminal/TerminalPanel.swift:177-179
+    public void Pressing_a_tab_does_not_select_it_until_the_pointer_is_released_inside_the_capsule() => TerminalPanelRig.Run(headless, rig =>
+    {
+        var (host, window, sessions) = ShowWithTabs(rig, "tap release", 2);
+        var first = Tabs(host)[0];
+        var inside = first.TranslatePoint(new Point(4, first.Bounds.Height / 2), window)!.Value; // the padding, not the text
+        Assert.Equal(sessions[1].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id);
+
+        rig.Step(() => window.MouseDown(inside, MouseButton.Left, RawInputModifiers.LeftMouseButton));
+        Assert.Equal(sessions[1].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id); // still the old selection while held
+        rig.Step(() => window.MouseUp(inside, MouseButton.Left, RawInputModifiers.None));
+        Assert.Equal(sessions[0].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id); // :27 selection[threadID] = session.id
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-024")] // App/Views/Terminal/TerminalPanel.swift:178: a tap whose pointer left before release is no tap
+    public void Releasing_outside_the_pressed_capsule_does_not_select() => TerminalPanelRig.Run(headless, rig =>
+    {
+        var (host, window, sessions) = ShowWithTabs(rig, "tap drag off", 3);
+        var tabs = Tabs(host);
+        var pressAt = tabs[0].TranslatePoint(new Point(4, tabs[0].Bounds.Height / 2), window)!.Value;
+        var releaseAt = CentreIn(tabs[1], window); // another chip
+        Assert.Equal(sessions[2].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id);
+
+        rig.Step(() => window.MouseDown(pressAt, MouseButton.Left, RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseMove(releaseAt, RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseUp(releaseAt, MouseButton.Left, RawInputModifiers.None));
+        Assert.Equal(sessions[2].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id); // neither chip was tapped
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-024")] // App/Views/Terminal/TerminalPanel.swift:176-177 .background(in: .capsule), .contentShape(.capsule)
+    public void A_press_at_the_bounding_box_corner_outside_the_capsule_does_not_select() => TerminalPanelRig.Run(headless, rig =>
+    {
+        var (host, window, sessions) = ShowWithTabs(rig, "tap corner", 2);
+        var first = Tabs(host)[0];
+        // The rectangle's corner pixel lies outside the capsule (corner radius = half the height): it is not hit.
+        var corner = first.TranslatePoint(new Point(0.5, first.Bounds.Height - 0.5), window)!.Value; // bottom-left: the top 8 points of the panel belong to the resize strip
+        Assert.Equal(sessions[1].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id);
+        var hit = window.InputHitTest(corner) as Visual;
+        Assert.NotSame(first, hit?.FindAncestorOfType<TerminalTab>(includeSelf: true)); // the corner pixel is not over the chip
+        rig.Step(() => window.MouseDown(corner, MouseButton.Left, RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseUp(corner, MouseButton.Left, RawInputModifiers.None));
+        Assert.Equal(sessions[1].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id);
+
+        // The padding at the vertical middle of the left edge is inside the capsule and selects.
+        var edge = first.TranslatePoint(new Point(2, first.Bounds.Height / 2), window)!.Value;
+        Click(rig, window, edge);
+        Assert.Equal(sessions[0].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id);
     });
 
     [Fact]

@@ -1,6 +1,7 @@
 using Avalonia.Styling;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Terminal;
+using Marrow.App.Views.Terminal.Port;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
@@ -690,6 +691,71 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
         Assert.True(UiPump.Until(() => !TerminalSession.ForegroundJobIsTheShell(busy.View.ProcessId), UiPump.Bound));
     }));
+
+    // ---- PR-TERM-031 / PR-TERM-049: "if it can't tell, it also goes to the terminal" (OD-0031, ED-046; TerminalStore.swift:69-76
+    // answers false when it cannot tell). The process table is replaced through the port's seam so each unknown is forced. ----
+
+    private static T WithProcessTable<T>(Func<IReadOnlyList<ProcessDescendants.ProcessRow>?> table, Func<T> body)
+    {
+        var previous = ProcessDescendants.ReadProcessTable;
+        ProcessDescendants.ReadProcessTable = table;
+        try { return body(); }
+        finally { ProcessDescendants.ReadProcessTable = previous; }
+    }
+
+    private static IReadOnlyList<ProcessDescendants.ProcessRow> Table(params (int Id, int Parent)[] rows) =>
+        [.. rows.Select(row => new ProcessDescendants.ProcessRow(row.Id, row.Parent))];
+
+    [Fact]
+    [Trait("Req", "PR-TERM-031")] // App/Views/Terminal/TerminalStore.swift:69-76 failure path; OD-0031; ED-046 "default to FALSE on any error"
+    [Trait("Req", "PR-TERM-049")]
+    public void Foreground_job_detection_answers_false_whenever_it_cannot_tell()
+    {
+        // The pid is not in the process table (a pid no process holds): unknown, not "no child".
+        Assert.False(TerminalSession.ForegroundJobIsTheShell(int.MaxValue));
+        // The snapshot itself fails (CreateToolhelp32Snapshot / Process32First failure).
+        Assert.False(WithProcessTable(() => null, () => TerminalSession.ForegroundJobIsTheShell(100)));
+        // An empty table: the shell is not in it.
+        Assert.False(WithProcessTable(() => Table(), () => TerminalSession.ForegroundJobIsTheShell(100)));
+        // A table that does not list the shell but lists other processes.
+        Assert.False(WithProcessTable(() => Table((4, 0), (200, 4)), () => TerminalSession.ForegroundJobIsTheShell(100)));
+        Assert.Null(WithProcessTable(() => null, () => ProcessDescendants.HasLiveDescendant(100)));
+        Assert.Null(WithProcessTable(() => Table((4, 0)), () => ProcessDescendants.HasLiveDescendant(100)));
+        Assert.Null(ProcessDescendants.HasLiveDescendant(0));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-031")] // ED-046 "or enumeration timeout"
+    [Trait("Req", "PR-TERM-049")]
+    public void Foreground_job_detection_answers_false_when_the_enumeration_times_out()
+    {
+        var previous = ProcessDescendants.EnumerationTimeout;
+        ProcessDescendants.EnumerationTimeout = TimeSpan.Zero; // the real Toolhelp walk exceeds it at its first entry
+        try
+        {
+            Assert.Null(ProcessDescendants.HasLiveDescendant(Environment.ProcessId));
+            Assert.False(TerminalSession.ForegroundJobIsTheShell(Environment.ProcessId));
+        }
+        finally { ProcessDescendants.EnumerationTimeout = previous; }
+        // With the ordinary timeout the same real table lists this process, so the answer is no longer unknown.
+        Assert.NotNull(ProcessDescendants.HasLiveDescendant(Environment.ProcessId));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-031")] // OD-0031: close only "when the shell has no live child program"
+    [Trait("Req", "PR-TERM-049")]
+    public void Foreground_job_detection_is_true_only_for_a_listed_shell_with_no_live_descendant()
+    {
+        // The shell (100) is in the table with no child: the shell owns the foreground.
+        Assert.True(WithProcessTable(() => Table((4, 0), (100, 4), (300, 4)), () => TerminalSession.ForegroundJobIsTheShell(100)));
+        // A direct child, or a grandchild, is a live program: the shell does not own it.
+        Assert.False(WithProcessTable(() => Table((100, 4), (200, 100)), () => TerminalSession.ForegroundJobIsTheShell(100)));
+        Assert.False(WithProcessTable(() => Table((100, 4), (200, 100), (201, 200)), () => TerminalSession.ForegroundJobIsTheShell(100)));
+        // Children of other processes are not descendants of the shell.
+        Assert.True(WithProcessTable(() => Table((100, 4), (300, 4), (301, 300)), () => TerminalSession.ForegroundJobIsTheShell(100)));
+        Assert.Equal(false, WithProcessTable(() => Table((100, 4)), () => ProcessDescendants.HasLiveDescendant(100)));
+        Assert.Equal(true, WithProcessTable(() => Table((100, 4), (200, 100)), () => ProcessDescendants.HasLiveDescendant(100)));
+    }
 
     // ---- PR-TERM-123: a script tab's argument vector (DEVIATION OD-0008 C5) ------------------------------------------
 
