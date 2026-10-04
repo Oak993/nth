@@ -5,7 +5,7 @@ using Marrow.Core.Port.Skills.State;
 namespace Marrow.Services.Port.Skills.Install;
 
 /// <summary>Offline installation of checked SK-3 files. Only a completed lock and full verify can return SK-7 Installed.</summary>
-public sealed class ItemInstaller(IInstallLock? installLock = null, IInstallProcess? process = null, Action<InstallStep, string>? checkpoint = null)
+public sealed class ItemInstaller(IInstallLock? installLock = null, IInstallProcess? process = null, Action<InstallStep, string>? checkpoint = null, Func<string, IDisposable>? reserve = null)
 {
     private readonly IInstallLock seal = installLock ?? new FailClosedInstallLock();
     private readonly IInstallProcess runner = process ?? new FailClosedInstallProcess();
@@ -50,7 +50,7 @@ public sealed class ItemInstaller(IInstallLock? installLock = null, IInstallProc
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var transaction = new InstallTransaction(parent, name, seal);
+            var transaction = new InstallTransaction(parent, name, seal, reserve);
             transactions.Add(transaction);
             checkpoint?.Invoke(InstallStep.Created, transaction.Path);
             string Archive()
@@ -83,20 +83,24 @@ public sealed class ItemInstaller(IInstallLock? installLock = null, IInstallProc
             InstallHash.Verify(licenceTarget, licencePin.Size, licencePin.Sha256);
             cancellationToken.ThrowIfCancellationRequested();
             transaction.Prepare(checkpoint, plan.Kind == InstallerKind.Skillset ? plan.Item.Files : null);
-            var spares = plan.Kind == InstallerKind.Skillset ? SpareGenerationBuilder.Prepare(plan, transaction.Path, seal, checkpoint, transactions) : [];
+            var spares = plan.Kind == InstallerKind.Skillset ? SpareGenerationBuilder.Prepare(plan, transaction.Path, seal, checkpoint, transactions, reserve) : [];
             cancellationToken.ThrowIfCancellationRequested();
             transaction.Verify();
             foreach (var spare in spares) { spare.Verify(); spare.Publish(); checkpoint?.Invoke(InstallStep.Published, spare.Path); spare.Verify(); }
             transaction.Publish();
             checkpoint?.Invoke(InstallStep.Published, transaction.Path);
             transaction.Verify();
-            return new InstallResult(transaction.Path, ItemStateMachine.Apply(plan.Record, ItemState.Installed), spares.Select(s => s.Path).ToArray(), transaction.Manifest) { Directories = transaction.Directories };
+            var kept = transactions.Select(t => t.KeepPublished()).OfType<IDisposable>().ToArray();
+            return new InstallResult(transaction.Path, ItemStateMachine.Apply(plan.Record, ItemState.Installed), spares.Select(s => s.Path).ToArray(), transaction.Manifest)
+                { Directories = transaction.Directories, Reservation = reserve is null ? null : new InstallReservation(kept) };
         }
         catch (Exception original)
         {
             var failures = new List<Exception>();
             foreach (var transaction in transactions.AsEnumerable().Reverse())
                 try { transaction.Rollback(); } catch (Exception error) { failures.Add(error); }
+            // Rolled-back tmp- names are crash residue for the next GC; only their reservations end here.
+            foreach (var transaction in transactions) transaction.Release();
             if (failures.Count > 0) throw new AggregateException("Install failed and quarantine cleanup needs retry.", new[] { original }.Concat(failures));
             throw;
         }

@@ -4,7 +4,7 @@ namespace Marrow.Services.Port.Skills.Install;
 
 internal static class SpareGenerationBuilder
 {
-    public static IReadOnlyList<InstallTransaction> Prepare(InstallPlan plan, string store, IInstallLock seal, Action<InstallStep, string>? checkpoint, List<InstallTransaction> transactions)
+    public static IReadOnlyList<InstallTransaction> Prepare(InstallPlan plan, string store, IInstallLock seal, Action<InstallStep, string>? checkpoint, List<InstallTransaction> transactions, Func<string, IDisposable>? reserve = null)
     {
         var result = new List<InstallTransaction>();
         foreach (var projection in plan.Spares ?? throw new InvalidDataException("Spare projections are required for a skill set."))
@@ -14,7 +14,7 @@ internal static class SpareGenerationBuilder
             var key = InstallPaths.Relative(projection.Key);
             if (key.Contains('/', StringComparison.Ordinal)) throw new InvalidDataException("Spare key must be a path component.");
             var parent = InstallPaths.Under(plan.DataRoot, "skills/views/" + provider);
-            var spare = new InstallTransaction(parent, "spare-" + key + "-" + Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(8)), seal);
+            var spare = new InstallTransaction(parent, "spare-" + key + "-" + Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(8)), seal, reserve);
             transactions.Add(spare);
             checkpoint?.Invoke(InstallStep.Created, spare.Path);
             if (Directory.EnumerateFileSystemEntries(spare.Path).Any()) throw new InvalidDataException("New spare folder was modified.");

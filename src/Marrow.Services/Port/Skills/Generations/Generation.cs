@@ -11,9 +11,9 @@ public sealed class Generation : IDisposable
     private readonly StoreLease lease;
     private readonly StoreManifest manifest;
     private readonly StoreVerifier verifier;
-    private readonly SkillsStore store;
+    private readonly IGenerationStore store;
     private int disposed;
-    internal Generation(StoreLease lease, StoreManifest manifest, IStoreProtection protection, SkillsStore store,
+    internal Generation(StoreLease lease, StoreManifest manifest, IStoreProtection protection, IGenerationStore store,
         string key, IEnumerable<PublishedSkill> skills, IEnumerable<string> leftOut, IEnumerable<string> plugins)
     {
         this.lease = lease; this.manifest = manifest; this.store = store; verifier = new(protection);

@@ -16,13 +16,33 @@ internal sealed class InstallTransaction
     public string Destination { get; }
     public IReadOnlyList<string> Directories { get; private set; } = [];
     public IReadOnlyList<CatalogueFile> Manifest { get; private set; } = [];
-    public InstallTransaction(string parent, string destination, IInstallLock seal)
+    private readonly Func<string, IDisposable>? reserve;
+    private readonly List<(string Path, IDisposable Hold)> holds = [];
+    public InstallTransaction(string parent, string destination, IInstallLock seal, Func<string, IDisposable>? reserve = null)
     {
         this.seal = seal;
+        this.reserve = reserve;
         InstallPaths.NoReparseAncestors(parent);
         Destination = InstallPaths.Under(parent, destination);
         Path = System.IO.Path.Combine(parent, "tmp-" + Guid.NewGuid().ToString("N"));
+        Hold(Path); // integ-sk8-sk9: every name this build will occupy is reserved before it exists, so the store's GC never sees it unreserved.
         Directory.CreateDirectory(Path);
+    }
+    private void Hold(string path) { if (reserve is not null) holds.Add((path, reserve(path))); }
+    /// <summary>Releases the reservations of the intermediate names and returns the published name's, for the owner to release.</summary>
+    public IDisposable? KeepPublished()
+    {
+        IDisposable? kept = null;
+        foreach (var (path, hold) in holds)
+            if (kept is null && System.IO.Path.GetFullPath(path).Equals(System.IO.Path.GetFullPath(Path), StringComparison.OrdinalIgnoreCase)) kept = hold;
+            else hold.Dispose();
+        holds.Clear();
+        return kept;
+    }
+    public void Release()
+    {
+        foreach (var (_, hold) in holds) hold.Dispose();
+        holds.Clear();
     }
     public void Prepare(Action<InstallStep, string>? checkpoint, IReadOnlyList<CatalogueFile>? expected = null)
     {
@@ -48,6 +68,7 @@ internal sealed class InstallTransaction
         InstallPaths.NoReparseAncestors(Path);
         InstallPaths.NoReparseAncestors(target);
         var old = Path;
+        Hold(target);
         Directory.Move(old, target);
         Path = target;
         seal.Renamed(old, target);

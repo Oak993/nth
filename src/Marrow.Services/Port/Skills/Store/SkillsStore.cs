@@ -10,7 +10,7 @@ namespace Marrow.Services.Port.Skills.Store;
 /// One owner per data root. Call on the pool: hashing/deletion never run on a UI executor here.
 /// Installed-pin descriptors and state come from the caller; neither an installed disk manifest nor a new catalogue pin overrides them.
 /// </summary>
-public sealed class SkillsStore
+public sealed class SkillsStore : IGenerationStore
 {
     private const string ChecksumFailure = "The file didn't match its checksum."; // ONDEMAND 3.9.
     private readonly object gate = new();
@@ -24,6 +24,7 @@ public sealed class SkillsStore
     private readonly Dictionary<string, int> leases = new(StorePaths.Comparer);
     private readonly HashSet<string> condemned = new(StorePaths.Comparer);
     private readonly HashSet<string> reserved = new(StorePaths.Comparer);
+    private readonly Dictionary<string, int> holds = new(StorePaths.Comparer);
     private readonly HashSet<string> repairing = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PendingStoreRepair> pending = new(StringComparer.Ordinal);
     private AddonsState state;
@@ -301,6 +302,25 @@ public sealed class SkillsStore
         }
     }
 
+    /// <summary>integ-sk8-sk9: excludes a build in flight or a fresh spare made outside the store (SK-4) from Collect until disposed. Not a use lease.</summary>
+    public StoreLease Reserve(string folder)
+    {
+        lock (gate)
+        {
+            folder = paths.RequireManaged(folder);
+            holds[folder] = holds.GetValueOrDefault(folder) + 1;
+            return new StoreLease(folder, () =>
+            {
+                lock (gate)
+                {
+                    if (--holds[folder] == 0) holds.Remove(folder);
+                }
+            });
+        }
+    }
+
+    private bool IsHeld(string path) => holds.Keys.Any(p => StorePaths.Comparer.Equals(p, path) || StorePaths.Under(p, path) || StorePaths.Under(path, p));
+
     public void Retire(string folder)
     {
         lock (gate) Condemn(folder);
@@ -354,7 +374,7 @@ public sealed class SkillsStore
             {
                 var path = paths.RequireManaged(folder);
                 if (retained.Any(p => StorePaths.Comparer.Equals(p, path) || StorePaths.Under(p, path) || StorePaths.Under(path, p)) ||
-                    reserved.Any(p => StorePaths.Comparer.Equals(p, path) || StorePaths.Under(p, path) || StorePaths.Under(path, p)) || HasLease(path)) continue;
+                    reserved.Any(p => StorePaths.Comparer.Equals(p, path) || StorePaths.Under(p, path) || StorePaths.Under(path, p)) || IsHeld(path) || HasLease(path)) continue;
                 if (TryDelete(path)) condemned.Remove(path);
             }
             if (tornDown) DeleteTeardownResidue();
