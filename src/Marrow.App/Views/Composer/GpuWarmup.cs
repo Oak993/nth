@@ -517,7 +517,7 @@ public static class GpuWarmup
                     {
                         if (!worked.Add(item)) continue;
                         var begun = System.Diagnostics.Stopwatch.GetTimestamp();
-                        await item.Working(cancellation); // a throw faults the run: never complete as if prepared
+                        await Worked(item, cancellation); // a throw, a timeout or a cancellation ends the run: never complete as if prepared
                         WorkWasDone(item);
                         var made = new GpuWarmupStep(step, items.Length, item.Name, System.Diagnostics.Stopwatch.GetElapsedTime(begun).TotalMilliseconds, false, item.Step.Id);
                         Record(made);
@@ -565,6 +565,29 @@ public static class GpuWarmup
             }
             while (again);
         }
+
+        // a work step, bounded like a draw step (StepTimeout) and ended by the cancellation even when it ignores the token (GR-1 review
+        // round 4, ED-NEW-f-gr-1 (19)): one that never answers (an audio driver that hangs) must not hold the first run, and the
+        // Getting ready sheet over the app, for ever. On a timeout it is not done (WorkWasDone is never reached), so the machine is
+        // not marked prepared and the next launch tries again; what it throws later, unobserved by anyone, is observed here.
+        private static async Task Worked(GpuProgram item, CancellationToken cancellation)
+        {
+            var working = item.Working(cancellation);
+            try { await working.WaitAsync(StepTimeout, cancellation); }
+            catch (TimeoutException)
+            {
+                Observe(working);
+                throw new TimeoutException($"GPU warm-up: the {item.Name} step did not finish within {StepTimeout.TotalSeconds:0.###} s.");
+            }
+            catch (OperationCanceledException)
+            {
+                Observe(working);
+                throw;
+            }
+        }
+
+        private static void Observe(Task abandoned) =>
+            abandoned.ContinueWith(static task => _ = task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
         // waits for two frames in a row with nothing animating; true when the cap (since the warm-up began) ran out first
         private async Task<bool> CapRanOut(TopLevel top, DateTime since, CancellationToken cancellation)
