@@ -673,7 +673,7 @@ namespace Marrow.UI.Chrome
         private readonly bool isEnabled;
         private bool isActive;
 
-        /// <summary>PORT-ONLY (ED-NEW-parity-chatview (5)). SwiftUI re-evaluates a parent's body and the same button keeps its identity,
+        /// <summary>PORT-ONLY (ED-278 (5)). SwiftUI re-evaluates a parent's body and the same button keeps its identity,
         /// its hover state and its place; the new <c>isActive</c> changes its fill and its glyph's colour under the transaction in force
         /// (a column's `.animation(Chrome.panelSlide, value:)`, ChatView.swift:290), so the "on" circle fades in and out.</summary>
         public void Update(bool isActive)

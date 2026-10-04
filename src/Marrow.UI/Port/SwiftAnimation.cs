@@ -159,7 +159,7 @@ public sealed record SwiftTransition
     public static bool IsRemoving(Control child) => attachments.TryGetValue(child, out var state) && state.RemovalInFlight;
 
     /// <summary>
-    /// OD-0076 (no change by a cut), ED-NEW-parity-chatview (10): a removal that may interrupt this child's insertion still in
+    /// OD-0076 (no change by a cut), ED-278 (10): a removal that may interrupt this child's insertion still in
     /// flight and starts from where the insertion has brought the child, never from its identity. For a transition with no
     /// asymmetric part the insertion's state at progress p is the removal's state at 1 - p (move, offset, scale, opacity, blur
     /// and modifier values each interpolate linearly between the same two ends), so the removal runs from there to its end on
@@ -170,7 +170,7 @@ public sealed record SwiftTransition
     public static void RemoveContinuing(Panel panel, Control child) => Remove(panel, child, null, continuing: true);
 
     /// <summary>
-    /// OD-0076 (no change by a cut), ED-NEW-parity-chatview (10): the counterpart of <see cref="RemoveContinuing"/>. An insertion that
+    /// OD-0076 (no change by a cut), ED-278 (10): the counterpart of <see cref="RemoveContinuing"/>. An insertion that
     /// interrupts this child's removal still in flight, in the panel the removal is leaving, brings the same child back from where the
     /// removal has taken it, never from the insertion's start: for a transition with no asymmetric part the removal's state at progress
     /// r is the insertion's at 1 - r, so the insertion runs from 1 - r (the removal's presented progress at this instant, on its own

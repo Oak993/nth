@@ -17,7 +17,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Chat;
 
-// Round 5 of the ChatView parity unit (2026-10-04): the reopened drawer's focus request, ED-NEW-parity-chatview (19).
+// Round 5 of the ChatView parity unit (2026-10-04): the reopened drawer's focus request, ED-278 (19).
 [Collection("Headless")]
 public sealed class ChatViewParityRound5Tests(HeadlessSession headless)
 {
@@ -39,7 +39,7 @@ public sealed class ChatViewParityRound5Tests(HeadlessSession headless)
     // The terminal closed and, while it is still closing, its column taken out of the window and the terminal reopened there:
     // the request is not spent out of the window and the leaving drawer is still the one in the column; once the column is
     // back in the window the terminal takes the keyboard and the request is spent. This proves the by-construction claim of
-    // ED-NEW-parity-chatview (19) (ChatView observes isTerminalVisible only while attached, so TerminalHost.TakeKeyboardIfWanted
+    // ED-278 (19) (ChatView observes isTerminalVisible only while attached, so TerminalHost.TakeKeyboardIfWanted
     // needs no window guard of its own); it is not a proof of such a guard.
     [Fact]
     [Trait("Req", "PR-TERM-001")] // App/Runtime/ThreadRuntime.swift:240-243; App/Views/Terminal/TerminalPanel.swift:224-239

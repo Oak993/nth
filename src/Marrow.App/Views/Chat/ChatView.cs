@@ -362,7 +362,7 @@ public sealed class ChatView : Decorator
             if (terminal is not null && (!visible || terminalDirectory != directory))
             {
                 var leaving = terminal;
-                SwiftTransition.RemoveContinuing(terminalHost, leaving); // closed mid-open: back down from where it is (OD-0076; ED-NEW-parity-chatview (10)).
+                SwiftTransition.RemoveContinuing(terminalHost, leaving); // closed mid-open: back down from where it is (OD-0076; ED-278 (10)).
                 leavingTerminal = (leaving, terminalDirectory);
                 terminal = null;
                 if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height, rowHeld: true);
@@ -372,7 +372,7 @@ public sealed class ChatView : Decorator
                 terminalDirectory = directory;
                 var rowHeld = terminalHost.Children.Count != 0; // a drawer still leaving holds its row (and the pane's reach under it).
                 // Reopened while it is still closing: the leaving drawer comes back from where it is, the same TerminalPanel (OD-0076;
-                // ED-NEW-parity-chatview (10)); a new one would start a full drawer below under the chat box that is already rising.
+                // ED-278 (10)); a new one would start a full drawer below under the chat box that is already rising.
                 if (leavingTerminal is { } back && back.Directory == directory && SwiftTransition.IsRemoving(back.Panel))
                 {
                     terminal = back.Panel;
@@ -1357,7 +1357,7 @@ internal sealed class ChatChromeRow : Decorator
         updateInputs = (nextTitle, nextProject, nextDirectory) =>
         {
             title = nextTitle; project = nextProject; directory = nextDirectory;
-            titleView.UpdateTitle(title); // :1147-1151 no title animation on the Mac; the words crossfade (OD-0076, ED-NEW-parity-chatview (14)).
+            titleView.UpdateTitle(title); // :1147-1151 no title animation on the Mac; the words crossfade (OD-0076, ED-278 (14)).
             Build();
         };
         void Drop(Control old)
@@ -1568,7 +1568,7 @@ internal sealed class ChatChromeTitle : Decorator
     private Canvas? wordsLayer;
     private bool shownEmpty;
 
-    // OD-0076 (content that swaps crossfades), ED-NEW-parity-chatview (14): the Mac's title Text takes new words with no animation
+    // OD-0076 (content that swaps crossfades), ED-278 (14): the Mac's title Text takes new words with no animation
     // (ChatView.swift:1147-1151); the port fades the old words out and the new ones in on one ease-out of the Mac's motion language.
     private static Animation WordsSwap => Animation.EaseOut(duration: 0.2);
 

@@ -177,7 +177,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ScriptsEditor: PR-TERM-074 --------------------------------------------------------------------------
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-TERM-074: the sheet's capture against the reference is owed on native (ED-NEW-parity-chatview, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
+    // STOP (round 4, traceability), still open: PR-TERM-074: the sheet's capture against the reference is owed on native (ED-278, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-020")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-021")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
@@ -238,7 +238,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ScriptsEditor: PR-TERM-076 --------------------------------------------------------------------------
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-TERM-076: the sheet's capture against the reference is owed on native (ED-NEW-parity-chatview, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
+    // STOP (round 4, traceability), still open: PR-TERM-076: the sheet's capture against the reference is owed on native (ED-278, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-023")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-024")] // App/Views/Chat/ChatView.swift:1666-1699

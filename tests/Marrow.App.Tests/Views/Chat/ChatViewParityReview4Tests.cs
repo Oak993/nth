@@ -36,11 +36,11 @@ public sealed class ChatViewParityReview4Tests(HeadlessSession headless)
 
     // SOURCE FACT: ThreadRuntime.swift:240-243 an opened terminal takes the keyboard (`isTerminalVisible` false -> true sets
     // terminalWantsFocus), and TerminalPanel.swift:224-239 the drawer's host makes the terminal view first responder on its
-    // update while the flag is set, once. Round 4 (ED-NEW-parity-chatview (14)) brings the leaving drawer back on a reopen while
+    // update while the flag is set, once. Round 4 (ED-278 (14)) brings the leaving drawer back on a reopen while
     // it is still closing: the SAME TerminalPanel, which never left the tree, so its TerminalHost's attach handler (where the port
     // spent the flag) does not run again. This test proves that the first open takes the keyboard and spends the request, and that
     // the terminal reopened mid-close, the same drawer, takes the keyboard and spends the request too (it failed on round 4's
-    // head; fixed in round 5, ED-NEW-parity-chatview (19), ChatView.RefreshTerminal through TerminalPanel.TakeKeyboardIfWanted).
+    // head; fixed in round 5, ED-278 (19), ChatView.RefreshTerminal through TerminalPanel.TakeKeyboardIfWanted).
     [Fact]
     [Trait("Req", "PR-TERM-001")] // App/Runtime/ThreadRuntime.swift:240-243; App/Views/Terminal/TerminalPanel.swift:224-239; OD-0076
     public void REVIEW_The_terminal_reopened_while_it_is_still_closing_takes_the_keyboard_as_an_opened_terminal_does() => ChatHeadlessFixtures.Run(headless, () =>

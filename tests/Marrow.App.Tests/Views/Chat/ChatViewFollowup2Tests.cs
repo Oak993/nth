@@ -23,7 +23,7 @@ public sealed class ChatViewFollowup2Tests(HeadlessSession headless)
     // The File Explorer row hands the directory to ShellWorkspace.OpenWithDefaultApp, whose real implementation opens only what its gate accepts
     // (ED-203): a drive-letter folder with spaces in its name, and a network share's, must pass it, or the row would do nothing on a real machine.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1417-1419 (PR-CHAT-180, UI-CHAT-080: the row opens the chat's directory); ED-203; ED-NEW-parity-chatview
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1417-1419 (PR-CHAT-180, UI-CHAT-080: the row opens the chat's directory); ED-203; ED-278
     public void The_shells_gate_accepts_a_chats_directory_with_spaces_or_on_a_share()
     {
         Assert.True(ShellWorkspace.ShouldAttemptShellExecute(@"C:\work with spaces\project"));

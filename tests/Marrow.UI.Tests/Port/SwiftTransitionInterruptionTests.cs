@@ -6,7 +6,7 @@ using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Port;
 
-// OD-0076 (no change by a cut), ED-NEW-parity-chatview: a removal that interrupts an insertion still in flight starts from
+// OD-0076 (no change by a cut), ED-278: a removal that interrupts an insertion still in flight starts from
 // where the insertion has brought the child. For a transition with no asymmetric part the insertion's state at progress p
 // is the removal's at 1 - p, so the child goes back from there on the removal's curve: no frame shows it at its identity.
 // The site that needs it is the terminal drawer closed while it is still opening (App/Views/Chat/ChatView.swift:276-279,290,
@@ -33,7 +33,7 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
     [Trait("Decision", "ED-159")] // the interruption follow-up
-    // Decision ED-NEW-parity-chatview (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
+    // Decision ED-278 (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
     public void A_removal_during_the_insertion_goes_back_from_where_the_insertion_has_brought_the_child() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -73,7 +73,7 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
     [Trait("Decision", "ED-159")] // the interruption follow-up
-    // Decision ED-NEW-parity-chatview (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
+    // Decision ED-278 (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
     public void The_insertions_progress_is_read_on_its_clock_at_the_interruption_not_at_its_last_frame() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -97,7 +97,7 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
     [Trait("Decision", "ED-159")] // the interruption follow-up
-    // Decision ED-NEW-parity-chatview (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
+    // Decision ED-278 (10): the trait is added when the lead numbers the entry (the placeholder is not a well-formed id).
     public void A_removal_after_the_insertion_has_settled_starts_from_identity() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();

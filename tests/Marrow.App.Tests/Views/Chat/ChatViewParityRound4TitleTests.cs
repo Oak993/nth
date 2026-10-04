@@ -19,7 +19,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // words and colour with no animation of its own (the row's body re-evaluates; the column's `.transition(.identity)` is what the record's
 // "never crossfades on a thread switch" speaks of). OWNER-RULED DEVIATION (OD-0076, "content that swaps crossfades ... wherever the source
 // snaps"; the lead's decision for PR-CHAT-176 / UI-CHAT-076): when the title's words change on a drawn title, the old words fade out in place
-// while the new ones fade in, on one ease-out 0.2 s; Reduce Motion cuts. The title's width still jumps (ED-NEW-parity-chatview (13)).
+// while the new ones fade in, on one ease-out 0.2 s; Reduce Motion cuts. The title's width still jumps (ED-278 (13)).
 [Collection("Headless")]
 public sealed class ChatViewParityRound4TitleTests(HeadlessSession headless)
 {

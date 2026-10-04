@@ -31,7 +31,7 @@ public sealed class ChatViewParityReview3Tests(HeadlessSession headless)
 
     // PR-TERM-001 / OD-0076, the mirror of round 2's finding. The drawer reopened while it is still closing (Ctrl+J twice inside the
     // 0.32 s spring). ChatView.swift:276-279,290 runs the drawer's `.move(edge: .bottom).combined(with: .opacity)` and the column's
-    // layout under one `.animation(_, value: isTerminalVisible)`; the port's own claim (ChatView.PushTerminal, ED-NEW-parity-chatview
+    // layout under one `.animation(_, value: isTerminalVisible)`; the port's own claim (ChatView.PushTerminal, ED-278
     // (3)) is that the pane's bottom edge is the drawer's top on every frame. Round 1 carries the chat box on from where it is
     // (REVIEW_Reopening_the_terminal_while_it_is_closing_moves_the_thread_view_on_from_where_it_is, which never looks at a drawer),
     // and round 2 made only the close continue (SwiftTransition.RemoveContinuing). On a reopen the port builds a NEW TerminalPanel

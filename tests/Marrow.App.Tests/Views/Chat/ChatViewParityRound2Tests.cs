@@ -121,7 +121,7 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
         }, reduceMotion: true);
     }
 
-    // PR-CHAT-172 / PR-CHAT-173 (the round 1 fix, ED-NEW-parity-chatview (1)). ChatView.swift:1179 `.animation(Chrome.panelSlide, value: sidebarVisible)`:
+    // PR-CHAT-172 / PR-CHAT-173 (the round 1 fix, ED-278 (1)). ChatView.swift:1179 `.animation(Chrome.panelSlide, value: sidebarVisible)`:
     // the controls glide to their new places on panelSlide itself (.spring(response: 0.32, dampingFraction: 0.9)). The round 1 tests only ask that a
     // control is somewhere between its two places 64 ms in; here the New thread circle is sampled on the curve (mutants M7b, a glide on
     // .easeOut(duration: 0.32), and M20, a linear glide, survived the ChatView suite before this test). Written by the round 2 review.
@@ -268,11 +268,11 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
             GC.KeepAlive(tracker);
         }, configure: (model, _) => { model.Settings.UsagePanelDock = corner; model.Settings.ShowsUsagePanel = true; });
 
-    // ED-NEW-parity-chatview (4), the surface's presented size (ChatView.SizeSurface): SubagentPanel.swift:299,340-354 frames the panel's scrim and
+    // ED-278 (4), the surface's presented size (ChatView.SizeSurface): SubagentPanel.swift:299,340-354 frames the panel's scrim and
     // its glass shape explicitly at the panel's size, so when the pane changes size under a mounted helper panel the inner glass follows every size
     // the placement presents and ends at the new one. (Mutant M5d of round 2, the inner framing deleted, survived the ChatView suite.)
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/SubagentPanel.swift:299,340-354; ChatView.swift:541-545; ED-NEW-parity-chatview (4)
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/SubagentPanel.swift:299,340-354; ChatView.swift:541-545; ED-278 (4)
     public void A_helper_panels_inner_glass_follows_the_panels_size_when_the_pane_changes_under_it()
         => WithColumn((h, model, runtime, view, window, frames) =>
         {

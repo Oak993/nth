@@ -173,7 +173,7 @@ public sealed class ChatViewParityTerminalTests(HeadlessSession headless)
     // PR-TERM-001, the drawer closing (ChatView.swift:276-279,290): the layout change is animated both ways, so a bottom-docked panel sinks with the
     // chat box as the drawer leaves, as it rose with it on the way in; and the pane's size is read once at its final value, not on the way.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:156-241,276-279,290; the Mac's frames are in REVIEW_A_bottom_docked_panel_rises_with_the_terminal_push_in_step_with_the_composer; ED-NEW-parity-chatview (3)
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:156-241,276-279,290; the Mac's frames are in REVIEW_A_bottom_docked_panel_rises_with_the_terminal_push_in_step_with_the_composer; ED-278 (3)
     public void A_bottom_docked_panel_sinks_with_the_chat_box_as_the_terminal_closes_and_the_scene_reads_the_pane_once()
         => WithColumn(PanelDockCorner.BottomLeading, (h, view, runtime, composer, panel, window, frames) =>
         {
@@ -217,7 +217,7 @@ public sealed class ChatViewParityTerminalTests(HeadlessSession headless)
     // PR-TERM-001: the scene reads the settled size only while a push runs; once the drawer is open its row is the layout, and the drawer's own height
     // (dragged, or set) moves the pane and the scene with it again, frame by frame.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:241-249,276-279; ED-NEW-parity-chatview (3)
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:241-249,276-279; ED-278 (3)
     public void Once_the_push_has_settled_a_change_of_the_drawers_height_reaches_the_scene()
         => WithColumn(PanelDockCorner.BottomLeading, (h, view, runtime, composer, panel, window, frames) =>
         {
@@ -235,7 +235,7 @@ public sealed class ChatViewParityTerminalTests(HeadlessSession headless)
 
     // PR-TERM-001: a drawer taller than the column leaves the pane no room; the size the scene is told is zero, never below it.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:241-249,276-279; ED-NEW-parity-chatview (3)
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:241-249,276-279; ED-278 (3)
     public void A_drawer_taller_than_the_column_never_gives_the_scene_a_negative_pane()
         => WithColumn(PanelDockCorner.TopLeading, (h, view, runtime, composer, panel, window, frames) =>
         {
@@ -254,7 +254,7 @@ public sealed class ChatViewParityTerminalTests(HeadlessSession headless)
     // PR-TERM-001, the drawer opening: a top-docked panel keeps its place through the push (it hangs from the pane's top edge, which does not
     // move), while the chat box rises.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:156-241,276-279,290; ED-NEW-parity-chatview (3)
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:156-241,276-279,290; ED-278 (3)
     public void A_top_docked_panel_stays_where_it_is_while_the_terminal_pushes_the_chat_box_up()
         => WithColumn(PanelDockCorner.TopLeading, (h, view, runtime, composer, panel, window, frames) =>
         {
@@ -276,7 +276,7 @@ public sealed class ChatViewParityTerminalTests(HeadlessSession headless)
     // PR-TERM-001 / OD-0076, an interrupted push: the drawer closed while it is still opening goes on from where the thread view is, and the
     // panel with it; neither jumps (SwiftUI retargets the animated layout from its presentation).
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:276-279,290; OD-0076; ED-NEW-parity-chatview (3)
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:276-279,290; OD-0076; ED-278 (3)
     public void Closing_the_terminal_while_it_is_still_opening_carries_the_chat_box_and_its_panel_on_from_where_they_are()
         => WithColumn(PanelDockCorner.BottomLeading, (h, view, runtime, composer, panel, window, frames) =>
         {

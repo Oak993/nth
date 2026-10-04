@@ -17,7 +17,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Chat;
 
-// The terminal drawer reopened while it is still closing (ED-NEW-parity-chatview (10), round 4): the leaving drawer comes back from
+// The terminal drawer reopened while it is still closing (ED-278 (10), round 4): the leaving drawer comes back from
 // where it is, as the same TerminalPanel, in lock-step with the chat box (PR-TERM-001; OD-0076, no change by a cut). The drawer
 // reopened after it has left, or for another directory, is a new panel from below as ever.
 [Collection("Headless")]

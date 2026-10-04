@@ -153,7 +153,7 @@ public sealed class ChatViewParityUsageTests(HeadlessSession headless)
     // PR-USAGE-074 (ChatView.swift:541-545,574-577): the panel's frame, surface included, glides to the content height; a surface that is swapped in
     // while it glides (the thread's provider changed: another conversation inside the same placed panel) joins the frame where it is, not at its end.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:541-545,574-577; ED-NEW-parity-chatview (4)
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:541-545,574-577; ED-278 (4)
     public void A_usage_panel_replaced_in_the_middle_of_its_glide_takes_the_size_the_glide_has_reached()
     {
         ChatHeadlessFixtures.Run(headless, () =>

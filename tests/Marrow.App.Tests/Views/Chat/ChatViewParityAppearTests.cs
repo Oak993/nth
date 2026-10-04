@@ -18,7 +18,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // Chrome.swift:933-960): each arrives under Animation.softAppear (.smooth(duration: 0.32)) fading in with a 4-point rise, and
 // leaves under .easeOut(duration: 0.12) with a plain fade (round 1 review: four mutants of these two curves survived the suite).
 // The curves are the port's own Animation values, which their own tests fix; what is proven here is which curve each half uses
-// and what it moves. ED-NEW-parity-chatview (2).
+// and what it moves. ED-278 (2).
 [Collection("Headless")]
 public sealed class ChatViewParityAppearTests(HeadlessSession headless)
 {
@@ -132,29 +132,29 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1129-1131; Chrome.swift:938-960 (PR-CHAT-173 and UI-CHAT-074, the arrival half); ED-NEW-parity-chatview
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1129-1131; Chrome.swift:938-960 (PR-CHAT-173 and UI-CHAT-074, the arrival half); ED-278
     public void The_Threads_button_arrives_on_the_soft_appear_curve_fading_in_with_a_4_point_rise() =>
         AssertArrives<ThreadsButton>(sidebarHoldsButtons: true, hydra: false, model => model.Sidebar.NoteLaidOutWidth(0));
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1129-1131; Chrome.swift:948-956 (PR-CHAT-173 and UI-CHAT-074, the departure half); ED-NEW-parity-chatview
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1129-1131; Chrome.swift:948-956 (PR-CHAT-173 and UI-CHAT-074, the departure half); ED-278
     public void The_Threads_button_leaves_on_an_ease_out_fade_of_0_12_seconds_without_sinking() =>
         AssertLeaves<ThreadsButton>(sidebarHoldsButtons: false, hydra: false, model => model.Sidebar.NoteLaidOutWidth(400));
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1138-1140; Chrome.swift:938-960 (the Hydra slot of PR-CHAT-171, the arrival half); ED-NEW-parity-chatview
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1138-1140; Chrome.swift:938-960 (the Hydra slot of PR-CHAT-171, the arrival half); ED-278
     public void The_Hydra_button_arrives_on_the_soft_appear_curve_fading_in_with_a_4_point_rise() =>
         AssertArrives<HydraButton>(sidebarHoldsButtons: true, hydra: false, model => model.Settings.HydraEnabled = true);
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1138-1140; Chrome.swift:948-956 (the Hydra slot of PR-CHAT-171, the departure half); ED-NEW-parity-chatview
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1138-1140; Chrome.swift:948-956 (the Hydra slot of PR-CHAT-171, the departure half); ED-278
     public void The_Hydra_button_leaves_on_an_ease_out_fade_of_0_12_seconds_without_sinking() =>
         AssertLeaves<HydraButton>(sidebarHoldsButtons: true, hydra: true, model => model.Settings.HydraEnabled = false);
 
     // The row's glide starts from where the controls were drawn: a row that has not been laid out yet has drawn nothing, so a change of the window
     // buttons' owner before its first layout puts the controls at their places at once (they do not sweep in from the row's start).
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1179; ED-NEW-parity-chatview (1)
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1179; ED-278 (1)
     public void A_row_that_has_not_been_laid_out_yet_places_its_controls_at_once_when_the_window_buttons_move()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -193,7 +193,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
     // where its flag changes: the terminal's on the panel slide (the column's `.animation(Chrome.panelSlide, value: runtime.isTerminalVisible)`, :290),
     // the Changes button's, which the Mac snaps, on the hover curve (OD-0076).
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatView.swift:290,1164-1172; Chrome.swift:344-350; OD-0076; ED-NEW-parity-chatview (5)
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:290,1164-1172; Chrome.swift:344-350; OD-0076; ED-278 (5)
     public void The_toggle_capsules_on_circles_fade_in_and_out_on_the_panel_slide_and_the_hover_curve_while_the_buttons_keep_their_identity()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -251,11 +251,11 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
         });
     }
 
-    // The kept toggle buttons (ED-NEW-parity-chatview (5)): a button turned on by ChromeIconButton.Update keeps its "on" circle when the pointer
+    // The kept toggle buttons (ED-278 (5)): a button turned on by ChromeIconButton.Update keeps its "on" circle when the pointer
     // moves onto it and off it again. Chrome.swift:370-378 redraws the label with the button's current isActive and the new hover state; a hover
     // that redrew it with the isActive the button was built with would drop the circle (mutant M10d of round 2 survived the ChatView suite).
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // UI/Chrome/Chrome.swift:344-350,370-378; ChatView.swift:1164-1172; ED-NEW-parity-chatview (5)
+    [Trait("Rule", "R-TEST-4")] // UI/Chrome/Chrome.swift:344-350,370-378; ChatView.swift:1164-1172; ED-278 (5)
     public void A_toggle_button_turned_on_keeps_its_on_circle_while_the_pointer_hovers_it_and_leaves()
     {
         ChatHeadlessFixtures.Run(headless, () =>

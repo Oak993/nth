@@ -1,6 +1,6 @@
 // PORT-ONLY: ChatView.swift:1124,1176-1180,1238 the chrome row's `HStack(alignment: .center, spacing: 10)` whose title takes the leftover width and whose
 // layout glides under `.animation(Chrome.panelSlide, value: sidebarVisible)`. Avalonia's StackPanel gives a control only its own width and animates no
-// layout. ED-NEW-parity-chatview (1).
+// layout. ED-278 (1).
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +19,7 @@ namespace Marrow.App.Port;
 /// the title only its text's width and drew the capsules straight after it. It also carries what SwiftUI's stack gets from
 /// `.animation(Chrome.panelSlide, value: sidebarVisible)` on the row (:1179): a control whose place in the row changes glides
 /// from where it was (<see cref="Glide"/>), and a control that is removed gives up its slot at once while it fades out where it
-/// stood (<see cref="Departing"/>). ED-NEW-parity-chatview (1).</summary>
+/// stood (<see cref="Departing"/>). ED-278 (1).</summary>
 internal sealed class ChatChromeRowStack : StackPanel
 {
     private Animation? glide;
