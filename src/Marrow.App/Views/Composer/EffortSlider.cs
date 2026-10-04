@@ -1318,10 +1318,17 @@ public sealed class EffortSlider : Decorator
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new EffortPeer(this);
-    private sealed class EffortPeer(EffortSlider owner) : ControlAutomationPeer(owner), IRangeValueProvider
+    // :820-830 one element: the label (Name), the value (the current effort's title, :826-827 accessibilityValue) and the adjustable
+    // action (increment and decrement, clamped). UI Automation's two value patterns carry them: the RangeValue pattern the
+    // adjustment, the Value pattern (read-only) the title a screen reader reads as the slider's value. ENGINEERING DECISION,
+    // ED-NEW-effortslider2: Narrator reads Name and the RangeValue number or the Value string, not ItemStatus.
+    private sealed class EffortPeer(EffortSlider owner) : ControlAutomationPeer(owner), IRangeValueProvider, IValueProvider
     {
         protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Slider;
-        public bool IsReadOnly => false;
+        bool IRangeValueProvider.IsReadOnly => false;
+        bool IValueProvider.IsReadOnly => true;
+        string? IValueProvider.Value => AutomationProperties.GetItemStatus(owner);
+        void IValueProvider.SetValue(string? value) { } // the title follows the effort; it is not a text to set
         public double Minimum => 0;
         public double Maximum => Math.Max(0, owner.count - 1);
         public double SmallChange => 1;

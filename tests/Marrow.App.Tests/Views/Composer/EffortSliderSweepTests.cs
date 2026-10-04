@@ -643,6 +643,8 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:620-624 .frame(height: EffortSlider.thumbSize) (PR-COMPOSER-117 and UI-COMPOSER-036, whose 42 point height OD-0090 made the 48 px knob's)
+    [Trait("Req", "PR-COMPOSER-117")] // EffortSlider.swift:620-624 as amended by OD-0090 (48 px)
+    [Trait("Req", "UI-COMPOSER-036")] // EffortSlider.swift:620-624 as amended by OD-0090 (48 px)
     public void Empty_levels_show_standard_and_the_single_level_note()
     {
         headless.OnUiThread(() =>
@@ -761,7 +763,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-127 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:729-737
+    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:729-737
     // App/Views/Composer/EffortSlider.swift:985-998; capture method remains STOP #4, no whole-record Req.
     [InlineData(0, false, TrackLook.Kind.Plain)]
     [InlineData(2, false, TrackLook.Kind.Supercharged)]
@@ -1279,7 +1281,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:889-909 brand.fill: Meta and silver are two-stop gradients at maximum effort
+    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:889-909 brand.fill: Meta and silver are two-stop gradients at maximum effort
     [InlineData(EffortBrand.Meta, 0.0, 0.39, 0.88, 0.0, 0.51, 0.98)]
     [InlineData(EffortBrand.Silver, 1.0, 1.0, 1.0, 0.88, 0.88, 0.91)]
     public void Meta_and_silver_maximum_effort_fills_are_their_source_gradients(EffortBrand brand, double r1, double g1, double b1, double r2, double g2, double b2)

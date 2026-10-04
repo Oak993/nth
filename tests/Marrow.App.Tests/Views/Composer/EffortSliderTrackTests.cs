@@ -62,7 +62,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     // ---- PR-COMPOSER-127: the 2x2 mapping of maximum effort and fast mode onto the four looks ---------------------------------
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-127 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:729-738 look: (isMax, fastMode) -> fusion, supercharged, fast, plain; no effect for plain
+    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:729-738 look: (isMax, fastMode) -> fusion, supercharged, fast, plain; every kind draws the liquid (DEVIATION OD-0075)
     [InlineData(0, false, TrackLook.Kind.Plain)]
     [InlineData(2, false, TrackLook.Kind.Supercharged)]
     [InlineData(0, true, TrackLook.Kind.Fast)]
@@ -92,7 +92,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-127 clause: a fast toggle leaves the fill as it is (DEVIATION OD-0073, OD-0075: plain, fast and maximum all keep the brand's fill under the liquid); the fill crossfade is the next test's
+    [Trait("Req", "PR-COMPOSER-127")] // a fast toggle leaves the fill as it is (DEVIATION OD-0073, OD-0075: plain, fast and maximum all keep the brand's fill under the liquid); the fill crossfade is the next test's
     public void A_fast_toggle_leaves_the_brands_fill_as_it_is() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
@@ -113,7 +113,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-127 clause: App/Views/Composer/EffortSlider.swift:799 .animation(.smooth(duration: 0.3), value: look): the fill follows a look change over 0.3 s (here the change that still moves the fill: a pair joining and leaving)
+    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:799 .animation(.smooth(duration: 0.3), value: look): the fill follows a look change over 0.3 s (here the change that still moves the fill: a pair joining and leaving)
     public void A_pair_joining_crossfades_the_fill_over_smooth_point_three_and_back() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
@@ -154,7 +154,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     // ---- PR-COMPOSER-128: the fill per brand and per pair ------------------------------------------------------------------
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:889-909 brand.fill, :862-871 init(provider:): the source's six brands at maximum
+    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:889-909 brand.fill, :862-871 init(provider:): the source's six brands at maximum
     [InlineData(ProviderKind.Claude, 0.80, 0.42, 0.28)]
     [InlineData(ProviderKind.Deepseek, 0.24, 0.36, 0.98)]
     [InlineData(null, 0.55, 0.34, 0.97)]
@@ -168,7 +168,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:893-908 the source's gradients: Meta two stops, Codex's silver two stops, Antigravity's Gemini sweep
+    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:893-908 the source's gradients: Meta two stops, Codex's silver two stops, Antigravity's Gemini sweep
     [InlineData(ProviderKind.Meta, "0,0.39,0.88|0,0.51,0.98")]
     [InlineData(ProviderKind.Codex, "1,1,1|0.88,0.88,0.91")]
     [InlineData(ProviderKind.Antigravity, "0.26,0.52,0.96|0.61,0.45,0.80|0.85,0.40,0.44")]
@@ -189,7 +189,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     // OD-0047 (locked canvas work/design/effort-liquid-approved-v15.dc.html:360-373): every other provider has its own colours;
     // the track's fill under the liquid is the canvas's three stops.
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): DEVIATION OD-0047: the nine providers that shared the source's silver wear their own brand
+    [Trait("Req", "PR-COMPOSER-128")] // DEVIATION OD-0047: the nine providers that shared the source's silver wear their own brand
     [InlineData(ProviderKind.Cursor, "#d93f00", "#f54e00", "#ff8040")]
     [InlineData(ProviderKind.Grok, "#030304", "#121218", "#26262e")]
     [InlineData(ProviderKind.Opencode, "#168a3a", "#25b34f", "#45dc6c")]
@@ -209,7 +209,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:985-988 a pair's fill is [lead fill] + the heads' colours, at every effort; :942-961 the heads' colours
+    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:985-988 a pair's fill is [lead fill] + the heads' colours, at every effort; :942-961 the heads' colours
     [InlineData(ProviderKind.Claude, ProviderKind.Claude, 5, 0)]    // heads on the lead's provider: the roster's first four persona colours
     [InlineData(ProviderKind.Claude, ProviderKind.Antigravity, 4, 0)] // heads on Antigravity: the Gemini sweep
     [InlineData(ProviderKind.Claude, ProviderKind.Codex, 3, 0)]     // silver heads: two greys
@@ -237,7 +237,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:990 plain is Chrome.accent and :992-996 fast and fusion keep the brand's fill (DEVIATION OD-0073) for every brand
+    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:990-996 fast and fusion keep the brand's fill (DEVIATION OD-0073) for every brand
     public void The_fast_and_fusion_fills_are_the_brands_fill_for_each_source_brand() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -255,12 +255,14 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-132")] // App/Views/Composer/EffortSlider.swift:760-767,1020-1026 effectIdentity: a pair keeps its effect, and so its clock, through kind changes
+    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:729-738,760-767: the pair's colours own the fill whatever the kind, and the kind's own effects play on top, in the same view
     public void A_pairs_effect_keeps_its_clock_through_kind_changes() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
         var clock = new ManualTimeProvider(); using var clockBinding = SwiftClock.Provider.Override(clock);
         var pair = new EffortPairBrand(new HydraPair(ProviderKind.Codex));
-        var slider = Slider(0, false, EffortBrand.Claude, pair);
+        var at = 0;
+        var slider = new EffortSlider(3, new Binding<int>(() => at, v => at = v), "Title", false, EffortBrand.Claude, pair);
         var window = Show(slider);
         try
         {
@@ -271,11 +273,14 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
             // plain -> fast -> fusion -> plain, all in the same pair: the same instance, the clock never restarts
             foreach (var (index, fast) in new[] { (0, true), (2, true), (2, false), (0, false) })
             {
+                at = index;
                 slider.UpdateLook(fast, "Title", pair);
                 Dispatcher.UIThread.RunJobs();
                 var before = effect.TimeAt(SwiftDate.Now);
                 Step(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60));
                 Assert.Same(effect, Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>()));
+                // the kind's own effects join in place: the same view now draws the new kind (:1020-1026 the identity ignores it)
+                Assert.Equal(index == 2 ? (fast ? TrackLook.Kind.Fusion : TrackLook.Kind.Supercharged) : (fast ? TrackLook.Kind.Fast : TrackLook.Kind.Plain), effect.Look.TrackLookKind);
                 Assert.Equal(before + 1.0 / 60, effect.TimeAt(SwiftDate.Now), 3);
                 Assert.True(effect.TimeAt(SwiftDate.Now) >= 3, "the pair's clock has not gone back to 0");
             }
@@ -285,6 +290,7 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-COMPOSER-132")] // App/Views/Composer/EffortSlider.swift:760-767,1024-1026: without a pair every look change starts the effect over (a new identity, crossfading)
+    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:798-799 .animation(.smooth(duration: 0.3), value: look): the look's change crossfades the effect over 0.3 s smooth
     [InlineData(0, false, 2, false)]  // plain -> supercharged
     [InlineData(2, false, 2, true)]   // supercharged -> fusion
     [InlineData(0, true, 2, true)]    // fast -> fusion
@@ -309,6 +315,14 @@ public sealed class EffortSliderTrackTests(HeadlessSession headless)
             var incoming = Assert.Single(effects, effect => !ReferenceEquals(effect, outgoing));
             Assert.Equal(0, incoming.TimeAt(SwiftDate.Now), 3); // the new effect starts over
             Assert.Equal(3, Assert.IsType<TrackEffect>(outgoing).TimeAt(SwiftDate.Now), 3); // the leaving one keeps the time it had
+            // :760-767 .transition(.opacity) under :799 smooth(0.3): the old effect fades out as the new one fades in, then is gone
+            var smooth = Animation.Smooth(0.3);
+            Step(TimeSpan.FromMilliseconds(100));
+            Assert.Equal(smooth.Progress(0.1), incoming.Opacity, 3);
+            Assert.Equal(1 - smooth.Progress(0.1), outgoing.Opacity, 3);
+            Step(TimeSpan.FromMilliseconds(400));
+            Assert.Equal(1, incoming.Opacity, 3);
+            Assert.Same(incoming, Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>()));
         }
         finally { window.Close(); }
     });

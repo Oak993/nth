@@ -172,6 +172,7 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // jewel-knob.html:553 lostpointercapture lets go as pointerup does (retarget to the stop, spring 0.32/0.78)
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void Losing_the_pointer_lets_go_of_the_knob_as_a_release_does() => headless.OnUiThread(() =>
     {
         var run = Slider.GetProperty("trackPress").EnumerateArray().ToArray();

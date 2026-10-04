@@ -39,6 +39,8 @@ public sealed class EffortSliderPlainLiquidTests(HeadlessSession headless)
     public static IEnumerable<object[]> Brands() => Enum.GetValues<EffortBrand>().Select(b => new object[] { b });
 
     [Theory]
+    [Trait("Req", "PR-COMPOSER-127")] // DEVIATION OD-0075: the plain kind draws the liquid effect, as the other kinds do (EffortSlider.swift:729-738, :760-767)
+    [Trait("Req", "PR-COMPOSER-128")] // DEVIATION OD-0075: the plain fill is the brand's fill (EffortSlider.swift:990-991, :889-909), for every brand
     [MemberData(nameof(Brands))]
     public void A_plain_solo_track_holds_one_liquid_effect_of_its_brand_over_the_brands_fill_at_every_stop_below_the_top(EffortBrand brand) => headless.OnUiThread(() =>
     {
@@ -103,6 +105,7 @@ public sealed class EffortSliderPlainLiquidTests(HeadlessSession headless)
     }
 
     [Theory]
+    [Trait("Req", "PR-COMPOSER-127")] // DEVIATION OD-0075: the plain kind's effect paints the maker's liquid (EffortSlider.swift:760-767 draws none)
     [InlineData(EffortBrand.Claude)]
     [InlineData(EffortBrand.Deepseek)]
     [InlineData(EffortBrand.Silver)]
@@ -120,6 +123,7 @@ public sealed class EffortSliderPlainLiquidTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-COMPOSER-128")] // DEVIATION OD-0075: the plain fill is no longer Chrome.accent (EffortSlider.swift:990)
     public void A_plain_track_is_not_the_accent_it_was() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -136,6 +140,7 @@ public sealed class EffortSliderPlainLiquidTests(HeadlessSession headless)
     private static Color Chrome_Accent(ThemeVariant theme) => Chrome.Accent.Resolve(theme);
 
     [Fact]
+    [Trait("Req", "PR-COMPOSER-132")] // EffortSlider.swift:1020-1026 the identity is the whole look without a pair: a change that keeps the kind keeps the effect
     public void A_look_change_below_the_top_that_keeps_the_kind_does_not_restart_the_liquid() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
