@@ -8,7 +8,7 @@ namespace Marrow.Services.Tests.Port.Skills.Generations;
 [Trait("Feature", "SK-9")]
 public sealed class GenerationTests
 {
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-installed-enabled")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-installed-enabled
     public void Disabled_and_not_installed_skills_never_appear()
     {
         using var f = new GenerationFixture();
@@ -19,7 +19,7 @@ public sealed class GenerationTests
         Assert.DoesNotContain("SKILL.md", string.Join(',', Directory.GetFiles(g.Folder, "*", SearchOption.AllDirectories)), StringComparison.Ordinal);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "OD-0099-progressive-disclosure")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: OD-0099-progressive-disclosure
     public void Catalogue_has_only_names_and_descriptions_and_text_requires_invocation()
     {
         using var f = new GenerationFixture();
@@ -34,7 +34,7 @@ public sealed class GenerationTests
         Assert.Throws<ArgumentException>(() => g.ReadReference("pdf", "/outside"));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "Q-SKILLS-1-A")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: Q-SKILLS-1-A
     public void Defaults_enable_approved_groups_but_not_external_access_or_large_sets()
     {
         Assert.True(SkillDefaults.Enabled("O3", SkillGroup.Documents, false));
@@ -47,7 +47,7 @@ public sealed class GenerationTests
         Assert.False(SkillSwitches.Empty.PluginEnabled("A3"));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.3-provider-filters")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.3-provider-filters
     public void Provider_filters_and_explicit_only_are_applied_independently()
     {
         using var f = new GenerationFixture();
@@ -63,7 +63,7 @@ public sealed class GenerationTests
         Assert.Equal(new[] { "claude-api", "plugin-creator" }, codex.Skills.Select(s => s.Name).Order(StringComparer.Ordinal));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-5-equivalence")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-equivalence
     public void Runtime_plugin_names_and_case_match_equivalence_groups()
     {
         using var f = new GenerationFixture();
@@ -73,7 +73,7 @@ public sealed class GenerationTests
         Assert.Empty(g.Skills);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-21-budget")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-21-budget
     public void User_descriptions_stay_whole_and_lowest_priority_is_left_out()
     {
         using var f = new GenerationFixture();
@@ -87,7 +87,7 @@ public sealed class GenerationTests
         Assert.True(g.Catalogue.Length <= 850);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-enabled-json")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-enabled-json
     public void Switches_round_trip_carry_over_drop_removed_and_default_new_skills()
     {
         using var f = new GenerationFixture();
@@ -101,7 +101,7 @@ public sealed class GenerationTests
         Assert.DoesNotContain(pdf.Skills[0].Id, read.Reconcile("third", [doc]).Skills.Keys);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-frozen-running-resumed")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-frozen-running-resumed
     public void Running_chat_keeps_its_generation_and_resume_uses_current_switches_at_same_path()
     {
         using var f = new GenerationFixture();
@@ -119,7 +119,7 @@ public sealed class GenerationTests
         Assert.Empty(resumed.Skills);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-atomic-GC-leases")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-atomic-GC-leases
     public void Published_generations_are_complete_locked_and_lease_protected_from_store_GC()
     {
         using var f = new GenerationFixture();
@@ -136,7 +136,7 @@ public sealed class GenerationTests
         Assert.False(Directory.Exists(path));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-fail-closed")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-fail-closed
     public void Damaged_store_and_unavailable_protection_are_never_published()
     {
         using var f = new GenerationFixture();
@@ -151,7 +151,7 @@ public sealed class GenerationTests
         finally { f.Fake.Refuse = false; }
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "BUILD-SK-9-plugin-split")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: BUILD-SK-9-plugin-split
     public void Claude_and_Grok_get_whole_enabled_plugin_other_providers_get_only_skills()
     {
         using var f = new GenerationFixture();
@@ -176,7 +176,7 @@ public sealed class GenerationTests
         }
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "ED-NEW-f-sk-9-plugin-default")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: ED-NEW-f-sk-9-plugin-default
     public void Plugin_hooks_and_MCP_are_off_until_plugin_is_switched_on()
     {
         using var f = new GenerationFixture();
@@ -187,7 +187,7 @@ public sealed class GenerationTests
         Assert.DoesNotContain(Directory.GetFiles(g.Folder, "*", SearchOption.AllDirectories), p => p.EndsWith("hooks.json", StringComparison.Ordinal) || p.EndsWith(".mcp.json", StringComparison.Ordinal));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-verify-on-invocation")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-verify-on-invocation
     public void Tampered_generation_fails_closed_before_full_text_is_returned()
     {
         using var f = new GenerationFixture();

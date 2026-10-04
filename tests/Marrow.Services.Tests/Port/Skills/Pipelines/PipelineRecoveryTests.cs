@@ -84,7 +84,11 @@ public sealed class PipelineRecoveryTests
         var old = pipeline.Snapshot().Single();
         var file = PipelineRoutingReader.FileFor(rig.Paths.StateFile, old.Id, old.Pin);
         var text = File.ReadAllText(file);
-        File.WriteAllText(file, text.Replace(old.Folder, Path.Combine(rig.Paths.Tools, "other"), StringComparison.Ordinal));
+        // integ-sk8-sk9: compare JSON-encoded paths; on Windows the route file escapes every backslash, so a raw Replace changed nothing.
+        static string Json(string path) => System.Text.Json.JsonSerializer.Serialize(path)[1..^1];
+        var tampered = text.Replace(Json(old.Folder), Json(Path.Combine(rig.Paths.Tools, "other")), StringComparison.Ordinal);
+        Assert.NotEqual(text, tampered);
+        File.WriteAllText(file, tampered);
         Assert.Throws<InvalidDataException>(() => pipeline.Collect());
         Assert.True(Directory.Exists(old.Folder));
     }

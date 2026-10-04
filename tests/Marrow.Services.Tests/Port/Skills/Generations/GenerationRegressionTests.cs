@@ -5,7 +5,7 @@ namespace Marrow.Services.Tests.Port.Skills.Generations;
 
 public sealed class GenerationRegressionTests
 {
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-5-YAML-inline-comment")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-YAML-inline-comment
     public void YAML_inline_comments_do_not_hide_user_skill_name_clashes()
     {
         var d = SkillFrontmatter.Disclosure("---\nname: pdf # user skill\ndescription: 'A # description' # comment\n---\nbody");
@@ -14,7 +14,7 @@ public sealed class GenerationRegressionTests
         Assert.True(GenerationFilters.Clashes("codex", "pdf", [d]));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-5-Grok-TOML-comments")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-Grok-TOML-comments
     public void Commented_Grok_section_and_path_arrays_are_read_without_silent_omissions()
     {
         using var f = new GenerationFixture();
@@ -27,7 +27,7 @@ public sealed class GenerationRegressionTests
         Assert.Contains(new SkillClashScanner(home, f.Paths.Root, f.Paths.Root).Scan("grok"), s => s.Name == "pdf");
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-plugin-folder-switches")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-plugin-folder-switches
     public void Plugin_folders_in_one_set_have_independent_content_switches()
     {
         using var f = new GenerationFixture();
@@ -40,7 +40,7 @@ public sealed class GenerationRegressionTests
         Assert.DoesNotContain(Directory.GetFiles(g.Folder, "*", SearchOption.AllDirectories), p => p.Contains(Path.Combine("O4", "second"), StringComparison.Ordinal));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-record-moved-path")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-record-moved-path
     public void A_held_generation_move_is_recorded_and_reused_after_restart()
     {
         using var f = new GenerationFixture();
@@ -62,7 +62,7 @@ public sealed class GenerationRegressionTests
         Assert.Null(resumed.PreviousFolder);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-chat-path-confinement")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-chat-path-confinement
     public void Planted_chat_path_metadata_is_not_authority_to_read_or_delete_elsewhere()
     {
         using var f = new GenerationFixture();
@@ -71,7 +71,7 @@ public sealed class GenerationRegressionTests
         File.WriteAllText(Path.Combine(f.Paths.Skills, "chat-paths.json"), "{\"codex/one\":\"../../outside\"}");
         Assert.Throws<InvalidDataException>(() => f.Open().Start("codex", "one", [item], f.Switches((item, true)), f.Budget));
     }
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-installed-during-chat")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-installed-during-chat
     public void A_set_installed_during_chat_is_absent_from_live_snapshot_and_present_on_resume()
     {
         using var f = new GenerationFixture();
@@ -91,7 +91,7 @@ public sealed class GenerationRegressionTests
         Assert.Equal(path, resumed.Folder);
         Assert.Equal(new[] { "doc", "pdf" }, resumed.Skills.Select(x => x.Name).Order(StringComparer.Ordinal));
     }
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-plugin-switch-after-reconcile")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-plugin-switch-after-reconcile
     public void Item_activation_after_reconcile_clears_old_folder_overrides()
     {
         using var f = new GenerationFixture();
@@ -103,7 +103,7 @@ public sealed class GenerationRegressionTests
         Assert.False(switches.WithPlugin("O4", false).PluginEnabled("O4", ""));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-failed-publication-no-lease-leak")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-failed-publication-no-lease-leak
     public void Path_record_failure_disposes_the_unreturned_generation_lease()
     {
         using var f = new GenerationFixture();
@@ -120,7 +120,7 @@ public sealed class GenerationRegressionTests
         f.Store!.Collect();
         Assert.False(Directory.Exists(Path.Combine(f.Paths.Views, "codex", "chat-one")));
     }
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-spare-miss-reason")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-spare-miss-reason
     public void Missing_spare_is_logged_with_reason_without_skill_body_text()
     {
         using var f = new GenerationFixture();

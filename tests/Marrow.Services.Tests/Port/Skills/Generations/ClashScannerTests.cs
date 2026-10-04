@@ -7,7 +7,7 @@ namespace Marrow.Services.Tests.Port.Skills.Generations;
 [Trait("Feature", "SK-9")]
 public sealed class ClashScannerTests
 {
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-5-user-project-scans")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-user-project-scans
     public void Provider_specific_user_and_project_folders_are_scanned_without_writes()
     {
         using var f = new GenerationFixture();
@@ -29,7 +29,7 @@ public sealed class ClashScannerTests
         Assert.Equal(before, Hash(home));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-5-Grok-own-roots")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-Grok-own-roots
     public void Grok_scans_its_own_configured_and_Claude_roots_without_leaking_them_to_Claude()
     {
         using var f = new GenerationFixture();
@@ -49,7 +49,7 @@ public sealed class ClashScannerTests
         Assert.DoesNotContain(scanner.Scan("claude"), x => x.Name is "pdf" or "spreadsheet");
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-5-OpenCode-relative-global")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-OpenCode-relative-global
     public void OpenCode_effective_paths_resolve_against_session_and_only_forward_tilde_expands()
     {
         using var f = new GenerationFixture();
@@ -64,7 +64,7 @@ public sealed class ClashScannerTests
         Assert.Equal(Path.Combine(project, "~\\x"), scanner.ResolveExtra("~\\x"));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-12-own-skills-off")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-12-own-skills-off
     public void Native_own_skills_switch_off_reads_nothing_from_home()
     {
         using var f = new GenerationFixture();
@@ -77,7 +77,7 @@ public sealed class ClashScannerTests
         Assert.Equal("private", Assert.Single(scanner.Scan("native", ownSkillsForApi: true)).Name);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-5-fail-closed-metadata")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-fail-closed-metadata
     public void Malformed_disclosure_and_unresolved_config_paths_refuse_the_scan()
     {
         using var f = new GenerationFixture();

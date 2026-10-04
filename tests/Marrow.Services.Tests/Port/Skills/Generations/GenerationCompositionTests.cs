@@ -6,7 +6,7 @@ namespace Marrow.Services.Tests.Port.Skills.Generations;
 [Trait("Feature", "SK-9")]
 public sealed class GenerationCompositionTests
 {
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-plugin-disabled-skill")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-plugin-disabled-skill
     public void Whole_plugin_preserves_assets_but_disabled_skill_is_absent()
     {
         using var f = new GenerationFixture();
@@ -18,7 +18,7 @@ public sealed class GenerationCompositionTests
         Assert.True(File.Exists(Path.Combine(Assert.Single(g.PluginFolders), ".mcp.json")));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-multiple-plugin-folders")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-multiple-plugin-folders
     public void A_downloaded_set_preserves_each_whole_plugin_folder_for_plugin_providers()
     {
         using var f = new GenerationFixture();
@@ -35,7 +35,7 @@ public sealed class GenerationCompositionTests
         Assert.DoesNotContain(Directory.GetFiles(codex.Folder, "*", SearchOption.AllDirectories), p => p.EndsWith(".mcp.json", StringComparison.Ordinal));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "WU-21-smallest-window")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-21-smallest-window
     public void Budget_uses_smallest_offered_model_and_user_skills_keep_their_descriptions()
     {
         Assert.Equal(2000, GenerationBudget.ForModels([8000, 2000]).Characters);
@@ -54,7 +54,7 @@ public sealed class GenerationCompositionTests
         }
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-shared-listing")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-shared-listing
     public void Listing_generation_is_shared_by_probes_and_paths_are_rewritten_for_each_chat()
     {
         using var f = new GenerationFixture();
@@ -73,7 +73,7 @@ public sealed class GenerationCompositionTests
         Assert.True(Directory.Exists(second.Folder));
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-restart-stable-path")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-restart-stable-path
     public void A_restart_reuses_the_chat_path_and_complete_references()
     {
         using var f = new GenerationFixture();
