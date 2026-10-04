@@ -59,7 +59,7 @@ public sealed class SkillsCatalogueNeedsTests
     {
         var ids = CatalogueFixtures.Real.Items.Select(i => i.Id).ToHashSet(StringComparer.Ordinal);
         Assert.All(CatalogueFixtures.Real.Items, i => Assert.All(i.Needs.Concat(i.Skills.SelectMany(s => s.Needs)), n => Assert.Contains(n, ids)));
-        Assert.Empty(CatalogueGate.Check(CatalogueFixtures.Real).Violations.Where(v => v.Rule is CatalogueRules.NeedsExist or CatalogueRules.NeedsCycle or CatalogueRules.NeedsKind));
+        Assert.DoesNotContain(CatalogueGate.Check(CatalogueFixtures.Real).Violations, v => v.Rule is CatalogueRules.NeedsExist or CatalogueRules.NeedsCycle or CatalogueRules.NeedsKind);
     }
 
     [Fact]
