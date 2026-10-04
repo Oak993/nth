@@ -1,6 +1,6 @@
 # SK-5 / DL-5 delivery report
 
-Branch: `codex/f-sk-5`. Implementation and acceptance evidence revision: `14aa3237205e6669e3b5df90b2a19d2875476311`, based on requested staging `22902480a`. The final report/evidence commit follows that revision; the push report supplies its exact HEAD. Only this branch is authorized for push. No ledger statuses were changed.
+Branch: `codex/f-sk-5`. Implementation and acceptance evidence revision: `14aa3237205e6669e3b5df90b2a19d2875476311`, based on requested staging `22902480a`. Report/evidence commits follow that revision; the push report supplies its exact HEAD. Only this branch is authorized for push. No ledger statuses were changed.
 
 Implemented in `src/Marrow.Services/Port/Skills/Store/`, one type per file: immutable catalogue-derived inventories; fail-closed full-tree and per-launch binary seal verification; native Windows deny ACL/read-only locking, named-stream and reparse checks; damaged SK-7 state and persistent condemnation; same-installed-pin Repair through narrow downloader/installer interfaces; leases, deferred promotion/deletion, GC, and unlock-all teardown. Plain-file pinned skills have an installer; archive materialization is the SK-4 seam. No production network downloader or CLI was added.
 

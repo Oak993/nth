@@ -1,0 +1,22 @@
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Native_hidden_and_system_entries_are_never_excluded_from_verification [SKIP]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_lock_is_one_exact_current_user_deny_with_both_inheritance_flags [SKIP]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Removing_the_deny_or_renaming_a_locked_tree_is_checked_on_the_next_use [SKIP]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_NTFS_junction_is_damage_and_GC_unlinks_it_without_touching_its_target [SKIP]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Reset_ACLs_then_clear_read_only_then_delete_removes_the_whole_locked_fixture [SKIP]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_named_stream_is_damage_even_when_the_main_stream_matches [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Native_hidden_and_system_entries_are_never_excluded_from_verification [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_lock_is_one_exact_current_user_deny_with_both_inheritance_flags [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Removing_the_deny_or_renaming_a_locked_tree_is_checked_on_the_next_use [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_NTFS_junction_is_damage_and_GC_unlinks_it_without_touching_its_target [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Reset_ACLs_then_clear_read_only_then_delete_removes_the_whole_locked_fixture [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_named_stream_is_damage_even_when_the_main_stream_matches [1 ms]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_handle_without_delete_sharing_defers_GC_until_the_next_pass [SKIP]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_process_working_directory_defers_GC_without_running_a_real_CLI [SKIP]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_exact_inherited_deny_refuses_create_write_append_attribute_rename_and_delete [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_handle_without_delete_sharing_defers_GC_until_the_next_pass [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_process_working_directory_defers_GC_without_running_a_real_CLI [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_exact_inherited_deny_refuses_create_write_append_attribute_rename_and_delete [1 ms]
+
+Passed!  - Failed:     0, Passed:    61, Skipped:     9, Total:    70, Duration: 209 ms - Marrow.Services.Tests.dll (net10.0)
