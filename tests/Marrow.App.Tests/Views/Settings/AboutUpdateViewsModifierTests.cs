@@ -58,7 +58,7 @@ public sealed class AboutUpdateViewsModifierTests(HeadlessSession headless)
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
         runtime.OnMain(() =>
         {
-            using var checker = UpdateChecker.OverrideShared(new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed));
+            using var checker = UpdateChecker.OverrideShared(new UpdateChecker(AppInfo.Current, [], ""));
             var progress = UpdateInstallProgressFixtures.NewProgress(); using var running = UpdateInstallProgress.Running.Override(progress);
             if (installing) progress.Begin();
             var pill = new AboutVersionPill();
@@ -83,7 +83,7 @@ public sealed class AboutUpdateViewsModifierTests(HeadlessSession headless)
         using var runtime = new TestRuntime();
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
-        var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed));
+        var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], ""));
         using var shared = UpdateChecker.OverrideShared(checker);
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
         AboutVersionPill pill = null!; Avalonia.Controls.Window window = null!;

@@ -83,13 +83,13 @@ public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
         var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], feed.Url("/releases"))); using var shared = UpdateChecker.OverrideShared(checker);
         var row = new AboutUpdateCheckRow(); var window = Show(row);
         Assert.Equal("Check now", Label(row)); Assert.True(CheckButton(row).IsEnabled);
-        Assert.Equal("Marrow checks GitLab for new versions a few times a day. Not checked yet.", Detail(row));
+        Assert.Equal("Marrow checks GitHub for new versions a few times a day. Not checked yet.", Detail(row));
 
         Tap(CheckButton(row), window); // :827-829 Task { await checker.check() }
         Assert.True(checker.IsChecking); Settle();
         Assert.Equal("Checking…", Label(row)); // :827 one U+2026
         Assert.False(CheckButton(row).IsEnabled); // :832
-        Assert.Equal("Asking GitLab for the latest release…", Detail(row)); // :837
+        Assert.Equal("Asking GitHub for the latest release…", Detail(row)); // :837
         Tap(CheckButton(row), window); // a press on the disabled button does nothing
         Assert.Equal("Checking…", Label(row)); Assert.False(CheckButton(row).IsEnabled);
 
