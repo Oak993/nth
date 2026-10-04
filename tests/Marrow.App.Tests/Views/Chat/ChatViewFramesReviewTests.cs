@@ -73,6 +73,8 @@ public sealed class ChatViewFramesReviewTests(HeadlessSession headless)
     }
 
     [Theory]
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1120-1124 GlassEffectContainer(spacing: 2), :1129-1131,1139-1140 .transition(.softAppear); Chrome.swift:933-960
+    [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1120-1124
     [InlineData(100)] // mid-arrival on softAppear (.smooth(duration: 0.32))
     [InlineData(600)] // settled
     public void REVIEW_The_Hydra_buttons_glass_fades_and_rises_with_it_in_the_rows_one_glass_pass(int milliseconds)
@@ -173,6 +175,8 @@ public sealed class ChatViewFramesReviewTests(HeadlessSession headless)
     // The Threads button comes and goes in two ways. When the sidebar takes or gives back the window buttons (sidebarVisible) the whole row glides and its padding animates, so a
     // layout pass follows every frame; when the floating list becomes or stops being the only sidebar nothing else moves, so only the button's own soft appear changes anything.
     [Theory]
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1120-1124 GlassEffectContainer(spacing: 2), :1129-1131,1139-1140 .transition(.softAppear); Chrome.swift:933-960
+    [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1120-1124
     [InlineData(true)]
     [InlineData(false)]
     public void REVIEW_The_Threads_buttons_glass_fades_and_rises_with_it_when_it_arrives(bool withTheRowGliding)
@@ -185,6 +189,8 @@ public sealed class ChatViewFramesReviewTests(HeadlessSession headless)
     }
 
     [Theory]
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1120-1124 GlassEffectContainer(spacing: 2), :1129-1131,1139-1140 .transition(.softAppear); Chrome.swift:933-960
+    [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1120-1124
     [InlineData(true)]
     [InlineData(false)]
     public void REVIEW_The_Threads_buttons_glass_fades_out_with_it_when_it_leaves(bool withTheRowGliding)
@@ -197,6 +203,8 @@ public sealed class ChatViewFramesReviewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1120-1124 GlassEffectContainer(spacing: 2), :1129-1131,1139-1140 .transition(.softAppear); Chrome.swift:933-960
+    [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1120-1124
     public void REVIEW_The_Hydra_buttons_glass_fades_out_with_it_when_Hydra_is_switched_off()
     {
         var frames = Frames(headless, holdsAtStart: false, hydraAtStart: true, model => model.Settings.HydraEnabled = false);
@@ -205,6 +213,8 @@ public sealed class ChatViewFramesReviewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1120-1124 GlassEffectContainer(spacing: 2), :1129-1131,1139-1140 .transition(.softAppear); Chrome.swift:933-960
+    [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1120-1124
     public void REVIEW_The_Hydra_buttons_glass_follows_each_frame_of_its_arrival_without_a_layout_pass()
     {
         var frames = Frames(headless, holdsAtStart: false, hydraAtStart: false, model => model.Settings.HydraEnabled = true);
