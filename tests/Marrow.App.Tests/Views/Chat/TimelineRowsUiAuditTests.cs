@@ -22,12 +22,14 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // STOP opencode-App.Views.Chat.TimelineRows #1: RESOLVED 2026-10-04 (ED-181 closed, the continuous-corners build, ED-NEW-corners).
 // The foundation's oracle-backed continuous corner landed (SwiftShapes.Outline, SwiftShapeBorder, ContinuousClip; the curve is
 // SwiftShapesContinuousTests and SwiftShapesOracleTests in Marrow.UI.Tests). Every site below draws it where its size allows
-// (2 * 1.528665 * r <= min(w, h)) and the circular arc where not (a capsule, a one-line pill under 55 pt), which the reference video
-// fits (ED-NEW-corners (2)); ContinuousCornerChecks.Drawn asserts the regime on the mounted control, in the tests that name the
-// record: UI-CHAT-008 (TimelineRowsFinUserRowTests), UI-CHAT-020/UI-CHAT-021 (TimelineRowsFinReplyTests), UI-RUNTIME-002/003
-// (TimelineRowsFinNoticeTests), UI-GIT-044/PR-CHAT-108 (TimelineRowsFinFileCardTests, TimelineRowsPrRecordsTests),
-// UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests), UI-GIT-050 (TimelineRowsFinUserRowTests). The other records of the list keep
-// their own gaps; none waits on the curve. The legacy tests retain all source radius/inset/type/text/state checks, and
+// (2 * 1.528665 * r <= min(w, h)) and the circular arc where not. The video backs the arc for capsules and for a radius from half the height up
+// (a one-line notice, 33 pt); for a shape in the band h / 3.057 < r < h / 2 (the Edited card, 40 pt, r 18; a two-line notice, about 48 pt, r 18) what
+// Apple draws is UNRESOLVED (ED-NEW-corners (2), corrected 2026-10-04 after the adversarial review: no frame has a measurable edge there).
+// ContinuousCornerChecks.Drawn asserts the regime on the mounted control, in the tests that name the record: UI-CHAT-008
+// (TimelineRowsFinUserRowTests), UI-CHAT-020/UI-CHAT-021 (TimelineRowsFinReplyTests), UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests),
+// UI-GIT-050 (TimelineRowsFinUserRowTests). UI-RUNTIME-002/003 (TimelineRowsFinNoticeTests), UI-GIT-044 and PR-CHAT-108 (TimelineRowsFinFileCardTests,
+// TimelineRowsPrRecordsTests) are NOT proven by it: their shapes are in the band, they are back in STOP #10/#11 of TimelineRowsTests. The other
+// records of the list keep their own gaps. The legacy tests retain all source radius/inset/type/text/state checks, and
 // TimelineRowsUiPointerTests adds real menu input.
 // Exact TimelineRows.cs sites (Swift source sites and records):
 // UserMessageRow quote ChipChrome :97-114, UI-CHAT-008.
