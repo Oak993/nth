@@ -189,4 +189,25 @@ public sealed class DownloaderFailureTests
 
         Assert.Equal(DownloadCause.Timeout, outcome.Failure!.Cause);
     }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "SK-3")]
+    public async Task A_403_is_final_but_a_503_is_retried_when_retries_are_allowed()
+    {
+        await using var forbidden = new DownloadRig();
+        forbidden.Server.Serve("/a.bin", Artifact, new FakeBehavior { Status = 403 });
+        var refused = await forbidden.Run(forbidden.Request("/a.bin", Artifact), new DownloadOptions { RetryDelays = [TimeSpan.FromSeconds(1)] });
+        Assert.Equal((DownloadFailureKind.ServerError, 403), (refused.Failure!.Kind, refused.Failure.HttpStatus));
+        Assert.Single(forbidden.Server.Requests);
+
+        await using var busy = new DownloadRig();
+        busy.Server.Serve("/a.bin", Artifact, new FakeBehavior { Status = 503, FaultyRequests = 1 });
+        var job = busy.Create(new DownloadOptions { RetryDelays = [TimeSpan.FromSeconds(1)] }).Start(busy.Request("/a.bin", Artifact));
+        await DownloadRig.Until(() => job.IsWaitingToRetry);
+        busy.Runtime.Advance(TimeSpan.FromSeconds(1));
+        var outcome = await job.Completion.WaitAsync(FakeDownloadServer.Guard);
+        Assert.True(outcome.Succeeded);
+        Assert.Equal([503, 200], busy.Server.Requests.Select(r => r.Status));
+    }
 }
