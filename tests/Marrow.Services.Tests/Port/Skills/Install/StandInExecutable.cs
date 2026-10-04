@@ -24,4 +24,13 @@ internal static class StandInExecutable
         pe[512] = 0xb8; U32(513, exitCode); pe[517] = 0xc3; // mov eax, exitCode; ret
         return pe;
     }
+
+    // The same image whose only instruction jumps to itself: it stays alive until the runner's cancellation kills it,
+    // so a test can read the exact command line Windows handed to it (integ-sk4-sk5 review).
+    public static byte[] BuildSpinning()
+    {
+        var pe = Build(0);
+        pe[512] = 0xeb; pe[513] = 0xfe; // jmp $
+        return pe;
+    }
 }

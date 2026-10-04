@@ -64,12 +64,13 @@ public sealed class InstallerAcceptanceTests
         var plan = rig.Plan(InstallerKind.Pyset);
         var wheel = rig.Input("fixture.whl", "fixture wheel"u8.ToArray());
         var pin = new LocalWheel(wheel, new FileInfo(wheel).Length, InstallHash.Sha256(File.ReadAllBytes(wheel)), "fixture==1.0");
-        rig.Process.OnRun = command => { if (command.Arguments.Contains("pip", StringComparer.Ordinal)) { var target = command.Arguments[command.Arguments.ToList().IndexOf("--target") + 1]; File.WriteAllText(Path.Combine(target, "fixture.py"), "fixture module"); } };
+        string? lockText = null; // Read while pip runs: the staging folder is removed afterwards (integ-sk4-sk5).
+        rig.Process.OnRun = command => { if (command.Arguments.Contains("pip", StringComparer.Ordinal)) { lockText = File.ReadAllText(command.Arguments[11]); var target = command.Arguments[command.Arguments.ToList().IndexOf("--target") + 1]; File.WriteAllText(Path.Combine(target, "fixture.py"), "fixture module"); } };
         plan = rig.AddArtifact(plan, wheel) with { Pyset = new PysetOptions(Path.Combine(rig.Root, "python.exe"), [pin]) };
         var result = await rig.Installer().InstallAsync(plan);
         var argv = rig.Process.Commands[0].Arguments;
         Assert.Equal(new[] { "-m", "pip", "install", "--no-index", "--find-links", rig.Process.Commands[0].WorkingDirectory, "--require-hashes", "--no-deps", "--target", argv[9], "-r", argv[11] }, argv);
-        Assert.Contains("fixture==1.0 --hash=sha256:" + pin.Sha256, File.ReadAllText(argv[11]), StringComparison.Ordinal);
+        Assert.Contains("fixture==1.0 --hash=sha256:" + pin.Sha256, lockText, StringComparison.Ordinal);
         Assert.Equal(new[] { "-m", "compileall", "--invalidation-mode", "unchecked-hash", argv[9] }, rig.Process.Commands[1].Arguments);
         Assert.True(File.Exists(Path.Combine(result.Path, "fixture.py")));
         File.AppendAllText(wheel, "changed");

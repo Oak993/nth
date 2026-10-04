@@ -12,19 +12,29 @@ internal static class PysetInstaller
         var local = Path.Combine(plan.DataRoot, "addons", "downloads", "tmp-" + Guid.NewGuid().ToString("N"));
         InstallPaths.NoReparseAncestors(local);
         Directory.CreateDirectory(local);
-        var requirements = new List<string>();
-        foreach (var wheel in options.Wheels)
+        try
         {
-            if (!wheel.Path.EndsWith(".whl", StringComparison.OrdinalIgnoreCase) || wheel.Requirement.Contains('\n', StringComparison.Ordinal) || wheel.Requirement.Contains('\r', StringComparison.Ordinal) || wheel.Requirement.Contains(' ', StringComparison.Ordinal) || !Regex.IsMatch(wheel.Requirement, @"\A[A-Za-z0-9_.-]+==[A-Za-z0-9_.+!-]+\z", RegexOptions.CultureInvariant))
-                throw new InvalidDataException("Only a pinned local wheel requirement is accepted.");
-            InstallHash.Verify(wheel.Path, wheel.Size, wheel.Sha256);
-            InstallTree.Copy(wheel.Path, InstallPaths.Under(local, Path.GetFileName(wheel.Path)));
-            requirements.Add(wheel.Requirement + " --hash=sha256:" + wheel.Sha256.ToLowerInvariant());
+            var requirements = new List<string>();
+            foreach (var wheel in options.Wheels)
+            {
+                if (!wheel.Path.EndsWith(".whl", StringComparison.OrdinalIgnoreCase) || wheel.Requirement.Contains('\n', StringComparison.Ordinal) || wheel.Requirement.Contains('\r', StringComparison.Ordinal) || wheel.Requirement.Contains(' ', StringComparison.Ordinal) || !Regex.IsMatch(wheel.Requirement, @"\A[A-Za-z0-9_.-]+==[A-Za-z0-9_.+!-]+\z", RegexOptions.CultureInvariant))
+                    throw new InvalidDataException("Only a pinned local wheel requirement is accepted.");
+                InstallHash.Verify(wheel.Path, wheel.Size, wheel.Sha256);
+                InstallTree.Copy(wheel.Path, InstallPaths.Under(local, Path.GetFileName(wheel.Path)));
+                requirements.Add(wheel.Requirement + " --hash=sha256:" + wheel.Sha256.ToLowerInvariant());
+            }
+            var lockFile = Path.Combine(local, "requirements.lock");
+            File.WriteAllText(lockFile, string.Join("\n", requirements) + "\n", new UTF8Encoding(false));
+            await Run(["-m", "pip", "install", "--no-index", "--find-links", local, "--require-hashes", "--no-deps", "--target", target, "-r", lockFile]);
+            await Run(["-m", "compileall", "--invalidation-mode", "unchecked-hash", target]);
         }
-        var lockFile = Path.Combine(local, "requirements.lock");
-        File.WriteAllText(lockFile, string.Join("\n", requirements) + "\n", new UTF8Encoding(false));
-        await Run(["-m", "pip", "install", "--no-index", "--find-links", local, "--require-hashes", "--no-deps", "--target", target, "-r", lockFile]);
-        await Run(["-m", "compileall", "--invalidation-mode", "unchecked-hash", target]);
+        finally
+        {
+            // The staged copies are never needed after pip, and SK-5's GC does not sweep addons\downloads (ED-NEW-integ-sk4-sk5 (2)).
+            // A held file leaves only this tmp- folder, as an abrupt stop would.
+            try { Directory.Delete(local, recursive: true); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
         async Task Run(string[] argv)
         {
             var exit = await process.RunAsync(new InstallCommand(options.PythonExecutable, argv, local), cancellationToken);
