@@ -444,6 +444,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     // This renders each mounted element with an opaque fill and compares its top-left corner with a SwiftShapeBorder (which fills the path itself) of the same size.
     [Fact]
     [Trait("Rule", "R-TEST-4")] // the corner clause only of UI-CHAT-034, UI-CHAT-036, UI-CHAT-037, UI-CHAT-054, read off the rendered pixels
+    [Trait("Req", "UI-CHAT-034")] // the two-line notice, all four corners: the pixels follow Apple's corner at h / 3.057, not the circle of 18 (the corner clause)
     public void REVIEW_the_four_band_elements_render_Apples_corner_at_the_largest_radius_not_the_circle_of_18() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -488,9 +489,19 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
                     Close(refWindow);
                     var worst = 0;
                     int x0 = (int)Math.Floor(origin.X), y0 = (int)Math.Floor(origin.Y);
-                    for (var y = y0; y < y0 + 8; y++)
-                        for (var x = x0; x < x0 + 8; x++) worst = Math.Max(worst, Math.Abs(mounted[y, x] - expected[y, x]));
-                    results.Add($"{name} ({size.Height:F1} pt at {origin}): worst {worst}; mounted diag {mounted[y0 + 4, x0 + 4]} {mounted[y0 + 5, x0 + 5]} ref {expected[y0 + 4, x0 + 4]} {expected[y0 + 5, x0 + 5]} inside {mounted[y0 + 10, x0 + 30]}/{expected[y0 + 10, x0 + 30]}");
+                    // All four corners (the cornerband check found the 46 pt notice 102 levels off at its bottom-left run-in, which a top-left window never sees): the 8 pt
+                    // square at each corner of the element, inside every element's padding so only the fill is read, never a glyph or a word.
+                    int right = (int)Math.Ceiling(origin.X + size.Width) - 8, bottom = (int)Math.Ceiling(origin.Y + size.Height) - 8;
+                    var perCorner = new List<string>();
+                    foreach (var (label, bx, by) in new[] { ("top-left", x0, y0), ("top-right", right, y0), ("bottom-right", right, bottom), ("bottom-left", x0, bottom) })
+                    {
+                        var cornerWorst = 0;
+                        for (var y = by; y < by + 8; y++)
+                            for (var x = bx; x < bx + 8; x++) cornerWorst = Math.Max(cornerWorst, Math.Abs(mounted[y, x] - expected[y, x]));
+                        perCorner.Add($"{label} {cornerWorst}");
+                        worst = Math.Max(worst, cornerWorst);
+                    }
+                    results.Add($"{name} ({size.Height:F1} pt at {origin}): worst {worst} ({string.Join(", ", perCorner)}); mounted diag {mounted[y0 + 4, x0 + 4]} {mounted[y0 + 5, x0 + 5]} ref {expected[y0 + 4, x0 + 4]} {expected[y0 + 5, x0 + 5]} inside {mounted[y0 + 10, x0 + 30]}/{expected[y0 + 10, x0 + 30]}");
                     if (worst > 60) failures.Add($"{name} ({size.Height:F1} pt at {origin}): the rendered corner differs from Apple's corner at {size.Height / (2 * 1.528665):F2} by {worst} of 255");
                 }
             }
