@@ -59,12 +59,16 @@ public sealed class FloatingGuidePanelCornerTests(HeadlessSession headless)
     }
 
     [Theory]
-    [InlineData("key", true)]
-    [InlineData("key", false)]
-    [InlineData("setup", true)]
-    [InlineData("setup", false)]
+    [InlineData("key", true, false)]
+    [InlineData("key", false, false)]
+    [InlineData("setup", true, false)]
+    [InlineData("setup", false, false)]
+    [InlineData("key", true, true)]
+    [InlineData("key", false, true)]
+    [InlineData("setup", true, true)]
+    [InlineData("setup", false, true)]
     [Trait("Decision", "ED-236")] // App/Views/Settings/MCPKeyPanel.swift:47-57, MCPSetupPanel.swift:117-131 (WindowBackdrop(opacity: 0.5) clipped to Chrome.windowCornerRadius); OD-0075
-    public void The_guide_panels_four_corners_outside_the_26_point_curve_wear_its_scrim_and_the_backdrop_fills_the_frame(string panel, bool dark)
+    public void The_guide_panels_four_corners_outside_the_26_point_curve_are_the_body_just_inside_it_and_the_backdrop_fills_the_frame(string panel, bool dark, bool busy)
     {
         headless.OnUiThread(() =>
         {
@@ -102,20 +106,15 @@ public sealed class FloatingGuidePanelCornerTests(HeadlessSession headless)
                     Settle(window);
                     var width = (int)window.ClientSize.Width;
                     var height = (int)window.ClientSize.Height;
-                    var expected = Over(WindowBackdrop.Scrim(0.5, dark), dark);
                     // The premise: inside the 26 pt shape, left of the content's 18 pt padding, the panel's own backdrop is drawn over the grey
                     // (the setup guide's backdrop fills the padded frame, so it reads here too).
                     var inside = FramePixels.Levels(window, (8, height / 2), (width - 9, height / 2), (width / 2, 8), (width / 2, height - 9));
                     Assert.All(inside, level => Assert.True(Math.Abs(level - Grey.R / 255.0) > 0.02, $"the backdrop inside the shape, within 18 pt of an edge, is drawn ({level:0.###})"));
-                    (int X, int Y)[] corners =
-                    [
-                        (0, 0), (1, 1), (5, 5), (width - 1, 0), (width - 2, 1), (width - 6, 5),
-                        (0, height - 1), (1, height - 2), (5, height - 6), (width - 1, height - 1), (width - 2, height - 2), (width - 6, height - 6),
-                    ];
-                    var levels = FramePixels.Levels(window, corners);
-                    for (var index = 0; index < levels.Length; index++)
-                        Assert.True(Math.Abs(levels[index] - expected) <= 0.012,
-                            $"corner pixel {corners[index]} of the {panel} guide panel is {levels[index]:0.###}; the scrim over the grey is {expected:0.###} (bare grey {Grey.R / 255.0:0.###})");
+                    // OD-0075, ED-NEW-corner-seam: the wedge outside the 26 pt curve is the body just inside it, over a flat or a striped backdrop.
+                    if (busy) { window.Background = Marrow.App.Tests.Views.RootViewCornerWedgeTests.Stripes(); Settle(window); }
+                    var pairs = CornerSeam.Pairs(width, height, Chrome.WindowCornerRadius, [1, 2, 3, 4, 5, 6, 8, 10], edgeInset: 0)
+                        .Concat(CornerSeam.Pairs(width, height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
+                    CornerSeam.AssertSeamless(window, pairs, $"the {panel} guide panel, {(dark ? "dark" : "light")}, {(busy ? "striped" : "grey")} backdrop", busy ? null : (Grey.R, Grey.G, Grey.B));
                 });
             }
             finally

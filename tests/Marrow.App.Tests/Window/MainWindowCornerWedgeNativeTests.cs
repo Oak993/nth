@@ -15,23 +15,42 @@ using N = Marrow.App.Tests.Window.Native.WindowManagerNativeMethods;
 
 namespace Marrow.App.Tests.Window.Native;
 
-// OD-0075 (owner, 2026-10-02: "Window corner: the wedge is filled with the window's scrim"; settles OD-0072); ED-236 UNRESOLVED (a).
+// OD-0075 (owner, 2026-10-02: "Window corner: the wedge is filled with the window's scrim"; settles OD-0072); the owner's intent of 2026-10-05: Windows
+// rounds window corners less than the app's 26 pt glass shape, so the glass is extended to the window's edge and reads as one glass surface out to the OS
+// edge (ED-NEW-corner-seam); ED-236 UNRESOLVED (a).
 //
-// Native proof for the MAIN window's wedge, on a real window and real screen pixels. Until this test the main window's wedge was proven
-// only headless (RootViewCornerWedgeTests: a grey stand-in for the blur); the native capture (GlassWindowNativeTests) covers the Settings
-// window, and every other native test hosts a bare rig (WindowManagerNativeContent, or a Border) in the main window, where RootView, and so
-// its wedge, is absent.
+// Native proof for the MAIN window's corners, on a real window and real screen pixels. Until the first version of this test the main window's wedge was
+// proven only headless (a grey stand-in for the blur); the native capture (GlassWindowNativeTests) covers the Settings window, and every other native test
+// hosts a bare rig (WindowManagerNativeContent, or a Border) in the main window, where RootView, and so its corners, is absent.
 //
-// Here the production factory (WindowManager.ShowMain, WindowChrome.Configure, the system's Acrylic) makes the main window with its real
-// RootView, over a solid bright backdrop. The system's window is a rectangle that DWM rounds by 8 px; RootView draws a 26 pt shape. A 4 x 4
-// block of the composed screen 4 px in from each corner of the window lies inside the rounding and outside the shape: the wedge. With the
-// wedge's layer hidden the block shows the backdrop through the Acrylic (the unscrimmed blur); with it, the backdrop under the window's
-// scrim: black over it in the dark theme, white in the light one, at the alpha WindowBackdrop draws (Chrome.swift:211-215).
+// Here the production factory (WindowManager.ShowMain, WindowChrome.Configure, the system's Acrylic) makes the main window with its real RootView, over
+// a backdrop that is solid and bright, and again over one of broad bands of four colours. The system's window is a rectangle that DWM rounds by 8 px;
+// RootView's glass shape is 26 pt. Around each corner a pixel inside the rounding and outside the shape is the wedge, and the pixel in the same column
+// just inside the shape is the body. The first version of this test found the wedge wearing the scrim alone (black over the backdrop at the scrim's
+// alpha in the dark theme, white in the light one) while the body wore the scrim, the legibility tint and the detail sheet's wash: a lighter or darker band
+// followed the curve, and the glass seemed to stop before the window's edge. Both see the same backdrop in a column (it is the same down every column),
+// so the two must be the same colour, within CornerSeam.Tolerance (3 of 255) on each channel.
 [Collection("WindowManagerNative")]
 public sealed class MainWindowCornerWedgeNativeTests(WindowManagerNativeSession native)
 {
     private static readonly Color Bright = Color.FromRgb(240, 200, 40); // a bright, saturated backdrop: any other colour in the corner is plain to see
-    private const int Tolerance = 7; // levels of 255 on each channel: the system's blur adds noise of a level or two
+    private const int Tolerance = 7; // levels of 255 on each channel for the bare backdrop reading: the system's blur adds noise of a level or two
+
+    // Broad vertical bands of four colours, the same down every column (so a wedge pixel and the body pixel in its column see the same backdrop) and
+    // different across the window (so a layer that is one colour everywhere cannot pass by luck).
+    internal static IBrush Bands() => new LinearGradientBrush
+    {
+        StartPoint = new RelativePoint(0, 0, RelativeUnit.Absolute),
+        EndPoint = new RelativePoint(360, 0, RelativeUnit.Absolute),
+        SpreadMethod = GradientSpreadMethod.Repeat,
+        GradientStops =
+        [
+            new GradientStop(Color.FromRgb(240, 200, 40), 0), new GradientStop(Color.FromRgb(240, 200, 40), 0.25),
+            new GradientStop(Color.FromRgb(30, 60, 220), 0.25), new GradientStop(Color.FromRgb(30, 60, 220), 0.5),
+            new GradientStop(Color.FromRgb(220, 40, 120), 0.5), new GradientStop(Color.FromRgb(220, 40, 120), 0.75),
+            new GradientStop(Color.FromRgb(40, 200, 90), 0.75), new GradientStop(Color.FromRgb(40, 200, 90), 1),
+        ],
+    };
 
     private static void Themeless(AvaloniaWindow window) =>
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
@@ -40,7 +59,7 @@ public sealed class MainWindowCornerWedgeNativeTests(WindowManagerNativeSession 
     [Trait("Decision", "ED-236")]
     [Trait("Decision", "OD-0075")]
     [Trait("Req", "UI-LAUNCH-001")] // the main window's clear glass: Acrylic plus the app's scrim (OD-0014)
-    public void The_real_main_windows_four_corners_outside_the_26_point_shape_wear_the_scrim_over_the_backdrop_in_both_themes() => native.Run(subject =>
+    public void The_real_main_windows_four_corners_outside_the_26_point_shape_are_the_body_just_inside_it_over_a_solid_and_a_busy_backdrop_in_both_themes() => native.Run(subject =>
     {
         var screen = native.OnUi(() => subject.Main.Screens.Primary ?? throw new InvalidOperationException("No native screen is available."));
         var work = screen.WorkingArea;
@@ -49,15 +68,17 @@ public sealed class MainWindowCornerWedgeNativeTests(WindowManagerNativeSession 
             throw new InvalidOperationException("NATIVE_PRECONDITION: the main window test needs a working area of at least 1000 x 700 pixels.");
 
         // The bare rigs of the fixture are out of the way; a topmost solid backdrop covers the working area.
+        Border fill = null!;
         var backdrop = native.OnUi(() =>
         {
+            fill = new Border { Background = new SolidColorBrush(Bright) };
             subject.Settings.Hide();
             subject.Main.Hide();
             var window = new AvaloniaWindow
             {
                 WindowDecorations = WindowDecorations.None, ShowInTaskbar = false, Topmost = true, CanResize = false, ShowActivated = false,
                 WindowStartupLocation = WindowStartupLocation.Manual, Position = work.Position,
-                Width = work.Width / scale, Height = work.Height / scale, Content = new Border { Background = new SolidColorBrush(Bright) },
+                Width = work.Width / scale, Height = work.Height / scale, Content = fill,
             };
             Themeless(window);
             native.Register(window);
@@ -90,47 +111,47 @@ public sealed class MainWindowCornerWedgeNativeTests(WindowManagerNativeSession 
         Assert.NotNull(root);
         WaitFor(() => native.OnUi(() => main.IsVisible), "the main window never showed");
         native.OnUi(() => WindowManagerNativeForeground.Acquire(main.TryGetPlatformHandle()!.Handle, native.ThreadId));
-        var wedge = native.OnUi(() => root.CornerWedge);
-
-        foreach (var (theme, dark) in new[] { (Marrow.UI.Theme.AppTheme.Dark, true), (Marrow.UI.Theme.AppTheme.Light, false) })
+        // the window's launch reveal and the system's blur take a moment: wait for the glass to show over the backdrop before measuring
+        string lastSeen = "nothing read";
+        try
         {
-            var opacity = native.OnUi(() => { manager.Model.Settings.Theme = theme; return manager.Model.Settings.BackdropOpacity; });
-            Thread.Sleep(900); // the window's colours ease (OD-0088); the system blurs the backdrop behind
-            var handle = native.OnUi(() => main.TryGetPlatformHandle()!.Handle);
-            var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
-            var alpha = WindowCornerWedge.Alpha(opacity, dark);
-            Assert.InRange(alpha, 0.05, 0.95); // glass under a scrim, not a solid window
-            var scrim = dark ? 0 : 255;
-            Assert.True(native.OnUi(() => wedge.IsVisible && wedge.Bounds.Width > 0), "the RootView's wedge layer has a size");
-
-            // 4 x 4 pixels 4 px in from each corner of the window: inside DWM's 8 px rounding, outside the 26 pt shape
-            var corners = new[]
+            WaitFor(() =>
             {
-                (visible.Left + 4, visible.Top + 4, "top left"), (visible.Right - 8, visible.Top + 4, "top right"),
-                (visible.Left + 4, visible.Bottom - 8, "bottom left"), (visible.Right - 8, visible.Bottom - 8, "bottom right"),
-            };
-            // the control first: the wedge's layer hidden shows the backdrop through the Acrylic, unscrimmed
-            native.OnUi(() => wedge.Opacity = 0);
-            Thread.Sleep(400);
-            var without = corners.Select(corner => ScreenGrab.Of(corner.Item1, corner.Item2, 4, 4)).ToArray();
-            native.OnUi(() => wedge.Opacity = 1);
-            Thread.Sleep(400);
-            for (var index = 0; index < corners.Length; index++)
+            var shown = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(main.TryGetPlatformHandle()!.Handle)).VisibleBounds!;
+            var body = CornerSeam.OnScreen(shown.Left, shown.Top, shown.Right, shown.Bottom, Chrome.WindowCornerRadius, scale, [4], [4], clearance: 2)[0].Body;
+            var (r, g, b) = CornerSeam.ScreenMean(body.X, body.Y);
+            lastSeen = $"the window is {shown.Left},{shown.Top} to {shown.Right},{shown.Bottom}; the screen at its first corner body shows ({r:F0}, {g:F0}, {b:F0})";
+            return shown.Right - shown.Left > 880 * scale && Math.Abs(r - Bright.R) + Math.Abs(g - Bright.G) + Math.Abs(b - Bright.B) > 40;
+        }, "the main window's glass never showed over the backdrop", 10000);
+        }
+        catch (TimeoutException timeout) { throw new TimeoutException(timeout.Message + ": " + lastSeen); }
+        var problems = new List<string>();
+        foreach (var busy in new[] { false, true })
+        {
+            native.OnUi(() => fill.Background = busy ? Bands() : new SolidColorBrush(Bright));
+            foreach (var (theme, dark) in new[] { (Marrow.UI.Theme.AppTheme.Dark, true), (Marrow.UI.Theme.AppTheme.Light, false) })
             {
-                var name = $"{theme} {corners[index].Item3}";
-                var unscrimmed = Mean(without[index]);
-                var scrimmed = Mean(ScreenGrab.Of(corners[index].Item1, corners[index].Item2, 4, 4));
-                // without the wedge the corner is the backdrop (so the instrument sees the blur and not something else) ...
-                AssertNear(unscrimmed, (Bright.R, Bright.G, Bright.B), $"{name} without the wedge (the unscrimmed blur)");
-                // ... with it, the window's scrim over the backdrop, channel by channel ...
-                AssertNear(scrimmed,
-                    ((int)Math.Round(Bright.R * (1 - alpha) + scrim * alpha), (int)Math.Round(Bright.G * (1 - alpha) + scrim * alpha), (int)Math.Round(Bright.B * (1 - alpha) + scrim * alpha)),
-                    $"{name} with the wedge (the scrim, alpha {alpha:F2}, {(dark ? "black" : "white")}, over the backdrop)");
-                // ... and plainly not the backdrop
-                var moved = Math.Abs(scrimmed.R - unscrimmed.R) + Math.Abs(scrimmed.G - unscrimmed.G) + Math.Abs(scrimmed.B - unscrimmed.B);
-                Assert.True(moved > 40, $"{name}: the wedge changes the corner by {moved} levels only; {scrimmed} with it, {unscrimmed} without it");
+                var opacity = native.OnUi(() => { manager.Model.Settings.Theme = theme; return manager.Model.Settings.BackdropOpacity; });
+                Thread.Sleep(1000); // the window's colours ease (OD-0088); the system blurs the backdrop behind
+                var handle = native.OnUi(() => main.TryGetPlatformHandle()!.Handle);
+                var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
+                Assert.InRange(WindowBackdrop.Scrim(opacity, dark), 0.05, 0.95); // glass under a scrim, not a solid window
+                // each wedge pixel (inside DWM's 8 px rounding, outside the 26 pt shape) against the body pixel in its column just inside the shape
+                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, Chrome.WindowCornerRadius, scale, [3, 4, 5], [4, 5], clearance: 2);
+                var name = $"{theme}, {(busy ? "banded" : "solid")} backdrop";
+                CornerSeam.WaitSettled(pairs, 3);
+                var colours = CornerSeam.AssertOnScreen(pairs, name, problems: problems);
+                if (!busy)
+                    // the instrument sees the glass and not the bare backdrop: the corner is plainly not the backdrop, in the wedge or the body
+                    for (var index = 0; index < pairs.Length; index++)
+                    {
+                        var c = colours[index];
+                        Assert.True(Math.Abs(c.Wedge.R - Bright.R) + Math.Abs(c.Wedge.G - Bright.G) + Math.Abs(c.Wedge.B - Bright.B) > 40,
+                            $"{name}: the {pairs[index].Corner} wedge {pairs[index].Wedge} shows ({c.Wedge.R:F0}, {c.Wedge.G:F0}, {c.Wedge.B:F0}), the backdrop's colour unchanged; the window is {visible.Left},{visible.Top} to {visible.Right},{visible.Bottom}");
+                    }
             }
         }
+        Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
         GC.KeepAlive(backdrop);
     }, factType: typeof(MainWindowCornerWedgeNativeTests));
 
