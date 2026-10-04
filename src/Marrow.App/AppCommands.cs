@@ -19,7 +19,7 @@ using Marrow.UI.Port;
 // :17-19 replaces the save placement with nothing; secondary windows close themselves on Ctrl+W.
 // Outside this file the runtime install (DroppyCodeApp.swift:24) is WindowManager.MakeWindow's and
 // TourWindowController.Present's attach of the dispatch to each window they build (STOP #6, resolved by fix/shortcuts).
-// AltGr handling is still unsettled (STOP #7); the Welcome tour palette row needs its own decision (STOP #4).
+// AltGr handling is still unsettled (STOP #7); the Welcome tour palette row is OD-0053's (STOP #4, resolved).
 // The zoom items (:53-62) carry literal key equivalents, "+", "-", "0" and "=", which a menu matches by the character the
 // key types (ED-270, superseding ED-230's position reading of "+"). They are marked MatchesTypedCharacter and matched by
 // Port/MenuKeyEquivalents.Typed, the character the key types on the active layout, while every other item keeps the
