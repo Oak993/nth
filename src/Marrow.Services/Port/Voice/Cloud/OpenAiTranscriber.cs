@@ -27,13 +27,15 @@ public sealed class OpenAiTranscriber : ISpeechEngine, IDisposable
     private readonly VoiceKeyStore keys;
     private readonly Uri endpoint;
     private readonly HttpClient client;
+    private readonly TimeSpan timeout;
     private string model = DefaultModel;
 
     public OpenAiTranscriber(VoiceKeyStore keys, HttpMessageHandler handler, TimeSpan? timeout = null, Uri? endpoint = null)
     {
         this.keys = keys;
         this.endpoint = endpoint ?? Endpoint;
-        client = new HttpClient(handler, disposeHandler: false) { Timeout = timeout ?? DefaultTimeout };
+        this.timeout = timeout ?? DefaultTimeout;
+        client = new HttpClient(handler, disposeHandler: false) { Timeout = this.timeout };
     }
 
     /// <summary>
@@ -82,13 +84,17 @@ public sealed class OpenAiTranscriber : ISpeechEngine, IDisposable
 
     private async Task<string> Send(HttpRequestMessage message, CancellationToken cancellationToken)
     {
+        // HttpClient.Timeout ends at the reply's headers (the body is read as it streams), so the same time also runs here over the body: a reply that has gone quiet for that long
+        // (no byte of a JSON body, no event of a stream) ends as the timed-out network failure instead of holding the session in Processing. Windows review.
+        using var quiet = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        quiet.CancelAfter(timeout);
         try
         {
-            using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, quiet.Token);
             if (!response.IsSuccessStatusCode) throw Failure(response.StatusCode);
             var streamed = response.Content.Headers.ContentType?.MediaType == "text/event-stream";
-            await using var content = await response.Content.ReadAsStreamAsync(cancellationToken);
-            return streamed ? await ReadEvents(content, cancellationToken) : await ReadJson(content, cancellationToken);
+            await using var content = await response.Content.ReadAsStreamAsync(quiet.Token);
+            return streamed ? await ReadEvents(content, quiet) : await ReadJson(content, quiet.Token);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -113,12 +119,13 @@ public sealed class OpenAiTranscriber : ISpeechEngine, IDisposable
         status switch { HttpStatusCode.Unauthorized => CloudNote.KeyRefused, HttpStatusCode.TooManyRequests => CloudNote.QuotaOrRate, _ => CloudNote.EngineFailure },
         (int)status);
 
-    private async Task<string> ReadEvents(Stream content, CancellationToken cancellationToken)
+    private async Task<string> ReadEvents(Stream content, CancellationTokenSource quiet)
     {
         var ops = new OpenAiDeltaOps();
         string? whole = null;
-        await foreach (var e in OpenAiSseReader.Read(content, cancellationToken))
+        await foreach (var e in OpenAiSseReader.Read(content, quiet.Token))
         {
+            quiet.CancelAfter(timeout);
             if (e.Done) { whole = e.Text; OpsProduced?.Invoke(ops.Done(whole)); break; }
             if (ops.Delta(e.Text) is { Count: > 0 } batch) OpsProduced?.Invoke(batch);
         }

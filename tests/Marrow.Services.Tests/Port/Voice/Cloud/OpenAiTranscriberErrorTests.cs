@@ -64,6 +64,26 @@ public sealed class OpenAiTranscriberErrorTests
         exchange.Abort();
     }
 
+    // Windows review: HttpClient.Timeout stops at the reply's headers (the reply is read as it streams), so a server that sent its headers and a first event and then went quiet
+    // held the call, and the orb in Processing, for ever. A quiet stream of the same 60 s ends as the same timed-out network failure.
+    [Fact]
+    [Trait("Feature", "VT-16")]
+    [Trait("Rule", "R-TEST-4")]
+    public async Task V_T112_a_stream_that_goes_quiet_after_its_first_event_is_a_network_failure_that_timed_out()
+    {
+        await using var server = new LoopbackHttpServer();
+        var (keys, _) = CloudFixtures.KeyStore();
+        using var engine = new OpenAiTranscriber(keys, new HttpClientHandler(), timeout: TimeSpan.FromMilliseconds(500), endpoint: server.Url("/v1/audio/transcriptions"));
+        var call = engine.TranscribeAsync(CloudFixtures.Audio(1), CloudFixtures.Request(), CancellationToken.None);
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"));
+        await exchange.WriteChunk(System.Text.Encoding.UTF8.GetBytes(CloudFixtures.Sse(CloudFixtures.Delta("Hi "))));
+        var error = await Assert.ThrowsAsync<OpenAiTranscriptionException>(() => call.WaitAsync(LoopbackHttpServer.Guard));
+        Assert.Equal(CloudNote.NetworkFailure, error.Note);
+        Assert.True(error.TimedOut);
+        exchange.Abort();
+    }
+
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
