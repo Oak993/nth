@@ -160,9 +160,7 @@ internal static class GpuProgramCache
         try { File.WriteAllLines(Path.Combine(root, "warm.txt"), [Build, Path.GetFileName(keyFolder), here ?? ""]); }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
-        try { File.Delete(Path.Combine(root, CpuMarker)); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        RemoveCpuMarker(root, here);
         RemoveOthers(root, keyFolder, here);
     }
 
@@ -170,9 +168,10 @@ internal static class GpuProgramCache
     /// GR-1 review round 3 (ED-NEW-f-gr-1 (17)): a warm-up completed on the CPU renderer (the software fallback Avalonia's Win32
     /// platform draws with when ANGLE/D3D11 cannot be made): there is nothing to compile or keep, so no cache folder exists and
     /// <see cref="MarkWarm"/> cannot be written, yet the machine is prepared and the next launch must skip the first run (OD-0096:
-    /// "again only when the prepared state is invalid"). The root's CPU marker (warm-cpu.txt: this build, "cpu", the machine)
-    /// stands in for the marker: <see cref="WarmedOnCpu"/>. A GPU marker (<see cref="MarkWarm"/>) takes the CPU one away: the
-    /// machine is then proven on its GPU.
+    /// "again only when the prepared state is invalid"). The root's CPU marker (warm-cpu.txt) stands in for the marker:
+    /// <see cref="WarmedOnCpu"/>. Round 4 (ED-NEW-f-gr-1 (20)): it holds a record of three lines for each adapter and driver the
+    /// machine was prepared on (this build, "cpu", the machine), as the GPU's cache folders are each kept for their adapter, so a
+    /// GPU marker (<see cref="MarkWarm"/>) takes away only its own adapter's record, and this writes beside the others.
     /// </summary>
     internal static void MarkWarmOnCpu()
     {
@@ -180,8 +179,8 @@ internal static class GpuProgramCache
         try
         {
             Directory.CreateDirectory(root);
-            var file = Path.Combine(root, CpuMarker);
-            if (!WarmedOnCpu(root, here)) ReplaceWhole(file, Encoding.UTF8.GetBytes(string.Join("\n", Build, "cpu", here) + "\n"));
+            if (!WarmedOnCpu(root, here))
+                WriteCpuMarker(root, CpuRecords(root).Where(m => m != here).Append(here).TakeLast(CpuRecordsKept).ToList());
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
@@ -189,19 +188,52 @@ internal static class GpuProgramCache
 
     private const string CpuMarker = "warm-cpu.txt";
 
-    /// <summary>True when the root's CPU marker names this build and <paramref name="here"/> (the machine as it is now).</summary>
-    internal static bool WarmedOnCpu(string root, string here)
+    // a machine that was prepared on the CPU renderer for each adapter and driver it drew with, oldest first; the marker's file
+    // is not kept growing for adapters that come and go
+    private const int CpuRecordsKept = 16;
+
+    // the machines the root's CPU marker holds a record of for this build (a record: this build, "cpu", the machine); the records
+    // of other builds, a record that is short or not a CPU's, are not read
+    private static List<string> CpuRecords(string root)
     {
+        var machines = new List<string>();
         try
         {
             var file = Path.Combine(root, CpuMarker);
-            if (!File.Exists(file)) return false;
+            if (!File.Exists(file)) return machines;
             var lines = File.ReadAllLines(file);
-            return lines.Length >= 3 && lines[0] == Build && lines[1] == "cpu" && lines[2] == here;
+            for (var i = 0; i + 2 < lines.Length; i += 3)
+                if (lines[i] == Build && lines[i + 1] == "cpu" && lines[i + 2].Length > 0 && !machines.Contains(lines[i + 2])) machines.Add(lines[i + 2]);
         }
-        catch (IOException) { return false; }
-        catch (UnauthorizedAccessException) { return false; }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+        return machines;
     }
+
+    // the marker written whole from these machines' records; none left: the file goes
+    private static void WriteCpuMarker(string root, List<string> machines)
+    {
+        var file = Path.Combine(root, CpuMarker);
+        if (machines.Count == 0) { File.Delete(file); return; }
+        ReplaceWhole(file, Encoding.UTF8.GetBytes(string.Concat(machines.Select(m => string.Join("\n", Build, "cpu", m) + "\n"))));
+    }
+
+    // the proven GPU takes away its own adapter's record and no other's
+    private static void RemoveCpuMarker(string root, string? here)
+    {
+        try
+        {
+            if (!File.Exists(Path.Combine(root, CpuMarker))) return;
+            var machines = CpuRecords(root);
+            machines.RemoveAll(m => m == here);
+            WriteCpuMarker(root, machines);
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    /// <summary>True when the root's CPU marker holds a record for this build and <paramref name="here"/> (the machine as it is now).</summary>
+    internal static bool WarmedOnCpu(string root, string here) => CpuRecords(root).Contains(here);
 
     /// <summary>True when <paramref name="keyFolder"/>'s key names this build and the machine as it is now (the programs in
     /// it were made on the adapter the app draws with now: an install reads the adapter when its warm-up pass begins, the

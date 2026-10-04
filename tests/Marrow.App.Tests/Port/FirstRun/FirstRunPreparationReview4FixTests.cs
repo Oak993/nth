@@ -152,6 +152,52 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "GR-1")]
     [Trait("Spec", "GR-1.skip")]
+    public void The_CPU_marker_is_kept_for_each_adapter_and_a_GPU_marker_takes_away_only_its_own() => headless.OnUiThread(() =>
+    {
+        var root = Path.Combine(Path.GetTempPath(), "gr1-review4fix-" + Guid.NewGuid().ToString("N"));
+        var source = GpuProgramCache.MachineSource;
+        const string remote = "1414:008c:00000000:00 Microsoft Basic Render Driver 10.0.26100.1";
+        const string third = "1002:73bf:00000000:c1 Another GPU 31.0.1.1";
+        var machine = remote;
+        GpuProgramCache.MachineSource = () => machine;
+        GpuProgramCache.FolderOverride = root;
+        try
+        {
+            GpuProgramCache.MarkWarmOnCpu();
+            machine = third; GpuProgramCache.MarkWarmOnCpu();
+            machine = Machine; GpuProgramCache.MarkWarmOnCpu();
+            foreach (var m in new[] { remote, third, Machine }) { machine = m; Assert.True(new FirstRunPreparation().IsPrepared, m + " lost its CPU marker"); }
+
+            machine = Machine;
+            var gpu = Path.Combine(root, "0123456789abcdef01234567");
+            Directory.CreateDirectory(gpu);
+            GpuProgramCache.MarkWarm(gpu);                 // proven on its GPU: only its own CPU marker goes
+            Assert.True(GpuProgramCache.WarmedOnCpu(root, remote));
+            Assert.True(GpuProgramCache.WarmedOnCpu(root, third));
+            Assert.False(GpuProgramCache.WarmedOnCpu(root, Machine));
+
+            GpuProgramCache.MarkWarmOnCpu();               // written again beside the others, not over them
+            Assert.True(GpuProgramCache.WarmedOnCpu(root, remote) && GpuProgramCache.WarmedOnCpu(root, third) && GpuProgramCache.WarmedOnCpu(root, Machine));
+
+            machine = third;
+            GpuProgramCache.MarkWarm(gpu);
+            machine = remote;
+            GpuProgramCache.MarkWarm(gpu);
+            machine = Machine;
+            GpuProgramCache.MarkWarm(gpu);
+            Assert.False(File.Exists(Path.Combine(root, "warm-cpu.txt")), "the last CPU marker went and its file stays");
+        }
+        finally
+        {
+            GpuProgramCache.MachineSource = source;
+            GpuProgramCache.FolderOverride = null;
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    });
+
+    [Fact]
+    [Trait("Feature", "GR-1")]
+    [Trait("Spec", "GR-1.skip")]
     [Trait("Decision", "ED-252")] // mutant M8: the marker is written before RunAsync completes, not after a delay
     public void The_CPU_marker_is_written_by_the_time_the_first_run_completes() => headless.OnUiThread(() =>
     {
