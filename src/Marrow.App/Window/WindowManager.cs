@@ -201,15 +201,27 @@ public sealed class WindowManager
         var up = main.Screens.Primary is { } primary ? primary.Bounds.ToRect(scale).Bottom : 0;
         var parentSize = main.FrameSize ?? FrameSizeOf(main); // :46 main.frame, not the requested content size.
         var parent = new Rect(main.Position.X / scale, up - (main.Position.Y / scale + parentSize.Height), parentSize.Width, parentSize.Height); // :46
-        var frame = FrameSizeOf(window); // :47
+        // :47 window.frame, for the HWND the visible frame and the invisible strip around it (WindowInvisibleBorder), in points.
+        var strip = WindowInvisibleBorder.Pixels.Current(window, scale) / scale;
+        var frame = FrameSizeOf(window) + new Avalonia.Size(2 * strip, strip);
+        // The Settings HWND is centred on the HWND centre of the main window moved to the visible centre of the main window
+        // (+ strip / 2 for the bottom strip the Settings frame carries). A normal main HWND keeps its strip on the left, the
+        // right and the bottom, so its visible centre lies strip / 2 above its HWND centre; a MAXIMISED one has the strip on
+        // all four sides (Avalonia's WM_NCCALCSIZE maximise branch insets the client by the border on every side), so its HWND
+        // centre is its visible centre. The shift is in AppKit's y (up): a lower HWND centre is a smaller y.
+        var mainStrip = WindowInvisibleBorder.Pixels.Current(main, scale) / scale;
+        var mainTop = main.WindowState == WindowState.Maximized ? mainStrip : 0;
+        var shiftDown = (mainTop - mainStrip + strip) / 2;
+        parent = parent.WithY(parent.Y - shiftDown);
         Rect? visible = null;
         // :50 (main.screen ?? NSScreen.main)?.visibleFrame: the working area (the taskbar and app bars left out) of the
         // screen the main window is on, else the primary screen; with no screen at all the clamp is skipped.
         if ((main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary) is { } screen)
         {
             var working = screen.WorkingArea.ToRect(scale);
-            // visibleFrame in AppKit's y: minY is the working area's bottom edge, maxY its top edge.
-            visible = new Rect(working.Left, up - working.Bottom, working.Width, working.Height);
+            // visibleFrame in AppKit's y: minY is the working area's bottom edge, maxY its top edge. The window's invisible
+            // strip (left, right, bottom) may lie outside it: the clamp is of the visible window, as AppKit's frame is.
+            visible = new Rect(working.Left - strip, up - working.Bottom - strip, working.Width + 2 * strip, working.Height + strip);
         }
         var centered = CenteredFrame(parent, frame, visible); // :46-54
         // :54 window.setFrame(frame, display: false): only the origin moves (the size is the window's own). Back to
@@ -606,8 +618,13 @@ public sealed class WindowManager
 
     // NSWindow.frame's size, in points: the content size plus the decorations around it, which the platform reports
     // once the window has been shown (Window.FrameSize). Avalonia measures a window the same way for its own centring.
+    // An HWND (the factory's windows, ED-063) is the exception: its title bar is drawn inside the client area, so the frame
+    // is the content rect (:93-96) and nothing is added; before the first show the platform reports the standard overlapped
+    // frame instead (+39 px of caption), which centred the window 11 to 15 px too high (WindowInvisibleBorder).
     private static Avalonia.Size FrameSizeOf(AvaloniaWindow window) =>
-        new Avalonia.Size(window.Width, window.Height) + (window.FrameSize is { } frame ? frame - window.ClientSize : default);
+        window.TryGetPlatformHandle() is { Handle: not 0 } handle && handle.HandleDescriptor == "HWND"
+            ? new Avalonia.Size(window.Width, window.Height)
+            : new Avalonia.Size(window.Width, window.Height) + (window.FrameSize is { } frame ? frame - window.ClientSize : default);
 
     // :67 window.setFrameUsingName(_:): applies the frame saved under the name, as it is (no clamp to any screen), and
     // answers whether there was one. A frame the port did not write whole is no frame.

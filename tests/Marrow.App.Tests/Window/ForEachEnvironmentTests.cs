@@ -27,9 +27,10 @@ public sealed class ForEachEnvironmentTests(HeadlessSession headless)
         });
     });
 
-    // STOP ForEach transitions #2
-    // Kind: partial record verification. Swift: WindowManager.swift:118-140. Records: PR-WIN-017.
-    // Missing: this bridge test toggles a pane flag; it does not exercise native resizing of two windows
-    // or a move-only drag. Needed: WindowManager's owned native hook/interaction verification (its STOP #3).
-    // ED-218 and R-VIEW-6 describe this subset; all bridge assertions are retained.
+    // CLOSED STOP ForEach transitions #2 (2026-10-04)
+    // Kind: partial record verification (was). Swift: WindowManager.swift:118-140. Records: PR-WIN-017.
+    // Was: this bridge test toggles a pane flag; it did not exercise native resizing of two windows or a move-only drag.
+    // Closed by WindowManagerNativeTests: a real edge drag on the main factory window sets only its own flag and clears on
+    // release (Req PR-WIN-017, "...real_edge_drag..."), and a real caption move publishes nothing on either window; and by
+    // WindowManagerHighRiskTests' real user32 window. ED-218 and R-VIEW-6 describe this subset; all bridge assertions are retained.
 }

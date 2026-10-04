@@ -21,7 +21,10 @@ internal static class WindowCentering
         screen is null ? null : (screen.WorkingArea, screen.Scaling);
 
     // ED-225: select the monitor independently of the unshown window's initial platform position.
-    // The fixed frame is in DIP; the selected monitor's working area and the final position are in pixels.
+    // The frame is the VISIBLE window in DIP (the content rect of the factory's chrome: WindowInvisibleBorder); the selected
+    // monitor's working area and the final position are in pixels. The HWND's invisible strip on the left, the right and the
+    // bottom (the selected monitor's DPI, so a window about to move between monitors is placed for where it lands) lies
+    // outside the visible frame: the visible window is centred and kept inside the working area, and the HWND is placed so.
     internal static void Center(AvaloniaWindow window, Size frame)
     {
         var monitor = window.Owner is { } owner
@@ -30,13 +33,14 @@ internal static class WindowCentering
         monitor ??= Monitor(window.Screens.Primary); // unavailable pointer/display: platform main screen
         if (monitor is not { } selected) return; // no display exists to place a window on
         var work = selected.WorkingArea;
+        var border = WindowInvisibleBorder.Pixels.Current(window, selected.Scaling);
         var width = frame.Width * selected.Scaling;
         var height = frame.Height * selected.Scaling;
-        var x = work.X + (work.Width - width) / 2;
-        var y = work.Y + (work.Height - height) / 3;
+        var x = work.X + (work.Width - width) / 2 - border; // the HWND's left edge: the visible window's, less the strip
+        var y = work.Y + (work.Height - height) / 3; // no strip above
         // Clamp without changing the fixed source frame. If it exceeds the work area, keeping every edge inside
         // is impossible; its leading edge stays on screen and its size is never shrunk.
-        x = Math.Max(work.X, Math.Min(x, work.Right - width));
+        x = Math.Max(work.X - border, Math.Min(x, work.Right - width - border));
         y = Math.Max(work.Y, Math.Min(y, work.Bottom - height));
         window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(x)), checked((int)SwiftNumber.Rounded(y)));
     }

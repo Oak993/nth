@@ -247,6 +247,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             Assert.True(window.CanMinimize); // .miniaturizable
             Assert.Equal(WindowDecorations.Full, window.WindowDecorations); // .titled, .closable (ED-063)
             Assert.True(window.ExtendClientAreaToDecorationsHint); // .fullSizeContentView
+            Assert.Equal(44, window.ExtendClientAreaTitleBarHeightHint); // PR-WIN-007 windows_path, ED-063: a 44 px title bar band
         }
     });
 
@@ -1176,6 +1177,9 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     });
 }
 
+// CLOSED STOP App.Window.WindowManager #1 (2026-10-04): RootView and SettingsView construct (RootView and SettingsView are built):
+// WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView... and WindowManagerNextTests' real default-factory
+// Settings tests run the two builders as written. The text below is the original STOP, kept as history.
 // STOP App.Window.WindowManager #1 (build agent, 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/Window/WindowManager.swift:63, :81 (B3 52bc792): `{ RootView() }`, `{ SettingsView() }`
@@ -1190,6 +1194,8 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // test per window with the real content.
 // Done so far: every WindowManager member is implemented; the tests above host stand-ins and are green.
 
+// CLOSED STOP App.Window.WindowManager #2 (2026-10-04): closed by the Boot unit's AppShell (the note under it), and the real exe exits
+// on a main close (WindowManagerProcessTests, WindowManagerTerminationWaitTests). The text below is the original STOP, kept as history.
 // STOP App.Window.WindowManager #2 (build agent, 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/Window/WindowManager.swift:98 `window.isReleasedWhenClosed = false` (B3 52bc792)
@@ -1220,6 +1226,9 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // including the Settings zoom-inert case; the live-resize test sends real WM_ENTERSIZEMOVE/WM_SIZING/WM_EXITSIZEMOVE.
 // OD-0013's separate WindowChrome live-resize edge-strip acceptance remains recorded under that owning unit.
 
+// CLOSED STOP App.Window.WindowManager #4 (2026-10-04): the Settings view, the openers and the rest of UI-SETTINGS-001 are built and
+// tested in their own units (WindowManagerSettingsSurfaceTests, WindowManagerSettingsOpenerTests, WindowManagerNextTests with the real
+// SettingsView); the one part still open is the continuous corner curve (ED-181). The text below is the original STOP, kept as history.
 // STOP App.Window.WindowManager #4 (build agent, 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/Views/Settings/SettingsView.swift:118-122, :123-127, :193; App/AppCommands.swift:12-14;
@@ -1263,7 +1272,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // owner/pointer monitor selection, working area, horizontal center, one-third free height above, and clamping.
 // The exact macOS vertical bias remains UNVERIFIED OD-0001.
 
-// Review of STOPs on impl/b2 49eda0591 (2026-09-27):
+// Review of STOPs on impl/b2 49eda0591 (2026-09-27); #3 and #5 are CLOSED since (see above):
 // #1 is closed for SettingsView by WindowManagerNextTests' real default-factory tests; RootView's constructor
 // still throws and belongs to another chat (current STOP #7). Neither dependency is modified here.
 // #2 remains closed by AppShell; the new close test verifies the main close handoff and Settings-only hiding.

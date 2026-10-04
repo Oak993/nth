@@ -8,8 +8,10 @@ using Marrow.UI.Theme;
 namespace Marrow.App.Tests.Window;
 
 // Source: WindowManager.swift:151-159. Both the hosted tree and the application appearance change initially and later.
-// STOP NATIVE-THEME: hosted/process/framework ThemeVariant checks, including actual-store
-// restart, do not prove DWM immersive-dark-mode acceptance or OS-opposite native menu pixels.
+// CLOSED STOP NATIVE-THEME (2026-10-04): the hosted/process/framework ThemeVariant checks here are joined by
+// WindowManagerNativeTests.Immersive_dark_mode_follows_the_theme_on_both_factory_windows, which reads DWM's immersive dark mode back
+// from both real factory HWNDs for Dark, Light, Dracula and System. The Win32 context menus are the owner's ruling OD-0042 ("Windows
+// menu theme"), not the app's theme, so the record's "native menus out of step" wording is superseded for them.
 [Collection("Headless")]
 public sealed class WindowManagerThemeMutationTests(HeadlessSession headless)
 {

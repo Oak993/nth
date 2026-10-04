@@ -121,8 +121,9 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
     [Trait("Req", "UI-SETTINGS-001")]
     public void Sidebar_background_is_a_hit_tested_caption_region()
     {
-        // STOP SETTINGS-NATIVE-SURFACE: Headless hit testing proves the managed caption
-        // region, not a real drag of the production Settings HWND or its caption-button overlay.
+        // Headless hit testing proves the managed caption region; the production Settings HWND reports it as HTCAPTION to the system
+        // (WindowManagerNativeTests.The_actual_Settings_sidebar_background_reaches_native_caption_hit_testing, a real native hit test),
+        // and its caption buttons are driven by real mouse input in the same class (RESOLVED SETTINGS-NATIVE-SURFACE).
         // ui_contract.json:15437; SettingsView.cs:166 installs the background over the 212-point sidebar.
         WithManager((_, manager) =>
         {

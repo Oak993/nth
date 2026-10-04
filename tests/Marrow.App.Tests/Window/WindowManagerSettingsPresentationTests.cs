@@ -15,8 +15,10 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Trait("Req", "PR-WIN-011")]
     public void Cached_show_centers_before_the_platform_show_request()
     {
-        // STOP DISPLAY-PASS: Move-before-Show does not prove Swift setFrame(display:false)
-        // suppresses an immediate native display pass; do not infer first-paint policy from order.
+        // RESOLVED DISPLAY-PASS (ED-284): AppKit's setFrame(display: false) has no Windows analogue, so that clause is
+        // recorded NOT_APPLICABLE; the observable part, that the origin is set before the window is shown (:36 before :37), is
+        // what this test asserts (the Rise open shows the window cloaked at its final position, so no frame is ever displayed at an
+        // old one).
         // WindowManager.swift:36 precedes :37. B14 cannot hide behind a correct final Position.
         WithManager((_, manager) =>
         {
@@ -74,9 +76,9 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Trait("Req", "PR-WIN-010")]
     public void Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties()
     {
-        // STOP SETTINGS-OWNER: WIN.json PR-WIN-010 says owned, but MakeSettingsWindow/
-        // Present and raw WindowManager.swift:80-84,57-60 establish no owner relationship.
-        // These fixed-size/style assertions must not be read as a tested owner assignment.
+        // RESOLVED (RECORD != SWIFT): WIN.json PR-WIN-010 says "owned top-level window" and PR-SETTINGS-001 "child window",
+        // but WindowManager.swift:80-84, :57-60 build an independent NSWindow with no parent, so the port sets no owner; the
+        // test below (Settings_and_main_windows_have_no_owner_relationship) asserts that absence.
         // WindowManager.swift:80-84,92-110. Border content prevents SettingsView's probe masking missing Configure.
         WithManager((_, manager) =>
         {
@@ -94,6 +96,34 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
             Assert.Equal(WindowDecorations.Full, settings.WindowDecorations);
             Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(settings.Background).Color);
             Assert.True(settings.IsVisible);
+        }, realSettings: false);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-001")]
+    [Trait("Req", "PR-WIN-010")]
+    public void Settings_and_main_windows_have_no_owner_relationship()
+    {
+        // WindowManager.swift:80-84 builds the Settings window with makeWindow, an independent NSWindow, and :57-60 only
+        // activates and orders it front: it is not a child of the main window (no addChildWindow, no level change). The
+        // records' words "owned" and "child window" are not in the source (RECORD != SWIFT), so the port sets no Owner.
+        WithManager((_, manager) =>
+        {
+            manager.ShowMain(); manager.ShowSettings();
+            var main = MainOf(manager); var settings = Settings(manager);
+            Assert.True(main.IsVisible);
+            Assert.True(settings.IsVisible);
+            Assert.Null(settings.Owner);
+            Assert.Null(main.Owner);
+            Assert.Empty(settings.OwnedWindows);
+            Assert.Empty(main.OwnedWindows);
+            Assert.False(settings.Topmost);
+            Assert.False(main.Topmost);
+            // closing and reopening it again leaves it unowned (every show re-centres it, :36)
+            settings.Close();
+            manager.ShowSettings();
+            Assert.Null(settings.Owner);
+            Assert.Empty(main.OwnedWindows);
         }, realSettings: false);
     }
 

@@ -11,6 +11,7 @@ using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.Core.Support;
 using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 using Xunit;
 using N = Marrow.App.Tests.Window.Native.WindowManagerNativeMethods;
 
@@ -19,10 +20,11 @@ namespace Marrow.App.Tests.Window.Native;
 // ED-063 bridge checks are Windows port-only, not invented Swift parity claims.
 // Factory/lifecycle source: _packet/swift/WindowManager.swift:26-37,86-110; resize:113-140.
 // Each Fact automatically selects itself in a fresh child; the ordinary parent may run Headless.
-// STOP SETTINGS-NATIVE-SURFACE: painted fixture caption zones are not SettingsView's
-// production WindowChrome overlay, sidebar dragging, corner geometry or backdrop pixels.
-// STOP FACTORY-STRETCH: WindowManager.MakeWindow has no ResizeStretch.Attach/Apply binding;
-// real caption/resize-hook messages here do not verify the separate ED-101 composition remedy.
+// The painted fixture caption zones are not SettingsView's production WindowChrome overlay: the production sidebar's drag region
+// is the first Fact below (the real SettingsView), the corner and backdrop pixels are GlassWindowNativeTests'. (Was STOP
+// SETTINGS-NATIVE-SURFACE; the continuous corner curve, ED-181, is the one part still open.)
+// CLOSED STOP FACTORY-STRETCH (2026-10-04): WindowChrome.Configure binds ResizeStretch (WindowChrome.cs:170) for every factory
+// window, and WindowManagerFactoryStretchTests proves it; the ED-101 composition remedy is not these messages' job.
 [Collection("WindowManagerNative")]
 public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 {
@@ -30,10 +32,12 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
     [Trait("Req", "UI-SETTINGS-001")]
     public void The_actual_Settings_sidebar_background_reaches_native_caption_hit_testing()
     {
-        native.Run(_ =>
+        native.Run(subject =>
         {
             var (window, drag, client) = native.OnUi(() =>
             {
+                // the production open is Rise (OD-0074, ED-249), which asks for frames: the fixture's window supplies them
+                FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Settings));
                 var manager = new WindowManager();
                 manager.ShowSettings();
                 var window = (Avalonia.Controls.Window)(typeof(WindowManager)
@@ -172,8 +176,9 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
     [Trait("Req", "PR-WIN-008")] // WindowManager.swift:96, defer:false realizes the native window before presentation.
     public void The_factory_realizes_its_owned_native_handle_before_the_first_Show()
     {
-        // STOP FACTORY-RENDER-POLICY: a live invisible HWND proves realization, not the
-        // PR-WIN-008 buffered/default-animation mapping or the first painted frame.
+        // A live invisible HWND proves realization (defer: false). RESOLVED FACTORY-RENDER-POLICY (ED-284): "buffered"
+        // is NOT_APPLICABLE on Windows (an Avalonia window is drawn through DWM's composition buffer), and the system's window
+        // animation is proved on real pixels by The_factory_windows_are_hidden_with_the_systems_fade_not_cut_...
         native.Run(subject => native.OnUi(() =>
         {
             var manager = new WindowManager { MainContent = () => new Border(), SettingsContent = () => new Border() };

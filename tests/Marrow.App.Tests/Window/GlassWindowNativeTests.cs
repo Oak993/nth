@@ -263,4 +263,75 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         Assert.True(after[^1].Contrast < Blurred && after[^1].Mean < bareMean * (1 - ScrimAlpha) + 4, $"ended: {after[^1]}");
         GC.KeepAlive(stripes);
     }, factType: typeof(GlassWindowNativeTests));
+
+    // OD-0075 (owner, 2026-10-02: "the wedge is filled with the window's scrim"), ED-236 UNRESOLVED (a): the production Settings window
+    // (the real SettingsView, WindowManager.swift:81) over the stripes. The window is a rectangle of the system's Acrylic that DWM rounds by
+    // 8 px, and its content draws a 26 pt shape (SettingsView.swift:118-122); the corner between them is the wedge. A block of the screen
+    // just inside each corner of the window, outside the shape, must show the blurred stripes under the window's scrim, not the bare blur
+    // (which read luma 126 beside 93 inside the shape).
+    [Fact]
+    [Trait("Decision", "ED-236")]
+    [Trait("Req", "UI-SETTINGS-001")] // SettingsView.swift:118-122 with OD-0075
+    public void The_real_Settings_window_corners_outside_the_26_point_shape_wear_the_scrim_over_the_blur_in_both_themes() => native.Run(subject =>
+    {
+        var (work, scale) = native.OnUi(() => Work(subject.Main));
+        var stripes = native.OnUi(() => Backdrop(subject, work, scale));
+        Thread.Sleep(800);
+        var bare = Grab(new PixelPoint(work.X + work.Width / 2 - 500, work.Y + work.Height / 2), 60, 12);
+        Assert.InRange(bare.StripeContrast(), Sharp - 6, Sharp + 3);
+        var bareMean = bare.MeanLuma();
+        Assert.InRange(bareMean, 120, 135);
+
+        WindowManager manager = null!;
+        AvaloniaWindow settings = null!;
+        native.OnUi(() =>
+        {
+            FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Settings)); // the Rise open asks for frames
+            manager = new WindowManager { MainContent = () => new Border() };
+            manager.Model.Settings.Theme = Marrow.UI.Theme.AppTheme.Dark;
+            manager.ShowSettings();
+            settings = (AvaloniaWindow)typeof(WindowManager).GetField("settingsWindow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(manager)!;
+            native.Register(settings);
+            Themeless(settings);
+            settings.ShowInTaskbar = false;
+            settings.Topmost = true; // above the stripes, which are topmost
+        });
+        WaitFor(() => native.OnUi(() => manager.SettingsOpening is not { Waiting: true }), "the Settings open never finished", 8000);
+        Activate(settings);
+
+        var wedge = native.OnUi(() => ((Marrow.App.Views.Settings.SettingsView)typeof(WindowManager).GetField("settingsView", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(manager)!).RiseWedge);
+        foreach (var (theme, dark) in new[] { (Marrow.UI.Theme.AppTheme.Dark, true), (Marrow.UI.Theme.AppTheme.Light, false) })
+        {
+            var opacity = native.OnUi(() => { manager.Model.Settings.Theme = theme; return manager.Model.Settings.BackdropOpacity; });
+            Thread.Sleep(900); // the window's colours ease 0.32 s (OD-0088); the stripes behind are blurred by the system
+            var handle = native.OnUi(() => settings.TryGetPlatformHandle()!.Handle);
+            var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
+            var alpha = Marrow.UI.Chrome.WindowCornerWedge.Alpha(opacity, dark);
+            Assert.InRange(alpha, 0.05, 0.95); // glass under a scrim, not a solid window
+            // a block of 4 x 4 pixels 4 px in from each corner of the window: inside DWM's 8 px rounding, outside the 26 pt shape
+            var corners = new[]
+            {
+                (visible.Left + 4, visible.Top + 4, "top left"), (visible.Right - 8, visible.Top + 4, "top right"),
+                (visible.Left + 4, visible.Bottom - 8, "bottom left"), (visible.Right - 8, visible.Bottom - 8, "bottom right"),
+            };
+            // what the system shows there without the wedge (the control: the wedge's layer hidden), then with it
+            native.OnUi(() => wedge.Opacity = 0);
+            Thread.Sleep(400);
+            var without = corners.Select(corner => Grab(new PixelPoint(corner.Item1, corner.Item2), 4, 4)).ToArray();
+            native.OnUi(() => wedge.Opacity = 1);
+            Thread.Sleep(400);
+            for (var index = 0; index < corners.Length; index++)
+            {
+                var with = Grab(new PixelPoint(corners[index].Item1, corners[index].Item2), 4, 4);
+                var name = corners[index].Item3;
+                Assert.True(without[index].StripeContrast() < Blurred && with.StripeContrast() < Blurred,
+                    $"{theme} {name}: contrast {without[index].StripeContrast():F2} without and {with.StripeContrast():F2} with the wedge, the stripes show sharp in the corner");
+                // the wedge is the window's scrim over what the corner showed: the setting's opacity and the theme (Chrome.swift:211-215)
+                var expected = without[index].MeanLuma() * (1 - alpha) + (dark ? 0 : 255) * alpha;
+                Assert.True(Math.Abs(with.MeanLuma() - expected) <= 5, $"{theme} {name}: luma {with.MeanLuma():F1} with the wedge, {without[index].MeanLuma():F1} without it, the scrim (alpha {alpha:F2}) over it is {expected:F1}");
+                Assert.True(Math.Abs(with.MeanLuma() - without[index].MeanLuma()) > 12, $"{theme} {name}: the wedge changes the corner by {with.MeanLuma() - without[index].MeanLuma():F1} only");
+            }
+        }
+        GC.KeepAlive(stripes);
+    }, factType: typeof(GlassWindowNativeTests));
 }

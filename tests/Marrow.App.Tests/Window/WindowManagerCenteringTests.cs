@@ -62,6 +62,61 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
         Assert.Equal(0, screens.OwnerReads);
     });
 
+    // ENGINEERING DECISION (ED-284, WindowInvisibleBorder): the frame ED-225 centres is the visible window; an
+    // HWND of the factory's chrome keeps an invisible 8 px strip on its left, right and bottom and none above, so the HWND is
+    // placed 8 px left of the centred visible window and at its top. Stood in for here; the real HWND is the native test.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-WIN-006 and UI-LAUNCH-001: arithmetic with the strip; the HWND is native
+    public void The_visible_main_window_is_centred_and_its_invisible_strip_lies_outside_it() => WithManager((manager, harness, screens, cursor) =>
+    {
+        using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(8 * scale));
+        manager.ShowMain();
+        // Work area (-1600,-1200,1600,1160), visible frame 1320x860: free 280x300, offsets 140x100: visible left -1460.
+        Assert.Equal(new PixelPoint(-1468, -1100), manager.MainWindow!.Position);
+    });
+
+    // ENGINEERING DECISION (ED-284, WindowInvisibleBorder), arithmetic with a stood-in strip of 12 px (not the 8 px
+    // the other tests use, so a constant 8 or a dropped term both differ): the HWND lies one strip left of the centred visible
+    // window and at its top (no strip above). Proves WindowCentering.Center's left term and its absent top term; it does not
+    // prove that a real HWND has such a strip (WindowManagerNativeCentringTests).
+    [Fact]
+    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225, ED-284 (1)
+    public void The_HWND_is_placed_one_invisible_strip_left_of_the_centred_visible_window_and_at_its_top() => WithManager((manager, harness, screens, cursor) =>
+    {
+        using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));
+        manager.ShowMain();
+        // Pointer monitor work area (-1600,-1200,1600,1160), visible frame 1320x860: offsets 140x100: visible left -1460, top -1100.
+        Assert.Equal(new PixelPoint(-1472, -1100), manager.MainWindow!.Position);
+    });
+
+    // The same strip on the Settings window opened with no main window to centre over (WindowCentering.Center on the owner monitor's work area).
+    [Fact]
+    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84, :42-45; ED-225, ED-284 (1)
+    [Trait("Req", "PR-SETTINGS-002")]
+    public void The_Settings_HWND_without_a_main_window_is_placed_one_invisible_strip_left_of_the_centred_visible_window() => WithManager((manager, harness, screens, cursor) =>
+    {
+        using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));
+        screens.Pointer = screens.Owner;
+        cursor.Position = new PixelPoint(2800, 500);
+        manager.ShowSettings();
+        // Work area (2000,100,1800,1180), visible frame 780x580: visible left 2510, top 300 (offsets 510x200).
+        Assert.Equal(new PixelPoint(2498, 300), Settings(manager).Position);
+    });
+
+    // The clamp of WindowCentering.Center keeps the visible window, not the HWND, inside the working area: a frame wider and
+    // taller than the work area keeps its leading edges on it, so the visible left edge is at the area's left (the HWND one
+    // strip outside it) and the top at its top. Without the strip term the HWND would start at the area's left.
+    [Fact]
+    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225, ED-284 (1)
+    public void A_visible_main_window_larger_than_the_work_area_keeps_its_left_edge_on_it_and_the_strip_outside_it() => WithManager((manager, harness, screens, cursor) =>
+    {
+        using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));
+        screens.Pointer = new WindowCenteringScreen(new PixelRect(0, 0, 1000, 700), new PixelRect(0, 0, 1000, 700), primary: true);
+        cursor.Position = new PixelPoint(500, 350);
+        manager.ShowMain();
+        Assert.Equal(new PixelPoint(-12, 0), manager.MainWindow!.Position);
+    });
+
     [Fact]
     [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-006, ED-225
     public void A_saved_main_frame_bypasses_screen_centering_and_is_restored_without_clamping() => WithManager((manager, harness, screens, cursor) =>

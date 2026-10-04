@@ -142,6 +142,7 @@ internal static class WindowManagerNativeMethods
         if (!Wait(condition, milliseconds)) throw new TimeoutException(reason);
     }
 
+    [DllImport("dwmapi.dll")] internal static extern int DwmGetWindowAttribute(nint window, uint attribute, out int value, int size);
     [DllImport("user32.dll", SetLastError = true)] internal static extern bool GetWindowRect(nint window, out NativeWindowRect rectangle);
     [DllImport("user32.dll")] internal static extern bool IsWindow(nint window);
     [DllImport("user32.dll")] internal static extern bool IsWindowVisible(nint window);

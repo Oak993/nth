@@ -63,17 +63,31 @@ internal static class WindowManagerNativePlacementGeometry
 
     internal static NativePlacementExpectation Expected(NativePlacementSnapshot main,
         NativePlacementSnapshot settingsBeforeShow, NativePlacementRect primaryBounds,
-        NativePlacementRect mainWorkArea, MidpointRounding rounding = MidpointRounding.AwayFromZero)
+        NativePlacementRect mainWorkArea, MidpointRounding rounding = MidpointRounding.AwayFromZero) =>
+        Expected(main, settingsBeforeShow.Frame.Width, settingsBeforeShow.Frame.Height,
+            (settingsBeforeShow.Frame.Width - settingsBeforeShow.Client.Width) / 2, settingsBeforeShow.Dpi,
+            primaryBounds, mainWorkArea, rounding);
+
+    // The settings frame is given as native readings (its HWND's outer size, the invisible strip of its left, right and
+    // bottom, and the DPI it was measured at): a window that has never been shown has no HWND frame worth reading, and its
+    // caller states the frame its chrome will have from the main window's own measured strip.
+    internal static NativePlacementExpectation Expected(NativePlacementSnapshot main,
+        int settingsFrameWidth, int settingsFrameHeight, int settingsStrip, uint settingsDpi,
+        NativePlacementRect primaryBounds, NativePlacementRect mainWorkArea,
+        MidpointRounding rounding = MidpointRounding.AwayFromZero)
     {
         // WindowManager.swift:46-49: frame geometry in points, then two independent whole-point rounds.
         // The settings frame is measured at its OWN pre-call DPI, including when it is still on
         // another real monitor. No cached main DPI is substituted for the settings measurement.
         var mainScale = main.Dpi / 96.0;
-        var settingsScale = settingsBeforeShow.Dpi / 96.0;
+        var settingsScale = settingsDpi / 96.0;
         var parentWidth = main.Frame.Width / mainScale;
         var parentHeight = main.Frame.Height / mainScale;
-        var width = settingsBeforeShow.Frame.Width / settingsScale;
-        var height = settingsBeforeShow.Frame.Height / settingsScale;
+        var width = settingsFrameWidth / settingsScale;
+        var height = settingsFrameHeight / settingsScale;
+        // The frame AppKit clamps is the visible window; the HWND keeps an invisible strip on its left, right and bottom
+        // (WindowInvisibleBorder), which may lie outside the working area.
+        var strip = settingsStrip / settingsScale;
         var upwardOrigin = primaryBounds.Bottom / mainScale;
         var parentBottom = upwardOrigin - (main.Frame.Top / mainScale + parentHeight);
         var unroundedX = main.Frame.Left / mainScale + parentWidth / 2 - width / 2;
@@ -88,8 +102,8 @@ internal static class WindowManagerNativePlacementGeometry
         var right = mainWorkArea.Right / mainScale;
         var bottom = upwardOrigin - mainWorkArea.Bottom / mainScale;
         var top = upwardOrigin - mainWorkArea.Top / mainScale;
-        var x = Math.Min(Math.Max(roundedX, left), right - width);
-        var y = Math.Min(Math.Max(roundedY, bottom), top - height);
+        var x = Math.Min(Math.Max(roundedX, left - strip), right - width + strip);
+        var y = Math.Min(Math.Max(roundedY, bottom - strip), top - height);
         var windowsTop = upwardOrigin - (y + height);
         var origin = new NativePlacementPoint(
             checked((int)Math.Round(x * mainScale, rounding)),

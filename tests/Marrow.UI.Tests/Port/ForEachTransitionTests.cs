@@ -239,10 +239,11 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
         Assert.Equal(1, host.Opacity(b)); Assert.Equal(0, clocks.Frames.Pending); Assert.Empty(host.Disposed);
     });
 
-    // STOP ForEach transitions #1
+    // STOP ForEach transitions #1 (the PR-WIN-017 half CLOSED 2026-10-04: native two-window resize and move-only drag are
+    // proved by Marrow.App.Tests WindowManagerNativeTests, Req PR-WIN-017; the UI-MCP-018 half is still open)
     // Kind: partial record verification. Swift: MCPSettingsPage.swift:249-303,54-58; WindowManager.swift:118-140.
     // Records: UI-MCP-018, PR-WIN-017. These foundation fixtures prove ED-218 mechanics and environment gating,
-    // not the full MCP card geometry/material/states or native two-window resize and move-only behavior.
-    // Needed: the owning MCP card integration/visual checks and WindowManager native hook verification.
+    // not the full MCP card geometry/material/states.
+    // Needed: the owning MCP card integration/visual checks.
     // Whole-record Req traits are deliberately absent here; existing assertions and Decision traits remain.
 }
