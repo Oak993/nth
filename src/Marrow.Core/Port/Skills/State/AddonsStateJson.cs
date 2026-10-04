@@ -54,11 +54,21 @@ public static class AddonsStateJson
             throw new StateFormatException("The state file does not match its schema: " + error.Message, error);
         }
         if (file.Schema != AddonsState.SchemaVersion) throw new StateFormatException($"The state file has schema {file.Schema}; this build reads {AddonsState.SchemaVersion}.");
+        RejectNullEntries(file.Items, "items");
+        RejectNullEntries(file.AcceptedTerms, "acceptedTerms");
+        RejectNullEntries(file.Declined, "declined");
+        RejectNullEntries(file.Found, "found");
         return AddonsState.Restore(
             file.Items.Select(i => new ItemRecord(i.Id, i.State, i.InstalledPin, i.TargetPin, i.Failure)),
             file.AcceptedTerms.Select(t => new AcceptedTerm(t.LicenceSha256, t.ItemId, ParseDate(t.AcceptedAt))),
             file.Declined.Select(c => new ChatDeclined(c.ChatId, c.ItemIds)),
             file.Found.Select(f => new FoundOnPc(f.ItemId, f.Path)));
+    }
+
+    // Nullable annotations do not reach list elements, so a null entry is refused here rather than surfacing as a NullReferenceException.
+    private static void RejectNullEntries<T>(IReadOnlyList<T> list, string name) where T : class
+    {
+        if (list.Any(entry => entry is null)) throw new StateFormatException($"The state file's {name} list holds a null entry.");
     }
 
     private static DateTimeOffset ParseDate(string text) =>
