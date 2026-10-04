@@ -3446,7 +3446,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
             var card = LogicalQuery.SelfAndDescendants<Border>(row).First(border => border.Padding == new Thickness(14));
             Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), card.CornerRadius);
             Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), card), BrushColor(card.Background));
-            Assert.Equal(HorizontalAlignment.Left, card.HorizontalAlignment);
+            // The card is lead-aligned and hugs its steps: since PR-CHAT-114's shrink fix it fills the slot it is eased in, and the slot is what hugs and leads.
+            var slot = Assert.IsType<SizeSlot>(card.Parent);
+            Assert.Equal(HorizontalAlignment.Left, slot.HorizontalAlignment);
+            Assert.Equal(slot.Bounds.Width, card.Bounds.Width, 0.5);
             Assert.Equal(96, row.Padding.Right);
             Assert.Equal(7, Assert.IsType<StackPanel>(card.Child).Spacing);
             Close(window);

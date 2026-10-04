@@ -3349,10 +3349,12 @@ public sealed class TodoListRow : Decorator
         var count = new OpacityCrossfade(TimelineRows.ChatText("", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
         header.Children.Add(count);
         column.Children.Add(header);
-        var card = TimelineRows.Pill(column, SwiftColor.Quaternary.Opacity(0.32), new Thickness(14));
+        // The pill fills the slot it is eased in (the delegation card's pattern, PR-CHAT-149): its fill, edge and corners are drawn at the size the slot has got to, larger or
+        // smaller, rather than at its contents' size and clipped by the slot, which is a cut when the card shrinks (ED-285 (12)(b)).
+        var card = TimelineRows.Pill(column, SwiftColor.Quaternary.Opacity(0.32), new Thickness(14), fillsSlot: true);
         // :2372 .animation(.snappy(duration: 0.2), value: steps) sits on the whole card, so the card's size follows its contents too: a step that
-        // arrives, a line that grows or wraps, a card that gets wider (OD-0076: a card that changes size eases to it).
-        var slot = new SizeSlot(card);
+        // arrives, a line that grows or wraps, a card that gets wider or narrower (OD-0076: a card that changes size eases to it).
+        var slot = new SizeSlot(card) { ContentFollowsSize = true };
         var rows = new List<(TimelineBaselineRow Row, OpacityCrossfade Icon, TextBlock Text, AnimatedColor IconColour, AnimatedColor TextColour, Action<bool, Animation?> Strike)>();
         // A step that has gone has faded out before it leaves the column; the card then eases to the size it has without it.
         column.Children.CollectionChanged += (_, e) => { if (e.Action == NotifyCollectionChangedAction.Remove) slot.Note(Animation.Snappy(duration: 0.2)); };
