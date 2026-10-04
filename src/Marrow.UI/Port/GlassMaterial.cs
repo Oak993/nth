@@ -12,6 +12,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Rendering.Composition;
+using Avalonia.Styling;
 using Avalonia.Skia;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -34,7 +35,7 @@ internal static class GlassMaterial
         private CompositionContainerVisual? parent;
         private Control? input;
         private State? previous;
-        private bool queued, requested, hovered, pressed;
+        private bool queued, requested, hovered, pressed, resend;
         private Point pointer;
         // A container's regions carry each piece's opacity and place as they were at its last synchronisation, and a piece fades or
         // rises with the opacity and render transform of any visual between it and the container (a soft appear moves only those,
@@ -60,10 +61,24 @@ internal static class GlassMaterial
                 ElementComposition.GetElementVisual(this.owner)?.Compositor.RequestCompositionUpdate(synchronize);
             };
             owner.AttachedToVisualTree += (_, _) => { requested = false; Queue(); };
-            owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); Unwatch(); requested = false; };
+            owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); Unwatch(); StopTurn(); requested = false; };
             owner.LayoutUpdated += (_, _) => Queue();
             owner.PropertyChanged += (_, _) => Queue();
-            owner.ActualThemeVariantChanged += (_, _) => Queue();
+            owner.ActualThemeVariantChanged += (_, _) => { resend = true; Queue(); RepaintWindow(owner); };
+        }
+
+        // The window an appearance change reaches is redrawn whole, once per change, with the glass redrawn in the same pass (the material is told again so its
+        // visual is invalidated with the rest). Left to the partial redraw of the visuals whose colours moved, the pixels around a glass piece differ from a whole
+        // drawing by a few levels (a vector icon's antialiased edge: LookCardTurnoverTests, the Models and Mcp pages, 1 and 9 pixels), so the frame of the click
+        // is not the frame before it. Measured, not traced into Avalonia's compositor: without the repaint or without the re-send those two pages fail.
+        private static readonly ConditionalWeakTable<TopLevel, StrongBox<ThemeVariant>> repainted = new();
+        private static void RepaintWindow(Control owner)
+        {
+            if (TopLevel.GetTopLevel(owner) is not { } top) return;
+            var variant = top.ActualThemeVariant;
+            if (repainted.TryGetValue(top, out var last) && last.Value == variant) return;
+            repainted.AddOrUpdate(top, new StrongBox<ThemeVariant>(variant));
+            foreach (var visual in top.GetVisualDescendants()) visual.InvalidateVisual();
         }
 
         public void Queue()
@@ -197,8 +212,9 @@ internal static class GlassMaterial
             }
             Rewatch();
             var state = new State(regions.ToArray(), spacing ?? 0);
-            if (previous is null || previous.Spacing != state.Spacing || !previous.Regions.SequenceEqual(state.Regions))
+            if (resend || previous is null || previous.Spacing != state.Spacing || !previous.Regions.SequenceEqual(state.Regions))
             {
+                resend = false;
                 previous = state;
                 material.SendHandlerMessage(state);
             }
@@ -211,11 +227,11 @@ internal static class GlassMaterial
             return Matrix.CreateTranslation(-origin.X, -origin.Y) * transform.Value * Matrix.CreateTranslation(origin.X, origin.Y);
         }
 
-        private static Region? RegionFor(Control control, Matrix toOwner, double opacity)
+        private Region? RegionFor(Control control, Matrix toOwner, double opacity)
         {
             var e = SwiftGlass.GetEffect(control);
             if (e is null || SwiftGlass.GetUsesDesktopBackdrop(control) || opacity <= 0 || control.Bounds.Width <= 0 || control.Bounds.Height <= 0 || !toOwner.TryInvert(out _)) return null;
-            var tint = e.TintColor?.Opacity(e.TintOpacity ?? 1).Resolve(control.ActualThemeVariant) ?? Colors.Transparent;
+            var resolved = e.TintColor?.Opacity(e.TintOpacity ?? 1).Resolve(control.ActualThemeVariant) ?? Colors.Transparent;
             // A shape's fill and corners are the Border's or, for a SwiftUI shape with its own curve, the SwiftShapeBorder's (ED-181).
             var (fill, ownCorners) = control switch
             {
@@ -227,8 +243,57 @@ internal static class GlassMaterial
             var corners = ownCorners ?? new CornerRadius(e.Shape.CornerRadius ?? 0);
             if (e.Shape.Kind == GlassShapeKind.RoundedRectangle && corners == default) corners = new CornerRadius(e.Shape.CornerRadius ?? 0);
             var a = AttachmentFor(control);
-            return new Region(control.Bounds.Size, e.Shape, corners, tint, drawnTint, PlainControls.IsDark(control.ActualThemeVariant),
+            var (darkness, tint) = a.Appearance(control, this, e, resolved);
+            return new Region(control.Bounds.Size, e.Shape, corners, tint, drawnTint, darkness,
                 e.IsInteractive && a.hovered, e.IsInteractive && a.pressed, a.pointer, toOwner, opacity);
+        }
+
+        // OD-0076 / ED-254 (SPEC 6.5): in a window that turns over, a piece's veil colour (its darkness, 0 light to 1 dark) and its resolved tint ease to the new
+        // appearance on AppearanceTurn's curve and clock, as every other colour does, and are what the click frame already drew until then (ED-NEW-glass-firstchild).
+        // The piece holds what it is drawn with; a change of its effect's own tint (not of what the appearance resolves it to) is made at once, as is a change in a
+        // tree that does not turn over. `drawing` is the attachment whose material draws the piece: it is synchronised on each frame of the turn.
+        private bool appearanceKnown;
+        private double darkShown, darkTarget;
+        private Color tintShown, tintTarget;
+        private SwiftColor? tintSource;
+        private double? tintOpacity;
+        private Attachment? drawing;
+        private Action stopTurn = static () => { };
+
+        private void StopTurn()
+        {
+            stopTurn();
+            stopTurn = static () => { };
+        }
+
+        private (double Darkness, Color Tint) Appearance(Control control, Attachment drawing, GlassEffect effect, Color resolved)
+        {
+            this.drawing = drawing;
+            var darkTo = PlainControls.IsDark(control.ActualThemeVariant) ? 1.0 : 0.0;
+            var sameTint = appearanceKnown && ReferenceEquals(effect.TintColor, tintSource) && effect.TintOpacity == tintOpacity;
+            tintSource = effect.TintColor;
+            tintOpacity = effect.TintOpacity;
+            if (!appearanceKnown || (darkTo == darkTarget && resolved == tintTarget))
+            {
+                if (!appearanceKnown) { darkShown = darkTo; tintShown = resolved; }
+                (appearanceKnown, darkTarget, tintTarget) = (true, darkTo, resolved);
+                return (darkShown, tintShown);
+            }
+            StopTurn();
+            var (darkFrom, tintFrom) = (darkShown, tintShown);
+            (darkTarget, tintTarget) = (darkTo, resolved);
+            if (!sameTint) tintFrom = tintShown = resolved; // the effect itself changed: not the appearance
+            if (darkFrom == darkTo && tintFrom == resolved)
+            {
+                (darkShown, tintShown) = (darkTo, resolved);
+                return (darkShown, tintShown);
+            }
+            stopTurn = AppearanceTurn.Run(control, progress =>
+            {
+                (darkShown, tintShown) = progress >= 1 ? (darkTo, resolved) : (darkFrom + (darkTo - darkFrom) * progress, tintFrom == resolved ? resolved : progress <= 0 ? tintFrom : SwiftColor.PremultipliedMix(tintFrom, resolved, progress));
+                this.drawing?.RequestSynchronize();
+            });
+            return (darkShown, tintShown);
         }
 
         private void BindInput(bool interactive)
@@ -274,7 +339,7 @@ internal static class GlassMaterial
     }
 
     private sealed record Region(Size Size, GlassShape Shape, CornerRadius Corners, Color Tint, bool DrawnTint,
-        bool Dark, bool Hovered, bool Pressed, Point Pointer, Matrix Transform, double Opacity);
+        double Darkness, bool Hovered, bool Pressed, Point Pointer, Matrix Transform, double Opacity);
     private sealed record State(Region[] Regions, double Spacing);
 
     private sealed class Handler : CompositionCustomVisualHandler
@@ -401,6 +466,9 @@ internal static class GlassMaterial
             ?? throw new InvalidOperationException("Glass shader did not compile: " + error);
     })).Value;
 
+    // The veil's channel between the light appearance's and the dark one's (a whole level, as the two ends were): darkness 0 is light, 1 is dark.
+    private static byte Veil(double darkness, int dark, int light) => (byte)Math.Round(light + (dark - light) * Math.Clamp(darkness, 0, 1));
+
     private static void Draw(ISkiaSharpApiLease lease, State state)
     {
         var canvas = lease.SkCanvas;
@@ -419,7 +487,7 @@ internal static class GlassMaterial
         // Keep native rendering on the lease's GPU; the software path also runs in headless tests (P1).
         using var surface = lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
         if (surface is null) return;
-        surface.Canvas.Clear(state.Regions[0].Dark ? new SKColor(30, 30, 32) : new SKColor(245, 245, 247));
+        surface.Canvas.Clear(new SKColor(Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 32, 247)));
         if (snapshot is not null)
         {
             // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
@@ -448,7 +516,7 @@ internal static class GlassMaterial
             uniforms[$"size{i}"] = new[] { (float)r.Size.Width, (float)r.Size.Height };
             uniforms[$"corners{i}"] = new[] { (float)r.Corners.TopLeft, (float)r.Corners.TopRight, (float)r.Corners.BottomRight, (float)r.Corners.BottomLeft };
             uniforms[$"tint{i}"] = new[] { r.Tint.R / 255f, r.Tint.G / 255f, r.Tint.B / 255f, r.Tint.A / 255f };
-            uniforms[$"frost{i}"] = r.Dark ? new[] { 30 / 255f, 30 / 255f, 32 / 255f, 0.18f } : new[] { 245 / 255f, 245 / 255f, 247 / 255f, 0.18f };
+            uniforms[$"frost{i}"] = new[] { Veil(r.Darkness, 30, 245) / 255f, Veil(r.Darkness, 30, 245) / 255f, Veil(r.Darkness, 32, 247) / 255f, 0.18f };
             var distanceScale = Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21));
             uniforms[$"flags{i}"] = new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? 1f : 0f, (float)distanceScale, (float)r.Opacity };
             uniforms[$"pointer{i}"] = new[] { (float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f };
