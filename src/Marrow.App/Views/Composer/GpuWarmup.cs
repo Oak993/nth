@@ -157,8 +157,27 @@ public static class GpuWarmup
             {
                 registry.Remove(program);
                 Volatile.Write(ref registered, registry.ToArray());
+                workDone.Remove(program);
             }
         }
+    }
+
+    // GR-1 review round 2 (ED-NEW-f-gr-1 (14)): the work steps done in this process, in a first-run warm-up (never the idle
+    // fallback's). The marker (ED-252) says the machine is prepared, and a registered work step (the voice hardware check) is part
+    // of being prepared: a pass writes the marker only when every step of other work registered at that moment has been done,
+    // so an idle fallback after a first run that failed or was cancelled before its work step cannot make the next launch skip
+    // the first run. Guarded by the registry's lock.
+    private static readonly HashSet<GpuProgram> workDone = [];
+
+    private static void WorkWasDone(GpuProgram program)
+    {
+        lock (registry) workDone.Add(program);
+    }
+
+    /// <summary>True when every step of other work registered now has been done in this process (none registered: true).</summary>
+    private static bool WorkIsDone()
+    {
+        lock (registry) return registry.All(p => !p.IsWork || workDone.Contains(p));
     }
 
     static GpuWarmup()
@@ -467,6 +486,7 @@ public static class GpuWarmup
                         if (!worked.Add(item)) continue;
                         var begun = System.Diagnostics.Stopwatch.GetTimestamp();
                         await item.Working(cancellation); // a throw faults the run: never complete as if prepared
+                        WorkWasDone(item);
                         var made = new GpuWarmupStep(step, items.Length, item.Name, System.Diagnostics.Stopwatch.GetElapsedTime(begun).TotalMilliseconds, false, item.Step.Id);
                         Record(made);
                         progress?.Report(made);
@@ -499,8 +519,10 @@ public static class GpuWarmup
                 }
                 if (gpuLess) return;
                 // warm only when the cache took (or gave back) an entry for every program that draws: the programs are on disk
-                // (the marker and the clean-up of other builds' folders on a pool thread, the UI thread's frames untouched)
-                if (!restarted && GpuProgramCache.Folder is { } cached && GpuProgramCache.Entries - entries >= drawn)
+                // (the marker and the clean-up of other builds' folders on a pool thread, the UI thread's frames untouched), and
+                // every registered step of other work has been done (an idle pass never runs one: it leaves the machine unprepared
+                // for a first run to do it)
+                if (!restarted && GpuProgramCache.Folder is { } cached && GpuProgramCache.Entries - entries >= drawn && WorkIsDone())
                     await Task.Run(() => GpuProgramCache.MarkWarm(cached), CancellationToken.None);
             }
             while (again);
@@ -688,6 +710,72 @@ public static class GpuWarmup
         /// <summary>The drawing context over it, at the scaling given to <see cref="Open"/>.</summary>
         public DrawingContext Context { get; }
 
+        /// <summary>The first exception a custom operation drawn through <see cref="Context"/> threw on this thread (null: none).
+        /// Avalonia's PlatformDrawingContext.Custom (12.1.2, decompiled) catches what an operation's Render throws and only logs
+        /// it, under the area "Visual" at Error, so the draw would return as if it had made its programs; the target hears that
+        /// log, keeps the exception, and <see cref="Dispose"/> throws it, so the program faults the warm-up
+        /// (ED-NEW-f-gr-1 (7) and (15)).</summary>
+        public Exception? Failure { get; private set; }
+
+        private WarmTarget? enclosing; // the target this thread was watching for before this one
+        private bool disposed;
+
+        // The sink: installed over the app's own while any target is open (the app's still hears every event it enabled), and
+        // taken off, restoring the app's, when the last closes. A thread watches the target it opened last; the log of a throw
+        // comes from the thread that called Custom, synchronously, so it finds that target. (Avalonia.Logging.Logger.Sink is
+        // global; where something else replaced it while a target was open, it is left as that set it.)
+        private static readonly object watching = new();
+        private static int open;
+        private static ErrorSink? installed;
+        [ThreadStatic] private static WarmTarget? current;
+
+        private sealed class ErrorSink(Avalonia.Logging.ILogSink? inner) : Avalonia.Logging.ILogSink
+        {
+            public Avalonia.Logging.ILogSink? Inner { get; } = inner;
+
+            private static bool Watches(Avalonia.Logging.LogEventLevel level, string area, object? source) =>
+                current is not null && level == Avalonia.Logging.LogEventLevel.Error && area == Avalonia.Logging.LogArea.Visual && source is Avalonia.Rendering.SceneGraph.ICustomDrawOperation;
+
+            public bool IsEnabled(Avalonia.Logging.LogEventLevel level, string area) =>
+                (current is not null && level == Avalonia.Logging.LogEventLevel.Error && area == Avalonia.Logging.LogArea.Visual) || (Inner?.IsEnabled(level, area) ?? false);
+
+            public void Log(Avalonia.Logging.LogEventLevel level, string area, object? source, string messageTemplate)
+            {
+                if (Inner?.IsEnabled(level, area) == true) Inner.Log(level, area, source, messageTemplate);
+            }
+
+            public void Log(Avalonia.Logging.LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues)
+            {
+                if (Watches(level, area, source) && propertyValues.OfType<Exception>().FirstOrDefault() is { } error) current!.Failure ??= error;
+                if (Inner?.IsEnabled(level, area) == true) Inner.Log(level, area, source, messageTemplate, propertyValues);
+            }
+        }
+
+        private void Watch()
+        {
+            lock (watching)
+            {
+                if (open++ == 0)
+                {
+                    installed = new ErrorSink(Avalonia.Logging.Logger.Sink);
+                    Avalonia.Logging.Logger.Sink = installed;
+                }
+            }
+            enclosing = current;
+            current = this;
+        }
+
+        private void Unwatch()
+        {
+            if (current == this) current = enclosing;
+            lock (watching)
+            {
+                if (--open != 0) return;
+                if (ReferenceEquals(Avalonia.Logging.Logger.Sink, installed)) Avalonia.Logging.Logger.Sink = installed!.Inner;
+                installed = null;
+            }
+        }
+
         /// <summary>A target of <paramref name="info"/>'s size (device pixels) on <paramref name="gpu"/> (null: the CPU, a test or
         /// the renderer without a GPU), drawn at <paramref name="scale"/>.</summary>
         public static WarmTarget Open(GRContext? gpu, SKImageInfo info, double scale)
@@ -706,7 +794,12 @@ public static class GpuWarmup
                 infoType.GetField("Dpi")!.SetValue(createInfo, new Vector(96 * scale, 96 * scale));
                 infoType.GetField("ScaleDrawingToDpi")!.SetValue(createInfo, true);
                 var impl = (IDisposable)implConstructor!.Invoke([createInfo, Array.Empty<IDisposable>()]);
-                try { return new WarmTarget(surface, impl, (DrawingContext)contextConstructor!.Invoke([impl, false])); }
+                try
+                {
+                    var target = new WarmTarget(surface, impl, (DrawingContext)contextConstructor!.Invoke([impl, false]));
+                    target.Watch();
+                    return target;
+                }
                 catch { impl.Dispose(); throw; }
             }
             catch
@@ -716,12 +809,21 @@ public static class GpuWarmup
             }
         }
 
+        /// <summary>Lets the target go, then throws the exception a custom operation drawn through it threw
+        /// (<see cref="Failure"/>), with its own stack.</summary>
         public void Dispose()
         {
-            Context.Dispose();
-            impl.Dispose(); // lets go of the GPU context it holds
-            Inspect?.Invoke(Surface);
-            Surface.Dispose();
+            if (disposed) return;
+            disposed = true;
+            Unwatch();
+            try
+            {
+                Context.Dispose();
+                impl.Dispose(); // lets go of the GPU context it holds
+                Inspect?.Invoke(Surface);
+            }
+            finally { Surface.Dispose(); }
+            if (Failure is { } failure) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
         }
     }
 

@@ -76,7 +76,7 @@ slider liquid and strike programs are verified on the CPU renderer only (the liq
 window's GPU context makes, through `GpuWarmup.WarmTarget`; a `RenderTargetBitmap` is a CPU raster in Avalonia 12.1.2 and
 is not used); a GPU check (the programs made, one cache entry per program, `WarmTarget`'s reflection on Avalonia.Skia's
 `DrawingContextImpl` working on a real context) is left to the supervised native session (ED-NEW-f-gr-1 (8));
-`EffortSliderNativeFrameTests` now cover nine programs.
+`EffortSliderNativeFrameTests` now cover nine programs. Review round 2: the marker now also waits for every registered work step (a first run that did not do Voice hardware leaves the machine unprepared even after a later idle pass), and a liquid or strike draw that throws inside its operation faults the warm-up (ED-NEW-f-gr-1 (14) to (16)); both are CPU-renderer verified only, a GPU fault inside `LiquidTrack` is for the native session.
 
 ## Current checkpoint: 2026-09-23 04:30, orchestrator Claude Opus 5.5
 

@@ -33,6 +33,13 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
         return gpu;
     }
 
+    // GR-1 review round 2: the stand-in is a GRContext with no native object (Handle 0). xunit formats both sides of a failed
+    // Assert.Same or Assert.Equal by reading their properties, and GRContext.Backend on it is an access violation: the test host
+    // crashed (0xC0000005) and every later test's result was lost, with the line still saying Passed. So no assertion is handed the
+    // stand-in: identity is asserted as a boolean with its message.
+    private static void IsTheStandIn(GRContext expected, GRContext? actual, string what) =>
+        Assert.True(ReferenceEquals(expected, actual), what + (actual is null ? ": it was null" : ": it was another context"));
+
     private sealed class Probe(Action<ImmediateDrawingContext> read) : ICustomDrawOperation
     {
         public Rect Bounds => new(0, 0, 1, 1);
@@ -84,8 +91,10 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
                 Assert.Same(made[0], target.Surface);
                 Assert.Same(target.Surface, leasedSurface);
             }
-            Assert.Equal([(gpu, info)], asked);   // the context's own surface, the size given
-            Assert.Same(gpu, leasedGpu);          // the lease says GPU: LiquidTrack makes its surfaces on it
+            Assert.True(asked.Count == 1, "the GPU context was asked for " + asked.Count + " surfaces"); // the context's own surface, the size given (not Assert.Single: it would format the stand-in)
+            IsTheStandIn(gpu, asked[0].Gpu, "the surface was asked of another context");
+            Assert.Equal(info, asked[0].Info);
+            IsTheStandIn(gpu, leasedGpu, "the lease did not carry the GPU context");     // the lease says GPU: LiquidTrack makes its surfaces on it
             Assert.Equal(2f, scale);              // and the scaling LiquidTrack reads off the canvas
         }
         finally { GpuWarmup.WarmTarget.GpuSurface = factory; }
@@ -137,13 +146,15 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
         var painted = new List<bool>();
         var factory = GpuWarmup.WarmTarget.GpuSurface;
         var inspect = GpuWarmup.WarmTarget.Inspect;
-        GpuWarmup.WarmTarget.GpuSurface = (g, info) => { Assert.Same(gpu, g); asked.Add(info); return SKSurface.Create(info); };
+        var sameContext = true;
+        GpuWarmup.WarmTarget.GpuSurface = (g, info) => { sameContext &= ReferenceEquals(gpu, g); asked.Add(info); return SKSurface.Create(info); };
         GpuWarmup.WarmTarget.Inspect = surface => painted.Add(Painted(surface));
         try
         {
             var program = GpuWarmup.Registered.Single(p => p.Name == name);
             program.Drawing(new GpuWarmContext(gpu, 1));
             Assert.Single(asked);                                     // the context made the surface the program drew into
+            Assert.True(sameContext, "the surface was asked of another context");
             Assert.Equal((160, (int)EffortSlider.TrackHeight), (asked[0].Width, asked[0].Height));
             Assert.Equal([true], painted);                            // and the program drew into it
         }
