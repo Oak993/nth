@@ -141,6 +141,7 @@ public sealed class TimelineRowsReviewAb2Tests(HeadlessSession headless)
     // follows the group jumps down at once.
     [Fact]
     [Trait("Rule", "R-TEST-4")] // UI-CHAT-022: "click: toggles over 0.24 seconds with the snappy curve"
+    [Trait("Req", "UI-CHAT-022")] // TimelineRows.swift:1466-1477: the fold's height on open (what follows moves with it) along the snappy 0.24 s curve
     public void REVIEW2_opening_the_work_group_folds_its_steps_open_along_the_curve_rather_than_pushing_what_follows_down_at_once() => headless.OnUiThread(() =>
     {
         using var h = Harness();

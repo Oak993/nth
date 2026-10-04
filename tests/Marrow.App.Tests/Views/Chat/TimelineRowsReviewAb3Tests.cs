@@ -83,6 +83,7 @@ public sealed class TimelineRowsReviewAb3Tests(HeadlessSession headless)
     // shrinks along that curve and what follows the group moves up with it; OD-0076: rows that go fold shut.
     [Fact]
     [Trait("Rule", "R-TEST-4")] // UI-CHAT-022: "click: toggles over 0.24 seconds with the snappy curve"
+    [Trait("Req", "UI-CHAT-022")] // TimelineRows.swift:1466-1477: the fold's height on close (what follows moves with it) along the snappy 0.24 s curve
     public void REVIEW3_closing_the_work_group_folds_its_steps_shut_along_the_curve_rather_than_pulling_what_follows_up_at_the_end() => headless.OnUiThread(() =>
     {
         using var h = Harness();
