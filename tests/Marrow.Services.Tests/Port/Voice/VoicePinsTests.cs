@@ -444,7 +444,7 @@ public sealed class VoicePinsTests
     [Trait("Spec", "V-T4")]
     [InlineData("### OpenAI Whisper (model weights and reference code)", "https://github.com/openai/whisper", "Copyright (c) 2022 OpenAI")]
     [InlineData("### whisper.cpp and ggml", "https://github.com/ggml-org/whisper.cpp", "Copyright (c) 2023-2026 The ggml authors")]
-    [InlineData("### Whisper.net", "https://github.com/sandrohanea/whisper.net", "Copyright (c) 2024 sandrohanea")]
+    [InlineData("### `Whisper.net`", "https://github.com/sandrohanea/whisper.net", "Copyright (c) 2024 sandrohanea")]
     [InlineData("### NAudio", "https://github.com/naudio/NAudio", "Copyright 2020 Mark Heath")]
     [InlineData("### Silero VAD", "https://github.com/snakers4/silero-vad", "Copyright (c) 2020-present Silero Team")]
     [InlineData("### Liquid Orb Editor (LerSent001)", "https://github.com/LerSent001/orb", "Copyright (c) 2026 LerSent001")]
@@ -470,14 +470,27 @@ public sealed class VoicePinsTests
     {
         var section = VoiceNoticesSection();
         Assert.Contains("runs OpenAI's Whisper on the user's computer through whisper.cpp", section, StringComparison.Ordinal);
-        Assert.Contains("and Whisper.net, captures the microphone with NAudio, detects speech with Silero VAD", section, StringComparison.Ordinal);
+        Assert.Contains("and `Whisper.net`, captures the microphone with NAudio, detects speech with Silero VAD", section, StringComparison.Ordinal);
         Assert.Contains("(ggerganov/whisper.cpp, commit 5359861c739e955e79d9a303bcbc70fb988958b1) and are not part of the installer.", section, StringComparison.Ordinal);
         // The MIT permission notice appears once per credited work (nine works carry the licence text) and the Apache text once.
         Assert.True(CountOf(section, "Permission is hereby granted, free of charge, to any person obtaining a copy") >= 8);
-        Assert.Contains("Apache License\n                           Version 2.0, January 2004", section, StringComparison.Ordinal);
+        Assert.Contains("```\nApache License\nVersion 2.0, January 2004\nhttp://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n", section, StringComparison.Ordinal);
+        Assert.Contains("END OF TERMS AND CONDITIONS", section, StringComparison.Ordinal);
         Assert.Contains("the Apache License 2.0 text is included below for the large-v3 files", section, StringComparison.Ordinal);
         Assert.Contains("while the repository states MIT", section, StringComparison.Ordinal);
         Assert.Contains("Border-beam and the Uiverse button are credited above (ED-251)", section, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Spec", "V-T4")]
+    public void The_Voice_typing_section_never_leaves_the_name_Whisper_net_bare_for_the_markdown_autolinker()
+    {
+        // The notices are shown by MarkdownView, which links a bare domain whose last label is a known top-level domain
+        // (MarkdownView.swift:772-826, "net" is one): a bare Whisper.net would open https://Whisper.net, an unrelated site.
+        // Inline code is never linked, so the name is written as code; dotted package names (Whisper.net.Runtime) and URLs are not domains here.
+        var bare = System.Text.RegularExpressions.Regex.Matches(VoiceNoticesSection(), @"(?<![A-Za-z0-9./`])Whisper\.net(?![A-Za-z0-9`]|\.[A-Za-z])", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        Assert.Empty(bare);
     }
 
     private static int CountOf(string text, string needle)

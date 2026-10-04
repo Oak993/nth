@@ -118,7 +118,7 @@ SOFTWARE.
 
 Voice typing (owner decisions OD-0091, OD-0092 and OD-0097, with their amendments)
 runs OpenAI's Whisper on the user's computer through whisper.cpp
-and Whisper.net, captures the microphone with NAudio, detects speech with Silero VAD, and draws the voice orb and the
+and `Whisper.net`, captures the microphone with NAudio, detects speech with Silero VAD, and draws the voice orb and the
 composer's voice glow from the two works credited last. The installer carries the Silero VAD model, a ten-second test clip
 and the whisper.cpp libraries for the CPU and Vulkan; speech models are downloaded on request from Hugging Face
 (ggerganov/whisper.cpp, commit 5359861c739e955e79d9a303bcbc70fb988958b1) and are not part of the installer.
@@ -153,7 +153,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### whisper.cpp and ggml (the native engine inside Whisper.net's runtimes; the ggml model files)
+### whisper.cpp and ggml (the native engine inside `Whisper.net`'s runtimes; the ggml model files)
 
 - Source: https://github.com/ggml-org/whisper.cpp. Licence: MIT, "Copyright (c) 2023-2026 The ggml authors".
 
@@ -181,9 +181,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### Whisper.net
+### `Whisper.net`
 
-- Source: https://github.com/sandrohanea/whisper.net (NuGet Whisper.net, Whisper.net.Runtime and Whisper.net.Runtime.Vulkan 1.9.1).
+- Source: https://github.com/sandrohanea/whisper.net (NuGet `Whisper.net`, Whisper.net.Runtime and Whisper.net.Runtime.Vulkan 1.9.1).
   Licence: MIT, "Copyright (c) 2024 sandrohanea".
 
 ```
@@ -270,7 +270,7 @@ SOFTWARE.
 ### Microsoft.Extensions.AI.Abstractions and System.Numerics.Tensors
 
 - Source: https://dot.net/ (NuGet Microsoft.Extensions.AI.Abstractions 10.2.0 and System.Numerics.Tensors 9.0.0, which
-  Whisper.net brings in). Licence: MIT, "Copyright (c) Microsoft Corporation". The System.Numerics.Tensors package also
+  `Whisper.net` brings in). Licence: MIT, "Copyright (c) Microsoft Corporation". The System.Numerics.Tensors package also
   carries a THIRD-PARTY-NOTICES file of its own for code taken from other projects.
 
 ```
@@ -371,12 +371,12 @@ SOFTWARE.
 
 ### Apache License 2.0 (OpenAI Whisper large-v3 model files)
 
-The text below is the Apache License, Version 2.0, as published at https://www.apache.org/licenses/LICENSE-2.0.txt .
+The text below is the Apache License, Version 2.0, as published at https://www.apache.org/licenses/LICENSE-2.0.txt , with its three title lines left-aligned and nothing else changed.
 
 ```
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
+Apache License
+Version 2.0, January 2004
+http://www.apache.org/licenses/
 
    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
