@@ -983,18 +983,22 @@ public sealed class HydraDelegationBlock : Decorator
             rows = null;
             if (animated) SwiftTransition.Remove(column, empty); else column.Children.Remove(empty);
         }
+        // The list comes in as one view with its heads and its next-brief line (:676-692): they take no transition of their own then.
+        var listArrives = false;
         if (delegations.Count != 0 && rows is null)
         {
             rows = new StackPanel { Spacing = 5 };
+            listArrives = true;
             if (animated) SwiftTransition.Insert(column, 1, rows); else column.Children.Add(rows);
         }
         if (rows is not null)
         {
+            var transitions = animated && !listArrives;
             for (var index = shown.Count; index < delegations.Count; index++)
             {
                 var head = HeadRow(delegations[index]);
                 var at = writing is not null ? rows.Children.IndexOf(writing) : rows.Children.Count;
-                if (animated) SwiftTransition.Insert(rows, at, head); else rows.Children.Insert(at, head);
+                if (transitions) SwiftTransition.Insert(rows, at, head); else rows.Children.Insert(at, head);
             }
             shown = delegations;
             // :681-686 while a brief is still streaming a line says the next one is on its way, past a 16-point clear column.
@@ -1005,12 +1009,12 @@ public sealed class HydraDelegationBlock : Decorator
                 next.Children.Add(TimelineRows.ChatText("Writing the next brief\u2026", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
                 writing = next;
                 // :681-686 a view that joins a stack comes in by the default opacity transition.
-                if (animated) SwiftTransition.Insert(rows, rows.Children.Count, next); else rows.Children.Add(next);
+                if (transitions) SwiftTransition.Insert(rows, rows.Children.Count, next); else rows.Children.Add(next);
             }
             else if (!streaming && writing is { } gone)
             {
                 writing = null;
-                if (animated) SwiftTransition.Remove(rows, gone); else rows.Children.Remove(gone);
+                if (transitions) SwiftTransition.Remove(rows, gone); else rows.Children.Remove(gone);
             }
         }
         if (shown.Count == 0 && delegations.Count == 0) writing = null;
@@ -3390,6 +3394,7 @@ internal sealed class OpacityCrossfade : Panel
             if (value <= 0 && !ReferenceEquals(view, Current)) Drop(view);
         });
         fades[view] = fade;
+        fade.Set(view.Opacity, null); // a view mounted with no fade of its own starts from the opacity it has (a fade that has begun is carried on, never restarted)
         return fade;
     }
 
@@ -3427,6 +3432,7 @@ internal sealed class SizeSlot : Panel
     private double presentedWidth, presentedHeight, targetWidth, targetHeight;
     private bool measured;
     private Animation? pending;
+    private int noted;
 
     public SizeSlot(Control content)
     {
@@ -3447,16 +3453,20 @@ internal sealed class SizeSlot : Panel
     {
         pending = animation;
         InvalidateMeasure();
+        // A layout pass measures the slot before the card inside it has been told its contents changed (that reaches it as the pass goes on), so the
+        // noted animation waits for the size to change; it lapses once the layout passes are done, so a later size change of another kind (a resize) is followed at once.
+        var turn = ++noted;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (turn == noted) pending = null; }, Avalonia.Threading.DispatcherPriority.Background);
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
         content.Measure(availableSize);
         var natural = content.DesiredSize;
-        var animation = measured ? pending : null;
-        pending = null;
         if (!measured || natural.Width != targetWidth || natural.Height != targetHeight)
         {
+            var animation = measured ? pending : null;
+            pending = null;
             var widthChanged = !measured || natural.Width != targetWidth;
             var heightChanged = !measured || natural.Height != targetHeight;
             targetWidth = natural.Width;
