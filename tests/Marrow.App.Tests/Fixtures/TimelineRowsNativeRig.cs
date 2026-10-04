@@ -184,6 +184,17 @@ internal static class TimelineRowsNativeRig
         return (window, model);
     }
 
+    // WindowManagerNativeForeground's header promises no simulated key: it acquires the foreground by AttachThreadInput, which Windows denies when the foreground belongs to a process
+    // of another integrity or an app that does not share its queue (attachError=5, as on this PC when the owner's apps are in front). This rig departs from that promise on purpose and
+    // only here: a bare Alt tap from this process is the documented way to let it take the foreground, nothing else is pressed with it, and it is sent only when no key or button
+    // is down (a held key would be changed by it), as the Acquire precondition requires of an attach.
+    private static bool NoKeyIsHeld()
+    {
+        for (var key = 1; key < 256; key++)
+            if ((N.GetAsyncKeyState(key) & 0x8000) != 0) return false;
+        return true;
+    }
+
     /// <summary>Brings the window to the foreground. Windows hands the foreground to a process that has just given input: a bare Alt tap from this one (it opens nothing in a window of ours) lets it take it.</summary>
     internal static void Front(WindowManagerNativeSession native, AvaloniaWindow window)
     {
@@ -193,7 +204,7 @@ internal static class TimelineRowsNativeRig
         {
             try
             {
-                keybd_event(0x12, 0, 0, 0); keybd_event(0x12, 0, 2, 0);
+                if (NoKeyIsHeld()) { keybd_event(0x12, 0, 0, 0); keybd_event(0x12, 0, 2, 0); }
                 native.OnUi(() => WindowManagerNativeForeground.Acquire(handle, native.ThreadId));
                 return;
             }

@@ -442,4 +442,38 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
         Assert.Equal(0, Top(child, panel), Tolerance);
         window.Close();
     });
+
+    // UI-CHAT-052 review: the sibling of the test above for the offset. An asymmetric transition whose insertion MOVES the child (Move(.bottom)) and whose removal fades: the removal
+    // leaves from the insertion's presentation, so the child neither jumps to its identity position nor stays where the arrival stopped; the offset it had eases out over the removal.
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
+    [Trait("Decision", "ED-159")] // the interruption follow-up
+    public void A_removal_during_an_asymmetric_insertion_carries_the_offset_the_insertion_had_reached_and_eases_it_out() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var panel = new Canvas { Width = 300, Height = 200 };
+        var window = new Window { Width = 400, Height = 300, Content = panel };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var child = new Border { Width = 100, Height = 40 }.Transition(SwiftTransition.Asymmetric(SwiftTransition.Move(Edge.Bottom), SwiftTransition.Opacity));
+        var curve = Animation.EaseOut(duration: 0.2);
+        Transaction.WithAnimation(curve, () => SwiftTransition.Insert(panel, 0, child));
+        window.UpdateLayout();
+        clocks.Frame(0.05);
+        var p = curve.Progress(0.05);
+        Assert.InRange(p, 0.2, 0.8);
+        var carried = 40 * (1 - p);
+        Assert.Equal(carried, Top(child, panel), Tolerance);
+        var removal = Animation.EaseOut(duration: 0.3);
+        Transaction.WithAnimation(removal, () => SwiftTransition.Remove(panel, child));
+        Assert.Equal(carried, Top(child, panel), Tolerance); // no jump to identity at the first frame of the removal
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        clocks.Frame(0.1);
+        var q = removal.Progress(0.1);
+        Assert.Equal(carried * (1 - q), Top(child, panel), Tolerance); // the carried offset eases out on the removal's own curve
+        Assert.Equal(1 - q, EffectiveOpacity(child, panel), Tolerance);
+        clocks.Frame(0.21); // 0.31 s
+        Assert.Empty(panel.Children);
+        window.Close();
+    });
 }
