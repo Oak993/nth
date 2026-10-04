@@ -654,7 +654,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== PR-WIN-105: Queue a chat =====
 
     [Fact]
-    // Partial evidence for PR-WIN-105; whole record remains STOP. // App/AppCommands.swift:74-77
+    // Partial evidence for PR-WIN-105; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:74-77
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void Queue_a_chat_chord_lines_the_draft_up_behind_the_running_turn()
     {
@@ -688,7 +688,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-105; whole record remains STOP. // App/AppCommands.swift:69-77
+    // Partial evidence for PR-WIN-105; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:69-77
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void Queue_a_chat_is_disabled_while_an_approval_waits_so_the_chord_is_left_for_the_card()
     {
@@ -716,7 +716,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-105; whole record remains STOP. // App/AppCommands.swift:76-77
+    // Partial evidence for PR-WIN-105; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:76-77
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void Queue_a_chat_is_disabled_with_an_empty_draft_or_no_selection()
     {
@@ -743,7 +743,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-105; whole record remains STOP. // App/AppCommands.swift:69-77
+    // Partial evidence for PR-WIN-105; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:69-77
     [Trait("Decision", "ED-099")]
     public void In_a_window_a_disabled_queue_leaves_ctrl_enter_on_its_way_to_the_rest_of_the_window() => headless.OnUiThread(() =>
     {
@@ -1177,7 +1177,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== PR-UPDATE-092: Welcome tour =====
 
     [Fact]
-    // Partial evidence for PR-UPDATE-092; whole record remains STOP. // App/AppCommands.swift:111-113; App/Views/Tour/TourPages.swift:26-28
+    // Partial evidence for PR-UPDATE-092; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:111-113; App/Views/Tour/TourPages.swift:26-28
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void Welcome_tour_has_no_chord_is_never_disabled_and_presents_the_tour_even_after_it_was_seen() => headless.OnUiThread(() =>
     {
@@ -1251,7 +1251,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== PR-WIN-112: the finish item =====
 
     [Fact]
-    // Partial evidence for PR-WIN-112; whole record remains STOP. // App/AppCommands.swift:100-102; App/AppModel.swift:855-858; App/AppSettings.swift:30-34
+    // Partial evidence for PR-WIN-112; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:100-102; App/AppModel.swift:855-858; App/AppSettings.swift:30-34
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void The_finish_item_reads_Settle_thread_Archive_thread_or_Reopen_thread_from_the_setting_and_the_selection()
     {
@@ -1286,7 +1286,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-112; whole record remains STOP. // App/AppCommands.swift:102
+    // Partial evidence for PR-WIN-112; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:102
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void The_finish_item_is_disabled_with_no_selection_and_leaves_its_chord_unclaimed()
     {
@@ -1311,7 +1311,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-112; whole record remains STOP. // App/AppCommands.swift:100-101; App/AppModel.swift:865-870
+    // Partial evidence for PR-WIN-112; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:100-101; App/AppModel.swift:865-870
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void With_Archive_chosen_the_finish_chord_archives_the_selected_thread()
     {
@@ -1333,7 +1333,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-112; whole record remains STOP. // App/AppCommands.swift:100-101; App/AppModel.swift:865-881
+    // Partial evidence for PR-WIN-112; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:100-101; App/AppModel.swift:865-881
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void With_Settle_chosen_the_finish_chord_settles_the_selected_thread_once_no_row_has_taken_the_request()
     {
@@ -1358,7 +1358,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-112; whole record remains STOP. // App/AppCommands.swift:100-101; App/AppModel.swift:868-870
+    // Partial evidence for PR-WIN-112; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:100-101; App/AppModel.swift:868-870
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void With_Settle_chosen_the_finish_chord_archives_a_helper_thread()
     {
@@ -1842,7 +1842,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== UI-UPDATE-055: the Welcome tour item =====
 
     [Fact]
-    // Partial evidence for UI-UPDATE-055; whole record remains STOP. // App/AppCommands.swift:111-113
+    // Partial evidence for UI-UPDATE-055; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:111-113
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void Welcome_tour_is_the_last_and_only_help_command_with_no_chord_and_never_disabled()
     {
@@ -2019,7 +2019,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== UI-WIN-018: Queue a chat =====
 
     [Fact]
-    // Partial evidence for UI-WIN-018; whole record remains STOP. // App/AppCommands.swift:69-77; Core/Models/Shortcuts.swift:172, :220
+    // Partial evidence for UI-WIN-018; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:69-77; Core/Models/Shortcuts.swift:172, :220
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void Queue_a_chat_is_the_second_thread_command_on_ctrl_return_and_is_off_with_no_selection_an_empty_draft_or_an_approval()
     {
@@ -2287,7 +2287,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== UI-WIN-024: the finish item =====
 
     [Fact]
-    // Partial evidence for UI-WIN-024; whole record remains STOP. // App/AppCommands.swift:99-102; App/AppModel.swift:855-858; App/AppSettings.swift:716; Core/Models/Shortcuts.swift:177, :225
+    // Partial evidence for UI-WIN-024; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:99-102; App/AppModel.swift:855-858; App/AppSettings.swift:716; Core/Models/Shortcuts.swift:177, :225
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void The_finish_item_opens_the_last_block_on_ctrl_shift_delete_with_three_titles_and_needs_a_selection()
     {
@@ -2331,7 +2331,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for UI-WIN-024; whole record remains STOP. // App/AppCommands.swift:100-101; Core/Models/Shortcuts.swift:115-117, :259-265, :300-302
+    // Partial evidence for UI-WIN-024; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:100-101; Core/Models/Shortcuts.swift:115-117, :259-265, :300-302
     [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:103-104; Core/Models/Shortcuts.swift:118-119, :259-265, :300-302
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void A_chord_recorded_for_the_finish_item_is_stored_under_archiveThread_and_one_for_the_archive_item_under_archiveThreadPrompt()
@@ -2462,12 +2462,12 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-WIN-015")] // App/AppCommands.swift:51; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-017")] // App/AppCommands.swift:67; Core/Models/Shortcuts.swift:276-283, :300-302
-    // Partial evidence for UI-WIN-018; whole record remains STOP. // App/AppCommands.swift:75; Core/Models/Shortcuts.swift:276-283, :300-302
+    // Partial evidence for UI-WIN-018; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:75; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-019")] // App/AppCommands.swift:82; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-020")] // App/AppCommands.swift:86; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-021")] // App/AppCommands.swift:88; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-022")] // App/AppCommands.swift:93; Core/Models/Shortcuts.swift:276-283, :300-302
-    // Partial evidence for UI-WIN-024; whole record remains STOP. // App/AppCommands.swift:101; Core/Models/Shortcuts.swift:276-283, :300-302
+    // Partial evidence for UI-WIN-024; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:101; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:104; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-026")] // App/AppCommands.swift:107; Core/Models/Shortcuts.swift:276-283, :300-302
     public void Each_rebindable_item_takes_the_chord_recorded_for_its_command_and_gives_up_its_default()
@@ -2518,7 +2518,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== UI-WIN-027: Welcome tour =====
 
     [Fact]
-    // Partial evidence for UI-WIN-027; whole record remains STOP. // App/AppCommands.swift:111-113; App/Views/Tour/TourPages.swift:26-28
+    // Partial evidence for UI-WIN-027; one clause of the record (its STOPs are closed; the whole record is proved with the Blitz pass tests, see the end of this file). // App/AppCommands.swift:111-113; App/Views/Tour/TourPages.swift:26-28
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void Welcome_tour_follows_the_thread_menu_alone_with_no_chord_never_disabled_and_presents_the_tour() => headless.OnUiThread(() =>
     {
@@ -2897,3 +2897,40 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 //   welcome-tour, no chord; CommandPaletteTests carries PR-WIN-115, PR-UPDATE-092, UI-UPDATE-055 and UI-WIN-027.
 // - STOP #7 (AltGr) and #8 (overlapping chords, UNK-0003) are unchanged; neither is part of the stated result of PR-WIN-101
 //   or PR-WIN-092.
+
+// Blitz pass (unit appcommands, 2026-10-04; AppCommandsZoomTests, AppCommandsFinishTests and CommandPaletteTests).
+// - STOP #2 is built, not just decided: ED-270 (the zoom chords are key equivalents of the character typed) replaces
+//   ED-230's position reading of "+". The four zoom items are marked MatchesTypedCharacter and matched by
+//   MenuKeyEquivalents.Typed over the active layout (Port/KeyboardLayoutText.cs); AppCommandsZoomTests presses German, US and
+//   French layouts through the production dispatch. The headless session's layout is ANSI US (Fixtures/KeyboardLayouts.cs).
+// - STOP #3, #4, #5 and #6: closed (AppModel.cs:920-1003, OD-0053, ThreadRuntime.cs:1026-1038, WindowManager.cs and
+//   TourWindowController.cs attach the dispatch). The earlier "STOP opencode" recheck lines and the "Sweep B recheck" above
+//   are historical and superseded by this pass and the Finishing pass.
+// - PR-WIN-105 and UI-WIN-018: AppCommandsFinishTests.With_an_approval_waiting_Ctrl_Return_approves_through_the_card_... presses
+//   Ctrl+Return in a window holding a real ApprovalCard and a focused composer, through the production dispatch: the card
+//   approves, nothing is queued; with the approval gone the same chord queues the draft.
+// - PR-WIN-112, PR-WIN-114 and UI-WIN-024: CommandPaletteTests.The_finish_row_reads_... (literal titles, symbols, chord, live
+//   retitle, the click's FinishRequest, no settle row) and AppCommandsFinishTests.The_finish_chord_reopens_a_settled_thread_...
+// - PR-UPDATE-092, PR-WIN-115, UI-UPDATE-055 and UI-WIN-027: CommandPaletteTests.Choosing_the_welcome_tour_row_with_the_tour_open_...
+// - PR-WIN-092, PR-WIN-224 and UI-WIN-007: AppCommandsFinishTests.Ctrl_0_pressed_in_the_focused_Settings_window_...
+// - STOP #7 (AltGr) and #8 (overlapping chords, UNK-0003) are still open and are not clauses of these records.
+
+// Blitz review round (unit appcommands, 2026-10-04, after the adversarial review).
+// - PR-WIN-222, PR-WIN-224, PR-WIN-225 and UI-WIN-074 (the Shift half of the "+" key equivalent, French Shift with the 0 key):
+//   AppCommandsZoomTests.Read_by_Windows_Ctrl_Shift_equals_and_Ctrl_equals_zoom_in_... presses the chords in the production main
+//   and Settings windows over the production reader (Port/KeyboardLayoutText.cs) bound to the real US and French layouts
+//   (Fixtures/WindowsLayoutReaders.cs, ED-283 item 7). The mutant "the reader ignores Shift" (which every table-layout
+//   test let live) fails it, AppCommandsZoomTests.The_Windows_reader_over_the_US_German_and_French_layouts_... and
+//   AppCommandsReviewTests.REVIEW_the_Windows_layout_reader_applies_Shift.
+// - PR-WIN-115: CommandPaletteTests.The_welcome_tour_row_follows_settings_... now reads the row's id (welcome-tour, OD-0053); the
+//   mutant that renames the id fails it and AppCommandsReviewTests.REVIEW_the_welcome_tour_row_has_the_id_welcome_tour.
+// - French AZERTY by window: the main window is a ThreadWindow, whose digit monitor (ThreadWindow.swift:11-23) takes Ctrl with the
+//   key at the US "6" position (the key that types "-" there) before the menu, so Ctrl with it selects Thread 6 and does not zoom
+//   out; in the Settings and tour windows it reaches Zoom Out (:55-56) before Thread 6 (:95-98), so Thread 6 is not reachable
+//   there on that layout. ED-283 item 5 and the French test's comment said Zoom Out in every window, which was wrong
+//   for the main window; both are corrected and AppCommandsZoomTests.On_a_French_keyboard_Ctrl_with_the_key_that_types_a_minus_...
+//   presses it in both production windows.
+// - Test hygiene: AppCommandsFinishTests.The_palette_holds_only_the_source_actions_... and Ctrl_0_pressed_in_the_focused_Settings_window_...
+//   prove one clause of each record they name, so they are R-TEST-4 partials, no longer Req.
+// - STOP #7 (AltGr read as Ctrl+Alt, so Ctrl+Alt chords such as toggleActivityView are taken before a text box on layouts where
+//   AltGr with that key types a character) is pre-existing and still open; it needs an AltGr decision (ED or owner), not a test.

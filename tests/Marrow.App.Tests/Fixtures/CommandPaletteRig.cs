@@ -69,6 +69,13 @@ public static class CommandPaletteRig
     public static Control RowTitled(CommandPalette palette, string title) =>
         palette.RowsPanel.Children.First(row => RowParts(row).Title.Text == title);
 
+    /// <summary>The id of the item a row draws (CommandPalette.swift:24-31 Item.id; the row keeps its item).</summary>
+    public static string RowId(Control row)
+    {
+        var item = row.GetType().GetField("item", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(row)!;
+        return (string)item.GetType().GetProperty("Id")!.GetValue(item)!;
+    }
+
     public static Point Centre(Visual control, Visual ancestor) =>
         control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), ancestor)!.Value;
 

@@ -42,6 +42,19 @@ public static class AppCommandsRig
         return window;
     }
 
+    /// <summary>
+    /// Runs layout and the dispatcher until what a view posts has run (a text box raises TextChanged from posted jobs, and
+    /// each layout pass can post more); it must be called on the main actor, since those jobs write the observable draft.
+    /// </summary>
+    public static void SettleLayout(AvaloniaWindow window)
+    {
+        for (var pass = 0; pass < 5; pass++)
+        {
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
     /// <summary>A real key-down and key-up delivered to <paramref name="window"/> through Avalonia's keyboard device.</summary>
     public static void Press(AvaloniaWindow window, Key key, PhysicalKey physical, RawInputModifiers modifiers)
     {
@@ -112,4 +125,10 @@ public static class AppCommandsRig
         var state = view.GetType().GetField("state", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(view)!;
         return (Guid?)state.GetType().GetProperty("PendingArchiveID", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!.GetValue(state);
     }
+}
+
+/// <summary>An <see cref="IDisposable"/> that runs one action, so a rig can hand back its own clean-up as a value.</summary>
+public sealed class DisposeAction(Action dispose) : IDisposable
+{
+    public void Dispose() => dispose();
 }

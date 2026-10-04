@@ -7,6 +7,8 @@ using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Composer;
+using Marrow.Services.Providers;
 using Marrow.App.Views.Palette;
 using Marrow.App.Views.Sidebar;
 using Marrow.App.Window;
@@ -30,6 +32,7 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
 {
     private static readonly KeyboardShortcut CtrlW = Chord("w", ChordModifiers.Control); // archiveThread, 13 + command
     private static readonly KeyboardShortcut CtrlS = Chord("s", ChordModifiers.Control); // settleThread, 1 + command
+    private static readonly KeyboardShortcut CtrlShiftDelete = new(KeyEquivalent.Delete, ChordModifiers.Control | ChordModifiers.Shift); // finishThread, 51 + shift, command
     private static readonly KeyboardShortcut CtrlAltU = Chord("u", ChordModifiers.Control | ChordModifiers.Alt); // toggleActivityView, 32 + option, command
 
     private static MenuCommand On(AppCommands commands, KeyboardShortcut shortcut) => commands.Body.Single(command => command.Shortcut == shortcut);
@@ -37,17 +40,10 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
     // ===== "no palette row": the source gives these commands none (CommandPalette.swift:153-178) =====
 
     [Fact]
-    [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25 (the source gives the command no palette row); Views/Palette/CommandPalette.swift:153-178
-    [Trait("Req", "PR-WIN-101")] // App/AppCommands.swift:48-51; Views/Palette/CommandPalette.swift:153-178
-    [Trait("Req", "PR-WIN-113")] // App/AppCommands.swift:103-105; Views/Palette/CommandPalette.swift:153-178
-    [Trait("Req", "PR-WIN-222")] // App/AppCommands.swift:53-54
-    [Trait("Req", "PR-WIN-223")] // App/AppCommands.swift:55-56
-    [Trait("Req", "PR-WIN-224")] // App/AppCommands.swift:57-58
-    [Trait("Req", "UI-WIN-007")] // App/AppCommands.swift:21-25
-    [Trait("Req", "UI-WIN-015")] // App/AppCommands.swift:48-51
-    [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:103-105
-    [Trait("Req", "UI-WIN-074")] // App/AppCommands.swift:53-54
-    [Trait("Req", "UI-WIN-077")] // App/AppCommands.swift:59-62
+    // Partial for PR-WIN-092, PR-WIN-101, PR-WIN-113, PR-WIN-222, PR-WIN-223, PR-WIN-224, UI-WIN-007, UI-WIN-015, UI-WIN-025,
+    // UI-WIN-074 and UI-WIN-077: only their "the source gives the command no palette row" clause (App/AppCommands.swift:21-25,
+    // :48-51, :53-62, :103-105; Views/Palette/CommandPalette.swift:153-178). Each record's other clauses are proved elsewhere.
+    [Trait("Rule", "R-TEST-4")]
     public void The_palette_holds_only_the_source_actions_so_the_show_main_zoom_activity_and_archive_prompt_commands_have_no_row() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness(h =>
@@ -266,6 +262,125 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
         });
     });
 
+    // ===== PR-WIN-105 and UI-WIN-018: Queue a chat against an approval card =====
+
+    [Fact]
+    [Trait("Req", "PR-WIN-105")] // App/AppCommands.swift:69-77; App/Views/Composer/RequestCards.swift:47-54; App/Views/Composer/ComposerView.swift:384-398
+    [Trait("Req", "UI-WIN-018")] // App/AppCommands.swift:69-77; App/Runtime/ThreadRuntime.swift:771-788
+    public void With_an_approval_waiting_Ctrl_Return_approves_through_the_card_even_with_the_composer_focused_and_with_none_it_queues_the_draft() => headless.OnUiThread(() =>
+    {
+        System.Threading.Tasks.Task.Run(() => LoginEnvironment.Load()).GetAwaiter().GetResult(); // as RequestCardsTests: no pool-thread load inside the dispatcher
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the composer's working dots animate
+        using var h = new ThreadRuntimePart12Harness();
+        using var shortcuts = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var runtime = h.Main.OnMain(() => h.App.Runtime(h.Thread.Id)); // the model's own runtime, the one AppCommands reads
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+        var approval = new ApprovalRequest("req-1", ApprovalRequest.Kind.Command, "echo hello", new ValueList<ApprovalRequest.Option>([
+            new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),
+            new ApprovalRequest.Option("approve", "Approve", ApprovalRequest.Option.Role.Approve),
+        ]));
+        h.Main.OnMain(() =>
+        {
+            h.App.Settings.HydraQueueHeads = false; // a stored follow-up, not a Hydra head dispatched from the queue (ThreadRuntime.swift:999-1013)
+            h.App.Settings.HydraAlwaysHeads = false;
+            h.App.SelectedThreadID = h.Thread.Id;
+            runtime.RehearseTurn("working"); // a turn is running, so there is something to queue behind (ThreadRuntime.swift:771-773)
+            runtime.Draft = new ComposerDraft { Text = "next step" };
+            runtime.Rehearse(new ProviderEvent.Approval(approval));
+        });
+        var (window, textView) = h.Main.OnMain(() =>
+        {
+            var stack = new StackPanel { Width = 700 };
+            stack.Children.Add(new ApprovalCard(runtime.Approvals.Single(), runtime)); // the card the transcript draws
+            stack.Children.Add(new ComposerView(runtime, workingDirectory: null)); // the composer beneath it
+            AppEnvironment.SetAppModel(stack, h.App);
+            var shown = new AvaloniaWindow { Content = stack, Width = 900, Height = 700 };
+            shown.Show();
+            SettleLayout(shown);
+            var box = stack.GetVisualDescendants().OfType<ComposerNSTextView>().Single();
+            Assert.True(box.Focus()); // the composer has the focus, as it does when the user is typing
+            SettleLayout(shown);
+            return (shown, box);
+        });
+        using var attached = h.Main.OnMain(() => MenuKeyEquivalents.Attach(window, (positional, typed) => new AppCommands(h.App).PerformKeyDown(positional, typed)));
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Assert.True(textView.IsFocused);
+                Assert.True(new AppCommands(h.App).Body.Single(command => command.Title == "Queue a chat").IsDisabled); // :76-77 off while an approval waits
+                Press(window, Key.Enter, PhysicalKey.Enter, RawInputModifiers.Control);
+                // :69-73 the chord is the approve button's now: the card resolves its request, and the draft is not queued.
+                Assert.Empty(runtime.Approvals);
+                Assert.Empty(runtime.FollowUps);
+                Assert.Equal("next step", runtime.Draft.Text);
+            });
+
+            // With the approval gone and the turn still running, the same chord queues the draft behind it.
+            h.Main.OnMain(() =>
+            {
+                Assert.True(runtime.IsRunning);
+                Assert.False(new AppCommands(h.App).Body.Single(command => command.Title == "Queue a chat").IsDisabled);
+                Press(window, Key.Enter, PhysicalKey.Enter, RawInputModifiers.Control);
+                Assert.Equal(["next step"], runtime.FollowUps.Select(followUp => followUp.Text));
+                Assert.True(runtime.DraftIsEmpty);
+            });
+        }
+        finally { h.Main.OnMain(() => { SettleLayout(window); window.Close(); SettleLayout(window); }); }
+    });
+
+    // ===== PR-WIN-112 and UI-WIN-024: the finish item, carried out =====
+
+    [Fact]
+    [Trait("Req", "PR-WIN-112")] // App/AppCommands.swift:100-102; App/AppModel.swift:855-882
+    [Trait("Req", "UI-WIN-024")] // App/AppCommands.swift:99-102; Core/Models/Shortcuts.swift:225
+    public void The_finish_chord_reopens_a_settled_thread_after_80_milliseconds_and_the_finish_title_has_no_helper_case() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project) with { IsSettled = true };
+        var parent = AppModelSamples.Thread(project);
+        var helper = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id };
+        var settledHelper = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id, IsSettled = true };
+        var model = Model(h, [project], [thread, parent, helper, settledHelper]);
+        AppCommands commands = null!;
+        h.Main.OnMain(() =>
+        {
+            model.Settings.SettleSound = false; // no chime from a test
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+            model.SelectedThreadID = thread.Id;
+            commands = new AppCommands(model);
+            Assert.Equal("Reopen thread", On(commands, CtrlShiftDelete).Title); // :100 finishActionTitle, AppModel.swift:856
+            Assert.True(commands.PerformKeyEquivalent(CtrlShiftDelete));
+            // AppModel.swift:872-873: Settle chosen and a settled thread posts the request to reopen it ...
+            Assert.Equal((thread.Id, true), (model.AppModelFinishRequest!.ThreadID, model.AppModelFinishRequest.Reopens));
+            Assert.True(model.Thread(thread.Id)!.IsSettled); // ... and nothing has moved yet
+        });
+
+        // :874-880 no row took it up, so 80 ms later the thread is reopened, not archived.
+        h.Main.Advance(TimeSpan.FromMilliseconds(100));
+        h.Main.OnMain(() =>
+        {
+            Assert.False(model.Thread(thread.Id)!.IsSettled);
+            Assert.Null(model.AppModelFinishRequest);
+            Assert.False(model.Thread(thread.Id)!.IsArchived);
+            Assert.Equal("Settle thread", On(commands, CtrlShiftDelete).Title);
+
+            // :855-858 the title has no helper case: an open helper reads "Settle thread", a settled one "Reopen thread",
+            // and the item is enabled either way (:102 disables only with no selection).
+            model.SelectedThreadID = helper.Id;
+            Assert.Equal("Settle thread", On(commands, CtrlShiftDelete).Title);
+            Assert.False(On(commands, CtrlShiftDelete).IsDisabled);
+            model.SelectedThreadID = settledHelper.Id;
+            Assert.Equal("Reopen thread", On(commands, CtrlShiftDelete).Title);
+            Assert.False(On(commands, CtrlShiftDelete).IsDisabled);
+            // :868-870 a helper goes the archive's way, whatever its title says.
+            Assert.True(commands.PerformKeyEquivalent(CtrlShiftDelete));
+            Assert.True(model.Thread(settledHelper.Id)!.IsArchived);
+        });
+    });
+
     // ===== PR-WIN-092 and UI-WIN-007: the main window item =====
 
     [Fact]
@@ -320,6 +435,52 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
                 Press(settings, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Alt);
                 Assert.True(main.IsActive);
                 Assert.Single(launch.Events, value => value == "main window built");
+            }
+            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    [Fact]
+    // Partial for PR-WIN-092, PR-WIN-224 and UI-WIN-007: the focused Settings window's Ctrl+0 zooms to 100 and does not front the
+    // hidden main window, and the show-main item's title and chord (App/AppCommands.swift:21-25, :57-58; Core/Models/Shortcuts.swift:233;
+    // Core/Support/Text.swift:4; OD-0012 F1, G6; App/Window/WindowManager.swift:57-63). Not proved here: PR-WIN-092's and UI-WIN-007's
+    // recorded-chord clause (the chord a user records for the item fronts the window, proved by the test above this one) and the
+    // other clauses of PR-WIN-224 (AppCommandsZoomTests.Read_by_Windows_...).
+    [Trait("Rule", "R-TEST-4")]
+    public void Ctrl_0_pressed_in_the_focused_Settings_window_zooms_to_100_and_does_not_front_the_hidden_main_window() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            var model = launch.Manager.Model;
+            // The item is titled with the app's display name, second, with no chord and never disabled (:21-25).
+            var item = new AppCommands(model).Body[1];
+            Assert.Equal(AppInfo.Current.Name, item.Title); // :22 Text.swift:4 AppInfo.name (the product name, OD-0012 F1; the literal "Zed Test" case is the test above)
+            Assert.Null(item.Shortcut); // OD-0012 G6: no default chord, so Ctrl+0 belongs to Actual Size alone
+
+            launch.Manager.ShowMain();
+            var main = LaunchHarness.WindowOf(launch.MainContent)!;
+            main.Hide();
+            var input = new TextBox();
+            launch.SettingsContent.Child = input;
+            launch.Manager.ShowSettings();
+            var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+            try
+            {
+                Assert.True(input.Focus());
+                Assert.False(main.IsVisible);
+                model.Settings.AppZoom = 150;
+                var built = launch.Events.Count(value => value == "main window built");
+
+                // A real Ctrl+0 key press in the focused Settings window, through the dispatch MakeWindow installed.
+                Press(settings, Key.D0, PhysicalKey.Digit0, RawInputModifiers.Control);
+                Assert.Equal(100, model.Settings.AppZoom); // :57-58 Actual Size, from 150
+                Assert.False(main.IsVisible); // the show-main item answers only a chord that is recorded for it ...
+                Assert.False(main.IsActive);
+                Assert.Equal(built, launch.Events.Count(value => value == "main window built")); // ... and built nothing
+                Assert.Null(NativeMenu.GetMenu(settings)); // OD-0008 C3: no menu bar in the window the chord went to
+                Assert.Empty(settings.GetVisualDescendants().OfType<Menu>());
             }
             finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });

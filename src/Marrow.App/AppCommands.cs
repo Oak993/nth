@@ -19,10 +19,11 @@ using Marrow.UI.Port;
 // :17-19 replaces the save placement with nothing; secondary windows close themselves on Ctrl+W.
 // Outside this file the runtime install (DroppyCodeApp.swift:24) is WindowManager.MakeWindow's and
 // TourWindowController.Present's attach of the dispatch to each window they build (STOP #6, resolved by fix/shortcuts).
-// AltGr handling is still unsettled (STOP #7); the Welcome tour palette row needs its own decision (STOP #4).
-// The zoom items (:53-62) carry literal key equivalents, "+", "-", "0" and "=". Port/MenuKeyEquivalents.cs reads a key
-// event as a US key position (ED-099), which gives "=", "-" and "0" but never "+": ED-230 reads Shift with the "=" key,
-// and the keypad +, as "+" when the chord itself takes nothing (STOP App.AppCommands #2, resolved).
+// AltGr handling is still unsettled (STOP #7); the Welcome tour palette row is OD-0053's (STOP #4, resolved).
+// The zoom items (:53-62) carry literal key equivalents, "+", "-", "0" and "=", which a menu matches by the character the
+// key types (ED-270, superseding ED-230's position reading of "+"). They are marked MatchesTypedCharacter and matched by
+// Port/MenuKeyEquivalents.Typed, the character the key types on the active layout, while every other item keeps the
+// US-position reading of ED-099 (STOP App.AppCommands #2, resolved).
 
 namespace Marrow.App;
 
@@ -105,20 +106,24 @@ public sealed class AppCommands
                 new("Zoom In", // :53
                     new KeyboardShortcut(new KeyEquivalent("+"), ChordModifiers.Control), // :54
                     false,
-                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: true)), // :53
+                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: true),
+                    MatchesTypedCharacter: true), // :53
                 new("Zoom Out", // :55
                     new KeyboardShortcut(new KeyEquivalent("-"), ChordModifiers.Control), // :56
                     false,
-                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: false)), // :55
+                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: false),
+                    MatchesTypedCharacter: true), // :55
                 new("Actual Size", // :57
                     new KeyboardShortcut(new KeyEquivalent("0"), ChordModifiers.Control), // :58
                     false,
-                    () => Model.Settings.AppZoom = 100), // :57
+                    () => Model.Settings.AppZoom = 100,
+                    MatchesTypedCharacter: true), // :57
                 // :59 US keyboards produce '=' for Command-plus without Shift. :62 .hidden(): no menu draws it either way.
                 new("Zoom In", // :60
                     new KeyboardShortcut(new KeyEquivalent("="), ChordModifiers.Control), // :61
                     false,
-                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: true)), // :60
+                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: true),
+                    MatchesTypedCharacter: true), // :60
 
                 // :65-98 CommandMenu("Thread"), the items before the second divider
                 new("Stop", // :66
@@ -198,6 +203,13 @@ public sealed class AppCommands
     /// chord was taken (MenuKeyEquivalents.Perform). Port-only: upstream the menu bar does this (OD-0008 C3).
     /// </summary>
     public bool PerformKeyEquivalent(KeyboardShortcut shortcut) => MenuKeyEquivalents.Perform(Body, shortcut);
+
+    /// <summary>
+    /// A key-down read two ways (ED-270): by key position for the ordinary items and, only when a literal-character item
+    /// (the zoom items) is reached, by the character it types. The windows' dispatch calls this one.
+    /// </summary>
+    public bool PerformKeyDown(KeyboardShortcut? positional, Func<KeyboardShortcut?> typed) =>
+        MenuKeyEquivalents.Perform(Body, positional, typed);
 
     // :53, :55, :60 pass model.settings.appZoom, a Swift Int (long here), to AppZoom.next(_:increasing:), whose port
     // takes an int (UI/Common/AppZoom.cs). next reads the value only through normalized(_:) (AppZoom.swift:8-10, :13),
