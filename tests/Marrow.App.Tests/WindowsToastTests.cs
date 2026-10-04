@@ -307,10 +307,11 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     [Theory]
     [Trait("Req", "PR-UPDATE-021")] // App/UpdateChecker.swift:178-180, :245-261
     [Trait("Req", "PR-UPDATE-023")] // App/UpdateChecker.swift:254-261; PLATFORM BOUNDARY ED-220 (4)
+    [Trait("Req", "PR-UPDATE-025")] // App/UpdateChecker.swift:249-253 no content.sound: the update banner is silent; ED-271
+    [Trait("Req", "UI-LAUNCH-005")] // App/UpdateChecker.swift:249-253; App/AppDelegate.swift:74; ED-271 (records amended, STOP App.AppDelegate #8)
     // The notification side effect of the background check, App/UpdateChecker.swift:178-180, :245-261. The update banner is
-    // silent: UpdateChecker.swift:249-252 sets title, body and userInfo and no content.sound, so willPresent's .sound (:74) has
-    // nothing to play. The records PR-UPDATE-025 and UI-LAUNCH-005 word it as an audible alert; Swift does not (RECORD != SWIFT),
-    // so this test carries neither of them (STOP App.AppDelegate #8 in AppDelegateProofTests).
+    // silent: UpdateChecker.swift:249-253 sets title, body and userInfo and no content.sound, so willPresent's .sound (:74) has
+    // nothing to play (ED-271).
     [InlineData(false)]
     [InlineData(true)]
     public void Background_update_posts_through_the_same_poster_after_persisting_once_even_if_delivery_fails(bool denied)

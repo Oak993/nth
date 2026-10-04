@@ -395,14 +395,15 @@ file sealed class CommandPaletteRow : Decorator
         // on nearly every row here, since almost every action carries a shortcut (PR-WIN-171/172/173). The Star
         // column also gives titleBlock/subtitleBlock a real bounded width, which is what lets their MaxLines(1)
         // truncation (above, and :124-130) actually clip rather than only ever measuring their full text.
-        // ENGINEERING DECISION, UNRESOLVED (ED-273): the record says "at least 8 points of space" between the text block and the
-        // chord (UI-WIN-032, UI-WIN-033), which the margin ahead of the chord keeps (CommandPaletteChordTests). The port puts the HStack's
-        // 12 points of spacing and the Spacer's 8 ahead of the chord, 20 in all; whether SwiftUI also puts the stack's 12 after the Spacer
-        // (32 in all) is not decidable without a Mac, and no reference capture shows a row whose title fills its room.
+        // ENGINEERING DECISION (ED-279, UI-WIN-032, UI-WIN-033): the spacing is derived from the Swift's stack, whose
+        // Spacer(minLength: 8) at :132 is outside `if let shortcut`. HStack(spacing: 12) puts 12 between each pair of adjacent
+        // subviews and a Spacer is a subview, so the text block is followed by 12, the Spacer (at least 8) and, only when a chord
+        // follows, another 12: 12 + 8 = 20 on every row, 12 + 8 + 12 = 32 before a chord. The 20 is the text block's trailing margin
+        // (it stays when the chord is hidden); the chord's own left margin is the second 12.
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
-        textStack.Margin = new Thickness(12, 0, 0, 0); // :111 icon -> text HStack spacing
         textStack.HorizontalAlignment = HorizontalAlignment.Stretch; // Grid, unlike StackPanel, honors Stretch along this axis
-        chordBlock.Margin = new Thickness(20, 0, 0, 0); // :111 text -> spacer spacing (12) + :132 Spacer(minLength: 8)
+        textStack.Margin = new Thickness(12, 0, 20, 0); // :111 icon -> text spacing (12); text -> Spacer spacing (12) + :132 Spacer(minLength: 8), with or without a chord
+        chordBlock.Margin = new Thickness(12, 0, 0, 0); // :111 Spacer -> chord spacing (12)
         Grid.SetColumn(iconSlot, 0);
         Grid.SetColumn(textStack, 1);
         Grid.SetColumn(chordBlock, 2);

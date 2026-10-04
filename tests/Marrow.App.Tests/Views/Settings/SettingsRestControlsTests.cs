@@ -71,6 +71,34 @@ public sealed class SettingsRestControlsTests(HeadlessSession headless) : Settin
     }
 
     [Fact]
+    [Trait("Decision", "ED-266")] // SettingsView.swift:985-987 and :1019-1022: both About "Show" buttons are `.buttonStyle(.glass).controlSize(.small)` under the window's accent tint
+    public void Both_About_Show_buttons_are_the_small_accent_glass_capsule_with_their_labels_and_clicks_unchanged()
+    {
+        With(() => new AboutSettingsPage(), (view, model, _, w) =>
+        {
+            var welcome = Row(Assert.IsType<StackPanel>(((AboutSettingsPage)view).Child).Children[1], "Welcome tour");
+            var licenses = Assert.Single(Nodes<LicensesRow>(view));
+            foreach (var host in new Control[] { welcome, licenses })
+            {
+                var button = Assert.Single(Nodes<Button>(host));
+                var label = Assert.Single(Nodes<TextBlock>(button));
+                Assert.Equal("Show", label.Text); // the label is unchanged
+                Assert.Equal(SmallAccentGlassButton.Height, button.Bounds.Height); // 20 pt, controlSize(.small)
+                Assert.Equal(SmallAccentGlassButton.LabelSize, label.FontSize); // 11 pt
+                Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(label.Foreground).Color); // white on the accent
+                var effect = Assert.Single(host.GetVisualDescendants().OfType<Control>().Select(SwiftGlass.GetEffect).OfType<GlassEffect>(), e => e.Shape.Kind == GlassShapeKind.Capsule);
+                Assert.True(effect.IsInteractive);
+                Assert.Equal(1.0, effect.TintOpacity); // the accent at full strength
+                Assert.Equal(Chrome.Accent.Resolve(label.ActualThemeVariant), effect.TintColor!.Resolve(label.ActualThemeVariant));
+            }
+            // The click of the first is unchanged: it replays the tour (the Licenses click is LicensesSelectionTests and LicensesShippingTests).
+            Click(w, Assert.Single(Nodes<Button>(welcome)));
+            Assert.True(Field<Avalonia.Controls.Window>(Marrow.App.Views.Tour.TourWindowController.Shared, "window").IsVisible);
+            Marrow.App.Views.Tour.TourWindowController.Shared.Close();
+        });
+    }
+
+    [Fact]
     [Trait("Req", "UI-SETTINGS-070")] // App/Views/Settings/SettingsView.swift:985-987
     [Trait("Req", "UI-UPDATE-020")] // App/Views/Settings/SettingsView.swift:984-989
     public void Welcome_tour_is_always_enabled_replays_with_a_real_click_and_refocuses_the_same_window()

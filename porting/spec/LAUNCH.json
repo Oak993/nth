@@ -2391,7 +2391,7 @@
       "colors": "System-drawn",
       "states": [
         "Suppressed entirely, no banner and no sound, when the notification's threadID equals the selected thread and the app is active",
-        "Banner plus default sound in every other case, including when the threadID is missing or unparseable and including the update notification"
+        "Banner in every other case, including when the threadID is missing or unparseable and including the update notification; the sound is the notification's own: the default sound for a chat's notification, none for the update notification (UpdateChecker.swift:249-253 sets no content.sound; ED-271)"
       ],
       "interactions": [
         "Tap on a thread notification: show the main window, select that thread, activate the app, in that order",
