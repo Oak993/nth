@@ -2330,7 +2330,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No menu bar (OD-0008 C3). The source defines no shortcut and no command-palette entry for this command; OD-0012 G5 adds \"Welcome tour\" to the command palette so it stays reachable; the entry has no chord, because the source gives the command none (AppCommands.swift:112). The palette entry's glyph and its place among the palette's rows are not fixed by the ruling or the source; they belong to the command palette's own records (area WIN, PR-WIN-171). port_impacts.md:390 C1 records that this call site was missed by two readers; it is real, and it is kept on record as an upstream-only entry point.",
       "verification_method": "interaction test: the port's main window has no menu bar and no Help menu, the command palette lists a \"Welcome tour\" row that presents the tour (and only refocuses it when it is already open), the row shows no chord, and the About page's Show button still presents the tour",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4248,7 +4248,8 @@
         "decision": "OD-0008 C3; OD-0012 G5",
         "upstream": "DroppyCode/App/AppCommands.swift:111-113 - 'CommandGroup(replacing: .help) {' 'Button(\"Welcome tour\") { Tour.present(model: model) }', with no shortcut and no command-palette item (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178)",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. OD-0012 G5: \"Welcome tour\" is added to the command palette so it stays reachable (porting/decision_batch_20260922b.md:48); it has no chord, as the source gives the command none."
-      }
+      },
+      "status": "IMPLEMENTED"
     }
   ]
 }

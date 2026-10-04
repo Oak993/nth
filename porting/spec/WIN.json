@@ -63,7 +63,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -135,7 +135,7 @@
         "A saved frame that is entirely offscreen: the source applies it unconditionally; no clamp is performed for the main window (contrast the settings window, PR-WIN-011)"
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -156,7 +156,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -178,7 +178,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -204,7 +204,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -231,7 +231,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -379,7 +379,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2077,7 +2077,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2159,7 +2159,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2402,7 +2402,7 @@
       "persistence": "Writes the sidebarActivityView setting through the settings store.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2505,7 +2505,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2693,7 +2693,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2721,7 +2721,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2747,7 +2747,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2775,7 +2775,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5260,7 +5260,7 @@
         "At 200 the item is still enabled and the step returns 200, so nothing visible changes; unlike the Settings card's buttons, which are disabled at the ends (SettingsView.swift:481, :497), the menu item has no .disabled."
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5291,7 +5291,7 @@
         "At 75 the item is still enabled and the step returns 75, so nothing visible changes."
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5321,7 +5321,7 @@
         "Upstream, while showMainWindow keeps its default, two menu items carry Command-0 at 1fbf81e: \"Actual Size\" and the Window-menu item titled with the app's name. Which one the frameworks dispatch is not expressed in source (UNRESOLVED; nothing was run on a Mac; tracked under UNK-0003, the macOS reference runtime). The port does not depend on it: under OD-0012 G6 Ctrl+0 is Actual Size and \"Show Marrow\" has no default chord, so by default only this command holds Ctrl+0."
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -5351,7 +5351,7 @@
         "At 200 the step returns 200 and nothing visible changes."
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -5777,7 +5777,8 @@
         "decision": "OD-0008 C3, C1, B7; OD-0012 G6",
         "upstream": "DroppyCode/App/AppCommands.swift:21-25 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: \"Show Marrow\" keeps no default chord; Ctrl+0 is Actual Size."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "New thread",
@@ -6008,7 +6009,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:48-51 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Thread",
@@ -6096,7 +6098,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:69-77 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Toggle plan mode",
@@ -6274,7 +6277,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:100-102 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Archive thread…",
@@ -6303,7 +6307,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:103-105 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Settle thread / Reopen thread",
@@ -6362,7 +6367,8 @@
         "decision": "OD-0008 C3, B7; OD-0012 G5",
         "upstream": "DroppyCode/App/AppCommands.swift:111-113 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command, which has no shortcut either, has no palette row from the source; OD-0012 G5 adds a command-palette row titled \"Welcome tour\" that presents the tour, so it stays reachable. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -7516,7 +7522,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:53-54 - 'Button(\"Zoom In\")' with `.keyboardShortcut(\"+\", modifiers: .command)`. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Zoom Out",
@@ -7599,7 +7606,8 @@
         "decision": "OD-0008 C3, B7",
         "upstream": "DroppyCode/App/AppCommands.swift:59-62 - the hidden 'Button(\"Zoom In\")' with `.keyboardShortcut(\"=\", modifiers: .command)`. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,

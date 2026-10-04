@@ -895,7 +895,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: set the app's dark-mode state for framework chrome (immersive dark mode on each window and the app's own resource theme) and clear it back to the OS setting for System. Both halves must happen: the in-app scheme alone leaves title bars and native menus out of step. The main window's chrome is built as ED-063 decides (probe P7): WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, the leading-edge controls declared through Win32Properties.SetNonClientHitTestResult, and a WndProc hook that performs minimise, maximise, restore and close and shows the system menu. Owner ruling OD-0013: that window chrome is not accepted until the one-frame live-resize edge strip measured by probe P4 is gone; it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test: picking Light while the OS is dark leaves no dark framework chrome anywhere; restart test: the process appearance is applied once at launch, not only on a later change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

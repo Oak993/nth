@@ -23,7 +23,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A separate BrowserWindow (or equivalent modal-less child window) of exactly 780 x 580 client area, resizable: false, minimizable: true, with the same title. Windows has no window tabbing, so tabbingMode has no analogue and is dropped. isReleasedWhenClosed maps to hiding rather than destroying the window on close so its in-memory state survives. There is no menu bar (OD-0008 C3): the window opens from the Settings shortcut (Ctrl+, by default, OD-0008 B7), the command palette and the in-app links, never from a menu item. ED-063 (probe P7, porting/probes/p7/RESULT.md): on Avalonia 12.1.2 app-drawn caption controls declared only through Win32Properties.SetNonClientHitTestResult do nothing and right-click opens no system menu, so the window keeps WindowDecorations.Full with ExtendClientAreaToDecorationsHint, declares its leading-edge controls and drag region through SetNonClientHitTestResult, and a WndProc hook performs the controls' actions (WM_NCLBUTTONDOWN on a control swallowed, the SC_* command posted on WM_NCLBUTTONUP) and shows the system menu on WM_CONTEXTMENU and SC_KEYMENU. ED-063 records this for the main window; the settings window's caption controls are configured by the same WindowChrome.configure (WindowManager.swift:101), so the same hook serves them.",
       "verification_method": "interaction test: open settings, assert window size and title; close and reopen, assert the same window instance state (selected page) is retained",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -54,7 +54,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute the centred rectangle against the main window's bounds and clamp into the work area of the display the main window is on (Electron screen.getDisplayMatching), then show and focus.",
       "verification_method": "interaction test with a main window at a known position on a known display",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

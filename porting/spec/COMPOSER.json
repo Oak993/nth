@@ -40,7 +40,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Vertical stack with 12 point gaps inside the glass container. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "interaction test with two scripted approval requests",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -182,7 +182,7 @@
       "cancellation": "Closing cancels the presentation; a bumped session counter stops a stale didClose from clobbering a fresh open (DiffInspector.swift:530-532).",
       "windows_path": "One coordinator per composer area, same six wirings, fixed 640x540 panel.",
       "verification_method": "interaction test driving all six entry points",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -206,7 +206,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two-anchor arrangement with the same precedence.",
       "verification_method": "interaction test opening the diff with the queue tab in the slot",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -340,7 +340,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute the line height from the ascent, descent and leading of the port's text face, Inter (OD-0009), multiply by 5 and add 4. Do not hard-code the macOS pixel result; where Inter's wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
       "verification_method": "interaction test typing six lines and measuring the pill",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -360,7 +360,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Needs a live-resize signal equivalent to WindowLiveResize; on Windows that is the modal resize loop (WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE). OD-0013 governs the same live-resize loop: the main window is not accepted while a growing edge shows the 3-5 px strip of its own backdrop without the app layer (probe P4); suppressing this animation does not change that.",
       "verification_method": "interaction test resizing the window with a wrapped draft",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -897,7 +897,7 @@
       "cancellation": "The refresh is cancellable.",
       "windows_path": "Same guard.",
       "verification_method": "unit test with a slash mid-sentence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -919,7 +919,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim detail string.",
       "verification_method": "unit test of commandSuggestions",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -940,7 +940,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same seven providers, from the same supportsCompact predicate that decides local handling on send (PR-COMPOSER-034), so every provider offered the suggestion also handles \"/compact\" locally.",
       "verification_method": "unit test across all providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1012,7 +1012,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same comparison on the range's start location only.",
       "verification_method": "unit test of the selection carry-over",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1035,7 +1035,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key precedence table. For the empty-items case, no-op instead of trapping, per upstream_defects.md entry 50.",
       "verification_method": "interaction test of each key with the list open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "50",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1123,7 +1123,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two behaviors. The undo stack must see the replacement as one edit.",
       "verification_method": "interaction test picking each kind",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1198,7 +1198,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Focus test becomes: the process foreground, the window active, the control focused.",
       "verification_method": "integration test with a delayed command listing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1240,7 +1240,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four wirings.",
       "verification_method": "interaction test toggling the chat column with a list open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1262,7 +1262,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same coupling of hover to selection.",
       "verification_method": "interaction test hovering then pressing Return",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1806,7 +1806,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same setting key and default. The Downloads folder is the Windows known folder Downloads.",
       "verification_method": "interaction test with the setting on and off, plus a restart test for the setting",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4937,7 +4937,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:22-57"
       ],
-      "notes": "The negative stack spacing is what makes the tab sit behind the pill; it only works because the slot is absent when there is no tab."
+      "notes": "The negative stack spacing is what makes the tab sit behind the pill; it only works because the slot is absent when there is no tab.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-002",
@@ -5020,7 +5021,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:219-225"
       ],
       "notes": "The number 8 is interpolated from Storage.attachmentLimit; do not hard-code the digit. Two identical notices in a row do not restart the timer, because the dismissal task is keyed to the string.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:578 `.font(.system(size: 11))` -> B2 :578 `.font(.system(.subheadline))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:578 `.font(.system(size: 11))` -> B2 :578 `.font(.system(.subheadline))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-005",
@@ -5046,7 +5048,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:962-970"
       ],
       "notes": "The chip is one accessibility element; the x carries its own label \"Remove command\".",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:885 `.font(.system(size: 10, weight: .semibold))` and :888 `.font(.system(size: 11, weight: .medium))` -> B2 :885 `.font(.system(.footnote, weight: .semibold))` and :888 `.font(.system(.subheadline, weight: .medium))`, 10 and 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:885 `.font(.system(size: 10, weight: .semibold))` and :888 `.font(.system(size: 11, weight: .medium))` -> B2 :885 `.font(.system(.footnote, weight: .semibold))` and :888 `.font(.system(.subheadline, weight: .medium))`, 10 and 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-006",
@@ -5067,7 +5070,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:890-902 `Button { withAnimation(Chrome.panelSlide) { runtime.draft.command = nil } } label: { Image(systemName: \"xmark\").font(.system(.caption2, weight: .bold)).foregroundStyle(Chrome.secondaryText) }.buttonStyle(.plain).focusable(false).help(\"Remove command\").accessibilityLabel(Text(\"Remove command\"))`"
       ],
       "notes": "Tooltip and accessibility label are the same string.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:896 `.font(.system(size: 9, weight: .bold))` -> B2 :896 `.font(.system(.caption2, weight: .bold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059), so the glyph grows one point."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:896 `.font(.system(size: 9, weight: .bold))` -> B2 :896 `.font(.system(.caption2, weight: .bold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059), so the glyph grows one point.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-007",
@@ -5092,7 +5096,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:54-64"
       ],
       "notes": "The 72 character cut appends U+2026, and only then is the text truncated visually at 260 points.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:911 `.font(.system(size: 10, weight: .semibold))` and :914 `.font(.system(size: 11))` -> B2 :911 `.font(.system(.footnote, weight: .semibold))` and :914 `.font(.system(.subheadline))`, 10 and 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:911 `.font(.system(size: 10, weight: .semibold))` and :914 `.font(.system(size: 11))` -> B2 :911 `.font(.system(.footnote, weight: .semibold))` and :914 `.font(.system(.subheadline))`, 10 and 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-008",
@@ -5113,7 +5118,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:919-931 `Button { withAnimation(Chrome.panelSlide) { runtime.draft.quotes.removeAll { $0.id == quote.id } } } label: { Image(systemName: \"xmark\").font(.system(.caption2, weight: .bold)).foregroundStyle(Chrome.secondaryText) }.buttonStyle(.plain).focusable(false).help(\"Remove quote\").accessibilityLabel(Text(\"Remove quote\"))`"
       ],
       "notes": "Removes by id, not by position, so removing the middle quote of three is safe.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:925 `.font(.system(size: 9, weight: .bold))` -> B2 :925 `.font(.system(.caption2, weight: .bold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059), so the glyph grows one point."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:925 `.font(.system(size: 9, weight: .bold))` -> B2 :925 `.font(.system(.caption2, weight: .bold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059), so the glyph grows one point.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-009",
@@ -5136,7 +5142,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:1000-1023",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1235-1350"
       ],
-      "notes": "The cell's own top and trailing padding reserves the remove badge's overhang, so the badge never lands in the gap where a later sibling could cover it."
+      "notes": "The cell's own top and trailing padding reserves the remove badge's overhang, so the badge never lands in the gap where a later sibling could cover it.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-010",
@@ -5156,7 +5163,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:1004-1017"
       ],
-      "notes": "Only 2 of the badge's circle shows above the photo; with the pill's own 12 above the strip that puts the photo 14 from the pill's top edge, matching its leading inset."
+      "notes": "Only 2 of the badge's circle shows above the photo; with the pill's own 12 above the strip that puts the photo 14 from the pill's top edge, matching its leading inset.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-011",
@@ -5180,7 +5188,8 @@
         "DroppyCode/UI/Common/Components.swift:57-97"
       ],
       "notes": "Tooltip and accessibility label are the same string. Which of the two behaviors runs is a persisted setting, not a modifier.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-012",
@@ -5227,7 +5236,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:696-773 `private struct ContextMeter: View {` - `Circle().stroke(.quaternary, lineWidth: 2.5)` and `Circle().trim(from: 0, to: fraction ?? 0)` in `.frame(width: 15, height: 15)` padded 6 and 5 (718-727), `.help(helpText(fraction: fraction, hasCredits: hasCredits))` (732), `.accessibilityLabel(Text(label(fraction: fraction, hasCredits: hasCredits)))` (733), `.popover(isPresented: $isPresented, arrowEdge: .bottom)` (737)"
       ],
-      "notes": "The tooltip differs from the accessibility label: the tooltip gives the percentage, the label gives the noun, and the accessibility value gives the percentage sentence."
+      "notes": "The tooltip differs from the accessibility label: the tooltip gives the percentage, the label gives the noun, and the accessibility value gives the percentage sentence.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-014",
@@ -5246,7 +5256,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:743-747 `HStack { Text(\"Usage\").font(.system(.callout, weight: .semibold)).foregroundStyle(Chrome.secondaryText); Spacer(minLength: 8)`"
       ],
       "notes": "The usage panel below it is shared with the floating panel and is specified in the usage area.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:745 `.font(.system(size: 12, weight: .semibold))` -> B2 :745 `.font(.system(.callout, weight: .semibold))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:745 `.font(.system(size: 12, weight: .semibold))` -> B2 :745 `.font(.system(.callout, weight: .semibold))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-015",
@@ -5264,7 +5275,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:748-753"
       ],
-      "notes": "Turning the panel on hides the ring, so this button is also the only way back: dismissing the panel brings the ring back."
+      "notes": "Turning the panel on hides the ring, so this button is also the only way back: dismissing the panel brings the ring back.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-016",
@@ -5289,7 +5301,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:817-866"
       ],
       "notes": "The click is a plain interrupt, never the take-back that Escape performs and never the interrupt-and-send that Return performs. The tooltip changes with four different states.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-017",
@@ -5359,7 +5372,8 @@
         "DroppyCode/UI/Chrome/Popovers.swift:117-133 `struct PopoverSectionHeader` - `Text(verbatim: title).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 8).padding(.top, 6).padding(.bottom, 3).frame(maxWidth: .infinity, alignment: .leading)`"
       ],
       "notes": "The separator is U+00B7 with a single space either side.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-020",
@@ -5383,7 +5397,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:1061-1101 `private struct SuggestionPopoverRow` - `HStack(spacing: 8) { Image(systemName: item.symbol).font(.system(.callout)).frame(width: 16); Text(verbatim: item.title).font(.system(.body)).lineLimit(1).truncationMode(.middle); Spacer(minLength: 16); Text(verbatim: item.detail).font(.system(.callout)).foregroundStyle(Chrome.secondaryText).lineLimit(1) }`, `.padding(.horizontal, 8)`, `.frame(height: 26)`, `RoundedRectangle(cornerRadius: 6, style: .continuous).fill(isSelected || isHovering ? Chrome.overlay(0.1) : Color.clear)`, `if hovering { select() }`"
       ],
       "notes": "File rows truncate in the middle, not at the end, so both the leading directory and the file name stay readable.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:1073 `.font(.system(size: 12))`, :1076 `.font(.system(size: 13))`, :1081 `.font(.system(size: 12))` -> B2 :1073 `.font(.system(.callout))`, :1076 `.font(.system(.body))`, :1081 `.font(.system(.callout))`, 12, 13 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:1073 `.font(.system(size: 12))`, :1076 `.font(.system(size: 13))`, :1081 `.font(.system(size: 12))` -> B2 :1073 `.font(.system(.callout))`, :1076 `.font(.system(.body))`, :1081 `.font(.system(.callout))`, 12, 13 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-021",
@@ -5405,7 +5420,8 @@
         "DroppyCode/UI/Chrome/Popovers.swift:135-150 `struct PopoverNote` - `Text(verbatim: text).font(.system(.callout)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 8).padding(.vertical, 5).frame(maxWidth: .infinity, alignment: .leading)`"
       ],
       "notes": "The error map is flushed wholesale once it holds 32 entries, so an error can vanish without the load being retried.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-022",
@@ -5425,7 +5441,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:247"
       ],
-      "notes": "Forced reload is the only way past the ten-minute cache."
+      "notes": "Forced reload is the only way past the ten-minute cache.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-023",
