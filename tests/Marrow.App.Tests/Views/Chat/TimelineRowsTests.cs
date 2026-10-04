@@ -4601,7 +4601,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // a first retryable failure, a checkout that is no repository, work that is gone): the pill is drawn while the merge runs and gone, with
 // no note in its place, when it lets go (mutation checked). The one path not driven mounted is an .alreadyOnMain run that posts no
 // settlement note: a run that never suspends lowers the flag in the turn it raised it, so the row never gets a turn to draw the pill
-// (ED-NEW-timelinerows-ab (10)); the coordinator side of it is PR-CHAT-189's test.
+// (ED-285 (10)); the coordinator side of it is PR-CHAT-189's test.
 //
 // STOP App.Views.Chat.TimelineRows #9: RESOLVED. PR-HYDRAMERGE-105's real clicks on title, track and Open, with the tooltips,
 // are in TimelineRowsPrMergeTests.Real_pointer_clicks_on_title_track_and_Open_route_to_their_separate_destinations.
@@ -4666,7 +4666,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // -107, -108. Defects found and fixed by those renders and tests: the merge track's drawing was centred in its shrinking frame, so the settled
 // head sat 14 points left, half outside the pill (:912-915); a sent message's open menu pinned the whole row (its right-click builder shared a
 // closure class with the lambdas that read the row); WindowTransients kept a closed popup, and through it its row, for good. Caveats, in
-// ED-NEW-timelinerows-ab: a dot's fade is composited per element in Avalonia and as a group in SwiftUI (UNRESOLVED, about 5 percent of a
+// ED-285: a dot's fade is composited per element in Avalonia and as a group in SwiftUI (UNRESOLVED, about 5 percent of a
 // 4-point dot); PR-HYDRAMERGE-108's first-open latency is shown by the cache's state, not by a clock; PR-CHAT-161's file-card review closure
 // is not GC-proved.
 // What is left of this unit's records after OD-0098 (2026-10-04, unit blitz-timelinerows-ab; everything else of them is proven):
@@ -4688,7 +4688,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // PR-CHAT-149: PROVEN 2026-10-04 (TimelineRowsBlitzAbDelegationTests; the streamed fixture of TimelineRowsParityScenarioTests): the card's five states
 // are drawn in both themes, and the card keeps its identity across the streaming flushes (AssistantMessageRow hands the new block to the card on show)
 // with its changes animated by Chrome.panelSlide (:703-704): its height follows its contents as a spring, a new head row fades in, the check scales in.
-// Review of that unit, fixed 2026-10-04 (TimelineRowsReviewAbTests, TimelineRowsBlitzAbMotionTests; ED-NEW-timelinerows-ab (12)): an open brief closed at the head's
+// Review of that unit, fixed 2026-10-04 (TimelineRowsReviewAbTests, TimelineRowsBlitzAbMotionTests; ED-285 (12)): an open brief closed at the head's
 // next step (HydraBriefRow rebuilt its button and popover: PR-CHAT-147), the delegation card's title cut, its wave and next-brief line came in at once (PR-CHAT-149),
 // and a checked-off step's glyph, the count and the card's size changed by a cut (PR-CHAT-114); all now transitioned and proved against the closed form of the
 // spring the Swift names. Test gaps closed: the work group's snappy 0.24 s open and close (UI-CHAT-022), the shimmer's thirty frames a second (PR-CHAT-148), the

@@ -86,7 +86,7 @@ public sealed class TimelineRowsReviewAbTests(HeadlessSession headless)
 
     // TimelineRows.swift:663-664 `Text(title).contentTransition(.opacity)` under :703-704 `.animation(Chrome.panelSlide, value: sent)`: the words of the
     // title crossfade when the card is sent ("Summoning 2 heads" to "Summoned 2 heads"); OD-0076: content that swaps crossfades. The port changes the text
-    // in place at once (ED-NEW-timelinerows-ab (11): "the source's .contentTransition(.opacity) crossfade is not drawn").
+    // in place at once (ED-285 (11): "the source's .contentTransition(.opacity) crossfade is not drawn").
     [Fact]
     [Trait("Rule", "R-TEST-4")] // PR-CHAT-149: the card's changes arrive by animation, its title included
     public void REVIEW_the_delegation_cards_title_crossfades_when_the_card_is_sent() => headless.OnUiThread(() =>
@@ -137,7 +137,7 @@ public sealed class TimelineRowsReviewAbTests(HeadlessSession headless)
 
     // TimelineRows.swift:2352-2358 `Image(systemName: Self.symbol(for: step.status))` under :2372 `.animation(.snappy(duration: 0.2), value: steps)`: checking a
     // step off swaps its symbol under the animation, which SwiftUI draws as a transition of the symbol, never a cut; OD-0076: content that swaps crossfades.
-    // The port puts the new glyph in at once at full opacity (ED-NEW-timelinerows-ab (1): "The glyph itself ... is replaced at once").
+    // The port puts the new glyph in at once at full opacity (ED-285 (1): "The glyph itself ... is replaced at once").
     [Fact]
     [Trait("Rule", "R-TEST-4")] // PR-CHAT-114: "checking an item off animates the same list"
     public void REVIEW_checking_a_step_off_transitions_its_glyph_rather_than_cutting_to_the_check() => headless.OnUiThread(() =>
