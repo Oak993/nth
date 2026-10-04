@@ -16,9 +16,11 @@ using Marrow.UI.Port;
 namespace Marrow.App.Tests.Views.Chat;
 
 // Source: DroppyCode/App/Views/Chat/TimelineMinimap.swift (B3 52bc792), :139-287.
-// PR-CHAT-073: every clause is proven from the pinned Swift (:193-199, :262-268) by the tests below, in both theme variants; the record's capture
-// comparison needs a frame the reference videos do not contain, so OD-0098 makes the Swift the proof (the light half is the label colour's
-// appearance dependence, ENGINEERING DECISION: Chrome.PrimaryText resolves per variant, as SwiftUI's .primary does).
+// PR-CHAT-073: the colours, opacities and timing are asserted from the pinned Swift (:193-199, :262-268) by the tests below, in both theme variants.
+// STOP cloud-verify #2 (2026-10-04, review of cloud/b3-swift-proof-leftovers): the record's "capture comparison in both themes" is closed by OD-0098 for
+// the LIGHT half only (no light frame exists). The DARK rail is in the reference video (2-chat-use.mov, CATALOG scene 22 "Turn-position tick ruler",
+// C 8.4-24.0 rest, still C 12.00: idle ticks, the accent block, the hovered tick), and OD-0098 keeps the comparison required where a frame exists; no
+// test compares the port's dark rail with that frame yet, so PR-CHAT-073 stays partly proven.
 [Collection("Headless")]
 public sealed class TimelineMinimapAnimationAuditTests(HeadlessSession headless)
 {
@@ -152,7 +154,7 @@ public sealed class TimelineMinimapAnimationAuditTests(HeadlessSession headless)
     [InlineData(false)]
     [InlineData(true)]
     [Trait("Req", "PR-CHAT-073")] // App/Views/Chat/TimelineMinimap.swift:193-199,262-268
-    [Trait("Rule", "R-TEST-4")] // PR-CHAT-073 capture clause, closed from the Swift by OD-0098: the colours per theme
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-CHAT-073: the colours per theme; the dark capture comparison against C 12.00 is open (STOP cloud-verify #2)
     public void Tick_colours_and_opacities_follow_the_theme_variant_at_rest_expanded_hovered_and_selected(bool dark) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

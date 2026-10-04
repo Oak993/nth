@@ -16,8 +16,9 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerWorkingDots.swift (B3 52bc792), :67-71, :124-149, :152-157, and ComposerView.swift:179-185, :659-675.
-// PR-COMPOSER-102 and PR-COMPOSER-104 ask for a capture comparison of a one-line and a five-line composer (and one with reduced motion). The reference
-// videos hold no frame of a working composer at either height, so under OD-0098 the Swift is the proof: the dot field is laid over the mounted pill's
+// PR-COMPOSER-102 and PR-COMPOSER-104 ask for a capture comparison of a one-line and a five-line composer (and one with reduced motion). No frame shows
+// reduced motion or a five-line composer, so for those OD-0098 makes the Swift the proof; the one-line working composer IS in the reference video
+// (C 87.9-126.4, STOP cloud-verify #3 in ComposerWorkingDotsCompositorTests), so PR-COMPOSER-102 stays partly proven. The dot field is laid over the mounted pill's
 // bottom two-fifths, and its rows are min(3, max(1, ceil(height / 8))) at 8 points a row, however tall the draft makes the pill. This mounts the real pill
 // (ComposerView on a running thread) with a one-line draft and with a draft past the five-line ceiling, and reads the dots the field drew.
 [Collection("Headless")]
@@ -40,6 +41,7 @@ public sealed class ComposerWorkingDotsPillTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-COMPOSER-102")] // ComposerWorkingDots.swift:124-149 through ComposerView.swift:179-185,664-672: a one-line pill and a five-line pill
     [Trait("Req", "PR-COMPOSER-104")] // ComposerWorkingDots.swift:13-19,152-157 reduced motion: the dots are drawn at 0.28, still faded by row
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-COMPOSER-102: the one-line pill's capture comparison against C 92.00 is open (STOP cloud-verify #3)
     public void A_mounted_pill_draws_at_most_three_rows_of_dots_for_a_one_line_and_for_a_five_line_draft_and_each_row_up_is_fainter() => headless.OnUiThread(() =>
     {
         System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();

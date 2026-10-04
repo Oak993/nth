@@ -37,7 +37,7 @@ public sealed class ComposerWorkingDotsAccentTests(HeadlessSession headless)
     [Fact]
     [Trait("Decision", "ED-253")]
     [Trait("Req", "UI-COMPOSER-017")] // ComposerWorkingDots.swift:15-16 colour: Chrome.accentNSColor, live, on the wrapper the pill mounts
-    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-017 (OD-0098, the Swift is the proof): the accent colour clause
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-COMPOSER-017 (STOP cloud-verify #3): the accent colour clause
     public void The_working_dots_wear_the_picked_accent_and_a_later_pick() => headless.OnUiThread(() =>
     {
         var (theme, choice) = (ThemeManager.Current, AccentChoice.Current);

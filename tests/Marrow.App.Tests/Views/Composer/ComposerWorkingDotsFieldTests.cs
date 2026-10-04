@@ -46,7 +46,7 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // ComposerWorkingDots.swift:67-71, :127-148: 2 points across, 8-point pitch, at most 3 rows, one extra column, each row up fainter by 1/rowCount
-    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-017 (OD-0098, the Swift is the proof): the field's layout; the slot, the pulse, the colour and the accessibility clauses are the tests named in this class's summary
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-COMPOSER-017 (STOP cloud-verify #3): the field's layout; the slot, the pulse, the colour and the accessibility clauses are the tests named in this class's summary
     public void The_field_lays_out_two_point_dots_on_an_eight_point_pitch_in_at_most_three_rows_with_one_extra_column() => headless.OnUiThread(() =>
     {
         // A pill field 200 wide and 100 tall: 26 columns (25 to cover the width and one past it) and 3 rows, though 13 would fit.
@@ -80,7 +80,7 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // ComposerWorkingDots.swift:142-148, :177-190: pulse 0.08 to 0.75 over 2.2 s, column delay 0.045, row delay 0.09, each row up fainter by 1/rowCount
-    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-017 (OD-0098, the Swift is the proof): the pulse's delays and the row fade while it runs
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-COMPOSER-017 (STOP cloud-verify #3): the pulse's delays and the row fade while it runs
     public void The_running_pulse_peaks_later_by_the_column_and_row_delays_and_each_row_peaks_lower_by_one_over_the_row_count() => headless.OnUiThread(() =>
     {
         using var rt = new TestRuntime();
@@ -116,7 +116,7 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
     // rounded rectangle.
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // ComposerView.swift:664-672 and ComposerWorkingDots.swift:12-20: the bottom 40 percent, clipped to a continuous 22-point rounded rectangle
-    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-017: the slot's geometry and the clip's continuous corner (ED-181, closed: ContinuousCornerChecks); the render-thread clause is the compositor tests', and a real native window stays out of reach
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-COMPOSER-017: the slot's geometry and the clip's continuous corner (ED-181, closed: ContinuousCornerChecks); the capture comparison (C 92.00) and the render-thread clause are open (STOP cloud-verify #3)
     public void The_slot_gives_the_dots_the_pills_bottom_40_percent_inside_a_continuous_22_point_clip() => headless.OnUiThread(() =>
     {
         System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
