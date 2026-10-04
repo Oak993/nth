@@ -36,8 +36,10 @@ public static class ShimRunner
         }
         finally
         {
-            python?.Dispose();
-            if (profile != null) Directory.Delete(profile, true);
+            // A worker the target left behind can still hold the folder open. The target's exit code is the result, so a folder that cannot be deleted now is left
+            // for the store's collection (ED-NEW-f-sk-6 6) instead of replacing that exit code with a crash.
+            try { python?.Dispose(); } catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+            try { if (profile != null) Directory.Delete(profile, true); } catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         }
     }
 }

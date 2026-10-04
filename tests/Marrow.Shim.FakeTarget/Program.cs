@@ -17,6 +17,25 @@ if (args[0] == "tree")
     File.WriteAllText(args[1], grandchild.Id.ToString(CultureInfo.InvariantCulture));
     await Task.Delay(Timeout.Infinite);
 }
+if (args[0] == "linger")
+{
+    // A detached helper that is meant to outlive this program, as a tool's background server does.
+    var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
+    start.ArgumentList.Add("wait");
+    using var helper = Process.Start(start)!;
+    File.WriteAllText(args[1], helper.Id.ToString(CultureInfo.InvariantCulture));
+    return 0;
+}
+if (args[0] == "hold-profile")
+{
+    // Leaves a grandchild running inside the profile folder (as a LibreOffice worker can), so the folder cannot be deleted when this exits.
+    var held = new Uri(args.Single(a => a.StartsWith("-env:UserInstallation=", StringComparison.Ordinal))[22..]).LocalPath;
+    var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, WorkingDirectory = held };
+    start.ArgumentList.Add("wait");
+    using var grandchild = Process.Start(start)!;
+    File.WriteAllText(args[1], grandchild.Id.ToString(CultureInfo.InvariantCulture));
+    return 7;
+}
 if (args[0] == "armed") return File.Exists(args[1]) ? 0 : 91;
 if (args[0] == "wait") await Task.Delay(Timeout.Infinite);
 if (args[0] == "provider")

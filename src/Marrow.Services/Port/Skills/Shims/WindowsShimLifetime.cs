@@ -24,8 +24,17 @@ public sealed class WindowsShimLifetime : IShimLifetime
             throw new Win32Exception(error);
         }
         // Deliberately process-lifetime: closing while we are alive would also kill this shim.
-        // The non-inheritable handle closes on normal exit OR external termination.
+        // The non-inheritable handle closes on external termination, which kills the tree.
         job = created;
+        // On a normal exit the target has finished, and a background helper it left running must live on as it would without the shim (the plan asks for the tree to die
+        // when the shim is KILLED). A crash or a kill never raises ProcessExit, so the tree is still ended there.
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Release();
+    }
+
+    private void Release()
+    {
+        var none = new ShimJobExtendedLimits();
+        SetInformationJobObject(job, 9, ref none, (uint)Marshal.SizeOf<ShimJobExtendedLimits>());
     }
 
     [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]

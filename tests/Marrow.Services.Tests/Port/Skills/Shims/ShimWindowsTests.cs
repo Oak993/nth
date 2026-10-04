@@ -72,6 +72,58 @@ public sealed class ShimWindowsTests
         Assert.Equal(37, echo.ExitCode);
     }
     [WindowsShimFact, Trait("Feature", "SK-6")]
+    public async Task A_profile_folder_that_cannot_be_deleted_never_changes_the_targets_exit_code()
+    {
+        // A worker the target leaves behind can hold the per-call profile open; the cleanup failing must not replace the target's exit code with a crash.
+        using var fixture = new ShimFixtures();
+        var shim = fixture.Install("soffice", new ShimDefinition { Target = fixture.Target, LibreOffice = true, WorkDirectory = fixture.Work });
+        var signal = Path.Combine(fixture.Root, "held.pid");
+        using var child = fixture.Start(shim, "hold-profile", signal);
+        child.StandardInput.Close();
+        try
+        {
+            var error = child.StandardError.ReadToEndAsync();
+            await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(20));
+            Assert.Equal(7, child.ExitCode);
+            StopHeld(signal); // the survivor holds the error pipe open too, so it ends before the pipe is read to its end
+            Assert.Equal("", await error.WaitAsync(TimeSpan.FromSeconds(20)));
+        }
+        finally
+        {
+            StopHeld(signal);
+        }
+    }
+    private static void StopHeld(string signal)
+    {
+        if (!File.Exists(signal)) return;
+        try { using var held = Process.GetProcessById(int.Parse(File.ReadAllText(signal), CultureInfo.InvariantCulture)); held.Kill(true); }
+        catch (ArgumentException) { }
+    }
+
+    [WindowsShimFact, Trait("Feature", "SK-6")]
+    public async Task A_helper_the_target_leaves_running_survives_a_normal_exit_as_it_does_without_the_shim()
+    {
+        // The plan asks for the child tree to die when the shim is killed, not for a target's intended background helper to die when the target finishes.
+        using var fixture = new ShimFixtures();
+        var shim = fixture.Install("node", new ShimDefinition { Target = fixture.Target });
+        var signal = Path.Combine(fixture.Root, "helper.pid");
+        using var child = fixture.Start(shim, "linger", signal);
+        child.StandardInput.Close();
+        Process? helper = null;
+        try
+        {
+            await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(20));
+            Assert.Equal(0, child.ExitCode);
+            helper = Process.GetProcessById(int.Parse(File.ReadAllText(signal), CultureInfo.InvariantCulture));
+            await Task.Delay(500);
+            Assert.False(helper.HasExited);
+        }
+        finally
+        {
+            if (helper != null) { if (!helper.HasExited) helper.Kill(true); helper.Dispose(); }
+        }
+    }
+    [WindowsShimFact, Trait("Feature", "SK-6")]
     public async Task Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object()
     {
         using var fixture = new ShimFixtures();
