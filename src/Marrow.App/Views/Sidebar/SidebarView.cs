@@ -3330,6 +3330,8 @@ internal sealed class SidebarThreadRow : Decorator
         Child = ApplyDraggedLift(overlays, () => isDragged); // :1838-1849
         var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         Control? check = null, trailing = null, fold = null;
+        ThreadRowFace? face = null; // the face the row draws now (:1739), kept while its inputs stand
+        (ChatThread, bool, string?) faceBuiltFor = default;
         bool? selectedBefore = null, actionsBefore = null;
         this.Track(() =>
         {
@@ -3347,8 +3349,20 @@ internal sealed class SidebarThreadRow : Decorator
             var settled = thread.IsSettled;
             var detailed = projectName is not null && !settled;
             var showsFold = actions && onToggleFold is not null;
-            shape.Child = new ThreadRowFace(thread, projectName, selected,
-                TrailingClearance(settled, detailed, actions || settling, showsFold), () => new ThreadBadge(thread), projectIcon, mergeStage); // :1739-1749
+            // :1739-1749. The face the row already has, for the same thread, selection and words, takes the new clearance
+            // in place (SwiftUI keeps the view and animates its padding on the hover's transaction); another one is built.
+            var clearance = TrailingClearance(settled, detailed, actions || settling, showsFold);
+            var faceKey = (thread, selected, mergeStage);
+            if (face is not null && faceBuiltFor.Equals(faceKey))
+            {
+                face.SetTrailingClearance(clearance, Transaction.Current);
+            }
+            else
+            {
+                face = new ThreadRowFace(thread, projectName, selected, clearance, () => new ThreadBadge(thread), projectIcon, mergeStage);
+                faceBuiltFor = faceKey;
+                shape.Child = face;
+            }
             var colors = BackgroundFill(thread.IsPinned, selected, hover);
             fill.Set(colors.Background, selectedBefore is not null && selectedBefore != selected ? Chrome.Hover : Transaction.Current); // :1750-1754
             selectedBefore = selected;
@@ -3891,18 +3905,29 @@ internal sealed class ThreadRowFace : Decorator
         Grid.SetColumn(texts, 1);
         row.Children.Add(texts);
 
-        Child = new Border
+        var leftPadding = Chrome.RowHorizontalPadding + (isSettled ? ThreadRowMetrics.SettledTitleInset : 0); // :2067
+        var vertical = isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0; // :2069
+        var frame = new Border
         {
             Child = row,
-            Padding = new Thickness(
-                Chrome.RowHorizontalPadding + (isSettled ? ThreadRowMetrics.SettledTitleInset : 0), // :2067
-                isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0, // :2069
-                Chrome.RowHorizontalPadding + trailingClearance, // :2068
-                isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0),
+            Padding = new Thickness(leftPadding, vertical, Chrome.RowHorizontalPadding + trailingClearance, vertical), // :2068
             MinHeight = isSettled ? ThreadRowMetrics.SettledHeight : Chrome.RowHeight, // :2070
             HorizontalAlignment = HorizontalAlignment.Stretch, // :2071 .frame(maxWidth: .infinity, alignment: .leading)
         };
+        clearance = new AnimatedScalar(this, trailingClearance, value =>
+            frame.Padding = new Thickness(leftPadding, vertical, Chrome.RowHorizontalPadding + value, vertical));
+        Child = frame;
     }
+
+    private readonly AnimatedScalar clearance;
+
+    /// <summary>
+    /// :2013 `trailingClearance` as the row hands the face on a later render (:1739-1743): the same face, a new number.
+    /// SwiftUI animates the padding in the transaction the hover is written in (:1816-1818, `withAnimation(Chrome.hover)`),
+    /// so the title's room, and where it truncates, glides; with no transaction it is taken at once. OD-0076 also asks for
+    /// it ("a label whose width changes eases its container's width").
+    /// </summary>
+    public void SetTrailingClearance(double value, Animation? animation) => clearance.Set(value, animation);
 
     // :2040-2051 the title text, shared by the detailed-with-mark layout and the plain one.
     private static TextBlock MakeTitle(ChatThread thread, bool isSettled, bool isSelected)

@@ -608,4 +608,161 @@ public sealed partial class SidebarViewTests
         Assert.NotNull(text.FontFeatures);
         Assert.Contains(text.FontFeatures!, feature => feature.Tag == "tnum");
     });
+
+    // ---- UI-SIDEBAR-017, -021, -022: the title's room eases with the hover (the trailing clearance rides the hover's transaction) ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:1816-1818 `withAnimation(Chrome.hover) { isHovering = hovering }`; :1739-1743 the face's trailingClearance reads showsActions; :2068 `.padding(.trailing, rowHorizontalPadding + trailingClearance)`
+    [Trait("Req", "UI-SIDEBAR-021")] // the clearance the buttons need (the archive button joins the ellipsis)
+    [Trait("Req", "UI-SIDEBAR-022")] // "its presence also adds 20 pt to the title's trailing clearance": the fold chevron's 20 eases in with it
+    // The padding is a number in the transaction the hover is written in, so the title's room goes from 18 to 52 (a detailed
+    // row) over Chrome.hover and the truncation point glides; OD-0076 also names it ("a label whose width changes eases its
+    // container's width"). It ends on the source's values and comes back the same way.
+    public void A_detailed_rows_title_room_eases_from_18_to_52_on_the_hover_and_back() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "A long title that wants all the room it can get", 0);
+        var model = Model(harness, [project], [thread]);
+        using var shared = RowGlideAnimator.Shared.Override(new RowGlideAnimator(new FakeGeniePlatform()));
+        Control row = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); Dispatcher.UIThread.RunJobs(); });
+        }
+        double Right() => LogicalQuery.SelfAndDescendants<ThreadRowFace>(row).Single() is { } face ? ((Border)face.Child!).Padding.Right : double.NaN;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                row = LiveThreadRow(thread, "Alpha");
+                var window = WindowOf(Hosted(model, row));
+                window.UpdateLayout();
+                Assert.Equal(8d + 18, Right()); // :1894-1898 isDetailed, no actions
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            Tick(50);
+            double last = 0;
+            harness.Main.OnMain(() => { last = Right(); Assert.InRange(last, 8 + 18 + 1, 8 + 52 - 1); }); // on its way, not cut
+            Tick(30);
+            harness.Main.OnMain(() => { Assert.InRange(Right(), last, 8 + 52); last = Right(); });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(8d + 52, Right()); // :1894-1895 showsActions, open, no fold
+                var window = WindowOf(row);
+                window.MouseMove(new Point(window.Bounds.Width + 50, window.Bounds.Height + 50));
+            });
+            Tick(50);
+            harness.Main.OnMain(() => Assert.InRange(Right(), 8 + 18 + 1, 8 + 52 - 1)); // and back the same way
+            Tick(300);
+            harness.Main.OnMain(() => Assert.Equal(8d + 18, Right()));
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    [Theory]
+    [Trait("Req", "UI-SIDEBAR-021")] // SidebarView.swift:1775-1784 HStack(spacing: 0) { archive button (RowAccessoryIcon("archivebox")); RowActionsButton }, :1800 .padding(.trailing, 6), :1894-1895 clearance 52
+    [Trait("Req", "UI-SIDEBAR-022")] // SidebarView.swift:1803-1814 RowAccessoryIcon(folded ? "chevron.right" : "chevron.down") .padding(.trailing, foldInset 46); presence adds 20 to the clearance
+    [InlineData(true)]
+    [InlineData(false)]
+    public void On_a_hovered_row_the_archive_button_sits_before_the_ellipsis_and_the_fold_chevron_46_points_from_the_edge(bool folded) => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Row", 0) with { ExpandsHelpers = !folded };
+        var model = Model(harness, [project], [thread]);
+        using var shared = RowGlideAnimator.Shared.Override(new RowGlideAnimator(new FakeGeniePlatform()));
+        Control row = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; // the archive button, not the settle check (:1776)
+                row = LiveThreadRow(thread, fold: () => { });
+                var window = WindowOf(Hosted(model, row));
+                window.UpdateLayout();
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            harness.Main.AdvanceMilliseconds(300);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(300)); WindowOf(row).UpdateLayout(); });
+            harness.Main.OnMain(() =>
+            {
+                var archive = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "Archive thread"); // :1783 .help
+                var ellipsis = LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single();
+                var chevron = ButtonNamed(row, folded ? "Show helpers" : "Hide helpers");
+                var rowFrame = new Rect(row.Bounds.Size);
+                Assert.Equal(new Size(20, 20), archive.Bounds.Size); // RowAccessoryIcon's 20 pt square
+                Assert.Equal(new Size(20, 20), chevron.Bounds.Size);
+                Assert.Equal(archive.TranslatePoint(new Point(20, 0), row)!.Value.X, ellipsis.TranslatePoint(default, row)!.Value.X, 0.6); // HStack(spacing: 0): the ellipsis follows at once
+                Assert.Equal(rowFrame.Right - 6, ellipsis.TranslatePoint(new Point(ellipsis.Bounds.Width, 0), row)!.Value.X, 0.6); // .padding(.trailing, 6)
+                Assert.Equal(rowFrame.Right - 46, chevron.TranslatePoint(new Point(20, 0), row)!.Value.X, 0.6); // .padding(.trailing, foldInset)
+                var symbol = LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).Single().SymbolName;
+                Assert.Equal(folded ? "chevron.right" : "chevron.down", symbol); // :1808
+                var face = LogicalQuery.SelfAndDescendants<ThreadRowFace>(row).Single();
+                Assert.Equal(8d + 52 + 20, ((Border)face.Child!).Padding.Right); // :1894-1895 the chevron adds 20 to the title's clearance
+                Assert.Equal(Chrome.SecondaryText.Resolve(row.ActualThemeVariant), ((ISolidColorBrush)LogicalQuery.SelfAndDescendants<SwiftImage>(archive).Single().Foreground!).Color); // Chrome.secondaryText
+            });
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    // ---- ED-275: every row of the list draws Apple's continuous corner at 7 pt (UI-SIDEBAR-008, -017, -035, -036) ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-008")] // SidebarView.swift:1078-1166 ProjectRow body -> Chrome.swift:722 `RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous)`: 7 pt
+    [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:1735 `let shape = RoundedRectangle(cornerRadius: Chrome.rowCornerRadius, style: .continuous)`
+    [Trait("Req", "UI-SIDEBAR-035")] // SidebarView.swift:1580 the folded stub's RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous), 24 pt high
+    [Trait("Req", "UI-SIDEBAR-036")] // SidebarView.swift:1519-1521 the head card's background + clipShape, 7 pt continuous
+    // ED-275 (2): a `.continuous` corner is Apple's while 2 * 1.528665 * r <= min(w, h): at r 7 that is 21.4 pt, so the 24 pt
+    // stub, the 28 pt rows and the head card are all inside the regime the oracle backs, not in the unresolved band; the
+    // Border keeps its CornerRadius (7, the circle of the same radius) and is cut to the curve by Visual.Clip (ED-275 (3b)).
+    public void Every_row_shape_of_the_list_is_a_7_point_continuous_corner_in_Apples_regime_and_cut_to_the_curve() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var folded = NewThread(project, "Folded parent", 2) with { ExpandsHelpers = false };
+        var foldedHelper = NewThread(project, "Its helper", 3) with { ParentThreadID = folded.Id };
+        var heads = Enumerable.Range(0, 3).Select(i => HeadHelper(project, parent.Id, i, 4 + i)).ToList();
+        var settled = NewThread(project, "Settled", 8) with { IsSettled = true, SettledAt = Base.AddHours(1) };
+        var model = Model(harness, [project], new[] { parent, helper, folded, foldedHelper, settled }.Concat(heads).ToList());
+        SidebarView view = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.HydraAutoHidesIdleHeads = false;
+                model.Settings.SettledCollapsed = false;
+                view = Attached(model);
+                WindowOf(view).UpdateLayout();
+            });
+            harness.Main.OnMain(() =>
+            {
+                var shapes = LogicalQuery.SelfAndDescendants<Border>(view)
+                    .Where(b => SwiftShapes.GetCornerStyle(b) == RoundedCornerStyle.Continuous && b.CornerRadius == new CornerRadius(Chrome.RowCornerRadius) && b.Bounds.Height >= 14)
+                    .ToList();
+                Assert.Equal(7d, Chrome.RowCornerRadius); // Chrome.swift:49
+                // a project row, a thread row, a helper row, a folded stub, a head card, a settled row: at least one of each kind drew a shape
+                Assert.True(shapes.Count >= 6, $"{shapes.Count} continuous 7 pt shapes");
+                foreach (var shape in shapes)
+                {
+                    Assert.True(SwiftShapes.HasContinuousCorner(shape.Bounds.Size, shape.CornerRadius, RoundedCornerStyle.Continuous),
+                        $"a {shape.Bounds.Width}x{shape.Bounds.Height} shape is in Apple's regime at r 7");
+                    if (shape.Background is not null && shape.BoxShadow.Count == 0)
+                        Assert.NotNull(shape.Clip); // cut to the curve, not left as the circle (ED-275 (3b))
+                }
+                var stub = shapes.Where(b => Math.Abs(b.Bounds.Height - 24) < 0.5).ToList();
+                Assert.NotEmpty(stub); // the 24 pt stub and the settled rows
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
 }
