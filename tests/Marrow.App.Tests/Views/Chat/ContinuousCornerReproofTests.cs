@@ -238,6 +238,36 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-052")] // TimelineRows.swift:464-467 `.background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: pillRadius, style: .continuous))`, :438-476 lineLimit(1): a finished head's pill, a capsule
+    public void The_finished_head_pills_are_continuous_pills_of_radius_18_on_a_single_line() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        var (store, app, runtime) = TimelineRowsFinTeam.Make(
+            TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Failed), TimelineRowsFinTeam.Head(1, HydraHeadInfo.Status.Completed));
+        using (store)
+        {
+            store.Main.OnMain(() =>
+            {
+                var row = new HydraHeadsWorkingRow(new ValueList<int>([1, 0]), runtime);
+                var host = new Border { Width = 360, Child = row };
+                Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                var window = Show(new StackPanel { Children = { host } });
+                try
+                {
+                    row.ApplyTeam(app.Children(runtime.ThreadID));
+                    Settle(window);
+                    var pills = Mounted<FinishedHeadPill>(row).ToList();
+                    Assert.Equal(2, pills.Count);
+                    foreach (var pill in pills) AssertCapsule(PillOf(pill, Pill), Avalonia.Automation.AutomationProperties.GetName(pill) ?? "finished head pill");
+                }
+                finally { Close(window); }
+            });
+        }
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-053")] // TimelineRows.swift:1012-1017 .background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: pillRadius, style: .continuous))
     [Trait("Req", "PR-HYDRAMERGE-106")] // TimelineRows.swift:1015: the pill's shape, a continuous rounded rectangle of radius 18, in both states
     public void The_merge_pill_is_a_continuous_pill_of_radius_18_in_both_states_and_no_taller_than_a_capsule() => headless.OnUiThread(() =>
