@@ -20,7 +20,8 @@ using static Marrow.App.Tests.Fixtures.MCPSettingsPageTestFirst;
 namespace Marrow.App.Tests.Views.Settings;
 
 // Test-first completion of the MCP settings page records: each test is derived from DroppyCode/App/Views/Settings/MCPSettingsPage.swift
-// (line numbers on each test). The records' reference-capture comparisons stay blocked by OD-0001 and are not repeated here.
+// (line numbers on each test). The records' reference-capture comparisons (PR-MCP-199's "capture comparison against a rendered page") have no frame in the reference videos, so under OD-0098
+// the Swift is the proof: Page_stacks_lead_connected_custom_categories_and_footer_with_twenty_points_between asserts every clause of PR-MCP-199 from :35-63.
 [Collection("Headless")]
 public sealed class MCPSettingsPageTestFirstTests(HeadlessSession headless)
 {
