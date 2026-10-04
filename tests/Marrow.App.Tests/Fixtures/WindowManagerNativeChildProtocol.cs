@@ -26,6 +26,7 @@ internal static class WindowManagerNativeChildProtocol
         var type = factType ?? typeof(WindowManagerNativeTests);
         if (type != typeof(WindowManagerNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
             type != typeof(EffortSliderNativeFrameTests) && type != typeof(GlassWindowNativeTests) &&
+            type != typeof(WindowManagerNativeCentringTests) && type != typeof(WindowManagerNativeChromeTests) &&
             type != typeof(GalleryNativeTests))
             throw new InvalidOperationException("Native child selection is not an allowed test type.");
         var method = type.GetMethod(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);

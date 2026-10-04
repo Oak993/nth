@@ -18,14 +18,15 @@ namespace Marrow.App.Tests.Window.Native;
 // What the factory's two real HWNDs carry for the system's own chrome: the immersive dark title bar (DWMWA_USE_IMMERSIVE_DARK_MODE,
 // 20) that follows the theme (WindowManager.swift:151-159), and the system's window transitions (DWMWA_TRANSITIONS_FORCEDISABLED,
 // 3) that stay on (:99). Both are read back from DWM on the windows the factory made, never set by the test.
-public sealed partial class WindowManagerNativeTests
+[Collection("WindowManagerNative")]
+public sealed class WindowManagerNativeChromeTests(WindowManagerNativeSession native)
 {
     private const uint DwmwaTransitionsForceDisabled = 3;
     private const uint DwmwaUseImmersiveDarkMode = 20;
 
     private static int Dwm(nint handle, uint attribute)
     {
-        var status = DwmGetWindowAttribute(handle, attribute, out var value, sizeof(int));
+        var status = N.DwmGetWindowAttribute(handle, attribute, out var value, sizeof(int));
         Assert.Equal(0, status);
         return value;
     }
@@ -56,12 +57,10 @@ public sealed partial class WindowManagerNativeTests
             }
         }
         finally { native.OnUi(() => subject.Manager.Model.Settings.Theme = original); }
-    });
+    }, factType: typeof(WindowManagerNativeChromeTests));
 
-    [DllImport("user32.dll", SetLastError = true)] private static extern bool SystemParametersInfo(uint action, uint parameter, ref NativeAnimationInfo value, uint flags);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeAnimationInfo { public uint Size; public int MinAnimate; }
+    // ANIMATIONINFO: { UINT cbSize; int iMinAnimate; }
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool SystemParametersInfo(uint action, uint parameter, int[] value, uint flags);
 
     // A window shown over a plain backdrop and then hidden: the screen under its middle is sampled as fast as it can be
     // read. The time from the last sample of the window's colour to the first of the backdrop's, and the samples between them,
@@ -85,9 +84,9 @@ public sealed partial class WindowManagerNativeTests
     [Trait("Req", "PR-WIN-008")] // WindowManager.swift:99 animationBehavior = .documentWindow; windows_path: the system's window animation
     public void The_factory_windows_are_hidden_with_the_systems_fade_not_cut_and_a_window_with_transitions_disabled_is_cut() => native.Run(subject =>
     {
-        var info = new NativeAnimationInfo { Size = (uint)Marshal.SizeOf<NativeAnimationInfo>() };
-        Assert.True(SystemParametersInfo(0x0048 /* SPI_GETANIMATION */, info.Size, ref info, 0));
-        if (info.MinAnimate == 0) throw new InvalidOperationException("NATIVE_PRECONDITION: 'Animate windows when minimizing and maximizing' is off on this PC.");
+        var info = new[] { 8, 0 };
+        Assert.True(SystemParametersInfo(0x0048 /* SPI_GETANIMATION */, 8, info, 0));
+        if (info[1] == 0) throw new InvalidOperationException("NATIVE_PRECONDITION: 'Animate windows when minimizing and maximizing' is off on this PC.");
         var screen = native.OnUi(() => subject.Main.Screens.Primary!);
         var work = screen.WorkingArea;
         var backdrop = native.OnUi(() =>
@@ -158,5 +157,5 @@ public sealed partial class WindowManagerNativeTests
             Assert.True(factory.Milliseconds >= 80 && factory.Between >= 4, $"the factory {name} window was cut, not faded: {factory}");
         }
         GC.KeepAlive(backdrop);
-    });
+    }, factType: typeof(WindowManagerNativeChromeTests));
 }

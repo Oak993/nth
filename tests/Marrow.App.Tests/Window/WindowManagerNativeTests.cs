@@ -26,7 +26,7 @@ namespace Marrow.App.Tests.Window.Native;
 // CLOSED STOP FACTORY-STRETCH (2026-10-04): WindowChrome.Configure binds ResizeStretch (WindowChrome.cs:170) for every factory
 // window, and WindowManagerFactoryStretchTests proves it; the ED-101 composition remedy is not these messages' job.
 [Collection("WindowManagerNative")]
-public sealed partial class WindowManagerNativeTests(WindowManagerNativeSession native)
+public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 {
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")]

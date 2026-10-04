@@ -18,11 +18,10 @@ namespace Marrow.App.Tests.Window.Native;
 // visible window; the HWND of the factory's chrome is larger than it, by an invisible strip (WindowInvisibleBorder), and
 // Avalonia reports the standard overlapped frame, 39 px of caption on top, until the window has been shown once. A test
 // reads only native frames (GetWindowRect, GetClientRect, DWM's extended frame bounds) and the working area.
-public sealed partial class WindowManagerNativeTests
+[Collection("WindowManagerNative")]
+public sealed class WindowManagerNativeCentringTests(WindowManagerNativeSession native)
 {
     private static string F(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
-
-    [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(nint window, uint attribute, out int value, int size);
 
     private static AvaloniaWindow SettingsOf(WindowManager manager) => (AvaloniaWindow)(typeof(WindowManager)
         .GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager)
@@ -92,7 +91,7 @@ public sealed partial class WindowManagerNativeTests
         // the autosave is installed after the centring (:70): the frame now saved is where it was put
         var saved = native.OnUi(() => UserDefaults.Standard.Current.Dictionary("DroppyCodeMainWindow"));
         Assert.NotNull(saved);
-    });
+    }, factType: typeof(WindowManagerNativeCentringTests));
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:32-55 the first showSettings of a window that has never been shown
@@ -128,7 +127,7 @@ public sealed partial class WindowManagerNativeTests
         // the open is Rise (OD-0074): shown cloaked, revealed at glass-ready
         N.Until(() => native.OnUi(() => manager.SettingsOpening is not { Waiting: true }), "the Settings open never finished", 8000);
         var shown = Settled(settings);
-        Assert.Equal(0, native.OnUi(() => { DwmGetWindowAttribute((nint)shown.Handle, 14, out var cloaked, sizeof(int)); return cloaked; })); // DWMWA_CLOAKED
+        Assert.Equal(0, native.OnUi(() => { N.DwmGetWindowAttribute((nint)shown.Handle, 14, out var cloaked, sizeof(int)); return cloaked; })); // DWMWA_CLOAKED
         // the content is the production SettingsView (:81), not a stand-in
         Assert.IsType<Marrow.App.Views.Settings.SettingsView>(typeof(WindowManager)
             .GetField("settingsView", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager));
@@ -142,5 +141,5 @@ public sealed partial class WindowManagerNativeTests
         // expected from native readings alone: the Swift arithmetic on the frames that show, clamped into the working area
         var expected = G.Expected(mainReading, shown.Frame.Width, shown.Frame.Height, strip, shown.Dpi, primary.Bounds, owner.Work);
         Assert.Equal(expected.Origin, shown.Origin);
-    });
+    }, factType: typeof(WindowManagerNativeCentringTests));
 }
