@@ -297,7 +297,7 @@
   },
   "cuda": {
     "offered": "Whisper.net.Runtime.Cuda12.Windows",
-    "offeredWhy": "ENGINEERING DECISION (VT-0): the CUDA 12 pack is the one observed to load from a downloaded folder with NVIDIA 12.4 libraries beside it on the owner PC (an observation, see feasibility.loadsFromDownloadedFolder.Cuda12); the CUDA 13 pack is recorded but could not be tried (this PC has no cuBLAS 13).",
+    "offeredWhy": "ENGINEERING DECISION (VT-0): the CUDA 12 pack is the one reproduced to load from a downloaded folder with NVIDIA 12.4 libraries beside it (feasibility.loadsFromDownloadedFolder.Cuda12, probe case 9); the CUDA 13 pack is recorded but could not be tried (this PC has no cuBLAS 13).",
     "packs": {
       "Whisper.net.Runtime.Cuda12.Windows": {
         "version": "1.9.1",
@@ -373,21 +373,22 @@
         ]
       }
     },
-    "hashEvidence": "Both packs were downloaded once on 2026-10-04 and their SHA-512 equals the nuget.org registration entry (packageHash).",
+    "hashEvidence": "Both packs were downloaded on 2026-10-04 and their SHA-512 equals the nuget.org registration entry (packageHash); the CUDA 12 pack was restored again in round 3 (dotnet restore) and its nupkg.sha512 file reads the sha512Base64 pinned here.",
     "feasibility": {
       "probeOutput": "porting/probes/vt-0-cuda-loader/run-output.txt",
       "loadsFromDownloadedFolder": {
         "Cpu": "reproduced (probe case 1)",
         "Vulkan": "reproduced (probe case 4)",
         "Cuda12": {
-          "status": "observed-not-reproduced",
-          "note": "The real Whisper.net.Runtime.Cuda12.Windows natives were loaded from a downloaded folder once on the owner PC on 2026-10-04 (RuntimeOptions.LoadedLibrary read Cuda12, with NVIDIA 12.4 cudart, cublas and cublasLt copied from the benchmark folder into the same runtimes folder). The console output was not saved and the NVIDIA copies are no longer on this PC, so this is an observation, not a verified fact; BUILD-PLAN section 4 item D (the CUDA download) measures it again."
+          "status": "reproduced (probe case 9)",
+          "note": "The real Whisper.net.Runtime.Cuda12.Windows 1.9.1 runtime (restored from nuget.org) loads from a downloaded folder: with NVIDIA 12.4 cudart64_12, cublas64_12 and cublasLt64_12 beside the pack's five files in <root>\\runtimes\\cuda12\\win-x64 and RuntimeOptions.RuntimeLibraryOrder = [Cuda12], RuntimeOptions.LoadedLibrary reads Cuda12 and the Silero VAD finds the same three segments as on the CPU (probe case 9, saved output; the NVIDIA copies are the ones in the benchmark folder, listed with sizes and sha256 in cuda12-pack-imports.txt). Not shown: transcription or speed on CUDA.",
+          "fromOrderedListWithNvidiaOnPath": "reproduced (probe case 14)"
         }
       },
       "libraryPathSemantics": "directory-of-the-path",
       "libraryPathNote": "RuntimeOptions.LibraryPath is read through Path.GetDirectoryName: set it to a file path (any name) inside the download root, e.g. <root>\\runtime.dll; the loader then searches <root>\\runtimes\\<runtime>\\win-x64 (cuda12, cuda, vulkan) and <root>\\runtimes\\win-x64 (CPU). Passing the folder (probe case 2) or whisper.dll inside runtimes\\win-x64 (case 3) finds nothing: the search root becomes its parent.",
-      "whenCudaCannotLoad": "falls-back-to-the-next-runtime",
-      "fallbackEvidence": "Probe cases 5 to 7 use an unloadable stand-in file at runtimes\\cuda12\\win-x64\\whisper.dll (the real pack was not available): [Cuda12, Vulkan, Cpu] loaded Vulkan, [Cuda12, Cpu] loaded Cpu, [Cuda12] alone failed with \"Failed to load native whisper library\". A CUDA pack whose NVIDIA libraries are missing fails LoadLibrary the same way, but that exact case was not run.",
+      "whenCudaCannotLoad": "falls-back-to-the-next-runtime-unless-cudart-is-findable-and-cublas-is-missing (probe cases 5, 6, 11, 12; case 15 aborts the process)",
+      "fallbackEvidence": "Probe cases 5 to 7 use an unloadable stand-in file at runtimes\\cuda12\\win-x64\\whisper.dll: [Cuda12, Vulkan, Cpu] loaded Vulkan, [Cuda12, Cpu] loaded Cpu, [Cuda12] alone failed with \"Failed to load native whisper library\". Cases 11 to 13 repeat it with the real pack and no NVIDIA libraries (Vulkan, Cpu, the same failure). Case 15 is the one case that does not fall back: the process aborts.",
       "order": "RuntimeOptions.RuntimeLibraryOrder = [Cuda12, Vulkan, Cpu] (names of Whisper.net.LibraryLoader.RuntimeLibrary)",
       "vadCheck": "VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]",
       "packDoesNotCarry": [
@@ -395,8 +396,15 @@
         "cublasLt64_12.dll",
         "cudart64_12.dll"
       ],
-      "packDoesNotCarryNote": "The pack holds whisper and ggml natives only. ggml-cuda-whisper.dll imports cudart64_12.dll and cublas64_12.dll (which needs cublasLt64_12.dll) from the NVIDIA CUDA runtime, and nvcuda.dll from the driver (read from its PE import table in the downloaded pack on 2026-10-04; the pack was not kept). The owner PC has no CUDA toolkit.",
-      "notMeasured": "Inference speed on CUDA (BENCH holds the whisper.cpp figures; BUILD-PLAN section 4 item D measures it through Whisper.net)."
+      "packDoesNotCarryNote": "The pack holds whisper and ggml natives only. ggml-cuda-whisper.dll imports cudart64_12.dll and cublas64_12.dll from the NVIDIA CUDA runtime and nvcuda.dll from the driver; cublas64_12.dll imports cublasLt64_12.dll (PE import tables of the restored pack and of the NVIDIA 12.4 copies, saved in porting/probes/vt-0-cuda-loader/cuda12-pack-imports.txt). The owner PC has no CUDA toolkit.",
+      "notMeasured": "Inference speed on CUDA (BENCH holds the whisper.cpp figures; BUILD-PLAN section 4 item D measures it through Whisper.net).",
+      "cudaRuntimeSkippedWhen": "skipped-unless-cudart-is-found-by-its-bare-name (probe cases 8, 10, 11, 16)",
+      "cudaRuntimeSkippedNote": "Whisper.net's own check (debug log: \"CUDA runtime Cuda12 is not available.\", probe case 16) finds cudart64_12.dll by its bare name through the process's DLL search path (PATH, the application folder). A cudart that sits only in <root>\\runtimes\\cuda12\\win-x64 next to the pack is not found, so with later runtimes in the order (a Cuda12 that is not the last one) the runtime is skipped and Vulkan loads (case 8, also with the GPU option off, case 10); with the NVIDIA libraries in a folder on PATH the same order loads Cuda12 (cases 14 and 17). Cuda12 as the only runtime listed skips the check and loads from the pack's folder (case 9) or fails with \"Failed to load native whisper library\" when the libraries are missing (case 13).",
+      "halfInstalledPack": {
+        "result": "the-process-aborts (probe case 15)",
+        "note": "With cudart64_12.dll findable on PATH (so the CUDA check passes) but cublas64_12.dll missing, loading the CUDA runtime fails half way and the native ggml code asserts (GGML_ASSERT(prev != ggml_uncaught_exception) failed) when Whisper.net goes on to load the next runtime (Vulkan): the whole process ends, no managed exception. A pack with no NVIDIA library anywhere is skipped before any of its files is loaded (case 11).",
+        "mitigation": "ENGINEERING DECISION for VT-7 and VT-17 (a recorded consequence, not built here): put Cuda12 into RuntimeLibraryOrder, and the NVIDIA folder on PATH, only after the pack's five files and cudart64_12.dll, cublas64_12.dll and cublasLt64_12.dll are all present and hash-checked in the download folder; never leave a half-installed CUDA folder under the LibraryPath root."
+      }
     },
     "nvidiaCompanions": {
       "licenceNote": "NVIDIA CUDA Toolkit licence (NVIDIA EULA, redistributables of the CUDA Toolkit). UNRESOLVED for the owner: whether Marrow may download and unpack these on the user's PC, and which CUDA 12.x release the offer pins.",
@@ -414,6 +422,6 @@
         "sha256": "1034ca43da4afbc79f69269cc60dc081de631e1c0d229d60f045d9516409317a"
       }
     },
-    "importsEvidence": "recorded-reading-pack-not-kept"
+    "importsEvidence": "read-from-the-restored-pack (porting/probes/vt-0-cuda-loader/cuda12-pack-imports.txt)"
   }
 }

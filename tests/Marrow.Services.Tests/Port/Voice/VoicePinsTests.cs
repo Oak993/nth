@@ -39,7 +39,7 @@ public sealed class VoicePinsTests
 
     private static string Sha256(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
 
-    private static JsonElement Pins() => JsonDocument.Parse(File.ReadAllText(Path.Combine(AssetsDirectory, "voice-pins.json"), Encoding.UTF8)).RootElement;
+    internal static JsonElement Pins() => JsonDocument.Parse(File.ReadAllText(Path.Combine(AssetsDirectory, "voice-pins.json"), Encoding.UTF8)).RootElement;
 
     private static string ReadRepositoryText(params string[] parts) => File.ReadAllText(Path.Combine(new[] { Root }.Concat(parts).ToArray()), Encoding.UTF8);
 
@@ -170,6 +170,24 @@ public sealed class VoicePinsTests
         }
     }
 
+    // The transitive packages (name and version) one restore resolved besides the direct ones and the solution's own projects.
+    // A plain restore writes one target ("net10.0-windows"); a RID-specific one (dotnet publish -r win-x64, which scripts/package-windows.ps1 runs)
+    // also writes "net10.0-windows/win-x64". Every target must resolve the same set (a runtime package that only the RID target pulls in is
+    // closure drift and fails here with the targets named), and the set is returned.
+    internal static string[] ResolvedTransitivePackages(JsonElement assets, string[] direct)
+    {
+        var perTarget = assets.GetProperty("targets").EnumerateObject().Select(target => (
+            Target: target.Name,
+            Packages: target.Value.EnumerateObject().Where(p => p.Value.GetProperty("type").GetString() == "package").Select(p => p.Name)
+                .Where(n => !n.StartsWith("Marrow.", StringComparison.Ordinal))
+                .Where(n => !direct.Contains(n[..n.IndexOf('/', StringComparison.Ordinal)]))
+                .Select(n => n[..n.IndexOf('/', StringComparison.Ordinal)] + " " + n[(n.IndexOf('/', StringComparison.Ordinal) + 1)..]).Order(StringComparer.Ordinal).ToArray())).ToList();
+        var distinct = perTarget.Select(t => string.Join(", ", t.Packages)).Distinct(StringComparer.Ordinal).Count();
+        if (perTarget.Count == 0 || distinct != 1)
+            throw new InvalidOperationException("The targets of the assets file disagree on the transitive packages: " + string.Join("; ", perTarget.Select(t => t.Target + " = [" + string.Join(", ", t.Packages) + "]")));
+        return perTarget[0].Packages;
+    }
+
     [Fact]
     [Trait("Feature", Feature)]
     [Trait("Decision", "ED-267")]
@@ -194,10 +212,7 @@ public sealed class VoicePinsTests
         // The closure is complete: it equals the packages project.assets.json resolved for the Services project besides the four direct ones.
         var assets = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "src", "Marrow.Services", "obj", "project.assets.json"), Encoding.UTF8)).RootElement;
         var direct = new[] { "Whisper.net", "Whisper.net.Runtime", "Whisper.net.Runtime.Vulkan", "NAudio.Wasapi" };
-        var resolved = assets.GetProperty("targets").EnumerateObject().Single().Value
-            .EnumerateObject().Where(p => p.Value.GetProperty("type").GetString() == "package").Select(p => p.Name).Where(n => !n.StartsWith("Marrow.", StringComparison.Ordinal)).ToList();
-        var resolvedTransitive = resolved.Where(n => !direct.Contains(n[..n.IndexOf('/', StringComparison.Ordinal)]))
-            .Select(n => n[..n.IndexOf('/', StringComparison.Ordinal)] + " " + n[(n.IndexOf('/', StringComparison.Ordinal) + 1)..]).Order(StringComparer.Ordinal).ToArray();
+        var resolvedTransitive = ResolvedTransitivePackages(assets, direct);
         Assert.Equal(closure.Select(c => c.Id + " " + c.Version).Order(StringComparer.Ordinal).ToArray(), resolvedTransitive);
         // The managed assemblies of the closure sit beside the tests (copied from the Services references).
         foreach (var assembly in new[] { "Whisper.net.dll", "NAudio.Wasapi.dll", "NAudio.Core.dll", "Microsoft.Extensions.AI.Abstractions.dll", "System.Numerics.Tensors.dll" })
@@ -502,7 +517,7 @@ public sealed class VoicePinsTests
 
     // The saved console output of the loader probe (porting\probest-0-cuda-loader): every claim of the feasibility record that rests on
     // the probe is held to a line of that file, so the record is not asserted against itself.
-    private static Dictionary<int, List<string>> ProbeCases()
+    internal static Dictionary<int, List<string>> ProbeCases()
     {
         var cases = new Dictionary<int, List<string>>();
         List<string>? current = null;
@@ -521,33 +536,33 @@ public sealed class VoicePinsTests
     public void The_CUDA_loader_probe_output_backs_each_claim_the_feasibility_record_makes_about_RuntimeOptions_LibraryPath()
     {
         var cases = ProbeCases();
-        Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7 }, cases.Keys.Order().ToArray());
+        Assert.Equal(Enumerable.Range(1, 17).ToArray(), cases.Keys.Order().ToArray());
         const string Segments = "VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]";
+        // Each case prints: the options line, then LoadedLibrary and the VAD segments (or the failure), the modules the process holds, and the exit code.
+        string[] Outcome(int probeCase) => cases[probeCase].Skip(1).Where(l => !l.StartsWith("Modules=", StringComparison.Ordinal)).ToArray();
         // Cases 1 to 3: the path is read through its directory, so a file path inside the root works and the folder or a file two levels down does not.
-        Assert.Equal(["LoadedLibrary=Cpu", Segments], cases[1].Skip(1).ToArray());
-        Assert.StartsWith("FAIL FileNotFoundException: Native Library not found", cases[2][1], StringComparison.Ordinal);
-        Assert.StartsWith("FAIL FileNotFoundException: Native Library not found", cases[3][1], StringComparison.Ordinal);
+        Assert.Equal(["LoadedLibrary=Cpu", Segments, "ExitCode=0"], Outcome(1));
+        Assert.StartsWith("FAIL FileNotFoundException: Native Library not found", Outcome(2)[0], StringComparison.Ordinal);
+        Assert.StartsWith("FAIL FileNotFoundException: Native Library not found", Outcome(3)[0], StringComparison.Ordinal);
         // Case 4: the Vulkan runtime loads from the downloaded folder too, and finds the same segments as the CPU one.
-        Assert.Equal(["LoadedLibrary=Vulkan", Segments], cases[4].Skip(1).ToArray());
+        Assert.Equal(["LoadedLibrary=Vulkan", Segments, "ExitCode=0"], Outcome(4));
         // Cases 5 to 7: a CUDA runtime that cannot be loaded is skipped when a later one is listed, and is an error when it is the only one.
-        Assert.Equal(["LoadedLibrary=Vulkan", Segments], cases[5].Skip(1).ToArray());
-        Assert.Equal(["LoadedLibrary=Cpu", Segments], cases[6].Skip(1).ToArray());
-        Assert.StartsWith("FAIL Exception: Failed to load native whisper library", cases[7][1], StringComparison.Ordinal);
+        Assert.Equal(["LoadedLibrary=Vulkan", Segments, "ExitCode=0"], Outcome(5));
+        Assert.Equal(["LoadedLibrary=Cpu", Segments, "ExitCode=0"], Outcome(6));
+        Assert.StartsWith("FAIL Exception: Failed to load native whisper library", Outcome(7)[0], StringComparison.Ordinal);
 
         var finding = Pins().GetProperty("cuda").GetProperty("feasibility");
         Assert.Equal("porting/probes/vt-0-cuda-loader/run-output.txt", finding.GetProperty("probeOutput").GetString());
         Assert.Equal("directory-of-the-path", finding.GetProperty("libraryPathSemantics").GetString());
-        Assert.Equal("falls-back-to-the-next-runtime", finding.GetProperty("whenCudaCannotLoad").GetString());
+        Assert.Equal("falls-back-to-the-next-runtime-unless-cudart-is-findable-and-cublas-is-missing (probe cases 5, 6, 11, 12; case 15 aborts the process)", finding.GetProperty("whenCudaCannotLoad").GetString());
         Assert.Equal(Segments, finding.GetProperty("vadCheck").GetString());
         var loads = finding.GetProperty("loadsFromDownloadedFolder");
         Assert.Equal("reproduced (probe case 1)", loads.GetProperty("Cpu").GetString());
         Assert.Equal("reproduced (probe case 4)", loads.GetProperty("Vulkan").GetString());
-        // What no artifact backs is recorded as such, never as a verified fact: the real CUDA 12 pack was loaded once on the owner PC with
-        // NVIDIA 12.4 copies from the benchmark folder (console output not saved; the copies are no longer on this PC), so it is an
-        // observation. The fall-back above is shown with an unloadable stand-in for the pack, not with the pack itself.
+        // The real CUDA 12 pack is loaded from a downloaded folder in the saved probe output (cases 9 and 14, held by VoicePinsReview3Tests); the
+        // fall-back above is shown with an unloadable stand-in for the pack (cases 5 to 7) and with the real pack missing its NVIDIA libraries (11 to 13).
         var cuda12 = loads.GetProperty("Cuda12");
-        Assert.Equal("observed-not-reproduced", cuda12.GetProperty("status").GetString());
-        Assert.Contains("not saved", cuda12.GetProperty("note").GetString(), StringComparison.Ordinal);
+        Assert.Equal("reproduced (probe case 9)", cuda12.GetProperty("status").GetString());
         Assert.Contains("stand-in", finding.GetProperty("fallbackEvidence").GetString(), StringComparison.Ordinal);
     }
 
@@ -557,14 +572,14 @@ public sealed class VoicePinsTests
     public void The_CUDA_feasibility_finding_states_what_the_pack_lacks_and_pins_the_NVIDIA_companions()
     {
         var finding = Pins().GetProperty("cuda").GetProperty("feasibility");
-        // The pack carries no NVIDIA runtime libraries: the pack's own native imports name them (read from the PE import table of
-        // ggml-cuda-whisper.dll in the downloaded pack, 2026-10-04; the 250 MB pack was not kept, so this one is a recorded reading).
+        // The pack carries no NVIDIA runtime libraries: the pack's own imports name them (the PE import table of ggml-cuda-whisper.dll in the
+        // restored pack, saved in porting/probes/vt-0-cuda-loader/cuda12-pack-imports.txt and held to the record by VoicePinsReview3Tests).
         var needs = finding.GetProperty("packDoesNotCarry").EnumerateArray().Select(e => e.GetString()!).Order(StringComparer.Ordinal).ToArray();
         Assert.Equal(new[] { "cublas64_12.dll", "cublasLt64_12.dll", "cudart64_12.dll" }, needs);
         var imports = Pins().GetProperty("cuda").GetProperty("packs").GetProperty("Whisper.net.Runtime.Cuda12.Windows").GetProperty("imports").EnumerateArray().Select(e => e.GetString()!).ToArray();
         Assert.Contains("cudart64_12.dll", imports);
         Assert.Contains("cublas64_12.dll", imports);
-        Assert.Equal("recorded-reading-pack-not-kept", Pins().GetProperty("cuda").GetProperty("importsEvidence").GetString());
+        Assert.Equal("read-from-the-restored-pack (porting/probes/vt-0-cuda-loader/cuda12-pack-imports.txt)", Pins().GetProperty("cuda").GetProperty("importsEvidence").GetString());
         var companions = Pins().GetProperty("cuda").GetProperty("nvidiaCompanions");
         Assert.Equal("12.4.2.65", companions.GetProperty("libcublas").GetProperty("version").GetString());
         Assert.Equal("4229d2b590e4382e1b36651dde644e04c5a8664f99f53bb43dca967982a84f58", companions.GetProperty("libcublas").GetProperty("sha256").GetString());

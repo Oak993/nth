@@ -2,13 +2,16 @@
 // a CUDA runtime cannot load? A scratch console, never part of the app and never run by a test. Usage:
 //   probe <libraryPath|-> <order, comma separated RuntimeLibrary names|-> <gpu|cpu> <vad model path> <16 kHz mono 16-bit wav>
 // It prints the options it was given, the runtime the loader reports (RuntimeOptions.LoadedLibrary) after the Silero VAD model has been
-// loaded through WhisperVadFactory, and the speech segments the VAD finds in the clip, or the failure.
+// loaded through WhisperVadFactory, the speech segments the VAD finds in the clip (or the failure), and (round 3) the whisper, ggml, CUDA and
+// cuBLAS modules the process holds at the end, so a runtime that was only partly loaded and left in the process would show.
+using System.Diagnostics;
 using Whisper.net;
 using Whisper.net.LibraryLoader;
 
 var libPath = args[0] != "-" ? args[0] : null;
 var order = args[1] != "-" ? args[1].Split(',').Select(Enum.Parse<RuntimeLibrary>).ToList() : null;
 var useGpu = args[2] == "gpu";
+if (Environment.GetEnvironmentVariable("PROBE_LOG") == "1") Whisper.net.Logger.LogProvider.AddConsoleLogging(Whisper.net.Logger.WhisperLogLevel.Debug);
 if (libPath is not null) RuntimeOptions.LibraryPath = libPath;
 if (order is not null) RuntimeOptions.RuntimeLibraryOrder = order;
 Console.WriteLine($"LibraryPath={RuntimeOptions.LibraryPath ?? "(null)"} order={string.Join(",", RuntimeOptions.RuntimeLibraryOrder ?? new())} useGpu={useGpu}");
@@ -24,3 +27,7 @@ try
     Console.WriteLine($"VAD segments={segs.Count} " + string.Join(" ", segs.Select(s => $"[{s.Start.TotalSeconds:F2}-{s.End.TotalSeconds:F2}]")));
 }
 catch (Exception e) { Console.WriteLine("FAIL " + e.GetType().Name + ": " + e.Message.Split('\n')[0]); }
+var mods = Process.GetCurrentProcess().Modules.Cast<ProcessModule>()
+    .Where(m => { var n = m.ModuleName.ToLowerInvariant(); return n.Contains("whisper") || n.Contains("ggml") || n.Contains("cudart") || n.Contains("cublas") || n.Contains("nvcuda"); })
+    .Select(m => m.FileName).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+Console.WriteLine("Modules=" + (mods.Count == 0 ? "(none)" : string.Join(" | ", mods)));

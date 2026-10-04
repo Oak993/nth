@@ -1,25 +1,97 @@
 == case 1: LibraryPath is a file path inside the root, order Cpu
-LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Cpu useGpu=False
+LibraryPath=<root>\runtime.dll order=Cpu useGpu=False
 LoadedLibrary=Cpu
 VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=<exe>\Whisper.net.dll | <root>\runtimes\win-x64\ggml-base-whisper.dll | <root>\runtimes\win-x64\ggml-cpu-whisper.dll | <root>\runtimes\win-x64\ggml-whisper.dll | <root>\runtimes\win-x64\whisper.dll
+ExitCode=0
 == case 2: LibraryPath is the root folder itself, order Cpu
-LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root order=Cpu useGpu=False
+LibraryPath=<root> order=Cpu useGpu=False
 FAIL FileNotFoundException: Native Library not found in default paths.Verify you have have included the native Whisper library in your application, or install the default libraries with the Whisper.net.Runtime NuGet.
+Modules=<exe>\Whisper.net.dll
+ExitCode=0
 == case 3: LibraryPath is whisper.dll inside runtimes\win-x64, order Cpu
-LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtimes\win-x64\whisper.dll order=Cpu useGpu=False
+LibraryPath=<root>\runtimes\win-x64\whisper.dll order=Cpu useGpu=False
 FAIL FileNotFoundException: Native Library not found in default paths.Verify you have have included the native Whisper library in your application, or install the default libraries with the Whisper.net.Runtime NuGet.
+Modules=<exe>\Whisper.net.dll
+ExitCode=0
 == case 4: LibraryPath is a file path inside the root, order Vulkan, gpu on
-LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Vulkan useGpu=True
+LibraryPath=<root>\runtime.dll order=Vulkan useGpu=True
 LoadedLibrary=Vulkan
 VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=<exe>\Whisper.net.dll | <root>\runtimes\vulkan\win-x64\ggml-base-whisper.dll | <root>\runtimes\vulkan\win-x64\ggml-cpu-whisper.dll | <root>\runtimes\vulkan\win-x64\ggml-vulkan-whisper.dll | <root>\runtimes\vulkan\win-x64\ggml-whisper.dll | <root>\runtimes\vulkan\win-x64\whisper.dll
+ExitCode=0
 == case 5: order Cuda12,Vulkan,Cpu with an unloadable runtimes\cuda12\win-x64\whisper.dll
-LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Cuda12,Vulkan,Cpu useGpu=True
+LibraryPath=<root>\runtime.dll order=Cuda12,Vulkan,Cpu useGpu=True
 LoadedLibrary=Vulkan
 VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=<exe>\Whisper.net.dll | <root>\runtimes\vulkan\win-x64\ggml-base-whisper.dll | <root>\runtimes\vulkan\win-x64\ggml-cpu-whisper.dll | <root>\runtimes\vulkan\win-x64\ggml-vulkan-whisper.dll | <root>\runtimes\vulkan\win-x64\ggml-whisper.dll | <root>\runtimes\vulkan\win-x64\whisper.dll
+ExitCode=0
 == case 6: order Cuda12,Cpu with the same unloadable cuda12 runtime
-LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Cuda12,Cpu useGpu=False
+LibraryPath=<root>\runtime.dll order=Cuda12,Cpu useGpu=False
 LoadedLibrary=Cpu
 VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=<exe>\Whisper.net.dll | <root>\runtimes\win-x64\ggml-base-whisper.dll | <root>\runtimes\win-x64\ggml-cpu-whisper.dll | <root>\runtimes\win-x64\ggml-whisper.dll | <root>\runtimes\win-x64\whisper.dll
+ExitCode=0
 == case 7: order Cuda12 only with the same unloadable cuda12 runtime
-LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Cuda12 useGpu=False
+LibraryPath=<root>\runtime.dll order=Cuda12 useGpu=False
 FAIL Exception: Failed to load native whisper library. Error: Cannot load the library on this platform using NativeLibrary. PInvokeError: The operation completed successfully.
+Modules=<exe>\Whisper.net.dll
+ExitCode=0
+== case 8: REAL Cuda12 pack with the NVIDIA 12.4 libraries beside it, order Cuda12,Vulkan,Cpu, gpu on
+LibraryPath=<rootnv>\runtime.dll order=Cuda12,Vulkan,Cpu useGpu=True
+LoadedLibrary=Vulkan
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=<exe>\Whisper.net.dll | <rootnv>\runtimes\vulkan\win-x64\ggml-base-whisper.dll | <rootnv>\runtimes\vulkan\win-x64\ggml-cpu-whisper.dll | <rootnv>\runtimes\vulkan\win-x64\ggml-vulkan-whisper.dll | <rootnv>\runtimes\vulkan\win-x64\ggml-whisper.dll | <rootnv>\runtimes\vulkan\win-x64\whisper.dll
+ExitCode=0
+== case 9: REAL Cuda12 pack with the NVIDIA 12.4 libraries beside it, order Cuda12 only, gpu on
+LibraryPath=<rootnv>\runtime.dll order=Cuda12 useGpu=True
+LoadedLibrary=Cuda12
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=C:\WINDOWS\system32\DriverStore\FileRepository\nv_dispsi.inf_amd64_b8459fc8f905f657\nvcuda64.dll | C:\WINDOWS\SYSTEM32\nvcuda.dll | <exe>\Whisper.net.dll | <rootnv>\runtimes\cuda12\win-x64\cublas64_12.dll | <rootnv>\runtimes\cuda12\win-x64\cublasLt64_12.dll | <rootnv>\runtimes\cuda12\win-x64\cudart64_12.dll | <rootnv>\runtimes\cuda12\win-x64\ggml-base-whisper.dll | <rootnv>\runtimes\cuda12\win-x64\ggml-cpu-whisper.dll | <rootnv>\runtimes\cuda12\win-x64\ggml-cuda-whisper.dll | <rootnv>\runtimes\cuda12\win-x64\ggml-whisper.dll | <rootnv>\runtimes\cuda12\win-x64\whisper.dll
+ExitCode=0
+== case 10: REAL Cuda12 pack with the NVIDIA 12.4 libraries beside it, order Cuda12,Vulkan,Cpu, gpu off
+LibraryPath=<rootnv>\runtime.dll order=Cuda12,Vulkan,Cpu useGpu=False
+LoadedLibrary=Vulkan
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=<exe>\Whisper.net.dll | <rootnv>\runtimes\vulkan\win-x64\ggml-base-whisper.dll | <rootnv>\runtimes\vulkan\win-x64\ggml-cpu-whisper.dll | <rootnv>\runtimes\vulkan\win-x64\ggml-vulkan-whisper.dll | <rootnv>\runtimes\vulkan\win-x64\ggml-whisper.dll | <rootnv>\runtimes\vulkan\win-x64\whisper.dll
+ExitCode=0
+== case 11: REAL Cuda12 pack WITHOUT the NVIDIA libraries, order Cuda12,Vulkan,Cpu, gpu on
+LibraryPath=<rootnn>\runtime.dll order=Cuda12,Vulkan,Cpu useGpu=True
+LoadedLibrary=Vulkan
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=<exe>\Whisper.net.dll | <rootnn>\runtimes\vulkan\win-x64\ggml-base-whisper.dll | <rootnn>\runtimes\vulkan\win-x64\ggml-cpu-whisper.dll | <rootnn>\runtimes\vulkan\win-x64\ggml-vulkan-whisper.dll | <rootnn>\runtimes\vulkan\win-x64\ggml-whisper.dll | <rootnn>\runtimes\vulkan\win-x64\whisper.dll
+ExitCode=0
+== case 12: REAL Cuda12 pack WITHOUT the NVIDIA libraries, order Cuda12,Cpu, gpu off
+LibraryPath=<rootnn>\runtime.dll order=Cuda12,Cpu useGpu=False
+LoadedLibrary=Cpu
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=<exe>\Whisper.net.dll | <rootnn>\runtimes\win-x64\ggml-base-whisper.dll | <rootnn>\runtimes\win-x64\ggml-cpu-whisper.dll | <rootnn>\runtimes\win-x64\ggml-whisper.dll | <rootnn>\runtimes\win-x64\whisper.dll
+ExitCode=0
+== case 13: REAL Cuda12 pack WITHOUT the NVIDIA libraries, order Cuda12 only
+LibraryPath=<rootnn>\runtime.dll order=Cuda12 useGpu=True
+FAIL Exception: Failed to load native whisper library. Error: Cannot load the library on this platform using NativeLibrary. PInvokeError: The operation completed successfully.
+Modules=<exe>\Whisper.net.dll
+ExitCode=0
+== case 14: REAL Cuda12 pack WITHOUT the NVIDIA libraries beside it, the three NVIDIA libraries in a folder on PATH, order Cuda12,Vulkan,Cpu, gpu on
+LibraryPath=<rootnn>\runtime.dll order=Cuda12,Vulkan,Cpu useGpu=True
+LoadedLibrary=Cuda12
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+Modules=C:\WINDOWS\system32\DriverStore\FileRepository\nv_dispsi.inf_amd64_b8459fc8f905f657\nvcuda64.dll | C:\WINDOWS\SYSTEM32\nvcuda.dll | <exe>\Whisper.net.dll | <work>\nvpath\cublas64_12.dll | <work>\nvpath\cublasLt64_12.dll | <work>\nvpath\cudart64_12.dll | <rootnn>\runtimes\cuda12\win-x64\ggml-base-whisper.dll | <rootnn>\runtimes\cuda12\win-x64\ggml-cpu-whisper.dll | <rootnn>\runtimes\cuda12\win-x64\ggml-cuda-whisper.dll | <rootnn>\runtimes\cuda12\win-x64\ggml-whisper.dll | <rootnn>\runtimes\cuda12\win-x64\whisper.dll
+ExitCode=0
+== case 15: REAL Cuda12 pack WITHOUT the NVIDIA libraries beside it, only cudart64_12.dll on PATH (cuBLAS missing), order Cuda12,Vulkan,Cpu, gpu on
+LibraryPath=<rootnn>\runtime.dll order=Cuda12,Vulkan,Cpu useGpu=True
+D:\a\whisper.net\whisper.net\whisper.cpp\ggml\src\ggml.cpp:22: GGML_ASSERT(prev != ggml_uncaught_exception) failed
+ExitCode=127
+== case 16: case 8 again with the Whisper.net debug log (the CUDA lines)
+[Debug] Checking for CUDA availability for runtime Cuda12.
+[Debug] CUDA runtime Cuda12 is not available.
+[Debug] Cuda driver for Cuda12 is not available or no cuda device is identified.
+LoadedLibrary=Vulkan
+ExitCode=0
+== case 17: case 14 again with the Whisper.net debug log (the CUDA lines)
+[Debug] Checking for CUDA availability for runtime Cuda12.
+[Debug] CUDA runtime major version 12 matches expected 12.
+[Debug] Number of CUDA devices found for runtime Cuda12: 1
+LoadedLibrary=Cuda12
+[Info] ggml_cuda_init: found 1 CUDA devices (Total VRAM: 16375 MiB):
+ExitCode=0
