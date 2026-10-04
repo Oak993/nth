@@ -38,6 +38,9 @@ public sealed class AppDelegate
 
     internal Func<AppModel, Task> BootstrapModel { get; set; } = model => model.Bootstrap();
 
+    /// <summary>GR-2 skeleton (red).</summary>
+    internal Marrow.App.Port.FirstRun.FirstRunPreparation FirstRun { get; set; } = Marrow.App.Port.FirstRun.FirstRunPreparation.Default;
+
     /// <summary>
     /// :9-34 <c>func applicationDidFinishLaunching(_ notification: Notification)</c>, called by the shell where AppKit's
     /// finishLaunching calls it: once, on main, after the prologue (DroppyCodeApp.swift:7-19) and before the run loop.

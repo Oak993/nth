@@ -94,6 +94,15 @@ public sealed class RootView : Decorator
     /// <summary>Test-only: the detail column's own clip, before its (inert) padding (PR-WIN-063, :40).</summary>
     internal Border DetailClip => detailClip;
 
+    /// <summary>GR-2 skeleton (red).</summary>
+    internal Marrow.App.Port.FirstRun.GettingReadySheet? GettingReady => throw new NotImplementedException();
+
+    /// <summary>GR-2 skeleton (red).</summary>
+    internal Border DetailPane => detailPadded;
+
+    /// <summary>GR-2 skeleton (red).</summary>
+    internal void ShowGettingReady(Marrow.App.Port.FirstRun.GettingReadySheet sheet) => throw new NotImplementedException();
+
     // :8-92 body
     public RootView()
     {
