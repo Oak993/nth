@@ -138,4 +138,44 @@ public sealed class CommandPaletteChordTests(HeadlessSession headless)
             });
         });
     }
+
+    // The Swift row is HStack(spacing: 12) { icon; text; Spacer(minLength: 8); chord } (:111, :132-137): the chord is the trailing item and the Spacer keeps at
+    // least 8 points between the text and it, as little room as the row asks for. A palette row is a fixed 600 points wide, so the narrowest case is made by measuring
+    // the row's own background at infinity (the width its content needs, the title untruncated) and arranging it at exactly that width, and then at a wider one.
+    // The headless backend cannot shape a title that has to truncate (no Inter glyph typeface), so a row narrower than its content is not run.
+    [Theory]
+    [InlineData("New thread", 0)]
+    [InlineData("New thread in worktree", 0)]
+    [InlineData("Add project", 0)]
+    [InlineData("Add project", 120)]
+    [Trait("Req", "UI-WIN-033")] // :132-137 geometry: the trailing edge of the row, after at least 8 points of space
+    [Trait("Req", "UI-WIN-032")] // :111, :132: the text block, at least 8 points of space, then the chord
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-WIN-032 and UI-WIN-033: the chord's place (the floor of 8 points and the trailing edge); the port's 20 points is UNRESOLVED against SwiftUI's HStack spacing around a Spacer (ED-NEW-tail)
+    public void The_chord_is_the_trailing_item_with_at_least_8_points_between_it_and_the_text_at_the_narrowest_the_row_asks_for(string title, double extraRoom)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            using var store = ShortcutStore.Shared.Override(FreshStore());
+            harness.Main.OnMain(() =>
+            {
+                var (_, _, palette) = Build(model);
+                var row = RowParts(RowTitled(palette, title));
+                Assert.True(row.Chord.IsVisible);
+
+                // The narrowest the row asks for is its natural content (extra room of 0 points).
+                row.Background.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                var natural = row.Background.DesiredSize;
+                var width = natural.Width + extraRoom;
+                row.Background.Measure(new Size(width, double.PositiveInfinity));
+                row.Background.Arrange(new Rect(0, 0, width, row.Background.DesiredSize.Height));
+
+                var chordLeft = row.Chord.TranslatePoint(default, row.Grid)!.Value.X;
+                var chordRight = chordLeft + row.Chord.Bounds.Width;
+                Assert.True(chordLeft - row.TextStack.Bounds.Right >= 8, $"{chordLeft - row.TextStack.Bounds.Right} points between the text block and the chord at {width} wide");
+                Assert.Equal(row.Grid.Bounds.Width, chordRight, 1); // the chord is the trailing item: its right edge is the row's inner trailing edge
+            });
+        });
+    }
 }

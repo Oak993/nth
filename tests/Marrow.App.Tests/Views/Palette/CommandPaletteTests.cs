@@ -936,7 +936,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-168")] // App/Views/Palette/CommandPalette.swift:110-141
-    [Trait("Req", "UI-WIN-032")] // App/Views/Palette/CommandPalette.swift:110-147
+    // UI-WIN-032 is proven in parts by CommandPaletteRowTests and CommandPaletteChordTests; this test proves only the tint, so it no longer claims the record.
     public void A_selected_row_shows_the_accent_tint_and_an_unselected_row_the_secondary_symbol()
     {
         headless.OnUiThread(() =>
@@ -1041,7 +1041,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-179")] // App/Views/Palette/CommandPalette.swift:133-137
-    [Trait("Req", "UI-WIN-033")] // App/Views/Palette/CommandPalette.swift:133-137
+    // UI-WIN-033 is proven in parts by CommandPaletteChordTests; this test proves only the thread row, so it no longer claims the record.
     public void A_thread_row_never_carries_a_chord()
     {
         headless.OnUiThread(() =>
