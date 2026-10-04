@@ -4,8 +4,9 @@ namespace Marrow.Core.Tests.Port.Voice;
 
 // VT-3 (voice-SPEC V-7.5, V-7.6, V-8.7). Numbers are the clauses': adds at least 60 ms apart; the final schedule starts 0.18 s after the
 // result, adds 0.07 s apart and revisions 0.12 s apart; Processing lasts max(0.75 s, scheduleEnd + 0.3 s) from the click; tentative words ink
-// 25 ms apart. UNRESOLVED (ED-NEW-f-vt-3 (4)): the design's planFinal (voice-composer.js:304-324) is not in the repository; the spacing of a
-// mixed list is the later operation's own kind, the schedule end is the last operation's time, and Remove is spaced as a revision.
+// 25 ms apart. The design's planFinal (voice-composer.js:305-323, read on unit/integ-vt3): `let at = now + 0.18; ... at += e.kind === 'add' ?
+// 0.07 : 0.12; return at - now;` so the gap after an operation is that operation's own kind's spacing, and the schedule end is the slot after
+// the last operation (0.18 s with nothing scheduled). Remove (not in the design) is spaced as a revision.
 public sealed class TranscriptOpsTests
 {
     private static TranscriptWord Solid(string text) => new(text, false);
@@ -95,7 +96,7 @@ public sealed class TranscriptOpsTests
         var plan = TranscriptOps.PlanFinal([Solid("a"), Tent("b")], [Solid("a"), Tent("b"), Tent("c"), Tent("d"), Tent("e")]);
         Assert.Equal([S(0.18), S(0.25), S(0.32)], plan.Ops.Select(p => p.At).ToList());
         Assert.Equal([WordOp.Add(2, "c", true), WordOp.Add(3, "d", true), WordOp.Add(4, "e", true)], plan.Ops.Select(p => p.Op).ToList());
-        Assert.Equal(S(0.32), plan.ScheduleEnd);
+        Assert.Equal(S(0.39), plan.ScheduleEnd); // the design's `at` after the last add: 0.32 + 0.07
     }
 
     [Fact]
@@ -107,18 +108,32 @@ public sealed class TranscriptOpsTests
         var plan = TranscriptOps.PlanFinal([Solid("a"), Tent("tool"), Tent("team"), Tent("too")], [Solid("a"), Tent("tooltip"), Tent("theme"), Tent("too.")]);
         Assert.Equal([S(0.18), S(0.30), S(0.42)], plan.Ops.Select(p => p.At).ToList());
         Assert.All(plan.Ops, p => Assert.Equal(WordOpKind.Revise, p.Op.Kind));
-        Assert.Equal(S(0.42), plan.ScheduleEnd);
+        Assert.Equal(S(0.54), plan.ScheduleEnd); // 0.42 + 0.12
     }
 
     [Fact]
     [Trait("Feature", "VT-3")]
     [Trait("Spec", "V-T25")]
-    [Trait("Decision", "ED-267")] // V-7.6 (UNRESOLVED ED-NEW-f-vt-3 (4)): a revision then an add, spaced by the later operation's own kind
-    public void A_mixed_final_schedule_spaces_each_operation_by_its_own_kind()
+    [Trait("Decision", "ED-267")] // V-7.6, the design's planFinal: the gap after an operation is that operation's kind's (a revision: 0.12 s)
+    public void A_mixed_final_schedule_spaces_after_each_operation_by_that_operations_kind()
     {
         var plan = TranscriptOps.PlanFinal([Solid("a"), Tent("tool")], [Solid("a"), Tent("tooltip"), Tent("works")]);
         Assert.Equal([WordOp.Revise(1, "tooltip"), WordOp.Add(2, "works", true)], plan.Ops.Select(p => p.Op).ToList());
-        Assert.Equal([S(0.18), S(0.25)], plan.Ops.Select(p => p.At).ToList());
+        Assert.Equal([S(0.18), S(0.30)], plan.Ops.Select(p => p.At).ToList());
+        Assert.Equal(S(0.37), plan.ScheduleEnd);
+    }
+
+    [Fact]
+    [Trait("Feature", "VT-3")]
+    [Trait("Spec", "V-T25")]
+    [Trait("Decision", "ED-267")] // fixture: the design's flow (SYN rng(91), STREAM rng(7)) clicked 7.6 s after the start, all live words written
+    public void The_designs_flow_clicked_after_every_live_word_revises_the_last_word_to_its_full_stop()
+    {
+        var shown = "Add a shortcut for the theme switch, and show it in the tooltip".Split(' ').Select(Solid).Append(Tent("too")).ToArray();
+        var final = "Add a shortcut for the theme switch, and show it in the tooltip too.".Split(' ').Select(Tent).ToArray();
+        var plan = TranscriptOps.PlanFinal(shown, final);
+        Assert.Equal([new ScheduledOp(S(0.18), WordOp.Revise(13, "too."))], plan.Ops);
+        Assert.Equal(S(0.30), plan.ScheduleEnd); // planFinal returns 0.30; Processing max(0.75, 0.30 + 0.3) = 0.75
     }
 
     [Fact]
@@ -129,7 +144,7 @@ public sealed class TranscriptOpsTests
     {
         var plan = TranscriptOps.PlanFinal([Solid("a"), Tent("b"), Tent("c")], [Solid("a"), Tent("b"), Tent("c")]);
         Assert.Empty(plan.Ops);
-        Assert.Equal(S(0), plan.ScheduleEnd);
+        Assert.Equal(S(0.18), plan.ScheduleEnd); // planFinal with an empty plan returns 0.18
     }
 
     [Theory]
