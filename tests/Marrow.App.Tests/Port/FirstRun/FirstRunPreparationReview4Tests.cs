@@ -30,9 +30,8 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
 {
     private const string Machine = "10de:2704:00000000:a1 Test GPU 32.0.15.6094";
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.invalidation")]
+    [Fact] // GR-1.invalidation
+    [Trait("Decision", "ED-252")]
     public void REVIEW4_a_launch_that_draws_on_the_GPU_after_a_first_run_on_the_CPU_renderer_runs_the_first_run_on_the_GPU() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -44,7 +43,7 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
         Avalonia.Controls.Window? second = null;
         try
         {
-            var run = new FirstRunPreparation().RunAsync(first, new Screen());
+            var run = new FirstRunPreparation().RunAsync(first, new FirstRunQuietScreen());
             Pump(TimeSpan.FromSeconds(60), () => run.IsCompleted);
             Assert.True(run.IsCompletedSuccessfully, run.Exception?.InnerException?.ToString());
             Assert.Equal(FirstRunOutcomeKind.Prepared, run.Result.Kind);
@@ -58,7 +57,7 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
             second = new Avalonia.Controls.Window { Width = 200, Height = 100 };
             second.Show();
             var done = GpuWarmup.StepsDone;
-            var next = new FirstRunPreparation().RunAsync(second, new Screen());
+            var next = new FirstRunPreparation().RunAsync(second, new FirstRunQuietScreen());
             Pump(TimeSpan.FromSeconds(60), () => next.IsCompleted);
             Assert.True(next.IsCompleted, "the second launch's first run did not end");
             Assert.True(next.Result.Kind != FirstRunOutcomeKind.Skipped,
@@ -68,9 +67,8 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
         finally { GpuWarmup.PretendGpu = false; GpuProgramCache.MachineSource = source; first.Close(); second?.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
+    [Trait("Decision", "ED-252")]
     public void REVIEW4_with_a_registered_work_step_the_CPU_marker_does_not_keep_a_machine_that_draws_on_the_GPU_prepared() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -89,7 +87,7 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
         Avalonia.Controls.Window? second = null;
         try
         {
-            var run = new FirstRunPreparation().RunAsync(first, new Screen());
+            var run = new FirstRunPreparation().RunAsync(first, new FirstRunQuietScreen());
             Pump(TimeSpan.FromSeconds(60), () => run.IsCompleted);
             Assert.Equal(FirstRunOutcomeKind.Prepared, run.Result.Kind);
             Assert.Equal(1, ran);
@@ -129,9 +127,8 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
         }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.run")]
+    [Fact] // GR-1.run
+    [Trait("Decision", "ED-252")]
     public void REVIEW4_a_work_step_that_never_completes_does_not_hold_the_first_run_forever() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -147,7 +144,7 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
         window.Show();
         try
         {
-            var run = new FirstRunPreparation().RunAsync(window, new Screen());
+            var run = new FirstRunPreparation().RunAsync(window, new FirstRunQuietScreen());
             Pump(TimeSpan.FromSeconds(60), () => run.IsCompleted);
             Assert.True(entered, "the work step was never started");
             Assert.True(run.IsCompleted, "a work step that never completes holds the first run (and the Getting ready sheet over the app) forever");
@@ -157,9 +154,8 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
         finally { GpuWarmup.StepTimeout = timeout; GpuProgramCache.MachineSource = source; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.run")]
+    [Fact] // GR-1.run
+    [Trait("Decision", "ED-252")]
     public void REVIEW4_a_cancelled_first_run_ends_though_its_work_step_does_not_answer_the_cancellation() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -174,7 +170,7 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
         using var cancellation = new CancellationTokenSource();
         try
         {
-            var run = new FirstRunPreparation().RunAsync(window, new Screen(), cancellation.Token);
+            var run = new FirstRunPreparation().RunAsync(window, new FirstRunQuietScreen(), cancellation.Token);
             Pump(TimeSpan.FromSeconds(30), () => entered);
             Assert.True(entered, "the work step was never started");
             cancellation.Cancel(); // the app quits while Getting ready shows
@@ -185,9 +181,8 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
         finally { GpuProgramCache.MachineSource = source; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.invalidation")]
+    [Fact] // GR-1.invalidation
+    [Trait("Decision", "ED-252")]
     public void REVIEW4_a_GPU_marker_for_one_adapter_does_not_take_away_the_CPU_marker_of_another()
     {
         // a laptop drawn on its GPU at the desk and on the CPU renderer in another session whose adapter DXGI names otherwise (a
@@ -220,13 +215,6 @@ public sealed class FirstRunPreparationReview4Tests(HeadlessSession headless)
             GpuProgramCache.FolderOverride = null;
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
-    }
-
-    private sealed class Screen : IFirstRunScreen
-    {
-        public void Begin(IReadOnlyList<FirstRunStepInfo> steps) { }
-        public void Report(FirstRunProgress progress) { }
-        public Task EndAsync(FirstRunOutcome outcome) => Task.CompletedTask;
     }
 
     private static void Pump(TimeSpan span, Func<bool> done)

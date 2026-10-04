@@ -16,9 +16,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
 {
     private const string Machine = "10de:2704:00000000:a1 Test GPU 32.0.15.6094";
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
     [Trait("Decision", "ED-252")] // the renderer is read from Avalonia's platform: the headless one has no graphics platform
     public void The_renderer_is_read_from_the_pinned_Avalonia_and_the_headless_platform_draws_on_the_CPU() => headless.OnUiThread(() =>
     {
@@ -31,9 +29,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         finally { GpuWarmup.PretendGpu = false; }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.run")]
+    [Fact] // GR-1.run
     [Trait("Decision", "ED-252")]
     public void A_work_step_that_answers_after_its_bound_is_not_done_and_leaves_the_machine_unprepared() => headless.OnUiThread(() =>
     {
@@ -49,7 +45,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         window.Show();
         try
         {
-            var run = new FirstRunPreparation().RunAsync(window, new Screen());
+            var run = new FirstRunPreparation().RunAsync(window, new FirstRunQuietScreen());
             Pump(TimeSpan.FromSeconds(30), () => run.IsCompleted);
             Assert.True(run.IsCompleted, "the first run did not end");
             Assert.Equal(FirstRunOutcomeKind.Failed, run.Result.Kind);
@@ -63,9 +59,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         finally { GpuWarmup.StepTimeout = timeout; GpuProgramCache.MachineSource = source; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.run")]
+    [Fact] // GR-1.run
     [Trait("Decision", "ED-252")]
     public void A_work_step_that_throws_after_the_run_gave_up_on_it_is_not_left_unobserved() => headless.OnUiThread(() =>
     {
@@ -89,7 +83,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
                 throw new InvalidOperationException("the audio driver gave up");
             })))
             {
-                run = new FirstRunPreparation().RunAsync(window, new Screen());
+                run = new FirstRunPreparation().RunAsync(window, new FirstRunQuietScreen());
                 Pump(TimeSpan.FromSeconds(30), () => run.IsCompleted);
                 Assert.Equal(FirstRunOutcomeKind.Failed, run.Result.Kind);
                 Pump(TimeSpan.FromMilliseconds(800), () => false); // the step throws after the run is over
@@ -100,9 +94,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         finally { TaskScheduler.UnobservedTaskException -= count; GpuWarmup.StepTimeout = timeout; GpuProgramCache.MachineSource = source; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
     [Trait("Decision", "ED-252")] // mutant M5: the CPU marker must wait for the registered work steps
     public void An_idle_pass_on_the_CPU_renderer_with_a_work_step_not_run_leaves_no_CPU_marker() => headless.OnUiThread(() =>
     {
@@ -111,9 +103,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         Assert.False(marker, "an idle pass never runs the Voice hardware work step, yet it left a CPU marker: the next launch would skip the hardware check");
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
     [Trait("Decision", "ED-252")] // the twin: with no work step to wait for the same pass does leave the marker, and soon
     public void An_idle_pass_on_the_CPU_renderer_with_no_work_step_leaves_the_CPU_marker() => headless.OnUiThread(() =>
     {
@@ -151,9 +141,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         finally { GpuWarmup.IdleCap = cap; GpuProgramCache.MachineSource = source; work?.Dispose(); window.Close(); }
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
     [Trait("Decision", "ED-252")]
     public void The_CPU_marker_is_kept_for_each_adapter_and_a_GPU_marker_takes_away_only_its_own() => headless.OnUiThread(() =>
     {
@@ -198,9 +186,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
     [Trait("Decision", "ED-252")] // mutant M8: the marker is written before RunAsync completes, not after a delay
     public void The_CPU_marker_is_written_by_the_time_the_first_run_completes() => headless.OnUiThread(() =>
     {
@@ -212,7 +198,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         window.Show();
         try
         {
-            var run = new FirstRunPreparation().RunAsync(window, new Screen());
+            var run = new FirstRunPreparation().RunAsync(window, new FirstRunQuietScreen());
             Pump(TimeSpan.FromSeconds(60), () => run.IsCompleted);
             Assert.Equal(FirstRunOutcomeKind.Prepared, run.Result.Kind);
             // no pump from here: the run has ended, so the marker is there
@@ -222,9 +208,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         finally { GpuProgramCache.MachineSource = source; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
     [Trait("Decision", "ED-252")] // mutant M8, on the GPU
     public void The_GPU_marker_is_written_by_the_time_the_first_run_completes() => headless.OnUiThread(() =>
     {
@@ -240,7 +224,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         window.Show();
         try
         {
-            var run = new FirstRunPreparation().RunAsync(window, new Screen());
+            var run = new FirstRunPreparation().RunAsync(window, new FirstRunQuietScreen());
             Pump(TimeSpan.FromSeconds(60), () => run.IsCompleted);
             Assert.Equal(FirstRunOutcomeKind.Prepared, run.Result.Kind);
             Assert.True(File.Exists(Path.Combine(cache.Root, "warm.txt")), "the first run ended before its GPU marker was written");
@@ -248,13 +232,6 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
         }
         finally { GpuWarmup.PretendGpu = false; GpuProgramCache.MachineSource = source; window.Close(); }
     });
-
-    private sealed class Screen : IFirstRunScreen
-    {
-        public void Begin(IReadOnlyList<FirstRunStepInfo> steps) { }
-        public void Report(FirstRunProgress progress) { }
-        public Task EndAsync(FirstRunOutcome outcome) => Task.CompletedTask;
-    }
 
     private static void Pump(TimeSpan span, Func<bool> done)
     {

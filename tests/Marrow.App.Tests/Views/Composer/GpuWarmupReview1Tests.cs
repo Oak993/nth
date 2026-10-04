@@ -40,15 +40,6 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
     private static void IsTheStandIn(GRContext expected, GRContext? actual, string what) =>
         Assert.True(ReferenceEquals(expected, actual), what + (actual is null ? ": it was null" : ": it was another context"));
 
-    private sealed class Probe(Action<ImmediateDrawingContext> read) : ICustomDrawOperation
-    {
-        public Rect Bounds => new(0, 0, 1, 1);
-        public bool HitTest(Point p) => false;
-        public bool Equals(ICustomDrawOperation? other) => false;
-        public void Dispose() { }
-        public void Render(ImmediateDrawingContext context) => read(context); // an exception here is logged, not thrown: the test reads what it saw
-    }
-
     private static bool Painted(SKSurface surface)
     {
         using var image = surface.Snapshot();
@@ -59,15 +50,13 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
         return false;
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Fact] // GR-1.programs
+    [Trait("Decision", "ED-252")]
     public void The_pinned_Avalonia_has_the_types_a_target_is_made_of() =>
         Assert.True(GpuWarmup.WarmTarget.Available, "Avalonia.Skia's DrawingContextImpl.CreateInfo or Avalonia.Base's PlatformDrawingContext changed: the liquid and strike warm-up cannot make their target");
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Fact] // GR-1.programs
+    [Trait("Decision", "ED-252")]
     public void The_target_a_program_draws_into_carries_the_gpu_context_its_surface_and_the_scaling() => headless.OnUiThread(() =>
     {
         var gpu = StandIn();
@@ -83,7 +72,7 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
             var scale = 0f;
             using (var target = GpuWarmup.WarmTarget.Open(gpu, info, 2))
             {
-                target.Context.Custom(new Probe(context =>
+                target.Context.Custom(new ReadingDrawOperation(context =>
                 {
                     using var lease = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()!.Lease();
                     (leasedGpu, leasedSurface, scale) = (lease.GrContext, lease.SkSurface, lease.SkCanvas.TotalMatrix.ScaleX);
@@ -100,9 +89,8 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
         finally { GpuWarmup.WarmTarget.GpuSurface = factory; }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Fact] // GR-1.programs
+    [Trait("Decision", "ED-252")]
     public void A_gpu_context_that_makes_no_surface_fails_the_target_it_never_falls_back_to_the_cpu() => headless.OnUiThread(() =>
     {
         var factory = GpuWarmup.WarmTarget.GpuSurface;
@@ -118,8 +106,7 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
     [Theory]
     [InlineData(1.0)]
     [InlineData(2.0)]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Trait("Decision", "ED-252")]
     public void The_liquid_draws_through_its_own_entry_point_into_the_target_at_the_scaling(double scale) => headless.OnUiThread(() =>
     {
         var frame = GpuWarmup.LiquidFrame(strike: true, scale);
@@ -137,8 +124,7 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
     [Theory]
     [InlineData("liquid")]
     [InlineData("strike")]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Trait("Decision", "ED-252")]
     public void The_liquid_and_strike_programs_draw_into_a_surface_of_the_gpu_context_not_a_bitmap(string name) => headless.OnUiThread(() =>
     {
         var gpu = StandIn();
@@ -161,9 +147,8 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
         finally { GpuWarmup.WarmTarget.GpuSurface = factory; GpuWarmup.WarmTarget.Inspect = inspect; }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void A_first_run_joining_an_idle_warm_up_still_runs_the_work_step_and_reports_every_step() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

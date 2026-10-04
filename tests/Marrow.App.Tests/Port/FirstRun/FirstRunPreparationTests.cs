@@ -16,9 +16,8 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
 {
     // ----- the steps and their names (W1) -----
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.order")]
+    [Fact] // GR-1.order
+    [Trait("Decision", "ED-252")]
     public void W1s_steps_are_named_and_ordered_as_the_picked_words_draw_them() // OD-0098: "Look I, Words W1" (gr_lib.py:28-29)
     {
         Assert.Equal(["Graphics card", "Effort slider knob", "Composer light", "Slider liquid", "Fast mode lightning", "Voice hardware"],
@@ -28,9 +27,8 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         Assert.Equal(FirstRunSteps.W1.Count, FirstRunSteps.W1.Select(s => s.Order).Distinct().Count());
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.order")]
+    [Fact] // GR-1.order
+    [Trait("Decision", "ED-252")]
     public void The_plan_of_this_build_lists_the_steps_that_have_work_in_W1_order_and_leaves_out_voice_hardware_until_it_is_registered()
     {
         var plan = new FirstRunPreparation().Plan();
@@ -38,9 +36,8 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         Assert.Equal([1, 4, 3, 1, 1], plan.Select(s => s.Parts)); // the adapter read; the knob's four programs; the light's three; the liquid; the strike
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.order")]
+    [Fact] // GR-1.order
+    [Trait("Decision", "ED-252")]
     public void A_step_registered_later_joins_the_plan_in_its_place_without_any_change_to_GpuWarmup()
     {
         var between = new FirstRunStep("between", "A step between", 25);
@@ -55,9 +52,8 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         Assert.Equal(5, new FirstRunPreparation().Plan().Count);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.order")]
+    [Fact] // GR-1.order
+    [Trait("Decision", "ED-252")]
     public void With_nothing_registered_the_plan_is_the_graphics_card_alone_and_a_program_naming_gpu_joins_it()
     {
         var log = new List<string>();
@@ -67,9 +63,8 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         Assert.Equal([(FirstRunSteps.Graphics, 2), (FirstRunSteps.Knob, 1)], plan.Select(s => (s.Step, s.Parts))); // the graphics card is W1's
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public async Task A_program_under_the_graphics_step_is_a_second_part_of_it()
     {
         var log = new List<string>();
@@ -80,13 +75,12 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
             progress.Report(new GpuWarmupStep(1, 2, "k1", 1, false, "knob"));
             return Task.CompletedTask;
         });
-        await run.RunAsync(null!, new RecordingScreen(log));
+        await run.RunAsync(null!, new FirstRunRecordingScreen(log));
         Assert.Equal(["begin:gpu,knob", "gpu:Running:0/2", "gpu:Running:1/2", "gpu:Done:2/2", "knob:Running:0/1", "knob:Done:1/1", "end:Prepared"], log);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public void A_steps_fraction_is_its_parts_done_over_its_parts()
     {
         var step = FirstRunSteps.Knob;
@@ -99,13 +93,12 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
 
     // ----- real progress only -----
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public async Task Each_event_follows_the_work_it_reports_and_the_steps_run_in_order()
     {
         var log = new List<string>();
-        var screen = new RecordingScreen(log);
+        var screen = new FirstRunRecordingScreen(log);
         var registry = Programs(("k1", FirstRunSteps.Knob), ("k2", FirstRunSteps.Knob), ("l1", FirstRunSteps.Lights));
         var run = Scripted(registry, log, graphics: _ => { log.Add("graphics"); return Task.CompletedTask; },
             warm: (_, progress, _) =>
@@ -129,13 +122,12 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         ], log);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public async Task A_clock_never_advances_the_progress_only_completed_work_does()
     {
         var log = new List<string>();
-        var screen = new RecordingScreen(log);
+        var screen = new FirstRunRecordingScreen(log);
         var clock = new ManualTimeProvider();
         var registry = Programs(("k1", FirstRunSteps.Knob), ("l1", FirstRunSteps.Lights));
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -160,23 +152,20 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         Assert.All(screen.Reports.Take(before.Length - 1), r => Assert.Equal(TimeSpan.Zero, r.Elapsed));
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
     [Trait("Decision", "ED-252")] // the CPU renderer has nothing to compile ahead: the run ends, and the steps it had no work for are done
     public async Task Steps_the_warm_up_had_no_work_for_are_done_when_it_completes()
     {
         var log = new List<string>();
         var registry = Programs(("k1", FirstRunSteps.Knob), ("l1", FirstRunSteps.Lights));
         var run = Scripted(registry, log, warm: (_, _, _) => Task.CompletedTask); // reports nothing: no GPU to compile on
-        var outcome = await run.RunAsync(null!, new RecordingScreen(log));
+        var outcome = await run.RunAsync(null!, new FirstRunRecordingScreen(log));
         Assert.Equal(FirstRunOutcomeKind.Prepared, outcome.Kind);
         Assert.Equal(["begin:gpu,knob,lights", "gpu:Running:0/1", "gpu:Done:1/1", "knob:Running:0/1", "knob:Done:1/1", "lights:Running:0/1", "lights:Done:1/1", "end:Prepared"], log);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public async Task A_report_of_a_program_the_plan_does_not_name_is_ignored()
     {
         var log = new List<string>();
@@ -187,15 +176,14 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
             progress.Report(new GpuWarmupStep(1, 2, "k1", 1, false, "knob"));
             return Task.CompletedTask;
         });
-        await run.RunAsync(null!, new RecordingScreen(log));
+        await run.RunAsync(null!, new FirstRunRecordingScreen(log));
         Assert.Equal(["begin:gpu,knob", "gpu:Running:0/1", "gpu:Done:1/1", "knob:Running:0/1", "knob:Done:1/1", "end:Prepared"], log);
     }
 
     // ----- skipped, or not shown -----
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
+    [Trait("Decision", "ED-252")]
     public async Task A_prepared_machine_skips_the_run_and_the_screen_is_never_told()
     {
         var log = new List<string>();
@@ -203,14 +191,13 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         var run = Scripted(registry, log, prepared: true,
             graphics: _ => throw new InvalidOperationException("the graphics were read"),
             warm: (_, _, _) => throw new InvalidOperationException("the warm-up ran"));
-        var outcome = await run.RunAsync(null!, new RecordingScreen(log));
+        var outcome = await run.RunAsync(null!, new FirstRunRecordingScreen(log));
         Assert.Equal(new FirstRunOutcome(FirstRunOutcomeKind.Skipped), outcome);
         Assert.Empty(log);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
+    [Trait("Decision", "ED-252")]
     public async Task With_no_screen_nothing_runs_and_startup_is_unchanged()
     {
         var log = new List<string>();
@@ -223,9 +210,8 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         Assert.Equal(FirstRunOutcomeKind.NotShown, (await FirstRunStartup.RunAsync(null!)).Kind);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
+    [Trait("Decision", "ED-252")]
     public async Task The_startup_entry_runs_one_preparation_at_a_time_for_whoever_asks()
     {
         var log = new List<string>();
@@ -233,7 +219,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         var registry = Programs(("k1", FirstRunSteps.Knob));
         var calls = 0;
         var run = Scripted(registry, log, warm: async (_, _, _) => { calls++; await gate.Task; });
-        var screen = new RecordingScreen(log);
+        var screen = new FirstRunRecordingScreen(log);
         var first = FirstRunStartup.RunAsync(null!, run, screen);
         var second = FirstRunStartup.RunAsync(null!, run, screen);
         Assert.Same(first, second);
@@ -248,9 +234,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
 
     // ----- a run that does not finish -----
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
     [Trait("Decision", "ED-252")] // the warm-up fails (never completes as if prepared) when a step is not drawn: the run ends failed, the screen is told
     public async Task A_failed_warm_up_ends_the_run_failed_and_tells_the_screen_without_ticking_what_was_not_done()
     {
@@ -261,15 +245,14 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
             progress.Report(new GpuWarmupStep(0, 2, "k1", 1, false, "knob"));
             throw new TimeoutException("GPU warm-up: the l1 step was not drawn within 10 s");
         });
-        var outcome = await run.RunAsync(null!, new RecordingScreen(log));
+        var outcome = await run.RunAsync(null!, new FirstRunRecordingScreen(log));
         Assert.Equal(new FirstRunOutcome(FirstRunOutcomeKind.Failed, "GPU warm-up: the l1 step was not drawn within 10 s"), outcome);
         Assert.Equal(["begin:gpu,knob,lights", "gpu:Running:0/1", "gpu:Done:1/1", "knob:Running:0/1", "knob:Done:1/1", "lights:Running:0/1",
             "end:Failed"], log);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public async Task A_cancelled_run_ends_cancelled_and_tells_the_screen()
     {
         var log = new List<string>();
@@ -280,16 +263,14 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
             token.ThrowIfCancellationRequested();
             return Task.CompletedTask;
         });
-        var outcome = await run.RunAsync(null!, new RecordingScreen(log), cancel.Token);
+        var outcome = await run.RunAsync(null!, new FirstRunRecordingScreen(log), cancel.Token);
         Assert.Equal(FirstRunOutcomeKind.Cancelled, outcome.Kind);
         Assert.Equal("end:Cancelled", log[^1]);
     }
 
     // ----- the prepared state: build, adapter and driver (ED-252's marker) -----
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.invalidation")]
+    [Fact] // GR-1.invalidation
     [Trait("Decision", "ED-252")]
     public void The_prepared_state_is_invalidated_by_a_new_build_adapter_or_driver_and_by_a_missing_program()
     {
@@ -336,9 +317,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         }
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.invalidation")]
+    [Fact] // GR-1.invalidation
     [Trait("Decision", "ED-252")]
     public void The_marker_names_the_adapter_and_driver_itself_not_only_through_the_folders_key()
     {
@@ -368,9 +347,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         }
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.invalidation")]
+    [Fact] // GR-1.invalidation
     [Trait("Decision", "ED-252")]
     public void The_CPU_renderers_prepared_state_is_kept_for_this_build_adapter_and_driver_only()
     {
@@ -428,9 +405,8 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
 
     // ----- the real preparation, on the headless renderer pretending a GPU -----
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public void The_real_preparation_draws_every_program_and_runs_a_registered_step_once_in_order() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -444,7 +420,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         try
         {
             var done = GpuWarmup.StepsDone;
-            var task = new FirstRunPreparation().RunAsync(window, new RecordingScreen(log));
+            var task = new FirstRunPreparation().RunAsync(window, new FirstRunRecordingScreen(log));
             Pump(TimeSpan.FromSeconds(120), () => task.IsCompleted);
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.ToString());
             Assert.Equal(FirstRunOutcomeKind.Prepared, task.Result.Kind);
@@ -473,25 +449,6 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         Func<CancellationToken, Task>? graphics = null, Func<TopLevel, IProgress<GpuWarmupStep>, CancellationToken, Task>? warm = null) =>
         new(new FirstRunPreparation.Seams(() => prepared, () => registry, graphics ?? (_ => Task.CompletedTask),
             warm ?? ((_, _, _) => Task.CompletedTask)), clock ?? TimeProvider.System);
-
-    private sealed class RecordingScreen(List<string> log) : IFirstRunScreen
-    {
-        public List<FirstRunProgress> Reports { get; } = [];
-
-        public void Begin(IReadOnlyList<FirstRunStepInfo> steps) => log.Add("begin:" + string.Join(",", steps.Select(s => s.Step.Id)));
-
-        public void Report(FirstRunProgress progress)
-        {
-            Reports.Add(progress);
-            log.Add($"{progress.Step.Id}:{progress.State}:{progress.PartsDone}/{progress.Parts}");
-        }
-
-        public Task EndAsync(FirstRunOutcome outcome)
-        {
-            log.Add("end:" + outcome.Kind);
-            return Task.CompletedTask;
-        }
-    }
 
     private static void Pump(TimeSpan span, Func<bool> done)
     {

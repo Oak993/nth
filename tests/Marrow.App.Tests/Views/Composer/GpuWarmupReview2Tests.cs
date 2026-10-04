@@ -17,29 +17,20 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class GpuWarmupReview2Tests(HeadlessSession headless)
 {
-    private sealed class Throwing : ICustomDrawOperation
-    {
-        public Rect Bounds => new(0, 0, 1, 1);
-        public bool HitTest(Point p) => false;
-        public bool Equals(ICustomDrawOperation? other) => false;
-        public void Dispose() { }
-        public void Render(ImmediateDrawingContext context) => throw new InvalidOperationException("the owner's draw failed on the render thread");
-    }
 
     // The slider liquid and the strike draw through WarmTarget.Context with LiquidTrack.Draw, which records a custom operation.
     // WarmTarget.Context is Avalonia.Base's PlatformDrawingContext, whose Custom catches a throw from Render and only logs it
     // (Avalonia 12.1.2, decompiled). So a liquid or strike draw that fails returns normally, the step is reported done and the
     // marker can be written: against GpuProgram.Draw's contract ("A throw faults the warm-up (it never completes as if
     // prepared)") and ED-NEW-f-gr-1 (7) and (11).
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Fact] // GR-1.programs
+    [Trait("Decision", "ED-252")]
     public void REVIEW2_a_draw_that_fails_inside_a_warm_targets_operation_faults_its_program() => headless.OnUiThread(() =>
     {
         var program = GpuProgram.Draw("review2-throws-in-operation", FirstRunSteps.Liquid, context =>
         {
             using var target = GpuWarmup.WarmTarget.Open(context.Gpu, new SKImageInfo(16, 16, SKColorType.Rgba8888, SKAlphaType.Premul), 1);
-            target.Context.Custom(new Throwing()); // what LiquidTrack.Draw does with its Operation
+            target.Context.Custom(new ThrowingDrawOperation("the owner's draw failed on the render thread")); // what LiquidTrack.Draw does with its Operation
         });
         Assert.ThrowsAny<Exception>(() => program.Drawing(new GpuWarmContext(null, 1)));
     });
@@ -48,9 +39,8 @@ public sealed class GpuWarmupReview2Tests(HeadlessSession headless)
     // model chip's WhenIdle) never runs a work step, yet it writes the marker when its pass of the draws completes, and IsPrepared
     // reads only the marker. A first run that failed (or was cancelled) before its Voice hardware step, followed by any composer
     // in the session, therefore makes the next launch Skipped: the registered Voice hardware step never runs again.
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.skip")]
+    [Fact] // GR-1.skip
+    [Trait("Decision", "ED-252")]
     public void REVIEW2_the_idle_fallback_does_not_make_the_machine_prepared_while_a_registered_work_step_never_ran() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Marrow.App.Port.FirstRun;
+using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
 
 namespace Marrow.App.Tests.Port.FirstRun;
@@ -9,9 +10,7 @@ namespace Marrow.App.Tests.Port.FirstRun;
 // the run ends on, and never for work that was not run.
 public sealed class FirstRunPreparationReview1FixTests
 {
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
     [Trait("Decision", "ED-252")] // a new GPU context starts the warm-up's pass again: the programs are made again on it
     public async Task A_pass_started_again_takes_back_the_ticks_of_the_programs_it_makes_again()
     {
@@ -28,7 +27,7 @@ public sealed class FirstRunPreparationReview1FixTests
             Drawn(0, "k1", "knob"); Drawn(1, "k2", "knob"); Drawn(2, "l1", "lights"); Drawn(3, "l2", "lights");
             return Task.CompletedTask;
         });
-        var outcome = await run.RunAsync(null!, new Screen(log));
+        var outcome = await run.RunAsync(null!, new FirstRunLogScreen(log));
         Assert.Equal(FirstRunOutcomeKind.Prepared, outcome.Kind);
         Assert.Equal(
         [
@@ -44,9 +43,8 @@ public sealed class FirstRunPreparationReview1FixTests
         ], log);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public async Task A_program_reported_twice_in_one_pass_is_one_part_not_two()
     {
         var log = new List<string>();
@@ -57,13 +55,12 @@ public sealed class FirstRunPreparationReview1FixTests
             progress.Report(new GpuWarmupStep(1, 2, "k2", 1, false, "knob"));
             return Task.CompletedTask;
         });
-        await run.RunAsync(null!, new Screen(log));
+        await run.RunAsync(null!, new FirstRunLogScreen(log));
         Assert.Equal(["begin:gpu,knob", "gpu:Running:0/1", "gpu:Done:1/1", "knob:Running:0/2", "knob:Running:1/2", "knob:Done:2/2", "end:Prepared"], log);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public async Task A_work_step_the_warm_up_never_ran_is_not_ticked_and_the_run_fails()
     {
         var log = new List<string>();
@@ -77,7 +74,7 @@ public sealed class FirstRunPreparationReview1FixTests
             progress.Report(new GpuWarmupStep(0, 2, "k1", 1, false, "knob")); // the work step is never reported: it did not run
             return Task.CompletedTask;
         });
-        var outcome = await run.RunAsync(null!, new Screen(log));
+        var outcome = await run.RunAsync(null!, new FirstRunLogScreen(log));
         Assert.Equal(FirstRunOutcomeKind.Failed, outcome.Kind);
         Assert.Contains("voice-hardware", outcome.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("hw:Done:1/1", log);
@@ -89,15 +86,4 @@ public sealed class FirstRunPreparationReview1FixTests
     private static FirstRunPreparation Scripted(List<GpuProgram> registry, Func<TopLevel, IProgress<GpuWarmupStep>, CancellationToken, Task> warm) =>
         new(new FirstRunPreparation.Seams(() => false, () => registry, _ => Task.CompletedTask, warm), TimeProvider.System);
 
-    private sealed class Screen(List<string> log) : IFirstRunScreen
-    {
-        public void Begin(IReadOnlyList<FirstRunStepInfo> steps) => log.Add("begin:" + string.Join(",", steps.Select(s => s.Step.Id)));
-        public void Report(FirstRunProgress progress) => log.Add($"{progress.Step.Id}:{progress.State}:{progress.PartsDone}/{progress.Parts}");
-
-        public Task EndAsync(FirstRunOutcome outcome)
-        {
-            log.Add("end:" + outcome.Kind);
-            return Task.CompletedTask;
-        }
-    }
 }

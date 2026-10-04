@@ -19,9 +19,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
 {
     private static readonly FirstRunStep Later = new("later", "A step registered later", 25);
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void The_jewels_four_programs_are_registered_first_under_the_knob_step()
     {
         var first = GpuWarmup.Registered.Take(4).ToArray();
@@ -30,9 +29,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         Assert.Equal(["noise", "fluid", "orb", "page"], GpuWarmup.Programs.Take(4));
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void The_composer_light_the_slider_liquid_and_the_strike_are_registered_after_the_knob_in_W1_order()
     {
         var after = GpuWarmup.Registered.Skip(4).ToArray();
@@ -42,9 +40,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         Assert.Equal(GpuWarmup.Steps, GpuWarmup.Programs.Count);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void Programs_are_kept_in_step_order_then_registration_order_whatever_order_they_arrive_in()
     {
         using var late = GpuWarmup.Register(GpuProgram.Draw("strike-two", FirstRunSteps.Strike, _ => { }));
@@ -54,9 +51,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         Assert.Equal(["noise", "fluid", "orb", "page", "knob-two", "between", "light-rotate", "light-moving", "light-aura", "liquid", "strike", "strike-two"], names);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void A_name_already_registered_and_a_step_id_given_another_name_or_order_are_refused()
     {
         Assert.Throws<ArgumentException>(() => GpuWarmup.Register(GpuProgram.Draw("noise", FirstRunSteps.Knob, _ => { })));
@@ -66,9 +62,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         Assert.Throws<ArgumentException>(() => GpuProgram.Draw("", FirstRunSteps.Knob, _ => { }));
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void A_registration_ends_when_it_is_disposed_and_disposing_twice_does_nothing()
     {
         var before = GpuWarmup.Steps;
@@ -81,9 +76,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         Assert.Equal(before + 1, GpuWarmup.Steps);
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Fact] // GR-1.programs
+    [Trait("Decision", "ED-252")]
     public void The_liquid_programs_frame_has_oil_and_bubbles_and_the_strike_programs_has_the_lightning() => headless.OnUiThread(() =>
     {
         var plain = GpuWarmup.LiquidFrame(strike: false);
@@ -96,9 +90,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         Assert.Contains(struck.Strike!, op => op.Kind == StrikeOpKind.Wash);
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Fact] // GR-1.programs
+    [Trait("Decision", "ED-252")]
     public void The_light_programs_draw_the_rotating_beam_the_moving_beam_and_the_Uiverse_light()
     {
         var rotate = GpuWarmup.LightAnimator(GpuWarmup.LightKind.Rotate);
@@ -112,9 +105,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         Assert.True(aura.AuraVisible);                       // the Uiverse light's shader
     }
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.programs")]
+    [Fact] // GR-1.programs
+    [Trait("Decision", "ED-252")]
     public void Every_registered_program_draws_once_in_a_warm_up_and_reports_its_step() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -136,9 +128,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         finally { GpuWarmup.PretendGpu = false; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void A_program_registered_later_is_drawn_in_its_place_with_the_windows_scaling() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -160,9 +151,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         finally { GpuWarmup.PretendGpu = false; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void A_program_that_throws_faults_the_warm_up_and_never_marks_it_prepared_and_the_render_thread_lives_on() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -189,9 +179,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         finally { GpuWarmup.PretendGpu = false; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void A_work_step_runs_once_in_its_place_in_a_first_run_warm_up_and_is_reported_with_its_step() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -219,9 +208,7 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         finally { GpuWarmup.PretendGpu = false; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
     [Trait("Decision", "ED-252")] // a new GPU context starts the run again: the programs are made again on it, a work step is done once
     public void A_work_step_is_not_repeated_when_a_new_gpu_context_starts_the_run_again() => headless.OnUiThread(() =>
     {
@@ -250,9 +237,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         finally { GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; GpuProgramCache.MachineSource = source; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void The_idle_fallback_never_runs_a_work_step() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -277,9 +263,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         finally { GpuWarmup.PretendGpu = false; GpuWarmup.IdleCap = cap; window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void On_the_CPU_renderer_the_programs_are_left_alone_and_a_work_step_still_runs() => headless.OnUiThread(() =>
     {
         var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
@@ -301,9 +286,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         finally { window.Close(); }
     });
 
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.registry")]
+    [Fact] // GR-1.registry
+    [Trait("Decision", "ED-252")]
     public void A_work_step_is_not_counted_in_the_cache_entries_a_warm_state_needs()
     {
         var root = Path.Combine(Path.GetTempPath(), "gr1-warm-" + Guid.NewGuid().ToString("N"));

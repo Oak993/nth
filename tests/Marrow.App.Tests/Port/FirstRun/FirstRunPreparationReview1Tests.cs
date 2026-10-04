@@ -15,9 +15,8 @@ namespace Marrow.App.Tests.Port.FirstRun;
 [Collection("Headless")]
 public sealed class FirstRunPreparationReview1Tests(HeadlessSession headless)
 {
-    [Fact]
-    [Trait("Feature", "GR-1")]
-    [Trait("Spec", "GR-1.progress")]
+    [Fact] // GR-1.progress
+    [Trait("Decision", "ED-252")]
     public void REVIEW1_a_restarted_pass_does_not_tick_a_step_done_before_its_programs_are_drawn_again() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -31,7 +30,7 @@ public sealed class FirstRunPreparationReview1Tests(HeadlessSession headless)
         var seams = new FirstRunPreparation.Seams(() => false, () => GpuWarmup.Registered, _ => Task.CompletedTask,
             (w, progress, c) => GpuWarmup.WarmAsync(w, new SyncProgress<GpuWarmupStep>(s => { log.Add("drawn:" + s.Program); progress.Report(s); }), c));
         var moved = false;
-        var screen = new Screen(log, p =>
+        var screen = new FirstRunReactingScreen(log, p =>
         {
             // the first light program drawn: the display moves to a new GPU context before the second is drawn
             if (!moved && p.Step.Id == "lights" && p.PartsDone == 1) { moved = true; GpuWarmup.PretendContext = 0x7E5A0002; }
@@ -51,23 +50,6 @@ public sealed class FirstRunPreparationReview1Tests(HeadlessSession headless)
         }
         finally { GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; GpuProgramCache.MachineSource = source; window.Close(); }
     });
-
-    private sealed class Screen(List<string> log, Action<FirstRunProgress> onReport) : IFirstRunScreen
-    {
-        public void Begin(IReadOnlyList<FirstRunStepInfo> steps) => log.Add("begin:" + string.Join(",", steps.Select(s => s.Step.Id)));
-
-        public void Report(FirstRunProgress progress)
-        {
-            log.Add($"{progress.Step.Id}:{progress.State}:{progress.PartsDone}/{progress.Parts}");
-            onReport(progress);
-        }
-
-        public Task EndAsync(FirstRunOutcome outcome)
-        {
-            log.Add("end:" + outcome.Kind);
-            return Task.CompletedTask;
-        }
-    }
 
     private static void Pump(TimeSpan span, Func<bool> done)
     {
