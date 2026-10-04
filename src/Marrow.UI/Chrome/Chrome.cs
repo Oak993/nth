@@ -1844,7 +1844,8 @@ namespace Marrow.UI.Chrome
             var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1015-1019, both branches (see the class remark)
             stack.Children.Add(content());
             var border = new Border { Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch } // :1021
-                .RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous); // :1023-1024
+                .RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous) // :1023-1024
+                .ContentBeyondSides(); // Chrome.swift:1012 "a filled shape instead of a clip": a held row's lift, shadow and 1.02 scale spill past the sides (ModelsSettingsPage.swift:255-262)
             border.Background = Chrome.Overlay(0.03).Brush(border); // :1025
             Child = border;
         }
