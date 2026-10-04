@@ -22,6 +22,10 @@ public static partial class Traceability
 
     [GeneratedRegex(@"\AO-[0-9]{2}\z")] private static partial Regex OracleId();
 
+    // The first-release build plan's unit ids (BUILD-PLAN.md section 2.5, e.g. SK-0, VT-7, UE-2). A Feature trait names the unit
+    // a test belongs to; it never counts as what the test proves, so a test still needs a Req, Rule or Decision trait as well.
+    [GeneratedRegex(@"\A[A-Z]{2,3}-[0-9]{1,2}\z")] private static partial Regex FeatureId();
+
     [GeneratedRegex(@"\b(?:class|record)\s+(\w+)")] private static partial Regex TypeKeyword();
 
     [GeneratedRegex(@"\A\[(?:assembly:\s*)?[A-Z][A-Za-z0-9_.]*\s*(?:\(|\]|\z)")] private static partial Regex AttributeStart();
@@ -56,6 +60,7 @@ public static partial class Traceability
                     "Rule" => RuleId().IsMatch(value),
                     "Decision" => DecisionId().IsMatch(value),
                     "Oracle" => OracleId().IsMatch(value),
+                    "Feature" => FeatureId().IsMatch(value),
                     _ => false,
                 };
                 if (!ok) problems.Add($"{name}: bad trait {trait}='{value}'");
