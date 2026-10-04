@@ -17,6 +17,7 @@ public sealed class GenerationLifecycleTests
         var key = service.Prepare("codex", [item], s, f.Budget);
         var spare = Assert.Single(Directory.GetDirectories(Path.Combine(f.Paths.Views, "codex"), "spare-*"));
         using var first = service.Start("codex", "one", [item], s, f.Budget);
+        Assert.Equal(GenerationLaunchReason.ReadySpare, service.LastLaunch!.Reason);
         using var second = service.Start("codex", "two", [item], s, f.Budget);
         Assert.False(Directory.Exists(spare));
         Assert.Equal(key, first.Key);

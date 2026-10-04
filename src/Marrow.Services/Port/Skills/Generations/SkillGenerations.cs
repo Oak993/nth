@@ -21,6 +21,7 @@ public sealed class SkillGenerations(StorePaths paths, SkillsStore store, IStore
     private readonly Dictionary<string, Queue<(string Chat, string Key)>> recent = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Generation> listings = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> listingUsers = new(StringComparer.Ordinal);
+    public GenerationLaunch? LastLaunch { get; private set; }
     public Exception? LastSpareFailure { get; private set; }
     private readonly HashSet<string> live = new(StringComparer.Ordinal);
 
@@ -58,12 +59,13 @@ public sealed class SkillGenerations(StorePaths paths, SkillsStore store, IStore
             var target = paths.RequireManaged(Path.Combine(parent, chatPaths.Get(provider, chatId)));
             var previous = target;
             Generation? result = null;
+            var reason = GenerationLaunchReason.MissingSpare;
             if (Directory.Exists(target))
             {
                 if (new StoreVerifier(acl).Verify(target, plan.Manifest).IsValid)
                 {
                     var lease = store.AcquireGeneration(target, plan.Manifest);
-                    if (lease is not null) result = Create(lease, plan);
+                    if (lease is not null) { result = Create(lease, plan); reason = GenerationLaunchReason.ExistingChat; }
                 }
                 if (result is null)
                 {
@@ -80,25 +82,39 @@ public sealed class SkillGenerations(StorePaths paths, SkillsStore store, IStore
                     try
                     {
                         if (spare.Verify() && new StoreVerifier(acl).Verify(spare.Folder, plan.Manifest).IsValid)
-                            result = PublishSpare(target, spare, plan);
-                        else store.Retire(spare.Folder);
+                        { result = PublishSpare(target, spare, plan); reason = GenerationLaunchReason.ReadySpare; }
+                        else { store.Retire(spare.Folder); reason = GenerationLaunchReason.DamagedSpare; }
                     }
                     finally { spare.Dispose(); }
                 }
                 result ??= Build(provider, Path.GetFileName(target), plan);
                 QueueReplacement(provider, plan);
             }
-            chatPaths.Set(provider, chatId, Path.GetFileName(result.Folder));
-            result.PreviousFolder = result.Folder == previous ? null : previous;
-            if (!recent.TryGetValue(provider, out var chats)) recent[provider] = chats = new();
-            var previousChats = chats.Where(c => c.Chat != chatId).TakeLast(4).ToArray();
-            chats.Clear();
-            foreach (var c in previousChats) chats.Enqueue(c);
-            chats.Enqueue((chatId, plan.Key));
-            Evict(provider, plan.Key);
-            live.Add(liveKey);
-            result.OnDisposed = () => { lock (gate) live.Remove(liveKey); };
-            return result;
+            try
+            {
+                chatPaths.Set(provider, chatId, Path.GetFileName(result.Folder));
+                var diagnosticFile = Path.Combine(paths.Skills, "generation-launches.jsonl");
+                StorePaths.EnsureAncestors(diagnosticFile);
+                File.AppendAllText(diagnosticFile, JsonSerializer.Serialize(new { provider, chatId, key = plan.Key, reason = reason.ToString() }) + "\n");
+                LastLaunch = new(provider, chatId, plan.Key, reason);
+                result.PreviousFolder = result.Folder == previous ? null : previous;
+                if (!recent.TryGetValue(provider, out var chats)) recent[provider] = chats = new();
+                var previousChats = chats.Where(c => c.Chat != chatId).TakeLast(4).ToArray();
+                chats.Clear();
+                foreach (var c in previousChats) chats.Enqueue(c);
+                chats.Enqueue((chatId, plan.Key));
+                Evict(provider, plan.Key);
+                live.Add(liveKey);
+                result.OnDisposed = () => { lock (gate) live.Remove(liveKey); };
+                return result;
+            }
+            catch
+            {
+                live.Remove(liveKey);
+                result.Dispose();
+                store.Retire(result.Folder);
+                throw;
+            }
         }
     }
 

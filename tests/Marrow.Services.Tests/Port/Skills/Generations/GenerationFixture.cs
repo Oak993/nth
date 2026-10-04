@@ -23,6 +23,7 @@ public sealed class GenerationFixture : IDisposable
     public StorePaths Paths => fixture.Paths;
     public IStoreProtection Protection { get; }
     public StoreTrees Trees { get; }
+    public FakeStoreDeletion Deletion => fixture.Deletion;
     public FakeStoreProtection Fake => fixture.Fake;
     public GenerationBudget Budget { get; } = new(8000);
     public SkillsStore? Store { get; private set; }

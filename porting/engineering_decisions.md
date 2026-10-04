@@ -2504,3 +2504,9 @@ No ledger statuses are changed. SK-5 production code and its tests remain untouc
    not claimed by this cloud component's offline tests. In particular SK-5 freezes its installed
    descriptor inventory at construction; SK-13 must refresh that inventory under its single-owner
    lifecycle when an installation adds a new id. SK-9 never treats an unregistered id as installed.
+8. **Launch diagnostics.** PLAN 2.1's spare-miss log is `skills/generation-launches.jsonl`,
+   containing provider, chat id, content key and an internal reason enum (existing chat, ready
+   spare, missing spare or damaged spare). It contains no skill bodies or user files. Persistence
+   failure refuses launch and disposes the unreturned lease. Item-level plugin activation
+   clears previous folder overrides; a subsequent folder switch can override that activation.
+   The user budget reserves 10% of the whole provider budget, a conservative reading of 2.7.

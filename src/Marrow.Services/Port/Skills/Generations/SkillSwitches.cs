@@ -23,7 +23,7 @@ public sealed class SkillSwitches
     public bool PluginEnabled(string id) => Plugins.TryGetValue(id, out var on) && on;
     public bool PluginEnabled(string id, string root) => Plugins.TryGetValue(id + "/" + root, out var on) ? on : PluginEnabled(id);
     public SkillSwitches WithSkill(GenerationSkill skill, bool on) => new(Version, Skills.Where(p => p.Key != skill.Id).Append(new(skill.Id, on)).ToDictionary(), Plugins);
-    public SkillSwitches WithPlugin(string id, bool on) => new(Version, Skills, Plugins.Where(p => p.Key != id).Append(new(id, on)).ToDictionary());
+    public SkillSwitches WithPlugin(string id, bool on) => new(Version, Skills, Plugins.Where(p => p.Key != id && (id.Contains('/', StringComparison.Ordinal) || !p.Key.StartsWith(id + "/", StringComparison.Ordinal))).Append(new(id, on)).ToDictionary());
     public SkillSwitches Reconcile(string version, IEnumerable<GenerationItem> items)
     {
         var list = items.ToArray();
