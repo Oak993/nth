@@ -131,7 +131,7 @@ public sealed class WindowsToastCenter(IWindowsToastPlatform platform, ToastBuil
     }
     // UpdateChecker.swift:249-261: the content has a title, a body and userInfo and no sound (:249-252), so the banner is
     // silent, as a thread banner whose sound is nil is (AppModel.swift:1224; ED-227 (3)). willPresent's .sound (AppDelegate.swift:74)
-    // plays nothing without a content.sound. The PR-UPDATE-025 wording "with sound" is a RECORD != SWIFT conflict; Swift decides.
+    // plays nothing without a content.sound (ED-271; PR-UPDATE-025 and UI-LAUNCH-005 are amended to say so).
     public void Show(string identifier, string title, string body, string version) =>
         MainActor.Spawn(() => Add(new ToastRequest(identifier, title, body, false,
             new Dictionary<string, object>(StringComparer.Ordinal) { ["update"] = version })));

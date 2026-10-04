@@ -90835,15 +90835,16 @@
     {
       "area": "UPDATE",
       "id": "PR-UPDATE-025",
-      "title": "An update banner arriving while the app is frontmost is still shown, with sound",
+      "title": "An update banner arriving while the app is frontmost is still shown, silently",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:63-75 willPresent - reads userInfo[\"threadID\"]; an update notification has no threadID, so the isOpenChat suppression never applies and the method returns [.banner, .sound]"
+        "DroppyCode/App/AppDelegate.swift:63-75 willPresent - reads userInfo[\"threadID\"]; an update notification has no threadID, so the isOpenChat suppression never applies and the method returns [.banner, .sound]",
+        "DroppyCode/App/UpdateChecker.swift:249-253 the update notification content has a title, a body and userInfo and no sound, so nothing is audible"
       ],
       "preconditions": "A background check finds a new version while the app is in the foreground.",
       "action": "The system asks how to present the notification.",
-      "expected_result": "The banner is shown with sound, because the thread-specific suppression path requires a \"threadID\" key that the update notification does not carry.",
+      "expected_result": "The banner is shown, because the thread-specific suppression path requires a \"threadID\" key that the update notification does not carry. It plays no sound: willPresent returns [.banner, .sound] but the update notification's content sets no sound (UpdateChecker.swift:249-253; ED-271).",
       "side_effects": [
-        "Visible banner and an audible alert."
+        "Visible banner, no sound."
       ],
       "persistence": "None.",
       "failure_cases": [
