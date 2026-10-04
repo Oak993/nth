@@ -18,28 +18,33 @@ internal sealed class NativeSessionRig : IAsyncDisposable
     private readonly Queue<string> transcripts;
     private readonly List<byte[]> bodies = [];
 
+    private readonly List<ProviderEvent> events = [];
+
     private NativeSessionRig(IEnumerable<string> transcriptFiles, RuntimeMode runtimeMode, InteractionMode interactionMode,
-        Action<OpenAICompatibleSession>? configure)
+        Action<OpenAICompatibleSession>? configure, Func<OpenAICompatibleSession.Config, SessionConfiguration, OpenAICompatibleSession>? factory,
+        string? workingDirectory)
     {
         transcripts = new Queue<string>(transcriptFiles.Select(Transcript));
         server = new FakeUpstreamServer { Handler = Answer };
-        Session = new OpenAICompatibleSessionCapturingSeam(
-            MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration(runtimeMode, interactionMode)).Wired();
+        Session = (factory ?? ((config, configuration) => new OpenAICompatibleSession(config, configuration)))(
+            MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration(runtimeMode, interactionMode, workingDirectory));
+        Session.OnEvent = events.Add;
         Session.SeedMcpToolsForTests([]);
         configure?.Invoke(Session);
     }
 
-    public OpenAICompatibleSessionCapturingSeam Session { get; }
+    public OpenAICompatibleSession Session { get; }
     public TestRuntime Runtime => runtime;
     public string StorageRoot => scratch.Root;
     public IReadOnlyList<byte[]> RequestBodies => bodies;
-    public IReadOnlyList<ProviderEvent> Events => Session.Events;
+    public IReadOnlyList<ProviderEvent> Events => events;
 
     // Synchronous on purpose: TestRuntime and StorageScratchFolder bind ambients for the calling async flow, and an async factory would
     // hand the caller back its own flow without them.
     public static NativeSessionRig Create(string[] transcriptFiles, RuntimeMode runtimeMode = RuntimeMode.FullAccess,
-        InteractionMode interactionMode = InteractionMode.Build, Action<OpenAICompatibleSession>? configure = null) =>
-        new(transcriptFiles, runtimeMode, interactionMode, configure);
+        InteractionMode interactionMode = InteractionMode.Build, Action<OpenAICompatibleSession>? configure = null,
+        Func<OpenAICompatibleSession.Config, SessionConfiguration, OpenAICompatibleSession>? factory = null, string? workingDirectory = null) =>
+        new(transcriptFiles, runtimeMode, interactionMode, configure, factory, workingDirectory);
 
     public async Task<NativeSessionRig> Begin()
     {
@@ -47,9 +52,8 @@ internal sealed class NativeSessionRig : IAsyncDisposable
         return this;
     }
 
-    public async Task Turn(string text, RuntimeMode runtimeMode = RuntimeMode.FullAccess, InteractionMode interactionMode = InteractionMode.Build)
-    {
-        var task = Session.Send(new TurnInput
+    public Task StartTurn(string text, RuntimeMode runtimeMode = RuntimeMode.FullAccess, InteractionMode interactionMode = InteractionMode.Build) =>
+        Session.Send(new TurnInput
         {
             Text = text,
             Images = ValueList<Attachment>.Empty,
@@ -57,7 +61,13 @@ internal sealed class NativeSessionRig : IAsyncDisposable
             InteractionMode = interactionMode,
             IsFinalReport = false,
         });
-        runtime.Loop.RunUntil(() => task.IsCompleted);
+
+    public void RunUntil(Func<bool> condition) => runtime.Loop.RunUntil(condition);
+
+    public async Task Turn(string text, RuntimeMode runtimeMode = RuntimeMode.FullAccess, InteractionMode interactionMode = InteractionMode.Build)
+    {
+        var task = StartTurn(text, runtimeMode, interactionMode);
+        RunUntil(() => task.IsCompleted);
         await task;
     }
 
@@ -90,10 +100,10 @@ internal sealed class NativeSessionRig : IAsyncDisposable
     };
 
     public static SessionConfiguration MakeSessionConfiguration(RuntimeMode runtimeMode = RuntimeMode.FullAccess,
-        InteractionMode interactionMode = InteractionMode.Build) => new()
+        InteractionMode interactionMode = InteractionMode.Build, string? workingDirectory = null) => new()
     {
         Provider = ProviderKind.Deepseek,
-        WorkingDirectory = SwiftURL.Create("file:///C:/work")!,
+        WorkingDirectory = SwiftURL.Create(workingDirectory is null ? "file:///C:/work" : "file:" + workingDirectory.Replace('\\', '/'))!,
         Environment = ValueMap<string, string>.Empty,
         RuntimeMode = runtimeMode,
         InteractionMode = interactionMode,

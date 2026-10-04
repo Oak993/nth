@@ -2,8 +2,10 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Skills.Detect;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
+using Marrow.Services.Port.Skills.Providers;
 
 namespace Marrow.Services.Providers;
 
@@ -74,6 +76,13 @@ public class OpenAICompatibleSession : ProviderSession
     public Config OpenAICompatibleSessionConfig { get; } // :34 Swift: config (R-NAME-3)
     public Action<ProviderEvent>? OnEvent { get; set; }  // :35
     public SessionConfiguration Configuration { get; }   // :37
+
+    // PORT-ONLY (SK-11f, ED-NEW-f-sk-11f 1): Marrow's own skill tools (the catalogue block, use_skill, request_tool). Null, the default, leaves every byte
+    // this session sends exactly as the Mac's.
+    public NativeSkillTools? SkillTools { get; set; }
+
+    // PORT-ONLY (SK-11f, DL-12): the normalized tool events (CommandHeld, CommandFinished, SkillUsed, ToolRequested) the missing-tool detector reads.
+    public Action<ToolEvent>? OnToolEvent { get; set; }
 
     private readonly NativeFileTools fileTools;           // :38
     private ProjectGuidance guidance;                      // :41
@@ -151,6 +160,8 @@ public class OpenAICompatibleSession : ProviderSession
     internal void SetInterruptedForTests(bool value) => interrupted = value;
     internal void RefreshSystemPromptForTests() => RefreshSystemPrompt();
     internal string SystemPromptForTests() => SystemPrompt();
+    internal Dictionary<string, JSONValue> RequestPayloadForTests(string model, string? effort = null, bool withTools = true) =>
+        RequestPayload(model, effort, withTools);
     internal bool RequiresApprovalForTests(ToolCall.Kind kind) => RequiresApproval(kind);
     internal void SetApproveAllRemainingForTests(bool value) => approveAllRemaining = value;
     // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-162..175): drives the
@@ -1561,7 +1572,8 @@ public class OpenAICompatibleSession : ProviderSession
     // below), with -NoProfile -NonInteractive (ED-028 (1)). The 120 second timeout, the 24000 byte
     // cap, the tail-keeping truncation and both failure strings are portable and are reproduced as
     // written.
-    private async Task<(string Output, int ExitCode)> RunCommand(string command)
+    // PORT-ONLY (SK-11f): protected virtual, so a test can script a command result without a shell; the body is unchanged.
+    protected virtual async Task<(string Output, int ExitCode)> RunCommand(string command)
     {
         var trimmed = command.Trimmed(); // :1153
         if (trimmed.Length == 0) return ("Error: a command is required.", 1); // :1154

@@ -1,4 +1,6 @@
 using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Services.Providers;
 using Marrow.Services.Tests.Fixtures;
 
@@ -40,5 +42,29 @@ internal static class NativeGoldenScenarios
     {
         await using var rig = NativeSessionRig.Create([], runtime, interaction, configure);
         return rig.Session.SystemPromptForTests();
+    }
+
+    public static readonly string[] Providers = ["deepseek", "meta", "zai", "openrouter"];
+
+    /// <summary>The first request body (as the session would encode it) and the system prompt of one of the four API providers' own session types.</summary>
+    public static async Task<(byte[] Payload, string Prompt)> ProviderPayload(string provider, Action<OpenAICompatibleSession>? configure = null)
+    {
+        using var runtime = new Marrow.Testing.TestRuntime();
+        using var scratch = new StorageScratchFolder();
+        var configuration = NativeSessionRig.MakeSessionConfiguration();
+        OpenAICompatibleSession session = provider switch
+        {
+            "deepseek" => new DeepSeekSession(configuration),
+            "meta" => new MetaSession(configuration),
+            "zai" => new ZaiSession(configuration),
+            "openrouter" => new OpenRouterSession(configuration),
+            _ => throw new ArgumentOutOfRangeException(nameof(provider)),
+        };
+        configure?.Invoke(session);
+        session.SeedMcpToolsForTests([]);
+        await session.Start();
+        var payload = session.RequestPayloadForTests("golden-model", "high");
+        var bytes = new JSONValue.Object(new ValueMap<string, JSONValue>(payload, SwiftStringComparer.Instance)).Data();
+        return (bytes, session.SystemPromptForTests());
     }
 }
