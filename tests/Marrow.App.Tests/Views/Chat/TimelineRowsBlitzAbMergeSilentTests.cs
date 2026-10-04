@@ -186,6 +186,33 @@ public sealed class TimelineRowsBlitzAbMergeSilentTests(HeadlessSession headless
     });
 
     [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-089")] // AppModel+HydraMerge.swift:184-186, :902-906 an .alreadyOnMain run settles with a note only when nothing is left unmerged: a lead with a file still unmerged gets neither a record nor a note, and the pill goes
+    public void An_already_on_the_branch_run_that_leaves_a_file_unmerged_posts_no_settlement_note_and_the_pill_goes_with_no_note() => headless.OnUiThread(() =>
+    {
+        using var f = Review(); // a.txt is committed and unchanged: the team's tree is the branch's tree (:308 .alreadyOnMain)
+        var before = f.Notes.Length;
+        var late = false;
+        var pill = Drive(f.H, f.Runtime, observer => f.Run(call =>
+        {
+            observer(call);
+            // A turn of the lead's that did not finish well (it failed, so the next pass has no finished work to take up: the sweep picks up only completed turns) is recorded with
+            // a file of the project while the pass is capturing. It is not among the turns this pass settles (they were read at the start), so after the pass marks its own
+            // turn spent one file is still unmerged and recordHydraSettlement returns before it writes anything (:903). It sits before the last turn, which stays completed.
+            if (!late && HydraMergeReviewFixture.IsGit(call, "write-tree"))
+            {
+                late = true;
+                typeof(ThreadRuntime).GetProperty("Turns")!.SetValue(f.Runtime, new ValueList<TurnRecord>(
+                    [new TurnRecord { Id = Guid.NewGuid(), Index = 0, Status = TurnStatus.Failed, CompletedAt = SwiftDate.Now, TouchedPaths = new ValueList<string>(["b.txt"]) }, .. f.Runtime.Turns]));
+            }
+        }));
+        Assert.True(late, "the pass never reached its capture");
+        Silent(pill, before, f.Notes.Length);
+        Assert.Empty(f.Runtime.HydraMerges); // no settled record either
+        Assert.Contains(f.Runtime.Turns, turn => turn.Id == f.Turn.Id && turn.HydraMerged); // the pass's own turn is spent
+        Assert.Contains(f.Runtime.Turns, turn => turn.Index == 0 && !turn.HydraMerged); // what the pass did not take stays unmerged
+    });
+
+    [Fact]
     [Trait("Req", "PR-HYDRAMERGE-089")] // AppModel+HydraMerge.swift:148-160 nothing to send and nothing outside a project: whatever the turns recorded is marked spent, with no word
     public void Work_that_is_already_on_the_branch_or_gone_is_marked_spent_with_no_word_and_the_pill_goes_with_no_note() => headless.OnUiThread(() =>
     {
