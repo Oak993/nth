@@ -1,0 +1,34 @@
+{
+ "chrome": "154.0.8037.93",
+ "generated": "by generate.cjs; deterministic signals; see the header",
+ "fftSize": 2048,
+ "smoothingTimeConstant": 0.65,
+ "minDecibels": -100,
+ "maxDecibels": -30,
+ "signals": [
+  {
+   "name": "tone1k-48000",
+   "sampleRate": 48000,
+   "sampleCount": 36000,
+   "reads": 47
+  },
+  {
+   "name": "sweep-44100",
+   "sampleRate": 44100,
+   "sampleCount": 33075,
+   "reads": 44
+  },
+  {
+   "name": "voicey-48000",
+   "sampleRate": 48000,
+   "sampleCount": 72000,
+   "reads": 94
+  },
+  {
+   "name": "mixed-16000",
+   "sampleRate": 16000,
+   "sampleCount": 16000,
+   "reads": 62
+  }
+ ]
+}
