@@ -87,7 +87,7 @@ public sealed class ItemTermsTests
         Assert.Equal(term, again.AcceptedTerms.Single());
         var other = again.AcceptTerms(StateFixtures.Hash2, "O5", StateFixtures.Noon.AddDays(3));
         Assert.Equal([StateFixtures.Hash1, StateFixtures.Hash2], other.AcceptedTerms.Select(t => t.LicenceSha256));
-        Assert.Empty(state.AcceptedTerms.Where(t => t.LicenceSha256 == StateFixtures.Hash2));
+        Assert.DoesNotContain(state.AcceptedTerms, t => t.LicenceSha256 == StateFixtures.Hash2);
         var shared = WithLicence("Proprietary", StateFixtures.Hash1) with { Id = "X9" };
         Assert.False(ItemTerms.Required(shared, state));
     }

@@ -261,11 +261,11 @@ public sealed class AddonsStateTransitionTests
             StateFixtures.Rec("a b", ItemState.Available),
             StateFixtures.Rec("X", ItemState.Installed, " "),
         };
-        foreach (var record in bad)
+        foreach (var invalid in bad)
         {
-            Assert.NotNull(record.Problem());
-            Assert.Throws<IllegalTransitionException>(() => ItemStateMachine.Apply(record, ItemState.Removing));
-            Assert.False(ItemStateMachine.IsLegal(record, ItemState.Removing));
+            Assert.NotNull(invalid.Problem());
+            Assert.Throws<IllegalTransitionException>(() => ItemStateMachine.Apply(invalid, ItemState.Removing));
+            Assert.False(ItemStateMachine.IsLegal(invalid, ItemState.Removing));
         }
     }
 }

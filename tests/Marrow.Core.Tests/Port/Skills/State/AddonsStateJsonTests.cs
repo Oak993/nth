@@ -66,7 +66,7 @@ public sealed class AddonsStateJsonTests
         Assert.Equal("2026-10-04T12:00:00Z", (string)doc["acceptedTerms"]!.AsArray()[0]!["acceptedAt"]!);
         var local = AddonsState.Empty.AcceptTerms(StateFixtures.Hash1, "A2", new DateTimeOffset(2026, 10, 4, 14, 30, 0, TimeSpan.FromHours(2)));
         Assert.Equal("2026-10-04T12:30:00Z", (string)JsonNode.Parse(StateFixtures.Text(local))!["acceptedTerms"]![0]!["acceptedAt"]!);
-        Assert.Empty(StateFixtures.Full().Items.Where(i => i.State == ItemState.Available));
+        Assert.DoesNotContain(StateFixtures.Full().Items, i => i.State == ItemState.Available);
     }
 
     [Fact]

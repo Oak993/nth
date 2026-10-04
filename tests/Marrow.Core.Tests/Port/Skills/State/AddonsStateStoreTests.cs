@@ -20,7 +20,7 @@ public sealed class AddonsStateStoreTests
         AddonsStateStore.Save(path, state);
         Assert.Equal(StateFixtures.Text(state), File.ReadAllText(path));
         Assert.Equal(StateFixtures.Text(state), StateFixtures.Text(AddonsStateStore.Load(path)));
-        Assert.Equal(["state.json"], Directory.GetFiles(folder).Select(Path.GetFileName).ToArray());
+        Assert.Equal(["state.json"], Directory.GetFiles(folder).Select(f => Path.GetFileName(f)!).ToArray());
     }
 
     [Fact]
