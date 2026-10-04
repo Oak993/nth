@@ -108,4 +108,30 @@ public sealed class GlassMaterialPartialRedrawTests(HeadlessSession headless)
         for (var i = 0; i < 10; i++) Scene.Drain();
         Assert.Equal(0, GlassMaterial.DrawsForTests - drawn);
     });
+
+    // A big piece (520 x 320 in a 600 x 400 window over stripes): a block under it changes, deep inside (where only the blur spreads the change, so the
+    // frame's region grows by the blur's reach) or across its left edge, half outside (the refracting band reads it from up to SampledMargin away, so
+    // the region grows by all of it). The whole piece is what a whole drawing gives.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-WIN-180")]
+    public void A_change_deep_inside_or_near_the_edge_of_a_big_piece_is_drawn_as_a_whole_drawing(bool nearEdge) => headless.OnUiThread(() =>
+    {
+        var block = new Border { Width = 40, Height = 30, Background = Brushes.Black, VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = nearEdge ? HorizontalAlignment.Left : HorizontalAlignment.Center, Margin = nearEdge ? new Thickness(20, 0, 0, 0) : default };
+        var piece = new Border { Background = Brushes.Transparent, Width = 520, Height = 320, HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center };
+        SwiftGlass.SetEffect(piece, GlassEffect.Regular(GlassShape.RoundedRectangle(26, RoundedCornerStyle.Continuous)));
+        var stripes = new Panel { Background = Brushes.Gray };
+        for (var x = 0; x < 600; x += 8) stripes.Children.Add(new Border { Width = 4, Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(x, 0, 0, 0) });
+        using var scene = new Scene(stripes, new Panel { Children = { block, piece } }, 600, 400);
+        _ = scene.Pixels();
+        block.Background = Brushes.White;
+        var partial = scene.Pixels();
+        var whole = Whole(scene);
+        var at = piece.TranslatePoint(default, scene.Window)!.Value;
+        var apart = Largest(partial, whole, new PixelRect((int)at.X, (int)at.Y, (int)piece.Bounds.Width, (int)piece.Bounds.Height), out var apartAt);
+        Assert.True(apart <= 2, $"the big piece is {apart} levels from a whole drawing (at {apartAt})");
+    });
 }

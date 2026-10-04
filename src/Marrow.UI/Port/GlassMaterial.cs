@@ -464,7 +464,7 @@ internal static class GlassMaterial
             var target = Frame.Target(this);
             var next = target is null ? null : Frame.ReachOf(target);
             if (next != reach) { reach?.Remove(this); reach = next; }
-            if (Draw(lease, s, backdrop, target is null ? null : Frame.Dirty(target)) is { } drawn) reach?.Set(this, drawn.Output, drawn.Margin);
+            if (Draw(lease, s, backdrop, target is null ? null : Frame.Dirty(target)) is { } drawn) reach?.Set(this, drawn);
         }
     }
 
@@ -545,14 +545,11 @@ internal static class GlassMaterial
         for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"d = smoothUnion(d, distance{i}(xy));\n");
         source.Append("return d; }\nhalf4 main(float2 xy) { float raw = distance0(xy); float4 tint = tint0; float4 frost = frost0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0;\n");
         for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; frost = frost{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; }}\n");
+        // With one shape the scene's distance is the shape's own (no union): it is not evaluated twice.
+        source.Append(n == 1 ? "float d = -raw;\n" : "float d = -sceneDistance(xy);\n");
         source.Append("""
-            float d = -sceneDistance(xy);
             float coverage = clamp(d + 0.5, 0.0, 1.0);
             if (coverage <= 0.0) return half4(0.0);
-            // P1 finite-difference inward normal follows curved edges and the merged neck.
-            float2 normal = float2(-sceneDistance(xy + float2(1.0, 0.0)) + sceneDistance(xy - float2(1.0, 0.0)),
-                                  -sceneDistance(xy + float2(0.0, 1.0)) + sceneDistance(xy - float2(0.0, 1.0)));
-            float2 n = normalize(normal + float2(0.000001));
             // The refracting band and its bend scale with the shape, capped at the panel values: on a small lens (the
             // effort knob, 28 pt) a fixed 46 pt band made the whole disc an edge that bent in the dark surroundings,
             // where the reference video shows a light disc with a thin refracting rim (2-chat-use.mov 35.5 s, 43.9 s).
@@ -560,22 +557,34 @@ internal static class GlassMaterial
             // technique only). ENGINEERING DECISION, UNVERIFIED fractions (35 % band, 20 % bend).
             float smaller = min(extent.x, extent.y);
             float band = min(46.0, max(smaller * 0.35, 1.0));
-            float lens = pow(clamp(1.0 - d / band, 0.0, 1.0), 2.2);
-            float disp = lens * min(26.0, smaller * 0.2);
-            half4 r = backdrop.eval(xy - n * disp * 1.10);
-            half4 g = backdrop.eval(xy - n * disp);
-            half4 b = backdrop.eval(xy - n * disp * 0.90);
-            half3 col = half3(r.r, g.g, b.b);
+            // The inner shade sits 5 pt in on a panel; on a small lens it keeps to the same share of the band.
+            float shadeAt = min(5.0, band * 0.3);
+            half3 col;
+            float rim = 0.0, light = 0.0, inner = 0.0, shade = 0.0;
+            // ED-NEW-glass-firstchild 16: past the band the lens bends nothing (the three reads are one), and past where the rim light and the inner
+            // shade fall under 1e-7 of a level the normal changes nothing either: the inside of a shape skips the normal's four distances.
+            if (d >= band && d > 11.5 && d > shadeAt + 4.0 * sqrt(2.0 * shadeAt * shadeAt + 0.5)) {
+                col = half3(backdrop.eval(xy).rgb);
+            } else {
+                // P1 finite-difference inward normal follows curved edges and the merged neck.
+                float2 normal = float2(-sceneDistance(xy + float2(1.0, 0.0)) + sceneDistance(xy - float2(1.0, 0.0)),
+                                      -sceneDistance(xy + float2(0.0, 1.0)) + sceneDistance(xy - float2(0.0, 1.0)));
+                float2 n = normalize(normal + float2(0.000001));
+                float lens = pow(clamp(1.0 - d / band, 0.0, 1.0), 2.2);
+                float disp = lens * min(26.0, smaller * 0.2);
+                half4 r = backdrop.eval(xy - n * disp * 1.10);
+                half4 g = backdrop.eval(xy - n * disp);
+                half4 b = backdrop.eval(xy - n * disp * 0.90);
+                col = half3(r.r, g.g, b.b);
+                rim = exp(-pow(d - 1.5, 2.0) / 6.0);
+                light = pow(clamp(-n.x * 0.7 - n.y * 0.7, 0.0, 1.0), 1.5);
+                inner = exp(-pow(d - shadeAt, 2.0) / (2.0 * shadeAt * shadeAt + 0.5));
+                shade = pow(clamp(n.x * 0.7 + n.y * 0.7, 0.0, 1.0), 1.5);
+            }
             col = mix(col, half3(frost.rgb), half(frost.a));
             // Avoid double tinting existing overlays; tint the merged neck outside those overlays.
             if (ptr.w < 0.5 || raw > 0.0) col = mix(col, half3(tint.rgb), half(tint.a));
-            float rim = exp(-pow(d - 1.5, 2.0) / 6.0);
-            float light = pow(clamp(-n.x * 0.7 - n.y * 0.7, 0.0, 1.0), 1.5);
             col += half3(half(rim * light * 0.55));
-            // The inner shade sits 5 pt in on a panel; on a small lens it keeps to the same share of the band.
-            float shadeAt = min(5.0, band * 0.3);
-            float inner = exp(-pow(d - shadeAt, 2.0) / (2.0 * shadeAt * shadeAt + 0.5));
-            float shade = pow(clamp(n.x * 0.7 + n.y * 0.7, 0.0, 1.0), 1.5);
             col *= half(1.0 - inner * shade * 0.12);
             float2 delta = at - ptr.xy;
             float highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * ptr.z;
@@ -593,13 +602,17 @@ internal static class GlassMaterial
     // over it, so a redraw of a control over the glass blurred the glass's own output into its frost (8 to 11 levels, GlassMaterialPartialRedrawReviewTests).
     // Outside that region nothing under the material has changed (whatever changes adds its bounds to the region), so the material keeps what it took the
     // last time and takes new pixels only inside the region. With no known region (another dirty-rect tracker, another surface) it takes them all, as before.
+    // ED-NEW-glass-firstchild 16 (frame cost): the kept pixels live in one surface the material keeps, and only the region's pixels are copied out of the
+    // window's surface (a whole snapshot of it, written to right after, made Skia copy the whole window every frame); the blur's own surface is kept too.
+    // Both are made again when their size, the window's surface or the GPU context changes, and given up when the material leaves (Released).
     private sealed class Backdrop
     {
-        private static readonly ConcurrentQueue<SKImage> released = new();
-        private SKImage? image;
+        private static readonly ConcurrentQueue<IDisposable> released = new();
+        private SKSurface? kept, blurred;
         private SKRectI area;
-        private IntPtr surface;
-        private SKSizeI size;
+        private IntPtr surface, context;
+        private SKSizeI size, keptSize, blurredSize;
+        private bool valid;
 
         public static void DisposeReleased()
         {
@@ -608,49 +621,81 @@ internal static class GlassMaterial
 
         public void Release()
         {
-            if (image is not null) released.Enqueue(image);
-            image = null;
+            if (kept is not null) released.Enqueue(kept);
+            if (blurred is not null) released.Enqueue(blurred);
+            (kept, blurred, valid) = (null, null, false);
         }
 
-        public (SKImage Image, SKRectI Area)? Take(ISkiaSharpApiLease lease, SKImage snapshot, SKRectI crop, SKRectI? dirty)
+        private static SKSurface? Create(ISkiaSharpApiLease lease, int width, int height)
         {
-            var whole = new SKSizeI(snapshot.Width, snapshot.Height);
+            var info = new SKImageInfo(Math.Max(1, width), Math.Max(1, height), SKColorType.Rgba8888, SKAlphaType.Premul);
+            // Keep native rendering on the lease's GPU; the software path also runs in headless tests (P1).
+            return lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
+        }
+
+        // The surface the blur is drawn into, the crop's size, kept from frame to frame (what it held is drawn over where it is read).
+        public SKSurface? Blurred(ISkiaSharpApiLease lease, SKRectI crop)
+        {
+            var wanted = new SKSizeI(Math.Max(1, crop.Width), Math.Max(1, crop.Height));
+            if (blurred is not null && blurredSize == wanted && (lease.GrContext?.Handle ?? IntPtr.Zero) == context) return blurred;
+            blurred?.Dispose();
+            blurredSize = wanted;
+            return blurred = Create(lease, wanted.Width, wanted.Height);
+        }
+
+        // Brings the kept pixels up to this frame and returns the surface that holds them and where it lies in the window's surface.
+        public (SKSurface Surface, SKRectI Area)? Take(ISkiaSharpApiLease lease, SKRectI crop, SKRectI? dirty)
+        {
+            if (lease.SkSurface is not { } source) return null;
+            var handle = source.Handle;
+            var gpu = lease.GrContext?.Handle ?? IntPtr.Zero;
+            var whole = size;
+            if (handle != surface || gpu != context || !valid)
+            {
+                using var probe = source.Snapshot(); // released at once, before anything is drawn, so Skia copies nothing
+                whole = new SKSizeI(probe.Width, probe.Height);
+            }
             var at = SKRectI.Intersect(crop, new SKRectI(0, 0, whole.Width, whole.Height));
             if (at.IsEmpty) return null;
-            var handle = lease.SkSurface?.Handle ?? IntPtr.Zero;
-            var known = image is not null && dirty is not null && handle == surface && size == whole;
-            var info = new SKImageInfo(at.Width, at.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
-            using var target = lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
-            if (target is null) return null;
-            var canvas = target.Canvas;
-            canvas.Clear(SKColors.Transparent);
+            var same = valid && dirty is not null && handle == surface && gpu == context && size == whole && kept is not null;
             using var copy = new SKPaint { BlendMode = SKBlendMode.Src };
-            if (known)
+            if (same && at == area)
             {
-                var keptAt = new SKRect(area.Left - at.Left, area.Top - at.Top, area.Right - at.Left, area.Bottom - at.Top);
-                canvas.DrawImage(image!, keptAt.Left, keptAt.Top, copy);
-                canvas.Save(); // what was not kept (the piece moved or grew past it) is taken as the surface has it
-                canvas.ClipRect(keptAt, SKClipOperation.Difference);
-                canvas.DrawImage(snapshot, -at.Left, -at.Top, copy);
-                canvas.Restore();
                 var fresh = SKRectI.Intersect(dirty!.Value, at);
                 if (!fresh.IsEmpty)
                 {
+                    using var piece = source.Snapshot(fresh);
+                    if (piece is not null) kept!.Canvas.DrawImage(piece, fresh.Left - at.Left, fresh.Top - at.Top, copy);
+                }
+            }
+            else
+            {
+                using var under = source.Snapshot(at);
+                using var old = same ? kept!.Snapshot() : null; // the piece moved or grew: what it kept still holds where it was not redrawn
+                var oldArea = area;
+                if (kept is null || keptSize != new SKSizeI(at.Width, at.Height) || gpu != context)
+                {
+                    if (kept is not null) released.Enqueue(kept);
+                    kept = Create(lease, at.Width, at.Height);
+                    keptSize = new SKSizeI(at.Width, at.Height);
+                }
+                if (kept is null || under is null) { valid = false; return null; }
+                var canvas = kept.Canvas;
+                canvas.DrawImage(under, 0, 0, copy);
+                if (old is not null)
+                {
+                    var keptAt = new SKRect(oldArea.Left - at.Left, oldArea.Top - at.Top, oldArea.Right - at.Left, oldArea.Bottom - at.Top);
                     canvas.Save();
-                    canvas.ClipRect(new SKRect(fresh.Left - at.Left, fresh.Top - at.Top, fresh.Right - at.Left, fresh.Bottom - at.Top));
-                    canvas.DrawImage(snapshot, -at.Left, -at.Top, copy);
+                    canvas.ClipRect(keptAt);
+                    var fresh = SKRectI.Intersect(dirty!.Value, at);
+                    if (!fresh.IsEmpty) canvas.ClipRect(new SKRect(fresh.Left - at.Left, fresh.Top - at.Top, fresh.Right - at.Left, fresh.Bottom - at.Top), SKClipOperation.Difference);
+                    canvas.DrawImage(old, keptAt.Left, keptAt.Top, copy);
                     canvas.Restore();
                 }
             }
-            else canvas.DrawImage(snapshot, -at.Left, -at.Top, copy);
-            image?.Dispose();
-            image = target.Snapshot();
-            (area, surface, size) = (at, handle, whole);
-            if (dirty is not null) return (image, at);
-            var taken = image; // nothing to keep without a known region: the next frame takes the surface whole again
-            image = null;
-            released.Enqueue(taken);
-            return (taken, at);
+            (area, surface, context, size) = (at, handle, gpu, whole);
+            valid = dirty is not null; // nothing to keep without a known region: the next frame takes the surface whole again
+            return (kept!, at);
         }
     }
 
@@ -750,14 +795,14 @@ internal static class GlassMaterial
     {
         private object? tracker;
         private MethodInfo? addRect;
-        private readonly Dictionary<object, (SKRectI Output, int Margin)> materials = new();
+        private readonly Dictionary<object, Spread> materials = new();
         private readonly List<SKRectI> queue = new();
         private readonly HashSet<object> grown = new();
-        private readonly List<KeyValuePair<object, (SKRectI Output, int Margin)>> pass = new();
+        private readonly List<KeyValuePair<object, Spread>> pass = new();
         private int rendered, visited;
 
         internal void Bind(object dirtyRects, MethodInfo add) => (tracker, addRect) = (dirtyRects, add);
-        internal void Set(object material, SKRectI output, int margin) => materials[material] = (output, margin);
+        internal void Set(object material, Spread spread) => materials[material] = spread;
         internal void Remove(object material) => materials.Remove(material);
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
@@ -783,11 +828,11 @@ internal static class GlassMaterial
             for (var i = 0; i < queue.Count; i++)
             {
                 var changed = queue[i];
-                foreach (var (material, (output, margin)) in pass)
+                foreach (var (material, spread) in pass)
                 {
                     if (grown.Contains(material)) continue;
-                    var reach = new SKRectI(changed.Left - margin, changed.Top - margin, changed.Right + margin, changed.Bottom + margin);
-                    var add = SKRectI.Intersect(reach, output);
+                    var reach = spread.Of(changed);
+                    var add = SKRectI.Intersect(reach, spread.Output);
                     if (add.IsEmpty || changed.Contains(add)) continue;
                     grown.Add(material);
                     addRect.Invoke(tracker, [Frame.ToLtrb(rect.GetType(), add)]);
@@ -801,8 +846,21 @@ internal static class GlassMaterial
     // The veil's channel between the light appearance's and the dark one's (a whole level, as the two ends were): darkness 0 is light, 1 is dark.
     private static byte Veil(double darkness, int dark, int light) => (byte)Math.Round(light + (dark - light) * Math.Clamp(darkness, 0, 1));
 
+    // How far a change under a material reaches into what it draws, in the surface's pixels: through the blur (3 sigma) everywhere, and through the
+    // refraction as well (SampledMargin in all) within the refracting band at the shape's edge. Inner is the part of the output no band can reach into
+    // (empty for a container's union or a turned shape): a change whose blur and refraction reach stays inside it spreads by the blur alone.
+    internal readonly record struct Spread(SKRectI Output, int Margin, SKRectI Inner, int Blur, int Bend)
+    {
+        public SKRectI Of(SKRectI changed)
+        {
+            var wide = Grow(changed, Blur + Bend);
+            return Grow(changed, !Inner.IsEmpty && Inner.Contains(wide) ? Blur : Math.Max(Margin, Blur + Bend));
+        }
+        private static SKRectI Grow(SKRectI r, int by) => new(r.Left - by, r.Top - by, r.Right + by, r.Bottom + by);
+    }
+
     // Draws the material; returns what it covers in the surface's pixels and how far a change under it reaches, for the window's Reach.
-    private static (SKRectI Output, int Margin)? Draw(ISkiaSharpApiLease lease, State state, Backdrop kept, SKRectI? dirty)
+    private static Spread? Draw(ISkiaSharpApiLease lease, State state, Backdrop kept, SKRectI? dirty)
     {
         var canvas = lease.SkCanvas;
         var bounds = UnionBounds(state).Inflate(state.Spacing / 2 + 1);
@@ -816,22 +874,31 @@ internal static class GlassMaterial
         sampled.Inflate((float)SampledMargin * scale, (float)SampledMargin * scale); // 3 sigma (36), max P1 displacement (28.6), antialias margin.
         var crop = SKRectI.Ceiling(sampled);
         // Immutable app-owned pixels: no screen capture or visual-tree replay.
-        using var snapshot = lease.SkSurface?.Snapshot();
-        var info = new SKImageInfo(Math.Max(1, crop.Width), Math.Max(1, crop.Height), SKColorType.Rgba8888, SKAlphaType.Premul);
-        // Keep native rendering on the lease's GPU; the software path also runs in headless tests (P1).
-        using var surface = lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
+        var under = kept.Take(lease, crop, dirty);
+        var surface = kept.Blurred(lease, crop);
         if (surface is null) return null;
-        surface.Canvas.Clear(new SKColor(Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 32, 247)));
-        if (snapshot is not null && kept.Take(lease, snapshot, crop, dirty) is { } under)
+        // The blur is read only where the shader draws in this frame (the canvas's clip on the shapes) and as far as the refraction displaces from
+        // there (26 pt times 1.1, the red channel's, and the linear filter's pixel): only that much is cleared and blurred (ED-NEW-glass-firstchild 16).
+        var reads = SKRectI.Intersect(canvas.DeviceClipBounds, output);
+        var smaller = state.Regions.Max(r => Math.Min(r.Size.Width, r.Size.Height));
+        // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
+        // it is not washed out by what lies around it (the effort knob over its fill and glow; see the shader note).
+        var radius = (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
+        var spread = SpreadOf(state, output, scale, radius);
+        if (reads.IsEmpty) return spread;
+        var shift = (int)Math.Ceiling(28.6 * scale) + 2;
+        var blurredCanvas = surface.Canvas;
+        blurredCanvas.Save();
+        blurredCanvas.ClipRect(new SKRect(reads.Left - shift - crop.Left, reads.Top - shift - crop.Top, reads.Right + shift - crop.Left, reads.Bottom + shift - crop.Top));
+        blurredCanvas.Clear(new SKColor(Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 32, 247)));
+        if (under is { } taken)
         {
-            // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
-            // it is not washed out by what lies around it (the effort knob over its fill and glow; see the shader note).
-            var smaller = state.Regions.Max(r => Math.Min(r.Size.Width, r.Size.Height));
-            var radius = (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
             using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
             using var blurPaint = new SKPaint { ImageFilter = blur };
-            surface.Canvas.DrawImage(under.Image, under.Area.Left - crop.Left, under.Area.Top - crop.Top, blurPaint);
+            using var pixels = taken.Surface.Snapshot(); // released before the next frame writes to the kept surface, so Skia copies nothing
+            blurredCanvas.DrawImage(pixels, taken.Area.Left - crop.Left, taken.Area.Top - crop.Top, blurPaint);
         }
+        blurredCanvas.Restore();
         using var image = surface.Snapshot();
         var sourceTransform = transform;
         sourceTransform.TransX -= crop.Left;
@@ -841,6 +908,7 @@ internal static class GlassMaterial
             new SKSamplingOptions(SKFilterMode.Linear), shaderTransform);
         var effect = Effect(state.Regions.Length);
         var uniforms = new SKRuntimeEffectUniforms(effect) { ["merge"] = (float)(2 * state.Spacing) };
+        var first = new List<(string Name, float[] Value)>(6); // region 0's values, for Inner
         for (var i = 0; i < state.Regions.Length; i++)
         {
             var r = state.Regions[i];
@@ -854,11 +922,113 @@ internal static class GlassMaterial
             var distanceScale = Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21));
             uniforms[$"flags{i}"] = new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f, (float)distanceScale, (float)r.Opacity };
             uniforms[$"pointer{i}"] = new[] { (float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f };
+            if (i == 0)
+            {
+                first.Add(("transform0", new[] { (float)inverse.M11, (float)inverse.M12, (float)inverse.M21, (float)inverse.M22 }));
+                first.Add(("translate0", new[] { (float)inverse.M31, (float)inverse.M32 }));
+                first.Add(("tint0", new[] { r.Tint.R / 255f, r.Tint.G / 255f, r.Tint.B / 255f, r.Tint.A / 255f }));
+                first.Add(("frost0", new[] { Veil(r.Darkness, 30, 245) / 255f, Veil(r.Darkness, 30, 245) / 255f, Veil(r.Darkness, 32, 247) / 255f, 0.18f }));
+                first.Add(("flags0", new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f, (float)distanceScale, (float)r.Opacity }));
+                first.Add(("pointer0", new[] { (float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f }));
+            }
         }
         var children = new SKRuntimeEffectChildren(effect) { ["backdrop"] = backdrop };
         using var shader = effect.ToShader(uniforms, children);
         using var paint = new SKPaint { Shader = shader, Color = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255)) };
-        canvas.DrawRect(local, paint); // One SDF clips, refracts, lights and merges the same shape.
-        return (output, (int)Math.Ceiling(SampledMargin * scale));
+        if (Inside(state) is not { } inside)
+        {
+            canvas.DrawRect(local, paint); // One SDF clips, refracts, lights and merges the same shape.
+            return spread;
+        }
+        // ED-NEW-glass-firstchild 16: the inside of one rounded rectangle (Inside) is drawn by Inner, which computes there what the whole shader does;
+        // the shader draws the rest. The two clips are the same rectangle, not antialiased, so each pixel is drawn once.
+        var innerEffect = state.Regions[0] is { Hovered: false, Pressed: false } ? Unlit.Value : Inner.Value;
+        var innerUniforms = new SKRuntimeEffectUniforms(innerEffect);
+        foreach (var (name, value) in first) if (innerEffect.Uniforms.Contains(name)) innerUniforms[name] = value;
+        using var innerShader = innerEffect.ToShader(innerUniforms, new SKRuntimeEffectChildren(innerEffect) { ["backdrop"] = backdrop });
+        using var innerPaint = new SKPaint { Shader = innerShader, Color = paint.Color };
+        canvas.Save();
+        canvas.ClipRect(inside);
+        canvas.DrawRect(inside, innerPaint);
+        canvas.Restore();
+        canvas.Save();
+        canvas.ClipRect(inside, SKClipOperation.Difference);
+        canvas.DrawRect(local, paint);
+        canvas.Restore();
+        return spread;
+    }
+
+    // The inside of a lone rounded rectangle, in the material's coordinates: past 1.6 corner radii from every side (Apple's corner curve lies within them,
+    // ContinuousCorner.Extent) and deeper than the band, 11.5 and the inner shade's reach (the shader's own test, half a unit further in): there the shader
+    // reads one texel and its rim and shade add nothing. Null for a container's union, a turned or a non-rectangular shape, or one too small to have one.
+    private static SKRect? Inside(State state)
+    {
+        if (state.Regions is not [{ Shape.Kind: GlassShapeKind.RoundedRectangle, Transform: { M12: 0, M21: 0 } } r]) return null;
+        var distanceScale = Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22));
+        if (distanceScale <= 0) return null;
+        var band = Math.Min(46.0, Math.Max(Math.Min(r.Size.Width, r.Size.Height) * 0.35, 1.0));
+        var shadeAt = Math.Min(5.0, band * 0.3);
+        var deep = Math.Max(Math.Max(band, 11.5), shadeAt + 4.0 * Math.Sqrt(2.0 * shadeAt * shadeAt + 0.5)) / distanceScale;
+        var corners = Math.Max(Math.Max(r.Corners.TopLeft, r.Corners.TopRight), Math.Max(r.Corners.BottomRight, r.Corners.BottomLeft));
+        var inset = Math.Max(1.6 * corners, deep) + 0.5;
+        if (r.Size.Width <= 2 * inset || r.Size.Height <= 2 * inset) return null;
+        var box = new Rect(inset, inset, r.Size.Width - 2 * inset, r.Size.Height - 2 * inset).TransformToAABB(r.Transform);
+        return new SKRect((float)box.Left, (float)box.Top, (float)box.Right, (float)box.Bottom);
+    }
+
+    // The shader's own sum inside a shape (the branch of Effect past the band, with coverage 1 and the shape's own tint): one texel, the frost, the tint,
+    // the pointer's highlight; Unlit is the same with no pointer on the piece (its highlight is 0 times a positive number: nothing).
+    private static readonly Lazy<SKRuntimeEffect> Unlit = new(() => SKRuntimeEffect.CreateShader("""
+        uniform shader backdrop;
+        uniform float4 tint0;
+        uniform float4 frost0;
+        uniform float4 flags0;
+        uniform float4 pointer0;
+        half4 main(float2 xy) {
+            half3 col = half3(backdrop.eval(xy).rgb);
+            col = mix(col, half3(frost0.rgb), half(frost0.a));
+            if (pointer0.w < 0.5) col = mix(col, half3(tint0.rgb), half(tint0.a));
+            half alpha = half(1.0 * flags0.w);
+            return half4(clamp(col, 0.0, 1.0) * alpha, alpha);
+        }
+        """, out var error) ?? throw new InvalidOperationException("Glass inside shader did not compile: " + error));
+    private static readonly Lazy<SKRuntimeEffect> Inner = new(() => SKRuntimeEffect.CreateShader("""
+        uniform shader backdrop;
+        uniform float4 transform0;
+        uniform float2 translate0;
+        uniform float4 tint0;
+        uniform float4 frost0;
+        uniform float4 flags0;
+        uniform float4 pointer0;
+        half4 main(float2 xy) {
+            half3 col = half3(backdrop.eval(xy).rgb);
+            col = mix(col, half3(frost0.rgb), half(frost0.a));
+            if (pointer0.w < 0.5) col = mix(col, half3(tint0.rgb), half(tint0.a));
+            float2 at = float2(xy.x * transform0.x + xy.y * transform0.z, xy.x * transform0.y + xy.y * transform0.w) + translate0;
+            float2 delta = at - pointer0.xy;
+            float highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * pointer0.z;
+            col += half3(half(highlight));
+            half alpha = half(1.0 * flags0.w);
+            return half4(clamp(col, 0.0, 1.0) * alpha, alpha);
+        }
+        """, out var error) ?? throw new InvalidOperationException("Glass inside shader did not compile: " + error));
+
+    private static Spread SpreadOf(State state, SKRectI output, float scale, float radius)
+    {
+        var margin = (int)Math.Ceiling(SampledMargin * scale);
+        var blur = (int)Math.Ceiling(3 * radius) + 2; // the blur's 3 sigma (radius is the sigma) and the linear filter's pixel
+        var bend = (int)Math.Ceiling(28.6 * scale) + 2; // the refraction's largest displacement, 26 pt times 1.1
+        var inner = SKRectI.Empty;
+        if (state.Regions is [{ Transform: { M12: 0, M21: 0 } } only])
+        {
+            // The band is at most 46 pt in from the edge; a corner's curve, Apple's included (ContinuousCorner, under 1.6 times its radius), lies inside
+            // the box the corners' radii take from it.
+            var corners = Math.Max(Math.Max(only.Corners.TopLeft, only.Corners.TopRight), Math.Max(only.Corners.BottomRight, only.Corners.BottomLeft));
+            if (only.Shape.Kind != GlassShapeKind.RoundedRectangle) corners = Math.Min(only.Size.Width, only.Size.Height) / 2;
+            var inset = (int)Math.Ceiling((48 + 1.6 * corners) * scale * Math.Max(Math.Abs(only.Transform.M11), Math.Abs(only.Transform.M22)));
+            inner = new SKRectI(output.Left + inset, output.Top + inset, output.Right - inset, output.Bottom - inset);
+            if (inner.Width <= 0 || inner.Height <= 0) inner = SKRectI.Empty;
+        }
+        return new Spread(output, margin, inner, blur, bend);
     }
 }
