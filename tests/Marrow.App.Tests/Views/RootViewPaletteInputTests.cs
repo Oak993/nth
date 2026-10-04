@@ -26,6 +26,8 @@ public sealed class RootViewPaletteInputTests(HeadlessSession headless)
 {
     [Theory]
     [Trait("Req", "PR-WIN-067")]
+    [Trait("Req", "UI-WIN-028")] // CommandPalette.swift:34-41: the scrim is part of the palette layer, window-sized and over the sidebar, mounted only while the palette is open and fresh on reopen; a click left of the card (over the sidebar) closes it
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-WIN-028: the mount, unmount and window-wide hit; the colours, bounds and accessibility are CommandPaletteScrimTests
     [InlineData(false)]
     [InlineData(true)]
     public void The_production_shortcut_opens_above_a_live_glide_and_input_dismissal_reopens_fresh(bool escape) => headless.OnUiThread(() =>

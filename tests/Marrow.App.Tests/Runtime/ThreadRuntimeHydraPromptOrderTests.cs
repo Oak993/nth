@@ -92,7 +92,7 @@ public sealed class ThreadRuntimeHydraPromptOrderTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-071")] // :1308-1310 `else if merge != nil` on a native launch: the turn note carries the merge, team nil
-    public void A_native_lead_gets_the_merge_note_without_a_team_between_the_delegation_request_and_the_text()
+    public void A_lead_running_its_own_heads_gets_the_merge_note_without_a_team_between_the_delegation_request_and_the_text()
     {
         using var rig = Rig(ProviderKind.Claude, autoMerge: true);
         AddFinishedHead(rig);
@@ -109,7 +109,7 @@ public sealed class ThreadRuntimeHydraPromptOrderTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-071")] // :1308 a native launch with no merge status (nil) prepends no turn note
-    public void A_native_lead_with_no_merge_status_gets_only_the_delegation_request_in_front_of_the_text()
+    public void A_lead_running_its_own_heads_with_no_merge_status_gets_only_the_delegation_request_in_front_of_the_text()
     {
         using var rig = Rig(ProviderKind.Claude, autoMerge: true);
         AddFinishedHead(rig);
@@ -122,7 +122,7 @@ public sealed class ThreadRuntimeHydraPromptOrderTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-071")] // :1297-1308 a native launch that does not auto-merge computes no merge status, so no note
-    public void A_native_lead_that_does_not_auto_merge_gets_no_note_even_with_a_merge_recorded()
+    public void A_lead_running_its_own_heads_that_does_not_auto_merge_gets_no_note_even_with_a_merge_recorded()
     {
         using var rig = Rig(ProviderKind.Claude, autoMerge: false);
         RecordHeldMerge(rig);
@@ -153,6 +153,68 @@ public sealed class ThreadRuntimeHydraPromptOrderTests
             prompt);
         Assert.DoesNotContain("[Hydra setting: enabled]", prompt, StringComparison.Ordinal);
         Assert.Contains("[Hydra] Your heads reported back below. " + team + " " + NothingLeft + " ", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-071")] // :1305-1308 a provider that keeps the policy in its system prompt: the team note, no preamble, and NO anti-slop (:1325)
+    public void An_API_provider_lead_gets_the_turn_note_with_team_and_merge_but_no_preamble_and_no_anti_slop()
+    {
+        using var rig = Rig(ProviderKind.Deepseek, autoMerge: true);
+        var head = AddFinishedHead(rig);
+        RecordHeldMerge(rig);
+        var launch = Launch(rig);
+        var team = HydraPrompts.TeamStatus([head]);
+
+        rig.Send("Audit the module", [TextFile, Picture]);
+
+        var prompt = Assert.Single(rig.Session.Inputs).Text;
+        Assert.Equal(
+            HydraPrompts.DelegationRequest(launch) + HydraPrompts.FallbackTurnNote(team, NothingLeft) + "Audit the module" + AttachedTail,
+            prompt);
+        Assert.DoesNotContain("[Hydra is on] You lead ", prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain(AntiSlopPolicy.EnabledInstructions, prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-071")] // :1303-1304 a report turn (hydraHeads != nil) from the same lead: the report note, no delegation request, no anti-slop
+    public void The_same_lead_on_a_report_turn_gets_the_report_note_and_no_delegation_request()
+    {
+        using var rig = Rig(ProviderKind.Deepseek, autoMerge: true);
+        var head = AddFinishedHead(rig);
+        RecordHeldMerge(rig);
+        var team = HydraPrompts.TeamStatus([head]);
+
+        rig.Send("The reports.", [TextFile], hydraHeads: [1]);
+
+        var prompt = Assert.Single(rig.Session.Inputs).Text;
+        Assert.Equal(HydraPrompts.FallbackReportNote(team, canDelegate: true, NothingLeft) + "The reports." + AttachedTail, prompt);
+        Assert.DoesNotContain("[Hydra setting: enabled]", prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain(AntiSlopPolicy.EnabledInstructions, prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-071")] // :1290-1294 the list is "\n\nAttached files:\n" then one "- PATH" per non-image attachment, in order; images are skipped
+    public void Several_attachments_are_listed_one_per_line_in_order_and_images_are_left_out()
+    {
+        var second = new Attachment { Name = "b.md", Path = @"C:\work\b.md", MimeType = "text/markdown" };
+        using var rig = Rig(ProviderKind.Cursor, autoMerge: false);
+
+        rig.Send("Audit the module", [TextFile, Picture, second]);
+
+        var prompt = Assert.Single(rig.Session.Inputs).Text;
+        Assert.EndsWith("Audit the module\n\nAttached files:\n- C:\\work\\a.txt\n- C:\\work\\b.md", prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("pic.png", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-071")] // :1288-1334 with Hydra off there is no launch: only anti-slop (a CLI provider) in front of the text and the attachment list
+    public void With_hydra_off_only_anti_slop_and_the_attachment_list_surround_the_text()
+    {
+        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Cursor, hydraOn: false, settings: app => app.Settings.AntiSlopEnabled = true);
+
+        rig.Send("Audit the module", [TextFile]);
+
+        Assert.Equal(AntiSlopPolicy.EnabledInstructions + "\n\n" + "Audit the module" + AttachedTail, Assert.Single(rig.Session.Inputs).Text);
     }
 
     [Fact]

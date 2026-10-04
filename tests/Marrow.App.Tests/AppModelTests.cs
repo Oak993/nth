@@ -458,9 +458,47 @@ public sealed class AppModelTests
         Assert.Equal("C", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name); // carries every change made during the wait
     }
 
+    // PR-LAUNCH-060's own verification_method: ten mutations in 100 ms produce exactly ONE write, 400 ms after the first.
+    // The write count is read off lastLibrarySave (AppModel.swift:1318, stamped by every saveLibrary() call, scheduled or direct).
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-060")] // AppModel.swift:1304-1314, :1316-1324; Storage.swift:340-351
+    public void ScheduleSave_ten_changes_within_100_ms_write_once_400_ms_after_the_first_and_never_a_second_time()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        h.WriteLibrary([project], []);
+        var model = h.MakeModel();
+        var lastSave = typeof(AppModel).GetField("lastLibrarySave", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        Assert.Null(lastSave.GetValue(model));
+
+        for (var i = 0; i < 10; i++)
+        {
+            h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "N" + i }));
+            h.Main.AdvanceMilliseconds(10);
+        }
+        h.Main.AdvanceMilliseconds(299); // t=399 ms since the first change: nothing yet, so the wait never restarted
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("P", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name);
+        Assert.Null(lastSave.GetValue(model));
+
+        h.Main.AdvanceMilliseconds(1); // t=400 ms: the one write, carrying the last of the ten changes
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("N9", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name);
+        var firstStamp = lastSave.GetValue(model);
+        Assert.NotNull(firstStamp);
+
+        // No second write for the nine other calls: a call while a save is pending scheduled nothing extra.
+        h.Main.AdvanceMilliseconds(10_000);
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal(firstStamp, lastSave.GetValue(model));
+        Assert.Equal("N9", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name);
+    }
+
     [Fact]
     [Trait("Req", "PR-STORE-015")] // App/AppModel.swift:1304-1314, :1318
     [Trait("Req", "PR-LAUNCH-076")] // App/AppModel.swift:1304-1314, :1318
+    [Trait("Req", "PR-LAUNCH-060")] // AppModel.swift:1307 (the 4 s minimum spacing clause)
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-LAUNCH-060: spacing only; the burst/one-write clause is ScheduleSave_ten_changes_within_100_ms_...
     public void ScheduleSave_soon_after_a_save_landed_waits_nearly_four_seconds_not_the_400_ms_floor()
     {
         using var h = new AppModelHarness();

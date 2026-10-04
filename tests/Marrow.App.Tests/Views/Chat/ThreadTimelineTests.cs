@@ -380,6 +380,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:179-208
     public void Rail_is_an_unframed_thirty_point_overlay_below_the_titlebar() => WithTimeline((view, _, _, _, _) =>
     {
@@ -387,6 +388,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043 and UI-CHAT-044 and UI-CHAT-069
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and UI-CHAT-044 and UI-CHAT-069 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:2121-2196; App/Views/Chat/ThreadTimeline.swift:2157-2168; App/Views/Chat/ThreadTimeline.swift:2104,2123
     public void Working_thinking_opens_with_source_color_typography_indent_and_unconditional_follow() => WithTimeline((view, runtime, _, _, h) =>
     {
@@ -408,6 +410,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043 and UI-CHAT-044
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and UI-CHAT-044 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:2089-2092,2107-2119,2155-2176,2185-2188; App/Views/Chat/ThreadTimeline.swift:2157-2168,2303-2314
     public void Streaming_thinking_keeps_the_same_working_indicator_and_its_open_state() => WithTimeline((view, runtime, _, _, _) =>
     {

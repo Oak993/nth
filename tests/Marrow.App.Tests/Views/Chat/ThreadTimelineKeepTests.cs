@@ -281,6 +281,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof PR-CHAT-121 and UI-CHAT-043
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-255 (3)): ThreadTimeline.swift:2261-2274 (WorkingBlockView hands WorkingIndicator its startedAt and finishedAt), :2075-2092,2107-2119 (@State isExpanded, which no change of a `let` disturbs)
     public void An_opened_running_line_that_becomes_an_earlier_segment_stays_the_same_line_and_stays_open() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -301,6 +302,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof PR-CHAT-121 and UI-CHAT-043
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-255 (5)): ThreadTimeline.swift:2125 HydraElapsedTime and :2139 HydraProgressBar stand in the same place of the body when the line's times change (:2261-2274), :2182 the line's motion (OD-0076: the time's words swap with a fade, not a cut), :2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`: the one-second clock ends with the line's running
     public void A_running_line_that_becomes_an_earlier_segment_keeps_its_clock_and_its_bar_fades_its_time_over_and_stops_ticking() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -340,6 +342,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     private static string BarName(HydraProgressBar bar) => Avalonia.Automation.AutomationProperties.GetName(bar) ?? "";
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof PR-CHAT-121 and UI-CHAT-043
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-255 (5)): ThreadTimeline.swift:2125 HydraElapsedTime, :2139 HydraProgressBar (the same views handed the running status), :2189-2196 `.task(id: FrontMonitor.shared.isVisible && isRunning)`; HydraProgressBar.swift:129-145,186-198: a line made as an earlier segment's (a turn's rows before its run is known) that is handed a running turn keeps its clock and its bar, and the clock counts, the bar draws its sweep and holds a sweep slot
     public void A_line_made_as_an_earlier_segments_that_is_handed_a_running_turn_keeps_its_clock_and_bar_and_the_clock_counts_and_the_bar_sweeps() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -391,6 +394,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof PR-CHAT-121 and UI-CHAT-043
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-255 (5)): ThreadTimeline.swift:2125,2139 (the same clock and bar handed the stopped status), HydraProgressBar.swift:129-134,186-198: a running line whose turn stops with a note landing (an interrupted turn) keeps its clock and bar; the clock stops, the bar stops drawing and gives its sweep slot back
     public void A_running_line_handed_a_stopped_turn_keeps_its_clock_and_bar_and_the_clock_stops_and_the_bar_gives_its_sweep_slot_back() => ThreadTimelineRig.Run(headless, mount =>
     {

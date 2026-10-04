@@ -39,6 +39,15 @@ public sealed class ComposerWorkingDots : Border
             () => EnvironmentValues.GetAccessibilityReduceMotion(this),
             motion => dotField.UpdateAnimated(!motion)
         );
+        // :13-19, :104-111 the body re-reads accessibilityReduceMotion on every update and DotFieldLayerView.configure reinstalls only when the
+        // flag changed, so turning reduce motion on or off while a turn runs takes effect without rebuilding the view. The attached
+        // environment property is not observable state (Track runs once on attach), so a later change arrives through the property
+        // notification, as in DotFieldSweep below.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == EnvironmentValues.AccessibilityReduceMotionProperty)
+                dotField.UpdateAnimated(!EnvironmentValues.GetAccessibilityReduceMotion(this));
+        };
     }
 }
 

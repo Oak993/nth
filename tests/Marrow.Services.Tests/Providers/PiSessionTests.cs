@@ -1284,6 +1284,8 @@ public sealed class PiSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:497-511
+    [Trait("Req", "UI-PROVCLI-010")] // PiSession.swift:506: Yes is the first of exactly two choices, no free-text field; the answer mapping is the wire test AnswerQuestion_confirm_maps_exactly_Yes_to_true_and_anything_else_to_false
+    [Trait("Req", "UI-PROVCLI-011")] // PiSession.swift:506: No is the second; the answer mapping is the same wire test
     public void HandleExtensionUI_confirm_emits_a_yes_no_question_with_a_pi_header()
     {
         var (session, events) = Make2();
@@ -1409,6 +1411,24 @@ public sealed class PiSessionTests
     private static string GateTitle(string kind, string toolName, string toolCallId, JSONValue? input = null) =>
         "droppy-gate " + JSONValue.FromDictionaryLiteral(("kind", kind), ("toolName", toolName),
             ("toolCallId", toolCallId), ("input", input ?? JSONValue.FromDictionaryLiteral())).CompactString;
+
+    [Fact]
+    [Trait("Req", "UI-PROVCLI-012")] // PiSession.swift:504, :517-518, :547: the header is the literal Pi on confirm, input, editor and a non-gate select; input/editor prompt = params.title defaulting to Pi
+    public void Every_Pi_question_kind_carries_the_literal_header_Pi_and_a_title_less_editor_shows_Pi_twice()
+    {
+        var (session, events) = Make2();
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"h1\",\"method\":\"confirm\",\"params\":{\"title\":\"Go?\"}}"));
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"h2\",\"method\":\"input\",\"params\":{\"title\":\"Name?\"}}"));
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"h3\",\"method\":\"editor\",\"params\":{}}"));
+        session.Handle(SelectRequest("h4", "Pick one", ["a", "b"]));
+        var questions = events.OfType<ProviderEvent.Question>().Select(e => Assert.Single(e.Value.Questions)).ToArray();
+        Assert.Equal(4, questions.Length);
+        Assert.All(questions, question => Assert.Equal("Pi", question.Header));
+        Assert.Equal("Go?", questions[0].Prompt);
+        Assert.Equal("Name?", questions[1].Prompt); // input: the prompt is params.title
+        Assert.Equal("Pi", questions[2].Prompt); // a title-less editor: the prompt defaults to Pi as well, so the sheet reads Pi twice
+        Assert.Equal("Pick one", questions[3].Prompt);
+    }
 
     // ---- PR-PROVCLI-296 ----
 
@@ -1727,6 +1747,13 @@ public sealed class PiSessionTests
         session.AnswerQuestion(q2.Id, new ValueMap<string, ValueList<string>>(
             new Dictionary<string, ValueList<string>> { ["a"] = new ValueList<string>(["No"]) }));
         Assert.False(Json(WaitForStdinLine(startedScript, 3))["confirmed"]!.JSONValueBool); // UI-PROVCLI-011
+
+        // The comparison is ordinal and against the literal "Yes" only: any other text, a translated or re-cased label included, answers no.
+        session.Handle(Json("{\"type\":\"extension_ui_request\",\"id\":\"q3\",\"method\":\"confirm\",\"params\":{\"title\":\"Proceed?\"}}"));
+        var q3 = events.OfType<ProviderEvent.Question>().Last().Value;
+        session.AnswerQuestion(q3.Id, new ValueMap<string, ValueList<string>>(
+            new Dictionary<string, ValueList<string>> { ["a"] = new ValueList<string>(["yes"]) }));
+        Assert.False(Json(WaitForStdinLine(startedScript, 4))["confirmed"]!.JSONValueBool);
     }
 }
 

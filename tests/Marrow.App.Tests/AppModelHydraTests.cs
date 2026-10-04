@@ -992,6 +992,8 @@ public sealed class AppModelHydraTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-120")] // AppModel+Hydra.swift:602-628; HydraPanel.swift:41
+    [Trait("Req", "PR-HYDRA-169")] // AppModel+Hydra.swift:604 (windows_path: the auto-clear delay is the hold plus 200 ms)
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169: the auto-clear delay clause only
     public void Auto_clear_waits_for_the_finish_wave_then_removes_the_head_and_its_five_panel_fields()
     {
         using var h = new AppModelHarness();

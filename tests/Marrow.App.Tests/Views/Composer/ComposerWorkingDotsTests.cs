@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App.Tests.Fixtures;
@@ -28,110 +29,93 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
         return window;
     }
 
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-102")] // :67-71 dotSize = 2, pitch = 8, maxRows = 3; :124-149 layout
-    public void The_working_dot_field_is_2_point_dots_on_an_8_point_pitch_with_max_three_rows() => OnUiThread(() =>
+    // PR-COMPOSER-102: the field's layout, read off the dots themselves (the earlier tests here only asserted that a layer existed).
+    private static Ellipse[] Dots(DotFieldControl control) => Assert.IsType<Canvas>(control.Layer).Children.Cast<Ellipse>().ToArray();
+    private static void Lay(DotFieldControl control, double width, double height)
     {
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 400, height: 300);
-
-        // At 400x300 with pitch=8: columnCount = ceil(400/8)+1 = 51; rowCount = min(3, ceil(300/8)) = 3
-        // The layout should set up the visible tree with dots
-        Assert.NotNull(control.Layer); // Visual tree is set up
-
-        window.Close();
-    });
+        control.Measure(new Size(width, height));
+        control.Arrange(new Rect(0, 0, width, height));
+    }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-102")] // :129-132 rowCount calculation
-    public void The_dot_field_caps_at_three_rows_however_tall() => OnUiThread(() =>
-    {
-        // Test with a very tall container
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 200, height: 1000);
-
-        // rowCount = min(3, max(1, ceil(1000/8))) should be 3
-        Assert.NotNull(control.Layer);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-102")] // :154-156 guard size != laidOutSize
-    public void Layout_is_skipped_for_unchanged_bounds() => OnUiThread(() =>
-    {
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 100, height: 100);
-
-        var initialLayer = control.Layer;
-
-        // Trigger layout again with same size (should not recreate)
-        control.InvalidateMeasure();
-        window.Measure(new Size(100, 100));
-        window.Arrange(new Rect(0, 0, 100, 100));
-        Dispatcher.UIThread.RunJobs();
-
-        // Layout should be reused
-        Assert.Same(initialLayer, control.Layer);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-103")] // :72-76 period = 2.2, columnDelay = 0.045, rowDelay = 0.09; :177-189 keyframes
-    public void The_dot_pulse_is_a_2_2_second_keyframe_from_0_08_to_0_75_and_back() => OnUiThread(() =>
-    {
-        using var runtime = new TestRuntime();
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 200, height: 100);
-
-        // The animation should be set up when the control is shown
-        // We can't directly query the animation state, but we can verify the control
-        // has the capability to animate by checking it's not in reduce-motion mode
-
-        Assert.NotNull(control.Layer);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-103")] // :142, :172-174 column and row delays spread the wave
-    public void The_animation_wave_travels_left_to_right_and_upward() => OnUiThread(() =>
-    {
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 200, height: 100);
-
-        // The delays should create a wave pattern:
-        // columnDelay = 0.045, rowDelay = 0.09
-        // This is a property of the animation setup, not directly testable here
-        Assert.NotNull(control.Layer);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-104")] // :13-19 passes animated: !reduceMotion; :152-157 dot.opacity = 0.28
-    public void With_reduced_motion_the_dot_field_is_static_at_0_28_opacity() => OnUiThread(() =>
+    [Trait("Req", "PR-COMPOSER-102")] // :67-71 dotSize = 2, pitch = 8, maxRows = 3; :124-149 layout (columns ceil(w/8)+1, rows ceil(h/8), centre (4, h-4-8r))
+    public void A_field_has_2_point_round_dots_on_an_8_point_pitch_with_one_extra_column_and_each_row_fainter_than_the_one_below() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: false);
-        var window = ShowInFrame(control, width: 200, height: 100);
+        Lay(control, 400, 17.6); // 51 columns x ceil(17.6/8) = 3 rows
+        var dots = Dots(control);
+        Assert.Equal(51 * 3, dots.Length);
+        Assert.All(dots, dot => { Assert.Equal(2, dot.Width); Assert.Equal(2, dot.Height); }); // an ellipse of 2 x 2 is a corner radius of 1
+        for (var row = 0; row < 3; row++)
+            for (var column = 0; column < 51; column++)
+            {
+                var dot = dots[row * 51 + column];
+                Assert.Equal(4 + 8 * column - 1, Canvas.GetLeft(dot), 8); // centre (pitch / 2 + 8 c)
+                Assert.Equal(17.6 - 4 - 8 * row - 1, Canvas.GetTop(dot), 8); // measured up from the bottom edge
+                Assert.Equal(0.28 * (1 - row / 3.0), dot.Opacity, 8); // instanceAlphaOffset -1 / rowCount: faint upward
+            }
+        Assert.True(dots[0].Opacity > dots[51].Opacity && dots[51].Opacity > dots[102].Opacity);
+    });
 
-        // When animated=false, all dots should be at opacity 0.28
-        Assert.NotNull(control.Layer);
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-102")] // :129-132 rowCount = min(3, max(1, ceil(height / pitch))), however tall
+    public void A_tall_field_has_exactly_three_rows() => OnUiThread(() =>
+    {
+        var control = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: false);
+        Lay(control, 200, 1000);
+        var dots = Dots(control);
+        Assert.Equal(26 * 3, dots.Length); // ceil(200 / 8) + 1 columns, three rows however tall
+        Assert.Equal(new[] { 995.0, 987.0, 979.0 }, dots.Select(dot => Math.Round(Canvas.GetTop(dot), 8)).Distinct().ToArray());
+        Assert.Equal(new[] { 0.28, 0.28 * 2 / 3, 0.28 / 3 }.Select(value => Math.Round(value, 8)), dots.Select(dot => Math.Round(dot.Opacity, 8)).Distinct());
 
+        var thin = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: false);
+        Lay(thin, 8, 3); // a pill thinner than a pitch still has its one row
+        Assert.Equal(2, Dots(thin).Length);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-102")] // :154-156 a zero-size or unchanged bounds skips the layout entirely
+    public void A_zero_sized_field_lays_out_no_dots_and_an_unchanged_size_keeps_its_dots() => OnUiThread(() =>
+    {
+        var control = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: false);
+        Lay(control, 0, 0);
+        Assert.Empty(Dots(control));
+        Lay(control, 100, 100);
+        var first = Dots(control)[0];
+        var count = Dots(control).Length;
+        control.InvalidateArrange();
+        control.Arrange(new Rect(0, 0, 0, 0)); // a zero-size bounds skips the layout: the dots it had stay (a layout at 0 x 0 would leave one)
+        Assert.Equal(count, Dots(control).Length);
+        Assert.Same(first, Dots(control)[0]);
+        control.InvalidateArrange();
+        control.Arrange(new Rect(0, 0, 100, 100)); // the same size again: the same dots, nothing rebuilt
+        Assert.Same(first, Dots(control)[0]);
+        control.InvalidateArrange();
+        control.Arrange(new Rect(0, 0, 100, 60)); // a changed size lays out anew
+        Assert.NotSame(first, Dots(control)[0]);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-104")] // :13-19 passes animated: !reduceMotion; :152-157 dot.opacity = 0.28 for the pill, still faded by row
+    public void With_reduced_motion_the_dot_field_is_static_at_0_28_opacity_faded_by_row() => OnUiThread(() =>
+    {
+        var control = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: false);
+        var window = ShowInFrame(control, width: 200, height: 24);
+        var dots = Dots(control);
+        Assert.Equal(26 * 3, dots.Length);
+        Assert.Equal(new[] { 0.28, 0.28 * 2 / 3, 0.28 / 3 }.Select(value => Math.Round(value, 8)), dots.Select(dot => Math.Round(dot.Opacity, 8)).Distinct());
+        Assert.True(control.Layer!.IsVisible); // the still dots are what is drawn
         window.Close();
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-104")] // :155 dot.opacity = 0.28 for pill, 0 for sweep
+    [Trait("Req", "PR-COMPOSER-104")] // :155 dot.opacity = 0.28 for the pill, 0 for a sweep
     public void A_sweep_is_invisible_when_not_animated() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: true);
-        var window = ShowInFrame(control, width: 200, height: 100);
-
-        // When animated=false and sweeps=true, opacity should be 0
-        Assert.NotNull(control.Layer);
-
+        var window = ShowInFrame(control, width: 200, height: 24);
+        Assert.NotEmpty(Dots(control));
+        Assert.All(Dots(control), dot => Assert.Equal(0, dot.Opacity));
         window.Close();
     });
 
@@ -187,44 +171,6 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
         Assert.NotNull(control.Layer);
 
         window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "UI-COMPOSER-017")] // Fills pill's bottom 40%, clipped to 22 point radius
-    public void The_dot_field_fills_the_pills_bottom_portion() => OnUiThread(() =>
-    {
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 300, height: 80);
-
-        // The control bounds should be set up for the visual tree
-        Assert.NotNull(control.Layer);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "UI-COMPOSER-017")] // colors: Chrome.accentNSColor; each row up is fainter by 1/rowCount
-    public void Each_row_is_fainter_than_the_one_below() => OnUiThread(() =>
-    {
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 200, height: 100);
-
-        // With 3 rows, each row up should have increasing alpha offset of -1/3
-        Assert.NotNull(control.Layer);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-102")] // :155-157 check size > 0
-    public void Zero_size_skips_layout() => OnUiThread(() =>
-    {
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        // Don't show it - zero size should skip layout
-
-        var layer = control.Layer;
-        // With no layout, layer might be null or in initial state
-        Assert.NotNull(control.Layer);
     });
 
     [Fact]

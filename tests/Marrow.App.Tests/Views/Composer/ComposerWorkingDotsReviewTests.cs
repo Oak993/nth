@@ -55,6 +55,49 @@ public sealed class ComposerWorkingDotsReviewTests(HeadlessSession headless)
         Assert.Same(first, Assert.IsType<Canvas>(c.Layer).Children[0]);
     });
 
+    // PR-COMPOSER-104 on the wrapper the composer mounts (ComposerWorkingDots.swift:13-19 passes animated: !reduceMotion on every body pass;
+    // :104-111 configure reinstalls only when the flag changed): "turning reduce motion off installs the animation without rebuilding the view".
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-104")] // App/Views/Composer/ComposerWorkingDots.swift:13-19, :104-111, :152-157
+    public void The_pill_field_starts_static_under_reduced_motion_and_animates_again_when_it_is_turned_off() => headless.OnUiThread(() =>
+    {
+        using var rt = new TestRuntime();
+        using var executor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var frames = new ManualFrameSource();
+        using var scope = FrameClock.Source.Override(frames);
+        var host = new Border { Width = 200, Height = 24 };
+        EnvironmentValues.SetAccessibilityReduceMotion(host, true);
+        var dots = new ComposerWorkingDots();
+        host.Child = dots;
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 24, Content = host };
+        window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var field = Assert.IsType<DotFieldControl>(dots.Child);
+        var still = Assert.IsType<Canvas>(field.Layer);
+        var visual = Avalonia.Rendering.Composition.ElementComposition.GetElementChildVisual(field);
+
+        // Reduce motion on: the dots are drawn but do not pulse, each at 0.28 and still faded by row.
+        Assert.True(still.IsVisible);
+        Assert.Equal(new[] { 0.28, 0.28 * 2 / 3, 0.28 / 3 }.Select(value => Math.Round(value, 8)), still.Children.Select(dot => Math.Round(dot.Opacity, 8)).Distinct());
+        Assert.False(Assert.IsType<Avalonia.Rendering.Composition.CompositionCustomVisual>(visual).Visible);
+
+        // Turned off while the turn runs: the same field starts pulsing, no rebuild.
+        EnvironmentValues.SetAccessibilityReduceMotion(host, false);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Same(field, dots.Child);
+        Assert.Same(still, field.Layer);
+        Assert.False(still.IsVisible);
+        Assert.Same(visual, Avalonia.Rendering.Composition.ElementComposition.GetElementChildVisual(field));
+        Assert.True(Assert.IsType<Avalonia.Rendering.Composition.CompositionCustomVisual>(visual).Visible);
+
+        // And on again: static once more.
+        EnvironmentValues.SetAccessibilityReduceMotion(host, true);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.True(still.IsVisible);
+        Assert.False(Assert.IsType<Avalonia.Rendering.Composition.CompositionCustomVisual>(visual).Visible);
+        window.Close();
+    });
+
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // App/Views/Composer/ComposerWorkingDots.swift:17,32-33
     public void Decorations_are_hidden_from_automation_and_hit_testing() => headless.OnUiThread(() =>

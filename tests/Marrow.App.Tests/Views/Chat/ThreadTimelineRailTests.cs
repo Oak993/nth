@@ -19,6 +19,7 @@ public sealed class ThreadTimelineRailTests(HeadlessSession headless)
     private static double Landing(TimelineMount mount, int index) => Math.Min(BlockTop(mount, index), mount.Scroll.Extent.Height - mount.Scroll.Viewport.Height);
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (the record's interactions; its geometry and its states are not claimed here): TimelineMinimap.swift:201-240,348-365 (hover previews, a press on the hovered tick jumps nothing, a drag over ticks tracks one to one unanimated, the release glides once), ThreadTimeline.swift:224-252 (the glide is .smooth(duration: 0.35))
     public void The_pointer_previews_with_a_hover_scrubs_one_to_one_with_a_press_and_a_drag_and_glides_once_on_the_release() => ThreadTimelineRig.Run(headless, mount =>
     {

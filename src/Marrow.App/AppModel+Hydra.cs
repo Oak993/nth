@@ -492,7 +492,7 @@ public sealed partial class AppModel
         if (Settings.HydraAutoClearFinished)
             MainActor.Spawn(async () =>
             {
-                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(2_200));
+                await SwiftTask.TrySleep(TimeSpan.FromSeconds(HydraPanel.FinishHold + 0.2)); // AppModel+Hydra.swift:604 .seconds(HydraPanel.finishHold + 0.2), coupled to the hold
                 // AppModel+Hydra.swift:605-609: the head may have a different parent after the hold.
                 if (Thread(id) is not { IsInPanel: true, Hydra.IsFinished: true } currentHead) return;
                 UpdateThread(id, thread => thread with { IsInPanel = false });

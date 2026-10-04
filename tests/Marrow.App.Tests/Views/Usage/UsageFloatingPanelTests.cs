@@ -13,6 +13,7 @@ using Marrow.App.Views.Chat;
 using Marrow.App.Views.Usage;
 using Marrow.App.Window;
 using Marrow.Core.Models;
+using Marrow.Services.Providers;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Xunit;
@@ -154,6 +155,8 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     [Trait("Req", "PR-USAGE-061")] // App/Views/Usage/UsageFloatingPanel.swift:39-41
     [Trait("Decision", "ED-062")]
     [Trait("Req", "PR-USAGE-111")] // App/Views/Usage/UsageFloatingPanel.swift:40 .font(.system(.body)): 13 points
+    [Trait("Req", "UI-USAGE-040")] // :40-41 the placeholder's type role and its secondary text colour
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-USAGE-040: the placeholder's type and colour; the live swap is the test below, the sentence and the 94 the one above
     public void Placeholder_text_uses_body_style_and_secondary_text_color()
     {
         session.OnUiThread(() =>
@@ -168,6 +171,69 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var text = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(panel),
                 t => t.Text == "Nothing to show for Cursor yet.");
             Assert.Equal(13, text.FontSize); // ED-059: .body is 13 points
+            Assert.Equal(Chrome.SecondaryText.Resolve(text.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(text.Foreground).Color); // :41
+        });
+    }
+
+    // :26-45 body re-runs when runtime.usage changes: the placeholder gives way to the usage panel when the first usage arrives and comes back
+    // when it carries no window, the height reported to the pane follows each branch, and the heads provider counts for hasSomething.
+    [Fact]
+    [Trait("Req", "UI-USAGE-040")] // App/Views/Usage/UsageFloatingPanel.swift:26-45
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-USAGE-040: the live swap and the heads branch of hasSomething; the sentence, 94, padding and centring are the tests above and below
+    public void Panel_swaps_between_placeholder_and_usage_when_the_runtime_usage_changes()
+    {
+        session.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var runtime = MakeRuntime(harness, usage: null, provider: ProviderKind.Cursor);
+            var reports = new System.Collections.Generic.List<double>();
+            var panel = new UsageFloatingPanel(
+                runtime, ProviderKind.Cursor, headsProvider: null, size: new Size(360, 300),
+                onContentHeight: h => reports.Add(h), onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
+            Show(panel, harness);
+
+            Assert.Contains("Nothing to show for Cursor yet.", AllText(panel), StringComparison.Ordinal);
+            Assert.Equal(94.0, reports[^1]);
+
+            // The first usage with a window arrives while the panel is up: the placeholder gives way to the usage panel.
+            harness.Main.OnMain(() => runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens = 100, WindowTokens = 1000 })));
+            harness.Main.OnMain(() => Avalonia.Threading.Dispatcher.UIThread.RunJobs());
+            Assert.DoesNotContain("Nothing to show", AllText(panel), StringComparison.Ordinal);
+            var usagePanel = Assert.Single(LogicalQuery.SelfAndDescendants<UsagePanel>(panel));
+            Assert.Contains("Context window", AllText(panel), StringComparison.Ordinal);
+            Assert.Equal(usagePanel.Bounds.Height + HydraPanel.StripHeight + 8, reports[^1], precision: 3);
+
+            // A later usage replaces the figures in the same scroll view.
+            var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<ScrollViewer>(panel));
+            harness.Main.OnMain(() => runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens = 500, WindowTokens = 1000 })));
+            harness.Main.OnMain(() => Avalonia.Threading.Dispatcher.UIThread.RunJobs());
+            Assert.Same(scroll, Assert.Single(LogicalQuery.SelfAndDescendants<ScrollViewer>(panel)));
+            Assert.Contains("(50%)", AllText(panel), StringComparison.Ordinal);
+
+            // A usage without a window has no fraction: the placeholder is back and the pane is told 94 again.
+            harness.Main.OnMain(() => runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens = 5 })));
+            harness.Main.OnMain(() => Avalonia.Threading.Dispatcher.UIThread.RunJobs());
+            Assert.Contains("Nothing to show for Cursor yet.", AllText(panel), StringComparison.Ordinal);
+            Assert.Empty(LogicalQuery.SelfAndDescendants<ScrollViewer>(panel));
+            Assert.Equal(94.0, reports[^1]);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-USAGE-040")] // App/Views/Usage/UsageFloatingPanel.swift:28-29: a heads provider that exposes limits or credits is enough for hasSomething
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-USAGE-040: the heads branch of hasSomething
+    public void A_heads_provider_that_exposes_plan_limits_keeps_the_usage_panel_for_a_lead_that_exposes_nothing()
+    {
+        session.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var runtime = MakeRuntime(harness, usage: null, provider: ProviderKind.Cursor);
+            var panel = new UsageFloatingPanel(
+                runtime, ProviderKind.Cursor, headsProvider: ProviderKind.Codex, size: new Size(360, 300),
+                onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
+            Show(panel, harness);
+            Assert.Single(LogicalQuery.SelfAndDescendants<ScrollViewer>(panel));
+            Assert.DoesNotContain("Nothing to show", AllText(panel), StringComparison.Ordinal);
         });
     }
 

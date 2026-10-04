@@ -211,6 +211,24 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // ThreadTimeline.swift:2107-2119: click toggles; only OPENING follows the end (unconditionally), closing does not
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-CHAT-043: the follow on open and not on close; the rest of the entry is the test below
+    public void Only_opening_the_line_follows_the_end_and_closing_it_does_not() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        RunningThread(mount);
+        var line = Line(mount); var follows = 0;
+        ThreadTimeline.GetRevealTimelineEnd(line)!.Follow = () => follows++;
+        Click(line); mount.Advance(400);
+        Assert.Equal(1, follows);
+        Assert.Equal("Hide these steps", ToolTip.GetTip(Chevron(line)));
+        Click(line); mount.Advance(400);
+        Assert.Equal(1, follows);
+        Assert.Equal("Show these steps", ToolTip.GetTip(Chevron(line)));
+        Click(line); mount.Advance(400);
+        Assert.Equal(2, follows);
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-043")] // ThreadTimeline.swift:2075-2197; HydraProgressBar.swift:504,558 (title and time fonts); Chrome.swift:79 (secondaryText); porting/extracts WorkingWords (the 22 words, 7 s)
     public void The_working_line_has_its_type_colours_and_each_of_its_states_the_word_the_summary_the_earlier_label_and_the_open_body() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -246,7 +264,8 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), SwiftImage.GetFont(chevron));
         Assert.Equal(SwiftColor.Tertiary.Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(chevron.Foreground).Color);
         // The card on, the bar drawn; off, a badge with none (the layout is PR-CHAT-117's).
-        Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line));
+        var progress = Assert.Single(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line));
+        Assert.Equal(Marrow.UI.Chrome.Chrome.Accent, (SwiftColor)typeof(HydraProgressBar).GetField("tint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(progress)!); // :2139 the bar is tinted with Chrome.accent
         mount.Model.Settings.ShowsWorkingCard = false; mount.Advance(300); Assert.Empty(LogicalQuery.SelfAndDescendants<HydraProgressBar>(line)); mount.Model.Settings.ShowsWorkingCard = true; mount.Advance(300);
         // Open: the live steps beneath, padded 14 at the sides and 11 below (:2174-2175).
         Click(line); mount.Advance(900);
@@ -264,6 +283,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 (the label's change, ThreadTimeline.swift:2182 .animation(Self.change, value: label)); capture comparison: 2-chat-use.mov 94.943-95.20, "Dancing..." to "Thinking..." (the weight of the new word, fitted frame by frame to the two clean frames either side, evidence/ThreadTimeline/verb)
     public void The_word_changes_over_a_cross_dissolve_that_matches_the_reference_runtimes() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -285,6 +305,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 (the chevron comes with something to open and the time glides over to make room, ThreadTimeline.swift:2128-2135,2183 .animation(Self.change, value: canExpand)); capture comparison: 2-chat-use.mov 95.803-96.078 (the time's left edge, frame by frame: evidence/ThreadTimeline/chev)
     public void The_time_glides_over_for_the_chevron_along_the_reference_runtimes_curve() => ThreadTimelineRig.Run(headless, mount =>
     {
@@ -308,6 +329,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043 and PR-CHAT-117
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and PR-CHAT-117 (the chevron goes with nothing left to open: ThreadTimeline.swift:2128-2135 `.transition(.opacity)`, :2183 `.animation(Self.change, value: canExpand)`; OD-0076: every change is transitioned; ED-255 (3))
     public void The_chevron_fades_out_where_it_stood_when_nothing_is_left_to_open_and_the_time_glides_back_over_the_same_motion() => ThreadTimelineRig.Run(headless, mount =>
     {

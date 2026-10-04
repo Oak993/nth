@@ -358,7 +358,11 @@ public sealed class SubagentPanel : Decorator
             showsChanges: false);
         var composerContainer = new Grid();
         composerContainer.Children.Add(composer);
-        composerContainer.Children.Add(jumpButton(scrollState));
+        // :292-297 `.overlay(alignment: .top)`: the zero-height button sits on the composer's top edge, not at its vertical middle (a Stretch
+        // control whose own Height is smaller than its slot is centred), as ChatView.cs does for the main composer.
+        var jump = jumpButton(scrollState);
+        jump.VerticalAlignment = VerticalAlignment.Top;
+        composerContainer.Children.Add(jump);
         Grid.SetRow(composerContainer, 0);
         composerContainer.VerticalAlignment = VerticalAlignment.Bottom;
         content.Children.Add(composerContainer);
@@ -417,7 +421,8 @@ public sealed class SubagentPanel : Decorator
                 var confirmation = new ClosePanelPopover(thread.Title, close);
                 Popovers.SetClosePopover(confirmation, () => closeState.IsConfirmingClose = false);
                 return confirmation;
-            });
+            },
+            PlacementMode.Bottom); // :323 .popover(isPresented: $isConfirmingClose, arrowEdge: .bottom)
         Grid.SetColumn(closePopover, 2);
         strip.Children.Add(closePopover);
 

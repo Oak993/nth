@@ -563,6 +563,47 @@ public sealed class AppUpdaterInstallTests
         Assert.Equal("1.3.0", runtime.Defaults.String("appUpdater_pendingRelaunchVersion"));
     }
 
+    // PR-UPDATE-054 precondition "The installer process started": in the Swift `try process.run()` (:395) comes BEFORE the
+    // marker (:396), the handoff tick (:397) and both tasks, so an installer that cannot start throws out of the handoff
+    // before any of them. FakeUpdateInstallBoundary.LaunchThrows stands in for the failing spawn.
+    [Fact]
+    [Trait("Req", "PR-UPDATE-054")] // App/AppUpdater.swift:395-409 (order: run, marker, tick, 25 s task, 350 ms quit)
+    public void A_handoff_whose_installer_cannot_start_sets_no_marker_ticks_nothing_and_schedules_no_quit()
+    {
+        using var harness = new AppModelHarness();
+        var runtime = harness.Main;
+        using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
+        var manager = runtime.OnMain(() => new WindowManager());
+        using var windows = WindowManager.OverrideShared(manager);
+        var requests = 0;
+        manager.MainWindowClose = () => requests++;
+        var staging = Directory.CreateTempSubdirectory().FullName;
+        var staged = Path.Combine(staging, "App");
+        Directory.CreateDirectory(staged);
+        var destination = Path.Combine(staging, "destination");
+        Directory.CreateDirectory(destination);
+        try
+        {
+            var fake = new FakeUpdateInstallBoundary { LaunchThrows = new IOException("no spawn") };
+            runtime.OnMain(() =>
+            {
+                UpdateInstallProgress.Shared.Begin();
+                Assert.Throws<IOException>(() => new AppUpdater(fake).HandOff(staged, "1.3.0", destination));
+            });
+            Assert.Single(fake.Calls); // the spawn was attempted once, nothing else
+            Assert.Null(runtime.Defaults.String("appUpdater_pendingRelaunchVersion"));
+            Assert.Equal(UpdateInstallProgress.Phase.Preparing, UpdateInstallProgress.Shared.UpdateInstallProgressPhase);
+            runtime.AdvanceMilliseconds(26_000); // past the 350 ms quit and the 25 s give-up: neither was scheduled
+            Assert.Equal(0, requests);
+            Assert.Equal(UpdateInstallProgress.Phase.Preparing, UpdateInstallProgress.Shared.UpdateInstallProgressPhase);
+            Assert.Null(runtime.Defaults.String("appUpdater_pendingRelaunchVersion"));
+        }
+        finally
+        {
+            Directory.Delete(staging, recursive: true);
+        }
+    }
+
     // ---- PR-UPDATE-055: the 25 s give-up ---------------------------------------------------------------------
 
     [Fact]

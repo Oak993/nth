@@ -184,6 +184,8 @@ public sealed class HydraPanelTests
 
     [Fact]
     [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:38-41, :72-91
+    [Trait("Req", "PR-HYDRA-169")] // App/Views/Chat/HydraPanel.swift:41, :72-91, :205-208
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169 (the hold, the wave, the replay and the cancel are proven by the set of tests carrying it)
     public void Finish_hold_is_two_seconds()
     {
         Assert.Equal(2.0, HydraPanel.FinishHold);

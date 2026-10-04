@@ -1535,6 +1535,25 @@ public sealed class GitTests
         Assert.Equal(arguments, call.Arguments);
     }
 
+    // PR-GIT-051 at the merge call site: a forge CLI missing from the PATH throws the exact sentence from the FIRST attempt, before any retry
+    // sleep (Git.swift:234-247: runTool is called outside any catch, so the GitLab retry loop never sees it). GitLab is the only forge that retries.
+    [Theory]
+    [Trait("Req", "PR-GIT-051")] // Services/Git/Git.swift:231-248 with Core/Support/Shell.swift:129-130
+    [InlineData("https://gitlab.com/group/project/-/merge_requests/42", "glab")]
+    [InlineData("https://github.com/owner/repo/pull/7", "gh")]
+    [InlineData("https://codeberg.org/owner/repo/pulls/9", "tea")]
+    public async Task MergePullRequest_throws_the_not_found_sentence_before_any_retry_for_each_forge(string address, string tool)
+    {
+        using var runtime = new TestRuntime();
+        using var repository = ForgeRepository("https://example.org/elsewhere.git");
+        using var emptyPath = EmptyLoginPath.Begin();
+
+        var error = await Assert.ThrowsAsync<ShellError>(() => new GitValue(repository.Root).MergePullRequest(Link(address)).WaitAsync(TimeSpan.FromSeconds(30)));
+
+        Assert.Equal(tool + " was not found on your PATH.", error.Message);
+        Assert.Equal(0, runtime.Time.ActiveTimers); // no sleep was ever started: nothing was retried
+    }
+
     [Fact]
     [Trait("Req", "PR-GIT-048")] // Services/Git/Git.swift:213-226; porting/upstream_defects.md entry 76
     public async Task A_gitlab_merge_that_keeps_answering_checking_is_tried_six_times_sleeping_3_5_7_9_11_and_a_wasted_13()

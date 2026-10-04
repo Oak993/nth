@@ -132,9 +132,16 @@ public sealed class CommandPalette : Decorator
         textField.VerticalAlignment = VerticalAlignment.Center;
         queryField = textField;
 
-        var searchRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 }; // :43 HStack(spacing: 10)
+        // :43 HStack(spacing: 10). ENGINEERING DECISION: a two-column Grid ("Auto,*"), the ChromeRow convention for a
+        // flexible child (see CommandPaletteRow), not a horizontal StackPanel: a StackPanel never stretches a main-axis
+        // child, so the text box stayed as wide as its placeholder and a long query grew it past the 600-point panel
+        // instead of scrolling inside it. A SwiftUI TextField fills the room the magnifier leaves.
+        var searchRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
         searchRow.Children.Add(magnifier);
         searchRow.Children.Add(textField);
+        Grid.SetColumn(magnifier, 0);
+        Grid.SetColumn(textField, 1);
+        textField.Margin = new Thickness(10, 0, 0, 0); // :43 spacing: 10
         magnifier.VerticalAlignment = VerticalAlignment.Center;
         searchRow.Margin = new Thickness(18, 15, 18, 15); // :64-65
 
@@ -171,7 +178,9 @@ public sealed class CommandPalette : Decorator
         content.Children.Add(searchRow);
         content.Children.Add(resultsSlot);
 
-        var panel = new Border { Child = content, Width = 600 }; // :96 .frame(width: 600)
+        // :96 .frame(width: 600). The transparent fill makes the panel's blank bands (the 18-point side insets and 15-point top
+        // inset of the search row, the gaps and insets around the rows) take a press, so only the scrim dismisses (UI-WIN-029).
+        var panel = new Border { Child = content, Width = 600, Background = Brushes.Transparent };
         SwiftGlass.SetEffect(panel, GlassEffect.Regular(GlassShape.RoundedRectangle(24, RoundedCornerStyle.Continuous))); // :97
         panel.HorizontalAlignment = HorizontalAlignment.Center; // :34 ZStack(alignment: .top)
         panel.VerticalAlignment = VerticalAlignment.Top;
@@ -386,8 +395,10 @@ file sealed class CommandPaletteRow : Decorator
         // on nearly every row here, since almost every action carries a shortcut (PR-WIN-171/172/173). The Star
         // column also gives titleBlock/subtitleBlock a real bounded width, which is what lets their MaxLines(1)
         // truncation (above, and :124-130) actually clip rather than only ever measuring their full text.
-        // Spacer(minLength: 8)'s minimum and the HStack's own 12pt spacing on both sides of it collapse into one
-        // 20pt margin ahead of the chord, since nothing else sits between the text block and the chord.
+        // ENGINEERING DECISION, UNRESOLVED (ED-273): the record says "at least 8 points of space" between the text block and the
+        // chord (UI-WIN-032, UI-WIN-033), which the margin ahead of the chord keeps (CommandPaletteChordTests). The port puts the HStack's
+        // 12 points of spacing and the Spacer's 8 ahead of the chord, 20 in all; whether SwiftUI also puts the stack's 12 after the Spacer
+        // (32 in all) is not decidable without a Mac, and no reference capture shows a row whose title fills its room.
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
         textStack.Margin = new Thickness(12, 0, 0, 0); // :111 icon -> text HStack spacing
         textStack.HorizontalAlignment = HorizontalAlignment.Stretch; // Grid, unlike StackPanel, honors Stretch along this axis

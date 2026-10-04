@@ -28,6 +28,8 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
     [InlineData(HydraHeadInfo.Status.Stopped)]
     [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:43-91
     [Trait("Req", "PR-HYDRA-168")] // App/Views/Chat/HydraPanel.swift:50-72
+    [Trait("Req", "PR-HYDRA-169")] // App/Views/Chat/HydraPanel.swift:41, :72-91, :205-208
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169 (the hold, the wave, the replay and the cancel are proven by the set of tests carrying it)
     public void The_same_running_head_holds_the_stage_for_exactly_two_seconds(HydraHeadInfo.Status status) => Run(c =>
     {
         var original = c.Stage(c.First.Id);
@@ -50,6 +52,8 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-HYDRA-168")] // App/Views/Chat/HydraPanel.swift:57-78
     [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:74-91; App/Views/Composer/ComposerWorkingDots.swift:22-34,177-189
+    [Trait("Req", "PR-HYDRA-169")] // App/Views/Chat/HydraPanel.swift:41, :72-91, :205-208
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169 (the hold, the wave, the replay and the cancel are proven by the set of tests carrying it)
     public void The_finish_wave_has_persona_ink_round_clipping_and_a_real_opacity_transition() => Run(c =>
     {
         c.Status(c.First,HydraHeadInfo.Status.Completed);
@@ -83,6 +87,22 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
         Assert.Empty(c.Find<DotFieldSweep>());
     });
 
+    // UI-HYDRA-026 colour clause: the wave is tinted with the FINISHING head's own persona (Hydra.swift:232-233 the table), not the roster's first
+    // (the fallback of :75 `?? HydraRoster.persona(at: 0)`): head index 1 is Walter, 3D8BFF, where index 0 is Hank, FF8A3D.
+    [Fact]
+    [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:74-76 DotFieldSweep(tint: NSColor((head.hydra?.persona ?? HydraRoster.persona(at: 0)).color))
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-026: the colour clause; the geometry, the 2.0 s, the fade and the replay are asserted by the tests carrying it above
+    public void The_finish_wave_takes_the_finishing_heads_own_persona_colour() => Run(c =>
+    {
+        c.Select(c.Second); c.Tick(1); c.Tick(Chrome.PanelSlide.Duration);
+        c.Status(c.Second, HydraHeadInfo.Status.Completed);
+        var sweep = Assert.Single(c.Find<DotFieldSweep>());
+        var field = Assert.IsType<DotFieldControl>(sweep.Child);
+        field.Measure(new Size(40, 24)); field.Arrange(new Rect(0, 0, 40, 24));
+        var firstDot = Assert.IsType<Ellipse>(Assert.IsType<Canvas>(field.Layer).Children[0]);
+        Assert.Equal(Color.FromRgb(0x3D, 0x8B, 0xFF), Assert.IsAssignableFrom<ISolidColorBrush>(firstDot.Fill).Color); // Walter, not Hank
+    });
+
     [Fact]
     [Trait("Req", "PR-HYDRA-168")] // App/Views/Chat/HydraPanel.swift:50-68,79-82
     public void Selection_reacts_and_crossfades_but_another_heads_finish_does_not_create_a_hold() => Run(c =>
@@ -104,6 +124,8 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:79-91,203-208
+    [Trait("Req", "PR-HYDRA-169")] // App/Views/Chat/HydraPanel.swift:41, :72-91, :205-208
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169 (the hold, the wave, the replay and the cancel are proven by the set of tests carrying it)
     public void A_replacement_hold_restarts_its_wave_and_cancels_the_previous_deadline() => Run(c =>
     {
         c.Status(c.First,HydraHeadInfo.Status.Completed);
@@ -122,6 +144,8 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:87-91
+    [Trait("Req", "PR-HYDRA-169")] // App/Views/Chat/HydraPanel.swift:41, :72-91, :205-208
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169 (the hold, the wave, the replay and the cancel are proven by the set of tests carrying it)
     public void Detaching_cancels_the_hold_task_and_stops_observing_selection() => Run(c =>
     {
         c.Status(c.First,HydraHeadInfo.Status.Completed);
@@ -172,7 +196,8 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-HYDRA-019")] // App/Views/Chat/HydraPanel.swift:278-282
+    [Trait("Req", "PR-HYDRA-174")] // App/Views/Chat/HydraPanel.swift:278-282 (this test was tagged UI-HYDRA-019, the stage capsule; :278-282 is the Clear finished heads item)
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-174: the clear action's animation
     public void Clear_finished_heads_performs_its_real_model_mutation_inside_panel_slide() => Run(c =>
     {
         c.Status(c.First,HydraHeadInfo.Status.Completed);
@@ -190,16 +215,102 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
         tracker.Cancel();
     });
 
+    // PR-HYDRA-169 failure case: the head leaves the panel during its hold, so the overlay's lookup fails and no wave is drawn
+    // (HydraPanel.swift:80-81 `if let hold, let head = heads.first(where: { $0.id == hold.id })`); the stage moves on to the head that is left.
+    [Fact]
+    [Trait("Req", "PR-HYDRA-169")] // App/Views/Chat/HydraPanel.swift:79-82
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169: the failure case only
+    public void Leaving_the_panel_during_the_hold_draws_no_wave_and_moves_the_stage_on() => Run(c =>
+    {
+        c.Status(c.First,HydraHeadInfo.Status.Completed);
+        Assert.Single(c.Find<DotFieldSweep>());
+        c.InPanel(c.First,false);
+        c.Tick(Chrome.PanelSlide.Duration);
+        Assert.Empty(c.Find<DotFieldSweep>());
+        Assert.Equal(c.Second.Id,c.StageId(Assert.Single(c.Stages())));
+    });
+
+    // PR-HYDRA-168's fallback chain, HydraPanel.swift:50-56: `heads.first { selected } ?? heads.last { running } ?? heads.last`.
+    // The selection is gone (nothing, or an id that is no head of the team) so the next two operands decide; each test step
+    // changes which operand wins: the newest RUNNING head over a newer finished one, then the newest head when none runs.
+    [Theory]
+    [InlineData(false)] // no selected head at all
+    [InlineData(true)] // a selected id that no head of this team has
+    [Trait("Req", "PR-HYDRA-168")] // App/Views/Chat/HydraPanel.swift:50-56 (wanted), :58 (held ?? wanted)
+    public void Without_a_selection_the_newest_running_head_is_on_stage_else_the_newest_head(bool strayId) => Run(c =>
+    {
+        Guid OnStage(string step) { var stages = c.Stages(); Assert.True(stages.Length == 1, step + ": " + stages.Length + " stages"); return c.StageId(stages[0]); }
+        c.Tick(Chrome.PanelSlide.Duration); // the selected head finishes fading in
+        c.Runtime.HydraSelectedHeadID = strayId ? Guid.NewGuid() : null; c.Drain(); c.Tick(Chrome.PanelSlide.Duration);
+        Assert.Equal(c.Second.Id,OnStage("both running")); // the LAST running head
+        // With no pick the head on stage IS the newest working one, so when it finishes the stage moves on at once: the stage's id changes with its
+        // status, which is not "the same head running -> not running", so no hold and no wave start (PR-HYDRA-169).
+        c.Status(c.Second,HydraHeadInfo.Status.Completed); c.Tick(Chrome.PanelSlide.Duration);
+        Assert.Equal(c.First.Id,OnStage("second finished")); // the newest head is finished: the newest one still WORKING wins over it
+        Assert.Empty(c.Find<DotFieldSweep>());
+        c.Status(c.First,HydraHeadInfo.Status.Completed); c.Tick(Chrome.PanelSlide.Duration);
+        Assert.Equal(c.Second.Id,OnStage("none working")); // nothing is working: the newest head
+        Assert.Empty(c.Find<DotFieldSweep>());
+    });
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-168")] // App/Views/Chat/HydraPanel.swift:50-52 `isPoppedOut ? heads.first`
+    public void A_popped_out_panel_shows_its_first_head_whatever_the_leads_selection_is()
+    {
+        headless.OnUiThread(() =>
+        {
+            // Both heads work and the lead has the SECOND selected: only the popped-out rule keeps the first on stage.
+            using var c = new HydraPanelContext(poppedOut: true, poppedWithBoth: true, realStage: true);
+            c.Runtime.HydraSelectedHeadID = c.Second.Id; c.Drain(); c.Tick(Chrome.PanelSlide.Duration);
+            Assert.Same(c.Model.Runtime(c.First.Id),StageRuntime(c));
+            c.Status(c.First,HydraHeadInfo.Status.Completed); c.Tick(HydraPanel.FinishHold); c.Tick(Chrome.PanelSlide.Duration);
+            Assert.Same(c.Model.Runtime(c.First.Id),StageRuntime(c)); // still its first head: finishing changes nothing about who is on stage
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-168")] // App/Views/Chat/HydraPanel.swift:56-62 (no head: no transcript), :131-199 (the strip stays)
+    public void With_no_heads_only_the_strip_shows() => Run(c =>
+    {
+        c.InPanel(c.First,false); c.InPanel(c.Second,false);
+        c.Tick(Chrome.PanelSlide.Duration);
+        Assert.Empty(c.Stages());
+        Assert.NotNull(c.WithTip("Drag to move"));
+        Assert.NotNull(c.WithTip("Dismiss the panel; heads keep working"));
+        Assert.Empty(c.PopOutButtons());
+    });
+
+    // The stage hosts the real HydraHeadTranscript for the selected head at the panel's height (HydraPanel.swift:61-67), not only the
+    // test seam's stand-in: a context without the StageFactory builds it, and selecting the other head swaps it (`.id(selected.id)`).
+    [Fact]
+    [Trait("Req", "PR-HYDRA-168")] // App/Views/Chat/HydraPanel.swift:59-71
+    public void The_stage_hosts_the_real_head_transcript_for_the_selected_head_and_swaps_it_with_the_selection()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var c = new HydraPanelContext(realStage: true);
+            c.Drain(); c.Tick(Chrome.PanelSlide.Duration);
+            var first = Assert.Single(c.Find<HydraHeadTranscript>());
+            Assert.Same(c.Model.Runtime(c.First.Id),StageRuntime(c));
+            c.Select(c.Second); c.Tick(Chrome.PanelSlide.Duration);
+            var second = Assert.Single(c.Find<HydraHeadTranscript>());
+            Assert.NotSame(first,second); // `.id(selected.id)`: a new transcript for the new head
+            Assert.Same(c.Model.Runtime(c.Second.Id),StageRuntime(c));
+        });
+    }
+
+    // The head runtime the one real transcript on stage was built for (HydraPanel.swift:61-66 HydraHeadTranscript(head:)).
+    private static ThreadRuntime StageRuntime(HydraPanelContext c) =>
+        (ThreadRuntime)typeof(HydraHeadTranscript).GetField("runtime", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(Assert.Single(c.Find<HydraHeadTranscript>()))!;
+
     private void Run(Action<HydraPanelContext> test) => headless.OnUiThread(() =>
     {
         using var context = new HydraPanelContext();
         test(context);
     });
 
-    // STOP App.Views.Chat.HydraPanel #followup-transcript
-    // Kind: prerequisite. Swift :419-435; PR-HYDRA-168. JumpToLatestButton (ChatView.cs:201)
-    // still throws MARROW_STUB. Clock tests substitute only stage content via the internal factory;
-    // panel observation, model mutations, clipping, transitions and DotFieldSweep are real.
-    // Full transcript integration needs the ChatView unit to implement that dependency.
+    // The earlier STOP App.Views.Chat.HydraPanel #followup-transcript is resolved: JumpToLatestButton is real (ChatView.cs:1155-1190) and
+    // The_stage_hosts_the_real_head_transcript_for_the_selected_head_and_swaps_it_with_the_selection runs the panel without the seam.
 
 }

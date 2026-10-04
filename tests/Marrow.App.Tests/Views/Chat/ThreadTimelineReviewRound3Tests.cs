@@ -270,6 +270,7 @@ public sealed class ThreadTimelineReviewRound3Tests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof PR-CHAT-027 and UI-CHAT-003
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-027 and UI-CHAT-003 (ED-255 (3), OD-0076): ThreadTimeline.swift:134-144, :179-200 (the rail is part of the timeline that comes in; its own fade, `.animation(Chrome.panelSlide, value: showsMinimap)`, is the flag's)
     public void A_timeline_that_comes_in_with_two_sent_messages_brings_its_rail_in_with_its_one_fade_on_its_first_pass_and_when_it_comes_back() => ThreadTimelineRig.Run(headless, mount =>
     {

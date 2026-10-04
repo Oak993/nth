@@ -325,6 +325,71 @@ public sealed class UpdateCheckerSecondTests
         Assert.Empty(toasts.Shown);
     }
 
+    // PR-UPDATE-021 precondition "updateAvailable is true": a background check that finds nothing newer posts nothing and
+    // writes no marker (UpdateChecker.swift:178 `if background, updateAvailable`), while the check itself persists
+    // (:175-177). The asset link points at the loopback server so the size HEAD (:171-173) never leaves this PC.
+    [Theory]
+    [Trait("Req", "PR-UPDATE-021")] // UpdateChecker.swift:178-180
+    [InlineData("1.0.0", "v1.0.0")] // the feed's newest release is the running version
+    [InlineData("3.0.0", "v2.0.0")] // the feed's newest release is older than the running version
+    public void A_background_check_that_finds_nothing_newer_posts_no_toast_and_writes_no_marker(string running, string tag)
+    {
+        using var runtime = new TestRuntime();
+        var toasts = new RecordingToastCenter();
+        using var toastScope = UpdateToastCenter.Ambient.Override(toasts);
+        LoopbackFeedServer? server = null;
+        server = new LoopbackFeedServer(_ => CannedResponse.Json(
+            Feed(Release(tag, [Link("Marrow" + Suffix, server!.Url("/asset" + Suffix))]))));
+        using var serverScope = server;
+        var checker = runtime.OnMain(() => new UpdateChecker(Running(running), [], server.Url("/releases")));
+        var available = runtime.Loop.Run(() => checker.Check(background: true));
+        Assert.False(available);
+        Assert.Empty(toasts.Shown);
+        Assert.DoesNotContain("updateChecker_notifiedVersion", runtime.Defaults.Writes);
+        Assert.Null(runtime.Defaults.Object("updateChecker_notifiedVersion"));
+        // The check itself did persist (:175-177): only the notification was skipped.
+        Assert.Contains("updateChecker_release", runtime.Defaults.Writes);
+        Assert.Contains("updateChecker_lastChecked", runtime.Defaults.Writes);
+    }
+
+    // The shipped marker is ONE string compared with `!=` (UpdateChecker.swift:247), so "one notification per version, ever"
+    // holds while the same version stays the last one notified: a different newer version notifies and moves the key, and a
+    // version returning after another one notifies again. Nothing pins `!=` against a set or `>=` otherwise.
+    [Fact]
+    [Trait("Req", "PR-UPDATE-021")] // UpdateChecker.swift:245-248 (one stored string, `!=`, written before the toast)
+    public void The_marker_holds_only_the_last_notified_version_so_a_newer_one_notifies_and_an_older_one_returns()
+    {
+        using var runtime = new TestRuntime();
+        var toasts = new RecordingToastCenter();
+        using var toastScope = UpdateToastCenter.Ambient.Override(toasts);
+        var tag = "v2.0.0";
+        LoopbackFeedServer? server = null;
+        server = new LoopbackFeedServer(_ => CannedResponse.Json(
+            Feed(Release(tag, [Link("Marrow" + Suffix, server!.Url("/asset" + Suffix))]))));
+        using var serverScope = server;
+        var checker = runtime.OnMain(() => new UpdateChecker(Running("1.0.0"), [], server.Url("/releases")));
+
+        runtime.Loop.Run(() => checker.Check(background: true));
+        Assert.Equal(["update-2.0.0"], toasts.Shown.Select(t => t.Identifier).ToArray());
+        Assert.Equal("2.0.0", runtime.Defaults.Object("updateChecker_notifiedVersion"));
+
+        runtime.Loop.Run(() => checker.Check(background: true)); // the same version again: nothing
+        Assert.Single(toasts.Shown);
+
+        tag = "v2.1.0";
+        runtime.Loop.Run(() => checker.Check(background: true)); // a different newer version notifies and moves the key
+        Assert.Equal(["update-2.0.0", "update-2.1.0"], toasts.Shown.Select(t => t.Identifier).ToArray());
+        Assert.Equal("2.1.0", runtime.Defaults.Object("updateChecker_notifiedVersion"));
+
+        tag = "v2.0.0";
+        runtime.Loop.Run(() => checker.Check(background: true)); // the earlier version, after another: `!=` holds, so it notifies again
+        Assert.Equal(["update-2.0.0", "update-2.1.0", "update-2.0.0"], toasts.Shown.Select(t => t.Identifier).ToArray());
+        Assert.Equal("2.0.0", runtime.Defaults.Object("updateChecker_notifiedVersion"));
+
+        runtime.Loop.Run(() => checker.Check(background: true)); // and once more the same: nothing new
+        Assert.Equal(3, toasts.Shown.Count);
+    }
+
     [Fact]
     [Trait("Req", "PR-UPDATE-023")] // windows_path: no runtime permission prompt, the port sends the toast directly
     public void The_default_toast_binding_is_a_safe_no_op_until_the_toast_unit_exists()

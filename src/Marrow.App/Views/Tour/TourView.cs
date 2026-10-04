@@ -106,9 +106,15 @@ public sealed class TourView : Panel
         else
         {
             SetPage(currentIndex, animate: false); // fills artworkHost/bottomHost with the initial page, no crossfade
-            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, Width = width }; // :69 VStack(spacing: 0)
+            // :69 VStack(spacing: 0) with the bottom panel at `.frame(maxWidth: .infinity, maxHeight: .infinity)` (:178): in a fixed-height card the
+            // panel fills what the image leaves, so its button sits 24 points above the card's bottom on every page. A Grid whose second row is
+            // starred does that (a StackPanel gave the panel only its natural height); with no height the star row sizes to its content.
+            var stack = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Width = width };
             if (height is { } stackHeight) stack.Height = stackHeight; // :73 .frame(width: width, height: height)
-            stack.Children.Add(BuildImageSection());
+            var image = BuildImageSection();
+            Grid.SetRow(image, 0);
+            Grid.SetRow(bottomHost, 1);
+            stack.Children.Add(image);
             stack.Children.Add(bottomHost);
             content = stack;
         }

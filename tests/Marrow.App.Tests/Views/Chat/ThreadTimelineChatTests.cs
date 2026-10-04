@@ -104,6 +104,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
     private static TimelineMinimapColumn? Rail(ChatView view) => LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view).SingleOrDefault();
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003 and PR-CHAT-158: when the chat shows the rail
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 and PR-CHAT-158: when the chat shows the rail (ChatView.swift:108-110) and that it holds the column's leading edge through a dock's slide (ThreadTimeline.swift:201-207)
     public void The_chat_shows_the_rail_for_two_sent_messages_in_a_pane_900_wide_after_the_reserves_and_it_holds_its_edge_while_a_dock_takes_it()
         => WithChat((view, runtime, model, h, window, frames) =>
@@ -140,6 +141,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
         });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-003")] // Partial proof UI-CHAT-003: the rail is shown by default on the unmeasured first frame
     [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003: the rail is shown by default on the unmeasured first frame (ChatView.swift:108-110 `paneSize == .zero`): the pane size is the chat view's own private measurement, set back to unmeasured here
     public void The_rail_is_allowed_while_the_pane_is_unmeasured_and_not_in_a_narrow_measured_pane()
         => WithChat((view, runtime, model, h, window, frames) =>
