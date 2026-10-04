@@ -87,9 +87,10 @@ public static class SwiftShapes
     /// <summary>
     /// <c>RoundedRectangle(cornerRadius:style:)</c> as the corners of a Border that fills its bounds: its Background is
     /// the shape's <c>.fill</c>, its border the shape's <c>.strokeBorder</c> (a Border draws its border inside its
-    /// bounds, the inner stroke strokeBorder draws). A `.continuous` shape keeps its Border (and its CornerRadius, which
-    /// is the circular corner of the same radius) and is cut to Apple's curve by <see cref="Visual.Clip"/>
-    /// (<see cref="ContinuousClip"/>): Avalonia's Border draws circular corners only and its Render is sealed.
+    /// bounds, the inner stroke strokeBorder draws). A `.continuous` shape keeps its Border (its CornerRadius is the circular corner of the same radius, and
+    /// the stated radius, <see cref="StatedCornerRadius"/>, wherever Apple's corner fits) and is cut to Apple's curve by <see cref="Visual.Clip"/>
+    /// (<see cref="ContinuousClip"/>): Avalonia's Border draws circular corners only and its Render is sealed. In OD-0102's band the Border's own CornerRadius is
+    /// set to what draws the corner (<see cref="DrawnCornerRadius"/>), because a clip can only remove fill.
     /// </summary>
     public static T RoundedRectangle<T>(this T border, double cornerRadius, RoundedCornerStyle style) where T : Border
     {
@@ -224,6 +225,36 @@ public static class SwiftShapes
             else { kinds[i] = CornerKind.Arc; drawn[i] = Math.Min(r, half); }
         }
     }
+
+    /// <summary>
+    /// The radii a plain Border must carry as its own <see cref="Border.CornerRadius"/> in OD-0102's band (ED-275 (2)): Avalonia fills the circle of that radius
+    /// and a clip can only remove fill, but Apple's corner at the largest radius that fits lies OUTSIDE the circle of the stated radius near the diagonal
+    /// (2.06 pt at h 40, r 18), so the stated radius cannot stay. A corner that is Apple's in the band carries
+    /// <list type="bullet">
+    /// <item><description>0 when <paramref name="clipOnly"/>: the Border fills its whole rectangle (pixel aligned, no edge of its own) and the clip, which is Apple's
+    /// path, is the only anti-aliased edge, so the corner is exactly <c>SwiftShapeBorder</c>'s fill of the same path (a circular fill under the clip would multiply
+    /// two anti-aliased edges, 0.5 x 0.5 coverage at an edge pixel);</description></item>
+    /// <item><description>otherwise the radius it is drawn at, <see cref="ContinuousCorner.LargestRadius"/>: the circle of that radius is Apple's curve to
+    /// 0.0138 r inside and 0.002 r outside (<see cref="ContinuousCorner"/>), what a border ring or a shadow needs, which a clip cannot carry.</description></item>
+    /// </list>
+    /// Every other corner keeps its stated radius (a corner that fits is the existing ED-275 (3) mechanism).
+    /// </summary>
+    internal static CornerRadius DrawnCornerRadius(Size size, CornerRadius stated, bool circularInBand, bool clipOnly)
+    {
+        if (!(size.Width > 0) || !(size.Height > 0)) return stated;
+        var requested = new[] { Math.Max(0, stated.TopLeft), Math.Max(0, stated.TopRight), Math.Max(0, stated.BottomRight), Math.Max(0, stated.BottomLeft) };
+        var kinds = new CornerKind[4];
+        var drawn = new double[4];
+        ResolveCorners(size.Width, size.Height, requested, RoundedCornerStyle.Continuous, circularInBand, kinds, drawn);
+        double Pick(int i, double was) => kinds[i] == CornerKind.Continuous && drawn[i] < requested[i] - 1e-9 ? (clipOnly ? 0 : drawn[i]) : was;
+        return new CornerRadius(Pick(0, stated.TopLeft), Pick(1, stated.TopRight), Pick(2, stated.BottomRight), Pick(3, stated.BottomLeft));
+    }
+
+    /// <summary>
+    /// The corner radius a site stated for a Border (what <c>.RoundedRectangle(r, .continuous)</c> was given), which is <see cref="Border.CornerRadius"/> everywhere
+    /// except where <see cref="ContinuousClip"/> has set the drawn radius there (ED-275 (2)'s band, OD-0102). The glass reads this, not the drawn radius.
+    /// </summary>
+    internal static CornerRadius StatedCornerRadius(Border border) => ContinuousClip.Stated(border);
 
     private static ShapeOutline Build(Rect rect, CornerRadius radii, RoundedCornerStyle style, double slack, bool circularInBand)
     {
@@ -406,8 +437,13 @@ internal static class ContinuousClip
         border.SetValue(TrackerProperty, new Tracker(border));
     }
 
+    /// <summary>The corner radius the site stated: <see cref="Border.CornerRadius"/> unless the tracker has set the drawn radius there (OD-0102's band).</summary>
+    internal static CornerRadius Stated(Border border) => border.GetValue(TrackerProperty)?.Stated ?? border.CornerRadius;
+
     /// <summary>The clip a Border should carry now: null when the shape draws circular corners, nothing, or a shadow.</summary>
-    internal static Geometry? Wanted(Border border)
+    internal static Geometry? Wanted(Border border) => Wanted(border, Stated(border));
+
+    private static Geometry? Wanted(Border border, CornerRadius radii)
     {
         if (SwiftShapes.GetCornerStyle(border) != RoundedCornerStyle.Continuous) return null;
         var size = border.Bounds.Size;
@@ -416,7 +452,6 @@ internal static class ContinuousClip
         var drawsFill = border.Background is not null;
         var drawsBorder = border.BorderBrush is not null && border.BorderThickness != default;
         if (!drawsFill && !drawsBorder && !border.ClipToBounds) return null;
-        var radii = border.CornerRadius;
         var circularInBand = SwiftShapes.GetCircularInBand(border);
         return SwiftShapes.HasContinuousCorner(size, radii, RoundedCornerStyle.Continuous, circularInBand) ? SwiftShapes.ClipGeometry(new Rect(size), radii, circularInBand) : null;
     }
@@ -425,14 +460,27 @@ internal static class ContinuousClip
     {
         private readonly Border border;
         private Geometry? applied;
+        private bool writing;
+
+        // The radius the site stated. Avalonia's Border fills the circle of its CornerRadius and a clip can only take fill away, and Apple's corner at the largest
+        // radius that fits (OD-0102, ED-275 (2)'s band) lies outside the circle of the stated radius near the diagonal; so where the corner is Apple's in the band
+        // the Border's own CornerRadius is set to what draws it (SwiftShapes.DrawnCornerRadius) and the stated radius is kept here.
+        public CornerRadius Stated { get; private set; }
 
         public Tracker(Border border)
         {
             this.border = border;
+            Stated = border.CornerRadius;
             border.PropertyChanged += (_, e) =>
             {
                 var p = e.Property;
-                if (p == Visual.BoundsProperty || p == Border.CornerRadiusProperty || p == Border.BackgroundProperty
+                if (p == Border.CornerRadiusProperty)
+                {
+                    if (writing) return;
+                    Stated = border.CornerRadius;
+                    Update();
+                }
+                else if (p == Visual.BoundsProperty || p == Border.BackgroundProperty
                     || p == Border.BorderBrushProperty || p == Border.BorderThicknessProperty || p == Border.BoxShadowProperty
                     || p == Visual.ClipToBoundsProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty)
                     Update();
@@ -442,13 +490,23 @@ internal static class ContinuousClip
 
         private void Update()
         {
-            var wanted = Wanted(border);
-            if (ReferenceEquals(wanted, applied)) return;
-            // Only ever replace what this tracker set: a Clip the site set itself stays.
-            if (border.Clip is null || ReferenceEquals(border.Clip, applied))
+            var continuous = SwiftShapes.GetCornerStyle(border) == RoundedCornerStyle.Continuous;
+            var wanted = Wanted(border, Stated);
+            if (!ReferenceEquals(wanted, applied) && (border.Clip is null || ReferenceEquals(border.Clip, applied)))
             {
+                // Only ever replace what this tracker set: a Clip the site set itself stays.
                 border.Clip = wanted;
                 applied = wanted;
+            }
+            // The band's corner is the clip alone (a square fill under Apple's path) only while this tracker's clip is what cuts the Border and the Border has no
+            // border ring (the ring is a stroke along the Border's own corner, which a square corner would leave outside the curve); else the circle of the drawn radius.
+            var clipOnly = applied is not null && ReferenceEquals(border.Clip, applied) && !(border.BorderBrush is not null && border.BorderThickness != default);
+            var drawn = continuous ? SwiftShapes.DrawnCornerRadius(border.Bounds.Size, Stated, SwiftShapes.GetCircularInBand(border), clipOnly) : Stated;
+            if (border.CornerRadius != drawn)
+            {
+                writing = true;
+                try { border.SetCurrentValue(Border.CornerRadiusProperty, drawn); }
+                finally { writing = false; }
             }
         }
     }

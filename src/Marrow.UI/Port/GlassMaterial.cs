@@ -144,7 +144,7 @@ internal static class GlassMaterial
             // A shape's fill and corners are the Border's or, for a SwiftUI shape with its own curve, the SwiftShapeBorder's (ED-181).
             var (fill, ownCorners) = control switch
             {
-                Border border => (border.Background, (CornerRadius?)border.CornerRadius),
+                Border border => (border.Background, (CornerRadius?)SwiftShapes.StatedCornerRadius(border)), // the stated radius: the shader draws the corner (OD-0102) itself
                 SwiftShapeBorder shape => (shape.Background, shape.CornerRadius),
                 _ => ((IBrush?)null, null),
             };

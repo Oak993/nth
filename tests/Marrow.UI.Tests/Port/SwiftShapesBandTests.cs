@@ -81,7 +81,7 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
 
     // ---- the band: the sizes of the four records and the corner-band page's own ---------------------------------------
 
-    // 40 pt (the Edited-files card), 43 pt (a turn of one step), 48 pt (a notice two lines tall) and 54 pt (a delegation card of one head), all r 18.
+    // 40 pt (the Edited-files card), 43 pt (a turn of one step), 48 pt (the corner-band page's size; a notice two lines tall is 46 pt when mounted at 380 pt wide) and 54 pt (a delegation card of one head), all r 18.
     // The corner-band page's JS port (cb-geometry.js optionA) draws the same: Outline(rect, min(r, LargestRadius), .continuous).
     [Theory]
     [Trait("Decision", "ED-181")]
@@ -390,4 +390,144 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
         Assert.True(pathVsCircle > 100, $"the SwiftShapeBorder's band corner differs from the circle by only {pathVsCircle}");
         Assert.True(plainVsPath < 40, $"the plain Border in the band differs from Apple's corner at L by {plainVsPath} levels of 255 (it differs from the circle of 18 by {plainVsCircle})");
     });
+
+    // ---- what a plain Border in the band DRAWS (OD-0102; the blitz-cornerband review: a clip can only remove fill) ----------------------------------------
+    // Avalonia fills the circle of the Border's CornerRadius, and Apple's corner at L = h / (2 E) lies OUTSIDE the circle of the stated radius near the diagonal, so a
+    // Border that kept CornerRadius 18 drew the circle of 18 under a clip that removed nothing. ContinuousClip now keeps the stated radius (SwiftShapes.StatedCornerRadius)
+    // and sets the Border's own CornerRadius to what draws the corner: 0 when the clip alone cuts a plain fill (the Border fills its pixel-aligned rectangle and the clip,
+    // Apple's path, is the only anti-aliased edge), the circle of L when a border ring or a shadow needs a corner of the Border's own, or when the clip is not ours.
+    // ENGINEERING DECISION (ED-NEW-cornerband (8)).
+
+    private static Border BandBorder(IBrush? background, double width = 200, double height = 40) =>
+        new Border { Width = width, Height = height, Background = background, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }
+            .RoundedRectangle(18, RoundedCornerStyle.Continuous);
+
+    private const double BandL = 40 / (2 * E);
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // the pixels of a fill-only Border; the ring, shadow and clip-not-ours cases and the regimes are the tests below
+    public void A_fill_only_Border_in_the_band_is_a_square_fill_under_Apples_clip_and_keeps_its_stated_radius() => headless.OnUiThread(() =>
+    {
+        var border = BandBorder(Brushes.Red);
+        var shape = new SwiftShapeBorder { Width = 200, Height = 40, Background = Brushes.Red, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }
+            .RoundedRectangle(18, RoundedCornerStyle.Continuous);
+        var (window, plain) = Render(border, 220, 60);
+        var (shapeWindow, path) = Render(shape, 220, 60);
+        Assert.Equal(new CornerRadius(18), SwiftShapes.StatedCornerRadius(border));
+        Assert.Equal(default, border.CornerRadius);
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18)), border.Clip);
+        // (14, 14): 4.5 pt from the vertex along each axis, inside Apple's corner at L (its diagonal is at 0.2915 L = 3.81) and outside the circle of 18 (5.27).
+        Assert.True(plain.At(14, 14).Red >= 200, $"(14, 14) is {plain.At(14, 14).Red}: the corner is not Apple's");
+        Assert.True(plain.At(12, 12).Red <= 40, $"(12, 12) is {plain.At(12, 12).Red}: outside Apple's corner");
+        var worst = 0;
+        for (var y = 10; y < 22; y++)
+            for (var x = 10; x < 22; x++) worst = Math.Max(worst, Math.Abs(plain.At(x, y).Red - path.At(x, y).Red));
+        // The clip's own anti-aliasing differs from the path fill's by a few tens of levels at an edge pixel (49 at the worst, on the bottom run-in); the circle of 18 differs by 255.
+        Assert.True(worst < 60, $"the fill-only Border's corner differs from the path fill of the same shape by {worst} levels of 255");
+        window.Close();
+        shapeWindow.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void A_Border_with_a_ring_or_a_shadow_in_the_band_carries_the_circle_of_the_drawn_radius() => headless.OnUiThread(() =>
+    {
+        // A ring is a stroke along the Border's own corner, which a square corner would leave outside the curve; a shadow is cut by a clip, so there is none: both need the circle of L
+        // (Apple's curve lies within 0.0138 L of it, ContinuousCorner).
+        var ring = BandBorder(Brushes.Red);
+        ring.BorderBrush = Brushes.White;
+        ring.BorderThickness = new Thickness(2);
+        var shadow = BandBorder(Brushes.Red);
+        shadow.BoxShadow = new BoxShadows(new BoxShadow { OffsetX = 0, OffsetY = 2, Blur = 8, Color = Colors.Black });
+        var window = new Window { Width = 240, Height = 200, Content = new StackPanel { Children = { ring, shadow } } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new CornerRadius(BandL), ring.CornerRadius);
+        Assert.Equal(new CornerRadius(18), SwiftShapes.StatedCornerRadius(ring));
+        Assert.NotNull(ring.Clip);
+        Assert.Equal(new CornerRadius(BandL), shadow.CornerRadius);
+        Assert.Equal(new CornerRadius(18), SwiftShapes.StatedCornerRadius(shadow));
+        Assert.Null(shadow.Clip);
+        // The ring appears and goes: the corner follows at once.
+        ring.BorderBrush = null;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(default, ring.CornerRadius);
+        ring.BorderBrush = Brushes.White;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new CornerRadius(BandL), ring.CornerRadius);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void A_Border_whose_clip_is_the_sites_own_keeps_the_circle_of_the_drawn_radius_and_its_clip() => headless.OnUiThread(() =>
+    {
+        // The square corner is only safe while this tracker's clip is what cuts the Border; a Clip a site set stays and the Border draws its own circular corner at the drawn radius.
+        var own = new RectangleGeometry(new Rect(-5, -5, 300, 80));
+        var border = BandBorder(Brushes.Red);
+        border.Clip = own;
+        var window = new Window { Width = 240, Height = 100, Content = border };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(own, border.Clip);
+        Assert.Equal(new CornerRadius(BandL), border.CornerRadius);
+        Assert.Equal(new CornerRadius(18), SwiftShapes.StatedCornerRadius(border));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void The_Borders_own_corner_follows_the_size_and_the_stated_radius_through_the_regimes() => headless.OnUiThread(() =>
+    {
+        var border = BandBorder(Brushes.Red, 200, 100); // 100 pt: Apple's corner at 18 fits (2 E 18 = 55): the stated radius is the Border's own, as it was
+        var window = new Window { Width = 240, Height = 160, Content = new Panel { Children = { border } } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new CornerRadius(18), border.CornerRadius);
+        Assert.NotNull(border.Clip);
+        border.Height = 40; // into the band
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(default, border.CornerRadius);
+        Assert.Equal(new CornerRadius(18), SwiftShapes.StatedCornerRadius(border));
+        border.Height = 30; // a capsule (30 <= 2 * 18): circular, the stated radius is the Border's own again and there is no clip
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new CornerRadius(18), border.CornerRadius);
+        Assert.Null(border.Clip);
+        border.Height = 40;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(default, border.CornerRadius);
+        // The site states another radius: a radius that fits at 40 pt (2 E 10 = 30.6) is the Border's own; back to 18 is the band again.
+        border.CornerRadius = new CornerRadius(10);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new CornerRadius(10), SwiftShapes.StatedCornerRadius(border));
+        Assert.Equal(new CornerRadius(10), border.CornerRadius);
+        border.CornerRadius = new CornerRadius(18);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new CornerRadius(18), SwiftShapes.StatedCornerRadius(border));
+        Assert.Equal(default, border.CornerRadius);
+        // The composer pill (measured circular in the band) keeps its circular corner and takes no clip.
+        var composer = new Border { Width = 818, Height = 46, Background = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }
+            .RoundedRectangle(22, RoundedCornerStyle.Continuous).CircularInBand();
+        window.Content = composer;
+        window.Width = 840;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new CornerRadius(22), composer.CornerRadius);
+        Assert.Null(composer.Clip);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void Drawn_corner_radius_is_zero_or_the_largest_radius_only_for_a_corner_that_is_Apples_in_the_band()
+    {
+        var band = new Size(380, 40);
+        Assert.Equal(default, SwiftShapes.DrawnCornerRadius(band, new CornerRadius(18), false, clipOnly: true));
+        Assert.Equal(new CornerRadius(40 / (2 * E)), SwiftShapes.DrawnCornerRadius(band, new CornerRadius(18), false, clipOnly: false));
+        // It fits (the stated radius is Apple's), a capsule, the composer's exemption, a square corner: the stated radii are kept.
+        Assert.Equal(new CornerRadius(18), SwiftShapes.DrawnCornerRadius(new Size(380, 100), new CornerRadius(18), false, clipOnly: true));
+        Assert.Equal(new CornerRadius(18), SwiftShapes.DrawnCornerRadius(new Size(380, 30), new CornerRadius(18), false, clipOnly: true));
+        Assert.Equal(new CornerRadius(22), SwiftShapes.DrawnCornerRadius(new Size(818, 46), new CornerRadius(22), true, clipOnly: true));
+        Assert.Equal(new CornerRadius(0, 10, 0, 10), SwiftShapes.DrawnCornerRadius(new Size(380, 100), new CornerRadius(0, 10, 0, 10), false, clipOnly: true));
+        Assert.Equal(new CornerRadius(18), SwiftShapes.DrawnCornerRadius(new Size(0, 0), new CornerRadius(18), false, clipOnly: true));
+    }
 }
