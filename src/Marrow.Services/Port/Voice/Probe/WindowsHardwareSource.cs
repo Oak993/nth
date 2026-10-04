@@ -91,9 +91,16 @@ public sealed class WindowsHardwareSource : IHardwareSource
         var id = "ven_" + adapter.VendorId.ToString("x4", System.Globalization.CultureInfo.InvariantCulture) + "&dev_" + adapter.DeviceId.ToString("x4", System.Globalization.CultureInfo.InvariantCulture);
         foreach (var name in classKey.GetSubKeyNames())
         {
-            using var key = classKey.OpenSubKey(name);
-            if (key?.GetValue("MatchingDeviceId") is string matching && matching.Contains(id, StringComparison.OrdinalIgnoreCase)
-                && key.GetValue("DriverVersion") is string version) return version;
+            try
+            {
+                using var key = classKey.OpenSubKey(name);
+                if (key?.GetValue("MatchingDeviceId") is string matching && matching.Contains(id, StringComparison.OrdinalIgnoreCase)
+                    && key.GetValue("DriverVersion") is string version) return version;
+            }
+            catch (Exception error) when (error is System.Security.SecurityException or UnauthorizedAccessException or IOException)
+            {
+                // the class key's "Properties" subkey is closed to a standard user (found on the Windows run): not an adapter's key, skipped
+            }
         }
         return "";
     }

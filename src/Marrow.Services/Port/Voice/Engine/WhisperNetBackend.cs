@@ -19,7 +19,7 @@ public sealed class WhisperNetBackend : IWhisperBackend
         "BeamSearchSamplingStrategyBuilder.WithBeamSize(Int32)", "WhisperProcessor.ProcessAsync(ReadOnlyMemory`1,CancellationToken)", "WhisperProcessor.Dispose()",
         "SegmentData.Text", "SegmentData.Language", "SegmentData.Tokens", "WhisperToken.Text", "WhisperToken.Start", "WhisperToken.End",
         "WhisperVadFactory.FromPath(String,WhisperFactoryOptions)", "WhisperVadFactory.CreateBuilder()", "WhisperVadFactory.Dispose()", "WhisperVadProcessorBuilder.Build()",
-        "WhisperVadProcessorBuilder.WithUseGpu(Boolean)", "WhisperVadProcessorBuilder.WithThreads(Int32)", "WhisperVadProcessor.DetectSpeech(ReadOnlySpan`1)", "WhisperVadProcessor.Dispose()",
+        "WhisperVadProcessorBuilder.WithThreads(Int32)", "WhisperVadProcessor.DetectSpeech(ReadOnlySpan`1)", "WhisperVadProcessor.Dispose()",
         "LibraryLoader.RuntimeOptions.LibraryPath", "LibraryLoader.RuntimeOptions.LoadedLibrary", "LibraryLoader.RuntimeOptions.RuntimeLibraryOrder",
     ];
 
@@ -27,6 +27,8 @@ public sealed class WhisperNetBackend : IWhisperBackend
         Task.Run<IWhisperModel>(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
+            // Whisper.net 1.9.1 makes a factory over a missing file without a word (the failure comes at the first pass), so the file is checked here (VT-6 Windows review)
+            if (!File.Exists(load.ModelPath)) throw new FileNotFoundException("The model file is not there.", load.ModelPath);
             WhisperNativeRuntimes.Configure(load.RuntimeOrder, load.LibraryRoot);
             var factory = WhisperFactory.FromPath(load.ModelPath, new WhisperFactoryOptions { UseGpu = load.UseGpu });
             try

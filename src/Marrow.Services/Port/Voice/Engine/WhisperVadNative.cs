@@ -23,6 +23,9 @@ public sealed class WhisperVadNative : IVadNative
     /// <summary>Loads <paramref name="whisperLibraryPath"/> (once per process), then the VAD model on it.</summary>
     public static WhisperVadNative Open(string modelPath, string whisperLibraryPath, bool useGpu, int threads)
     {
+        // Found on the Windows run (NVIDIA RTX 4080, Vulkan): whisper.cpp's VAD with use_gpu on aborts the whole process in ggml ("pre-allocated tensor (leaf_0) in a buffer
+        // (Vulkan0) that cannot run the operation"), which nothing can catch. The VAD costs 0.4 ms a frame on the processor, so it never gets the GPU.
+        if (useGpu) throw new ArgumentException("whisper.cpp's VAD aborts the process on a GPU backend; it runs on the processor.", nameof(useGpu));
         lock (Gate)
         {
             if (libraryPath is not null && !string.Equals(libraryPath, whisperLibraryPath, StringComparison.OrdinalIgnoreCase))

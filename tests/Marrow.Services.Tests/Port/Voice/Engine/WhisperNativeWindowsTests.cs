@@ -36,6 +36,18 @@ public sealed class WhisperNativeWindowsTests
         for (var i = 0; i < 20; i++) Assert.True(vad.Probability(quiet) < 0.35f);
     }
 
+    // Windows review: whisper.cpp's VAD with use_gpu on aborts the whole process on a Vulkan device (ggml-backend.cpp: "pre-allocated tensor (leaf_0) in a buffer (Vulkan0) that
+    // cannot run the operation"). Nothing can catch that, so the VAD is refused the GPU before anything is loaded.
+    [WindowsOnlyFact("the refusal comes before any native is loaded")]
+    [Trait("Feature", "VT-6")]
+    [Trait("Decision", "ED-267")]
+    public void The_VAD_is_never_given_the_GPU_because_whisper_cpp_aborts_the_process_on_it()
+    {
+        var cpu = FileRuntimeInventory.AppRuntimeLibrary(AppContext.BaseDirectory, RuntimeKind.Cpu);
+        Assert.Throws<ArgumentException>(() => SileroVad.Open(VadModel, cpu, useGpu: true, threads: 2));
+        Assert.Throws<ArgumentException>(() => WhisperVadNative.Open(VadModel, cpu, useGpu: true, threads: 2));
+    }
+
     [WindowsOnlyFact("loads Whisper.net's native runtimes")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]

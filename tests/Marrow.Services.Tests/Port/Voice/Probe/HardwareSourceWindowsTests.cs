@@ -35,6 +35,17 @@ public sealed class HardwareSourceWindowsTests
         foreach (var adapter in adapters.Where(a => !a.IsSoftware)) _ = source.DriverVersion(adapter);
     }
 
+    // Windows review: the display class key has a "Properties" subkey a standard user may not open (SecurityException). An adapter whose id no earlier key names walked into it
+    // and threw, which would end the probe's Graphics step.
+    [WindowsOnlyFact("reads the display class registry key as a standard user")]
+    [Trait("Feature", "VT-6")]
+    [Trait("Decision", "ED-267")]
+    public void The_driver_version_of_an_adapter_no_registry_key_names_is_empty_and_never_throws()
+    {
+        var source = new WindowsHardwareSource();
+        Assert.Equal("", source.DriverVersion(new GpuAdapterInfo("No such adapter", 0xFFFF, 0xFFFF, 0, 0, false)));
+    }
+
     [WindowsOnlyFact("runs the whole probe on the real machine and loads the VAD model")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]

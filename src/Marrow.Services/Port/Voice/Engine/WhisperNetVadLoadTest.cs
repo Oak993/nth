@@ -5,7 +5,8 @@ namespace Marrow.Services.Port.Voice.Engine;
 
 /// <summary>
 /// Opens the bundled Silero VAD model through Whisper.net with the GPU asked for, runs it over one second of silence, and reports the runtime that loaded. A failure to load
-/// throws. Windows-only in practice; its test is Windows-only.
+/// throws. Windows-only in practice; its test is Windows-only. The processor builder is NOT given <c>WithUseGpu(true)</c>: on a Vulkan GPU that call aborts the whole
+/// process inside ggml ("pre-allocated tensor (leaf_0) in a buffer (Vulkan0) that cannot run the operation"), found on the Windows verification run; the factory's <c>UseGpu</c> is what asks for the GPU.
 /// </summary>
 public sealed class WhisperNetVadLoadTest(string vadModelPath) : IVadLoadTest
 {
@@ -13,7 +14,7 @@ public sealed class WhisperNetVadLoadTest(string vadModelPath) : IVadLoadTest
     {
         WhisperNativeRuntimes.Configure(order, libraryRoot);
         using var factory = WhisperVadFactory.FromPath(vadModelPath, new WhisperFactoryOptions { UseGpu = true });
-        using var processor = factory.CreateBuilder().WithUseGpu(true).WithThreads(1).Build();
+        using var processor = factory.CreateBuilder().WithThreads(1).Build();
         _ = processor.DetectSpeech(new float[16000]);
         return WhisperNativeRuntimes.Loaded();
     }
