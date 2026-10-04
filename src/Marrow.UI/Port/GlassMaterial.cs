@@ -230,8 +230,9 @@ internal static class GlassMaterial
 
     // The shape's signed distance (negative inside). A `.continuous` rounded rectangle is the circular corner's distance plus the
     // offset of Apple's curve from the circle (ContinuousCorner.ShaderSource, ED-181): the zero level lies on the path
-    // SwiftShapes draws (to 2e-5 r) and the field is the plain circle's wherever the curve is not drawn (a capsule, a radius past
-    // ContinuousCorner.LargestRadius, `.circular`), so those stay what the video shows. The C# mirror is ContinuousCorner.Distance.
+    // SwiftShapes draws (to 2e-5 r) and the field is the plain circle's wherever the curve is not drawn (a capsule, `.circular`, and the composer
+    // pill, which the video measures circular in ED-275 (2)'s band); a radius between ContinuousCorner.LargestRadius and half the shorter side
+    // is Apple's corner at LargestRadius (OD-0102). The C# mirror is ContinuousCorner.Distance.
     internal static readonly string ShaderHeader = string.Concat(
         "uniform shader backdrop;\nuniform float merge;\n",
         ContinuousCorner.ShaderSource(),

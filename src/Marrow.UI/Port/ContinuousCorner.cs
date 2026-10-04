@@ -48,8 +48,9 @@ public static class ContinuousCorner
     /// <summary>
     /// The largest radius at which the continuous corner is drawn on a shape of this size: both neighbouring corners
     /// need their run-in of <see cref="Extent"/> radii along a side, so <c>2 * Extent * r &lt;= min(width, height)</c>.
-    /// ENGINEERING DECISION backed by the reference video (SPEC.md 2.3): above it (a capsule, the composer's 22 pt corner
-    /// on a 46 pt bar) the video shows circular ends, not PaintCode's clamped continuous corner.
+    /// A capsule (radius at least half the shorter side) is still the circular arc (SPEC.md 2.3: the video shows circular ends). Between the two, where
+    /// the stated radius does not fit yet is under half the shorter side (ED-275 (2)'s band), OD-0102 draws Apple's corner AT this radius
+    /// (PaintCode's clamped corner), except the composer pill, which the video measures circular (SwiftShapes.CircularInBandProperty).
     /// </summary>
     public static double LargestRadius(Size size) => Math.Min(size.Width, size.Height) / (2 * Extent);
 
