@@ -11,6 +11,7 @@ using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.Core.Support;
 using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 using Xunit;
 using N = Marrow.App.Tests.Window.Native.WindowManagerNativeMethods;
 
@@ -30,10 +31,12 @@ public sealed partial class WindowManagerNativeTests(WindowManagerNativeSession 
     [Trait("Req", "UI-SETTINGS-001")]
     public void The_actual_Settings_sidebar_background_reaches_native_caption_hit_testing()
     {
-        native.Run(_ =>
+        native.Run(subject =>
         {
             var (window, drag, client) = native.OnUi(() =>
             {
+                // the production open is Rise (OD-0074, ED-249), which asks for frames: the fixture's window supplies them
+                FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Settings));
                 var manager = new WindowManager();
                 manager.ShowSettings();
                 var window = (Avalonia.Controls.Window)(typeof(WindowManager)

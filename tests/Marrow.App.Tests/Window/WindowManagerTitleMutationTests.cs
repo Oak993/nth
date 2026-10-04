@@ -13,9 +13,10 @@ namespace Marrow.App.Tests.Window;
 [Collection("Headless")]
 public sealed class WindowManagerTitleMutationTests(HeadlessSession headless)
 {
-    // STOP NAME-FALLBACK: WIN.json PR-WIN-009 says absent metadata becomes Marrow,
-    // but Core/Support/Text.cs:31-32 and the unchanged Core oracle require Droppy Code.
-    // Factory/peer coverage protects that oracle; it does not resolve the specification conflict.
+    // RESOLVED (RECORD != SWIFT, Swift wins): WIN.json PR-WIN-009's windows_path says absent metadata becomes "Marrow", but
+    // Text.swift:4 falls back to "Droppy Code" and Core/Support/Text.cs:31-32 keeps it. The fallback is unreachable in a build,
+    // because the shipped assembly always carries its display name (AssemblyInfo.cs:4-8: "Marrow", OD-0002); the test below reads
+    // that metadata, and the two tests under it protect the fallback through the real factory and the managed peer.
     [Fact]
     [Trait("Req", "PR-WIN-009")] // WindowManager.swift:63,97; preserve the existing Core fallback through the real factory.
     public void Missing_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Droppy_Code() => WindowManagerMutationScope.Run(headless, (_, manager) =>
@@ -43,6 +44,28 @@ public sealed class WindowManagerTitleMutationTests(HeadlessSession headless)
         var peer = ControlAutomationPeer.CreatePeerForElement(window);
         Assert.NotNull(peer);
         Assert.Equal("Droppy Code", peer.GetName());
+    });
+
+    // OD-0002 (the deviation of PR-WIN-009): the window text of the build that ships is the product's name, read from the
+    // metadata the app assembly carries (the testhost's entry assembly is not the app's, so AppInfo.Current is not it).
+    [Fact]
+    [Trait("Req", "PR-WIN-009")] // WindowManager.swift:63, :97; Text.swift:4 through the shipped AssemblyInfo.cs
+    public void The_shipped_assembly_metadata_names_the_product_and_titles_the_main_window_and_its_peer_with_it() => WindowManagerMutationScope.Run(headless, (_, manager) =>
+    {
+        var shipped = AppInfo.FromAssembly(typeof(Marrow.App.AppDelegate).Assembly, isDevelopment: true);
+#if DEBUG
+        const string product = "Marrow Dev"; // AssemblyInfo.cs:4-5, the development channel's display name
+#else
+        const string product = "Marrow"; // AssemblyInfo.cs:7, OD-0002
+#endif
+        Assert.Equal(product, shipped.Name);
+        using var info = AppInfo.Running.Override(shipped);
+        manager.ShowMain();
+        var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
+        Assert.Equal(product, window.Title);
+        var peer = ControlAutomationPeer.CreatePeerForElement(window);
+        Assert.NotNull(peer);
+        Assert.Equal(product, peer.GetName());
     });
 
     [Fact]
