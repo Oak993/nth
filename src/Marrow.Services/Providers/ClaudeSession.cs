@@ -107,11 +107,12 @@ public sealed class ClaudeSession : ProviderSession
     private string? launchError;                            // :55
     private static readonly Dictionary<string, HashSet<string>> knownOptions = new(SwiftStringComparer.Instance); // :56
 
-    // DEVIATION OD-0099: SK-19 supplies a factory for this chat's SK-9 generation.
+    // DEVIATION OD-0099: SK-16 (DL-19) supplies a factory for this chat's SK-9 generation.
     // Null/no content means no additional skills; unsupported CLIs never call the factory.
     private readonly Func<Generation?>? acquireSkills;
     private Generation? generation;
     private readonly ClaudeSkillEvents skillEvents = new();
+    private readonly Dictionary<string, string> managedSkillItems = new(StringComparer.Ordinal);
     private bool skillWarningShown;
 
     public ClaudeSession(SessionConfiguration configuration, Func<Generation?>? acquireSkills = null) // :58-63
@@ -169,7 +170,11 @@ public sealed class ClaudeSession : ProviderSession
         catch
         {
             // Keep a lease until the reader observes process exit, including a failed initialize.
-            if (generation is not null && process?.IsRunning == true) process.Terminate();
+            if (generation is not null && process?.IsRunning == true)
+            {
+                process.Terminate();
+                RetainSkillsUntilExit(process);
+            }
             else ReleaseSkills();
             throw;
         }
@@ -219,6 +224,9 @@ public sealed class ClaudeSession : ProviderSession
                 if (generation.Skills.Count == 0 && generation.PluginFolders.Count == 0) ReleaseSkills();
                 else
                 {
+                    foreach (var skill in generation.Skills)
+                        if (Marrow.Services.Port.Skills.Store.StorePaths.Comparer.Equals(skill.Folder, Path.Combine(generation.Folder, "skills", skill.Name)))
+                            managedSkillItems["marrow:" + skill.Name] = skill.Id.Split('/')[0];
                     arguments.Add("--plugin-dir"); arguments.Add(generation.Folder);
                     foreach (var folder in generation.PluginFolders) { arguments.Add("--plugin-dir"); arguments.Add(folder); }
                 }
@@ -273,6 +281,7 @@ public sealed class ClaudeSession : ProviderSession
         var process = ClaudeProviderRuntime.Process.Current(executable.Path, arguments, configuration.WorkingDirectory.Path, environment); // :136-141
         this.process = process;
         process.Start(); // :143
+        if (generation is not null) RetainSkillsUntilExit(process);
         var messages = process.Messages; // :144
         readTask = MainActor.Spawn(async () => // :145-151
         {
@@ -371,6 +380,7 @@ public sealed class ClaudeSession : ProviderSession
         {
             watchdog.Cancel();
             process.Terminate();
+            if (skills is not null) await process.WaitForExit();
         }
     }
 
@@ -409,7 +419,8 @@ public sealed class ClaudeSession : ProviderSession
     /// HandleSystem below, its subtypes) without a live child process (see the file header note).</summary>
     internal void Handle(JSONValue message) // :330-384
     {
-        skillEvents.Handle(message, OnSkillEvent);
+        var normalized = new List<ToolEvent>();
+        skillEvents.Handle(message, normalized.Add, SkillItemId);
         // A head's message names the tool call that spawned it; the lead's carries null. :332
         var parent = message["parent_tool_use_id"]?.JSONValueString;
         switch (message["type"]?.JSONValueString)
@@ -481,6 +492,8 @@ public sealed class ClaudeSession : ProviderSession
             default:
                 break;
         }
+        // Preserve original provider event order; a held-command observer sees a registered request.
+        foreach (var value in normalized) skillEvents.Emit(value, OnSkillEvent);
     }
 
     /// <summary>Where a stream's events go: straight out for the lead, wrapped for a head. Swift's lazily
@@ -907,7 +920,7 @@ public sealed class ClaudeSession : ProviderSession
     private void DidClose() // :678-690
     {
         hasClosed = true;
-        ReleaseSkills();
+        if (process?.IsRunning != true) ReleaseSkills();
         skillEvents.Clear();
         var tail = process?.ErrorTail ?? "";
         // The result's own error names the failure better than the stderr tail can.
@@ -1026,9 +1039,24 @@ public sealed class ClaudeSession : ProviderSession
         return await SwiftTry.OptionalAsync(async () => (JSONValue?)await Control(JSONValue.FromDictionaryLiteral(("subtype", "stop_task"), ("task_id", taskID)))) is not null;
     }
 
+    // Keep this immutable name/id snapshot after lease disposal: buffered transcript events may arrive after child exit.
+    private string? SkillItemId(string skill) => managedSkillItems.GetValueOrDefault(skill);
+
     private string? SkillsMoved() => generation?.PreviousFolder is { } old
         ? $"Marrow's skills for this chat are now in {generation.Folder}. Paths under {old} earlier in this conversation no longer exist; use the same relative path under the new folder."
         : null;
+
+    private void RetainSkillsUntilExit(IClaudeProcess child)
+    {
+        var leased = generation;
+        MainActor.Spawn(async () =>
+        {
+            // stdout EOF is not process exit. Never let GC delete a root still read by a live child.
+            await child.WaitForExit();
+            leased?.Dispose();
+            if (ReferenceEquals(generation, leased)) generation = null;
+        });
+    }
 
     private void ReleaseSkills() { generation?.Dispose(); generation = null; }
 

@@ -9,12 +9,12 @@ internal sealed class ClaudeSkillEvents
     private readonly Dictionary<(string? Parent, string Id), string> commands = new();
     private readonly HashSet<(string? Parent, string Id)> skills = new();
     public Exception? LastFailure { get; private set; }
-    private void Emit(ToolEvent value, Action<ToolEvent>? sink)
+    public void Emit(ToolEvent value, Action<ToolEvent>? sink)
     {
         try { sink?.Invoke(value); }
         catch (Exception error) { LastFailure = error; } // An observer cannot approve a request or interrupt existing protocol handling.
     }
-    public void Handle(JSONValue message, Action<ToolEvent>? sink)
+    public void Handle(JSONValue message, Action<ToolEvent>? sink, Func<string, string?>? itemId = null)
     {
         var parent = message["parent_tool_use_id"]?.JSONValueString;
         switch (message["type"]?.JSONValueString)
@@ -37,7 +37,7 @@ internal sealed class ClaudeSkillEvents
                     else if (name == "Skill" && (input?["skill"]?.JSONValueString ?? input?["command"]?.JSONValueString) is { } skill)
                     {
                         var folder = skill[(skill.LastIndexOf(':') + 1)..];
-                        if (folder.Length != 0 && skills.Add((parent, id))) Emit(new SkillUsed(folder), sink);
+                        if (folder.Length != 0 && skills.Add((parent, id))) Emit(new SkillUsed(folder, itemId?.Invoke(skill)), sink);
                     }
                 }
                 break;

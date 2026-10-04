@@ -11,4 +11,5 @@ internal interface IClaudeProcess
     void Start();
     void Send(JSONValue message);
     void Terminate();
+    Task<int> WaitForExit();
 }
