@@ -3,23 +3,29 @@ using Marrow.Services.Port.Downloads;
 
 namespace Marrow.Services.Port.Voice.Models;
 
+/// <summary>A started model download: its fraction (V-16.3.3's progress), pause, resume and cancel (the row's x keeps the partial), and its end.</summary>
 public sealed class ModelDownload
 {
-    internal ModelDownload() { }
+    internal ModelDownload(DownloadJob job, Func<Task<ModelDownloadResult>> complete)
+    {
+        Job = job;
+        job.ProgressChanged += p => FractionChanged?.Invoke(Ratio(p));
+        Completion = complete();
+    }
 
-    public double Fraction => throw new NotImplementedException();
+    public DownloadJob Job { get; }
 
-    public Task<ModelDownloadResult> Completion => throw new NotImplementedException();
+    public double Fraction => Ratio(Job.Progress);
 
-    public DownloadJob Job => throw new NotImplementedException();
+    public Task<ModelDownloadResult> Completion { get; }
 
     public event Action<double>? FractionChanged;
 
-    public void Pause() => throw new NotImplementedException();
+    public void Pause() => Job.Pause();
 
-    public void Resume() => throw new NotImplementedException();
+    public void Resume() => Job.Resume();
 
-    public void Cancel() => throw new NotImplementedException();
+    public void Cancel() => Job.Cancel();
 
-    private void Unused() => FractionChanged?.Invoke(0);
+    private static double Ratio(DownloadProgress p) => p.BytesTotal == 0 ? 0 : (double)p.BytesDone / p.BytesTotal;
 }

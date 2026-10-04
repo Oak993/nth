@@ -13,9 +13,7 @@ public sealed class ModelDownloaderTests
     private static readonly FakeArtifact Tiny = FakeArtifact.Pattern(120_000, seed: 81);
     private static readonly FakeArtifact Base = FakeArtifact.Pattern(90_000, seed: 82);
 
-    private sealed record Setup(DownloadRig Rig, ModelStore Store, ModelDownloader Downloader, ModelFile Tiny, ModelFile Base);
-
-    private static Setup Make(DownloadRig rig, FakeBehavior? tinyBehavior = null, bool allowLoopback = true)
+    private static ModelDownloadSetup Make(DownloadRig rig, FakeBehavior? tinyBehavior = null, bool allowLoopback = true)
     {
         var tiny = VoiceModelFixtures.Model(Tiny, "tiny-q5_1");
         var baseFile = VoiceModelFixtures.Model(Base, "base-q5_1");
@@ -24,7 +22,7 @@ public sealed class ModelDownloaderTests
         var store = new ModelStore(Path.Combine(rig.Root, "data"), () => null, rig.Runtime.Time);
         var downloader = new ModelDownloader(store, ModelDownloader.CreateDownloader(rig.PartFolder, allowLoopback ? ["127.0.0.1"] : null, rig.Counting),
             f => rig.Server.Url("/" + f.FileName));
-        return new Setup(rig, store, downloader, tiny, baseFile);
+        return new ModelDownloadSetup(rig, store, downloader, tiny, baseFile);
     }
 
     [Fact]

@@ -30,3 +30,6 @@ internal static class VoiceModelFixtures
         return (nupkg, pin);
     }
 }
+
+// VT-7 test fixture: a store, a downloader over it and two synthetic model rows.
+internal sealed record ModelDownloadSetup(DownloadRig Rig, ModelStore Store, ModelDownloader Downloader, ModelFile Tiny, ModelFile Base);

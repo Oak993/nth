@@ -4,19 +4,70 @@ using Marrow.Services.Port.Downloads;
 
 namespace Marrow.Services.Port.Voice.Models;
 
+/// <summary>
+/// V-9.5 on SK-3's downloader (one downloader in the app: no second HTTP client). The shared downloader resumes with Range, restarts on a 200,
+/// verifies size and SHA-256 while streaming, moves the file into the store only when both match, keeps the partial on cancel, limits progress to
+/// ten a second and follows https redirects; this class adds the store, the manifest's pins and the back-off.
+/// </summary>
 public sealed class ModelDownloader
 {
+    private readonly ModelStore store;
+    private readonly Downloader downloader;
+    private readonly Func<ModelFile, Uri> urlFor;
+    private readonly Lock gate = new();
+    private readonly Dictionary<string, ModelDownload> active = new(StringComparer.Ordinal);
+
+    /// <summary>The first-URL host list of model downloads (V-3.3: Hugging Face; the CDN it redirects to need not be listed).</summary>
     public static IReadOnlyList<string> AllowedHosts { get; } = ["huggingface.co"];
 
+    /// <summary>V-9.5 item 6: network errors are retried three times, after 2 s, 4 s and 8 s.</summary>
     public static IReadOnlyList<TimeSpan> RetryDelays { get; } = [TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4), TimeSpan.FromSeconds(8)];
 
-    /// <summary>The downloader the models use: SK-3's, with Hugging Face on its list and V-9.5 item 6's retries.</summary>
+    /// <summary>The downloader the models use: SK-3's, with Hugging Face on its list and the back-off above.</summary>
     public static Downloader CreateDownloader(string partFolder, IEnumerable<string>? allowedHosts = null, HttpMessageHandler? handler = null) =>
-        throw new NotImplementedException();
+        new(partFolder, new DownloadPolicy(allowedHosts ?? AllowedHosts), new DownloadOptions { RetryDelays = RetryDelays }, handler);
 
-    public ModelDownloader(ModelStore store, Downloader downloader, Func<ModelFile, Uri>? urlFor = null) => throw new NotImplementedException();
+    /// <param name="urlFor">The address of a file: the manifest's pinned one unless a test points it at the fake server.</param>
+    public ModelDownloader(ModelStore store, Downloader downloader, Func<ModelFile, Uri>? urlFor = null)
+    {
+        this.store = store;
+        this.downloader = downloader;
+        this.urlFor = urlFor ?? (f => new Uri(f.Url));
+    }
 
-    public ModelDownload Start(ModelFile file) => throw new NotImplementedException();
+    /// <summary>Starts a download, or returns the one already running for this file. Several files may download at once (V-9.5 item 5).</summary>
+    public ModelDownload Start(ModelFile file)
+    {
+        lock (gate)
+        {
+            if (active.TryGetValue(file.Id, out var running)) return running;
+            var request = new DownloadRequest(urlFor(file), store.PathFor(file), file.Bytes, file.Sha256, "huggingface.co");
+            var job = downloader.Start(request);
+            ModelDownload? download = null;
+            download = new ModelDownload(job, () => Finish(file, job, () => download!));
+            active[file.Id] = download;
+            store.SetDownloading(file, () => download!.Fraction);
+            return download;
+        }
+    }
 
-    public ModelDownload? Active(ModelFile file) => throw new NotImplementedException();
+    public ModelDownload? Active(ModelFile file)
+    {
+        lock (gate) return active.GetValueOrDefault(file.Id);
+    }
+
+    private async Task<ModelDownloadResult> Finish(ModelFile file, DownloadJob job, Func<ModelDownload> self)
+    {
+        var outcome = await job.Completion;
+        if (outcome.Succeeded) store.RecordInstalled(file);
+        store.SetDownloading(file, null);
+        lock (gate) active.Remove(file.Id);
+        return outcome.Status switch
+        {
+            DownloadStatus.Succeeded => new ModelDownloadResult(ModelDownloadStatus.Installed, null),
+            DownloadStatus.Cancelled => new ModelDownloadResult(ModelDownloadStatus.Cancelled, null),
+            _ when outcome.Failure?.Kind == DownloadFailureKind.Mismatch => new ModelDownloadResult(ModelDownloadStatus.Corrupt, outcome.Failure), // V-9.5 item 3
+            _ => new ModelDownloadResult(ModelDownloadStatus.Failed, outcome.Failure),
+        };
+    }
 }
