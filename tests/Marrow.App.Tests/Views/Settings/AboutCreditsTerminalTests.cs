@@ -56,6 +56,9 @@ public sealed class AboutCreditsTerminalTests(HeadlessSession headless) : Settin
             Assert.Equal(2, links.Length); Assert.Same(Assert.Single(Nodes<CreditLink>(working)), links[0]); Assert.Same(Assert.Single(Nodes<CreditLink>(tour)), links[1]);
             Assert.Equal(new[] { "zeronsh/zeron", "rampatra/TourKit" }, links.Select(link => Text(link).Single()));
             Assert.Empty(Nodes<CreditLink>(terminal)); Assert.Empty(Nodes<Button>(terminal)); // no link, and nothing in the row presses
+            // UI-UPDATE-029 states "Always enabled" (the Swift row has no .disabled): the row and its text draw enabled, at full opacity.
+            Assert.True(terminal.IsEffectivelyEnabled); Assert.Equal(1, terminal.Opacity);
+            foreach (var text in Nodes<TextBlock>(terminal)) { Assert.True(text.IsEffectivelyEnabled); Assert.Equal(1, text.Opacity); }
             // Nothing in the row is a link whatever its tooltip or accessibility says: the one text it draws besides its title is the detail.
             Assert.Equal(new[] { "Terminal", TerminalDetail }, Text(terminal));
             foreach (var control in Nodes<Control>(terminal)) { Assert.Null(ToolTip.GetTip(control)); Assert.False(control is Button); }
