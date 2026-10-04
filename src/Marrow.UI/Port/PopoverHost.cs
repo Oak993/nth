@@ -1,6 +1,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using Avalonia;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Primitives.PopupPositioning;
@@ -149,6 +151,18 @@ public static class PopoverHost
             // for a while (a site measures it elsewhere) leaves the host showing what it shows.
             if (popup.Child is { } child && host is ContentControl hosted && !ReferenceEquals(hosted.Content, child)) hosted.Content = child;
         };
+        // The window the popover hangs over keeps the keyboard (a native popup window is not activated: Windows sends every key to the window under it), so the keys a popover
+        // owns reach it from there: Escape closes it and Return is its default button (see ForwardKey).
+        TopLevel? owner = null;
+        void OwnerKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (popup.IsOpen && owner is not null && ForwardKey(popup, owner, e.Key, e.KeyModifiers)) e.Handled = true;
+        }
+        void Release()
+        {
+            owner?.RemoveHandler(InputElement.KeyDownEvent, OwnerKeyDown);
+            owner = null;
+        }
         popup.Opened += (_, _) =>
         {
             var found = host ?? HostOf(popup.Child);
@@ -156,8 +170,28 @@ public static class PopoverHost
             host = found;
             host?.AddHandler(InputElement.PointerPressedEvent, PressBeside, RoutingStrategies.Tunnel, handledEventsToo: true);
             Track(popup, host);
+            Release();
+            owner = popup.PlacementTarget is { } target ? WindowTransients.WindowOf(target) : null;
+            owner?.AddHandler(InputElement.KeyDownEvent, OwnerKeyDown, RoutingStrategies.Tunnel);
         };
-        popup.Closed += (_, _) => Detach();
+        popup.Closed += (_, _) => { Detach(); Release(); };
+    }
+
+    /// <summary>
+    /// A key pressed in the window <paramref name="owner"/> a popover hangs over while it is open. An NSPopover is a key window of its own, so Escape closes it and
+    /// `.keyboardShortcut(.defaultAction)` (TimelineRows.swift:2791, HydraIntroPopover, SidebarView, QuestionTab) makes Return press its default button wherever the pointer
+    /// went. A popup window on Windows is not activated, so those keys arrive at the owner instead and are handed on here: Escape to the newest transient over the window
+    /// (Presentation.SetPresented registered how it closes), Return to the newest popover's enabled default button. True when the popover took the key.
+    /// </summary>
+    internal static bool ForwardKey(Popup popup, TopLevel owner, Key key, KeyModifiers modifiers)
+    {
+        if (modifiers != KeyModifiers.None) return false;
+        if (key == Key.Escape) return WindowTransients.DismissNewest(owner);
+        if (key != Key.Enter || !ReferenceEquals(WindowTransients.Newest(owner), popup) || Content(popup) is not { } content) return false;
+        var button = content.GetSelfAndVisualDescendants().OfType<Button>().FirstOrDefault(candidate => candidate.IsDefault && candidate.IsVisible && candidate.IsEffectivelyEnabled);
+        if (button is null) return false;
+        (ControlAutomationPeer.CreatePeerForElement(button).GetProvider<IInvokeProvider>() ?? throw new InvalidOperationException("a Button has an invoke provider")).Invoke();
+        return true;
     }
 
     // The top-level or overlay host a visual is shown in: a PopupRoot, or the overlay's host.
