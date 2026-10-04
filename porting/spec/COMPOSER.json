@@ -2974,7 +2974,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:729-738 the four looks, with :760-767 overlaying an effect only when the kind is not plain or a pair exists (a plain look with no pair draws nothing over its fill), and :798-799 animating a look change over smooth(0.3)",
+        "port": "The 2x2 mapping of (maximum effort, fast mode) onto plain, supercharged, fast and fusion is unchanged, but every kind draws the liquid effect, the plain one too (OD-0075, \"liquid at every effort level\", settling OD-0072; EffortSlider.IsLiquid is true for every look): plain is the maker's liquid, supercharged the same liquid, fast and fusion the liquid with Strike over it (OD-0073). The fill under the liquid is the brand's in every solo kind (PR-COMPOSER-128), so a solo look change moves the effect, not the fill: the effect crossfades over smooth(0.3) (PR-COMPOSER-132) and the fill follows over smooth(0.3) wherever it does change (a pair joining or leaving). The per-model and per-effort shade of OD-0063 belongs to the colour engine (unbuilt): until it is built every effort wears the maker's palette (ED-286)."
+      }
     },
     {
       "id": "PR-COMPOSER-128",
@@ -2996,7 +3001,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:985-998 TrackLook.fill: `.plain` is Chrome.accent (:990), `.supercharged` brand.fill (:991), `.fast` EffortPalette.fastFill, `.fusion` the brand-to-fastFill gradient (:992-996)",
+        "port": "The plain track is the liquid too (OD-0075), so the fill under it is the brand's fill, as at maximum: Claude and DeepSeek their solid colour, Purple its solid, Meta, Silver, Antigravity and the OD-0047 brands their gradients; the accent is no longer a track colour. A pair's gradient ([lead fill] + the heads' colours) is unchanged. Fast and fusion keep the brand's fill under their Strike (OD-0073, ED-248)."
+      }
     },
     {
       "id": "PR-COMPOSER-129",
@@ -3051,25 +3061,26 @@
       "id": "PR-COMPOSER-131",
       "title": "The knob's glow, the stop colour and the light-fill test all follow the pair when there is one (OD-0090: the port no longer draws the glow)",
       "source_evidence": [
-        "DroppyCode/App/Views/Composer/EffortSlider.swift:1000-1018 glow - a pair gives black at 0.35 when light, else its last colour at 0.7; otherwise plain black at 0.28, supercharged brand.glow, fast fastFill at 0.7, fusion fast at 0.75; isLightFill = the pair's isLight, else (kind == .supercharged && brand.isLight); stopColor = black at 0.35 on a light fill else white at 0.6; spark = brand.spark only when there is no pair and the kind is supercharged or fusion, else white"
+        "DroppyCode/App/Views/Composer/EffortSlider.swift:1000-1018 glow - a pair gives black at 0.35 when light, else its last colour at 0.7; otherwise plain black at 0.28, supercharged brand.glow, fast fastFill at 0.7, fusion fast at 0.75; isLightFill = the pair's isLight, else (kind == .supercharged && brand.isLight); stopColor = black at 0.35 on a light fill else white at 0.6; spark = brand.spark only when there is no pair and the kind is supercharged or fusion, else white",
+        "DroppyCode/App/Views/Composer/EffortSlider.swift:1010-1016 the doc comments of isLightFill and stopColor: isLightFill is \"Whether the fill under the knob is light\" (a white brand at maximum, not in fusion, whose far end is gold; or a pair whose heads' colours are white), and stopColor is \"The passed stops: white on colour, dark on a white fill\". In the source a white brand's fill is drawn only at .supercharged (:990-996: the plain fill is Chrome.accent, the fast fill the amber fastFill), so `kind == .supercharged && brand.isLight` is exactly \"the fill is white\" there"
       ],
       "preconditions": "The slider renders.",
       "action": "The look resolves its derived colours.",
-      "expected_result": "Exactly those rules for the stop colour and the light-fill test, which the port still draws, and for the glow, which the port still derives but no longer draws (OD-0090: the knob's glow disc is replaced by the Jewel orb and its own shadow). A pair always overrides the kind for the glow, the light test and the spark colour.",
+      "expected_result": "Exactly those rules for the stop colour and the light-fill test, which the port still draws, and for the glow, which the port still derives but no longer draws (OD-0090: the knob's glow disc is replaced by the Jewel orb and its own shadow). A pair always overrides the kind for the glow, the light test and the spark colour. DEVIATION (OD-0075, OD-0073; lead ruling R1): the light-fill test follows the fill the track actually draws under the knob. A white brand's (Silver's: ChatGPT, Codex) plain, fast and supercharged tracks draw Silver's white fill and white liquid, so each is a light fill: its passed stops are black at 0.35 and the bubbles on its white liquid take the dark-rimmed look; every other brand's fill is a colour (white stops at 0.6, light-rimmed bubbles). The fusion look keeps the source's rule (not light, white stops), and a pair's test is the pair's.",
       "side_effects": [],
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same derivations, in the same precedence. OD-0090: nothing draws the glow: the source's blurred glow disc under the lens (DroppyCode/App/Views/Composer/EffortSlider.swift:781-785, the only reader of TrackLook.glow) is not drawn, the knob being the Jewel orb with its own shadow and a deeper one as it lifts, so TrackLook keeps the glow as a derived value (checked by unit test, never drawn). The stop colour (:772) and the light-fill test it reads are still drawn as in the source; the light-fill test no longer tints a lens or draws its edge (:788-792), which the orb replaces.",
-      "verification_method": "unit test of the four derived values across looks",
+      "windows_path": "Same derivations, in the same precedence. OD-0090: nothing draws the glow: the source's blurred glow disc under the lens (DroppyCode/App/Views/Composer/EffortSlider.swift:781-785, the only reader of TrackLook.glow) is not drawn, the knob being the Jewel orb with its own shadow and a deeper one as it lifts, so TrackLook keeps the glow as a derived value (checked by unit test, never drawn). The stop colour (:772) and the light-fill test it reads are still drawn as in the source; the light-fill test no longer tints a lens or draws its edge (:788-792), which the orb replaces. DEVIATION OD-0075 and OD-0073 (lead ruling R1): isLightFill = the pair's isLight, else (kind is plain, fast or supercharged, and brand.isLight); the fusion look is not a light fill. The bubbles' dark or light rim follows the same test with no pair (TrackEffect.DarkBubbles, read by the track's canvas). The glow and the spark rules are unchanged (the plain glow is black at 0.28 and the fast glow the amber at 0.7).",
+      "verification_method": "unit test of the four derived values across looks; the drawn passed stops and the bubbles' rims by a headless render of a Silver track",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0090",
-        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:781-785 `Circle().fill(look.glow).blur(radius: look.kind == .plain ? 4 : 8).offset(y: 1)`, the only reader of TrackLook.glow (:1000-1008), drawn under the knob's lens; :788 and :791 read look.isLightFill for the lens's white tint (0.55 on a light fill, else 0.32) and its black 0.14 edge",
-        "port": "The glow disc and the Liquid Glass lens are not drawn: the knob is the Jewel orb with its own shadow and, as it lifts, a deeper one (OD-0090, ED-252). TrackLook still derives the glow by the source's rules, but nothing reads it; the stop colour and the light-fill test (:770-772, :1012, :1015) are drawn as in the source."
+        "decision": "OD-0090; OD-0075; OD-0073",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:781-785 `Circle().fill(look.glow).blur(radius: look.kind == .plain ? 4 : 8).offset(y: 1)`, the only reader of TrackLook.glow (:1000-1008), drawn under the knob's lens; :788 and :791 read look.isLightFill for the lens's white tint (0.55 on a light fill, else 0.32) and its black 0.14 edge EffortSlider.swift:1012 `kind == .supercharged && brand.isLight` is true exactly where the source draws a white fill (:986-996: a white brand's fill is drawn only at .supercharged; the plain fill is Chrome.accent and the fast fill the amber fastFill)",
+        "port": "The glow disc and the Liquid Glass lens are not drawn: the knob is the Jewel orb with its own shadow and, as it lifts, a deeper one (OD-0090, ED-252). TrackLook still derives the glow by the source's rules, but nothing reads it; the stop colour and the light-fill test (:770-772, :1012, :1015) are drawn as in the source. OD-0075 draws Silver's white fill and liquid on the plain track and OD-0073 (ED-248) under the fast look, so the light-fill test follows the fill drawn (lead ruling R1): a white brand's plain, fast and supercharged tracks are light fills, the fusion look keeps the source's rule; the bubbles' rim follows it."
       }
     },
     {
@@ -3093,7 +3104,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:760-767 overlays the effect only when the kind is not plain or a pair exists, so a plain look with no pair has no effect view at all (the record's failure case: \"A plain look with no pair draws no effect at all\")",
+        "port": "Every solo look has an effect (OD-0075): there is no look without one, so the failure case does not apply. The identity rule is unchanged: a look change without a pair replaces the effect (the old one fades out over smooth(0.3) keeping its own clock, the new one fades in from time 0, plain included), a look change that keeps the kind (one non-maximum effort to another) keeps the same effect, and with a pair the identity ignores the kind, so the effect keeps its instance and its clock."
+      }
     },
     {
       "id": "PR-COMPOSER-133",
@@ -3116,7 +3132,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0051; OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050 `TimelineView(.animation(minimumInterval: 1.0 / (kind == .supercharged && pair == nil ? 30 : 60)`: a supercharged track without a pair ticks at 30",
+        "port": "Every effect ticks at 60: the solo supercharged track is the liquid tube (OD-0051) and, since OD-0075, so is the plain track (liquid at every effort level), so the 30 Hz case does not exist. The pauses (reduced motion, a window that is not in front), the 8 point guard (:1053), the hit-test and accessibility rules (:1070-1071) are the source's."
+      }
     },
     {
       "id": "PR-COMPOSER-134",
@@ -5210,12 +5231,12 @@
         "no efforts: the effort text is omitted"
       ],
       "interactions": [
-        "click opens the effort card popover below the chip"
+        "click opens the effort card popover above the chip (the source's .popover(arrowEdge: .bottom) puts its arrow on the card's bottom edge; it flips below only where there is no room above)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:59-138"
       ],
-      "notes": "The label never swaps to something like \"Select effort\" while open, because that would resize the chip under the popover's own arrow. The name is the only part allowed to truncate."
+      "notes": "The label never swaps to something like \"Select effort\" while open, because that would resize the chip under the popover's own arrow. The name is the only part allowed to truncate. AMENDED (blitz-effortslider2): the interaction read \"below the chip\"; the source (EffortSlider.swift:120 arrowEdge: .bottom) and the reference runtime (2-chat-use.mov 33.74-33.94 s, the card above the chip, its arrow pointing down at it) put the card above it (ED-262 (6)); the port places it on top (PlacementMode.Top, flipping below without room)."
     },
     {
       "id": "UI-COMPOSER-013",
@@ -5616,13 +5637,13 @@
         "cross-fades to the model list over 0.12 s ease-out"
       ],
       "interactions": [
-        "hangs below the model chip"
+        "hangs above the model chip (the source's .popover(arrowEdge: .bottom): its arrow on the card's bottom edge), below it only where there is no room above"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:153-228",
         "DroppyCode/App/Views/Composer/EffortSlider.swift:557-656 `var body: some View { VStack(spacing: 16) {` (557-558) with `.padding(.horizontal, 16)` (653), `.padding(.top, 14)` (654), `.padding(.bottom, 16)` (655)"
       ],
-      "notes": "The chip's width is frozen while this is open so the popover does not drift."
+      "notes": "The chip's width is frozen while this is open so the popover does not drift. AMENDED (blitz-effortslider2): the interaction read \"hangs below the model chip\"; the source (EffortSlider.swift:120) and the reference runtime (2-chat-use.mov 33.74-33.94 s) put the card above the chip (ED-262 (6))."
     },
     {
       "id": "UI-COMPOSER-031",
@@ -5745,9 +5766,9 @@
       ],
       "notes": "The 24 px inset (a knob radius; the source's 21 points) is what keeps the whole knob visible at the extremes and the fill flush with its far edge; the fill width is x + 24, not x. OD-0090: the gem in the orb moves at rest, at speed 2.6, and up to 4.2 as the charge rises (knob-variants.js:169-174, :167), held still under reduce motion (the light stays); in fast mode the orb charges before each bolt and the bolt leaves its centre (the strike's own look is OD-0093's). UNRESOLVED (ED-252, OD-0050): Purple, which has no maker in the liquid palettes, takes its own locked stops.",
       "deviation": {
-        "decision": "OD-0090",
-        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:713 thumbSize = 42 (:746 inset 21, :820 control height 42); :781-796 the knob: a blurred glow disc (radius 4 plain, 8 charged, offset 1 point down, :782-785) under a clear circle with .glassEffect(.regular.tint(white at 0.55 on a light fill, else 0.32).interactive()) (:786-788) and a black 0.14 strokeBorder only on a light fill (:790-792), 42 by 42, scaled 1.06 while dragging (:794-795); :801-818 the drag; :824-830 the adjustable action",
-        "port": "The knob is the 48 px Jewel orb (OD-0090, ED-252), larger than the 34 px track (1.4 x its height: it stands 7 px proud above and below and sits flush with the track's end at either extreme), with the control 48 px high, stop centres 24 px in from each end and the fill to the knob's far edge; it lifts to 1.06x where it is pressed (response 0.22 s, damping 0.8, a deeper shadow fading in) and springs onto the nearest stop and back to 1x on release (0.32 s, 0.78), the gem always moving (speed 2.6 at rest, up to 4.2 as the charge rises; still under reduce motion), its colours the selected maker's liquid, crossfading over 0.6 s on a model change; no glass lens, tint, edge or glow."
+        "decision": "OD-0090; OD-0048; OD-0051; OD-0073; OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:713 thumbSize = 42 (:746 inset 21, :820 control height 42); :781-796 the knob: a blurred glow disc (radius 4 plain, 8 charged, offset 1 point down, :782-785) under a clear circle with .glassEffect(.regular.tint(white at 0.55 on a light fill, else 0.32).interactive()) (:786-788) and a black 0.14 strokeBorder only on a light fill (:790-792), 42 by 42, scaled 1.06 while dragging (:794-795); :801-818 the drag; :824-830 the adjustable action | the states: :760-767 overlay an effect only for a non-plain kind or a pair (plain: the accent fill, no effect), :985-998 the fill per kind, and the pair's \"live fusion seam\" (:1232-1256 drawFusion)",
+        "port": "The knob is the 48 px Jewel orb (OD-0090, ED-252), larger than the 34 px track (1.4 x its height: it stands 7 px proud above and below and sits flush with the track's end at either extreme), with the control 48 px high, stop centres 24 px in from each end and the fill to the knob's far edge; it lifts to 1.06x where it is pressed (response 0.22 s, damping 0.8, a deeper shadow fading in) and springs onto the nearest stop and back to 1x on release (0.32 s, 0.78), the gem always moving (speed 2.6 at rest, up to 4.2 as the charge rises; still under reduce motion), its colours the selected maker's liquid, crossfading over 0.6 s on a model change; no glass lens, tint, edge or glow. The states other than the knob's: every look draws the liquid effect, the plain one too (OD-0075), the fast and fusion looks Strike over it (OD-0073), and a pair draws the liquid with the workers to the left and the lead at the knob (OD-0048, OD-0051, in place of the fusion seam); the fill under the liquid is the brand's in every solo kind (OD-0075, OD-0073) and [lead fill] + the heads' colours in a pair."
       }
     },
     {

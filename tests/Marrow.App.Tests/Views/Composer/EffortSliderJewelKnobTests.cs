@@ -48,6 +48,8 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // EffortSlider.swift:712-713,740-760 (PR-COMPOSER-123's track; its 42 point lens superseded by OD-0090); DEVIATION OD-0090: the knob is 1.4 x the 34 px track, 48 px
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-796 as amended by OD-0090 (the 48 px Jewel orb)
+    [Trait("Req", "PR-COMPOSER-126")] // EffortSlider.swift:820-830 as amended by OD-0090 (48 px, a step springs)
     public void The_knob_is_one_point_four_times_the_track_and_the_control_is_as_tall_as_the_knob() => headless.OnUiThread(() =>
     {
         Assert.Equal(34, EffortSlider.TrackHeight);
@@ -69,6 +71,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
     [InlineData(1, 24 + 250.0 / 3)]
     [InlineData(2, 24 + 500.0 / 3)]
     [InlineData(3, 274.0)]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-796 as amended by OD-0090 (the 48 px Jewel orb)
     public void Each_stop_puts_the_knob_a_radius_in_and_the_fill_to_its_far_edge(int index, double centre) => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig(index: index);
@@ -82,6 +85,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // EffortSlider.swift:802-818 (PR-COMPOSER-125's springs, 0.22/0.8 to the pointer, 0.32/0.78 back to the stop, as the page's); OD-0090 page trackPress
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void Pressing_the_track_springs_the_knob_to_the_pointer_and_release_springs_it_to_the_nearest_stop() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
@@ -101,6 +105,8 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // EffortSlider.swift:793 scaleEffect 1.06 while held (a part of PR-COMPOSER-123); OD-0090: pressed on the knob it lifts where it is and keeps the grip
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-796 as amended by OD-0090 (the 48 px Jewel orb)
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void Pressing_the_knob_lifts_it_where_it_is_and_the_drag_keeps_the_grip() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
@@ -120,6 +126,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // EffortSlider.swift:808-813,833-836 (nearestStop, PR-COMPOSER-125, not its springs or haptic); OD-0090: the effort changes as the knob passes the midpoint between stops
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void The_effort_changes_where_the_knob_passes_the_midpoint_between_two_stops() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();
@@ -141,6 +148,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // EffortSlider.swift:822-830 an adjustable-action step; OD-0090/OD-0076: it springs (page key step: response 0.2, damping 1)
+    [Trait("Req", "PR-COMPOSER-126")] // EffortSlider.swift:820-830 as amended by OD-0090 (48 px, a step springs)
     public void An_accessibility_step_springs_the_knob_to_its_stop() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig(index: 1);
@@ -319,6 +327,7 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // jewel-knob.html stepSlider: the knob may overshoot its end by 3 px while it springs, no more
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void The_knob_may_overshoot_the_end_by_three_pixels() => headless.OnUiThread(() =>
     {
         // a 600 px track: from the first stop the spring (0.22 s, 0.8) to the far end would overshoot about 4.6 px

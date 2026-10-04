@@ -42,7 +42,6 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     // Foundation .whitespaces includes tabs; the inherited tab-incomplete assertions are unchanged.
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-TERM-076: the sheet's capture against the reference is owed on native (ED-278, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1672-1693
     [Trait("Req", "PR-TERM-080")] // App/Views/Chat/ChatView.swift:1712-1714
     public void Editing_the_command_preserves_the_same_cards_edited_name_and_worktree_flag()
@@ -70,7 +69,6 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     }
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-TERM-074: the sheet's capture against the reference is owed on native (ED-278, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1660,1721-1722
     public void The_scripts_sheet_pads_its_contents_by_twenty_inside_its_fixed_frame()
     {
@@ -155,7 +153,6 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     [Theory]
     [InlineData(PanelDockCorner.TopLeading)]
     [InlineData(PanelDockCorner.BottomLeading)]
-    // STOP (round 4, traceability), still open: PR-USAGE-071: the capture of a short panel in a top and a bottom corner is not done (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:496-503,707-710
     public void Usage_origin_preserves_the_docked_edge_when_its_height_differs(PanelDockCorner corner)
     {

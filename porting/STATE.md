@@ -67,6 +67,17 @@ the engineering ones: `E:\Droppy\work\design\open-questions-2026-10-04.md` (43 r
 6. Rules that stay: tests only through `E:\Droppy\work\claude-verify\one.sh`, `one-full.sh`, `one-names.sh`; never a bare
    `dotnet test`; never open the app "Marrow"; never write to the reference checkout; agents never push `unit/*`.
 
+**Incomplete (GR-1, `unit/f-gr-1`, first release OD-0103).** The first-run preparation service is built and tested
+(`GpuWarmup` registry; `src\Marrow.App\Port\FirstRun\FirstRunPreparation.cs`), but NOT wired to startup:
+`FirstRunStartup.RunAsync` has no caller and `FirstRunStartup.Screen` is null until GR-2's Getting Ready sheet sets it
+from its startup hook, so startup behaves as before (the idle fallback of ED-252 still prepares the knob). The Voice
+hardware step is absent from the plan until VT-15 registers its work step with `GpuWarmup.Register`. The composer light,
+slider liquid and strike programs are verified on the CPU renderer only (the liquid and strike draw into a surface the
+window's GPU context makes, through `GpuWarmup.WarmTarget`; a `RenderTargetBitmap` is a CPU raster in Avalonia 12.1.2 and
+is not used); a GPU check (the programs made, one cache entry per program, `WarmTarget`'s reflection on Avalonia.Skia's
+`DrawingContextImpl` working on a real context) is left to the supervised native session (ED-288 (8));
+`EffortSliderNativeFrameTests` now cover nine programs. Review round 2: the marker now also waits for every registered work step (a first run that did not do Voice hardware leaves the machine unprepared even after a later idle pass), and a liquid or strike draw that throws inside its operation faults the warm-up (ED-288 (14) to (16)); both are CPU-renderer verified only, a GPU fault inside `LiquidTrack` is for the native session. Review round 3: the CPU renderer's first run now leaves the machine prepared (a `warm-cpu.txt` marker naming build, adapter and driver, ED-288 (17)), so the next launch skips it; verified headless on the CPU renderer only, and on a real software-rendered PC (a VM, RDP, a broken D3D11 driver) only in the supervised native session. Review round 4: the CPU marker counts only while the app draws on the CPU renderer (a launch on the GPU needs the GPU marker), is kept per adapter, and a registered work step is bounded by `GpuWarmup.StepTimeout` and ends on cancellation (ED-288 (18) to (20)); a GPU platform whose blob cache does not install still writes no marker (unresolved until the native session).
+
 ## Current checkpoint: 2026-09-23 04:30, orchestrator Claude Opus 5.5
 
 This section supersedes every checkpoint below it.

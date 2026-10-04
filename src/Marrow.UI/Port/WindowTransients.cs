@@ -25,7 +25,13 @@ public static class WindowTransients
     {
         Hide(key);
         Open.Add(new Entry(key, new WeakReference<Visual>(owner), dismiss));
+        // A popup closes without the app's say-so when its anchor leaves the tree (Avalonia closes a popup whose placement target is gone), and nothing then calls Hide:
+        // the entry would hold the popup, which is a visual child of the row it hung from, and so the row, its entry and its text, for good (PR-CHAT-161: a row that scrolls
+        // away with its popover open). The popup's own Closed takes its entry out; the subscription is made once per popup.
+        if (key is Popup popup && watched.TryAdd(popup, popup)) popup.Closed += (_, _) => Hide(popup);
     }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Popup, object> watched = new();
 
     /// <summary><paramref name="key"/> is no longer open.</summary>
     public static void Hide(object key) => Open.RemoveAll(entry => ReferenceEquals(entry.Key, key));

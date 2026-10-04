@@ -149,8 +149,7 @@ public sealed class ComposerViewBlitzListTests(HeadlessSession headless)
     // ---- PR-COMPOSER-043 (:482-484) ----
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-043")] // App/Views/Composer/ComposerView.swift:482-484; Services/Providers: OD-0010 symbol table
-    [Trait("Rule", "R-TEST-4")] // The record's verification is a capture comparison, which has no reference frame (CAPTURE-ONLY)
+    [Trait("Req", "PR-COMPOSER-043")] // App/Views/Composer/ComposerView.swift:482-484; Services/Providers: OD-0010 symbol table; no reference video shows the command list (CATALOG has no row for it): OD-0098, the Swift is the proof
     public void Each_command_row_reads_slash_name_with_its_detail_trailing_and_the_command_or_sparkles_symbol_drawn_from_the_lucide_table()
     {
         headless.OnUiThread(() =>
@@ -300,8 +299,7 @@ public sealed class ComposerViewBlitzListTests(HeadlessSession headless)
     // ---- PR-COMPOSER-048 (:244; Popovers.swift:117-133) ----
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-048")] // App/Views/Composer/ComposerView.swift:244; UI/Chrome/Popovers.swift:117-133
-    [Trait("Rule", "R-TEST-4")] // The record's verification is a capture comparison of both lists, which has no reference frame (CAPTURE-ONLY)
+    [Trait("Req", "PR-COMPOSER-048")] // App/Views/Composer/ComposerView.swift:244; UI/Chrome/Popovers.swift:117-133; no reference video shows either list: OD-0098, the Swift is the proof
     public void Both_headers_read_their_exact_words_in_11_point_semibold_secondary_text_with_the_8_6_8_3_margins_as_the_panel_shows_them()
     {
         headless.OnUiThread(() =>

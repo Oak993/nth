@@ -25,7 +25,7 @@ public sealed class EffortSliderChipMarkTests(HeadlessSession headless)
     private static bool Fused(HydraFusedPairIcon icon) => (bool)typeof(HydraFusedPairIcon).GetField("isFused", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(icon)!;
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // partial: one clause of UI-COMPOSER-012 (the fused mark is kept across effort and fast changes); the rest of it is blocked on its "below the chip" text
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:73 `.id(pair.id)`: the fused mark is kept across effort and fast changes
     public void The_chips_fused_mark_is_kept_while_the_pair_stays_and_made_again_for_another_pair() => headless.OnUiThread(() =>
     {
         var pair = new HydraPair(ProviderKind.Codex) { OrchestratorModel = "c1", Name = "Duo" };

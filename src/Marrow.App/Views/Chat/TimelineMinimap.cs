@@ -610,6 +610,7 @@ public sealed class TimelineMinimapRail : Decorator
             Height = MinimapRailMetrics.TickHeight,
             MinHeight = 0,
             Margin = new Thickness(8, 0, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Left, // :241 VStack(alignment: .leading): every tick starts at the same edge, 8 in; stretched, a fixed-width tick centres in the widest one's room
             Padding = new Thickness(0),
             CornerRadius = new CornerRadius(1),
             BorderThickness = new Thickness(0),

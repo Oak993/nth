@@ -34,14 +34,33 @@ internal static class GlassMaterial
         private CompositionContainerVisual? parent;
         private Control? input;
         private State? previous;
-        private bool queued, hovered, pressed;
+        private bool queued, requested, hovered, pressed;
         private Point pointer;
+        // A container's regions carry each piece's opacity and place as they were at its last synchronisation, and a piece fades or
+        // rises with the opacity and render transform of any visual between it and the container (a soft appear moves only those,
+        // with no layout pass). The container therefore watches those visuals (and the pieces) and synchronises on the next
+        // composition update after any of them changes, in the frame the change was made. The delegates are made once, so a change
+        // costs no allocation; the watched set is rebuilt only when it differs.
+        private readonly Dictionary<Visual, Transform?> watched = new();
+        private readonly HashSet<Visual> wanted = new();
+        private readonly List<Visual> unwanted = new();
+        private readonly EventHandler<AvaloniaPropertyChangedEventArgs> watchedChanged;
+        private readonly EventHandler transformChanged;
+        private readonly Action posted, synchronize;
 
         public Attachment(Control owner)
         {
             this.owner = owner;
-            owner.AttachedToVisualTree += (_, _) => Queue();
-            owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); };
+            watchedChanged = WatchedChanged;
+            transformChanged = (_, _) => RequestSynchronize();
+            synchronize = Synchronize;
+            posted = () =>
+            {
+                queued = false;
+                ElementComposition.GetElementVisual(this.owner)?.Compositor.RequestCompositionUpdate(synchronize);
+            };
+            owner.AttachedToVisualTree += (_, _) => { requested = false; Queue(); };
+            owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); Unwatch(); requested = false; };
             owner.LayoutUpdated += (_, _) => Queue();
             owner.PropertyChanged += (_, _) => Queue();
             owner.ActualThemeVariantChanged += (_, _) => Queue();
@@ -51,15 +70,66 @@ internal static class GlassMaterial
         {
             if (queued) return;
             queued = true;
-            Dispatcher.UIThread.Post(() =>
+            Dispatcher.UIThread.Post(posted, DispatcherPriority.Loaded);
+        }
+
+        // Synchronise at the next composition update, without a dispatcher hop: for a change that is already on the render path.
+        private void RequestSynchronize()
+        {
+            if (requested || ElementComposition.GetElementVisual(owner)?.Compositor is not { } compositor) return;
+            requested = true;
+            compositor.RequestCompositionUpdate(synchronize);
+        }
+
+        private void WatchedChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            var property = e.Property; // IsVisible is not watched: it invalidates layout, and the layout pass that follows synchronises (the visibility tests prove it)
+            if (property != Visual.OpacityProperty && property != Visual.RenderTransformProperty && property != Visual.RenderTransformOriginProperty) return;
+            if (property == Visual.RenderTransformProperty && sender is Visual visual && watched.TryGetValue(visual, out var old))
             {
-                queued = false;
-                ElementComposition.GetElementVisual(owner)?.Compositor.RequestCompositionUpdate(Synchronize);
-            }, DispatcherPriority.Loaded);
+                if (old is not null) old.Changed -= transformChanged;
+                var next = visual.RenderTransform as Transform;
+                if (next is not null) next.Changed += transformChanged;
+                watched[visual] = next;
+            }
+            RequestSynchronize();
+        }
+
+        // The visuals from each glass piece (itself included) up to, not including, the container are the ones whose opacity or
+        // transform the piece is drawn with. Called with `wanted` filled; subscribes the new ones and drops the others.
+        private void Rewatch()
+        {
+            var same = watched.Count == wanted.Count;
+            if (same) foreach (var visual in wanted) if (!watched.ContainsKey(visual)) { same = false; break; }
+            if (same) return;
+            foreach (var visual in watched.Keys) if (!wanted.Contains(visual)) unwanted.Add(visual);
+            foreach (var visual in unwanted) Unwatch(visual);
+            unwanted.Clear();
+            foreach (var visual in wanted)
+            {
+                if (watched.ContainsKey(visual)) continue;
+                var transform = visual.RenderTransform as Transform;
+                if (transform is not null) transform.Changed += transformChanged;
+                visual.PropertyChanged += watchedChanged;
+                watched[visual] = transform;
+            }
+        }
+        private void Unwatch(Visual visual)
+        {
+            if (!watched.Remove(visual, out var transform)) return;
+            if (transform is not null) transform.Changed -= transformChanged;
+            visual.PropertyChanged -= watchedChanged;
+        }
+        private void Unwatch()
+        {
+            unwanted.AddRange(watched.Keys);
+            foreach (var visual in unwanted) Unwatch(visual);
+            unwanted.Clear();
         }
 
         private void Synchronize()
         {
+            requested = false;
             var spacing = SwiftGlass.GetContainerSpacing(owner);
             var ownEffect = SwiftGlass.GetEffect(owner);
             BindInput(ownEffect?.IsInteractive == true);
@@ -104,6 +174,7 @@ internal static class GlassMaterial
             material.OpacityMask = visual.OpacityMask;
 
             var regions = new List<Region>();
+            wanted.Clear();
             if (spacing is null)
             {
                 if (RegionFor(owner, LocalTransform(owner), 1) is { } r) regions.Add(r);
@@ -113,6 +184,7 @@ internal static class GlassMaterial
                 foreach (var child in owner.GetVisualDescendants().OfType<Control>())
                 {
                     if (SwiftGlass.GetEffect(child) is null || ContainerOf(child) != owner) continue;
+                    for (Visual? node = child; node is not null && node != owner; node = node.GetVisualParent()) wanted.Add(node);
                     var toOwner = child.TransformToVisual(owner);
                     if (toOwner is null) continue;
                     var opacity = 1.0;
@@ -121,6 +193,7 @@ internal static class GlassMaterial
                     if (RegionFor(child, toOwner.Value * LocalTransform(owner), opacity) is { } r) regions.Add(r);
                 }
             }
+            Rewatch();
             var state = new State(regions.ToArray(), spacing ?? 0);
             if (previous is null || previous.Spacing != state.Spacing || !previous.Regions.SequenceEqual(state.Regions))
             {
@@ -191,6 +264,7 @@ internal static class GlassMaterial
         private void RemoveMaterial()
         {
             if (material is not null) parent?.Children.Remove(material);
+            Unwatch();
             parent = null;
             material = null;
             previous = null;
