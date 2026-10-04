@@ -27,12 +27,11 @@ public sealed class TimelineRowsPrSourceConflictTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")]
+    [Trait("Req", "PR-CHAT-107")] // ThreadRuntime.swift:3797-3803 storeLegacyChanges calls scheduleSave without bumping saveRevision; :3650-3665 saveNow rejects an unchanged revision: the record's persistence line
     public void An_idle_loaded_legacy_summary_is_updated_in_memory_but_the_pinned_revision_guard_drops_it_on_restart()
     {
-        // STOP opencode-App.Views.Chat.TimelineRows #3 PR-CHAT-107 (the same conflict as STOP #7 in TimelineRowsTests).
-        // ThreadRuntime.swift:3797-3802 calls scheduleSave without incrementing saveRevision;
-        // :3650-3664 saveNow rejects an unchanged revision. A ruling must resolve persistence vs pinned source.
+        // STOP opencode-App.Views.Chat.TimelineRows #3 PR-CHAT-107, RETIRED 2026-10-04: the record was amended to the source (the summary reaches the document only when
+        // another change bumps the revision, and a reopened thread works it out again), and this is its restart test with a legacy fixture thread.
         // PR-GIT-151 is no longer under this STOP (adversarial review 2026-10-03: it was left under it by mistake when STOP #11
         // was rewritten). Its record asks for the one-off parse of an older turn's diff and for the result "stored on the runtime
         // as that turn's changes"; its persistence line is only "TurnSummary.changes carries the summary for turns recorded with
