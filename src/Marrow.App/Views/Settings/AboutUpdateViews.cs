@@ -486,9 +486,10 @@ public sealed class UpdateReleaseSectionCards : Decorator
 
 internal sealed class UpdateReleaseSectionPopover : Decorator
 {
-    // STOP opencode-proofs-aboutupdate #1 PR-SETTINGS-246 (CAPTURE-ONLY): geometry, type and colours are asserted, but the record's
-    // capture comparison needs a Mac showing a waiting release (with and without a rollup line); neither reference video shows a
-    // release or its popover (the recorded app was up to date, S 199.5-214.5).
+    // PR-SETTINGS-246 (CLOSED from the Swift, OD-0098): neither reference video shows a release or its popover (the recorded app was up to
+    // date, S 199.5-214.5), so the capture comparison is replaced by the values :255-301 states, asserted with and without a rollup in
+    // AboutUpdateViewsProofGeometryTests.Popover_with_and_without_rollup_has_source_header_colours_wrapping_duplicate_bullets_and_scroll,
+    // and the popover above the card by AboutUpdateViewsProofInputTests.Each_card_presents_its_own_popover_above_itself.
     public UpdateReleaseSectionPopover(UpdateReleaseNotesDigest.Section section, string version)
     {
         var headerIcon = SwiftImage.Named(section.Category.AssetName) // :261 the same ED-215 release artwork.
@@ -1129,9 +1130,9 @@ internal sealed class AboutVersionPill : Decorator
     {
         if (snapshot.Phase is not (UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed))
         {
-            // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-074 (CAPTURE-ONLY): the 104 pt slider in the capsule, every phase and the
-            // chase's response and minimum speed per phase are tested; the capture comparison needs a Mac showing an install or its
-            // celebration, which neither reference video does (the recorded app was up to date).
+            // PR-UPDATE-074 (CLOSED from the Swift, OD-0098): the 104 pt slider in the capsule for every phase, and the chase's response and
+            // minimum speed per phase, are asserted in AboutUpdateViewsProofGeometryTests and AboutUpdateViewsPillStateTests; neither
+            // reference video shows an install or its celebration (the recorded app was up to date), so :625-636 is the proof.
             var slider = new SmoothedUpdateProgressSlider(
                 progress.UpdateInstallProgressFractionTarget,
                 response: EnvironmentValues.GetAccessibilityReduceMotion(this)
@@ -1158,8 +1159,9 @@ internal sealed class AboutVersionPill : Decorator
             return padded.ChromeGlassCapsule();
         }
 
-        // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-072 (CAPTURE-ONLY): the Up to date chip is compared with the reference frame
-        // (AboutUpdateViewsChipCaptureTests); Check failed and Not checked yet appear on no reference frame (the recorded feed answered).
+        // PR-UPDATE-072 (CLOSED, OD-0098): the Up to date chip is compared with the reference frame (AboutUpdateViewsChipCaptureTests); Check failed
+        // and Not checked yet appear on no frame (the recorded feed answered), so their order, labels, symbols and tints are proven from :587-621 by
+        // AboutUpdateViewsProofGeometryTests.Pill_faces_have_exact_metrics_tints_glass_help_and_only_ready_has_the_button_role.
         var isReady = snapshot.UpdateAvailable && snapshot.Update is not null;
         var wasReady = previousReady;
         previousReady = isReady;

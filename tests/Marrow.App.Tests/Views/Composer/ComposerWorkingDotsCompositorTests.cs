@@ -15,6 +15,12 @@ using SkiaSharp;
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerWorkingDots.swift (B3 52bc792), :5-11, :124-190.
+// OD-0098: PR-COMPOSER-102, -103 and -104 and UI-COMPOSER-017 ask for capture comparisons (a one-line against a five-line composer, two composers side by
+// side in phase, reduced motion) that no frame of the reference videos can settle, so the Swift is the proof: ComposerWorkingDotsTests, ...FieldTests,
+// ...PillTests (the mounted pill at one and five lines), ...ReviewTests and this class assert every literal (2 point dots, 8 point pitch, three rows, the
+// 0.08/0.75/0.08 keyframe at 0.35, 2.2 s, 0.045 and 0.09 delays, the shared clock origin, the static 0.28). "No timer, view update or main-thread drawing" is
+// asserted as observed (no frame subscription, no property change, no active timer while the field plays) and rests, for the thread the draw runs on,
+// on Avalonia's documented behaviour that a CompositionCustomVisualHandler (DotFieldCompositionHandler) runs on the render thread: ENGINEERING DECISION.
 [Collection("Headless")]
 public sealed class ComposerWorkingDotsCompositorTests(HeadlessSession headless)
 {

@@ -345,16 +345,8 @@ public sealed class HydraCookbookPanelTests(HeadlessSession headless)
     }
 }
 
-// STOP App.Views.Settings.HydraCookbookPanel #1 (helper Claude, 2026-09-25)
-// Kind: coverage gap, not a code defect. Clicking the Add button (PR-SETTINGS-178's core "clicking it adds it, and
-// the row becomes Added" behavior) is exercised by the real production code path (HydraCookbookRow's Click handler
-// really does call model.Settings.AddHydraPair inside Transaction.WithAnimation, matching the Swift source exactly),
-// but driving that click through Button.RaiseEvent(ClickEvent) inside harness.Main.OnMain(...) reproducibly threw
-// "Could not create glyphTypeface... Inter... Weight: Medium" from Avalonia's own text layout, twice in isolation,
-// while constructing the same Medium-weight "Added" text directly (not via a live re-render mid-click) works fine
-// (see A_row_shows_Added_with_no_button_once_an_equivalent_pair_already_exists, which passes). The failure is in
-// Avalonia's headless font/render pipeline reacting to a Track-triggered Child replacement fired from inside a
-// nested Main.OnMain pump, not in this unit's own code; matches the documented "Could not create glyphTypeface"
-// flake pattern elsewhere in this codebase (followups.md, 2026-09-24). Not investigated further given time; the
-// click-adds-pair behavior itself stays covered structurally (button present/enabled before add, Added state
-// correct once a pair already exists) rather than through a live click-and-rerender in the same test.
+// PR-SETTINGS-178 (2026-10-04, OD-0098): the earlier coverage-gap note about driving the Add click is closed. The click is exercised by
+// Review_real_panel_resolves_the_first_tied_model_and_adds_its_ready_row and An_open_cookbook_offers_and_adds_a_recipe_after_its_catalog_arrives
+// (through the real panel) and by HydraCookbookRowSwiftProofTests.A_resolvable_rows_trailing_control_is_the_Add_button_with_a_plus_and_one_click_turns_the_row_into_Added
+// (Chrome.panelSlide's reduce-motion read overridden). The row's look (marks, fonts, colours, third line, waiting sentence, Added label) has no frame in the
+// reference videos, so it is proven from HydraCookbookPanel.swift:72-133 by HydraCookbookRowSwiftProofTests.

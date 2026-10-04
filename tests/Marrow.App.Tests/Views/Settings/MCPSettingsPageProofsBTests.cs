@@ -547,9 +547,11 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
         await Task.Yield();
         // STOP opencode-proofs-mcp-b #2: UI-MCP-051. Shared GlassPickerButton's F.GlassMaterial
         // is deferred under ED-180. Geometry/state proofs exist; complete shared style cannot be claimed.
-        // STOP opencode-proofs-mcp-b #3: UI-MCP-047 UI-MCP-064. The shared presented-chrome background belongs to the Popovers unit. RecordingPresenter has
-        // no popup; the editor through the REAL presenter (overlay host: shown, Close, press outside) is MCPCustomEditorRealPresenterTests and the info
-        // popover's hover onto the popover is MCPSettingsPageInfoLinksTests. Still open: Escape (see ED-257 (5)) and the native popup window.
+        // STOP opencode-proofs-mcp-b #3: UI-MCP-064 (and the rest of UI-MCP-047, below). UI-MCP-047's container, height formula, focus rule and presented chrome
+        // (capsule shape and tint, Popovers.swift:8-12; the record's "background" is the native popover's own) are proven from the Swift (OD-0098) by
+        // MCPCustomEditorSwiftProofTests; the editor through the REAL presenter (overlay host: shown, Close, press outside) is MCPCustomEditorRealPresenterTests and the
+        // info popover's hover onto the popover is MCPSettingsPageInfoLinksTests. UI-MCP-047 stays open for two reasons only: Escape dismissal (ED-257 (5): the shared
+        // popover host, owned by the Popovers unit, does not handle Escape) and the native popup window (NATIVE-ONLY).
         var editor = new MCPCustomEditor(null); var w = Show(editor, model);
         try
         {
