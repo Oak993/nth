@@ -5,6 +5,8 @@ using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Settings;
+using Marrow.Core.Port.Voice;
 using Marrow.Core.Support;
 using Marrow.Services.Providers;
 using Marrow.UI.Port;
@@ -305,6 +307,12 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         public const string HasSeenTour = "hasSeenTour";
         public const string HasSeenHydraIntro = "hasSeenHydraIntro";
         public const string ComposerLight = ComposerLightSettings.StoreKey; // PORT-ONLY, owner-ruled (OD-0089, ED-251)
+        // PORT-ONLY, first-release SA-1 (voice-SPEC V-16, customization-SPEC CZ-13.3, CZ-13.4): the key names the records own.
+        public const string VoiceOrb = VoiceOrbSettings.StoreKey;
+        public const string VoiceTyping = VoiceTypingSettings.StoreKey;
+        public const string VoiceHardware = VoiceHardwareRecord.StoreKey;
+        public const string VoiceNotes = VoiceNotesSettings.StoreKey;
+        public const string WorkingDots = WorkingDotsSettings.StoreKey;
     }
 
     // :182
@@ -376,6 +384,11 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     private string accent = AccentPalette.WindowsId;
     private double backdropOpacity;
     private ComposerLightSettings composerLight;
+    private VoiceOrbSettings voiceOrb = VoiceOrbSettings.Default;
+    private VoiceTypingSettings voiceTyping = VoiceTypingSettings.Default;
+    private VoiceHardwareRecord? voiceHardware;
+    private VoiceNotesSettings voiceNotes = VoiceNotesSettings.Default;
+    private WorkingDotsSettings workingDots = WorkingDotsSettings.Default;
     private TextGenerationChoice textGeneration;
     private string commitInstructions = "";
     private double terminalHeight;
@@ -591,9 +604,60 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         set
         {
             var clamped = value.Clamped();
-            Set(ref composerLight, clamped, _ => defaults.Set(Key.ComposerLight, clamped.ToJson()));
+            Set(ref composerLight, clamped, _ => Store(Key.ComposerLight, clamped.ToJson()));
         }
     }
+
+    // PORT-ONLY, owner-ruled additions of the first release (SA-1; voice-SPEC V-16.1, V-16.2, V-16.4, V-16.5; customization-SPEC
+    // CZ-13.3, CZ-13.4). Each is one JSON object under its own key, written by the record that owns the format (VT-1 for the voice
+    // keys) and read leniently: unreadable data is the default. A change is current in memory at once and reaches the store through
+    // the coalescer (CZ-13.5).
+
+    /// <summary><c>voiceOrb</c> (V-16.1): the orb, its attachment, what happens after voice input, the pill words, the light and the language default.</summary>
+    public VoiceOrbSettings VoiceOrb
+    {
+        get => Read(voiceOrb);
+        set => Set(ref voiceOrb, value, _ => Store(Key.VoiceOrb, value.ToJson()));
+    }
+
+    /// <summary><c>voiceTyping</c> (V-16.2): the engine, language, model, microphone and the slow-PC answer.</summary>
+    public VoiceTypingSettings VoiceTyping
+    {
+        get => Read(voiceTyping);
+        set => Set(ref voiceTyping, value, _ => Store(Key.VoiceTyping, value.ToJson()));
+    }
+
+    /// <summary><c>voiceHardware</c> (V-16.4): the stored result of the hardware check; null until one has run (setting null removes the key).</summary>
+    public VoiceHardwareRecord? VoiceHardware
+    {
+        get => Read(voiceHardware);
+        set => Set(ref voiceHardware, value, _ => Store(Key.VoiceHardware, value?.ToJson()));
+    }
+
+    /// <summary><c>voiceNotes</c> (V-16.5): whether each engine one-time privacy note has been shown.</summary>
+    public VoiceNotesSettings VoiceNotes
+    {
+        get => Read(voiceNotes);
+        set => Set(ref voiceNotes, value, _ => Store(Key.VoiceNotes, value.ToJson()));
+    }
+
+    /// <summary><c>workingDots</c> (CZ-13.3): where the composer working dots take their colour from.</summary>
+    public WorkingDotsSettings WorkingDots
+    {
+        get => Read(workingDots);
+        set => Set(ref workingDots, value, _ => Store(Key.WorkingDots, value.ToJson()));
+    }
+
+    // PORT-ONLY (CZ-13.5): the one place the keys above and composerLight reach the store: the in-memory value is already current,
+    // and the store is written at most every 250 ms per key while values keep changing.
+    private readonly SettingsWriteCoalescer writes;
+
+    private void Store(string key, object? value) => writes.Write(key, value);
+
+    /// <summary>
+    /// PORT-ONLY (CZ-13.5): writes every value still waiting for its interval, now. A page calls it when a drag ends, and the app on exit.
+    /// </summary>
+    public void FlushPendingWrites() => writes.Flush();
 
     // :301-303
     public TextGenerationChoice TextGeneration
@@ -1139,6 +1203,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     // :707-790. Constructors assign backing fields directly: no didSet runs, nothing is written back (R-OBS-1).
     public AppSettings()
     {
+        writes = new SettingsWriteCoalescer(defaults); // PORT-ONLY (CZ-13.5)
         defaultProvider = SwiftEnum<ProviderKind>.FromRawValue(defaults.String(Key.DefaultProvider) ?? "") ?? ProviderKind.Codex;
         defaultRuntimeMode = SwiftEnum<RuntimeMode>.FromRawValue(defaults.String(Key.RuntimeMode) ?? "") ?? RuntimeMode.FullAccess;
         defaultWorkspaceMode = SwiftEnum<WorkspaceMode>.FromRawValue(defaults.String(Key.WorkspaceMode) ?? "") ?? WorkspaceMode.Local;
@@ -1227,6 +1292,12 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         hydraPairs = LoadHydraPairsLenient(defaults, Key.HydraPairs);
         // PORT-ONLY (OD-0089, ED-251): unreadable or missing, the default (Border beam)
         composerLight = defaults.Data(Key.ComposerLight) is { } lightStored ? ComposerLightSettings.FromJson(lightStored) : ComposerLightSettings.Default;
+        // PORT-ONLY (SA-1): unreadable or missing, the record default (the hardware record: none)
+        voiceOrb = defaults.Data(Key.VoiceOrb) is { } orbStored ? VoiceOrbSettings.FromJson(orbStored) : VoiceOrbSettings.Default;
+        voiceTyping = defaults.Data(Key.VoiceTyping) is { } typingStored ? VoiceTypingSettings.FromJson(typingStored) : VoiceTypingSettings.Default;
+        voiceHardware = defaults.Data(Key.VoiceHardware) is { } hardwareStored ? VoiceHardwareRecord.FromJson(hardwareStored) : null;
+        voiceNotes = defaults.Data(Key.VoiceNotes) is { } notesStored ? VoiceNotesSettings.FromJson(notesStored) : VoiceNotesSettings.Default;
+        workingDots = defaults.Data(Key.WorkingDots) is { } dotsStored ? WorkingDotsSettings.FromJson(dotsStored) : WorkingDotsSettings.Default;
     }
 
     // MARK: - Hydra pairs

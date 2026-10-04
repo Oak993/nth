@@ -1,7 +1,9 @@
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Documents;
@@ -149,11 +151,20 @@ public static class TimelineRows
     internal static SwiftImage Chevron() => SwiftImage.SystemName("chevron.right")
         .Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
 
+    /// <summary>PORT-ONLY. The animation of a change OD-0076 adds where the Mac snaps, or none when the system asks for reduced motion (ED-264 (3)): the delegation
+    /// card's changes that :703-704 do not key. The Mac's own animations (the work group's fold, the checklist's strike, the card's count and `sent` changes) are
+    /// not passed through it (ED-264 (2)).</summary>
+    internal static Animation? UnlessReduced(Animation? animation) => Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion ? null : animation;
+
     // :313-316, :464-467, :579-582, :691-694.
-    internal static Border Pill(Control child, SwiftColor? fill = null, Thickness? padding = null)
+    /// <param name="fillsSlot">The pill takes the whole size of the slot it is eased in (a <see cref="SizeSlot"/> with ContentFollowsSize), larger or smaller
+    /// than its contents', so its edge, background and corners move along the slot's curve in both directions (:652-704, OD-0076); any other pill hugs its contents.</param>
+    internal static Border Pill(Control child, SwiftColor? fill = null, Thickness? padding = null, bool fillsSlot = false)
     {
-        var pill = new Border { Child = child, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
-            Padding = padding ?? new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical) };
+        var pill = new Border { Child = child };
+        pill.HorizontalAlignment = fillsSlot ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
+        pill.VerticalAlignment = fillsSlot ? VerticalAlignment.Stretch : VerticalAlignment.Top;
+        pill.Padding = padding ?? new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical);
         pill.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous);
         pill.Background = (fill ?? Chrome.Accent.Opacity(0.1)).Brush(pill);
         return pill;
@@ -310,11 +321,7 @@ public sealed class UserMessageRow : Decorator
         // :168-178 .rightClickPopover { [message, canRevert, confirming = $menuRequests.confirmRevert] in ... }: snapshots
         // only; the revert intent goes through the binding alone. The flag is the one the row holds when the menu opens (a body run
         // again with a new `canRevert` hands the modifier a new snapshot), read from its box, not from the row.
-        var requests = menuRequests;
-        var text = message.Text;
-        var flag = revertable;
-        var confirming = new Binding<bool>(() => requests.ConfirmRevert, value => requests.ConfirmRevert = value);
-        row.RightClickPopover(() => MessageActions(text, flag.Value, confirming));
+        row.RightClickPopover(MenuBuilder(message.Text, revertable, menuRequests));
         // :179-183 the room for the hover line lives inside the row but is taken back out of its height, so the
         // controls show up in the gap to the next row. (6 = the VStack's spacing above them.)
         row.Margin = new Thickness(0, 0, 0, -(TimelineMetrics.HoverLineHeight + 6));
@@ -377,6 +384,13 @@ public sealed class UserMessageRow : Decorator
         };
         SwiftFont.Subheadline.Apply(excerpt); // :103 .font(.system(.subheadline))
         excerpt.Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(excerpt); // :104
+        // :107 .frame(maxWidth: 260) under the chip's .fixedSize(): the frame is the words' own width up to 260, and a longer excerpt gets the whole 260 and is cut at
+        // the tail inside it. A TextBlock reports only the width of the line it drew (the cut one, a pixel or two short of 260), which left the capsule narrower
+        // than the frame: so a longer excerpt is given the frame's width itself.
+        var probe = new TextBlock { Text = quote.Excerpt };
+        SwiftFont.Subheadline.Apply(probe);
+        probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        if (probe.DesiredSize.Width > 260) excerpt.Width = 260;
         // :98 HStack(spacing: 5); :109 .fixedSize(): a horizontal StackPanel measures its children at their ideal size.
         var chip = new HStack { Spacing = 5, HorizontalAlignment = HorizontalAlignment.Right }; // HStack :98: its children share one centre line
         chip.Children.Add(glyph);
@@ -487,6 +501,16 @@ public sealed class UserMessageRow : Decorator
     {
         var target = runtime;
         editor.Sync(isEditing ? runtime.MessageEdit : null, dismiss: () => target.MessageEdit = null, edit => new MessageEditor(edit, target));
+    }
+
+    // :168-171 the right-click popover's builder, made from the values it needs and nothing else. It is made here, in a static method, on purpose: the lambdas of
+    // Body's own scope share one closure class with every other lambda of that scope, and that class holds `this` (Body's local functions read the row's entry and
+    // runtime), so a builder written beside them would pin the whole row (its entry, its text, its state) for as long as the menu lives, which is what the
+    // source's capture list is there to prevent (:56-62, :165-178; PR-CHAT-161). A static method cannot capture the row.
+    private static Func<IReadOnlyList<RowAction>> MenuBuilder(string text, RevertFlag flag, MessageMenuRequests requests)
+    {
+        var confirming = new Binding<bool>(() => requests.ConfirmRevert, value => requests.ConfirmRevert = value);
+        return () => MessageActions(text, flag.Value, confirming);
     }
 
     // :214-228 private static func messageActions(text:canRevert:confirmRevert:) -> [RowAction]: from value snapshots,
@@ -807,29 +831,35 @@ public sealed class HydraBriefRow : Decorator
         var box = new BriefState();
         (int Count, bool Output)? scanned = null;
         Padding = new Thickness(96, 0, 0, 0);
+        // :552-582 one Button with one `.badgePopover(isPresented:)` for the life of the row: the body re-evaluates for a new entry count
+        // (:540-546) and rewrites only what the pill says, so a brief opened while the head works stays open (PR-CHAT-147). The button, its
+        // badge popover and the column are made once; what a re-evaluation replaces is the pill the button holds, and the popover's content
+        // reads the persona and the task as they are when it is presented.
+        var persona = HydraRoster.Persona(at: 0);
+        var column = new StackPanel { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
+        if (message.Attachments.Count != 0) column.Children.Add(new AttachmentStrip(message.Attachments));
+        var button = PlainControls.Button(new Border(), () => box.Showing = !box.Showing);
+        button.Focusable = false;
+        ToolTip.SetTip(button, "Show the brief");
+        column.Children.Add(button.BadgePopover(new Binding<bool>(() => box.Showing, value => box.Showing = value), () => new HydraBriefPopover(persona, runtime.Thread?.Hydra?.Task, message.Text)));
+        Child = column;
         void Build()
         {
-            var persona = runtime.Thread?.Hydra?.Persona ?? HydraRoster.Persona(at: 0);
+            persona = runtime.Thread?.Hydra?.Persona ?? HydraRoster.Persona(at: 0);
             var count = runtime.Entries.Count;
             var output = scanned is { } prior && prior.Count == count ? prior.Output
                 : entry.TurnID is not null && runtime.Entries.Any(candidate => candidate.TurnID == entry.TurnID && candidate.Id != entry.Id);
             scanned = (count, output);
             var cooking = !output && runtime.IsRunning;
             var title = cooking ? persona.Name + " is starting to cook\u2026" : persona.Name + "'s brief";
-            var column = new StackPanel { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
-            if (message.Attachments.Count != 0) column.Children.Add(new AttachmentStrip(message.Attachments));
             var row = new HStack { Spacing = 8 }; // HStack :556: its children share one centre line
             row.Children.Add(new HydraGlyph(persona, 18, isRunning: cooking));
             var text = TimelineRows.ChatText(title, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9), singleLine: true);
             row.Children.Add(cooking ? new HydraShimmer().Body(text) : text);
             row.Children.Add(TimelineRows.Chevron());
             var pill = TimelineRows.Pill(row); pill.HorizontalAlignment = HorizontalAlignment.Right;
-            var button = PlainControls.Button(pill, () => box.Showing = !box.Showing);
-            button.Focusable = false;
-            ToolTip.SetTip(button, "Show the brief");
+            button.Content = pill;
             AutomationProperties.SetName(button, title);
-            column.Children.Add(button.BadgePopover(new Binding<bool>(() => box.Showing, value => box.Showing = value), () => new HydraBriefPopover(persona, runtime.Thread?.Hydra?.Task, message.Text)));
-            Child = column;
         }
         Build();
         this.Track(() => (runtime.Entries.Count, runtime.IsRunning, runtime.Thread?.Hydra), _ => Build());
@@ -870,49 +900,208 @@ public sealed class HydraReportPopover : Decorator
 /// <summary>:648-783 <c>struct HydraDelegationBlock: View</c>.</summary>
 public sealed class HydraDelegationBlock : Decorator
 {
+    private readonly StackPanel column = new() { Spacing = 6 }; // :658
+    private readonly OpacityCrossfade titleText; // :663-664 the title Text, `.contentTransition(.opacity)`: its words crossfade
+    private readonly HStack header;
+    private readonly Panel overlay = new();
+    // The card as drawn: its slot and, over it and outside the slot's clip (nothing clips the card in SwiftUI), what leaves the card and the sent wave.
+    private readonly CardFrame frame = new();
+    private readonly Canvas leaving = new(); // what leaves the card under an animation, drawn fading where it was; it takes no room (a Canvas asks for none)
+    private readonly Border pill;
+    private readonly SizeSlot slot; // :703-704 the card's size (height and width) follows its contents along Chrome.panelSlide (OD-0076: a card that changes size eases to it)
+    private StackPanel? rows;                       // :677 the heads' list, there once a brief has closed
+    private Control? writing;                       // :681-686 "Writing the next brief…"
+    private SwiftImage? check;                      // :667-675 the green check, once sent
+    private DotFieldSweep? sweep;                   // :694-701 one wave through the card, once sent
+    private ValueList<HydraDelegation> shown = ValueList<HydraDelegation>.Empty;
+    private int count;                              // :704 the value `delegations.count` the card's animation is keyed on
+
+    /// <summary>The block as it was last handed (:649-650): the card is the same card for every flush of a streaming reply, so what changes in it is animated.</summary>
+    internal string Json { get; private set; }
+
+    internal bool Sent { get; private set; }
+
     /// <param name="json">:649 <c>let json: String</c>.</param>
     /// <param name="sent">:650 <c>var sent = false</c>.</param>
     // :652-707 body
     public HydraDelegationBlock(string json, bool sent = false)
     {
+        Json = json; Sent = sent;
+        // :655-666 the mark and the title share a line; the heads run under both, each glyph in the mark's column.
+        header = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :659: its children share one centre line
+        header.Children.Add(HydraReportRow.Mark(16));
+        titleText = new OpacityCrossfade(TimelineRows.ChatText("", weight: SwiftFont.Weight.Medium));
+        header.Children.Add(titleText);
+        column.Children.Add(header);
+        pill = TimelineRows.Pill(column, fillsSlot: true);
+        overlay.Children.Add(pill);
+        pill.SizeChanged += (_, e) => { if (sweep is not null) sweep.Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); }; // :698 .clipShape(RoundedRectangle(cornerRadius: pillRadius, style: .continuous)), through the one helper of ED-181
+        slot = new SizeSlot(overlay) { ContentFollowsSize = true };
+        frame.Children.Add(slot);
+        frame.Children.Add(leaving);
+        Child = frame;
+        Apply(json, sent, animated: false);
+        this.Transition(SwiftTransition.Opacity);
+    }
+
+    /// <summary>The card handed the block again (a flush of the streaming reply, or the reply sent): the same card, so its changes animate with Chrome.panelSlide
+    /// (:703-704 `.animation(Chrome.panelSlide, value: sent)` and `value: delegations.count`): the new head rows come in with the opacity transition, the title changes
+    /// in place, the check and the wave arrive, and the card's height follows its contents as a spring.</summary>
+    internal void Update(string json, bool sent)
+    {
+        if (json == Json && sent == Sent) return;
+        // :703-704 `.animation(Chrome.panelSlide, value: sent)` and `value: delegations.count`: only a change of either is animated on the Mac, along panelSlide
+        // (its reduced-motion form, `.easeOut(duration: 0.18)`, included: Chrome.swift:100-104, ED-264 (1)). Any other change of a streamed block (a brief that
+        // closes with the same count: the title's words, the next-brief line, the card's size) is made in no animation on the Mac (the streamed flush has no
+        // withAnimation; ThreadRuntime.swift has it only at :2947 and :2953), so it eases under OD-0076 in the Mac's motion language, and reduced motion
+        // stills that (ED-264 (3)). ENGINEERING DECISION: OD-0076's size change, .easeOut(duration: 0.3) (ED-285, fifth round (2)).
+        var keyed = sent != Sent || Reading(json).Delegations.Count != count;
+        Json = json; Sent = sent;
+        var animation = keyed ? Chrome.PanelSlide : TimelineRows.UnlessReduced(OwnerChange);
+        Transaction.WithAnimation(animation, () =>
+        {
+            slot.Note(Transaction.Current); // the layout pass that follows reads the animation the change was made under
+            Apply(json, sent, animated: true);
+        });
+    }
+
+    /// <summary>OD-0076: a change the Mac makes with no animation eases on the Mac's motion language for a size change ("about 0.3 s on an ease curve").</summary>
+    internal static Animation OwnerChange => Animation.EaseOut(duration: 0.3);
+
+    /// <summary>:706 `.accessibilityElement(children: .combine)`: one element, its children hidden (a peer with no children, as CommandPalette's row).</summary>
+    protected override AutomationPeer OnCreateAutomationPeer() => new CombinedPeer(this);
+
+    private sealed class CombinedPeer(HydraDelegationBlock owner) : ControlAutomationPeer(owner)
+    {
+        protected override IReadOnlyList<AutomationPeer>? GetChildrenCore() => []; // :706 children: .combine
+    }
+
+    /// <summary>PORT-ONLY. The card's own box: its slot, and the leaving layer and the sent wave over it, laid out at the slot's size and place on every layout
+    /// (:694-701 the wave is the card's `.overlay`, which SwiftUI sizes to the card), outside the slot's clip (nothing clips the card).</summary>
+    private sealed class CardFrame : Panel
+    {
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            foreach (var child in Children) child.Measure(availableSize);
+            return Children.Count == 0 ? default : Children[0].DesiredSize;
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            var card = Children.Count == 0 ? default : new Rect(Children[0].DesiredSize);
+            foreach (var child in Children) child.Arrange(card);
+            return finalSize;
+        }
+    }
+
+    // :653-703 what the body reads: the delegations so far, whether the block is still streaming, and `sent`.
+    private void Apply(string json, bool sent, bool animated)
+    {
         var reading = Reading(json);
         var delegations = reading.Delegations;
         var streaming = !reading.IsComplete && !sent;
-        var column = new StackPanel { Spacing = 6 };
-        var header = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :659: its children share one centre line
-        header.Children.Add(HydraReportRow.Mark(16));
-        header.Children.Add(TimelineRows.ChatText(Title(delegations, streaming, sent), weight: SwiftFont.Weight.Medium));
-        if (sent)
+        count = delegations.Count;
+        AutomationProperties.SetName(this, Label(delegations, streaming, sent));
+        // :663-664 `.contentTransition(.opacity)` under :703-704 `.animation(Chrome.panelSlide, ...)`: new words crossfade with the old (OD-0076).
+        var title = Title(delegations, streaming, sent);
+        if (((TextBlock)titleText.Current!).Text != title) titleText.Show(TimelineRows.ChatText(title, weight: SwiftFont.Weight.Medium));
+        // :667-675 once sent, a green check follows the title.
+        if (sent && check is null)
         {
             // ED-092 (1): documented framework .green, same HIG Default mapping as AppTheme.FrameworkGreen;
             // not theme success. Exact appearance is UNVERIFIED under OD-0001.
-            var check = SwiftImage.SystemName("checkmark.circle.fill").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).ForegroundStyle(SwiftColor.Rgb(0x34C759));
-            AutomationProperties.SetName(check, "sent");
-            header.Children.Add(check.Transition(SwiftTransition.Scale().Combined(SwiftTransition.Opacity)));
+            var mark = SwiftImage.SystemName("checkmark.circle.fill").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).ForegroundStyle(SwiftColor.Rgb(0x34C759));
+            AutomationProperties.SetName(mark, "sent");
+            mark.Transition(SwiftTransition.Scale().Combined(SwiftTransition.Opacity));
+            check = mark;
+            if (animated) SwiftTransition.Insert(header, header.Children.Count, mark); else header.Children.Add(mark);
         }
-        column.Children.Add(header);
-        if (delegations.Count != 0)
+        // :694-701 once sent, one wave of the accent flows through the card, clipped to the pill.
+        if (sent && sweep is null)
         {
-            var rows = new StackPanel { Spacing = 5 };
-            foreach (var delegation in delegations) rows.Children.Add(HeadRow(delegation));
-            if (streaming)
+            sweep = new DotFieldSweep { Tint = Chrome.AccentNSColor, Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(pill.Bounds.Size), TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous) }; // :698, as above
+            sweep.Transition(SwiftTransition.Opacity); // :700 .transition(.opacity)
+            if (animated) SwiftTransition.Insert(frame, frame.Children.Count, sweep); else frame.Children.Add(sweep);
+        }
+        // :677-692 one row per head, the new ones in with the opacity transition; a block that is not a continuation of what was shown starts the list over.
+        var continues = delegations.Count >= shown.Count && shown.Select((item, index) => Equals(item, delegations[index])).All(same => same);
+        if (!continues && rows is not null)
+        {
+            if (delegations.Count != 0) rows.Children.Clear(); // with none to list the whole list goes (below), its rows with it
+            writing = null;
+            shown = ValueList<HydraDelegation>.Empty;
+        }
+        // :676 `if !delegations.isEmpty`: with no head to list there is no list, and no gap for it in the card's column.
+        if (delegations.Count == 0 && rows is { } empty)
+        {
+            rows = null;
+            if (animated) Leave(column, empty); else column.Children.Remove(empty);
+        }
+        // The list comes in as one view with its heads and its next-brief line (:676-692): they take no transition of their own then.
+        var listArrives = false;
+        if (delegations.Count != 0 && rows is null)
+        {
+            rows = new StackPanel { Spacing = 5 };
+            listArrives = true;
+            if (animated) SwiftTransition.Insert(column, 1, rows); else column.Children.Add(rows);
+        }
+        if (rows is not null)
+        {
+            var transitions = animated && !listArrives;
+            for (var index = shown.Count; index < delegations.Count; index++)
+            {
+                var head = HeadRow(delegations[index]);
+                var at = writing is not null ? rows.Children.IndexOf(writing) : rows.Children.Count;
+                if (transitions) SwiftTransition.Insert(rows, at, head); else rows.Children.Insert(at, head);
+            }
+            shown = delegations;
+            // :681-686 while a brief is still streaming a line says the next one is on its way, past a 16-point clear column.
+            if (streaming && writing is null)
             {
                 var next = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :681: its children share one centre line
                 next.Children.Add(new Control { Width = 16, Height = 16 });
                 next.Children.Add(TimelineRows.ChatText("Writing the next brief\u2026", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
-                rows.Children.Add(next);
+                writing = next;
+                // :681-686 a view that joins a stack comes in by the default opacity transition.
+                if (transitions) SwiftTransition.Insert(rows, rows.Children.Count, next); else rows.Children.Add(next);
             }
-            column.Children.Add(rows);
+            else if (!streaming && writing is { } gone)
+            {
+                writing = null;
+                if (transitions) Leave(rows, gone); else rows.Children.Remove(gone);
+            }
         }
-        var pill = TimelineRows.Pill(column);
-        if (sent)
+        if (shown.Count == 0 && delegations.Count == 0) writing = null;
+    }
+
+    /// <summary>A view that leaves the card under the change's animation: SwiftUI lays the card out without it at once, so the card's frame eases to its new size
+    /// along Chrome.panelSlide (:703-704) while the view fades out where it was (its removal transition; documented SwiftUI behaviour, UNVERIFIED under OD-0001 as
+    /// ED-092 records). Left in its stack while it fades, it would hold the card at its old size and let it drop once the fade is done (OD-0076: nothing changes
+    /// by a cut), so it is drawn from the leaving layer at the place and size it had. There it still takes the opacity its old parents give it (a removed view is
+    /// drawn inside its parent: a list still fading in goes on fading in under it), it leaves from where its own arrival has got to if that is still running
+    /// (RemoveContinuing, ED-278 (10)), and nothing clips it (the layer is outside the slot's clip).</summary>
+    private void Leave(Panel from, Control gone)
+    {
+        var at = gone.TranslatePoint(default, leaving) ?? default;
+        var size = gone.Bounds.Size;
+        var parents = Avalonia.VisualTree.VisualExtensions.GetSelfAndVisualAncestors(from).TakeWhile(visual => !ReferenceEquals(visual, frame)).ToList();
+        from.Children.Remove(gone);
+        gone.Width = size.Width; gone.Height = size.Height; // its words keep the layout they had
+        var holder = new Panel();
+        Canvas.SetLeft(holder, at.X); Canvas.SetTop(holder, at.Y);
+        void Follow() => holder.Opacity = parents.Aggregate(1.0, (product, parent) => product * parent.Opacity);
+        void Changed(object? sender, AvaloniaPropertyChangedEventArgs e) { if (e.Property == Visual.OpacityProperty) Follow(); }
+        Follow();
+        foreach (var parent in parents) parent.PropertyChanged += Changed;
+        holder.Children.Add(gone);
+        leaving.Children.Add(holder);
+        holder.Children.CollectionChanged += (_, _) =>
         {
-            var sweep = new DotFieldSweep { Tint = Chrome.AccentNSColor, Clip = new RectangleGeometry(new Rect()) };
-            pill.SizeChanged += (_, e) => sweep.Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :698 .clipShape(RoundedRectangle(cornerRadius: pillRadius, style: .continuous)), through the one helper of ED-181
-            Child = new Panel { Children = { pill, sweep } };
-        }
-        else Child = pill;
-        this.Transition(SwiftTransition.Opacity);
+            if (holder.Children.Count != 0) return;
+            foreach (var parent in parents) parent.PropertyChanged -= Changed;
+            leaving.Children.Remove(holder);
+        };
+        SwiftTransition.RemoveContinuing(holder, gone);
     }
 
     // :711-741
@@ -933,6 +1122,23 @@ public sealed class HydraDelegationBlock : Decorator
             AutomationProperties.SetName(tag, "in " + project); row.Children.Add(tag);
         }
         return row.Transition(SwiftTransition.Opacity);
+    }
+
+    /// <summary>:706 `.accessibilityElement(children: .combine)`: the label is the children's labels in order, joined with ", " as the port's other combined
+    /// labels are (UsageViews.swift:237, "Banked resets, 2 available"): the title (:665), the check's "sent" (:672), each head's glyph by its own label, the
+    /// persona's name (:716), its task (:721) and "in <project>" (:739), and the next-brief line (:683). The marks and the arrow are hidden (:664, :719, :731).</summary>
+    private static string Label(IReadOnlyList<HydraDelegation> delegations, bool streaming, bool sent)
+    {
+        var parts = new List<string> { Title(delegations, streaming, sent) };
+        if (sent) parts.Add("sent");
+        foreach (var delegation in delegations)
+        {
+            if (Persona(delegation.Name) is { } persona) parts.Add(persona.Name);
+            parts.Add(delegation.Task);
+            if (ProjectName(delegation.Project) is { } project) parts.Add("in " + project);
+        }
+        if (delegations.Count != 0 && streaming) parts.Add("Writing the next brief\u2026");
+        return string.Join(", ", parts);
     }
 
     // :745-753 private static func title(for:streaming:sent:) -> String
@@ -1071,7 +1277,10 @@ public sealed class HydraMergeTrackBody : Decorator
     private double position, done, rest;
     private int count;
     private bool hops;
-    private readonly Canvas canvas = new() { Background = Brushes.Transparent }; // :966-971 the track is a tap target.
+    // :966-971 the track is a tap target. :912-915 .frame(width: <glided width>, height: 20, alignment: .topLeading): the drawing keeps its full width and stays at
+    // the leading edge while the frame shrinks to the resting head ("centred in it, the stack overhung the frame on both sides and the settled head sat half outside
+    // the pill"), so the canvas is pinned top-leading and not left to the Decorator's centring of a child wider than its frame.
+    private readonly Canvas canvas = new() { Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
     private readonly Canvas dots = new();
     private readonly HydraMarkImage head;
     private const double Dot = 4;          // :861
@@ -1654,7 +1863,9 @@ public sealed class AssistantMessageRow : Decorator
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return;
             built = message;
-            Child = Body(message, this.summary, runtime, state, Veils.Root);
+            var body = Body(message, this.summary, runtime, state, Veils.Root);
+            KeepCards(Child, body);
+            Child = body;
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
@@ -1669,7 +1880,32 @@ public sealed class AssistantMessageRow : Decorator
     {
         if (Equals(summary, next)) return;
         summary = next;
-        if (built is { } message) Child = Body(message, summary, runtime, state, Veils.Root);
+        if (built is { } message)
+        {
+            var body = Body(message, summary, runtime, state, Veils.Root);
+            KeepCards(Child, body);
+            Child = body;
+        }
+    }
+
+    // :1364 .equatable() with the blocks of MarkdownView kept by position: a block that is still the same block when the reply streams on or its summary arrives is
+    // the same view, which keeps its state and animates what changes in it. A delegation card is the one block with state of its own that streams (:703-704), so
+    // the cards of the body just made are the cards already on show, handed the new block: the n-th card of the old body becomes the n-th card of the new.
+    private static void KeepCards(Control? old, Control next)
+    {
+        if (old is null) return;
+        var shown = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(old).OfType<HydraDelegationBlock>().ToList();
+        var made = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(next).OfType<HydraDelegationBlock>().ToList();
+        for (var i = 0; i < Math.Min(shown.Count, made.Count); i++)
+        {
+            var (card, fresh) = (shown[i], made[i]);
+            if (card.Parent is not Decorator from || fresh.Parent is not Decorator into) continue;
+            card.Update(fresh.Json, fresh.Sent);
+            // :326-329 the block's own look (the leaving card is clear, a little smaller and takes no taps) is the new block's.
+            card.Opacity = fresh.Opacity; card.RenderTransform = fresh.RenderTransform; card.RenderTransformOrigin = fresh.RenderTransformOrigin; card.IsHitTestVisible = fresh.IsHitTestVisible;
+            from.Child = null;
+            into.Child = card;
+        }
     }
 
     // :1363-1388
@@ -1824,7 +2060,9 @@ public sealed class WorkGroup : Decorator
     // :1467-1507
     private Control Group()
     {
-        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = TimelineMetrics.RowSpacing }; // :1467
+        // :1467 VStack: the header and, once open, the steps at rowSpacing. The gap belongs to the steps' own body (GrowingBody.LeadingSpace), so a closed group has none
+        // and the steps' height, gap included, grows along the open's curve (:1470-1472 withAnimation(.snappy(duration: 0.24)); OD-0076: rows that appear fold open).
+        var stack = new StackPanel { Orientation = Orientation.Vertical };
 
         var glyphSlot = new Decorator { Width = TimelineMetrics.IconWidth }; // :1484 .frame(width: TimelineMetrics.iconWidth)
         var summary = new TextBlock(); // :1485
@@ -1877,6 +2115,7 @@ public sealed class WorkGroup : Decorator
         });
 
         WorkSteps? steps = null;
+        GrowingBody? body = null;
         header.Track(() => state.IsCollapsed, collapsed =>
         {
             turn.Set(collapsed ? 0 : 90, Transaction.Current); // :1490
@@ -1886,12 +2125,15 @@ public sealed class WorkGroup : Decorator
             if (!collapsed && steps is null) // :1499-1501 if !isCollapsed { WorkSteps(...) }
             {
                 steps = new WorkSteps(state.Entries, runtime, new Binding<bool>(() => state.ShowsAll, value => state.ShowsAll = value), workingDirectory);
-                SwiftTransition.Insert(stack, 1, steps);
+                // The steps fold open: the body's height (and its fade) follow the transaction the toggle was made in, so what follows the group moves down with it.
+                var opening = body = new GrowingBody { LeadingSpace = TimelineMetrics.RowSpacing, Child = steps };
+                stack.Children.Insert(1, opening);
+                opening.Open(Transaction.Current); // :1469-1472 withAnimation(.snappy(duration: 0.24)), no reduced-motion gate on the Mac (ED-264 (2))
             }
-            else if (collapsed && steps is { } shown)
+            else if (collapsed && steps is not null && body is { } closing)
             {
-                steps = null;
-                SwiftTransition.Remove(stack, shown);
+                steps = null; body = null;
+                closing.Close(Transaction.Current, () => stack.Children.Remove(closing)); // :1475-1477, the same (ED-264 (2))
             }
         });
         stack.Track(() => state.Entries, entries => steps?.Update(entries));
@@ -3104,38 +3346,87 @@ public sealed class TodoListRow : Decorator
         var column = new StackPanel { Spacing = 7 };
         var header = new HStack { Spacing = 6 }; // HStack :2346: its children share one centre line
         header.Children.Add(SwiftImage.SystemName("checklist").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption)).ForegroundStyle(Chrome.SecondaryText));
-        var count = TimelineRows.ChatText("", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText);
+        var count = new OpacityCrossfade(TimelineRows.ChatText("", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
         header.Children.Add(count);
         column.Children.Add(header);
         var card = TimelineRows.Pill(column, SwiftColor.Quaternary.Opacity(0.32), new Thickness(14));
-        var rows = new List<(TimelineBaselineRow Row, SwiftImage Icon, TextBlock Text)>();
+        // :2372 .animation(.snappy(duration: 0.2), value: steps) sits on the whole card, so the card's size follows its contents too: a step that
+        // arrives, a line that grows or wraps, a card that gets wider (OD-0076: a card that changes size eases to it).
+        var slot = new SizeSlot(card);
+        var rows = new List<(TimelineBaselineRow Row, OpacityCrossfade Icon, TextBlock Text, AnimatedColor IconColour, AnimatedColor TextColour, Action<bool, Animation?> Strike)>();
+        // A step that has gone has faded out before it leaves the column; the card then eases to the size it has without it.
+        column.Children.CollectionChanged += (_, e) => { if (e.Action == NotifyCollectionChangedAction.Remove) slot.Note(Animation.Snappy(duration: 0.2)); };
+        // :2372 .animation(.snappy(duration: 0.2), value: steps): the colours a step is drawn in follow the change along the animation, as
+        // SwiftUI interpolates a foreground style, a step's glyph and the header's count crossfade, and a step that arrives or goes fades in or
+        // out (the default transition of a view in a stack). ENGINEERING DECISION (OD-0076: content that swaps crossfades).
+        static SwiftColor IconColourFor(TodoStep.Status status) => status == TodoStep.Status.Pending ? SwiftColor.Tertiary : Chrome.Accent; // :2355
+        static SwiftColor TextColourFor(TodoStep.Status status) => status == TodoStep.Status.Done ? SwiftColor.Secondary : SwiftColor.Primary; // :2357
+        // :2357 `.strikethrough(step.status == .done, color: .secondary)` changes under the same animation: the strike's colour moves between clear and
+        // .secondary along it, so the line comes in (or goes out) with the step's other changes instead of cutting (OD-0076). The decoration is on the text
+        // while the strike is drawn or on its way out, and off once it is gone, so a step that is not done has none.
+        static Action<bool, Animation?> StrikeOf(TimelineBaselineRow row, TextBlock text)
+        {
+            var colour = new AnimatedColor(row);
+            var decoration = new TextDecoration { Location = TextDecorationLocation.Strikethrough, Stroke = colour.Brush };
+            var struck = false;
+            colour.Brush.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == SolidColorBrush.ColorProperty && !struck && colour.Brush.Color.A == 0) text.TextDecorations = null;
+            };
+            colour.Set(SwiftColor.Secondary.Opacity(0), null);
+            return (done, animation) =>
+            {
+                struck = done;
+                if (done && text.TextDecorations is null) text.TextDecorations = new TextDecorationCollection { decoration };
+                colour.Set(done ? SwiftColor.Secondary : SwiftColor.Secondary.Opacity(0), animation);
+                if (!done && colour.Brush.Color.A == 0) text.TextDecorations = null;
+            };
+        }
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Todos todos || todos.Value.Count == 0) { Child = null; return; }
             var steps = todos.Value;
-            count.Text = $"{steps.Count(step => step.TodoStepStatus == TodoStep.Status.Done)} of {steps.Count} done";
-            while (rows.Count > steps.Count) { column.Children.Remove(rows[^1].Row); rows.RemoveAt(rows.Count - 1); }
+            slot.Note(Transaction.Current);
+            var counted = $"{steps.Count(step => step.TodoStepStatus == TodoStep.Status.Done)} of {steps.Count} done";
+            if (((TextBlock)count.Current!).Text != counted) count.Show(TimelineRows.ChatText(counted, SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
+            while (rows.Count > steps.Count) { SwiftTransition.Remove(column, rows[^1].Row); rows.RemoveAt(rows.Count - 1); }
+            var arrived = new HashSet<int>();
             while (rows.Count < steps.Count)
             {
                 var row = new TimelineBaselineRow { Spacing = 8 };
-                var icon = SwiftImage.SystemName("circle").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout));
+                var icon = new OpacityCrossfade();
                 var text = TimelineRows.ChatText("");
+                var iconColour = new AnimatedColor(row);
+                var textColour = new AnimatedColor(row);
+                iconColour.Set(IconColourFor(steps[rows.Count].TodoStepStatus), null); // a step arriving is not tweened from nothing
+                textColour.Set(TextColourFor(steps[rows.Count].TodoStepStatus), null);
+                text.Foreground = textColour.Brush;
                 row.Children.Add(icon); row.Children.Add(text);
-                rows.Add((row, icon, text)); column.Children.Add(row);
+                arrived.Add(rows.Count);
+                var strike = StrikeOf(row, text);
+                strike(steps[rows.Count].TodoStepStatus == TodoStep.Status.Done, null); // a step arriving is not tweened from nothing
+                rows.Add((row, icon, text, iconColour, textColour, strike));
+                SwiftTransition.Insert(column, column.Children.Count, row);
             }
             for (var i = 0; i < steps.Count; i++)
             {
                 var step = steps[i]; var row = rows[i];
-                var icon = SwiftImage.SystemName(Symbol(step.TodoStepStatus)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout));
-                icon.Foreground = (step.TodoStepStatus == TodoStep.Status.Pending ? SwiftColor.Tertiary : Chrome.Accent).Brush(icon);
-                row.Row.Children[0] = icon;
-                rows[i] = (row.Row, icon, row.Text);
+                // :2352-2355 the symbol follows the step's status; a changed one crossfades with the one it replaces (a step that has just
+                // arrived has no old one: it comes in with its row).
+                var symbol = Symbol(step.TodoStepStatus);
+                if (row.Icon.Current is not SwiftImage { } shown || shown.SymbolName != symbol)
+                {
+                    var icon = SwiftImage.SystemName(symbol).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout));
+                    icon.Foreground = row.IconColour.Brush;
+                    if (arrived.Contains(i)) Transaction.WithAnimation(null, () => row.Icon.Show(icon)); else row.Icon.Show(icon);
+                }
+                row.IconColour.Set(IconColourFor(step.TodoStepStatus), Transaction.Current);
                 row.Text.Text = step.Text;
                 var done = step.TodoStepStatus == TodoStep.Status.Done;
-                row.Text.Foreground = (done ? SwiftColor.Secondary : SwiftColor.Primary).Brush(row.Text);
-                row.Text.TextDecorations = done ? new TextDecorationCollection { new TextDecoration { Location = TextDecorationLocation.Strikethrough, Stroke = SwiftColor.Secondary.Brush(row.Text) } } : null;
+                row.TextColour.Set(TextColourFor(step.TodoStepStatus), Transaction.Current);
+                row.Strike(done, Transaction.Current); // :2372 .animation(.snappy(duration: 0.2), value: steps), no reduced-motion gate (ED-264 (2))
             }
-            Child = card;
+            Child = slot;
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, value => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => Build(value)));
@@ -3144,6 +3435,156 @@ public sealed class TodoListRow : Decorator
     // :2376-2382 private static func symbol(for:) -> String
     private static string Symbol(TodoStep.Status @for) => @for switch
     { TodoStep.Status.Pending => "circle", TodoStep.Status.Active => "circle.dotted.circle", TodoStep.Status.Done => "checkmark.circle.fill", _ => throw new UnreachableException() };
+}
+
+/// <summary>PORT-ONLY. A place where one view is swapped for another by a crossfade: SwiftUI's <c>.contentTransition(.opacity)</c> on a Text
+/// (TimelineRows.swift:664) and what a changed <c>Image(systemName:)</c> or <c>Text</c> does under a <c>.animation</c> (:2372); OD-0076: content
+/// that swaps crossfades. The old view stays under the new one and fades out along the animation of the transaction the swap was made in while
+/// the new one fades in; with no animation the swap is at once. Only the newest view takes part in layout, the old one is drawn at the same
+/// corner. A swap made while a fade is still going carries on from the opacity each view has reached (no jump).</summary>
+internal sealed class OpacityCrossfade : Panel
+{
+    private readonly Dictionary<Control, AnimatedDouble> fades = [];
+
+    public OpacityCrossfade(Control? initial = null)
+    {
+        if (initial is null) return;
+        Current = initial;
+        Children.Add(initial);
+    }
+
+    /// <summary>The view on show (fading in, or in); what the last <see cref="Show"/> was given.</summary>
+    public Control? Current { get; private set; }
+
+    /// <summary>Every view mounted, the leaving ones with the opacity they have now.</summary>
+    internal IEnumerable<(Control View, double Opacity)> Layers => Children.Select(child => (child, child.Opacity));
+
+    /// <summary>Swaps in <paramref name="fresh"/>, along <see cref="Transaction.Current"/>.</summary>
+    public void Show(Control? fresh)
+    {
+        var animation = Transaction.Current;
+        var old = Current;
+        Current = fresh;
+        if (old is not null && !ReferenceEquals(old, fresh))
+        {
+            if (animation is null) Drop(old);
+            else Fade(old).Set(0, animation);
+        }
+        if (fresh is not null && !Children.Contains(fresh))
+        {
+            Children.Add(fresh);
+            var fade = Fade(fresh);
+            if (animation is null) fade.Set(1, null);
+            else { fade.Set(0, null); fade.Set(1, animation); }
+        }
+        InvalidateMeasure();
+    }
+
+    private AnimatedDouble Fade(Control view)
+    {
+        if (fades.TryGetValue(view, out var existing)) return existing;
+        var fade = new AnimatedDouble(value =>
+        {
+            view.Opacity = Math.Clamp(value, 0, 1);
+            if (value <= 0 && !ReferenceEquals(view, Current)) Drop(view);
+        });
+        fades[view] = fade;
+        fade.Set(view.Opacity, null); // a view mounted with no fade of its own starts from the opacity it has (a fade that has begun is carried on, never restarted)
+        return fade;
+    }
+
+    private void Drop(Control view)
+    {
+        fades.Remove(view);
+        Children.Remove(view);
+        InvalidateMeasure();
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        foreach (var child in Children) child.Measure(availableSize);
+        return Current is { } shown && Children.Contains(shown) ? shown.DesiredSize : default;
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        foreach (var child in Children) child.Arrange(new Rect(default, child.DesiredSize));
+        return finalSize;
+    }
+}
+
+/// <summary>PORT-ONLY. A card whose size follows its contents as a spring or curve rather than a jump (SwiftUI animates the frame a view takes
+/// when its contents change under an <c>.animation</c>: TimelineRows.swift:2372, OD-0076: a card that changes size eases to it). The content
+/// is laid out at its own natural size (the same idea as the merge pill's width slot) and the slot is as large as the animation has got to,
+/// clipping it, so the card's edge moves along the curve and everything under it moves with it. A change made under an animation is noted with
+/// <see cref="Note"/> before the layout pass that follows reads it; a size that changes with no animation noted (a window being resized) is
+/// followed at once.</summary>
+internal sealed class SizeSlot : Panel
+{
+    private readonly Control content;
+    private readonly AnimatedDouble width;
+    private readonly AnimatedDouble height;
+    private double presentedWidth, presentedHeight, targetWidth, targetHeight;
+    private bool measured;
+    private Animation? pending;
+    private int noted;
+
+    public SizeSlot(Control content)
+    {
+        this.content = content;
+        ClipToBounds = true;
+        HorizontalAlignment = HorizontalAlignment.Left;
+        VerticalAlignment = VerticalAlignment.Top;
+        Children.Add(content);
+        width = new AnimatedDouble(value => { presentedWidth = value; InvalidateMeasure(); });
+        height = new AnimatedDouble(value => { presentedHeight = value; InvalidateMeasure(); });
+    }
+
+    /// <summary>Whether the content itself is arranged at the size the slot has got to (so its own edge, background and corners move along the curve), rather than at its
+    /// natural size and clipped to the slot. The content then stretches over what it is given, larger or smaller (the delegation card's pill,
+    /// TimelineRows.Pill with fillsSlot); its words keep their layout because the card's lines are horizontal stacks, which lay each child out at its own width
+    /// whatever width they are given (TimelineRowsReviewAb3FixTests reads a head's words mid-ease both ways).</summary>
+    internal bool ContentFollowsSize { get; init; }
+
+    /// <summary>The size the card is drawn at now.</summary>
+    internal Size Presented => new(presentedWidth, presentedHeight);
+
+    /// <summary>A change under an animation is noted when it is made: the layout pass that follows reads it.</summary>
+    public void Note(Animation? animation)
+    {
+        pending = animation;
+        InvalidateMeasure();
+        // A layout pass measures the slot before the card inside it has been told its contents changed (that reaches it as the pass goes on), so the
+        // noted animation waits for the size to change; it lapses once the layout passes are done, so a later size change of another kind (a resize) is followed at once.
+        var turn = ++noted;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (turn == noted) pending = null; }, Avalonia.Threading.DispatcherPriority.Background);
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        content.Measure(availableSize);
+        var natural = content.DesiredSize;
+        if (!measured || natural.Width != targetWidth || natural.Height != targetHeight)
+        {
+            var animation = measured ? pending : null;
+            pending = null;
+            var widthChanged = !measured || natural.Width != targetWidth;
+            var heightChanged = !measured || natural.Height != targetHeight;
+            targetWidth = natural.Width;
+            targetHeight = natural.Height;
+            measured = true;
+            if (widthChanged) width.Set(natural.Width, animation);
+            if (heightChanged) height.Set(natural.Height, animation);
+        }
+        return new Size(Math.Max(0, presentedWidth), Math.Max(0, presentedHeight));
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        // laid out at its own size, clipped to the slot; or, for a card whose own edge moves, at the size the slot has got to
+        content.Arrange(ContentFollowsSize ? new Rect(default, new Size(Math.Max(0, presentedWidth), Math.Max(0, presentedHeight))) : new Rect(default, content.DesiredSize));
+        return finalSize;
+    }
 }
 
 // PORT-ONLY: source HStack(alignment: .firstTextBaseline) at :2356, :1959, :1991 and :2389. Give the
@@ -3156,6 +3597,7 @@ internal sealed class TimelineBaselineRow : Panel
     private static double Baseline(Control child)
     {
         if (child is TextBlock text && text.TextLayout.TextLines.Count != 0) return text.TextLayout.TextLines[0].Baseline;
+        if (child is OpacityCrossfade { Current: { } shown }) return Baseline(shown); // the view on show sits where it would alone
         if (child is Decorator { Child: { } inner } wrapper) return wrapper.Padding.Top + Baseline(inner);
         var offset = TextBlock.GetBaselineOffset(child);
         return offset > 0 ? offset : child.DesiredSize.Height;

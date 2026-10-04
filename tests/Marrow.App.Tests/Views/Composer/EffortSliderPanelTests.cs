@@ -71,6 +71,7 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-109")] // App/Views/Composer/EffortSlider.swift:161-188 .frame(width: 330) .animation(.easeOut(duration: 0.12), value: showsModels), both branches .transition(.opacity)
+    [Trait("Req", "UI-COMPOSER-030")] // App/Views/Composer/EffortSlider.swift:161-188 the card is 330 wide and cross-fades to the model list over 0.12 s ease-out
     public void The_panel_is_330_wide_and_cross_fades_the_slider_and_the_list_in_point_one_two_seconds_both_ways() => headless.OnUiThread(() =>
     {
         using var env = Make(catalogues: [(ProviderKind.Codex, Options("c", 3))]);
@@ -146,6 +147,7 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-109")] // App/Views/Composer/EffortSlider.swift:120-123 the popover's content is .presentedChrome(): capsule buttons and the accent tint
+    [Trait("Req", "UI-COMPOSER-030")] // App/Views/Composer/EffortSlider.swift:120-123 the card's colours are the popover chrome
     public void The_chips_popover_content_is_the_panel_wrapped_in_presented_chrome() => headless.OnUiThread(() =>
     {
         using var env = Make(catalogues: [(ProviderKind.Codex, Options("c", 3))]);

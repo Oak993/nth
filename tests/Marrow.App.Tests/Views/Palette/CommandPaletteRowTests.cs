@@ -47,8 +47,8 @@ public sealed class CommandPaletteRowTests(HeadlessSession headless)
 
                 Assert.Equal(ChromeColors.Accent.Opacity(0.16).Resolve(theme), Fill(first.Background.Background));
                 Assert.Equal(0, Fill(second.Background.Background).A); // Color.clear
-                Assert.Equal(new CornerRadius(12), first.Background.CornerRadius);
-                Assert.Equal(new CornerRadius(12), second.Background.CornerRadius);
+                Assert.Equal(new CornerRadius(12), SwiftShapes.StatedCornerRadius(first.Background));
+                Assert.Equal(new CornerRadius(12), SwiftShapes.StatedCornerRadius(second.Background));
                 Assert.Equal(ChromeColors.Accent.Resolve(theme), Fill(Assert.IsType<SwiftImage>(Assert.Single(first.Icon.Children)).Foreground));
                 Assert.Equal(SwiftColor.Secondary.Resolve(theme), Fill(Assert.IsType<SwiftImage>(Assert.Single(second.Icon.Children)).Foreground));
                 Assert.Equal(ChromeColors.SecondaryText.Resolve(theme), Fill(first.Chord.Foreground)); // chord: caption, secondary text

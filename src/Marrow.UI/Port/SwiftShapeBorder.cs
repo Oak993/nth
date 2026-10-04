@@ -31,7 +31,7 @@ public class SwiftShapeBorder : Decorator
     static SwiftShapeBorder()
     {
         AffectsRender<SwiftShapeBorder>(BackgroundProperty, BorderBrushProperty, BorderThicknessProperty, CornerRadiusProperty,
-            BoxShadowProperty, SwiftShapes.CornerStyleProperty);
+            BoxShadowProperty, SwiftShapes.CornerStyleProperty, SwiftShapes.CircularInBandProperty);
         AffectsMeasure<SwiftShapeBorder>(BorderThicknessProperty);
     }
 
@@ -43,6 +43,9 @@ public class SwiftShapeBorder : Decorator
 
     /// <summary>The corner style this shape was drawn with (<see cref="RoundedCornerStyle.Circular"/> until a shape method sets one).</summary>
     public RoundedCornerStyle CornerStyle => SwiftShapes.GetCornerStyle(this) ?? RoundedCornerStyle.Circular;
+
+    /// <summary>Whether this shape is one a reference frame measures as the circular arc in ED-275 (2)'s band (<see cref="SwiftShapes.CircularInBandProperty"/>); false for every other shape, which takes OD-0102's corner there.</summary>
+    public bool CircularInBand => SwiftShapes.GetCircularInBand(this);
 
     /// <summary><c>RoundedRectangle(cornerRadius:style:)</c>: every corner this radius.</summary>
     public SwiftShapeBorder RoundedRectangle(double cornerRadius, RoundedCornerStyle style)
@@ -65,7 +68,7 @@ public class SwiftShapeBorder : Decorator
         base.OnPropertyChanged(change);
         var p = change.Property;
         if (p == UseLayoutRoundingProperty || p == BorderThicknessProperty) layoutThickness = null;
-        if (p == CornerRadiusProperty || p == ClipToBoundsProperty || p == SwiftShapes.CornerStyleProperty) UpdateClip(Bounds.Size);
+        if (p == CornerRadiusProperty || p == ClipToBoundsProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty) UpdateClip(Bounds.Size);
     }
 
     private Thickness LayoutThickness
@@ -98,7 +101,7 @@ public class SwiftShapeBorder : Decorator
     private void UpdateClip(Size size)
     {
         Geometry? wanted = ClipToBounds && size.Width > 0 && size.Height > 0
-            ? SwiftShapes.UnevenRoundedRectangleGeometry(new Rect(size), CornerRadius, CornerStyle)
+            ? SwiftShapes.UnevenRoundedRectangleGeometry(new Rect(size), CornerRadius, CornerStyle, CircularInBand)
             : null;
         if (ReferenceEquals(wanted, appliedClip)) return;
         if (Clip is null || ReferenceEquals(Clip, appliedClip))
@@ -117,7 +120,7 @@ public class SwiftShapeBorder : Decorator
         var rect = new Rect(size);
         var stroke = BorderBrush is { } brush && thickness > 0 ? new Pen(brush, thickness) : null;
 
-        if (!SwiftShapes.HasContinuousCorner(size, radii, CornerStyle))
+        if (!SwiftShapes.HasContinuousCorner(size, radii, CornerStyle, CircularInBand))
         {
             // Circular corners, a capsule, a radius past the limit: what a Border draws, the same call, pixel for pixel.
             var inner = thickness != 0 ? rect.Deflate(thickness * 0.5) : rect;
@@ -131,15 +134,17 @@ public class SwiftShapeBorder : Decorator
         List<BoxShadow>? outer = null, insets = null;
         foreach (var shadow in BoxShadow) (shadow.IsInset ? insets ??= [] : outer ??= []).Add(shadow);
         if (outer is not null) context.DrawRectangle(null, null, circular, new BoxShadows(outer[0], outer.Skip(1).ToArray()));
-        context.DrawGeometry(Background, null, SwiftShapes.UnevenRoundedRectangleGeometry(rect, radii, CornerStyle));
+        context.DrawGeometry(Background, null, SwiftShapes.UnevenRoundedRectangleGeometry(rect, radii, CornerStyle, CircularInBand));
         if (insets is not null) context.DrawRectangle(null, null, circular, new BoxShadows(insets[0], insets.Skip(1).ToArray()));
         if (stroke is not null)
         {
             // strokeBorder: the shape inset by half the width (radius r - width / 2), stroked with the full width.
+            // OD-0102: where the corner is Apple's at the largest radius that fits (ED-275 (2)'s band), that drawn radius is what is inset.
             var half = thickness / 2;
-            var inset = new CornerRadius(Math.Max(0, radii.TopLeft - half), Math.Max(0, radii.TopRight - half),
-                Math.Max(0, radii.BottomRight - half), Math.Max(0, radii.BottomLeft - half));
-            context.DrawGeometry(null, stroke, SwiftShapes.UnevenRoundedRectangleGeometry(rect.Deflate(half), inset, CornerStyle));
+            var drawn = SwiftShapes.Outline(rect, radii, CornerStyle, CircularInBand);
+            var inset = new CornerRadius(Math.Max(0, drawn.DrawnRadius(0) - half), Math.Max(0, drawn.DrawnRadius(1) - half),
+                Math.Max(0, drawn.DrawnRadius(2) - half), Math.Max(0, drawn.DrawnRadius(3) - half));
+            context.DrawGeometry(null, stroke, SwiftShapes.UnevenRoundedRectangleGeometry(rect.Deflate(half), inset, CornerStyle, CircularInBand));
         }
     }
 }

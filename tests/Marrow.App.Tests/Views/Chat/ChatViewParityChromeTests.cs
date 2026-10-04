@@ -262,7 +262,6 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
     // terminal_toggle_on_port_vs_mac.png. The trailing end differs by OD-0044 (the capsules end clear of the Windows caption
     // buttons); glyph shapes by OD-0010 (Lucide); the glass by OD-0005 (UNVERIFIED, ED-180); the title face by OD-0009 (Inter).
     [Fact]
-    // STOP (round 4, traceability), still open: PR-CHAT-171: the one-glass-pass clause (the glass over the row; ED-180, OD-0005 UNVERIFIED) is not proven. This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1123-1174 (geometry; the single glass pass stays STOP #3)
     [Trait("Req", "PR-CHAT-176")] // App/Views/Chat/ChatView.swift:1203-1209 (the capture of the non-empty title)
     [Trait("Req", "PR-TERM-062")] // App/Views/Chat/ChatView.swift:1153-1158 (the capsule [Open in | Run] as the video shows it)

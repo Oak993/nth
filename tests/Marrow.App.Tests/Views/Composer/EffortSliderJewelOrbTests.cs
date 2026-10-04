@@ -402,6 +402,7 @@ public sealed class EffortSliderJewelOrbTests
 
     [Fact]
     [Trait("Decision", "ED-252")] // OD-0090 (jewel-knob.html --knobShadow, s.lift): a shadow under the knob, a deeper one as it lifts
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-796 as amended by OD-0090 (the 48 px Jewel orb)
     public void A_lifted_knob_casts_a_deeper_shadow()
     {
         var u = Frame(EffortBrand.Claude);

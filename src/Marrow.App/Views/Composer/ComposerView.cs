@@ -1423,7 +1423,7 @@ internal sealed class ComposerWorkingDotsSlot : Decorator
     public ComposerWorkingDotsSlot(ThreadRuntime runtime)
     {
         var panel = new Panel();
-        var clip = new Border { Child = panel, ClipToBounds = true }.RoundedRectangle(22, RoundedCornerStyle.Continuous); // :671 `.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))`: clipped to the shape (ED-181)
+        var clip = new Border { Child = panel, ClipToBounds = true }.RoundedRectangle(22, RoundedCornerStyle.Continuous).CircularInBand(); // :671 `.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))`: clipped to the shape (ED-181)
         Control? current = null;
         this.Track(() => runtime.IsRunning, running =>
         {
@@ -2509,8 +2509,10 @@ internal sealed record ComposerSurface
     // :1297-1306 func body(content:)
     public Control Body(Control content)
     {
-        // :1298 let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
-        var shape = new Border { Child = content }.RoundedRectangle(22, RoundedCornerStyle.Continuous);
+        // :1298 let shape = RoundedRectangle(cornerRadius: 22, style: .continuous). The composer pill is the one shape of OD-0102's corner band that a
+        // reference frame measures: the video fits the circular arc on the one-line pill (r 22 on 46 pt, 0.156 px rms; the clamped continuous corner 1.148,
+        // ED-275 (2)), so it stays the circular arc there (CircularInBand) while a taller composer, where Apple's corner fits, takes it.
+        var shape = new Border { Child = content }.RoundedRectangle(22, RoundedCornerStyle.Continuous).CircularInBand();
 
         void Draw()
         {
@@ -2531,7 +2533,7 @@ internal sealed record ComposerSurface
                 // :1304 content.glassEffect(.regular, in: shape), sampling app-owned content (OD-0005).
                 shape.Background = null;
                 shape.ClipToBounds = false;
-                SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
+                SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous, circularInBand: true)));
             }
         }
 

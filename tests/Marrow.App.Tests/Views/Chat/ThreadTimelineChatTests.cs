@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
@@ -340,4 +341,153 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             // Nothing holding it: it glides again.
             Dock(true); Assert.True(Offset() < 0, $"offset {Offset()}"); Rest();
         });
+
+    // PR-CHAT-159 whole (ChatView.swift:143-145; ThreadTimeline.swift:488,1376; Chrome.swift:568-629). The video holds the veil at full strength (2-chat-use.mov C 8.382 against
+    // C 8.403, one frame with the veil and one without, window top at video row 30; E:\Droppy\work\reference-video\frames\gap-R2-02\scrim_profile.json: the veil's strength
+    // against the row, 1 px = 1 pt). The Swift's formulas at the quantized progress 0.88 (travel 40: raw 0.882) reproduce that profile with an rms of 0.014 and a worst row of
+    // 0.025 (progress 1.0 would give 0.053 and 0.073), so the frame is a scroll position of 40 points; the capture below renders the port's veil over black and over white at the
+    // same progress, solves the strength of each row from the two (out = backdrop x (1 - s) + colour x s), and compares it row by row with the frame's. The same capture at travel 0, 20
+    // and 44 in both themes is compared, row by row and channel by channel over black and over white, with the Swift's composite (the colour: the black or white scrim and the theme's glass tint;
+    // the light theme and the mid travel have no frame: OD-0098, the Swift is the proof).
+    private static readonly (int Row, double Strength)[] VideoScrim =
+    [
+        (32, 0.452), (36, 0.463), (40, 0.461), (44, 0.461), (48, 0.469), (52, 0.433), (56, 0.403), (60, 0.371), (64, 0.324), (68, 0.281), (72, 0.236), (76, 0.199), (80, 0.173),
+        (84, 0.145), (88, 0.097), (92, 0.061), (96, 0.029),
+    ];
+
+    // The Swift's veil composited at a row of its 72 points over a flat backdrop (one channel, 0 to 255), in a theme (Chrome.swift:587-623): the scrim (black over dark, white over light, at
+    // 0.14 + 0.18 x progress / 0.30 + 0.26 x progress) and over it the tint (Chrome.glassTint at 0.30 / 0.18 of its own alpha), each held over the top 28 percent, eased to 0.45 at 62 and to
+    // nothing at the foot. The whole veil's `.opacity(0.08 + 0.92 x progress)` (:622) sits on a ZStack with no compositing group, so it scales each of the two layers (the reading of
+    // ThreadTimelineVeilTests): the backdrop is covered by the scrim at opacity x scrim, then by the tint at opacity x tint. Composing the two as a group and applying the opacity once
+    // would change the backdrop by up to 4.0 of 255 grey levels (lighter, dark theme) and 4.6 (darker, light theme), at progress 0.4 (the tolerance below, 1.5 on the held rows, tells the two apart): UNVERIFIED on the Mac (OD-0001), ED-290-4.
+    private static double[] VeilOver(double progress, bool dark, double row, double backdrop)
+    {
+        var u = row / 72.0;
+        var held = u <= 0.28 ? 1 : u <= 0.62 ? 1 - 0.55 * (u - 0.28) / 0.34 : 0.45 * (1 - (u - 0.62) / 0.38);
+        var tint = Marrow.UI.Chrome.Chrome.GlassTint.Resolve(dark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light);
+        var scrimAlpha = (dark ? 0.14 + 0.18 * progress : 0.30 + 0.26 * progress) * held;
+        var scrimColour = dark ? 0.0 : 255.0;
+        var tintAlpha = (dark ? 0.30 : 0.18) * tint.A / 255.0 * held;
+        var opacity = 0.08 + 0.92 * progress;
+        return new[] { (double)tint.R, tint.G, tint.B }.Select(channel =>
+        {
+            var underTint = backdrop * (1 - opacity * scrimAlpha) + opacity * scrimAlpha * scrimColour;
+            return underTint * (1 - opacity * tintAlpha) + opacity * tintAlpha * channel;
+        }).ToArray();
+    }
+
+    // The port's veil over a flat backdrop at a quantized progress: red, green and blue of each of its 72 rows (a column through the middle).
+    private static double[][] RenderedRows(double progress, bool dark, Avalonia.Media.Color backdrop)
+    {
+        var model = new ChromeScrollModel();
+        model.Update(travel: 10 + 34 * progress);
+        Assert.Equal(progress, model.Progress, 6);
+        var window = new Avalonia.Controls.Window
+        {
+            Width = 200, Height = 100, Background = new Avalonia.Media.SolidColorBrush(backdrop),
+            RequestedThemeVariant = dark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light,
+            Content = new PaneTopVeil(model) { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top },
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
+        using var frame = window.CaptureRenderedFrame()!;
+        using var stream = new MemoryStream();
+        frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+        using var pixels = SkiaSharp.SKBitmap.Decode(stream.ToArray());
+        var rows = Enumerable.Range(0, 72).Select(y => new double[] { pixels.GetPixel(100, y).Red, pixels.GetPixel(100, y).Green, pixels.GetPixel(100, y).Blue }).ToArray();
+        window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs();
+        return rows;
+    }
+
+    // The strength of each row (out = backdrop x (1 - s) + colour x s: over white and over black the two differ by 255 (1 - s)).
+    private static double[] RenderedStrength(double progress, bool dark)
+    {
+        var black = RenderedRows(progress, dark, Avalonia.Media.Colors.Black);
+        var white = RenderedRows(progress, dark, Avalonia.Media.Colors.White);
+        return Enumerable.Range(0, 72).Select(y => 1 - (white[y].Average() - black[y].Average()) / 255.0).ToArray();
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-159")] // App/Views/Chat/ChatView.swift:143-145; ThreadTimeline.swift:488, :1376; UI/Chrome/Chrome.swift:568-629
+    public void The_veil_over_the_scrolled_conversation_follows_the_travel_in_both_themes_and_matches_the_frames_strength_row_by_row()
+    {
+        // (1) The mounted column: the timeline hands its travel to the chrome (travel 0, 20 and 44 -> progress 0, 0.28 and 1) and the veil over the pane draws from it.
+        WithChat((view, runtime, model, h, window, frames) =>
+        {
+            h.Main.OnMain(() => SetEntries(runtime, TimelineMount.Turns(8, sentences: 10).ToList())); Settle(h, frames, window, 2500);
+            var scroll = Scroller(view); var chrome = Field<ChromeScrollModel>(view, "scrollChrome"); var veil = Assert.Single(LogicalQuery.SelfAndDescendants<PaneTopVeil>(view));
+            Assert.False(veil.IsHitTestVisible); // :624
+            Assert.Equal(Chrome.VeilHeight, 72);
+            var layer = Assert.IsType<Panel>(veil.Child);
+            foreach (var (travel, progress) in new[] { (0, 0.0), (20, 0.28), (44, 1.0) })
+            {
+                h.Main.OnMain(() => scroll.Offset = new Vector(0, travel)); Settle(h, frames, window, 100);
+                Assert.Equal(progress, chrome.Progress, 6); // ThreadTimeline.swift:488, Chrome.swift:568-579: from 10 to 44 points, quantized to 0.04
+                Assert.Equal(0.08 + 0.92 * progress, layer.Opacity, 6);
+                Assert.Equal(progress > 0 ? 2 : 0, layer.Children.Count); // nothing is drawn at rest
+                Assert.Equal(72, layer.Height);
+            }
+            // :575 `if quantized != progress { progress = quantized }`: swept down from 44 to 0 a point at a time, the progress is written exactly when its quantized value moves, never again.
+            var writes = 0; var moves = 0; var last = chrome.Progress;
+            ((System.ComponentModel.INotifyPropertyChanged)chrome).PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ChromeScrollModel.Progress)) writes++; };
+            for (var offset = 44; offset >= 0; offset--)
+            {
+                h.Main.OnMain(() => scroll.Offset = new Vector(0, offset)); Settle(h, frames, window, 50);
+                if (chrome.Progress != last) { moves++; last = chrome.Progress; }
+            }
+            Assert.InRange(moves, 20, 26);
+            Assert.Equal(moves, writes);
+        });
+        // (2) The capture: the veil's strength row by row against the frame, then every row's colour over black and over white against the Swift's composite at travel 0, 20 and 44 and the
+        // frame's travel in both themes (the colour, not only how much of the backdrop is covered: a veil of the wrong base or tint covers the same share).
+        headless.OnUiThread(() =>
+        {
+        var previous = Marrow.UI.Theme.ThemeManager.Current;
+        try
+        {
+            Marrow.UI.Theme.ThemeManager.Current = Marrow.UI.Theme.AppTheme.Monokai; // the recorder's theme
+            var frame = RenderedStrength(0.88, dark: true);
+            var squares = VideoScrim.Select(sample => Math.Pow(frame[sample.Row - 30] - sample.Strength, 2)).ToArray();
+            var worst = VideoScrim.Max(sample => Math.Abs(frame[sample.Row - 30] - sample.Strength));
+            Assert.True(Math.Sqrt(squares.Average()) < 0.03, "rms " + Math.Sqrt(squares.Average()));
+            Assert.True(worst < 0.05, "worst row " + worst);
+            Assert.InRange(frame[71], -0.02, 0.02); // clear at the foot (one grey level of rounding)
+            foreach (var dark in new[] { true, false })
+            {
+                Marrow.UI.Theme.ThemeManager.Current = dark ? Marrow.UI.Theme.AppTheme.Monokai : Marrow.UI.Theme.AppTheme.ClaudeLight;
+                foreach (var progress in new[] { 0.28, 0.4, 0.88, 1.0 })
+                {
+                    var onBlack = RenderedRows(progress, dark, Avalonia.Media.Colors.Black);
+                    var onWhite = RenderedRows(progress, dark, Avalonia.Media.Colors.White);
+                    for (var row = 0; row < 72; row += 3)
+                    {
+                        // The held top 28 percent (rows 0 to 19) is flat and drawn to within a grey level and a half: that tells the layer-by-layer composite from the grouped one, up to 4.0 (dark, lighter) or 4.6 (light, darker) levels
+                        // away. Below it the gradient ramps and the renderer dithers it (about 2.5 levels either way on the headless Skia).
+                        var tolerance = row <= 19 ? 1.5 : 3.5;
+                        var expectedBlack = VeilOver(progress, dark, row + 0.5, 0);
+                        var expectedWhite = VeilOver(progress, dark, row + 0.5, 255);
+                        for (var channel = 0; channel < 3; channel++)
+                        {
+                            Assert.True(Math.Abs(onBlack[row][channel] - expectedBlack[channel]) <= tolerance, $"{(dark ? "dark" : "light")} progress {progress} row {row} channel {channel} over black: drawn {onBlack[row][channel]}, Swift {expectedBlack[channel]:F1}");
+                            Assert.True(Math.Abs(onWhite[row][channel] - expectedWhite[channel]) <= tolerance, $"{(dark ? "dark" : "light")} progress {progress} row {row} channel {channel} over white: drawn {onWhite[row][channel]}, Swift {expectedWhite[channel]:F1}");
+                        }
+                    }
+                }
+                // Travel 0: nothing is drawn at all, the backdrop shows through untouched.
+                var restBlack = RenderedRows(0, dark, Avalonia.Media.Colors.Black); var restWhite = RenderedRows(0, dark, Avalonia.Media.Colors.White);
+                Assert.All(restBlack.SelectMany(row => row), value => Assert.Equal(0, value));
+                Assert.All(restWhite.SelectMany(row => row), value => Assert.Equal(255, value));
+            }
+            // :571-576 the same model, alone: the quantum is 0.04 and the progress is written only when its quantized value moves.
+            var alone = new ChromeScrollModel(); var changes = 0;
+            ((System.ComponentModel.INotifyPropertyChanged)alone).PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ChromeScrollModel.Progress)) changes++; };
+            alone.Update(3); Assert.Equal(0, changes); // before the start offset 10
+            alone.Update(11); Assert.Equal(1, changes); // 0.04
+            alone.Update(11.2); alone.Update(12); Assert.Equal(1, changes); // 0.88 and 1.47 steps: the same step
+            alone.Update(12.1); Assert.Equal(2, changes); // 1.54 steps: the next one
+            alone.Update(200); Assert.Equal(1, alone.Progress); // clamped
+        }
+        finally { Marrow.UI.Theme.ThemeManager.Current = previous; }
+        });
+    }
 }

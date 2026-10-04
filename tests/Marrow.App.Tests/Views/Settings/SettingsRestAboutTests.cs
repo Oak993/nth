@@ -15,8 +15,8 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsRestFixture(headless)
 {
-    // SettingsView.swift:953-956,997-1002; OD-0012 H, OD-0072: the terminal is Marrow's own, built on Windows ConPTY.
-    // STOP opencode-SettingsView-rest #2
+    // SettingsView.swift:953-956,997-1002; OD-0012 H, OD-0072, ED-272: the terminal is Marrow's own, built on Windows ConPTY (the Terminal credit row has no link).
+    // Resolved STOP opencode-SettingsView-rest #2: ED-272 settles the row; AboutCreditsTerminalTests proves it.
     // SettingsView.swift:1046-1056. RESOLVED (defects-priority): Marrow.App.csproj ships LICENSE, THIRD_PARTY_NOTICES.md and
     // TRADEMARK.md (Legal\ content beside the executable); see LicensesShippingTests. (It said: Marrow.App.csproj still includes only icon.png.)
 
@@ -40,6 +40,7 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
 
     [Fact]
     [Trait("Req", "UI-UPDATE-025")] // App/Views/Settings/SettingsView.swift:946-964; Chrome.swift:1037-1052
+    [Trait("Req", "PR-UPDATE-085")] // the section header clause: Credits, .body semibold, secondary, 10 above the card (SettingsView.swift:946-947; Chrome.swift:1037-1052)
     public void Credits_heading_has_exact_type_colour_spacing_and_no_accessories()
     {
         With(() => new AboutSettingsPage(), (view, _, _, _) =>
@@ -75,6 +76,7 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
     [Trait("Req", "UI-SETTINGS-059")] // App/Views/Settings/SettingsView.swift:1060-1102; OD-0012 F3
     [Trait("Req", "UI-UPDATE-026")] // App/Views/Settings/SettingsView.swift:1060-1102
     [Trait("Req", "UI-UPDATE-027")] // App/Views/Settings/SettingsView.swift:1081-1096
+    [Trait("Req", "PR-SETTINGS-248")] // the Made by Droppy row clauses (SettingsView.swift:1060-1102; OD-0012 F3 the subtitle); the Terminal row is AboutCreditsTerminalTests (ED-272)
     public void Attribution_whole_row_click_and_hover_match_all_visual_clauses()
     {
         With(() => new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), (view, _, h, w) =>
@@ -108,6 +110,8 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
     [Fact]
     [Trait("Req", "UI-UPDATE-028")] // App/Views/Settings/SettingsView.swift:950-952,1104-1121
     [Trait("Req", "UI-UPDATE-030")] // App/Views/Settings/SettingsView.swift:958-960,1104-1121
+    [Trait("Req", "UI-SETTINGS-072")] // the two links the Windows build keeps (zeronsh/zeron, rampatra/TourKit; the Terminal row has none, ED-272): title, arrow, tooltip, click, no hover state of their own (SettingsView.swift:1104-1121)
+    [Trait("Req", "PR-SETTINGS-248")] // the links clause: each shows its title at 12pt medium with an up-right arrow at 10pt semibold in the accent colour and carries its full URL as its tooltip
     public void Repository_credit_rows_match_exact_labels_fonts_colours_tooltips_and_real_clicks()
     {
         With(() => new AboutSettingsPage(), (view, _, h, w) =>

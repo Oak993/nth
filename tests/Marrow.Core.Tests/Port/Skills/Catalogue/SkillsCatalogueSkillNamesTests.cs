@@ -1,0 +1,103 @@
+using Marrow.Core.Port.Skills.Catalogue;
+
+namespace Marrow.Core.Tests.Port.Skills.Catalogue;
+
+// Unit SK-1: skill folder names. skills-PLAN.md 2.1 "every skill folder name equals its frontmatter name" (WU-1), and the name rule of the
+// Agent Skills specification (agentskills.io/specification, the plan's source 6) as skills-research-loading.md section 1 quotes it for OpenCode:
+// "1-64 lowercase letters, digits and single hyphens, and the name must equal the folder name".
+// UNVERIFIED: that a name may not start or end with a hyphen is the lead's reading of the specification; agentskills.io was not reachable from
+// the build machine (egress proxy), so this rule is recorded as an ED and the rest is the plan's own wording.
+public sealed class SkillsCatalogueSkillNamesTests
+{
+    [Theory]
+    [Trait("Feature", "SK-1")]
+    [Trait("Rule", "R-TEST-4")]
+    [InlineData("a")]
+    [InlineData("docx")]
+    [InlineData("doc-coauthoring")]
+    [InlineData("web-artifacts-builder")]
+    [InlineData("a1")]
+    [InlineData("3d-viewer")]
+    [InlineData("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl")]
+    public void These_names_are_valid(string name) => Assert.True(SkillName.IsValid(name));
+
+    [Theory]
+    [Trait("Feature", "SK-1")]
+    [Trait("Rule", "R-TEST-4")]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("Docx")]
+    [InlineData("DOCX")]
+    [InlineData("-docx")]
+    [InlineData("docx-")]
+    [InlineData("doc--x")]
+    [InlineData("doc_x")]
+    [InlineData("doc x")]
+    [InlineData("doc.x")]
+    [InlineData("doc/x")]
+    [InlineData("doc\\x")]
+    [InlineData(".hidden")]
+    [InlineData("dök")]
+    [InlineData("文档")]
+    [InlineData("doc\u00A0x")]
+    [InlineData("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm")]
+    public void These_names_are_refused(string name) => Assert.False(SkillName.IsValid(name));
+
+    [Fact]
+    [Trait("Feature", "SK-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_name_limit_is_sixty_four_characters_exactly()
+    {
+        Assert.True(SkillName.IsValid(new string('a', 64)));
+        Assert.False(SkillName.IsValid(new string('a', 65)));
+        Assert.Equal(64, SkillName.MaxLength);
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Every_listed_skill_folder_in_the_catalogue_follows_the_rule_and_is_unique_inside_its_item()
+    {
+        var all = CatalogueFixtures.Real.Items.SelectMany(i => i.Skills.Select(s => (i.Id, s))).ToList();
+        Assert.Equal(13 + 5 + 4 + 4, all.Count);
+        Assert.All(all, t => Assert.True(SkillName.IsValid(t.s.Folder), $"{t.Id}/{t.s.Folder}"));
+        Assert.All(CatalogueFixtures.Real.Items, i => Assert.Equal(i.Skills.Count, i.Skills.Select(s => s.Folder).Distinct(StringComparer.Ordinal).Count()));
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_folder_name_that_breaks_the_rule_is_refused_by_the_gate()
+    {
+        foreach (var bad in new[] { "Docx", "-x", "x--y", "x_y", "" })
+            Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(CatalogueFixtures.Real, "A2", i => i with { Skills = i.Skills.Select(s => s.Folder == "docx" ? s with { Folder = bad } : s).ToList() })), CatalogueRules.SkillName, "A2"));
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_frontmatter_name_when_known_must_equal_the_folder_and_follow_the_rule()
+    {
+        var fixture = CatalogueFixtures.Pinned();
+        Assert.Equal("", CatalogueFixtures.Rules(CatalogueGate.Check(fixture)));
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Name = "alpha" }, i.Skills[1]] })), CatalogueRules.SkillName, "X3"));
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Name = "Alpha-skill" }, i.Skills[1]] })), CatalogueRules.SkillName, "X3"));
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0], i.Skills[0]] })), CatalogueRules.SkillName, "X3"));
+        // Not read yet is allowed (the real catalogue holds null names until SK-2's re-read), and is reported as missing, not as a violation.
+        var unread = CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Name = null }, i.Skills[1]] });
+        Assert.False(CatalogueFixtures.Fires(CatalogueGate.Check(unread), CatalogueRules.SkillName));
+        Assert.Contains("skills[alpha-skill].name", CatalogueGate.Missing(CatalogueFixtures.Item(unread, "X3")));
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_path_of_a_skill_ends_in_its_folder_name()
+    {
+        var fixture = CatalogueFixtures.Pinned();
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Path = "skills/other" }, i.Skills[1]] })), CatalogueRules.SkillName, "X3"));
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Path = "skills/../alpha-skill" }, i.Skills[1]] })), CatalogueRules.SkillName, "X3"));
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Path = "/skills/alpha-skill" }, i.Skills[1]] })), CatalogueRules.SkillName, "X3"));
+        Assert.All(CatalogueFixtures.Real.Items.SelectMany(i => i.Skills).Where(s => s.Path is not null), s => Assert.EndsWith("/" + s.Folder, s.Path, StringComparison.Ordinal));
+    }
+}

@@ -1,0 +1,113 @@
+# VT-0 round 3: the restored Whisper.net.Runtime.Cuda12.Windows 1.9.1 pack (restored from nuget.org by dotnet restore on 2026-10-04; nupkg 250058371 bytes,
+# SHA-512 pzvo217y8nHPcZav82zJ/uHstnsCFpNn6dodrOi2WjwY3j7xyPcBBhGXeRvvpRuZiRY0cuT8BETcY9nKGqVOZw== equals the nuget.org registration entry), its five files
+# (size, sha256) and the PE import table (the import directory and the delay-import directory) of each file, plus the imports of the NVIDIA 12.4 libraries
+# the probe cases 8, 9 and 14 used (the copies in the benchmark folder E:\Droppy\work\voice\bench\bin\cuda\Release).
+[pack files: size sha256 name]
+636928 0e95423aaa8ea4a1b81e9b83155a282c08920542be1c630b8fc4322b1362d446 ggml-base-whisper.dll
+782848 e2228615968a3f7ef5a3f921b7022bf04553954b63baf5a3fbe109fce1d5d38f ggml-cpu-whisper.dll
+563957248 df8c434b6b83410049b3016db7a43cb9b5d3c1ed22263409d59a6397bc7fe106 ggml-cuda-whisper.dll
+67072 49706baea24b7df325043b9c5e7afd783e3c422b8ed47936265056c648fe8540 ggml-whisper.dll
+484864 f7a7600895e0d66df8b2ec228cac02c842996a0c7627fb35a29ea8122da5c68d whisper.dll
+[PE imports of the pack files]
+== ggml-base-whisper.dll
+   import KERNEL32.dll
+   import VCOMP140.DLL
+   import MSVCP140.dll
+   import VCRUNTIME140.dll
+   import VCRUNTIME140_1.dll
+   import api-ms-win-crt-heap-l1-1-0.dll
+   import api-ms-win-crt-runtime-l1-1-0.dll
+   import api-ms-win-crt-stdio-l1-1-0.dll
+   import api-ms-win-crt-convert-l1-1-0.dll
+   import api-ms-win-crt-environment-l1-1-0.dll
+   import api-ms-win-crt-math-l1-1-0.dll
+   import api-ms-win-crt-string-l1-1-0.dll
+   import api-ms-win-crt-utility-l1-1-0.dll
+   import api-ms-win-crt-time-l1-1-0.dll
+== ggml-cpu-whisper.dll
+   import ggml-base-whisper.dll
+   import KERNEL32.dll
+   import ADVAPI32.dll
+   import VCOMP140.DLL
+   import MSVCP140.dll
+   import VCRUNTIME140.dll
+   import VCRUNTIME140_1.dll
+   import api-ms-win-crt-stdio-l1-1-0.dll
+   import api-ms-win-crt-math-l1-1-0.dll
+   import api-ms-win-crt-convert-l1-1-0.dll
+   import api-ms-win-crt-environment-l1-1-0.dll
+   import api-ms-win-crt-runtime-l1-1-0.dll
+   import api-ms-win-crt-string-l1-1-0.dll
+   import api-ms-win-crt-heap-l1-1-0.dll
+== ggml-cuda-whisper.dll
+   import ggml-base-whisper.dll
+   import cudart64_12.dll
+   import cublas64_12.dll
+   import nvcuda.dll
+   import MSVCP140.dll
+   import VCRUNTIME140_1.dll
+   import VCRUNTIME140.dll
+   import api-ms-win-crt-math-l1-1-0.dll
+   import api-ms-win-crt-convert-l1-1-0.dll
+   import api-ms-win-crt-environment-l1-1-0.dll
+   import api-ms-win-crt-stdio-l1-1-0.dll
+   import api-ms-win-crt-runtime-l1-1-0.dll
+   import api-ms-win-crt-string-l1-1-0.dll
+   import api-ms-win-crt-heap-l1-1-0.dll
+   import KERNEL32.dll
+== ggml-whisper.dll
+   import ggml-cpu-whisper.dll
+   import ggml-cuda-whisper.dll
+   import ggml-base-whisper.dll
+   import KERNEL32.dll
+   import MSVCP140.dll
+   import VCRUNTIME140.dll
+   import VCRUNTIME140_1.dll
+   import api-ms-win-crt-runtime-l1-1-0.dll
+   import api-ms-win-crt-heap-l1-1-0.dll
+   import api-ms-win-crt-string-l1-1-0.dll
+   import api-ms-win-crt-environment-l1-1-0.dll
+   import api-ms-win-crt-locale-l1-1-0.dll
+== whisper.dll
+   import ggml-whisper.dll
+   import ggml-base-whisper.dll
+   import MSVCP140.dll
+   import VCRUNTIME140.dll
+   import VCRUNTIME140_1.dll
+   import api-ms-win-crt-runtime-l1-1-0.dll
+   import api-ms-win-crt-stdio-l1-1-0.dll
+   import api-ms-win-crt-filesystem-l1-1-0.dll
+   import api-ms-win-crt-heap-l1-1-0.dll
+   import api-ms-win-crt-utility-l1-1-0.dll
+   import api-ms-win-crt-math-l1-1-0.dll
+   import api-ms-win-crt-string-l1-1-0.dll
+   import KERNEL32.dll
+[NVIDIA 12.4 libraries used by cases 8, 9 and 14: size sha256 name file-version]
+553984 d28e42265da7462162a54da6b7a99ea4fa2caf8139d862bb500db875d0b32dfc cudart64_12.dll 6.14.11.12040
+100033536 e40202fe4223c1cd2d2dce7beec59e1ed61c7801bd827309183be9b50e358f4c cublas64_12.dll 6,14,11,1245
+473551360 2a896460bef60ed57ef32b0875812f355a6984e671d638bb632f5e8c1d7a831f cublasLt64_12.dll 6,14,11,1245
+[PE imports of the NVIDIA libraries]
+== cudart64_12.dll
+   import api-ms-win-core-libraryloader-l1-2-0.dll
+   import api-ms-win-core-processenvironment-l1-1-0.dll
+   import api-ms-win-core-file-l1-1-0.dll
+   import api-ms-win-core-handle-l1-1-0.dll
+   import api-ms-win-core-errorhandling-l1-1-0.dll
+   import api-ms-win-core-profile-l1-1-0.dll
+   import api-ms-win-core-heap-l1-1-0.dll
+   import api-ms-win-core-synch-l1-1-0.dll
+   import api-ms-win-core-processthreads-l1-1-0.dll
+   import api-ms-win-core-sysinfo-l1-1-0.dll
+   import api-ms-win-core-rtlsupport-l1-1-0.dll
+   import api-ms-win-core-processthreads-l1-1-1.dll
+   import api-ms-win-core-debug-l1-1-0.dll
+   import api-ms-win-core-interlocked-l1-1-0.dll
+   import api-ms-win-security-systemfunctions-l1-1-0.dll
+   import api-ms-win-core-string-l1-1-0.dll
+   import api-ms-win-core-localization-l1-2-0.dll
+   import api-ms-win-core-console-l1-1-0.dll
+== cublas64_12.dll
+   import cublasLt64_12.dll
+   import KERNEL32.dll
+== cublasLt64_12.dll
+   import KERNEL32.dll

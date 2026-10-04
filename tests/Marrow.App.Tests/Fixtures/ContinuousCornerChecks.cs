@@ -27,12 +27,15 @@ internal static class ContinuousCornerChecks
         var (radii, style, size, clip, fill) = shape switch
         {
             SwiftShapeBorder s => (s.CornerRadius, SwiftShapes.GetCornerStyle(s), s.Bounds.Size, s.Clip, true),
-            Border b => (b.CornerRadius, SwiftShapes.GetCornerStyle(b), b.Bounds.Size, b.Clip, false),
+            Border b => (SwiftShapes.StatedCornerRadius(b), SwiftShapes.GetCornerStyle(b), b.Bounds.Size, b.Clip, false),
             _ => throw new Xunit.Sdk.XunitException($"{shape.GetType().Name} is not a rounded shape"),
         };
         Assert.Equal(RoundedCornerStyle.Continuous, style);
         Assert.True(size.Width > 0 && size.Height > 0, "the shape has no size");
-        var outline = SwiftShapes.Outline(new Rect(size), radii, RoundedCornerStyle.Continuous);
+        // OD-0102: the corner Apple draws in ED-275 (2)'s band is at the largest radius that fits, which ShapeOutline.DrawnRadius reports (the composer pill, marked
+        // CircularInBand because the reference video measures it circular, is the one shape that keeps the arc there).
+        var circularInBand = SwiftShapes.GetCircularInBand(shape);
+        var outline = SwiftShapes.Outline(new Rect(size), radii, RoundedCornerStyle.Continuous, circularInBand);
         Assert.Equal(expectApple, outline.HasContinuousCorner);
         if (!outline.HasContinuousCorner)
         {
@@ -47,14 +50,14 @@ internal static class ContinuousCornerChecks
         if (shape is Border)
         {
             path = Assert.IsAssignableFrom<Geometry>(clip);
-            Assert.Same(path, SwiftShapes.ClipGeometry(new Rect(size), radii));
+            Assert.Same(path, ExpectedClip((Border)shape, size, radii, circularInBand));
         }
-        else path = SwiftShapes.UnevenRoundedRectangleGeometry(new Rect(size), radii, RoundedCornerStyle.Continuous);
+        else path = SwiftShapes.UnevenRoundedRectangleGeometry(new Rect(size), radii, RoundedCornerStyle.Continuous, circularInBand);
         _ = fill;
-        var corners = new[] { (radii.TopLeft, 0), (radii.TopRight, 1), (radii.BottomRight, 2), (radii.BottomLeft, 3) };
-        foreach (var (r, index) in corners)
+        foreach (var index in new[] { 0, 1, 2, 3 })
         {
             if (outline.Corner(index) != CornerKind.Continuous) continue;
+            var r = outline.DrawnRadius(index);
             foreach (var (u, v) in new[] { (Along * r, Between * r), (Between * r, Along * r) })
                 Assert.False(path.FillContains(At(size, index, u, v)), $"corner {index}, r {r}: ({u:F2}, {v:F2}) from the vertex is inside the circle but outside Apple's curve");
             foreach (var (u, v) in new[] { (Along * r, Inside * r), (Inside * r, Along * r) })
@@ -63,6 +66,13 @@ internal static class ContinuousCornerChecks
         }
         return true;
     }
+
+    /// <summary>
+    /// The clip a plain Border carries (ED-297 (9)): the shape's own outline, which Skia anti-aliases exactly, when the Border draws nothing beyond a side (no child, or
+    /// clipped to its bounds) and every rounded corner is Apple's; else the slack clip (ED-275 (3)) that leaves what is drawn beyond a side alone.
+    /// </summary>
+    public static Geometry ExpectedClip(Border border, Size size, CornerRadius stated, bool circularInBand) =>
+        SwiftShapes.ClipGeometry(new Rect(size), stated, circularInBand, exact: (border.Child is null || border.ClipToBounds) && SwiftShapes.ExactClipFits(size, stated, circularInBand));
 
     /// <summary>
     /// PopoverItem's hover surface (Popovers.swift:318-326: <c>.padding(.horizontal, 8).frame(height: 26).background { RoundedRectangle(cornerRadius: 6,

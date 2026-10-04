@@ -129,11 +129,12 @@ public sealed class SwiftShapeBorderTests(HeadlessSession headless)
     {
         // A 129 x 28 capsule (Chrome.swift:164-165 Capsule(style: .continuous), radius 14: past the continuous limit) with a hairline,
         // and a `.circular` rounded rectangle with a 2 pt stroke: the same call as Border makes (DrawRectangle on the inset rrect).
-        foreach (var (w, h, r, style, thickness) in new (double, double, double, RoundedCornerStyle, double)[]
-                 { (129, 28, 14, RoundedCornerStyle.Continuous, 1), (82, 54, 9, RoundedCornerStyle.Circular, 2), (400, 46, 22, RoundedCornerStyle.Continuous, 0) })
+        // The third is the composer (r 22 on 46 pt, in OD-0102's band): marked CircularInBand because the reference video measures it circular (ED-275 (2)).
+        foreach (var (w, h, r, style, thickness, circularInBand) in new (double, double, double, RoundedCornerStyle, double, bool)[]
+                 { (129, 28, 14, RoundedCornerStyle.Continuous, 1, false), (82, 54, 9, RoundedCornerStyle.Circular, 2, false), (400, 46, 22, RoundedCornerStyle.Continuous, 0, true) })
         {
             Control Make(bool useShape) => useShape
-                ? new SwiftShapeBorder { Width = w, Height = h, Background = Brushes.DarkSlateBlue, BorderBrush = Brushes.Orange, BorderThickness = new Thickness(thickness), Margin = new Thickness(10.5, 7.5), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }.RoundedRectangle(r, style)
+                ? new SwiftShapeBorder { Width = w, Height = h, Background = Brushes.DarkSlateBlue, BorderBrush = Brushes.Orange, BorderThickness = new Thickness(thickness), Margin = new Thickness(10.5, 7.5), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }.RoundedRectangle(r, style).CircularInBand(circularInBand)
                 : new Border { Width = w, Height = h, Background = Brushes.DarkSlateBlue, BorderBrush = Brushes.Orange, BorderThickness = new Thickness(thickness), CornerRadius = new CornerRadius(r), Margin = new Thickness(10.5, 7.5), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
             var (shapeWindow, shape) = Render(Make(true), w + 40, h + 30);
             var (borderWindow, border) = Render(Make(false), w + 40, h + 30);

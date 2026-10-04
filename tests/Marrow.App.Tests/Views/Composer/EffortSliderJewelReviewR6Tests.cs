@@ -67,6 +67,7 @@ public sealed class EffortSliderJewelReviewR6Tests(HeadlessSession headless)
     // (the same as one 0.05 s frame).
     [Fact]
     [Trait("Decision", "ED-252")] // jewel-knob.html:813 (the 0.05 s cap), :448-452 spring(), :582-586 stepSlider()
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void A_long_frame_moves_the_knob_by_no_more_than_fifty_milliseconds_of_its_springs() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.Rig();

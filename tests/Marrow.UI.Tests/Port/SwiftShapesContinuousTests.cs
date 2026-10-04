@@ -137,15 +137,19 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         Assert.All(below.Corners, k => Assert.Equal(CornerKind.Continuous, k));
         Assert.Equal(12, CubicsOf(below).Count);
 
+        // OD-0102 (2026-10-04): above the limit the corner is no longer a circular arc of the stated radius while the radius is under half the shorter side (ED-275 (2)'s
+        // band): it is Apple's corner at the largest radius that fits, which here is the limit itself (H / (2 * 1.528665)). (This test used to pin the circular arc.)
         var above = SwiftShapes.Outline(rect, new CornerRadius(limit + 0.01), RoundedCornerStyle.Continuous);
-        Assert.All(above.Corners, k => Assert.Equal(CornerKind.Arc, k));
-        Assert.Empty(CubicsOf(above));
-        var arcs = above.Segments.Where(s => s.Verb == PathVerb.Arc).ToArray();
-        Assert.Equal(4, arcs.Length);
-        Assert.All(arcs, a => Assert.Equal(limit + 0.01, a.ArcRadius, 9)); // the arc keeps the requested radius, no clamp to the continuous limit
+        Assert.All(above.Corners, k => Assert.Equal(CornerKind.Continuous, k));
+        Assert.Equal(12, CubicsOf(above).Count);
+        Assert.DoesNotContain(above.Segments, s => s.Verb == PathVerb.Arc);
+        Assert.All(Enumerable.Range(0, 4), i => Assert.Equal(limit, above.DrawnRadius(i), 9));
 
         var wide = SwiftShapes.Outline(rect, new CornerRadius(60), RoundedCornerStyle.Continuous); // r >= h / 2: held to half the shorter side
         Assert.All(wide.Segments.Where(s => s.Verb == PathVerb.Arc), a => Assert.Equal(50, a.ArcRadius, 9));
+        var capsule = SwiftShapes.Outline(rect, new CornerRadius(50), RoundedCornerStyle.Continuous); // exactly h / 2: a capsule, circular
+        Assert.All(capsule.Corners, k => Assert.Equal(CornerKind.Arc, k));
+        Assert.All(capsule.Segments.Where(s => s.Verb == PathVerb.Arc), a => Assert.Equal(50, a.ArcRadius, 9));
     }
 
     [Fact]
@@ -157,8 +161,9 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         var circular = SwiftShapes.Outline(capsule, new CornerRadius(11), RoundedCornerStyle.Circular);
         Assert.Equal(circular.Segments, continuous.Segments);
         Assert.Empty(CubicsOf(continuous));
-        // The composer (22 pt on a 46 pt bar) is past the limit too (SPEC.md 2.3: circular ends in the video).
-        var composer = SwiftShapes.Outline(new Rect(0, 0, 818, 46), new CornerRadius(22), RoundedCornerStyle.Continuous);
+        // The composer (22 pt on a 46 pt bar) is past the limit too, and the reference video MEASURES circular ends there (SPEC.md 2.3, ED-275 (2)), so under
+        // OD-0102 it is the one band shape marked CircularInBand (SwiftShapesBandTests holds the rule; every other shape of that size takes Apple's corner).
+        var composer = SwiftShapes.Outline(new Rect(0, 0, 818, 46), new CornerRadius(22), RoundedCornerStyle.Continuous, circularInBand: true);
         Assert.Equal(SwiftShapes.Outline(new Rect(0, 0, 818, 46), new CornerRadius(22), RoundedCornerStyle.Circular).Segments, composer.Segments);
         // ... and the same 22 pt corner on a tall shape (Hydra's card, 400 x 280) is continuous.
         Assert.All(SwiftShapes.Outline(new Rect(0, 0, 400, 280), new CornerRadius(22), RoundedCornerStyle.Continuous).Corners, k => Assert.Equal(CornerKind.Continuous, k));
@@ -278,7 +283,7 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
     // The six UnevenRoundedRectangle sources (SPEC.md 3, 6.4): a block's top and bottom corners (DiffInspector, radius 12),
     // the follow-up queue and changes tabs (12 on top), the terminal panel (16 on top, ChatView.swift:1681-1691).
     [InlineData(400, 40, 12, 12, 0, 0, "CCSS")] // both 12 pt corners fit: 2 * 1.528665 * 12 = 36.7 <= 400, and 18.3 <= 40
-    [InlineData(30, 40, 12, 12, 0, 0, "AASS")] // 36.7 > 30 along the top: both fall back to arcs (of 12, half of 30 is 15)
+    [InlineData(30, 40, 12, 12, 0, 0, "CCSS")] // 36.7 > 30 along the top: the band (12 < half of 30 = 15): OD-0102, both are Apple's corner at 30 / (2 E) = 9.81 (formerly arcs)
     [InlineData(600, 24, 16, 16, 0, 0, "AASS")] // 1.528665 * 16 = 24.46 > 24 down the left side: arcs of radius min(16, 12)
     [InlineData(600, 25, 16, 16, 0, 0, "CCSS")] // 24.46 <= 25: continuous
     [InlineData(400, 80, 12, 12, 12, 12, "CCCC")]
@@ -288,6 +293,7 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         var outline = SwiftShapes.Outline(new Rect(0, 0, w, h), new CornerRadius(tl, tr, br, bl), RoundedCornerStyle.Continuous);
         var letters = string.Concat(outline.Corners.Select(k => k switch { CornerKind.Continuous => 'C', CornerKind.Arc => 'A', _ => 'S' }));
         Assert.Equal(expected, letters);
+        if (w == 30) Assert.All([0, 1], i => Assert.Equal(30 / (2 * 1.528665), outline.DrawnRadius(i), 9)); // OD-0102: the largest radius that fits
         if (expected.Contains('A', StringComparison.Ordinal))
             Assert.All(outline.Segments.Where(s => s.Verb == PathVerb.Arc), a => Assert.Equal(Math.Min(tl, Math.Min(w, h) / 2), a.ArcRadius, 9));
     }
@@ -321,7 +327,8 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         var clip = Assert.IsAssignableFrom<Geometry>(border.Clip);
         Assert.False(clip.FillContains(new Point(22.6, 0.40)));
         Assert.True(clip.FillContains(new Point(22.6, 0.75)));
-        Assert.True(clip.FillContains(new Point(200, -1.5))); // the straight sides are left to the Border's own fill: the clip reaches far past them (ClipSlack)
+        Assert.True(clip.FillContains(new Point(200, 0.5)));
+        Assert.False(clip.FillContains(new Point(200, -1.5))); // a Border with no child draws nothing beyond a side: its clip is the exact outline (ED-297 (9)); the slack clip of one with a child is the test below
         Assert.False(clip.FillContains(new Point(1, 1)));
         window.Close();
     });
@@ -334,7 +341,7 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         {
             new Border { Width = 400, Height = 300, Background = Brushes.Red }.RoundedRectangle(26, RoundedCornerStyle.Circular),
             new Border { Width = 200, Height = 28, Background = Brushes.Red }.Capsule(RoundedCornerStyle.Continuous),
-            new Border { Width = 818, Height = 46, Background = Brushes.Red }.RoundedRectangle(22, RoundedCornerStyle.Continuous),
+            new Border { Width = 818, Height = 46, Background = Brushes.Red }.RoundedRectangle(22, RoundedCornerStyle.Continuous).CircularInBand(), // the composer: measured circular (OD-0102's exception)
             new Border { Width = 400, Height = 300, Background = Brushes.Red }.RoundedRectangle(0, RoundedCornerStyle.Continuous),
         })
         {
@@ -389,7 +396,7 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         var site = new Border { Width = 400, Height = 300, Background = Brushes.Red }.RoundedRectangle(26, RoundedCornerStyle.Continuous);
         var (second, _) = Mount(site);
         Assert.NotNull(site.Clip);
-        Assert.Same(site.Clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 400, 300), new CornerRadius(26)));
+        Assert.Same(site.Clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 400, 300), new CornerRadius(26), exact: true)); // childless: the exact outline
         second.Close();
     });
 
@@ -439,8 +446,8 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         Settle();
         Assert.NotSame(before, one.Clip);
         Assert.Equal(1, SwiftShapes.GeometryBuildCount - builds); // exactly one new geometry for the new size
-        Assert.Equal(333 + 2 * SwiftShapes.ClipSlack, one.Clip!.Bounds.Width, 6); // and it is the new size's (the clip reaches the slack past the sides)
-        Assert.Equal(411 + 2 * SwiftShapes.ClipSlack, two.Clip!.Bounds.Width, 6);
+        Assert.Equal(333, one.Clip!.Bounds.Width, 6); // and it is the new size's (childless: the exact outline; a Border with a child reaches the slack past the sides)
+        Assert.Equal(411, two.Clip!.Bounds.Width, 6);
         window.Close();
     });
 

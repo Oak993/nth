@@ -180,7 +180,6 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ScriptsEditor: PR-TERM-074 --------------------------------------------------------------------------
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-TERM-074: the sheet's capture against the reference is owed on native (ED-278, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-020")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-021")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
@@ -241,7 +240,6 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ScriptsEditor: PR-TERM-076 --------------------------------------------------------------------------
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-TERM-076: the sheet's capture against the reference is owed on native (ED-278, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-023")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-024")] // App/Views/Chat/ChatView.swift:1666-1699
@@ -350,7 +348,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 Assert.Equal(8, column.Spacing);
                 Assert.Equal(3, column.Children.Count);
                 Assert.Same(fieldFrame, column.Children[1]);
-                Assert.IsType<StackPanel>(column.Children[0]);
+                Assert.IsType<Grid>(column.Children[0]); // the name row: an HStack whose field is flexible (a grid with a star column, ED-290-2)
                 Assert.IsType<CheckBox>(column.Children[2]);
                 Assert.Equal(Chrome.Danger.Opacity(0.65).Resolve(frame.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(frame.BorderBrush).Color); // :1687-1689 danger at 0.65 while blank
                 Assert.False(editor.SaveButton.IsEnabled); // :1711,1717
@@ -635,7 +633,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ChatChromeRow states not covered by part 1: UI-CHAT-073 -----------------------------------------------
 
     [Fact]
-    // STOP (round 4, traceability), still open: UI-CHAT-073: the one-glass-pass clause (the glass over the row; ED-180, OD-0005 UNVERIFIED) is not proven. This test proves its own clauses only, so it carries no Req trait for the open record.
+    // UI-CHAT-073 stays open for two clauses no headless test reaches: "the gaps between controls drag the window" (the native title-bar hit test, ED-063) and the leading inset of the Mac's window buttons (replaced by OD-0044's trailing caption reserve). The one-glass-pass clause is proven in ChatViewParityAppearTests.The_chrome_row_is_one_glass_pass_holding_its_slots_in_the_fixed_order_in_every_project_and_repository_state.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1106-1182 (states: no project, not a repository)
     public void With_no_project_the_Scripts_item_is_absent_and_with_no_repository_the_branch_and_git_items_are_absent()
     {
