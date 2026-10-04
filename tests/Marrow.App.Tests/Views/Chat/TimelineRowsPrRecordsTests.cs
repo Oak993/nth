@@ -151,6 +151,44 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Equal(60L, limit);
     }
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-102")] // TimelineRows.swift:2171-2182 RecentCache(limit: 60); Core/Support/RecentCache.swift:43-55 two generations, :22-28 a hit in the previous one is moved back into the current
+    public void The_diff_cache_holds_two_generations_of_sixty_so_up_to_120_files_the_121st_rotates_the_oldest_out_and_a_hit_in_the_older_one_is_kept_by_the_next_rotation()
+    {
+        var cache = (RecentCache<string, DiffFile>)typeof(DiffDetailCache).GetField("cache", HiddenStatic)!.GetValue(null)!;
+        int Current() => ((System.Collections.ICollection)cache.GetType().GetField("current", Hidden)!.GetValue(cache)!).Count;
+        var salt = Guid.NewGuid().ToString("N");
+        string Diff(int index) => "diff --git a/f.txt b/f.txt" + "\n" + "--- a/f.txt" + "\n" + "+++ b/f.txt" + "\n" + "@@ -1 +1 @@" + "\n" + "-old " + salt + " " + index + "\n" + "+new" + "\n";
+        string Path(int index) => "f-" + salt + "-" + index + ".txt";
+        string Key(int index) => Path(index) + "\n" + Diff(index); // :2176 path + newline + diff
+        // The cache is shared by every test, so first walk it to a rotation: the next entry is then the only one in the current generation.
+        var filler = 1000;
+        var before = Current();
+        do { before = Current(); DiffDetailCache.File(Diff(filler), Path(filler)); filler++; } while (Current() >= before);
+        Assert.Equal(1, Current());
+        var first = filler - 1;
+        // 119 more fill the current generation to sixty and roll it over once: the filler and the 119 are the previous generation (60) and the current (60): 120 held.
+        for (var index = 1; index <= 119; index++) DiffDetailCache.File(Diff(index), Path(index));
+        Assert.True(cache.Contains(Key(first)));
+        Assert.All(Enumerable.Range(1, 119), index => Assert.True(cache.Contains(Key(index)), "diff " + index + " is held among the 120"));
+        // A hit costs no parse: the same instance comes back (the ones in the current generation, so that asking does not itself rotate it).
+        var sixty = DiffDetailCache.File(Diff(60), Path(60));
+        Assert.Same(sixty, DiffDetailCache.File(Diff(60), Path(60)));
+        // The 121st distinct diff rotates the older generation out: the filler and diffs 1 to 59 go, 60 to 120 stay.
+        DiffDetailCache.File(Diff(120), Path(120));
+        Assert.False(cache.Contains(Key(first)));
+        Assert.All(Enumerable.Range(1, 59), index => Assert.False(cache.Contains(Key(index)), "diff " + index + " is out after the 121st"));
+        Assert.All(Enumerable.Range(60, 61), index => Assert.True(cache.Contains(Key(index)), "diff " + index + " is still held"));
+        // A hit in the previous generation moves the entry back into the current one (:24-26): asked for, 61 survives the next rotation while 62 does not.
+        var sixtyOne = DiffDetailCache.File(Diff(61), Path(61));
+        Assert.Same(sixtyOne, DiffDetailCache.File(Diff(61), Path(61)));
+        var count = Current();
+        var fresh = 200;
+        do { count = Current(); DiffDetailCache.File(Diff(fresh), Path(fresh)); fresh++; } while (Current() > count);
+        Assert.True(cache.Contains(Key(61)), "a diff asked for again is kept by the rotation that drops the older generation");
+        Assert.False(cache.Contains(Key(62)), "a diff nobody asked for again goes with the older generation");
+    }
+
     // ---- PR-CHAT-116: TurnEndRow.label - the three phrasings, over RelativeTime.duration fixtures (:2448-2455).
     // STOP cloud-TimelineRows-pr #15 (PR-CHAT-116): the record itself says "The exact rendered duration strings are those
     // Foundation produces on the reference runtime and are UNRESOLVED until captured there (B3_PLAN.md 6.1 E1)". The

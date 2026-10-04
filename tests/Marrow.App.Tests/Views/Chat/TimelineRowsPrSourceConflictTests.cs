@@ -18,9 +18,9 @@ public sealed class TimelineRowsPrSourceConflictTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")]
     public void A_sixty_limit_recent_cache_keeps_more_than_sixty_entries_across_its_two_generations()
     {
-        // STOP opencode-App.Views.Chat.TimelineRows #2 PR-CHAT-102.
-        // TimelineRows.swift:2135-2138 uses RecentCache(limit:60); Core/Support/RecentCache.swift:43-55
-        // rotates two generations, contradicting the record's "At most sixty parsed files" total limit.
+        // PR-CHAT-102 (STOP opencode #2, RETIRED 2026-10-04: the record was amended to the source, two generations of sixty, up to 120 at once; its Req proof is
+        // TimelineRowsPrRecordsTests.The_diff_cache_holds_two_generations_of_sixty_...). TimelineRows.swift:2171-2182 uses RecentCache(limit: 60);
+        // Core/Support/RecentCache.swift:43-55 rotates two generations: this test pins the cache type itself.
         var cache = new RecentCache<string, string>(60);
         for (var i = 0; i < 61; i++) cache.Insert(i.ToString(System.Globalization.CultureInfo.InvariantCulture), "diff" + i);
         Assert.All(Enumerable.Range(0, 61), i => Assert.True(cache.Contains("diff" + i)));
