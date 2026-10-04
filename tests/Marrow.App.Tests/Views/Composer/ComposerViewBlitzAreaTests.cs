@@ -150,6 +150,16 @@ public sealed class ComposerViewBlitzAreaTests(HeadlessSession headless)
             Assert.False(presenter.Calls[^2].Presented);
             Assert.Same(composerArea, popup.PlacementTarget);
 
+            // The popover that a reopen moved is in the state of upstream defect 67 (DiffInspector.swift:640-657, reproduced, PR-GIT-137): the delayed close of the
+            // reopen dropped shownRuntime, so a later close by the coordinator itself leaves the flag set. It is closed by its flag here and shown afresh, so the
+            // next step reads the ordinary close (DiffPopoverAuditTests holds the moved popover's own close).
+            h.Main.OnMain(() => runtime.IsDiffVisible = false);
+            Pump(h, window);
+            Assert.False(Presented());
+            h.Main.OnMain(() => runtime.IsDiffVisible = true);
+            Pump(h, window);
+            Assert.True(Presented());
+
             // :49 the chat column going behind another closes it, and shown again it does not open on its own.
             h.Main.OnMain(() => Marrow.App.Views.RootView.SetChatColumnIsShown(Host(window), false));
             Pump(h, window);
