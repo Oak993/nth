@@ -1,4 +1,7 @@
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Input;
 using Marrow.UI.Port.Settings;
 using Marrow.UI.Port.Settings.ColorPicker;
@@ -177,5 +180,32 @@ public sealed class GlassColorPickerTests(HeadlessSession headless)
         Assert.Equal(["#38C9B4", "#8E7CFF"], picker.Recent.Items);
         Press(picker.RecentRow, Key.Left);
         Assert.Equal(0, picker.RecentRow.RecentCursor);
+    });
+
+    [Fact]
+    [Trait("Feature", "CZ-2")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Every_area_of_the_picker_has_a_name_and_the_strips_are_sliders_with_range_and_value_text() => headless.OnUiThread(() =>
+    {
+        // CZ-15: every control has an accessible name; a slider has a range and value text. The design names only its hex field.
+        var picker = Make("#FF000080");
+        Assert.Equal("Saturation and brightness", AutomationProperties.GetName(picker.Square));
+        Assert.Equal("Hue", AutomationProperties.GetName(picker.Hue));
+        Assert.Equal("Opacity", AutomationProperties.GetName(picker.OpacityStrip));
+        Assert.Equal("Recent colours", AutomationProperties.GetName(picker.RecentRow));
+        Assert.Equal("Hex colour", AutomationProperties.GetName(picker.HexBox));
+        var hue = ControlAutomationPeer.CreatePeerForElement(picker.Hue)!;
+        Assert.Equal(AutomationControlType.Slider, hue.GetAutomationControlType());
+        var range = Assert.IsAssignableFrom<IRangeValueProvider>(hue);
+        Assert.Equal((0.0, 359.9, 0.0), (range.Minimum, range.Maximum, range.Value));
+        Assert.Equal("0 degrees", Assert.IsAssignableFrom<IValueProvider>(hue).Value);
+        var opacity = ControlAutomationPeer.CreatePeerForElement(picker.OpacityStrip)!;
+        Assert.Equal((0.0, 1.0), (((IRangeValueProvider)opacity).Minimum, ((IRangeValueProvider)opacity).Maximum));
+        Assert.Equal(128 / 255.0, ((IRangeValueProvider)opacity).Value, 6);
+        Assert.Equal("50 %", ((IValueProvider)opacity).Value);
+        ((IRangeValueProvider)opacity).SetValue(0.25);                // a screen reader sets a value: a committed edit
+        Assert.Equal("#FF000040", picker.Value);
+        Assert.Equal("Saturation 100 %, brightness 100 %", ((IValueProvider)ControlAutomationPeer.CreatePeerForElement(picker.Square)!).Value);
+        Assert.Equal("#FF0000", ((IValueProvider)ControlAutomationPeer.CreatePeerForElement(picker.RecentRow)!).Value);   // the commit above put it first
     });
 }

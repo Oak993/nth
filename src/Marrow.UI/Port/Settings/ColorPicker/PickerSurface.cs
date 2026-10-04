@@ -2,6 +2,8 @@
 // strip or the row of recent colours (lp-pickers.js, pickerB). Pointer: a press sets the value under it, a drag follows it, the release
 // commits (drag()). Keyboard: the design states none; see ED-NEW-f-cz-2 in porting/engineering_decisions.md.
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -44,7 +46,40 @@ internal sealed class PickerSurface : Control
         Kind = kind;
         Focusable = true;
         Cursor = kind == PickerSurfaceKind.Recent ? new Cursor(StandardCursorType.Hand) : new Cursor(StandardCursorType.Cross);
+        AutomationProperties.SetName(this, kind switch
+        {
+            PickerSurfaceKind.Square => "Saturation and brightness",
+            PickerSurfaceKind.Hue => "Hue",
+            PickerSurfaceKind.Opacity => "Opacity",
+            _ => "Recent colours",
+        });
     }
+
+    /// <summary>What a screen reader hears as the value (ED-NEW-f-cz-2: the design names only its hex field).</summary>
+    internal string ValueText => Kind switch
+    {
+        PickerSurfaceKind.Square => $"Saturation {PickerMath.JsRound(colour.S * 100)} %, brightness {PickerMath.JsRound(colour.V * 100)} %",
+        PickerSurfaceKind.Hue => $"{PickerMath.JsRound(colour.H)} degrees",
+        PickerSurfaceKind.Opacity => $"{PickerMath.JsRound(colour.A * 100)} %",
+        _ => recent.Count == 0 ? "" : recent[Math.Clamp(cursor, 0, recent.Count - 1)],
+    };
+
+    /// <summary>The range a hue or opacity strip covers, and its value; null for the square and the recent row.</summary>
+    internal (double Minimum, double Maximum, double Small, double Large, double Value)? Range => Kind switch
+    {
+        PickerSurfaceKind.Hue => (0, PickerMath.HueMax, HueStep, HueStep * ShiftFactor, colour.H),
+        PickerSurfaceKind.Opacity => (0, 1, AlphaStep, AlphaStep * ShiftFactor, colour.A),
+        _ => null,
+    };
+
+    /// <summary>A screen reader's set-value: a hue or opacity strip takes it as a committed edit.</summary>
+    internal void SetRange(double value)
+    {
+        if (Kind == PickerSurfaceKind.Hue) Edit?.Invoke(colour with { H = PickerMath.Clamp(value, 0, PickerMath.HueMax) }, true);
+        else if (Kind == PickerSurfaceKind.Opacity) Edit?.Invoke(colour with { A = PickerMath.Clamp(Round(value), 0, 1) }, true);
+    }
+
+    protected override AutomationPeer OnCreateAutomationPeer() => Range is null ? new PickerSurfacePeer(this) : new PickerRangePeer(this);
 
     internal PickerSurfaceKind Kind { get; }
 
