@@ -307,6 +307,20 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.RunUntil(() => released, TimeSpan.FromSeconds(5)); service.Collect();
     }
 
+    [Fact, Trait("Rule", "DL-12-held-request")]
+    public void Held_observer_runs_after_the_existing_permission_request_is_registered()
+    {
+        using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
+        RecordingClaudeProcess? call = null;
+        using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => call = new(args, env));
+        var s = new ClaudeSession(Config()); runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5));
+        s.OnSkillEvent = e => { if (e is CommandHeld) s.ResolveApproval("approval-1", "allow"); };
+        s.Handle(JSONValue.Parse(File.ReadLines(Fixture("claude-tools.jsonl")).Skip(1).First())!);
+        Assert.Equal(2, call!.Sent.Count);
+        Assert.Contains("\"behavior\":\"allow\"", Encoding.UTF8.GetString(call.Sent.Last()), StringComparison.Ordinal);
+        s.Stop(); Drain(runtime);
+    }
+
     private static void Drain(TestRuntime runtime, Generation? generation = null)
     {
         if (generation is null) runtime.Loop.RunUntilIdle();
