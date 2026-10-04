@@ -305,7 +305,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             Assert.IsType<ChromeRowDivider>(credits.Children[^2]); Assert.Equal("Welcome tour", Text(Assert.IsType<ChromeRow>(credits.Children[^3])).First()); Assert.Equal(9, credits.Children.Count); // Droppy's row, the three attribution rows and the licences row, with their dividers
             var show = Assert.Single(Nodes<Button>(row)); Assert.True(show.IsEnabled); Assert.Equal("Show", Text(show).Single()); // always enabled
             var popup = Assert.Single(Nodes<Popup>(row)); Assert.False(popup.IsOpen);
-            Click(w, show); Assert.True(popup.IsOpen); Assert.Equal(PlacementMode.Bottom, popup.Placement); Assert.Same(show, popup.PlacementTarget); // arrowEdge .bottom
+            Click(w, show); Assert.True(popup.IsOpen); Assert.Equal(PlacementMode.Bottom, popup.Placement); Assert.Same(show.Parent, popup.PlacementTarget); // arrowEdge .bottom; the anchor is the SmallAccentGlassButton pill, its material and its button (ED-266)
             var content = PopoverHost.Content(popup)!; var scroll = Assert.Single(Nodes<ScrollViewer>(content), s => s.Width == 480); Assert.Equal(440, scroll.Height);
             var blocks = Assert.Single(Nodes<StackPanel>(content), x => x.Spacing == 18 && x.Children.Count == 3);
             foreach (var (block, title) in blocks.Children.Zip(new[] { "Marrow", "Third-party notices", "Trademarks" }))
@@ -331,7 +331,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
         System.IO.File.WriteAllBytes(bad, [0x23, 0x20, 0x52, 0xFF, 0xFE, 0x20, 0x62, 0x61, 0x64]);
         try
         {
-            var read = typeof(LicensesRow).GetMethod("Read", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            var read = typeof(LicensesRow).GetMethod("Read", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic, [typeof(string)])!; // Read(resource): beside the executable (the other overload is the folder seam)
             Assert.Equal("The blitz-bad-utf8 file is missing from this copy of the app.", read.Invoke(null, ["blitz-bad-utf8"]));
             var good = System.IO.Path.Combine(AppContext.BaseDirectory, "blitz-good-utf8.md"); System.IO.File.WriteAllText(good, "# Fine é中");
             try { Assert.Equal("# Fine é中", read.Invoke(null, ["blitz-good-utf8"])); } finally { System.IO.File.Delete(good); }
@@ -387,7 +387,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
     {
         var tiles = Nodes<ChromeVisualTile>(row); Assert.Equal(titles, tiles.Select(AutomationProperties.GetName)); Assert.Equal(symbols, tiles.Select(tile => Assert.Single(Nodes<SwiftImage>(tile)).SymbolName));
         Click(w, Assert.Single(Nodes<Button>(tiles[0]))); w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 150); // the first tile chosen, the pointer away, everything settled
-        var parts = tiles.Select(t => (Stage: Assert.Single(Nodes<Border>(t), b => b.Width == 76 && b.Height == 48), Ring: Assert.Single(Nodes<Border>(t), b => b.BorderThickness == new Thickness(2)), Caption: Assert.Single(Nodes<TextBlock>(t)), Symbol: Assert.Single(Nodes<SwiftImage>(t)), Content: Assert.Single(Nodes<StackPanel>(t)))).ToArray();
+        var parts = tiles.Select(t => (Stage: Assert.Single(Nodes<Border>(t), b => b.Width == 76 && b.Height == 48), Ring: Assert.Single(Nodes<SwiftShapeBorder>(t), b => b.BorderThickness == new Thickness(2)) /* the continuous ring (ED-181) */, Caption: Assert.Single(Nodes<TextBlock>(t)), Symbol: Assert.Single(Nodes<SwiftImage>(t)), Content: Assert.Single(Nodes<StackPanel>(t)))).ToArray();
         Color Of(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color; Color Resolved(SwiftColor c) => c.Resolve(tiles[0].ActualThemeVariant);
         var stageTo = Resolved(Chrome.Overlay(0.10)); var stageFrom = Resolved(Chrome.Overlay(0.06)); var accent = Resolved(Chrome.Accent); var none = Resolved(Chrome.Accent.Opacity(0)); var primary = Resolved(Chrome.PrimaryText); var secondary = Resolved(Chrome.SecondaryText);
         // selected: accent ring and symbol, primary caption, the 0.10 fill; plain: no ring, secondary symbol and caption, the 0.06 fill
@@ -461,7 +461,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             double Scrim(double value) => WindowBackdrop.Scrim(value, isDark);
             // outside a transaction the backdrop follows the value at once (a drag)
             settings.BackdropOpacity = 0.9; Drain(w); SettingsBackdropAssertions.GlassOpacity(backdrop, Scrim(0.9)); Tick(h, 400); Drain(w);
-            var material = Assert.IsType<Panel>(Assert.Single(Assert.IsType<Panel>(Assert.IsType<Panel>(backdrop.Child).Children[0]).Children)); var scrim = Assert.IsType<Border>(material.Children[1]);
+            var material = Assert.IsType<Panel>(Assert.Single(Assert.IsType<Panel>(Assert.IsType<Panel>(backdrop.Child).Children[0]).Children)); var scrim = Assert.IsType<SwiftShapeBorder>(material.Children[1]); /* the window shape is Apple's continuous one (ED-275) */
             Click(w, reset); Assert.Equal(0.5, settings.BackdropOpacity); // the setting is written at once; the window's glass takes the snappy 0.2 to get there
             Assert.Equal(Scrim(0.9), scrim.Opacity, 6); Tick(h, 60); Assert.InRange(scrim.Opacity, Scrim(0.5) + 0.0005, Scrim(0.9) - 0.0005);
             var mid = scrim.Opacity; Tick(h, 60); Assert.True(scrim.Opacity < mid + 1e-9, "the scrim moves one way: " + mid + " then " + scrim.Opacity);

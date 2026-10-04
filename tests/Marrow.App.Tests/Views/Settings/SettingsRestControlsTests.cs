@@ -106,7 +106,7 @@ public sealed class SettingsRestControlsTests(HeadlessSession headless) : Settin
         With(() => new AboutSettingsPage(), (view, model, _, w) =>
         {
             var card = Assert.IsType<StackPanel>(((AboutSettingsPage)view).Child).Children[1]; var row = Row(card, "Welcome tour"); CheckRow(row, "Welcome tour", "The slideshow from the first launch: Hydra, the effort slider, panels and themes.");
-            var button = Assert.Single(Nodes<Button>(row)); Assert.Equal("Show", Text(button).Single()); Assert.Single(button.GetVisualDescendants().OfType<Border>(), b => b.Height == 20 && SwiftGlass.GetEffect(b) is not null);
+            var button = Assert.Single(Nodes<Button>(row)); Assert.Equal("Show", Text(button).Single()); Assert.Equal(SmallAccentGlassButton.Height, button.Bounds.Height); Assert.Single(Nodes<Border>(row), b => !b.IsHitTestVisible && SwiftGlass.GetEffect(b) is not null); /* SmallAccentGlassButton (ED-266): the accent material is the pill's layer under the button */
             try
             {
                 foreach (var seen in new[] { false, true }) { model.Settings.HasSeenTour = seen; Drain(w); Assert.True(button.IsEffectivelyEnabled); Click(w, button); var tour = Field<Avalonia.Controls.Window>(Marrow.App.Views.Tour.TourWindowController.Shared, "window"); Assert.True(tour.IsVisible); Assert.Equal(8, Marrow.App.Views.Tour.Tour.Pages.Count); Click(w, button); Assert.Same(tour, Field<Avalonia.Controls.Window>(Marrow.App.Views.Tour.TourWindowController.Shared, "window")); Marrow.App.Views.Tour.TourWindowController.Shared.Close(); Drain(w); }
