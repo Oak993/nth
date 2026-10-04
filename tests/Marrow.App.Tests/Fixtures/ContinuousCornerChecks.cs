@@ -32,7 +32,10 @@ internal static class ContinuousCornerChecks
         };
         Assert.Equal(RoundedCornerStyle.Continuous, style);
         Assert.True(size.Width > 0 && size.Height > 0, "the shape has no size");
-        var outline = SwiftShapes.Outline(new Rect(size), radii, RoundedCornerStyle.Continuous);
+        // OD-0102: the corner Apple draws in ED-275 (2)'s band is at the largest radius that fits, which ShapeOutline.DrawnRadius reports (the composer pill, marked
+        // CircularInBand because the reference video measures it circular, is the one shape that keeps the arc there).
+        var circularInBand = SwiftShapes.GetCircularInBand(shape);
+        var outline = SwiftShapes.Outline(new Rect(size), radii, RoundedCornerStyle.Continuous, circularInBand);
         Assert.Equal(expectApple, outline.HasContinuousCorner);
         if (!outline.HasContinuousCorner)
         {
@@ -47,14 +50,14 @@ internal static class ContinuousCornerChecks
         if (shape is Border)
         {
             path = Assert.IsAssignableFrom<Geometry>(clip);
-            Assert.Same(path, SwiftShapes.ClipGeometry(new Rect(size), radii));
+            Assert.Same(path, SwiftShapes.ClipGeometry(new Rect(size), radii, circularInBand));
         }
-        else path = SwiftShapes.UnevenRoundedRectangleGeometry(new Rect(size), radii, RoundedCornerStyle.Continuous);
+        else path = SwiftShapes.UnevenRoundedRectangleGeometry(new Rect(size), radii, RoundedCornerStyle.Continuous, circularInBand);
         _ = fill;
-        var corners = new[] { (radii.TopLeft, 0), (radii.TopRight, 1), (radii.BottomRight, 2), (radii.BottomLeft, 3) };
-        foreach (var (r, index) in corners)
+        foreach (var index in new[] { 0, 1, 2, 3 })
         {
             if (outline.Corner(index) != CornerKind.Continuous) continue;
+            var r = outline.DrawnRadius(index);
             foreach (var (u, v) in new[] { (Along * r, Between * r), (Between * r, Along * r) })
                 Assert.False(path.FillContains(At(size, index, u, v)), $"corner {index}, r {r}: ({u:F2}, {v:F2}) from the vertex is inside the circle but outside Apple's curve");
             foreach (var (u, v) in new[] { (Along * r, Inside * r), (Inside * r, Along * r) })

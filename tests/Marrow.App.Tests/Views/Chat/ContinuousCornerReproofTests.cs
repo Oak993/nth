@@ -24,8 +24,9 @@ namespace Marrow.App.Tests.Views.Chat;
 //    capsules and for radii from half the height up (SPEC.md 2.3). Every single-line pill (glyph 18 + 8 + 8 = 34 pt) is here.
 //  - APPLE (h >= 3.057 r): the corner is Apple's three-cubic curve, the clip of the Border follows it (ContinuousCornerChecks.Drawn
 //    probes the sliver between the curve and the circle).
-//  - BAND (h / 3.057 < r < h / 2): UNRESOLVED (ED-275 (2)). The Edited-files card (40 pt, r 18), the delegation card (54 pt, r 18) and any
-//    pill two lines tall sit here; the port draws the circular arc there and no test below claims a fit for it.
+//  - BAND (h / 3.057 < r < h / 2): settled by OD-0102 (owner, 2026-10-04, "corner-band: A"): Apple's corner at the largest radius that fits,
+//    ContinuousCorner.LargestRadius = h / 3.057, instead of a circular arc. The Edited-files card (40 pt, r 18), the one-step steps card (43 pt),
+//    a notice two lines tall (about 48 pt) and the delegation card of one head (54 pt) sit here; the tests at the end read it off the mounted element.
 // OD-0098: where no video frame shows the element the pinned Swift is the proof; each test names the Swift lines it reads.
 [Collection("Headless")]
 public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
@@ -59,6 +60,42 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
         var outline = SwiftShapes.Outline(new Rect(shape.Bounds.Size), shape.CornerRadius, RoundedCornerStyle.Continuous);
         Assert.All(outline.Corners, kind => Assert.Equal(CornerKind.Arc, kind));
         Assert.All(outline.Segments.Where(segment => segment.Verb == PathVerb.Arc), arc => Assert.Equal(height / 2, arc.ArcRadius, 1e-9));
+    }
+
+    /// <summary>
+    /// OD-0102: the element is in ED-275 (2)'s band (36 &lt; height &lt; 55.03 at radius 18) and is drawn through Apple's corner at the largest radius that fits,
+    /// <c>height / (2 * 1.528665)</c>: every corner is Apple's at that radius, its control points are the ones in ED-275 (1) scaled to it, the clip of the Border
+    /// is that outline, and the run-ins of the two ends of the short side meet at its middle.
+    /// </summary>
+    private static void AssertBand(Border shape, string name, double radius = 18)
+    {
+        Assert.True(SwiftShapes.GetCornerStyle(shape) == RoundedCornerStyle.Continuous, $"{name}: the source says .continuous");
+        Assert.Equal(new CornerRadius(radius), shape.CornerRadius);
+        var size = shape.Bounds.Size;
+        Assert.True(size.Height > 2 * radius + 1e-6 && size.Height < 2 * 1.528665 * radius, $"{name}: {size.Height} pt is not in the band ({2 * radius}, {2 * 1.528665 * radius:F2})");
+        var drawn = size.Height / (2 * 1.528665);
+        Assert.Equal(drawn, ContinuousCorner.LargestRadius(size), 9);
+        Assert.True(ContinuousCornerChecks.Drawn(shape, expectApple: true), $"{name}: no Apple corner in the band (OD-0102)");
+        var outline = SwiftShapes.Outline(new Rect(size), shape.CornerRadius, RoundedCornerStyle.Continuous);
+        Assert.All(outline.Corners, kind => Assert.Equal(CornerKind.Continuous, kind));
+        Assert.All(Enumerable.Range(0, 4), index => Assert.Equal(drawn, outline.DrawnRadius(index), 9));
+        Assert.DoesNotContain(outline.Segments, segment => segment.Verb == PathVerb.Arc);
+        var cubics = outline.Segments.Where(segment => segment.Verb == PathVerb.Cubic).ToArray();
+        Assert.Equal(12, cubics.Length);
+        var order = new[] { 1, 2, 3, 0 };
+        for (var c = 0; c < 4; c++)
+            for (var k = 0; k < 3; k++)
+            {
+                var segment = cubics[c * 3 + k];
+                var (c1, c2, end) = (AppleCubics[k][0], AppleCubics[k][1], AppleCubics[k][2]);
+                AssertNear(Map(order[c], c1.U, c1.V, drawn, size), segment.Control1, $"{name}: corner {order[c]} cubic {k + 1} control 1");
+                AssertNear(Map(order[c], c2.U, c2.V, drawn, size), segment.Control2, $"{name}: corner {order[c]} cubic {k + 1} control 2");
+                AssertNear(Map(order[c], end.U, end.V, drawn, size), segment.End, $"{name}: corner {order[c]} cubic {k + 1} end");
+            }
+        // The clip of the mounted Border is the shared cached outline at the drawn radius, so the fill and a child are cut to the same curve.
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(size), shape.CornerRadius), shape.Clip);
+        // The corner starts half the short side from the vertex along the long side: the run-in is Extent * drawn = height / 2.
+        AssertNear(new Point(size.Height / 2, 0), outline.Segments[0].End, $"{name}: the top-left corner's run-in along the top edge ends at height / 2");
     }
 
     /// <summary>The element is a rounded rectangle of this radius drawn through Apple's corner: its outline's control points are the ones in ED-275 (1), and its clip is that outline.</summary>
@@ -284,13 +321,45 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
 
     // ---------------------------------------------------------------- the shapes that stay open: ED-275 (2)'s band
 
-    // No Req trait on purpose: this pins WHERE the shapes of UI-CHAT-034 (a pill two lines tall), UI-CHAT-036 (a turn of one step), UI-CHAT-037 (the Edited-files
-    // card) and UI-CHAT-054 (a delegation card of one head) sit, so that the records stay open on them. In the band h / 3.057 < r < h / 2 (r 18: 36 < h < 55) what Apple
-    // draws is UNRESOLVED (ED-275 (2), corrected 2026-10-04): no frame has a measurable edge there and the Swift states `.continuous` and nothing more. The port draws
-    // the circular arc, asserted as its own regime and not as a fit. The same shapes at other sizes are proven (the tests above and below).
+    // ---------------------------------------------------------------- the shapes that sat in ED-275 (2)'s band: OD-0102
+
+    // OD-0102 (owner, 2026-10-04, "corner-band: A"): in the band h / 3.057 < r < h / 2 (r 18: 36 < h < 55) the corner is Apple's at the largest radius that fits,
+    // not the circular arc. The Swift states `.continuous` and the radius and nothing more (TimelineRows.swift); the band's regime is the owner's (OD-0102), settled
+    // from the Swift per OD-0098, and these tests read the corner off the mounted elements: the radius and style the Swift states, the size the layout gives, then
+    // AssertBand (every corner Apple's at height / 3.057, the control points, the clip). The neighbouring sizes are asserted too: a capsule (circular) below, the full
+    // corner above.
+
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // the band: UNRESOLVED regime, the records UI-CHAT-034, -036, -037, -054 stay open on it
-    public void The_wrapped_notice_the_one_step_turn_the_edited_files_card_and_a_one_head_delegation_card_sit_in_the_unresolved_band_and_are_not_claimed() => headless.OnUiThread(() =>
+    [Trait("Req", "UI-CHAT-034")] // TimelineRows.swift:2402 `.background(..., in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the corner of a notice two lines tall
+    public void A_warning_or_error_notice_two_lines_tall_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        h.Main.OnMain(() =>
+        {
+            const string twoLines = "A warning long enough that it wraps onto a second line when the row is only 380 points wide.";
+            var warning = new NoticeRow(NoticeEntry(Notice.Level.Warning, twoLines));
+            var error = new NoticeRow(NoticeEntry(Notice.Level.Error, twoLines));
+            var oneLine = new NoticeRow(NoticeEntry(Notice.Level.Warning, "Short."));
+            var threeLines = new NoticeRow(NoticeEntry(Notice.Level.Warning, string.Join(" ", Enumerable.Repeat("A notice long enough to take three lines in a narrow row.", 4))));
+            var panel = new StackPanel { Width = 700, Spacing = 20 };
+            foreach (var control in new Control[] { warning, error, oneLine, threeLines }) panel.Children.Add(new Border { Width = 380, Child = control });
+            var window = Show(panel);
+            try
+            {
+                AssertBand(PillOf(warning, Pill), "warning notice, two lines");
+                AssertBand(PillOf(error, Pill), "error notice, two lines");
+                AssertCapsule(PillOf(oneLine, Pill), "warning notice, one line");
+                AssertApple(PillOf(threeLines, Pill), "warning notice, three lines", 18);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-036")] // TimelineRows.swift:2660 `.background(.quaternary.opacity(0.32), in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the steps card of a turn of one step
+    public void The_steps_card_of_a_turn_of_one_step_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
@@ -301,37 +370,64 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
             var turn = Guid.NewGuid();
             Control Steps(params TimelineEntry[] entries) => new TurnFinishedBlock(h.Runtime, turn, Summary(turn) with { Duration = 64 }, ValueList<TimelineEntry>.Empty,
                 new ValueList<TimelineEntry>(entries), null, canUndo: false, chronological: true);
-            string Json(int n) => "[" + string.Join(",", Enumerable.Range(0, n).Select(i => "{\"task\": \"Tidy " + i + "\", \"prompt\": \"p\", \"name\": \"Hank\"}")) + "]";
-            var files = new FileChangeSummary(new ValueList<FileChangeSummary.File>(Enumerable.Range(1, 2).Select(i => new FileChangeSummary.File("src/file" + i + ".swift", i, 1, false))), 40, 7);
-            var wrapped = new NoticeRow(NoticeEntry(Notice.Level.Warning, "A warning long enough that it wraps onto a second line when the row is only 380 points wide."));
             var oneStep = Steps(ToolEntry(Call(ToolCall.Kind.Read, "Read a"), turn));
             var twoSteps = Steps(ToolEntry(Call(ToolCall.Kind.Read, "Read a"), turn), ToolEntry(Call(ToolCall.Kind.Read, "Read b"), turn));
-            var fileCard = new TurnFileCard(files, canUndo: true, onRevert: () => { }, onReview: _ => { });
+            var window = Show(new StackPanel { Width = 700, Spacing = 20, Children = { oneStep, twoSteps } });
+            try
+            {
+                var steps = new Thickness(14);
+                AssertBand(PillOf(oneStep, steps), "steps card, one step");
+                AssertApple(PillOf(twoSteps, steps), "steps card, two steps", 18);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-037")] // TimelineRows.swift:2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the Edited-files card (40 pt)
+    public void The_Edited_files_card_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
+        h.Main.OnMain(() =>
+        {
+            FileChangeSummary Files(int count) => new(new ValueList<FileChangeSummary.File>(Enumerable.Range(1, count).Select(i => new FileChangeSummary.File("src/file" + i + ".swift", i, 1, false))), 40, 7);
+            var revertable = new TurnFileCard(Files(2), canUndo: true, onRevert: () => { }, onReview: _ => { });
+            var plain = new TurnFileCard(Files(1), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var window = Show(new StackPanel { Width = 700, Spacing = 20, Children = { revertable, plain } });
+            try
+            {
+                var card = new Thickness(12, 6, 6, 6);
+                AssertBand(PillOf(revertable, card), "Edited-files card, revertable");
+                AssertBand(PillOf(plain, card), "Edited-files card, not revertable");
+                Assert.Equal(40, PillOf(revertable, card).Bounds.Height, 0.5); // the 28 pt discs and 6 pt above and below: the card sits at the 13.08 pt corner
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-054")] // TimelineRows.swift:691-694 `.background(.tint.opacity(0.1), in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the delegation card of one head
+    public void The_delegation_card_of_one_head_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
+        h.Main.OnMain(() =>
+        {
+            string Json(int n) => "[" + string.Join(",", Enumerable.Range(0, n).Select(i => "{\"task\": \"Tidy " + i + "\", \"prompt\": \"p\", \"name\": \"Hank\"}")) + "]";
             var oneHead = new HydraDelegationBlock(Json(1), sent: true);
             var twoHeads = new HydraDelegationBlock(Json(2), sent: true);
             var noHeads = new HydraDelegationBlock("[]", sent: true);
-            var panel = new StackPanel { Width = 700, Spacing = 20 };
-            foreach (var control in new Control[] { new Border { Width = 380, Child = wrapped }, oneStep, twoSteps, fileCard, oneHead, twoHeads, noHeads }) panel.Children.Add(control);
-            var window = Show(panel);
+            var window = Show(new StackPanel { Width = 700, Spacing = 20, Children = { oneHead, twoHeads, noHeads } });
             try
             {
-                var inBand = new List<(string Name, Border Shape)>
-                {
-                    ("wrapped notice (two lines)", PillOf(wrapped, Pill)),
-                    ("turn of one step", PillOf(oneStep, new Thickness(14))),
-                    ("Edited-files card", PillOf(fileCard, new Thickness(12, 6, 6, 6))),
-                    ("delegation card, one head", PillOf(oneHead, Pill)),
-                };
-                foreach (var (name, shape) in inBand)
-                {
-                    Assert.Equal(new CornerRadius(18), shape.CornerRadius);
-                    Assert.True(shape.Bounds.Height > 36 + 1e-6 && shape.Bounds.Height < 2 * 1.528665 * 18, $"{name}: {shape.Bounds.Height} pt is not in the band (36, 55.03)");
-                    Assert.False(ContinuousCornerChecks.Drawn(shape, expectApple: false), $"{name}: the port's regime for the band is the circular arc");
-                }
-                // The same shapes one step either side of the band: a capsule below it, Apple's corner above it.
-                AssertCapsule(PillOf(noHeads, Pill), "delegation card, no head");
-                AssertApple(PillOf(twoSteps, new Thickness(14)), "turn of two steps", 18);
+                AssertBand(PillOf(oneHead, Pill), "delegation card, one head");
                 AssertApple(PillOf(twoHeads, Pill), "delegation card, two heads", 18);
+                AssertCapsule(PillOf(noHeads, Pill), "delegation card, no head");
             }
             finally { Close(window); }
         });

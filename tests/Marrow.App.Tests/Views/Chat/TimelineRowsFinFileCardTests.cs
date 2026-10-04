@@ -59,9 +59,10 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
                 Assert.Equal(new CornerRadius(18), pill.CornerRadius);
                 // :2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`: the radius
                 // 18 is the Swift's and the video's nominal one (static.timeline-rows: radius 18, no frame was fitted). The card is 40 pt tall (28 + 12), in the
-                // band (13.1 < r < 20) where what Apple draws is UNRESOLVED (ED-275 (2)); the port draws the circular arc there, asserted as the port's
-                // own regime and not as a reference fit, so UI-GIT-044 and PR-CHAT-108 stay open on it.
-                ContinuousCornerChecks.Drawn(pill, expectApple: false);
+                // band (13.1 < r < 20) of ED-275 (2): OD-0102 (owner, 2026-10-04) settles it as Apple's corner at the largest radius that fits, 40 / (2 * 1.528665) =
+                // 13.08; the control points and clip are asserted in ContinuousCornerReproofTests.The_Edited_files_card_is_cut_to_Apples_corner_at_the_largest_radius_that_fits.
+                Assert.True(ContinuousCornerChecks.Drawn(pill, expectApple: true));
+                Assert.Equal(40 / (2 * 1.528665), SwiftShapes.Outline(new Rect(pill.Bounds.Size), pill.CornerRadius, RoundedCornerStyle.Continuous).DrawnRadius(0), 6);
                 Paints(pill.Background, SwiftColor.Quaternary.Opacity(0.32), pill, "card fill");
                 Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
                 Near("gap 1", Left(panel, window), Left(pill, window));
