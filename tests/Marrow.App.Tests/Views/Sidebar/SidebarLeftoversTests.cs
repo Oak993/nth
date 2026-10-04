@@ -1528,4 +1528,41 @@ public sealed partial class SidebarViewTests
             finally { Close(card); }
         });
     });
+
+    // ======== The dragged row's lift, on its curve (UI-SIDEBAR-060) ========
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-060")] // SidebarView.swift:1838-1846 `.scaleEffect(isDragged ? 1.02 : 1)`, `.animation(.spring(response: 0.25, dampingFraction: 0.8), value: isDragged)`: "springs in and out on response 0.25 damping 0.8"
+    public void The_lift_scales_to_1_02_and_back_along_the_spring_of_response_0_25_and_damping_0_8() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        var grabbed = Guid.NewGuid();
+        SidebarView view = null!; Control host = null!; AvaloniaWindow window = null!;
+        void Tick(int ms) { harness.Main.AdvanceMilliseconds(ms); harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms))); }
+        double ScaleOf() => host.RenderTransform is ScaleTransform scale ? scale.ScaleX : 1;
+        var spring = Animation.Spring(response: 0.25, dampingFraction: 0.8);
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                view = Detached(model);
+                host = (Control)CallStatic(Private("SidebarThreadRow"), "ApplyDraggedLift", new Border { Height = 20 }, (Func<bool>)(() => Drag(view).Id == grabbed))!;
+                window = new AvaloniaWindow { Content = host, Width = 100, Height = 100 };
+                window.Show();
+                Call(view, "DragChanged", grabbed, 5d);
+            });
+            Tick(60);
+            harness.Main.OnMain(() => Assert.Equal(1 + 0.02 * spring.Progress(0.06), ScaleOf(), 4)); // on the way in
+            Tick(1000);
+            harness.Main.OnMain(() => { Assert.Equal(1.02, ScaleOf(), 4); Call(view, "DragEnded"); });
+            Tick(60);
+            harness.Main.OnMain(() => Assert.Equal(1.02 - 0.02 * spring.Progress(0.06), ScaleOf(), 4)); // and on the way out
+            Tick(1000);
+            harness.Main.OnMain(() => Assert.Equal(1d, ScaleOf(), 4));
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
 }

@@ -304,6 +304,56 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - Mutation records: mutants_round5.txt and mutants_round5b.txt (and .json): 19 mutants, every one killed but S17 and RR1,
 //   both recorded in the ED entry as not told apart by any headless check.
 
+//
+// LEFTOVERS PASS 2026-10-04 (branch cloud/b3-sidebar-leftovers; tests in SidebarLeftoversTests.cs, the same partial class).
+// This block SUPERSEDES the "Still open per record" list, the STOP #3 line of the ledger, STOP #9 and the OD-0076 notes above
+// wherever it names a record. Two rulings made the records provable: OD-0098 (no frame, so the pinned Swift is the proof:
+// every expected value of the new tests is the one the cited Swift line states) and OD-0076 (every change is transitioned);
+// continuous corners are ED-275's (every row shape is a 7 pt continuous corner inside Apple's regime: 2 * 1.528665 * 7 = 21.4
+// pt <= 24 pt, the shortest row).
+// PROVED, each by the tests that carry its Req trait (the new ones named in SidebarLeftoversTests.cs):
+// - PR-SIDEBAR-013, UI-SIDEBAR-043, UI-UPDATE-010: the dot fades and scales in and out on Chrome.hover (OD-0076; the Mac cuts):
+//   The_update_dot_fades_and_scales_in_and_out_on_chrome_hover_as_the_availability_changes. "Disappears immediately" is the
+//   condition: the fade starts in the frame the version catches up. Geometry, offset and colour were proven already.
+// - PR-SIDEBAR-055 (and UI-SIDEBAR-060's release): the release spring was proven on a mounted release against the curve
+//   (On_a_real_release_...); the capture clause is the source's own response 0.32 / damping 0.8 (OD-0098).
+// - PR-SIDEBAR-091, UI-SIDEBAR-028, -029, -030: The_rename_popovers_column_..., The_title_field_holds_the_focus_...,
+//   Rename_is_disabled_only_while_..., Return_with_a_blank_title_..., The_ellipsis_path_pre_fills_..., and the capsule buttons
+//   Under_presentedChrome_the_rename_buttons_are_capsules_... (SystemButtons now reads Popovers.IsCapsuleButtonBorderShape).
+// - PR-SIDEBAR-129, UI-SIDEBAR-008: the 0.55 dim eases on Chrome.hover (ENGINEERING DECISION, OD-0076): An_inactive_projects_row_eases_...
+// - PR-SIDEBAR-135: The_glides_two_faces_have_the_sources_heights_clearances_destination_state_and_fallback,
+//   The_glides_faces_are_rendered_as_flat_bitmaps_at_the_scale_..., and the popover / failed render / 24 pt destination / DPI tests.
+// - UI-SIDEBAR-005: A_real_scroll_offset_change_and_a_real_wheel_tick_freeze_the_list_...; UI-SIDEBAR-006: A_gap_leaves_with_its_removed_project_...
+//   (the list does react to a project removed or added: STOP #11 is closed).
+// - UI-SIDEBAR-017, -018, -019, -021, -022, -023, -024: the face's paddings and minimum heights, the Settled value, the hide and the
+//   0.12 s return, the badge geometry, the status, the project line, tabular digits, the hover's easing of the title's room
+//   (A_detailed_rows_title_room_eases_...), the archive button, ellipsis and fold chevron places, the 7 pt continuous shapes.
+// - UI-SIDEBAR-020: the settle pop springs (response 0.3 / damping 0.45) on a kept check: A_real_rows_open_check_is_kept_and_springs_...
+// - UI-SIDEBAR-026, -027: the delete question through its popup (dismissal keeps the thread; the delete waits for Closed).
+// - UI-SIDEBAR-031, -032: the small glass buttons take the measured small metrics (20 high, 11 pt, 10.5 pt either side).
+// - UI-SIDEBAR-036: the two heights on snappy 0.18, the connector on panelSlide when the head set changes (the surviving
+//   glyphs' glide is NOT done: see below). UI-SIDEBAR-037: the hover scale eases back; each glyph row trails the 3 pt overhang
+//   (the badge's own offset is UI-HYDRA-033's).
+// - UI-SIDEBAR-001: a press on the spacer lands on the column's WindowDragArea (a Caption to the Windows hit test); the system
+//   move loop itself is NATIVE-ONLY.
+// STILL OPEN, with the reason:
+// - PR-SIDEBAR-127: the unmapped-symbol placeholder (the record's open_question): SwiftImage draws nothing for a name the table
+//   does not map (SwiftImage.IsEmpty), no decision names the placeholder. Everything else of the record is proven, and the glyph swap
+//   now crossfades (A_picked_icon_replaces_the_marks_by_a_crossfade_...). OWNER/ENGINEERING RULING NEEDED; SwiftImage is shared.
+// - UI-SIDEBAR-015, -016: the entries reach the system menu in the source's order and the current choice carries a check mark
+//   (The_pair_submenu_reaches_the_system_menu_...); a Win32 menu reserves a check gutter for every row, so "no reserved check
+//   column" cannot hold, and opening the native submenu is the system's: NATIVE-ONLY / platform limit.
+// - UI-SIDEBAR-035: whether SwiftUI hit-tests the stub's connector column (:1583 strokes a bare shape; :1608 `.contentShape(shape)` sits
+//   on the text half only) is not settled by the source or by a frame: UNRESOLVED. The port's column is hit on its dots.
+// - UI-SIDEBAR-036 (part): the surviving glyphs of a card whose heads change glide to their new places on the Mac (OD-0076 asks
+//   for it); ForEach.ApplyLayout glides rows inside one panel, and the card's glyphs move between row panels: needs a cross-panel
+//   layout glide in the shared ForEach foundation (UI/Port/ViewLifetime.cs), another unit's file.
+// - UI-SIDEBAR-044: the sidebar asks for exactly the source's folder dialog (proven); the Windows dialog's drawing of the title, OK label and
+//   flags (OpenPanel.cs, IFileOpenDialog) is NATIVE-ONLY.
+// - UI-SIDEBAR-060 (part): `.shadow(color: .black.opacity(0.28), radius: 10, y: 4)` is passed as BoxShadow.Blur 10; the mapping of
+//   SwiftUI's radius to a blur has no source, frame or decision (a shared literal in FollowUpQueueTab and ModelsSettingsPage):
+//   UNRESOLVED. The lift's scale and the release are proven (The_lift_scales_to_1_02_..., On_a_real_release_...).
+
 [Collection("Headless")]
 public sealed partial class SidebarViewTests(HeadlessSession headless)
 {
