@@ -87,7 +87,7 @@ public sealed class EffortSliderModelListRecordsTests(HeadlessSession headless)
     // ---- UI-COMPOSER-045: the scrolling area --------------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-045")] // App/Views/Composer/EffortSlider.swift:271-287,348-351; ED-NEW-effortslider: the platform has no rubber band, the list scrolls only past its frame
+    [Trait("Req", "UI-COMPOSER-045")] // App/Views/Composer/EffortSlider.swift:271-287,348-351; ED-262: the platform has no rubber band, the list scrolls only past its frame
     public void The_scrolling_area_is_the_fixed_row_arithmetic_padded_6_capped_at_440_and_scrolls_only_when_the_rows_exceed_it() => headless.OnUiThread(() =>
     {
         ProviderKind[] kinds = [ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta];
