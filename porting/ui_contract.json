@@ -590,7 +590,7 @@
       "typography": "Font.chat(.callout); glyph at Font.chat(.caption) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
       "colors": "Glyph and text Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
-        "shown only when more than two steps are hidden; the singular form is exactly 1 earlier step",
+        "shown only when the list has more than two steps, so at least one is hidden (hidden = entries.count - 2, TimelineRows.swift:1523-1524); the count is the number hidden and the singular form is exactly 1 earlier step",
         "disappears once all steps are shown"
       ],
       "interactions": [

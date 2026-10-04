@@ -3846,11 +3846,11 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1228-1231 the attachment strip's anchor and disappear handlers capture the slot weakly",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1678-1687 and :1761-1763 the tool row's button action and anchor capture weak boxes only",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1406-1407 Add to reply captures the runtime weakly",
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2689-2698 the file card's review closure captures the runtime weakly"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2689-2698 the file card's review closure captures the runtime weakly; its revert closure (:2695) holds the runtime, so the card keeps the runtime alive in the source too"
       ],
       "preconditions": "A row scrolls out of the virtualized list while a menu, popover or panel it opened is still alive.",
       "action": "The menu is used or dismissed.",
-      "expected_result": "The row's storage, its entry and its message text are released when the row scrolls away, regardless of any menu, hover responder, anchor view or popover that outlives it. Intents travel back into the row through bindings and observable request objects, never through captured self.",
+      "expected_result": "The row's storage and its entry are released when the row scrolls away, regardless of any menu, hover responder, anchor view or popover that outlives it. An open menu keeps only the value snapshots its builder took (the message, canRevert and the confirmation binding, TimelineRows.swift:172-178), never the row, so the message's text lives as long as the menu does, as in the source. Intents travel back into the row through bindings and observable request objects, never through captured self.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -23598,7 +23598,7 @@
       "failure_cases": [],
       "cancellation": "The task is cancelled when the body changes or the pill disappears.",
       "windows_path": "Same warm-on-appear keyed to the body.",
-      "verification_method": "interaction test measuring first-open latency",
+      "verification_method": "interaction test of the cache's state (ED-285 (7), ENGINEERING DECISION; a wall-clock first-open latency under a shared build load is not evidence): after the pill's task has run, MarkdownView.WarmTexts([body]) is empty and the popover a tap opens is drawn from the very block instances MarkdownView.Blocks(body) returns; a report nothing warmed is parsed at the open and cached; a pill with no details warms nothing; a changed body is warmed again, and the task is cancelled when the body changes or the pill goes",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
