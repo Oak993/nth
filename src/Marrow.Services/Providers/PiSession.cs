@@ -4,6 +4,8 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Models;
+using Marrow.Services.Port.Skills.Providers;
+using Marrow.Core.Port.Skills.Detect;
 
 // Source: DroppyCode/Services/Providers/PiSession.swift (B3 52bc7926), :1-610. The whole file: the lifecycle,
 // argv/environment building, the get_state/get_commands handshake, send/interrupt/compact/stop, approvals and
@@ -19,6 +21,12 @@ namespace Marrow.Services.Providers;
 public sealed class PiSession : ProviderSession
 {
     public Action<ProviderEvent>? OnEvent { get; set; } // :21
+
+    // PORT-ONLY: SK-11e / WU-10 and DL-12. Null for both means today's argv, environment and behaviour exactly.
+    public ProviderSkillLaunch? SkillLaunch { get; init; }
+    public Action<ToolEvent>? ToolEvents { get; init; }
+    private PiToolEventTap? toolTap;
+    private PiToolEventTap Tap => toolTap ??= new PiToolEventTap(ToolEvents);
 
     private readonly SessionConfiguration configuration; // :23
     private readonly string? localApplicationData; // PORT-ONLY test seam for isolated per-session support files.
@@ -115,31 +123,12 @@ public sealed class PiSession : ProviderSession
         WriteGate(finalReport: false);
 
         // :93-94
-        var arguments = new List<string> { "--mode", "rpc", "-e", WindowsPath(extensionURL) };
-        arguments.Add(runtimeMode is RuntimeMode.Auto or RuntimeMode.FullAccess ? "--approve" : "--no-approve");
-        // :95-97. The split is on the FIRST slash; a slashless id or the literal "default" adds neither flag.
-        if (model is { Length: > 0 } selectedModel && selectedModel != "default" && selectedModel.IndexOf('/', StringComparison.Ordinal) is var modelSlash && modelSlash >= 0)
-        {
-            arguments.Add("--provider");
-            arguments.Add(selectedModel[..modelSlash]);
-            arguments.Add("--model");
-            arguments.Add(selectedModel[(modelSlash + 1)..]);
-        }
-        // :98-100
-        if (effort is { Length: > 0 } selectedEffort && PiCLI.ThinkingLevels.Contains(selectedEffort))
-        {
-            arguments.Add("--thinking");
-            arguments.Add(selectedEffort);
-        }
-        // :101. No emptiness check here: init already normalized an empty id to null.
-        if (sessionID is { } resumeID)
-        {
-            arguments.Add("--session");
-            arguments.Add(resumeID);
-        }
+        var arguments = LiveArguments(WindowsPath(extensionURL), runtimeMode, model, effort, sessionID);
+        // PORT-ONLY: SK-11e / WU-10. The chat's locked generation; the model-list probe (PiCLI) never gets this.
+        if (SkillLaunch is { } skills) arguments = ProviderSkillArguments.Pi(arguments, skills);
 
         // :103-111. ED-128: environment dictionaries are case-insensitive.
-        var environment = new Dictionary<string, string>(configuration.Environment, StringComparer.OrdinalIgnoreCase);
+        var environment = new Dictionary<string, string>(ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch), StringComparer.OrdinalIgnoreCase); // PORT-ONLY: SK-11e (DL-6 PATH; identity without a launch)
         environment["DROPPY_CODE_PI_GATE"] = gateURL;
         environment["PI_SKIP_VERSION_CHECK"] = "1";
         if (SwiftTry.Optional(() => localApplicationData is { } bridgeAppData
@@ -488,8 +477,38 @@ public sealed class PiSession : ProviderSession
             turnError = message["errorMessage"]?.JSONValueString ?? "Pi reported an error.";
     }
 
+    /// <summary>The live session argument vector, :93-101 (moved out of Start unchanged so a test can pin it).</summary>
+    internal static List<string> LiveArguments(string extensionPath, RuntimeMode runtimeMode, string? model, string? effort, string? sessionID)
+    {
+        var arguments = new List<string> { "--mode", "rpc", "-e", extensionPath };
+        arguments.Add(runtimeMode is RuntimeMode.Auto or RuntimeMode.FullAccess ? "--approve" : "--no-approve");
+        // :95-97. The split is on the FIRST slash; a slashless id or the literal "default" adds neither flag.
+        if (model is { Length: > 0 } selectedModel && selectedModel != "default" && selectedModel.IndexOf('/', StringComparison.Ordinal) is var modelSlash && modelSlash >= 0)
+        {
+            arguments.Add("--provider");
+            arguments.Add(selectedModel[..modelSlash]);
+            arguments.Add("--model");
+            arguments.Add(selectedModel[(modelSlash + 1)..]);
+        }
+        // :98-100
+        if (effort is { Length: > 0 } selectedEffort && PiCLI.ThinkingLevels.Contains(selectedEffort))
+        {
+            arguments.Add("--thinking");
+            arguments.Add(selectedEffort);
+        }
+        // :101. No emptiness check here: init already normalized an empty id to null.
+        if (sessionID is { } resumeID)
+        {
+            arguments.Add("--session");
+            arguments.Add(resumeID);
+        }
+
+        return arguments;
+    }
+
     internal void HandleToolStart(JSONValue message) // :378-420
     {
+        Tap.ToolStarted(message); // PORT-ONLY: SK-11e / DL-12
         if (message["toolCallId"]?.JSONValueString is not { } id || message["toolName"]?.JSONValueString is not { } name) return;
         var args = message["args"] ?? message["input"] ?? new JSONValue.Null();
         toolNames[id] = name;
@@ -551,6 +570,7 @@ public sealed class PiSession : ProviderSession
 
     internal void HandleToolEnd(JSONValue message) // :422-437
     {
+        Tap.ToolEnded(message); // PORT-ONLY: SK-11e / DL-12
         if (message["toolCallId"]?.JSONValueString is not { } id) return;
         var result = message["result"] ?? new JSONValue.Null();
         var output = ToolText.Blocks(result["content"]); // :425. B3: the shared ToolText.Blocks (ProviderSession.cs),
@@ -717,6 +737,7 @@ public sealed class PiSession : ProviderSession
             new ApprovalRequest.Option("deny", "Decline", ApprovalRequest.Option.Role.Decline),
         ]), Detail: callDetail, ToolItemID: payload["toolCallId"]?.JSONValueString);
         pendingApprovals[id] = approval;
+        Tap.Held(payload); // PORT-ONLY: SK-11e / DL-12
         OnEvent?.Invoke(new ProviderEvent.Approval(approval)); // :590
     }
 
