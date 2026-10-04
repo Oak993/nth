@@ -1377,6 +1377,7 @@ public sealed class HydraMergeRow : Decorator
     private HydraMergeOutcome? outcome;
     private string? shownStage;
     private bool? wasMerging;
+    private bool built; // the row has been built once: a pill made after that joins a parent on screen
     // :935 private static let change = Animation.smooth(duration: 0.3)
     private static Animation Change => Animation.Smooth(duration: 0.3);
 
@@ -1411,6 +1412,7 @@ public sealed class HydraMergeRow : Decorator
             if (pill is { } old)
                 Transaction.WithAnimation(Animation.Spring(Chrome.GlideSpring), () => SwiftTransition.Remove(host, old));
             pill = null; track = null; slot = null; stageSlot = null; wasMerging = null;
+            built = true; // a row first built with nothing under way: the pill that comes later joins a parent on screen
             return;
         }
         if (wasMerging == true && !merging && next is not null && next.Title.Contains("Hydra merged", StringComparison.Ordinal))
@@ -1439,9 +1441,13 @@ public sealed class HydraMergeRow : Decorator
             row.Children.Add(track); row.Children.Add(slot);
             pill = TimelineRows.Pill(row);
             pill.Transition(SwiftTransition.SettleGlide);
-            SwiftTransition.Insert(host, host.Children.Count, pill);
+            // :937-952 SwiftUI runs a transition only for a view that joins a parent already on screen: a row that first appears with the merge under way, or with its outcome
+            // already there, has its pill in place (the settle glide's soft arrival now animates, UI-CHAT-052, so the first build must not play it).
+            if (built) SwiftTransition.Insert(host, host.Children.Count, pill);
+            else SwiftTransition.Place(host, host.Children.Count, pill);
         }
         else track!.Update(step, count, mode);
+        built = true;
         AutomationProperties.SetName(pill, next?.Title ?? "Merging the team's work: " + stage);
         AutomationProperties.SetAccessibilityView(pill, AccessibilityView.Control); // :1018 `.accessibilityElement(children: .contain)`: a named container of the tree, its track, title and Open still elements of their own (as ChromeSegmentedPicker)
         if (changed || outcomeChanged)
