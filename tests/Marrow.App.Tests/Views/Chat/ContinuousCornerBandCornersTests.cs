@@ -20,7 +20,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // elements is a plain Border WITH CONTENT, which ED-297 (9) left on the slack clip (Skia's coarse anti-aliasing of a non-convex path: 64 of 255 at the one-step steps card,
 // 700 x 45). The element's content is made transparent (Opacity 0, still mounted: the Border keeps its child) so only the fill and its corner are compared, with a
 // SwiftShapeBorder of the same size (which fills the path itself) as the reference, over each corner's whole run-in. The delegation card is the unsent one: the sent card's
-// DotFieldSweep is redrawn over the capture by the headless compositor (ED-NEW-rec-tlr (11): 60 of 255 along its bottom-left arc in headless, 0 in a real window).
+// DotFieldSweep is redrawn over the capture by the headless compositor (ED-314 (11): 60 of 255 along its bottom-left arc in headless, 0 in a real window).
 [Collection("Headless")]
 public sealed class ContinuousCornerBandCornersTests(HeadlessSession headless)
 {
