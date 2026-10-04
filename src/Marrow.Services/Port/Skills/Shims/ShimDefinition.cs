@@ -14,8 +14,18 @@ public sealed record ShimDefinition
     public bool LibreOffice { get; init; }
     public string? WorkDirectory { get; init; }
 
-    public static ShimDefinition Read(string path) => JsonSerializer.Deserialize(File.ReadAllText(path), ShimJsonContext.Default.ShimDefinition)
-        ?? throw new InvalidDataException(path);
+    // The source-generated reader builds a type with a required member through its member initializer and leaves every field the file does not
+    // mention (or names as null) null, bypassing the defaults above. A sidecar with only "Target" is valid (identity overrides), so they are restored here.
+    public static ShimDefinition Read(string path)
+    {
+        var read = JsonSerializer.Deserialize(File.ReadAllText(path), ShimJsonContext.Default.ShimDefinition) ?? throw new InvalidDataException(path);
+        return read with
+        {
+            Environment = read.Environment ?? new Dictionary<string, string>(StringComparer.Ordinal),
+            PrefixArguments = read.PrefixArguments ?? [],
+            PackagePaths = read.PackagePaths ?? [],
+        };
+    }
     public static void Write(string path, ShimDefinition definition) => File.WriteAllText(path,
         JsonSerializer.Serialize(definition, ShimJsonContext.Default.ShimDefinition));
 }
