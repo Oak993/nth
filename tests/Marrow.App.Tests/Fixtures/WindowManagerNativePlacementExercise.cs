@@ -149,8 +149,12 @@ internal static class WindowManagerNativePlacementExercise
                     // Once both HWNDs share a DPI, the unchanged Settings frame must fit rcWork.
                     // Cross-DPI arrival uses pre-call dimensions, so that transition is logged
                     // separately and is not silently reinterpreted using its post-call frame.
-                    if (beforeSettings.Dpi == after.Dpi && monitor.Work.Width >= after.Frame.Width && monitor.Work.Height >= after.Frame.Height)
-                        Assert.True(monitor.Work.Contains(after.Frame), "Settings frame overlaps the native reserved working area.");
+                    // The frame AppKit keeps inside the visible frame is the visible window: the HWND's invisible strip on its
+                    // left, right and bottom (WindowInvisibleBorder) may lie outside the working area.
+                    var strip = (after.Frame.Width - after.Client.Width) / 2;
+                    var visibleFrame = new NativePlacementRect(after.Frame.Left + strip, after.Frame.Top, after.Frame.Right - strip, after.Frame.Bottom - strip);
+                    if (beforeSettings.Dpi == after.Dpi && monitor.Work.Width >= visibleFrame.Width && monitor.Work.Height >= visibleFrame.Height)
+                        Assert.True(monitor.Work.Contains(visibleFrame), "Settings frame overlaps the native reserved working area.");
                 }
             }
             AssertTopologyStillMatches(session, topology, run, results.Count);

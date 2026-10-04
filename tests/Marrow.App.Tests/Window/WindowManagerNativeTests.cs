@@ -24,7 +24,7 @@ namespace Marrow.App.Tests.Window.Native;
 // STOP FACTORY-STRETCH: WindowManager.MakeWindow has no ResizeStretch.Attach/Apply binding;
 // real caption/resize-hook messages here do not verify the separate ED-101 composition remedy.
 [Collection("WindowManagerNative")]
-public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
+public sealed partial class WindowManagerNativeTests(WindowManagerNativeSession native)
 {
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")]

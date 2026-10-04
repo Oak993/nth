@@ -1,6 +1,7 @@
 // Controlled-platform integration tests, not physical-monitor proof.
 using Avalonia;
 using Avalonia.Platform;
+using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Xunit;
 
@@ -263,6 +264,58 @@ public sealed class WindowManagerSettingsScreenTests(HeadlessSession headless) :
             Assert.Same(settings, Settings(manager));
             Assert.True(screens.Impl.WindowLookups > before);
             Assert.Equal(new PixelPoint(-2030, -1160), settings.Position);
+        }, realSettings: false);
+    }
+
+    // ENGINEERING DECISION (ED-NEW-windowmanager, WindowInvisibleBorder): the frame AppKit centres and clamps is the visible
+    // window, and an HWND of the factory's chrome keeps an invisible strip (8 px at 100 %) on its left, right and bottom. The
+    // strip is stood in for here (a headless window has no HWND); the real HWND is WindowManagerNativeTests.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-SETTINGS-002 and PR-WIN-011: the arithmetic with a strip; the HWND itself is native
+    public void The_invisible_strip_of_an_HWND_stays_outside_the_frame_that_is_centred_over_the_main_window()
+    {
+        WithManager((_, manager) =>
+        {
+            manager.ShowMain(); manager.ShowSettings();
+            var main = MainOf(manager); var settings = Settings(manager);
+            settings.Hide();
+            using var strip = WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(8 * scale));
+            using var parentPlatform = new SettingsWindowPlatformScope(main);
+            parentPlatform.SetOuterFrame(new Avalonia.Size(main.ClientSize.Width + 16, main.ClientSize.Height + 8)); // the same strip
+            var primary = SettingsScreenScope.Monitor(new PixelRect(0, 0, 3000, 2000), new PixelRect(0, 0, 3000, 1960), primary: true);
+            using var screens = new SettingsScreenScope(main, [primary], primary);
+            main.Position = new PixelPoint(100, 80);
+
+            manager.ShowSettings();
+
+            // The visible windows are centred on one another: main's visible frame is 1320 x 860 at (108, 80), Settings' is
+            // 780 x 580, so its visible left is 108 + 660 - 390 = 378 and its top 80 + 430 - 290 = 220; its HWND starts
+            // 8 px left of its visible window (370) and at the same top. Without the strip the origin would be (378, 224).
+            Assert.Equal(new PixelPoint(370, 220), settings.Position);
+        }, realSettings: false);
+    }
+
+    [Theory]
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-SETTINGS-002 and PR-WIN-011 (the clamp, WindowManager.swift:50-52); the HWND itself is native
+    [InlineData(-600, 0, -8, 136)] // clamped at the left: the VISIBLE window touches the working area (HWND 8 px outside it)
+    [InlineData(1700, 950, 1132, 460)] // clamped at the right and the bottom: the visible window ends at 1920 and 1040
+    public void The_clamp_keeps_the_visible_window_in_the_working_area_and_lets_the_invisible_strip_outside(int mainX, int mainY, int x, int y)
+    {
+        WithManager((_, manager) =>
+        {
+            manager.ShowMain(); manager.ShowSettings();
+            var main = MainOf(manager); var settings = Settings(manager);
+            settings.Hide();
+            using var strip = WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(8 * scale));
+            var primary = SettingsScreenScope.Monitor(new PixelRect(0, 0, 1920, 1080), new PixelRect(0, 0, 1920, 1040), primary: true);
+            using var screens = new SettingsScreenScope(main, [primary], primary);
+            main.Position = new PixelPoint(mainX, mainY);
+
+            manager.ShowSettings();
+
+            Assert.Equal(new PixelPoint(x, y), settings.Position);
+            // visible left >= 0 and visible right <= 1920, as AppKit's clamp of the frame (:51)
+            Assert.True(settings.Position.X + 8 >= 0 && settings.Position.X + 8 + 780 <= 1920);
         }, realSettings: false);
     }
 }

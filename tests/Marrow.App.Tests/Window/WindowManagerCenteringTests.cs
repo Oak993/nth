@@ -62,6 +62,19 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
         Assert.Equal(0, screens.OwnerReads);
     });
 
+    // ENGINEERING DECISION (ED-NEW-windowmanager, WindowInvisibleBorder): the frame ED-225 centres is the visible window; an
+    // HWND of the factory's chrome keeps an invisible 8 px strip on its left, right and bottom and none above, so the HWND is
+    // placed 8 px left of the centred visible window and at its top. Stood in for here; the real HWND is the native test.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-WIN-006 and UI-LAUNCH-001: arithmetic with the strip; the HWND is native
+    public void The_visible_main_window_is_centred_and_its_invisible_strip_lies_outside_it() => WithManager((manager, harness, screens, cursor) =>
+    {
+        using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(8 * scale));
+        manager.ShowMain();
+        // Work area (-1600,-1200,1600,1160), visible frame 1320x860: free 280x300, offsets 140x100: visible left -1460.
+        Assert.Equal(new PixelPoint(-1468, -1100), manager.MainWindow!.Position);
+    });
+
     [Fact]
     [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-006, ED-225
     public void A_saved_main_frame_bypasses_screen_centering_and_is_restored_without_clamping() => WithManager((manager, harness, screens, cursor) =>
