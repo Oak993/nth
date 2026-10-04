@@ -15,8 +15,10 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Trait("Req", "PR-WIN-011")]
     public void Cached_show_centers_before_the_platform_show_request()
     {
-        // STOP DISPLAY-PASS: Move-before-Show does not prove Swift setFrame(display:false)
-        // suppresses an immediate native display pass; do not infer first-paint policy from order.
+        // RESOLVED DISPLAY-PASS (ED-NEW-windowmanager): AppKit's setFrame(display: false) has no Windows analogue, so that clause is
+        // recorded NOT_APPLICABLE; the observable part, that the origin is set before the window is shown (:36 before :37), is
+        // what this test asserts (the Rise open shows the window cloaked at its final position, so no frame is ever displayed at an
+        // old one).
         // WindowManager.swift:36 precedes :37. B14 cannot hide behind a correct final Position.
         WithManager((_, manager) =>
         {
