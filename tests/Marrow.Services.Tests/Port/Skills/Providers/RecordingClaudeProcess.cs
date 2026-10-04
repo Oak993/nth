@@ -24,11 +24,12 @@ internal sealed class RecordingClaudeProcess : IClaudeProcess
     {
         Sent.Add(message.Data().Concat(new byte[] { 10 }).ToArray());
         if (message["request"]?["subtype"]?.JSONValueString != "initialize") return;
-        output.Yield(JSONValue.FromDictionaryLiteral(("type", "control_response"),
-            ("response", JSONValue.FromDictionaryLiteral(("request_id", message["request_id"]!),
-                ("response", JSONValue.FromDictionaryLiteral(("commands", JSONValue.FromArrayLiteral(
-                    JSONValue.FromDictionaryLiteral(("name", "pdf"), ("description", "User pdf")),
-                    JSONValue.FromDictionaryLiteral(("name", "marrow:pdf"), ("description", "Fixture pdf"))))))))));
+        var commands = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("name", "pdf"), ("description", "User pdf")),
+            JSONValue.FromDictionaryLiteral(("name", "marrow:pdf"), ("description", "Fixture pdf")));
+        var response = JSONValue.FromDictionaryLiteral(("request_id", message["request_id"]!),
+            ("response", JSONValue.FromDictionaryLiteral(("commands", commands))));
+        output.Yield(JSONValue.FromDictionaryLiteral(("type", "control_response"), ("response", response)));
     }
     public void Terminate() { IsRunning = false; output.Finish(); }
 }

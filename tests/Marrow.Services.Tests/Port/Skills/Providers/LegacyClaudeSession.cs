@@ -13,7 +13,7 @@ namespace Marrow.Services.Tests.Port.Skills.Providers;
 using Marrow.Services.Providers;
 using Marrow.Services.Port.Skills.Providers;
 
-// Source: DroppyCode/Services/Providers/LegacyClaudeSession.swift (B3 52bc7926), :1-829.
+// Source: DroppyCode/Services/Providers/ClaudeSession.swift (B3 52bc7926), :1-829.
 //
 // B3 (1.7.0) delta from B2 (R3-48, LegacyClaudeSession #1 folded with R3-13 #3; PR-PROVCLI-442 new): pendingControl
 // (:37) becomes a PendingReplies<JSONValue>, so Control (:301-309) registers through it instead of a bare
