@@ -948,9 +948,9 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
 //   TimelineRowsFinHeadRowsTests.A_finished_head_pill_that_joins_arrives_... samples the arrival against smooth(0.32). CD proves the pill joins in order
 //   under .smooth(duration: 0.3); its leaving half is in FHR; the capsule corner is ContinuousCornerReproofTests.The_finished_head_pills_are_continuous_...
 //
-// BLOCKED: UI-CHAT-039 and UI-GIT-047: Button(...).controlSize(.small) on the glass buttons (:2796) has no metric in the source or in
-//   any frame; GlassCommand(small: true) draws the regular capsule (STOP #5). CD proves Return activates Revert (Rule); everything
-//   else of both records is proven (FR, CD). UNRESOLVED: the small glass button's height, padding and type size.
+// UI-CHAT-039 and UI-GIT-047: PROVEN 2026-10-04 (unit rec-tlr). Button(...).controlSize(.small) on the glass buttons (:2796) has the metric ED-280 (2) measured in the reference
+//   video (the small accent glass capsule: 20 pt, an 11 pt white label, 10.5 pt either side) and ED-257 (3) gives `.glassProminent`; GlassCommand(small: true) draws it
+//   (STOP #5, resolved), and FR reads it off the mounted buttons. CD proves Return activates Revert (Rule).
 //
 // Notes. The UI-HYDRAMERGE-005 record's exact_text lists
 //   titles that AppModel+HydraMerge writes (:290, :330, :905); the row shows whatever first line the note has, which FMO holds.

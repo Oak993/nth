@@ -173,8 +173,15 @@ public static class TimelineRows
     // :2298-2306, :2789-2793. Same glass button recipe as RequestCards / FollowUpEditor (OD-0005).
     internal static Button GlassCommand(string title, Action action, bool prominent, bool small = false)
     {
-        // STOP #5: only .controlSize(.small) (:2796) is unwritten; deferred by ED-180 (the glass material is built after the app runs).
-        // No source size or approved small-size adapter is present in the shared button foundation.
+        if (small)
+        {
+            // :2796 `.controlSize(.small)` on Cancel (.glass) and Revert (.glassProminent): inside the popover's tint (Popovers.swift:8-12, presentedChrome) both are the small accent
+            // glass capsule ED-280 (2) measured in the reference video (20 pt high, an 11 pt white label, 10.5 pt either side), and ED-257 (3) draws `.glassProminent` with the
+            // same capsule, always filled. ENGINEERING DECISION (ED-NEW-rec-tlr): the window's measurement is carried into the popover, which has the same accent tint.
+            var smallButton = PlainControls.Button(new TextBlock { Text = title }, action);
+            SwiftGlass.StyleAccentGlassButton(smallButton, small: true);
+            return smallButton;
+        }
         var label = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center };
         SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(label);
         var frame = new Border { Child = label, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0),
