@@ -2334,6 +2334,11 @@ internal sealed class ProjectPairMenuItems : Decorator
                 }
                 : new TextBlock { Text = title }, // :1254 Text(title)
         };
+        // The system menu this reaches (NativeContextMenus) draws text, separators and check marks, not a Label's image, so the
+        // checkmark of the swapped label is also the row's check mark (ENGINEERING DECISION, leftovers pass 2026-10-04): one row
+        // is the current choice, as a radio row. Without it the current choice showed no mark at all on Windows.
+        menuItem.ToggleType = MenuItemToggleType.Radio;
+        menuItem.IsChecked = isSelected;
         menuItem.Click += (_, _) => action();
         return menuItem;
     }

@@ -1332,4 +1332,39 @@ public sealed partial class SidebarViewTests
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
+
+    // ======== The pair submenu as the Windows menu shows it (UI-SIDEBAR-015, -016) ========
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-016")] // SidebarView.swift:1250-1266 `Label(_, systemImage: "checkmark")` for the current choice, plain `Text(title)` for every other item
+    [Trait("Req", "UI-SIDEBAR-015")] // SidebarView.swift:1149-1161: a divider, then the submenu "Start new chats on" (a Label with its symbol), only with pairs
+    // The context menu is the system menu here (NativeContextMenus): it is built from the MenuItem rows, and a Win32 menu
+    // draws text, separators, submenus and check marks, not a Label's image. So the current choice is the row carrying the
+    // check mark (ENGINEERING DECISION: the glyph of the label swap is, in a Win32 menu, its check mark), and every other row is
+    // plain text; the divider, the submenu and its rows reach the system menu as the source orders them. Opening the
+    // native submenu is the system's own and is NATIVE-ONLY.
+    public void The_pair_submenu_reaches_the_system_menu_with_its_divider_and_a_check_mark_on_the_current_choice_only() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        var review = new HydraPair(ProviderKind.Claude) with { Name = "Review pair" };
+        var build = new HydraPair(ProviderKind.Claude) with { Name = "Build pair" };
+        Control row = null!;
+        harness.Main.OnMain(() => { row = ShownProjectRow(model, project, 0); model.Settings.AddHydraPair(review); model.Settings.AddHydraPair(build); });
+        harness.Main.OnMain(() => model.SetHydraPair(build.Id, project.Id));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var entries = NativeContextMenus.Entries(ContextMenuOf(row).Items);
+            Assert.True(entries[^2].IsSeparator); // :1155
+            var submenu = entries[^1];
+            Assert.Equal("Start new chats on", submenu.Title); // :1159
+            Assert.Equal(["The chat's last pair", "", "Review pair", "Build pair"], submenu.Children.Select(c => c.Title));
+            Assert.True(submenu.Children[1].IsSeparator);
+            Assert.Equal([false, false, false, true], submenu.Children.Select(c => c.IsChecked)); // only the chosen pair
+            WindowOf(row).Close();
+        });
+    });
 }
