@@ -89,7 +89,7 @@ public sealed class ACPSession : ProviderSession
             ? new ValueList<string>(Marrow.Services.Port.Skills.Providers.ProviderSkillArguments.Grok(LaunchArguments, launch))
             : LaunchArguments;
 
-    private ValueMap<string, string> EffectiveEnvironment =>
+    internal ValueMap<string, string> EffectiveEnvironment =>
         configuration.Provider == ProviderKind.Grok
             ? Marrow.Services.Port.Skills.Providers.ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch)
             : configuration.Environment;

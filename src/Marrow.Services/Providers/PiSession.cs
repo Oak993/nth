@@ -125,7 +125,7 @@ public sealed class PiSession : ProviderSession
         // :93-94
         var arguments = LiveArguments(WindowsPath(extensionURL), runtimeMode, model, effort, sessionID);
         // PORT-ONLY: SK-11e / WU-10. The chat's locked generation; the model-list probe (PiCLI) never gets this.
-        if (SkillLaunch is { } skills) arguments = ProviderSkillArguments.Pi(arguments, skills);
+        arguments = WithSkills(arguments);
 
         // :103-111. ED-128: environment dictionaries are case-insensitive.
         var environment = new Dictionary<string, string>(ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch), StringComparer.OrdinalIgnoreCase); // PORT-ONLY: SK-11e (DL-6 PATH; identity without a launch)
@@ -476,6 +476,9 @@ public sealed class PiSession : ProviderSession
         if (message["stopReason"]?.JSONValueString == "error") // :373-374
             turnError = message["errorMessage"]?.JSONValueString ?? "Pi reported an error.";
     }
+
+    /// <summary>The live argv with the bundle appended when a launch is set; the same list otherwise.</summary>
+    internal List<string> WithSkills(List<string> arguments) => SkillLaunch is { } skills ? ProviderSkillArguments.Pi(arguments, skills) : arguments;
 
     /// <summary>The live session argument vector, :93-101 (moved out of Start unchanged so a test can pin it).</summary>
     internal static List<string> LiveArguments(string extensionPath, RuntimeMode runtimeMode, string? model, string? effort, string? sessionID)
