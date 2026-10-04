@@ -6616,7 +6616,8 @@
         "decision": "ED-299 (ChromeCard eager fallback, src/Marrow.UI/Chrome/Chrome.cs:1827-1833)",
         "upstream": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:40 ChromeCard(lazy: true) -> DroppyCode/UI/Chrome/Chrome.swift:1015-1016 LazyVStack(alignment: .leading, spacing: 0) { content }",
         "port": "An eager StackPanel with spacing 0: the same layout and the same fill-not-clip card; only when the rows are built differs (all at once)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-008",

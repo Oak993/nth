@@ -1782,7 +1782,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same origin arithmetic in the placer.",
       "verification_method": "capture comparison of a short panel in a top and a bottom corner",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

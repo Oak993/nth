@@ -6422,7 +6422,8 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:323-341",
         "DroppyCode/App/Views/Settings/SettingsView.swift:784-795 - .onChange(of: apiKey): only an edit counts; after Task.sleep(for: .milliseconds(600)) it calls model.providers.refresh(provider) and loadCatalog(provider, force: true)"
       ],
-      "notes": "The symbol is arrow.clockwise. The two help strings differ only by the checking case; the ellipsis is U+2026, not three full stops. The button appears in the toolbar only while the Providers page is showing. It is the only full re-check; an API-key edit's own delayed check of that provider is separate (PR records of SettingsView.swift:784-795)."
+      "notes": "The symbol is arrow.clockwise. The two help strings differ only by the checking case; the ellipsis is U+2026, not three full stops. The button appears in the toolbar only while the Providers page is showing. It is the only full re-check; an API-key edit's own delayed check of that provider is separate (PR records of SettingsView.swift:784-795).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-003",

@@ -990,7 +990,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Icons follow OD-0010: SF Symbols map to Lucide through the published symbol-by-symbol table, one for one.",
       "verification_method": "capture comparison of the command list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1099,7 +1099,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings including U+00B7.",
       "verification_method": "capture comparison of both lists",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2072,7 +2072,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Animate height and opacity together with a top-aligned clip.",
       "verification_method": "capture comparison mid-collapse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2113,7 +2113,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order, spacing and the compact omission.",
       "verification_method": "capture comparison of the chat composer and a head panel's composer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

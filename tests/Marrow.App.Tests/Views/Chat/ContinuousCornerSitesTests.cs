@@ -51,6 +51,8 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
     private static readonly (string File, string Radius, int Count, string Kind)[] Sites =
     [
         ("Marrow.App/Port/ChatDialogControls.cs", "6", 1, Fit),
+        ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.BarHeight / 2", 2, Capsule), // GR-2 (ED-306): the progress bar's track and fill, 4 pt bars with r = h / 2
+        ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
         ("Marrow.App/Port/LookCard.cs", "10", 1, Circular),
         ("Marrow.App/Port/LookCard.cs", "12", 1, Circular),
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),

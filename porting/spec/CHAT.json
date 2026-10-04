@@ -447,7 +447,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Define the eight once and derive every badge, pill, notice, todo row, merge pill and head pill from them (port_impacts.md 144). Keep the same number at all seven 96-point side insets (TimelineRows.swift:164, :326, :417, :589, :1017, :2369; ChatBadge.swift:77) and at the 820-point column sites, which live outside this file (ThreadTimeline.swift:64, :66, :416; SubagentPanel.swift:115; ComposerView.swift:52), rather than inlining new values.",
       "verification_method": "capture comparison plus a static check that no row hard-codes these numbers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1600,7 +1600,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Chrome.accent resolves to the theme's accent or the system control accent for System, Light and Dark (chrome-design-tokens section 6.1). Primary is the label colour, which is appearance-dependent.",
       "verification_method": "capture comparison in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1715,7 +1715,7 @@
       "cancellation": "not cancellable",
       "windows_path": "peel must be the exact inverse of the composer's outgoing-text builder; port it character for character, including the slash-command lift and the single-blank-line consumption. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over peel with round-trip fixtures, plus capture comparison of the chips",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1768,7 +1768,7 @@
       "cancellation": "The editor closes when the row disappears; the edit itself survives on the runtime.",
       "windows_path": "Hold the edit on the per-thread runtime. Scrolling the row out of a virtualized list, or leaving and re-entering the thread, must leave the editor open exactly where it was.",
       "verification_method": "interaction test: open the editor, scroll it away, scroll back, assert it is still open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1819,7 +1819,7 @@
       "cancellation": "Dismissing the dialog does nothing.",
       "windows_path": "Reproduce all three strings verbatim, including the question mark and the final full stop, and keep the destructive marking on the second button only.",
       "verification_method": "interaction test plus capture comparison of the dialog",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1955,7 +1955,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The hover binding must not capture the row, so a hover responder never keeps a scrolled-away message alive. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2049,7 +2049,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The indent for narration is exactly iconWidth + iconSpacing = 24 points, derived from the metrics. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2091,7 +2091,7 @@
       "cancellation": "not cancellable",
       "windows_path": "SF Symbols do not exist on Windows; substitute equivalent vector glyphs one for one and keep the mapping table, so a kind always draws the same mark everywhere.",
       "verification_method": "capture comparison across all eight kinds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2183,7 +2183,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two distinct affordances; do not unify them. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2226,7 +2226,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Lowercase exit; no parentheses, no code word.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2439,7 +2439,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings including the leading and. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison at 12, 13 and 20 files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2489,7 +2489,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Accepted and dismissed deliberately share the title Plan and differ only in the caption.",
       "verification_method": "capture comparison across the four states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2512,7 +2512,7 @@
       "cancellation": "Closing the popover without choosing leaves the plan proposed.",
       "windows_path": "Keep the greyed-not-gone rule and the exact button labels. The glass and glass-prominent button styles are a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001).",
       "verification_method": "interaction test with a running turn, plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2605,7 +2605,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the formatter's output exactly from the swift-foundation 6.2 Duration.UnitsFormatStyle fixtures of ED-197 (O-65), including the rounding to whole seconds; do not substitute a hand-written template. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over the formatter against the ED-197 fixtures (0, 45, 60, 64, 90, 3599, 3600 and 3725 seconds, half seconds and a negative interval), the reference video's durations, plus a render of the three phrasings in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3306,7 +3306,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The popover sets its own markdown point size (12) and callout text style rather than inheriting the timeline's; there is no separate chat zoom to reset.",
       "verification_method": "capture comparison of a long report against the 460 by 460 bounds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3328,7 +3328,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The apostrophe in <name>'s brief is U+0027 as written in the source, not a typographic apostrophe. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison in both states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3351,7 +3351,7 @@
       "cancellation": "Paused by the global scroll-activity flag.",
       "windows_path": "The band must live in a layer the size of the text and be masked to the text there; masking the band alone would cut the text to the band's own width.",
       "verification_method": "capture comparison of sampled frames plus a check that the timer pauses during scrolling",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3376,7 +3376,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The streaming reader is a single linear pass that reads partial blocks on purpose; every flush is cached so a finished block is the same card on every evaluation (TimelineRows.swift:771-782, a 200-entry recent cache). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test streaming a fixture block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3423,7 +3423,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement as one interpolated drawing over three scalars, not three separate animations; the source records that separate animations fell out of step.",
       "verification_method": "capture comparison of sampled frames during a multi-dot jump",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3470,7 +3470,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The generic-title set is exactly subagent, agent, task and the empty string, compared lowercased.",
       "verification_method": "capture comparison across running, sent and failed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3496,7 +3496,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A row that did not send a head mounts no popover, no state and no anchor at all (TimelineRows.swift:1858-1872). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test on a running head",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3613,7 +3613,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two gradient fills and nothing else; the earlier implementation was liquid glass under a gradient mask, which cost a backdrop sample and an offscreen mask pass on every scrolled frame of every chat. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "capture comparison at travel 0, 20 and 44 in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3661,7 +3661,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows needs the same discipline wherever a context menu or popover outlives its owner; a strong capture here leaks a whole conversation's text.",
       "verification_method": "unit: open a menu on a row, scroll it away, assert the entry is released",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4647,7 +4647,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:58-63"
       ],
       "notes": "The excerpt is the quote's first non-empty line, whitespace-collapsed, cut at 72 characters with a trailing ellipsis. Accessibility label is Quote: followed by the excerpt.",
-      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineRows.swift:100 `.font(.system(size: 10, weight: .semibold))` -> B2 :100 `.font(.system(.footnote, weight: .semibold))`; B1 :103 `.font(.system(size: 11))` -> B2 :103 `.font(.system(.subheadline))`. Line numbers are unchanged."
+      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineRows.swift:100 `.font(.system(size: 10, weight: .semibold))` -> B2 :100 `.font(.system(.footnote, weight: .semibold))`; B1 :103 `.font(.system(size: 11))` -> B2 :103 `.font(.system(.subheadline))`. Line numbers are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-009",
@@ -4694,7 +4695,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:130-161",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:179-183"
       ],
-      "notes": "Tooltip is exactly Edit message. Showing the control must never move the message text."
+      "notes": "Tooltip is exactly Edit message. Showing the control must never move the message text.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-011",
@@ -4945,7 +4947,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1406-1410"
       ],
-      "notes": "Symbol arrow.turn.down.left, startsGroup true. The confirmation is Added, not Copied. The runtime is captured weakly."
+      "notes": "Symbol arrow.turn.down.left, startsGroup true. The confirmation is Added, not Copied. The runtime is captured weakly.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-022",
@@ -4992,7 +4995,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1522-1544"
       ],
       "notes": "Only the two latest steps are shown until this is tapped, in both the expanded work group and the running turn's card.",
-      "b2_change": "Fonts dropped zoom; B1 TimelineRows.swift:1543, :1546 `.foregroundStyle(.secondary)` -> B2 :1534, :1537 `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :1531-1553 to B2 :1522-1544."
+      "b2_change": "Fonts dropped zoom; B1 TimelineRows.swift:1543, :1546 `.foregroundStyle(.secondary)` -> B2 :1534, :1537 `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :1531-1553 to B2 :1522-1544.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-024",
@@ -6180,7 +6184,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1106-1182"
       ],
-      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0017 (which closes OD-0013): every resizable top-level window uses stretch (ED-101); the remaining one-frame DWM lag and the one-frame scaled frames during a live resize are a named deviation. OD-0044: the caption buttons are app-drawn Windows buttons (minimise, maximise or restore, close) at the window's top right. ED-063: the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its caption controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu."
+      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0017 (which closes OD-0013): every resizable top-level window uses stretch (ED-101); the remaining one-frame DWM lag and the one-frame scaled frames during a live resize are a named deviation. OD-0044: the caption buttons are app-drawn Windows buttons (minimise, maximise or restore, close) at the window's top right. ED-063: the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its caption controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-074",

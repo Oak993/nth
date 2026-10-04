@@ -6498,7 +6498,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The attribution to Droppy must be kept: the port's own licence terms require the Droppy Code credit and the getdroppy.app link to remain in About. By owner ruling OD-0012 F3 the Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\", the attribution Droppy's licence asks for. By OD-0012 H the Terminal credit row names the terminal the Windows build actually ships. That terminal is Marrow's own, built on the Windows ConPTY API, which is not shipped third-party code, so by ED-272 the row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link and no third-party licence: the same words as the licence line settled under OD-0072. If a third-party terminal component ever ships, its credit and link are added then.",
       "verification_method": "interaction test comparing every string and destination",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7239,7 +7239,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Settings uses the convenience SidebarRow initializer, so isEmphasized is false and accessoryWidth is 0 for every row; the update dot is an overlay on the icon badge, not a row accessory.",
-      "b2_change": "Ten rows: Appearance is third (DroppyCode/App/Views/Settings/SettingsView.swift:4-15, :21-30 at 1fbf81e6). SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: ...)` (DroppyCode/UI/Chrome/Chrome.swift:717)."
+      "b2_change": "Ten rows: Appearance is third (DroppyCode/App/Views/Settings/SettingsView.swift:4-15, :21-30 at 1fbf81e6). SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: ...)` (DroppyCode/UI/Chrome/Chrome.swift:717).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-005",
@@ -7490,7 +7491,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:49, :53 chatBaseSize - .title2 17, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Symbols \"folder\" and \"arrow.triangle.branch\". The whole picker sets .fixedSize() and a no-window-drag background, so dragging on a tile does not move the window.",
-      "b2_change": "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:88 and :79 at 1fbf81e6: `.system(.title2, weight: .medium)` and `.system(.subheadline)` (17pt and 11pt at the default text size). Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef)."
+      "b2_change": "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:88 and :79 at 1fbf81e6: `.system(.title2, weight: .medium)` and `.system(.subheadline)` (17pt and 11pt at the default text size). Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-015",
@@ -7510,7 +7512,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:344-348"
       ],
-      "notes": "Symbols \"rectangle.fill\" for Card and \"minus\" for Line. The option order is (true, \"Card\") then (false, \"Line\")."
+      "notes": "Symbols \"rectangle.fill\" for Card and \"minus\" for Line. The option order is (true, \"Card\") then (false, \"Line\").",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-016",
@@ -7561,7 +7564,8 @@
         "decision": "OD-0088; ED-250",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:424-426 ChromeRow(title: \"Theme\", detail: settings.theme.detail) { ThemePickerButton(selection: $settings.theme) } on the Appearance page; ThemePickerButton :1157-1209",
         "port": "The Appearance page shows OD-0088's Look card, whose Theme segmented control (System | Light | Dark | the named theme or \"More themes\", opening the full theme menu) replaces this capsule (ED-250). ThemePickerButton is built and tested to the Swift but mounted on no screen."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-018",
@@ -9006,7 +9010,8 @@
         "decision": "OD-0008 B15; OD-0012 H; OD-0072; ED-272",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:955 CreditLink(title: \"SwiftTerm\", url: URL(string: \"https://github.com/migueldeicaza/SwiftTerm\")!) in the \"Terminal\" row",
         "port": "Only the two links of the components the port credits exist. The Terminal row carries no link (ED-272: the terminal is Marrow's own, built on Windows ConPTY, a Windows API and not shipped third-party code), so the Swift's :955 CreditLink \"SwiftTerm\" has no counterpart."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-073",
