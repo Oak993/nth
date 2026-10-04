@@ -34,7 +34,6 @@
   -->
   <PropertyGroup>
     <LegalRoot>$(MSBuildThisFileDirectory)../../</LegalRoot>
-    <ShippedNotices>$(IntermediateOutputPath)legal/THIRD_PARTY_NOTICES.md</ShippedNotices>
   </PropertyGroup>
 
   <ItemGroup>
@@ -67,9 +66,13 @@
   </UsingTask>
 
   <Target Name="JoinThirdPartyNotices" BeforeTargets="AssignTargetPaths">
-    <JoinNoticeFiles Upstream="$(LegalRoot)legal/THIRD_PARTY_NOTICES.upstream.md" Additions="$(LegalRoot)THIRD_PARTY_NOTICES.md" Output="$(MSBuildProjectDirectory)/$(ShippedNotices)" />
+    <!-- Set here, not at the top: IntermediateOutputPath is empty while the project body is evaluated, which wrote the joined file into src/Marrow.App/legal/. -->
+    <PropertyGroup>
+      <ShippedNotices>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)legal/THIRD_PARTY_NOTICES.md', '$(MSBuildProjectDirectory)'))</ShippedNotices>
+    </PropertyGroup>
+    <JoinNoticeFiles Upstream="$(LegalRoot)legal/THIRD_PARTY_NOTICES.upstream.md" Additions="$(LegalRoot)THIRD_PARTY_NOTICES.md" Output="$(ShippedNotices)" />
     <ItemGroup>
-      <Content Include="$(MSBuildProjectDirectory)/$(ShippedNotices)" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+      <Content Include="$(ShippedNotices)" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
 

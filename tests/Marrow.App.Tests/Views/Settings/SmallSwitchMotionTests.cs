@@ -13,7 +13,7 @@ namespace Marrow.App.Tests.Views.Settings;
 // UI-SETTINGS-012, SettingsView.swift:296-305 (the system switch, controlSize .small, accent tint). Its look and motion are the Mac's, measured in
 // the reference runtime (ED-NEW-settingsview; E:\Droppy\work\reference-video, CATALOGUE settings.switch-toggle, 1 px = 1 pt): the on switch is a
 // 44 x 20 accent track holding a white 26 x 16 knob 2 in from every edge (S 178.0); the off track is the label colour at 0.10 (S 42.5); a press
-// widens the knob to 30 (25 to 29-30 in 80-100 ms); the commit slides the knob its 14 points in about 0.21 s, ease-out (fractions 0.13 at 22 ms,
+// widens the knob to 30 and 2 taller about its own centre, into a lens 0.48 white over the accent (25 to 29-30 in 80-100 ms; frames/w-1-settings-tour-24.0/win row y 346); the commit slides the knob its 14 points in about 0.21 s, ease-out (fractions 0.13 at 22 ms,
 // 0.38 at 54, 0.62 at 94, 0.83 at 144, 0.98 at 197, 1 at 210), while the track crossfades over 0.25 s.
 [Collection("Headless")]
 public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsFinishFixture(headless)
@@ -70,7 +70,7 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-012: the pressed look; the commit on release inside and no commit on release outside are proven in SettingsViewFinishGeneralTests and PR-SETTINGS-026's test
-    public void A_press_widens_the_knob_to_30_on_the_side_it_leaves_and_commits_only_on_release()
+    public void A_press_widens_the_knob_to_30_by_18_about_its_centre_and_commits_only_on_release()
     {
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
         {
@@ -79,15 +79,15 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
             w.MouseMove(at); Drain(w); w.MouseDown(at, MouseButton.Left); Drain(w);
             Assert.False(s.ShowReasoning); // the value commits on release, not on the press
             Tick(h, 45); Assert.InRange(toggle.KnobNow().Width, 26.5, 29.5); Assert.Equal(26 + 4 * SmallSwitch.Press.Progress(0.045), toggle.KnobNow().Width, 6);
-            Tick(h, 60); Assert.Equal(30, toggle.KnobNow().Width, 6); Assert.Equal(2, toggle.KnobNow().X, 6); // off: the left edge holds, the knob grows to the right (80-100 ms)
+            Tick(h, 60); Assert.Equal(30, toggle.KnobNow().Width, 6); Assert.Equal(18, toggle.KnobNow().Height, 6); Assert.Equal(15, toggle.KnobNow().X + toggle.KnobNow().Width / 2, 6); // the centre stays (the reference's 740.5 held 740.5-741.0), the knob grows both ways (80-100 ms)
             Assert.False(s.ShowReasoning);
-            // The pressed knob is the glass lens: translucent white (alpha 0x30) in a lighter rim, where at rest it is opaque white.
-            Assert.InRange(KnobAlpha(toggle), 60, 80); // 0x30 of white over the off track's 0x1A: 0.188 + 0.102 x 0.812 = 0.27 of 255 = 69
+            // The pressed knob is the glass lens: white at 0x7A (0.48, the reference's centre pixel over the accent) in a lighter rim, where at rest it is opaque white.
+            Assert.InRange(KnobAlpha(toggle), 130, 141); // 0x7A of white over the off track's 0x1A: 0.478 + 0.102 x 0.522 = 0.53 of 255 = 135
             w.MouseUp(at, MouseButton.Left); Drain(w); Assert.True(s.ShowReasoning);
             Tick(h, 400); Assert.Equal(new Rect(16, 2, 26, 16), toggle.KnobNow()); Assert.Equal(255, KnobAlpha(toggle)); // released: opaque white again
 
-            // On: a press holds the right edge and grows to the left.
-            w.MouseDown(at, MouseButton.Left); Drain(w); Tick(h, 100); var pressed = toggle.KnobNow(); Assert.Equal(30, pressed.Width, 6); Assert.Equal(42, pressed.Right, 6);
+            // On: a press grows about the centre too (29 at rest).
+            w.MouseDown(at, MouseButton.Left); Drain(w); Tick(h, 100); var pressed = toggle.KnobNow(); Assert.Equal(30, pressed.Width, 6); Assert.Equal(29, pressed.X + pressed.Width / 2, 6);
             w.MouseMove(new Point(at.X + 200, at.Y)); w.MouseUp(new Point(at.X + 200, at.Y), MouseButton.Left); Drain(w); Assert.True(s.ShowReasoning); // released away from the switch: nothing changes (PR-SETTINGS-026)
             Tick(h, 400); Assert.Equal(new Rect(16, 2, 26, 16), toggle.KnobNow());
         });

@@ -69,7 +69,10 @@ public sealed class SettingsViewFinishProvidersTests(HeadlessSession headless) :
     }
 
     [Fact]
-    [Trait("Req", "UI-PROVREG-002")] // App/Views/Settings/SettingsView.swift:254-256,566-580,582-584,780-795; App/Services/Providers/ProviderRegistry.swift:315-333
+    // UI-PROVREG-002 is WITHDRAWN (STOP: the record says the button is the ONLY control on the page that probes providers, which the pinned Swift contradicts:
+    // SettingsView.swift:784-795 .onChange(of: apiKey) refreshes the provider and reloads its catalogue 600 ms after a key edit, and the port does the same, proven in
+    // Key_edit_really_probes_after_six_hundred_ms_without_clicking_any_refresh_control). The record needs a spec_fix before it can close; this test proves the rest.
+    [Trait("Rule", "R-TEST-4")] // partial UI-PROVREG-002 (SettingsView.swift:254-256,566-580,582-584,780-795; ProviderRegistry.swift:315-333)
     public void Refresh_button_shows_only_on_the_providers_page_and_is_the_control_that_starts_a_full_single_flight_refresh_while_opening_scrolling_and_editing_paths_probe_nothing()
     {
         var lookups = 0; using var seam = ProviderRegistry.SetCLIUpdaterExecutableForTesting(_ => { Interlocked.Increment(ref lookups); return null; });

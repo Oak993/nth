@@ -8,10 +8,12 @@ namespace Marrow.UI.Port;
 /// <summary>
 /// A scalar that follows an <see cref="Animation"/>: <see cref="Set"/> with no animation jumps; with one it moves from
 /// where it is to the target, each step on a frame, measured on SwiftClock (ED-117). A new target replaces a running one
-/// from the value reached. Leaving the tree stops it.
+/// from the value reached. Leaving the tree stops it. OD-0076: the system's reduce-motion setting stills every transition,
+/// so under it (the owner's window environment or the Chrome platform's setting) a target is taken at once.
 /// </summary>
 public sealed class AnimatedScalar
 {
+    private readonly Control owner;
     private readonly Action<double> apply;
     private IFrameSource? source;
     private Action<TimeSpan>? pending;
@@ -19,6 +21,7 @@ public sealed class AnimatedScalar
     public AnimatedScalar(Control owner, double initial, Action<double> apply)
     {
         Value = initial;
+        this.owner = owner;
         this.apply = apply;
         apply(initial);
         owner.DetachedFromVisualTree += (_, _) => Stop();
@@ -31,7 +34,7 @@ public sealed class AnimatedScalar
     {
         Stop();
         var from = Value;
-        if (animation is null || from == target || !FrameClock.IsBound)
+        if (animation is null || from == target || !FrameClock.IsBound || ReduceMotion)
         {
             Value = target;
             apply(target);
@@ -54,6 +57,9 @@ public sealed class AnimatedScalar
         pending = tick;
         frames.RequestFrame(tick);
     }
+
+    private bool ReduceMotion =>
+        EnvironmentValues.GetAccessibilityReduceMotion(owner) || Chrome.Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
 
     private void Stop()
     {

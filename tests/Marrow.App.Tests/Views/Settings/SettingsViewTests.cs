@@ -663,7 +663,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var editor = Assert.Single(Nodes<TextBox>(view)); Assert.True(editor.AcceptsReturn); Assert.Equal(90, editor.MinHeight); editor.Text = " \nKeep this\n "; Sync(); Assert.Equal(" \nKeep this\n ", model.Settings.CommitInstructions);
         model.Settings.TextGeneration = TextGenerationChoice.Claude; Sync(); Assert.Contains(Nodes<SwiftImage>(view), image => image.AssetName == "provider-claude"); // :813 ProviderKind(rawValue: $0.rawValue)?.iconName (Provider.swift:60), the catalogue's own key (SwiftImage.cs), not the bare raw value
         model.Settings.TextGeneration = TextGenerationChoice.Codex; Sync(); Assert.Contains(Nodes<SwiftImage>(view), image => image.AssetName == "provider-codex"); Assert.DoesNotContain(Nodes<SwiftImage>(view), image => image.AssetName == "provider-claude");
-        foreach (var none in new[] { TextGenerationChoice.Automatic, TextGenerationChoice.Off }) { model.Settings.TextGeneration = none; Sync(); Assert.DoesNotContain(Nodes<SwiftImage>(view), image => image.AssetName is not null && image.AssetName.StartsWith("provider-", StringComparison.Ordinal)); } // no ProviderKind has the raw value "automatic" or "off"        Assert.Contains(Storage.WorktreesDirectory, Text(Row(view, "Worktrees"))); Assert.Equal("Reveal", Text(Button(Row(view, "Worktrees"), "Reveal")).Single());
+        foreach (var none in new[] { TextGenerationChoice.Automatic, TextGenerationChoice.Off }) { model.Settings.TextGeneration = none; Sync(); Assert.DoesNotContain(Nodes<SwiftImage>(view), image => image.AssetName is not null && image.AssetName.StartsWith("provider-", StringComparison.Ordinal)); } // no ProviderKind has the raw value "automatic" or "off"
+        Assert.Contains(Storage.WorktreesDirectory, Text(Row(view, "Worktrees"))); Assert.Equal("Reveal", Text(Button(Row(view, "Worktrees"), "Reveal")).Single());
     });
 
     [Fact]
