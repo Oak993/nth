@@ -20,7 +20,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // PR-TERM-074 and PR-TERM-076 (DroppyCode/App/Views/Chat/ChatView.swift:1652-1730, :1456-1463). The reference videos hold no scripts editor (CATALOG: only the Run
 // menu's "Add a script..." row, C 131.0-132.1, which opens it), so for the comparison the records ask OD-0098 makes the Swift the proof: the sheet is laid out here at the
 // size and in the order the code states and every dimension, string, type style and colour is read from that layout. Type sizes are the text styles' (ED-059: title2 17,
-// callout 12; and the Mac's callout line box 17, ED-NEW-frames-1).
+// callout 12).
 [Collection("Headless")]
 public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
 {
@@ -145,6 +145,16 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
                 Assert.Equal(3, inner.Children.Count);
                 var nameField = LogicalQuery.SelfAndDescendants<TextBox>(inner).Single(box => box.PlaceholderText == "Name");
                 var trash = LogicalQuery.SelfAndDescendants<Button>(inner).Single(button => button.Content is not string);
+                // :1674-1678 Button(role: .destructive) { Image(systemName: "trash") }.buttonStyle(.borderless): the SF Symbol "trash", in the destructive colour, with no bezel, border or
+                // fill of its own (the label alone: a borderless button draws nothing but its label).
+                var symbol = Assert.IsType<SwiftImage>(trash.Content);
+                Assert.Equal("trash", symbol.SymbolName);
+                Assert.Equal(Chrome.Danger.Resolve(symbol.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(symbol.Foreground).Color);
+                var trashParts = trash.GetVisualDescendants().ToArray();
+                Assert.Empty(trashParts.OfType<Border>());
+                Assert.Empty(trashParts.OfType<Avalonia.Controls.Shapes.Shape>());
+                Assert.Null(trash.Background); Assert.Equal(default, trash.BorderThickness); Assert.Equal(default, trash.Padding);
+                Assert.Same(symbol, Assert.Single(trashParts.OfType<SwiftImage>()));
                 var commandField = LogicalQuery.SelfAndDescendants<TextBox>(inner).Single(box => box.PlaceholderText == "Command");
                 var checkbox = LogicalQuery.SelfAndDescendants<CheckBox>(inner).Single();
                 Assert.Equal("Build", nameField.Text);

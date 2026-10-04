@@ -18,7 +18,7 @@ namespace Marrow.App.Tests.Views.Settings;
 // eases its height from the height it has to the height the new words take over the swap's 0.18 s on the ease of the pill's :671 (AboutUpdateViews.swift:671),
 // so the row and the card around it ease with it; under Reduce Motion the height cuts. At the settings window's default size (SettingsView.cs:170 Width = 780,
 // :122; the 212 pt sidebar, :178; 24 pt each side of the page stack, :249) the card is 520 pt wide and the resting sentence takes two lines where "Asking GitLab
-// for the latest release…" takes one, so the swap changes the card's height by one 16 pt line (the Mac's line box of the subheadline, ED-NEW-frames-1: 16 at 11 pt; the face's own was 13.3). The card's step-by-step height is read at every 16 ms frame;
+// for the latest release…" takes one, so the swap changes the card's height by one 13.3 pt line. The card's step-by-step height is read at every 16 ms frame;
 // the curve it is held to is Animation.EaseInOut(0.18) itself, the one the buttons beside it use.
 // A swap that meets a change which leaves the words as they are goes on to them (it is not cancelled with the old words at full opacity).
 [Collection("Headless")]
@@ -53,13 +53,13 @@ public sealed class AboutUpdateViewsSentenceGlideTests(HeadlessSession headless)
         if (reduced)
         {
             // :671 `nil`: a cut. No frame has run: the height is already the one-line height, with no measuring text left.
-            Assert.Equal(tall - 16, rig.Height, 0.5); Assert.Null(rig.Box.Probe); Assert.False(rig.Box.ClipToBounds);
+            Assert.Equal(tall - 13.3125, rig.Height, 0.5); Assert.Null(rig.Box.Probe); Assert.False(rig.Box.ClipToBounds);
             Assert.Single(Drawn(rig.Row, Asking)); Assert.Equal(1, rig.Sentence.Opacity);
             rig.Change(nameof(UpdateChecker.IsChecking), false);
             Assert.Equal(tall, rig.Height, 0.5);
             return;
         }
-        var short1 = tall - 16; // one line less (the measured step of the two sentences at this width)
+        var short1 = tall - 13.3125; // one line less (the measured step of the two sentences at this width)
         Assert.Equal(tall, rig.Height, 0.01); // the swap has just begun: the height is where it was
         var gliding = rig.Box.Probe; Assert.NotNull(gliding);
         Assert.Equal(Asking, gliding!.Text); Assert.Equal(0, gliding.Opacity); Assert.False(gliding.IsHitTestVisible); // the measuring text is never seen nor hit
@@ -68,7 +68,7 @@ public sealed class AboutUpdateViewsSentenceGlideTests(HeadlessSession headless)
         for (var ms = 16; ms <= 176; ms += 16) { rig.Step(16); heights.Add(rig.Height); Assert.Equal(Eased(tall, short1, ms), rig.Height, 0.5); }
         rig.Step(4); Assert.Equal(short1, rig.Height, 0.05); // the whole 0.18 s
         Assert.True(heights.Zip(heights.Skip(1), (a, b) => b <= a + 1e-9).All(x => x), $"the height only falls: {string.Join(", ", heights)}");
-        Assert.True(heights.Zip(heights.Skip(1), (a, b) => a - b).Max() < 16 * 0.25, $"no frame steps a quarter of the line: {string.Join(", ", heights)}");
+        Assert.True(heights.Zip(heights.Skip(1), (a, b) => a - b).Max() < 13.3125 * 0.25, $"no frame steps a quarter of the line: {string.Join(", ", heights)}");
         Assert.Null(rig.Box.Probe); Assert.False(rig.Box.ClipToBounds); Assert.Single(rig.Box.Children); Assert.Empty(Drawn(rig.Row, Rest));
 
         rig.Change(nameof(UpdateChecker.IsChecking), false); // and back: one line to two, the card grows over the swap
@@ -95,7 +95,7 @@ public sealed class AboutUpdateViewsSentenceGlideTests(HeadlessSession headless)
         Assert.Equal(turned, rig.Height, 0.01); heights.Add(rig.Height); // turned back from where it was, not from either end
         for (var i = 0; i < 14; i++) { rig.Step(16); heights.Add(rig.Height); }
         var steps = heights.Zip(heights.Skip(1), (a, b) => Math.Abs(b - a)).ToArray();
-        Assert.True(steps.Max() < 16 * 0.25, $"no step of a quarter of a line: {string.Join(", ", heights)}");
+        Assert.True(steps.Max() < 13.3125 * 0.25, $"no step of a quarter of a line: {string.Join(", ", heights)}");
         Assert.Equal(tall, rig.Height, 0.05); Assert.Null(rig.Box.Probe);
     });
 
@@ -134,8 +134,8 @@ public sealed class AboutUpdateViewsSentenceGlideTests(HeadlessSession headless)
         EnvironmentValues.SetAccessibilityReduceMotion(rig.Row, true);
         rig.Change(nameof(UpdateChecker.LastError), "The request timed out."); // the same words
         Assert.Equal(Asking, rig.Sentence.Text); Assert.Equal(1, rig.Sentence.Opacity); Assert.Null(rig.Box.Probe);
-        Assert.Equal(tall - 16, rig.Height, 0.5); // cut to the one-line height at once
-        rig.Step(300); Assert.Equal(Asking, rig.Sentence.Text); Assert.Equal(1, rig.Sentence.Opacity); Assert.Equal(tall - 16, rig.Height, 0.5);
+        Assert.Equal(tall - 13.3125, rig.Height, 0.5); // cut to the one-line height at once
+        rig.Step(300); Assert.Equal(Asking, rig.Sentence.Text); Assert.Equal(1, rig.Sentence.Opacity); Assert.Equal(tall - 13.3125, rig.Height, 0.5);
     });
 
     [Fact]

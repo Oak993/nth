@@ -57,9 +57,8 @@ public static class SystemButtons
     // 3 Rg label: SF Pro Medium (500) 13 px, line height 16, centred.
     private static TextBlock Title(string title)
     {
-        var label = new TextBlock { Text = title, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
+        var label = new TextBlock { Text = title, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, LineHeight = 16 };
         SwiftFont.System(13, weight: SwiftFont.Weight.Medium).Apply(label);
-        label.LineHeight = 16; // the kit's push button label; after Apply, which sets the Mac line height of the font's size
         return label;
     }
 

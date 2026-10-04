@@ -25,6 +25,14 @@ namespace Marrow.App.Tests.Views.Settings;
 // lead card, Connected, Custom, the catalog groups and the footer note at S 188.14), and OD-0098 keeps the comparison required wherever a frame exists.
 // STOP opencode-proofs-mcp-a #1 (MCPSettingsPageProofsMcpATests) already measured that page against a port render and found card heights that differ;
 // PR-MCP-199 stays partly proven until that comparison is done.
+// STOP blitz-frames (2026-10-04, withdrawn after review): the comparison was made on the stills (1-settings-tour.mov S 180.50, 184.00, 185.50; 1 px = 1 pt) and the page is
+// NOT shown to match. MEASURED (SOURCE FACT for what is on screen): wrapped callout lines 17 apart, subheadline lines 16, a 13 pt semibold title two lines 36; the lead
+// card 94, a Connected row 58 (GitHub 74) with a 1 pt divider, the Connected card 192, the Custom card 97, a catalog card 126 (144 with a two-line title), catalog row pitch
+// 136; the port (Inter at 11/12/13 on its own line boxes 13.3/14.5/15.7) draws them 90, 171, 118. A line-height table of 16/17/18 closes the heights, but the same stills put
+// the text-style glyphs LARGER than the port's (callout x-height 7.0 px and cap 9.2 px, about 13 pt against 12; the fixed 10.5 pt monospaced line is true to size), so
+// the cause on the Mac is UNRESOLVED (taller line boxes, or larger text-style glyphs such as a text-size setting of the recorder's Mac, or an ink-measure bias of
+// about half a pixel): a table applied to every TextBlock at 11/12/13 on one page's evidence was therefore withdrawn (SwiftFont is back at the face's own line height; the
+// card heights above remain the open comparison). Under OD-0098 the frame wins where it exists, so this record stays open until the cause is settled.
 [Collection("Headless")]
 public sealed class MCPSettingsPageTestFirstTests(HeadlessSession headless)
 {

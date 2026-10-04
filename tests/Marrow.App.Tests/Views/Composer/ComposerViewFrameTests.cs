@@ -160,6 +160,36 @@ public sealed class ComposerViewFrameTests(HeadlessSession headless)
             Assert.Equal(pending, frames.Pending);
             Assert.Equal(drawn, h.Main.OnMain(() => ChipControls(chips).ToArray()));
             Assert.Equal(60, h.Main.OnMain(() => scroller.Offset.X));
+            // The key holds the command's name too (:941 ChipKey(quoteIDs:commandName:)): a command joining a row of quotes arrives from nothing on the spring (the key moved only by
+            // the name), the scroller and the quotes' chips staying as they were, and the command leaving again fades where it stands. Without the name in the key neither would move.
+            var command = new DraftCommand { Name = "review", Detail = "Review the changes", IsBuiltIn = false };
+            h.Main.OnMain(() => h.Runtime.Draft = h.Runtime.Draft with { Command = command });
+            Pump(h, window);
+            var commandChip = h.Main.OnMain(() => ChipControls(chips).First());
+            h.Main.OnMain(() =>
+            {
+                Assert.Same(scroller, One<ScrollViewer>(chips));
+                Assert.Equal(4, ChipControls(chips).Count());
+                Assert.Equal(drawn, ChipControls(chips).Skip(1).ToArray()); // the quotes' chips are the same ones, after the command's (:882 first)
+                Assert.Equal(0, commandChip.Opacity); // arriving from nothing
+                Assert.Equal(1, drawn[0].Opacity);
+            });
+            Advance(0.03);
+            h.Main.OnMain(() => Assert.Equal(progress, commandChip.Opacity, 3));
+            Advance(2);
+            h.Main.OnMain(() => Assert.Equal(1, commandChip.Opacity));
+            h.Main.OnMain(() => Click(Named(commandChip, "Remove command")));
+            Pump(h, window);
+            Advance(0.03);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal(1 - progress, commandChip.Opacity, 3); // leaving: it fades where it stands
+                Assert.Equal(1, drawn[0].Opacity);
+                Assert.Same(scroller, One<ScrollViewer>(chips));
+            });
+            Advance(2);
+            Assert.Equal(drawn, h.Main.OnMain(() => ChipControls(chips).ToArray()));
+            Assert.Equal(60, h.Main.OnMain(() => scroller.Offset.X));
             // A chip leaving a row that stays fades where it stands; the scroller and its offset are the same ones.
             h.Main.OnMain(() => Click(Named(drawn[0], "Remove quote")));
             Pump(h, window);

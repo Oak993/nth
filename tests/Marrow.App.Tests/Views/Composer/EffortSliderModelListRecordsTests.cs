@@ -122,10 +122,7 @@ public sealed class EffortSliderModelListRecordsTests(HeadlessSession headless)
             Assert.All(Pairs(list), row => Assert.Equal(46, row.Bounds.Height, 0.5));
             // fixed heights: the rows fit the frame in one pass (no jump) unless the cap cuts them, and then they scroll; the frame is what the arithmetic says
             Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            // The empty list's "Loading models…" (EffortSlider.swift:341-345) is a body line padded 10 inside a frame of one row, 35: on the Mac the body line box is 18
-            // (ED-NEW-frames-1), so its 38 stand 3 over the frame and the area scrolls those 3 as the source's frame (:349) leaves it.
-            if (empty) Assert.Equal(10 + 18 + 10, scroll.Extent.Height, 1.5);
-            else if (height < 440) Assert.True(scroll.Extent.Height <= scroll.Viewport.Height + 1.5, $"the rows ({scroll.Extent.Height}) fit the frame ({scroll.Viewport.Height}) with nothing to scroll");
+            if (height < 440) Assert.True(scroll.Extent.Height <= scroll.Viewport.Height + 1.5, $"the rows ({scroll.Extent.Height}) fit the frame ({scroll.Viewport.Height}) with nothing to scroll");
             else Assert.True(scroll.Extent.Height > scroll.Viewport.Height, "past the 440 cap the rows scroll");
             Assert.Equal(height, scroll.Viewport.Height, 0.5);
         }
