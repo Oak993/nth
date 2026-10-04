@@ -2,8 +2,10 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Tour;
@@ -333,5 +335,100 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
             }
         }
         GC.KeepAlive(stripes);
+    }, factType: typeof(GlassWindowNativeTests));
+
+    // The archive question popover (UI-SIDEBAR-031, -032), opened from a real thread row of the real main window as the archive shortcut asks for it
+    // (AppModel.AppModelArchiveRequest, SidebarView.swift:198-202), in a real popup window. Headless cannot open a Popup, so only the glass's metadata was
+    // ever asserted; here the pixels of the real popup are read. The glass material (OD-0005) draws a rim light and an inner shade at the edge of its shape
+    // and tints the prominent one, so the ring just inside each button's capsule differs from the flat card behind it where the material is drawn and not
+    // where it falls out of the composition tree (review/glass-material-placement 090e8b843). SwiftUI's `.focusEffectDisabled`-like look (:945) is that no
+    // ring surrounds the focused Archive button: the band just outside its capsule is the card.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-031")] // SidebarView.swift:923-941 `.glass` and `.glassProminent` text buttons at `.controlSize(.small)`, :945 the Archive button holds the focus
+    [Trait("Req", "UI-SIDEBAR-032")] // :927-940 Delete plain glass with a red label, Archive prominent glass
+    public void The_archive_question_popovers_glass_buttons_draw_their_material_on_a_real_popup_and_Archive_shows_no_focus_ring() => native.Run(subject =>
+    {
+        var thread = Guid.NewGuid();
+        native.OnUi(() =>
+        {
+            var now = Marrow.Core.Port.SwiftDate.Now;
+            var folder = Path.Combine(Path.GetTempPath(), "archive-popover-native-" + Guid.NewGuid().ToString("N")[..8]);
+            Directory.CreateDirectory(folder);
+            var project = new Marrow.Core.Models.Project("archive-native", folder);
+            var chat = new Marrow.Core.Models.ChatThread(project.Id, Marrow.Core.Models.ProviderKind.Claude, "opus", "high", Marrow.Core.Models.RuntimeMode.Supervised) with
+            {
+                Id = thread, Title = "Archive in a real popup", HasCustomTitle = true, UpdatedAt = now, CreatedAt = now.AddHours(-1), LastStatus = Marrow.Core.Models.TurnStatus.Completed,
+            };
+            var library = new Marrow.Core.Models.Library() with
+            {
+                Projects = new Marrow.Core.Port.ValueList<Marrow.Core.Models.Project>([project]),
+                Threads = new Marrow.Core.Port.ValueList<Marrow.Core.Models.ChatThread>([chat]),
+            };
+            Marrow.Services.Store.DiskWriter.Shared.WriteSynchronously(library, Marrow.Services.Store.Storage.LibraryURL);
+        });
+        var (window, model) = TimelineRowsNativeRig.Open(native, subject, thread);
+        var popup = native.OnUi(() =>
+        {
+            var column = window.GetVisualDescendants().OfType<Marrow.App.Views.Sidebar.SidebarView>().Single();
+            model.AppModelArchiveRequest = new AppModel.ArchiveRequest(thread);
+            return column;
+        });
+        Popup archive = null!;
+        WaitFor(() => native.OnUi(() =>
+        {
+            archive = LogicalQuery.SelfAndDescendants<Popup>(popup).FirstOrDefault(p => PopoverHost.Content(p) is Marrow.App.Views.Sidebar.ArchiveThreadPopover)!;
+            return archive is not null && archive.IsOpen;
+        }), "The archive question never opened on the thread's row.", 15000);
+        Thread.Sleep(1500); // the popover's own appearance has finished and the glass has been composed
+        var (deleteRect, archiveRect, focused) = native.OnUi(() =>
+        {
+            var content = PopoverHost.Content(archive)!;
+            var scale = TopLevel.GetTopLevel(content)!.RenderScaling;
+            var buttons = LogicalQuery.SelfAndDescendants<Button>(content).ToList();
+            Button Named(string name) => buttons.Single(b => LogicalQuery.SelfAndDescendants<TextBlock>(b).Any(label => label.Text == name));
+            PixelRect Rect(Control c) { var p = c.PointToScreen(default); return new PixelRect(p.X, p.Y, (int)Math.Round(c.Bounds.Width * scale), (int)Math.Round(c.Bounds.Height * scale)); }
+            return (Rect(Named("Delete")), Rect(Named("Archive")), Named("Archive").IsFocused);
+        });
+        Assert.True(focused, "the Archive button holds the focus (:945)");
+        Assert.True(deleteRect.Height > 0 && archiveRect.Height > 0);
+        // The card behind: the empty stretch of the buttons' row to the left of Delete.
+        var margin = 10;
+        var left = Math.Min(deleteRect.X, archiveRect.X) - 40;
+        var top = Math.Min(deleteRect.Y, archiveRect.Y) - margin;
+        var width = Math.Max(deleteRect.Right, archiveRect.Right) + margin - left;
+        var height = Math.Max(deleteRect.Height, archiveRect.Height) + 2 * margin;
+        var grab = ScreenGrab.Of(left, top, width, height);
+        var evidence = Path.Combine(Path.GetTempPath(), "archive-popover-native.png");
+        grab.SavePng(evidence);
+        (byte R, byte G, byte B) card = grab.At(8, height / 2);
+        double Distance((byte R, byte G, byte B) c) => Math.Sqrt(Math.Pow(c.R - card.R, 2) + Math.Pow(c.G - card.G, 2) + Math.Pow(c.B - card.B, 2));
+        // The signed distance from a pixel to a capsule (negative inside): the button's shape.
+        double Signed(PixelRect r, int x, int y)
+        {
+            double radius = r.Height / 2.0, cy = r.Y + radius;
+            var along = Math.Clamp(x + 0.5, r.X + radius, r.Right - radius);
+            return Math.Sqrt(Math.Pow(x + 0.5 - along, 2) + Math.Pow(y + 0.5 - cy, 2)) - radius;
+        }
+        List<double> Band(PixelRect r, double from, double to)
+        {
+            var found = new List<double>();
+            for (var y = 0; y < height; y++)
+                for (var x = 0; x < width; x++)
+                {
+                    var d = Signed(r, left + x, top + y);
+                    if (d >= from && d <= to) found.Add(Distance(grab.At(x, y)));
+                }
+            return found;
+        }
+        var deleteRing = Band(deleteRect, -3, -1);
+        var archiveRing = Band(archiveRect, -3, -1);
+        var archiveOuter = Band(archiveRect, 2, 5);
+        var deleteOuter = Band(deleteRect, 2, 5);
+        var report = $"card {card}; delete ring max {deleteRing.Max():F1} mean {deleteRing.Average():F1}; archive ring max {archiveRing.Max():F1} mean {archiveRing.Average():F1}; archive outer max {archiveOuter.Max():F1}; delete outer max {deleteOuter.Max():F1}; evidence {evidence}";
+        Console.WriteLine(report);
+        Assert.True(deleteRing.Max() >= 12, "Delete (.glass) draws no material on the popup: " + report);
+        Assert.True(archiveRing.Average() >= 20, "Archive (.glassProminent) draws no tinted material on the popup: " + report);
+        Assert.True(archiveRing.Average() > deleteRing.Average() + 10, "Archive is not tinted beyond Delete: " + report);
+        Assert.True(archiveOuter.Max() < 8, "a ring or adorner surrounds the focused Archive button: " + report);
     }, factType: typeof(GlassWindowNativeTests));
 }
