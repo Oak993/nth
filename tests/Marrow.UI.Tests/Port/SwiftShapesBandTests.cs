@@ -235,7 +235,7 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
         window.Show();
         Dispatcher.UIThread.RunJobs();
         // The plain Border in the band is cut to Apple's corner at 46 / (2 E); the composer's is not cut at all (a Border draws its own circular corner).
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 818, 46), new CornerRadius(22), exact: true), plain.Clip); // childless: the exact outline (ED-NEW-cornerband (9))
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 818, 46), new CornerRadius(22), exact: true), plain.Clip); // childless: the exact outline (ED-297 (9))
         Assert.Null(composer.Clip);
         // A shape the flag was set on after the first layout follows at once.
         plain.CircularInBand();
@@ -296,7 +296,7 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
             .RoundedRectangle(18, RoundedCornerStyle.Continuous);
         (window, var pixels) = Render(border, 220, 60);
         var clip = Assert.IsAssignableFrom<Geometry>(border.Clip);
-        Assert.Same(clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true)); // childless: the exact outline (ED-NEW-cornerband (9))
+        Assert.Same(clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true)); // childless: the exact outline (ED-297 (9))
         Assert.True(clip.FillContains(new Point(d + 0.4, d + 0.4)));
         Assert.False(clip.FillContains(new Point(d - 0.4, d - 0.4)));
         // Rendered: 1.5 pt in along the diagonal is red, 1.5 pt out (towards the vertex) is not.
@@ -396,7 +396,7 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
     // Border that kept CornerRadius 18 drew the circle of 18 under a clip that removed nothing. ContinuousClip now keeps the stated radius (SwiftShapes.StatedCornerRadius)
     // and sets the Border's own CornerRadius to what draws the corner: 0 when the clip alone cuts a plain fill (the Border fills its pixel-aligned rectangle and the clip,
     // Apple's path, is the only anti-aliased edge), the circle of L when a border ring or a shadow needs a corner of the Border's own, or when the clip is not ours.
-    // ENGINEERING DECISION (ED-NEW-cornerband (8)).
+    // ENGINEERING DECISION (ED-297 (8)).
 
     private static Border BandBorder(IBrush? background, double width = 200, double height = 40) =>
         new Border { Width = width, Height = height, Background = background, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }
@@ -415,7 +415,7 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
         var (shapeWindow, path) = Render(shape, 220, 60);
         Assert.Equal(new CornerRadius(18), SwiftShapes.StatedCornerRadius(border));
         Assert.Equal(default, border.CornerRadius);
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true), border.Clip); // childless: the exact outline (ED-NEW-cornerband (9))
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true), border.Clip); // childless: the exact outline (ED-297 (9))
         // (14, 14): 4.5 pt from the vertex along each axis, inside Apple's corner at L (its diagonal is at 0.2915 L = 3.81) and outside the circle of 18 (5.27).
         Assert.True(plain.At(14, 14).Red >= 200, $"(14, 14) is {plain.At(14, 14).Red}: the corner is not Apple's");
         Assert.True(plain.At(12, 12).Red <= 40, $"(12, 12) is {plain.At(12, 12).Red}: outside Apple's corner");

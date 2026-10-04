@@ -53,7 +53,7 @@ public sealed class HydraHeadFooterTests(HeadlessSession headless)
     public void The_bar_is_a_16_point_rounded_rectangle_inset_20_from_each_side_and_14_from_the_bottom() => Run(Info(HydraHeadInfo.Status.Running), (footer, window) =>
     {
         var bar = Bar(footer);
-        Assert.Equal(new CornerRadius(16), SwiftShapes.StatedCornerRadius(bar)); // one line tall the bar is 37 pt, in the band: its own CornerRadius is what draws it (OD-0102, ED-NEW-cornerband (8))
+        Assert.Equal(new CornerRadius(16), SwiftShapes.StatedCornerRadius(bar)); // one line tall the bar is 37 pt, in the band: its own CornerRadius is what draws it (OD-0102, ED-297 (8))
         Assert.Equal(new Thickness(14, 10), bar.Padding);
         var rect = Where(bar, window);
         Assert.Equal(20, rect.X);

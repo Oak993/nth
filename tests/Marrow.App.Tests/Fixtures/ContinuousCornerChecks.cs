@@ -68,7 +68,7 @@ internal static class ContinuousCornerChecks
     }
 
     /// <summary>
-    /// The clip a plain Border carries (ED-NEW-cornerband (9)): the shape's own outline, which Skia anti-aliases exactly, when the Border draws nothing beyond a side (no child, or
+    /// The clip a plain Border carries (ED-297 (9)): the shape's own outline, which Skia anti-aliases exactly, when the Border draws nothing beyond a side (no child, or
     /// clipped to its bounds) and every rounded corner is Apple's; else the slack clip (ED-275 (3)) that leaves what is drawn beyond a side alone.
     /// </summary>
     public static Geometry ExpectedClip(Border border, Size size, CornerRadius stated, bool circularInBand) =>

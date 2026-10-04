@@ -328,7 +328,7 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         Assert.False(clip.FillContains(new Point(22.6, 0.40)));
         Assert.True(clip.FillContains(new Point(22.6, 0.75)));
         Assert.True(clip.FillContains(new Point(200, 0.5)));
-        Assert.False(clip.FillContains(new Point(200, -1.5))); // a Border with no child draws nothing beyond a side: its clip is the exact outline (ED-NEW-cornerband (9)); the slack clip of one with a child is the test below
+        Assert.False(clip.FillContains(new Point(200, -1.5))); // a Border with no child draws nothing beyond a side: its clip is the exact outline (ED-297 (9)); the slack clip of one with a child is the test below
         Assert.False(clip.FillContains(new Point(1, 1)));
         window.Close();
     });

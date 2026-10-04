@@ -170,9 +170,9 @@ public static class SwiftShapes
 
     /// <summary>
     /// Whether a Border of this size and radii may be cut by the exact outline instead of the slack clip: every rounded corner is Apple's (a corner that is an arc is
-    /// the Border's own, and the same arc as a clip would be anti-aliased twice, ED-NEW-cornerband (8)). The outline is then convex, which is what makes Skia
+    /// the Border's own, and the same arc as a clip would be anti-aliased twice, ED-297 (8)). The outline is then convex, which is what makes Skia
     /// anti-aliase it exactly: ANY non-convex path (the slack clip's walls, or a path with a notch of 0.001 pt in a straight side) is anti-aliased by Skia's coarser
-    /// walker, 49 of 255 off the path fill at the worst pixel of a 200 x 40 shape and 102 at 380 x 46 (ED-NEW-cornerband (9)).
+    /// walker, 49 of 255 off the path fill at the worst pixel of a 200 x 40 shape and 102 at 380 x 46 (ED-297 (9)).
     /// </summary>
     internal static bool ExactClipFits(Size size, CornerRadius radii, bool circularInBand = false)
     {
@@ -478,7 +478,7 @@ internal static class ContinuousClip
     }
 
     /// <summary>
-    /// Whether the Border is cut by its exact outline rather than the slack clip (ED-NEW-cornerband (9)): the exact outline is convex, and Skia anti-aliases only a
+    /// Whether the Border is cut by its exact outline rather than the slack clip (ED-297 (9)): the exact outline is convex, and Skia anti-aliases only a
     /// convex path exactly (the slack clip's walls make it non-convex: 49 of 255 off the path fill at the worst pixel, 102 at 380 x 46). The slack exists for what is
     /// drawn beyond a side (ED-275 (3)); a Border with no child draws only its own fill and border, inside its bounds, and one clipped to its bounds draws nothing
     /// beyond a side either, so those take the exact outline. A corner that is an arc stays on the slack clip (see <see cref="SwiftShapes.ExactClipFits"/>).
