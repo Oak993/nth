@@ -155,7 +155,9 @@ internal static class GlassMaterial
             var index = parent.Children.IndexOf(visual);
             if (index < 0 || material is null) return;
             var existing = parent.Children.IndexOf(material);
-            if (existing != index - 1)
+            // A material not yet in the parent reads -1, which is also "just before" a control at index 0: only a material that is
+            // present and directly before the control stays where it is (a control that is its parent's first child got no material at all).
+            if (existing < 0 || existing != index - 1)
             {
                 if (existing >= 0) parent.Children.Remove(material);
                 parent.Children.Insert(parent.Children.IndexOf(visual), material);

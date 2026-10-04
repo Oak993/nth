@@ -122,13 +122,20 @@ public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
             var (bytes, width) = Capture(window);
             var area = Area(window, label);
             // The glass frosts the flat backdrop to a flat tint; ink is whatever is brighter than the pill's own fill beside the label.
-            var fill = bytes[((int)area.Top - 2) * width * 4 + ((int)area.Left - 2) * 4];
+            // The pill is its parent's first child, whose glass is drawn (ED-NEW-glass-firstchild; before, it drew nothing and the fill was the
+            // neutral backdrop): the veil is a hair off neutral (white 245, 245, 247), so the fill's own channels differ by a level (36, 36, 37 over 40, 40, 40). Greyscale ink
+            // is a mix of that fill and the white label and cannot differ more between channels than the fill does (two levels of slack for the rounding);
+            // a subpixel fringe differs by tens.
+            var at = ((int)area.Top - 2) * width * 4 + ((int)area.Left - 2) * 4;
+            var fill = bytes[at];
+            int fillSpread = Math.Max(Math.Abs(bytes[at] - bytes[at + 1]), Math.Max(Math.Abs(bytes[at + 1] - bytes[at + 2]), Math.Abs(bytes[at] - bytes[at + 2])));
             int ink = 0, fringed = 0;
             for (var y = (int)area.Top; y < (int)Math.Ceiling(area.Bottom); y++)
                 for (var x = (int)area.Left; x < (int)Math.Ceiling(area.Right); x++)
                 {
                     var p = (y * width + x) * 4;
-                    if (bytes[p] != bytes[p + 1] || bytes[p + 1] != bytes[p + 2]) fringed++;
+                    var spread = Math.Max(Math.Abs(bytes[p] - bytes[p + 1]), Math.Max(Math.Abs(bytes[p + 1] - bytes[p + 2]), Math.Abs(bytes[p] - bytes[p + 2])));
+                    if (spread > fillSpread + 2) fringed++;
                     if (bytes[p] > fill + 24) ink++;
                 }
             Assert.True(ink > 20, $"the label drew {ink} pixels of ink over the glass");

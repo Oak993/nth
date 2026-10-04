@@ -64,37 +64,4 @@ public sealed class ChatViewGlassPlacementReviewTests(HeadlessSession headless)
             });
         });
     }
-    // Which glass of the row is in the composition tree: every material (the container's, or each piece's own) and whether it sits in its owner's parent.
-    [Fact]
-    public void REVIEW_Census_of_the_rows_materials()
-    {
-        ChatHeadlessFixtures.Run(headless, () =>
-        {
-            using var h = new AppModelHarness();
-            var model = h.MakeModel();
-            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
-            h.Main.OnMain(() =>
-            {
-                model.Settings.SidebarFloats = false;
-                var runtime = model.Runtime(model.NewThread(model.AddProject(new Project("P", h.NewFolder("p")).Url))!.Id);
-                var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
-                var window = new AvaloniaWindow { Content = row, Width = 1400, Height = 300 };
-                ChatHeadlessFixtures.Track(window);
-                window.Show();
-                for (var pass = 0; pass < 8; pass++) { Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); }
-                var table = Material.GetField("attachments", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null)!;
-                var lines = new List<string>();
-                foreach (var control in row.GetVisualDescendants().OfType<Control>().Prepend(row))
-                {
-                    var args = new object?[] { control, null };
-                    if (!(bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, args)!) continue;
-                    var material = (CompositionVisual?)args[1]!.GetType().GetField("material", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(args[1]);
-                    if (material is null) continue;
-                    var parent = control.GetVisualParent() is Visual p ? ElementComposition.GetElementVisual(p) as CompositionContainerVisual : null;
-                    lines.Add($"{control.GetType().Name} {control.Bounds.Width:F0}x{control.Bounds.Height:F0}: in tree {parent?.Children.Contains(material)}");
-                }
-                File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "glass-census.txt"), string.Join(Environment.NewLine, lines) + Environment.NewLine + "--" + Environment.NewLine);
-            });
-        });
-    }
 }
