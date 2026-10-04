@@ -563,12 +563,10 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(Assert.Single(Nodes<LicensesRow>(view)), "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup); Assert.Equal(3, Nodes<MarkdownView>(content).Length); Assert.Contains("Marrow", Text(content)); Assert.Contains("Third-party notices", Text(content)); Assert.Contains("Trademarks", Text(content));
     });
 
-    // STOP App.Views.Settings.SettingsView #4
-    // Kind: dependency / owner decision. Swift: SettingsView.swift:954-955,1002 (terminal fragments only).
-    // Records: PR-SETTINGS-238, PR-SETTINGS-248, PR-UPDATE-082, PR-UPDATE-084, PR-UPDATE-085, UI-SETTINGS-072, UI-UPDATE-024/029 (terminal clauses only).
-    // Missing: TerminalHostView explicitly has no renderer or chosen terminal component.
-    // Needed: the shipped terminal's name, author, licence and project URL; do not credit SwiftTerm on Windows.
-    // Keep the Terminal title/divider and the AGPL sentence prefix; only its CreditLink, component detail and trailing licence fragment are blocked.
+    // Resolved STOP App.Views.Settings.SettingsView #4 (the terminal credit; owner ruling OD-0012 H, OD-0072, engineering decision ED-272): SettingsView.swift:954-955 credits SwiftTerm
+    // with a CreditLink; the port ships no SwiftTerm, so its Terminal row reads "Marrow's own terminal, built on Windows ConPTY." with no link, and the licence line :997-1002 says
+    // "the terminal is Marrow's own, built on Windows ConPTY." AboutCreditsTerminalTests proves every clause of PR-SETTINGS-248, PR-UPDATE-085, UI-SETTINGS-072 and UI-UPDATE-029 against
+    // the Swift and ED-272. (It said: Missing: TerminalHost has no renderer or chosen terminal component; Needed: the shipped terminal's name, author, licence and project URL.)
     // STOP App.Views.Settings.SettingsView #5
     // Kind: dependency. Swift: SettingsView.swift:1046-1056. Records: PR-SETTINGS-249 (shipping only).
     // RESOLVED for the build (defects-priority): Marrow.App.csproj now ships LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside the executable
