@@ -336,6 +336,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-CHAT-034")] // TimelineRows.swift:2402 `.background(..., in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the corner of a notice two lines tall
+    [Trait("Req", "UI-RUNTIME-002")] // TimelineRows.swift:2398-2402: the warning notice's pill, two lines tall
     public void A_warning_or_error_notice_two_lines_tall_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -448,6 +449,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-TEST-4")] // the corner clause only of UI-CHAT-034, UI-CHAT-036, UI-CHAT-037, UI-CHAT-054, read off the rendered pixels
     [Trait("Req", "UI-CHAT-034")] // the two-line notice, all four corners: the pixels follow Apple's corner at h / 3.057, not the circle of 18 (the corner clause)
+    [Trait("Req", "UI-RUNTIME-002")] // the warning notice, two lines, all four corners (the corner clause)
     [Trait("Req", "PR-CHAT-108")] // the Edited-files card, all four corners (the corner clause)
     [Trait("Req", "UI-GIT-044")] // the Edited-files card, all four corners (the corner clause)
     [Trait("Req", "UI-CHAT-059")] // the steps card of one step, all four corners (the corner clause)
