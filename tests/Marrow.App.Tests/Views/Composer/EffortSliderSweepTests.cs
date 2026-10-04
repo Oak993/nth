@@ -1300,47 +1300,14 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 }
 
-// STOP opencode-sweepA2 #2
-// Kind: partial proof (the real display's ten-second count is native)
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050,1052-1053,1070-1071 (B3 52bc792)
-// Requirements: PR-COMPOSER-133
-// What is proven: EffortSliderCadenceTests (Req PR-COMPOSER-133): ten seconds at a 120 Hz display draw 600 frames for every look, the solo
-// supercharged track included (60 Hz here by DEVIATION OD-0051, source :1049 30 Hz), reduced motion and a minimised window pause the
-// track and it resumes, the track is never a hit target and is hidden from accessibility, a fill 8 points wide or less draws nothing
-// (:1053). The cadence theory above carries Decision ED-117 + Oracle O-34.
-// What is missing: the count on a real display, on a real window (EffortSliderNativeFrameTests, six facts carrying Req PR-COMPOSER-133,
-// excluded from every headless run by the !~Native filter and not run in this pass).
-// Needed to proceed: that native run on a quiet machine (see porting/verification/native/).
-//
-// Round 2: the previous STOP #3 was false. ProviderRegistry.swift:71-77 seeds Claude/opus with
-// low, medium, high, xhigh, max. Offered, unoffered and absent-pair resets now use that catalog
-// and a production-written nondefault precondition, so restart assertions can fail.
-//
-// Former STOP #1 (PR-COMPOSER-132) is resolved: the effect's identity and clock are asserted in EffortSliderTrackTests and, with the popover
-// open in the real composer, in EffortChipLiveInComposerTests (the clock continuity on a real window stays EffortSliderNativeFrameTests').
-// Former STOP #4 (PR-COMPOSER-128) is OPEN again: see STOP effortslider-fix #2 below.
-
-// STOP effortslider-fix #1
-// Kind: UNRESOLVED fact (the colour space of Color.mix(with:by:))
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:841 `Chrome.accent.mix(with: .white, by: 0.22)` and :964 `mix(with: .white, by: 0.18)` (B3 52bc792)
-// Requirements: PR-COMPOSER-112, UI-COMPOSER-031
-// What is proven: which colour the title takes in each of the four (maximum, fast) cases and in a pair, the gradient's order, the 0.3 s
-// smooth fade of a colour change (and, with the popover open in the real composer, that the fade is on screen: EffortChipLiveInComposerTests).
-// What is missing: the lightened colours themselves. SwiftUI's Color.mix(with:by:in:) takes a colour space argument whose default is
-// .perceptual; the port's SwiftColor.Mix interpolates the sRGB components linearly, and the tests build their expectation with that same
-// Mix, so for these two clauses they check the port against itself. No ED or OD records the choice. Measured evidence (reference runtime,
-// 2-chat-use.mov 34.0-35.0 s, frames of 2-chat-use_034.000-035.000, plain "High" title over a pink accent that measures (246, 32, 102) on the
-// track): the glyphs' brightest plateau is about (255, 91, 133); the component-wise mix of that accent with white by 0.22 predicts
-// (248, 81, 136) and an Oklab mix predicts (255, 103, 134), so the frames fit neither and anti-aliasing leaves no cleaner sample.
-// Needed to proceed: an owner or ED ruling on the colour space, or a capture of a large flat title colour in the reference runtime.
-
-// STOP effortslider-fix #2
-// Kind: owner decision not built (OD-0075, "liquid at every effort level")
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:729-738,985-998 (B3 52bc792) with OD-0075 and OD-0063
-// Requirements: PR-COMPOSER-127, PR-COMPOSER-128
-// What is proven: the 2x2 mapping of (maximum, fast) onto the kinds, every fill per brand and pair, the 0.3 s fill change (EffortSliderTrackTests).
-// What is missing: OD-0075 settles that the liquid is drawn at every effort level (each model and effort at its OD-0063 intensity) and that
-// ends the source's plain look (no effect, the accent fill). The port still draws the source's plain look, because the intensity rule
-// (how model strength and effort map to a shade within a maker's palette, OD-0063 to OD-0066) is approved on a canvas but is not built, and
-// no deviation is recorded on either record. The tests that assert the plain look carry no Req.
-// Needed to proceed: the intensity engine (OD-0063 to OD-0066), then the plain track as the liquid at its intensity, test-first.
+// Former STOPs of this file, closed (blitz-effortslider2):
+// - PR-COMPOSER-133: EffortSliderCadenceTests proves every clause headless (ten seconds at 120 Hz draw 600 frames for every look, now the plain
+//   one too (OD-0075), reduced motion and a minimised window pause it, a fill of 8 points or less draws nothing, never a hit target, hidden from
+//   accessibility); the count on a real display (EffortSliderNativeFrameTests, excluded by the !~Native filter) is extra evidence, not run here.
+// - PR-COMPOSER-132 (the effect's identity and clock) is asserted in EffortSliderTrackTests and, with the popover open in the real composer, in
+//   EffortChipLiveInComposerTests; the plain look draws the effect too (OD-0075).
+// - PR-COMPOSER-112 and UI-COMPOSER-031: Color.mix(with:by:) names no colour space at :841 and :964, so SwiftUI's default (perceptual, Oklab)
+//   applies: ENGINEERING DECISION ED-NEW-effortslider2 (OD-0098); SwiftColor.MixPerceptual, tested against an independent Oklab implementation
+//   (SwiftColorPerceptualMixTests, Fixtures/OklabReference).
+// - PR-COMPOSER-127 and PR-COMPOSER-128: OD-0075 (liquid at every effort level) is built; the records carry its deviation. The per-model and
+//   per-effort shade of OD-0063 is the colour engine's (unbuilt, ED-NEW-effortslider2): every effort wears the maker's palette until then.
