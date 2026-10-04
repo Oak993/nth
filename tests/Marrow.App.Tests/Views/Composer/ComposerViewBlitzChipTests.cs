@@ -185,7 +185,7 @@ public sealed partial class ComposerViewTests
             {
                 var chipControls = ChipControls(chips).ToArray();
                 for (var index = 0; index < quotes.Length; index++)
-                    Assert.Equal(quotes[index].Text, ToolTip.GetTip(chipControls[index])); // .help(quote.text): the whole quote, not its excerpt
+                    Assert.Equal(quotes[index].Text, ToolTip.GetTip(Assert.IsType<ChipSlot>(chipControls[index]).Chip)); // .help(quote.text): the whole quote, not its excerpt
                 Assert.True(scroller.Extent.Width > scroller.Viewport.Width + 100, $"the chips overflow the row: {scroller.Extent} in {scroller.Viewport}");
                 Assert.Equal(0, scroller.Offset.X);
                 var at = scroller.TranslatePoint(new Point(scroller.Bounds.Width / 2, scroller.Bounds.Height / 2), window)!.Value;
@@ -193,6 +193,52 @@ public sealed partial class ComposerViewTests
                 Settle(window);
                 Assert.True(scroller.Offset.X > 0, $"the row scrolls with a sideways wheel: {scroller.Offset.X}");
             });
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-007")] // App/Views/Composer/ComposerView.swift:908-936, :941 .animation(Chrome.panelSlide, value: ChipKey)
+    [Trait("Rule", "R-TEST-4")] // The excerpt, tooltip, scroll and the removal's writer: the tests above; the row's own collapse: The_first_chip_grows_the_row_from_nothing_...
+    public void Removing_the_middle_quote_fades_it_where_it_stands_while_the_chip_after_it_follows_under_the_spring_and_nothing_jumps_at_the_end()
+    {
+        headless.OnUiThread(() =>
+        {
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            using var h = RuntimeHarness();
+            var (a, b, c) = (new ReplyQuote { Text = "alpha" }, new ReplyQuote { Text = "bravo bravo bravo" }, new ReplyQuote { Text = "charlie" });
+            h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([a, b, c]) });
+            var chips = h.Main.OnMain(() => new DraftChips(h.Runtime));
+            var window = h.Main.OnMain(() => Show(chips, h.App, 600));
+            Pump(h, window);
+            var kept = h.Main.OnMain(() => ChipControls(chips).ToArray());
+            var (first, middle, last) = (kept[0], kept[1], kept[2]);
+            double X(Control control) => h.Main.OnMain(() => Frame(control, chips).X);
+            var (x1, x2, x3) = (X(first), X(middle), X(last));
+            var travel = x3 - x2; // the middle chip's width and the 6 point gap
+            Assert.True(travel > 30, $"the middle chip takes room: {travel}");
+            h.Main.OnMain(() => Click(Named(middle, "Remove quote")));
+            Pump(h, window);
+            Assert.Equal(x3, X(last), 3); // the first frame is where it was
+            var previous = x3;
+            foreach (var moment in new[] { 0.03, 0.03, 0.04, 0.05, 0.1 })
+            {
+                Elapse(h, frames, window, moment);
+                var now = X(last);
+                Assert.True(now <= previous + 0.01, $"the chip after it only moves left: {previous} then {now}");
+                previous = now;
+            }
+            var elapsed = 0.25;
+            var expected = x3 - travel * Chrome.PanelSlide.Progress(elapsed);
+            Assert.InRange(Math.Abs(X(last) - expected), 0, 1.5); // the spring's curve, not a step
+            Assert.InRange(X(last), x2 - 1, x3 - 1); // part-way
+            Assert.Equal(x1, X(first), 3); // the chip before it stays
+            Assert.True(Math.Abs(x2 - X(middle)) < 0.01, $"the leaving chip fades where it stands: {x2} then {X(middle)}; chip {h.Main.OnMain(() => Frame(((ChipSlot)middle).Chip, chips))}, slot {h.Main.OnMain(() => middle.Bounds)}");
+            Elapse(h, frames, window, 3);
+            Assert.Equal(x2, X(last), 1); // and lands exactly where the middle chip was, no step at the end
+            Assert.Equal([a.Id, c.Id], h.Runtime.Draft.Quotes.Select(quote => quote.Id));
+            Assert.Equal(2, h.Main.OnMain(() => ChipControls(chips).Count()));
             Close(h, window);
         });
     }

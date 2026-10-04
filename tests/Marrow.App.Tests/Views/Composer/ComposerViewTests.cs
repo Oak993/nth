@@ -3044,7 +3044,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
             var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
             using var h = RuntimeHarness(); h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([new() { Text = "quote" }]) });
             var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
-            h.Main.OnMain(() => { Assert.Equal(6, Assert.IsType<StackPanel>(One<ScrollViewer>(chips).Content).Spacing); Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
+            h.Main.OnMain(() => { Assert.Equal(6, ChipControls(chips).Single().Margin.Right); /* the 6 point gap: each chip's place keeps it after the chip and the row takes the last back (ED-NEW-composerview-12); the gap between two chips is measured in The_command_chip_names_... */ Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
         });
     }
 

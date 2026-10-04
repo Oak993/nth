@@ -1685,6 +1685,7 @@ internal sealed class DraftChips : Decorator
     private StackPanel? chipRow; // :881 the HStack the scroller holds
     private ForEach<ChipItem, string>? chips; // :882, :908 the command's chip and ForEach(quotes), by their identities
     private readonly Dictionary<string, ChipItem> drawn = new(SwiftStringComparer.Instance);
+    private readonly Dictionary<string, ChipSlot> slots = new(SwiftStringComparer.Instance); // each chip's place in the row
     private ChipKey? shownKey;
     private bool evaluated;
     /// <summary>:871-874 <c>private struct ChipKey: Equatable</c>.</summary>
@@ -1718,6 +1719,7 @@ internal sealed class DraftChips : Decorator
             chipRow = null;
             chips = null;
             drawn.Clear();
+            slots.Clear();
             shownKey = key;
             return;
         }
@@ -1739,7 +1741,20 @@ internal sealed class DraftChips : Decorator
         {
             // :941 .animation(Chrome.panelSlide, value: ChipKey): a chip arriving or leaving the row that stays moves
             // under the spring; the scroller, and where it is scrolled to, are the same ones throughout.
-            Transaction.WithAnimation(Chrome.PanelSlide, () => chips!.Apply(items));
+            Transaction.WithAnimation(Chrome.PanelSlide, () =>
+            {
+                var staying = items.Select(item => item.Id).ToHashSet(SwiftStringComparer.Instance);
+                var leaving = slots.Where(pair => !staying.Contains(pair.Key)).ToArray();
+                chips!.Apply(items);
+                // A leaving chip fades where it stands (the ForEach's removal) while its place closes, so the chips after it
+                // follow it under the same spring instead of jumping when its fade is over (SwiftUI takes it out of the
+                // layout at once and moves the others under the transaction).
+                foreach (var (id, slot) in leaving)
+                {
+                    slots.Remove(id);
+                    slot.FoldShut(Chrome.PanelSlide);
+                }
+            });
         }
         else
         {
@@ -1763,9 +1778,12 @@ internal sealed class DraftChips : Decorator
     // :880-881 the horizontal scroller and its HStack(spacing: 6)
     private ScrollViewer Scroller()
     {
-        chipRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        // HStack(spacing: 6): each chip's place keeps the 6 after it, and the row takes the last one back, so a leaving chip's whole
+        // footprint, its gap too, can close (ChipSlot); the chips stand exactly 6 apart.
+        chipRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, Margin = new Thickness(0, 0, -ChipSlot.Gap, 0) };
         chips = new ForEach<ChipItem, string>(chipRow, item => item.Id, Make, Update);
         drawn.Clear();
+        slots.Clear();
         return new ScrollViewer { Content = chipRow, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; // :880
     }
@@ -1775,14 +1793,15 @@ internal sealed class DraftChips : Decorator
         drawn[item.Id] = item;
         var chrome = new ChipChrome().Body(Content(item)); // :904, :933
         Describe(chrome, item);
-        return chrome;
+        return slots[item.Id] = new ChipSlot((Border)chrome);
     }
 
-    private void Update(Control chrome, ChipItem item)
+    private void Update(Control slot, ChipItem item)
     {
         if (drawn.TryGetValue(item.Id, out var old) && old == item) return;
         drawn[item.Id] = item;
-        ((Border)chrome).Child = Content(item);
+        var chrome = ((ChipSlot)slot).Chip;
+        chrome.Child = Content(item);
         Describe(chrome, item);
     }
 
@@ -1817,6 +1836,52 @@ internal sealed class DraftChips : Decorator
     {
         if (item.CommandChip) runtime.Draft = runtime.Draft with { Command = null }; // :891-893
         else runtime.Draft = runtime.Draft with { Quotes = new ValueList<ReplyQuote>(runtime.Draft.Quotes.Where(held => held.Id.ToString() != item.Id)) }; // :920-922
+    }
+}
+
+/// <summary>
+/// PORT-ONLY (ED-NEW-composerview, UI-COMPOSER-007; OD-0076): a chip's place in the chip row. A leaving view in SwiftUI is out of the
+/// layout at once and the others move under the transaction; a leaving row of the foundation's ForEach keeps its place until its fade
+/// is over, so the chips after it jumped then. The place closes under the same animation as the fade instead, the chip keeping its
+/// own width and its left edge where it stood.
+/// </summary>
+internal sealed class ChipSlot : Decorator
+{
+    private IFrameSource? source;
+    private Action<TimeSpan>? frame;
+
+    /// <summary>:881 the HStack's spacing.</summary>
+    public const double Gap = 6;
+
+    public ChipSlot(Border chip)
+    {
+        Chip = chip;
+        Child = chip;
+        Margin = new Thickness(0, 0, Gap, 0);
+    }
+
+    public Border Chip { get; }
+
+    public void FoldShut(Animation animation)
+    {
+        if (frame is not null) source!.CancelFrame(frame);
+        var natural = Bounds.Width > 0 ? Bounds.Width : Chip.DesiredSize.Width;
+        Chip.MinWidth = natural; // the chip keeps its width however little room the place has
+        Chip.HorizontalAlignment = HorizontalAlignment.Left;
+        Width = natural;
+        var start = SwiftClock.Now;
+        source = FrameClock.Source.Current;
+        frame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds;
+            var complete = elapsed >= animation.Duration;
+            var open = complete ? 0 : Math.Max(0, 1 - animation.Progress(elapsed));
+            Width = natural * open;
+            Margin = new Thickness(0, 0, Gap * open, 0);
+            if (complete) frame = null;
+            else source!.RequestFrame(frame!);
+        };
+        source.RequestFrame(frame);
     }
 }
 
