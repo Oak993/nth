@@ -371,23 +371,37 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
     });
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
+    [InlineData(0, "opacity")]
+    [InlineData(1, "opacity")]
+    [InlineData(2, "opacity")]
+    [InlineData(0, "replaced transform")]
+    [InlineData(1, "replaced transform")]
+    [InlineData(2, "replaced transform")]
+    [InlineData(0, "transform in place")]
+    [InlineData(1, "transform in place")]
+    [InlineData(2, "transform in place")]
     [Trait("Req", "PR-CHAT-171")]
-    public void TheChangeIsDrawnByTheOneRenderFrameThatFollowsIt(int level) => headless.OnUiThread(() =>
+    public void TheChangeIsDrawnByTheOneRenderFrameThatFollowsIt(int level, string change) => headless.OnUiThread(() =>
     {
         var (container, outer, inner, piece) = Group();
         Control[] levels = [outer, inner, piece];
-        levels[level].RenderTransform = new TranslateTransform(0, 0);
+        var translate = new TranslateTransform(0, 0);
+        levels[level].RenderTransform = translate;
         using var scene = new Scene(new Pattern(), container);
         Settle();
-        levels[level].Opacity = 0.25;
-        ((TranslateTransform)levels[level].RenderTransform!).Y = 3;
+        Assert.False(SynchronisationRequested(container));
+        double opacity = 1, y = 20;
+        switch (change)
+        {
+            case "opacity": levels[level].Opacity = opacity = 0.25; break;
+            case "replaced transform": levels[level].RenderTransform = new TranslateTransform(0, 3); y = 23; break;
+            default: translate.Y = 3; y = 23; break;
+        }
         // The change asks the compositor for the synchronisation itself, at once (not through a posted dispatcher job that would add a hop before the frame).
         Assert.True(SynchronisationRequested(container), "the change has asked for the next composition update");
         AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); // one frame
-        AssertDrawn(container, 0.25, 30, 23, "the frame of the change");
+        AssertDrawn(container, opacity, 30, y, "the frame of the change");
+        Assert.False(SynchronisationRequested(container), "and the request is spent");
     });
 
     private static Border Surface(GlassShape shape)
