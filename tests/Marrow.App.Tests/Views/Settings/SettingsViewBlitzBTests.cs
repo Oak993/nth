@@ -506,7 +506,10 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             var row = Assert.IsType<StackPanel>(field.Parent); Assert.Equal(8, row.Spacing); var eye = Assert.Single(Nodes<Button>(row)); var symbol = Assert.Single(Nodes<SwiftImage>(eye));
             Assert.Equal('•', field.PasswordChar); Assert.Equal("eye", symbol.SymbolName); Assert.Equal("Show the API key", ToolTip.GetTip(eye)); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(symbol)); Ink(symbol, symbol.Foreground, Chrome.SecondaryText);
             // the corners of the eye's frame belong to it, the symbol's own pixels or not
-            Assert.NotNull(w.InputHitTest(At(eye, w, new Point(1, 1))));
+            foreach (var corner in new[] { new Point(1, 1), new Point(eye.Bounds.Width - 1, 1), new Point(1, eye.Bounds.Height - 1), new Point(eye.Bounds.Width - 1, eye.Bounds.Height - 1) })
+            {
+                var hit = w.InputHitTest(At(eye, w, corner)) as Visual; Assert.NotNull(hit); Assert.True(hit == eye || eye.IsVisualAncestorOf(hit), "the point " + corner + " of the eye is not the eye: " + hit);
+            }
             Click(w, eye); Assert.Equal('\0', field.PasswordChar); symbol = Assert.Single(Nodes<SwiftImage>(eye)); Assert.Equal("eye.slash", symbol.SymbolName); Assert.Equal("Hide the API key", ToolTip.GetTip(eye)); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(symbol)); Ink(symbol, symbol.Foreground, Chrome.SecondaryText);
             Assert.Equal('•', other.PasswordChar); // the reveal state belongs to its section
             // typing writes the setting at once

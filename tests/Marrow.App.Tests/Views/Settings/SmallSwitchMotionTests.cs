@@ -13,7 +13,7 @@ namespace Marrow.App.Tests.Views.Settings;
 // UI-SETTINGS-012, SettingsView.swift:296-305 (the system switch, controlSize .small, accent tint). Its look and motion are the Mac's, measured in
 // the reference runtime (ED-NEW-settingsview; E:\Droppy\work\reference-video, CATALOGUE settings.switch-toggle, 1 px = 1 pt): the on switch is a
 // 44 x 20 accent track holding a white 26 x 16 knob 2 in from every edge (S 178.0); the off track is the label colour at 0.10 (S 42.5); a press
-// widens the knob to 30 and 2 taller about its own centre, into a lens 0.48 white over the accent (25 to 29-30 in 80-100 ms; frames/w-1-settings-tour-24.0/win row y 346); the commit slides the knob its 14 points in about 0.21 s, ease-out (fractions 0.13 at 22 ms,
+// widens the knob to 30 and 2 taller about its own centre, into a lens 0.48 white over the accent and about 0.6 white over the off track (25 to 29-30 in 80-100 ms; frames/w-1-settings-tour-24.0/win row y 346); the commit slides the knob its 14 points in about 0.21 s, ease-out (fractions 0.13 at 22 ms,
 // 0.38 at 54, 0.62 at 94, 0.83 at 144, 0.98 at 197, 1 at 210), while the track crossfades over 0.25 s.
 [Collection("Headless")]
 public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsFinishFixture(headless)
@@ -58,14 +58,31 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
 
     private static double Slide(double seconds) => SmallSwitch.Slide.Progress(seconds);
 
-    // The alpha of the pixel at the knob's centre, the switch drawn alone on a transparent bitmap.
-    private static int KnobAlpha(SmallSwitch toggle)
+    // The switch drawn alone on a transparent bitmap: the alpha of the pixel at the knob's centre, and of the track beside the knob (clear of it).
+    private static (double Knob, double Track) CentreAndTrackAlpha(SmallSwitch toggle)
     {
         using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)toggle.Bounds.Width, (int)toggle.Bounds.Height));
         using (var context = bitmap.CreateDrawingContext()) toggle.Render(context);
         using var stream = new MemoryStream(); bitmap.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
         using var pixels = SkiaSharp.SKBitmap.Decode(stream.ToArray()); var knob = toggle.KnobNow();
-        return pixels.GetPixel((int)(knob.X + knob.Width / 2), (int)(knob.Y + knob.Height / 2)).Alpha;
+        return (pixels.GetPixel((int)(knob.X + knob.Width / 2), (int)(knob.Y + knob.Height / 2)).Alpha / 255.0,
+            pixels.GetPixel((int)toggle.Bounds.Width - 6, (int)toggle.Bounds.Height / 2).Alpha / 255.0);
+    }
+
+    private static int KnobAlpha(SmallSwitch toggle) => (int)Math.Round(CentreAndTrackAlpha(toggle).Knob * 255);
+
+    // The white of the lens over its own track: the knob's coverage with the track's taken out (the lens is drawn over the track).
+    private static double LensWhite(SmallSwitch toggle) { var (knob, track) = CentreAndTrackAlpha(toggle); return (knob - track) / (1 - track); }
+
+    // The same over the opaque accent track (an on switch): how far the centre pixel's green has gone from the accent's to white.
+    private static double LensWhiteOverAccent(SmallSwitch toggle)
+    {
+        using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)toggle.Bounds.Width, (int)toggle.Bounds.Height));
+        using (var context = bitmap.CreateDrawingContext()) toggle.Render(context);
+        using var stream = new MemoryStream(); bitmap.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+        using var pixels = SkiaSharp.SKBitmap.Decode(stream.ToArray()); var knob = toggle.KnobNow();
+        var accent = Chrome.AccentNSColor.Resolve(toggle.ActualThemeVariant);
+        return (pixels.GetPixel((int)(knob.X + knob.Width / 2), (int)(knob.Y + knob.Height / 2)).Green - accent.G) / (255.0 - accent.G);
     }
 
     [Fact]
@@ -81,13 +98,17 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
             Tick(h, 45); Assert.InRange(toggle.KnobNow().Width, 26.5, 29.5); Assert.Equal(26 + 4 * SmallSwitch.Press.Progress(0.045), toggle.KnobNow().Width, 6);
             Tick(h, 60); Assert.Equal(30, toggle.KnobNow().Width, 6); Assert.Equal(18, toggle.KnobNow().Height, 6); Assert.Equal(15, toggle.KnobNow().X + toggle.KnobNow().Width / 2, 6); // the centre stays (the reference's 740.5 held 740.5-741.0), the knob grows both ways (80-100 ms)
             Assert.False(s.ShowReasoning);
-            // The pressed knob is the glass lens: white at 0x7A (0.48, the reference's centre pixel over the accent) in a lighter rim, where at rest it is opaque white.
-            Assert.InRange(KnobAlpha(toggle), 130, 141); // 0x7A of white over the off track's 0x1A: 0.478 + 0.102 x 0.522 = 0.53 of 255 = 135
+            // The pressed knob is the glass lens, where at rest it is opaque white. Over the off track it is 0.58-0.61 white: SOURCE FACT, the reference runtime
+            // (frames/w-1-settings-tour-24.0/win row y 346, the off knob's centre x 726, held at 000043-000044 and 000109-000110: (171-178,178-186,180-187)
+            // over the off track's (46-47,78-80,78-80)). The track beside the knob stays the label colour at 0.10.
+            Assert.InRange(CentreAndTrackAlpha(toggle).Track, 0.05, 0.15);
+            Assert.InRange(LensWhite(toggle), 0.57, 0.62);
             w.MouseUp(at, MouseButton.Left); Drain(w); Assert.True(s.ShowReasoning);
             Tick(h, 400); Assert.Equal(new Rect(16, 2, 26, 16), toggle.KnobNow()); Assert.Equal(255, KnobAlpha(toggle)); // released: opaque white again
 
             // On: a press grows about the centre too (29 at rest).
             w.MouseDown(at, MouseButton.Left); Drain(w); Tick(h, 100); var pressed = toggle.KnobNow(); Assert.Equal(30, pressed.Width, 6); Assert.Equal(29, pressed.X + pressed.Width / 2, 6);
+            Assert.InRange(LensWhiteOverAccent(toggle), 0.46, 0.50); // over the accent track the lens is 0.48 white (the reference's centre pixel (242,141,173) over (246,37,103))
             w.MouseMove(new Point(at.X + 200, at.Y)); w.MouseUp(new Point(at.X + 200, at.Y), MouseButton.Left); Drain(w); Assert.True(s.ShowReasoning); // released away from the switch: nothing changes (PR-SETTINGS-026)
             Tick(h, 400); Assert.Equal(new Rect(16, 2, 26, 16), toggle.KnobNow());
         });

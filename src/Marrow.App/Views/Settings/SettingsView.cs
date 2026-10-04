@@ -317,7 +317,7 @@ public sealed class SettingsSwitch : Decorator
 /// track is the label colour at 0.10 over the card; a press widens the knob to 30 and 2 taller (CATALOGUE
 /// settings.switch-toggle: 25 to 29-30 in 80-100 ms, +2 px tall, its centre fixed; frames/w-1-settings-tour-24.0/win row
 /// y 346: 740.5 at rest, 740.5-741.0 held) and turns it into the glass lens, about half see-through over the accent
-/// (the centre pixel (242,141,173) over (246,37,103) is 0.48 white); the commit slides the knob its 14 points over 0.21 s
+/// (the centre pixel (242,141,173) over (246,37,103) is 0.48 white; over the off track the reference's lens is 0.58-0.61 white, so the lens's white follows the track's tint); the commit slides the knob its 14 points over 0.21 s
 /// on an ease-out (0.5 of the way at 72 ms, 0.91 at 163 ms) while the track crossfades over 0.25 s. Reduce motion jumps.
 /// </summary>
 internal sealed class SmallSwitch : Control
@@ -329,9 +329,13 @@ internal sealed class SmallSwitch : Control
     internal const double KnobHeight = 16;
     internal const double PressedKnobWidth = 30;
     internal const double PressedKnobHeight = 18;
-    /// <summary>The held lens's white over the track: 0x7A (0.48), the reference's centre pixel over the accent (242,141,173). The rim's
+    /// <summary>The held lens's white over the accent track: 0x7A (0.48), the reference's centre pixel over the accent (242,141,173). The rim's
     /// alpha (0x55) is UNVERIFIED, the port's own (the transparency slider's held knob takes the same).</summary>
     internal const byte LensAlpha = 0x7A;
+    /// <summary>The held lens's white over the off track: 0x99 (0.6), the reference's centre pixel (171-178,178-186,180-187) over the off track's
+    /// (46-47,78-80,78-80), 0.58-0.61 white in every channel (frames/w-1-settings-tour-24.0/win row y 346, x 726, frames 000043-000044 and
+    /// 000109-000110). The glass is whiter over the grey track than over the accent, so the lens's white follows the track's tint.</summary>
+    internal const byte LensAlphaOff = 0x99;
     internal static Animation Slide => Animation.EaseOut(duration: 0.21);
     internal static Animation Crossfade => Animation.EaseOut(duration: 0.25);
     internal static Animation Press => Animation.EaseOut(duration: 0.09);
@@ -420,7 +424,8 @@ internal sealed class SmallSwitch : Control
         // Pressed, the knob turns into the Mac's glass lens (CATALOGUE settings.switch-toggle; the reference's centre pixel is 0.48 white over the
         // accent), faded in with the widening; its rim is the port's own 1 px white at 0x55 (UNVERIFIED), as the transparency slider's held knob has.
         var lens = widen.Value;
-        IBrush fill = lens == 0 ? Brushes.White : new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 - (255 - LensAlpha) * lens), 255, 255, 255));
+        var lensAlpha = LensAlphaOff + (LensAlpha - LensAlphaOff) * tint.Value; // the lens's white over the track now: 0.6 over the off track, 0.48 over the accent
+        IBrush fill = lens == 0 ? Brushes.White : new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 - (255 - lensAlpha) * lens), 255, 255, 255));
         Pen? rim = lens == 0 ? null : new Pen(new SolidColorBrush(Color.FromArgb((byte)Math.Round(0x55 * lens), 255, 255, 255)), 1);
         context.DrawRectangle(fill, rim, knob, knob.Height / 2, knob.Height / 2);
     }

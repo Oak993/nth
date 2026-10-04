@@ -222,7 +222,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-PROVREG-042")] // App/Views/Settings/SettingsView.swift:738-746
     public void All_provider_cards_apply_the_exact_key_binary_and_install_row_gates_and_divider_insets()
     {
-        foreach (var provider in SwiftEnum<ProviderKind>.AllCases) WithView(() => new ProviderSettingsSection(provider, Binding<bool>.Constant(true)), (view, _, _) =>
+        foreach (var provider in SwiftEnum<ProviderKind>.AllCases) WithView(() => new ProviderSettingsSection(provider, Binding<bool>.Constant(true)), (view, model, _) =>
         {
             var titles = Nodes<ChromeRow>(view).Select(row => Text(row).First()).ToArray();
             Assert.Equal(provider.AcceptsAPIKey, titles.Contains(provider.IsAPIKeyBased ? "API key" : "API key (optional)")); Assert.Equal(!provider.IsAPIKeyBased, titles.Contains("Binary path")); Assert.Equal(provider.IsAPIKeyBased, titles.Contains("Get a key")); Assert.Equal(!provider.IsAPIKeyBased, titles.Contains("Install"));
@@ -230,6 +230,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
             foreach (var divider in Nodes<ChromeRowDivider>(view)) Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin);
             foreach (var field in Nodes<TextBox>(view)) { Assert.Equal(200, field.Width); Assert.Equal(12, field.FontSize); Assert.Equal(SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Resolve().FontFamily, field.FontFamily); }
             if (!provider.IsAPIKeyBased) { Assert.Equal(provider.ExecutableName, Nodes<TextBox>(Row(view, "Binary path")).Single().PlaceholderText); Assert.Contains(provider.DisplayName + " was not found on your PATH.", Text(Row(view, "Install"))); }
+            if (!provider.IsAPIKeyBased) // :780-783 the binary path writes through to the settings on every change
+            {
+                var path = "C:\\tools\\" + provider.ExecutableName + ".exe"; var binary = Nodes<TextBox>(Row(view, "Binary path")).Single();
+                Assert.NotEqual(path, model.Settings.BinaryPath(provider)); binary.Text = path; Sync(); Assert.Equal(path, model.Settings.BinaryPath(provider));
+            }
         });
     }
 
