@@ -3343,8 +3343,8 @@ internal sealed class SidebarThreadRow : Decorator
         Child = ApplyDraggedLift(overlays, () => isDragged); // :1838-1849
         var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         Control? check = null, trailing = null, fold = null;
-        ThreadRowFace? face = null; // the face the row draws now (:1739), kept while its inputs stand
-        (ChatThread, bool, string?) faceBuiltFor = default;
+        ThreadRowFace? face = null; // the ONE face the row draws (:1739-1743), built once and updated in place
+        ChatThread shown = snapshot; // the thread the face is told of, for the badge it builds
         bool? selectedBefore = null, actionsBefore = null;
         this.Track(() =>
         {
@@ -3362,19 +3362,20 @@ internal sealed class SidebarThreadRow : Decorator
             var settled = thread.IsSettled;
             var detailed = projectName is not null && !settled;
             var showsFold = actions && onToggleFold is not null;
-            // :1739-1749. The face the row already has, for the same thread, selection and words, takes the new clearance
-            // in place (SwiftUI keeps the view and animates its padding on the hover's transaction); another one is built.
+            // :1739-1749. ONE face under the row's identity (lead ruling 2026-10-04, ED-NEW-sidebar-leftovers (1)): SwiftUI keeps
+            // the view and re-reads its inputs, so the thread, the selection, the merge stage and the clearance are handed to
+            // the face in place and every animated property (the padding on the hover's transaction, :2068) eases on from
+            // where it stands; the face is never rebuilt for them.
             var clearance = TrailingClearance(settled, detailed, actions || settling, showsFold);
-            var faceKey = (thread, selected, mergeStage);
-            if (face is not null && faceBuiltFor.Equals(faceKey))
+            shown = thread;
+            if (face is null)
             {
-                face.SetTrailingClearance(clearance, Transaction.Current);
+                face = new ThreadRowFace(thread, projectName, selected, clearance, () => new ThreadBadge(shown), projectIcon, mergeStage);
+                shape.Child = face;
             }
             else
             {
-                face = new ThreadRowFace(thread, projectName, selected, clearance, () => new ThreadBadge(thread), projectIcon, mergeStage);
-                faceBuiltFor = faceKey;
-                shape.Child = face;
+                face.Update(thread, selected, mergeStage, clearance, Transaction.Current);
             }
             var colors = BackgroundFill(thread.IsPinned, selected, hover);
             fill.Set(colors.Background, selectedBefore is not null && selectedBefore != selected ? Chrome.Hover : Transaction.Current); // :1750-1754
@@ -3848,8 +3849,39 @@ internal sealed class SidebarThreadRow : Decorator
 
 /// <summary>:2006-2079 <c>private struct ThreadRowFace&lt;Badge: View&gt;: View</c>: what a thread row shows, drawn
 /// by the live row and by its ghosts.</summary>
+/// <remarks>
+/// ONE face per row, updated in place (lead ruling 2026-10-04, from SidebarView.swift:1739-1743, which keeps the face under
+/// the row's identity and re-reads its inputs). <see cref="Update"/> hands it a new thread, selection, merge stage and
+/// trailing clearance; every property the face animates (the trailing padding :2068, the title's weight :2041 and opacity
+/// :2042, the project line's glyph :2055) moves on from the value it stands at, so a change of any input that lands while
+/// one of them is on its way leaves it on its way. A change of the thread that alters the layout itself (settled or open)
+/// rebuilds the face's content inside this same object and carries the animated values across.
+/// </remarks>
 internal sealed class ThreadRowFace : Decorator
 {
+    private readonly string? projectName;
+    private readonly ProjectIcon? projectIcon;
+    private readonly Func<Control> badge;
+    private readonly Border frame;
+    private readonly AnimatedScalar clearance;
+    private readonly AnimatedScalar weight;
+    private readonly AnimatedScalar titleOpacity;
+    private ChatThread thread;
+    private bool isSelected;
+    private string? mergeStage;
+    private double leftPadding;
+    private double vertical;
+    private double clearanceTarget;
+    private double weightTarget;
+    private double titleOpacityTarget;
+    private TextBlock? title;
+    private TextBlock? label;
+    private Panel? glyphHost;
+    private string? glyphSymbol;
+    private Grid? row;
+    private Control? leading;
+    private object? leadingKey;
+
     /// <param name="thread">:2007 <c>let thread: ChatThread</c>.</param>
     /// <param name="projectName">:2009 <c>let projectName: String?</c>.</param>
     /// <param name="isSelected">:2011 <c>let isSelected: Bool</c> (moved before the defaulted inputs, ED-095).</param>
@@ -3867,19 +3899,127 @@ internal sealed class ThreadRowFace : Decorator
         ProjectIcon? projectIcon = null,
         string? mergeStage = null)
     {
+        this.thread = thread;
+        this.projectName = projectName;
+        this.isSelected = isSelected;
+        this.badge = badge;
+        this.projectIcon = projectIcon;
+        this.mergeStage = mergeStage;
+        clearanceTarget = trailingClearance;
+        weightTarget = WeightClass(thread, isSelected);
+        titleOpacityTarget = TitleOpacity(thread.IsSettled, isSelected);
+        frame = new Border { HorizontalAlignment = HorizontalAlignment.Stretch }; // :2071 .frame(maxWidth: .infinity, alignment: .leading)
+        SetMetrics();
+        clearance = new AnimatedScalar(this, trailingClearance, ApplyPadding); // :2068
+        weight = new AnimatedScalar(this, weightTarget, ApplyWeight); // :2041/:2048
+        titleOpacity = new AnimatedScalar(this, titleOpacityTarget, ApplyTitleOpacity); // :2042/:2049
+        BuildContent();
+        Child = frame;
+        DetachedFromVisualTree += (_, _) => SettleGlyph(); // a crossfade the tree left does not stay half drawn
+    }
+
+    /// <summary>
+    /// The row's inputs on a later render (:1739-1743): the same face, new values. The padding (:2068), the title's weight
+    /// and opacity (:2041-2042) and the project line's glyph (:2055) take the new value along <paramref name="animation"/>,
+    /// the transaction the change was made in (:1816-1818 withAnimation(Chrome.hover) for the hover), from where each
+    /// stands now; with no animation a property whose TARGET changed is taken at once (SwiftUI replaces the running
+    /// animation), and one whose target did not change is left exactly as it is, so an unrelated change (a selection, a
+    /// title, a merge stage) never cuts an animation that is on its way. OD-0076 also asks for it ("a label whose width
+    /// changes eases its container's width").
+    /// </summary>
+    public void Update(ChatThread nextThread, bool selected, string? stage, double trailingClearance, Animation? animation)
+    {
+        var settledChanged = nextThread.IsSettled != thread.IsSettled;
+        thread = nextThread;
+        isSelected = selected;
+        mergeStage = stage;
+        if (settledChanged)
+        {
+            SetMetrics();
+            BuildContent(); // the layout changes (:2023, :2037, :2053); the animated values below keep where they stand
+        }
+        else
+        {
+            if (title is not null && title.Text != thread.Title) title.Text = thread.Title;
+            if (label is not null) label.Text = mergeStage ?? projectName; // :2057
+            if (leading is not null && leadingKey is not null && !Equals(leadingKey, BadgeKey(thread)))
+            {
+                var next = BuildLeading(); // the badge reads the thread it was built with (:2152-2166)
+                row!.Children[row.Children.IndexOf(leading)] = next;
+                leading = next;
+                leadingKey = BadgeKey(thread);
+            }
+            if (glyphHost is not null) SetGlyph(GlyphName(thread), animation);
+        }
+        SetTrailingClearance(trailingClearance, animation);
+        var nextWeight = WeightClass(thread, isSelected);
+        if (nextWeight != weightTarget) { weightTarget = nextWeight; weight.Set(nextWeight, animation); }
+        var nextOpacity = TitleOpacity(thread.IsSettled, isSelected);
+        if (nextOpacity != titleOpacityTarget) { titleOpacityTarget = nextOpacity; titleOpacity.Set(nextOpacity, animation); }
+    }
+
+    /// <summary>
+    /// :2013 `trailingClearance` as the row hands the face on a later render (:1739-1743): the same face, a new number.
+    /// SwiftUI animates the padding in the transaction the hover is written in (:1816-1818, `withAnimation(Chrome.hover)`),
+    /// so the title's room, and where it truncates, glides; with no transaction it is taken at once. A number that is
+    /// already the target is not set again: setting it without an animation would cut the glide that is on its way.
+    /// </summary>
+    public void SetTrailingClearance(double value, Animation? animation)
+    {
+        if (value == clearanceTarget) return;
+        clearanceTarget = value;
+        clearance.Set(value, animation);
+    }
+
+    private void SetMetrics()
+    {
         var isSettled = thread.IsSettled; // :2020
         var isDetailed = projectName is not null && !isSettled; // :2021
+        leftPadding = Chrome.RowHorizontalPadding + (isSettled ? ThreadRowMetrics.SettledTitleInset : 0); // :2067
+        vertical = isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0; // :2069
+        frame.MinHeight = isSettled ? ThreadRowMetrics.SettledHeight : Chrome.RowHeight; // :2070
+    }
 
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :2022 HStack(spacing: 8)
+    private void ApplyPadding(double value) =>
+        frame.Padding = new Thickness(leftPadding, vertical, Chrome.RowHorizontalPadding + value, vertical); // :2066-2069
+
+    private void ApplyWeight(double value)
+    {
+        if (title is not null) title.FontWeight = (FontWeight)(int)Math.Round(value);
+    }
+
+    private void ApplyTitleOpacity(double value)
+    {
+        if (title is not null) title.Foreground = Chrome.PrimaryText.Opacity(value).Brush(title); // :2042/:2049
+    }
+
+    // What ThreadBadge reads off the thread (:2159-2169); the leading badge is built again only when one of them changes.
+    private static object BadgeKey(ChatThread thread) => (thread.Provider, thread.IsPinned, thread.HasUnread, thread.LastStatus);
+
+    // :2041/:2048 weight: .medium when selected or unread and not settled, else .regular (as the OpenType class).
+    private static double WeightClass(ChatThread thread, bool isSelected) =>
+        !thread.IsSettled && (isSelected || thread.HasUnread) ? (int)FontWeight.Medium : (int)FontWeight.Normal;
+
+    private static string GlyphName(ChatThread thread) => thread.WorktreePath is null ? "folder" : "arrow.triangle.branch"; // :2055
+
+    // :2022-2072 the content under the frame; the animated values (padding, weight, opacity) are not touched here.
+    private void BuildContent()
+    {
+        var isSettled = thread.IsSettled; // :2020
+        var isDetailed = projectName is not null && !isSettled; // :2021
+        title = null;
+        label = null;
+        glyphHost = null;
+        glyphSymbol = null;
+        leading = null;
+        leadingKey = null;
+
+        row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :2022 HStack(spacing: 8)
 
         if (!isDetailed && !isSettled) // :2023 PR-SIDEBAR-066
         {
-            var leading = projectIcon is { } compactIcon ? new ProjectIconMark(compactIcon, 12) : badge(); // :2025-2029
-            leading.Width = Chrome.IconSize; // :2031 .frame(width: Chrome.iconSize)
-            leading.HorizontalAlignment = HorizontalAlignment.Center;
-            leading.VerticalAlignment = VerticalAlignment.Center;
-            leading.Margin = new Thickness(0, 0, 8, 0); // HStack(spacing: 8)'s gap before the text column
-            Grid.SetColumn(leading, 0);
+            leading = BuildLeading();
+            if (projectIcon is null) leadingKey = BadgeKey(thread);
             row.Children.Add(leading);
         }
 
@@ -3891,25 +4031,25 @@ internal sealed class ThreadRowFace : Decorator
             {
                 Orientation = Orientation.Horizontal,
                 Spacing = 6,
-                Children = { mark, MakeTitle(thread, isSettled, isSelected) },
+                Children = { mark, MakeTitle() },
             };
             foreach (var part in titled.Children) part.VerticalAlignment = VerticalAlignment.Center;
             texts.Children.Add(titled);
         }
         else
         {
-            texts.Children.Add(MakeTitle(thread, isSettled, isSelected)); // :2047-2051
+            texts.Children.Add(MakeTitle()); // :2047-2051
         }
 
-        if (projectName is { } name && !isSettled && projectIcon is null) // :2053 PR-SIDEBAR-070
+        if (projectName is not null && !isSettled && projectIcon is null) // :2053 PR-SIDEBAR-070
         {
-            var glyph = SwiftImage.SystemName(thread.WorktreePath is null ? "folder" : "arrow.triangle.branch") // :2055
-                .Font(SwiftFont.Footnote); // :2056
-            glyph.ForegroundStyle(Chrome.SecondaryText); // :2061
-            var label = new TextBlock { Text = mergeStage ?? name, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2057-2059
+            glyphHost = new Panel();
+            glyphSymbol = GlyphName(thread);
+            glyphHost.Children.Add(MakeGlyph(glyphSymbol));
+            label = new TextBlock { Text = mergeStage ?? projectName, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2057-2059
             SwiftFont.Callout.Apply(label); // :2058
             label.Foreground = Chrome.SecondaryText.Brush(label); // :2061
-            var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { glyph, label } }; // :2054
+            var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { glyphHost, label } }; // :2054
             foreach (var part in line.Children) part.VerticalAlignment = VerticalAlignment.Center;
             texts.Children.Add(line);
         }
@@ -3917,38 +4057,79 @@ internal sealed class ThreadRowFace : Decorator
         texts.Margin = new Thickness(0, 0, 4, 0); // :2065 Spacer(minLength: 4)
         Grid.SetColumn(texts, 1);
         row.Children.Add(texts);
-
-        var leftPadding = Chrome.RowHorizontalPadding + (isSettled ? ThreadRowMetrics.SettledTitleInset : 0); // :2067
-        var vertical = isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0; // :2069
-        var frame = new Border
-        {
-            Child = row,
-            Padding = new Thickness(leftPadding, vertical, Chrome.RowHorizontalPadding + trailingClearance, vertical), // :2068
-            MinHeight = isSettled ? ThreadRowMetrics.SettledHeight : Chrome.RowHeight, // :2070
-            HorizontalAlignment = HorizontalAlignment.Stretch, // :2071 .frame(maxWidth: .infinity, alignment: .leading)
-        };
-        clearance = new AnimatedScalar(this, trailingClearance, value =>
-            frame.Padding = new Thickness(leftPadding, vertical, Chrome.RowHorizontalPadding + value, vertical));
-        Child = frame;
+        frame.Child = row;
+        ApplyPadding(clearance.Value);
     }
 
-    private readonly AnimatedScalar clearance;
-
-    /// <summary>
-    /// :2013 `trailingClearance` as the row hands the face on a later render (:1739-1743): the same face, a new number.
-    /// SwiftUI animates the padding in the transaction the hover is written in (:1816-1818, `withAnimation(Chrome.hover)`),
-    /// so the title's room, and where it truncates, glides; with no transaction it is taken at once. OD-0076 also asks for
-    /// it ("a label whose width changes eases its container's width").
-    /// </summary>
-    public void SetTrailingClearance(double value, Animation? animation) => clearance.Set(value, animation);
+    // :2024-2031 the leading slot: the project's mark, else the badge.
+    private Control BuildLeading()
+    {
+        var control = projectIcon is { } compactIcon ? new ProjectIconMark(compactIcon, 12) : badge(); // :2025-2029
+        control.Width = Chrome.IconSize; // :2031 .frame(width: Chrome.iconSize)
+        control.HorizontalAlignment = HorizontalAlignment.Center;
+        control.VerticalAlignment = VerticalAlignment.Center;
+        control.Margin = new Thickness(0, 0, 8, 0); // HStack(spacing: 8)'s gap before the text column
+        Grid.SetColumn(control, 0);
+        return control;
+    }
 
     // :2040-2051 the title text, shared by the detailed-with-mark layout and the plain one.
-    private static TextBlock MakeTitle(ChatThread thread, bool isSettled, bool isSelected)
+    private TextBlock MakeTitle()
     {
-        var title = new TextBlock { Text = thread.Title, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2040/:2047, :2043-2044/:2050-2051
-        SwiftFont.System(isSettled ? 12 : 13, !isSettled && (isSelected || thread.HasUnread) ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(title); // :2041/:2048
-        title.Foreground = Chrome.PrimaryText.Opacity(TitleOpacity(isSettled, isSelected)).Brush(title); // :2042/:2049
-        return title;
+        var made = new TextBlock { Text = thread.Title, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2040/:2047, :2043-2044/:2050-2051
+        SwiftFont.System(thread.IsSettled ? 12 : 13, SwiftFont.Weight.Regular).Apply(made); // :2041/:2048, the weight itself is the animated value's
+        title = made;
+        ApplyWeight(weight.Value);
+        ApplyTitleOpacity(titleOpacity.Value);
+        return made;
+    }
+
+    // :2055-2056, :2061 the project line's mark, a footnote-sized symbol in the secondary colour.
+    private static Control MakeGlyph(string symbol)
+    {
+        var glyph = SwiftImage.SystemName(symbol).Font(SwiftFont.Footnote); // :2055 / :2056
+        glyph.ForegroundStyle(Chrome.SecondaryText); // :2061
+        glyph.VerticalAlignment = VerticalAlignment.Center;
+        return glyph;
+    }
+
+    /// <summary>
+    /// :2055 the symbol changes with the thread's worktree. Inside an animation the new mark rises over the old one, which
+    /// fades where it stands and leaves once clear; each rides its own scalar, so a change that arrives while a mark is
+    /// half shown fades it out from there and never from full. With no animation the new mark replaces the old at once.
+    /// </summary>
+    private void SetGlyph(string symbol, Animation? animation)
+    {
+        if (glyphHost is not { } host || glyphSymbol == symbol) return;
+        glyphSymbol = symbol;
+        var leaving = host.Children.ToArray();
+        var incoming = MakeGlyph(symbol);
+        host.Children.Add(incoming);
+        if (animation is null)
+        {
+            foreach (var old in leaving) host.Children.Remove(old);
+            return;
+        }
+        incoming.Opacity = 0;
+        new AnimatedScalar(incoming, 0, level => incoming.Opacity = level).Set(1, animation);
+        foreach (var old in leaving)
+        {
+            new AnimatedScalar(old, old.Opacity, level =>
+            {
+                old.Opacity = level;
+                if (level == 0) host.Children.Remove(old);
+            }).Set(0, animation);
+        }
+    }
+
+    // A crossfade the face left the tree in the middle of ends at its target (the scalars stop on detach).
+    private void SettleGlyph()
+    {
+        if (glyphHost is not { } host || host.Children.Count < 2) return;
+        var current = host.Children[^1];
+        host.Children.Clear();
+        current.Opacity = 1;
+        host.Children.Add(current);
     }
 
     // :2075-2078 private static func titleOpacity(isSettled: Bool, isSelected: Bool) -> Double. PR-SIDEBAR-065.

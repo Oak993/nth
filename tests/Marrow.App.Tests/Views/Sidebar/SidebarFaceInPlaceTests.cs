@@ -1,0 +1,236 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Sidebar;
+using Marrow.Core.Models;
+using Marrow.Testing;
+using Marrow.UI.Chrome;
+using Marrow.UI.Common;
+using Marrow.UI.Port;
+using Xunit;
+using static Marrow.App.Tests.Views.Sidebar.SidebarViewTests;
+
+namespace Marrow.App.Tests.Views.Sidebar;
+
+// ONE ThreadRowFace per row, updated in place (lead ruling 2026-10-04, from SidebarView.swift:1739-1743; ED-NEW-sidebar-leftovers (1)).
+// SwiftUI keeps the face under the row's identity and re-reads its inputs, so a thread, selection or merge-stage change that
+// lands while one of the face's animated properties is on its way (the trailing padding :2068, the title's weight :2041 and
+// opacity :2042, the project line's glyph :2055) leaves it on its way: the value drawn right after the change is the value
+// drawn right before it, it keeps easing to its end, and the face under the row is the same object. Each test starts one
+// property moving in the transaction SwiftUI would use, changes one input with NO transaction, and reads the property
+// before, right after and along the rest of the way. UI-SIDEBAR-020 (the settle pop) is not touched here and stays UNRESOLVED.
+[Collection("Headless")]
+public sealed class SidebarFaceInPlaceTests(HeadlessSession headless)
+{
+    // UI-SIDEBAR-017/021/022 (the row's face, the title's room and its accessories): a property on its way is not cut by the change
+    // of another input. One test per property so each carries the record that states that property.
+    [Theory]
+    [Trait("Req", "UI-SIDEBAR-017")]
+    [Trait("Req", "UI-SIDEBAR-021")]
+    [Trait("Req", "UI-SIDEBAR-022")]
+    [InlineData(FaceInput.Thread)]
+    [InlineData(FaceInput.Selection)]
+    [InlineData(FaceInput.MergeStage)]
+    public void A_change_of_an_input_mid_animation_leaves_the_trailing_padding_on_its_way_in_the_same_face(FaceInput input) => headless.OnUiThread(() => AssertStaysOnItsWay(FaceProperty.Padding, input));
+
+    // PR-SIDEBAR-065 :2041 the title's weight (medium when selected or unread).
+    [Theory]
+    [Trait("Req", "PR-SIDEBAR-065")]
+    [InlineData(FaceInput.Thread)]
+    [InlineData(FaceInput.Selection)]
+    [InlineData(FaceInput.MergeStage)]
+    public void A_change_of_an_input_mid_animation_leaves_the_titles_weight_on_its_way_in_the_same_face(FaceInput input) => headless.OnUiThread(() => AssertStaysOnItsWay(FaceProperty.Weight, input));
+
+    // PR-SIDEBAR-065 :2042 the title's opacity (1 selected, 0.92 otherwise). The selection is this property's own input: its mid-animation
+    // change is the next test.
+    [Theory]
+    [Trait("Req", "PR-SIDEBAR-065")]
+    [InlineData(FaceInput.Thread)]
+    [InlineData(FaceInput.MergeStage)]
+    public void A_change_of_an_input_mid_animation_leaves_the_titles_opacity_on_its_way_in_the_same_face(FaceInput input) => headless.OnUiThread(() => AssertStaysOnItsWay(FaceProperty.Opacity, input));
+
+    // PR-SIDEBAR-070 / UI-SIDEBAR-019 :2055 the project line's mark (folder, or the branch for a worktree).
+    [Theory]
+    [Trait("Req", "PR-SIDEBAR-070")]
+    [Trait("Req", "UI-SIDEBAR-019")]
+    [InlineData(FaceInput.Thread)]
+    [InlineData(FaceInput.Selection)]
+    [InlineData(FaceInput.MergeStage)]
+    public void A_change_of_an_input_mid_animation_leaves_the_project_lines_mark_on_its_way_in_the_same_face(FaceInput input) => headless.OnUiThread(() => AssertStaysOnItsWay(FaceProperty.Glyph, input));
+
+    private static void AssertStaysOnItsWay(FaceProperty property, FaceInput input)
+    {
+        using var rig = new ThreadFaceRig();
+        rig.Start(property);
+        rig.Tick(16);
+        ThreadRowFace face = null!;
+        double before = 0, end = 0;
+        rig.Harness.Main.OnMain(() =>
+        {
+            face = rig.Face();
+            before = rig.Read(property);
+            end = rig.End(property);
+            Assert.True(before != end && Math.Abs(before - end) > 0.01, $"{property} should be on its way ({before} of {end})");
+        });
+        rig.Change(input); // no transaction: a click, an edit of the record, a merge moving to its next stage
+        rig.Harness.Main.OnMain(() =>
+        {
+            rig.AssertTold(input);
+            Assert.Same(face, rig.Face()); // one face under the row, never rebuilt for an input
+            Assert.Equal(before, rig.Read(property)); // not cut: the value drawn is the value that was drawn
+        });
+        rig.Tick(16);
+        rig.Harness.Main.OnMain(() =>
+        {
+            var now = rig.Read(property);
+            Assert.NotEqual(end, now); // still on its way
+            Assert.True(Math.Abs(end - now) < Math.Abs(end - before), $"{property} should have moved towards {end} ({before} then {now})");
+        });
+        rig.Tick(2000);
+        rig.Harness.Main.OnMain(() => Assert.Equal(end, rig.Read(property))); // and it arrives
+    }
+
+    // UI-SIDEBAR-017 / PR-SIDEBAR-065: the selection IS the input of the weight and the opacity; when it is taken back inside an
+    // animation while the title is on its way up, the title turns round from where it stands (a retarget, not a restart).
+    [Theory]
+    [Trait("Req", "UI-SIDEBAR-017")]
+    [Trait("Req", "PR-SIDEBAR-065")]
+    [InlineData(FaceProperty.Weight)]
+    [InlineData(FaceProperty.Opacity)]
+    public void A_selection_taken_back_mid_animation_turns_the_title_round_from_where_it_stands(FaceProperty property) => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        rig.Harness.Main.OnMain(() => Transaction.WithAnimation(Chrome.Hover, () => rig.Model.SelectedThreadID = rig.Thread.Id));
+        rig.Tick(16);
+        double before = 0, start = 0, end = 0;
+        rig.Harness.Main.OnMain(() =>
+        {
+            before = rig.Read(property);
+            end = rig.End(property);
+            start = property == FaceProperty.Weight ? (int)FontWeight.Normal : Math.Round(rig.FullOpacityByte() * 0.92);
+            Assert.True(before > start + 0.5 && before < end - 0.5, $"{property} should be on its way up ({start} {before} {end})");
+        });
+        var face = rig.Face();
+        rig.Harness.Main.OnMain(() => Transaction.WithAnimation(Chrome.Hover, () => rig.Model.SelectedThreadID = null));
+        rig.Harness.Main.OnMain(() =>
+        {
+            Assert.Same(face, rig.Face());
+            Assert.Equal(before, rig.Read(property)); // neither snapped back to the start nor on to the end
+        });
+        rig.Tick(16);
+        rig.Harness.Main.OnMain(() => Assert.InRange(rig.Read(property), start, before - 0.5)); // now on its way back down
+        rig.Tick(2000);
+        rig.Harness.Main.OnMain(() => Assert.InRange(rig.Read(property), start - 1.5, start + 1.5)); // an alpha byte rounds
+    });
+
+    // The thread itself changes shape (an open thread settles, :2020 isSettled): the face's content is rebuilt INSIDE the same
+    // face and the animated values go on from where they stand.
+    [Theory]
+    [Trait("Req", "UI-SIDEBAR-017")]
+    [Trait("Req", "PR-SIDEBAR-065")]
+    [InlineData(FaceProperty.Weight)]
+    [InlineData(FaceProperty.Opacity)]
+    public void A_thread_that_settles_mid_animation_rebuilds_the_content_in_the_same_face_and_carries_the_titles_look_on(FaceProperty property) => headless.OnUiThread(() => AssertSettleCarries(property));
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")]
+    public void A_thread_that_settles_mid_animation_rebuilds_the_content_in_the_same_face_and_carries_the_padding_on() => headless.OnUiThread(() => AssertSettleCarries(FaceProperty.Padding));
+
+    private static void AssertSettleCarries(FaceProperty property)
+    {
+        using var rig = new ThreadFaceRig();
+        rig.Start(property);
+        rig.Tick(16);
+        ThreadRowFace face = null!;
+        double before = 0;
+        rig.Harness.Main.OnMain(() => { face = rig.Face(); before = rig.Read(property); });
+        rig.Harness.Main.OnMain(() => Transaction.WithAnimation(Chrome.PanelSlide, () => rig.Model.UpdateThread(rig.Thread.Id, t => t with { IsSettled = true })));
+        rig.Harness.Main.OnMain(() =>
+        {
+            Assert.Same(face, rig.Face());
+            Assert.Equal(12d, rig.Title().FontSize); // the settled layout is drawn (:2048)
+            Assert.Equal(before, rig.Read(property)); // the new content starts where the old one stood
+        });
+        rig.Tick(16);
+        rig.Harness.Main.OnMain(() => Assert.NotEqual(before, rig.Read(property))); // and moves on to the settled values
+    }
+
+    // The glyph: a crossfade in the transaction, a cut without one; a second swap while the first is half through fades the
+    // half-shown mark out from where it is.
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-070")]
+    public void A_worktree_change_crossfades_the_project_lines_mark_and_a_second_swap_mid_fade_fades_the_half_shown_one_from_where_it_stands() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        IEnumerable<SwiftImage> Marks() => LogicalQuery.SelfAndDescendants<SwiftImage>(rig.Face());
+        rig.Start(FaceProperty.Glyph);
+        rig.Tick(16);
+        double halfShown = 0;
+        rig.Harness.Main.OnMain(() =>
+        {
+            Assert.Equal("arrow.triangle.branch,folder", string.Join(",", Marks().Select(i => i.SymbolName).Order())); // both drawn while it fades
+            halfShown = Marks().Single(i => i.SymbolName == "arrow.triangle.branch").Opacity;
+            Assert.InRange(halfShown, 0.05, 0.95);
+            Assert.InRange(Marks().Single(i => i.SymbolName == "folder").Opacity, 0.05, 0.95);
+        });
+        rig.Harness.Main.OnMain(() => Transaction.WithAnimation(Chrome.Hover, () => rig.Model.UpdateThread(rig.Thread.Id, t => t with { WorktreePath = null })));
+        rig.Harness.Main.OnMain(() =>
+        {
+            // the branch fades out from halfShown; the folder that was leaving is replaced by a new one that rises from 0
+            Assert.Equal(halfShown, Marks().First(i => i.SymbolName == "arrow.triangle.branch").Opacity);
+        });
+        rig.Tick(16);
+        rig.Harness.Main.OnMain(() => Assert.True(Marks().First(i => i.SymbolName == "arrow.triangle.branch").Opacity < halfShown));
+        rig.Tick(2000);
+        rig.Harness.Main.OnMain(() =>
+        {
+            var only = Assert.Single(Marks());
+            Assert.Equal("folder", only.SymbolName);
+            Assert.Equal(1d, only.Opacity);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-070")]
+    public void A_worktree_change_in_no_transaction_replaces_the_mark_at_once() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        rig.Harness.Main.OnMain(() => rig.Model.UpdateThread(rig.Thread.Id, t => t with { WorktreePath = "C:\\wt" }));
+        rig.Harness.Main.OnMain(() =>
+        {
+            var only = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(rig.Face()));
+            Assert.Equal("arrow.triangle.branch", only.SymbolName);
+            Assert.Equal(1d, only.Opacity);
+        });
+    });
+
+    // The leading badge reads the thread it was built with (:2152-2166); the face builds it again exactly when what it
+    // reads changes, in the same face, and keeps it while only the title (or anything else the badge does not read) changes.
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-068")]
+    public void The_badge_of_a_compact_row_is_built_again_only_when_what_it_shows_changes_and_inside_the_same_face() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig(projectName: null);
+        ThreadRowFace face = null!;
+        Control badge = null!;
+        Control Leading() => LogicalQuery.SelfAndDescendants<ThreadBadge>(rig.Face()).Single();
+        rig.Harness.Main.OnMain(() => { face = rig.Face(); badge = Leading(); Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(badge), i => i.SymbolName == "pin.fill"); });
+        rig.Harness.Main.OnMain(() => rig.Model.UpdateThread(rig.Thread.Id, t => t with { Title = "Renamed" }));
+        rig.Harness.Main.OnMain(() =>
+        {
+            Assert.Same(face, rig.Face());
+            Assert.Same(badge, Leading()); // nothing the badge reads changed: the same badge
+            Assert.Equal("Renamed", LogicalQuery.SelfAndDescendants<TextBlock>(rig.Face()).First().Text);
+        });
+        rig.Harness.Main.OnMain(() => rig.Model.UpdateThread(rig.Thread.Id, t => t with { IsPinned = true }));
+        rig.Harness.Main.OnMain(() =>
+        {
+            Assert.Same(face, rig.Face());
+            Assert.NotSame(badge, Leading()); // pinned: the pin shows (:2159-2161)
+            Assert.Contains(LogicalQuery.SelfAndDescendants<SwiftImage>(Leading()), i => i.SymbolName == "pin.fill");
+        });
+    });
+}

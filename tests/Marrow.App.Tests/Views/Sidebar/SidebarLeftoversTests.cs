@@ -376,7 +376,6 @@ public sealed class SidebarLeftoversTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:2066-2071 `.padding(.leading, rowHorizontalPadding + (settled ? settledTitleInset : 0))`, `.padding(.trailing, rowHorizontalPadding + trailingClearance)`, `.padding(.vertical, detailed ? detailedVerticalPadding : 0)`, `.frame(minHeight: settled ? settledHeight : rowHeight)`
-    [Trait("Req", "PR-SIDEBAR-065")] // the same face
     [InlineData(false, null, 52d, 8d, 0d, 8d + 52, 28d)] // an open row in the project layout
     [InlineData(false, "Alpha", 18d, 8d, 7d, 8d + 18, 28d)] // a detailed activity row: 7 pt above and below, minimum 28 (the 48 pt fallback is the list's own estimate)
     [InlineData(true, null, 18d, 8d + 22, 0d, 8d + 18, 24d)] // a settled row: title inset 22, minimum 24
