@@ -2914,3 +2914,23 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // - PR-UPDATE-092, PR-WIN-115, UI-UPDATE-055 and UI-WIN-027: CommandPaletteTests.Choosing_the_welcome_tour_row_with_the_tour_open_...
 // - PR-WIN-092, PR-WIN-224 and UI-WIN-007: AppCommandsFinishTests.Ctrl_0_pressed_in_the_focused_Settings_window_...
 // - STOP #7 (AltGr) and #8 (overlapping chords, UNK-0003) are still open and are not clauses of these records.
+
+// Blitz review round (unit appcommands, 2026-10-04, after the adversarial review).
+// - PR-WIN-222, PR-WIN-224, PR-WIN-225 and UI-WIN-074 (the Shift half of the "+" key equivalent, French Shift with the 0 key):
+//   AppCommandsZoomTests.Read_by_Windows_Ctrl_Shift_equals_and_Ctrl_equals_zoom_in_... presses the chords in the production main
+//   and Settings windows over the production reader (Port/KeyboardLayoutText.cs) bound to the real US and French layouts
+//   (Fixtures/WindowsLayoutReaders.cs, ED-NEW-appcommands item 7). The mutant "the reader ignores Shift" (which every table-layout
+//   test let live) fails it, AppCommandsZoomTests.The_Windows_reader_over_the_US_German_and_French_layouts_... and
+//   AppCommandsReviewTests.REVIEW_the_Windows_layout_reader_applies_Shift.
+// - PR-WIN-115: CommandPaletteTests.The_welcome_tour_row_follows_settings_... now reads the row's id (welcome-tour, OD-0053); the
+//   mutant that renames the id fails it and AppCommandsReviewTests.REVIEW_the_welcome_tour_row_has_the_id_welcome_tour.
+// - French AZERTY by window: the main window is a ThreadWindow, whose digit monitor (ThreadWindow.swift:11-23) takes Ctrl with the
+//   key at the US "6" position (the key that types "-" there) before the menu, so Ctrl with it selects Thread 6 and does not zoom
+//   out; in the Settings and tour windows it reaches Zoom Out (:55-56) before Thread 6 (:95-98), so Thread 6 is not reachable
+//   there on that layout. ED-NEW-appcommands item 5 and the French test's comment said Zoom Out in every window, which was wrong
+//   for the main window; both are corrected and AppCommandsZoomTests.On_a_French_keyboard_Ctrl_with_the_key_that_types_a_minus_...
+//   presses it in both production windows.
+// - Test hygiene: AppCommandsFinishTests.The_palette_holds_only_the_source_actions_... and Ctrl_0_pressed_in_the_focused_Settings_window_...
+//   prove one clause of each record they name, so they are R-TEST-4 partials, no longer Req.
+// - STOP #7 (AltGr read as Ctrl+Alt, so Ctrl+Alt chords such as toggleActivityView are taken before a text box on layouts where
+//   AltGr with that key types a character) is pre-existing and still open; it needs an AltGr decision (ED or owner), not a test.

@@ -40,17 +40,10 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
     // ===== "no palette row": the source gives these commands none (CommandPalette.swift:153-178) =====
 
     [Fact]
-    [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25 (the source gives the command no palette row); Views/Palette/CommandPalette.swift:153-178
-    [Trait("Req", "PR-WIN-101")] // App/AppCommands.swift:48-51; Views/Palette/CommandPalette.swift:153-178
-    [Trait("Req", "PR-WIN-113")] // App/AppCommands.swift:103-105; Views/Palette/CommandPalette.swift:153-178
-    [Trait("Req", "PR-WIN-222")] // App/AppCommands.swift:53-54
-    [Trait("Req", "PR-WIN-223")] // App/AppCommands.swift:55-56
-    [Trait("Req", "PR-WIN-224")] // App/AppCommands.swift:57-58
-    [Trait("Req", "UI-WIN-007")] // App/AppCommands.swift:21-25
-    [Trait("Req", "UI-WIN-015")] // App/AppCommands.swift:48-51
-    [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:103-105
-    [Trait("Req", "UI-WIN-074")] // App/AppCommands.swift:53-54
-    [Trait("Req", "UI-WIN-077")] // App/AppCommands.swift:59-62
+    // Partial for PR-WIN-092, PR-WIN-101, PR-WIN-113, PR-WIN-222, PR-WIN-223, PR-WIN-224, UI-WIN-007, UI-WIN-015, UI-WIN-025,
+    // UI-WIN-074 and UI-WIN-077: only their "the source gives the command no palette row" clause (App/AppCommands.swift:21-25,
+    // :48-51, :53-62, :103-105; Views/Palette/CommandPalette.swift:153-178). Each record's other clauses are proved elsewhere.
+    [Trait("Rule", "R-TEST-4")]
     public void The_palette_holds_only_the_source_actions_so_the_show_main_zoom_activity_and_archive_prompt_commands_have_no_row() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness(h =>
@@ -448,9 +441,12 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25; Core/Models/Shortcuts.swift:233 (Command-0 is the showMainWindow default, key 29); App/Window/WindowManager.swift:57-63
-    [Trait("Req", "PR-WIN-224")] // App/AppCommands.swift:57-58; OD-0012 G6 (no default chord for showMainWindow)
-    [Trait("Req", "UI-WIN-007")] // App/AppCommands.swift:21-25; Core/Support/Text.swift:4; OD-0012 F1, G6
+    // Partial for PR-WIN-092, PR-WIN-224 and UI-WIN-007: the focused Settings window's Ctrl+0 zooms to 100 and does not front the
+    // hidden main window, and the show-main item's title and chord (App/AppCommands.swift:21-25, :57-58; Core/Models/Shortcuts.swift:233;
+    // Core/Support/Text.swift:4; OD-0012 F1, G6; App/Window/WindowManager.swift:57-63). Not proved here: PR-WIN-092's and UI-WIN-007's
+    // recorded-chord clause (the chord a user records for the item fronts the window, proved by the test above this one) and the
+    // other clauses of PR-WIN-224 (AppCommandsZoomTests.Read_by_Windows_...).
+    [Trait("Rule", "R-TEST-4")]
     public void Ctrl_0_pressed_in_the_focused_Settings_window_zooms_to_100_and_does_not_front_the_hidden_main_window() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
