@@ -50,6 +50,14 @@ public sealed class LookCard : Decorator
     public const double RowGap = 28;
 
     /// <summary>
+    /// LEAD RULING (rec-linebox, 2026-10-04; ED-NEW-rec-linebox (6)): the rows are Swift ChromeRows, which the Mac draws 58 tall (ED-290 (1),
+    /// 1-settings-tour.mov S 23.5 and S 194.0), so the rows are 58 and the card follows its content; the owner-approved board was drawn with
+    /// 54-point rows, so its other geometry is kept and only the row height changes: each control keeps the board's offset from its own row
+    /// top, the segments 13 (SPEC 2.3) and the Classic line 15 (SPEC 2.5), and the 4 extra points fall below them.
+    /// </summary>
+    public const double SegmentsTop = 13, LineTop = 15;
+
+    /// <summary>
     /// SPEC 2.3: each segment label's width on the board (Segoe UI Variable Text 12/500, canvas measure, rounded up). A
     /// segment is that + 22, and the fourth + 11 more for its chevron, so the control is the board's at every theme (298 at
     /// its widest, Catppuccin Mocha). The label is drawn in the port's type (Inter, OD-0009), centred with the chevron.
@@ -99,8 +107,8 @@ public sealed class LookCard : Decorator
         Signature = new SwatchLine(this, signature: true);
         More = Classic.More!;
         Fold = new SignatureFold(this, Signature);
-        ThemeRow = Row("Theme", Segments, ThemeDetail);
-        AccentRow = Row("Accent", Classic, AccentDetail);
+        ThemeRow = Row("Theme", Segments, ThemeDetail, SegmentsTop);
+        AccentRow = Row("Accent", Classic, AccentDetail, LineTop);
         var content = new StackPanel { Orientation = Orientation.Vertical, Children = { Mini, ThemeRow, new ChromeRowDivider(), AccentRow, Fold } };
         Card = new ChromeCard(() => content);
         Child = Card;
@@ -451,9 +459,12 @@ public sealed class LookCard : Decorator
         return size;
     }
 
-    private static ChromeRow Row(string title, Control control, CrossfadeText detail)
+    private static ChromeRow Row(string title, Control control, CrossfadeText detail, double controlTop)
     {
         var row = new ChromeRow(title, () => control, " ");
+        // The control at the board's offset from the row's top (LEAD RULING above), not centred in the taller row: the row's padding is 11.
+        control.VerticalAlignment = VerticalAlignment.Top;
+        control.Margin = new Thickness(0, controlTop - 11, 0, 0);
         // The row's own detail slot (ChromeRow: Border > Grid > the title and detail stack) takes the crossfading line.
         var grid = (Grid)((Border)row.Child!).Child!;
         var labels = (StackPanel)grid.Children[0];

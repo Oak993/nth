@@ -52,7 +52,8 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
         // SPEC 2.1: 520 wide; the mini window flush with the card's top, 12 in each side, 496 x 128. LEAD RULING (rec-linebox, 2026-10-04, ED-290 (1)):
         // the two rows are ChromeRows and follow parity, 58 like the Mac's ChromeRow (11 + body 18 + 2 + subheadline 16 + 11; 1-settings-tour.mov
         // S 23.5 and S 194.0), not SPEC 2.1's 54 (drawn in Inter's own boxes), and the card's height follows its content: 128 + 58 + 1 + 58 = 245 shut
-        // (SPEC 2.1's 237), 245 + the 36 fold = 281 open (273); a control centred in a row sits 2 lower.
+        // (SPEC 2.1's 237), 245 + the 36 fold = 281 open (273). The board's other geometry is kept: each control keeps the board's offset from
+        // its own row top (segments 13, the Classic line 15) and the Signature line opens at the fold's top.
         const double row = 58;
         Assert.Equal(520, card.Bounds.Width);
         Assert.Equal(new Rect(12, 0, 496, 128), In(card.Mini, card));
@@ -67,7 +68,7 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
         var segments = In(card.Segments, card);
         Assert.Equal(520 - Chrome.RowControlTrailingPadding, segments.Right);
         Assert.Equal(28, segments.Height);
-        Assert.Equal(128 + (row - 28) / 2, segments.Y);
+        Assert.Equal(128 + 13, segments.Y); // the board's 13 below the row top
         var widths = new double[] { 61, 50, 48, 106 };
         for (var i = 0; i < 4; i++)
         {
@@ -88,7 +89,7 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
         // SPEC 2.5: the Classic line 310 x 24, 15 below the row top, its right edge at the row's trailing padding; swatches
         // 24 on a 26 pitch; More 50 x 24 in the last two slots.
         var line = In(card.Classic, card);
-        Assert.Equal(new Rect(520 - 10 - 310, 128 + row + 1 + (row - 24) / 2, 310, 24), line);
+        Assert.Equal(new Rect(520 - 10 - 310, 128 + row + 1 + 15, 310, 24), line); // the board's 15 below the row top
         for (var i = 0; i < 10; i++) Assert.Equal(new Rect(26 * i, 0, 24, 24), card.Classic.Swatches[i].Bounds);
         Assert.Equal(new Rect(260, 0, 50, 24), card.More.Bounds);
 
@@ -100,7 +101,7 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
         var signature = In(card.Signature, card);
         Assert.Equal(line.X, signature.X);
         Assert.Equal(line.Right, signature.Right);
-        Assert.Equal(line.Bottom + (row - 24) / 2, signature.Y); // the fold opens at the row's bottom: 15 in SPEC 2.6's 54-point row, 17 in the 58-point one
+        Assert.Equal(128 + row + 1 + row, signature.Y); // at the fold's top, the Accent row's bottom (SPEC 2.6: 15 below the Classic line in the 54-point row, 19 in the 58-point one)
         for (var j = 0; j < 12; j++) Assert.Equal(new Rect(26 * j, 0, 24, 24), card.Signature.Swatches[j].Bounds);
         var label = In(card.Fold.Label, card);
         Assert.Equal(16, label.X);

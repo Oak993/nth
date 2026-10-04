@@ -20,6 +20,11 @@ namespace Marrow.App.Tests.Port;
 // (rebuilt row by row from the window colour either side of the card, since the board's glass stands in for the port's,
 // SPEC 3.3), and compared pixel by pixel. The type differs by ruling (the port draws Inter, OD-0009; the board Segoe UI
 // Variable), so the text-free parts are held to the board exactly and the whole card is measured and reported.
+// LEAD RULING (rec-linebox, 2026-10-04, ED-NEW-rec-linebox (6)): the card's two rows are ChromeRows, 58 tall as the Mac draws them
+// (ED-290 (1), S 23.5 and S 194.0), where the board drew them 54; the board's other geometry is kept. So the card is cropped at its own
+// height (245 shut, 281 open) and compared with the still row by row: the mini window, each row and the fold are each read from their own
+// top in the port and in the board, so a row's content is held at the board's offset from that row's top and only the 4 extra points at
+// each row's foot are not compared.
 [Collection("Headless")]
 public sealed class LookCardRenderTests(HeadlessSession headless) : LookCardFixture(headless)
 {
@@ -101,21 +106,27 @@ public sealed class LookCardRenderTests(HeadlessSession headless) : LookCardFixt
                 // Regions in window coordinates (the board's), the card's parts found in the port's own layout.
                 var mini = In(card.Mini, card);
                 var line = In(card.Classic, card);
-                var regions = new List<(string Name, int X, int Y, int W, int H)>
+                // (name, x, the board's y, the port's y, width, height): the board's rows are 54, the port's 58 (LEAD RULING above).
+                const int BoardRow = 54;
+                var themeTop = (int)Math.Round(In(card.ThemeRow, card).Y); var accentTop = (int)Math.Round(In(card.AccentRow, card).Y);
+                Assert.Equal(open ? 281 : 245, height); // the card follows its content: 128 + 58 + 1 + 58 (+ 36)
+                var regions = new List<(string Name, int X, int BoardY, int PortY, int W, int H)>
                 {
-                    ("card", CardX, CardY, CardWidth, Math.Min(height, open ? 273 : 237)),
-                    ("mini window", CardX + 12, CardY, 496, 128),
+                    ("mini window", CardX + 12, CardY, CardY, 496, 128),
+                    ("theme row", CardX, CardY + 128, CardY + themeTop, CardWidth, BoardRow),
+                    ("accent row", CardX, CardY + 128 + BoardRow + 1, CardY + accentTop, CardWidth, BoardRow),
                 };
+                if (open) regions.Add(("fold", CardX, CardY + 128 + 2 * BoardRow + 1, CardY + accentTop + (int)Math.Round(card.AccentRow.Bounds.Height), CardWidth, 36));
                 var metrics = new Dictionary<string, object>();
                 var means = new Dictionary<string, double>();
                 foreach (var region in regions)
                 {
                     double sum = 0; var within8 = 0; var n = 0;
-                    for (var y = region.Y; y < region.Y + region.H; y++)
+                    for (var dy = 0; dy < region.H; dy++)
                         for (var x = region.X; x < region.X + region.W; x++)
                         {
-                            var a = At(reference, x, y);
-                            var (px, py) = P(x, y);
+                            var a = At(reference, x, region.BoardY + dy);
+                            var (px, py) = P(x, region.PortY + dy);
                             var b = At(port, px, py);
                             var d = (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B)) / 3.0;
                             sum += d; n++; if (d <= 8) within8++;
@@ -141,6 +152,7 @@ public sealed class LookCardRenderTests(HeadlessSession headless) : LookCardFixt
                 for (var i = 0; i < 10; i++) Dot(card.Classic, i, 436 + 26 * i + 12, 287 + 12);
                 if (open) for (var j = 0; j < 12; j++) Dot(card.Signature, j, 436 + 26 * j + 12, 326 + 12);
                 metrics["dots"] = dots;
+                metrics["card"] = new { meanAbs = Math.Round(regions.Sum(r => means[r.Name] * r.W * r.H) / regions.Sum(r => (double)r.W * r.H), 2) }; // the rows together
                 metrics["worstDot"] = worst;
                 metrics["geometry"] = new
                 {
@@ -179,6 +191,11 @@ public sealed class LookCardRenderTests(HeadlessSession headless) : LookCardFixt
                 Assert.True(landmarkWorst <= 3, $"{appearance} {still}: a mini window landmark differs: {summary}");
                 // Every swatch dot is the board's colour.
                 Assert.True(worst <= 3, $"{appearance} {still}: a swatch dot differs: {summary}");
+                // Each row's content at the board's offset from its own row top (SPEC 2.3 the segments 13, SPEC 2.5 the Classic line 15), the
+                // Signature line at the fold's top (SPEC 2.6), not moved by the taller rows.
+                Assert.Equal(13, In(card.Segments, card).Y - themeTop);
+                Assert.Equal(15, line.Y - accentTop);
+                if (open) Assert.Equal(accentTop + card.AccentRow.Bounds.Height, In(card.Signature, card).Y);
                 // The swatch line: 310 x 24, its right edge at the card's right less the port's row padding (10).
                 Assert.Equal(new Rect(CardWidth - 10 - 310, line.Y, 310, 24), line);
             }
