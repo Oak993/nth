@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App;
@@ -186,11 +187,13 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
         {
             var attached = StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount");
             Assert.Equal(1, attached);
+            Assert.Equal(1, RealEscapeSubscriptions(session)); // the view's own KeyDown subscriptions, not the host's counter
             var originalRoot = Assert.IsType<Border>(window.Content);
             originalRoot.Child = null;
             window.Content = null;
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(0, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+            Assert.Equal(0, RealEscapeSubscriptions(session)); // :202-204 the monitor is really removed from the view
 
             // Reattaching the same session creates one fresh scoped listener, never an accumulating document listener.
             var root = new Border { Child = host };
@@ -200,6 +203,7 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
             window.Show();
             Settle(window);
             Assert.Equal(1, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+            Assert.Equal(1, RealEscapeSubscriptions(session));
             Assert.True(UiPump.Until(() => TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId),
                 TimeSpan.FromSeconds(15)), "the ConPTY shell did not reach its prompt");
             Assert.True(session.View.Focus());
@@ -221,6 +225,14 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
         var (host, _, window) = rig.Show(directory, 600, 300);
         var sessions = rig.App.Terminals.Sessions(rig.Thread.Id).ToArray();
         Assert.Equal(baseline + 1, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+        // The host's counter is its own bookkeeping; what proves the removal is what the views really carry. Exactly one
+        // monitor exists, on the hosted session's view, and none on a view whose host was released.
+        void AssertOneMonitorOn(TerminalSession hosted)
+        {
+            foreach (var session in sessions)
+                Assert.Equal(session.Id == hosted.Id ? 1 : 0, RealEscapeSubscriptions(session));
+        }
+        AssertOneMonitorOn(rig.App.Terminals.Selected(rig.Thread.Id)!);
 
         // :60 .id(selected.id): every selection change makes a new host and releases the old one, so the count never grows.
         for (var turn = 0; turn < 6; turn++)
@@ -229,6 +241,7 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
             rig.Step(() => rig.App.Terminals.Selection = rig.App.Terminals.Selection.Mutating(map => map[rig.Thread.Id] = next.Id));
             Assert.Equal(next.Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id);
             Assert.Equal(baseline + 1, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+            AssertOneMonitorOn(next);
         }
 
         // A tap on a tab switches the same way.
@@ -239,20 +252,28 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
         rig.Step(() => window.MouseUp(at, MouseButton.Left, RawInputModifiers.None));
         Assert.Equal(sessions[0].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id);
         Assert.Equal(baseline + 1, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+        AssertOneMonitorOn(sessions[0]);
 
         // Closing the selected tab hosts another session, still one listener; closing the others leaves the empty state.
         rig.Step(() => rig.App.Terminals.Close(sessions[0]));
         Assert.Equal(baseline + 1, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+        Assert.Equal(0, RealEscapeSubscriptions(sessions[0]));
+        Assert.Equal(1, sessions.Sum(RealEscapeSubscriptions));
         rig.Step(() => rig.App.Terminals.Close(sessions[1]));
         Assert.Equal(baseline + 1, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+        Assert.Equal(1, sessions.Sum(RealEscapeSubscriptions));
         rig.Step(() => rig.App.Terminals.Close(sessions[2]));
         Assert.Empty(LogicalQuery.SelfAndDescendants<TerminalHost>(host));
         Assert.Equal(baseline, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount")); // no hosted session, no monitor
+        Assert.Equal(0, sessions.Sum(RealEscapeSubscriptions));
 
         rig.Step(() => rig.App.Terminals.Open(rig.Thread.Id, directory));
         Assert.Equal(baseline + 1, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+        var reopened = rig.App.Terminals.Sessions(rig.Thread.Id).Single();
+        Assert.Equal(1, RealEscapeSubscriptions(reopened));
         rig.Close(window); // the drawer is gone: the host is destroyed
         Assert.Equal(baseline, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+        Assert.Equal(0, RealEscapeSubscriptions(reopened));
     });
 
     [Fact]
@@ -321,9 +342,24 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
         WithAttachedHost("resize sustained", null, (session, host, window, resize, _) =>
         {
             var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
-            BeginWin32Resize(resize);
-            var syncedAt = new List<TimeSpan>();
+            var view = (Control)session.View;
             var clock = System.Diagnostics.Stopwatch.StartNew();
+            // The timings are taken where they happen, not when the polling loop below notices them: a beat starts when
+            // the container asks for its 50 ms delay (inside the layout pass that scheduled it), and the sync lands when
+            // the hosted view's frame really changes (inside the container's SyncFrame).
+            var beatStartedAt = new List<TimeSpan>();
+            container.BeatDelay = (duration, cancellation) =>
+            {
+                beatStartedAt.Add(clock.Elapsed);
+                return Task.Delay(duration, cancellation);
+            };
+            var syncedAt = new List<(TimeSpan At, Size Size)>();
+            EventHandler<AvaloniaPropertyChangedEventArgs> frameChanged = (_, change) =>
+            {
+                if (change.Property == Visual.BoundsProperty) syncedAt.Add((clock.Elapsed, view.Bounds.Size));
+            };
+            view.PropertyChanged += frameChanged;
+            BeginWin32Resize(resize);
             foreach (var width in new double[] { 700, 760, 820, 880 })
             {
                 var before = IntMetric(container, "SyncFrameCount");
@@ -340,12 +376,25 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
                 }
                 // :296 pendingSync = nil: the beat cleared itself, so each layout pass got a new beat and a new sync.
                 Assert.Equal(before + 1, IntMetric(container, "SyncFrameCount")); // exactly one sync per beat
-                syncedAt.Add(clock.Elapsed);
-                Assert.Equal(new Size(width, window.Height), ((Control)session.View).Bounds.Size);
+                Assert.Equal(new Size(width, window.Height), view.Bounds.Size);
             }
-            for (var i = 1; i < syncedAt.Count; i++)
-                Assert.True(syncedAt[i] - syncedAt[i - 1] >= TimeSpan.FromMilliseconds(35),
-                    $"beat {i} synced only {(syncedAt[i] - syncedAt[i - 1]).TotalMilliseconds} ms after the one before");
+            Assert.True(syncedAt.Count == 4, string.Join(";", syncedAt.Select(x => x.Size))); // the hosted frame changed once per beat, nowhere else
+            for (var i = 0; i < 4; i++)
+            {
+                Assert.Equal(new Size(new double[] { 700, 760, 820, 880 }[i], window.Height), syncedAt[i].Size);
+                // The beat that fired a sync is the last one started before it. A beat can already be pending when the
+                // next layout pass of the drag arrives (that pass then starts none, :293), but a beat never starts while
+                // the previous one is still pending: it starts at or after the previous sync (:296 pendingSync = nil).
+                var firedBy = beatStartedAt.Last(start => start <= syncedAt[i].At);
+                Assert.True(syncedAt[i].At - firedBy >= TimeSpan.FromMilliseconds(35),
+                    $"sync {i} landed only {(syncedAt[i].At - firedBy).TotalMilliseconds} ms after its beat started");
+                if (i > 0)
+                {
+                    Assert.True(firedBy >= syncedAt[i - 1].At, $"the beat of sync {i} started before sync {i - 1} had landed");
+                    Assert.True(syncedAt[i].At - syncedAt[i - 1].At >= TimeSpan.FromMilliseconds(35),
+                        $"sync {i} landed only {(syncedAt[i].At - syncedAt[i - 1].At).TotalMilliseconds} ms after the one before");
+                }
+            }
 
             // Twenty layout passes inside about 300 ms: a beat is never restarted by a pass, so at most 6 or 7 beats land.
             var syncsBefore = IntMetric(container, "SyncFrameCount");
@@ -856,6 +905,33 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
         var field = instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(field);
         return field;
+    }
+
+    // The KeyDown subscriptions that a TerminalHost really holds on the session's view, read from Avalonia's own handler
+    // table (not from the host's bookkeeping counter): it finds the table by its type, so a changed layout fails loudly.
+    private static int RealEscapeSubscriptions(TerminalSession session)
+    {
+        var table = typeof(Interactive)
+            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Where(field => field.FieldType.IsGenericType
+                && field.FieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>)
+                && field.FieldType.GetGenericArguments()[0] == typeof(RoutedEvent))
+            .ToArray();
+        Assert.Single(table);
+        var handlers = table[0].GetValue(session.View) as System.Collections.IDictionary;
+        if (handlers is null || !handlers.Contains(InputElement.KeyDownEvent)) return 0;
+        var count = 0;
+        foreach (var subscription in (System.Collections.IEnumerable)handlers[InputElement.KeyDownEvent]!)
+        {
+            var delegates = subscription.GetType()
+                .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Where(field => typeof(Delegate).IsAssignableFrom(field.FieldType))
+                .Select(field => field.GetValue(subscription) as Delegate)
+                .ToArray();
+            Assert.NotEmpty(delegates);
+            if (delegates.Any(handler => handler?.Target is TerminalHost)) count++;
+        }
+        return count;
     }
 
     private static int RealResizeSubscribers(WindowLiveResize resize)

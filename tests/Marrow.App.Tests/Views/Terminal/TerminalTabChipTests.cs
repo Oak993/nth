@@ -191,8 +191,9 @@ public sealed class TerminalTabChipTests(HeadlessSession headless)
     // chip, extracted frame work/reference-video/frames/w-2-chat-use-132.0/termL_132.15-134.95/000040.png (640 x 300, 1 px = 1 pt).
     // Measured on that frame: panel luminance 19, capsule fill luminance 36, chip 113 px wide (x 22..134) and 27 px tall, title ink
     // 56 px wide with peak 222, close cross ink 8 px wide with peak 166, glyph ink 9 px wide. The face and the glyph art differ
-    // by decision (OD-0009 Inter for SF, OD-0010 Lucide for SF Symbols), which is why the chip is 2 px shorter here (Inter's
-    // callout line is 15 px against SF's 16, plus rounding) and the glyph peaks differ; every other number must agree.
+    // by decision (OD-0009 Inter for SF, OD-0010 Lucide for SF Symbols) and the glyph peaks differ; every other number must
+    // agree. The chip is 2 px shorter here and the CAUSE IS UNRESOLVED: Inter's callout line at 15 px against SF's 16 would
+    // give a 26 px chip against the frame's 27, so it does not account for the gap. Size parity stays UNVERIFIED (OD-0001).
     private static Func<int, int, int> Luminance(TopLevel window)
     {
         Dispatcher.UIThread.RunJobs();
