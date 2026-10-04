@@ -1,8 +1,10 @@
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using System.Security.Cryptography;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Tests.Views.Settings;
@@ -52,5 +54,32 @@ internal static class MarrowLogoCheck
         Near("mint arm", At(U(316.22), U(762.59)), 0x74, 0xF2, 0xD0);
         var navy = At(U(828), U(828));
         Assert.True(navy.A >= 250 && navy.R < 40 && navy.G < 40 && navy.B < 64, $"navy tile: got ({navy.R},{navy.G},{navy.B})");
+    }
+    /// <summary>NSApp.applicationIconImage sites (RootView.swift:307, NewThreadPrompt.swift:17, AboutUpdateViews.swift:554, SettingsView.swift:971):
+    /// a plain Image whose Source is the packaged app icon bitmap, Assets/icon.png with its margin (OD-0015 / OD-0033), the
+    /// same source the About identity pill draws.</summary>
+    public static void AssertIsTheAppIconImage(Control control, double size)
+    {
+        var image = Assert.IsType<Image>(control);
+        Assert.Equal(size, image.Width); Assert.Equal(size, image.Height);
+        Assert.Equal(Stretch.Uniform, image.Stretch);
+        Assert.Equal(BitmapInterpolationMode.HighQuality, RenderOptions.GetBitmapInterpolationMode(image));
+        var source = Assert.IsAssignableFrom<Bitmap>(image.Source);
+        using var resource = AssetLoader.Open(new Uri("avares://Marrow.App/Assets/icon.png"));
+        using var copy = new MemoryStream(); resource.CopyTo(copy);
+        Assert.Equal("52D605D7B064BC0B1BD4460600AB65E0280280391FDCD00D021F14F00E727A60", Convert.ToHexString(SHA256.HashData(copy.ToArray())));
+        copy.Position = 0;
+        using var approved = new Bitmap(copy);
+        Assert.Equal(approved.PixelSize, source.PixelSize);
+        Assert.Equal(Pixels(approved), Pixels(source));
+    }
+
+    private static byte[] Pixels(Bitmap bitmap)
+    {
+        var size = bitmap.PixelSize; var bytes = new byte[size.Width * size.Height * 4];
+        var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+        try { bitmap.CopyPixels(new PixelRect(size), handle.AddrOfPinnedObject(), bytes.Length, size.Width * 4); }
+        finally { handle.Free(); }
+        return bytes;
     }
 }
