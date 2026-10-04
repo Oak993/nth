@@ -665,13 +665,27 @@ public sealed class ProcessLauncherTests
         foreach (var forbidden in (string[])["Process.Start", "ProcessStartInfo", "UseShellExecute"])
             Assert.DoesNotContain(forbidden, launcher, StringComparison.Ordinal);
         var separator = Path.DirectorySeparatorChar;
+        // The one exemption (lead ruling, ED-309): the skills shim puts ITSELF into its kill-on-close job before
+        // it starts any child, so no child ever runs outside the job; the window this scan guards against cannot exist
+        // there. The exemption covers only AssignProcessToJobObject in that one file, and only on the current process.
+        var shimLifetime = Path.Join(root, "src", "Marrow.Services", "Port", "Skills", "Shims", "WindowsShimLifetime.cs");
         foreach (var file in Directory.EnumerateFiles(Path.Join(root, "src"), "*.cs", SearchOption.AllDirectories)
                      .Where(f => !f.Contains($"{separator}obj{separator}", StringComparison.Ordinal)
                               && !f.Contains($"{separator}bin{separator}", StringComparison.Ordinal)))
         {
             var text = File.ReadAllText(file);
+            var isShimLifetime = string.Equals(Path.GetFullPath(file), Path.GetFullPath(shimLifetime), StringComparison.OrdinalIgnoreCase);
             foreach (var forbidden in (string[])["AssignProcessToJobObject", "CREATE_SUSPENDED", "ResumeThread"])
+            {
+                if (isShimLifetime && forbidden == "AssignProcessToJobObject") continue;
                 Assert.False(text.Contains(forbidden, StringComparison.Ordinal), $"{file} contains {forbidden}");
+            }
+            if (isShimLifetime)
+            {
+                Assert.Contains("AssignProcessToJobObject(created, Process.GetCurrentProcess().Handle)", text, StringComparison.Ordinal);
+                Assert.DoesNotContain("CreateProcess", text, StringComparison.Ordinal);
+                Assert.DoesNotContain("Process.Start", text, StringComparison.Ordinal);
+            }
         }
     }
 

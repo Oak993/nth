@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PublishAot>true</PublishAot>
+    <StripSymbols>true</StripSymbols>
+  </PropertyGroup>
+  <!-- SK-6: same BCL-only implementation in Services and standalone AOT launcher. -->
+  <ItemGroup><Compile Include="..\Marrow.Services\Port\Skills\Shims\*.cs" Link="Shims\%(Filename)%(Extension)" /></ItemGroup>
+</Project>

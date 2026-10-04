@@ -1,0 +1,14 @@
+Test run for /workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.20]     Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit [SKIP]
+[xUnit.net 00:00:00.25]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:00.25]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:00.25]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:00.25]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object [1 ms]
+
+Passed!  - Failed:     0, Passed:    13, Skipped:     5, Total:    18, Duration: 1 s - Marrow.Shim.OfflineTests.dll (net10.0)
