@@ -35,7 +35,40 @@ public sealed class MissingProgramTests
         Assert.Equal(["T4"], DetectFixtures.Offered(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("pdftoppm -png a.pdf out", 9009, "„pdftoppm“ nie rozpoznano", false))));
         Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("pdftoppm -png a.pdf out", 9009, "", false)).Findings);
         Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("pdftoppm -png a.pdf out", 9009, "something else failed", false)).Findings);
-        Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("pdftoppm -png a.pdf out", 1, "'pdftoppm' is not recognized as an internal or external command", false)).Findings);
+    }
+
+    // Recorded on Windows 11 10.0.26200 (en-US), 2026-10-04: cmd sets ERRORLEVEL 9009 inside, but the PROCESS exit code of cmd /c with a missing program is 1.
+    // That is what a provider sees: node's child_process.exec and spawnSync({shell:true}), Python's subprocess.run(shell=True) and cmd /c directly all gave 1 with
+    // this text on stderr. So cmd's English sentence names the program whatever the exit code (the program must still be a token of the command).
+    public const string CmdNotRecognizedRecorded = "'soffice' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n";
+
+    [Fact]
+    [Trait("Feature", "SK-10")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Cmd_reports_a_missing_program_with_process_exit_code_1_and_the_English_sentence_names_it()
+    {
+        Assert.Equal(["T3"], DetectFixtures.Offered(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("soffice --headless --convert-to pdf report.docx", 1, CmdNotRecognizedRecorded, false))));
+        Assert.Equal(["T3"], DetectFixtures.Offered(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("\"C:\\Program Files\\LibreOffice\\program\\soffice.exe\" --headless a.docx", 1,
+            "'\"C:\\Program Files\\LibreOffice\\program\\soffice.exe\"' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n", false))));
+        Assert.Equal(["T4"], DetectFixtures.Offered(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("pdftoppm -png a.pdf out", 1, "'pdftoppm' is not recognized as an internal or external command", false))));
+        // The sentence still has to name a token of the command, and a command that succeeded never signals.
+        Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("bash run.sh", 1, CmdNotRecognizedRecorded, false)).Findings);
+        Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("soffice --headless a.docx", 0, CmdNotRecognizedRecorded, false)).Findings);
+    }
+
+    // Recorded on the same PC: Windows PowerShell 5.1, powershell -NoProfile -Command 'node -v; frobnicate x', exit code 1, stdout and stderr together. The error
+    // record echoes the source line ("+ node -v; frobnicate x"), so every word of the output also holds the programs that ran fine.
+    public const string PowerShellEchoRecorded =
+        "v24.14.1\r\nfrobnicate : The term 'frobnicate' is not recognized as the name of a cmdlet, function, script file, or operable \r\nprogram. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\r\nAt line:1 char:10\r\n+ node -v; frobnicate x\r\n+          ~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (frobnicate:String) [], CommandNotFoundException\r\n    + FullyQualifiedErrorId : CommandNotFoundException\r\n \r\n";
+
+    [Fact]
+    [Trait("Feature", "SK-10")]
+    [Trait("Rule", "R-TEST-4")]
+    public void PowerShell_names_only_the_program_of_its_CategoryInfo_not_the_programs_of_the_echoed_line()
+    {
+        Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("node -v; frobnicate x", 1, PowerShellEchoRecorded, false)).Findings);
+        var soffice = PowerShellEchoRecorded.Replace("frobnicate x", "soffice a.docx", StringComparison.Ordinal).Replace("frobnicate", "soffice", StringComparison.Ordinal);
+        Assert.Equal(["T3"], DetectFixtures.Offered(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("node -v; soffice a.docx", 1, soffice, false))));
     }
 
     [Fact]
