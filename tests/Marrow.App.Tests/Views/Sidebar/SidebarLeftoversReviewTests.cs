@@ -232,4 +232,50 @@ public sealed class SidebarLeftoversReviewTests(HeadlessSession headless)
         Assert.Equal("500->500", drawn[^1]); // at rest on Inter Medium: the reads are the right ones
         Assert.All(drawn, entry => Assert.True(entry.EndsWith("->400", StringComparison.Ordinal) || entry.EndsWith("->500", StringComparison.Ordinal), string.Join(", ", drawn)));
     });
+
+    // Round 2 coverage (mutants of c62d754a9 that survived the Sidebar namespace). PR-SIDEBAR-068/069, SidebarView.swift
+    // :2166-2172: the compact row's badge carries the unread dot, danger after a failed turn and accent otherwise. The face
+    // rebuilds the badge only when its key changes; dropping HasUnread from that key left a live row that turns unread
+    // without its dot, and no test saw it.
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-068")]
+    [Trait("Req", "UI-SIDEBAR-018")]
+    public void A_live_compact_row_that_turns_unread_shows_the_dot_and_its_colour_follows_the_last_status() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig(projectName: null);
+        Avalonia.Controls.Shapes.Ellipse? Dot() => LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(LogicalQuery.SelfAndDescendants<ThreadBadge>(rig.Face()).Single()).SingleOrDefault();
+        rig.Harness.Main.OnMain(() => Assert.Null(Dot()));
+        rig.Harness.Main.OnMain(() => rig.Model.UpdateThread(rig.Thread.Id, t => t with { HasUnread = true, LastStatus = TurnStatus.Completed }));
+        rig.Harness.Main.OnMain(() => Assert.Equal(Chrome.Accent.Resolve(rig.Row.ActualThemeVariant), ((ISolidColorBrush)Dot()!.Fill!).Color));
+        rig.Harness.Main.OnMain(() => rig.Model.UpdateThread(rig.Thread.Id, t => t with { LastStatus = TurnStatus.Failed }));
+        rig.Harness.Main.OnMain(() => Assert.Equal(Chrome.Danger.Resolve(rig.Row.ActualThemeVariant), ((ISolidColorBrush)Dot()!.Fill!).Color));
+        rig.Harness.Main.OnMain(() => rig.Model.UpdateThread(rig.Thread.Id, t => t with { HasUnread = false }));
+        rig.Harness.Main.OnMain(() => Assert.Null(Dot()));
+    });
+
+    // c62d754a9's SettleGlyph: "a crossfade the tree left does not stay half drawn" (the scalars stop on detach). A row that
+    // leaves the tree mid-crossfade and comes back shows the new mark alone and whole; a mutant that kept both survived.
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-070")]
+    public void A_row_that_leaves_the_tree_mid_crossfade_comes_back_with_the_new_mark_alone_and_whole() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        rig.Start(FaceProperty.Glyph);
+        rig.Tick(16);
+        rig.Harness.Main.OnMain(() => Assert.Equal(2, LogicalQuery.SelfAndDescendants<SwiftImage>(rig.Face()).Count())); // half way
+        rig.Harness.Main.OnMain(() =>
+        {
+            var host = (Border)rig.Row.Parent!;
+            host.Child = null; // out of the tree (scrolled away, the list rebuilt)
+            host.Child = rig.Row;
+            rig.Window.UpdateLayout();
+        });
+        rig.Tick(16);
+        rig.Harness.Main.OnMain(() =>
+        {
+            var only = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(rig.Face()));
+            Assert.Equal("arrow.triangle.branch", only.SymbolName);
+            Assert.Equal(1d, only.Opacity);
+        });
+    });
 }
