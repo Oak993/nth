@@ -72,6 +72,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:65-104; Core/Models/Provider.swift:268-282 chipName
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void The_full_chip_orders_mark_name_effort_chevron_five_points_apart() => headless.OnUiThread(() =>
     {
         using var rig = Make(_ => Chat("m1", "high"));
@@ -102,6 +103,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:77-80 `if thread.fastMode, current?.supportsFast == true`
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void A_yellow_bolt_sits_between_the_mark_and_the_name_only_when_fast_mode_is_on_and_supported() => headless.OnUiThread(() =>
     {
         using (var rig = Make(_ => Chat("m1", "high", fast: true)))
@@ -122,6 +124,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:94-99 `if let current, !current.efforts.isEmpty`
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void A_model_without_efforts_shows_no_effort_text() => headless.OnUiThread(() =>
     {
         using var rig = Make(_ => Chat("m3", null));
@@ -133,6 +136,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:66-75,90 the pair's fused mark at 15 and the pair's own name
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void A_pair_chat_wears_the_fused_mark_at_15_and_the_pairs_custom_name() => headless.OnUiThread(() =>
     {
         var pair = new HydraPair(ProviderKind.Codex) { Name = "Duo Team" };
@@ -148,6 +152,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:90 `current?.chipName ?? thread.model ?? thread.provider.displayName`
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void Without_a_catalogue_entry_the_chip_names_the_raw_model_id_then_the_provider() => headless.OnUiThread(() =>
     {
         using (var rig = Make(_ => Chat("an-unlisted-id", null)))
@@ -163,6 +168,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:82-103 `if !compact`; :65 HStack(spacing: 5): no gap around a lone child
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void The_compact_chip_is_the_mark_alone_14_wide_and_the_bolt_five_points_after_it() => headless.OnUiThread(() =>
     {
         using (var rig = Make(_ => Chat("m1", "high"), compact: true))
@@ -185,6 +191,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:118-119,142-149 helpText: shortName, effort title, pair title, joined by " · "
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     [InlineData(false)]
     [InlineData(true)]
     public void The_tooltip_and_accessible_name_join_short_name_effort_and_pair_title(bool compact) => headless.OnUiThread(() =>
@@ -200,6 +207,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:142-149 helpText without an effort level or a pair
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void The_tooltip_has_only_the_parts_there_are() => headless.OnUiThread(() =>
     {
         using (var rig = Make(_ => Chat("m3", null), compact: true))
@@ -212,10 +220,42 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
             Assert.Equal($"{LongName} · Medium", ToolTip.GetTip(rig.Button)); // no effort on the thread: the model's default
     });
 
+    // ---- UI-COMPOSER-012: the chip's own typography and its label while the popover is open -------------------------------------
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:89-97; UI/Common/Components.swift:71 `.font(.callout)`: the name and the effort are 12 point (ED-059), set in Inter (OD-0009)
+    public void The_name_and_the_effort_are_the_callout_12_point_in_the_apps_face() => headless.OnUiThread(() =>
+    {
+        using var rig = Make(_ => Chat("m1", "high"));
+        foreach (var text in new[] { rig.Text("Opus 5"), rig.Text("High") })
+        {
+            Assert.Equal(12, text.FontSize); // .callout from the chip's button style (Components.swift:71): 12 point at the macOS default
+            Assert.Equal(new FontFamily("fonts:Inter#Inter"), text.FontFamily); // OD-0009
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:50-57,105-117 "The label never swaps to something like 'Select effort' while open, because that would resize the chip under the popover's own arrow"
+    public void The_label_is_the_same_text_before_while_and_after_the_popover_is_open() => headless.OnUiThread(() =>
+    {
+        using var rig = Make(_ => Chat("m1", "high"));
+        string[] Labels() => rig.Texts.Select(t => t.Text!).OrderBy(t => t, StringComparer.Ordinal).ToArray();
+        var before = Labels();
+        Assert.Equal(["High", "Opus 5"], before);
+        rig.Click();
+        Assert.True(rig.Presenter.Calls[^1].Presented);
+        Assert.Equal(before, Labels()); // the open chip still reads the model and the effort, never a prompt
+        Assert.DoesNotContain(rig.Texts, t => t.Text is { } s && s.Contains("Select", StringComparison.OrdinalIgnoreCase));
+        rig.Click();
+        Assert.False(rig.Presenter.Calls[^1].Presented);
+        Assert.Equal(before, Labels());
+    });
+
     // ---- PR-COMPOSER-108: the width held while the popover is open -------------------------------------------------------
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-108")] // App/Views/Composer/EffortSlider.swift:50-57,105-117
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void A_held_chip_keeps_the_width_it_opened_at_and_centres_shorter_content() => headless.OnUiThread(() =>
     {
         using var rig = Make(_ => Chat("m1", "xhigh")); // "Opus 5  Extra High v": the widest content
@@ -250,6 +290,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-108")] // App/Views/Composer/EffortSlider.swift:56-57,89-94 a name that no longer fits is cut with an ellipsis
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void A_held_chip_cuts_only_the_name_when_the_content_outgrows_it_and_is_free_again_on_close() => headless.OnUiThread(() =>
     {
         using var rig = Make(_ => Chat("m2", "low")); // "Short  Low v": narrow
@@ -279,6 +320,7 @@ public sealed class EffortSliderChipRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-108")] // App/Views/Composer/EffortSlider.swift:108 `.frame(width: compact ? nil : lockedWidth)`: a compact chip is never held
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip: what it draws, its states and its held width
     public void A_compact_chip_is_never_width_locked() => headless.OnUiThread(() =>
     {
         using var rig = Make(_ => Chat("m1", "high", fast: true), compact: true);

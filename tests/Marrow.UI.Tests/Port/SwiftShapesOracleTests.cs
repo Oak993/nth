@@ -88,7 +88,9 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
     /// <summary>The part of the model path the measured points reach (the spec's model_poly): the top-left corner and the straight runs beside it, or a whole end.</summary>
     private static List<Point> Model(OracleElement e, RoundedCornerStyle style)
     {
-        var outline = SwiftShapes.Outline(new Rect(0, 0, e.W, e.H), new CornerRadius(e.Radius), style);
+        // OD-0102: a `.continuous` shape in ED-275 (2)'s band takes Apple's corner at the largest radius that fits, EXCEPT the composer (r 22 on 46 pt), which
+        // this very measurement fits as the circle (0.156 px rms against the clamped corner's 1.148) and which is therefore marked CircularInBand.
+        var outline = SwiftShapes.Outline(new Rect(0, 0, e.W, e.H), new CornerRadius(e.Radius), style, circularInBand: e.Name.StartsWith("composer", StringComparison.Ordinal));
         var path = Polyline(outline);
         var r = e.Radius;
         if (e.IsEnd)

@@ -81,6 +81,7 @@ public sealed class EffortSliderJewelOpacityTests(HeadlessSession headless)
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-796 as amended by OD-0090 (the 48 px Jewel orb)
     public void The_orb_and_both_shadows_are_drawn_at_the_opacity_of_the_control_they_are_in(bool gpuProgram, bool held) => headless.OnUiThread(() =>
     {
         JewelKnobRenderer.SupersampleOnCpu = gpuProgram;
@@ -103,6 +104,7 @@ public sealed class EffortSliderJewelOpacityTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // EffortSlider.swift:180-187 .transition(.opacity) under .easeOut(0.12) on the model list's switch, as ModelEffortPanel plays it (EffortSlider.cs:206-211): the knob is drawn at the slider's opacity on every frame of the fade
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-796 as amended by OD-0090 (the 48 px Jewel orb)
     public void The_knob_follows_the_fade_the_model_lists_switch_plays_on_the_slider() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.FadingRig();
@@ -146,6 +148,7 @@ public sealed class EffortSliderJewelOpacityTests(HeadlessSession headless)
     [Trait("Decision", "ED-252")] // jewel-knob.html:21/:35 --knobShadow and :118 s.lift, drawn at the control's opacity: the knob's own shadow alone, then the lift's shadows alone, each at half the alpha at half the opacity
     [InlineData(true)]
     [InlineData(false)]
+    [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-796 as amended by OD-0090 (the 48 px Jewel orb)
     public void Each_shadow_has_half_the_alpha_at_half_the_opacity(bool dark)
     {
         using var ownFull = Shadows(dark, 0, 1);

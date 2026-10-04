@@ -101,6 +101,7 @@ public sealed class MorphingTextBlockColourAndResidualReviewTests(HeadlessSessio
 
     [Fact]
     [Trait("Decision", "ED-238")] // PR-COMPOSER-111's morph (EffortSlider.swift:574) with PR-COMPOSER-112's colour change, as the reference runtime draws it
+    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:582 the colour change at maximum, as the reference runtime draws it (2-chat-use.mov 35.143-35.207 s): the new colour on the arriving letters from their first frame
     public void REVIEW_Leaving_letters_keep_the_old_colour_and_arriving_ones_wear_the_new_one_from_their_first_frame() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

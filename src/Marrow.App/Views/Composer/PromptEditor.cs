@@ -135,7 +135,7 @@ public sealed class PromptEditor : Decorator
             Background = Chrome.Overlay(0.05).Brush(textView), // :73
             CornerRadius = new CornerRadius(12), // :73
             Height = measuredFieldHeight + 20,
-        };
+        }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :73 `.rect(cornerRadius: 12, style: .continuous)`; one line tall the plate is about 37 pt, at the edge of ED-275 (2)'s band (OD-0102)
         stack.Children.Add(fieldPlate);
 
         UpdateAttachments();

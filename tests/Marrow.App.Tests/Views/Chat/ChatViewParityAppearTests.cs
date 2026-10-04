@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Marrow.Services.Git;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -299,5 +302,103 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             Check("Terminal", () => runtime.IsTerminalVisible = true);
             Check("Changes", () => runtime.IsDiffVisible = true);
         });
+    }
+
+    // PR-CHAT-171 whole (ChatView.swift:1106-1174): the row is ONE glass pass (GlassEffectContainer(spacing: 2): every piece of glass in it merges in that
+    // container), a centre-aligned stack of spacing 10 in the fixed order Threads (PR-CHAT-173), New thread, Hydra (only when the thread record resolves, Hydra is
+    // on and the thread leads a team of its own; it arrives and leaves on soft appear), the permissions menu (only when the thread record resolves), the branch
+    // menu (only in a repository), the title, then a trailing stack of spacing 8 of two capsules: [Open in, a divider and Scripts with a project, a divider and
+    // Git actions in a repository] and [Terminal, a divider, Changes]. The row is on the Mac's frame at C 9.000 in the project-and-no-repository state
+    // (ChatViewParityChromeTests.The_row_lays_out_at_the_positions_measured_on_the_Mac). No other control appears and the order never varies.
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1106-1174
+    public void The_chrome_row_is_one_glass_pass_holding_its_slots_in_the_fixed_order_in_every_project_and_repository_state(bool withProject, bool repository)
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                model.Settings.SidebarFloats = false;
+                model.Settings.HydraEnabled = true;
+                var project = model.AddProject(new Project("P", h.NewFolder("project")).Url);
+                var thread = model.NewThread(project)!;
+                var git = new GitStatusModel();
+                typeof(GitStatusModel).GetProperty(nameof(GitStatusModel.IsRepository))!.SetValue(git, repository);
+                string Kind(Control slot) => slot switch
+                {
+                    ThreadsButton => "threads",
+                    HydraButton => "hydra",
+                    PermissionMenu => "permissions",
+                    BranchMenu => "branch",
+                    ChatChromeTitle => "title",
+                    ChromeCircleButton => "new",
+                    StackPanel trailing when trailing.Spacing == 8 => "capsules",
+                    _ => LogicalQuery.SelfAndDescendants<Control>(slot).Select(c => c switch { ThreadsButton => "threads", HydraButton => "hydra", _ => null }).FirstOrDefault(k => k is not null) ?? slot.GetType().Name,
+                };
+                List<string> Slots(ChatChromeRow row)
+                {
+                    var stack = Assert.IsType<ChatChromeRowStack>(LogicalQuery.SelfAndDescendants<StackPanel>(row).First());
+                    Assert.Equal(10, stack.Spacing); // :1124 HStack(alignment: .center, spacing: 10)
+                    Assert.Equal(Avalonia.Layout.VerticalAlignment.Center, stack.VerticalAlignment);
+                    return stack.Children.Select(Kind).ToList();
+                }
+                ChatChromeRow Build(ThreadRuntime runtime)
+                {
+                    var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "T", withProject ? project : null, h.Scratch, git);
+                    var window = new AvaloniaWindow { Content = row, Width = 1400, Height = 300 };
+                    ChatHeadlessFixtures.Track(window);
+                    window.Show();
+                    return row;
+                }
+                var expected = new List<string> { "threads", "new", "hydra", "permissions" };
+                if (repository) expected.Add("branch");
+                expected.AddRange(["title", "capsules"]);
+
+                // The whole row, a thread that leads a team of its own with Hydra on: all eight slots.
+                var row = Build(model.Runtime(thread.Id));
+                Assert.Equal(expected, Slots(row));
+                var stack = Assert.IsType<ChatChromeRowStack>(LogicalQuery.SelfAndDescendants<StackPanel>(row).First());
+                var trailing = (StackPanel)stack.Children[^1];
+                Assert.Equal(2, trailing.Children.Count);
+                Assert.All(trailing.Children, capsule => Assert.IsType<ChromeCapsule>(capsule));
+                var first = LogicalQuery.SelfAndDescendants<StackPanel>(trailing.Children[0]).Single(panel => panel.Children.FirstOrDefault() is OpenInMenu).Children;
+                var wanted = new List<string> { "open" };
+                if (withProject) wanted.AddRange(["divider", "scripts"]);
+                if (repository) wanted.AddRange(["divider", "git"]);
+                Assert.Equal(wanted, first.Select(part => part switch { OpenInMenu => "open", ChromeDivider => "divider", ScriptsMenu => "scripts", GitActionsMenu => "git", _ => part.GetType().Name }).ToList());
+                var second = LogicalQuery.SelfAndDescendants<StackPanel>(trailing.Children[1]).Single(panel => panel.Children.OfType<ChromeIconButton>().Any()).Children;
+                Assert.Equal(["icon", "divider", "icon"], second.Select(part => part switch { ChromeIconButton => "icon", ChromeDivider => "divider", _ => part.GetType().Name }));
+
+                // The glass: one container of spacing 2 around the whole row, and every piece of glass in the row is merged in it (one material pass).
+                var container = Assert.Single(LogicalQuery.SelfAndDescendants<GlassEffectContainer>(row));
+                Assert.Equal(2, container.Spacing); // :1123 GlassEffectContainer(spacing: 2)
+                Assert.Equal(2, SwiftGlass.GetContainerSpacing(container));
+                Assert.Contains(container.GetLogicalDescendants(), descendant => ReferenceEquals(descendant, stack));
+                var glass = LogicalQuery.SelfAndDescendants<Control>(row).Where(control => SwiftGlass.GetEffect(control) is not null && control.GetVisualParent() is not null).ToArray(); // drawn glass: a button's template part that is not in the visual tree draws nothing
+                Assert.True(glass.Length >= 6, "the circles and the two capsules are glass: " + glass.Length);
+                Assert.All(glass, piece => Assert.Same(container, piece.GetVisualAncestors().OfType<Control>().First(ancestor => SwiftGlass.GetContainerSpacing(ancestor) is not null)));
+                Assert.Single(row.GetVisualDescendants().OfType<Control>(), control => SwiftGlass.GetContainerSpacing(control) is not null); // no second container
+
+                // Hydra off in Settings: no Hydra slot; the rest unchanged.
+                model.Settings.HydraEnabled = false;
+                Assert.Equal(expected.Where(slot => slot != "hydra").ToList(), Slots(Build(model.Runtime(thread.Id))));
+                model.Settings.HydraEnabled = true;
+                // A helper leads no team of its own: no Hydra slot, the permissions menu stays.
+                var helper = model.SpawnSubagent(thread.Id, "Review", "Inspect the change.")!;
+                Assert.Equal(expected.Where(slot => slot != "hydra").ToList(), Slots(Build(model.Runtime(helper.Id))));
+                // A thread record that does not resolve: neither the Hydra nor the permissions slot.
+                Assert.Equal(expected.Where(slot => slot is not ("hydra" or "permissions")).ToList(), Slots(Build(model.Runtime(Guid.NewGuid()))));
+            });
+        });
+        // Hydra arrives and leaves on soft appear (:1138-1140), as ChatViewParityAppearTests proves for the control itself.
+        AssertArrives<HydraButton>(sidebarHoldsButtons: true, hydra: false, model => model.Settings.HydraEnabled = true);
+        AssertLeaves<HydraButton>(sidebarHoldsButtons: true, hydra: true, model => model.Settings.HydraEnabled = false);
     }
 }

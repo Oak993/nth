@@ -58,7 +58,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:641-650
     [Trait("Req", "UI-COMPOSER-037")] // App/Views/Composer/EffortSlider.swift:641-650
     [Trait("Req", "UI-COMPOSER-033")] // App/Views/Composer/EffortSlider.swift:659-683
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-112 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:543-555
+    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:543-555
     public void Pair_card_uses_a_gradient_and_lifts_its_single_line_caption_by_six_points()
     {
         headless.OnUiThread(() =>
@@ -368,6 +368,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Theory]
     [Trait("Decision", "ED-117")] // ED-117(7): cadence expectations rest on ED-117(2)-(6), so Decision ED-117 + Oracle O-34, never Req.
     [Trait("Oracle", "O-34")] // App/Views/Composer/EffortSlider.swift:1049-1050,1070-1071; PR-133 needs a ten-second run (see STOP).
+    [InlineData(TrackLook.Kind.Plain, false, true)] // DEVIATION OD-0075: the plain track draws the liquid too, at 60 Hz
     [InlineData(TrackLook.Kind.Supercharged, false, true)] // DEVIATION OD-0051: the solo supercharged track is the liquid tube, at 60 Hz (source :1049 30 Hz)
     [InlineData(TrackLook.Kind.Supercharged, true, true)]
     [InlineData(TrackLook.Kind.Fast, false, true)]
@@ -401,7 +402,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:59-103
     [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:82-103,142-149
     [Trait("Req", "PR-COMPOSER-108")] // App/Views/Composer/EffortSlider.swift:108-117
-    [Trait("Rule", "R-TEST-4")] // partial: UI-COMPOSER-012 (blocked: its text says the popover hangs below the chip, the source and the video put it above; see ED-262 (6)); this test proves one part of it // App/Views/Composer/EffortSlider.swift:59-123
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123
     [InlineData(false)]
     [InlineData(true)]
     public void Chip_keeps_full_help_in_compact_mode_and_locks_only_the_full_chip(bool compact)
@@ -642,6 +643,8 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:620-624 .frame(height: EffortSlider.thumbSize) (PR-COMPOSER-117 and UI-COMPOSER-036, whose 42 point height OD-0090 made the 48 px knob's)
+    [Trait("Req", "PR-COMPOSER-117")] // EffortSlider.swift:620-624 as amended by OD-0090 (48 px)
+    [Trait("Req", "UI-COMPOSER-036")] // EffortSlider.swift:620-624 as amended by OD-0090 (48 px)
     public void Empty_levels_show_standard_and_the_single_level_note()
     {
         headless.OnUiThread(() =>
@@ -660,7 +663,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")] // App/Views/Composer/EffortSlider.swift:568-597
-    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-031 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:568-597
+    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:568-597
     [Trait("Req", "UI-COMPOSER-034")] // App/Views/Composer/EffortSlider.swift:564
     public void Title_and_reset_are_real_buttons_with_exact_help_and_actions()
     {
@@ -689,7 +692,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-118")] // App/Views/Composer/EffortSlider.swift:558,653-655
-    [Trait("Rule", "R-TEST-4")] // partial: UI-COMPOSER-030 (blocked: placement and popover chrome need a real window; see ED-262 (6)); this test proves the card geometry // App/Views/Composer/EffortSlider.swift:558-655
+    [Trait("Req", "UI-COMPOSER-030")] // App/Views/Composer/EffortSlider.swift:558-655 the card's geometry
     [Trait("Req", "PR-COMPOSER-114")] // App/Views/Composer/EffortSlider.swift:601-617
     [Trait("Req", "UI-COMPOSER-032")] // App/Views/Composer/EffortSlider.swift:601-617
     public void Card_has_source_padding_spacing_and_model_subtitle()
@@ -760,7 +763,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-127 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:729-737
+    [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:729-737
     // App/Views/Composer/EffortSlider.swift:985-998; capture method remains STOP #4, no whole-record Req.
     [InlineData(0, false, TrackLook.Kind.Plain)]
     [InlineData(2, false, TrackLook.Kind.Supercharged)]
@@ -777,9 +780,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var theme = Avalonia.Styling.ThemeVariant.Light;
             switch (kind)
             {
-                case TrackLook.Kind.Plain:
-                    Assert.Equal(Chrome.Accent.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :990
-                    break;
+                case TrackLook.Kind.Plain: // Swift :990 is Chrome.accent; DEVIATION OD-0075 (liquid at every effort level): the brand's fill under the liquid
                 case TrackLook.Kind.Supercharged:
                     Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :991
                     break;
@@ -790,8 +791,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
                     break;
             }
             var effects = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();
-            if (kind == TrackLook.Kind.Plain) Assert.Empty(effects);
-            else Assert.Single(effects);
+            Assert.Equal(kind, Assert.Single(effects).Look.TrackLookKind); // every look draws the liquid effect (OD-0075; Swift :760 draws none for plain)
             window.Close();
         });
     }
@@ -831,8 +831,9 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal(EffortPalette.Title.Resolve(title.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(title.Foreground).Color);
             var slider = Assert.Single(window.GetVisualDescendants().OfType<EffortSlider>());
             var fill = Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
-            Assert.Equal(Chrome.Accent.Resolve(fill.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :990 plain, distinct from solid purple brand fill
-            Assert.Empty(slider.GetVisualDescendants().OfType<TrackEffect>()); // plain solo draws no effect
+            // DEVIATION OD-0075 (liquid at every effort level): the plain track is the liquid over the brand's fill (Swift :990 has the accent and :760 no effect)
+            Assert.Equal(new SwiftColor(0.55, 0.34, 0.97).Resolve(fill.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color);
+            Assert.Equal(TrackLook.Kind.Plain, Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>()).Look.TrackLookKind);
             window.Close();
         });
     }
@@ -1280,7 +1281,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-128 is not claimed (STOP effortslider-fix #2): App/Views/Composer/EffortSlider.swift:889-909 brand.fill: Meta and silver are two-stop gradients at maximum effort
+    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:889-909 brand.fill: Meta and silver are two-stop gradients at maximum effort
     [InlineData(EffortBrand.Meta, 0.0, 0.39, 0.88, 0.0, 0.51, 0.98)]
     [InlineData(EffortBrand.Silver, 1.0, 1.0, 1.0, 0.88, 0.88, 0.91)]
     public void Meta_and_silver_maximum_effort_fills_are_their_source_gradients(EffortBrand brand, double r1, double g1, double b1, double r2, double g2, double b2)
@@ -1299,47 +1300,14 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 }
 
-// STOP opencode-sweepA2 #2
-// Kind: partial proof (the real display's ten-second count is native)
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050,1052-1053,1070-1071 (B3 52bc792)
-// Requirements: PR-COMPOSER-133
-// What is proven: EffortSliderCadenceTests (Req PR-COMPOSER-133): ten seconds at a 120 Hz display draw 600 frames for every look, the solo
-// supercharged track included (60 Hz here by DEVIATION OD-0051, source :1049 30 Hz), reduced motion and a minimised window pause the
-// track and it resumes, the track is never a hit target and is hidden from accessibility, a fill 8 points wide or less draws nothing
-// (:1053). The cadence theory above carries Decision ED-117 + Oracle O-34.
-// What is missing: the count on a real display, on a real window (EffortSliderNativeFrameTests, six facts carrying Req PR-COMPOSER-133,
-// excluded from every headless run by the !~Native filter and not run in this pass).
-// Needed to proceed: that native run on a quiet machine (see porting/verification/native/).
-//
-// Round 2: the previous STOP #3 was false. ProviderRegistry.swift:71-77 seeds Claude/opus with
-// low, medium, high, xhigh, max. Offered, unoffered and absent-pair resets now use that catalog
-// and a production-written nondefault precondition, so restart assertions can fail.
-//
-// Former STOP #1 (PR-COMPOSER-132) is resolved: the effect's identity and clock are asserted in EffortSliderTrackTests and, with the popover
-// open in the real composer, in EffortChipLiveInComposerTests (the clock continuity on a real window stays EffortSliderNativeFrameTests').
-// Former STOP #4 (PR-COMPOSER-128) is OPEN again: see STOP effortslider-fix #2 below.
-
-// STOP effortslider-fix #1
-// Kind: UNRESOLVED fact (the colour space of Color.mix(with:by:))
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:841 `Chrome.accent.mix(with: .white, by: 0.22)` and :964 `mix(with: .white, by: 0.18)` (B3 52bc792)
-// Requirements: PR-COMPOSER-112, UI-COMPOSER-031
-// What is proven: which colour the title takes in each of the four (maximum, fast) cases and in a pair, the gradient's order, the 0.3 s
-// smooth fade of a colour change (and, with the popover open in the real composer, that the fade is on screen: EffortChipLiveInComposerTests).
-// What is missing: the lightened colours themselves. SwiftUI's Color.mix(with:by:in:) takes a colour space argument whose default is
-// .perceptual; the port's SwiftColor.Mix interpolates the sRGB components linearly, and the tests build their expectation with that same
-// Mix, so for these two clauses they check the port against itself. No ED or OD records the choice. Measured evidence (reference runtime,
-// 2-chat-use.mov 34.0-35.0 s, frames of 2-chat-use_034.000-035.000, plain "High" title over a pink accent that measures (246, 32, 102) on the
-// track): the glyphs' brightest plateau is about (255, 91, 133); the component-wise mix of that accent with white by 0.22 predicts
-// (248, 81, 136) and an Oklab mix predicts (255, 103, 134), so the frames fit neither and anti-aliasing leaves no cleaner sample.
-// Needed to proceed: an owner or ED ruling on the colour space, or a capture of a large flat title colour in the reference runtime.
-
-// STOP effortslider-fix #2
-// Kind: owner decision not built (OD-0075, "liquid at every effort level")
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:729-738,985-998 (B3 52bc792) with OD-0075 and OD-0063
-// Requirements: PR-COMPOSER-127, PR-COMPOSER-128
-// What is proven: the 2x2 mapping of (maximum, fast) onto the kinds, every fill per brand and pair, the 0.3 s fill change (EffortSliderTrackTests).
-// What is missing: OD-0075 settles that the liquid is drawn at every effort level (each model and effort at its OD-0063 intensity) and that
-// ends the source's plain look (no effect, the accent fill). The port still draws the source's plain look, because the intensity rule
-// (how model strength and effort map to a shade within a maker's palette, OD-0063 to OD-0066) is approved on a canvas but is not built, and
-// no deviation is recorded on either record. The tests that assert the plain look carry no Req.
-// Needed to proceed: the intensity engine (OD-0063 to OD-0066), then the plain track as the liquid at its intensity, test-first.
+// Former STOPs of this file, closed (blitz-effortslider2):
+// - PR-COMPOSER-133: EffortSliderCadenceTests proves every clause headless (ten seconds at 120 Hz draw 600 frames for every look, now the plain
+//   one too (OD-0075), reduced motion and a minimised window pause it, a fill of 8 points or less draws nothing, never a hit target, hidden from
+//   accessibility); the count on a real display (EffortSliderNativeFrameTests, excluded by the !~Native filter) is extra evidence, not run here.
+// - PR-COMPOSER-132 (the effect's identity and clock) is asserted in EffortSliderTrackTests and, with the popover open in the real composer, in
+//   EffortChipLiveInComposerTests; the plain look draws the effect too (OD-0075).
+// - PR-COMPOSER-112 and UI-COMPOSER-031: Color.mix(with:by:) names no colour space at :841 and :964, so SwiftUI's default (perceptual, Oklab)
+//   applies: ENGINEERING DECISION ED-286 (OD-0098); SwiftColor.MixPerceptual, tested against an independent Oklab implementation
+//   (SwiftColorPerceptualMixTests, Fixtures/OklabReference).
+// - PR-COMPOSER-127 and PR-COMPOSER-128: OD-0075 (liquid at every effort level) is built; the records carry its deviation. The per-model and
+//   per-effort shade of OD-0063 is the colour engine's (unbuilt, ED-286): every effort wears the maker's palette until then.

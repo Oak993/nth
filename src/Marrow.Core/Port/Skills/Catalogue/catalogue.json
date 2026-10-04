@@ -1,0 +1,1480 @@
+{
+  "schema": 1,
+  "readOn": "2026-10-04",
+  "items": [
+    {
+      "id": "A1",
+      "kind": "skillset",
+      "title": "Anthropic example skills",
+      "summary": "Thirteen everyday skills for design, art, writing, building apps and testing web pages, taken from Anthropic's public skills repository.",
+      "vendor": "Anthropic",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4",
+      "sourceUrl": "https://github.com/anthropics/skills",
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 8.1,
+      "needs": [
+        "T1",
+        "T2",
+        "T7",
+        "T10"
+      ],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "Apache-2.0 per folder; canvas-design fonts are SIL OFL 1.1. brand-guidelines is left out (Q-SKILLS-4 A). skill-creator carries skills/skill-creator/LICENSE.txt.",
+      "skillCount": 13,
+      "skillsListed": true,
+      "skills": [
+        {
+          "folder": "academy-guide",
+          "name": null,
+          "path": "skills/academy-guide",
+          "needs": []
+        },
+        {
+          "folder": "algorithmic-art",
+          "name": null,
+          "path": "skills/algorithmic-art",
+          "needs": []
+        },
+        {
+          "folder": "canvas-design",
+          "name": null,
+          "path": "skills/canvas-design",
+          "needs": []
+        },
+        {
+          "folder": "claude-api",
+          "name": null,
+          "path": "skills/claude-api",
+          "needs": []
+        },
+        {
+          "folder": "discernment-nudge",
+          "name": null,
+          "path": "skills/discernment-nudge",
+          "needs": []
+        },
+        {
+          "folder": "frontend-design",
+          "name": null,
+          "path": "skills/frontend-design",
+          "needs": []
+        },
+        {
+          "folder": "internal-comms",
+          "name": null,
+          "path": "skills/internal-comms",
+          "needs": []
+        },
+        {
+          "folder": "mcp-builder",
+          "name": null,
+          "path": "skills/mcp-builder",
+          "needs": [
+            "T1"
+          ]
+        },
+        {
+          "folder": "skill-creator",
+          "name": null,
+          "path": "skills/skill-creator",
+          "needs": [
+            "T1"
+          ]
+        },
+        {
+          "folder": "slack-gif-creator",
+          "name": null,
+          "path": "skills/slack-gif-creator",
+          "needs": [
+            "T1"
+          ]
+        },
+        {
+          "folder": "theme-factory",
+          "name": null,
+          "path": "skills/theme-factory",
+          "needs": []
+        },
+        {
+          "folder": "web-artifacts-builder",
+          "name": null,
+          "path": "skills/web-artifacts-builder",
+          "needs": [
+            "T2",
+            "T7"
+          ]
+        },
+        {
+          "folder": "webapp-testing",
+          "name": null,
+          "path": "skills/webapp-testing",
+          "needs": [
+            "T1",
+            "T10"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "kind": "skillset",
+      "title": "Anthropic document skills",
+      "summary": "Five skills for Word, Excel, PowerPoint and PDF files plus a co-writing guide, from the same Anthropic repository, shown with their terms first.",
+      "vendor": "Anthropic",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4",
+      "sourceUrl": "https://github.com/anthropics/skills",
+      "licenceName": "Proprietary",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "proprietary",
+      "approxSizeMb": 3.5,
+      "needs": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "P1",
+        "P2",
+        "P6"
+      ],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "docx, xlsx, pptx, pdf: proprietary (source-available; use governed by the user's agreement with Anthropic; no copies outside Anthropic's services, no derivatives, no distribution). doc-coauthoring: no licence stated.",
+      "skillCount": 5,
+      "skillsListed": true,
+      "skills": [
+        {
+          "folder": "docx",
+          "name": null,
+          "path": "skills/docx",
+          "needs": [],
+          "termsClass": "proprietary"
+        },
+        {
+          "folder": "xlsx",
+          "name": null,
+          "path": "skills/xlsx",
+          "needs": [],
+          "termsClass": "proprietary"
+        },
+        {
+          "folder": "pptx",
+          "name": null,
+          "path": "skills/pptx",
+          "needs": [],
+          "termsClass": "proprietary"
+        },
+        {
+          "folder": "pdf",
+          "name": null,
+          "path": "skills/pdf",
+          "needs": [],
+          "termsClass": "proprietary"
+        },
+        {
+          "folder": "doc-coauthoring",
+          "name": null,
+          "path": "skills/doc-coauthoring",
+          "needs": [],
+          "termsClass": "none"
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "kind": "plugin",
+      "title": "Anthropic knowledge-work plugins",
+      "summary": "Eighteen plugin folders of role-based skills for sales, legal, finance, data and other office work, offered one folder at a time.",
+      "vendor": "Anthropic",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "8444efcd48f7012f09797778a36a33e73d0861f4",
+      "sourceUrl": "https://github.com/anthropics/knowledge-work-plugins",
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 8.1,
+      "needs": [],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "Apache-2.0; partner plugins MIT (Apollo, brand-voice, Slack, Zoom) or Apache-2.0 (Common Room). Many name connectors Marrow does not provide; the text works without them.",
+      "skillCount": 252,
+      "folders": [
+        {
+          "name": "sales",
+          "skillCount": 36
+        },
+        {
+          "name": "small-business",
+          "skillCount": 44
+        },
+        {
+          "name": "partner-built",
+          "skillCount": 71
+        },
+        {
+          "name": "data",
+          "skillCount": 10
+        },
+        {
+          "name": "engineering",
+          "skillCount": 10
+        },
+        {
+          "name": "legal",
+          "skillCount": 9
+        },
+        {
+          "name": "human-resources",
+          "skillCount": 9
+        },
+        {
+          "name": "operations",
+          "skillCount": 9
+        },
+        {
+          "name": "finance",
+          "skillCount": 8
+        },
+        {
+          "name": "marketing",
+          "skillCount": 8
+        },
+        {
+          "name": "product-management",
+          "skillCount": 8
+        },
+        {
+          "name": "design",
+          "skillCount": 7
+        },
+        {
+          "name": "bio-research",
+          "skillCount": 6
+        },
+        {
+          "name": "customer-support",
+          "skillCount": 5
+        },
+        {
+          "name": "enterprise-search",
+          "skillCount": 5
+        },
+        {
+          "name": "productivity",
+          "skillCount": 4
+        },
+        {
+          "name": "cowork-plugin-management",
+          "skillCount": 2
+        },
+        {
+          "name": "pdf-viewer",
+          "skillCount": 1
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "kind": "plugin",
+      "title": "Anthropic financial services",
+      "summary": "A large bundle of finance skills from Anthropic's public financial-services repository.",
+      "vendor": "Anthropic",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "574ed3624aebd0418c7e96cd101262f30210ab26",
+      "sourceUrl": "https://github.com/anthropics/financial-services",
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 2.0,
+      "needs": [
+        "T1"
+      ],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "Apache-2.0. Connectors are named in the text.",
+      "skillCount": 112
+    },
+    {
+      "id": "A5",
+      "kind": "skillset",
+      "title": "Anthropic life sciences",
+      "summary": "Six research skills from Anthropic's life-sciences repository, skill folders only.",
+      "vendor": "Anthropic",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "e96556b637b56d6cc3a5ad33987009be9e60aa5c",
+      "sourceUrl": "https://github.com/anthropics/life-sciences",
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 1.1,
+      "needs": [
+        "T1"
+      ],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "Apache-2.0 per folder. Science packages are named in the text.",
+      "skillCount": 6
+    },
+    {
+      "id": "A6",
+      "kind": "plugin",
+      "title": "Anthropic Claude Code plugins",
+      "summary": "The Anthropic-written plugins from the claude-plugins-official repository, counted when the pin is re-read.",
+      "vendor": "Anthropic",
+      "countState": "added",
+      "pinState": "unpinned",
+      "pin": null,
+      "sourceUrl": "https://github.com/anthropics/claude-plugins-official",
+      "licenceName": null,
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "proprietary",
+      "approxSizeMb": null,
+      "needs": [],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "pinHint": "ab024cdc",
+      "licenceNotes": "Licence signals conflict for 11 of these plugins and claude-security is proprietary (skills-PLAN.md section 2); the set is treated as non-open until SK-2 reads each plugin's own licence.",
+      "skillCount": null
+    },
+    {
+      "id": "O1",
+      "kind": "skillset",
+      "title": "Codex built-in skills",
+      "summary": "Four skills Codex ships for images, OpenAI documentation, code review and writing skills, for providers other than Codex.",
+      "vendor": "OpenAI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "2739e828581c3deee59a270cd740675dc278ed14",
+      "sourceUrl": "https://github.com/openai/codex",
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 0.28,
+      "needs": [
+        "T1",
+        "T2"
+      ],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "Apache-2.0 (repository; folder files where present). skill-creator carries license.txt in its folder; review-agent has no licence file in its folder and is covered by the repository's root LICENSE. skill-installer is left out.",
+      "skillCount": 4,
+      "skillsListed": true,
+      "skills": [
+        {
+          "folder": "imagegen",
+          "name": null,
+          "path": "codex-rs/skills/src/assets/samples/imagegen",
+          "needs": []
+        },
+        {
+          "folder": "openai-docs",
+          "name": null,
+          "path": "codex-rs/skills/src/assets/samples/openai-docs",
+          "needs": []
+        },
+        {
+          "folder": "review-agent",
+          "name": null,
+          "path": "codex-rs/skills/src/assets/samples/review-agent",
+          "needs": []
+        },
+        {
+          "folder": "skill-creator",
+          "name": null,
+          "path": "codex-rs/skills/src/assets/samples/skill-creator",
+          "needs": []
+        }
+      ]
+    },
+    {
+      "id": "O2",
+      "kind": "skillset",
+      "title": "OpenAI curated skills",
+      "summary": "Thirty skills for GitHub chores, notebooks, deployments and browser work, from OpenAI's curated skills folder.",
+      "vendor": "OpenAI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "49f948faa9258a0c61caceaf225e179651397431",
+      "sourceUrl": "https://github.com/openai/skills",
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 3.3,
+      "needs": [
+        "T1",
+        "T2",
+        "T7",
+        "T8",
+        "T9"
+      ],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "Apache-2.0; MIT for the 4 Notion skills (Notion Labs) and vercel-deploy (Vercel); the Playwright skills carry a Microsoft NOTICE. Without the 8 Figma folders, pdf and openai-docs; with skills/.system/plugin-creator.",
+      "skillCount": 30
+    },
+    {
+      "id": "O3",
+      "kind": "skillset",
+      "title": "OpenAI open document skills",
+      "summary": "Four skills for Word, spreadsheet, slide and PDF work, each at its own pinned commit in OpenAI's skills history.",
+      "vendor": "OpenAI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": null,
+      "sourceUrl": "https://github.com/openai/skills",
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 0.24,
+      "needs": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "P1",
+        "P2",
+        "P6"
+      ],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "Apache-2.0 per folder; the slides JavaScript helpers also say 'All rights reserved' and both notices are kept as published.",
+      "skillCount": 4,
+      "skillsListed": true,
+      "skills": [
+        {
+          "folder": "doc",
+          "name": null,
+          "path": null,
+          "needs": [],
+          "pin": "45d05d75363abf13f99d09e899d61e07b8010685"
+        },
+        {
+          "folder": "spreadsheet",
+          "name": null,
+          "path": null,
+          "needs": [],
+          "pin": "e6afb0d74cc75d220df2faf3dd6c635c2dc6a108"
+        },
+        {
+          "folder": "slides",
+          "name": null,
+          "path": null,
+          "needs": [],
+          "pin": "e6afb0d74cc75d220df2faf3dd6c635c2dc6a108"
+        },
+        {
+          "folder": "pdf",
+          "name": null,
+          "path": null,
+          "needs": [],
+          "pin": "49f948faa9258a0c61caceaf225e179651397431"
+        }
+      ]
+    },
+    {
+      "id": "O4",
+      "kind": "plugin",
+      "title": "OpenAI plugins under MIT",
+      "summary": "Nine OpenAI plugins for web building, charts, games, evaluation, Android testing and research, each under the MIT licence.",
+      "vendor": "OpenAI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "5fd93af4cd0c623e020d0cc7e9ce178b4ac1f70f",
+      "sourceUrl": "https://github.com/openai/plugins",
+      "licenceName": "MIT",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 3.9,
+      "needs": [
+        "T2"
+      ],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "MIT in each plugin.json (no licence text in the folders; a few skill folders carry Apache-2.0 files). plugin-eval fixtures are dropped.",
+      "skillCount": 65,
+      "folders": [
+        {
+          "name": "build-web-apps",
+          "skillCount": 6
+        },
+        {
+          "name": "build-web-data-visualization",
+          "skillCount": 18
+        },
+        {
+          "name": "game-studio",
+          "skillCount": 9
+        },
+        {
+          "name": "plugin-eval",
+          "skillCount": 5
+        },
+        {
+          "name": "test-android-apps",
+          "skillCount": 2
+        },
+        {
+          "name": "google-drive",
+          "skillCount": 5
+        },
+        {
+          "name": "ngs-analysis",
+          "skillCount": 18
+        },
+        {
+          "name": "zotero",
+          "skillCount": 1
+        },
+        {
+          "name": "sentry",
+          "skillCount": 1
+        }
+      ]
+    },
+    {
+      "id": "O5",
+      "kind": "plugin",
+      "title": "OpenAI proprietary plugins",
+      "summary": "Eight OpenAI plugins marked proprietary, shown with their terms before anything is downloaded.",
+      "vendor": "OpenAI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "5fd93af4cd0c623e020d0cc7e9ce178b4ac1f70f",
+      "sourceUrl": "https://github.com/openai/plugins",
+      "licenceName": "Proprietary",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "proprietary",
+      "approxSizeMb": 18.2,
+      "needs": [],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "'Proprietary' in plugin.json; public-equity-investing's licence file says internal use only. Needs vary per plugin and are set when SK-2 reads them.",
+      "skillCount": 124,
+      "folders": [
+        {
+          "name": "codex-security",
+          "skillCount": 15
+        },
+        {
+          "name": "data-analytics",
+          "skillCount": 18
+        },
+        {
+          "name": "life-science-research",
+          "skillCount": 50
+        },
+        {
+          "name": "product-design",
+          "skillCount": 10
+        },
+        {
+          "name": "public-equity-investing",
+          "skillCount": 23
+        },
+        {
+          "name": "openai-developers",
+          "skillCount": 5
+        },
+        {
+          "name": "creative-production",
+          "skillCount": 2
+        },
+        {
+          "name": "openai-ads-conversions",
+          "skillCount": 1
+        }
+      ]
+    },
+    {
+      "id": "O6",
+      "kind": "skillset",
+      "title": "Figma skills",
+      "summary": "The eight Figma skill folders that sit in OpenAI's curated skills folder, shown under Figma's own developer terms.",
+      "vendor": "Figma",
+      "countState": "added",
+      "pinState": "unpinned",
+      "pin": "49f948faa9258a0c61caceaf225e179651397431",
+      "sourceUrl": "https://github.com/openai/skills",
+      "licenceName": "Figma Developer Terms",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "proprietary",
+      "approxSizeMb": null,
+      "needs": [],
+      "provides": [],
+      "artifacts": [],
+      "files": [],
+      "licenceNotes": "Figma Developer Terms (beta), not an open licence (skills-PLAN.md section 2). Figma still works through the providers' own sign-in (OD-0099 Q4). The folder names are read by SK-2.",
+      "skillCount": 8
+    },
+    {
+      "id": "T1",
+      "kind": "tool",
+      "title": "Python",
+      "summary": "The Python runtime Marrow's skills run their scripts with, in the small embeddable build.",
+      "vendor": "python.org",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "3.14.8",
+      "sourceUrl": "https://www.python.org/ftp/python/3.14.8/",
+      "licenceName": "PSF-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 12.6,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "python"
+        },
+        {
+          "kind": "exe",
+          "name": "python3"
+        },
+        {
+          "kind": "exe",
+          "name": "py"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "python-3.14.8-embed-amd64.zip",
+          "url": "https://www.python.org/ftp/python/3.14.8/python-3.14.8-embed-amd64.zip",
+          "size": 12601679,
+          "sha256": null
+        }
+      ],
+      "files": [],
+      "licenceNotes": "Bundles OpenSSL (Apache-2.0), libffi (MIT), SQLite (public domain) and others."
+    },
+    {
+      "id": "T1p",
+      "kind": "tool",
+      "title": "pip",
+      "summary": "The package installer that sets up the Python package sets and the agent's own installs.",
+      "vendor": "pypi.org",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "26.2.1",
+      "sourceUrl": null,
+      "licenceName": "MIT",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 1.8,
+      "needs": [
+        "T1"
+      ],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "pip"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "pip-26.2.1-py3-none-any.whl",
+          "url": null,
+          "size": null,
+          "sha256": null
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "T2",
+      "kind": "tool",
+      "title": "Node.js",
+      "summary": "The JavaScript runtime with npm and npx, as the Windows zip.",
+      "vendor": "nodejs.org",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "24.21.0",
+      "sourceUrl": "https://nodejs.org/dist/latest-v24.x/",
+      "licenceName": "MIT",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 38.0,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "node"
+        },
+        {
+          "kind": "exe",
+          "name": "npm"
+        },
+        {
+          "kind": "exe",
+          "name": "npx"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "node-v24.21.0-win-x64.zip",
+          "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip",
+          "size": null,
+          "sha256": null
+        }
+      ],
+      "files": [],
+      "licenceNotes": "npm is Artistic-2.0; the user's own download, so no redistribution question."
+    },
+    {
+      "id": "T3",
+      "kind": "tool",
+      "title": "LibreOffice",
+      "summary": "The office suite Marrow drives headlessly to convert and render documents.",
+      "vendor": "The Document Foundation",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "26.2.6",
+      "sourceUrl": "https://download.documentfoundation.org/libreoffice/stable/",
+      "licenceName": "MPL-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 356.0,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "soffice"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "LibreOffice_26.2.6_Win_x86-64.msi",
+          "url": "https://download.documentfoundation.org/libreoffice/stable/26.2.6/win/x86_64/LibreOffice_26.2.6_Win_x86-64.msi",
+          "size": null,
+          "sha256": null
+        }
+      ],
+      "files": [],
+      "licenceNotes": "With LGPL and other parts as LibreOffice ships them."
+    },
+    {
+      "id": "T4",
+      "kind": "tool",
+      "title": "Poppler",
+      "summary": "The PDF command-line tools for turning pages into images and text.",
+      "vendor": "poppler-windows (oschwartz10612)",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "26.09.0",
+      "sourceUrl": "https://github.com/oschwartz10612/poppler-windows/releases",
+      "licenceName": "GPL-2.0-or-later",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 43.7,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "pdftoppm"
+        },
+        {
+          "kind": "exe",
+          "name": "pdftotext"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "Release-26.09.0-0.zip",
+          "url": null,
+          "size": null,
+          "sha256": null
+        }
+      ],
+      "files": [],
+      "licenceNotes": "No Windows build from the Poppler project; the conda-forge build as packaged by oschwartz10612/poppler-windows. The user's own download."
+    },
+    {
+      "id": "T5",
+      "kind": "tool",
+      "title": "qpdf",
+      "summary": "A small command-line tool for repairing, merging and encrypting PDFs.",
+      "vendor": "qpdf",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "12.4.2",
+      "sourceUrl": "https://github.com/qpdf/qpdf/releases",
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 28.2,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "qpdf"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "qpdf-12.4.2-msvc64.zip",
+          "url": null,
+          "size": null,
+          "sha256": null,
+          "sha256Hint": "db87077e"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "T6",
+      "kind": "tool",
+      "title": "pandoc",
+      "summary": "A document converter used to pull text out of Word files.",
+      "vendor": "pandoc (jgm)",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "3.12",
+      "sourceUrl": "https://github.com/jgm/pandoc/releases",
+      "licenceName": "GPL-2.0-or-later",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 42.1,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "pandoc"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "pandoc-3.12-windows-x86_64.zip",
+          "url": null,
+          "size": null,
+          "sha256": null,
+          "sha256Hint": "2a77ebc2"
+        }
+      ],
+      "files": [],
+      "licenceNotes": "The user's own download."
+    },
+    {
+      "id": "T7",
+      "kind": "tool",
+      "title": "Git for Windows",
+      "summary": "A portable Git with Git Bash, so the shell scripts some skills carry can run.",
+      "vendor": "Git for Windows",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "2.56.0",
+      "sourceUrl": "https://github.com/git-for-windows/git/releases",
+      "licenceName": "GPL-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 60.0,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "bash"
+        },
+        {
+          "kind": "exe",
+          "name": "sh"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "PortableGit-2.56.0-64-bit.7z.exe",
+          "url": null,
+          "size": null,
+          "sha256": null,
+          "sha256Hint": "eceb5e06"
+        }
+      ],
+      "files": [],
+      "licenceNotes": "The user's own download."
+    },
+    {
+      "id": "T8",
+      "kind": "tool",
+      "title": "GitHub CLI",
+      "summary": "GitHub's command-line tool, for the skills that read and answer pull requests.",
+      "vendor": "GitHub CLI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "2.102.0",
+      "sourceUrl": "https://github.com/cli/cli/releases",
+      "licenceName": "MIT",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 15.5,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "gh"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "gh_2.102.0_windows_amd64.zip",
+          "url": null,
+          "size": null,
+          "sha256": null,
+          "sha256Hint": "ae64e556"
+        }
+      ],
+      "files": [],
+      "licenceNotes": "Signing in stays the user's: gh auth login."
+    },
+    {
+      "id": "T9",
+      "kind": "tool",
+      "title": "uv",
+      "summary": "A fast Python package and project tool used by the notebook skill.",
+      "vendor": "Astral (uv)",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "0.12.23",
+      "sourceUrl": "https://github.com/astral-sh/uv/releases",
+      "licenceName": "MIT or Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 18.0,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "exe",
+          "name": "uv"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "uv-x86_64-pc-windows-msvc.zip",
+          "url": null,
+          "size": null,
+          "sha256": null,
+          "sha256Hint": "75d05de6"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "T10",
+      "kind": "tool",
+      "title": "Playwright Chromium",
+      "summary": "The Chromium browser build Playwright pins, in its full and headless forms, for testing web pages.",
+      "vendor": "Playwright (Chrome for Testing)",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": "153.0.8010.12",
+      "sourceUrl": "https://cdn.playwright.dev/builds/cft/153.0.8010.12/win64/chrome-win64.zip",
+      "licenceName": "BSD-3-Clause",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 325.3,
+      "needs": [],
+      "provides": [
+        {
+          "kind": "message",
+          "name": "Executable doesn't exist at"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "chrome-win64.zip",
+          "url": "https://cdn.playwright.dev/builds/cft/153.0.8010.12/win64/chrome-win64.zip",
+          "size": 205123748,
+          "sha256": null
+        },
+        {
+          "name": "chrome-headless-shell-win64.zip",
+          "url": "https://cdn.playwright.dev/builds/cft/153.0.8010.12/win64/chrome-headless-shell-win64.zip",
+          "size": 120200717,
+          "sha256": null
+        }
+      ],
+      "files": [],
+      "licenceNotes": "Chromium BSD-3 and the notices it ships. Revision 1243, the build playwright 1.63.0 pins."
+    },
+    {
+      "id": "P1",
+      "kind": "pyset",
+      "title": "Python: Office documents",
+      "summary": "The Python libraries for reading and writing Word, Excel and PowerPoint files, with a converter to Markdown.",
+      "vendor": "PyPI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": null,
+      "sourceUrl": null,
+      "licenceName": "MIT, BSD-2, BSD-3, PSF",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 5.3,
+      "needs": [
+        "T1",
+        "T1p"
+      ],
+      "provides": [
+        {
+          "kind": "pyModule",
+          "name": "docx"
+        },
+        {
+          "kind": "pyModule",
+          "name": "openpyxl"
+        },
+        {
+          "kind": "pyModule",
+          "name": "pptx"
+        },
+        {
+          "kind": "pyModule",
+          "name": "lxml"
+        },
+        {
+          "kind": "pyModule",
+          "name": "defusedxml"
+        },
+        {
+          "kind": "pyModule",
+          "name": "markitdown"
+        }
+      ],
+      "artifacts": [],
+      "files": [],
+      "packages": [
+        {
+          "name": "python-docx",
+          "version": "1.2.0",
+          "licence": "MIT"
+        },
+        {
+          "name": "openpyxl",
+          "version": "3.1.5",
+          "licence": "MIT"
+        },
+        {
+          "name": "et-xmlfile",
+          "version": null,
+          "licence": null
+        },
+        {
+          "name": "python-pptx",
+          "version": "1.0.2",
+          "licence": "MIT"
+        },
+        {
+          "name": "XlsxWriter",
+          "version": "3.2.9",
+          "licence": "BSD-2"
+        },
+        {
+          "name": "lxml",
+          "version": "6.1.3",
+          "licence": "BSD-3"
+        },
+        {
+          "name": "defusedxml",
+          "version": "0.7.1",
+          "licence": "PSF"
+        },
+        {
+          "name": "typing-extensions",
+          "version": null,
+          "licence": null
+        },
+        {
+          "name": "markitdown",
+          "version": "0.1.8",
+          "licence": "MIT"
+        }
+      ],
+      "licenceNotes": "Download size is 5.3 MB plus markitdown and its dependencies (sized at SK-2)."
+    },
+    {
+      "id": "P2",
+      "kind": "pyset",
+      "title": "Python: PDF",
+      "summary": "The Python libraries for reading, building and checking PDF files.",
+      "vendor": "PyPI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": null,
+      "sourceUrl": null,
+      "licenceName": "BSD-3, MIT, Apache-2.0, BSD",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 17.2,
+      "needs": [
+        "T1",
+        "T1p"
+      ],
+      "provides": [
+        {
+          "kind": "pyModule",
+          "name": "pypdf"
+        },
+        {
+          "kind": "pyModule",
+          "name": "pdfplumber"
+        },
+        {
+          "kind": "pyModule",
+          "name": "reportlab"
+        },
+        {
+          "kind": "pyModule",
+          "name": "pdf2image"
+        },
+        {
+          "kind": "pyModule",
+          "name": "pypdfium2"
+        },
+        {
+          "kind": "pyModule",
+          "name": "cryptography"
+        }
+      ],
+      "artifacts": [],
+      "files": [],
+      "packages": [
+        {
+          "name": "pypdf",
+          "version": "6.19.0",
+          "licence": "BSD-3"
+        },
+        {
+          "name": "pdfplumber",
+          "version": "0.11.10",
+          "licence": "MIT"
+        },
+        {
+          "name": "pdfminer.six",
+          "version": null,
+          "licence": "MIT"
+        },
+        {
+          "name": "pypdfium2",
+          "version": "5.13.0",
+          "licence": "BSD-3 / Apache-2.0"
+        },
+        {
+          "name": "reportlab",
+          "version": "5.0.1",
+          "licence": "BSD"
+        },
+        {
+          "name": "pdf2image",
+          "version": "1.17.0",
+          "licence": "MIT"
+        },
+        {
+          "name": "cryptography",
+          "version": "50.0.2",
+          "licence": "Apache-2.0 / BSD-3"
+        },
+        {
+          "name": "cffi",
+          "version": null,
+          "licence": null
+        },
+        {
+          "name": "pycparser",
+          "version": null,
+          "licence": null
+        },
+        {
+          "name": "charset-normalizer",
+          "version": null,
+          "licence": null
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "kind": "pyset",
+      "title": "Python: images and data",
+      "summary": "The Python libraries for pictures, numbers, tables and charts.",
+      "vendor": "PyPI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": null,
+      "sourceUrl": null,
+      "licenceName": "MIT-CMU, BSD, MIT, Matplotlib licence",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 42.9,
+      "needs": [
+        "T1",
+        "T1p"
+      ],
+      "provides": [
+        {
+          "kind": "pyModule",
+          "name": "PIL"
+        },
+        {
+          "kind": "pyModule",
+          "name": "pandas"
+        },
+        {
+          "kind": "pyModule",
+          "name": "numpy"
+        },
+        {
+          "kind": "pyModule",
+          "name": "matplotlib"
+        }
+      ],
+      "artifacts": [],
+      "files": [],
+      "packages": [
+        {
+          "name": "pillow",
+          "version": "12.3.0",
+          "licence": "MIT-CMU"
+        },
+        {
+          "name": "numpy",
+          "version": "2.5.3",
+          "licence": null
+        },
+        {
+          "name": "pandas",
+          "version": "3.0.6",
+          "licence": null
+        },
+        {
+          "name": "matplotlib",
+          "version": "3.11.2",
+          "licence": null
+        }
+      ],
+      "licenceNotes": "With their dependencies (BSD, MIT, Matplotlib licence)."
+    },
+    {
+      "id": "P4",
+      "kind": "pyset",
+      "title": "Python: browser testing",
+      "summary": "The Python side of Playwright, used to drive a browser from a script.",
+      "vendor": "PyPI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": null,
+      "sourceUrl": null,
+      "licenceName": "Apache-2.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 38.9,
+      "needs": [
+        "T1",
+        "T1p"
+      ],
+      "provides": [
+        {
+          "kind": "pyModule",
+          "name": "playwright"
+        },
+        {
+          "kind": "pyModule",
+          "name": "greenlet"
+        },
+        {
+          "kind": "pyModule",
+          "name": "pyee"
+        }
+      ],
+      "artifacts": [],
+      "files": [],
+      "packages": [
+        {
+          "name": "playwright",
+          "version": "1.63.0",
+          "licence": "Apache-2.0"
+        },
+        {
+          "name": "greenlet",
+          "version": null,
+          "licence": null
+        },
+        {
+          "name": "pyee",
+          "version": null,
+          "licence": null
+        }
+      ],
+      "licenceNotes": "The browser itself is T10."
+    },
+    {
+      "id": "P5",
+      "kind": "pyset",
+      "title": "Python: GIF making",
+      "summary": "The Python libraries for building animated GIFs.",
+      "vendor": "PyPI",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": null,
+      "sourceUrl": null,
+      "licenceName": "BSD-2",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": 31.6,
+      "needs": [
+        "T1",
+        "T1p"
+      ],
+      "provides": [
+        {
+          "kind": "pyModule",
+          "name": "imageio"
+        }
+      ],
+      "artifacts": [],
+      "files": [],
+      "packages": [
+        {
+          "name": "imageio",
+          "version": "2.38.0",
+          "licence": "BSD-2"
+        },
+        {
+          "name": "imageio-ffmpeg",
+          "version": "0.6.0",
+          "licence": "BSD-2"
+        }
+      ],
+      "licenceNotes": "imageio-ffmpeg carries an FFmpeg binary (GPL), the user's own download."
+    },
+    {
+      "id": "P6",
+      "kind": "nodeset",
+      "title": "Node: document packages",
+      "summary": "The JavaScript libraries for building Word and PowerPoint files and for image work.",
+      "vendor": "npm",
+      "countState": "plan",
+      "pinState": "unpinned",
+      "pin": null,
+      "sourceUrl": null,
+      "licenceName": "MIT, Apache-2.0, LGPL-3.0",
+      "licenceUrl": null,
+      "licenceFile": null,
+      "termsClass": "open",
+      "approxSizeMb": null,
+      "needs": [
+        "T2"
+      ],
+      "provides": [
+        {
+          "kind": "nodeModule",
+          "name": "docx"
+        },
+        {
+          "kind": "nodeModule",
+          "name": "pptxgenjs"
+        },
+        {
+          "kind": "nodeModule",
+          "name": "sharp"
+        },
+        {
+          "kind": "nodeModule",
+          "name": "react-icons"
+        },
+        {
+          "kind": "nodeModule",
+          "name": "react"
+        },
+        {
+          "kind": "nodeModule",
+          "name": "react-dom"
+        }
+      ],
+      "artifacts": [],
+      "files": [],
+      "packages": [
+        {
+          "name": "docx",
+          "version": "9.8.1",
+          "licence": null
+        },
+        {
+          "name": "pptxgenjs",
+          "version": "4.0.1",
+          "licence": null
+        },
+        {
+          "name": "react",
+          "version": "19.3.0",
+          "licence": null
+        },
+        {
+          "name": "react-dom",
+          "version": "19.3.0",
+          "licence": null
+        },
+        {
+          "name": "react-icons",
+          "version": "5.7.0",
+          "licence": "MIT"
+        },
+        {
+          "name": "sharp",
+          "version": "0.35.5",
+          "licence": "Apache-2.0"
+        },
+        {
+          "name": "@img/sharp-win32-x64",
+          "version": null,
+          "licence": "Apache-2.0, libvips LGPL-3.0"
+        }
+      ],
+      "licenceNotes": "About 129 MB unpacked (react-icons alone 88 MB); the npm tarballs are sized at SK-2."
+    }
+  ]
+}

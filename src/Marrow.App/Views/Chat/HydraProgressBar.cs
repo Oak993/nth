@@ -153,7 +153,7 @@ public sealed class HydraProgressBar : Decorator
             },
             IsHitTestVisible = false,
             IsVisible = false,
-        };
+        }.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous); // :572 `shape`; one line tall the card is 37 pt, in ED-275 (2)'s band (OD-0102)
         cardOpacity = new AnimatedDouble(value => card.Opacity = value);
         cardOpacity.Set(0, null);
         cardX = new AnimatedDouble(value => card.Margin = new Thickness(value, 0, 0, 0));
@@ -899,7 +899,7 @@ internal sealed record ProgressCardSurface(bool IsOnGlassPanel, bool IsDark)
         {
             CornerRadius = new CornerRadius(Chrome.CardCornerRadius),
             Child = content,
-        };
+        }.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous); // :572 `shape`; the card can be 32 to 49 pt tall, ED-275 (2)'s band (OD-0102)
         Apply(surface);
         return surface;
     }

@@ -144,7 +144,8 @@ public sealed class TimelineRowsCaptureTests(HeadlessSession headless)
     // The folded turns' headers in the reference video read "Worked for 5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
     // (2-chat-use.mov 9.0 s and 168.0 s; catalogue static.timeline-rows; mac_full_9, mac_full_168 in the evidence folder): the
     // reference runtime's narrow units with a space between them. The record also asks for 0 s, a negative interval, 3599 s
-    // and 3725 s, which appear in no frame, so PR-CHAT-116 stays in STOP #11.
+    // and 3725 s, which appear in no frame, so PR-CHAT-116 stayed in STOP #11 until OD-0098 (2026-10-04): TimelineRowsBlitzAbCardTests proves them from
+    // the source and swift-foundation's documented narrow units formatting (ED-197).
     [Theory]
     [Trait("Rule", "R-TEST-4")] // partial evidence for PR-CHAT-116; TimelineRows.swift:2448-2455
     [InlineData(TurnStatus.Completed, 5.0, "Worked for 5s")]

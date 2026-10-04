@@ -16,6 +16,13 @@
     <!-- OD-0062 / ED-235: the Velopack per-user installer. Keep this equal to the vpk tool's version (vpk 1.2.161): vpk packs the
          app with its own Update.exe and warns when the library in the app differs. -->
     <PackageVersion Include="Velopack" Version="1.2.161" />
+    <!-- Voice typing (OD-0091, OD-0092; voice SPEC V-3.1, unit VT-0): the managed Whisper wrapper, its two shipped native runtimes
+         (CPU and Vulkan; Q-V-9 C keeps CUDA out of the installer) and the WASAPI capture library. Pinned by the VT-0 unit on the
+         lead's delegation (the header above still holds for every other worker). -->
+    <PackageVersion Include="Whisper.net" Version="1.9.1" />
+    <PackageVersion Include="Whisper.net.Runtime" Version="1.9.1" />
+    <PackageVersion Include="Whisper.net.Runtime.Vulkan" Version="1.9.1" />
+    <PackageVersion Include="NAudio.Wasapi" Version="3.1.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />

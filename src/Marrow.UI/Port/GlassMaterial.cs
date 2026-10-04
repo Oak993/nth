@@ -34,14 +34,33 @@ internal static class GlassMaterial
         private CompositionContainerVisual? parent;
         private Control? input;
         private State? previous;
-        private bool queued, hovered, pressed;
+        private bool queued, requested, hovered, pressed;
         private Point pointer;
+        // A container's regions carry each piece's opacity and place as they were at its last synchronisation, and a piece fades or
+        // rises with the opacity and render transform of any visual between it and the container (a soft appear moves only those,
+        // with no layout pass). The container therefore watches those visuals (and the pieces) and synchronises on the next
+        // composition update after any of them changes, in the frame the change was made. The delegates are made once, so a change
+        // costs no allocation; the watched set is rebuilt only when it differs.
+        private readonly Dictionary<Visual, Transform?> watched = new();
+        private readonly HashSet<Visual> wanted = new();
+        private readonly List<Visual> unwanted = new();
+        private readonly EventHandler<AvaloniaPropertyChangedEventArgs> watchedChanged;
+        private readonly EventHandler transformChanged;
+        private readonly Action posted, synchronize;
 
         public Attachment(Control owner)
         {
             this.owner = owner;
-            owner.AttachedToVisualTree += (_, _) => Queue();
-            owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); };
+            watchedChanged = WatchedChanged;
+            transformChanged = (_, _) => RequestSynchronize();
+            synchronize = Synchronize;
+            posted = () =>
+            {
+                queued = false;
+                ElementComposition.GetElementVisual(this.owner)?.Compositor.RequestCompositionUpdate(synchronize);
+            };
+            owner.AttachedToVisualTree += (_, _) => { requested = false; Queue(); };
+            owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); Unwatch(); requested = false; };
             owner.LayoutUpdated += (_, _) => Queue();
             owner.PropertyChanged += (_, _) => Queue();
             owner.ActualThemeVariantChanged += (_, _) => Queue();
@@ -51,15 +70,66 @@ internal static class GlassMaterial
         {
             if (queued) return;
             queued = true;
-            Dispatcher.UIThread.Post(() =>
+            Dispatcher.UIThread.Post(posted, DispatcherPriority.Loaded);
+        }
+
+        // Synchronise at the next composition update, without a dispatcher hop: for a change that is already on the render path.
+        private void RequestSynchronize()
+        {
+            if (requested || ElementComposition.GetElementVisual(owner)?.Compositor is not { } compositor) return;
+            requested = true;
+            compositor.RequestCompositionUpdate(synchronize);
+        }
+
+        private void WatchedChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            var property = e.Property; // IsVisible is not watched: it invalidates layout, and the layout pass that follows synchronises (the visibility tests prove it)
+            if (property != Visual.OpacityProperty && property != Visual.RenderTransformProperty && property != Visual.RenderTransformOriginProperty) return;
+            if (property == Visual.RenderTransformProperty && sender is Visual visual && watched.TryGetValue(visual, out var old))
             {
-                queued = false;
-                ElementComposition.GetElementVisual(owner)?.Compositor.RequestCompositionUpdate(Synchronize);
-            }, DispatcherPriority.Loaded);
+                if (old is not null) old.Changed -= transformChanged;
+                var next = visual.RenderTransform as Transform;
+                if (next is not null) next.Changed += transformChanged;
+                watched[visual] = next;
+            }
+            RequestSynchronize();
+        }
+
+        // The visuals from each glass piece (itself included) up to, not including, the container are the ones whose opacity or
+        // transform the piece is drawn with. Called with `wanted` filled; subscribes the new ones and drops the others.
+        private void Rewatch()
+        {
+            var same = watched.Count == wanted.Count;
+            if (same) foreach (var visual in wanted) if (!watched.ContainsKey(visual)) { same = false; break; }
+            if (same) return;
+            foreach (var visual in watched.Keys) if (!wanted.Contains(visual)) unwanted.Add(visual);
+            foreach (var visual in unwanted) Unwatch(visual);
+            unwanted.Clear();
+            foreach (var visual in wanted)
+            {
+                if (watched.ContainsKey(visual)) continue;
+                var transform = visual.RenderTransform as Transform;
+                if (transform is not null) transform.Changed += transformChanged;
+                visual.PropertyChanged += watchedChanged;
+                watched[visual] = transform;
+            }
+        }
+        private void Unwatch(Visual visual)
+        {
+            if (!watched.Remove(visual, out var transform)) return;
+            if (transform is not null) transform.Changed -= transformChanged;
+            visual.PropertyChanged -= watchedChanged;
+        }
+        private void Unwatch()
+        {
+            unwanted.AddRange(watched.Keys);
+            foreach (var visual in unwanted) Unwatch(visual);
+            unwanted.Clear();
         }
 
         private void Synchronize()
         {
+            requested = false;
             var spacing = SwiftGlass.GetContainerSpacing(owner);
             var ownEffect = SwiftGlass.GetEffect(owner);
             BindInput(ownEffect?.IsInteractive == true);
@@ -104,6 +174,7 @@ internal static class GlassMaterial
             material.OpacityMask = visual.OpacityMask;
 
             var regions = new List<Region>();
+            wanted.Clear();
             if (spacing is null)
             {
                 if (RegionFor(owner, LocalTransform(owner), 1) is { } r) regions.Add(r);
@@ -113,6 +184,7 @@ internal static class GlassMaterial
                 foreach (var child in owner.GetVisualDescendants().OfType<Control>())
                 {
                     if (SwiftGlass.GetEffect(child) is null || ContainerOf(child) != owner) continue;
+                    for (Visual? node = child; node is not null && node != owner; node = node.GetVisualParent()) wanted.Add(node);
                     var toOwner = child.TransformToVisual(owner);
                     if (toOwner is null) continue;
                     var opacity = 1.0;
@@ -121,6 +193,7 @@ internal static class GlassMaterial
                     if (RegionFor(child, toOwner.Value * LocalTransform(owner), opacity) is { } r) regions.Add(r);
                 }
             }
+            Rewatch();
             var state = new State(regions.ToArray(), spacing ?? 0);
             if (previous is null || previous.Spacing != state.Spacing || !previous.Regions.SequenceEqual(state.Regions))
             {
@@ -144,7 +217,7 @@ internal static class GlassMaterial
             // A shape's fill and corners are the Border's or, for a SwiftUI shape with its own curve, the SwiftShapeBorder's (ED-181).
             var (fill, ownCorners) = control switch
             {
-                Border border => (border.Background, (CornerRadius?)border.CornerRadius),
+                Border border => (border.Background, (CornerRadius?)SwiftShapes.StatedCornerRadius(border)), // the stated radius: the shader draws the corner (OD-0102) itself
                 SwiftShapeBorder shape => (shape.Background, shape.CornerRadius),
                 _ => ((IBrush?)null, null),
             };
@@ -191,6 +264,7 @@ internal static class GlassMaterial
         private void RemoveMaterial()
         {
             if (material is not null) parent?.Children.Remove(material);
+            Unwatch();
             parent = null;
             material = null;
             previous = null;
@@ -230,8 +304,9 @@ internal static class GlassMaterial
 
     // The shape's signed distance (negative inside). A `.continuous` rounded rectangle is the circular corner's distance plus the
     // offset of Apple's curve from the circle (ContinuousCorner.ShaderSource, ED-181): the zero level lies on the path
-    // SwiftShapes draws (to 2e-5 r) and the field is the plain circle's wherever the curve is not drawn (a capsule, a radius past
-    // ContinuousCorner.LargestRadius, `.circular`), so those stay what the video shows. The C# mirror is ContinuousCorner.Distance.
+    // SwiftShapes draws (to 2e-5 r) and the field is the plain circle's wherever the curve is not drawn (a capsule, `.circular`, and the composer
+    // pill, which the video measures circular in ED-275 (2)'s band); a radius between ContinuousCorner.LargestRadius and half the shorter side
+    // is Apple's corner at LargestRadius (OD-0102). The C# mirror is ContinuousCorner.Distance.
     internal static readonly string ShaderHeader = string.Concat(
         "uniform shader backdrop;\nuniform float merge;\n",
         ContinuousCorner.ShaderSource(),
@@ -244,6 +319,10 @@ internal static class GlassMaterial
             float radius = kind > 0.5 ? min(c.x, c.y) :
                 (p.y < 0.0 ? (p.x < 0.0 ? corners.x : corners.y) : (p.x < 0.0 ? corners.w : corners.z));
             radius = min(radius, min(c.x, c.y));
+            // OD-0102: a continuous corner that does not fit at its radius yet is under half the shorter side (ED-275 (2)'s band) is Apple's corner at the
+            // largest radius that fits (ContinuousCorner.LargestRadius), unless the shape is measured circular there (continuous == 2: the composer pill).
+            float largest = min(c.x, c.y) / EXTENT;
+            if (continuous > 0.5 && continuous < 1.5 && kind < 0.5 && radius > largest && radius < min(c.x, c.y) - 0.000001) radius = largest;
             float2 q = abs(p) - c + radius;
             float2 qc = max(q, 0.0);
             float cd = length(qc) + min(max(q.x, q.y), 0.0) - radius;
@@ -254,7 +333,7 @@ internal static class GlassMaterial
             float h = max(merge - abs(a - b), 0.0) / merge;
             return min(a, b) - h * h * merge * 0.25;
         }
-        """);
+        """.Replace("EXTENT", ContinuousCorner.Extent.ToString("R", CultureInfo.InvariantCulture), StringComparison.Ordinal));
     private static readonly ConcurrentDictionary<int, Lazy<SKRuntimeEffect>> effects = new();
 
     private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>
@@ -374,7 +453,7 @@ internal static class GlassMaterial
             uniforms[$"tint{i}"] = new[] { r.Tint.R / 255f, r.Tint.G / 255f, r.Tint.B / 255f, r.Tint.A / 255f };
             uniforms[$"frost{i}"] = r.Dark ? new[] { 30 / 255f, 30 / 255f, 32 / 255f, 0.18f } : new[] { 245 / 255f, 245 / 255f, 247 / 255f, 0.18f };
             var distanceScale = Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21));
-            uniforms[$"flags{i}"] = new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? 1f : 0f, (float)distanceScale, (float)r.Opacity };
+            uniforms[$"flags{i}"] = new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f, (float)distanceScale, (float)r.Opacity };
             uniforms[$"pointer{i}"] = new[] { (float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f };
         }
         var children = new SKRuntimeEffectChildren(effect) { ["backdrop"] = backdrop };

@@ -51,8 +51,12 @@ public sealed class TimelineRowsFinTurnEndTests(HeadlessSession headless)
             try
             {
                 var stack = Assert.IsType<StackPanel>(group.Child);
-                Assert.Equal(20, stack.Spacing);
                 Assert.Equal(Orientation.Vertical, stack.Orientation);
+                // :1467 the gap between the header and the steps is rowSpacing. It is carried by the steps' own body (GrowingBody.LeadingSpace), not by the stack's Spacing,
+                // so that the steps fold open with their gap (UI-CHAT-022, OD-0076), so it is read from where the rows sit.
+                var header = Mounted<Button>(group).First();
+                var steps = Assert.Single(Mounted<WorkSteps>(group));
+                Assert.Equal(20, steps.TranslatePoint(default, window)!.Value.Y - (header.TranslatePoint(default, window)!.Value.Y + header.Bounds.Height), 0.5);
                 var glyph = Mounted<SwiftImage>(group).First(image => image.SymbolName == "pencil");
                 Assert.Equal(16, glyph.Width);
                 Assert.Equal(8, Assert.IsAssignableFrom<StackPanel>(glyph.Parent!.Parent).Spacing);

@@ -193,38 +193,69 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
     // ---------------------------------------------------------------- UI-CHAT-033
 
     // :2372-2376 .animation(.snappy(duration: 0.2), value: steps): checking an item off rewrites the same rows under that
-    // animation. The text of the step that changes sees the transaction when its colour is rewritten.
+    // animation. The text of the step that changes keeps its row and its brush, and its colour moves from the old to the new
+    // along the snappy 0.2 s curve (merge of unit blitz-timelinerows-ab, ED-285 (1): a step's colours are tweened, so its text
+    // is no longer handed a new brush inside the transaction; the curve is checked against the closed form of SwiftUI's
+    // spring, response 0.2 and damping 1 - 0.15, as TimelineRowsBlitzAbMotionTests does).
     [Fact]
     [Trait("Req", "UI-CHAT-033")] // TimelineRows.swift:2366-2376 updates animate with .snappy(duration: 0.2)
     public void Checking_a_step_off_rewrites_the_same_rows_under_the_snappy_two_tenths_of_a_second_animation() => headless.OnUiThread(() =>
     {
+        static double Snappy(double seconds)
+        {
+            if (seconds <= 0) return 0;
+            const double damping = 0.85;
+            var omega = 2 * Math.PI / 0.2;
+            var damped = omega * Math.Sqrt(1 - damping * damping);
+            return 1 - Math.Exp(-damping * omega * seconds) * (Math.Cos(damped * seconds) + damping * omega / damped * Math.Sin(damped * seconds));
+        }
         using var h = Harness();
-        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
         TodoListRow row = null!;
         TextBlock one = null!;
+        IBrush? brush = null;
         AvaloniaWindow window = null!;
         TimelineEntry entry = null!;
-        var seen = new List<Animation?>();
+        Color from = default, to = default;
+        Color Ink() => ((ISolidColorBrush)one.Foreground!).Color;
         h.Main.OnMain(() =>
         {
             entry = new TimelineEntry(new TimelineItem(null, Steps(("One", TodoStep.Status.Active), ("Two", TodoStep.Status.Pending))));
             row = new TodoListRow(entry);
             window = Show(row);
             one = TextNamed(row, "One");
-            one.PropertyChanged += (_, change) => { if (change.Property == TextBlock.ForegroundProperty) seen.Add(Transaction.Current); };
+            brush = one.Foreground;
+            from = Ink();
+            to = Resolved(SwiftColor.Secondary, one); // :2357 a done step's text is .secondary
+            Assert.NotEqual(from, to);
             entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Done), ("Two", TodoStep.Status.Active)) };
         });
-        h.Main.OnMain(() =>
+        try
         {
-            try
+            h.Main.OnMain(() => Settle(window));
+            frames.Advance(TimeSpan.Zero);
+            // the channel that moves most tells how far along the colour is
+            Func<Color, double> channel = new Func<Color, double>[] { c => c.A, c => c.R, c => c.G, c => c.B }.MaxBy(read => Math.Abs(read(to) - read(from)))!;
+            double Along(Color ink) => (channel(ink) - channel(from)) / (channel(to) - channel(from));
+            h.Main.OnMain(() =>
             {
-                Settle(window);
                 Assert.Same(one, TextNamed(row, "One")); // the same rows, rewritten
-                Assert.NotEmpty(seen);
-                Assert.All(seen, animation => Assert.Equal(Animation.Snappy(duration: 0.2), animation));
+                Assert.Same(brush, one.Foreground);
+                Assert.Equal(0, Along(Ink()), 0.02); // not cut to the new colour
+            });
+            for (var at = 10; at <= 300; at += 10)
+            {
+                h.Main.AdvanceMilliseconds(10);
+                frames.Advance(TimeSpan.FromMilliseconds(10));
+                var along = h.Main.OnMain(() => { Settle(window); return Along(Ink()); });
+                var expected = Math.Clamp(Snappy(at / 1000.0), 0, 1);
+                if (at >= 200) Assert.Equal(1, along, 0.02); // the 0.2 s is over
+                else Assert.True(Math.Abs(along - expected) <= 0.06, $"at {at} ms the step's text is {along:F3} of the way to .secondary; .snappy(duration: 0.2) has {expected:F3}");
             }
-            finally { Close(window); }
-        });
+        }
+        finally { h.Main.OnMain(() => Close(window)); }
     });
 
     // ---------------------------------------------------------------- UI-CHAT-035
@@ -823,7 +854,7 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
                     var shape = Mounted<Border>(root).Concat(root is Border own ? [own] : []).FirstOrDefault(border => border.Padding == padding && SwiftShapes.GetCornerStyle(border) is not null);
                     if (shape is null) { failures.Add($"{name}: no rounded rectangle of padding {padding} was drawn through SwiftShapes"); continue; }
                     if (SwiftShapes.GetCornerStyle(shape) != RoundedCornerStyle.Continuous) failures.Add($"{name}: drawn {SwiftShapes.GetCornerStyle(shape)}, the source says .continuous");
-                    if (shape.CornerRadius != new CornerRadius(radius)) failures.Add($"{name}: radius {shape.CornerRadius}, the source says {radius}");
+                    if (SwiftShapes.StatedCornerRadius(shape) != new CornerRadius(radius)) failures.Add($"{name}: radius {SwiftShapes.StatedCornerRadius(shape)}, the source says {radius}");
                 }
                 // ChatBadge.swift:65 .clipShape(RoundedRectangle(cornerRadius:, style: .continuous)) over the badge and its attention wave:
                 // the clip comes from the same helper (a StreamGeometry path, not a plain RectangleGeometry).
@@ -903,7 +934,8 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
 //   AutoContinueReviewTests and ThreadRuntimeCLIUpdateTests.
 //
 // 2026-10-04 (cloud corner re-proof): UI-CHAT-024, -025, -028, -029, -033, -048, -051, -053, -056, -057 are proven on their corner by
-// ContinuousCornerReproofTests and are no longer CORNER-ONLY; UI-CHAT-034, -036, -037, -054 stay open on ED-275 (2)'s unresolved band (see TimelineRowsTests, STOP #10).
+// ContinuousCornerReproofTests and are no longer CORNER-ONLY; UI-CHAT-034, -036, -037, -054 were open on ED-275 (2)'s band and are proven on their corner under OD-0102
+// (unit blitz-cornerband, 2026-10-04: Apple's corner at the largest radius that fits; ContinuousCornerReproofTests, the four tests at its end).
 // CORNER-ONLY (every clause but ED-181's continuous curve is proven; CD pins the radius and the .continuous style of each site, so the
 // records close when the curve lands in SwiftShapes): UI-CHAT-024 (FT, CD spacer, PR-CHAT-097 interactions), UI-CHAT-025 (FD),
 //   UI-CHAT-028 (FD, CD selection), UI-CHAT-029 (FP, CD wave), UI-CHAT-033 (FN, CD animation), UI-CHAT-034 and UI-RUNTIME-002,

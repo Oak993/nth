@@ -34,8 +34,8 @@ public sealed class GuardedDownloadHandler : DelegatingHandler
     public bool NoFakeConfigured => !anyFake;
 
     /// <summary>
-    /// Every refused attempt: the connect guard's "host:port", and, for a handler with no fake, "METHOD url" of each request
-    /// that was stopped before it reached the connect step.
+    /// Every refused attempt: the connect guard's "host:port", "host:port" of each request that may use HTTP/3, and, for a handler
+    /// with no fake, "METHOD url" of each request that was stopped before it reached the connect step.
     /// </summary>
     public IReadOnlyList<string> Refusals
     {
@@ -47,10 +47,23 @@ public sealed class GuardedDownloadHandler : DelegatingHandler
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (anyFake) return base.SendAsync(request, cancellationToken);
-        lock (gate) unconfigured.Add(request.Method.Method + " " + request.RequestUri);
-        throw new HttpRequestException(HttpRequestError.ConnectionError, "No fake download server is configured: the request was refused.",
-            new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionRefused));
+        if (!anyFake)
+        {
+            lock (gate) unconfigured.Add(request.Method.Method + " " + request.RequestUri);
+            throw new HttpRequestException(HttpRequestError.ConnectionError, "No fake download server is configured: the request was refused.",
+                new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionRefused));
+        }
+        // REVIEW fix (unit/integ-sk): HTTP/3 runs over QUIC, which SocketsHttpHandler opens without calling ConnectCallback, so the guard never
+        // sees it. A request that may use HTTP/3 (version 3 or higher, or a policy that allows a higher version than asked) is refused here,
+        // as the guard refuses, before the inner handler can send a datagram. The fakes speak HTTP/1.1 only.
+        if (request.Version.Major >= 3 || request.VersionPolicy == HttpVersionPolicy.RequestVersionOrHigher)
+        {
+            var uri = request.RequestUri!;
+            lock (gate) unconfigured.Add($"{uri.Host}:{uri.Port}");
+            throw new HttpRequestException(HttpRequestError.ConnectionError, "HTTP/3 (QUIC) is not allowed through the network guard: the request was refused.",
+                new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionRefused));
+        }
+        return base.SendAsync(request, cancellationToken);
     }
 
     private static SocketsHttpHandler Inner(IReadOnlyList<FakeDownloadServer> servers, out NetworkGuard networkGuard)
