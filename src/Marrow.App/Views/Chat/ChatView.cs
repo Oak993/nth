@@ -2046,15 +2046,16 @@ internal sealed class ScriptsMenu : Decorator
     private static void ShowScriptsEditor(AppModel model, Guid projectID) => MainActor.Post(() =>
         PresentScriptsEditor(model, projectID, null));
 
-    // :1456-1463.
+    // :1456-1463. `.presentationBackground { WindowBackdrop(opacity:) }`: glass over the app's own window (OD-0005 (b)), so the sheet is drawn
+    // in its window and its backdrop's glass is the app's material (ED-NEW-rec-composer).
     private static void PresentScriptsEditor(AppModel model, Guid projectID, Control? anchor) => ChatSheetPresentation.Show(anchor, dismiss =>
     {
         var editor = new ScriptsEditor(model, projectID, dismiss).PresentedChrome();
-        var backdrop = new WindowBackdrop(model.Settings.BackdropOpacity);
+        var backdrop = new WindowBackdrop(model.Settings.BackdropOpacity, overAppContent: true);
         backdrop.Track(() => model.Settings.BackdropOpacity, opacity => backdrop.Update(opacity, null));
         return new Border { Child = new Panel { Children = { backdrop, editor } }, ClipToBounds = true }
             .RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
-    });
+    }, inWindow: true);
 }
 
 /// <summary>:1468-1528 <c>private struct GitActionsMenu: View</c>.</summary>

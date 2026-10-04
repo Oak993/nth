@@ -149,4 +149,42 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
         var through = Line(pill, 24, 3, width - 48);
         Assert.True(through.StripeContrast() > 20, $"without the glass the pill's line keeps only {through.StripeContrast():F2}, so the line does not measure the glass");
     }, factType: typeof(GlassMaterialNativeTests));
+
+    [Fact]
+    [Trait("Req", "PR-TERM-074")] // App/Views/Chat/ChatView.swift:1456-1463 .presentationBackground { WindowBackdrop(opacity:) }; OD-0005 (the material over app content)
+    public void On_the_real_main_window_the_scripts_sheet_frosts_the_stripes_under_it_and_without_the_glass_its_scrim_alone_shows_them() => native.Run(subject =>
+    {
+        var (anchor, present) = native.OnUi(() =>
+        {
+            FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Main));
+            var model = new Marrow.App.AppModel();
+            var folder = Directory.CreateTempSubdirectory("rec-composer-scripts-").FullName;
+            var project = model.AddProject(new Project("P", folder).Url);
+            var anchor = new Border(); // where the chat column stands; the sheet centres on it
+            return (anchor, (Action)(() => typeof(ScriptsMenu).GetMethod("PresentScriptsEditor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .Invoke(null, [model, project.Id, anchor])));
+        });
+        ShowOverStripes(subject, anchor);
+        native.OnUi(present);
+        Thread.Sleep(1200); // the sheet grows in (PopoverAppear) and its glass settles
+        var (sheet, backdrop, width) = native.OnUi(() =>
+        {
+            var backdrop = subject.Main.GetVisualDescendants().OfType<WindowBackdrop>().Single(layer => layer.GetVisualAncestors().OfType<Marrow.App.Port.WindowSheetLayer>().Any());
+            var sheet = backdrop.GetVisualAncestors().OfType<Border>().First(border => border.ClipToBounds && border.CornerRadius == new CornerRadius(Chrome.WindowCornerRadius));
+            Assert.Equal(new Size(580, 460), sheet.Bounds.Size);
+            return (sheet, backdrop, sheet.Bounds.Width);
+        });
+        var bare = Line(sheet, 30, -20, width - 60);
+        Assert.InRange(bare.StripeContrast(), Sharp - 6, Sharp + 3); // the instrument sees the stripes straight above the sheet
+        var frosted = Line(sheet, 30, 6, width - 60); // 6 points below the sheet's top edge, inside its 20 point padding, clear of its 26 point corners
+        Assert.True(frosted.StripeContrast() < Blurred, $"the stripes behind the scripts sheet keep a contrast of {frosted.StripeContrast():F2} of {Sharp}");
+
+        native.OnUi(() =>
+        {
+            foreach (var glass in backdrop.GetVisualDescendants().OfType<Control>().Where(control => SwiftGlass.GetEffect(control) is not null).ToArray()) SwiftGlass.SetEffect(glass, null);
+        });
+        Thread.Sleep(600);
+        var scrimmed = Line(sheet, 30, 6, width - 60);
+        Assert.True(scrimmed.StripeContrast() > 20, $"without the glass the sheet's line keeps only {scrimmed.StripeContrast():F2}, so the line does not measure the glass");
+    }, factType: typeof(GlassMaterialNativeTests));
 }

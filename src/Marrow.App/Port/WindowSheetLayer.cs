@@ -1,0 +1,51 @@
+// PORT-ONLY (ED-NEW-rec-composer): a sheet drawn in its own window, over the window's content, for a sheet whose background is glass over
+// the app (ChatView.swift:1456-1463, `.presentationBackground { WindowBackdrop(opacity:) }`). The port's glass material reads what its own
+// top level drew under it (F.GlassMaterial), so the scripts sheet's glass can frost the chat under it only from inside the main window; a
+// Popup is a top level of its own (a PopupRoot window), whose surface holds nothing under the sheet. The layer covers the window's content,
+// so the window under a sheet takes no pointer while it shows (a sheet is window-modal), and it centres the sheet on its anchor, as the
+// Popup's PlacementMode.Center did.
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+
+namespace Marrow.App.Port;
+
+internal sealed class WindowSheetLayer : Panel
+{
+    private readonly Control anchor;
+
+    public WindowSheetLayer(Control anchor, Control sheet)
+    {
+        this.anchor = anchor;
+        Sheet = sheet;
+        Background = Brushes.Transparent; // hit-tested: a press beside the sheet reaches nothing under it
+        Children.Add(sheet);
+        // the anchor moves without this layer being laid out again (the sidebar opens, the column narrows): follow it
+        anchor.PropertyChanged += OnAnchorChanged;
+        DetachedFromVisualTree += (_, _) => anchor.PropertyChanged -= OnAnchorChanged;
+    }
+
+    /// <summary>The sheet's content, as the presentation built it.</summary>
+    public Control Sheet { get; }
+
+    private void OnAnchorChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == BoundsProperty) InvalidateArrange();
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        Sheet.Measure(availableSize);
+        return Sheet.DesiredSize;
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var size = Sheet.DesiredSize;
+        var center = anchor.TranslatePoint(new Point(anchor.Bounds.Width / 2, anchor.Bounds.Height / 2), this) ?? new Point(finalSize.Width / 2, finalSize.Height / 2);
+        var x = Math.Clamp(center.X - size.Width / 2, 0, Math.Max(0, finalSize.Width - size.Width));
+        var y = Math.Clamp(center.Y - size.Height / 2, 0, Math.Max(0, finalSize.Height - size.Height));
+        Sheet.Arrange(new Rect(new Point(x, y), size));
+        return finalSize;
+    }
+}
