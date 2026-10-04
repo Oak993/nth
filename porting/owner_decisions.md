@@ -1007,3 +1007,20 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - The cloaked pre-boot pass is replaced or reduced to whatever cannot be hidden in the animation.
   - Nothing is left to first use.
   - This applies to every launch after the first. The first run keeps the Getting ready sheet.
+
+## OD-0109 Built-in colourful wallpapers, animated too, behind the liquid glass (2026-10-05)
+
+- **Owner, verbatim:** "और हाँ ठीक है चलो अगर वो जो तुम बोल रहे हो ना कि डेस्कटॉप डायरेक्टली बिहाइंड अ विंडो स्टिल कैन नॉट बी बेंट तो कोई ना कोई वॉलपेपर्स या तो एनिमेटेड वॉलपेपर्स हम लगा सकें पीछे की तरफ जो कलरफुल हो ठीक है ना मतलब एब्स्ट्रैक्ट कलरफुल मूवमेंट्स या स्मूथ मूवमेंट्स तरह की कुछ वॉलपेपर्स हम लोग एनिमेटेड वॉलपेपर्स का डाल दें इसके अंदर ताकि वो लिक्विड ग्लास का लुक भी मेंटेन रहे और बैकग्राउंड से हमें कोई फ़र्क ना पड़े बिकॉज अवर वॉलपेपर इज़ रनिंग बिहाइंड इस तरह से कुछ भी कर सकते हैं"
+- **In English:** "If the desktop directly behind a window still can't be bent, then let us put wallpapers behind it, or animated wallpapers, colourful ones: abstract colourful movements or smooth movements. Then the liquid-glass look is kept, and the background doesn't matter, because our own wallpaper is running behind."
+- **Context:**
+  - The app already has upstream's wallpaper setting (WallpaperCard). With a wallpaper set, the window draws its own backdrop and the full drawn material refracts it (OD-0014, OD-0005), as in the eight Mac screenshots over the app's own wallpaper (OD-0003).
+  - Without one, the glass sits over the desktop as Acrylic.
+- **Effect:**
+  - The port gains built-in wallpapers: colourful and abstract, some still and some smoothly animated. The liquid glass refracts them everywhere it appears. A user's own wallpaper still works as upstream.
+  - This is a new, port-only feature, so it is designed on a variants page for the owner's pick before it is built (OD-0070, OD-0104 style).
+  - The page shows the wallpapers behind the app's real glass, each with its per-frame cost: an animated wallpaper re-renders the glass above it every frame, so smooth playback, battery and the composer light are measured.
+  - Open for the pick:
+    - which wallpapers ship;
+    - whether one is the default for new users (upstream's default is no wallpaper, OD-0014);
+    - the motion speed;
+    - Reduce Motion behaviour.
