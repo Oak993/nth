@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Marrow.App.Runtime;
@@ -7,7 +8,9 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Testing;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 using static Marrow.App.Tests.Fixtures.TimelineRowsFinChecks;
@@ -319,6 +322,46 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
                 // The Swift clips as well as fills: the plate clips its children (the diff lines) to the same shape.
                 Assert.True(plate.ClipToBounds, "the diff block clips its lines to its shape (.clipShape)");
                 Assert.NotNull(plate.Clip);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-079")] // TimelineRows.swift:1293/:1304 and :1313/:1322 the plate fill and the clipShape, .rect(cornerRadius: 12, style: .continuous); :1331 the hit shape
+    public void The_attachment_plate_is_cut_to_Apples_continuous_corner_of_radius_12_and_the_picture_clip_and_the_hit_shape_follow_the_same_outline() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var picturePath = System.IO.Path.Combine(h.Project.Path, "plate.png");
+            var filePath = System.IO.Path.Combine(h.Project.Path, "plate.txt");
+            ThumbnailMemory.Store(new DecodedBitmap(2, 2, 8, [.. Enumerable.Repeat(new byte[] { 255, 0, 0, 255 }, 4).SelectMany(pixel => pixel)]), picturePath, 56);
+            var picture = new AttachmentThumbnail(new Attachment { Name = "plate.png", Path = picturePath, MimeType = "image/png" }, new AttachmentPreviewSlot());
+            var file = new AttachmentThumbnail(new Attachment { Name = "plate.txt", Path = filePath, MimeType = "text/plain" }, new AttachmentPreviewSlot());
+            var panel = new StackPanel { Width = 300, Spacing = 20, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, Margin = new Thickness(20), Children = { picture, file } };
+            var window = Show(panel);
+            try
+            {
+                var plates = new (string Name, AttachmentThumbnail Thumbnail, Border Plate)[]
+                {
+                    ("picture plate", picture, Mounted<Border>(picture).First(border => border.Width == 56 && border.Height == 56)),
+                    ("file plate", file, Mounted<Border>(file).First(border => border.Width == 56 && border.Height == 56)),
+                };
+                foreach (var (name, thumbnail, plate) in plates)
+                {
+                    // 56 x 56 at r 12 is Apple's regime (2 * 1.528665 * 12 = 36.7 <= 56): the control points of ED-275 (1), and the Border's clip is that outline.
+                    AssertApple(plate, name, 12);
+                    Assert.True(plate.ClipToBounds, $"{name}: .clipShape cuts what is inside the plate (the picture) to the same curve");
+                    Assert.NotNull(plate.Clip);
+                    // :1331 .contentShape(.rect(cornerRadius: 12, style: .continuous)): a point between Apple's curve and the vertex is not the plate's, a point inside the curve is.
+                    var origin = plate.TranslatePoint(default, window)!.Value;
+                    Control? Hit(double x, double y) => (window.InputHitTest(new Point(x, y)) as Visual)?.GetSelfAndVisualAncestors().OfType<AttachmentThumbnail>().FirstOrDefault();
+                    Assert.Same(thumbnail, Hit(origin.X + 28, origin.Y + 28));
+                    Assert.Null(Hit(origin.X + 0.1 * 12, origin.Y + 0.1 * 12));
+                    Assert.Same(thumbnail, Hit(origin.X + 0.869 * 12, origin.Y + 0.030 * 12));
+                }
             }
             finally { Close(window); }
         });
