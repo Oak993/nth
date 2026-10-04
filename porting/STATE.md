@@ -11,7 +11,7 @@ the working branches are the ones named here.
 **Baseline.** B3 (owner decision OD-0024, amendment AM-0003): Droppy Code 1.7.0 build 21, commit `52bc7926`, checkout
 `E:\Droppy\reference\droppy-code-v1.7.0` (read only); record `porting/baseline.json`. Owner rulings in force:
 OD-0001 to OD-0098 (`porting/owner_decisions.md`, last entry OD-0098 with its 2026-10-04 amendments). Engineering
-decisions run to ED-261; the next free number is ED-262, and `ED-NEW-ledger-1` to `-10` (commit `ece699396` on
+decisions run to ED-261; the next free number is ED-262, and `ED-263` to `-10` (commit `ece699396` on
 `claude/ledger-text-20261004`) are renumbered by the lead at merge.
 
 **Branches (read from git, 2026-10-04 03:17).**
@@ -46,7 +46,7 @@ a recent commit time is not proof the agent is still running).
   staging; jewel-knob is merged at `a9484a49f`); Settings > Customization and voice typing wait for the build questions
   below; the paused units are listed in NEXT_SESSION_CLAUDE.md section 7 item 6.
 
-**Decisions recorded this checkpoint (this branch).** The turn fold animates under OD-0076 (ED-NEW-ledger-1); Reduce
+**Decisions recorded this checkpoint (this branch).** The turn fold animates under OD-0076 (ED-263); Reduce
 Motion stills only what OD-0076 added beyond the Mac (-2); PR-CHAT-107 follows the Mac exactly (-3); both About Show
 buttons are the small accent glass pill (-4); internal choices for voice, Customization, the strike unit, zoom chords,
 the update toast (silent) and the Terminal credit (-5 to -10). Records amended: PR-UPDATE-061 (the sweep checks the
@@ -56,10 +56,10 @@ the engineering ones: `E:\Droppy\work\design\open-questions-2026-10-04.md` (43 r
 **Next actions.**
 1. Let blitz-appdelegate, -terminalpanel and -windowmanager finish; merge each into staging when its scoped check says
    merge; set the closed records IMPLEMENTED with `set_status.py` and `merge_spec.mjs`; rerun `completion.py`.
-2. Merge this branch's ledger commits into staging (renumber ED-NEW-ledger-1 to -10 from ED-262; amend PR-UPDATE-025 for
+2. Merge this branch's ledger commits into staging (renumber ED-263 to -10 from ED-262; amend PR-UPDATE-025 for
    the silent update toast, the record text of PR-CHAT-104's `windows_path`, and add PR-CHAT-107's defect to
    `porting/upstream_defects.md`).
-3. Build what the decisions order: the turn fold's transition (ED-NEW-ledger-1) and the About Show buttons (-4), then
+3. Build what the decisions order: the turn fold's transition (ED-263) and the About Show buttons (-4), then
    the zoom chords by character (-8) and the silent update toast (-9), each test-first.
 4. Put the 24 owner questions to the owner (Q-V-11 differs from the spec's recommendation, see the file).
 5. Gate staging on a quiet PC and fast-forward `impl/b2` (gated only); then fast-strike round 3, the strike unit,
