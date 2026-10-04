@@ -80,7 +80,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
     // ---- UI-COMPOSER-031: the title button ---------------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-031 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:531-534,543-597
+    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:531-534,543-597
     public void The_title_button_is_the_efforts_title_in_its_colour_with_a_chevron_a_hover_plate_and_a_tap_that_opens_the_list() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
@@ -117,7 +117,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
             var gold = new SwiftColor(1.0, 0.84, 0.36).Resolve(theme);
             var claude = new SwiftColor(0.93, 0.58, 0.44).Resolve(theme);
             var accent = Chrome.Accent.Resolve(theme);
-            var mixed = new SwiftColor(accent.R / 255.0, accent.G / 255.0, accent.B / 255.0, accent.A / 255.0).Mix(SwiftColor.White, 0.22).Resolve(theme);
+            var mixed = OklabReference.MixWhite(accent, 0.22); // Color.mix(with:by:)'s default space is perceptual (ED-NEW-effortslider2)
             AssertSolid(mixed, title.Foreground, "neither maximum nor fast");
             var fast = Card(["low", "medium", "high"], "low", null, ProviderKind.Claude, supportsFast: true, fast: true, titleTap: () => { });
             var maximum = Card(["low", "medium", "high"], "high", null, ProviderKind.Claude, supportsFast: true, titleTap: () => { });
@@ -133,7 +133,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
                 var look = new EffortPairLook(new HydraPair(ProviderKind.Claude) { WorkerProvider = ProviderKind.Deepseek, Name = "Pair" }, model.Providers, null);
                 var paired = Card(["low", "medium", "high"], "low", null, ProviderKind.Claude, supportsFast: true, fast: true, pair: look, titleTap: () => { });
                 var pairWindow = Show(paired);
-                AssertGradient([claude, new SwiftColor(0.24, 0.36, 0.98).Mix(SwiftColor.White, 0.18).Resolve(theme), new SwiftColor(0.49, 0.58, 1.0).Mix(SwiftColor.White, 0.18).Resolve(theme), gold],
+                AssertGradient([claude, Color.FromRgb(90, 126, 254), Color.FromRgb(147, 168, 255), gold], // the heads' (0.24, 0.36, 0.98) and (0.49, 0.58, 1.0) toward white by 0.18 in Oklab (oklab.py)
                     Title(paired).Foreground, "a pair: the lead into the heads, gold last in fast mode");
                 pairWindow.Close();
             }

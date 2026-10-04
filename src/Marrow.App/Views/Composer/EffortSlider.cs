@@ -1190,8 +1190,8 @@ public sealed class EffortSlider : Decorator
         orbView.InvalidateVisual();
     }
 
-    // the fill's colours along its length (5 samples), as the ring refracts them: the liquid's stops, or the plain fill;
-    // made again only when the look or the theme changes
+    // the fill's colours along its length (5 samples), as the ring refracts them: the liquid's stops (every look draws
+    // the liquid since OD-0075); made again only when the look or the theme changes
     private SKColor[] FillColours()
     {
         var look = Look;
@@ -1199,24 +1199,17 @@ public sealed class EffortSlider : Decorator
         if (fillColours is { } kept && fillFor is { } key && Equals(key.Look, look) && key.Theme == theme) return kept;
         var into = new SKColor[5];
         fillFor = (look, theme); fillColours = into;
-        if (TrackEffect.IsLiquid(look))
+        // OD-0075: every look draws the liquid, so the fill's colours are always the liquid's stops
+        var stops = LiquidSpec.For(look).Stops();
+        for (var i = 0; i < into.Length; i++)
         {
-            var stops = LiquidSpec.For(look).Stops();
-            for (var i = 0; i < into.Length; i++)
-            {
-                var at = i / (double)(into.Length - 1);
-                var k = 1;
-                while (k < stops.Count - 1 && at > stops[k].At) k++;
-                var (a, b) = (stops[Math.Max(0, k - 1)], stops[Math.Min(stops.Count - 1, k)]);
-                var f = b.At > a.At ? Math.Clamp((at - a.At) / (b.At - a.At), 0, 1) : 0;
-                var mixed = LiquidTrack.FromOKLab(Lerp(LiquidTrack.ToOKLab(a.Color.Resolve(theme)), LiquidTrack.ToOKLab(b.Color.Resolve(theme)), f));
-                into[i] = mixed;
-            }
-        }
-        else
-        {
-            var c = (Chrome.Accent.Resolve(theme));
-            for (var i = 0; i < into.Length; i++) into[i] = new SKColor(c.R, c.G, c.B);
+            var at = i / (double)(into.Length - 1);
+            var k = 1;
+            while (k < stops.Count - 1 && at > stops[k].At) k++;
+            var (a, b) = (stops[Math.Max(0, k - 1)], stops[Math.Min(stops.Count - 1, k)]);
+            var f = b.At > a.At ? Math.Clamp((at - a.At) / (b.At - a.At), 0, 1) : 0;
+            var mixed = LiquidTrack.FromOKLab(Lerp(LiquidTrack.ToOKLab(a.Color.Resolve(theme)), LiquidTrack.ToOKLab(b.Color.Resolve(theme)), f));
+            into[i] = mixed;
         }
         return into;
         static (double, double, double) Lerp((double L, double A, double B) a, (double L, double A, double B) b, double f) =>
@@ -1273,26 +1266,22 @@ public sealed class EffortSlider : Decorator
             // transition while a later transaction starts a new one (ED-092(2) smooth 0.3, settling per ED-011).
             var previous = currentEffect;
             currentEffect = null;
+            // DEVIATION OD-0075 (liquid at every effort level): every look draws an effect, the plain one too (:760 overlays one only
+            // when the kind is not plain or a pair exists)
             if (drawnLook is null)
             {
-                if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
-                {
-                    var first = NewEffect(look);
-                    first.Opacity = 1;
-                    effects.Children.Add(first);
-                    currentEffect = first;
-                }
+                var first = NewEffect(look);
+                first.Opacity = 1;
+                effects.Children.Add(first);
+                currentEffect = first;
             }
             else
             {
-                if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
-                {
-                    var fresh = NewEffect(look);
-                    fresh.Opacity = 0;
-                    effects.Children.Add(fresh);
-                    currentEffect = fresh;
-                    EffortView.Animate(fresh, Animation.Smooth(0.3), progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
-                }
+                var fresh = NewEffect(look);
+                fresh.Opacity = 0;
+                effects.Children.Add(fresh);
+                currentEffect = fresh;
+                EffortView.Animate(fresh, Animation.Smooth(0.3), progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
                 if (previous is not null)
                 {
                     outgoingEffects.Add(previous);
@@ -1322,10 +1311,17 @@ public sealed class EffortSlider : Decorator
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new EffortPeer(this);
-    private sealed class EffortPeer(EffortSlider owner) : ControlAutomationPeer(owner), IRangeValueProvider
+    // :820-830 one element: the label (Name), the value (the current effort's title, :826-827 accessibilityValue) and the adjustable
+    // action (increment and decrement, clamped). UI Automation's two value patterns carry them: the RangeValue pattern the
+    // adjustment, the Value pattern (read-only) the title a screen reader reads as the slider's value. ENGINEERING DECISION,
+    // ED-NEW-effortslider2: Narrator reads Name and the RangeValue number or the Value string, not ItemStatus.
+    private sealed class EffortPeer(EffortSlider owner) : ControlAutomationPeer(owner), IRangeValueProvider, IValueProvider
     {
         protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Slider;
-        public bool IsReadOnly => false;
+        bool IRangeValueProvider.IsReadOnly => false;
+        bool IValueProvider.IsReadOnly => true;
+        string? IValueProvider.Value => AutomationProperties.GetItemStatus(owner);
+        void IValueProvider.SetValue(string? value) { } // the title follows the effort; it is not a text to set
         public double Minimum => 0;
         public double Maximum => Math.Max(0, owner.count - 1);
         public double SmallChange => 1;
@@ -1506,8 +1502,9 @@ internal static class EffortView
         if (look.Pair is { } pair) return Gradient(new[] { look.Brand.FillColor }.Concat(pair.Colors), theme);
         return look.TrackLookKind switch
         {
-            TrackLook.Kind.Plain => new SolidColorBrush(Chrome.Accent.Resolve(theme)),
-            TrackLook.Kind.Supercharged => look.Brand switch // :889-909 brand.fill
+            // :990 plain = Chrome.accent. DEVIATION OD-0075 (liquid at every effort level): the plain track is the liquid too, so the
+            // fill under it is the brand's, as at the top (the accent is no longer this track's colour)
+            TrackLook.Kind.Plain or TrackLook.Kind.Supercharged => look.Brand switch // :889-909 brand.fill
             {
                 EffortBrand.Antigravity => Gradient(EffortBrand.Gemini, theme),
                 EffortBrand.Meta => Gradient([new SwiftColor(0.0, 0.39, 0.88), new SwiftColor(0.0, 0.51, 0.98)], theme), // :894-897
@@ -1526,10 +1523,11 @@ internal static class EffortView
 /// <summary>:839-847 <c>enum EffortPalette</c>.</summary>
 public static class EffortPalette
 {
-    // :841 static var title: Color { Chrome.accent.mix(with: .white, by: 0.22) }
+    // :841 static var title: Color { Chrome.accent.mix(with: .white, by: 0.22) }: no colour space is named, so SwiftUI's default,
+    // perceptual (Oklab), mixes it (ENGINEERING DECISION, ED-NEW-effortslider2, OD-0098)
     public static SwiftColor Title => SwiftColor.Dynamic(
-        EffortView.Resolved(Chrome.Accent, ThemeVariant.Light).Mix(SwiftColor.White, 0.22),
-        EffortView.Resolved(Chrome.Accent, ThemeVariant.Dark).Mix(SwiftColor.White, 0.22));
+        EffortView.Resolved(Chrome.Accent, ThemeVariant.Light).MixPerceptual(SwiftColor.White, 0.22),
+        EffortView.Resolved(Chrome.Accent, ThemeVariant.Dark).MixPerceptual(SwiftColor.White, 0.22));
 
     public static SwiftColor Supercharged { get; } = new(red: 0.74, green: 0.55, blue: 1.0);      // :842
     public static SwiftColor SuperchargedFill { get; } = new(red: 0.55, green: 0.34, blue: 0.97); // :843
@@ -1716,8 +1714,8 @@ public sealed record EffortPairBrand
         }
     }
 
-    // :964 var titleColors: [Color]
-    public ValueList<SwiftColor> TitleColors => new(Colors.Select(color => color.Mix(SwiftColor.White, 0.18)));
+    // :964 var titleColors: [Color] { colors.map { $0.mix(with: .white, by: 0.18) } }: the default (perceptual) colour space again
+    public ValueList<SwiftColor> TitleColors => new(Colors.Select(color => color.MixPerceptual(SwiftColor.White, 0.18)));
 
     // :942 `struct EffortPairBrand: Hashable`: equal when the colours are equal, whichever instance built them. SwiftColor here is a class, so the
     // record's own member-wise comparison would tell two brands made from the same pair apart, and a card that stays while the thread
@@ -1768,8 +1766,13 @@ public sealed record TrackLook(TrackLook.Kind TrackLookKind, EffortBrand Brand, 
         }
     }
 
-    // :1012 var isLightFill: Bool. PR-COMPOSER-131: the light-fill test follows the pair when there is one.
-    public bool IsLightFill => Pair?.IsLight ?? (TrackLookKind == Kind.Supercharged && Brand.IsLight);
+    // :1012 var isLightFill: Bool. PR-COMPOSER-131: the light-fill test follows the pair when there is one. :1010-1011 "Whether the
+    // fill under the knob is light (a white brand at maximum, not in fusion, whose far end is gold)": the source draws a white brand's
+    // fill only at .supercharged, so the kind test there is the fill's colour. DEVIATION OD-0075 (the liquid at every effort level)
+    // draws that same white fill on the plain track too, and OD-0073 (ED-248) under the fast look (the source's is the amber :992), so
+    // by lead ruling R1 (ED-NEW-effortslider2 (6)) the test follows the fill drawn and holds for Plain, Fast and Supercharged. The
+    // fusion look keeps the source's rule (not light), by the same ruling.
+    public bool IsLightFill => Pair?.IsLight ?? (TrackLookKind is Kind.Plain or Kind.Fast or Kind.Supercharged && Brand.IsLight);
 
     // :1015 var stopColor: Color. PR-COMPOSER-131: the stop colour follows the pair when there is one (via IsLightFill).
     public SwiftColor StopColor => IsLightFill ? SwiftColor.Black.Opacity(0.35) : SwiftColor.White.Opacity(0.6);
@@ -1865,8 +1868,12 @@ public sealed class TrackEffect : Decorator
         return (mixed, StrikeTint.Mix(f.Tint, tint, u));
     }
 
-    /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; OD-0073: so does fast mode at every effort.</summary>
-    internal static bool IsLiquid(TrackLook look) => look.Pair is not null || look.TrackLookKind != TrackLook.Kind.Plain;
+    /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; OD-0073: so does fast mode at every effort; OD-0075:
+    /// and every look, the plain one included (:1054 draws nothing for it).</summary>
+    internal static bool IsLiquid(TrackLook look) => true;
+
+    /// <summary>The canvas's white liquid has dark-rimmed bubbles: a brand's light fill (never a pair's, whose segments are coloured).</summary>
+    internal static bool DarkBubbles(TrackLook look) => look.Pair is null && look.IsLightFill;
 
     /// <summary>OD-0073: fast mode (below the top, or at it) draws Strike over the liquid.</summary>
     internal static bool IsFast(TrackLook look) => look.TrackLookKind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion;
@@ -1950,7 +1957,7 @@ public sealed class TrackEffect : Decorator
             // is Strike over the liquid, in place of the source's streaks and bolts (:1057-1064), its currents 1.5x.
             var spec = LiquidSpec.For(look);
             var track = Math.Max(owner.TrackWidth, size.Width);
-            var darkBubbles = look.Pair is null && look.IsLightFill; // the canvas's white liquid has dark-rimmed bubbles
+            var darkBubbles = DarkBubbles(look);
             var fast = IsFast(look);
             // reduce motion stills the fast look as the canvas does: every animation stopped (the liquid at rest, no
             // bubbles), one frame of the lightning 35 ms into strike 1

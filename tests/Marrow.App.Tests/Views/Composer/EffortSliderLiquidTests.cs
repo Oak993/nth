@@ -68,7 +68,7 @@ public sealed class EffortSliderLiquidTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-COMPOSER-138")] // EffortSlider.swift:1054-1057 (which tracks draw an effect); DEVIATION OD-0051, OD-0073 (fast is Strike over the liquid at every effort)
-    [InlineData(TrackLook.Kind.Plain, false, false)]
+    [InlineData(TrackLook.Kind.Plain, false, true)] // DEVIATION OD-0075: liquid at every effort level, the plain track too
     [InlineData(TrackLook.Kind.Fast, false, true)]
     [InlineData(TrackLook.Kind.Supercharged, false, true)]
     [InlineData(TrackLook.Kind.Fusion, false, true)]

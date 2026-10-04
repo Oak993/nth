@@ -65,6 +65,7 @@ public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // jewel-knob.html:813 tick(): dt = min(0.05, max(0, t - sliderT)); :448-452 spring(), :582-586 stepSlider()
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void A_long_frame_moves_the_springs_by_fifty_milliseconds_and_they_then_settle_on_the_stop() => headless.OnUiThread(() =>
     {
         Assert.Equal(0.05, Slider.GetProperty("dtCap").GetDouble()); // read from the page's tick()
@@ -81,6 +82,7 @@ public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // jewel-knob.html:813 tick(): dt = min(0.05, max(0, t - sliderT)), sliderT the last DRAWN frame's; :867-871 drawn on the refreshes strike-engine.js:56-66 frameGate passes
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void On_a_240_hertz_display_each_drawn_frame_moves_the_springs_by_the_time_since_the_last_drawn_frame() => headless.OnUiThread(() =>
     {
         // expected.mjs slider.hz240: the page's gate and tick() over the rig's frames (one 1/60 s frame, 240 refreshes of
@@ -147,6 +149,7 @@ public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-252")] // jewel-knob.html:813 (the cap) on a press: one 0.2 s frame moves the knob as one 0.05 s frame does
+    [Trait("Req", "PR-COMPOSER-125")] // EffortSlider.swift:801-818,833-836 as amended by OD-0090 (grip, springs, release on a lost capture)
     public void After_a_stall_the_knob_goes_on_from_where_it_was() => headless.OnUiThread(() =>
     {
         var page = Slider.GetProperty("longFrame")[0];

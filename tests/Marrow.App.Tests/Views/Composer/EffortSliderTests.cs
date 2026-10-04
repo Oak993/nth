@@ -201,7 +201,8 @@ public sealed class EffortSliderTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-252")] // EffortSlider.swift:1000-1018 TrackLook's values by kind: the stop colour and the light-fill test (drawn: the stops, the bubbles' rims) and the record's glow and spark, which nothing draws now (the glow was the knob's blurred disc, :781-786, replaced by OD-0090's Jewel orb; src reads StopColor and IsLightFill only). Not PR-COMPOSER-131's evidence: its knob glow clause is superseded, so no test proves PR-COMPOSER-131 until the lead amends it
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:1000-1018 TrackLook's values by kind: the stop colour and the light-fill test (drawn: the stops, the bubbles' rims) and the record's glow and spark, which nothing draws now (the glow was the knob's blurred disc, :781-786, replaced by OD-0090's Jewel orb; src reads StopColor and IsLightFill only). Part of PR-COMPOSER-131's evidence as amended for OD-0090, OD-0075 and OD-0073 by lead ruling R1 (ED-NEW-effortslider2 (6)): the plain Purple and the supercharged Silver rows of its table, the others are in EffortSliderKnobRecordsTests and PlainSilverStopsReviewTests
+    [Trait("Req", "PR-COMPOSER-131")] // EffortSlider.swift:1000-1018 as amended by OD-0090 (the glow is no longer drawn)
     public void TrackLook_without_a_pair_follows_its_own_kind()
     {
         var plain = new TrackLook(TrackLook.Kind.Plain, EffortBrand.Purple);
@@ -217,7 +218,8 @@ public sealed class EffortSliderTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-252")] // EffortSlider.swift:1000-1018 TrackLook's values with a pair: the light-fill test follows the pair (drawn: the stop colour, the bubbles' rims); the record's glow follows the pair's last colour and its spark stays white (:1018), which nothing draws now (see TrackLook_without_a_pair_follows_its_own_kind). Not PR-COMPOSER-131's evidence
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:1000-1018 TrackLook's values with a pair: the light-fill test follows the pair (drawn: the stop colour, the bubbles' rims); the record's glow follows the pair's last colour and its spark stays white (:1018), which nothing draws now (see TrackLook_without_a_pair_follows_its_own_kind). Part of PR-COMPOSER-131's evidence (the pair rule of the amended record)
+    [Trait("Req", "PR-COMPOSER-131")] // EffortSlider.swift:1000-1018 as amended by OD-0090 (the glow is no longer drawn)
     public void TrackLook_with_a_pair_follows_the_pair_instead_of_its_kind()
     {
         var pair = new EffortPairBrand(new HydraPair(ProviderKind.Codex) { WorkerProvider = ProviderKind.Antigravity });

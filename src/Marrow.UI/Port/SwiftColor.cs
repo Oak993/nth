@@ -239,39 +239,84 @@ public sealed class SwiftColor
     /// Result = self * (1 - factor) + other * factor.
     /// For dynamic colors (appearance pairs), recursively mixes both light and dark members.
     /// </summary>
-    public SwiftColor Mix(SwiftColor other, double factor)
+    public SwiftColor Mix(SwiftColor other, double factor) => MixIn(other, factor, perceptual: false);
+
+    /// <summary>
+    /// <c>Color.mix(with:by:)</c> with SwiftUI's own default, <c>in: .perceptual</c>: the components are interpolated in
+    /// Oklab (Apple's perceptual space), from the linear light of the sRGB components, and encoded back; the opacity is
+    /// interpolated linearly. ENGINEERING DECISION, ED-NEW-effortslider2 (OD-0098: the framework's documented behaviour where
+    /// the code relies on it): EffortSlider.swift:841 <c>Chrome.accent.mix(with: .white, by: 0.22)</c> and :964
+    /// <c>mix(with: .white, by: 0.18)</c> name no colour space, so they take the default. <see cref="Mix"/> stays the
+    /// component-wise interpolation the port's other mix sites use.
+    /// </summary>
+    public SwiftColor MixPerceptual(SwiftColor other, double factor) => MixIn(other, factor, perceptual: true);
+
+    private SwiftColor MixIn(SwiftColor other, double factor, bool perceptual)
     {
         // Live (ED-250): the accent as it is now, mixed as that colour would be.
-        if (kind == Kind.Live) return live!().Opacity(alpha).Mix(other, factor);
-        if (other.kind == Kind.Live) return Mix(other.live!().Opacity(other.alpha), factor);
+        if (kind == Kind.Live) return live!().Opacity(alpha).MixIn(other, factor, perceptual);
+        if (other.kind == Kind.Live) return MixIn(other.live!().Opacity(other.alpha), factor, perceptual);
 
         // Handle dynamic colors (appearance pairs) by mixing both light and dark members
         if (kind == Kind.Pair)
         {
             // Mix both light and dark members separately
             return Dynamic(
-                light: light!.Mix(other, factor),
-                dark: dark!.Mix(other, factor));
+                light: light!.MixIn(other, factor, perceptual),
+                dark: dark!.MixIn(other, factor, perceptual));
         }
 
         if (other.kind == Kind.Pair)
         {
             // If only the other is dynamic, mix this with both its members
             return Dynamic(
-                light: Mix(other.light!, factor),
-                dark: Mix(other.dark!, factor));
+                light: MixIn(other.light!, factor, perceptual),
+                dark: MixIn(other.dark!, factor, perceptual));
         }
 
-        // Both are fixed colors; do the linear interpolation
+        // Both are fixed colors; do the interpolation
         if (kind != Kind.Fixed || other.kind != Kind.Fixed)
             throw new InvalidOperationException("Mix only supports fixed or dynamic (appearance pair) colors");
 
         var invFactor = 1.0 - factor;
+        if (perceptual)
+        {
+            var (l0, a0, b0) = ToOklab(red, green, blue);
+            var (l1, a1, b1) = ToOklab(other.red, other.green, other.blue);
+            var (r, g, b) = FromOklab(l0 * invFactor + l1 * factor, a0 * invFactor + a1 * factor, b0 * invFactor + b1 * factor);
+            return new SwiftColor(red: r, green: g, blue: b, opacity: alpha * invFactor + other.alpha * factor);
+        }
         return new SwiftColor(
             red: red * invFactor + other.red * factor,
             green: green * invFactor + other.green * factor,
             blue: blue * invFactor + other.blue * factor,
             opacity: alpha * invFactor + other.alpha * factor);
+    }
+
+    // Oklab (Ottosson, 2020) from the sRGB components (0...1, not linear) and back; the components are not clamped on the way
+    // in and the result is clamped to 0...1, as an sRGB colour is.
+    private static double Linear(double c) => c <= 0.04045 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+    private static double Encoded(double v) { v = Math.Clamp(v, 0, 1); return v <= 0.0031308 ? 12.92 * v : 1.055 * Math.Pow(v, 1 / 2.4) - 0.055; }
+
+    private static (double L, double A, double B) ToOklab(double red, double green, double blue)
+    {
+        double r = Linear(red), g = Linear(green), b = Linear(blue);
+        var l = Math.Cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+        var m = Math.Cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+        var s = Math.Cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+        return (0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+            1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+            0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s);
+    }
+
+    private static (double R, double G, double B) FromOklab(double lightness, double a, double b)
+    {
+        var l = Math.Pow(lightness + 0.3963377774 * a + 0.2158037573 * b, 3);
+        var m = Math.Pow(lightness - 0.1055613458 * a - 0.0638541728 * b, 3);
+        var s = Math.Pow(lightness - 0.0894841775 * a - 1.2914855480 * b, 3);
+        return (Encoded(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+            Encoded(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+            Encoded(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s));
     }
 
     /// <summary>The colour drawn in the given appearance.</summary>
