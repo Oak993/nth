@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Marrow.UI.Tests.Port;
 
-// OD-0099 Q-TEXT A (ED-NEW-text-greyscale): text the port draws itself through SkiaSharp is greyscale too. No source file may
+// OD-0099 Q-TEXT A (ED-281): text the port draws itself through SkiaSharp is greyscale too. No source file may
 // ask Skia or Avalonia for subpixel (LCD) text, and every SKFont states its edging, so none falls to a platform default.
 public sealed partial class GreyscaleTextSourceTests
 {
@@ -22,7 +22,7 @@ public sealed partial class GreyscaleTextSourceTests
     private static string WithoutComments(string text) => Regex.Replace(text, @"//[^\n]*|/\*.*?\*/", "", RegexOptions.Singleline);
 
     [Fact]
-    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-281")]
     public void No_source_file_asks_for_subpixel_or_lcd_text()
     {
         var found = new List<string>();
@@ -33,7 +33,7 @@ public sealed partial class GreyscaleTextSourceTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-281")]
     public void Every_SKFont_states_greyscale_edging()
     {
         var problems = new List<string>();

@@ -1,4 +1,4 @@
-// PORT-ONLY. Text is drawn greyscale everywhere, on every surface (OD-0099 Q-TEXT A; ED-NEW-text-greyscale).
+// PORT-ONLY. Text is drawn greyscale everywhere, on every surface (OD-0099 Q-TEXT A; ED-281).
 //
 // SOURCE FACT: the macOS app draws all its text with greyscale antialiasing, no subpixel (LCD) colour fringes. ENGINEERING
 // DECISION: Avalonia 12.1.2 asks Skia for subpixel antialiased text by default (TextRenderingMode.Unspecified resolves to

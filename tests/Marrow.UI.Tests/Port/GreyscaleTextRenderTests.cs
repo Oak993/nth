@@ -20,7 +20,7 @@ namespace Marrow.UI.Tests.Port;
 // the macOS source draws all its text greyscale. Avalonia 12.1.2 asks Skia for subpixel text unless TextOptions.TextRenderingMode
 // says otherwise, and only gets it where the layer is opaque, so the proof is a render over an opaque neutral backdrop: every
 // pixel of text in a neutral colour must have R == G == B. PortControlThemes.RegisterTextOptions sets the mode for every
-// TopLevel (ED-NEW-text-greyscale).
+// TopLevel (ED-281).
 [Collection("Headless")]
 public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
 {
@@ -77,7 +77,7 @@ public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-107")] // the port-owned defaults, PortControlThemes (ED-NEW-text-greyscale, OD-0099 Q-TEXT A)
+    [Trait("Decision", "ED-281")] // the port-owned defaults, PortControlThemes (ED-281, OD-0099 Q-TEXT A)
     public void A_sidebar_row_title_has_no_colour_fringes() => headless.OnUiThread(() =>
     {
         var row = new SidebarRow("Refactor the session store", () => { }, () => new Border { Width = 14, Height = 14 }, _ => new Border(), isSelected: false);
@@ -94,7 +94,7 @@ public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-281")]
     public void A_chat_paragraph_has_no_colour_fringes() => headless.OnUiThread(() =>
     {
         var markdown = new MarkdownView("The quick brown fox jumps over the lazy dog, then sorts the **session list** by recency.") { Width = 320 };
@@ -110,7 +110,7 @@ public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-281")]
     public void A_text_on_a_glass_pill_has_no_colour_fringes() => headless.OnUiThread(() =>
     {
         var label = new TextBlock { Text = "Check now", Foreground = Brushes.White, FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
@@ -138,7 +138,7 @@ public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-281")]
     public void Every_top_level_gets_greyscale_antialiasing_and_no_hinting_before_its_first_frame() => headless.OnUiThread(() =>
     {
         var first = new Window { Width = 100, Height = 60, Content = new TextBlock { Text = "a" } };
@@ -156,7 +156,7 @@ public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-281")]
     public void The_hinting_mode_the_style_sets_reaches_the_rasterizer() => headless.OnUiThread(() =>
     {
         // Same text, same window; only the hinting differs. If the rasterizer ignored the mode, the two renders would match.
@@ -180,7 +180,7 @@ public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-281")]
     public void A_window_asking_for_subpixel_text_draws_fringes_so_the_fringe_check_can_fail() => headless.OnUiThread(() =>
     {
         // Sensitivity: the same render with the mode switched to SubpixelAntialias on the text must show fringes here,
