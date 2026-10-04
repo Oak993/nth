@@ -3005,7 +3005,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
             Assert.Equal(1, gap.Height);
             // :2815-2819 padded 12 leading, 6 trailing and 6 vertical on .quaternary at 0.32, hugging its content.
             var pill = LogicalQuery.SelfAndDescendants<Border>(undoable).First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
-            Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+            Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), SwiftShapes.StatedCornerRadius(pill));
             Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), pill), BrushColor(pill.Background));
             Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
             Close(window);

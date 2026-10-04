@@ -881,7 +881,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 Assert.Equal(1, row.Children[1].Height);
                 // :2818-2822 padded 12 leading, 6 trailing and 6 vertical on .quaternary at 0.32, hugging its content.
                 var pill = undoable.GetVisualDescendants().OfType<Border>().First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
-                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), SwiftShapes.StatedCornerRadius(pill));
                 // :2822 `.continuous`: the card is 40 pt tall, in the band (13.1 < r < 20) of ED-275 (2), which OD-0102 (owner, 2026-10-04) settles as Apple's corner at the
                 // largest radius that fits, 40 / (2 * 1.528665) = 13.08 (control points and clip: ContinuousCornerReproofTests, the Edited-files card).
                 Assert.True(ContinuousCornerChecks.Drawn(pill, expectApple: true));

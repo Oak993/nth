@@ -27,7 +27,7 @@ internal static class ContinuousCornerChecks
         var (radii, style, size, clip, fill) = shape switch
         {
             SwiftShapeBorder s => (s.CornerRadius, SwiftShapes.GetCornerStyle(s), s.Bounds.Size, s.Clip, true),
-            Border b => (b.CornerRadius, SwiftShapes.GetCornerStyle(b), b.Bounds.Size, b.Clip, false),
+            Border b => (SwiftShapes.StatedCornerRadius(b), SwiftShapes.GetCornerStyle(b), b.Bounds.Size, b.Clip, false),
             _ => throw new Xunit.Sdk.XunitException($"{shape.GetType().Name} is not a rounded shape"),
         };
         Assert.Equal(RoundedCornerStyle.Continuous, style);

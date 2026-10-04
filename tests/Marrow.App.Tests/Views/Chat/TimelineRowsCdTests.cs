@@ -823,7 +823,7 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
                     var shape = Mounted<Border>(root).Concat(root is Border own ? [own] : []).FirstOrDefault(border => border.Padding == padding && SwiftShapes.GetCornerStyle(border) is not null);
                     if (shape is null) { failures.Add($"{name}: no rounded rectangle of padding {padding} was drawn through SwiftShapes"); continue; }
                     if (SwiftShapes.GetCornerStyle(shape) != RoundedCornerStyle.Continuous) failures.Add($"{name}: drawn {SwiftShapes.GetCornerStyle(shape)}, the source says .continuous");
-                    if (shape.CornerRadius != new CornerRadius(radius)) failures.Add($"{name}: radius {shape.CornerRadius}, the source says {radius}");
+                    if (SwiftShapes.StatedCornerRadius(shape) != new CornerRadius(radius)) failures.Add($"{name}: radius {SwiftShapes.StatedCornerRadius(shape)}, the source says {radius}");
                 }
                 // ChatBadge.swift:65 .clipShape(RoundedRectangle(cornerRadius:, style: .continuous)) over the badge and its attention wave:
                 // the clip comes from the same helper (a StreamGeometry path, not a plain RectangleGeometry).

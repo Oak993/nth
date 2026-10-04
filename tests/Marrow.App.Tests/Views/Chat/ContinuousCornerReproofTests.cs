@@ -26,7 +26,7 @@ namespace Marrow.App.Tests.Views.Chat;
 //    probes the sliver between the curve and the circle).
 //  - BAND (h / 3.057 < r < h / 2): settled by OD-0102 (owner, 2026-10-04, "corner-band: A"): Apple's corner at the largest radius that fits,
 //    ContinuousCorner.LargestRadius = h / 3.057, instead of a circular arc. The Edited-files card (40 pt, r 18), the one-step steps card (43 pt),
-//    a notice two lines tall (about 48 pt) and the delegation card of one head (54 pt) sit here; the tests at the end read it off the mounted element.
+//    a notice two lines tall (46 pt, measured mounted at 380 pt wide) and the delegation card of one head (54 pt) sit here; the tests at the end read it off the mounted element.
 // OD-0098: where no video frame shows the element the pinned Swift is the proof; each test names the Swift lines it reads.
 [Collection("Headless")]
 public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
@@ -53,11 +53,11 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     private static void AssertCapsule(Border shape, string name, double radius = 18)
     {
         Assert.True(SwiftShapes.GetCornerStyle(shape) == RoundedCornerStyle.Continuous, $"{name}: the source says .continuous");
-        Assert.Equal(new CornerRadius(radius), shape.CornerRadius);
+        Assert.Equal(new CornerRadius(radius), SwiftShapes.StatedCornerRadius(shape));
         var height = shape.Bounds.Height;
         Assert.True(height > 0 && height <= 2 * radius + 1e-6, $"{name}: {height} pt tall is not a capsule of radius {radius} (that would be the band or Apple's corner)");
         Assert.False(ContinuousCornerChecks.Drawn(shape, expectApple: false), $"{name}: a capsule has no Apple corner");
-        var outline = SwiftShapes.Outline(new Rect(shape.Bounds.Size), shape.CornerRadius, RoundedCornerStyle.Continuous);
+        var outline = SwiftShapes.Outline(new Rect(shape.Bounds.Size), SwiftShapes.StatedCornerRadius(shape), RoundedCornerStyle.Continuous);
         Assert.All(outline.Corners, kind => Assert.Equal(CornerKind.Arc, kind));
         Assert.All(outline.Segments.Where(segment => segment.Verb == PathVerb.Arc), arc => Assert.Equal(height / 2, arc.ArcRadius, 1e-9));
     }
@@ -70,13 +70,13 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     private static void AssertBand(Border shape, string name, double radius = 18)
     {
         Assert.True(SwiftShapes.GetCornerStyle(shape) == RoundedCornerStyle.Continuous, $"{name}: the source says .continuous");
-        Assert.Equal(new CornerRadius(radius), shape.CornerRadius);
+        Assert.Equal(new CornerRadius(radius), SwiftShapes.StatedCornerRadius(shape));
         var size = shape.Bounds.Size;
         Assert.True(size.Height > 2 * radius + 1e-6 && size.Height < 2 * 1.528665 * radius, $"{name}: {size.Height} pt is not in the band ({2 * radius}, {2 * 1.528665 * radius:F2})");
         var drawn = size.Height / (2 * 1.528665);
         Assert.Equal(drawn, ContinuousCorner.LargestRadius(size), 9);
         Assert.True(ContinuousCornerChecks.Drawn(shape, expectApple: true), $"{name}: no Apple corner in the band (OD-0102)");
-        var outline = SwiftShapes.Outline(new Rect(size), shape.CornerRadius, RoundedCornerStyle.Continuous);
+        var outline = SwiftShapes.Outline(new Rect(size), SwiftShapes.StatedCornerRadius(shape), RoundedCornerStyle.Continuous);
         Assert.All(outline.Corners, kind => Assert.Equal(CornerKind.Continuous, kind));
         Assert.All(Enumerable.Range(0, 4), index => Assert.Equal(drawn, outline.DrawnRadius(index), 9));
         Assert.DoesNotContain(outline.Segments, segment => segment.Verb == PathVerb.Arc);
@@ -93,7 +93,12 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
                 AssertNear(Map(order[c], end.U, end.V, drawn, size), segment.End, $"{name}: corner {order[c]} cubic {k + 1} end");
             }
         // The clip of the mounted Border is the shared cached outline at the drawn radius, so the fill and a child are cut to the same curve.
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(size), shape.CornerRadius), shape.Clip);
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(size), SwiftShapes.StatedCornerRadius(shape)), shape.Clip);
+        // What the Border FILLS is that curve too (the review of this unit: a clip can only remove fill, and Apple's corner at the largest radius lies outside the circle
+        // of the stated radius, so a Border that kept the circle of 18 under this clip drew the circle of 18). With no ring the clip alone makes the corner and the Border's own
+        // corner is square; with a ring it is the circle of the drawn radius. Never the stated 18. The pixels are REVIEW_the_four_band_elements_render_... below.
+        var hasRing = shape.BorderBrush is not null && shape.BorderThickness != default;
+        Assert.Equal(hasRing ? new CornerRadius(drawn) : default, shape.CornerRadius);
         // The corner starts half the short side from the vertex along the long side: the run-in is Extent * drawn = height / 2.
         AssertNear(new Point(size.Height / 2, 0), outline.Segments[0].End, $"{name}: the top-left corner's run-in along the top edge ends at height / 2");
     }
@@ -102,11 +107,11 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     private static void AssertApple(Border shape, string name, double radius)
     {
         Assert.True(SwiftShapes.GetCornerStyle(shape) == RoundedCornerStyle.Continuous, $"{name}: the source says .continuous");
-        Assert.Equal(new CornerRadius(radius), shape.CornerRadius);
+        Assert.Equal(new CornerRadius(radius), SwiftShapes.StatedCornerRadius(shape));
         var size = shape.Bounds.Size;
         Assert.True(size.Height >= 2 * 1.528665 * radius && size.Width >= 2 * 1.528665 * radius, $"{name}: {size} is not tall enough for Apple's corner of radius {radius}");
         Assert.True(ContinuousCornerChecks.Drawn(shape, expectApple: true), $"{name}: no Apple corner");
-        var outline = SwiftShapes.Outline(new Rect(size), shape.CornerRadius, RoundedCornerStyle.Continuous);
+        var outline = SwiftShapes.Outline(new Rect(size), SwiftShapes.StatedCornerRadius(shape), RoundedCornerStyle.Continuous);
         Assert.All(outline.Corners, kind => Assert.Equal(CornerKind.Continuous, kind));
         // Clockwise from the end of the top-left corner: top-right, bottom-right, bottom-left, then top-left.
         var cubics = outline.Segments.Where(segment => segment.Verb == PathVerb.Cubic).ToArray();
