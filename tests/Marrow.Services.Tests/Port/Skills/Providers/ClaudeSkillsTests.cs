@@ -321,6 +321,37 @@ public sealed class ClaudeSkillsTests
         s.Stop(); Drain(runtime);
     }
 
+    [Theory, InlineData(false), InlineData(true), Trait("Rule", "WU-6-fail-closed")]
+    public void Failed_launch_or_initialization_releases_generation_and_never_uses_a_live_CLI(bool rejectInitialize)
+    {
+        using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
+        using var f = new GenerationFixture(); var item = f.Add("A1", "pdf"); var service = f.Open();
+        var gen = service.Start("claude", "failure-chat", [item], f.Switches((item, true)), f.Budget, []);
+        RecordingClaudeProcess? call = null;
+        using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => call = new(args, env)
+        {
+            RejectInitialize = rejectInitialize,
+            OnStart = () => { if (!rejectInitialize) throw new IOException("Fixture process launch failed"); }
+        });
+        var s = new ClaudeSession(Config(), () => gen);
+        if (rejectInitialize) Assert.Throws<ProviderError>(() => runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5)));
+        else Assert.Throws<IOException>(() => runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5)));
+        Drain(runtime, gen); Assert.False(call!.IsRunning); Assert.False(gen.Verify());
+    }
+
+    [Fact, Trait("Rule", "WU-6-probe-integrity")]
+    public void Tampered_listing_is_refused_before_provider_spawn_and_probe_lease_is_released()
+    {
+        using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
+        using var f = new GenerationFixture(); var item = f.Add("A1", "pdf"); var service = f.Open(); var switches = f.Switches((item, true));
+        var probe = new ClaudeSkillProbe(() => service.Listing("claude", [item], switches, f.Budget, []), [item], switches);
+        var folder = probe.Folder;
+        f.Trees.Unlock(folder); File.WriteAllText(Path.Combine(folder, "extra.py"), "fixture"); f.Trees.Lock(folder);
+        using var transport = ClaudeProviderRuntime.Process.Override((_, _, _, _) => throw new InvalidOperationException("Must not spawn"));
+        var c = Config(); Assert.Throws<IOException>(() => runtime.Loop.Run(() => ClaudeSession.Handshake(c.Executable!, c.WorkingDirectory, c.Environment, () => probe), TimeSpan.FromSeconds(5)));
+        Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
+    }
+
     private static void Drain(TestRuntime runtime, Generation? generation = null)
     {
         if (generation is null) runtime.Loop.RunUntilIdle();

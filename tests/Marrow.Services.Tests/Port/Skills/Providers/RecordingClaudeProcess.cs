@@ -21,12 +21,20 @@ internal sealed class RecordingClaudeProcess : IClaudeProcess
     public string ErrorTail => "";
     public Action? OnStart { get; set; }
     public bool DelayExit { get; set; }
+    public bool RejectInitialize { get; set; }
     public bool TerminateRequested { get; private set; }
     public void Start() { OnStart?.Invoke(); IsRunning = true; }
     public void Send(JSONValue message)
     {
         Sent.Add(message.Data().Concat(new byte[] { 10 }).ToArray());
         if (message["request"]?["subtype"]?.JSONValueString != "initialize") return;
+        if (RejectInitialize)
+        {
+            output.Yield(JSONValue.FromDictionaryLiteral(("type", "control_response"),
+                ("response", JSONValue.FromDictionaryLiteral(("request_id", message["request_id"]!),
+                    ("subtype", "error"), ("error", "Fixture initialization rejected")))));
+            return;
+        }
         var commands = JSONValue.FromArrayLiteral(
             JSONValue.FromDictionaryLiteral(("name", "pdf"), ("description", "User pdf")),
             JSONValue.FromDictionaryLiteral(("name", "marrow:pdf"), ("description", "Fixture pdf")));
