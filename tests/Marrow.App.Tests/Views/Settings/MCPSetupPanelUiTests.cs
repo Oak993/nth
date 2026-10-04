@@ -473,7 +473,7 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
             var row = (Grid)StepsBlock(session).Children[0];
             var circle = row.Children.OfType<Border>().Single();
             var text = row.Children.OfType<TextBlock>().Single();
-            Assert.Equal(text.DesiredSize.Height, text.Bounds.Height, 0.5); // the callout line is 15 points, the circle 18
+            Assert.Equal(text.DesiredSize.Height, text.Bounds.Height, 0.5); // the callout line is 17 points (ED-290 (1)), the circle 18
             Assert.Equal(circle.Bounds.Center.Y, text.Bounds.Center.Y, 0.5);
         });
     }

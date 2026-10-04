@@ -59,6 +59,7 @@ internal static class ChatDialogControls
                 [!TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty] }.RegisterInNameScope(scope);
             var prompt = new TextBlock { IsHitTestVisible = false, Foreground = Chrome.SecondaryText.Brush(box),
                 [!TextBlock.TextProperty] = box[!TextBox.PlaceholderTextProperty] };
+            prompt.SetValue(SwiftFont.LineBoxProperty, double.NaN); // a text input's prompt keeps the face's own line box (ED-290 (1))
             PlainControls.FieldBrushes(box, text);
             void Update() => prompt.IsVisible = showsPrompt && string.IsNullOrEmpty(box.Text);
             box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Update(); };

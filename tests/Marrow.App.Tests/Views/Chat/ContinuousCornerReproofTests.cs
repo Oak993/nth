@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Marrow.App.Runtime;
@@ -7,7 +8,9 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Testing;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 using static Marrow.App.Tests.Fixtures.TimelineRowsFinChecks;
@@ -26,7 +29,7 @@ namespace Marrow.App.Tests.Views.Chat;
 //    probes the sliver between the curve and the circle).
 //  - BAND (h / 3.057 < r < h / 2): settled by OD-0102 (owner, 2026-10-04, "corner-band: A"): Apple's corner at the largest radius that fits,
 //    ContinuousCorner.LargestRadius = h / 3.057, instead of a circular arc. The Edited-files card (40 pt, r 18), the one-step steps card (43 pt),
-//    a notice two lines tall (46 pt, measured mounted at 380 pt wide) and the delegation card of one head (54 pt) sit here; the tests at the end read it off the mounted element.
+//    a notice two lines tall (50 pt mounted at 380 pt wide: 16 + two callout lines of 17, ED-290 (1); 46 before the line boxes were settled) and the delegation card of one head (54 pt) sit here; the tests at the end read it off the mounted element.
 // OD-0098: where no video frame shows the element the pinned Swift is the proof; each test names the Swift lines it reads.
 [Collection("Headless")]
 public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
@@ -203,6 +206,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-CHAT-048")] // TimelineRows.swift:313-316 .background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: pillRadius, style: .continuous)), :280 lineLimit(1)
     [Trait("Req", "UI-CHAT-051")] // TimelineRows.swift:579-582, :568 lineLimit(1)
+    [Trait("Req", "PR-CHAT-143")] // TimelineRows.swift:241-329 (pill :313-316), :340-373: the report pill of the heads and the Hydra-note pill (the Hydra mark, an Open link)
     public void The_heads_report_and_brief_pills_are_continuous_pills_of_radius_18_on_a_single_line() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -217,6 +221,9 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
             {
                 ("report pill, head", new HydraReportRow(new UserMessage { Text = "## Hank: a\nbody", HydraHeads = new ValueList<long>([0]) })),
                 ("report pill, long title", new HydraReportRow(new UserMessage { Text = longText + "\nbody", HydraHeads = new ValueList<long>([0]) })),
+                ("note pill, Hydra mark", new HydraReportRow(new UserMessage { Text = "Hydra merge held.\nwhy" })),
+                ("note pill, Hydra mark, long title", new HydraReportRow(new UserMessage { Text = longText + "\nbody" })),
+                ("note pill, Hydra mark, with an Open link", new HydraReportRow(new UserMessage { Text = "Hydra merged.\nhttps://gitlab.com/group/project/-/merge_requests/7\nbody" })),
                 ("brief pill", new HydraBriefRow(((TimelineItem.Content.User)briefEntry.Item.TimelineItemContent).Value, briefEntry, h.Runtime)),
             };
             var panel = new StackPanel { Width = 360, Spacing = 20 };
@@ -231,7 +238,38 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-052")] // TimelineRows.swift:464-467 `.background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: pillRadius, style: .continuous))`, :438-476 lineLimit(1): a finished head's pill, a capsule
+    public void The_finished_head_pills_are_continuous_pills_of_radius_18_on_a_single_line() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        var (store, app, runtime) = TimelineRowsFinTeam.Make(
+            TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Failed), TimelineRowsFinTeam.Head(1, HydraHeadInfo.Status.Completed));
+        using (store)
+        {
+            store.Main.OnMain(() =>
+            {
+                var row = new HydraHeadsWorkingRow(new ValueList<int>([1, 0]), runtime);
+                var host = new Border { Width = 360, Child = row };
+                Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                var window = Show(new StackPanel { Children = { host } });
+                try
+                {
+                    row.ApplyTeam(app.Children(runtime.ThreadID));
+                    Settle(window);
+                    var pills = Mounted<FinishedHeadPill>(row).ToList();
+                    Assert.Equal(2, pills.Count);
+                    foreach (var pill in pills) AssertCapsule(PillOf(pill, Pill), Avalonia.Automation.AutomationProperties.GetName(pill) ?? "finished head pill");
+                }
+                finally { Close(window); }
+            });
+        }
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-053")] // TimelineRows.swift:1012-1017 .background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: pillRadius, style: .continuous))
+    [Trait("Req", "PR-HYDRAMERGE-106")] // TimelineRows.swift:1015: the pill's shape, a continuous rounded rectangle of radius 18, in both states
     public void The_merge_pill_is_a_continuous_pill_of_radius_18_in_both_states_and_no_taller_than_a_capsule() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -324,6 +362,80 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-079")] // TimelineRows.swift:1293/:1304 and :1313/:1322 the plate fill and the clipShape, .rect(cornerRadius: 12, style: .continuous); :1331 the hit shape
+    public void The_attachment_plate_is_cut_to_Apples_continuous_corner_of_radius_12_and_the_picture_clip_and_the_hit_shape_follow_the_same_outline() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var picturePath = System.IO.Path.Combine(h.Project.Path, "plate.png");
+            var filePath = System.IO.Path.Combine(h.Project.Path, "plate.txt");
+            ThumbnailMemory.Store(new DecodedBitmap(2, 2, 8, [.. Enumerable.Repeat(new byte[] { 255, 0, 0, 255 }, 4).SelectMany(pixel => pixel)]), picturePath, 56);
+            var picture = new AttachmentThumbnail(new Attachment { Name = "plate.png", Path = picturePath, MimeType = "image/png" }, new AttachmentPreviewSlot());
+            var file = new AttachmentThumbnail(new Attachment { Name = "plate.txt", Path = filePath, MimeType = "text/plain" }, new AttachmentPreviewSlot());
+            var panel = new StackPanel { Width = 300, Spacing = 20, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, Margin = new Thickness(20), Children = { picture, file } };
+            var window = Show(panel);
+            try
+            {
+                var plates = new (string Name, AttachmentThumbnail Thumbnail, Border Plate)[]
+                {
+                    ("picture plate", picture, Mounted<Border>(picture).First(border => border.Width == 56 && border.Height == 56)),
+                    ("file plate", file, Mounted<Border>(file).First(border => border.Width == 56 && border.Height == 56)),
+                };
+                foreach (var (name, thumbnail, plate) in plates)
+                {
+                    // 56 x 56 at r 12 is Apple's regime (2 * 1.528665 * 12 = 36.7 <= 56): the control points of ED-275 (1), and the Border's clip is that outline.
+                    AssertApple(plate, name, 12);
+                    Assert.True(plate.ClipToBounds, $"{name}: .clipShape cuts what is inside the plate (the picture) to the same curve");
+                    Assert.NotNull(plate.Clip);
+                    // :1331 .contentShape(.rect(cornerRadius: 12, style: .continuous)): a point between Apple's curve and the vertex is not the plate's, a point inside the curve is.
+                    var origin = plate.TranslatePoint(default, window)!.Value;
+                    Control? Hit(double x, double y) => (window.InputHitTest(new Point(x, y)) as Visual)?.GetSelfAndVisualAncestors().OfType<AttachmentThumbnail>().FirstOrDefault();
+                    Assert.Same(thumbnail, Hit(origin.X + 28, origin.Y + 28));
+                    Assert.Null(Hit(origin.X + 0.1 * 12, origin.Y + 0.1 * 12));
+                    Assert.Same(thumbnail, Hit(origin.X + 0.869 * 12, origin.Y + 0.030 * 12));
+                }
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-211")] // AttachmentPreview.swift:408-421 `.background(.quaternary.opacity(0.45), in: .rect(cornerRadius: 10, style: .continuous))`, `.clipShape(.rect(cornerRadius: 10, style: .continuous))`: the plate the picture is fitted in
+    public void The_tool_image_plate_is_cut_to_Apples_continuous_corner_of_radius_10_with_the_picture_clipped_to_it() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var cache = new ThumbnailCache();
+        using var cacheSeam = ThumbnailCache.Shared.Override(cache);
+        var path = System.IO.Path.Combine(h.Project.Path, "plate-picture.png");
+        TestPng.Write(path, 240, 120, (_, _) => Color.FromRgb(200, 40, 40));
+        Avalonia.Controls.Window window = null!;
+        ToolImagePreview preview = null!;
+        h.Main.OnMain(() =>
+        {
+            preview = new ToolImagePreview(path);
+            window = Show(new StackPanel { Width = 480, Children = { preview } });
+        });
+        h.Main.Loop.RunUntil(() => Mounted<Image>(preview).Single().Opacity == 1, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            try
+            {
+                Settle(window);
+                // Loaded, the plate is 480 x 240 (the picture fitted to the row's width): far above 2 * 1.528665 * 10 = 30.6 on both sides, so Apple's corner at 10, as the
+                // output plate and the diff block are; the Border clips the picture to the same outline (ToolImagePreview.swift:419-421 .clipShape).
+                var plate = Assert.IsType<Border>(preview.Children[0]);
+                AssertApple(plate, "tool image plate", 10);
+                Assert.True(plate.ClipToBounds, "the plate clips the picture to its shape (.clipShape)");
+                Assert.NotNull(plate.Clip);
+            }
+            finally { Close(window); }
+        });
+    });
+
     // ---------------------------------------------------------------- the shapes that stay open: ED-275 (2)'s band
 
     // ---------------------------------------------------------------- the shapes that sat in ED-275 (2)'s band: OD-0102
@@ -336,6 +448,8 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-CHAT-034")] // TimelineRows.swift:2402 `.background(..., in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the corner of a notice two lines tall
+    [Trait("Req", "UI-RUNTIME-002")] // TimelineRows.swift:2398-2402: the warning notice's pill, two lines tall
+    [Trait("Req", "UI-RUNTIME-003")] // TimelineRows.swift:2398-2402: the error notice's pill, two lines tall
     public void A_warning_or_error_notice_two_lines_tall_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -353,6 +467,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
             var window = Show(panel);
             try
             {
+                Assert.Equal(16 + 2 * 17, PillOf(warning, Pill).Bounds.Height, 0.5); // pillVertical 8 twice and two callout lines (ED-290 (1))
                 AssertBand(PillOf(warning, Pill), "warning notice, two lines");
                 AssertBand(PillOf(error, Pill), "error notice, two lines");
                 AssertCapsule(PillOf(oneLine, Pill), "warning notice, one line");
@@ -364,6 +479,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-CHAT-036")] // TimelineRows.swift:2660 `.background(.quaternary.opacity(0.32), in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the steps card of a turn of one step
+    [Trait("Req", "UI-CHAT-059")] // TimelineRows.swift:2659-2661: the same steps card, at one step (43 pt, the band) and at two (Apple's corner at the full 18)
     public void The_steps_card_of_a_turn_of_one_step_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -390,6 +506,8 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-CHAT-037")] // TimelineRows.swift:2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the Edited-files card (40 pt)
+    [Trait("Req", "UI-GIT-044")] // TimelineRows.swift:2818-2822: the same card, the git view of it
+    [Trait("Req", "PR-CHAT-108")] // TimelineRows.swift:2735-2827: the corner of the 40 pt Edited card (the clause its Rule tests left)
     public void The_Edited_files_card_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -444,6 +562,15 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     // This renders each mounted element with an opaque fill and compares its top-left corner with a SwiftShapeBorder (which fills the path itself) of the same size.
     [Fact]
     [Trait("Rule", "R-TEST-4")] // the corner clause only of UI-CHAT-034, UI-CHAT-036, UI-CHAT-037, UI-CHAT-054, read off the rendered pixels
+    [Trait("Req", "UI-CHAT-034")] // the two-line notice, all four corners: the pixels follow Apple's corner at h / 3.057, not the circle of 18 (the corner clause)
+    [Trait("Req", "UI-RUNTIME-002")] // the warning notice, two lines, all four corners (the corner clause)
+    [Trait("Req", "UI-RUNTIME-003")] // the error notice, two lines, all four corners (the corner clause)
+    [Trait("Req", "PR-CHAT-108")] // the Edited-files card, all four corners (the corner clause)
+    [Trait("Req", "UI-GIT-044")] // the Edited-files card, all four corners (the corner clause)
+    [Trait("Req", "UI-CHAT-059")] // the steps card of one step, all four corners (the corner clause)
+    [Trait("Req", "UI-CHAT-054")] // the delegation card of one head, all four corners (the corner clause)
+    [Trait("Req", "UI-CHAT-037")] // the Edited-files card, all four corners (the corner clause)
+    [Trait("Req", "UI-CHAT-036")] // the steps card of one step, all four corners (the corner clause)
     public void REVIEW_the_four_band_elements_render_Apples_corner_at_the_largest_radius_not_the_circle_of_18() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -454,6 +581,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
         {
             const string twoLines = "A warning long enough that it wraps onto a second line when the row is only 380 points wide.";
             var notice = new NoticeRow(NoticeEntry(Notice.Level.Warning, twoLines));
+            var errorNotice = new NoticeRow(NoticeEntry(Notice.Level.Error, twoLines));
             var turn = Guid.NewGuid();
             var steps = new TurnFinishedBlock(h.Runtime, turn, Summary(turn) with { Duration = 64 }, ValueList<TimelineEntry>.Empty,
                 new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a"), turn)]), null, canUndo: false, chronological: true);
@@ -461,7 +589,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
                 canUndo: false, onRevert: () => { }, onReview: _ => { });
             var delegation = new HydraDelegationBlock("[{\"task\": \"Tidy 0\", \"prompt\": \"p\", \"name\": \"Hank\"}]", sent: true);
             var panel = new StackPanel { Width = 700, Spacing = 20 };
-            foreach (var control in new Control[] { new Border { Width = 380, Child = notice }, steps, files, delegation }) panel.Children.Add(control);
+            foreach (var control in new Control[] { new Border { Width = 380, Child = notice }, new Border { Width = 380, Child = errorNotice }, steps, files, delegation }) panel.Children.Add(control);
             var window = Show(panel);
             var results = new List<string>();
             var failures = new List<string>();
@@ -469,7 +597,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
             {
                 var shapes = new (string Name, Border Shape)[]
                 {
-                    ("notice, two lines", PillOf(notice, Pill)), ("steps card, one step", PillOf(steps, new Thickness(14))),
+                    ("notice, two lines", PillOf(notice, Pill)), ("error notice, two lines", PillOf(errorNotice, Pill)), ("steps card, one step", PillOf(steps, new Thickness(14))),
                     ("Edited-files card", PillOf(files, new Thickness(12, 6, 6, 6))), ("delegation card, one head", PillOf(delegation, Pill)),
                 };
                 foreach (var (_, shape) in shapes) shape.Background = Brushes.Red;
@@ -488,9 +616,19 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
                     Close(refWindow);
                     var worst = 0;
                     int x0 = (int)Math.Floor(origin.X), y0 = (int)Math.Floor(origin.Y);
-                    for (var y = y0; y < y0 + 8; y++)
-                        for (var x = x0; x < x0 + 8; x++) worst = Math.Max(worst, Math.Abs(mounted[y, x] - expected[y, x]));
-                    results.Add($"{name} ({size.Height:F1} pt at {origin}): worst {worst}; mounted diag {mounted[y0 + 4, x0 + 4]} {mounted[y0 + 5, x0 + 5]} ref {expected[y0 + 4, x0 + 4]} {expected[y0 + 5, x0 + 5]} inside {mounted[y0 + 10, x0 + 30]}/{expected[y0 + 10, x0 + 30]}");
+                    // All four corners (the cornerband check found the 46 pt notice 102 levels off at its bottom-left run-in, which a top-left window never sees): the 8 pt
+                    // square at each corner of the element, inside every element's padding so only the fill is read, never a glyph or a word.
+                    int right = (int)Math.Ceiling(origin.X + size.Width) - 8, bottom = (int)Math.Ceiling(origin.Y + size.Height) - 8;
+                    var perCorner = new List<string>();
+                    foreach (var (label, bx, by) in new[] { ("top-left", x0, y0), ("top-right", right, y0), ("bottom-right", right, bottom), ("bottom-left", x0, bottom) })
+                    {
+                        var cornerWorst = 0;
+                        for (var y = by; y < by + 8; y++)
+                            for (var x = bx; x < bx + 8; x++) cornerWorst = Math.Max(cornerWorst, Math.Abs(mounted[y, x] - expected[y, x]));
+                        perCorner.Add($"{label} {cornerWorst}");
+                        worst = Math.Max(worst, cornerWorst);
+                    }
+                    results.Add($"{name} ({size.Height:F1} pt at {origin}): worst {worst} ({string.Join(", ", perCorner)}); mounted diag {mounted[y0 + 4, x0 + 4]} {mounted[y0 + 5, x0 + 5]} ref {expected[y0 + 4, x0 + 4]} {expected[y0 + 5, x0 + 5]} inside {mounted[y0 + 10, x0 + 30]}/{expected[y0 + 10, x0 + 30]}");
                     if (worst > 60) failures.Add($"{name} ({size.Height:F1} pt at {origin}): the rendered corner differs from Apple's corner at {size.Height / (2 * 1.528665):F2} by {worst} of 255");
                 }
             }

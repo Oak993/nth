@@ -596,7 +596,7 @@ internal static class SettingsRowDetails
         var labels = (StackPanel)((Grid)((Border)row.Child!).Child!).Children[0];
         if (string.IsNullOrEmpty(detail)) { if (labels.Children.Count > 1) labels.Children.RemoveAt(1); return; }
         if (labels.Children.Count > 1) ((TextBlock)labels.Children[1]).Text = detail;
-        else labels.Children.Add(new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap, Foreground = Chrome.SecondaryText.Brush(row) }.Font(SwiftFont.System(11)));
+        else labels.Children.Add(new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap, Foreground = Chrome.SecondaryText.Brush(row) }.Font(SwiftFont.Subheadline)); // ChromeRow's own detail style (Chrome.swift:1068), with its 16-point line (ED-290 (1))
     }
 }
 
@@ -641,7 +641,7 @@ internal sealed class AppZoomCard : Decorator
             var button = PlainControls.Button(new Border { Background = Brushes.Transparent, Child = SwiftImage.SystemName(symbol).Font(SwiftFont.System(11, weight)).ForegroundStyle(Chrome.SecondaryText) }, action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, help); return button;
         }
         var smaller = Command("textformat.size.smaller", "Zoom out", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: false)); // :475-483
-        var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(11, SwiftFont.Weight.Medium).MonospacedDigit()); // :483-486
+        var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium).MonospacedDigit()); // :483-486 .system(.subheadline, weight: .medium) (ED-290 (1): a text style)
         var larger = Command("textformat.size.larger", "Zoom in", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: true)); // :491-499
         var reset = Command("arrow.counterclockwise", "Back to the stock size", () => percent.Value = 100, SwiftFont.Weight.Medium); // :501-510
         controls.Children.Add(smaller); controls.Children.Add(label); controls.Children.Add(larger); controls.Children.Add(reset);
@@ -1037,14 +1037,14 @@ internal sealed class AboutSettingsPage : Decorator
     private Control AppCard()
     {
         var icon = new Image { Source = Marrow.App.Views.AppIconImage.Bitmap, Width = 56, Height = 56 };
-        var labels = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(15, SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(12)) } };
+        var labels = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.Callout) } }; // :976-979 .system(.title3, weight: .semibold) and .system(.callout) (ED-290 (1): text styles)
         return new StackPanel { Children =
         {
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(16), Children = { icon, labels } }, new ChromeRowDivider(),
             new ChromeRow("Welcome tour", () => SmallAccentGlassButton.Create("Show", () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this)), true), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
-            new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(13)),
+            new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Body), // :991-995 .system(.body), its 18-point line (ED-290 (1))
             new ChromeRowDivider(), // :996
-            new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(12)), // :997-1002, OD-0012 F1, H (OD-0072).
+            new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout), // .system(.callout), its 17-point line (ED-290 (1)); :997-1002, OD-0012 F1, H (OD-0072).
         } };
     }
 }
@@ -1064,7 +1064,7 @@ internal sealed class LicensesRow : Decorator
             foreach (var file in files)
             {
                 var markdown = new MarkdownView(Text(file.Resource)); MarkdownView.SetMarkdownPointSize(markdown, 12); Avalonia.Controls.Documents.TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(this)); MarkdownView.SetTextSelectionEnabled(markdown, true); /* :1033 .textSelection(.enabled): the environment reaches every Text of the document, a code block's caption included */
-                stack.Children.Add(new StackPanel { Spacing = 8, Children = { new TextBlock { Text = file.Title }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), markdown } });
+                stack.Children.Add(new StackPanel { Spacing = 8, Children = { new TextBlock { Text = file.Title }.Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)) /* :1029 */, markdown } });
             }
             return new ScrollViewer { Width = 480, Height = 440, Content = stack, HorizontalContentAlignment = HorizontalAlignment.Left }.PresentedChrome(); // :1043
         });
@@ -1096,8 +1096,8 @@ internal sealed class MadeByDroppyRow : Decorator
     public MadeByDroppyRow(SwiftURL url)
     {
         var logo = SwiftImage.Named("droppy-logo").Resizable().AspectRatio(ContentMode.Fit); logo.Width = 40; logo.Height = 40; AutomationProperties.SetAccessibilityView(logo, AccessibilityView.Raw); // :1070-1073
-        var labels = new StackPanel { Spacing = 2, Children = { new TextBlock { Text = "Made by Droppy", Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), new TextBlock { Text = "Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(11)) } }; // :1074-1080 OD-0012 F3
-        var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Opacity = 0.9, Children = { new TextBlock { Text = "getdroppy.app", Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), SwiftImage.SystemName("arrow.up.right").Font(SwiftFont.System(10, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent) } };
+        var labels = new StackPanel { Spacing = 2, Children = { new TextBlock { Text = "Made by Droppy", Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)), new TextBlock { Text = "Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Subheadline) } }; // :1074-1080 OD-0012 F3; .body semibold and .subheadline text styles (ED-290 (1))
+        var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Opacity = 0.9, Children = { new TextBlock { Text = "getdroppy.app", Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium)), SwiftImage.SystemName("arrow.up.right").Font(SwiftFont.System(10, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent) } };
         var row = new Grid { Background = Brushes.Transparent, ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 12, Chrome.RowControlTrailingPadding + 4, 12) }; labels.VerticalAlignment = VerticalAlignment.Center; trailing.VerticalAlignment = VerticalAlignment.Center; /* :1066 HStack(spacing: 12): each child on the logo's centre line */ Grid.SetColumn(labels, 1); Grid.SetColumn(trailing, 2); row.Children.Add(logo); row.Children.Add(labels); row.Children.Add(trailing); // :1093 .contentShape(.rect): the whole row, including its gaps, is one hit target.
         var hover = new SettingsScalarAnimation(trailing, 0.9, value => trailing.Opacity = value); // :1094-1096
         var button = PlainControls.Button(row, () => Marrow.Services.Port.Workspace.Open.Current(url)); button.OnHover(hovering => hover.Set(hovering ? 1 : 0.9, Chrome.Hover)); ToolTip.SetTip(button, "Open getdroppy.app"); AutomationProperties.SetName(button, "Made by Droppy. Open getdroppy.app"); Child = button; // :1081-1101
@@ -1110,7 +1110,7 @@ internal sealed class CreditLink : Decorator
     // :1128-1129 let title, let url; :1131-1143 body
     public CreditLink(string title, SwiftURL url)
     {
-        var label = new TextBlock { Text = title, Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(12, SwiftFont.Weight.Medium));
+        var label = new TextBlock { Text = title, Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium)); // :1115 .system(.callout, weight: .medium) (ED-290 (1))
         var button = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { label, SwiftImage.SystemName("arrow.up.right").Font(SwiftFont.System(10, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent) } }, () => Marrow.Services.Port.Workspace.Open.Current(url)); ToolTip.SetTip(button, url.AbsoluteString); Child = button; // :1107-1120
     }
 }

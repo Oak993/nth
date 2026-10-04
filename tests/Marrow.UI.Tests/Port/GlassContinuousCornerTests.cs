@@ -72,7 +72,8 @@ public sealed class GlassContinuousCornerTests(HeadlessSession headless)
     [InlineData(400, 280, 22)] // Hydra's card
     [InlineData(300, 90, 12)] // a row card
     [InlineData(380, 40, 18)] // OD-0102's band: r 18 on 40 pt is Apple's corner at 40 / (2 E) = 13.08 (the Edited-files card)
-    [InlineData(380, 48, 18)] // a two-line notice
+    [InlineData(380, 48, 18)] // the corner-band page's size
+    [InlineData(380, 50, 18)] // a two-line notice: 16 + two callout lines of 17 (ED-290 (1))
     [InlineData(380, 54, 18)] // a one-head delegation card
     [InlineData(140, 28, 14)] // Chrome.swift:164 a 28 pt capsule: the circular regime (radius half the height)
     public void The_distance_field_is_zero_on_the_path_to_a_twentieth_of_a_pixel_and_a_pixel_away_is_a_pixel(double w, double h, double r)

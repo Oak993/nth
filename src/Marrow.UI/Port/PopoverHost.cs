@@ -1,6 +1,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using Avalonia;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Primitives.PopupPositioning;
@@ -149,6 +151,14 @@ public static class PopoverHost
             // for a while (a site measures it elsewhere) leaves the host showing what it shows.
             if (popup.Child is { } child && host is ContentControl hosted && !ReferenceEquals(hosted.Content, child)) hosted.Content = child;
         };
+        // The window the popover hangs over keeps the keyboard (a native popup window is not activated: Windows sends every key to the window under it), so the keys a popover
+        // owns reach it from there: Escape closes it and Return is its default button (see ForwardKey).
+        Action? release = null;
+        void Release()
+        {
+            release?.Invoke();
+            release = null;
+        }
         popup.Opened += (_, _) =>
         {
             var found = host ?? HostOf(popup.Child);
@@ -156,8 +166,55 @@ public static class PopoverHost
             host = found;
             host?.AddHandler(InputElement.PointerPressedEvent, PressBeside, RoutingStrategies.Tunnel, handledEventsToo: true);
             Track(popup, host);
+            Release();
+            if (popup.PlacementTarget is { } target && WindowTransients.WindowOf(target) is { } owner) release = Listen(popup, owner, () => popup.IsOpen);
         };
-        popup.Closed += (_, _) => Detach();
+        popup.Closed += (_, _) => { Detach(); Release(); };
+    }
+
+    // Every control from the button up to the popover's content is visible: a part the popover itself collapses (a page of a pager, a folded section) hides its buttons, and a popup that
+    // is not in a tree yet reports each control's own IsVisible only.
+    private static bool ShownIn(Visual button, Visual content)
+    {
+        for (var at = button; at is not null; at = at.GetVisualParent())
+        {
+            if (!at.IsVisible) return false;
+            if (ReferenceEquals(at, content)) break;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Hands the keys of <paramref name="owner"/> to <paramref name="popup"/> while <paramref name="isOpen"/> says it is open (the popup's own IsOpen; a test that cannot open a Popup
+    /// says it). THE ONE RULE for a key the host forwards (PR-CHAT-110 review): the host marks it handled when it acts, and a site's own window-level key monitor for the same
+    /// popover (the sidebar's archive popover, LinkPopover, the badge popovers) ignores a key that is already handled, so a key acts once whichever handler the window offers it to
+    /// first. Returns the call that stops listening.
+    /// </summary>
+    internal static Action Listen(Popup popup, TopLevel owner, Func<bool> isOpen)
+    {
+        void OwnerKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (!e.Handled && isOpen() && ForwardKey(popup, owner, e.Key, e.KeyModifiers)) e.Handled = true;
+        }
+        owner.AddHandler(InputElement.KeyDownEvent, OwnerKeyDown, RoutingStrategies.Tunnel);
+        return () => owner.RemoveHandler(InputElement.KeyDownEvent, OwnerKeyDown);
+    }
+
+    /// <summary>
+    /// A key pressed in the window <paramref name="owner"/> a popover hangs over while it is open. An NSPopover is a key window of its own, so Escape closes it and
+    /// `.keyboardShortcut(.defaultAction)` (TimelineRows.swift:2791, HydraIntroPopover, SidebarView, QuestionTab) makes Return press its default button wherever the pointer
+    /// went. A popup window on Windows is not activated, so those keys arrive at the owner instead and are handed on here: Escape to the newest transient over the window
+    /// (Presentation.SetPresented registered how it closes), Return to the newest popover's enabled default button. True when the popover took the key.
+    /// </summary>
+    internal static bool ForwardKey(Popup popup, TopLevel owner, Key key, KeyModifiers modifiers)
+    {
+        if (modifiers != KeyModifiers.None) return false;
+        if (key == Key.Escape) return WindowTransients.DismissNewest(owner);
+        if (key != Key.Enter || !ReferenceEquals(WindowTransients.Newest(owner), popup) || Content(popup) is not { } content) return false;
+        var button = content.GetSelfAndVisualDescendants().OfType<Button>().FirstOrDefault(candidate => candidate.IsDefault && candidate.IsEffectivelyVisible && candidate.IsEffectivelyEnabled && ShownIn(candidate, content));
+        if (button is null) return false;
+        (ControlAutomationPeer.CreatePeerForElement(button).GetProvider<IInvokeProvider>() ?? throw new InvalidOperationException("a Button has an invoke provider")).Invoke();
+        return true;
     }
 
     // The top-level or overlay host a visual is shown in: a PopupRoot, or the overlay's host.

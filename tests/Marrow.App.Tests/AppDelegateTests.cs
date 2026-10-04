@@ -404,7 +404,7 @@ public sealed class AppDelegateTests
         using var h = new AppModelHarness();
         var ledger = h.Main.OnMain(FreshTokenLedger.Make);
         using var ledgerScope = TokenLedger.Shared.Override(ledger);
-        var checker = h.Main.OnMain(() => new UpdateChecker(Running("1.7.0"), [], UpdateChecker.DefaultFeed));
+        var checker = h.Main.OnMain(() => new UpdateChecker(Running("1.7.0"), [], ""));
         using var checkerScope = UpdateChecker.OverrideShared(checker);
         h.Main.OnMain(checker.StartBackgroundChecks); // the launch check waits 8 s (UpdateChecker.swift:135)
         var appDelegate = new AppDelegate();

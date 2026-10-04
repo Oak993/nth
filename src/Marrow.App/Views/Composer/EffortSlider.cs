@@ -605,7 +605,8 @@ public sealed class EffortSliderCard : Decorator
         title.Foreground = Chrome.PrimaryText.Brush(title);
         var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { title } };
         if (onTitleTap is not null) titleRow.Children.Add(SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText)); // :575-578
-        var titlePlate = new Border { Padding = new Thickness(8, 2), Child = titleRow }.RoundedRectangle(7, RoundedCornerStyle.Continuous);
+        // :589 the plain button draws its label past the plate (the leaving letters, below): the plate's clip must not cut beyond its sides (ED-317).
+        var titlePlate = new Border { Padding = new Thickness(8, 2), Child = titleRow }.RoundedRectangle(7, RoundedCornerStyle.Continuous).ContentBeyondSides();
         var titleFill = new AnimatedColor(titlePlate); titlePlate.Background = titleFill.Brush;
         var titleButton = PlainControls.Button(titlePlate, () => onTitleTap?.Invoke()); // :568-597
         titleButton.IsEnabled = onTitleTap is not null;

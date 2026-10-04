@@ -176,8 +176,8 @@ public sealed class PlanLimitsView : Decorator
     private static ProgressBar Spinner() => new()
     {
         IsIndeterminate = true,
-        Width = 16,
-        Height = 16,
+        Width = 10, // .controlSize(.mini): 10 pt (2-chat-use.mov 145.0-145.6 s; PR-CHAT-099)
+        Height = 10,
         VerticalAlignment = VerticalAlignment.Center,
     };
 
@@ -292,8 +292,8 @@ public sealed class CreditsView : Decorator
     private static ProgressBar CreditsSpinner() => new()
     {
         IsIndeterminate = true,
-        Width = 16,
-        Height = 16,
+        Width = 10, // .controlSize(.mini): 10 pt (2-chat-use.mov 145.0-145.6 s; PR-CHAT-099)
+        Height = 10,
         VerticalAlignment = VerticalAlignment.Center,
     };
 }
@@ -657,8 +657,8 @@ internal sealed class BankedResetRow : Decorator
             progress.Children.Add(new ProgressBar
             {
                 IsIndeterminate = true,
-                Width = 16,
-                Height = 16,
+                Width = 10, // .controlSize(.mini): 10 pt (2-chat-use.mov 145.0-145.6 s; PR-CHAT-099)
+                Height = 10,
                 VerticalAlignment = VerticalAlignment.Center,
             });
             var resetting = new TextBlock

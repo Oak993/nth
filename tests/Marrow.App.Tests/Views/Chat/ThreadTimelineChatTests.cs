@@ -172,8 +172,40 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
         }
     }
 
+    // 1 - e^(-w t) (1 + w t) with w = 2 pi / response: SwiftUI's `.smooth(duration:)`, a critically damped spring of that response, written out here (never the port's own Animation).
+    private static double Smooth(double response, double seconds) => seconds <= 0 ? 0 : 1 - Math.Exp(-2 * Math.PI / response * seconds) * (1 + 2 * Math.PI / response * seconds);
+
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-006 (when it shows, the press and the hide on a followed row; the spring's values and the place are proven apart): ChatView.swift:1085-1104; ThreadTimeline.swift:402-409,673-677,689-712; the cousin's scroll-to-bottom button (map/CATALOGUE.md timeline.scroll-to-bottom-button)
+    [Trait("Req", "UI-CHAT-006")] // ThreadTimeline.swift:673-677 `withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(end) }` on the press; ChatView.swift:1085-1090 the button is ChromeCircleButton(symbol: "arrow.down") whose glyph is Chrome.iconFont (Chrome.swift:423, callout semibold, 12 pt per ED-059)
+    public void Pressing_the_jump_button_glides_the_scroll_to_the_end_along_the_smooth_0_35_second_curve_and_its_glyph_is_the_chrome_icon_font()
+        => WithChat((view, runtime, model, h, window, frames) =>
+        {
+            h.Main.OnMain(() => SetEntries(runtime, TimelineMount.Turns(8, sentences: 10).ToList())); Settle(h, frames, window, 2500);
+            var scroll = Scroller(view);
+            h.Main.OnMain(() => scroll.Offset = new Vector(0, 100)); Settle(h, frames, window, 400);
+            var button = JumpButton(view); Assert.NotNull(button);
+            // The glyph: arrow.down in Chrome.iconFont, the callout size (12 pt) in the semibold weight.
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(button!).First();
+            Assert.Equal("arrow.down", glyph.SymbolName);
+            var font = SwiftImage.GetFont(glyph)!.Resolve();
+            Assert.Equal(12, font.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, font.FontWeight);
+            var start = scroll.Offset.Y; var end = scroll.Extent.Height - scroll.Viewport.Height;
+            Assert.True(end - start > 600, $"{end - start} points to glide");
+            h.Main.OnMain(() => JumpButton(view)!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent))); Drain(h);
+            // Part way at 50, 100, 150 and 200 ms, and at the end by 400: the offset is the start plus the distance times smooth(0.35)'s progress, so another duration or curve (0.2 s,
+            // 0.6 s, linear, an ease) is 90 to 250 points off at 100 ms.
+            var elapsed = 0;
+            foreach (var step in new[] { 50, 50, 50, 50, 200 })
+            {
+                Settle(h, frames, window, step); elapsed += step;
+                var expected = start + (end - start) * Smooth(0.35, elapsed / 1000.0);
+                Assert.True(Math.Abs(scroll.Offset.Y - expected) <= 0.06 * (end - start) + 4, $"at {elapsed} ms the offset is {scroll.Offset.Y:F0}, smooth(0.35) has {expected:F0}, from {start:F0} to {end:F0}");
+            }
+            Assert.True(end - scroll.Offset.Y < 3, $"{end - scroll.Offset.Y} points short of the end after 400 ms");
+        });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-006")] // When it shows, the press and the hide on a followed row (the spring's values and the place are proven apart, below): ChatView.swift:1085-1104; ThreadTimeline.swift:402-409,673-677,689-712; the cousin's scroll-to-bottom button (map/CATALOGUE.md timeline.scroll-to-bottom-button)
     public void The_jump_button_shows_once_the_end_is_out_of_sight_glides_to_the_end_when_pressed_and_goes_at_once_when_a_row_is_followed()
         => WithChat((view, runtime, model, h, window, frames) =>
         {
@@ -225,7 +257,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
         });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-006 (the spring's values both ways and the button's place; when it shows, the press and the hide are proven apart): ThreadTimeline.swift:402-409 (the end sentinel's spring, response 0.38 and damping 0.78, both ways); ChatView.swift:1089-1103 (the scale, opacity and offset of each side; 10 points of bottom padding in a zero-height frame at the top of the composer)
+    [Trait("Req", "UI-CHAT-006")] // The spring's values both ways and the button's place (when it shows, the press and the hide are proven apart, above): ThreadTimeline.swift:402-409 (the end sentinel's spring, response 0.38 and damping 0.78, both ways); ChatView.swift:1089-1103 (the scale, opacity and offset of each side; 10 points of bottom padding in a zero-height frame at the top of the composer)
     public void The_jump_button_comes_and_goes_on_the_sentinels_spring_through_its_scale_opacity_and_rise_and_sits_ten_points_above_the_composer()
         => WithChat((view, runtime, model, h, window, frames) =>
         {

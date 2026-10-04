@@ -60,7 +60,7 @@ public sealed class MiddleTruncatingTextBlock : TextBlock
         if (double.IsInfinity(maxWidth) || full.Length == 0) { Text = full; return; }
         var typeface = new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
         using var layout = new TextLayout(full, typeface, FontSize, Foreground,
-            textWrapping: TextWrapping.Wrap, flowDirection: FlowDirection, maxWidth: Math.Max(0, maxWidth));
+            textWrapping: TextWrapping.Wrap, flowDirection: FlowDirection, maxWidth: Math.Max(0, maxWidth), lineHeight: LineHeight); // ED-290 (1): the box it draws with
         if (layout.TextLines.Count <= LineLimit) { Text = full; return; }
         var previous = layout.TextLines[LineLimit - 2];
         var prefixEnd = previous.FirstTextSourceIndex + previous.Length - previous.NewLineLength;

@@ -116,6 +116,7 @@ public sealed record SwiftTransition
         // ED-159 follow-up (interruption): an insertion cancels whatever transition of this child is still running and
         // starts afresh; a removal still in flight gives its wrapper back before the insertion places it again.
         state.Stop();
+        state.Carried = null;
         if (state.RemovingFrom is { } lingering)
         {
             lingering.Children.Remove(state.Wrapper ?? child);
@@ -148,11 +149,18 @@ public sealed record SwiftTransition
     {
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
         state.Stop();
+        state.Carried = null;
         state.Wrapper ??= state.Transition.CreateBody(child, state.Bodies);
         panel.Children.Insert(index, state.Wrapper);
         state.Present(child, 1, inserting: true);
     }
 
+    /// <summary>
+    /// A removal runs the transition's removal half from its own start. When it interrupts an asymmetric transition's insertion still in flight
+    /// (a soft arrival cut short) it carries what the insertion had put on the child at that instant, so nothing jumps: the opacity the child has
+    /// multiplies the removal's, and the offset it has eases out over the removal (UI-CHAT-052, unit rec-tlr; SwiftUI keeps the arrival's in-flight values
+    /// under the removal rather than flashing the view to full strength).
+    /// </summary>
     public static void Remove(Panel panel, Control child) => Remove(panel, child, null);
 
     /// <summary>The child's removal is still running (its frames are requested): <see cref="InsertContinuing"/> would take it back.</summary>
@@ -163,8 +171,9 @@ public sealed record SwiftTransition
     /// flight and starts from where the insertion has brought the child, never from its identity. For a transition with no
     /// asymmetric part the insertion's state at progress p is the removal's state at 1 - p (move, offset, scale, opacity, blur
     /// and modifier values each interpolate linearly between the same two ends), so the removal runs from there to its end on
-    /// its own curve; p is read on the insertion's own clock at this instant. An asymmetric transition, or one not in flight,
-    /// leaves as <see cref="Remove(Panel, Control)"/> does. Opt-in: the sites that rely on the restart keep it until the
+    /// its own curve; p is read on the insertion's own clock at this instant. An asymmetric transition names no such state, so its removal
+    /// runs from its own start (<see cref="Remove(Panel, Control)"/>), carrying the opacity and offset the insertion had put on the child
+    /// at that instant (the opacity multiplies the removal's, the offset eases out over it): a soft arrival cut short never jumps to full. Opt-in: the sites that rely on the restart keep it until the
     /// app-wide OD-0076 audit (the terminal drawer closed while it is still opening, ChatView.swift:276-279,290, is the first).
     /// </summary>
     public static void RemoveContinuing(Panel panel, Control child) => Remove(panel, child, null, continuing: true);
@@ -189,6 +198,7 @@ public sealed record SwiftTransition
         }
         var from = 1 - state.CurrentProgress;
         state.Stop();
+        state.Carried = null;
         state.RemovingFrom = null;
         state.RemovalCompleted = null;
         var animation = state.Transition.ForInsert().OwnAnimation() ?? Transaction.Current;
@@ -209,6 +219,10 @@ public sealed record SwiftTransition
         // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
         var from = continuing && state.InsertionInFlight && !state.Transition.HasAsymmetricPart() ? 1 - state.CurrentProgress : 0;
+        // An asymmetric transition's removal names no state of the insertion it interrupts, so it cannot start from the insertion's progress; it starts from the
+        // insertion's presentation instead (the opacity and the rise the child has now), which the removal then carries (UI-CHAT-052, unit rec-tlr).
+        var carries = state.InsertionInFlight && state.Transition.HasAsymmetricPart();
+        if (carries) state.Carry(child); else state.Carried = null;
         state.Stop();
         state.RemovalCompleted = completed;
         var wrapper = state.Wrapper ?? child;
@@ -466,7 +480,30 @@ public sealed record SwiftTransition
         {
             lastProgress = progress;
             lastInserting = inserting;
-            if (!Transition.Apply(child, Bodies, progress, inserting) || awaitingSize is not null) return;
+            var carried = !inserting ? Carried : null;
+            if (carried is not null)
+                foreach (var held in carried) { held.Target.Opacity = 1; held.Target.RenderTransform = null; } // the removal writes what it touches; the rest is the carried state alone
+            var sizePending = Transition.Apply(child, Bodies, progress, inserting);
+            if (carried is not null)
+                foreach (var held in carried)
+                {
+                    held.Target.Opacity *= held.Opacity;
+                    if (held.Rise is { } rise)
+                    {
+                        // The insertion's offset eases out to nothing over the removal, so a rise cut short is not held on a child that is fading, nor snapped away.
+                        var kept = 1 - Math.Clamp(progress, 0, 1);
+                        var eased = new MatrixTransform(new Matrix(
+                            1 + (rise.M11 - 1) * kept, rise.M12 * kept, rise.M21 * kept, 1 + (rise.M22 - 1) * kept, rise.M31 * kept, rise.M32 * kept));
+                        if (held.Target.RenderTransform is { } own)
+                        {
+                            var group = new TransformGroup();
+                            group.Children.Add(new MatrixTransform(own.Value)); group.Children.Add(eased);
+                            held.Target.RenderTransform = group;
+                        }
+                        else held.Target.RenderTransform = eased;
+                    }
+                }
+            if (!sizePending || awaitingSize is not null) return;
             awaitingSize = (_, e) =>
             {
                 if (e.Property != Visual.BoundsProperty) return;
@@ -475,6 +512,19 @@ public sealed record SwiftTransition
                 Present(child, lastProgress, lastInserting);
             };
             child.PropertyChanged += awaitingSize;
+        }
+
+        /// <summary>What an insertion cut short by an asymmetric removal had put on each layer at that instant (opacity and transform): the removal runs on top of it.</summary>
+        public List<(Control Target, double Opacity, Matrix? Rise)>? Carried { get; set; }
+
+        /// <summary>Reads the insertion's presentation at this instant (its own clock, not the last frame's) so the removal that interrupts it starts from it.</summary>
+        public void Carry(Control child)
+        {
+            Present(child, CurrentProgress, inserting: true);
+            var held = new List<(Control, double, Matrix?)>();
+            foreach (var target in Bodies.Append(child).Distinct())
+                held.Add((target, target.Opacity, target.RenderTransform is { } transform ? transform.Value : null));
+            Carried = held;
         }
 
         public void Stop()

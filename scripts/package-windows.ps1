@@ -13,6 +13,13 @@
      otherwise it installs. The bare Setup.exe in artifacts/releases is only its payload: shared on its own it would
      offer Repair and Downgrade (Velopack's own dialog).
 
+  Release folder for the feed (UE-1, OD-0100): artifacts/releases is exactly the folder `vpk upload github` takes: the full
+  nupkg, the delta nupkg when an earlier release is in it, RELEASES and releases.win.json (which carries the release notes
+  when -ReleaseNotesFile names a markdown file; the About page shows them), plus Setup.exe. The feed is the owner's public
+  repository https://github.com/Oak993/marrow-releases (Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed). The script prints the
+  upload command for the owner to run after his word for that publish; it never runs it. A delta needs the earlier release's
+  files in artifacts/releases first (vpk download github would fetch them: that is a network call this script does not make).
+
   LOCAL ONLY (OD-0058, OD-0062). This script never signs (no --signParams), never uploads (no vpk upload), never
   creates a release and never pushes anything. It also never runs the installer it builds: running Setup.exe installs the
   app onto this PC. The artifacts/ folder is gitignored.
@@ -41,7 +48,8 @@ param(
     [string]$PackId = 'MarrowCode',
     [string]$PackTitle = 'Marrow',
     [string]$PackAuthors = 'Marrow Code',
-    [string]$MainExe = 'Marrow.App.exe'
+    [string]$MainExe = 'Marrow.App.exe',
+    [string]$ReleaseNotesFile = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -53,6 +61,8 @@ $releasesDir = Join-Path $root 'artifacts/releases'
 $setupProject = Join-Path $root 'src/Marrow.Setup/Marrow.Setup.csproj'
 $installerBuildDir = Join-Path $root 'artifacts/installer-build'
 $installerDir = Join-Path $root 'artifacts/installer'
+# OD-0100: the update feed (the same repository as Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed.Url; a test holds them equal).
+$feedRepoUrl = 'https://github.com/Oak993/marrow-releases'
 
 function Invoke-Native([string]$Name, [scriptblock]$Command) {
     & $Command
@@ -92,6 +102,12 @@ if (-not (Test-Path -LiteralPath (Join-Path $publishDir $MainExe))) { throw "$Ma
 
 # No --signParams (nothing is signed), no vpk upload/publish. --shortcuts: the Start menu entry only, in the
 # "Marrow Code" folder (ED-247: never Programs\Marrow.lnk, the Electron app's).
+# UE-1: release notes (markdown) go into releases.win.json, which the About page shows, when a file is named.
+$notesArgs = @()
+if ($ReleaseNotesFile) {
+    if (-not (Test-Path -LiteralPath $ReleaseNotesFile)) { throw "Release notes file not found: $ReleaseNotesFile" }
+    $notesArgs = @('--releaseNotes', (Resolve-Path -LiteralPath $ReleaseNotesFile).Path)
+}
 Invoke-Native 'vpk pack' {
     vpk pack `
         --packId $PackId `
@@ -103,7 +119,8 @@ Invoke-Native 'vpk pack' {
         --icon $icon `
         --runtime $Runtime `
         --shortcuts StartMenu `
-        --outputDir $releasesDir
+        --outputDir $releasesDir `
+        @notesArgs
 }
 
 # OD-0072, ED-247: the installer to share is the version gate around Velopack's Setup.exe, given the same title, id and
@@ -127,3 +144,6 @@ Get-ChildItem -LiteralPath $releasesDir -File | ForEach-Object { '{0,14:N0}  {1}
 Write-Host ''
 Write-Host "The installer to share (checks the installed version first; never run it on this PC):"
 Get-ChildItem -LiteralPath $installer | ForEach-Object { '{0,14:N0}  {1}' -f $_.Length, $_.FullName }
+Write-Host ''
+Write-Host "The feed folder is $releasesDir. NOTHING WAS UPLOADED. When the owner says to publish this version, he runs (not this script):"
+Write-Host "  vpk upload github --outputDir `"$releasesDir`" --repoUrl $feedRepoUrl --releaseName `"Marrow $version`" --tag v$version --publish --token <a GitHub token for $feedRepoUrl>"

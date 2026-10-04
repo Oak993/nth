@@ -46,25 +46,42 @@ public sealed class WindowsUpdateInstallBoundaryTests
     }
 
     [Fact]
-    [Trait("Req", "PR-UPDATE-047")] // App/AppUpdater.swift:322, :325 removeItem(at: image) on both paths
-    public async Task Stage_deletes_the_downloaded_artifact_even_though_the_unpack_step_is_blocked()
+    [Trait("Req", "PR-UPDATE-047")] // App/AppUpdater.swift:299-330
+    [Trait("Decision", "ED-235")] // AMENDED by UE-1: UNK-0009 is closed. The release asset is Velopack's full package, which stays in Velopack's packages folder (its Update.exe applies from there), so :322/:325's removal of the downloaded image does not apply
+    public async Task Stage_hands_back_the_velopack_package_where_it_is_and_does_not_delete_it()
     {
-        var downloaded = Path.Combine(Path.GetTempPath(), $"aut-artifact-{Guid.NewGuid():N}");
-        await File.WriteAllBytesAsync(downloaded, [1, 2, 3]);
-        var boundary = new WindowsUpdateInstallBoundary();
-        await Assert.ThrowsAsync<PortBlockedException>(() => boundary.Stage(downloaded, "1.0.0"));
-        Assert.False(File.Exists(downloaded), "the downloaded artifact must be removed even when staging is blocked");
+        var folder = Directory.CreateTempSubdirectory("aut-pkg-").FullName;
+        var package = Path.Combine(folder, "MarrowCode-1.0.0-full.nupkg");
+        await File.WriteAllBytesAsync(package, [1, 2, 3]);
+        try
+        {
+            var staged = await new WindowsUpdateInstallBoundary().Stage(package, "1.0.0");
+            Assert.Equal(package, staged);
+            Assert.True(File.Exists(package), "the update package must stay: Velopack's Update.exe applies it");
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
     }
 
     [Fact]
-    [Trait("Req", "PR-UPDATE-047")] // UNK-0009, resolved by OD-0008 C6: the tracked blocker itself
-    public async Task Stage_names_UNK_0009_as_the_reason_the_unpack_step_cannot_run()
+    [Trait("Req", "PR-UPDATE-047")] // UNK-0009, resolved by OD-0008 C6 and closed by UE-1
+    [Trait("Decision", "ED-235")]
+    public async Task Stage_no_longer_throws_the_UNK_0009_blocker()
     {
-        var downloaded = Path.Combine(Path.GetTempPath(), $"aut-artifact-{Guid.NewGuid():N}");
-        await File.WriteAllBytesAsync(downloaded, [1]);
-        var boundary = new WindowsUpdateInstallBoundary();
-        var error = await Assert.ThrowsAsync<PortBlockedException>(() => boundary.Stage(downloaded, "1.0.0"));
-        Assert.Contains("UNK-0009", error.Message, StringComparison.Ordinal);
+        var folder = Directory.CreateTempSubdirectory("aut-pkg-").FullName;
+        var package = Path.Combine(folder, "MarrowCode-1.0.0-full.nupkg");
+        await File.WriteAllBytesAsync(package, [1]);
+        try
+        {
+            var staged = await new WindowsUpdateInstallBoundary().Stage(package, "1.0.0");   // returns; the version and identity checks are ReadVersion and Verify
+            Assert.NotNull(staged);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
     }
 
     // ---- PR-UPDATE-049 / PR-UPDATE-051 (collapsed): the Authenticode trust gate -------------------------
