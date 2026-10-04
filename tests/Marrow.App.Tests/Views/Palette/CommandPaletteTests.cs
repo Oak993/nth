@@ -262,6 +262,91 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-WIN-112")] // App/AppCommands.swift:100-102; App/AppModel.swift:855-882; App/AppSettings.swift:30-34; Views/Palette/CommandPalette.swift:172-174
+    [Trait("Req", "PR-WIN-114")] // App/AppCommands.swift:106-108: the settle command is given no palette row
+    [Trait("Req", "UI-WIN-024")] // App/AppCommands.swift:99-102; Core/Models/Shortcuts.swift:177, :225
+    public void The_finish_row_reads_Settle_Reopen_or_Archive_thread_with_its_symbol_and_chord_follows_the_setting_live_and_the_settle_item_has_no_row()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            using var shortcuts = ShortcutStore.Shared.Override(harness.Main.OnMain(AppCommandsRig.FreshStore));
+            var project = AppModelSamples.Project("P", harness.NewFolder("p"));
+            var open = AppModelSamples.Thread(project);
+            var settled = AppModelSamples.Thread(project) with { IsSettled = true };
+            harness.WriteLibrary([project], [open, settled]);
+            AppModelHarness.WriteDocument(open.Id);
+            AppModelHarness.WriteDocument(settled.Id);
+            var model = harness.MakeModel();
+            AvaloniaWindow window = null!;
+            CommandPalette palette = null!;
+            // The finish row sits after "Toggle changes" and before "Settings" (CommandPalette.swift:164-178), whatever thread rows follow.
+            (string Title, string Symbol, string Chord) FinishRow()
+            {
+                var titles = Titles(palette);
+                var index = Array.IndexOf(titles, "Toggle changes") + 1;
+                Assert.Equal("Settings", titles[index + 1]);
+                var row = RowParts(palette.RowsPanel.Children[index]);
+                return (titles[index], Assert.IsType<SwiftImage>(Assert.Single(row.Icon.Children)).SymbolName ?? "", row.Chord.Text ?? "");
+            }
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.SettleSound = false; // no chime from a test
+                // The three titles and their symbols, by setting and selection (AppModel.swift:855-863).
+                (ThreadFinishAction Action, Guid Selected, string Title, string Symbol)[] cases =
+                [
+                    (ThreadFinishAction.Settle, open.Id, "Settle thread", "checkmark.circle"),
+                    (ThreadFinishAction.Settle, settled.Id, "Reopen thread", "arrow.uturn.backward"),
+                    (ThreadFinishAction.Archive, open.Id, "Archive thread", "archivebox"),
+                    (ThreadFinishAction.Archive, settled.Id, "Archive thread", "archivebox"),
+                ];
+                foreach (var (action, selected, title, symbol) in cases)
+                {
+                    model.Settings.ThreadFinishAction = action;
+                    model.SelectedThreadID = selected;
+                    (_, window, palette) = Build(model);
+                    var row = FinishRow();
+                    Assert.Equal((title, symbol, "Ctrl+Shift+Delete"), row); // Shortcuts.swift:225: Shift-Command-Delete, OD-0008 B7
+                    // PR-WIN-114: the settle command has no row of its own, so with Archive chosen neither title is listed.
+                    if (action == ThreadFinishAction.Archive) Assert.DoesNotContain(Titles(palette), t => t is "Settle thread" or "Reopen thread");
+                    window.Close();
+                }
+
+                // The row follows the setting and the selection while the palette stays open (ResultsKey, :102-107).
+                model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+                model.SelectedThreadID = open.Id;
+                (_, window, palette) = Build(model);
+                Assert.Equal("Settle thread", FinishRow().Title);
+                model.Settings.ThreadFinishAction = ThreadFinishAction.Archive;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.Equal(("Archive thread", "archivebox"), (FinishRow().Title, FinishRow().Symbol));
+                model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+                model.SelectedThreadID = settled.Id;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.Equal(("Reopen thread", "arrow.uturn.backward"), (FinishRow().Title, FinishRow().Symbol));
+
+                // Choosing it with Settle and a settled thread asks to reopen it (AppModel.swift:872-880 reopens: thread.isSettled).
+                model.IsCommandPalettePresented = true;
+                var rowControl = palette.RowsPanel.Children[Array.IndexOf(Titles(palette), "Reopen thread")];
+                var point = Centre(rowControl, window);
+                window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(model.IsCommandPalettePresented);
+                var request = Assert.IsType<AppModel.FinishRequest>(model.AppModelFinishRequest);
+                Assert.Equal((settled.Id, true), (request.ThreadID, request.Reopens));
+                window.Close();
+            });
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-WIN-171")] // App/Views/Palette/CommandPalette.swift:154-162 exact ids and shortcuts
     public void Base_action_rows_carry_their_exact_ids_symbols_and_live_shortcut_labels()
     {

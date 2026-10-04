@@ -113,3 +113,9 @@ public static class AppCommandsRig
         return (Guid?)state.GetType().GetProperty("PendingArchiveID", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!.GetValue(state);
     }
 }
+
+/// <summary>An <see cref="IDisposable"/> that runs one action, so a rig can hand back its own clean-up as a value.</summary>
+public sealed class DisposeAction(Action dispose) : IDisposable
+{
+    public void Dispose() => dispose();
+}

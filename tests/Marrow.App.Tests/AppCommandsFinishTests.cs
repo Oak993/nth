@@ -30,6 +30,7 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
 {
     private static readonly KeyboardShortcut CtrlW = Chord("w", ChordModifiers.Control); // archiveThread, 13 + command
     private static readonly KeyboardShortcut CtrlS = Chord("s", ChordModifiers.Control); // settleThread, 1 + command
+    private static readonly KeyboardShortcut CtrlShiftDelete = new(KeyEquivalent.Delete, ChordModifiers.Control | ChordModifiers.Shift); // finishThread, 51 + shift, command
     private static readonly KeyboardShortcut CtrlAltU = Chord("u", ChordModifiers.Control | ChordModifiers.Alt); // toggleActivityView, 32 + option, command
 
     private static MenuCommand On(AppCommands commands, KeyboardShortcut shortcut) => commands.Body.Single(command => command.Shortcut == shortcut);
@@ -263,6 +264,58 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
             Assert.False(model.Thread(thread.Id)!.IsSettled); // reopened
             Assert.False(model.Thread(thread.Id)!.IsArchived);
             Assert.Equal("Settle thread", On(commands, CtrlS).Title);
+        });
+    });
+
+    // ===== PR-WIN-112 and UI-WIN-024: the finish item, carried out =====
+
+    [Fact]
+    [Trait("Req", "PR-WIN-112")] // App/AppCommands.swift:100-102; App/AppModel.swift:855-882
+    [Trait("Req", "UI-WIN-024")] // App/AppCommands.swift:99-102; Core/Models/Shortcuts.swift:225
+    public void The_finish_chord_reopens_a_settled_thread_after_80_milliseconds_and_the_finish_title_has_no_helper_case() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project) with { IsSettled = true };
+        var parent = AppModelSamples.Thread(project);
+        var helper = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id };
+        var settledHelper = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id, IsSettled = true };
+        var model = Model(h, [project], [thread, parent, helper, settledHelper]);
+        AppCommands commands = null!;
+        h.Main.OnMain(() =>
+        {
+            model.Settings.SettleSound = false; // no chime from a test
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+            model.SelectedThreadID = thread.Id;
+            commands = new AppCommands(model);
+            Assert.Equal("Reopen thread", On(commands, CtrlShiftDelete).Title); // :100 finishActionTitle, AppModel.swift:856
+            Assert.True(commands.PerformKeyEquivalent(CtrlShiftDelete));
+            // AppModel.swift:872-873: Settle chosen and a settled thread posts the request to reopen it ...
+            Assert.Equal((thread.Id, true), (model.AppModelFinishRequest!.ThreadID, model.AppModelFinishRequest.Reopens));
+            Assert.True(model.Thread(thread.Id)!.IsSettled); // ... and nothing has moved yet
+        });
+
+        // :874-880 no row took it up, so 80 ms later the thread is reopened, not archived.
+        h.Main.Advance(TimeSpan.FromMilliseconds(100));
+        h.Main.OnMain(() =>
+        {
+            Assert.False(model.Thread(thread.Id)!.IsSettled);
+            Assert.Null(model.AppModelFinishRequest);
+            Assert.False(model.Thread(thread.Id)!.IsArchived);
+            Assert.Equal("Settle thread", On(commands, CtrlShiftDelete).Title);
+
+            // :855-858 the title has no helper case: an open helper reads "Settle thread", a settled one "Reopen thread",
+            // and the item is enabled either way (:102 disables only with no selection).
+            model.SelectedThreadID = helper.Id;
+            Assert.Equal("Settle thread", On(commands, CtrlShiftDelete).Title);
+            Assert.False(On(commands, CtrlShiftDelete).IsDisabled);
+            model.SelectedThreadID = settledHelper.Id;
+            Assert.Equal("Reopen thread", On(commands, CtrlShiftDelete).Title);
+            Assert.False(On(commands, CtrlShiftDelete).IsDisabled);
+            // :868-870 a helper goes the archive's way, whatever its title says.
+            Assert.True(commands.PerformKeyEquivalent(CtrlShiftDelete));
+            Assert.True(model.Thread(settledHelper.Id)!.IsArchived);
         });
     });
 

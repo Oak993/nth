@@ -33,12 +33,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
         var passed = Passed(window);
         var attached = MenuKeyEquivalents.Attach(window, commands.PerformKeyDown);
         model.Settings.AppZoom = 100;
-        return (model, window, passed, new Cleanup(() => { attached.Dispose(); window.Close(); shared.Dispose(); }));
-    }
-
-    private sealed class Cleanup(Action dispose) : IDisposable
-    {
-        public void Dispose() => dispose();
+        return (model, window, passed, new DisposeAction(() => { attached.Dispose(); window.Close(); shared.Dispose(); }));
     }
 
     [Fact]
