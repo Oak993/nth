@@ -17,7 +17,7 @@ public sealed class CatalogueChangeReportStructureTests
     {
         var report = Compare(i => i with { Needs = ["X2"] });
         Assert.Equal(["needs: needs: removed X1", "needs: needs: added X2"], ChangeReportFixtures.Lines(report, "X3"));
-        var removed = ChangeReportFixtures.Only(report, "X3", ChangeCategory.Needs, "needs");
+        var removed = report.ChangesFor("X3").First(c => c.Category == ChangeCategory.Needs);
         Assert.Equal("X1", removed.Old);
         Assert.Null(removed.New);
     }
@@ -113,7 +113,7 @@ public sealed class CatalogueChangeReportStructureTests
             ["Folders"] = i => i with { Folders = [new CatalogueFolder { Name = "f", SkillCount = 1 }] },
         };
         foreach (var (field, change) in changes)
-            Assert.NotEmpty(Compare(change).ChangesFor("X3").Where(c => c.Category != ChangeCategory.Item || field == "Kind"));
+            Assert.Contains(Compare(change).ChangesFor("X3"), c => c.Category != ChangeCategory.Item || field == "Kind");
         var tool = new Dictionary<string, Func<CatalogueItem, CatalogueItem>>
         {
             ["PinHint"] = i => i with { PinHint = "abcdef0" }, ["Artifacts"] = i => i with { Artifacts = [] },
