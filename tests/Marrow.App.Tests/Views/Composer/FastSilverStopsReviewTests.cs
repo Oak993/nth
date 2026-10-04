@@ -16,7 +16,7 @@ namespace Marrow.App.Tests.Views.Composer;
 // white stops are right there. OD-0073 (ED-248) draws the brand's fill and the brand's liquid under the fast look instead
 // (EffortView.Fill's last arm, LiquidSpec.For ignores the kind), so a Codex/ChatGPT (Silver) slider in fast mode below its top effort
 // (Codex models carry a fast service tier: CodexSession.swift:381, Provider.swift:255) draws Silver's white fill and white liquid. Lead
-// ruling R1 (ED-NEW-effortslider2 (6)): the port computes isLightFill from the fill it draws, so its passed stops are dark there. The
+// ruling R1 (ED-286 (6)): the port computes isLightFill from the fill it draws, so its passed stops are dark there. The
 // fusion look (fast mode at the top) keeps the source's rule: the second test reads its stops white.
 [Collection("Headless")]
 public sealed class FastSilverStopsReviewTests(HeadlessSession headless)

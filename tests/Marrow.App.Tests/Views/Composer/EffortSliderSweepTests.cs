@@ -1307,7 +1307,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // - PR-COMPOSER-132 (the effect's identity and clock) is asserted in EffortSliderTrackTests and, with the popover open in the real composer, in
 //   EffortChipLiveInComposerTests; the plain look draws the effect too (OD-0075).
 // - PR-COMPOSER-112 and UI-COMPOSER-031: Color.mix(with:by:) names no colour space at :841 and :964, so SwiftUI's default (perceptual, Oklab)
-//   applies: ENGINEERING DECISION ED-NEW-effortslider2 (OD-0098); SwiftColor.MixPerceptual, tested against an independent Oklab implementation
+//   applies: ENGINEERING DECISION ED-286 (OD-0098); SwiftColor.MixPerceptual, tested against an independent Oklab implementation
 //   (SwiftColorPerceptualMixTests, Fixtures/OklabReference).
 // - PR-COMPOSER-127 and PR-COMPOSER-128: OD-0075 (liquid at every effort level) is built; the records carry its deviation. The per-model and
-//   per-effort shade of OD-0063 is the colour engine's (unbuilt, ED-NEW-effortslider2): every effort wears the maker's palette until then.
+//   per-effort shade of OD-0063 is the colour engine's (unbuilt, ED-286): every effort wears the maker's palette until then.

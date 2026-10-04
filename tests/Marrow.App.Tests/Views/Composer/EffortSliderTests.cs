@@ -201,7 +201,7 @@ public sealed class EffortSliderTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-252")] // EffortSlider.swift:1000-1018 TrackLook's values by kind: the stop colour and the light-fill test (drawn: the stops, the bubbles' rims) and the record's glow and spark, which nothing draws now (the glow was the knob's blurred disc, :781-786, replaced by OD-0090's Jewel orb; src reads StopColor and IsLightFill only). Part of PR-COMPOSER-131's evidence as amended for OD-0090, OD-0075 and OD-0073 by lead ruling R1 (ED-NEW-effortslider2 (6)): the plain Purple and the supercharged Silver rows of its table, the others are in EffortSliderKnobRecordsTests and PlainSilverStopsReviewTests
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:1000-1018 TrackLook's values by kind: the stop colour and the light-fill test (drawn: the stops, the bubbles' rims) and the record's glow and spark, which nothing draws now (the glow was the knob's blurred disc, :781-786, replaced by OD-0090's Jewel orb; src reads StopColor and IsLightFill only). Part of PR-COMPOSER-131's evidence as amended for OD-0090, OD-0075 and OD-0073 by lead ruling R1 (ED-286 (6)): the plain Purple and the supercharged Silver rows of its table, the others are in EffortSliderKnobRecordsTests and PlainSilverStopsReviewTests
     [Trait("Req", "PR-COMPOSER-131")] // EffortSlider.swift:1000-1018 as amended by OD-0090 (the glow is no longer drawn)
     public void TrackLook_without_a_pair_follows_its_own_kind()
     {

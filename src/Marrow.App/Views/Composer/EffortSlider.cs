@@ -1314,7 +1314,7 @@ public sealed class EffortSlider : Decorator
     // :820-830 one element: the label (Name), the value (the current effort's title, :826-827 accessibilityValue) and the adjustable
     // action (increment and decrement, clamped). UI Automation's two value patterns carry them: the RangeValue pattern the
     // adjustment, the Value pattern (read-only) the title a screen reader reads as the slider's value. ENGINEERING DECISION,
-    // ED-NEW-effortslider2: Narrator reads Name and the RangeValue number or the Value string, not ItemStatus.
+    // ED-286: Narrator reads Name and the RangeValue number or the Value string, not ItemStatus.
     private sealed class EffortPeer(EffortSlider owner) : ControlAutomationPeer(owner), IRangeValueProvider, IValueProvider
     {
         protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Slider;
@@ -1524,7 +1524,7 @@ internal static class EffortView
 public static class EffortPalette
 {
     // :841 static var title: Color { Chrome.accent.mix(with: .white, by: 0.22) }: no colour space is named, so SwiftUI's default,
-    // perceptual (Oklab), mixes it (ENGINEERING DECISION, ED-NEW-effortslider2, OD-0098)
+    // perceptual (Oklab), mixes it (ENGINEERING DECISION, ED-286, OD-0098)
     public static SwiftColor Title => SwiftColor.Dynamic(
         EffortView.Resolved(Chrome.Accent, ThemeVariant.Light).MixPerceptual(SwiftColor.White, 0.22),
         EffortView.Resolved(Chrome.Accent, ThemeVariant.Dark).MixPerceptual(SwiftColor.White, 0.22));
@@ -1770,7 +1770,7 @@ public sealed record TrackLook(TrackLook.Kind TrackLookKind, EffortBrand Brand, 
     // fill under the knob is light (a white brand at maximum, not in fusion, whose far end is gold)": the source draws a white brand's
     // fill only at .supercharged, so the kind test there is the fill's colour. DEVIATION OD-0075 (the liquid at every effort level)
     // draws that same white fill on the plain track too, and OD-0073 (ED-248) under the fast look (the source's is the amber :992), so
-    // by lead ruling R1 (ED-NEW-effortslider2 (6)) the test follows the fill drawn and holds for Plain, Fast and Supercharged. The
+    // by lead ruling R1 (ED-286 (6)) the test follows the fill drawn and holds for Plain, Fast and Supercharged. The
     // fusion look keeps the source's rule (not light), by the same ruling.
     public bool IsLightFill => Pair?.IsLight ?? (TrackLookKind is Kind.Plain or Kind.Fast or Kind.Supercharged && Brand.IsLight);
 

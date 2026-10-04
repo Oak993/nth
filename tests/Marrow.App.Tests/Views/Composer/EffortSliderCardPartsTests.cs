@@ -117,7 +117,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
             var gold = new SwiftColor(1.0, 0.84, 0.36).Resolve(theme);
             var claude = new SwiftColor(0.93, 0.58, 0.44).Resolve(theme);
             var accent = Chrome.Accent.Resolve(theme);
-            var mixed = OklabReference.MixWhite(accent, 0.22); // Color.mix(with:by:)'s default space is perceptual (ED-NEW-effortslider2)
+            var mixed = OklabReference.MixWhite(accent, 0.22); // Color.mix(with:by:)'s default space is perceptual (ED-286)
             AssertSolid(mixed, title.Foreground, "neither maximum nor fast");
             var fast = Card(["low", "medium", "high"], "low", null, ProviderKind.Claude, supportsFast: true, fast: true, titleTap: () => { });
             var maximum = Card(["low", "medium", "high"], "high", null, ProviderKind.Claude, supportsFast: true, titleTap: () => { });

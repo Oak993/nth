@@ -128,7 +128,7 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
             switch (maximum, fast)
             {
                 case (false, false): // Chrome.accent mixed 22 percent toward white (:841)
-                    // the default colour space of Color.mix(with:by:) is perceptual (ED-NEW-effortslider2): an independent Oklab mix
+                    // the default colour space of Color.mix(with:by:) is perceptual (ED-286): an independent Oklab mix
                     AssertSolid(OklabReference.MixWhite(Chrome.Accent.Resolve(theme), 0.22), title.Foreground, "neither");
                     break;
                 case (false, true): AssertSolid(gold, title.Foreground, "fast mode alone is gold"); break;

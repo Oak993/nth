@@ -20,7 +20,7 @@ namespace Marrow.App.Tests.Views.Composer;
 // DroppyCode/App/Views/Composer/EffortSlider.swift:760-767 (the effect is overlaid only when the kind is not plain or a pair exists)
 // and :990 (the plain fill is Chrome.accent): the plain track draws the liquid like every other look, in its maker's liquid
 // (the same palette every look draws), over the brand's fill (as OD-0073 left under the fast look). The per-model and per-effort
-// shade of OD-0063 is the colour engine's (unbuilt; ED-NEW-effortslider2): until it lands every effort wears the maker's palette.
+// shade of OD-0063 is the colour engine's (unbuilt; ED-286): until it lands every effort wears the maker's palette.
 [Collection("Headless")]
 public sealed class EffortSliderPlainLiquidTests(HeadlessSession headless)
 {

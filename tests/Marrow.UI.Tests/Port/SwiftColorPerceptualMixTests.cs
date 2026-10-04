@@ -5,7 +5,7 @@ using Marrow.UI.Port;
 namespace Marrow.UI.Tests.Port;
 
 // SwiftUI's Color.mix(with:by:in:) takes a colour space and its default is .perceptual (Oklab); EffortSlider.swift:841 and :964
-// name none. ENGINEERING DECISION (ED-NEW-effortslider2, OD-0098: the framework's documented behaviour where the code relies on
+// name none. ENGINEERING DECISION (ED-286, OD-0098: the framework's documented behaviour where the code relies on
 // it): those two sites mix in Oklab. The expected values below are not read from the port: they come from an independent
 // Oklab implementation (Ottosson's published matrices, E:/Droppy/work/scratch/effortslider2/oklab.py).
 public sealed class SwiftColorPerceptualMixTests

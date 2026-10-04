@@ -10,7 +10,7 @@ using SkiaSharp;
 namespace Marrow.App.Tests.Views.Composer;
 
 // What the track's canvas hands the liquid for its bubbles (EffortSlider.swift:1010-1016 "Whether the fill under the knob is light";
-// DEVIATION OD-0075 and OD-0073, lead ruling R1, ED-NEW-effortslider2 (6): the test follows the fill the port draws). The canvas of a
+// DEVIATION OD-0075 and OD-0073, lead ruling R1, ED-286 (6): the test follows the fill the port draws). The canvas of a
 // plain track draws its liquid through LiquidTrack.Draw; the test renders that canvas and the same liquid drawn directly with
 // dark-rimmed bubbles and with light-rimmed ones (the same effect's bubbles, its gradient and its flow), and reads the pixels where the
 // two rims differ: the canvas must have drawn the rim the fill's paleness asks for, so a canvas that stopped using

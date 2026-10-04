@@ -16,7 +16,7 @@ namespace Marrow.App.Tests.Views.Composer;
 // DroppyCode/App/Views/Composer/EffortSlider.swift:1010-1016 states what the light-fill test is for: "Whether the fill under the knob is
 // light" and "The passed stops: white on colour, dark on a white fill". In the source a white brand's fill is only drawn at maximum
 // (.supercharged), so `kind == .supercharged && brand.isLight` is exactly "the fill is white" there. OD-0075 draws Silver's white
-// fill and white liquid on the plain track too, and OD-0073 (ED-248) under the fast look; lead ruling R1 (ED-NEW-effortslider2 (6)):
+// fill and white liquid on the plain track too, and OD-0073 (ED-248) under the fast look; lead ruling R1 (ED-286 (6)):
 // the port computes isLightFill from the fill it draws under the knob, so a Silver track below its top effort draws its passed stops
 // dark, and the bubbles' light or dark look follows the same test. The fusion look keeps the source's rule (not light). These tests
 // read the stops a Silver plain slider draws and the light-fill test of every brand's plain, fast, supercharged and fusion look.

@@ -244,7 +244,7 @@ public sealed class SwiftColor
     /// <summary>
     /// <c>Color.mix(with:by:)</c> with SwiftUI's own default, <c>in: .perceptual</c>: the components are interpolated in
     /// Oklab (Apple's perceptual space), from the linear light of the sRGB components, and encoded back; the opacity is
-    /// interpolated linearly. ENGINEERING DECISION, ED-NEW-effortslider2 (OD-0098: the framework's documented behaviour where
+    /// interpolated linearly. ENGINEERING DECISION, ED-286 (OD-0098: the framework's documented behaviour where
     /// the code relies on it): EffortSlider.swift:841 <c>Chrome.accent.mix(with: .white, by: 0.22)</c> and :964
     /// <c>mix(with: .white, by: 0.18)</c> name no colour space, so they take the default. <see cref="Mix"/> stays the
     /// component-wise interpolation the port's other mix sites use.
