@@ -176,11 +176,12 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // partial for the zoom records: the production reader's character reading, with and without Shift, on three layouts
     public void The_Windows_reader_over_the_US_German_and_French_layouts_types_what_the_fixture_tables_say_plain_and_with_Shift() => headless.OnUiThread(() =>
     {
+        using var layouts = new WindowsLayoutReaders();
         foreach (var (name, reader, table) in new[]
         {
-            ("US", WindowsLayoutReaders.Us, KeyboardLayouts.Us),
-            ("German", WindowsLayoutReaders.German, KeyboardLayouts.German),
-            ("French", WindowsLayoutReaders.French, KeyboardLayouts.French),
+            ("US", layouts.Us, KeyboardLayouts.Us),
+            ("German", layouts.German, KeyboardLayouts.German),
+            ("French", layouts.French, KeyboardLayouts.French),
         })
         {
             foreach (var key in table.Keys)
@@ -193,6 +194,65 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
                 }
             }
         }
+    });
+
+    // The production reader on the keys the zoom chords sit on, with the characters written out (not read from a table): the
+    // US "=", "-", "0", "]" and "/" positions on the real German and French layouts, plain and with Shift. A reader over a fixed
+    // US table types "=", "-", "0", "]", "/" on all of them and fails every German and French row here; one that ignores
+    // Shift fails the shifted ones. A dead key (the German "=" position, a dead acute accent) types no character.
+    // The expected characters are those of the Windows layouts KBDGR (00000407) and KBDFR (0000040C); this test reads them.
+    [Fact]
+    [Trait("Decision", "ED-270")]
+    [Trait("Rule", "R-TEST-4")] // partial for the zoom records: the production reader's character for five zoom-chord keys on real non-US layouts
+    public void The_Windows_reader_types_the_characters_Windows_gives_the_Equal_Minus_Digit0_BracketRight_and_Slash_keys_on_the_German_and_French_layouts_plain_and_with_Shift() => headless.OnUiThread(() =>
+    {
+        using var layouts = new WindowsLayoutReaders();
+        (string Layout, IKeyboardLayoutText Reader, PhysicalKey Key, string? Plain, string? Shifted)[] rows =
+        [
+            ("US", layouts.Us, PhysicalKey.Equal, "=", "+"),
+            ("US", layouts.Us, PhysicalKey.Minus, "-", "_"),
+            ("US", layouts.Us, PhysicalKey.Digit0, "0", ")"),
+            ("US", layouts.Us, PhysicalKey.BracketRight, "]", "}"),
+            ("US", layouts.Us, PhysicalKey.Slash, "/", "?"),
+            ("German", layouts.German, PhysicalKey.Equal, null, null),
+            ("German", layouts.German, PhysicalKey.Minus, "ß", "?"),
+            ("German", layouts.German, PhysicalKey.Digit0, "0", "="),
+            ("German", layouts.German, PhysicalKey.BracketRight, "+", "*"),
+            ("German", layouts.German, PhysicalKey.Slash, "-", "_"),
+            ("French", layouts.French, PhysicalKey.Equal, "=", "+"),
+            ("French", layouts.French, PhysicalKey.Minus, ")", "°"),
+            ("French", layouts.French, PhysicalKey.Digit0, "à", "0"),
+            ("French", layouts.French, PhysicalKey.BracketRight, "$", "£"),
+            ("French", layouts.French, PhysicalKey.Slash, "!", "§"),
+        ];
+        foreach (var (layout, reader, key, plain, shifted) in rows)
+        {
+            Assert.True(plain == reader.Typed(key, false), $"{layout} {key}: Windows types {reader.Typed(key, false) ?? "no character"}, not {plain ?? "no character"}");
+            Assert.True(shifted == reader.Typed(key, true), $"{layout} {key} with Shift: Windows types {reader.Typed(key, true) ?? "no character"}, not {shifted ?? "no character"}");
+        }
+    });
+
+    // ED-NEW-appcommands item 7: the layouts the fixture loads are in this process's layout list while it is alive and gone
+    // when it is disposed, and the layout the thread has active never moves, so the tests leave the user's session as found.
+    [Fact]
+    [Trait("Decision", "ED-270")]
+    [Trait("Rule", "R-TEST-4")] // partial for the zoom records: the fixture of the production-reader tests leaves no layout behind
+    public void The_layout_fixture_leaves_the_sessions_layout_list_and_the_active_layout_as_it_found_them() => headless.OnUiThread(() =>
+    {
+        var before = WindowsLayoutReaders.Installed().OrderBy(handle => handle.ToInt64()).ToArray();
+        var active = WindowsLayoutReaders.Active();
+        IntPtr[] loaded;
+        using (var layouts = new WindowsLayoutReaders())
+        {
+            loaded = new[] { "00000409", "00000407", "0000040C" }.Select(layouts.HandleOf).Distinct().ToArray();
+            Assert.Equal(3, loaded.Length);
+            var during = WindowsLayoutReaders.Installed();
+            Assert.All(loaded, handle => Assert.Contains(handle, during)); // the fixture does load them
+            Assert.Equal(active, WindowsLayoutReaders.Active());
+        }
+        Assert.Equal(before, WindowsLayoutReaders.Installed().OrderBy(handle => handle.ToInt64()).ToArray());
+        Assert.Equal(active, WindowsLayoutReaders.Active());
+        Assert.All(loaded.Where(handle => !before.Contains(handle)), handle => Assert.DoesNotContain(handle, WindowsLayoutReaders.Installed()));
     });
 
     // PR-WIN-222, PR-WIN-224, PR-WIN-225, UI-WIN-074 through the production reader and the production windows. The reviewer's
@@ -209,6 +269,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
     [Trait("Decision", "ED-270")]
     public void Read_by_Windows_Ctrl_Shift_equals_and_Ctrl_equals_zoom_in_and_on_a_French_keyboard_Ctrl_Shift_0_is_Actual_Size_in_the_production_windows() => headless.OnUiThread(() =>
     {
+        using var layouts = new WindowsLayoutReaders();
         using var launch = new LaunchHarness();
         using var store = ShortcutStore.Shared.Override(FreshStore());
         var model = launch.Manager.Model;
@@ -264,7 +325,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
                 }
             });
 
-            using (KeyboardLayoutText.Current.Override(WindowsLayoutReaders.Us))
+            using (KeyboardLayoutText.Current.Override(layouts.Us))
             {
                 SetZoom(100);
                 Assert.Equal([1d, 1d], Scales());
@@ -292,7 +353,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
                 Zoomed("US Ctrl+0 from 90", main, Key.D0, PhysicalKey.Digit0, Ctrl, 100);
             }
 
-            using (KeyboardLayoutText.Current.Override(WindowsLayoutReaders.French))
+            using (KeyboardLayoutText.Current.Override(layouts.French))
             {
                 SetZoom(150);
                 Zoomed("French Ctrl+Shift+0 in Settings", settings, Key.D0, PhysicalKey.Digit0, CtrlShift, 100); // "0" is Shift with that key
@@ -305,7 +366,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
             }
 
             // OD-0012 G6: Ctrl+0 is Actual Size alone; with the main window hidden, the chord pressed in Settings fronts nothing.
-            using (KeyboardLayoutText.Current.Override(WindowsLayoutReaders.Us))
+            using (KeyboardLayoutText.Current.Override(layouts.Us))
             {
                 OnMain(() => main.Hide());
                 var built = launch.Events.Count(value => value == "main window built");
@@ -342,6 +403,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // partial for PR-WIN-110 and PR-WIN-223: the French number-row chord by window, nothing else of either record
     public void On_a_French_keyboard_Ctrl_with_the_key_that_types_a_minus_selects_Thread_6_in_the_main_window_and_zooms_out_in_the_Settings_window() => headless.OnUiThread(() =>
     {
+        using var layouts = new WindowsLayoutReaders();
         using var launch = new LaunchHarness(h =>
         {
             var project = AppModelSamples.Project("P", h.NewFolder("p"));
@@ -361,7 +423,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
                 Assert.True(main is ThreadWindow);
                 Assert.Equal(7, order.Count);
                 Assert.Null(model.SelectedThreadID);
-                using var layout = KeyboardLayoutText.Current.Override(WindowsLayoutReaders.French);
+                using var layout = KeyboardLayoutText.Current.Override(layouts.French);
                 model.Settings.AppZoom = 100;
 
                 Press(main, Key.D6, PhysicalKey.Digit6, Ctrl);
