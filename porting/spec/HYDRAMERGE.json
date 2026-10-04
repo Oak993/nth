@@ -2899,7 +2899,7 @@
       "failure_cases": [],
       "cancellation": "The task is cancelled when the body changes or the pill disappears.",
       "windows_path": "Same warm-on-appear keyed to the body.",
-      "verification_method": "interaction test measuring first-open latency",
+      "verification_method": "interaction test of the cache's state (ED-285 (7), ENGINEERING DECISION; a wall-clock first-open latency under a shared build load is not evidence): after the pill's task has run, MarkdownView.WarmTexts([body]) is empty and the popover a tap opens is drawn from the very block instances MarkdownView.Blocks(body) returns; a report nothing warmed is parsed at the open and cached; a pill with no details warms nothing; a changed body is warmed again, and the task is cancelled when the body changes or the pill goes",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,

@@ -502,7 +502,7 @@
       "persistence": "None; compile-time constants.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Define the eight once and derive every badge, pill, notice, todo row, merge pill and head pill from them (port_impacts.md 144). Keep the same numbers at all eight 96-point sites and all four 820-point sites rather than inlining new values.",
+      "windows_path": "Define the eight once and derive every badge, pill, notice, todo row, merge pill and head pill from them (port_impacts.md 144). Keep the same number at all seven 96-point side insets (TimelineRows.swift:164, :326, :417, :589, :1017, :2369; ChatBadge.swift:77) and at the 820-point column sites, which live outside this file (ThreadTimeline.swift:64, :66, :416; SubagentPanel.swift:115; ComposerView.swift:52), rather than inlining new values.",
       "verification_method": "capture comparison plus a static check that no row hard-codes these numbers",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2751,19 +2751,18 @@
       ],
       "preconditions": "A turn has ended.",
       "action": "Its duration line is rendered, either as a standalone row or on a reply's hover line or as the folded turn's header.",
-      "expected_result": "Exactly one of the three phrasings, followed by a space and the duration: RelativeTime.duration of the turn's time, that is the interval rounded to whole seconds, clamped at zero and formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width, at most two units and the fraction hidden and rounded down. The exact rendered duration strings are those Foundation produces on the reference runtime and are UNRESOLVED until captured there (B3_PLAN.md 6.1 E1). A turn still marked running deliberately reads Worked for, the same as completed. The standalone row is suppressed when the turn produced a reply, because the duration lives on that reply's hover line instead.",
+      "expected_result": "Exactly one of the three phrasings, followed by a space and the duration: RelativeTime.duration of the turn's time, that is the interval rounded to whole seconds, clamped at zero and formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width, at most two units and the fraction hidden and rounded down. The rendered strings are the en narrow output of swift-foundation 6.2's Duration+UnitsFormatStyle as ED-197 (oracle O-65) reads it (for example 0s, 45s, 1m, 1m 4s, 59m 59s, 1h, 1h 2m), closed under OD-0098 and agreeing with every duration the reference video shows (5s, 10s, 28s, 38s, 1m 23s, Failed after 1s); O-65 stays open for a later macOS run. A turn still marked running deliberately reads Worked for, the same as completed. The standalone row is suppressed when the turn produced a reply, because the duration lives on that reply's hover line instead.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the formatter's output exactly from reference-runtime fixtures, including the rounding to whole seconds; do not substitute a hand-written template. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
-      "verification_method": "unit over the formatter against reference-runtime fixtures (0, 45, 64, 90, 3599 and 3725 seconds and a negative interval) plus capture comparison of the three phrasings",
+      "windows_path": "Reproduce the formatter's output exactly from the swift-foundation 6.2 Duration.UnitsFormatStyle fixtures of ED-197 (O-65), including the rounding to whole seconds; do not substitute a hand-written template. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "verification_method": "unit over the formatter against the ED-197 fixtures (0, 45, 60, 64, 90, 3599, 3600 and 3725 seconds, half seconds and a negative interval), the reference video's durations, plus a render of the three phrasings in both themes",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :2442-2443 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`; the row moved from B1 :2456-2462 to B2 :2439-2445. The wording is unchanged.",
-      "open_question": "The exact strings RelativeTime.duration's Duration.UnitsFormatStyle(allowed: [.seconds, .minutes, .hours], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)) produces on the reference runtime and locale (B3_PLAN.md 6.1 E1).",
       "b3_note": "1.7.0 replaces the hand-built 'Ns' / 'Mm Ss' / 'Hh Mm' duration with Duration.UnitsFormatStyle (B3 Components.swift:37-40)."
     },
     {
@@ -3847,11 +3846,11 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1228-1231 the attachment strip's anchor and disappear handlers capture the slot weakly",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1678-1687 and :1761-1763 the tool row's button action and anchor capture weak boxes only",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1406-1407 Add to reply captures the runtime weakly",
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2689-2698 the file card's review closure captures the runtime weakly"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2689-2698 the file card's review closure captures the runtime weakly; its revert closure (:2695) holds the runtime, so the card keeps the runtime alive in the source too"
       ],
       "preconditions": "A row scrolls out of the virtualized list while a menu, popover or panel it opened is still alive.",
       "action": "The menu is used or dismissed.",
-      "expected_result": "The row's storage, its entry and its message text are released when the row scrolls away, regardless of any menu, hover responder, anchor view or popover that outlives it. Intents travel back into the row through bindings and observable request objects, never through captured self.",
+      "expected_result": "The row's storage and its entry are released when the row scrolls away, regardless of any menu, hover responder, anchor view or popover that outlives it. An open menu keeps only the value snapshots its builder took (the message, canRevert and the confirmation binding, TimelineRows.swift:172-178), never the row, so the message's text lives as long as the menu does, as in the source. Intents travel back into the row through bindings and observable request objects, never through captured self.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -7393,12 +7392,17 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Literal sRGB component values; the gradient is a plain left-to-right linear gradient across the text's bounds.",
+      "windows_path": "Literal sRGB component values (the accent's 22 percent mix toward white in Color.mix(with:by:)'s default perceptual space, Oklab: ED-286, OD-0098); the gradient is a left-to-right linear gradient across the text's bounds, whose colours drift slowly along the letters at rest (OD-0094).",
       "verification_method": "capture comparison of the four combinations",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0094",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:543-555 titleStyle: wherever the title is a gradient (a pair's lead-to-heads colours, Antigravity's Gemini sweep at maximum, the brand into gold at maximum with fast mode) it is a static LinearGradient(leading to trailing); its colours move along the letters only while the text changes (2-chat-use.mov, study/effort-title-2026-10-03)",
+        "port": "Wherever the title is drawn as a gradient its colours also drift slowly along the letters at rest (OD-0094): a mirrored, seamless loop (MorphingTextBlock.DriftPeriod = 7 s, ENGINEERING DECISION ED-238) on one phase with a change's own drawing (a change takes the drift over and hands it back without a jump), still under reduce motion, frames only while the title is shown. A single-colour title (the accent mix, fast mode's gold alone, a solid brand title) is unchanged; the colours, their order and the 0.3 s smooth changes are the source's."
+      }
     },
     {
       "area": "COMPOSER",
@@ -7804,7 +7808,7 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0075",
+        "decision": "OD-0075; OD-0073",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:985-998 TrackLook.fill: `.plain` is Chrome.accent (:990), `.supercharged` brand.fill (:991), `.fast` EffortPalette.fastFill, `.fusion` the brand-to-fastFill gradient (:992-996)",
         "port": "The plain track is the liquid too (OD-0075), so the fill under it is the brand's fill, as at maximum: Claude and DeepSeek their solid colour, Purple its solid, Meta, Silver, Antigravity and the OD-0047 brands their gradients; the accent is no longer a track colour. A pair's gradient ([lead fill] + the heads' colours) is unchanged. Fast and fusion keep the brand's fill under their Strike (OD-0073, ED-248)."
       }
@@ -23599,7 +23603,7 @@
       "failure_cases": [],
       "cancellation": "The task is cancelled when the body changes or the pill disappears.",
       "windows_path": "Same warm-on-appear keyed to the body.",
-      "verification_method": "interaction test measuring first-open latency",
+      "verification_method": "interaction test of the cache's state (ED-285 (7), ENGINEERING DECISION; a wall-clock first-open latency under a shared build load is not evidence): after the pill's task has run, MarkdownView.WarmTexts([body]) is empty and the popover a tap opens is drawn from the very block instances MarkdownView.Blocks(body) returns; a report nothing warmed is parsed at the open and cached; a pill with no details warms nothing; a changed body is warmed again, and the task is cancelled when the body changes or the pill goes",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -26135,17 +26139,22 @@
       ],
       "preconditions": "A genuinely first launch on a clean machine.",
       "action": "The app launches.",
-      "expected_result": "The main window opens with an empty or freshly created chat, and 700 ms later the welcome tour appears. Nothing asks the user to sign in, create an account, accept terms or choose a data directory. Provider sign-in state is discovered by the provider probes during bootstrap, not asked for.",
+      "expected_result": "The main window opens with an empty or freshly created chat, and 700 ms later the welcome tour appears. Nothing asks the user to sign in, create an account, accept terms or choose a data directory. Provider sign-in state is discovered by the provider probes during bootstrap, not asked for. Under OD-0096 the first run (and a run whose prepared state is invalid) also shows the 'Getting ready' sheet, which takes no input, and the Welcome screen asks whether the user wants voice typing; these are the only additions (see deviation).",
       "side_effects": [],
       "persistence": "Only hasSeenTour once the tour is dismissed.",
       "failure_cases": [],
       "cancellation": "not applicable",
-      "windows_path": "Reproduce. No Windows-only first-run wizard, EULA step or data-folder chooser may be added.",
-      "verification_method": "capture comparison on a clean data directory",
+      "windows_path": "Reproduce. No Windows-only first-run wizard, EULA step or data-folder chooser may be added. The OD-0096 'Getting ready' sheet (no input, real progress, lifts away into the Welcome screen) and the Welcome screen's 'Voice typing' question are the only permitted first-run additions.",
+      "verification_method": "capture comparison on a clean data directory, taken after OD-0096 is built",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0096",
+        "upstream": "DroppyCode/App/AppDelegate.swift:22-33: a first launch shows the main window and, 700 ms later, the welcome tour; nothing else is presented",
+        "port": "On the first run after install, and again only when the prepared state is invalid (a new GPU or driver, a new app build), the window first shows the 'Getting ready' sheet (look I: a glass sheet hanging from the top over the blurred Welcome screen; words W1: title 'Getting ready', line 'Marrow is preparing its graphics and voice for this PC. This happens once.', the step names, 'Ready' when done) while the GPU programs are compiled and cached (ED-252) and the voice hardware check runs (OD-0092); it shows real progress, takes no input and lifts away with a transition (OD-0076). The Welcome screen then carries a 'Voice typing' section (place A, words V2) asking whether the user wants voice typing; nothing is downloaded without a yes (D3 with consent). No account, sign-in, terms or data-directory step is added."
+      }
     },
     {
       "area": "LAUNCH",
@@ -72620,14 +72629,14 @@
       ],
       "preconditions": "The About page is selected.",
       "action": "The section renders; the user clicks a link.",
-      "expected_result": "A section headed the verbatim \"Credits\" holding one card of five rows separated by dividers. The first is the Made by Droppy row: the Droppy logo at 40 x 40 hidden from accessibility, 12 points before the verbatim \"Made by Droppy\" at 13pt semibold over the verbatim \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3; upstream \"Droppy Code is a coding app by Droppy for Mac.\") at 11pt in the secondary colour, then at the trailing edge the verbatim \"getdroppy.app\" at 12pt medium with an up-right arrow at 10pt semibold, both in the accent colour, drawn at 90% opacity until hovered; the whole row links to https://getdroppy.app with the tooltip the verbatim \"Open getdroppy.app\" and the accessibility label the verbatim \"Made by Droppy. Open getdroppy.app\". Then three credit rows: \"Working indicators\" with the verbatim detail \"Ported from Zeron by Wing, MIT License.\" linking to zeronsh/zeron; \"Terminal\", whose detail and link name the terminal component the Windows build actually ships, with its licence (OD-0012 H; upstream the detail \"SwiftTerm by Miguel de Icaza, MIT License.\" linking to SwiftTerm); and \"Welcome tour\" with the verbatim detail \"Ported from TourKit by Ram Patra, MIT License.\" linking to rampatra/TourKit. Each link shows its title at 12pt medium with an up-right arrow at 10pt semibold, both in the accent colour, and carries its full URL as its tooltip. Then the Licenses row.",
+      "expected_result": "A section headed the verbatim \"Credits\" holding one card of five rows separated by dividers. The first is the Made by Droppy row: the Droppy logo at 40 x 40 hidden from accessibility, 12 points before the verbatim \"Made by Droppy\" at 13pt semibold over the verbatim \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3; upstream \"Droppy Code is a coding app by Droppy for Mac.\") at 11pt in the secondary colour, then at the trailing edge the verbatim \"getdroppy.app\" at 12pt medium with an up-right arrow at 10pt semibold, both in the accent colour, drawn at 90% opacity until hovered; the whole row links to https://getdroppy.app with the tooltip the verbatim \"Open getdroppy.app\" and the accessibility label the verbatim \"Made by Droppy. Open getdroppy.app\". Then three credit rows: \"Working indicators\" with the verbatim detail \"Ported from Zeron by Wing, MIT License.\" linking to zeronsh/zeron; \"Terminal\" with the detail \"Marrow's own terminal, built on Windows ConPTY.\" and no link (ED-272; OD-0012 H, OD-0072; upstream the detail \"SwiftTerm by Miguel de Icaza, MIT License.\" linking to SwiftTerm); and \"Welcome tour\" with the verbatim detail \"Ported from TourKit by Ram Patra, MIT License.\" linking to rampatra/TourKit. Each of the two links shows its title at 12pt medium with an up-right arrow at 10pt semibold, both in the accent colour, and carries its full URL as its tooltip. Then the Licenses row.",
       "side_effects": [
         "Links open in the default browser"
       ],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The attribution to Droppy must be kept: the port's own licence terms require the Droppy Code credit and the getdroppy.app link to remain in About. By owner ruling OD-0012 F3 the Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\", the attribution Droppy's licence asks for. By OD-0012 H the Terminal credit row names the terminal component the Windows build actually ships, with its licence, in upstream's row shape (the title \"Terminal\", a \"<component> by <author>, <licence>.\" detail and a link to the component); the component is whichever terminal the Windows build ships and is taken from that build, not chosen here.",
+      "windows_path": "The attribution to Droppy must be kept: the port's own licence terms require the Droppy Code credit and the getdroppy.app link to remain in About. By owner ruling OD-0012 F3 the Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\", the attribution Droppy's licence asks for. By OD-0012 H the Terminal credit row names the terminal the Windows build actually ships. That terminal is Marrow's own, built on the Windows ConPTY API, which is not shipped third-party code, so by ED-272 the row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link and no third-party licence: the same words as the licence line settled under OD-0072. If a third-party terminal component ever ships, its credit and link are added then.",
       "verification_method": "interaction test comparing every string and destination",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -72635,9 +72644,9 @@
       "depends_on_unknown": null,
       "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1043-1086 -> 1fbf81e6 :1083-1125 and :1088-1105 -> :1127-1144; the literal sizes 13 semibold, 11, 12 medium and 10 semibold became `.body` semibold, `.subheadline`, `.callout` medium and `.footnote` semibold. Strings and links unchanged.",
       "deviation": {
-        "decision": "OD-0008 B15; OD-0012 F3; OD-0012 H",
-        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\" and :977-978 ChromeRow(title: \"Terminal\", detail: \"SwiftTerm by Miguel de Icaza, MIT License.\") with CreditLink(title: \"SwiftTerm\", url: https://github.com/migueldeicaza/SwiftTerm)",
-        "port": "The Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3). The Terminal row credits the terminal component the Windows build ships, with its licence, and links to it (OD-0012 H)."
+        "decision": "OD-0008 B15; OD-0012 F3; OD-0012 H; OD-0072; ED-272",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\" and :954-955 ChromeRow(title: \"Terminal\", detail: \"SwiftTerm by Miguel de Icaza, MIT License.\") with CreditLink(title: \"SwiftTerm\", url: https://github.com/migueldeicaza/SwiftTerm)",
+        "port": "The Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3). The Terminal row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link (OD-0012 H, OD-0072, ED-272)."
       },
       "spec_fix": "expected_result put both up-right arrows at 12pt medium -> each arrow is `.system(.footnote, weight: .semibold)` inside the `.system(.callout, weight: .medium)` label (DroppyCode/App/Views/Settings/SettingsView.swift:1084, :1109; :1136, :1138), 10pt semibold beside 12pt medium text by B1:DroppyCode/UI/Common/ChatZoom.swift:52, :54 (ED-059)"
     },
@@ -92425,7 +92434,7 @@
       ],
       "preconditions": "The About page is open.",
       "action": "The section renders.",
-      "expected_result": "Section header \"Credits\" in the .body text style, semibold (13 point at the macOS default), in Chrome.secondaryText (the primary text colour at 70 percent opacity), 10 points above the card. Five entries in exactly this order, separated by inset dividers: the Made by Droppy row; \"Working indicators\" / \"Ported from Zeron by Wing, MIT License.\" with the link \"zeronsh/zeron\"; \"Terminal\" / \"SwiftTerm by Miguel de Icaza, MIT License.\" with the link \"SwiftTerm\"; \"Welcome tour\" / \"Ported from TourKit by Ram Patra, MIT License.\" with the link \"rampatra/TourKit\"; the Licenses row. In the port (OD-0008 B15, OD-0012 H) the \"Terminal\" row names the terminal component the Windows build actually ships, with its licence, instead of SwiftTerm; which component that is is not yet decided (see open_question), so the row's detail and link are not fixed. The other entries stay verbatim.",
+      "expected_result": "Section header \"Credits\" in the .body text style, semibold (13 point at the macOS default), in Chrome.secondaryText (the primary text colour at 70 percent opacity), 10 points above the card. Five entries in exactly this order, separated by inset dividers: the Made by Droppy row; \"Working indicators\" / \"Ported from Zeron by Wing, MIT License.\" with the link \"zeronsh/zeron\"; \"Terminal\" / \"Marrow's own terminal, built on Windows ConPTY.\" with no link (OD-0008 B15, OD-0012 H, ED-272; upstream \"SwiftTerm by Miguel de Icaza, MIT License.\" with the link \"SwiftTerm\"); \"Welcome tour\" / \"Ported from TourKit by Ram Patra, MIT License.\" with the link \"rampatra/TourKit\"; the Licenses row. The other entries stay verbatim.",
       "side_effects": [
         "Each link opens the browser."
       ],
@@ -92434,19 +92443,18 @@
         "None."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Carry every other attribution verbatim; they are licence obligations, not decoration. OD-0008 B15: credits name the components the Windows build actually ships, so the Terminal row names the port's own terminal component, its licence and its link instead of SwiftTerm. OD-0012 H restates it (porting/decision_batch_20260922b.md:60): the row names the terminal component the Windows build actually ships, with its licence. Which component that is depends on the port's stack and is not fixed by the ruling or by any decision or package pin yet (open_question).",
-      "verification_method": "capture comparison",
+      "windows_path": "Carry every other attribution verbatim; they are licence obligations, not decoration. OD-0008 B15: credits name the components the Windows build actually ships. OD-0012 H (porting/decision_batch_20260922b.md:60) and ED-272: the port ships no third-party terminal component (the terminal is Marrow's own, built on the Windows ConPTY API, which is not shipped code), so the Terminal row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link, the same words as the licence line settled under OD-0072.",
+      "verification_method": "interaction test against the Swift (SettingsView.swift:946-964) and ED-272; a capture comparison cannot cover the deviated Terminal row",
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0008 B15; OD-0012 H",
+        "decision": "OD-0008 B15; OD-0012 H; OD-0072; ED-272",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:954-956 'ChromeRow(title: \"Terminal\", detail: \"SwiftTerm by Miguel de Icaza, MIT License.\") { CreditLink(title: \"SwiftTerm\", url: URL(string: \"https://github.com/migueldeicaza/SwiftTerm\")!) }'",
-        "port": "Credits name the components the Windows build actually ships (OD-0008 B15); OD-0012 H: the Terminal row names the terminal component the Windows build actually ships, with its licence (porting/decision_batch_20260922b.md:51-60). Which component that is is not yet decided, so the row's detail and link are not written; nothing is invented here. Status is held at DISCOVERED until it is."
+        "port": "Credits name the components the Windows build actually ships (OD-0008 B15; OD-0012 H, porting/decision_batch_20260922b.md:51-60). The Terminal row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link (ED-272)."
       },
-      "b2_change": "ChromeSection header B1 Chrome.swift:1002-1003 '.font(.system(size: 13, weight: .semibold))' '.foregroundStyle(.secondary)' -> B2 Chrome.swift:1035-1036 '.font(.system(.body, weight: .semibold))' '.foregroundStyle(Chrome.secondaryText)'; ChromeRow title and detail B1 Chrome.swift:1025 '.font(.system(size: 13))' and :1029 '.font(.system(size: 11))' -> B2 :1058 '.font(.system(.body))' and :1062 '.font(.system(.subheadline))'. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. At B2 these sizes are then scaled by the app-wide zoom: the Settings window is built by 'makeWindow(title: \"Settings\", size: Size.settings, resizable: false, windowClass: SecondaryWindow.self) { SettingsView() }' (DroppyCode/App/Window/WindowManager.swift:81), whose root is hosted in HostedRoot (:104), and HostedEnvironment applies '.modifier(AppZoomModifier(percent: model.settings.appZoom))' to every window root (:150, :173-175); AppZoomModifier lays the content out at the unscaled size and draws it with scaleEffect (DroppyCode/UI/Common/AppZoom.swift:18-27) at one of 'static let levels = [75, 90, 100, 110, 125, 150, 175, 200]' percent (:6), 100 when the stored value is not a level (:8-10). Whether the text styles also follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, so the sizes scale only through the app's own zoom (UI/Common/AppZoom.swift).",
-      "open_question": "Which terminal component the Windows build ships: its name, author, licence and project link, for the \"Terminal\" credit row's detail line and CreditLink under OD-0012 H ('SwiftTerm credit row and licence clause: Name the terminal component the Windows build actually ships, with its licence', porting/decision_batch_20260922b.md:60). No engineering decision, ADR or package pin names it yet."
+      "b2_change": "ChromeSection header B1 Chrome.swift:1002-1003 '.font(.system(size: 13, weight: .semibold))' '.foregroundStyle(.secondary)' -> B2 Chrome.swift:1035-1036 '.font(.system(.body, weight: .semibold))' '.foregroundStyle(Chrome.secondaryText)'; ChromeRow title and detail B1 Chrome.swift:1025 '.font(.system(size: 13))' and :1029 '.font(.system(size: 11))' -> B2 :1058 '.font(.system(.body))' and :1062 '.font(.system(.subheadline))'. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. At B2 these sizes are then scaled by the app-wide zoom: the Settings window is built by 'makeWindow(title: \"Settings\", size: Size.settings, resizable: false, windowClass: SecondaryWindow.self) { SettingsView() }' (DroppyCode/App/Window/WindowManager.swift:81), whose root is hosted in HostedRoot (:104), and HostedEnvironment applies '.modifier(AppZoomModifier(percent: model.settings.appZoom))' to every window root (:150, :173-175); AppZoomModifier lays the content out at the unscaled size and draws it with scaleEffect (DroppyCode/UI/Common/AppZoom.swift:18-27) at one of 'static let levels = [75, 90, 100, 110, 125, 150, 175, 200]' percent (:6), 100 when the stored value is not a level (:8-10). Whether the text styles also follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, so the sizes scale only through the app's own zoom (UI/Common/AppZoom.swift)."
     },
     {
       "area": "UPDATE",

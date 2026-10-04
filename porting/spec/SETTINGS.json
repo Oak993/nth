@@ -6489,14 +6489,14 @@
       ],
       "preconditions": "The About page is selected.",
       "action": "The section renders; the user clicks a link.",
-      "expected_result": "A section headed the verbatim \"Credits\" holding one card of five rows separated by dividers. The first is the Made by Droppy row: the Droppy logo at 40 x 40 hidden from accessibility, 12 points before the verbatim \"Made by Droppy\" at 13pt semibold over the verbatim \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3; upstream \"Droppy Code is a coding app by Droppy for Mac.\") at 11pt in the secondary colour, then at the trailing edge the verbatim \"getdroppy.app\" at 12pt medium with an up-right arrow at 10pt semibold, both in the accent colour, drawn at 90% opacity until hovered; the whole row links to https://getdroppy.app with the tooltip the verbatim \"Open getdroppy.app\" and the accessibility label the verbatim \"Made by Droppy. Open getdroppy.app\". Then three credit rows: \"Working indicators\" with the verbatim detail \"Ported from Zeron by Wing, MIT License.\" linking to zeronsh/zeron; \"Terminal\", whose detail and link name the terminal component the Windows build actually ships, with its licence (OD-0012 H; upstream the detail \"SwiftTerm by Miguel de Icaza, MIT License.\" linking to SwiftTerm); and \"Welcome tour\" with the verbatim detail \"Ported from TourKit by Ram Patra, MIT License.\" linking to rampatra/TourKit. Each link shows its title at 12pt medium with an up-right arrow at 10pt semibold, both in the accent colour, and carries its full URL as its tooltip. Then the Licenses row.",
+      "expected_result": "A section headed the verbatim \"Credits\" holding one card of five rows separated by dividers. The first is the Made by Droppy row: the Droppy logo at 40 x 40 hidden from accessibility, 12 points before the verbatim \"Made by Droppy\" at 13pt semibold over the verbatim \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3; upstream \"Droppy Code is a coding app by Droppy for Mac.\") at 11pt in the secondary colour, then at the trailing edge the verbatim \"getdroppy.app\" at 12pt medium with an up-right arrow at 10pt semibold, both in the accent colour, drawn at 90% opacity until hovered; the whole row links to https://getdroppy.app with the tooltip the verbatim \"Open getdroppy.app\" and the accessibility label the verbatim \"Made by Droppy. Open getdroppy.app\". Then three credit rows: \"Working indicators\" with the verbatim detail \"Ported from Zeron by Wing, MIT License.\" linking to zeronsh/zeron; \"Terminal\" with the detail \"Marrow's own terminal, built on Windows ConPTY.\" and no link (ED-272; OD-0012 H, OD-0072; upstream the detail \"SwiftTerm by Miguel de Icaza, MIT License.\" linking to SwiftTerm); and \"Welcome tour\" with the verbatim detail \"Ported from TourKit by Ram Patra, MIT License.\" linking to rampatra/TourKit. Each of the two links shows its title at 12pt medium with an up-right arrow at 10pt semibold, both in the accent colour, and carries its full URL as its tooltip. Then the Licenses row.",
       "side_effects": [
         "Links open in the default browser"
       ],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The attribution to Droppy must be kept: the port's own licence terms require the Droppy Code credit and the getdroppy.app link to remain in About. By owner ruling OD-0012 F3 the Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\", the attribution Droppy's licence asks for. By OD-0012 H the Terminal credit row names the terminal component the Windows build actually ships, with its licence, in upstream's row shape (the title \"Terminal\", a \"<component> by <author>, <licence>.\" detail and a link to the component); the component is whichever terminal the Windows build ships and is taken from that build, not chosen here.",
+      "windows_path": "The attribution to Droppy must be kept: the port's own licence terms require the Droppy Code credit and the getdroppy.app link to remain in About. By owner ruling OD-0012 F3 the Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\", the attribution Droppy's licence asks for. By OD-0012 H the Terminal credit row names the terminal the Windows build actually ships. That terminal is Marrow's own, built on the Windows ConPTY API, which is not shipped third-party code, so by ED-272 the row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link and no third-party licence: the same words as the licence line settled under OD-0072. If a third-party terminal component ever ships, its credit and link are added then.",
       "verification_method": "interaction test comparing every string and destination",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -6504,9 +6504,9 @@
       "depends_on_unknown": null,
       "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1043-1086 -> 1fbf81e6 :1083-1125 and :1088-1105 -> :1127-1144; the literal sizes 13 semibold, 11, 12 medium and 10 semibold became `.body` semibold, `.subheadline`, `.callout` medium and `.footnote` semibold. Strings and links unchanged.",
       "deviation": {
-        "decision": "OD-0008 B15; OD-0012 F3; OD-0012 H",
-        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\" and :977-978 ChromeRow(title: \"Terminal\", detail: \"SwiftTerm by Miguel de Icaza, MIT License.\") with CreditLink(title: \"SwiftTerm\", url: https://github.com/migueldeicaza/SwiftTerm)",
-        "port": "The Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3). The Terminal row credits the terminal component the Windows build ships, with its licence, and links to it (OD-0012 H)."
+        "decision": "OD-0008 B15; OD-0012 F3; OD-0012 H; OD-0072; ED-272",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\" and :954-955 ChromeRow(title: \"Terminal\", detail: \"SwiftTerm by Miguel de Icaza, MIT License.\") with CreditLink(title: \"SwiftTerm\", url: https://github.com/migueldeicaza/SwiftTerm)",
+        "port": "The Made by Droppy subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3). The Terminal row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link (OD-0012 H, OD-0072, ED-272)."
       },
       "spec_fix": "expected_result put both up-right arrows at 12pt medium -> each arrow is `.system(.footnote, weight: .semibold)` inside the `.system(.callout, weight: .medium)` label (DroppyCode/App/Views/Settings/SettingsView.swift:1084, :1109; :1136, :1138), 10pt semibold beside 12pt medium text by B1:DroppyCode/UI/Common/ChatZoom.swift:52, :54 (ED-059)"
     },
@@ -7539,7 +7539,7 @@
       "screen": "Settings, Appearance",
       "element": "Theme picker button",
       "role": "popover menu button",
-      "exact_text": "Theme / System / Dark / Light, plus the 26 theme display names",
+      "exact_text": "Theme / the 26 theme display names (System, Light and Dark among them) / the section headers \"Dark\" and \"Light\"",
       "geometry": "Glass capsule, horizontal padding 12, height 28, item spacing 6; swatch 14 x 14; sized to fit",
       "typography": "Theme name 12.5pt medium; chevron 8pt bold",
       "colors": "Label Chrome.primaryText at 1 while hovering or open and 0.92 otherwise; chevron Chrome.secondaryText; each swatch is a circle from the theme's surface hex into its accent hex with a 0.5pt rim of Color.primary at 0.22; System's swatch is a hard half-and-half of #FFFFFF and #1E1E20 split at 0.5 from leading to trailing",
@@ -7555,8 +7555,13 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:1157-1209",
         "DroppyCode/UI/Theme/AppTheme.swift:14-176"
       ],
-      "notes": "Section headers are the verbatim \"Dark\" and \"Light\". System is listed above both sections and belongs to neither. The dark section holds 17 themes and the light section 8; both lists are computed from each theme's fixed scheme, so a new theme lands in the right section on its own.",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra)."
+      "notes": "Section headers are the verbatim \"Dark\" and \"Light\". System is listed above both sections and belongs to neither. The dark section holds 19 themes and the light section 6 (AppTheme.swift:14-41); both lists are computed from each theme's fixed scheme, so a new theme lands in the right section on its own. The 28 pt Capsule(style: .continuous) is in the circular regime (28 < 2 x 1.528665 x 14 = 42.8; ED-275 (2)), so its ends are drawn as half circles. Under OD-0088 (ED-250) the capsule is mounted on no screen: the Look card's Theme control takes its place.",
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra).",
+      "deviation": {
+        "decision": "OD-0088; ED-250",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:424-426 ChromeRow(title: \"Theme\", detail: settings.theme.detail) { ThemePickerButton(selection: $settings.theme) } on the Appearance page; ThemePickerButton :1157-1209",
+        "port": "The Appearance page shows OD-0088's Look card, whose Theme segmented control (System | Light | Dark | the named theme or \"More themes\", opening the full theme menu) replaces this capsule (ED-250). ThemePickerButton is built and tested to the Swift but mounted on no screen."
+      }
     },
     {
       "id": "UI-SETTINGS-018",
@@ -8979,7 +8984,7 @@
       "screen": "Settings, About, Credits",
       "element": "Credit links",
       "role": "link",
-      "exact_text": "zeronsh/zeron | <the terminal component the Windows build ships> | rampatra/TourKit",
+      "exact_text": "zeronsh/zeron | rampatra/TourKit",
       "geometry": "Title and an \"arrow.up.right\" 4 points apart",
       "typography": "Title .system(.callout, weight: .medium); arrow .system(.footnote, weight: .semibold) (12pt and 10pt at the default text size)",
       "colors": "Chrome.accent",
@@ -8998,9 +9003,9 @@
       "notes": "Unlike the Made by Droppy row, these do not change opacity on hover. Their tooltip is the absolute URL string, not a sentence.",
       "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1088-1105 -> 1fbf81e6 :1127-1144; literal sizes became text styles of the same default size.",
       "deviation": {
-        "decision": "OD-0008 B15; OD-0012 H",
+        "decision": "OD-0008 B15; OD-0012 H; OD-0072; ED-272",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:955 CreditLink(title: \"SwiftTerm\", url: URL(string: \"https://github.com/migueldeicaza/SwiftTerm\")!) in the \"Terminal\" row",
-        "port": "The Terminal row's link names the terminal component the Windows build actually ships, and the row's detail gives its licence (OD-0012 H); the component is taken from the Windows build, not chosen here."
+        "port": "Only the two links of the components the port credits exist. The Terminal row carries no link (ED-272: the terminal is Marrow's own, built on Windows ConPTY, a Windows API and not shipped third-party code), so the Swift's :955 CreditLink \"SwiftTerm\" has no counterpart."
       }
     },
     {

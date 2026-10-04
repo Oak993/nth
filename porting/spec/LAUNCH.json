@@ -1870,17 +1870,22 @@
       ],
       "preconditions": "A genuinely first launch on a clean machine.",
       "action": "The app launches.",
-      "expected_result": "The main window opens with an empty or freshly created chat, and 700 ms later the welcome tour appears. Nothing asks the user to sign in, create an account, accept terms or choose a data directory. Provider sign-in state is discovered by the provider probes during bootstrap, not asked for.",
+      "expected_result": "The main window opens with an empty or freshly created chat, and 700 ms later the welcome tour appears. Nothing asks the user to sign in, create an account, accept terms or choose a data directory. Provider sign-in state is discovered by the provider probes during bootstrap, not asked for. Under OD-0096 the first run (and a run whose prepared state is invalid) also shows the 'Getting ready' sheet, which takes no input, and the Welcome screen asks whether the user wants voice typing; these are the only additions (see deviation).",
       "side_effects": [],
       "persistence": "Only hasSeenTour once the tour is dismissed.",
       "failure_cases": [],
       "cancellation": "not applicable",
-      "windows_path": "Reproduce. No Windows-only first-run wizard, EULA step or data-folder chooser may be added.",
-      "verification_method": "capture comparison on a clean data directory",
+      "windows_path": "Reproduce. No Windows-only first-run wizard, EULA step or data-folder chooser may be added. The OD-0096 'Getting ready' sheet (no input, real progress, lifts away into the Welcome screen) and the Welcome screen's 'Voice typing' question are the only permitted first-run additions.",
+      "verification_method": "capture comparison on a clean data directory, taken after OD-0096 is built",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0096",
+        "upstream": "DroppyCode/App/AppDelegate.swift:22-33: a first launch shows the main window and, 700 ms later, the welcome tour; nothing else is presented",
+        "port": "On the first run after install, and again only when the prepared state is invalid (a new GPU or driver, a new app build), the window first shows the 'Getting ready' sheet (look I: a glass sheet hanging from the top over the blurred Welcome screen; words W1: title 'Getting ready', line 'Marrow is preparing its graphics and voice for this PC. This happens once.', the step names, 'Ready' when done) while the GPU programs are compiled and cached (ED-252) and the voice hardware check runs (OD-0092); it shows real progress, takes no input and lifts away with a transition (OD-0076). The Welcome screen then carries a 'Voice typing' section (place A, words V2) asking whether the user wants voice typing; nothing is downloaded without a yes (D3 with consent). No account, sign-in, terms or data-directory step is added."
+      }
     },
     {
       "id": "PR-LAUNCH-072",

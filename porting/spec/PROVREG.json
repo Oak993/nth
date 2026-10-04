@@ -6411,7 +6411,7 @@
       "states": [
         "enabled: help text is \"Check providers again\"",
         "disabled while a refresh runs: help text is \"Checking providers…\" with a horizontal ellipsis character",
-        "the button is the ONLY control on the page that probes providers; opening or scrolling the page probes nothing"
+        "the button is the only control on the page that re-checks every provider (refreshEverything); opening or scrolling the page, the switches and binary-path edits probe nothing; an API-key edit re-checks that one provider and reloads its catalogue 600 ms after the last edit (SettingsView.swift:784-795), a probe of its own and not this button's"
       ],
       "interactions": [
         "click: starts refreshEverything, which is single-flight"
@@ -6419,9 +6419,10 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:254-255",
         "DroppyCode/App/Views/Settings/SettingsView.swift:566-579",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:323-341"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:323-341",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:784-795 - .onChange(of: apiKey): only an edit counts; after Task.sleep(for: .milliseconds(600)) it calls model.providers.refresh(provider) and loadCatalog(provider, force: true)"
       ],
-      "notes": "The symbol is arrow.clockwise. The two help strings differ only by the checking case; the ellipsis is U+2026, not three full stops. The button appears in the toolbar only while the Providers page is showing."
+      "notes": "The symbol is arrow.clockwise. The two help strings differ only by the checking case; the ellipsis is U+2026, not three full stops. The button appears in the toolbar only while the Providers page is showing. It is the only full re-check; an API-key edit's own delayed check of that provider is separate (PR records of SettingsView.swift:784-795)."
     },
     {
       "id": "UI-PROVREG-003",
