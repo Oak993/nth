@@ -36,13 +36,18 @@ public sealed class ClaudeSkillsTests
         throw new FileNotFoundException(name);
     }
 
-    [Fact, Trait("Rule", "DL-11")]
-    public void Empty_install_matches_frozen_existing_provider_argv_environment_and_RPC_bytes()
+    [Theory, InlineData(false), InlineData(true), Trait("Rule", "DL-11")]
+    public void Empty_install_matches_frozen_existing_provider_argv_environment_and_RPC_bytes(bool configured)
     {
         using var runtime = new TestRuntime();
-        using var help = Help();
+        var helpEnvironments = new List<IReadOnlyDictionary<string, string>>();
+        using var help = ClaudeProviderRuntime.Help.Override((_, env) =>
+        {
+            helpEnvironments.Add(new Dictionary<string, string>(env));
+            return Task.FromResult(new ShellResult(0, Encoding.UTF8.GetBytes("--plugin-dir --system-prompt-snapshot --forward-subagent-text"), []));
+        });
         using var scratch = new StorageScratchFolder();
-        var config = Config();
+        var config = configured ? Config() with { Model = "fixture-model", Effort = "high", FastMode = true, RuntimeMode = RuntimeMode.FullAccess, InteractionMode = InteractionMode.Plan, AntiSlopEnabled = false, ResumeAt = "fixture-anchor" } : Config();
         var recordings = new List<RecordingClaudeProcess>();
         using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) =>
         {
@@ -50,13 +55,15 @@ public sealed class ClaudeSkillsTests
         });
         var legacy = new LegacyClaudeSession(config);
         runtime.Loop.Run(() => legacy.Start(), TimeSpan.FromSeconds(5));
-        runtime.Loop.Run(() => legacy.Send(new TurnInput { Images = [], Text = "fixture", RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build }), TimeSpan.FromSeconds(5));
+        runtime.Loop.Run(() => legacy.Send(new TurnInput { Images = [], Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
         legacy.Stop();
         var current = new ClaudeSession(config, () => null);
         runtime.Loop.Run(() => current.Start(), TimeSpan.FromSeconds(5));
-        runtime.Loop.Run(() => current.Send(new TurnInput { Images = [], Text = "fixture", RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build }), TimeSpan.FromSeconds(5));
+        runtime.Loop.Run(() => current.Send(new TurnInput { Images = [], Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
         current.Stop();
         Assert.Equal(2, recordings.Count);
+        Assert.Equal(2, helpEnvironments.Count);
+        Assert.Equal(EncodeEnvironment(ShimPath.ForChild(helpEnvironments[0], Marrow.Services.Store.Storage.Root)), EncodeEnvironment(helpEnvironments[1]));
         Assert.Equal(Encode(recordings[0].Arguments), Encode(recordings[1].Arguments));
         // DL-6 is the expressly required sole exception to raw Mac environment equality.
         Assert.Equal(EncodeEnvironment(ShimPath.ForChild(recordings[0].Environment, Marrow.Services.Store.Storage.Root)), EncodeEnvironment(recordings[1].Environment));
@@ -242,7 +249,8 @@ public sealed class ClaudeSkillsTests
         RecordingClaudeProcess? call = null;
         using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => call = new(args, env) { DelayExit = true });
         var s = new ClaudeSession(Config(), () => gen); runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5));
-        call!.CloseOutput(); runtime.Loop.RunUntilIdle();
+        var eofSeen = false; s.OnEvent = e => { if (e is ProviderEvent.Exited) eofSeen = true; };
+        call!.CloseOutput(); runtime.Loop.RunUntil(() => eofSeen, TimeSpan.FromSeconds(5));
         Assert.True(gen.Verify()); service.Collect(); Assert.True(Directory.Exists(gen.Folder));
         s.Stop(); runtime.Loop.RunUntilIdle(); Assert.True(gen.Verify());
         call.CompleteExit(); Drain(runtime, gen); Assert.False(gen.Verify());
@@ -262,6 +270,35 @@ public sealed class ClaudeSkillsTests
         Assert.False(task!.IsCompleted); Assert.Equal(path, probe.Folder); service.Collect(); Assert.True(Directory.Exists(path));
         call!.CompleteExit(); runtime.Loop.RunUntil(() => task.IsCompleted, TimeSpan.FromSeconds(5)); task.GetAwaiter().GetResult();
         Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
+    }
+
+    [Theory, InlineData(false), InlineData(true), Trait("Rule", "WU-6-help-failure")]
+    public void Failed_help_even_with_flag_text_never_adds_plugin_arguments(bool throws)
+    {
+        using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder();
+        using var help = ClaudeProviderRuntime.Help.Override((_, _) => throws
+            ? throw new IOException("Fixture help failure") : Task.FromResult(new ShellResult(1, Encoding.UTF8.GetBytes("--plugin-dir"), [])));
+        RecordingClaudeProcess? call = null;
+        using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => call = new(args, env));
+        var s = new ClaudeSession(Config(), () => throw new InvalidOperationException("Failed help must not acquire."));
+        runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5)); Assert.Empty(PluginArgs(call!.Arguments)); s.Stop(); Drain(runtime);
+    }
+
+    [Fact, Trait("Rule", "PLAN-2.1-per-turn")]
+    public void Changed_generation_warns_once_before_turn_and_remains_leased_until_exit()
+    {
+        using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
+        using var f = new GenerationFixture(); var item = f.Add("A1", "pdf"); var service = f.Open();
+        var gen = service.Start("claude", "turn-chat", [item], f.Switches((item, true)), f.Budget, []);
+        var events = new List<ProviderEvent>();
+        using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => new RecordingClaudeProcess(args, env));
+        var s = new ClaudeSession(Config(), () => gen) { OnEvent = events.Add }; runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5));
+        f.Trees.Unlock(gen.Folder); File.WriteAllText(Path.Combine(gen.Folder, "extra.py"), "fixture"); f.Trees.Lock(gen.Folder);
+        var input = new TurnInput { Text = "fixture", Images = [], RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
+        runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5)); runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5));
+        var notices = events.OfType<ProviderEvent.Notice>().ToArray();
+        Assert.Single(notices); Assert.Equal("A Marrow skill file changed during this chat; new chats are not affected", notices[0].Value.Message);
+        service.Collect(); Assert.True(Directory.Exists(gen.Folder)); s.Stop(); Drain(runtime); service.Collect();
     }
 
     private static void Drain(TestRuntime runtime, Generation? generation = null)
