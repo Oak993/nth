@@ -108,15 +108,22 @@ public sealed class PopoverHostThemeTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(ThemeVariant.Dark, root.ActualThemeVariant);
-            Assert.Equal(DarkPanel, Drawn(card.Background));
-            Assert.Equal(new SwiftColor(white: 1, opacity: 0.2).Resolve(ThemeVariant.Dark), Drawn(card.BorderBrush)); // Panels / Dark: border 1 px #FFFFFF@0.2
+            // ED-NEW-glass-g2 (OD-0107, OD-0005): the card is the NSPopover's glass, a translucent tint with a hairline and a
+            // rim over its window's see-through glass, no longer the kit's opaque panel; the panel (#1E1E1E) stays as the
+            // fallback under the tint where no glass can be had, and both follow the appearance.
+            Assert.Equal(DarkPanel, Drawn(card.FallbackBrush));
+            Assert.Equal(PopoverHost.Tint.Resolve(ThemeVariant.Dark), Drawn(card.Background));
+            Assert.Equal(PopoverHost.Edge.Resolve(ThemeVariant.Dark), Drawn(card.BorderBrush));
+            Assert.Equal(PopoverHost.Rim.Resolve(ThemeVariant.Dark), Drawn(card.RimBrush));
             Assert.Null(root.Background); // the top-level is clear around the card's tip, with no fill to take a press (OD-0095)
             Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(ThemeVariant.Dark), Drawn(secondary.Foreground)); // white, not black, at 0.7
             Assert.Equal(SwiftColor.LabelColor.Resolve(ThemeVariant.Dark), Drawn(plain.Foreground));
 
             setAppearance(ThemeVariant.Light);
             Assert.Equal(ThemeVariant.Light, root.ActualThemeVariant);
-            Assert.Equal(LightPanel, Drawn(card.Background));
+            Assert.Equal(LightPanel, Drawn(card.FallbackBrush));
+            Assert.Equal(PopoverHost.Tint.Resolve(ThemeVariant.Light), Drawn(card.Background));
+            Assert.Equal(PopoverHost.Edge.Resolve(ThemeVariant.Light), Drawn(card.BorderBrush));
             Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(ThemeVariant.Light), Drawn(secondary.Foreground));
             Assert.Equal(SwiftColor.LabelColor.Resolve(ThemeVariant.Light), Drawn(plain.Foreground));
         });
@@ -138,8 +145,11 @@ public sealed class PopoverHostThemeTests(HeadlessSession headless)
             using var root = HeadlessPopupHost.Open(popup, window, card);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(ThemeVariant.Light, root.ActualThemeVariant);
-            Assert.Equal(LightPanel, Drawn(card.Background));
-            Assert.Equal(SwiftColor.Clear.Resolve(ThemeVariant.Light), Drawn(card.BorderBrush)); // Panels / Light draws no edge, only the window manager's shadow
+            // ED-NEW-glass-g2: the glass's light tint, hairline and rim; the kit's Light panel (#FFFFFF, no edge) is the fallback.
+            Assert.Equal(LightPanel, Drawn(card.FallbackBrush));
+            Assert.Equal(PopoverHost.Tint.Resolve(ThemeVariant.Light), Drawn(card.Background));
+            Assert.Equal(PopoverHost.Edge.Resolve(ThemeVariant.Light), Drawn(card.BorderBrush));
+            Assert.Equal(PopoverHost.Rim.Resolve(ThemeVariant.Light), Drawn(card.RimBrush));
             Assert.Equal(new Thickness(0), root.BorderThickness);
             Assert.Equal(SwiftColor.LabelColor.Resolve(ThemeVariant.Light), Drawn(plain.Foreground));
         });

@@ -119,7 +119,9 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         var card = new Rect(100, 0, 202, 113);
         Assert.Equal(60, PopoverCard.Aim(card, new Rect(140, 130, 40, 20), PopoverTipEdge.Bottom).Offset, 3); // the anchor's centre, 160, less the card's left
         var nearCorner = PopoverCard.Aim(card, new Rect(60, 130, 40, 20), PopoverTipEdge.Bottom).Offset;
-        Assert.InRange(nearCorner, PopoverCard.TipHalfWidth, PopoverCard.TipHalfWidth + PopoverCard.TipShoulderRadius + 1); // held off the corner
+        // Held off the corner: since ED-NEW-glass-g2 the corner is round (20 pt), so past it and the tip's half width and
+        // shoulder (the square corner of OD-0095 let the tip come to TipHalfWidth + TipShoulderRadius).
+        Assert.InRange(nearCorner, PopoverCard.BodyRadius + PopoverCard.TipHalfWidth, PopoverCard.BodyRadius + PopoverCard.TipHalfWidth + PopoverCard.TipShoulderRadius + 1);
     }
 
     [Fact]
@@ -127,11 +129,13 @@ public sealed class PopoverCardTests(HeadlessSession headless)
     public void The_card_grows_out_of_its_tip() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
-        var card = Card(PopoverTipEdge.Top, offset: 30);
+        // An offset on the straight part of the edge (since ED-NEW-glass-g2 the round 20 pt corner holds the tip at least
+        // PopoverCard.TipLeast, 36 pt, from either end; OD-0095's square corner allowed the 30 this test used).
+        var card = Card(PopoverTipEdge.Top, offset: 50);
         PopoverAppear.Play(card, PlacementMode.Bottom);
         var origin = card.RenderTransformOrigin;
         Assert.Equal(RelativeUnit.Relative, origin.Unit);
-        Assert.Equal(30 / card.Bounds.Width, origin.Point.X, 3);
+        Assert.Equal(50 / card.Bounds.Width, origin.Point.X, 3);
         Assert.Equal(PopoverCard.TipGap / card.Bounds.Height, origin.Point.Y, 3); // the tip's point, a point off the top
     });
 
@@ -229,8 +233,11 @@ public sealed class PopoverCardTests(HeadlessSession headless)
             popup.Child = null;
             using var root = HeadlessPopupHost.Open(popup, window, card);
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal(PopoverHost.Fill.Resolve(appearance), Assert.IsAssignableFrom<ISolidColorBrush>(card.Background).Color);
-            Assert.Equal(PopoverHost.Border.Resolve(appearance), Assert.IsAssignableFrom<ISolidColorBrush>(card.BorderBrush).Color);
+            // ED-NEW-glass-g2: the card wears the glass's tint, hairline and rim, with the kit's panel (ED-238) as its fallback.
+            Assert.Equal(PopoverHost.Fill.Resolve(appearance), Assert.IsAssignableFrom<ISolidColorBrush>(card.FallbackBrush).Color);
+            Assert.Equal(PopoverHost.Tint.Resolve(appearance), Assert.IsAssignableFrom<ISolidColorBrush>(card.Background).Color);
+            Assert.Equal(PopoverHost.Edge.Resolve(appearance), Assert.IsAssignableFrom<ISolidColorBrush>(card.BorderBrush).Color);
+            Assert.Equal(PopoverHost.Rim.Resolve(appearance), Assert.IsAssignableFrom<ISolidColorBrush>(card.RimBrush).Color);
             Assert.Null(root.Background); // clear round the tip, and not hit-testable there (a Transparent fill is)
             Assert.Equal(new Thickness(0), root.BorderThickness);
             Assert.Contains(WindowTransparencyLevel.Transparent, root.TransparencyLevelHint);

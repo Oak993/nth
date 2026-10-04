@@ -33,6 +33,12 @@ namespace Marrow.UI.Port;
 //      "Panels"). Only a popup the presenter shows as a popover wears it: a tooltip is a Popup too and draws its own card
 //      inside a clear surround (PortControlThemes.TipTemplate). Since OD-0095 the panel is drawn by the card the content
 //      hangs on (PopoverCard: one outline with the tip facing the anchor), and the PopupRoot is clear around it.
+//   3. The material (OD-0107 and its amendment, OD-0005; ED-NEW-glass-g2). The owner: "when any popup opens, anything in the
+//      composer, I see a black, dark background, not liquid glass". An NSPopover is the system's Liquid Glass, so the
+//      tipped card is no longer the kit's flat panel: its popup window shows the blurred scene behind it (PopoverGlass, put
+//      in when the popup opens and taken out when it closes) and the card draws the glass's tint, hairline and rim over it
+//      (Tint, Edge, Rim below, measured on the reference frames). The kit's panel stays for a sheet, and under the tint of a
+//      card that has no glass (Fill, Border).
 public static class PopoverHost
 {
     /// <summary>The style class a presented popover's Popup carries; the panel style matches its PopupRoot through it.</summary>
@@ -42,10 +48,26 @@ public static class PopoverHost
 
     internal const string BorderKey = "MarrowPort.PopoverBorder";
 
+    internal const string TintKey = "MarrowPort.PopoverTint";
+
+    internal const string EdgeKey = "MarrowPort.PopoverEdge";
+
+    internal const string RimKey = "MarrowPort.PopoverRim";
+
     // Panels / Dark and Light, macOS 27 UI Kit.
     internal static SwiftColor Fill { get; } = SwiftColor.Dynamic(SwiftColor.White, SwiftColor.Rgb(0x1E1E1E));
 
     internal static SwiftColor Border { get; } = SwiftColor.Dynamic(SwiftColor.Clear, new SwiftColor(white: 1, opacity: 0.2));
+
+    // The glass's own layers over the window's see-through glass (ED-NEW-glass-g2 (3)), fitted to the reference frames
+    // (PopoverCard's file note): the glass reads lighter than what is round it, by about 20 in Dark and 25 in Light (8-bit),
+    // over a backdrop the window's glass has already capped (Dark) or floored (Light) so its text keeps its contrast; a
+    // near-black hairline outermost; a light rim a point inside it.
+    internal static SwiftColor Tint { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.40), new SwiftColor(white: 1, opacity: 0.08));
+
+    internal static SwiftColor Edge { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.28), new SwiftColor(white: 0, opacity: 0.80));
+
+    internal static SwiftColor Rim { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.20), new SwiftColor(white: 1, opacity: 0.20));
 
     private static readonly ConditionalWeakTable<Popup, object> adopted = new();
 
@@ -166,10 +188,16 @@ public static class PopoverHost
             host = found;
             host?.AddHandler(InputElement.PointerPressedEvent, PressBeside, RoutingStrategies.Tunnel, handledEventsToo: true);
             Track(popup, host);
+            if (popup.Child is PopoverCard card) card.Shown(host); // its window's see-through glass
             Release();
             if (popup.PlacementTarget is { } target && WindowTransients.WindowOf(target) is { } owner) release = Listen(popup, owner, () => popup.IsOpen);
         };
-        popup.Closed += (_, _) => { Detach(); Release(); };
+        popup.Closed += (_, _) =>
+        {
+            Detach();
+            Release();
+            if (popup.Child is PopoverCard card) card.Hidden();
+        };
     }
 
     // Every control from the button up to the popover's content is visible: a part the popover itself collapses (a page of a pager, a folded section) hides its buttons, and a popup that
@@ -314,8 +342,10 @@ public static class PopoverHost
         var content = popup.Child;
         popup.Child = null;
         var card = new PopoverCard { Child = content, TipEdge = edge, AnchorSource = () => popup.PlacementTarget, AnchorRect = () => popup.PlacementRect, ShadowRoom = true };
-        card.Bind(PopoverCard.BackgroundProperty, new DynamicResourceExtension(FillKey));
-        card.Bind(PopoverCard.BorderBrushProperty, new DynamicResourceExtension(BorderKey));
+        card.Bind(PopoverCard.BackgroundProperty, new DynamicResourceExtension(TintKey));
+        card.Bind(PopoverCard.BorderBrushProperty, new DynamicResourceExtension(EdgeKey));
+        card.Bind(PopoverCard.RimBrushProperty, new DynamicResourceExtension(RimKey));
+        card.Bind(PopoverCard.FallbackBrushProperty, new DynamicResourceExtension(FillKey));
         popup.Child = card;
     }
 
@@ -347,6 +377,9 @@ public static class PopoverHost
             var dictionary = (IResourceDictionary)provider;
             dictionary[FillKey] = new SolidColorBrush(Fill.Resolve(variant));
             dictionary[BorderKey] = new SolidColorBrush(Border.Resolve(variant));
+            dictionary[TintKey] = new SolidColorBrush(Tint.Resolve(variant));
+            dictionary[EdgeKey] = new SolidColorBrush(Edge.Resolve(variant));
+            dictionary[RimKey] = new SolidColorBrush(Rim.Resolve(variant));
         }
         // ED-238: a presented popup's top-level wears the panel (a sheet, which has no tip).
         application.Styles.Add(new Style(selector => selector.OfType<Popup>().Class(PopoverClass).Not(x => x.Class(TippedClass)).Child().OfType<PopupRoot>())
