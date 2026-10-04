@@ -2785,6 +2785,28 @@ internal sealed class HeadCardsRow : Decorator
         Control? drawnChevron = null;
         string? drawnChevronSymbol = null;
 
+        // UI-SIDEBAR-036 (OD-0076): the glide of the glyphs and chevron that survive a change. SwiftUI keeps a view under its
+        // identity (:1466-1467 the row's id and the glyph's own, :1514 the chevron) and moves it from its old place to its new one on
+        // the animation in force (:1535 snappy for a change of cardRows, :1541 panelSlide for a change of the head ids). The
+        // port builds fresh controls on every pass, so the move is made as a shift: each survivor is put back at the place it was
+        // drawn (its old slot plus what was left of an earlier glide) and the shift eases to nothing. The slots are the card's own
+        // arithmetic (x = column * (glyph + rowGap), y = row * (glyph + rowSpacing) under the card's padding), so no layout pass is waited for.
+        var drawnSlots = new Dictionary<(Guid Row, Guid Head), Point>();
+        Point? drawnChevronSlot = null;
+        var glideShifts = new List<(TranslateTransform Shift, Vector Start)>();
+        var glideStarts = new Dictionary<object, Vector>(); // by glyph key, or the chevron's marker
+        var chevronKey = new object();
+        var glideProgress = 1d; // 0 at the start of a glide, 1 when it is over
+        var glide = new AnimatedDouble(progress =>
+        {
+            glideProgress = progress;
+            foreach (var (shift, start) in glideShifts)
+            {
+                shift.X = start.X * (1 - progress);
+                shift.Y = start.Y * (1 - progress);
+            }
+        });
+
         void Rebuild(ValueList<ChatThread> heads, double width, bool showsAllHeads, bool isHidden)
         {
             var capped = Capped(heads.Count); // :1442
@@ -2841,14 +2863,22 @@ internal sealed class HeadCardsRow : Decorator
                 if (chevronChanged && drawnChevron is { } leavingChevron) Leave(leavingChevron, membership); // :1514 `capped` turned false, or :1516 its symbol changed
             }
             var previous = drawnGlyphs;
+            var previousSlots = drawnSlots;
+            var previousChevronSlot = drawnChevronSlot;
+            var previousStarts = glideStarts;
+            var leftOfGlide = 1 - glideProgress; // how much of an earlier glide is still to run
             drawnGlyphs = [];
+            drawnSlots = [];
+            drawnChevronSlot = null;
             var chevronJoins = membership is not null && capped && (drawnChevron is null || chevronChanged);
             drawnChevron = null;
             drawnChevronSymbol = chevronSymbol;
 
             rows.Children.Clear();
+            var lineIndex = 0;
             foreach (var line in chunked)
             {
+                var columnIndex = 0;
                 var lineHost = new StackPanel // :1467 HStack(spacing: rowGap)
                 {
                     Orientation = Orientation.Horizontal,
@@ -2910,10 +2940,15 @@ internal sealed class HeadCardsRow : Decorator
                     AutomationProperties.SetName(button, $"{info.Persona.Name}, {info.Task}"); // :1499
                     var glyphKey = (line[0].Id, headID);
                     drawnGlyphs[glyphKey] = button;
+                    drawnSlots[glyphKey] = new Point(
+                        ThreadRowMetrics.HeadCardPadding + columnIndex * (ThreadRowMetrics.HeadGlyphSize + rowGap),
+                        ThreadRowMetrics.HeadCardPadding + lineIndex * (ThreadRowMetrics.HeadGlyphSize + ThreadRowMetrics.HeadRowGap));
+                    columnIndex++;
                     if (membership is not null && !previous.ContainsKey(glyphKey)) Join(lineHost, button, membership);
                     else lineHost.Children.Add(button);
                 }
                 rows.Children.Add(lineHost);
+                lineIndex++;
             }
             if (capped) // :1514
             {
@@ -2936,8 +2971,37 @@ internal sealed class HeadCardsRow : Decorator
                 ToolTip.SetTip(chevronButton, ChevronTooltip(showsAllHeads, heads.Count)); // :1526
                 chevronButton.HorizontalAlignment = HorizontalAlignment.Left; // :1465 VStack(alignment: .leading): the 14 pt button sits at the leading edge
                 drawnChevron = chevronButton;
+                drawnChevronSlot = new Point(
+                    ThreadRowMetrics.HeadCardPadding,
+                    ThreadRowMetrics.HeadCardPadding + lineIndex * (ThreadRowMetrics.HeadGlyphSize + ThreadRowMetrics.HeadRowGap));
                 if (chevronJoins && membership is not null) Join(rows, chevronButton, membership); // :1514 the chevron joins as `capped` turns true, :1516 or as its symbol changes
                 else rows.Children.Add(chevronButton);
+            }
+            // The glide of the survivors (see glideShifts): a glyph or chevron of the last pass that is drawn again moves from
+            // where it was drawn to its new slot, on the animation in force for the change. A change that carries none cuts.
+            var shifts = new List<(TranslateTransform Shift, Vector Start)>();
+            var starts = new Dictionary<object, Vector>();
+            void Survives(object key, Control now, Point? was, Point? to)
+            {
+                if (membership is null || was is not { } from || to is not { } target) return;
+                var drawnAt = from + (previousStarts.TryGetValue(key, out var earlier) ? earlier * leftOfGlide : default);
+                var start = new Vector(drawnAt.X - target.X, drawnAt.Y - target.Y);
+                if (start.Length < 0.01) return;
+                var shift = new TranslateTransform(start.X, start.Y);
+                now.RenderTransform = shift;
+                shifts.Add((shift, start));
+                starts[key] = start;
+            }
+            foreach (var (key, slot) in drawnSlots)
+                if (previousSlots.TryGetValue(key, out var was)) Survives(key, drawnGlyphs[key], was, slot);
+            if (drawnChevron is not null && !chevronChanged) Survives(chevronKey, drawnChevron, previousChevronSlot, drawnChevronSlot);
+            glideShifts = shifts;
+            glideStarts = starts;
+            if (shifts.Count == 0) glide.Set(1, null);
+            else
+            {
+                glide.Set(0, null);
+                glide.Set(1, membership);
             }
             Opacity = isHidden ? 0 : 1; // :1543
         }
