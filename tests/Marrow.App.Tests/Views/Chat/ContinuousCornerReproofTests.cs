@@ -206,6 +206,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-CHAT-048")] // TimelineRows.swift:313-316 .background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: pillRadius, style: .continuous)), :280 lineLimit(1)
     [Trait("Req", "UI-CHAT-051")] // TimelineRows.swift:579-582, :568 lineLimit(1)
+    [Trait("Req", "PR-CHAT-143")] // TimelineRows.swift:241-329 (pill :313-316), :340-373: the report pill of the heads and the Hydra-note pill (the Hydra mark, an Open link)
     public void The_heads_report_and_brief_pills_are_continuous_pills_of_radius_18_on_a_single_line() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -220,6 +221,9 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
             {
                 ("report pill, head", new HydraReportRow(new UserMessage { Text = "## Hank: a\nbody", HydraHeads = new ValueList<long>([0]) })),
                 ("report pill, long title", new HydraReportRow(new UserMessage { Text = longText + "\nbody", HydraHeads = new ValueList<long>([0]) })),
+                ("note pill, Hydra mark", new HydraReportRow(new UserMessage { Text = "Hydra merge held.\nwhy" })),
+                ("note pill, Hydra mark, long title", new HydraReportRow(new UserMessage { Text = longText + "\nbody" })),
+                ("note pill, Hydra mark, with an Open link", new HydraReportRow(new UserMessage { Text = "Hydra merged.\nhttps://gitlab.com/group/project/-/merge_requests/7\nbody" })),
                 ("brief pill", new HydraBriefRow(((TimelineItem.Content.User)briefEntry.Item.TimelineItemContent).Value, briefEntry, h.Runtime)),
             };
             var panel = new StackPanel { Width = 360, Spacing = 20 };
