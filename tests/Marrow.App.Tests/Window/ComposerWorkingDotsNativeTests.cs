@@ -74,7 +74,7 @@ public sealed class ComposerWorkingDotsNativeTests(WindowManagerNativeSession na
     [Fact]
     [Trait("Req", "PR-COMPOSER-102")] // windows_path: it must not tick on the UI thread
     [Trait("Req", "PR-COMPOSER-103")] // ComposerWorkingDots.swift:5-11 the render server plays it alone
-    [Trait("Req", "UI-COMPOSER-017")] // record notes: no timer, no view update and no main-thread drawing
+    [Trait("Req", "UI-COMPOSER-017")] // its notes: no timer, no view update and no main-thread drawing
     public void The_dot_field_plays_on_the_render_thread_while_the_UI_thread_stays_idle() => native.Run(subject =>
     {
         var clock = new ThreadRecordingTimeProvider();

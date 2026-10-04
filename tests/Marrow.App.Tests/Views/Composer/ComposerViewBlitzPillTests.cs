@@ -81,7 +81,7 @@ public sealed class ComposerViewBlitzPillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-002")] // App/Views/Composer/ComposerView.swift:157-158, :176-178; ComposerTextView.swift:360-376
-    [Trait("Rule", "R-TEST-4")] // The paddings, the surface, the dots and the width: The_pill_pads_its_row_..., In_the_main_chat_the_pill_is_regular_glass_..., the working dots tests, ComposerAreaGlassFrostTests and GlassMaterialNativeTests (the glass drawn). The record reads 46 since 0f85fb3a1
+    [Trait("Rule", "R-TEST-4")] // The paddings, the surface, the dots and the width: The_pill_pads_its_row_..., In_the_main_chat_the_pill_is_regular_glass_..., the working dots tests, ComposerAreaGlassFrostTests and GlassMaterialNativeTests (the glass drawn). the ledger reads 46 since 0f85fb3a1
     public void An_empty_pill_is_46_points_high_8_4_22_4_8_and_stays_so_with_the_keyboard()
     {
         headless.OnUiThread(() =>

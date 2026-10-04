@@ -68,8 +68,6 @@ public sealed class ThreadTimeline : Decorator
     private ThreadRuntime? ownerRuntime;
     private Action? redraw;
     private Action<string?, string?, bool, double, bool>? updateInputs;
-    private Action<TimeSpan>? scrollFrame;
-    private IFrameSource? scrollFrames;
     private TaskHandle? initialHistoryTask; // :594-607
     private bool initialHistoryStarted;
     // :363,436-441. Own the scroll presenter, as SidebarView does, rather than depending on a themed template.
@@ -250,6 +248,7 @@ public sealed class ThreadTimeline : Decorator
                     tracking.HoldEnd(1.5);
                     scroll = new ScrollViewer { Template = TimelineScrollTemplate, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
                     currentScroll = scroll; initialAnchorApplied = false;
+                    SoftScroll.SetIsEnabled(scroll, true); // OD-0071 (ED-246, ED-NEW-rec-composer): eased wheel steps, momentum, a soft settle at the ends
                     scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); if (drawnColumn is { } current) current.MinHeight = viewportHeight; paneWidth = scroll.Bounds.Width; RefreshLayoutWidth(); }; // :446-450
                     var oldMetrics = new ScrollMetrics();
                     scroll.ScrollChanged += (_, change) =>
@@ -275,6 +274,9 @@ public sealed class ThreadTimeline : Decorator
                     // :335-338,380-382,404-409 onScrollVisibilityChange reports whenever a view crosses its threshold, whatever moved it: a scroll, a row
                     // arriving, the pane resizing. A layout pass is the port's moment for all of them (a short thread growing past its window never scrolls).
                     scroll.LayoutUpdated += (_, _) => ReportVisibility(scroll);
+                    // :463-485 .onScrollPhaseChange. ED-246: the shared soft scrolling reports the phases a touchpad stroke,
+                    // its coast and a programmatic animation go through; a wheel reports none, as on the Mac (:466-467).
+                    scroll.AddHandler(SoftScroll.PhaseChangedEvent, (_, change) => NotePhase(change.Phase));
                     scrollOverlay = new Grid { Children = { scroll } };
                 }
                 var oldOffset = scroll.Offset;
@@ -326,7 +328,7 @@ public sealed class ThreadTimeline : Decorator
             inputs = (runtime, scrollChrome, scrollState, nextProject, nextDirectory, nextRewind, nextHeight, nextMinimap);
             Draw();
         };
-        DetachedFromVisualTree += (_, _) => { initialHistoryTask?.Cancel(); initialHistoryTask = null; initialHistoryStarted = false; tracking.EndActivity(); if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; };
+        DetachedFromVisualTree += (_, _) => { initialHistoryTask?.Cancel(); initialHistoryTask = null; initialHistoryStarted = false; tracking.EndActivity(); };
         this.Track(() => scrollState.JumpRequest, _ => { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; EndWithAnimation(scrollState.JumpRequest == 0 ? null : Animation.Smooth(0.35)); });
         this.Track(() => runtime.IsRunning, running => { if (seenRunning is { } previous && previous != running) NoteTurnChange(running, runtime.AutoStartedTurnToken); seenRunning = running; });
         this.Track(() => scrollState.AreaGrowthRequest, _ => { if (scrollState.AreaGrowthRequest != 0) ComposerGrew(AppEnvironment.GetWindowLiveResize(this).IsActive); });
@@ -341,7 +343,7 @@ public sealed class ThreadTimeline : Decorator
         this.Track(() => tracking.CheckRequest, request => { if (seenCheck is { } previous && previous != request) { tracking.ReportActivity(runtime.ThreadID); RepairLayout(); } seenCheck = request; });
         // :59-67 layoutWidth is read by the body, which runs again when the reshape starts or ends, when the pane's width moves (onGeometryChange,
         // :450) and while the sidebar slides: the stepped width follows all of them, and the exact width lands when the drag ends (:454-457).
-        this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { RefreshLayoutWidth(); if (!active) SettleAfterResize(); else if (scrollFrame is not null) { scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; } });
+        this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { RefreshLayoutWidth(); if (!active) SettleAfterResize(); else if (currentScroll is { } resizing) SoftScroll.StopAnimation(resizing); });
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsSliding, sliding => { if (sliding) paneWidthAtSlideStart = paneWidth; RefreshLayoutWidth(); }); // :458-462
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.SlideDelta, _ => RefreshLayoutWidth());
     }
@@ -605,14 +607,28 @@ public sealed class ThreadTimeline : Decorator
     private void FollowEnd() { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; EndWithAnimation(Transaction.Current); NoteScrollMovement(); }
     private void SnapEnd() => EndWithAnimation(null);
     private void EndWithAnimation(Animation? animation) { if (currentScroll is { } scroll) ScrollTo(new Vector(scroll.Offset.X, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)), animation); }
-    // :242-252. Avalonia offsets are not SwiftUI state; run the source curve on the shared frame clock.
+    // :242-252. Avalonia offsets are not SwiftUI state; the source curve runs on the shared soft scrolling (ED-246), which
+    // the reader's own wheel or touchpad takes over from, and which an unanimated move sets at once. The curve is followed
+    // exactly to its duration, as before ED-246 here (ED-NEW-rec-composer: ED-246 (4)'s run-out spring is not ruled on for it).
     private void ScrollTo(Vector target, Animation? animation)
     {
-        if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null;
-        if (currentScroll is not { } scroll) return; if (animation is null) { scroll.Offset = target; return; }
-        var origin = scroll.Offset; var started = SwiftClock.Now; scrollFrames = FrameClock.Source.Current;
-        Action<TimeSpan>? frame = null; frame = _ => { var elapsed = (SwiftClock.Now - started).TotalSeconds; var complete = elapsed >= animation.Duration; var progress = complete ? 1 : animation.Progress(elapsed); scroll.Offset = origin + (target - origin) * progress; if (complete) scrollFrame = null; else scrollFrames.RequestFrame(frame!); };
-        scrollFrame = frame; scrollFrames.RequestFrame(frame);
+        if (currentScroll is { } scroll) SoftScroll.ScrollTo(scroll, target, animation, runsOut: false);
+    }
+    // :463-485
+    private void NotePhase(ScrollPhase phase)
+    {
+        tracking.NotePhase(phase switch { ScrollPhase.Interacting => "interacting", ScrollPhase.Decelerating => "decelerating", ScrollPhase.Animating => "animating", _ => "idle" });
+        if (phase == ScrollPhase.Interacting) NoteScrollMovement(); else LiftScrollFreeze();
+        if (phase != ScrollPhase.Idle) return;
+        if (tracking.RepairSkippedWhileScrolling) { tracking.RepairSkippedWhileScrolling = false; tracking.ArmBlankWatch(); }
+        if (tracking.RefreshSkippedWhileScrolling) { tracking.RefreshSkippedWhileScrolling = false; tracking.ArmViewportRefresh(); }
+    }
+    // :747-752
+    private void LiftScrollFreeze()
+    {
+        tracking.SettleWatch?.Cancel(); tracking.SettleWatch = null;
+        if (tracking.IsReaderScrolling) tracking.IsReaderScrolling = false;
+        if (ownerRuntime is not null) tracking.ReportActivity(ownerRuntime.ThreadID);
     }
     // :727-745
     private void NoteScrollMovement()
@@ -626,7 +642,13 @@ public sealed class ThreadTimeline : Decorator
     {
         tracking.NoteGeometry(next.Offset, next.DistanceFromBottom, next.Travel);
         if (next.CenterY != old.CenterY && next.ContentHeight == old.ContentHeight && !tracking.IsCoasting) NoteScrollMovement();
-        var anchorMove = anchorsBottomOnGrowth ? next.ContentHeight - old.ContentHeight : 0; var readerMoved = Math.Abs(next.Offset - old.Offset - anchorMove) > 1;
+        var anchorMove = anchorsBottomOnGrowth ? next.ContentHeight - old.ContentHeight : 0;
+        // :511 `> 1`: one Mac wheel step moves the view by many points at once. The port's soft scrolling (ED-246) spreads a step over the
+        // frames of its glide, whose last ones move under a point: while the reader's own wheel or touchpad glides the view (not a
+        // programmatic animation), any movement is the reader's, or a pinned reader one notch up was taken for drift and snapped back
+        // to the end (ED-NEW-rec-composer).
+        var readerGlide = currentScroll is { } gliding && SoftScroll.IsScrolling(gliding) && SoftScroll.For(gliding).Phase != ScrollPhase.Animating;
+        var readerMoved = Math.Abs(next.Offset - old.Offset - anchorMove) > (readerGlide ? 0.001 : 1);
         if (readerMoved) tracking.NoteReaderMovement(); var scrolled = tracking.IsUserScrolling || (!tracking.IsArriving && readerMoved && next.ContainerHeight == old.ContainerHeight && !tracking.IsCoasting); var atRest = !tracking.IsUserScrolling && !tracking.IsCoasting;
         if (atRest && !scrolled) { var shrink = Math.Max(0, old.ContentHeight - next.ContentHeight); var drift = Math.Abs(next.Offset - old.Offset - anchorMove); if (tracking.NoteDrift(shrink + drift, JumpTolerance(viewportHeight))) tracking.ArmViewportRefresh(); if (shrink > 1) tracking.ArmBlankWatch(); } else if (scrolled) tracking.ResetDrift();
         if (next.DistanceFromBottom < -1 && atRest && (next.ContentHeight != old.ContentHeight || next.ContainerHeight != old.ContainerHeight)) MainActor.Post(SnapEnd);
