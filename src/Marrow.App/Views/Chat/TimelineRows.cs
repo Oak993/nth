@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Documents;
@@ -150,8 +151,9 @@ public static class TimelineRows
     internal static SwiftImage Chevron() => SwiftImage.SystemName("chevron.right")
         .Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
 
-    /// <summary>PORT-ONLY. The animation of a change, or none when the system asks for reduced motion: the closures of OD-0076's second round (the work group's steps, the checklist's
-    /// strike) cut under it. The delegation card's size is not one: it follows Chrome.panelSlide, whose reduced-motion form is the Mac's own (Chrome.swift:100-104).</summary>
+    /// <summary>PORT-ONLY. The animation of a change OD-0076 adds where the Mac snaps, or none when the system asks for reduced motion (ED-264 (3)): the delegation
+    /// card's changes that :703-704 do not key. The Mac's own animations (the work group's fold, the checklist's strike, the card's count and `sent` changes) are
+    /// not passed through it (ED-264 (2)).</summary>
     internal static Animation? UnlessReduced(Animation? animation) => Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion ? null : animation;
 
     // :313-316, :464-467, :579-582, :691-694.
@@ -903,7 +905,7 @@ public sealed class HydraDelegationBlock : Decorator
     private readonly HStack header;
     private readonly Panel overlay = new();
     // The card as drawn: its slot and, over it and outside the slot's clip (nothing clips the card in SwiftUI), what leaves the card and the sent wave.
-    private readonly Panel frame = new();
+    private readonly CardFrame frame = new();
     private readonly Canvas leaving = new(); // what leaves the card under an animation, drawn fading where it was; it takes no room (a Canvas asks for none)
     private readonly Border pill;
     private readonly SizeSlot slot; // :703-704 the card's size (height and width) follows its contents along Chrome.panelSlide (OD-0076: a card that changes size eases to it)
@@ -912,6 +914,7 @@ public sealed class HydraDelegationBlock : Decorator
     private SwiftImage? check;                      // :667-675 the green check, once sent
     private DotFieldSweep? sweep;                   // :694-701 one wave through the card, once sent
     private ValueList<HydraDelegation> shown = ValueList<HydraDelegation>.Empty;
+    private int count;                              // :704 the value `delegations.count` the card's animation is keyed on
 
     /// <summary>The block as it was last handed (:649-650): the card is the same card for every flush of a streaming reply, so what changes in it is animated.</summary>
     internal string Json { get; private set; }
@@ -947,14 +950,48 @@ public sealed class HydraDelegationBlock : Decorator
     internal void Update(string json, bool sent)
     {
         if (json == Json && sent == Sent) return;
+        // :703-704 `.animation(Chrome.panelSlide, value: sent)` and `value: delegations.count`: only a change of either is animated on the Mac, along panelSlide
+        // (its reduced-motion form, `.easeOut(duration: 0.18)`, included: Chrome.swift:100-104, ED-264 (1)). Any other change of a streamed block (a brief that
+        // closes with the same count: the title's words, the next-brief line, the card's size) is made in no animation on the Mac (the streamed flush has no
+        // withAnimation; ThreadRuntime.swift has it only at :2947 and :2953), so it eases under OD-0076 in the Mac's motion language, and reduced motion
+        // stills that (ED-264 (3)). ENGINEERING DECISION: OD-0076's size change, .easeOut(duration: 0.3) (ED-285, fifth round (2)).
+        var keyed = sent != Sent || Reading(json).Delegations.Count != count;
         Json = json; Sent = sent;
-        Transaction.WithAnimation(Chrome.PanelSlide, () =>
+        var animation = keyed ? Chrome.PanelSlide : TimelineRows.UnlessReduced(OwnerChange);
+        Transaction.WithAnimation(animation, () =>
         {
-            // the layout pass that follows reads the animation the change was made under: Chrome.panelSlide, which under reduced motion is the Mac's own
-            // `.easeOut(duration: 0.18)` (Chrome.swift:100-104), so the card's frame eases along it then too (ED-264: the Mac's own animation, not stilled)
-            slot.Note(Transaction.Current);
+            slot.Note(Transaction.Current); // the layout pass that follows reads the animation the change was made under
             Apply(json, sent, animated: true);
         });
+    }
+
+    /// <summary>OD-0076: a change the Mac makes with no animation eases on the Mac's motion language for a size change ("about 0.3 s on an ease curve").</summary>
+    internal static Animation OwnerChange => Animation.EaseOut(duration: 0.3);
+
+    /// <summary>:706 `.accessibilityElement(children: .combine)`: one element, its children hidden (a peer with no children, as CommandPalette's row).</summary>
+    protected override AutomationPeer OnCreateAutomationPeer() => new CombinedPeer(this);
+
+    private sealed class CombinedPeer(HydraDelegationBlock owner) : ControlAutomationPeer(owner)
+    {
+        protected override IReadOnlyList<AutomationPeer>? GetChildrenCore() => []; // :706 children: .combine
+    }
+
+    /// <summary>PORT-ONLY. The card's own box: its slot, and the leaving layer and the sent wave over it, laid out at the slot's size and place on every layout
+    /// (:694-701 the wave is the card's `.overlay`, which SwiftUI sizes to the card), outside the slot's clip (nothing clips the card).</summary>
+    private sealed class CardFrame : Panel
+    {
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            foreach (var child in Children) child.Measure(availableSize);
+            return Children.Count == 0 ? default : Children[0].DesiredSize;
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            var card = Children.Count == 0 ? default : new Rect(Children[0].DesiredSize);
+            foreach (var child in Children) child.Arrange(card);
+            return finalSize;
+        }
     }
 
     // :653-703 what the body reads: the delegations so far, whether the block is still streaming, and `sent`.
@@ -963,6 +1000,8 @@ public sealed class HydraDelegationBlock : Decorator
         var reading = Reading(json);
         var delegations = reading.Delegations;
         var streaming = !reading.IsComplete && !sent;
+        count = delegations.Count;
+        AutomationProperties.SetName(this, Label(delegations, streaming, sent));
         // :663-664 `.contentTransition(.opacity)` under :703-704 `.animation(Chrome.panelSlide, ...)`: new words crossfade with the old (OD-0076).
         var title = Title(delegations, streaming, sent);
         if (((TextBlock)titleText.Current!).Text != title) titleText.Show(TimelineRows.ChatText(title, weight: SwiftFont.Weight.Medium));
@@ -1083,6 +1122,23 @@ public sealed class HydraDelegationBlock : Decorator
             AutomationProperties.SetName(tag, "in " + project); row.Children.Add(tag);
         }
         return row.Transition(SwiftTransition.Opacity);
+    }
+
+    /// <summary>:706 `.accessibilityElement(children: .combine)`: the label is the children's labels in order, joined with ", " as the port's other combined
+    /// labels are (UsageViews.swift:237, "Banked resets, 2 available"): the title (:665), the check's "sent" (:672), each head's glyph by its own label, the
+    /// persona's name (:716), its task (:721) and "in <project>" (:739), and the next-brief line (:683). The marks and the arrow are hidden (:664, :719, :731).</summary>
+    private static string Label(IReadOnlyList<HydraDelegation> delegations, bool streaming, bool sent)
+    {
+        var parts = new List<string> { Title(delegations, streaming, sent) };
+        if (sent) parts.Add("sent");
+        foreach (var delegation in delegations)
+        {
+            if (Persona(delegation.Name) is { } persona) parts.Add(persona.Name);
+            parts.Add(delegation.Task);
+            if (ProjectName(delegation.Project) is { } project) parts.Add("in " + project);
+        }
+        if (delegations.Count != 0 && streaming) parts.Add("Writing the next brief\u2026");
+        return string.Join(", ", parts);
     }
 
     // :745-753 private static func title(for:streaming:sent:) -> String
@@ -2072,12 +2128,12 @@ public sealed class WorkGroup : Decorator
                 // The steps fold open: the body's height (and its fade) follow the transaction the toggle was made in, so what follows the group moves down with it.
                 var opening = body = new GrowingBody { LeadingSpace = TimelineMetrics.RowSpacing, Child = steps };
                 stack.Children.Insert(1, opening);
-                opening.Open(TimelineRows.UnlessReduced(Transaction.Current)); // reduce motion cuts (OD-0076)
+                opening.Open(Transaction.Current); // :1469-1472 withAnimation(.snappy(duration: 0.24)), no reduced-motion gate on the Mac (ED-264 (2))
             }
             else if (collapsed && steps is not null && body is { } closing)
             {
                 steps = null; body = null;
-                closing.Close(TimelineRows.UnlessReduced(Transaction.Current), () => stack.Children.Remove(closing));
+                closing.Close(Transaction.Current, () => stack.Children.Remove(closing)); // :1475-1477, the same (ED-264 (2))
             }
         });
         stack.Track(() => state.Entries, entries => steps?.Update(entries));
@@ -3368,7 +3424,7 @@ public sealed class TodoListRow : Decorator
                 row.Text.Text = step.Text;
                 var done = step.TodoStepStatus == TodoStep.Status.Done;
                 row.TextColour.Set(TextColourFor(step.TodoStepStatus), Transaction.Current);
-                row.Strike(done, TimelineRows.UnlessReduced(Transaction.Current)); // reduce motion cuts (OD-0076)
+                row.Strike(done, Transaction.Current); // :2372 .animation(.snappy(duration: 0.2), value: steps), no reduced-motion gate (ED-264 (2))
             }
             Child = slot;
         }

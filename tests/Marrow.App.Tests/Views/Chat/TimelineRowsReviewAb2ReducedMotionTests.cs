@@ -22,9 +22,10 @@ using static Marrow.App.Tests.Fixtures.TimelineRowsFinChecks;
 namespace Marrow.App.Tests.Views.Chat;
 
 // The three closures of the second review round (TimelineRowsReviewAb2Tests: the work group's steps fold open, a checked step's strike comes in, the delegation card's
-// width eases) each move along the source's animation. With the system asking for reduced motion the first two reach their end state on the first frame after the
-// change; the delegation card's size follows Chrome.panelSlide, which the Mac itself turns into `.easeOut(duration: 0.18)` under reduced motion (Chrome.swift:100-104),
-// so it eases along that curve (the integ-tlrab review, ED-285 fourth-round closure (3)).
+// width eases) each move along the source's animation, and each is the Mac's own animation (ED-264 (2)): the work group's `withAnimation(.snappy(duration: 0.24))`
+// (TimelineRows.swift:1469-1477) and the checklist's `.animation(.snappy(duration: 0.2), value: steps)` (:2372) read no reduced-motion setting, so they run the same
+// with it on (ED-285, fifth round (5), (6)); the delegation card's count change follows Chrome.panelSlide, which the Mac itself turns into
+// `.easeOut(duration: 0.18)` under reduced motion (Chrome.swift:100-104), so it eases along that curve (ED-285 fourth round (3)).
 [Collection("Headless")]
 public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession headless)
 {
@@ -44,8 +45,8 @@ public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession head
     private const string WalterLong = "{\"task\": \"Write the tests for every silent path of the merge coordinator, one by one\", \"prompt\": \"Write them.\", \"name\": \"Walter\"}";
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // UI-CHAT-022 under reduced motion: the steps are there whole on the first frame, and what follows has moved the whole way
-    public void REVIEW2_with_reduced_motion_opening_the_work_group_shows_its_steps_whole_on_the_first_frame() => headless.OnUiThread(() =>
+    [Trait("Rule", "R-TEST-4")] // UI-CHAT-022 under reduced motion: TimelineRows.swift:1469-1477 `withAnimation(.snappy(duration: 0.24))` has no reduced-motion gate (ED-264 (2))
+    public void REVIEW2_with_reduced_motion_opening_the_work_group_still_folds_its_steps_open_along_the_snappy_curve() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         var frames = new ManualFrameSource();
@@ -71,23 +72,24 @@ public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession head
         {
             h.Main.OnMain(() => Settle(window));
             frames.Advance(TimeSpan.Zero);
-            Run(h.Main, frames, window, 10);
-            var first = 0.0;
+            Run(h.Main, frames, window, 50);
+            var early = 0.0;
             var shown = 0.0;
-            h.Main.OnMain(() => { first = Below(); shown = Effective(Assert.Single(Mounted<WorkSteps>(group))); });
+            h.Main.OnMain(() => { early = Below(); shown = Effective(Assert.Single(Mounted<WorkSteps>(group))); });
             Run(h.Main, frames, window, 1000);
             var after = 0.0;
             h.Main.OnMain(() => after = Below());
             Assert.True(after > before + 20, $"what follows the group went from {before:F1} to {after:F1}");
-            Assert.Equal(after, first, 0.5);
-            Assert.Equal(1, shown, 0.01);
+            // 50 ms into the snappy 0.24 s curve it is about 0.4 of its way, as with reduced motion off (TimelineRowsReviewAb3Tests).
+            Assert.InRange((early - before) / (after - before), 0.2, 0.8);
+            Assert.InRange(shown, 0.05, 0.95);
         }
         finally { h.Main.OnMain(() => Close(window)); }
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // PR-CHAT-114 under reduced motion: the strike is whole on the first frame
-    public void REVIEW2_with_reduced_motion_checking_a_step_off_strikes_it_through_whole_on_the_first_frame() => headless.OnUiThread(() =>
+    [Trait("Rule", "R-TEST-4")] // PR-CHAT-114 under reduced motion: :2372 `.animation(.snappy(duration: 0.2), value: steps)` has no reduced-motion gate (ED-264 (2))
+    public void REVIEW2_with_reduced_motion_checking_a_step_off_still_strikes_it_through_along_the_snappy_curve() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         var frames = new ManualFrameSource();
@@ -119,14 +121,15 @@ public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession head
         {
             h.Main.OnMain(() => Settle(window));
             frames.Advance(TimeSpan.Zero);
-            Run(h.Main, frames, window, 10);
-            var first = 0.0;
-            h.Main.OnMain(() => first = Strike());
+            Run(h.Main, frames, window, 50);
+            var mid = 0.0;
+            h.Main.OnMain(() => mid = Strike());
             Run(h.Main, frames, window, 1000);
             var end = 0.0;
             h.Main.OnMain(() => end = Strike());
             Assert.True(end > 0.1, $"the done step is not struck through once settled ({end:F3})");
-            Assert.Equal(end, first, 0.01);
+            // 50 ms into the snappy 0.2 s change the curve is about 0.5 of its way: the strike is on its way in, as with reduced motion off.
+            Assert.InRange(mid / end, 0.1, 0.9);
         }
         finally { h.Main.OnMain(() => Close(window)); }
     });

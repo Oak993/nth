@@ -4726,8 +4726,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // height (PR-CHAT-149); the work group folds shut along its 0.24 s curve (UI-CHAT-022) and an unchecked step's strike goes out along the 0.2 s change (PR-CHAT-114).
 // Review of the merge (unit/integ-tlrab, TimelineRowsReviewAbIntegTests; ED-285, fourth-round closure): a leaving line keeps its list's fade-in, nothing clips it,
 // an emptied list leaves from where it got to, and under reduced motion the card eases along panelSlide's 0.18 s ease-out (Chrome.swift:100-104) (PR-CHAT-149).
-// DEFECT, open under UI-CHAT-054: :706 `.accessibilityElement(children: .combine)` has no port counterpart; the label SwiftUI composes from the card's children is
-// not stated by the source (UNRESOLVED, ED-285 fourth round (5)).
+// Round 4 of that review (TimelineRowsReview4IntegTests, TimelineRowsReviewAbRound5Tests; ED-285, fifth-round closure): the sent wave is laid out over the card;
+// only a count or `sent` change takes panelSlide, other changes of a streamed block ease under OD-0076 and cut under reduced motion (PR-CHAT-149); the card is
+// one accessibility element labelled by its children in order (:706, UI-CHAT-054's role); the work group's fold (UI-CHAT-022) and the strike (PR-CHAT-114) run
+// under reduced motion as the Mac's do (ED-264 (2)).
 // PR-CHAT-113: record vs source. The record's action is "the popover is open while the markdown arrives" and its result
 // that the plan "switches to the finished-prose surface the moment the state leaves drafting". The pinned source freezes
 // the popover's content when it opens (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147: the hosted

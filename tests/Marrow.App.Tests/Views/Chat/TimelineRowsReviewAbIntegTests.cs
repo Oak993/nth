@@ -19,9 +19,10 @@ using static Marrow.App.Tests.Fixtures.TimelineRowsFinChecks;
 namespace Marrow.App.Tests.Views.Chat;
 
 // The adversarial review of unit/integ-tlrab (the merge of blitz-timelinerows-ab, ED-285, fourth-round closure). Source: DroppyCode/App/Views/Chat/TimelineRows.swift
-// (B3 52bc792) :652-707: a view that leaves the delegation card is drawn inside the card's VStack while its removal transition runs (so whatever its parent is still
-// doing to it, a list still fading in, goes on applying), nothing clips the card, and a view whose own arrival is still running leaves from where it has got to.
-// OD-0076: nothing on screen changes by a cut. Each test reads every 10 ms frame (the reviewer's sequences).
+// (B3 52bc792) :652-707: under a change the Mac animates (:703-704), a view that leaves the delegation card is drawn inside the card's VStack while its removal
+// transition runs (so whatever its parent is still doing to it, a list still fading in, goes on applying); for a same-count close the Mac animates nothing and
+// the same behaviour is the port's under OD-0076 (ED-285, fifth round (3)). Nothing clips the card, and a view whose own arrival is still running leaves from
+// where it has got to. OD-0076: nothing on screen changes by a cut. Each test reads every 10 ms frame (the reviewer's sequences).
 [Collection("Headless")]
 public sealed class TimelineRowsReviewAbIntegTests(HeadlessSession headless)
 {

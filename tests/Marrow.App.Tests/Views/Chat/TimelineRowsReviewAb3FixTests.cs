@@ -80,10 +80,11 @@ public sealed class TimelineRowsReviewAb3FixTests(HeadlessSession headless)
     }
 
     // :681-686 the "Writing the next brief…" line goes once the brief closes (no longer streaming); the VStack loses a row, so its background's height shrinks
-    // along Chrome.panelSlide (:703-704) rather than cutting up while the slot is still tall.
+    // rather than cutting up while the slot is still tall. The count is the same, so :703-704 do not key it and the Mac draws it at once: the port eases it under
+    // OD-0076 (ED-285, fifth round (2); the curve is read by TimelineRowsReviewAbRound5Tests).
     [Fact]
-    [Trait("Req", "PR-CHAT-149")] // the card's changes animate with Chrome.panelSlide; OD-0076
-    public void The_delegation_card_shortens_along_the_panel_slide_when_its_next_brief_line_goes()
+    [Trait("Req", "PR-CHAT-149")] // the card's changes are transitioned; OD-0076
+    public void The_delegation_card_shortens_without_a_cut_when_its_next_brief_line_goes()
     {
         var drawn = new List<Size>();
         var fading = -1.0;
