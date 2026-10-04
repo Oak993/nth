@@ -16,7 +16,7 @@ namespace Marrow.App.Port.FirstRun;
 /// <summary>One step of the first run as W1 names it: its id, its name on the screen and its place in the order.</summary>
 public sealed record FirstRunStep(string Id, string Name, int Order);
 
-/// <summary>W1's steps (decisions-2026-10-03/getting-ready/src/gr_lib.py:28-29, the ids as gr_lib.py:15-16 gives them). Voice
+/// <summary>W1's steps (decisions-2026-10-03/getting-ready/src/gr_lib.py:28-29, the ids as gr_lib.py:20-23 gives them). Voice
 /// model and Voice speed test, which W1 also words, are not here: by the owner's pick D3 with consent the model downloads and is
 /// timed behind Welcome, not on this screen (OD-0098).</summary>
 public static class FirstRunSteps
