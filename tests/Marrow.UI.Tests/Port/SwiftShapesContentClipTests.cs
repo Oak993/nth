@@ -116,8 +116,8 @@ public sealed class SwiftShapesContentClipTests(HeadlessSession headless)
         Assert.NotSame(card, window.InputHitTest(new Point(Inset + 0.869 * l, Inset + 0.0155 * l)));
         Assert.Same(card, window.InputHitTest(new Point(Inset + 0.869 * l, Inset + 0.05 * l)));
         Assert.Same(card, window.InputHitTest(new Point(Inset + 350, Inset + 0.5)));
-        Assert.Null(window.InputHitTest(new Point(Inset + 350, Inset - 1.5)));
-        Assert.Same(content, window.InputHitTest(new Point(Inset + 14 + 20, Inset + 22.5)));
+        Assert.NotSame(card, window.InputHitTest(new Point(Inset + 350, Inset - 1.5)));
+        Assert.Same(content, window.InputHitTest(new Point(Inset + 350, Inset + 22.5))); // the content, centred in the card
 
         // The clip is the cached geometry: a colour, a move and the child coming and going build nothing; a resize builds one.
         var builds = SwiftShapes.GeometryBuildCount;
@@ -143,38 +143,41 @@ public sealed class SwiftShapesContentClipTests(HeadlessSession headless)
     public void Only_a_Border_whose_content_is_drawn_beyond_its_sides_keeps_the_slack_clip() => headless.OnUiThread(() =>
     {
         // SwiftUI's `.background(shape)` does not clip its content; where the source draws content past a side (the effort title's leaving letters, EffortSlider.swift:589
-        // `.buttonStyle(.plain)`), the site marks the shape and the clip runs past its sides (ED-275 (3)). Everywhere else the exact outline cuts it.
+        // `.buttonStyle(.plain)`), the site marks the shape and the clip runs past its sides (ED-275 (3)) between the corners' run-ins (a tall card: a band shape's short
+        // sides are all curve, h / 2 from each end). Everywhere else the exact outline cuts it.
         var overflow = new Border { Width = 260, Height = 20, Background = Brushes.Blue, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
         var card = new Border
         {
-            Width = 200, Height = 40, Background = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
+            Width = 200, Height = 120, Background = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(20), Child = new Panel { Children = { overflow } },
         }.RoundedRectangle(18, RoundedCornerStyle.Continuous);
-        var window = new Window { Width = 300, Height = 80, Background = Brushes.Black, Content = new Panel { Children = { card } } };
+        var window = new Window { Width = 300, Height = 160, Background = Brushes.Black, Content = new Panel { Children = { card } } };
         window.Show();
         Settle();
         Assert.False(SwiftShapes.GetContentBeyondSides(card));
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true), card.Clip);
-        Assert.Equal((0, 0, 0), RenderedPixels.Capture(window).At(20 + 200 + 30, 20 + 20)); // cut at the side
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 120), new CornerRadius(18), exact: true), card.Clip);
+        var cut = RenderedPixels.Capture(window).At(20 + 200 + 30, 20 + 60);
+        Assert.True(cut == (0, 0, 0), $"past the side of an unmarked Border: {cut}, expected cut to the black window"); // cut at the side
 
         card.ContentBeyondSides();
         Settle();
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18)), card.Clip);
-        Assert.Equal((0, 0, 255), RenderedPixels.Capture(window).At(20 + 200 + 30, 20 + 20)); // drawn past the side
-        Assert.Same(overflow, window.InputHitTest(new Point(20 + 200 + 30, 20 + 20)));
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 120), new CornerRadius(18)), card.Clip);
+        var drawn = RenderedPixels.Capture(window).At(20 + 200 + 30, 20 + 60);
+        Assert.True(drawn == (0, 0, 255), $"past the side of a marked Border: {drawn}, expected the blue child"); // drawn past the side
+        Assert.Same(overflow, window.InputHitTest(new Point(20 + 200 + 30, 20 + 60)));
 
         // A marked Border that cannot draw beyond a side (no child, or clipped to its bounds) is cut by the exact outline.
         card.ClipToBounds = true;
         Settle();
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true), card.Clip);
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 120), new CornerRadius(18), exact: true), card.Clip);
         card.ClipToBounds = false;
         card.Child = null;
         Settle();
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true), card.Clip);
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 120), new CornerRadius(18), exact: true), card.Clip);
         card.ContentBeyondSides(false);
         card.Child = new Panel { Children = { new Border { Width = 10, Height = 10 } } };
         Settle();
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true), card.Clip);
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 120), new CornerRadius(18), exact: true), card.Clip);
         window.Close();
     });
 }

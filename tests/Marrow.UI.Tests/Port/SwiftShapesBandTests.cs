@@ -587,13 +587,17 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
         Assert.False(exact.FillContains(new Point(100, 45)), "the exact outline reaches past the bottom side");
         Assert.Same(exact, SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true));
 
-        // A child that is not clipped to the bounds can draw beyond a side (ED-275 (3)): the slack clip, which is not convex.
+        // A child that is not clipped to the bounds of a Border whose site marks its content as drawn beyond its sides (ED-275 (3), ED-NEW-rec-cornerclip): the slack clip,
+        // which is not convex. An unmarked Border with content is cut by the exact outline (SwiftShapesContentClipTests).
         var child = new Border { Child = new Border { Width = 10, Height = 10 } };
         child.Child = new Border { Width = 10, Height = 10 };
         child.Width = 200; child.Height = 40;
         child.Background = Brushes.Red;
         child.RoundedRectangle(18, RoundedCornerStyle.Continuous);
         window.Content = child;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(exact, child.Clip);
+        child.ContentBeyondSides();
         Dispatcher.UIThread.RunJobs();
         var slack = Assert.IsAssignableFrom<Geometry>(child.Clip);
         Assert.Equal(200 + 2 * SwiftShapes.ClipSlack, slack.Bounds.Width, 6);

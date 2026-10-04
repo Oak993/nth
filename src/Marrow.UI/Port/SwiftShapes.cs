@@ -495,13 +495,14 @@ internal static class ContinuousClip
     }
 
     /// <summary>
-    /// Whether the Border is cut by its exact outline rather than the slack clip (ED-297 (9)): the exact outline is convex, and Skia anti-aliases only a
-    /// convex path exactly (the slack clip's walls make it non-convex: 49 of 255 off the path fill at the worst pixel, 102 at 380 x 46). The slack exists for what is
-    /// drawn beyond a side (ED-275 (3)); a Border with no child draws only its own fill and border, inside its bounds, and one clipped to its bounds draws nothing
-    /// beyond a side either, so those take the exact outline. A corner that is an arc stays on the slack clip (see <see cref="SwiftShapes.ExactClipFits"/>).
+    /// Whether the Border is cut by its exact outline rather than the slack clip (ED-297 (9), ED-NEW-rec-cornerclip): the exact outline is convex, and Skia anti-aliases
+    /// only a convex path exactly (the slack clip's walls make it non-convex: 64 of 255 off the path fill at the one-step steps card, 700 x 45, 102 at 380 x 46), and no
+    /// path that reaches beyond a straight side can be convex. So every Border is cut by the exact outline, with content or without, EXCEPT one whose site marks its
+    /// content as drawn beyond its sides (<see cref="SwiftShapes.ContentBeyondSidesProperty"/>) while it has a child that is not clipped to its bounds: that one keeps the
+    /// slack clip of ED-275 (3). A corner that is an arc stays on the slack clip (see <see cref="SwiftShapes.ExactClipFits"/>).
     /// </summary>
     private static bool CutsExactly(Border border, Size size, CornerRadius radii, bool circularInBand) =>
-        (border.Child is null || border.ClipToBounds) && SwiftShapes.ExactClipFits(size, radii, circularInBand);
+        (border.Child is null || border.ClipToBounds || !SwiftShapes.GetContentBeyondSides(border)) && SwiftShapes.ExactClipFits(size, radii, circularInBand);
 
     private sealed class Tracker
     {
