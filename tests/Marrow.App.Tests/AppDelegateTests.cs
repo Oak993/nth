@@ -95,7 +95,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 (the STOP that held it, session-end reason text, is resolved by OD-0036); the other clauses are in the tests that carry the id.
     [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53; owner_decisions.md OD-0036
     public void A_quit_during_a_merge_is_answered_terminate_later_and_replies_true_at_the_first_250_ms_poll_after_the_merge_ends()
     {
@@ -122,7 +122,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 (the STOP that held it, session-end reason text, is resolved by OD-0036); the other clauses are in the tests that carry the id.
     [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0036
     public void A_quit_during_a_merge_that_never_ends_replies_true_exactly_when_4_minutes_have_passed()
     {
@@ -143,7 +143,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 (the STOP that held it, session-end reason text, is resolved by OD-0036); the other clauses are in the tests that carry the id.
     [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53; App/AppModel+HydraMerge.swift:36; owner_decisions.md OD-0036
     public void A_quit_waits_while_any_live_chat_is_merging_even_when_the_merging_chat_changes_during_the_wait()
     {
@@ -178,7 +178,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 (the STOP that held it, session-end reason text, is resolved by OD-0036); the other clauses are in the tests that carry the id.
     [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53; owner_decisions.md OD-0036
     public void The_deferred_quit_replies_from_a_later_main_turn_and_checks_the_merge_before_its_first_sleep()
     {
@@ -203,7 +203,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 (the STOP that held it, session-end reason text, is resolved by OD-0036); the other clauses are in the tests that carry the id.
     [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:48-51; owner_decisions.md OD-0036
     public void A_merge_that_ends_before_the_first_poll_is_seen_at_250_ms_and_not_sooner()
     {
@@ -225,7 +225,7 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 (the STOP that held it, session-end reason text, is resolved by OD-0036); the other clauses are in the tests that carry the id.
     [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0036
     public void The_four_minute_cap_is_counted_from_the_quit_and_not_from_an_earlier_time()
     {
@@ -513,6 +513,8 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-025")] // App/AppDelegate.swift:67-68, :74; App/UpdateChecker.swift:252
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-005: the update notification is presented with a banner and sound
+    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:67-68, :74; App/UpdateChecker.swift:249-252
     public void An_update_notification_while_the_app_is_active_shows_a_banner_with_sound()
     {
         using var h = new AppModelHarness();
@@ -543,6 +545,8 @@ public sealed class AppDelegateTests
 
     [Theory]
     [Trait("Req", "PR-WIN-075")] // App/AppDelegate.swift:69-72, :74
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-005: suppressed only for the selected thread while the app is active
+    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:69-72, :74
     [InlineData(true, true, UNNotificationPresentationOptions.None)]
     [InlineData(true, false, UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound)]
     [InlineData(false, true, UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound)]
@@ -615,6 +619,8 @@ public sealed class AppDelegateTests
 
     [Theory]
     [Trait("Req", "PR-LAUNCH-063")] // App/AppDelegate.swift:63-75; App/AppModel.swift:1265; App/UpdateChecker.swift:252
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-005: the whole presentation table, [] or [.banner, .sound]
+    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:63-75; App/AppModel.swift:1265; App/UpdateChecker.swift:252
     [InlineData("selected thread", true, true)]
     [InlineData("selected thread", false, false)]
     [InlineData("other thread", true, false)]
@@ -696,43 +702,45 @@ public sealed class AppDelegateTests
 // Swift: App/AppDelegate.swift:9-34 (B3 52bc792).
 // Records: PR-LAUNCH-025, PR-WIN-068; PR-LAUNCH-028 and UI-LAUNCH-001 also retain Boot #1's boot/chrome blockers.
 // AppDelegateProofTests and WindowsToastTests now prove registration/delivery before windows. The former dependency
-// is closed; the distinct ED-103 boot stage is current STOP opencode-App.AppDelegate #1.
+// is closed; the distinct ED-103 boot stage was STOP opencode-App.AppDelegate #1, RESOLVED 2026-10-02 (AppDelegateProofTests).
 // Landed: WindowManager.Shared/Model/ShowMain/ShowSettings, Port/AppShell and Program; :13's 8 MiB URLCache write,
 // :14's Markdown hook, :16-17, :22-33 are written and tested in AppDelegateThirdTests. CaptureRun :18-21 is deliberately
 // not ported (PR-LAUNCH-027 NOT_APPLICABLE_WITH_EVIDENCE, ED-001/ED-061), rather than an unresolved dependency.
-// :22's OD-0018/ED-103 boot stage still needs P12 evidence and GlassMaterial composition: STOP Boot #1.
+// :22's OD-0018/ED-103 boot stage: P12 evidence and the Acrylic composition landed (ED-103, ED-236, probes P12 to P14; STOP Boot #1).
 // PR-LAUNCH-029 now has a launch-level test of all seven exclusion predicates and newest-unused selection.
-// PR-LAUNCH-071 and UI-LAUNCH-002 now have tests of the delayed tour / no extra onboarding path.
+// UI-LAUNCH-002 now has tests of the delayed tour. PR-LAUNCH-071 has none that claim it: see STOP App.AppDelegate #7.
 // PR-LAUNCH-038 now has aggregate compiled step/await order and safe runtime proof in AppDelegateProofTests, together
 // with the existing offline blocked updater stand-in test in AppModelBootstrapSweepTests.
-// PR-LAUNCH-046 still needs the shell-to-UpdateChecker.HandleActivation binding and a decision about launch activation
-// (STOP Boot #2). ED-225 centering landed; PR-LAUNCH-028/UI-LAUNCH-001 still need ED-103 stage/material evidence.
+// PR-LAUNCH-046: the shell-to-UpdateChecker.HandleActivation binding (Port/AppShell.cs, WM_ACTIVATEAPP) and the launch-activation
+// ruling (OD-0040) landed (STOP Boot #2, RESOLVED). ED-225 centering landed; the ED-103 stage and the Acrylic material landed
+// (ED-236). What PR-LAUNCH-028 and UI-LAUNCH-001 still wait for is the first-run vertical centring measured on the real frame
+// (top 164 where ED-225 gives 175 to 177; the WindowManager unit's PR-WIN-006).
 
-// STOP App.AppDelegate #2 — RESOLVED except the separate minimized-window reading in STOP Boot #5.
+// STOP App.AppDelegate #2 — RESOLVED (the minimized-window reading of STOP Boot #5 by OD-0038).
 // Kind: dependency landed
 // Swift: App/AppDelegate.swift:36-39 (B3 52bc792).
 // Records: PR-LAUNCH-048, PR-WIN-072.
 // WindowManager and Port/ReopenSignal now implement the callback and second-launch transport; hidden/visible cases
 // are tested in AppDelegateThirdTests, Port/AppShellSecondTests and Port/ReopenSignalTests. Remaining PR-WIN-072 gap:
-// restoring a minimized main window in WindowManager.Present needs the source/oracle reading Boot #5 names. This sweep
-// may not modify WindowManager.cs. The callback itself no longer lacks a dependency.
+// restoring a minimized main window in WindowManager.Present was the reading Boot #5 named; OD-0038 ruled it (Present restores a
+// minimised window to its previous state) and AppDelegateThirdTests proves it. The callback itself no longer lacks a dependency.
 
 // HISTORICAL CLOSED App.AppDelegate #3 (opencode audit 2026-09-27, base acd0780fe)
 // Kind: former missing dependency; response delivery, activation and routing landed under ED-220.
 // Swift: App/AppDelegate.swift:77-92 (B3 52bc792).
 // Records: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024, PR-WIN-076, UI-LAUNCH-005, update-tap half of UI-LAUNCH-003.
 // Landed: WindowManager.Shared.ShowMain and ShowSettings(.About), which can now open real windows.
-// WindowsToastTests and WindowsToastStartupTests cover the implemented callback sequence. The current remaining
-// blocker is safe pointer/hit-testing proof of the system notification ingress (opencode #6), not missing routing.
+// WindowsToastTests and WindowsToastStartupTests cover the implemented callback sequence. The hit-testing question of the
+// system notification ingress (opencode #6) is RESOLVED by OD-0037 (the activation callback is the proof).
 // willPresent :63-75 also has real poster-seam proof under PR-LAUNCH-063.
 
-// STOP App.AppDelegate #4 — close wiring RESOLVED; session-end reason text remains STOP Boot #3.
+// STOP App.AppDelegate #4 — RESOLVED: close wiring landed; the session-end reason text is settled by OD-0036 (none; STOP Boot #3).
 // Kind: dependency landed / decision still missing
 // Swift: App/AppDelegate.swift:41-61 (B3 52bc792), OD-0008 C1/C2, ED-004.
 // Records: PR-LAUNCH-074, PR-WIN-073; PR-LAUNCH-050's session-end note.
 // Landed: Program's desktop lifetime and Port/AppShell's close, termination and WM_ENDSESSION wiring, with tests.
-// Missing: the reason string for ShutdownBlockReasonCreate (ED-004 supplies none; Swift has no user-facing string).
-// Needed: an owner/ED string; then the shell owner implements that one call. No WindowManager/shell edit in this lane.
+// The reason string for ShutdownBlockReasonCreate: ED-004 supplies none and Swift has no user-facing string; OD-0036 rules that
+// the session end is refused without reason text, so nothing more is needed (AppShellTests).
 
 // HISTORICAL CLOSED App.AppDelegate #5 (opencode audit 2026-09-27, base acd0780fe)
 // Kind: former missing dependency; HydraDelegationBlock now renders.

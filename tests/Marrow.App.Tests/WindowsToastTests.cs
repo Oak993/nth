@@ -137,6 +137,8 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     [Theory]
     [Trait("Req", "PR-LAUNCH-063")] // App/AppDelegate.swift:67-74
     [Trait("Req", "PR-UPDATE-025")] // App/AppDelegate.swift:67-74
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-005: the gate decides whether the Windows toast is posted at all
+    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:63-75; ED-220 (5)
     [InlineData(true, "selected", 0)]
     [InlineData(false, "selected", 1)]
     [InlineData(true, "other", 1)]
@@ -237,6 +239,10 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Source-derived; OD-0037 accepts the activation callback as the proof of a toast click.
     [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; owner_decisions.md OD-0037
     [Trait("Req", "PR-LAUNCH-065")] // App/AppDelegate.swift:77-92; owner_decisions.md OD-0037
+    [Trait("Req", "PR-WIN-076")] // App/AppDelegate.swift:77-92
+    [Trait("Req", "PR-UPDATE-024")] // App/AppDelegate.swift:77-92; App/Window/WindowManager.swift:32-38
+    [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:84-90 the update tap opens About
+    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:77-92 the taps in the documented order
     [InlineData(false, "valid")]
     [InlineData(false, "unknown")]
     [InlineData(false, "invalid")]
@@ -301,8 +307,10 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     [Theory]
     [Trait("Req", "PR-UPDATE-021")] // App/UpdateChecker.swift:178-180, :245-261
     [Trait("Req", "PR-UPDATE-023")] // App/UpdateChecker.swift:254-261; PLATFORM BOUNDARY ED-220 (4)
-    [Trait("Req", "PR-UPDATE-025")] // App/AppDelegate.swift:63-75
-    // Partial proof PR-LAUNCH-046; STOP opencode-App.AppDelegate #2. // App/UpdateChecker.swift:178-180, :245-261 (notification side effect)
+    // The notification side effect of the background check, App/UpdateChecker.swift:178-180, :245-261. The update banner is
+    // silent: UpdateChecker.swift:249-252 sets title, body and userInfo and no content.sound, so willPresent's .sound (:74) has
+    // nothing to play. The records PR-UPDATE-025 and UI-LAUNCH-005 word it as an audible alert; Swift does not (RECORD != SWIFT),
+    // so this test carries neither of them (STOP App.AppDelegate #8 in AppDelegateProofTests).
     [InlineData(false)]
     [InlineData(true)]
     public void Background_update_posts_through_the_same_poster_after_persisting_once_even_if_delivery_fails(bool denied)
@@ -326,7 +334,9 @@ public sealed class WindowsToastTests(HeadlessSession headless)
         Assert.Equal("update-2.0.0", posted.Tag);
         var xml = XDocument.Parse(posted.Xml);
         Assert.Equal(new[] { "Marrow 2.0.0 is available", "Open Settings \u203A About to update and restart." }, xml.Descendants("text").Select(t => t.Value));
-        Assert.Equal("ms-winsoundevent:Notification.Default", (string?)xml.Root!.Element("audio")!.Attribute("src"));
+        var audio = xml.Root!.Element("audio")!;
+        Assert.Equal("true", (string?)audio.Attribute("silent")); // :249-252 no content.sound
+        Assert.Null(audio.Attribute("src"));
         Assert.Equal("2.0.0", ToastActivation.Decode(ReleaseIdentity, (string)xml.Root.Attribute("launch")!)!.UserInfo["update"]);
         Assert.Empty(platform.Writes); // posting and permission never register or prompt
     }

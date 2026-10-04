@@ -15,6 +15,8 @@ public sealed class ReopenSignalTests
     [Fact]
     [Trait("Decision", "ED-002")] // engineering_decisions.md ED-002
     [Trait("Req", "PR-LAUNCH-072")] // App/AppDelegate.swift:36-39 (windows_path: the second launch runs the reopen path)
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-WIN-072: the second launch reaches the running instance (no second process keeps running; the lock is DroppyCodeAppTests)
+    [Trait("Req", "PR-WIN-072")] // App/AppDelegate.swift:36-39; engineering_decisions.md ED-002
     public void A_second_launch_reaches_the_running_instance_on_main_once_per_launch()
     {
         using var runtime = new TestRuntime();

@@ -51,6 +51,8 @@ public sealed class UpdateCheckerSecondTests
     [Trait("Req", "PR-UPDATE-005")] // UpdateChecker.swift:66-70, DEVIATION OD-0012 I1
     [Trait("Req", "PR-UPDATE-014")]
     [Trait("Req", "PR-UPDATE-019")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-046: while the feed is empty a scheduled or activation check makes no request (OD-0012 I1)
+    [Trait("Req", "PR-LAUNCH-046")] // App/UpdateChecker.swift:134-149; owner_decisions.md OD-0012 I1
     public void An_empty_feed_makes_no_request_and_fails_with_the_exact_no_feed_message()
     {
         using var runtime = new TestRuntime();
@@ -90,6 +92,8 @@ public sealed class UpdateCheckerSecondTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-008")] // UpdateChecker.swift:133
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-046: the development-build guard
+    [Trait("Req", "PR-LAUNCH-046")] // App/UpdateChecker.swift:133
     public void A_development_build_never_starts_the_background_schedule()
     {
         using var runtime = new TestRuntime();
@@ -411,6 +415,8 @@ public sealed class UpdateCheckerSecondTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-007")] // UpdateChecker.swift:132-140, :74-75 launchDelay = 8, checkInterval = 6h
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-046: the 8 s delay and the 6 h interval
+    [Trait("Req", "PR-LAUNCH-046")] // App/UpdateChecker.swift:74-75, :134-140
     public void The_first_background_check_runs_after_8_seconds_and_repeats_every_6_hours()
     {
         using var runtime = new TestRuntime();
@@ -439,6 +445,8 @@ public sealed class UpdateCheckerSecondTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-009")] // UpdateChecker.swift:141-149 stale = now - lastCheckedAt > checkInterval
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-046: the stale-on-activation rule
+    [Trait("Req", "PR-LAUNCH-046")] // App/UpdateChecker.swift:141-149
     public void Activation_runs_a_catch_up_check_only_when_the_last_check_is_older_than_6_hours_or_never_happened()
     {
         using var runtime = new TestRuntime();
@@ -482,6 +490,8 @@ public sealed class UpdateCheckerSecondTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-010")] // UpdateChecker.swift:99, :141: no removeObserver anywhere in the file
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-046: the activation observer is never removed
+    [Trait("Req", "PR-LAUNCH-046")] // App/UpdateChecker.swift:99, :141
     public void There_is_no_way_to_uninstall_the_activation_hook_once_started()
     {
         Assert.DoesNotContain("Stop", typeof(UpdateChecker).GetMethods().Select(m => m.Name));

@@ -27,6 +27,11 @@ public sealed class AppShell : ITerminationSender
     private const uint WM_SETTINGCHANGE = 0x001A;
     private const uint WM_DPICHANGED = 0x02E0;
 
+    /// <summary>PORT-ONLY seam: what puts a window procedure hook on the main window, Avalonia's own (a headless window has no
+    /// Win32 window procedure, so a test records the hook and calls it as Windows would, to prove it is installed).</summary>
+    internal static Ambient<Action<TopLevel, Win32Properties.CustomWndProcHookCallback>> AddWindowProcedureHook { get; } =
+        new((window, hook) => Win32Properties.AddWndProcHookCallback(window, hook));
+
     private readonly Action exit;
     private readonly Action afterWillTerminate;
     private bool terminationPending;
@@ -61,7 +66,7 @@ public sealed class AppShell : ITerminationSender
         // ED-004 (2): WM_ENDSESSION comes to every top-level window; the main window is the app's one lasting window.
         if (windows.MainWindow is { } main)
         {
-            Win32Properties.AddWndProcHookCallback(main, WndProc);
+            AddWindowProcedureHook.Current(main, WndProc);
             // ED-219: the badge computed while the delegate launched had no window to sit on yet.
             (TaskbarBadge.Overlay.Current as WindowsTaskbarOverlay)?.Reapply();
             // AppDelegate.swift:28 installs UpdateChecker.swift:141-149's didBecomeActive observer.

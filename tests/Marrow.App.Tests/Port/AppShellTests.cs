@@ -76,7 +76,7 @@ public sealed class AppShellTests
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 and PR-WIN-073 (their STOP, the session-end reason text, is resolved by OD-0036); the other clauses are in the tests that carry the ids.
     [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0036
     [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0036
     public void A_merge_that_never_ends_holds_the_close_for_exactly_4_minutes()

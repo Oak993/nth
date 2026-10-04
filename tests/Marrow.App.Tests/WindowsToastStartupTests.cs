@@ -61,6 +61,7 @@ public sealed class WindowsToastStartupTests
     [Trait("Rule", "R-TEST-4")] // Source-derived; OD-0037 accepts the activation callback as the proof of a toast click.
     [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; ED-002 / ED-220 (6); owner_decisions.md OD-0037
     [Trait("Req", "PR-LAUNCH-065")] // App/AppDelegate.swift:83-91; ED-002 / ED-220 (6); owner_decisions.md OD-0037
+    [Trait("Req", "PR-UPDATE-024")] // App/AppDelegate.swift:83-91; ED-002 / ED-220 (6); owner_decisions.md OD-0037
     public void DroppyCodeApp_cold_and_second_launch_forward_the_update_without_ordinary_reopen()
     {
         using var runtime = new TestRuntime();

@@ -53,6 +53,8 @@ public sealed class AppShellSecondTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-LAUNCH-048")] // App/AppDelegate.swift:36-39
     [Trait("Req", "PR-LAUNCH-072")] // engineering_decisions.md ED-002; App/AppDelegate.swift:36-39
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-WIN-072: a second launch with every window hidden shows the same cached main window
+    [Trait("Req", "PR-WIN-072")] // App/AppDelegate.swift:36-39; engineering_decisions.md ED-002
     public void A_second_launch_with_the_main_window_hidden_shows_the_same_window_again()
     {
         WithLaunch((launch, shell, _) =>
@@ -75,6 +77,8 @@ public sealed class AppShellSecondTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-LAUNCH-048")] // App/AppDelegate.swift:36-39
     [Trait("Req", "PR-LAUNCH-072")] // engineering_decisions.md ED-002
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-WIN-072: a second launch with a window up builds nothing and brings the main window forward
+    [Trait("Req", "PR-WIN-072")] // App/AppDelegate.swift:36-39; engineering_decisions.md ED-002
     public void A_second_launch_with_a_window_up_creates_nothing_and_brings_the_main_window_to_the_front()
     {
         WithLaunch((launch, shell, _) =>

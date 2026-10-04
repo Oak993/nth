@@ -261,6 +261,8 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
     [Fact]
     [Trait("Decision", "ED-103")]
     [Trait("Req", "PR-LAUNCH-047")] // App/AppDelegate.swift:30-33
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-003: About opens after the main window's appearance (the boot order)
+    [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:29-33
     public void After_an_install_About_opens_only_once_the_boot_sequence_has_shown_the_main_window() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness(h => h.Defaults.Set("appUpdater_pendingRelaunchVersion", LaunchHarness.RunningVersion));

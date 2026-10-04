@@ -515,6 +515,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-UPDATE-083")] // App/Views/Settings/SettingsView.swift:985-987
     [Trait("Req", "UI-SETTINGS-070")] // App/Views/Settings/SettingsView.swift:985-987
     [Trait("Req", "UI-UPDATE-020")] // App/Views/Settings/SettingsView.swift:985-987
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-002: the re-open path from the About page's Show button
+    [Trait("Req", "UI-LAUNCH-002")] // App/Views/Settings/SettingsView.swift:985-987
     public void About_Show_replays_all_eight_tour_pages_even_when_the_tour_was_already_seen() => WithView(() => new AboutSettingsPage(), (view, model, _) =>
     {
         model.Settings.HasSeenTour = true; Sync(); try { Click(Button(Row(((StackPanel)((AboutSettingsPage)view).Child!).Children[1], "Welcome tour"), "Show")); Sync(); var window = Field<Avalonia.Controls.Window>(Marrow.App.Views.Tour.TourWindowController.Shared, "window"); Assert.True(window.IsVisible); Assert.Equal(8, Marrow.App.Views.Tour.Tour.Pages.Count); }
