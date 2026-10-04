@@ -204,6 +204,15 @@ public sealed class WindowManager
         // :47 window.frame, for the HWND the visible frame and the invisible strip around it (WindowInvisibleBorder), in points.
         var strip = WindowInvisibleBorder.Pixels.Current(window, scale) / scale;
         var frame = FrameSizeOf(window) + new Avalonia.Size(2 * strip, strip);
+        // The Settings HWND is centred on the HWND centre of the main window moved to the visible centre of the main window
+        // (+ strip / 2 for the bottom strip the Settings frame carries). A normal main HWND keeps its strip on the left, the
+        // right and the bottom, so its visible centre lies strip / 2 above its HWND centre; a MAXIMISED one has the strip on
+        // all four sides (Avalonia's WM_NCCALCSIZE maximise branch insets the client by the border on every side), so its HWND
+        // centre is its visible centre. The shift is in AppKit's y (up): a lower HWND centre is a smaller y.
+        var mainStrip = WindowInvisibleBorder.Pixels.Current(main, scale) / scale;
+        var mainTop = main.WindowState == WindowState.Maximized ? mainStrip : 0;
+        var shiftDown = (mainTop - mainStrip + strip) / 2;
+        parent = parent.WithY(parent.Y - shiftDown);
         Rect? visible = null;
         // :50 (main.screen ?? NSScreen.main)?.visibleFrame: the working area (the taskbar and app bars left out) of the
         // screen the main window is on, else the primary screen; with no screen at all the clamp is skipped.

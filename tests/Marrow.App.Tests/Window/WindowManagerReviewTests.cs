@@ -37,6 +37,7 @@ public sealed class WindowManagerReviewTests(HeadlessSession headless) : Setting
             var primary = SettingsScreenScope.Monitor(new PixelRect(0, 0, 1920, 1080), new PixelRect(0, 0, 1920, 1040), primary: true);
             using var screens = new SettingsScreenScope(main, [primary], primary);
             main.Position = new PixelPoint(-8, -8);
+            main.WindowState = WindowState.Maximized; // the state that makes the strip lie on all four sides
             Assert.True(main.IsVisible);
             Assert.NotEqual(WindowState.Minimized, main.WindowState);
 
