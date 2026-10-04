@@ -247,6 +247,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             Assert.True(window.CanMinimize); // .miniaturizable
             Assert.Equal(WindowDecorations.Full, window.WindowDecorations); // .titled, .closable (ED-063)
             Assert.True(window.ExtendClientAreaToDecorationsHint); // .fullSizeContentView
+            Assert.Equal(44, window.ExtendClientAreaTitleBarHeightHint); // PR-WIN-007 windows_path, ED-063: a 44 px title bar band
         }
     });
 

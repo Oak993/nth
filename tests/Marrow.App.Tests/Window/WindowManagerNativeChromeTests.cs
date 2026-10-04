@@ -64,19 +64,21 @@ public sealed partial class WindowManagerNativeTests
     private struct NativeAnimationInfo { public uint Size; public int MinAnimate; }
 
     // A window shown over a plain backdrop and then hidden: the screen under its middle is sampled as fast as it can be
-    // read, and the samples that are neither the window's colour nor the backdrop's are the system's fade-out (DWM's
-    // transition: a window hidden with transitions disabled is gone in one composed frame).
-    private int FadeSamples(AvaloniaWindow window, PixelPoint at)
+    // read. The time from the last sample of the window's colour to the first of the backdrop's, and the samples between them,
+    // are the system's fade-out (DWM's transition): measured on this PC 130 to 150 ms and 12 to 31 samples for a window with
+    // its transitions on, 5 to 8 ms and none for one with them forced off (one composed frame).
+    private (int Between, double Milliseconds, int Samples) FadeSamples(AvaloniaWindow window, PixelPoint at)
     {
         using var sampler = new Sampler(at);
         Thread.Sleep(300);
         native.OnUi(window.Hide);
         Thread.Sleep(700);
         var samples = sampler.Stop();
-        Assert.True(samples.Length > 100, $"{samples.Length} samples");
         Assert.Contains(samples, sample => sample.Mean > 245); // the window was seen, white
         Assert.Contains(samples, sample => sample.Mean < 115); // and then the backdrop
-        return samples.Count(sample => sample.Mean is > 115 and < 245);
+        var lastWhite = samples.Last(sample => sample.Mean > 245);
+        var firstBackdrop = samples.First(sample => sample.Milliseconds > lastWhite.Milliseconds && sample.Mean < 115);
+        return (samples.Count(sample => sample.Mean is > 115 and < 245), firstBackdrop.Milliseconds - lastWhite.Milliseconds, samples.Length);
     }
 
     [Fact]
@@ -135,7 +137,7 @@ public sealed partial class WindowManagerNativeTests
         var forced = 1;
         Assert.Equal(0, DwmSetWindowAttribute(native.OnUi(() => scratch.TryGetPlatformHandle()!.Handle), DwmwaTransitionsForceDisabled, ref forced, sizeof(int)));
         var cut = FadeSamples(scratch, inside);
-        Assert.True(cut <= 3, $"the control window with transitions disabled still faded: {cut} samples");
+        Assert.True(cut.Milliseconds <= 40 && cut.Between <= 2, $"the control window with transitions disabled still faded: {cut}");
 
         // the same hide on a window of the same kind with transitions left alone fades (the control, enabled)
         var control = native.OnUi(() =>
@@ -147,14 +149,13 @@ public sealed partial class WindowManagerNativeTests
         });
         Place(control, 800 / screen.Scaling, 500 / screen.Scaling);
         var faded = FadeSamples(control, inside);
-        Assert.True(faded >= 10, $"a window with transitions enabled faded in {faded} samples only");
-
+        Assert.True(faded.Milliseconds >= 80 && faded.Between >= 4, $"a window with transitions enabled was cut: {faded}");
         // the factory's own windows, as the app makes them: Settings (its close hides it, :98) and main
         foreach (var (window, name) in new[] { (subject.Settings, "Settings"), (subject.Main, "main") })
         {
             Place(window, name == "Settings" ? 780 : 880, name == "Settings" ? 580 : 570);
             var factory = FadeSamples(window, inside);
-            Assert.True(factory >= 10, $"the factory {name} window was cut, not faded: {factory} samples");
+            Assert.True(factory.Milliseconds >= 80 && factory.Between >= 4, $"the factory {name} window was cut, not faded: {factory}");
         }
         GC.KeepAlive(backdrop);
     });
