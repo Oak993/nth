@@ -937,7 +937,7 @@ internal sealed class AboutSettingsPage : Decorator
         return new StackPanel { Children =
         {
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(16), Children = { icon, labels } }, new ChromeRowDivider(),
-            new ChromeRow("Welcome tour", () => PlainControls.Button(new TextBlock { Text = "Show" }, () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this))).ChromeGlassCapsule(), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
+            new ChromeRow("Welcome tour", () => SmallAccentGlassButton.Create("Show", () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this)), true), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
             new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(13)),
             new ChromeRowDivider(), // :996
             new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(12)), // :997-1002, OD-0012 F1, H (OD-0072).
@@ -953,7 +953,7 @@ internal sealed class LicensesRow : Decorator
     private static readonly Lazy<Dictionary<string, string>> texts = new(() => files.ToDictionary(file => file.Resource, file => Read(file.Resource))); // :1046-1056
     public LicensesRow()
     {
-        var state = new PresentedState(); var button = PlainControls.Button(new TextBlock { Text = "Show" }, () => state.IsPresented = true);
+        var state = new PresentedState(); var button = SmallAccentGlassButton.Create("Show", () => state.IsPresented = true, true); // :1020-1021 .buttonStyle(.glass).controlSize(.small), ED-266
         var popup = PlainControls.Popover(button, new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value), () =>
         {
             var stack = new StackPanel { Spacing = 18, Margin = new Thickness(18) };
@@ -964,7 +964,7 @@ internal sealed class LicensesRow : Decorator
             }
             return new ScrollViewer { Width = 480, Height = 440, Content = stack, HorizontalContentAlignment = HorizontalAlignment.Left }.PresentedChrome(); // :1043
         });
-        Child = new ChromeRow("Licenses", () => new Panel { Children = { button.ChromeGlassCapsule(), popup } }, "AGPL-3.0 with attribution terms, and the notices for what the app builds on."); // :1019-1042
+        Child = new ChromeRow("Licenses", () => new Panel { Children = { button, popup } }, "AGPL-3.0 with attribution terms, and the notices for what the app builds on."); // :1019-1042
     }
 
     // :1077-1079 private static func text(of:) -> String
