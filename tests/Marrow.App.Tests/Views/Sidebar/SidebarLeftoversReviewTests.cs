@@ -167,4 +167,69 @@ public sealed class SidebarLeftoversReviewTests(HeadlessSession headless)
         }
         finally { window.Close(); }
     });
+
+    // Round 2 (c62d754a9, ONE face updated in place). The lead's question (a): does the project name hold its place while the
+    // folder and branch marks crossfade? SidebarView.swift:2054-2058 `HStack(spacing: 4) { Image(systemName: ...); Text(...) }`
+    // puts the name 4 pt after the mark's frame. In the port both marks are the same 12 pt square (the Lucide marks of
+    // OD-0010), held in one Panel while they crossfade, so the name has nothing to move for: it must not move in any frame,
+    // in either direction. (Measured headless: the name stays at (24, 26) in the window on every frame.)
+    [Theory]
+    [Trait("Req", "PR-SIDEBAR-070")]
+    [Trait("Req", "UI-SIDEBAR-019")]
+    [InlineData(false)] // folder -> branch
+    [InlineData(true)] // branch -> folder
+    public void The_project_name_holds_its_place_in_every_frame_while_the_folder_and_branch_marks_crossfade(bool back) => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        Point Name() => rig.Label().TranslatePoint(default, rig.Window)!.Value;
+        if (back)
+        {
+            rig.Harness.Main.OnMain(() => rig.Model.UpdateThread(rig.Thread.Id, t => t with { WorktreePath = "C:\\wt" })); // at once
+            rig.Tick(16);
+        }
+        var start = rig.Harness.Main.OnMain(() => { rig.Window.UpdateLayout(); return Name(); });
+        rig.Harness.Main.OnMain(() => Transaction.WithAnimation(Chrome.Hover, () =>
+            rig.Model.UpdateThread(rig.Thread.Id, t => t with { WorktreePath = back ? null : "C:\\wt" })));
+        var sawBoth = false;
+        for (var step = 0; step < 14; step++)
+        {
+            rig.Tick(16);
+            rig.Harness.Main.OnMain(() =>
+            {
+                rig.Window.UpdateLayout();
+                sawBoth |= LogicalQuery.SelfAndDescendants<SwiftImage>(rig.Face()).Count() == 2;
+                var now = Name();
+                Assert.True(Math.Abs(now.X - start.X) < 0.01 && Math.Abs(now.Y - start.Y) < 0.01, $"the name moved from {start} to {now} on frame {step}");
+            });
+        }
+        Assert.True(sawBoth, "the marks crossfaded (both drawn on some frame)");
+    });
+
+    // The lead's question (b), answered headless: the face eases the title's weight 400 -> 500 as a NUMBER (ApplyWeight
+    // rounds it to an int FontWeight), but the embedded Inter is static faces, so nothing in between exists to draw.
+    // Avalonia's matching of an in-between weight against fonts:Inter#Inter (FontManager.TryGetGlyphTypeface, the face
+    // the TextBlock is drawn with) does not take the nearer face: on this ease it gave 413 -> Inter Bold (700) and
+    // 425..498 -> Inter SemiBold (600); a standalone probe gave Bold for 410/440/451/460/490 and Medium only at 450, and
+    // its 192-dpi renders of those weights matched neither the 400 nor the 500 render. So for most of the 0.1 s the title
+    // is drawn one or two weights PAST the source's .medium (:2041), then drops back to Medium. Whatever the Mac draws
+    // between the two (SF is a variable font; the pinned source cannot say), it never goes past .medium. FAILS on c62d754a9.
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-065")]
+    public void REVIEW_the_title_easing_from_regular_to_medium_is_never_drawn_in_a_face_outside_regular_and_medium() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        var drawn = new List<string>();
+        void Sample() => rig.Harness.Main.OnMain(() =>
+        {
+            var title = rig.Title();
+            Assert.True(FontManager.Current.TryGetGlyphTypeface(new Typeface(title.FontFamily, title.FontStyle, title.FontWeight), out var face));
+            drawn.Add((int)title.FontWeight + "->" + (int)face!.Weight);
+        });
+        Sample(); // 400 -> Inter Regular
+        rig.Start(FaceProperty.Weight); // :2041 an unread thread's title turns medium, in Chrome.hover
+        for (var step = 0; step < 16; step++) { rig.Tick(8); Sample(); }
+        Assert.Equal("400->400", drawn[0]);
+        Assert.Equal("500->500", drawn[^1]); // at rest on Inter Medium: the reads are the right ones
+        Assert.All(drawn, entry => Assert.True(entry.EndsWith("->400", StringComparison.Ordinal) || entry.EndsWith("->500", StringComparison.Ordinal), string.Join(", ", drawn)));
+    });
 }
