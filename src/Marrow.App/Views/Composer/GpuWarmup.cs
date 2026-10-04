@@ -1,15 +1,30 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Rendering.Composition;
 using Avalonia.Skia;
-using SkiaSharp;
+using Avalonia.Styling;
 using Avalonia.Threading;
+using Marrow.App.Port.FirstRun;
+using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Support;
 using Marrow.UI.Port;
+using Marrow.UI.Port.ComposerLights;
+using SkiaSharp;
 
 namespace Marrow.App.Views.Composer;
 
+// GR-1 (BUILD-PLAN 2.2; OD-0096 and the OD-0098 amendments; ED-252): the warm-up is a REGISTRY. Each entry is a GpuProgram: a
+// program drawn on the render thread (GpuProgram.Draw: it is handed the window's GPU context and scaling, draws once offscreen
+// into surfaces of its own and leaves nothing on screen) or a step of other work (GpuProgram.Work: awaited on the UI thread, in
+// a first-run warm-up only, never in the idle fallback; the voice hardware check). Each names the first-run step it belongs to
+// (FirstRunStep: id, W1's name, order); the registry keeps entries in step order, then registration order. The jewel knob's
+// four programs, the composer light's three, the slider liquid's and the strike's are registered here (Builtins); a program or
+// step another unit adds (the voice orbs, a new strike, the voice hardware check) registers from its own file with Register,
+// and joins every later warm-up and FirstRunPreparation's plan without this file being edited. The cache entries a warm state
+// needs (IsWarm, the marker) are counted over the programs that draw; a work step makes none.
+//
 // OD-0090 / ED-252 (lead's rulings, 2026-10-03, under the owner's zero-stutter bar): on ANGLE (D3D11) the knob's programs
 // compile on their first draw, so the first open of the effort popover would hitch. GpuWarmup prepares them ahead, as a
 // reusable service:
@@ -41,38 +56,118 @@ namespace Marrow.App.Views.Composer;
 /// idle frame and was forced at the cap.</summary>
 public sealed record GpuWarmupStep(int Index, int Count, string Program, double Milliseconds, bool Forced, string StepId = "");
 
-/// <summary>GR-1 skeleton.</summary>
+/// <summary>What a drawn program is handed (the render thread): the window's GPU context (null: the CPU renderer, or a test
+/// pretending a GPU) and the window's render scaling.</summary>
 public readonly record struct GpuWarmContext(GRContext? Gpu, double Scaling);
 
-/// <summary>GR-1 skeleton.</summary>
+/// <summary>
+/// One entry of the warm-up's registry (see the file note): a program drawn on the render thread (<see cref="Draw"/>) or a step
+/// of other work awaited on the UI thread (<see cref="Work"/>), and the first-run step it belongs to.
+/// </summary>
 public sealed class GpuProgram
 {
-    private GpuProgram(string name, Marrow.App.Port.FirstRun.FirstRunStep step) { Name = name; Step = step; }
+    private readonly Action<GpuWarmContext>? drawing;
+    private readonly Func<CancellationToken, Task>? working;
+
+    private GpuProgram(string name, FirstRunStep step, Action<GpuWarmContext>? drawing, Func<CancellationToken, Task>? working)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(step);
+        Name = name;
+        Step = step;
+        this.drawing = drawing;
+        this.working = working;
+    }
+
+    /// <summary>The program's name, as the warm-up's reports give it (unique in the registry).</summary>
     public string Name { get; }
-    public Marrow.App.Port.FirstRun.FirstRunStep Step { get; }
-    public bool IsWork => false;
-    public static GpuProgram Draw(string name, Marrow.App.Port.FirstRun.FirstRunStep step, Action<GpuWarmContext> draw) => new(name, step);
-    public static GpuProgram Work(string name, Marrow.App.Port.FirstRun.FirstRunStep step, Func<CancellationToken, Task> run) => new(name, step);
+
+    /// <summary>The first-run step it belongs to.</summary>
+    public FirstRunStep Step { get; }
+
+    /// <summary>True for a step of other work, false for a program that draws (and so makes its cache entry).</summary>
+    public bool IsWork => working is not null;
+
+    internal Action<GpuWarmContext> Drawing => drawing ?? throw new InvalidOperationException("GPU warm-up: " + Name + " is a work step.");
+    internal Func<CancellationToken, Task> Working => working ?? throw new InvalidOperationException("GPU warm-up: " + Name + " draws.");
+
+    /// <summary>A program drawn on the render thread: <paramref name="draw"/> draws it once offscreen (a frame's step) and
+    /// leaves nothing on screen. A throw faults the warm-up (it never completes as if prepared).</summary>
+    public static GpuProgram Draw(string name, FirstRunStep step, Action<GpuWarmContext> draw)
+    {
+        ArgumentNullException.ThrowIfNull(draw);
+        return new(name, step, draw, null);
+    }
+
+    /// <summary>A step of other work (the voice hardware check): awaited on the UI thread in a first-run warm-up, in its step's
+    /// place; the idle fallback never runs it. It makes no cache entry.</summary>
+    public static GpuProgram Work(string name, FirstRunStep step, Func<CancellationToken, Task> run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        return new(name, step, null, run);
+    }
 }
 
 /// <summary>Prepares the knob's GPU programs ahead of their first use (see the file note).</summary>
 public static class GpuWarmup
 {
-    /// <summary>The programs, one step each.</summary>
-    public static IReadOnlyList<string> Programs { get; } = ["noise", "fluid", "orb", "page"];
+    /// <summary>The programs that draw, in the order a warm-up draws them, one step each.</summary>
+    public static IReadOnlyList<string> Programs => Registered.Where(p => !p.IsWork).Select(p => p.Name).ToArray();
 
-    /// <summary>GR-1 skeleton.</summary>
-    public static IReadOnlyList<GpuProgram> Registered => [];
+    // the registry, kept in step order then registration order; a snapshot replaced whole under the lock, so a reader (a run
+    // in the middle of a pass) never sees it change under it
+    private static readonly List<GpuProgram> registry = [];
+    private static GpuProgram[] registered = [];
 
-    internal enum LightKind { Rotate, Moving, Aura }
-    internal static Marrow.Core.Models.ComposerLights.ComposerLightAnimator LightAnimator(LightKind kind) => throw new NotImplementedException();
-    internal static LiquidTrack.Frame LiquidFrame(bool strike) => throw new NotImplementedException();
+    /// <summary>Every entry of the registry (programs that draw and work steps), in the order a warm-up runs them: by step
+    /// order, then by registration.</summary>
+    public static IReadOnlyList<GpuProgram> Registered => Volatile.Read(ref registered);
 
-    /// <summary>GR-1 skeleton.</summary>
-    public static IDisposable Register(GpuProgram program) => throw new NotImplementedException();
+    /// <summary>
+    /// Adds a program or step to the registry; it joins the warm-ups that begin after it (a pass takes the registry as it is
+    /// when it begins) and FirstRunPreparation's plan. Disposing the result removes it (once). Refused (ArgumentException):
+    /// a name already registered, a step id given another name or order than its first registration gave it, and an order
+    /// that another step already has (a step's programs stay together).
+    /// </summary>
+    public static IDisposable Register(GpuProgram program)
+    {
+        ArgumentNullException.ThrowIfNull(program);
+        lock (registry)
+        {
+            if (registry.Any(p => p.Name == program.Name))
+                throw new ArgumentException("GPU warm-up: a program named " + program.Name + " is already registered.", nameof(program));
+            if (registry.Any(p => p.Step.Id == program.Step.Id && p.Step != program.Step))
+                throw new ArgumentException("GPU warm-up: the step " + program.Step.Id + " is already registered with another name or order.", nameof(program));
+            if (registry.FirstOrDefault(p => p.Step.Order == program.Step.Order && p.Step.Id != program.Step.Id) is { } sharing)
+                throw new ArgumentException("GPU warm-up: the order " + program.Step.Order + " belongs to the step " + sharing.Step.Id + ".", nameof(program));
+            registry.Insert(registry.FindLastIndex(p => p.Step.Order <= program.Step.Order) + 1, program);
+            Volatile.Write(ref registered, registry.ToArray());
+        }
+        return new Registration(program);
+    }
 
-    /// <summary>How many steps a warm-up takes.</summary>
-    public static int Steps => Programs.Count;
+    private sealed class Registration(GpuProgram program) : IDisposable
+    {
+        private int disposed;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref disposed, 1) != 0) return;
+            lock (registry)
+            {
+                registry.Remove(program);
+                Volatile.Write(ref registered, registry.ToArray());
+            }
+        }
+    }
+
+    static GpuWarmup()
+    {
+        foreach (var program in Builtins()) Register(program);
+    }
+
+    /// <summary>How many steps a warm-up takes: the programs that draw (a work step is no program).</summary>
+    public static int Steps => Registered.Count(p => !p.IsWork);
 
     /// <summary>How long the idle fallback waits for a quiet frame before it steps anyway (tests shorten it).</summary>
     public static TimeSpan IdleCap { get; internal set; } = TimeSpan.FromSeconds(3);
@@ -198,13 +293,21 @@ public static class GpuWarmup
                 if (lines[1].Length == 0 || Path.GetFileName(lines[1]) != lines[1]) return false; // a folder's name, nothing else
                 if (GpuProgramCache.Machine() is not { Length: > 0 } here || lines[2] != here) return false;
                 var folder = Path.Combine(root, lines[1]);
+                var steps = Steps;
                 return Directory.Exists(folder) && GpuProgramCache.MadeHere(folder, here)
-                    && Directory.EnumerateFiles(folder, "*.bin").Take(Steps).Count() == Steps;
+                    && Directory.EnumerateFiles(folder, "*.bin").Take(steps).Count() == steps;
             }
             catch (IOException) { return false; }
             catch (UnauthorizedAccessException) { return false; }
         }
     }
+
+    /// <summary>
+    /// The first-run step "Graphics card" (FirstRunPreparation): reads the identity of the graphics adapter the app draws with and
+    /// its driver (DXGI) on a pool thread, ahead of the render thread's install of the program cache. A warm-up's pass does it
+    /// again as it begins (it is cheap), so a pass after a new GPU context names the adapter as it is then.
+    /// </summary>
+    internal static Task PrepareGraphicsAsync(CancellationToken cancellation = default) => Task.Run(GpuProgramCache.Prepare, cancellation);
 
     /// <summary>
     /// Warms the programs in <paramref name="window"/> now, one step a frame (no waiting for idle frames: the caller shows a
@@ -322,23 +425,40 @@ public static class GpuWarmup
 
         private async Task Steps(TopLevel top, bool idle, CancellationToken cancellation)
         {
+            var worked = new HashSet<GpuProgram>(); // work steps done in this run: a pass started again does not repeat them
             do
             {
                 again = false;
                 // the SkSL compile and the identity of the adapter drawn with (DXGI), on a pool thread, each pass (a pass
                 // after a new GPU context installs the cache on it naming the adapter as it is then)
                 await Task.Run(() => { JewelKnobShader.Prepare(); GpuProgramCache.Prepare(); }, cancellation);
-                var (size, _) = JewelOrb.RenderSize(EffortSlider.ThumbSize, top.RenderScaling);
+                // GR-1: the registry as it is as the pass begins; the idle fallback draws only (a work step is a first run's)
+                var items = Registered.Where(p => !idle || !p.IsWork).ToArray();
+                var drawn = items.Count(p => !p.IsWork);
+                var scaling = top.RenderScaling;
                 var entries = GpuProgramCache.Entries;
                 var since = DateTime.UtcNow; // the cap counts from the warm-up's start: once it ran out, one step a frame
                 var restarted = false;
-                for (var step = 0; step < Programs.Count; step++)
+                var gpuLess = false;
+                for (var step = 0; step < items.Length; step++)
                 {
+                    var item = items[step];
                     cancellation.ThrowIfCancellationRequested();
+                    if (item.IsWork)
+                    {
+                        if (!worked.Add(item)) continue;
+                        var begun = System.Diagnostics.Stopwatch.GetTimestamp();
+                        await item.Working(cancellation); // a throw faults the run: never complete as if prepared
+                        var made = new GpuWarmupStep(step, items.Length, item.Name, System.Diagnostics.Stopwatch.GetElapsedTime(begun).TotalMilliseconds, false, item.Step.Id);
+                        Record(made);
+                        progress?.Report(made);
+                        continue;
+                    }
+                    if (gpuLess) continue; // the CPU renderer: nothing to compile ahead (the work steps still run)
                     var forced = idle && !hurry && await CapRanOut(top, since, cancellation);
                     if (TopLevel.GetTopLevel(host) != top || top.PlatformImpl is null)
-                        throw new InvalidOperationException("GPU warm-up: its window closed (or its host left it) before the " + Programs[step] + " step.");
-                    var request = new StepRequest(size, step);
+                        throw new InvalidOperationException("GPU warm-up: its window closed (or its host left it) before the " + item.Name + " step.");
+                    var request = new StepRequest(item, scaling);
                     Interlocked.Increment(ref stepsAsked);
                     visual!.SendHandlerMessage(request);
                     StepAnswer answer;
@@ -349,19 +469,20 @@ public static class GpuWarmup
                         // primer compiles nothing for this request, it only says so, and the fallback starts again from there
                         request.Withdrawn = true;
                         if (idle) WhenDrawnAgain(request);
-                        throw new TimeoutException($"GPU warm-up: the {Programs[step]} step was not drawn within {StepTimeout.TotalSeconds:0.###} s (its window minimised or hidden, or its host hidden).");
+                        throw new TimeoutException($"GPU warm-up: the {item.Name} step was not drawn within {StepTimeout.TotalSeconds:0.###} s (its window minimised or hidden, or its host hidden).");
                     }
                     catch (OperationCanceledException) { request.Withdrawn = true; throw; }
                     // drawn on a new GPU context: the programs made so far are on the old one, so the run starts again
                     if (answer.NewContext) { restarted = again = true; break; }
-                    if (!answer.Gpu) return; // the CPU renderer: nothing to compile ahead
-                    var report = new GpuWarmupStep(step, Programs.Count, Programs[step], answer.Ms, forced);
+                    if (!answer.Gpu) { gpuLess = true; continue; }
+                    var report = new GpuWarmupStep(step, items.Length, item.Name, answer.Ms, forced, item.Step.Id);
                     Record(report);
                     progress?.Report(report);
                 }
-                // warm only when the cache took (or gave back) an entry for every step: the programs are on disk (the marker and
-                // the clean-up of other builds' folders on a pool thread, the UI thread's frames untouched)
-                if (!restarted && GpuProgramCache.Folder is { } cached && GpuProgramCache.Entries - entries >= Programs.Count)
+                if (gpuLess) return;
+                // warm only when the cache took (or gave back) an entry for every program that draws: the programs are on disk
+                // (the marker and the clean-up of other builds' folders on a pool thread, the UI thread's frames untouched)
+                if (!restarted && GpuProgramCache.Folder is { } cached && GpuProgramCache.Entries - entries >= drawn)
                     await Task.Run(() => GpuProgramCache.MarkWarm(cached), CancellationToken.None);
             }
             while (again);
@@ -388,15 +509,119 @@ public static class GpuWarmup
         }
     }
 
+    // ---------- the programs registered here (GR-1) ----------
+    // Each draws once, offscreen, through its owner's own entry point, so the owner's first visible draw finds the programs made
+    // (and, on ANGLE, their binaries kept by GpuProgramCache). ENGINEERING DECISION (UNVERIFIED on a GPU until the supervised
+    // native session): what a warm-up draws is a representative frame of each, so a program is made for each shader the owner
+    // draws with: the composer light's three shader families, the liquid's passes with Grok's oil and its bubbles, and the
+    // lightning with the lit glass. The target is an offscreen RGBA surface (the knob's own way), not the window's framebuffer.
+
+    private static IEnumerable<GpuProgram> Builtins()
+    {
+        // the jewel knob's four programs (OD-0090, ED-252): the noise, the fluid, the orb, the page with the shadows and the blit
+        string[] knob = ["noise", "fluid", "orb", "page"];
+        for (var k = 0; k < knob.Length; k++)
+        {
+            var step = k;
+            yield return GpuProgram.Draw(knob[k], FirstRunSteps.Knob,
+                context => JewelKnobRenderer.For(context.Gpu, JewelOrb.RenderSize(EffortSlider.ThumbSize, context.Scaling).Size).Warm(step));
+        }
+        // the composer light (ED-251): Border beam's rotating beam (Large, the default: its blob bake and its shader), its moving
+        // beam (Line, and the two pulses) and the Uiverse light
+        yield return GpuProgram.Draw("light-rotate", FirstRunSteps.Lights, context => DrawLight(context, LightKind.Rotate));
+        yield return GpuProgram.Draw("light-moving", FirstRunSteps.Lights, context => DrawLight(context, LightKind.Moving));
+        yield return GpuProgram.Draw("light-aura", FirstRunSteps.Lights, context => DrawLight(context, LightKind.Aura));
+        // the slider liquid (OD-0051, OD-0075): every pass of the tube, Grok's oil and the bubbles
+        yield return GpuProgram.Draw("liquid", FirstRunSteps.Liquid, context => DrawLiquid(context, strike: false));
+        // the fast mode's lightning (OD-0073): the strike over the liquid and the glass that lights with it
+        yield return GpuProgram.Draw("strike", FirstRunSteps.Strike, context => DrawLiquid(context, strike: true));
+    }
+
+    /// <summary>The composer lights a warm-up draws (tests read what each draws).</summary>
+    internal enum LightKind { Rotate, Moving, Aura }
+
+    private const double LightWidth = 164, LightHeight = 52;
+
+    /// <summary>The light a warm-up draws for one shader family: its default settings, at rest, in a composer-sized box.</summary>
+    internal static ComposerLightAnimator LightAnimator(LightKind kind)
+    {
+        var settings = kind switch
+        {
+            LightKind.Moving => ComposerLightSettings.Default with { Beam = BorderBeamOptions.Default with { Type = BeamType.Line } },
+            LightKind.Aura => ComposerLightSettings.Default with { Style = ComposerLightStyle.Aura },
+            _ => ComposerLightSettings.Default,
+        };
+        return new ComposerLightAnimator(settings, ComposerLightPhase.Rest, dark: true, LightWidth, LightHeight, reduceMotion: false);
+    }
+
+    // the composer light's own renderer into a small offscreen surface: its first draw bakes (the blurred rectangles, the blob
+    // fields) and runs the family's shader
+    private static void DrawLight(GpuWarmContext context, LightKind kind)
+    {
+        var light = LightAnimator(kind);
+        using var renderer = new ComposerLightRenderer();
+        var info = new SKImageInfo(16, 16, SKColorType.Rgba8888, SKAlphaType.Premul);
+        using var surface = (context.Gpu is { } gpu ? SKSurface.Create(gpu, false, info) : null) ?? SKSurface.Create(info);
+        renderer.Draw(surface.Canvas, context.Gpu, light, (float)Math.Max(1, context.Scaling));
+    }
+
+    private const int WarmSeed = 1;
+    private static readonly Size LiquidSize = new(160, EffortSlider.TrackHeight);
+
+    private sealed record LiquidScene(Size Size, double Time, LiquidSpec Spec, SKColor[] Gradient, BubbleLanes Bubbles, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double Ink);
+
+    // a tube of Grok's (the oil sheen) at a time a bubble is rising; for the strike, the fast look with the lightning 35 ms into
+    // its first strike (the reduce-motion still)
+    private static LiquidScene Scene(bool strike, double scale)
+    {
+        var brand = strike ? EffortBrand.Claude : EffortBrand.Grok;
+        var spec = LiquidSpec.For(new TrackLook(strike ? TrackLook.Kind.Fast : TrackLook.Kind.Plain, brand));
+        var size = LiquidSize;
+        var bubbles = new BubbleLanes(WarmSeed, size.Width, size.Height);
+        var time = 0.0;
+        while (time < 30 && !Enumerable.Range(0, bubbles.Count).Any(i => bubbles.At(i, time) is not null)) time += 0.25;
+        IReadOnlyList<StrikeOp>? lightning = null;
+        var ink = 0.0;
+        if (strike)
+        {
+            var tint = StrikeTint.For(brand);
+            var geometry = new StrikeGeometry(size.Width, size.Height, size.Width - EffortSlider.ThumbSize / 2, EffortSlider.ThumbSize / 2);
+            lightning = new StrikeChannels(WarmSeed).Scene(geometry, Strike.StillTime(WarmSeed), tint);
+            ink = tint.Ink;
+        }
+        return new LiquidScene(size, time, spec, LiquidTrack.GradientFor(spec, (int)Math.Ceiling(size.Width * scale), ThemeVariant.Dark), bubbles,
+            LiquidFlow.At(time, strike), lightning, ink);
+    }
+
+    /// <summary>The frame a warm-up draws for the liquid (<paramref name="strike"/> false) or the strike (tests read what it holds).</summary>
+    internal static LiquidTrack.Frame LiquidFrame(bool strike, double scale = 1)
+    {
+        var scene = Scene(strike, scale);
+        return new LiquidTrack.Frame(scene.Size, scene.Size.Width, scene.Time, scene.Gradient, scene.Spec, scene.Bubbles, false,
+            scene.Spec.Segments.Select(segment => segment.Strand.Resolve(ThemeVariant.Dark)).ToArray(), scene.Flow, scene.Strike, scene.Ink);
+    }
+
+    // the liquid's own public entry point, LiquidTrack.Draw, into a bitmap's drawing context: its custom operation draws at once,
+    // here on the render thread, through the Skia renderer on the window's GPU context
+    private static void DrawLiquid(GpuWarmContext context, bool strike)
+    {
+        var scale = Math.Max(1, context.Scaling);
+        var scene = Scene(strike, scale);
+        var pixels = new PixelSize((int)Math.Ceiling(scene.Size.Width * scale), (int)Math.Ceiling(scene.Size.Height * scale));
+        using var bitmap = new RenderTargetBitmap(pixels, new Vector(96 * scale, 96 * scale));
+        using var drawing = bitmap.CreateDrawingContext();
+        LiquidTrack.Draw(drawing, scene.Size, scene.Size.Width, scene.Time, scene.Spec, scene.Gradient, scene.Bubbles, false, ThemeVariant.Dark, scene.Flow, scene.Strike, scene.Ink);
+    }
+
     // a step's answer: its time on the render thread, whether a GPU context drew it, and whether that context was new (the
     // step then compiled nothing and its run starts again)
     private readonly record struct StepAnswer(double Ms, bool Gpu, bool NewContext = false);
 
     // one step asked of the render thread; withdrawn when its driver stopped waiting for it
-    private sealed class StepRequest(int size, int step)
+    private sealed class StepRequest(GpuProgram program, double scaling)
     {
-        public int Size { get; } = size;
-        public int Step { get; } = step;
+        public GpuProgram Program { get; } = program;
+        public double Scaling { get; } = scaling;
         public TaskCompletionSource<StepAnswer> Answer { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private volatile bool withdrawn;
         public bool Withdrawn { get => withdrawn; set => withdrawn = value; }
@@ -459,8 +684,17 @@ public static class GpuWarmup
             if (gpu is not null) GpuProgramCache.EnsureInstalled(gpu.Handle); // before the knob's programs are first linked: a later launch finds them made
             var start = System.Diagnostics.Stopwatch.GetTimestamp();
             Interlocked.CompareExchange(ref FirstStepTicks, Environment.TickCount64, 0);
-            JewelKnobRenderer.For(gpu, request.Size).Warm(request.Step);
-            gpu?.Flush(); // the compile happens here, in this frame (one with nothing animating, for the idle fallback)
+            try
+            {
+                request.Program.Drawing(new GpuWarmContext(gpu, request.Scaling));
+                gpu?.Flush(); // the compile happens here, in this frame (one with nothing animating, for the idle fallback)
+            }
+            catch (Exception error)
+            {
+                // a program that did not draw faults the warm-up (never complete as if prepared); the render thread goes on
+                request.Answer.TrySetException(error);
+                return;
+            }
             var ms = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
             Interlocked.Increment(ref stepsDone);
             request.Answer.TrySetResult(new StepAnswer(ms, true));

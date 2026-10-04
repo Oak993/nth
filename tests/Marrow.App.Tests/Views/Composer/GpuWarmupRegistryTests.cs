@@ -139,7 +139,7 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "GR-1")]
     [Trait("Spec", "GR-1.registry")]
-    public void A_program_registered_later_is_drawn_in_its_place_with_the_render_thread_context() => headless.OnUiThread(() =>
+    public void A_program_registered_later_is_drawn_in_its_place_with_the_windows_scaling() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
         GpuWarmup.PretendGpu = true;
@@ -154,8 +154,7 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
             FramesFor(TimeSpan.FromSeconds(60), () => task.IsCompleted);
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.ToString());
             Assert.Equal(["noise", "fluid", "orb", "page", "between", "light-rotate"], reports.Select(r => r.Program).Take(6));
-            var (_, thread, scaling) = Assert.Single(drawn);
-            Assert.NotEqual(Environment.CurrentManagedThreadId, thread); // the render thread, not the UI thread
+            var (_, _, scaling) = Assert.Single(drawn); // (headless draws on the UI thread; on a window it is the render thread, GpuWarmup.Primer)
             Assert.Equal(window.RenderScaling, scaling);
         }
         finally { GpuWarmup.PretendGpu = false; window.Close(); }
