@@ -1,6 +1,6 @@
 # SK-8 delivery report
 
-Branch: `codex/f-sk-8`. Tested implementation and test revision: `04d9f8b063be93f0bca57ab2f0eecabb9f14d477`; the following documentation commit changes evidence only. Base: `origin/codex/f-sk-4`, merged `origin/codex/f-sk-5` and `origin/claude/verify-terminal-20261001`. Both engineering-decision conflict sides were retained. No SK-4/SK-5 source/test changes, no ledger status changes, and no other branch pushes.
+Branch: `codex/f-sk-8`. Tested implementation and test revision: `93bf83c9e43da6b57731f49334079aebc6bf42f4`; the following documentation commit changes evidence only. Base: `origin/codex/f-sk-4`, merged `origin/codex/f-sk-5` and `origin/claude/verify-terminal-20261001`. Both engineering-decision conflict sides were retained. No SK-4/SK-5 source/test changes, no ledger status changes, and no other branch pushes.
 
 ## Delivered
 
