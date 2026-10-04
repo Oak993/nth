@@ -3870,12 +3870,11 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // where it stands while its place (ChipSlot) closes under panelSlide and the chips after it follow, on the layout, under reduce motion
 // too (ED-282-12; Removing_the_middle_quote_fades_it_where_it_stands_...).
 //
-// STOP App.Views.Composer.ComposerView #11
-// Kind: native-only. UI-COMPOSER-029 (the attach dialog, ComposerView.swift:526-533, PromptEditor.swift:117-124). The options reach the
-// runner (multiple true, directories false, "Attach") and cancel and accept are seam-tested (B3_file_chooser_..., B3_attach_default_
-// dialog_..., B3_accepting_the_chooser_...); the real Windows common dialog is never shown headless: whether OK reads "Attach", whether
-// two files multi-select, whether a folder cannot be chosen, and what caption an empty SetTitle("") gives (OpenPanel.cs:74) need a
-// real window on a quiet PC (OD-0007).
+// STOP App.Views.Composer.ComposerView #11: RESOLVED (unit rec-composer). UI-COMPOSER-029 (the attach dialog, ComposerView.swift:526-533,
+// PromptEditor.swift:117-124). The options reach the runner (multiple true, directories false, "Attach") and cancel and accept are seam-tested
+// (B3_file_chooser_..., B3_attach_default_dialog_..., B3_accepting_the_chooser_...); on a real window the real common dialog is driven from both
+// sites by OpenPanelNativeTests: OK reads "Attach", two files multi-select and both reach the draft, a folder's name and OK open it and nothing
+// is chosen, Cancel leaves the draft. The caption an empty SetTitle("") gives (OpenPanel.cs:74) is the system's "Open" (recorded, ED-NEW-rec-composer).
 //
 // STOP App.Views.Composer.ComposerView #12: RESOLVED 2026-10-04 (unit rec-tlr, UI-CHAT-052). The foundation's SoftAppear modifier had no animatable data, so
 // SwiftTransition applied the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): every SoftAppear site arrived at full opacity at its first frame
