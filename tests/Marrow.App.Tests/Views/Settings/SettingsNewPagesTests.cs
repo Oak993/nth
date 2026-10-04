@@ -21,6 +21,13 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
 
     private static readonly string[] UpstreamTitles = ["General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
 
+    // VT-13 builds the Voice typing page (IsReady true): it is listed, in the sidebar order, right after Appearance (Q-CZ-1 A). The other four stay hidden until their units.
+    private static readonly SettingsPage[] ReadyNow = [SettingsPage.VoiceTyping];
+
+    private static readonly string[] VisibleTitles = ["General", "Hydra", "Appearance", "Voice typing", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
+
+    private static readonly string[] VisibleRaw = ["general", "hydra", "appearance", "voiceTyping", "providers", "mcp", "models", "sourceControl", "shortcuts", "archive", "about"];
+
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T1 / CZ-2.1: raw values, and AllCases puts Customization and Voice typing after Appearance; Updates takes the Tools place; Plugins sits directly above Skills
     public void The_new_pages_sit_in_the_sidebar_order_with_their_raw_values()
@@ -95,13 +102,13 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         Assert.Equal([SettingsPage.Plugins, SettingsPage.Skills], SettingsSidebar.Pages("install", allReady));
         Assert.Equal(SwiftEnum<SettingsPage>.AllCases, SettingsSidebar.Pages("", allReady));
         Assert.Empty(SettingsSidebar.Pages("glow"));
-        Assert.Empty(SettingsSidebar.Pages("dictation"));
+        Assert.Equal([SettingsPage.VoiceTyping], SettingsSidebar.Pages("dictation")); // VT-13: ready, so found
         Assert.Equal(["General", "Providers"], SettingsSidebar.Pages("credits").Select(page => page.Title));
     }
 
     [Fact]
-    [Trait("Decision", "ED-251")] // OD-0103 / V-2.6 pattern: each page is a shell whose IsReady const is false until its unit sets it
-    public void Each_new_page_is_a_shell_with_an_IsReady_const_that_is_still_false()
+    [Trait("Decision", "ED-251")] // OD-0103 / V-2.6 pattern: each page is a shell whose IsReady const is false until its unit sets it (VT-13 has set Voice typing's)
+    public void Each_new_page_has_an_IsReady_const_that_is_false_until_its_unit_sets_it()
     {
         (SettingsPage Page, string Type)[] shells =
         [
@@ -116,12 +123,12 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.NotNull(field);
             Assert.True(field.IsLiteral, name + ".IsReady is a const");
             Assert.Equal(typeof(bool), field.FieldType);
-            Assert.Equal(false, field.GetRawConstantValue());
+            Assert.Equal(ReadyNow.Contains(page), field.GetRawConstantValue());
             Assert.Equal((bool)field.GetRawConstantValue()!, page.IsReady);
             Assert.True(typeof(Control).IsAssignableFrom(type));
         }
         Assert.All(SwiftEnum<SettingsPage>.AllCases.Where(page => !NewPages.Contains(page)), page => Assert.True(page.IsReady, page.Title));
-        Assert.Equal(UpstreamRaw, SettingsSidebar.Pages("").Select(page => page.Id));
+        Assert.Equal(VisibleRaw, SettingsSidebar.Pages("").Select(page => page.Id));
     }
 
     [Fact]
@@ -163,17 +170,22 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     [Trait("Decision", "ED-251")] // hidden pages are absent from the real sidebar and from its search
     public void Hidden_pages_are_absent_from_the_sidebar_and_from_search() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
     {
-        Assert.Equal(UpstreamTitles, SettingsViewRig.RowTitles(sidebar));
-        foreach (var query in new[] { "glow", "customization", "voice typing", "dictation", "microphone", "updates", "version", "plugins", "skills", "install" })
+        Assert.Equal(VisibleTitles, SettingsViewRig.RowTitles(sidebar));
+        foreach (var query in new[] { "glow", "customization", "updates", "version", "plugins", "skills", "install" })
         {
             SettingsViewRig.Search(sidebar, query);
             var titles = SettingsViewRig.RowTitles(sidebar);
-            Assert.DoesNotContain(titles, title => title is "Customization" or "Voice typing" or "Updates" or "Plugins" or "Skills");
+            Assert.DoesNotContain(titles, title => title is "Customization" or "Updates" or "Plugins" or "Skills");
         }
         SettingsViewRig.Search(sidebar, "glow");
         Assert.Empty(SettingsViewRig.RowTitles(sidebar));
+        foreach (var query in new[] { "voice typing", "dictation", "microphone" }) // VT-13: the ready page is found by its title and its keywords
+        {
+            SettingsViewRig.Search(sidebar, query);
+            Assert.Equal(["Voice typing"], SettingsViewRig.RowTitles(sidebar));
+        }
         SettingsViewRig.Search(sidebar, "");
-        Assert.Equal(UpstreamTitles, SettingsViewRig.RowTitles(sidebar));
+        Assert.Equal(VisibleTitles, SettingsViewRig.RowTitles(sidebar));
     });
 
     [Fact]
@@ -184,7 +196,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         SettingsViewRig.Sync();
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
-        foreach (var hidden in NewPages)
+        foreach (var hidden in NewPages.Where(page => !ReadyNow.Contains(page)))
         {
             SettingsNavigation.Shared.RequestedPage = hidden;
             SettingsViewRig.Sync();

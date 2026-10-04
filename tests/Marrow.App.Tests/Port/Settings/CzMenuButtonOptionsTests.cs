@@ -39,6 +39,23 @@ public sealed class CzMenuButtonOptionsTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-312")] // a menu built with no checked item shows its own text from the first frame: nothing crossfades on arrival
+    public void A_menu_can_be_built_with_no_checked_item() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource(); using var bound = FrameClock.Source.Override(frames);
+        var menu = new CzMenuButton("Language", [("auto", "Auto-detect"), ("en", "English")], null, valueText: "Asked on first use");
+        Assert.Null(menu.SelectedId);
+        Assert.All(menu.Items, item => Assert.False(item.Checked));
+        Assert.Equal("Asked on first use", menu.ValueLabel.Text);
+        Assert.Equal(1, menu.ValueLabel.IncomingOpacity);
+        Assert.Equal(0, menu.ValueLabel.OutgoingOpacity);
+        menu.Measure(Avalonia.Size.Infinity);
+        Assert.True(menu.ValueWidth > 60);
+        Assert.Throws<ArgumentException>(() => new CzMenuButton("Language", [("auto", "Auto-detect")], null));
+    });
+
+    [Fact]
     [Trait("Decision", "ED-312")] // opening a menu with nothing checked must not throw and focuses the first item
     public void A_menu_with_no_checked_item_opens_on_its_first_item() => headless.OnUiThread(() =>
     {

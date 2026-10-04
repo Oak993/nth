@@ -33,11 +33,14 @@ public sealed class CzMenuButton : CzButton
     public double MenuOpacity => fade.Value;
     public double MenuScale => grow.Value;
     public double ValueWidth => valueWidth.Value;
-    public CzMenuButton(string title, IReadOnlyList<(string Id, string Text)> options, string selected, string detail = "") : base(title, detail)
+    /// <param name="selected">The checked item; null checks none and then <paramref name="valueText"/> is required (VT-13: the Language row under language default D).</param>
+    /// <param name="valueText">The text the button shows when it is not the checked item's.</param>
+    public CzMenuButton(string title, IReadOnlyList<(string Id, string Text)> options, string? selected, string detail = "", string? valueText = null) : base(title, detail)
     {
-        Validate(options, selected, null);
+        Validate(options, selected, valueText);
+        this.valueText = valueText;
         SelectedId = selected; Height = 28; CornerRadius = new CornerRadius(14); Padding = new Thickness(10, 0); PressScale = .97;
-        ValueLabel = new CzCrossfadeText(options.First(x => x.Id == selected).Text) { FontSize = 13 };
+        ValueLabel = new CzCrossfadeText(valueText ?? options.First(x => x.Id == selected).Text) { FontSize = 13 };
         Chevron = new CzChevron { VerticalAlignment = VerticalAlignment.Center };
         var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, VerticalAlignment = VerticalAlignment.Center };
         line.Children.Add(ValueLabel); line.Children.Add(Chevron);
