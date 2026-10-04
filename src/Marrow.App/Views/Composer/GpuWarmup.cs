@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Rendering.Composition;
 using Avalonia.Skia;
 using Avalonia.Styling;
@@ -195,6 +196,32 @@ public static class GpuWarmup
     /// <summary>How long a step waits for its window to draw it before the warm-up gives up on it.</summary>
     internal static TimeSpan StepTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
+    /// <summary>
+    /// True when the app draws on the CPU renderer: Avalonia's Win32 platform bound no graphics platform (ANGLE/D3D11 and WGL
+    /// both could not be made, so it fell back to software), and no test pretends a GPU. Known as soon as the platform is up, so
+    /// before any window is drawn (the window RunAsync is given draws with that platform). Where the platform cannot be read it is
+    /// false: the CPU marker then counts for nothing, and the GPU's marker is the only prepared state. GR-1 review round 4,
+    /// ED-NEW-f-gr-1 (18).
+    /// </summary>
+    internal static bool DrawsOnCpu => !PretendGpu && PlatformDrawsOnGpu() == false;
+
+    // Avalonia's locator holds the graphics platform the Win32 platform made (IPlatformGraphics: ANGLE, else WGL) and holds none
+    // for the software fallback. The locator's members are not in the reference assembly (PrivateApi), so it is read by
+    // reflection, as the clock above is (a test pins that the pinned Avalonia is read). null: it could not be read.
+    private static readonly System.Reflection.PropertyInfo? locatorCurrent = typeof(Avalonia.Animation.Animatable).Assembly
+        .GetType("Avalonia.AvaloniaLocator")?.GetProperty("Current", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+
+    internal static bool? PlatformDrawsOnGpu()
+    {
+        try
+        {
+            if (locatorCurrent?.GetValue(null) is not { } locator) return null;
+            var service = locator.GetType().GetMethod("GetService", [typeof(Type)]);
+            return service is null ? null : service.Invoke(locator, [typeof(IPlatformGraphics)]) is not null;
+        }
+        catch (Exception) { return null; }
+    }
+
     /// <summary>Tests only: the CPU renderer answers each step as a GPU context would (the driver's whole flow without a
     /// GPU). Never set in the app.</summary>
     internal static bool PretendGpu { get; set; }
@@ -304,8 +331,10 @@ public static class GpuWarmup
         get
         {
             if (GpuProgramCache.Root() is not { } root) return false;
-            // the CPU renderer keeps nothing: its marker (GR-1 review round 3, ED-NEW-f-gr-1 (17)) names this build and machine
-            if (GpuProgramCache.Machine() is { Length: > 0 } drawn && GpuProgramCache.WarmedOnCpu(root, drawn)) return true;
+            // the CPU renderer keeps nothing: its marker (GR-1 review round 3, ED-NEW-f-gr-1 (17)) names this build and machine, and
+            // counts only while the app draws on the CPU renderer (round 4, (18)): the machine's name reads the same whether ANGLE
+            // came up or Avalonia fell back to software, and a launch that draws on the GPU needs the GPU's marker
+            if (DrawsOnCpu && GpuProgramCache.Machine() is { Length: > 0 } drawn && GpuProgramCache.WarmedOnCpu(root, drawn)) return true;
             try
             {
                 var marker = Path.Combine(root, "warm.txt");
