@@ -30,6 +30,8 @@ public sealed class DroppyCodeAppTests
 
     [Fact]
     [Trait("Decision", "ED-002")] // App/DroppyCodeApp.swift:1-27, engineering_decisions.md ED-002
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-WIN-072: the lock refuses a second instance, so a second launch signals the running one and no second process keeps running (Program.cs; the signal is ReopenSignalTests)
+    [Trait("Req", "PR-WIN-072")] // App/AppDelegate.swift:36-39; engineering_decisions.md ED-002
     public void A_second_instance_asking_for_the_same_lock_is_refused_while_the_first_holds_it()
     {
         var name = LockName();

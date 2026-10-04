@@ -51,6 +51,8 @@ public sealed class UpdateCheckerSecondTests
     [Trait("Req", "PR-UPDATE-005")] // UpdateChecker.swift:66-70, DEVIATION OD-0012 I1
     [Trait("Req", "PR-UPDATE-014")]
     [Trait("Req", "PR-UPDATE-019")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-046: while the feed is empty a scheduled or activation check makes no request (OD-0012 I1)
+    [Trait("Req", "PR-LAUNCH-046")] // App/UpdateChecker.swift:134-149; owner_decisions.md OD-0012 I1
     public void An_empty_feed_makes_no_request_and_fails_with_the_exact_no_feed_message()
     {
         using var runtime = new TestRuntime();

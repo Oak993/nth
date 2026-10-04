@@ -308,7 +308,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     [Trait("Req", "PR-UPDATE-021")] // App/UpdateChecker.swift:178-180, :245-261
     [Trait("Req", "PR-UPDATE-023")] // App/UpdateChecker.swift:254-261; PLATFORM BOUNDARY ED-220 (4)
     [Trait("Req", "PR-UPDATE-025")] // App/AppDelegate.swift:63-75
-    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:74; App/UpdateChecker.swift:249-252 the update banner (the record states it with the default sound)
+    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:74; App/UpdateChecker.swift:249-252 the update banner with the default sound as the spec states it (Swift sets no content.sound there: see notes)
     // The notification side effect of the background check, App/UpdateChecker.swift:178-180, :245-261.
     [InlineData(false)]
     [InlineData(true)]

@@ -48,8 +48,9 @@ public sealed class AppDelegateFourthTests(HeadlessSession headless)
     // ===== :22 windows.showMain() =====
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-028: what launch does to the window; its centring is WindowManagerCenteringTests (ED-225), its restart restore WindowManagerRestartTests
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-028 and UI-LAUNCH-001: what launch does to the window; its centring is WindowManagerCenteringTests (ED-225), its restart restore WindowManagerRestartTests
     [Trait("Req", "PR-LAUNCH-028")] // App/AppDelegate.swift:22; App/Window/WindowManager.swift:18-24, :26-30, :57-60, :62-72
+    [Trait("Req", "UI-LAUNCH-001")] // App/AppDelegate.swift:22; App/Window/WindowManager.swift:18-24, :62-69 (shown automatically at launch; title, content size and minimum)
     public void Launch_shows_the_main_window_made_on_first_use_titled_sized_and_in_front_and_a_second_show_reuses_it()
     {
         WithLaunch(h => h.Defaults.Set("hasSeenTour", true), launch =>
