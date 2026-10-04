@@ -371,6 +371,40 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-211")] // AttachmentPreview.swift:408-421 `.background(.quaternary.opacity(0.45), in: .rect(cornerRadius: 10, style: .continuous))`, `.clipShape(.rect(cornerRadius: 10, style: .continuous))`: the plate the picture is fitted in
+    public void The_tool_image_plate_is_cut_to_Apples_continuous_corner_of_radius_10_with_the_picture_clipped_to_it() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var cache = new ThumbnailCache();
+        using var cacheSeam = ThumbnailCache.Shared.Override(cache);
+        var path = System.IO.Path.Combine(h.Project.Path, "plate-picture.png");
+        TestPng.Write(path, 240, 120, (_, _) => Color.FromRgb(200, 40, 40));
+        Avalonia.Controls.Window window = null!;
+        ToolImagePreview preview = null!;
+        h.Main.OnMain(() =>
+        {
+            preview = new ToolImagePreview(path);
+            window = Show(new StackPanel { Width = 480, Children = { preview } });
+        });
+        h.Main.Loop.RunUntil(() => Mounted<Image>(preview).Single().Opacity == 1, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            try
+            {
+                Settle(window);
+                // Loaded, the plate is 480 x 240 (the picture fitted to the row's width): far above 2 * 1.528665 * 10 = 30.6 on both sides, so Apple's corner at 10, as the
+                // output plate and the diff block are; the Border clips the picture to the same outline (ToolImagePreview.swift:419-421 .clipShape).
+                var plate = Assert.IsType<Border>(preview.Children[0]);
+                AssertApple(plate, "tool image plate", 10);
+                Assert.True(plate.ClipToBounds, "the plate clips the picture to its shape (.clipShape)");
+                Assert.NotNull(plate.Clip);
+            }
+            finally { Close(window); }
+        });
+    });
+
     // ---------------------------------------------------------------- the shapes that stay open: ED-275 (2)'s band
 
     // ---------------------------------------------------------------- the shapes that sat in ED-275 (2)'s band: OD-0102
