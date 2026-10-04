@@ -42,13 +42,35 @@ internal sealed class InstallRig : IDisposable
         return new InstallPlan(item, new ItemRecord(item.Id, ItemState.Checking, null, item.Pin, null), Root, kind,
             new Dictionary<string, string> { ["payload.zip"] = artifact, ["LICENSE"] = licence }) { Source = "test-source" };
     }
+    public InstallPlan AddArtifact(InstallPlan plan, string path)
+    {
+        var bytes = File.ReadAllBytes(path);
+        var name = Path.GetFileName(path);
+        return plan with { PrimaryArtifact = plan.PrimaryArtifact ?? plan.Item.Artifacts[0].Name,
+            Item = plan.Item with { Artifacts = plan.Item.Artifacts.Concat([new CatalogueArtifact { Name = name, Url = "https://github.com/example/fixture/" + name, Size = bytes.Length, Sha256 = InstallHash.Sha256(bytes) }]).ToArray() },
+            LocalFiles = new Dictionary<string, string>(plan.LocalFiles) { [name] = path } };
+    }
+    public InstallPlan AddPip(InstallPlan plan)
+    {
+        var bytes = Zip(("pip/__init__.py", "fixture pip"));
+        var file = Input("pip.whl", bytes);
+        return AddArtifact(plan, file) with { Python = new PythonEmbedOptions("python314._pth", "python314.zip", "3.14", new LocalWheel(file, bytes.Length, InstallHash.Sha256(bytes), "pip==26.2.1")) };
+    }
     public ItemInstaller Installer(Action<InstallStep, string>? checkpoint = null) => new(Lock, Process, checkpoint);
     public void AssertOnlyTemporaryFolders()
     {
+        AssertOnlyTemporaryViews();
         var tools = Path.Combine(Root, "addons", "tools");
         if (Directory.Exists(tools)) Assert.All(Directory.GetDirectories(tools), p => Assert.StartsWith("tmp-", Path.GetFileName(p), StringComparison.Ordinal));
         var store = Path.Combine(Root, "skills", "store");
         if (Directory.Exists(store)) Assert.All(Directory.GetDirectories(store), p => Assert.StartsWith("tmp-", Path.GetFileName(p), StringComparison.Ordinal));
+    }
+        // Assert no final spare survives a failed transaction, including failures during spare publication.
+    public void AssertOnlyTemporaryViews()
+    {
+        var views = Path.Combine(Root, "skills", "views");
+        if (Directory.Exists(views)) foreach (var provider in Directory.GetDirectories(views))
+            Assert.All(Directory.GetDirectories(provider), p => Assert.StartsWith("tmp-", Path.GetFileName(p), StringComparison.Ordinal));
     }
     public void Dispose()
     {

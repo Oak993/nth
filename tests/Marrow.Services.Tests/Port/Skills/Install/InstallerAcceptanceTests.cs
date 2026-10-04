@@ -47,7 +47,7 @@ public sealed class InstallerAcceptanceTests
         var plan = rig.Plan(InstallerKind.PythonEmbed, InstallRig.Zip(("python.exe", "stand-in bytes"), ("python314._pth", "old pth")));
         var pipBytes = InstallRig.Zip(("pip/__init__.py", "fixture pip"));
         var pip = rig.Input("pip.whl", pipBytes);
-        plan = plan with { Python = new PythonEmbedOptions("python314._pth", "python314.zip", "3.14", new LocalWheel(pip, pipBytes.Length, InstallHash.Sha256(pipBytes), "pip==26.2.1")) };
+        plan = rig.AddArtifact(plan, pip) with { Python = new PythonEmbedOptions("python314._pth", "python314.zip", "3.14", new LocalWheel(pip, pipBytes.Length, InstallHash.Sha256(pipBytes), "pip==26.2.1")) };
         var result = await rig.Installer().InstallAsync(plan);
         var agent = Path.GetFullPath(Path.Combine(rig.Root, "addons", "work", "python-agent", "3.14"));
         Assert.Equal("python314.zip\n.\nLib\\site-packages\n" + agent + "\nimport site\n", File.ReadAllText(Path.Combine(result.Path, "python314._pth")));
@@ -65,7 +65,7 @@ public sealed class InstallerAcceptanceTests
         var wheel = rig.Input("fixture.whl", "fixture wheel"u8.ToArray());
         var pin = new LocalWheel(wheel, new FileInfo(wheel).Length, InstallHash.Sha256(File.ReadAllBytes(wheel)), "fixture==1.0");
         rig.Process.OnRun = command => { if (command.Arguments.Contains("pip", StringComparer.Ordinal)) { var target = command.Arguments[command.Arguments.ToList().IndexOf("--target") + 1]; File.WriteAllText(Path.Combine(target, "fixture.py"), "fixture module"); } };
-        plan = plan with { Pyset = new PysetOptions(Path.Combine(rig.Root, "python.exe"), [pin]) };
+        plan = rig.AddArtifact(plan, wheel) with { Pyset = new PysetOptions(Path.Combine(rig.Root, "python.exe"), [pin]) };
         var result = await rig.Installer().InstallAsync(plan);
         var argv = rig.Process.Commands[0].Arguments;
         Assert.Equal(new[] { "-m", "pip", "install", "--no-index", "--find-links", rig.Process.Commands[0].WorkingDirectory, "--require-hashes", "--no-deps", "--target", argv[9], "-r", argv[11] }, argv);

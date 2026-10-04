@@ -15,7 +15,7 @@ public sealed class InstallerKindsTests
         var tar = TarFixture.Package(("package/package.json", json), ("package/index.js", "module.exports = 'fixture'"));
         var file = rig.Input("fixture.tgz", tar);
         var package = new LocalNodePackage(file, tar.Length, InstallHash.Sha256(tar), "sha512-" + Convert.ToBase64String(SHA512.HashData(tar)), "node_modules/@fixture/tool");
-        var plan = rig.Plan(InstallerKind.Nodeset) with { NodePackages = [package, package with { TreePath = "node_modules/parent/node_modules/child" }] };
+        var plan = rig.AddArtifact(rig.Plan(InstallerKind.Nodeset), file) with { NodePackages = [package, package with { TreePath = "node_modules/parent/node_modules/child" }] };
         var result = await rig.Installer().InstallAsync(plan);
         Assert.Equal(json, File.ReadAllText(Path.Combine(result.Path, "node_modules", "@fixture", "tool", "package.json")));
         Assert.True(File.Exists(Path.Combine(result.Path, "node_modules", "parent", "node_modules", "child", "index.js")));
@@ -34,7 +34,7 @@ public sealed class InstallerKindsTests
         using var rig = new InstallRig();
         var bytes = TarFixture.Package((entry, "escape"));
         var file = rig.Input("bad.tgz", bytes);
-        var plan = rig.Plan(InstallerKind.Nodeset) with { NodePackages = [new LocalNodePackage(file, bytes.Length, InstallHash.Sha256(bytes), "sha512-" + Convert.ToBase64String(SHA512.HashData(bytes)), "node_modules/fixture")] };
+        var plan = rig.AddArtifact(rig.Plan(InstallerKind.Nodeset), file) with { NodePackages = [new LocalNodePackage(file, bytes.Length, InstallHash.Sha256(bytes), "sha512-" + Convert.ToBase64String(SHA512.HashData(bytes)), "node_modules/fixture")] };
         await Assert.ThrowsAsync<InvalidDataException>(() => rig.Installer().InstallAsync(plan));
         rig.AssertOnlyTemporaryFolders();
     }

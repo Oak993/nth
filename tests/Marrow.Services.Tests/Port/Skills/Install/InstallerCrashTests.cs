@@ -11,7 +11,7 @@ public sealed class InstallerCrashTests
     {
         using var rig = new InstallRig();
         var plan = rig.Plan(kind);
-        plan = plan with { Python = new PythonEmbedOptions("python314._pth", "python314.zip", "3.14", null),
+        plan = rig.AddPip(plan) with {
             Pyset = new PysetOptions(Path.Combine(rig.Root, "python.exe"), []), NodePackages = [], Extractor = plan.LocalFiles["payload.zip"], Spares = [] };
         rig.Process.OnRun = cmd => { var target = kind == InstallerKind.MsiAdmin ? cmd.Arguments[3]["TARGETDIR=".Length..] : kind == InstallerKind.Sfx7z ? cmd.Arguments[0][2..] : cmd.Arguments.Contains("--target", StringComparer.Ordinal) ? cmd.Arguments[cmd.Arguments.ToList().IndexOf("--target") + 1] : null; if (target is not null) File.WriteAllText(Path.Combine(target, "fixture.exe"), "fixture"); };
         await Assert.ThrowsAsync<InjectedCrashException>(() => rig.Installer((s, _) => { if (s == step) throw new InjectedCrashException(); }).InstallAsync(plan));
