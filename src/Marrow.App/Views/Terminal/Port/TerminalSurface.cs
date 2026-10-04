@@ -5,7 +5,10 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
+using Marrow.Core.Port;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Terminal.Port;
 
@@ -15,11 +18,22 @@ internal sealed class TerminalSurface : Decorator
     private TerminalFrame? frame;
     private int historyOffset;
     private int[] textOffsets = [];
-    private bool selecting;
+    private bool pressed;
+    private TerminalPosition pressedCell;
+    private readonly TerminalSelection selection = new();
+    private readonly CaretLayer caret;
+    private IBrush? cursorBrush;
+    private bool hasFocus;
+    private bool blinking;
+    private IFrameSource? blinkSource;
+    private Action<TimeSpan>? blinkTick;
+    private ContinuousInstant blinkStart;
 
     public TerminalSurface(Func<Size> measureCell)
     {
         this.measureCell = measureCell;
+        // MacTerminalView.swift:3271-3273 resetCursorRects: the I-beam over the whole body (the catalogue's pointer.ibeam-text).
+        Cursor = new Cursor(StandardCursorType.Ibeam);
         TextControl = new SelectableTextBlock
         {
             TextWrapping = TextWrapping.NoWrap,
@@ -29,9 +43,32 @@ internal sealed class TerminalSurface : Decorator
             IsHitTestVisible = false,
             Focusable = false,
         };
-        TextControl.PropertyChanged += (_, _) => InvalidateVisual();
+        TextControl.PropertyChanged += (_, _) => Redraw();
         Child = TextControl;
+        // The caret is a layer of its own over the grid: its opacity is what blinks, which costs the composition one property and not a repaint of every cell.
+        caret = new CaretLayer(this);
+        VisualChildren.Add(caret);
     }
+
+    /// <summary>
+    /// SwiftTerm Mac/MacCaretView.swift:104-123 (updateAnimation) as the catalogue measured it on the Mac app (terminal.block-cursor-blink, 2-chat-use.mov S 132.237-134.31):
+    /// with the terminal focused the block fades out in 0.64 s, fades back in 0.64 s and holds a moment, a cycle of 1.4 s (the source: a 0.7 s fade there and back, repeating).
+    /// </summary>
+    internal static double BlinkOpacity(double seconds)
+    {
+        const double Fade = 0.64;
+        const double Cycle = 1.4;
+        var phase = seconds % Cycle;
+        if (phase < Fade) return 1 - phase / Fade;
+        if (phase < 2 * Fade) return (phase - Fade) / Fade;
+        return 1;
+    }
+
+    /// <summary>The caret layer opacity now (for tests).</summary>
+    internal double CaretOpacity => caret.Opacity;
+
+    /// <summary>Whether the blink is running (for tests).</summary>
+    internal bool IsBlinking => blinking;
 
     public SelectableTextBlock TextControl { get; }
     public string? Text => TextControl.Text;
@@ -44,16 +81,41 @@ internal sealed class TerminalSurface : Decorator
     private FontStyle FontStyle => TextControl.FontStyle;
     private FontWeight FontWeight => TextControl.FontWeight;
     private double FontSize => TextControl.FontSize;
-    public IBrush? CursorBrush { get; set; }
+    public IBrush? CursorBrush
+    {
+        get => cursorBrush;
+        set
+        {
+            cursorBrush = value;
+            caret.InvalidateVisual();
+        }
+    }
 
-    internal void ClearSelection() => SelectionStart = SelectionEnd = 0;
+    internal void ClearSelection()
+    {
+        selection.SelectNone();
+        SelectionStart = SelectionEnd = 0;
+    }
+
+    /// <summary>MacTerminalView.swift:1178-1186 <c>allowMouseReporting</c>: whether a program that asked for the mouse is told of it.</summary>
+    internal bool AllowMouseReporting { get; set; } = true;
+
+    /// <summary>What the running program asked for (the screen mouse modes), read when an event arrives.</summary>
+    internal Func<TerminalMouseState>? MouseState { get; set; }
+
+    /// <summary>The bytes of a mouse event the program asked for, to be written to its input.</summary>
+    internal event Action<byte[]>? MouseOutput;
+
+    /// <summary>The selection cell range (for tests): the active range, or null.</summary>
+    internal (TerminalPosition Start, TerminalPosition End, TerminalSelectionMode Mode)? SelectedCells =>
+        selection.Active ? (selection.Start, selection.End, selection.Mode) : null;
 
     internal void ScrollPage(bool up)
     {
         if (frame is null) return;
         // SwiftTerm AppleTerminalView.swift:2710-2744: one page is terminal.rows.
         historyOffset = Math.Clamp(historyOffset + (up ? frame.Rows : -frame.Rows), 0, frame.HistoryCount);
-        InvalidateVisual();
+        Redraw();
     }
 
     internal void EnsureCaretVisible()
@@ -65,11 +127,12 @@ internal sealed class TerminalSurface : Decorator
         var caret = current.HistoryCount + current.CursorRow;
         if (caret >= first && caret < first + current.Rows) return;
         historyOffset = 0;
-        InvalidateVisual();
+        Redraw();
     }
 
     public void UpdateFrame(TerminalFrame next)
     {
+        var changedVisibility = frame?.CursorVisible != next.CursorVisible;
         frame = next;
         historyOffset = Math.Min(historyOffset, next.HistoryCount);
         var lines = next.Lines.Select(line => string.Concat(line.Select(cell => cell.Text ?? " ")).TrimEnd()).ToArray();
@@ -78,7 +141,8 @@ internal sealed class TerminalSurface : Decorator
             textOffsets[row] = textOffsets[row - 1] + lines[row - 1].Length + 1;
         TextControl.Text = string.Join('\n', lines);
         InvalidateMeasure();
-        InvalidateVisual();
+        Redraw();
+        if (changedVisibility) RestartBlink();
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -86,8 +150,77 @@ internal sealed class TerminalSurface : Decorator
         // Decorator arranges the semantic child; measure it even though only the grid is painted.
         TextControl.Measure(availableSize);
         var cell = measureCell();
-        return new Size(Math.Min(availableSize.Width, (frame?.Columns ?? 80) * cell.Width),
+        var size = new Size(Math.Min(availableSize.Width, (frame?.Columns ?? 80) * cell.Width),
             Math.Min(availableSize.Height, (frame?.Rows ?? 25) * cell.Height));
+        caret.Measure(size);
+        return size;
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var arranged = base.ArrangeOverride(finalSize);
+        caret.Arrange(new Rect(finalSize));
+        return arranged;
+    }
+
+    private void Redraw()
+    {
+        InvalidateVisual();
+        caret?.InvalidateVisual(); // (the text control raises changes while the constructor is still building the layer)
+    }
+
+    protected override void OnGotFocus(FocusChangedEventArgs e)
+    {
+        base.OnGotFocus(e);
+        FocusChanged();
+    }
+
+    protected override void OnLostFocus(FocusChangedEventArgs e)
+    {
+        base.OnLostFocus(e);
+        FocusChanged();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        StopBlink();
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    /// <summary>The terminal view (the surface or the host that owns the keyboard for it) gained or lost focus: a focused caret is a block that blinks, an unfocused one an outline.</summary>
+    internal void FocusChanged()
+    {
+        var focused = IsKeyboardFocusWithin || Parent is InputElement { IsKeyboardFocusWithin: true };
+        if (focused == hasFocus) return;
+        hasFocus = focused;
+        caret.InvalidateVisual();
+        RestartBlink();
+    }
+
+    // MacCaretView.swift:104-123: the animation runs while the caret is shown in a focused terminal (updateCursorStyle's canBlink), from full opacity.
+    private void RestartBlink()
+    {
+        StopBlink();
+        caret.Opacity = 1;
+        if (!hasFocus || frame is not { CursorVisible: true } || !FrameClock.IsBound) return;
+        blinkSource = FrameClock.Source.Current;
+        blinkStart = SwiftClock.Now;
+        blinking = true;
+        blinkTick = _ =>
+        {
+            if (!blinking) return;
+            caret.Opacity = BlinkOpacity((SwiftClock.Now - blinkStart).TotalSeconds);
+            blinkSource!.RequestFrame(blinkTick!);
+        };
+        blinkSource.RequestFrame(blinkTick);
+    }
+
+    private void StopBlink()
+    {
+        blinking = false;
+        if (blinkTick is { } tick) blinkSource?.CancelFrame(tick);
+        blinkTick = null;
+        blinkSource = null;
     }
 
     public override void Render(DrawingContext context)
@@ -130,6 +263,13 @@ internal sealed class TerminalSurface : Decorator
                 textIndex += text.Length;
             }
         }
+    }
+
+    // The caret as MacCaretView draws it: a block over the cell (its glyph in the background colour) while the terminal is focused, an outline of line width 3 when not.
+    private void DrawCaret(DrawingContext context)
+    {
+        if (frame is not { } current) return;
+        var cellSize = measureCell();
         if (historyOffset == 0 && current.CursorVisible && CursorBrush is { } cursor)
         {
             var column = current.CursorColumn;
@@ -153,6 +293,12 @@ internal sealed class TerminalSurface : Decorator
         }
     }
 
+    private sealed class CaretLayer(TerminalSurface owner) : Control
+    {
+        public override void Render(DrawingContext context) => owner.DrawCaret(context);
+    }
+
+
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         if (frame is null || e.Delta.Y == 0) return;
@@ -160,8 +306,21 @@ internal sealed class TerminalSurface : Decorator
         // rounds a non-precise delta, retaining at least one line per nonzero event.
         var lines = (int)Math.Round(e.Delta.Y, MidpointRounding.AwayFromZero);
         if (lines == 0) lines = e.Delta.Y > 0 ? 1 : -1;
+        // MacTerminalView.swift:3204 and :3243-3254: a program that asked for the mouse is told of the wheel (button 4 up, 5 down, once per line)
+        // instead of the history scrolling.
+        var state = Mouse;
+        if (AllowMouseReporting && !ShiftBypasses(e.KeyModifiers, state) && state.Mode != TerminalMouseMode.Off)
+        {
+            var hit = Hit(e.GetPosition(this));
+            var flags = TerminalMouse.EncodeButton(state.Mode, lines > 0 ? 4 : 5, release: false, e.KeyModifiers.HasFlag(KeyModifiers.Shift),
+                e.KeyModifiers.HasFlag(KeyModifiers.Alt), e.KeyModifiers.HasFlag(KeyModifiers.Control));
+            for (var line = 0; line < Math.Abs(lines); line++)
+                MouseOutput?.Invoke(TerminalMouse.EncodeEvent(state.Encoding, flags, hit.Cell.Column, hit.ScreenRow, hit.PixelX, hit.PixelY));
+            e.Handled = true;
+            return;
+        }
         historyOffset = Math.Clamp(historyOffset + lines, 0, frame.HistoryCount);
-        InvalidateVisual();
+        Redraw();
         e.Handled = true;
     }
 
@@ -188,46 +347,148 @@ internal sealed class TerminalSurface : Decorator
         }
     }
 
+    private TerminalMouseState Mouse => MouseState?.Invoke() ?? default;
+
+    // MacTerminalView.swift:2991-2993 shiftBypassesMouseReporting: shift selects locally unless the program asked (XTSHIFTESCAPE) for shift-clicks.
+    private static bool ShiftBypasses(KeyModifiers modifiers, TerminalMouseState state) => modifiers.HasFlag(KeyModifiers.Shift) && !state.ShiftCapture;
+
+    /// <summary>MacTerminalView.swift:2765-2793 <c>calculateMouseHit</c>: the cell under a point (held to the grid, a row counted from the top of the history), the
+    /// screen row for a report, and the pixel.</summary>
+    private (TerminalPosition Cell, int ScreenRow, int PixelX, int PixelY) Hit(Point point)
+    {
+        var current = frame ?? throw new InvalidOperationException("no frame");
+        var cell = measureCell();
+        var column = Math.Clamp((int)(point.X / cell.Width), 0, current.Columns - 1);
+        var first = current.HistoryCount - historyOffset;
+        var row = Math.Clamp((int)(point.Y / cell.Height) + first, 0, Math.Max(0, current.Lines.Length - 1));
+        var screenRow = Math.Clamp(row - first, 0, current.Rows - 1);
+        return (new TerminalPosition(column, row), screenRow, (int)Math.Clamp(point.X, 0, Bounds.Width), (int)Math.Clamp(point.Y, 0, Bounds.Height));
+    }
+
+    // MacTerminalView.swift:2753-2760 encodeMouseEvent, 2795-2802 sharedMouseEvent.
+    private void Report(TerminalMouseState state, PointerEventArgs e, bool release, bool motion = false)
+    {
+        var hit = Hit(e.GetPosition(this));
+        var flags = TerminalMouse.EncodeButton(state.Mode, 0, release, e.KeyModifiers.HasFlag(KeyModifiers.Shift), e.KeyModifiers.HasFlag(KeyModifiers.Alt), e.KeyModifiers.HasFlag(KeyModifiers.Control));
+        MouseOutput?.Invoke(motion
+            ? TerminalMouse.EncodeMotion(state.Encoding, flags, hit.Cell.Column, hit.ScreenRow, hit.PixelX, hit.PixelY)
+            : TerminalMouse.EncodeEvent(state.Encoding, flags, hit.Cell.Column, hit.ScreenRow, hit.PixelX, hit.PixelY));
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         Focus();
-        SelectionStart = SelectionEnd = TextIndexAt(e.GetPosition(this));
-        selecting = true;
+        pressed = true;
         e.Pointer.Capture(this);
-        InvalidateVisual();
         e.Handled = true;
+        if (frame is not { } current) return;
+        // MacTerminalView.swift:2887-2890: a program that asked for presses is told of this one and nothing is selected.
+        var state = Mouse;
+        if (AllowMouseReporting && !ShiftBypasses(e.KeyModifiers, state) && state.Mode.SendsButtonPress())
+        {
+            Report(state, e, release: false);
+            return;
+        }
+        var hit = Hit(e.GetPosition(this)).Cell;
+        pressedCell = hit;
+        // MacTerminalView.swift:2895-2917: one click drops an active selection (a shift click extends it), two select the word or expression, more the row.
+        switch (e.ClickCount)
+        {
+            case 1:
+                if (selection.Active)
+                {
+                    if (e.KeyModifiers.HasFlag(KeyModifiers.Shift)) selection.ShiftExtend(hit, current);
+                    else selection.SelectNone();
+                }
+                break;
+            case 2:
+                selection.SelectWordOrExpression(hit, current, current.HistoryCount - historyOffset);
+                break;
+            default:
+                selection.SelectRow(hit.Row, current);
+                break;
+        }
+        ShowSelection();
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
     {
-        if (!selecting) return;
-        SelectionEnd = TextIndexAt(e.GetPosition(this));
-        InvalidateVisual();
+        if (frame is not { } current) return;
+        var state = Mouse;
+        if (!pressed)
+        {
+            // MacTerminalView.swift:3152-3158 mouseMoved: a program that asked for every motion is told of it (a released button, 3, plus the motion bit).
+            if (state.Mode.SendsMotion()) Report(state, e, release: true, motion: true);
+            return;
+        }
+        // MacTerminalView.swift:2992-3012 mouseDragged.
+        if (AllowMouseReporting && !ShiftBypasses(e.KeyModifiers, state))
+        {
+            if (state.Mode.SendsButtonTracking())
+            {
+                Report(state, e, release: false, motion: true);
+                e.Handled = true;
+                return;
+            }
+            if (state.Mode != TerminalMouseMode.Off)
+            {
+                e.Handled = true;
+                return;
+            }
+        }
+        var hit = Hit(e.GetPosition(this)).Cell;
+        if (!selection.Active)
+        {
+            // SwiftTerm starts at the first drag event, which lies within a pixel or two of the press; here the pointer may have moved further between
+            // two samples, so the start is the pressed cell (ED-NEW-rec-settings-win).
+            selection.SetSoftStart(pressedCell);
+            selection.StartSelection();
+        }
+        selection.DragExtend(hit, current);
+        ShowSelection();
         e.Handled = true;
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
-        if (!selecting) return;
-        selecting = false;
+        if (!pressed) return;
+        pressed = false;
         e.Pointer.Capture(null);
         e.Handled = true;
+        // MacTerminalView.swift:2941-2944 mouseUp: a program that asked for releases is told of it (X10 asks for none but this one, as SwiftTerm does).
+        var state = Mouse;
+        if (frame is not null && AllowMouseReporting && !ShiftBypasses(e.KeyModifiers, state) && state.Mode.SendsButtonRelease())
+            Report(state, e, release: true);
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
-        selecting = false;
+        pressed = false;
         base.OnPointerCaptureLost(e);
     }
 
-    private int TextIndexAt(Point point)
+    // The cell range as the text control selection (its text is the grid lines, joined by newlines), which paints the highlight and copies.
+    private void ShowSelection()
+    {
+        if (frame is null || !selection.Active || !selection.HasRange)
+        {
+            SelectionStart = SelectionEnd = 0;
+        }
+        else
+        {
+            var forward = TerminalPosition.Compare(selection.Start, selection.End) <= 0;
+            SelectionStart = TextIndexOf(forward ? selection.Start : selection.End);
+            SelectionEnd = TextIndexOf(forward ? selection.End : selection.Start);
+        }
+        Redraw();
+    }
+
+    private int TextIndexOf(TerminalPosition position)
     {
         if (frame is not { } current) return 0;
-        var cell = measureCell();
-        var row = Math.Clamp((int)Math.Floor(point.Y / cell.Height), 0, current.Rows - 1)
-            + current.HistoryCount - historyOffset;
-        var column = Math.Clamp((int)Math.Floor(point.X / cell.Width), 0, current.Columns);
+        var row = Math.Clamp(position.Row, 0, current.Lines.Length - 1);
+        var column = Math.Clamp(position.Column, 0, current.Columns);
         var length = current.Lines[row].Take(column).Sum(value => (value.Text ?? " ").Length);
         var end = row + 1 < textOffsets.Length ? textOffsets[row + 1] - 1 : Text?.Length ?? 0;
         return Math.Min(end, textOffsets[row] + length);
