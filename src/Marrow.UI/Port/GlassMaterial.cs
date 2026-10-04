@@ -386,4 +386,4 @@ internal static class GlassMaterial
         using var paint = new SKPaint { Shader = shader, Color = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255)) };
         canvas.DrawRect(local, paint); // One SDF clips, refracts, lights and merges the same shape.
     }
-
+}
