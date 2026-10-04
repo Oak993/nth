@@ -17,7 +17,7 @@ namespace Marrow.UI.Chrome;
 /// over a (52,59,60) backdrop on the recorded Monokai theme (accent F92672 = 249,38,114), lighter on hover (254,68,141) and on press.
 /// ENGINEERING DECISION (ED-261): the accent glass is the port's own material (OD-0005) tinted with the
 /// accent (Chrome.Accent, following the theme live) at full strength, so its interactive hover and press light shows on top of it;
-/// the disabled capsule is the same material washed with the label colour at 11 %. Side padding 10 pt (Apple kit small
+/// the disabled capsule is the same material, unwashed since ED-NEW-glass-g1 (it was washed with the label colour at 11 % over the old dark veil). Side padding 10 pt (Apple kit small
 /// row, E:\Droppy\work\apple-kit\macos27-uikit-controls.md:68), label 11 pt Medium.
 /// </summary>
 public static class SmallAccentGlassButton
@@ -26,7 +26,9 @@ public static class SmallAccentGlassButton
     public const double Height = 20;
     public const double HorizontalPadding = 10;
     public const double LabelSize = 11;
-    public const double DisabledWash = 0.11;
+    /// <summary>ED-NEW-glass-g1: 0 (it was 0.11, set against the old material's dark veil, 18 % of #1E1E20): the material's own film now lifts the
+    /// capsule to (80,86,87) over the reference backdrop, against the reference's (75,84,85); any wash on top would take it past.</summary>
+    public const double DisabledWash = 0;
     public const double DisabledLabelOpacity = 0.30;
     /// <summary>White over the accent capsule under the pointer and while held: the reference's hover frame is (254,68,141) over a rest of (247,46,120); with the material's own pointer light on top, 8 % white reproduces the step and 13 % the press, within the tolerances of SmallAccentGlassButtonTests.</summary>
     public const double HoverLight = 0.08;
