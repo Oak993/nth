@@ -86,7 +86,7 @@ public sealed class HydraPanel : Decorator
         this.onDragEnd = onDragEnd;
         if (!isPoppedOut) headsButton = new HydraHeadsButton(runtime, heads, dismiss);
         // :99-121 Keep the shadow-bearing scrim outside the clipped glass surface.
-        var shape = new Border { CornerRadius = new CornerRadius(CornerRadius), ClipToBounds = true, Child = stageHost };
+        var shape = new Border { ClipToBounds = true, Child = stageHost }.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous); // :57 `shape`, the 22-point continuous rounded rectangle (ED-181, ED-275)
         SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :105
         var scrim = new Border { CornerRadius = new CornerRadius(CornerRadius) };
         // :102, :117 `let isDark = colorScheme == .dark` is read inside `body`, so the tint, the scrim and its shadow follow
@@ -105,7 +105,7 @@ public sealed class HydraPanel : Decorator
         panelContents.Children.Add(shape);
         panelContents.Children.Add(waveHost);
         panelContents.Children.Add(Strip(isPoppedOut ? heads.FirstOrDefault() : null, runtime, heads, isPoppedOut, popOut, dismiss, onDrag, onDragEnd));
-        var panel = new Border { CornerRadius=new CornerRadius(CornerRadius), ClipToBounds=true, Child=panelContents };
+        var panel = new Border { ClipToBounds=true, Child=panelContents }.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous); // :113 .clipShape(shape)
         Child = new Grid { Children = { scrim, panel } };
         ClipToBounds=false; Width=size.Width; Height=size.Height;
         Apply(heads, isPoppedOut ? null : runtime.HydraSelectedHeadID, false, false);
@@ -198,7 +198,7 @@ public sealed class HydraPanel : Decorator
                     var sweep=new DotFieldSweep { Tint=tint };
                     // DotFieldSweep constructs its field before object-initializer tint/environment are applied.
                     if (sweep.Child is DotFieldControl field) { field.UpdateColor(tint); field.UpdateAnimated(!reduceMotion); }
-                    next=new Border { Child=sweep, CornerRadius=new CornerRadius(CornerRadius), ClipToBounds=true };
+                    next=new Border { Child=sweep, ClipToBounds=true }.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous); // :76 DotFieldSweep(...).clipShape(shape)
                 }
                 Replace(waveHost,ref oldWave,next,SwiftTransition.Opacity,animate);
                 wave=next; waveKey=key;

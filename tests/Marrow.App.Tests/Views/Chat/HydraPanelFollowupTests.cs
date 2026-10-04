@@ -5,6 +5,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -85,6 +86,34 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
         Assert.Equal(1-Chrome.PanelSlide.Progress(.05),clip.Opacity,6);
         c.Tick(Chrome.PanelSlide.Duration);
         Assert.Empty(c.Find<DotFieldSweep>());
+    });
+
+    // HydraPanel.swift:57 `let shape = RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)` (cornerRadius 22, :33), :74-77 the wave is
+    // `DotFieldSweep(...).clipShape(shape)` and :113 the whole panel is `.clipShape(shape)`: a 420 by 280 panel is far past the 67 pt two run-ins of a 22 pt corner
+    // (2 * 1.528665 * 22), so both clips are Apple's continuous corner (ED-181 closed, ED-275), not the circular arc a plain CornerRadius draws. OD-0098: no frame shows
+    // the wave's corner, so the Swift source is the proof.
+    [Fact]
+    [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:74-77 DotFieldSweep(...).clipShape(shape), shape = the 22-point continuous rounded rectangle
+    [Trait("Req", "PR-HYDRA-169")] // App/Views/Chat/HydraPanel.swift:72-91 the overlay draws DotFieldSweep ... clipped to the panel's shape
+    [Trait("Rule", "R-TEST-4")] // the corner clause of UI-HYDRA-026 and PR-HYDRA-169; their timing, colour, fade and replay are the tests above
+    public void The_finish_wave_and_the_panel_that_holds_it_are_clipped_to_the_22_point_continuous_corner() => Run(c =>
+    {
+        c.Status(c.First,HydraHeadInfo.Status.Completed);
+        var sweep = Assert.Single(c.Find<DotFieldSweep>());
+        var wave = Assert.IsType<Border>(sweep.Parent);
+        c.Panel.IsVisible = true; c.Drain();
+        try
+        {
+            Assert.Equal(new Size(420,280),wave.Bounds.Size);
+            Assert.True(ContinuousCornerChecks.Drawn(wave,expectApple:true),"the wave's clip is Apple's corner");
+            Assert.True(wave.ClipToBounds);
+            // The panel border that clips the wave's host is the same shape (:113 .clipShape(shape)): the wave is cut by both, so both must follow the curve.
+            var panel = wave.GetVisualAncestors().OfType<Border>().First(border => border.CornerRadius==new CornerRadius(22));
+            Assert.Equal(new Size(420,280),panel.Bounds.Size);
+            Assert.True(ContinuousCornerChecks.Drawn(panel,expectApple:true),"the panel's clip is Apple's corner");
+            Assert.True(panel.ClipToBounds);
+        }
+        finally { c.Panel.IsVisible = false; }
     });
 
     // UI-HYDRA-026 colour clause: the wave is tinted with the FINISHING head's own persona (Hydra.swift:232-233 the table), not the roster's first

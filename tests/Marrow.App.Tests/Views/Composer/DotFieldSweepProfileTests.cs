@@ -44,7 +44,7 @@ public sealed class DotFieldSweepProfileTests
 
     [Fact]
     [Trait("Req", "PR-HYDRA-169")] // HydraPanel.swift:72-91; ComposerWorkingDots.swift:77-80,158-175; catalogue hydra.card-finish-grain-wipe (gap-R3-04)
-    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169: the wave's measured timing and shape; the 22-point continuous clip is ED-181's deferred curve
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-169: the wave's measured timing and shape; the 22-point continuous clip is HydraPanelFollowupTests.The_finish_wave_and_the_panel_that_holds_it_are_clipped_to_the_22_point_continuous_corner (ED-275)
     public void Sweep_profile_matches_the_measured_finish_wipe()
     {
         // Lattice (catalogue DOTS): pitch 8, one dot per cell, first dot 4 px in from the card's left and top edges, 50 columns x 35 rows on 400 x 280
