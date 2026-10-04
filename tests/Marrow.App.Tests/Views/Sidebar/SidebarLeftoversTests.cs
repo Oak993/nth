@@ -1196,4 +1196,140 @@ public sealed partial class SidebarViewTests
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
+
+    // ======== The column's window-drag background (UI-SIDEBAR-001) ========
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-001")] // SidebarView.swift:74-80 the Color.clear spacer, :146 `.background { if !inPopover { WindowDragArea() } }`: "pressing it drags the window"
+    // The spacer is a clear, hit-through item over the column's WindowDragArea, so a press there lands on the area, which is
+    // a caption to the Windows hit test (ED-063) and starts the move loop on the press (ED-200, the shared Chrome component
+    // and its own tests); a press on the search field lands on the field, and the popover form has no area at all. The
+    // system's move loop itself needs a real window (NATIVE-ONLY) and is not claimed here.
+    public void A_press_on_the_clearance_spacer_lands_on_the_columns_drag_area_and_the_popover_form_has_none() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        harness.Main.OnMain(() =>
+        {
+            var column = Attached(model);
+            var popover = Attached(model, inPopover: true);
+            try
+            {
+                var window = WindowOf(column);
+                window.UpdateLayout();
+                using (window.CaptureRenderedFrame()) { } // a rendered frame: the scene the hit test reads
+                var area = Assert.Single(LogicalQuery.SelfAndDescendants<WindowDragArea>(column));
+                Assert.Equal(Win32Properties.Win32HitTestValue.Caption, Win32Properties.GetNonClientHitTestResult(area));
+                // inside the 14 pt spacer (16..30 pt down) and in the gutter beside the search row's top padding
+                var spacerPoint = column.TranslatePoint(new Point(140, 23), window)!.Value;
+                var hit = window.InputHitTest(spacerPoint) as Visual;
+                Assert.NotNull(hit);
+                Assert.True(ReferenceEquals(hit, area) || hit!.GetVisualAncestors().Contains(area), $"the spacer's press lands on {hit!.GetType().Name}");
+                // the area covers the whole column (:146 background of the full-height VStack)
+                Assert.Equal(column.Bounds.Size, area.Bounds.Size);
+                // a press on the search field is the field's
+                var fieldPoint = LogicalQuery.SelfAndDescendants<SidebarSearchField>(column).Single().TranslatePoint(new Point(20, 14), window)!.Value;
+                var fieldHit = window.InputHitTest(fieldPoint) as Visual;
+                Assert.False(ReferenceEquals(fieldHit, area));
+                // the popover form: no area, no spacer
+                Assert.Empty(LogicalQuery.SelfAndDescendants<WindowDragArea>(popover));
+            }
+            finally { Close(column); Close(popover); }
+        });
+    });
+
+    // ======== The list's real scroll wiring (UI-SIDEBAR-005) ========
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-005")] // SidebarView.swift:128-148 `.onScrollGeometryChange(for: CGFloat.self, of: { $0.contentOffset.y }) { old, new in if old != new { noteListScroll() } }`, :115 `.allowsHitTesting(!isListScrolling)`, :392-404 the 150 ms settle: "scrolling (hit testing off for the whole list, lifted 150 ms after the last movement)"
+    public void A_real_scroll_offset_change_and_a_real_wheel_tick_freeze_the_list_and_an_unchanged_offset_does_not() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var threads = Enumerable.Range(0, 40).Select(i => NewThread(project, "Thread " + i, i)).ToList();
+        var model = Model(harness, [project], threads);
+        SidebarView view = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                view = Attached(model);
+                WindowOf(view).UpdateLayout();
+                var scroll = LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single();
+                Assert.True(scroll.Extent.Height > scroll.Viewport.Height, "the list scrolls");
+                Assert.True(ListStack(view).IsHitTestVisible);
+                scroll.Offset = scroll.Offset; // nothing moved: no freeze
+                Assert.True(ListStack(view).IsHitTestVisible);
+                scroll.Offset = new Vector(0, 40); // the content offset moved
+            });
+            harness.Main.OnMain(() => Assert.False(ListStack(view).IsHitTestVisible)); // :397 isListScrolling = true: the rows take no hover or clicks
+            harness.Main.AdvanceMilliseconds(149);
+            harness.Main.OnMain(() => Assert.False(ListStack(view).IsHitTestVisible));
+            harness.Main.AdvanceMilliseconds(1);
+            harness.Main.OnMain(() => Assert.True(ListStack(view).IsHitTestVisible)); // :402 150 ms after the last movement
+            harness.Main.OnMain(() =>
+            {
+                var window = WindowOf(view);
+                var at = view.TranslatePoint(new Point(120, 300), window)!.Value;
+                var before = LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y;
+                window.MouseWheel(at, new Vector(0, -1)); // a real wheel tick: it reports no phase (:392-404's comment), only the offset moving
+                Assert.NotEqual(before, LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y);
+            });
+            harness.Main.OnMain(() => Assert.False(ListStack(view).IsHitTestVisible));
+            harness.Main.AdvanceMilliseconds(160);
+            harness.Main.OnMain(() => Assert.True(ListStack(view).IsHitTestVisible));
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // ======== The gap between projects, mounted (UI-SIDEBAR-006) ========
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-006")] // SidebarView.swift:517-519 a gap item `gap-<projectUUID>` of 10 pt before every project but the first; :321-322 `.opacity` (the gaps "ride the list's own motion"); :113-118
+    // The list reacts to a project added or removed (the earlier note's doubt, STOP #11, does not hold): the gap goes with its
+    // project's row, on the plain opacity transition and not the row's quick 0.06 s removal fade, and it comes at once with
+    // its row, with none of the 0.12 s handover delay the other rows wait out (:1072). The source cuts a change of the projects
+    // alone (no value of :113-118 changes with it); the port eases it (OD-0076).
+    public void A_gap_leaves_with_its_removed_project_and_comes_with_an_added_one_on_the_plain_opacity_transition() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var a = NewProject(harness, "A"); var b = NewProject(harness, "B"); var c = NewProject(harness, "C");
+        var model = Model(harness, [a, b, c], []);
+        SidebarView view = null!;
+        void Tick(int ms) { harness.Main.AdvanceMilliseconds(ms); harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); WindowOf(view).UpdateLayout(); Dispatcher.UIThread.RunJobs(); }); }
+        List<Control> Gaps() => ListPanel(view).Children.Where(ch => ch is Border { Height: 10 }).ToList();
+        try
+        {
+            harness.Main.OnMain(() => view = Attached(model));
+            Tick(1600);
+            harness.Main.OnMain(() => Assert.Equal(2, Gaps().Count)); // before B and before C
+            harness.Main.OnMain(() => model.RemoveProject(c));
+            Tick(30);
+            harness.Main.OnMain(() =>
+            {
+                var leaving = Gaps().OrderBy(g => g.Opacity).First();
+                Assert.InRange(leaving.Opacity, 0.5, 0.999); // fading, and not on the row's 0.06 s fade (that row is at about a third)
+                var row = ListPanel(view).Children.OfType<Control>().Last();
+                Assert.True(row.Opacity < leaving.Opacity);
+            });
+            Tick(1600);
+            harness.Main.OnMain(() => Assert.Single(Gaps())); // gone once faded
+            var folder = harness.NewFolder("D");
+            harness.Main.OnMain(() => model.AddProject(SwiftURL.FileURLWithPath(folder)));
+            Tick(30);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(2, Gaps().Count);
+                var entering = Gaps().OrderBy(g => g.Opacity).First();
+                Assert.InRange(entering.Opacity, 0.001, 0.999); // already coming: no 0.12 s delay
+            });
+            Tick(1600);
+            harness.Main.OnMain(() => Assert.All(Gaps(), g => Assert.Equal(1d, g.Opacity)));
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
 }
