@@ -130,6 +130,7 @@ public sealed class HydraSettingsPageAuditTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-149")] // HydraSettingsPage.swift:164-166 opacity 0.5 / 1 rides .smooth(duration: 0.2) on hydraEnabled
+    [Trait("Req", "UI-SETTINGS-065")] // HydraSettingsPage.swift:164-165 the whole picker group dims to 0.5 while Hydra is off
     public void The_dimmed_group_fades_along_the_smooth_point_two_curve() => WithView(_ => new HydraSettingsPage(), 900, (view, m) =>
     {
         m.Settings.HydraEnabled = true; Sync();
