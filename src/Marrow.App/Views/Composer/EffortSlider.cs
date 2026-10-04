@@ -1199,24 +1199,17 @@ public sealed class EffortSlider : Decorator
         if (fillColours is { } kept && fillFor is { } key && Equals(key.Look, look) && key.Theme == theme) return kept;
         var into = new SKColor[5];
         fillFor = (look, theme); fillColours = into;
-        if (TrackEffect.IsLiquid(look))
+        // OD-0075: every look draws the liquid, so the fill's colours are always the liquid's stops
+        var stops = LiquidSpec.For(look).Stops();
+        for (var i = 0; i < into.Length; i++)
         {
-            var stops = LiquidSpec.For(look).Stops();
-            for (var i = 0; i < into.Length; i++)
-            {
-                var at = i / (double)(into.Length - 1);
-                var k = 1;
-                while (k < stops.Count - 1 && at > stops[k].At) k++;
-                var (a, b) = (stops[Math.Max(0, k - 1)], stops[Math.Min(stops.Count - 1, k)]);
-                var f = b.At > a.At ? Math.Clamp((at - a.At) / (b.At - a.At), 0, 1) : 0;
-                var mixed = LiquidTrack.FromOKLab(Lerp(LiquidTrack.ToOKLab(a.Color.Resolve(theme)), LiquidTrack.ToOKLab(b.Color.Resolve(theme)), f));
-                into[i] = mixed;
-            }
-        }
-        else
-        {
-            var c = (Chrome.Accent.Resolve(theme));
-            for (var i = 0; i < into.Length; i++) into[i] = new SKColor(c.R, c.G, c.B);
+            var at = i / (double)(into.Length - 1);
+            var k = 1;
+            while (k < stops.Count - 1 && at > stops[k].At) k++;
+            var (a, b) = (stops[Math.Max(0, k - 1)], stops[Math.Min(stops.Count - 1, k)]);
+            var f = b.At > a.At ? Math.Clamp((at - a.At) / (b.At - a.At), 0, 1) : 0;
+            var mixed = LiquidTrack.FromOKLab(Lerp(LiquidTrack.ToOKLab(a.Color.Resolve(theme)), LiquidTrack.ToOKLab(b.Color.Resolve(theme)), f));
+            into[i] = mixed;
         }
         return into;
         static (double, double, double) Lerp((double L, double A, double B) a, (double L, double A, double B) b, double f) =>
@@ -1773,8 +1766,11 @@ public sealed record TrackLook(TrackLook.Kind TrackLookKind, EffortBrand Brand, 
         }
     }
 
-    // :1012 var isLightFill: Bool. PR-COMPOSER-131: the light-fill test follows the pair when there is one.
-    public bool IsLightFill => Pair?.IsLight ?? (TrackLookKind == Kind.Supercharged && Brand.IsLight);
+    // :1012 var isLightFill: Bool. PR-COMPOSER-131: the light-fill test follows the pair when there is one. :1010-1011 "Whether the
+    // fill under the knob is light (a white brand at maximum, not in fusion, whose far end is gold)": the source draws a white brand's
+    // fill only at .supercharged, so the kind test there is the fill's colour. DEVIATION OD-0075 (the liquid at every effort level)
+    // draws that same white fill on the plain track too, so the test follows the fill and holds for Plain as well as Supercharged.
+    public bool IsLightFill => Pair?.IsLight ?? (TrackLookKind is Kind.Plain or Kind.Supercharged && Brand.IsLight);
 
     // :1015 var stopColor: Color. PR-COMPOSER-131: the stop colour follows the pair when there is one (via IsLightFill).
     public SwiftColor StopColor => IsLightFill ? SwiftColor.Black.Opacity(0.35) : SwiftColor.White.Opacity(0.6);
@@ -1874,6 +1870,9 @@ public sealed class TrackEffect : Decorator
     /// and every look, the plain one included (:1054 draws nothing for it).</summary>
     internal static bool IsLiquid(TrackLook look) => true;
 
+    /// <summary>The canvas's white liquid has dark-rimmed bubbles: a brand's light fill (never a pair's, whose segments are coloured).</summary>
+    internal static bool DarkBubbles(TrackLook look) => look.Pair is null && look.IsLightFill;
+
     /// <summary>OD-0073: fast mode (below the top, or at it) draws Strike over the liquid.</summary>
     internal static bool IsFast(TrackLook look) => look.TrackLookKind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion;
 
@@ -1956,7 +1955,7 @@ public sealed class TrackEffect : Decorator
             // is Strike over the liquid, in place of the source's streaks and bolts (:1057-1064), its currents 1.5x.
             var spec = LiquidSpec.For(look);
             var track = Math.Max(owner.TrackWidth, size.Width);
-            var darkBubbles = look.Pair is null && look.IsLightFill; // the canvas's white liquid has dark-rimmed bubbles
+            var darkBubbles = DarkBubbles(look);
             var fast = IsFast(look);
             // reduce motion stills the fast look as the canvas does: every animation stopped (the liquid at rest, no
             // bubbles), one frame of the lightning 35 ms into strike 1

@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Port;
@@ -43,4 +44,29 @@ public sealed class PlainSilverStopsReviewTests(HeadlessSession headless)
         }
         finally { window.Close(); }
     });
+
+    // The light-fill test follows the fill (:1010-1011): Silver's fill is white wherever it is drawn, and every other brand's fill is a colour.
+    [Fact]
+    public void The_light_fill_test_follows_the_fill_for_the_plain_and_the_supercharged_look_of_every_brand()
+    {
+        foreach (var brand in Enum.GetValues<EffortBrand>().Where(b => b != EffortBrand.Silver))
+            foreach (var kind in new[] { TrackLook.Kind.Plain, TrackLook.Kind.Supercharged })
+            {
+                var look = new TrackLook(kind, brand);
+                Assert.False(look.IsLightFill, $"{kind} {brand}");
+                Assert.Equal(SwiftColor.White.Opacity(0.6).Resolve(Avalonia.Styling.ThemeVariant.Light), look.StopColor.Resolve(Avalonia.Styling.ThemeVariant.Light));
+                Assert.False(TrackEffect.DarkBubbles(look), $"{kind} {brand}");
+            }
+        foreach (var kind in new[] { TrackLook.Kind.Plain, TrackLook.Kind.Supercharged })
+        {
+            var look = new TrackLook(kind, EffortBrand.Silver);
+            Assert.True(look.IsLightFill, $"{kind} Silver");
+            Assert.Equal(SwiftColor.Black.Opacity(0.35).Resolve(Avalonia.Styling.ThemeVariant.Light), look.StopColor.Resolve(Avalonia.Styling.ThemeVariant.Light)); // :1015
+            Assert.True(TrackEffect.DarkBubbles(look), $"{kind} Silver"); // the white liquid's bubbles are dark-rimmed
+        }
+        // a pair's light test is the pair's, and its liquid is coloured segments: no dark bubbles
+        var silverPair = new EffortPairBrand(new HydraPair(ProviderKind.Claude) { WorkerProvider = ProviderKind.Codex });
+        var paired = new TrackLook(TrackLook.Kind.Plain, EffortBrand.Silver, silverPair);
+        Assert.True(paired.IsLightFill); Assert.False(TrackEffect.DarkBubbles(paired));
+    }
 }

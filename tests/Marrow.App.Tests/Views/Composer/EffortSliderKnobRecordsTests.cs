@@ -23,9 +23,9 @@ using SkiaSharp;
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/EffortSlider.swift (B3 52bc792), :711-837 the slider and :620-624 the single-level note.
-// DEVIATION OD-0090 (locked 2026-10-03): the knob is the 48 px Jewel orb. PR-COMPOSER-117, 123, 125 and 126 state parts of it, and
-// EffortSliderJewelReviewR8Tests forbids a Req trait on them (and on PR-COMPOSER-131, UI-COMPOSER-035, 036), so these tests carry
-// Decision ED-252: the clauses of the amended records that no other test reads.
+// DEVIATION OD-0090 (locked 2026-10-03): the knob is the 48 px Jewel orb. PR-COMPOSER-117, 123, 125, 126 and 131 state parts of it;
+// each test here that carries a Req trait proves every clause of that record, and the others carry Decision ED-252 (the clauses of the
+// amended records that no other test reads). EffortSliderJewelReviewR8Tests guards UI-COMPOSER-035 only, which no test credits.
 [Collection("Headless")]
 public sealed class EffortSliderKnobRecordsTests(HeadlessSession headless)
 {
@@ -95,14 +95,14 @@ public sealed class EffortSliderKnobRecordsTests(HeadlessSession headless)
             Assert.All(Stops(slider), dot => Assert.Equal(SwiftColor.Black.Opacity(0.35).Resolve(theme), Solid(dot.Fill))); // :1015 isLightFill: black at 35 percent
         }
         finally { window.Close(); }
-        // below maximum the same brand's fill is the accent, not light: white stops
+        // below maximum the same brand's fill is Silver's white gradient too (OD-0075), so the passed stops are dark there as well (:1012-1016)
         var below = new EffortSlider(3, new Binding<int>(() => 1, _ => { }), "Medium", brand: EffortBrand.Silver);
         window = Show(below);
         try
         {
             var theme = below.ActualThemeVariant;
-            Assert.Equal(SwiftColor.White.Opacity(0.6).Resolve(theme), Solid(Stops(below)[0].Fill));
-            Assert.Equal(SwiftColor.White.Opacity(0.6).Resolve(theme), Solid(Stops(below)[1].Fill));
+            Assert.Equal(SwiftColor.Black.Opacity(0.35).Resolve(theme), Solid(Stops(below)[0].Fill));
+            Assert.Equal(SwiftColor.Black.Opacity(0.35).Resolve(theme), Solid(Stops(below)[1].Fill));
             Assert.Equal(Chrome.Overlay(0.32).Resolve(theme), Solid(Stops(below)[2].Fill));
         }
         finally { window.Close(); }
@@ -454,7 +454,7 @@ public sealed class EffortSliderKnobRecordsTests(HeadlessSession headless)
         var solo = new (TrackLook.Kind Kind, EffortBrand Brand, SwiftColor Glow, bool Light, SwiftColor Stop, SwiftColor Spark)[]
         {
             (TrackLook.Kind.Plain, EffortBrand.Claude, Black(0.28), false, White(0.6), SwiftColor.White),               // :1004 plain: black at 0.28
-            (TrackLook.Kind.Plain, EffortBrand.Silver, Black(0.28), false, White(0.6), SwiftColor.White),               // a white brand below maximum is not a light fill (:1012)
+            (TrackLook.Kind.Plain, EffortBrand.Silver, Black(0.28), true, Black(0.35), SwiftColor.White),                // glow :1004; DEVIATION OD-0075: the plain track draws Silver's white fill, so it is a light fill (:1010-1016 tests the fill) with dark stops
             (TrackLook.Kind.Supercharged, EffortBrand.Claude, claudeFill.Opacity(0.6), false, White(0.6), SwiftColor.White), // :1005 brand.glow; :923 spark white on colour
             (TrackLook.Kind.Supercharged, EffortBrand.Silver, Black(0.35), true, Black(0.35), SwiftColor.Black),         // :928 silver's glow black at 0.35; light; :1015 dark stops; :923 spark black
             (TrackLook.Kind.Fast, EffortBrand.Claude, fastFill.Opacity(0.7), false, White(0.6), SwiftColor.White),      // :1006 fastFill at 0.7; spark white (:1018: only supercharged and fusion use the brand's)
