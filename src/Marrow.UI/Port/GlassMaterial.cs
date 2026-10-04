@@ -630,7 +630,7 @@ internal static class GlassMaterial
             float rim = clamp(1.5 - d, 0.0, 1.0);
             float facing = n.y * n.y;
             float spec = rim * (LG_RIMBASE + (1.0 - LG_RIMBASE) * facing) * (n.y > 0.0 ? LG_RIMTOP : LG_RIMBOTTOM);
-            float glow = d < LG_GLOWREACH ? LG_GLOW * pow(clamp(1.0 - (d - 1.0) / (LG_GLOWREACH - 1.0), 0.0, 1.0), 3.0) * (0.3 + 0.7 * facing) * (1.0 - rim) : 0.0;
+            float glow = d < LG_GLOWREACH ? LG_GLOW * pow(clamp(1.0 - (d - 1.0) / (LG_GLOWREACH - 1.0), 0.0, 1.0), 3.0) * (LG_GLOWSIDE + (1.0 - LG_GLOWSIDE) * facing) * (1.0 - rim) : 0.0;
             col = over(col, half3(1.0), half(clamp(spec + glow + highlight, 0.0, 1.0)));
             return col * half(coverage * flags.w) + outside;
             }
@@ -654,7 +654,7 @@ internal static class GlassMaterial
             return clamp(luma + (c.rgb - luma) * half(saturation), 0.0, 1.0);
         }
         half4 filmed(half3 lifted, half alpha, float2 at, float2 extent, float4 film) {
-            half grey = half(mix(film.x, film.y, clamp(at.y / max(extent.y, 1.0), 0.0, 1.0)));
+            half grey = half(mix(film.x, film.y, smoothstep(LG_FILMBEGIN, LG_FILMEND, clamp(at.y / max(extent.y, 1.0), 0.0, 1.0))));
             return over(half4(lifted * alpha, alpha), half3(grey), half(film.z));
         }
         half4 body(half4 under, float2 at, float2 extent, float4 film) { return filmed(lift(under, film.w), under.a, at, extent, film); }
@@ -684,7 +684,10 @@ internal static class GlassMaterial
             .Replace("LG_RIMBASE", F(Optics.RimBase), StringComparison.Ordinal)
             .Replace("LG_RIMTOP", F(Optics.RimTop), StringComparison.Ordinal)
             .Replace("LG_RIMBOTTOM", F(Optics.RimBottom), StringComparison.Ordinal)
-            .Replace("LG_GLOW", F(Optics.Glow), StringComparison.Ordinal);
+            .Replace("LG_GLOWSIDE", F(Optics.GlowSide), StringComparison.Ordinal)
+            .Replace("LG_GLOW", F(Optics.Glow), StringComparison.Ordinal)
+            .Replace("LG_FILMBEGIN", F(FilmBegin), StringComparison.Ordinal)
+            .Replace("LG_FILMEND", F(FilmEnd), StringComparison.Ordinal);
     }
 
     // The pixels under a material as they are when it draws: what a whole drawing of the window has drawn before it (ED-320 11). The surface
@@ -966,19 +969,23 @@ internal static class GlassMaterial
 
     // ED-NEW-glass-g1: the film over the glass body (BodySource), between the light appearance's and the dark one's: darkness 0 is light, 1 is dark.
     // x and y are the grey at the top and at the bottom, z its opacity, w the saturation of the colour under it. The dark ends are
-    // dashersw/liquid-glass-js's tint gradient (topTint 1.0, bottomTint 0.7) at 0.17 rather than its 0.2: over the Mac frames' dark backdrop that
-    // gives what they show (the composer pill over about 57: 91 under the top rim, 84 at the middle, 77 at the bottom, against 93, 85 and 76; the
-    // disabled small glass button over (52,59,60): (80,86,87) against (75,84,85)); at 0.2 the middle was 89. The light ends are a whiter,
-    // stronger frost (no light-appearance frame was measured). The saturation is the lift of the Mac glass's colour (outside G-B 10, inside 12
-    // after the film).
+    // dashersw/liquid-glass-js's tint gradient (topTint 1.0, bottomTint 0.7, tintOpacity 0.2) fitted to the Mac composer pill over its backdrop
+    // of about 57 (frames 01, 29, 30): 0.17 of a grey of 0.94 above the middle and 0.7 at the bottom gives 88 at the middle and 77 low down,
+    // against 88 and 77 (dashersw's own 0.2 and 1.0 gave 89 and a top 6 levels too light); the disabled small glass button over (52,59,60)
+    // comes out (82,90,91) against the reference's (75,84,85). The light ends are a whiter, stronger frost (no light-appearance frame was
+    // measured). The saturation is the lift of the Mac glass's colour (outside G-B 10, inside 12 after the film).
     internal static float[] Film(double darkness)
     {
         var t = Math.Clamp(darkness, 0, 1);
         static float Mix(double light, double dark, double t) => (float)(light + (dark - light) * t);
         return [Mix(FilmLight[0], FilmDark[0], t), Mix(FilmLight[1], FilmDark[1], t), Mix(FilmLight[2], FilmDark[2], t), Mix(FilmLight[3], FilmDark[3], t)];
     }
-    internal static readonly double[] FilmDark = [1.0, 0.70, 0.17, 1.4];
-    internal static readonly double[] FilmLight = [1.0, 0.88, 0.30, 1.25];
+    internal static readonly double[] FilmDark = [0.94, 0.70, 0.17, 1.4];
+    internal static readonly double[] FilmLight = [1.0, 0.90, 0.30, 1.25];
+
+    // Where the film turns from its top grey to its bottom one, as fractions of the piece's height: dashersw's ramp is linear over the whole
+    // height; the Mac pill is flat (87 to 88) down to about half its height and darkens to 77 by four fifths of it.
+    internal const double FilmBegin = 0.45, FilmEnd = 0.85;
 
     // ED-NEW-glass-g1: a piece's refraction, by its size (the shader's `optics`: x the bend at the edge, y the fall-off's width, z the border
     // before it falls, w the rim ring at the edge, all in the piece's units).
@@ -986,11 +993,14 @@ internal static class GlassMaterial
     //     half of it at the edge: 90 px) under a neutral grey centre blurred by 11 px and inset by 3.5 % of the smaller side, so the bend is
     //     full at the edge and falls off as a Gaussian edge does (its complement) over about the blur. On its 52 px pill that is a bend of about
     //     the pill's height at the edge over a 14 px band. Here the fall-off is 21 % of the smaller side up to 11 (its 11 on 52), the border 3.5 %
-    //     up to 3, and the bend 55 % of the smaller side up to 40 (a small piece takes less again, down to half that under 60 pt, so the
-    //     effort knob, 28 pt, keeps the colour under it: GlassSmallLensTests). The per-channel scales of its chromatic aberration (0 / 10 / 20 on
-    //     180) are the fringe: green bends 0.944 and blue 0.889 of red, about 4 to 6 pt from red to blue at a panel's edge.
+    //     up to 3, and the bend 55 % of the smaller side up to 40 on a piece of 100 pt or more. A smaller piece takes a smaller share, a fifth of it
+    //     at 32 pt and under: the Mac frames show the small pieces read little from past their edge (the title capsules' first pixel 68 beside
+    //     a backdrop of 50 that a bright strip 15 pt out lifts to 68 under a long bend; the composer pill's top 3 to 6 levels lighter than the Mac's
+    //     where the backdrop above it lightens), and the effort knob, 28 pt, keeps the colour under it (GlassSmallLensTests). The per-channel
+    //     scales of its chromatic aberration (0 / 10 / 20 on 180) are the fringe: green bends 0.944 and blue 0.889 of red, about 4 to 6 pt from
+    //     red to blue at a panel's edge.
     //   - dashersw/liquid-glass-js (MIT, (c) 2025 Armagan Amcalar), container.js setupShader: the rim ring, rimIntensity * exp(-rimDistance * d)
-    //     with rimDistance 0.8 per pixel, a sharp extra bend on the edge's first pixels; here 15 % of the smaller side up to 10 pt.
+    //     with rimDistance 0.8 per pixel, a sharp extra bend on the edge's first pixels; here 8 % of the smaller side up to 10 pt.
     internal readonly record struct Optics(double Bend, double Sigma, double Border, double Ring)
     {
         internal const double MaxBend = 40, MaxRing = 10;
@@ -999,17 +1009,23 @@ internal static class GlassMaterial
         internal const double BendSupport = 3.12; // ln(199) / 1.702, where the normalised logistic tail reaches the floor
         internal const double RingFloor = 0.001;
         internal static readonly double RingReach = Math.Log(1 / RingFloor) / 0.8; // where exp(-0.8 d) reaches the floor: 8.63
-        internal const double GlowReach = 9; // the light inner edge ends 9 pt in
+        internal const double GlowReach = 12; // the light inner edge ends 12 pt in
         internal const double Green = 1 - 10 / 180.0, Blue = 1 - 20 / 180.0;
-        internal const double ShadeBase = 0.08, ShadeSide = 0.6; // the contact line outside the edge: everywhere, and where the edge faces sideways
-        internal const double RimBase = 0.2, RimTop = 0.22, RimBottom = 0.18; // the rim's white over the body: all around, then by how much it faces up or down
-        internal const double Glow = 0.05;
+        // Calibrated on the Mac composer pill (frames 01, 29, 30; compare\pill*.png), 1 px = 1 pt:
+        //   - the contact line outside the edge: none where the edge faces up or down (the pill's top and bottom: 60 and 53 outside, as around it),
+        //     dark where it faces sideways (its ends: 9 against 32 around);
+        //   - the rim's white over the body, all around (15 % of it at the sides) and by how much the edge faces up or down: the top 124 and the
+        //     bottom 123 over a body of 88 and 77 (the port: 123 and 124 over the same backdrop);
+        //   - the light inner edge: +9, +6, +5, +3, +2 levels 1.5 to 5.5 pt under the top rim (with the bend's own lift there), a fifth of it at the sides.
+        internal const double ShadeBase = 0, ShadeSide = 0.6;
+        internal const double RimBase = 0.15, RimTop = 0.20, RimBottom = 0.24;
+        internal const double Glow = 0.035, GlowSide = 0.2;
 
         public static Optics For(Size size)
         {
             var smaller = Math.Max(1, Math.Min(size.Width, size.Height));
-            var small = Math.Clamp(smaller / 60, 0.5, 1);
-            return new Optics(Math.Min(MaxBend, 0.55 * smaller * small), Math.Clamp(0.21 * smaller, 1, 11), Math.Min(3, 0.035 * smaller), Math.Min(MaxRing, 0.15 * smaller));
+            var small = Math.Clamp((smaller - 16) / 84, 0.2, 1);
+            return new Optics(Math.Min(MaxBend, 0.55 * smaller * small), Math.Clamp(0.21 * smaller, 1, 11), Math.Min(3, 0.035 * smaller), Math.Min(MaxRing, 0.08 * smaller));
         }
 
         /// <summary>How far in from the edge anything but the body is drawn: past it the shader reads one texel.</summary>

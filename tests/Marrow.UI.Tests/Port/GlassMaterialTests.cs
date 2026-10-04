@@ -170,11 +170,11 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
         using var scene = new Scene(new Pattern { Gradient = true }, Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
         var pixels = scene.Pixels("glass-material-refraction.png");
         // An affine gradient survives blur. ED-NEW-glass-g1 replaced the 0.18 dark frost (alone ~50/~170 here, the old thresholds 42/180) with
-        // dashersw's light film at 0.17: alone it gives 0.83 x + 37 at the middle row, 82 at x 54 and 204 at x 201.
+        // dashersw's light film at 0.17: alone it gives 0.83 x + 41 at the middle row, 86 at x 54 and 208 at x 201.
         // These thresholds still require a displacement of at least 12 px beyond the film, rim and inner light.
-        Assert.True(pixels(54, 80).R < 71, "The left edge must sample farther left than the plain film.");
-        Assert.True(pixels(201, 80).R > 214, "The right edge must sample farther right than the plain film.");
-        Assert.InRange(pixels(128, 80).R, (byte)133, (byte)153); // deep interior retains the undistorted gradient (0.83 * 128 + 37 = 143)
+        Assert.True(pixels(54, 80).R < 75, "The left edge must sample farther left than the plain film.");
+        Assert.True(pixels(201, 80).R > 217, "The right edge must sample farther right than the plain film.");
+        Assert.InRange(pixels(128, 80).R, (byte)137, (byte)157); // deep interior retains the undistorted gradient (0.83 * 128 + 41 = 147)
     });
 
     [Fact]

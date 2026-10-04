@@ -93,7 +93,7 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
         var outside = pixels(10, 10);
         Assert.True(outside.A == 0, $"the instrument: the window around the glass is transparent ({outside})");
         var centre = pixels(128, 80);
-        // dashersw's tint gradient at 0.17 alone: alpha 43, a light grey (0.85 white at the middle row).
+        // dashersw's tint gradient at 0.17 alone: alpha 43, a light grey (0.94 white at the middle row).
         Assert.InRange(centre.A, (byte)35, (byte)90);
         Assert.True(Luma(centre) >= 170, $"the film is light, not black: {centre} (straight luma {Luma(centre):F0})");
         // No pixel of the shape is black or opaque: the midline and the midcolumn, rim and edge included.
@@ -144,7 +144,7 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     public void The_glass_lifts_the_brightness_and_the_saturation_of_what_is_under_it() => headless.OnUiThread(() =>
     {
         var grey = Render(new Panel { Background = new SolidColorBrush(Color.FromRgb(128, 128, 128)) }, Piece(Panel, 160, 120), Brushes.Black)(128, 80);
-        // 0.83 * 128 + 0.17 * 0.85 * 255 = 143 (it was 110: an 18 % dark veil).
+        // 0.83 * 128 + 0.17 * 0.94 * 255 = 147 (it was 110: an 18 % dark veil).
         Assert.InRange(grey.G, (byte)140, (byte)152);
         var under = Color.FromRgb(150, 110, 90);
         var coloured = Render(new Panel { Background = new SolidColorBrush(under) }, Piece(Panel, 160, 120), Brushes.Black)(128, 80);
@@ -166,14 +166,15 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
         var left = pixels(48, 80).G - pixels(54, 80).G;
         var right = pixels(207, 80).G - pixels(201, 80).G;
         Assert.True(top >= 18, $"top rim +{top}");
-        Assert.True(bottom >= 14, $"bottom rim +{bottom}");
-        Assert.True(left >= 3 && right >= 3, $"side rims +{left} and +{right}");
-        Assert.True(top > bottom && bottom > left && bottom > right, $"the top is brightest, the sides least: {top} {bottom} {left} {right}");
+        Assert.True(bottom >= 18, $"bottom rim +{bottom}");
+        Assert.True(left >= 2 && right >= 2, $"side rims +{left} and +{right}");
+        // The top rim is the brightest line (the bottom one stands out as far from the darker body under it, as on the Mac pill: +36 and +46).
+        Assert.True(pixels(128, 20).G >= pixels(128, 139).G && pixels(128, 139).G > pixels(48, 80).G, $"the top is brightest, the sides least: {pixels(128, 20)} {pixels(128, 139)} {pixels(48, 80)}");
         // The light inner edge under the top rim: 1.5 pt in is lighter than 9.5 pt in (+5 here, +8 on the Mac pill's darker glass).
         Assert.True(pixels(128, 21).G >= pixels(128, 29).G + 3, $"inner edge {pixels(128, 21)} against {pixels(128, 29)}");
-        // The contact line just outside, dark at the sides (the Mac frames' 1 px line at a capsule's ends), faint at the top.
+        // The contact line just outside, dark at the sides (the Mac frames' 1 px line at a capsule's ends), none at the top.
         Assert.True(pixels(47, 80).G <= 128 - 50, $"side contact line {pixels(47, 80)}");
-        Assert.InRange(pixels(128, 19).G, (byte)105, (byte)125);
+        Assert.InRange(pixels(128, 19).G, (byte)124, (byte)132);
         Assert.Equal(pixels(10, 10), pixels(45, 80)); // and nothing past it
     });
 
@@ -196,12 +197,13 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     }
 
     [Theory]
-    // A panel (160 x 120): the bend 40 at the edge, 33.8 + 1.4 (the ring) 2.5 pt in; red to blue 11 % of it.
+    // A panel (160 x 120): the bend 40 at the edge, 33.8 + 1.3 (the ring) 2.5 pt in, green 0.944 of it; red to blue 11 % of it.
     [InlineData(160, 120, 16, 2, 28, 40, 3.0, 6.0, 40)]
-    // A title capsule (90 x 28): half the panel share of its size (7.7, ring 4.2), 6.2 + 1.3 at 1.5 pt in; its fringe under a pixel.
-    [InlineData(90, 28, 14, 1, 5.5, 10, 0.3, 1.5, 30)]
-    // The composer pill (300 x 46, the bar is 818 wide): 19.4 at the edge, ring 6.9.
-    [InlineData(300, 46, 23, 1, 17, 30, 1.5, 3.5, 40)]
+    // A title capsule (90 x 28): a fifth of the panel share of its size (3.1, ring 2.2), 2.5 + 0.7 at 1.5 pt in; its fringe under a pixel.
+    [InlineData(90, 28, 14, 1, 2.0, 4.5, -0.5, 1.0, 30)]
+    // The composer pill (300 x 46, the bar is 818 wide): 9.0 at the edge, ring 3.7, 8.0 + 1.1 at 1.5 pt in; red to blue 1.0 (the reading is good
+    // to about 0.7 per channel).
+    [InlineData(300, 46, 23, 1, 6.5, 11, 0.3, 2.0, 40)]
     [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // OD-0107: rizzytoday's bend and chromatic aberration, dashersw's rim ring, sized by the piece
     public void The_edge_bends_and_fringes_by_the_size_of_the_piece(double width, double height, double radius, int inset, double bendLow, double bendHigh, double fringeLow, double fringeHigh, int span) =>
