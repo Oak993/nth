@@ -305,6 +305,8 @@
         "bytes": 250058371,
         "sha512": "a73be8db5ef2f271cf7196aff36cc9fee1ecb67b02169367e9da1dace8b65a3c18de3ef1c8f701061197791befa51b9989163472e4fc0444dc63d9ca1aa54e67",
         "sha512Base64": "pzvo217y8nHPcZav82zJ/uHstnsCFpNn6dodrOi2WjwY3j7xyPcBBhGXeRvvpRuZiRY0cuT8BETcY9nKGqVOZw==",
+        "sha256": "eb8d4233c202fe948cace50e3fa08fec7beead699db86a17df9820d03180a30c",
+        "sha256Evidence": "computed 2026-10-04 by the lead from the nuget cache copy whose size (250058371) and SHA-512 equal this pin",
         "licence": "MIT",
         "loaderFolder": "runtimes/cuda12/win-x64",
         "packFolder": "build/win-x64",
