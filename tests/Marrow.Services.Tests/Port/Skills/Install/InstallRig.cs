@@ -8,10 +8,12 @@ namespace Marrow.Services.Tests.Port.Skills.Install;
 
 internal sealed class InstallRig : IDisposable
 {
-    public string Root { get; } = Path.Combine(Path.GetTempPath(), "marrow-sk4-" + Guid.NewGuid().ToString("N"));
+    public string Root { get; }
     public FakeInstallLock Lock { get; } = new();
     public FakeInstallProcess Process { get; } = new();
-    public InstallRig() => Directory.CreateDirectory(Root);
+    public InstallRig() : this(Path.Combine(Path.GetTempPath(), "marrow-sk4-" + Guid.NewGuid().ToString("N"))) { }
+    // integ-sk8-sk9: a crash test reattaches to the root a worker process left behind.
+    public InstallRig(string root) { Root = root; Directory.CreateDirectory(Root); }
     public string Input(string name, byte[] bytes)
     {
         var path = Path.Combine(Root, "inputs", name);
@@ -24,7 +26,13 @@ internal sealed class InstallRig : IDisposable
         using var memory = new MemoryStream();
         using (var zip = new ZipArchive(memory, ZipArchiveMode.Create, true))
             foreach (var (name, text) in files)
-                using (var writer = new StreamWriter(zip.CreateEntry(name).Open())) writer.Write(text);
+            {
+                // integ-sk8-sk9: a fixed entry time makes the archive (and so its pinned digest) the same in every process.
+                var entry = zip.CreateEntry(name);
+                entry.LastWriteTime = new DateTimeOffset(2026, 10, 4, 12, 0, 0, TimeSpan.Zero);
+                using var writer = new StreamWriter(entry.Open());
+                writer.Write(text);
+            }
         return memory.ToArray();
     }
     public InstallPlan Plan(InstallerKind kind, byte[]? bytes = null)

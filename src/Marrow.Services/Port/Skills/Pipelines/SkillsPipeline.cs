@@ -7,7 +7,7 @@ namespace Marrow.Services.Port.Skills.Pipelines;
 
 // PORT-ONLY: SK-8, ONDEMAND 3.7/3.8 + DL-8, PLAN 2.1. One owner per root, including leases and GC.
 // Uses SK-5's verifier/unlock/deletion primitives; do not run a separate SkillsStore owner on this root.
-public sealed class SkillsPipeline
+public sealed class SkillsPipeline : IGenerationStore
 {
     private readonly object gate = new();
     private readonly SemaphoreSlim operation = new(1, 1);
@@ -25,6 +25,7 @@ public sealed class SkillsPipeline
     private readonly Dictionary<(string Id, string Pin), StoreItem> versions = [];
     private string ResetMarker => Path.Combine(paths.Skills, "reset-pending");
     private readonly Dictionary<string, int> leases = new(StorePaths.Comparer);
+    private readonly HashSet<string> retired = new(StorePaths.Comparer); // integ-sk8-sk9: generations never handed out again (SK-9 binding).
     private AddonsState state;
 
     public SkillsPipeline(StorePaths paths, SkillsCatalogue catalogue, IEnumerable<StoreItem> trustedVersions, AddonsState initial,
@@ -110,7 +111,7 @@ public sealed class SkillsPipeline
         lock (gate)
         {
             folder = paths.RequireManaged(folder);
-            if (!StorePaths.Under(folder, paths.Views) || Leased(folder) || !verifier.Verify(folder, manifest).IsValid) return null;
+            if (!StorePaths.Under(folder, paths.Views) || Leased(folder) || IsRetired(folder) || !verifier.Verify(folder, manifest).IsValid) return null;
             var held = new List<StoreLease>();
             foreach (var (id, pin) in sources.Distinct())
             {
@@ -122,6 +123,23 @@ public sealed class SkillsPipeline
             return new StoreLease(folder, () => { lock (gate) { leases.Remove(folder); foreach (var lease in held) lease.Dispose(); } });
         }
     }
+
+    /// <summary>integ-sk8-sk9: SK-9's generation lease. A generation is a copy, so it holds no source lease once composed.</summary>
+    public StoreLease? AcquireGeneration(string folder, StoreManifest manifest) => AcquireGeneration(folder, manifest, []);
+
+    /// <summary>integ-sk8-sk9: SK-9 retires a damaged or replaced generation; it is deleted at once when unleased, else by a later GC.</summary>
+    public void Retire(string folder)
+    {
+        lock (gate)
+        {
+            folder = paths.RequireManaged(folder);
+            if (!StorePaths.Under(folder, paths.Views)) throw new ArgumentException("Only a generation under skills/views can be retired.", nameof(folder));
+            if (Snapshot().SelectMany(r => r.SparePaths).Any(p => StorePaths.Comparer.Equals(p, folder))) return; // A selected pin's spare stays with its route.
+            retired.Add(folder);
+            TryDelete(folder);
+        }
+    }
+    private bool IsRetired(string folder) => retired.Any(p => StorePaths.Comparer.Equals(p, folder) || StorePaths.Under(folder, p));
 
     public async Task UpdateAsync(string id, IProgress<double?> progress, CancellationToken cancellation = default)
     {
@@ -182,6 +200,73 @@ public sealed class SkillsPipeline
         {
             if (!committed && prepared is not null)
                 foreach (var folder in prepared.SparePaths.Prepend(prepared.Path)) TryDelete(folder);
+            throw;
+        }
+        finally { operation.Release(); }
+    }
+
+    /// <summary>
+    /// integ-sk8-sk9 (ED-NEW-integ-sk4-sk5 (5)(b)): Repair of a damaged item, archive tools included. The damaged folder is renamed aside to a tmp- name (so its
+    /// path is free even when deleting it must wait) and collected; the orchestrator's download seam supplies the installer parameters for the installed pin (never
+    /// latest); SK-4's installer reinstalls that pin at its own path; the tree is verified against the trusted descriptor and committed. False, with nothing changed,
+    /// while a running chat leases the damaged folder or a handle holds it. A failure or an abrupt exit leaves the item Damaged (Installed once committed); Repair runs again.
+    /// </summary>
+    public async Task<bool> RepairAsync(string id, IProgress<double?> progress, CancellationToken cancellation = default)
+    {
+        await operation.WaitAsync(cancellation).ConfigureAwait(false);
+        var published = false;
+        var committed = false;
+        StoreItem? trusted = null;
+        try
+        {
+            ItemRecord checking;
+            lock (gate)
+            {
+                var record = state.Get(id);
+                if (record.State != ItemState.Damaged || record.InstalledPin is null) throw new InvalidOperationException("Repair requires a damaged installed pin.");
+                if (downloads is null) throw new InvalidOperationException("Pipeline seams are not bound.");
+                trusted = versions[(id, record.InstalledPin)];
+                if (Leased(trusted.Folder)) return false; // A running chat keeps its folder; Repair runs again when the lease ends.
+                if (Directory.Exists(trusted.Folder))
+                {
+                    var aside = Path.Combine(Path.GetDirectoryName(trusted.Folder)!, "tmp-" + Guid.NewGuid().ToString("N"));
+                    paths.RequireManaged(aside);
+                    try { Directory.Move(trusted.Folder, aside); } // The parent grants delete-child, so a locked folder renames (PLAN 2.1).
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return false; } // A held handle: retried later.
+                }
+                checkpoint?.Invoke(PipelineStep.SetAside);
+                CollectCore(); // The aside copy and any crash residue of an earlier attempt: unselected tmp- trees.
+                checking = state.Transition(id, ItemState.Downloading).Transition(id, ItemState.Checking).Get(id);
+            }
+            var item = trusted.Catalogue;
+            var plan = await downloads(item, checking, progress, cancellation).ConfigureAwait(false);
+            if (plan.Item != item || plan.Record != checking || Path.GetFullPath(plan.DataRoot) != paths.Root)
+                throw new InvalidDataException("Download plan disagrees with the repair.");
+            checkpoint?.Invoke(PipelineStep.Downloaded);
+            cancellation.ThrowIfCancellationRequested();
+            var installPin = item.Pin ?? Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(trusted.Pin)));
+            var result = await installer.InstallAsync(plan with { Item = item with { Pin = installPin }, Record = checking with { TargetPin = installPin } }, cancellation).ConfigureAwait(false);
+            result.Reservation?.Dispose(); // This owner's GC never runs during an operation; after the commit the folder is the selected route.
+            published = StorePaths.Comparer.Equals(result.Path, trusted.Folder);
+            foreach (var spare in result.SparePaths) TryDelete(spare); // The pin's routing is immutable and keeps its own spares.
+            if (!published) { TryDelete(result.Path); throw new InvalidDataException("The reinstalled pin is not at its installed path."); }
+            checkpoint?.Invoke(PipelineStep.Installed);
+            if (!inventoryVerifier.Verify(trusted, directories[(id, trusted.Pin)])) throw new IOException("The file didn't match its checksum.");
+            cancellation.ThrowIfCancellationRequested();
+            lock (gate)
+            {
+                checkpoint?.Invoke(PipelineStep.BeforeCommit);
+                var installed = new ItemRecord(id, ItemState.Installed, trusted.Pin, null, null);
+                Commit(UpdateCheck.Compute(AddonsState.Restore(state.Items.Where(r => r.Id != id).Append(installed), state.AcceptedTerms, state.Declined, state.Found), catalogue).State);
+                committed = true;
+            }
+            try { progress.Report(1); } catch (Exception) { }
+            return true;
+        }
+        catch
+        {
+            // An uncommitted reinstall is not trusted: the item stays Damaged and its path is collected like any damaged tree.
+            if (!committed && published && trusted is not null) lock (gate) TryDelete(trusted.Folder);
             throw;
         }
         finally { operation.Release(); }
@@ -266,7 +351,7 @@ public sealed class SkillsPipeline
     {
         StorePaths.EnsureAncestors(Path.GetDirectoryName(folder)!);
         if (Leased(folder)) return;
-        try { trees.Unlock(folder); deletion.Delete(folder); }
+        try { trees.Unlock(folder); deletion.Delete(folder); if (!Path.Exists(folder)) retired.RemoveWhere(p => StorePaths.Comparer.Equals(p, folder) || StorePaths.Under(p, folder)); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { /* Retry at next GC, per SK-5. */ }
     }
 }

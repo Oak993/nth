@@ -9,7 +9,8 @@ using Marrow.Services.Tests.Port.Skills.Install;
 namespace Marrow.Services.Tests.Port.Skills.Pipelines;
 internal sealed class PipelineRig : IDisposable
 {
-    private readonly InstallRig install = new();
+    private readonly InstallRig install;
+    private readonly FakeInstallProcess? process;
     private readonly IStoreProtection protection;
     private readonly IInstallLock sealing;
     private readonly List<StoreItem> versions = [];
@@ -23,12 +24,20 @@ internal sealed class PipelineRig : IDisposable
     public int Downloads { get; private set; }
     public List<double?> Reports { get; } = [];
     public IProgress<double?> Progress => new PipelineProgress(Reports);
-    public PipelineRig(bool nonOpen = false, bool windows = false, bool skillset = false, bool multiPin = false, bool emptyDirectory = false)
+    public string? LastDownloadPin { get; private set; }
+    public PipelineRig(bool nonOpen = false, bool windows = false, bool skillset = false, bool multiPin = false, bool emptyDirectory = false, bool msi = false, string? root = null)
     {
+        install = root is null ? new() : new(root);
         if (windows) { protection = new WindowsStoreProtection(); sealing = new WindowsInstallLock(); }
         else { var fake = new PipelineProtection(); protection = fake; sealing = fake; }
         Paths = new(install.Root);
         plan = install.Plan(InstallerKind.Zip, emptyDirectory ? InstallRig.Zip(("payload.txt", "offline fixture"), ("empty/", "")) : null);
+        if (msi)
+        {
+            // integ-sk8-sk9: a LibreOffice-like administrative image; the fake msiexec writes the image into TARGETDIR (never a real msiexec).
+            process = new FakeInstallProcess { OnRun = cmd => File.WriteAllText(Path.Combine(cmd.Arguments[3]["TARGETDIR=".Length..], "payload.txt"), "offline fixture") };
+            plan = plan with { Kind = InstallerKind.MsiAdmin, Extractor = Path.Combine(install.Root, "msiexec.exe") };
+        }
         if (skillset)
         {
             var skill = "Fixture skill instructions"u8.ToArray();
@@ -60,7 +69,7 @@ internal sealed class PipelineRig : IDisposable
     public async Task<SkillsPipeline> Create(Action<PipelineStep>? crash = null, InstallStep? installCrash = null, InstallStep? hardInstallCrash = null)
     {
         Directory.CreateDirectory(Paths.Addons);
-        var result = await new ItemInstaller(sealing).InstallAsync(plan);
+        var result = await new ItemInstaller(sealing, process).InstallAsync(plan);
         var old = new StoreItem(Old, result.Path, new StoreManifest(result.Manifest));
         versions.Add(old);
         directories[(Old.Id, old.Pin)] = result.Directories;
@@ -70,11 +79,12 @@ internal sealed class PipelineRig : IDisposable
         return Build(state, crash, installCrash, hardInstallCrash);
     }
     private SkillsPipeline Build(AddonsState state, Action<PipelineStep>? crash = null, InstallStep? installCrash = null, InstallStep? hardInstallCrash = null) => new(Paths, catalogue, versions.GroupBy(v => (v.Catalogue.Id, v.Pin)).Select(g => g.Last()), state,
-        new ItemInstaller(sealing, checkpoint: (step, _) => { if (step == hardInstallCrash) Environment.Exit(71); if (step == installCrash) throw new IOException("Injected crash"); }), protection,
+        new ItemInstaller(sealing, process, checkpoint: (step, _) => { if (step == hardInstallCrash) Environment.Exit(71); if (step == installCrash) throw new IOException("Injected crash"); }), protection,
         downloads: (item, record, progress, cancellation) =>
         {
-            cancellation.ThrowIfCancellationRequested(); Downloads++; progress.Report(0.5);
-            return Task.FromResult(plan with { Item = item, Record = record, LocalFiles = nextFiles });
+            cancellation.ThrowIfCancellationRequested(); Downloads++; progress.Report(0.5); LastDownloadPin = item.Pin;
+            // Repair downloads the installed pin's own files; an update gets the new pin's.
+            return Task.FromResult(plan with { Item = item, Record = record, LocalFiles = item.Pin is not null && item.Pin == Old.Pin ? plan.LocalFiles : nextFiles });
         }, bindings: (item, result) =>
         {
             versions.Add(new StoreItem(item, result.Path, new StoreManifest(result.Manifest), result.Record.InstalledPin));
@@ -84,6 +94,29 @@ internal sealed class PipelineRig : IDisposable
     private static PipelineRoute Bind(CatalogueItem item, InstallResult result) => new(item.Id, UpdateCheck.CataloguePin(item)!, result.Path, result.SparePaths.ToArray(),
         item.Kind == ItemKind.Skillset ? new(StringComparer.Ordinal) : new(StringComparer.Ordinal) { [item.Id + ".exe"] = new ShimDefinition { Target = Path.Combine(result.Path, "payload.txt") } });
     public SkillsPipeline Restart() => Build(AddonsState.Empty);
+    public int ProcessRuns => process?.Commands.Count ?? 0;
+    // integ-sk8-sk9: tamper one installed file under the lock, as an agent removing the deny entry would.
+    public void Damage(string folder)
+    {
+        var trees = new StoreTrees(protection);
+        trees.Unlock(folder);
+        File.WriteAllText(Path.Combine(folder, "payload.txt"), "tampered");
+        trees.Lock(folder);
+    }
+    // integ-sk8-sk9: after a worker's abrupt exit, rebuild the old pin's trusted descriptor from the same offline install made in a scratch
+    // root (same folder name, hashes and directories), then restart the pipeline over the worker's state.json.
+    public async Task<SkillsPipeline> Reattach()
+    {
+        var scratch = Path.Combine(install.Root, "scratch");
+        var result = await new ItemInstaller(sealing, process).InstallAsync(plan with { DataRoot = scratch });
+        var folder = Path.Combine(Paths.Tools, Path.GetFileName(result.Path));
+        versions.Add(new StoreItem(Old, folder, new StoreManifest(result.Manifest)));
+        directories[(Old.Id, Old.Pin!)] = result.Directories;
+        new StoreTrees(protection).Unlock(scratch);
+        foreach (var file in Directory.GetFiles(scratch, "*", SearchOption.AllDirectories)) File.SetAttributes(file, FileAttributes.Normal);
+        Directory.Delete(scratch, true);
+        return Build(AddonsState.Empty);
+    }
     public SkillsPipeline Unbound() => new(Paths, catalogue, versions, AddonsState.Empty, new ItemInstaller(sealing), protection,
         trustedDirectories: directories);
     public async Task<SkillsPipeline> CreateDependencies()
