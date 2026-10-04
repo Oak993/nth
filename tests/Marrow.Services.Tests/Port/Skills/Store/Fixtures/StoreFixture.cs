@@ -88,6 +88,9 @@ public sealed class StoreFixture : IDisposable
         foreach (var path in StoreTrees.Entries(Root).Prepend(Root))
             if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0 && Protection.IsLocked(path))
                 throw new InvalidOperationException("A Marrow deny entry remains after fixture teardown: " + path);
+        // Unlink planted links first, never following them: .NET's recursive delete refuses a junction for a standard user.
+        foreach (var path in StoreTrees.Entries(Root).Where(p => (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0).ToArray())
+            if ((File.GetAttributes(path) & FileAttributes.Directory) != 0) Directory.Delete(path); else File.Delete(path);
         Directory.Delete(Root, recursive: true);
         if (Directory.Exists(Root)) throw new InvalidOperationException("SK-5 teardown left a folder.");
     }

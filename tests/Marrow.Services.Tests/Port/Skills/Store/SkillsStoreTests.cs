@@ -250,7 +250,7 @@ public sealed class SkillsStoreTests
         Directory.CreateDirectory(home);
         var sentinel = Path.Combine(home, "sentinel");
         File.WriteAllText(sentinel, "untouched");
-        Directory.CreateSymbolicLink(Path.Combine(f.Paths.Tools, "old-link"), home);
+        TestLinks.Directory(f.Root, Path.Combine(f.Paths.Tools, "old-link"), home);
         Assert.Throws<ArgumentException>(() => store.Retire(home));
         store.Collect();
         Assert.Equal("untouched", File.ReadAllText(sentinel));
