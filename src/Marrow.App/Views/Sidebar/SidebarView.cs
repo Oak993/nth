@@ -4227,6 +4227,7 @@ internal sealed class SettleCheck : Decorator
         pop = new AnimatedScalar(glyphHost, isPopping ? 1.35 : 1, scale => { popScale.ScaleX = scale; popScale.ScaleY = scale; });
         Control? currentGlyph = null;
         string? currentSymbol = null;
+        AnimatedColor? currentColor = null; // the shown glyph's foreground (:2128), eased when only the colour changes
         var button = PlainControls.Button(glyphHost, action); // :2125, :2134 .buttonStyle(.plain)
         button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :2135-2137
         button.Track(() => (state.IsHovering, state.IsPopping), value =>
@@ -4238,11 +4239,23 @@ internal sealed class SettleCheck : Decorator
                 ? Chrome.Success.Opacity(isSettled && !hovering ? 0.8 : 1) // :2128
                 : Chrome.SecondaryText;
             var symbol = filled ? "checkmark.circle.fill" : "checkmark.circle"; // :2126
+            // UI-SIDEBAR-020 (OD-0076): :2128's foregroundStyle changes inside the hover's withAnimation(Chrome.hover) (:2135-2137), so
+            // an unchanged symbol keeps its glyph and the colour eases from the old one to the new on the transaction the change
+            // is written in (Reduce Motion takes it at once). A changed symbol is a new glyph: the replace below crossfades the two.
+            if (currentGlyph is not null && currentSymbol == symbol && currentColor is not null)
+            {
+                var still = EnvironmentValues.GetAccessibilityReduceMotion(button) || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+                currentColor.Set(color, still ? null : Transaction.Current);
+                return;
+            }
             var previous = currentGlyph;
             if (previous is not null) glyphHost.Children.Remove(previous);
             var glyph = SwiftImage.SystemName(symbol)
                 .Font(Chrome.InlineIconFont); // :2127
-            glyph.ForegroundStyle(color); // :2128
+            var glyphColor = new AnimatedColor(glyph);
+            glyphColor.Set(color, null); // a new glyph is drawn in its colour at once
+            glyph.Foreground = glyphColor.Brush; // :2128
+            currentColor = glyphColor;
             glyph.HorizontalAlignment = HorizontalAlignment.Center;
             glyph.VerticalAlignment = VerticalAlignment.Center;
             glyph.RenderTransform = popScale; // :2132
