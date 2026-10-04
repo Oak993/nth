@@ -48,7 +48,7 @@ public sealed class GlassMaterialPartialRedrawTests(HeadlessSession headless)
     }
 
     // A block under the middle of the glass turns from black to white; only it is redrawn. The glass over it shows the white (the frost is lighter
-    // there than before) and is what a whole drawing gives.
+    // there than before), and the whole piece, the ring the frost spreads the change to around the block included, is what a whole drawing gives.
     [Fact]
     [Trait("Req", "PR-WIN-180")]
     public void A_change_under_the_glass_that_only_it_redraws_shows_through_the_glass_as_in_a_whole_drawing() => headless.OnUiThread(() =>
@@ -62,12 +62,13 @@ public sealed class GlassMaterialPartialRedrawTests(HeadlessSession headless)
         var partial = scene.Pixels();
         var whole = Whole(scene);
         var origin = block.TranslatePoint(default, scene.Window)!.Value;
-        var area = new PixelRect((int)origin.X, (int)origin.Y, (int)block.Bounds.Width, (int)block.Bounds.Height);
-        var centre = new PixelPoint(area.X + area.Width / 2, area.Y + area.Height / 2);
+        var centre = new PixelPoint((int)(origin.X + block.Bounds.Width / 2), (int)(origin.Y + block.Bounds.Height / 2));
         var lighter = partial(centre.X, centre.Y).G - before(centre.X, centre.Y).G;
+        var at = piece.TranslatePoint(default, scene.Window)!.Value;
+        var area = new PixelRect((int)at.X, (int)at.Y, (int)piece.Bounds.Width, (int)piece.Bounds.Height);
         var apart = Largest(partial, whole, area, out var apartAt);
         Assert.True(lighter >= 40 && apart <= 2,
-            $"the glass over the block grew {lighter} levels lighter (at least 40 expected) and is {apart} levels from a whole drawing (at {apartAt})");
+            $"the glass over the block grew {lighter} levels lighter (at least 40 expected); the piece is {apart} levels from a whole drawing (at {apartAt})");
     });
 
     // A white bar drawn over the material, 4 px to the right of a piece, is there before the piece appears. When the piece appears (only it changes)
@@ -88,5 +89,23 @@ public sealed class GlassMaterialPartialRedrawTests(HeadlessSession headless)
         var area = new PixelRect((int)origin.X, (int)origin.Y, (int)piece.Bounds.Width, (int)piece.Bounds.Height);
         var apart = Largest(partial, whole, area, out var apartAt);
         Assert.True(piece.Bounds.Width == 160 && apart <= 2, $"the glass that appeared is {apart} levels from a whole drawing (at {apartAt})");
+    });
+
+    // No feedback: once a change under the glass has been drawn, a scene that does not change draws the glass no more (the reach the material adds to
+    // a frame's dirty region is not itself a change that asks for another frame).
+    [Fact]
+    [Trait("Req", "PR-WIN-180")]
+    public void After_a_change_under_the_glass_a_scene_that_does_not_change_draws_the_glass_no_more() => headless.OnUiThread(() =>
+    {
+        var block = new Border { Width = 40, Height = 30, Background = Brushes.Black, HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center };
+        var piece = Piece();
+        using var scene = new Scene(new Pattern { Flat = true }, new Panel { Children = { block, piece } });
+        _ = scene.Pixels();
+        block.Background = Brushes.White;
+        _ = scene.Pixels();
+        var drawn = GlassMaterial.DrawsForTests;
+        for (var i = 0; i < 10; i++) Scene.Drain();
+        Assert.Equal(0, GlassMaterial.DrawsForTests - drawn);
     });
 }

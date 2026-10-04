@@ -444,9 +444,10 @@ internal static class GlassMaterial
     {
         private State? state;
         private readonly Backdrop backdrop = new();
+        private Reach? reach;
         public override void OnMessage(object message)
         {
-            if (message is Released) { backdrop.Release(); return; }
+            if (message is Released) { backdrop.Release(); reach?.Remove(this); reach = null; return; }
             if (message is not State next) return;
             state = next;
             Invalidate(); // Event-driven, no animation-frame registration or idle timer.
@@ -458,10 +459,17 @@ internal static class GlassMaterial
             var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
             if (feature is null) return;
             using var lease = feature.Lease();
+            DrawsForTests++;
             Backdrop.DisposeReleased();
-            Draw(lease, s, backdrop, DirtyRect.Of(this));
+            var target = Frame.Target(this);
+            var next = target is null ? null : Frame.ReachOf(target);
+            if (next != reach) { reach?.Remove(this); reach = next; }
+            if (Draw(lease, s, backdrop, target is null ? null : Frame.Dirty(target)) is { } drawn) reach?.Set(this, drawn.Output, drawn.Margin);
         }
     }
+
+    // Test-only readback (InternalsVisibleTo): how many times any material has drawn, on the render thread.
+    internal static int DrawsForTests;
 
     // Sent before a material leaves its parent: its handler gives up the backdrop it keeps (disposed at the next render, where the GPU context is current).
     private sealed class Released { public static readonly Released Message = new(); }
@@ -646,41 +654,155 @@ internal static class GlassMaterial
         }
     }
 
-    // The region Avalonia redraws in this frame, in the window surface's pixels: Avalonia 12.1.2's ServerCompositionTarget.DirtyRects, a
-    // SingleDirtyRectTracker unless region clipping is turned on (it is not: no CompositionOptions are set), whose CombinedRect is the frame's clip
-    // (ServerCompositionTarget.RenderRootToContextWithClip clears it and draws everything that meets it). Read through the handler's host; the package is
-    // pinned (Directory.Packages.props). Null when a member is not found or the tracker is another kind: the material then takes the surface whole.
-    private static class DirtyRect
+    // The frame being drawn, read from the handler's host in Avalonia 12.1.2 (`_host`, ServerCompositionVisual.Root, the ServerCompositionTarget): the region it
+    // redraws, in the window surface's pixels (DirtyRects, a SingleDirtyRectTracker unless region clipping is turned on: it is not, no CompositionOptions are set;
+    // its CombinedRect is the frame's clip, which ServerCompositionTarget.RenderRootToContextWithClip clears and draws everything that meets), and the
+    // window's Reach. Private and internal members of the pinned package (Directory.Packages.props); null when one is not found or the tracker is another kind:
+    // the material then takes the surface whole and adds no reach.
+    private static class Frame
     {
         private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         private static readonly FieldInfo? host = typeof(CompositionCustomVisualHandler).GetField("_host", Members);
-        private static PropertyInfo? root, rects, combined;
+        private static readonly Type? events = typeof(CompositionCustomVisualHandler).Assembly.GetType("Avalonia.Rendering.Composition.ICompositionTargetDebugEvents");
+        private static PropertyInfo? root, rects, combined, debugEvents;
+        private static MethodInfo? addRect;
         private static FieldInfo? left, top, right, bottom;
+        private static readonly ConditionalWeakTable<object, Reach> reaches = new();
 
-        public static SKRectI? Of(CompositionCustomVisualHandler handler)
+        public static object? Target(CompositionCustomVisualHandler handler)
         {
             try
             {
                 if (host?.GetValue(handler) is not { } visual) return null;
                 root ??= visual.GetType().GetProperty("Root", Members);
-                if (root?.GetValue(visual) is not { } target) return null;
-                rects ??= target.GetType().GetProperty("DirtyRects", Members);
-                if (rects?.GetValue(target) is not { } tracker || tracker.GetType().Name != "SingleDirtyRectTracker") return null;
-                combined ??= tracker.GetType().GetProperty("CombinedRect", Members);
-                if (combined?.GetValue(tracker) is not { } rect) return null;
-                var type = rect.GetType();
-                (left, top, right, bottom) = (left ?? type.GetField("Left"), top ?? type.GetField("Top"), right ?? type.GetField("Right"), bottom ?? type.GetField("Bottom"));
-                if (left?.GetValue(rect) is not double l || top?.GetValue(rect) is not double t || right?.GetValue(rect) is not double r || bottom?.GetValue(rect) is not double b) return null;
-                return new SKRectI((int)Math.Round(l), (int)Math.Round(t), (int)Math.Round(r), (int)Math.Round(b));
+                return root?.GetValue(visual);
             }
-            catch (Exception e) when (e is ArgumentException or MemberAccessException or TargetInvocationException or InvalidCastException or FieldAccessException) { return null; }
+            catch (Exception e) when (Expected(e)) { return null; }
+        }
+
+        private static object? Tracker(object target)
+        {
+            rects ??= target.GetType().GetProperty("DirtyRects", Members);
+            return rects?.GetValue(target) is { } tracker && tracker.GetType().Name == "SingleDirtyRectTracker" ? tracker : null;
+        }
+
+        public static SKRectI? Dirty(object target)
+        {
+            try
+            {
+                if (Tracker(target) is not { } tracker) return null;
+                combined ??= tracker.GetType().GetProperty("CombinedRect", Members);
+                return combined?.GetValue(tracker) is { } rect ? ToRect(rect) : null;
+            }
+            catch (Exception e) when (Expected(e)) { return null; }
+        }
+
+        // The window's Reach, made and set as the target's debug events the first time (only when nothing else has set them).
+        public static Reach? ReachOf(object target)
+        {
+            if (reaches.TryGetValue(target, out var known)) return known;
+            try
+            {
+                if (events is null || Tracker(target) is not { } tracker) return null;
+                debugEvents ??= target.GetType().GetProperty("DebugEvents", Members);
+                addRect ??= tracker.GetType().GetMethod("AddRect", Members);
+                if (debugEvents is null || addRect is null || debugEvents.GetValue(target) is not null) return null;
+                var reach = (Reach)DispatchProxy.Create(events, typeof(Reach));
+                reach.Bind(tracker, addRect);
+                debugEvents.SetValue(target, reach);
+                reaches.Add(target, reach);
+                return reach;
+            }
+            catch (Exception e) when (Expected(e) || e is NotSupportedException or InvalidOperationException) { return null; }
+        }
+
+        public static SKRectI ToRect(object rect)
+        {
+            var type = rect.GetType();
+            (left, top, right, bottom) = (left ?? type.GetField("Left"), top ?? type.GetField("Top"), right ?? type.GetField("Right"), bottom ?? type.GetField("Bottom"));
+            return new SKRectI((int)Math.Round((double)left!.GetValue(rect)!), (int)Math.Round((double)top!.GetValue(rect)!),
+                (int)Math.Round((double)right!.GetValue(rect)!), (int)Math.Round((double)bottom!.GetValue(rect)!));
+        }
+
+        public static object ToLtrb(Type type, SKRectI rect)
+        {
+            var boxed = Activator.CreateInstance(type)!;
+            left!.SetValue(boxed, (double)rect.Left);
+            top!.SetValue(boxed, (double)rect.Top);
+            right!.SetValue(boxed, (double)rect.Right);
+            bottom!.SetValue(boxed, (double)rect.Bottom);
+            return boxed;
+        }
+
+        private static bool Expected(Exception e) =>
+            e is ArgumentException or MemberAccessException or TargetInvocationException or InvalidCastException or FieldAccessException or NullReferenceException;
+    }
+
+    // ED-NEW-glass-firstchild 15. A change under a material spreads, through its blur and refraction, to the glass up to SampledMargin around it, but Avalonia
+    // redraws only the change's own dirty rect and clips the frame to it: the glass just outside kept the last frame's frost (a seam, 86 to 90 levels,
+    // GlassMaterialKeptBackdropReviewTests). Avalonia passes every rect a frame collects to the target's debug events (DebugEventsDirtyRectCollectorProxy,
+    // while they are set), during the update and before the frame's region is final; the window's Reach is those events, and for each rect that meets a
+    // material's reach it adds that reach, inside the material's own output, to the same frame's region. What it adds goes straight to the tracker, not
+    // through the events, so it is never answered again: no frame is asked for, and a scene that does not change draws nothing (the settle test). A rect
+    // that meets several materials is grown for each, and what one adds is grown for the others (a material over another's output), each once a rect.
+    // Runs on the render thread, as the frame's update does. Public only because DispatchProxy derives from it.
+    public class Reach : DispatchProxy
+    {
+        private object? tracker;
+        private MethodInfo? addRect;
+        private readonly Dictionary<object, (SKRectI Output, int Margin)> materials = new();
+        private readonly List<SKRectI> queue = new();
+        private readonly HashSet<object> grown = new();
+        private readonly List<KeyValuePair<object, (SKRectI Output, int Margin)>> pass = new();
+        private int rendered, visited;
+
+        internal void Bind(object dirtyRects, MethodInfo add) => (tracker, addRect) = (dirtyRects, add);
+        internal void Set(object material, SKRectI output, int margin) => materials[material] = (output, margin);
+        internal void Remove(object material) => materials.Remove(material);
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            switch (targetMethod?.Name)
+            {
+                case "RectInvalidated" when args is [{ } rect]: Grow(rect); return null;
+                case "get_RenderedVisuals": return rendered;
+                case "set_RenderedVisuals" when args is [int count]: rendered = count; return null;
+                case "get_VisitedVisuals": return visited;
+                case "set_VisitedVisuals" when args is [int count]: visited = count; return null;
+                default: return null;
+            }
+        }
+
+        private void Grow(object rect)
+        {
+            if (materials.Count == 0 || tracker is null || addRect is null) return;
+            queue.Clear();
+            grown.Clear();
+            queue.Add(Frame.ToRect(rect));
+            pass.AddRange(materials);
+            for (var i = 0; i < queue.Count; i++)
+            {
+                var changed = queue[i];
+                foreach (var (material, (output, margin)) in pass)
+                {
+                    if (grown.Contains(material)) continue;
+                    var reach = new SKRectI(changed.Left - margin, changed.Top - margin, changed.Right + margin, changed.Bottom + margin);
+                    var add = SKRectI.Intersect(reach, output);
+                    if (add.IsEmpty || changed.Contains(add)) continue;
+                    grown.Add(material);
+                    addRect.Invoke(tracker, [Frame.ToLtrb(rect.GetType(), add)]);
+                    queue.Add(add);
+                }
+            }
+            pass.Clear();
         }
     }
 
     // The veil's channel between the light appearance's and the dark one's (a whole level, as the two ends were): darkness 0 is light, 1 is dark.
     private static byte Veil(double darkness, int dark, int light) => (byte)Math.Round(light + (dark - light) * Math.Clamp(darkness, 0, 1));
 
-    private static void Draw(ISkiaSharpApiLease lease, State state, Backdrop kept, SKRectI? dirty)
+    // Draws the material; returns what it covers in the surface's pixels and how far a change under it reaches, for the window's Reach.
+    private static (SKRectI Output, int Margin)? Draw(ISkiaSharpApiLease lease, State state, Backdrop kept, SKRectI? dirty)
     {
         var canvas = lease.SkCanvas;
         var bounds = UnionBounds(state).Inflate(state.Spacing / 2 + 1);
@@ -688,8 +810,9 @@ internal static class GlassMaterial
         var transform = canvas.TotalMatrix;
         var scale = MathF.Max(MathF.Sqrt(transform.ScaleX * transform.ScaleX + transform.SkewY * transform.SkewY),
             MathF.Sqrt(transform.ScaleY * transform.ScaleY + transform.SkewX * transform.SkewX));
-        if (scale <= 0) return;
+        if (scale <= 0) return null;
         var sampled = transform.MapRect(local);
+        var output = SKRectI.Ceiling(sampled);
         sampled.Inflate((float)SampledMargin * scale, (float)SampledMargin * scale); // 3 sigma (36), max P1 displacement (28.6), antialias margin.
         var crop = SKRectI.Ceiling(sampled);
         // Immutable app-owned pixels: no screen capture or visual-tree replay.
@@ -697,7 +820,7 @@ internal static class GlassMaterial
         var info = new SKImageInfo(Math.Max(1, crop.Width), Math.Max(1, crop.Height), SKColorType.Rgba8888, SKAlphaType.Premul);
         // Keep native rendering on the lease's GPU; the software path also runs in headless tests (P1).
         using var surface = lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
-        if (surface is null) return;
+        if (surface is null) return null;
         surface.Canvas.Clear(new SKColor(Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 32, 247)));
         if (snapshot is not null && kept.Take(lease, snapshot, crop, dirty) is { } under)
         {
@@ -713,7 +836,7 @@ internal static class GlassMaterial
         var sourceTransform = transform;
         sourceTransform.TransX -= crop.Left;
         sourceTransform.TransY -= crop.Top;
-        if (!sourceTransform.TryInvert(out var shaderTransform)) return;
+        if (!sourceTransform.TryInvert(out var shaderTransform)) return null;
         using var backdrop = image.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
             new SKSamplingOptions(SKFilterMode.Linear), shaderTransform);
         var effect = Effect(state.Regions.Length);
@@ -736,5 +859,6 @@ internal static class GlassMaterial
         using var shader = effect.ToShader(uniforms, children);
         using var paint = new SKPaint { Shader = shader, Color = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255)) };
         canvas.DrawRect(local, paint); // One SDF clips, refracts, lights and merges the same shape.
+        return (output, (int)Math.Ceiling(SampledMargin * scale));
     }
 }
