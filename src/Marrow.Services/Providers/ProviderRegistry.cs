@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Updates;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
 
@@ -69,7 +70,7 @@ public sealed record ProviderStatus
 
 // :30-958. @MainActor @Observable -> MainActorModel (R-ISO-1, R-OBS-6). Partial: [GeneratedRegex] members
 // (R-RE-1) require the declaring class to be partial.
-public sealed partial class ProviderRegistry : MainActorModel
+public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
 {
     private ValueMap<ProviderKind, ProviderStatus> statuses = ValueMap<ProviderKind, ProviderStatus>.Empty;
     private ValueMap<ProviderKind, ValueList<ModelOption>> catalogs = ValueMap<ProviderKind, ValueList<ModelOption>>.Empty;
@@ -1017,6 +1018,44 @@ public sealed partial class ProviderRegistry : MainActorModel
             UpdatingCLIs = updatingCLIs.Mutating(s => s.Remove(provider)); // :511 defer
         }
     }
+
+    // PORT-ONLY (UE-2, BUILD-PLAN.md 2.4; OD-0100 "Update everything"). The same run as UpdateCLIIfDue, exposed with a result for the update orchestrator: no 12-hour gate (the user asked),
+    // a run already under way is waited for as a forced one is (:500-503), the attempt date is written as :515-516 does, and what happened is returned instead of a bool. UpdateCLIIfDue
+    // itself is untouched, so the background updates are unchanged. ENGINEERING DECISION (ED-NEW-f-ue-2): the updater's exit status is read here (UpdateCLIIfDue ignores it, :514), so
+    // a failed updater whose version did not move is a Failed result.
+    public async Task<CliUpdateResult> UpdateCLI(ProviderKind provider)
+    {
+        if (!UpdatesOwnCLI(provider) || settings.BinaryPath(provider).Length != 0) return new CliUpdateResult(CliUpdateStatus.Skipped, null, null);
+        while (updatingCLIs.Contains(provider)) await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(500));
+        await LoginEnvironment.Load();
+        if (Executable(provider) is not { } executable) return new CliUpdateResult(CliUpdateStatus.NotInstalled, null, null);
+        UpdatingCLIs = updatingCLIs.Mutating(s => s.Add(provider));
+        try
+        {
+            var environment = Environment(provider);
+            var before = await CliVersion(executable.Path, environment);
+            var ran = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+                await Shell.Run(executable.Path, ["update"], @in: Path.GetTempPath(), environment: environment, timeout: 300));
+            var dates = ReadCliUpdateDates();
+            dates[SwiftEnum<ProviderKind>.RawValue(provider)] = SwiftDate.Seconds1970(SwiftDate.Now);
+            WriteCliUpdateDates(dates);
+            var after = await CliVersion(executable.Path, environment);
+            if (after is not null && after != before)
+            {
+                await Refresh(provider);
+                await LoadCatalog(provider, force: true);
+                return new CliUpdateResult(CliUpdateStatus.Updated, before, after);
+            }
+            return new CliUpdateResult(ran is { Succeeded: true } && after is not null ? CliUpdateStatus.Unchanged : CliUpdateStatus.Failed, before, after);
+        }
+        finally
+        {
+            UpdatingCLIs = updatingCLIs.Mutating(s => s.Remove(provider));
+        }
+    }
+
+    /// <summary>The providers whose CLI carries its own updater: the ones "Update everything" gets a row for.</summary>
+    public static IReadOnlyList<ProviderKind> UpdatableProviders { get; } = Enum.GetValues<ProviderKind>().Where(UpdatesOwnCLI).ToList();
 
     // :505/:516. UserDefaults.standard.dictionary(forKey: cliUpdatesKey) as? [String: Double] ?? [:]. Swift's
     // conditional cast fails for the WHOLE dictionary when any one value cannot bridge to Double, not just
