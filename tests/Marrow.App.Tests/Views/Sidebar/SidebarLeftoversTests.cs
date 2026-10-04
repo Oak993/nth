@@ -1101,4 +1101,99 @@ public sealed partial class SidebarViewTests
         }
         finally { window.Close(); }
     });
+
+    // ======== The delete question's life in its popup (UI-SIDEBAR-026, -027) ========
+
+    private static Popup DeletePopup(Control root) =>
+        LogicalQuery.SelfAndDescendants<Popup>(root).Single(p => PopoverHost.Content(p)?.GetType() == Private("DeleteThreadPopover"));
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-026")] // SidebarView.swift:217-237: the binding is built on the thread's id; "clicking away or pressing Escape keeps the thread" (the popup closing is the host's dismissal, :222 `if !isPresented && ...id == id { pendingDeletionID = nil }`)
+    public void Dismissing_the_delete_question_through_its_popup_keeps_the_thread_and_lets_it_be_asked_again() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        object State() => Field(view, "state")!;
+        try
+        {
+            harness.Main.OnMain(() => { model.Settings.ConfirmBeforeDeleting = true; view = Attached(model); });
+            harness.Main.OnMain(() => Call(view, "RequestDeletion", thread.Id));
+            Popup popup = null!;
+            harness.Main.OnMain(() =>
+            {
+                popup = DeletePopup(view);
+                Assert.Equal(thread.Id, Get(State(), "PendingDeletionID")); // :190 asked
+                Assert.True(recorder.Calls.Last(c => c.Popup == popup).Presented);
+                RaisePopup(popup, "Opened");
+                RaisePopup(popup, "Closed"); // a click away or Escape: the popup's own close
+            });
+            harness.Main.OnMain(() => { });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(Get(State(), "PendingDeletionID")); // :222
+                Assert.Null(Get(State(), "ConfirmedDeletion")); // nothing half-confirmed is left behind
+                Assert.False((bool)Get(State(), "IsDeletePopoverShown")!);
+                Assert.NotNull(model.Thread(thread.Id)); // the thread stays
+                Call(view, "RequestDeletion", thread.Id); // and the question can be asked again
+            });
+            harness.Main.OnMain(() => Assert.Equal(thread.Id, Get(State(), "PendingDeletionID")));
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    [Theory]
+    [Trait("Req", "UI-SIDEBAR-027")] // SidebarView.swift:977-980 the rows, :256-263 confirmDeletion, :229-232 onAppear/onDisappear, :295-306 carryOutConfirmedDeletion: the delete runs only once the popover content has disappeared
+    [Trait("Req", "UI-SIDEBAR-026")] // "click a row to confirm"
+    [InlineData("Delete thread", false)]
+    [InlineData("Delete thread and worktree", true)]
+    public void A_confirmed_delete_waits_for_the_popup_to_close_and_then_runs_on_the_next_turn(string row, bool removesWorktree) => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Gone", 0) with { WorktreePath = harness.NewFolder("wt") };
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        try
+        {
+            harness.Main.OnMain(() => { model.Settings.ConfirmBeforeDeleting = true; view = Attached(model); });
+            harness.Main.OnMain(() => Call(view, "RequestDeletion", thread.Id));
+            Popup popup = null!;
+            harness.Main.OnMain(() =>
+            {
+                popup = DeletePopup(view);
+                RaisePopup(popup, "Opened"); // :229
+                Click(LogicalQuery.SelfAndDescendants<Button>(PopoverHost.Content(popup)!).Single(b => AutomationProperties.GetName(b) == row));
+            });
+            harness.Main.OnMain(() => { });
+            harness.Main.OnMain(() =>
+            {
+                var confirmed = Get(Field(view, "state")!, "ConfirmedDeletion")!;
+                Assert.Equal(removesWorktree, Get(confirmed, "RemoveWorktree"));
+                Assert.NotNull(model.Thread(thread.Id)); // the popup is still up: removing the row it hangs on is what crashed upstream (the note of UI-SIDEBAR-027)
+            });
+            harness.Main.OnMain(() => { });
+            harness.Main.OnMain(() =>
+            {
+                Assert.NotNull(model.Thread(thread.Id)); // however many turns pass
+                RaisePopup(popup, "Closed"); // :231-232
+                Assert.NotNull(model.Thread(thread.Id)); // not inside the close itself: a Task on the main actor (:303-305)
+            });
+            harness.Main.OnMain(() => { });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(model.Thread(thread.Id)); // now it runs
+                Assert.Null(Get(Field(view, "state")!, "ConfirmedDeletion")); // :301
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
 }
