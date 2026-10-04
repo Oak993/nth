@@ -153,11 +153,11 @@ public sealed class VoiceCoreReview2Tests
     [Trait("Decision", "ED-267")] // voice-SPEC V-16.4, V-16.6: a NaN or infinite double is written as null and reads back as the default
     public void The_hardware_record_writes_a_NaN_or_infinite_double_as_null_and_reads_it_back_as_the_default()
     {
-        var record = new VoiceHardwareRecord { Key = CurrentKey, Rtf = double.NaN, VramGB = double.PositiveInfinity, FreeVramGB = double.NegativeInfinity, Cores = 8 };
-        var json = Encoding.UTF8.GetString(record.ToJson());
+        var odd = new VoiceHardwareRecord { Key = CurrentKey, Rtf = double.NaN, VramGB = double.PositiveInfinity, FreeVramGB = double.NegativeInfinity, Cores = 8 };
+        var json = Encoding.UTF8.GetString(odd.ToJson());
         Assert.Contains("\"vramGB\":null,\"freeVramGB\":null", json, StringComparison.Ordinal);
         Assert.Contains("\"rtf\":null", json, StringComparison.Ordinal);
-        Assert.Equal(record with { Rtf = 0, VramGB = 0, FreeVramGB = 0 }, VoiceHardwareRecord.FromJson(record.ToJson()));
+        Assert.Equal(odd with { Rtf = 0, VramGB = 0, FreeVramGB = 0 }, VoiceHardwareRecord.FromJson(odd.ToJson()));
     }
 
     [Fact]
