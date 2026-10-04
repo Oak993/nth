@@ -1123,6 +1123,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-036")] // App/Views/Chat/TimelineRows.swift:428-432
+    [Trait("Req", "PR-CHAT-152")] // TimelineRows.swift:420-433 (:429 `guard info.isFinished`): a head still at work in the same batch is never in the list the pills are drawn from, only the finished one beside it
     public void A_finished_head_counts_when_its_batch_still_has_a_head_at_work_whatever_its_time()
     {
         using var runtime = new TestRuntime(); // ChatThread.init reads the defaults store
