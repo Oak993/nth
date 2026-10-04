@@ -7256,6 +7256,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1934 guard let listFrame else { return }
+    [Trait("Req", "PR-SIDEBAR-135")] // leftovers pass: this test proves a clause of the record (listFrame nil / failed render / 24 pt settled destination / DPI scale)
     public void A_popover_row_reopens_without_a_glide() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -7403,6 +7404,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     [InlineData(1)]
     [InlineData(2)]
     [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1951-1978
+    [Trait("Req", "PR-SIDEBAR-135")] // leftovers pass: this test proves a clause of the record (listFrame nil / failed render / 24 pt settled destination / DPI scale)
     public void A_failed_departure_or_arrival_render_abandons_the_glide(int failAt) => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -7422,6 +7424,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1938-1978
+    [Trait("Req", "PR-SIDEBAR-135")] // leftovers pass: this test proves a clause of the record (listFrame nil / failed render / 24 pt settled destination / DPI scale)
     public void The_settled_destination_is_a_24_point_face_at_the_lists_bottom() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -7554,6 +7557,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     [InlineData(1.5, 2.0)]
     [InlineData(2.5, 2.5)]
     [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1933-1978; App/Views/Sidebar/RowGlide.swift:127-134 windows_path DPI minimum 2
+    [Trait("Req", "PR-SIDEBAR-135")] // leftovers pass: this test proves a clause of the record (listFrame nil / failed render / 24 pt settled destination / DPI scale)
     public void Glide_faces_use_their_own_windows_DPI_scale_with_a_two_times_minimum(double windowScale, double expectedScale) => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());

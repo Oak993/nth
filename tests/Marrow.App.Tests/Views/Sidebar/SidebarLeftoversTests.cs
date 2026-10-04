@@ -765,4 +765,109 @@ public sealed partial class SidebarViewTests
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
+
+    // ---- PR-SIDEBAR-135: the glide's two faces (OD-0098: the values SidebarView.swift:1933-1978 states, against renders) ----
+
+    private static (SidebarSweepPlatform Platform, RowGlideAnimator Animator) GlideFaces(RowGlideAnimator.Glide.Direction direction, Rect list, Rect from,
+        ChatThread thread, string? projectName, bool selected, bool hovering)
+    {
+        var platform = new SidebarSweepPlatform();
+        var animator = new RowGlideAnimator(platform);
+        CallStatic(Private("SidebarThreadRow"), "Glide", animator, direction, list, from, thread, projectName, null, selected, hovering, null, Avalonia.Styling.ThemeVariant.Dark);
+        return (platform, animator);
+    }
+
+    private static ThreadRowFace FaceOf(SidebarSweepPlatform platform, int index) => LogicalQuery.SelfAndDescendants<ThreadRowFace>(Assert.IsType<ThemeVariantScope>(platform.Renders[index].Content)).Single();
+
+    [Theory]
+    [Trait("Req", "PR-SIDEBAR-135")] // SidebarView.swift:1933-1978: from = windowFrame, bounds = listFrame; arrivalHeight; fallback; departureClearance/arrivalClearance; arriving = thread with isSettled = destination (and, for a settle, unpinned and read)
+    //                      direction, thread settled, pinned, unread, project, selected, hovering, from height, arrival height, departure clearance, arrival clearance, fallback y
+    [InlineData("Reopen", true, false, false, null, false, true, 24d, 28d, 30d, 52d, 100d - 28d)] // a settled row reopens: out of its 30 pt room into the open row's 52; no project line: 28
+    [InlineData("Reopen", true, false, true, "Alpha", false, true, 24d, 48d, 30d, 18d, 100d - 48d)] // with a project name the open row is detailed: 48 pt, clearance 18
+    [InlineData("Reopen", true, true, true, "Alpha", true, true, 24d, 48d, 30d, 18d, 100d - 48d)] // selected
+    [InlineData("Settle", false, true, true, "Alpha", false, true, 48d, 24d, 52d, 18d, 100d + 400d)] // the kept settle branch: the destination is the 24 pt settled row at the list's bottom edge, arriving unpinned and read
+    [InlineData("Settle", false, false, false, null, false, false, 28d, 24d, 52d, 18d, 100d + 400d)]
+    public void The_glides_two_faces_have_the_sources_heights_clearances_destination_state_and_fallback(
+        string directionName, bool threadSettled, bool pinned, bool unread, string? projectName, bool selected, bool hovering,
+        double fromHeight, double arrivalHeight, double departureClearance, double arrivalClearance, double fallbackY) => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "A title", 0) with { IsSettled = threadSettled, IsPinned = pinned, HasUnread = unread };
+        var direction = directionName == "Settle" ? RowGlideAnimator.Glide.Direction.Settle : RowGlideAnimator.Glide.Direction.Reopen;
+        var list = new Rect(10, 100, 200, 400);
+        var from = new Rect(10, 300, 200, fromHeight);
+        harness.Main.OnMain(() =>
+        {
+            var (platform, animator) = GlideFaces(direction, list, from, thread, projectName, selected, hovering);
+            var glide = Assert.Single(animator.Glides);
+            Assert.Equal(2, platform.Renders.Count);
+            Assert.Equal(new Rect(from.X, fallbackY, from.Width, arrivalHeight), glide.To); // :1942-1947 until the real row reports where it is
+            Assert.Equal(new Size(from.Width, fromHeight), glide.Departure.Size); // :1956 the row's current size
+            Assert.Equal(new Size(from.Width, arrivalHeight), glide.Arrival.Size); // :1960 24 / 48 / 28
+            Assert.Equal(8d + departureClearance, ((Border)FaceOf(platform, 0).Child!).Padding.Right); // :1952 as if the buttons were out
+            Assert.Equal(8d + arrivalClearance, ((Border)FaceOf(platform, 1).Child!).Padding.Right); // :1953 as if they were not
+            var departureTitle = LogicalQuery.SelfAndDescendants<TextBlock>(FaceOf(platform, 0)).First(t => t.Text == "A title");
+            var arrivalTitle = LogicalQuery.SelfAndDescendants<TextBlock>(FaceOf(platform, 1)).First(t => t.Text == "A title");
+            Assert.Equal(threadSettled ? 12d : 13d, departureTitle.FontSize); // the thread as it stands
+            Assert.Equal(direction == RowGlideAnimator.Glide.Direction.Settle ? 12d : 13d, arrivalTitle.FontSize); // :1936 the copy with isSettled = the destination state
+            if (direction == RowGlideAnimator.Glide.Direction.Settle) Assert.Equal(FontWeight.Normal, arrivalTitle.FontWeight); // :1938-1939 unread cleared (and a settled title is never medium)
+            else Assert.Equal(unread ? FontWeight.Medium : FontWeight.Normal, arrivalTitle.FontWeight);
+            Assert.Equal(selected ? 0.12 : hovering ? 0.06 : 0d, glide.DepartureFill); // :1971-1972 fill(isSelected:isHovering:)
+            Assert.Equal(selected ? 0.12 : 0d, glide.ArrivalFill); // never hovered on arrival
+        });
+    });
+
+    [Theory]
+    [Trait("Req", "PR-SIDEBAR-135")] // SidebarView.swift:1954-1961 animator.render -> RowGlide.swift:127-134 ImageRenderer(content: face.frame(width:height:alignment: .topLeading).environment(\.colorScheme, colorScheme)), renderer.scale = backing scale (2 at least)
+    [InlineData(2d)]
+    [InlineData(2.5d)]
+    // The real renderer, headless: two flat bitmaps at the face sizes times the scale, drawn from the faces the source builds.
+    // The ink of each stays inside the room the source leaves it: the settled departure draws nothing inside its 8 + 22 title
+    // inset and stops short of the 8 + 30 clearance; the open, detailed arrival starts at the 8 pt padding and stops short of
+    // its 8 + 18 clearance. (Only the bounds are asserted: the headless font of the Linux runner draws other glyph shapes
+    // than Windows' Inter, so where inside the room a glyph sits is not.)
+    public void The_glides_faces_are_rendered_as_flat_bitmaps_at_the_scale_with_their_ink_inside_the_sources_padding(double scale) => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Reopened thread", 0) with { IsSettled = true };
+        var animator = new RowGlideAnimator(new WindowsGeniePlatform());
+        var list = new Rect(10, 100, 240, 400);
+        var from = new Rect(10, 300, 240, 24);
+        harness.Main.OnMain(() =>
+        {
+            typeof(SidebarView).Assembly.GetType("Marrow.App.Views.Sidebar.SidebarThreadRow")!
+                .GetMethod("GlideAtScale", BindingFlags.Static | BindingFlags.NonPublic)!
+                .Invoke(null, [animator, RowGlideAnimator.Glide.Direction.Reopen, list, from, thread, "Alpha", null, false, true, null, Avalonia.Styling.ThemeVariant.Dark, scale]);
+            var glide = Assert.Single(animator.Glides);
+            var effective = Math.Max(2, scale);
+            foreach (var (image, size) in new[] { (glide.Departure, new Size(240, 24)), (glide.Arrival, new Size(240, 48)) })
+            {
+                var bitmap = Assert.IsAssignableFrom<Avalonia.Media.Imaging.Bitmap>(image);
+                Assert.Equal(new PixelSize((int)Math.Ceiling(size.Width * effective), (int)Math.Ceiling(size.Height * effective)), bitmap.PixelSize);
+            }
+            (double Left, double Right) Ink(IImage image, double sizeWidth)
+            {
+                using var stream = new MemoryStream();
+#pragma warning disable CS0618
+                ((Avalonia.Media.Imaging.Bitmap)image).Save(stream);
+#pragma warning restore CS0618
+                stream.Position = 0;
+                using var decoded = SkiaSharp.SKBitmap.Decode(stream);
+                int left = int.MaxValue, right = -1;
+                for (var y = 0; y < decoded.Height; y++)
+                    for (var x = 0; x < decoded.Width; x++)
+                        if (decoded.GetPixel(x, y).Alpha > 3) { left = Math.Min(left, x); right = Math.Max(right, x); }
+                Assert.True(right >= 0, "the face drew something");
+                return (left / effective, (right + 1) / effective);
+            }
+            var departure = Ink(glide.Departure, 240);
+            Assert.True(departure.Left >= 8 + 22 - 0.5, $"departure ink starts at {departure.Left}"); // nothing is drawn in the settled title's 8 + 22 inset, :2067
+            Assert.True(departure.Right <= 240 - (8 + 30) + 0.5, $"departure ink ends at {departure.Right}"); // :2068 clearance 30
+            var arrival = Ink(glide.Arrival, 240);
+            Assert.InRange(arrival.Left, 8 - 0.5, 8 + 4); // detailed: the title starts at the 8 pt padding
+            Assert.True(arrival.Right <= 240 - (8 + 18) + 0.5, $"arrival ink ends at {arrival.Right}"); // clearance 18
+        });
+    });
 }
