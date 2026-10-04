@@ -23,97 +23,94 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
 {
-    private enum Kind
-    {
-        /// <summary>Swift `.continuous`, and the element can be between 2 r and 3.057 r tall: it must call RoundedRectangle (or UnevenRoundedRectangle).</summary>
-        Routed,
+    /// <summary>Swift `.continuous`, and the element can be between 2 r and 3.057 r tall: it must call RoundedRectangle (or UnevenRoundedRectangle).</summary>
+    private const string Routed = "Routed";
 
-        /// <summary>The radius is half the height or more by construction (999, 1000, height / 2, a pill of known height): the capsule regime, circular in both.</summary>
-        Capsule,
+    /// <summary>The radius is half the height or more by construction (999, 1000, height / 2, a pill of known height): the capsule regime, circular in both.</summary>
+    private const string Capsule = "Capsule";
 
-        /// <summary>A square element with radius half its side, or a circle by construction.</summary>
-        Circle,
+    /// <summary>A square element with radius half its side, or a circle by construction.</summary>
+    private const string Circle = "Circle";
 
-        /// <summary>A radius of at most 3 pt on a bar, tick, dot or cell (a capsule or a pixel-sized rectangle): no band a pixel shows.</summary>
-        Tiny,
+    /// <summary>A radius of at most 3 pt on a bar, tick, dot or cell (a capsule or a pixel-sized rectangle): no band a pixel shows.</summary>
+    private const string Tiny = "Tiny";
 
-        /// <summary>The Swift is `.circular` or a CALayer cornerRadius (HydraMergePopover.swift:126, DragHandle.swift:84-85), or the site is a design-page layout, not a Swift shape.</summary>
-        Circular,
+    /// <summary>The Swift is `.circular` or a CALayer cornerRadius (HydraMergePopover.swift:126, DragHandle.swift:84-85), or the site is a design-page layout, not a Swift shape.</summary>
+    private const string Circular = "Circular";
 
-        /// <summary>
-        /// Swift `.continuous` (or a Windows control theme), but the element is a panel, window, card or row taller than 3.057 r at every state, so Apple's corner at the stated
-        /// radius fits and the band is not reached; the circle of the same radius differs from it by at most 0.0138 r (ED-275 (7), tracked, outside OD-0102).
-        /// </summary>
-        Fit,
+    /// <summary>
+    /// Swift `.continuous` (or a Windows control theme), but the element is a panel, window, card or row taller than 3.057 r at every state, so Apple's corner at the stated
+    /// radius fits and the band is not reached; the circle of the same radius differs from it by at most 0.0138 r (ED-275 (7), tracked, outside OD-0102).
+    /// </summary>
+    private const string Fit = "Fit";
 
-        /// <summary>Not a Border drawn by Avalonia (a Panel's own property), a zero radius, or the shape helpers themselves.</summary>
-        Other,
-    }
+    /// <summary>Not a Border drawn by Avalonia (a Panel's own property), a zero radius, or the shape helpers themselves.</summary>
+    private const string Other = "Other";
 
     // (file under src, the radius argument as written, how many assignments, kind)
-    private static readonly (string File, string Radius, int Count, Kind Kind)[] Sites =
+    private static readonly (string File, string Radius, int Count, string Kind)[] Sites =
     [
-        ("Marrow.App/Port/ChatDialogControls.cs", "6", 1, Kind.Fit),
-        ("Marrow.App/Port/LookCard.cs", "10", 1, Kind.Circular),
-        ("Marrow.App/Port/LookCard.cs", "12", 1, Kind.Circular),
-        ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Kind.Other),
-        ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Kind.Capsule),
-        ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Kind.Fit),
-        ("Marrow.App/Views/Chat/HydraMergePopover.cs", "12", 1, Kind.Capsule),
-        ("Marrow.App/Views/Chat/HydraMergePopover.cs", "6", 1, Kind.Circular),
-        ("Marrow.App/Views/Chat/HydraPanel.cs", "14", 1, Kind.Circle),
-        ("Marrow.App/Views/Chat/HydraPanel.cs", "16", 1, Kind.Routed),
-        ("Marrow.App/Views/Chat/HydraPanel.cs", "6", 1, Kind.Fit),
-        ("Marrow.App/Views/Chat/HydraPanel.cs", "Chrome.CapsuleHeight / 2", 1, Kind.Capsule),
-        ("Marrow.App/Views/Chat/HydraPanel.cs", "CornerRadius", 1, Kind.Fit),
-        ("Marrow.App/Views/Chat/HydraProgressBar.cs", "Chrome.CardCornerRadius", 2, Kind.Routed),
-        ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "10", 1, Kind.Fit),
-        ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "6", 1, Kind.Fit),
-        ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "999", 1, Kind.Capsule),
-        ("Marrow.App/Views/Chat/SubagentPanel.cs", "Chrome.CapsuleHeight / 2", 1, Kind.Capsule),
-        ("Marrow.App/Views/Chat/SubagentPanel.cs", "CornerRadius", 2, Kind.Fit),
-        ("Marrow.App/Views/Chat/ThreadTimeline.cs", "999", 1, Kind.Capsule),
-        ("Marrow.App/Views/Chat/ThreadTimeline.cs", "TimelineMetrics.PillRadius", 2, Kind.Routed),
-        ("Marrow.App/Views/Chat/TimelineMinimap.cs", "1", 1, Kind.Tiny),
-        ("Marrow.App/Views/Chat/TimelineRows.cs", "14", 1, Kind.Circle),
-        ("Marrow.App/Views/Composer/ComposerTextView.cs", "0", 1, Kind.Other),
-        ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "12, 12, 0, 0", 1, Kind.Fit),
-        ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "999", 1, Kind.Capsule),
-        ("Marrow.App/Views/Composer/HydraFusedPairIcon.cs", "0.5", 1, Kind.Tiny),
-        ("Marrow.App/Views/Composer/PromptEditor.cs", "12", 1, Kind.Routed),
-        ("Marrow.App/Views/Composer/QuestionTab.cs", "3", 1, Kind.Circle),
-        ("Marrow.App/Views/Composer/ThreadChangesTab.cs", "12, 12, 0, 0", 1, Kind.Fit),
-        ("Marrow.App/Views/Diff/DiffInspector.cs", "1000", 1, Kind.Capsule),
-        ("Marrow.App/Views/Diff/DiffInspector.cs", "12", 1, Kind.Routed),
-        ("Marrow.App/Views/Settings/AboutUpdateViews.cs", "1.5", 1, Kind.Tiny),
-        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "8", 1, Kind.Fit),
-        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "9", 1, Kind.Circle),
-        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "Chrome.WindowCornerRadius", 1, Kind.Fit),
-        ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "9", 1, Kind.Circle),
-        ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "Chrome.WindowCornerRadius", 1, Kind.Fit),
-        ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "10", 1, Kind.Fit),
-        ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "Chrome.CardCornerRadius", 1, Kind.Fit),
-        ("Marrow.App/Views/Settings/TokenActivitySection.cs", "999", 1, Kind.Capsule),
-        ("Marrow.App/Views/Settings/TokenActivitySection.cs", "TokenActivityStyle.CellRadius", 1, Kind.Tiny),
-        ("Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs", "22", 2, Kind.Fit),
-        ("Marrow.App/Views/Terminal/TerminalPanel.cs", "16, 16, 0, 0", 1, Kind.Fit),
-        ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Kind.Capsule),
-        ("Marrow.App/Views/Tour/TourView.cs", "CardCornerRadius", 4, Kind.Fit),
-        ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Kind.Tiny),
-        ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Kind.Circle),
-        ("Marrow.UI/Chrome/ChromeSegmentedPicker.cs", "11", 1, Kind.Capsule),
-        ("Marrow.UI/Chrome/DragHandle.cs", "Metrics.GlowRadius", 1, Kind.Circular),
-        ("Marrow.UI/Chrome/DragHandle.cs", "grip.Thickness / 2", 1, Kind.Capsule),
-        ("Marrow.UI/Port/PortControlThemes.cs", "10", 1, Kind.Circle),
-        ("Marrow.UI/Port/PortControlThemes.cs", "2", 1, Kind.Tiny),
-        ("Marrow.UI/Port/PortControlThemes.cs", "7", 1, Kind.Circle),
-        ("Marrow.UI/Port/PortControlThemes.cs", "7 + 3 * fraction", 1, Kind.Circle),
-        ("Marrow.UI/Port/SwiftShapeBorder.cs", "cornerRadius", 1, Kind.Other),
-        ("Marrow.UI/Port/SwiftShapes.cs", "CapsuleCornerRadius(border.Bounds.Size)", 1, Kind.Other),
-        ("Marrow.UI/Port/SwiftShapes.cs", "CapsuleCornerRadius(e.NewSize)", 1, Kind.Other),
-        ("Marrow.UI/Port/SwiftShapes.cs", "cornerRadius", 1, Kind.Other),
-        ("Marrow.UI/Port/SystemButtons.cs", "Radius", 2, Kind.Fit),
-        ("Marrow.UI/Port/SystemButtons.cs", "Radius + FocusBand", 1, Kind.Fit),
+        ("Marrow.App/Port/ChatDialogControls.cs", "6", 1, Fit),
+        ("Marrow.App/Port/LookCard.cs", "10", 1, Circular),
+        ("Marrow.App/Port/LookCard.cs", "12", 1, Circular),
+        ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
+        ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Fit),
+        ("Marrow.App/Views/Chat/HydraMergePopover.cs", "12", 1, Capsule),
+        ("Marrow.App/Views/Chat/HydraMergePopover.cs", "6", 1, Circular),
+        ("Marrow.App/Views/Chat/HydraPanel.cs", "14", 1, Circle),
+        ("Marrow.App/Views/Chat/HydraPanel.cs", "16", 1, Routed),
+        ("Marrow.App/Views/Chat/HydraPanel.cs", "6", 1, Fit),
+        ("Marrow.App/Views/Chat/HydraPanel.cs", "Chrome.CapsuleHeight / 2", 1, Capsule),
+        ("Marrow.App/Views/Chat/HydraPanel.cs", "CornerRadius", 1, Fit),
+        ("Marrow.App/Views/Chat/HydraProgressBar.cs", "Chrome.CardCornerRadius", 2, Routed),
+        ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "10", 1, Fit),
+        ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "6", 1, Fit),
+        ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Chat/SubagentPanel.cs", "Chrome.CapsuleHeight / 2", 1, Capsule),
+        ("Marrow.App/Views/Chat/SubagentPanel.cs", "CornerRadius", 2, Fit),
+        ("Marrow.App/Views/Chat/ThreadTimeline.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Chat/ThreadTimeline.cs", "TimelineMetrics.PillRadius", 2, Routed),
+        ("Marrow.App/Views/Chat/TimelineMinimap.cs", "1", 1, Tiny),
+        ("Marrow.App/Views/Chat/TimelineRows.cs", "14", 1, Circle),
+        ("Marrow.App/Views/Composer/ComposerTextView.cs", "0", 1, Other),
+        ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "12, 12, 0, 0", 1, Fit),
+        ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Composer/HydraFusedPairIcon.cs", "0.5", 1, Tiny),
+        ("Marrow.App/Views/Composer/PromptEditor.cs", "12", 1, Routed),
+        ("Marrow.App/Views/Composer/QuestionTab.cs", "3", 1, Circle),
+        ("Marrow.App/Views/Composer/ThreadChangesTab.cs", "12, 12, 0, 0", 1, Fit),
+        ("Marrow.App/Views/Diff/DiffInspector.cs", "1000", 1, Capsule),
+        ("Marrow.App/Views/Diff/DiffInspector.cs", "12", 1, Routed),
+        ("Marrow.App/Views/Settings/AboutUpdateViews.cs", "1.5", 1, Tiny),
+        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "8", 1, Fit),
+        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "9", 1, Circle),
+        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
+        ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "9", 1, Circle),
+        ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
+        ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "10", 1, Fit),
+        ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "Chrome.CardCornerRadius", 1, Fit),
+        ("Marrow.App/Views/Settings/TokenActivitySection.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Settings/TokenActivitySection.cs", "TokenActivityStyle.CellRadius", 1, Tiny),
+        ("Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs", "22", 2, Fit),
+        ("Marrow.App/Views/Terminal/TerminalPanel.cs", "16, 16, 0, 0", 1, Fit),
+        ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Tour/TourView.cs", "CardCornerRadius", 4, Fit),
+        ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
+        ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Circle),
+        ("Marrow.UI/Chrome/ChromeSegmentedPicker.cs", "11", 1, Capsule),
+        ("Marrow.UI/Chrome/DragHandle.cs", "Metrics.GlowRadius", 1, Circular),
+        ("Marrow.UI/Chrome/DragHandle.cs", "grip.Thickness / 2", 1, Capsule),
+        ("Marrow.UI/Port/PortControlThemes.cs", "10", 1, Circle),
+        ("Marrow.UI/Port/PortControlThemes.cs", "2", 1, Tiny),
+        ("Marrow.UI/Port/PortControlThemes.cs", "7", 1, Circle),
+        ("Marrow.UI/Port/PortControlThemes.cs", "7 + 3 * fraction", 1, Circle),
+        ("Marrow.UI/Port/SwiftShapeBorder.cs", "cornerRadius", 1, Other),
+        ("Marrow.UI/Port/SwiftShapes.cs", "CapsuleCornerRadius(border.Bounds.Size)", 1, Other),
+        ("Marrow.UI/Port/SwiftShapes.cs", "CapsuleCornerRadius(e.NewSize)", 1, Other),
+        ("Marrow.UI/Port/SwiftShapes.cs", "cornerRadius", 1, Other),
+        ("Marrow.UI/Port/SystemButtons.cs", "Radius", 2, Fit),
+        ("Marrow.UI/Port/SystemButtons.cs", "Radius + FocusBand", 1, Fit),
     ];
 
     private static string SourceRoot([System.Runtime.CompilerServices.CallerFilePath] string path = "") =>
@@ -159,7 +156,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
             var entry = Sites.Where(s => s.File == group.Key.File && s.Radius == group.Key.Radius).ToArray();
             if (entry.Length != 1) { problems.Add($"{group.Key.File}: CornerRadius({group.Key.Radius}) x{group.Count()} is not in the table"); continue; }
             if (entry[0].Count != group.Count()) problems.Add($"{group.Key.File}: CornerRadius({group.Key.Radius}) is {group.Count()} assignments, the table says {entry[0].Count}");
-            if (entry[0].Kind == Kind.Routed && group.Any(g => !g.Statement.Contains("RoundedRectangle(", StringComparison.Ordinal)))
+            if (entry[0].Kind == Routed && group.Any(g => !g.Statement.Contains("RoundedRectangle(", StringComparison.Ordinal)))
                 problems.Add($"{group.Key.File}: CornerRadius({group.Key.Radius}) is a Swift `.continuous` Border that can sit in the band and does not call RoundedRectangle(...) / UnevenRoundedRectangle(...)");
         }
         foreach (var entry in Sites)
