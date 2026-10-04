@@ -53,7 +53,7 @@ public sealed class ComposerWorkingDotsFrameTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-102")] // ComposerWorkingDots.swift:67-71,124-149; ComposerView.swift:661-675 against C 92.000
     [Trait("Req", "PR-COMPOSER-103")] // ComposerWorkingDots.swift:72-76,177-189 against C 92.000
     [Trait("Req", "UI-COMPOSER-017")] // ComposerWorkingDots.swift:12-190; ComposerView.swift:661-675 against C 92.000
-    [Trait("Rule", "R-TEST-4")] // NATIVE-ONLY: "no UI-thread ticking" (the render thread draws the field; the headless renderer draws on the UI thread) stays named, as the PR-COMPOSER-103 and UI-COMPOSER-017 texts ask
+    [Trait("Rule", "R-TEST-4")] // "no UI-thread ticking" (the render thread draws the field; the headless renderer draws on the UI thread) is proven on a real window by ComposerWorkingDotsNativeTests
     public void The_one_line_pills_dot_field_is_laid_and_pulses_as_the_frame_shows_it() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

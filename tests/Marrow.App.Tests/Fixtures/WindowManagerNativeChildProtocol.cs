@@ -27,7 +27,8 @@ internal static class WindowManagerNativeChildProtocol
         if (type != typeof(WindowManagerNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
             type != typeof(EffortSliderNativeFrameTests) && type != typeof(GlassWindowNativeTests) &&
             type != typeof(WindowManagerNativeCentringTests) && type != typeof(WindowManagerNativeChromeTests) &&
-            type != typeof(GalleryNativeTests) && type != typeof(TimelineRowsNativePopoverTests) && type != typeof(TimelineRowsNativeReportTests) && type != typeof(TimelineRowsNativeReviewKeysTests) && type != typeof(TimelineRowsNativeReviewBadgeKeysTests) && type != typeof(DiffPopoverNativeTests) && type != typeof(VoiceOrbNativeTests))
+            type != typeof(GalleryNativeTests) && type != typeof(TimelineRowsNativePopoverTests) && type != typeof(TimelineRowsNativeReportTests) && type != typeof(TimelineRowsNativeReviewKeysTests) && type != typeof(TimelineRowsNativeReviewBadgeKeysTests) && type != typeof(DiffPopoverNativeTests) && type != typeof(VoiceOrbNativeTests) &&
+            type != typeof(ComposerWorkingDotsNativeTests))
             throw new InvalidOperationException("Native child selection is not an allowed test type.");
         var method = type.GetMethod(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
         if (method is null || method.ReturnType != typeof(void) || method.GetParameters().Length != 0 ||
