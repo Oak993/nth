@@ -944,7 +944,12 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED. B1 DroppyCode/App/Views/Composer/ComposerView.swift:478 `if thread.provider == .codex || thread.provider == .claude || thread.provider == .copilot || thread.provider == .deepseek || thread.provider == .meta || thread.provider == .zai || thread.provider == .pi {` -> B2 DroppyCode/App/Views/Composer/ComposerView.swift:478 `if thread.provider.supportsCompact {`, the list now at B2 DroppyCode/Core/Models/Provider.swift:149-154. Same seven providers and the same detail string. The B1 windows_path note that Claude was offered the suggestion but not handled locally no longer holds (PR-COMPOSER-034)."
+      "b2_change": "MOVED. B1 DroppyCode/App/Views/Composer/ComposerView.swift:478 `if thread.provider == .codex || thread.provider == .claude || thread.provider == .copilot || thread.provider == .deepseek || thread.provider == .meta || thread.provider == .zai || thread.provider == .pi {` -> B2 DroppyCode/App/Views/Composer/ComposerView.swift:478 `if thread.provider.supportsCompact {`, the list now at B2 DroppyCode/Core/Models/Provider.swift:149-154. Same seven providers and the same detail string. The B1 windows_path note that Claude was offered the suggestion but not handled locally no longer holds (PR-COMPOSER-034).",
+      "deviation": {
+        "decision": "OD-0049, ED-234",
+        "upstream": "supportsCompact is true for codex, claude, copilot, deepseek, meta, zai and pi only (DroppyCode/Core/Models/Provider.swift:149-154); the source has no OpenRouter provider, so on every other provider the built-in /compact is absent (ComposerView.swift:478-480).",
+        "port": "OpenRouter, the owner's added API-key provider (OD-0049), has supportsCompact true (ED-234 (1); src/Marrow.Core/Models/Provider.cs SupportsCompact), so the command list offers the built-in \"compact\" with the same detail on OpenRouter too, and \"/compact\" is handled locally there (PR-COMPOSER-034). It stays absent on every other provider."
+      }
     },
     {
       "id": "PR-COMPOSER-042",

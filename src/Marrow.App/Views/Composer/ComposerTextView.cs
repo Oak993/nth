@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -80,10 +81,18 @@ public sealed class ComposerController
         if (TextViewInstance is not { } textView) return;
         var text = textView.Text ?? "";
         if (location < 0 || location + length > text.Length) return;
-        textView.Text = text[..location] + replacement + text[(location + length)..];
+        // :45-47 shouldChangeText, replaceCharacters, didChangeText: one edit, so the undo stack sees the replacement as one
+        // step (PR-COMPOSER-049 windows_path). Assigning Text would clear the box's undo history (Avalonia 12.1.2); the
+        // selection's replacement keeps it, and one undo brings the replaced run back.
+        textView.SelectionStart = location;
+        textView.SelectionEnd = location + length;
+        textView.SelectedText = replacement;
         var caret = location + replacement.Length;
         textView.SelectionStart = caret;
         textView.SelectionEnd = caret;
+        // :46 didChangeText(): the owner has the new text at once, as the Swift text view tells it, not on the dispatcher's
+        // later TextChanged (the pick that follows writes the draft, which must not hold the replaced run still).
+        textView.OnDidChangeText?.Invoke();
     }
 
     // :51-84 func showSuggestions(_ content: AnyView, itemCount: Int)
@@ -173,6 +182,7 @@ public sealed class ComposerNSTextView : TextBox
     public Action<IReadOnlyList<AttachmentSource>>? OnAttach { get; set; } // :120
     public Action? OnWidthChange { get; set; } // :121
     public Action? OnResign { get; set; } // :122
+    public Action? OnDidChangeText { get; set; } // :46 didChangeText(), called by the controller's replacement
     public Func<ComposerKey, bool>? OnKeyCallback { get; set; } // the Coordinator's doCommandBy, :329-357
 
     // :124-128 override func setFrameSize(_ newSize: NSSize): width-change detection.
@@ -196,6 +206,25 @@ public sealed class ComposerNSTextView : TextBox
         AcceptsReturn = false; // :332-341 Return is always handled explicitly below, never a default newline
         AcceptsTab = true; // :346-347 an unhandled Tab still inserts a literal tab character
         BorderThickness = new Thickness(0);
+        // The app carries no theme package, so a TextBox without a template draws nothing, and nothing typed would be seen
+        // or scrolled (PlainControls.PlainTextField). The NSTextView draws its own text (:234-274): the template is the text
+        // presenter alone, wrapping at the box's width, inside the container inset; the box's height is the text's, and the
+        // scroll view around it (ComposerTextView.scroll, :273) scrolls what passes the fixed height.
+        Template = new Avalonia.Controls.Templates.FuncControlTemplate<TextBox>((box, scope) =>
+        {
+            var presenter = new Avalonia.Controls.Presenters.TextPresenter
+            {
+                Name = "PART_TextPresenter",
+                [!Avalonia.Controls.Presenters.TextPresenter.TextProperty] = box[!TextBox.TextProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.TextWrappingProperty] = box[!TextBox.TextWrappingProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.SelectionStartProperty] = box[!TextBox.SelectionStartProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.SelectionEndProperty] = box[!TextBox.SelectionEndProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty],
+            }.RegisterInNameScope(scope);
+            PlainControls.FieldBrushes(box, presenter);
+            presenter.HideCaret(); // the box shows it when it takes the keyboard, as TextBox's own template does
+            return new Border { Background = Brushes.Transparent, [!Border.PaddingProperty] = box[!TemplatedControl.PaddingProperty], Child = presenter };
+        });
         CornerRadius = new CornerRadius(0);
         MinHeight = 18;
         lastWidth = Bounds.Width;
@@ -450,6 +479,7 @@ public sealed class ComposerTextView : Decorator
         textView.OnWidthChange = () => MainActor.Spawn(RunUpdateHeight); // :277-279
         textView.OnResign = () => MainActor.Spawn(() => { this.onBlur(); return Task.CompletedTask; }); // :280-282 Task { @MainActor in ... }
         textView.TextChanged += (_, _) => OnTextDidChange(); // :317-322 Coordinator.textDidChange
+        textView.OnDidChangeText = OnTextDidChange; // :46 didChangeText() reaches the same method at once
         textView.PropertyChanged += (_, e) =>
         {
             if (e.Property == TextBox.SelectionStartProperty || e.Property == TextBox.SelectionEndProperty)

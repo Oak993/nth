@@ -216,14 +216,25 @@ public sealed class ForEach<TItem, TId> where TId : notnull
             else { panel.Children.Remove(row); (row as IDisposable)?.Dispose(); }
         }
         ordered = next;
+        // A row on its way out stays where it stands, behind the row that came before it (SwiftUI draws a leaving view in place
+        // while the others settle), so the rows that stay are placed round it, each straight after the one before it and after any
+        // leaving rows that stood there (UI-COMPOSER-007: the leaving chip fades where it was, it does not slide to the end).
+        var leaving = removing.Select(SwiftTransition.Container).ToHashSet();
         for (var i = 0; i < next.Count; i++)
         {
             var row = next[i]; var container = SwiftTransition.Container(row);
+            var target = 0;
+            if (i > 0)
+            {
+                target = panel.Children.IndexOf(SwiftTransition.Container(next[i - 1])) + 1;
+                if (target == 0) target = i; // the one before it is not in the panel yet (a panel the caller fills): the plain position
+            }
+            while (target < panel.Children.Count && leaving.Contains(panel.Children[target]) && !ReferenceEquals(panel.Children[target], container)) target++;
             var at = panel.Children.IndexOf(container);
-            if (at == i) continue;
-            if (at >= 0) panel.Children.Move(at, i);
-            else if (SwiftTransition.HasTransition(row) || animation is not null) SwiftTransition.Insert(panel, i, row);
-            else panel.Children.Insert(i, row);
+            if (at == target) continue;
+            if (at >= 0) panel.Children.Move(at, at < target ? target - 1 : target);
+            else if (SwiftTransition.HasTransition(row) || animation is not null) SwiftTransition.Insert(panel, target, row);
+            else panel.Children.Insert(target, row);
         }
     }
 

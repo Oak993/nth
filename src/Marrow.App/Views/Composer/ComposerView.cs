@@ -35,9 +35,10 @@ namespace Marrow.App.Views.Composer;
 // Binding<T>, and file URLs are path strings. NSRange is a (Location, Length) pair of UTF-16 offsets. Swift private
 // top-level declarations remain internal, preserving every declared type and existing public signature.
 // All five B3 parts have been audited against pinned 1.7.0. The native chooser is behind ComposerFileDialog for
-// isolated tests. The ModelEffortButton and chip-style sites are implemented; STOP #7 leaves
-// surviving chip/approval layout movement unanimated pending foundation support; #8 records ProviderRegistry's
-// missing notifications; #9 records the SlashCommand.Suggestions dependency after inherited cross-unit code removal.
+// isolated tests. The ModelEffortButton and chip-style sites are implemented; the chip row keeps its scroller and chips
+// (STOP #7 in the tests records what the foundation's ForEach still lacks) and the approval stack's own re-layout is still
+// a cut (STOP #2); #8 records ProviderRegistry's missing notifications; #9 records the SlashCommand.Suggestions dependency
+// after inherited cross-unit code removal.
 // Diff popup and suggestion popup headless limits are documented in tests (STOP #3/#5). ED-180/182 retain the
 // existing material, palette and symbol-transition deferrals (ED-181, the continuous corner, is closed); visual macOS parity is unverified.
 
@@ -1051,6 +1052,7 @@ internal sealed class ComposerTextColumn : Decorator
     private string placeholder;
     private string? attachmentNotice;
     private TextBlock? notice;
+    private NoticeSlot? noticeSlot; // the notice's row: it folds open and shut, so the pill's height eases
     private IFrameSource? heightFrames;
     private Action<TimeSpan>? heightFrame;
 
@@ -1110,7 +1112,13 @@ internal sealed class ComposerTextColumn : Decorator
         stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
         stack.Children.Add(new DraftChips(runtime)); // :574
         stack.Children.Add(new DraftAttachments(runtime)); // :575
-        if (attachmentNotice is { } text) stack.Children.Add(Notice(text).Transition(ArrivedWithColumn)); // :576-583
+        if (attachmentNotice is { } text)
+        {
+            // :576-583 a notice that was there when the column was made: no arrival, and the row is whole.
+            noticeSlot = new NoticeSlot();
+            noticeSlot.Place(Notice(text).Transition(ArrivedWithColumn));
+            stack.Children.Add(noticeSlot);
+        }
 
         // :584-594
         textView = new ComposerTextView(
@@ -1148,12 +1156,19 @@ internal sealed class ComposerTextColumn : Decorator
         this.attachmentNotice = attachmentNotice;
         if (previous is null && attachmentNotice is { } arriving)
         {
-            // :576-582 .transition(.softAppear)
-            SwiftTransition.Insert(stack, 2, Notice(arriving).Transition(SwiftTransition.SoftAppear));
+            // :576-582 .transition(.softAppear), inside withAnimation(Chrome.panelSlide) (:523): the line's own arrival is the
+            // transition's, and the room it takes opens under the change's transaction so the pill grows with it (OD-0076, S5).
+            var slot = new NoticeSlot();
+            stack.Children.Insert(2, slot);
+            slot.Arrive(Notice(arriving).Transition(SwiftTransition.SoftAppear));
+            noticeSlot = slot;
         }
         else if (attachmentNotice is null)
         {
-            if (notice is { } leaving) SwiftTransition.Remove(stack, leaving);
+            // :224 withAnimation(Chrome.panelSlide) { attachmentNotice = nil }: the line leaves on the transition's 0.12 s fade and
+            // its room folds shut under the transaction.
+            if (noticeSlot is { } leaving && notice is { } gone) leaving.Leave(gone, () => stack.Children.Remove(leaving));
+            noticeSlot = null;
             notice = null;
         }
         else if (notice is { } shown)
@@ -1208,6 +1223,125 @@ internal sealed class ComposerTextColumn : Decorator
         };
         heightFrame = frame;
         heightFrames.RequestFrame(frame);
+    }
+}
+
+/// <summary>
+/// PORT-ONLY (OD-0076, UI-COMPOSER-004; ED-282): the room the attachment notice takes in the text column. SwiftUI lays the
+/// column out with the notice and animates the move under the transaction the change was made in (:523, :224), so the text view
+/// and the pill's height ease; an Avalonia transition moves no sibling, so the notice's row folds open and shut under the same
+/// transaction instead, its line top-aligned and clipped (ChipRowCollapse's way). The line itself keeps its own transition.
+/// </summary>
+internal sealed class NoticeSlot : Decorator
+{
+    private readonly Panel inner = new() { VerticalAlignment = VerticalAlignment.Top };
+    private readonly Border clip;
+    private double natural;
+    private double fraction = 1;
+    private const double SoftRise = 4; // Chrome.swift:943
+    private IFrameSource? source;
+    private Action<TimeSpan>? frame;
+    private IFrameSource? softSource;
+    private Action<TimeSpan>? softFrame;
+
+    public NoticeSlot()
+    {
+        clip = new Border { Child = inner, ClipToBounds = true };
+        Child = clip;
+    }
+
+    /// <summary>A line that is there from the first render: no transition in, whole.</summary>
+    public void Place(Control line) => SwiftTransition.Place(inner, 0, line);
+
+    /// <summary>
+    /// A line that arrives: the row opens from nothing and the line comes in as <c>.softAppear</c> does (Chrome.swift:949-955): its
+    /// opacity from 0 and a 4 point rise, on smooth(0.32). The foundation's SoftAppear modifier carries no animatable data and so
+    /// applies its identity at once (SwiftAnimation.cs Gather), which left the line at full opacity at its first frame; its removal half,
+    /// the 0.12 s ease-out fade, is still the transition's.
+    /// </summary>
+    public void Arrive(Control line)
+    {
+        Apply(0);
+        SwiftTransition.Place(inner, 0, line);
+        Run(0, 1, Transaction.Current ?? Chrome.PanelSlide, null);
+        var rise = new TranslateTransform(0, SoftRise);
+        line.Opacity = 0;
+        line.RenderTransform = rise;
+        var start = SwiftClock.Now;
+        var soft = Animation.SoftAppear;
+        softSource = FrameClock.Source.Current;
+        softFrame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds;
+            var complete = elapsed >= soft.Duration;
+            var progress = complete ? 1 : Math.Clamp(soft.Progress(elapsed), 0, 1);
+            line.Opacity = progress; // Chrome.swift:942
+            rise.Y = SoftRise * (1 - progress); // Chrome.swift:943
+            if (complete) softFrame = null;
+            else softSource!.RequestFrame(softFrame!);
+        };
+        softSource.RequestFrame(softFrame);
+    }
+
+    /// <summary>The line leaves on its transition's removal and the row folds shut; <paramref name="gone"/> runs when both are over.</summary>
+    public void Leave(Control line, Action gone)
+    {
+        var fold = Transaction.Current ?? Chrome.PanelSlide;
+        if (softFrame is not null) softSource!.CancelFrame(softFrame); // a line still arriving leaves from where it is
+        softFrame = null;
+        var removed = false;
+        var folded = false;
+        void Finish()
+        {
+            if (removed && folded) gone();
+        }
+        // The transition takes the line out of the row when its fade is over; the row's own list says when.
+        void Watch(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs args)
+        {
+            if (inner.Children.Count != 0) return;
+            inner.Children.CollectionChanged -= Watch;
+            removed = true;
+            Finish();
+        }
+        inner.Children.CollectionChanged += Watch;
+        SwiftTransition.Remove(inner, line);
+        Run(fraction, 0, fold, () => { folded = true; Finish(); });
+    }
+
+    private void Measure()
+    {
+        clip.Height = double.NaN;
+        inner.Measure(Size.Infinity);
+        natural = inner.DesiredSize.Height;
+    }
+
+    private void Apply(double to)
+    {
+        fraction = to;
+        clip.Height = to >= 1 ? double.NaN : Math.Max(0, natural * to);
+    }
+
+    private void Run(double from, double to, Animation animation, Action? done)
+    {
+        if (frame is not null) source!.CancelFrame(frame);
+        frame = null;
+        Measure();
+        Apply(from);
+        var start = SwiftClock.Now;
+        source = FrameClock.Source.Current;
+        frame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds;
+            var complete = elapsed >= animation.Duration;
+            Apply(complete ? to : from + (to - from) * animation.Progress(elapsed));
+            if (complete)
+            {
+                frame = null;
+                done?.Invoke();
+            }
+            else source!.RequestFrame(frame!);
+        };
+        source.RequestFrame(frame);
     }
 }
 
@@ -1375,9 +1509,15 @@ internal sealed class ContextMeter : Decorator
     public ContextMeter(ThreadRuntime runtime, ProviderKind provider, ProviderKind? headsProvider)
     {
         state.Inputs = (provider, headsProvider);
+        // :713 `if !isPoppedOut, ... { Button }`: the ring is an if-branch, so it arrives and leaves through the default opacity
+        // transition under the change's own transaction (ED-282-5). The slot holds it while it is there.
+        var slot = new Panel();
+        Child = slot;
         ContextButton? button = null;
         Popup? popup = null;
         var presented = false;
+        var inTree = false; // whether the ring is in the slot (a leaving ring is not)
+        var arrived = false; // the first showing is the view arriving with its parent, which runs no transition
         this.Track(() => (Usage: runtime.Usage, Model: AppEnvironment.GetAppModel(this), Provider: state.Inputs.Provider, Heads: state.Inputs.HeadsProvider,
                 Credits: CreditsReader.ExposesCredits(state.Inputs.Provider) && AppEnvironment.GetAppModel(this).Settings.HasAPIKey(state.Inputs.Provider),
                 PoppedOut: AppEnvironment.GetAppModel(this).Settings.ShowsUsagePanel), input =>
@@ -1388,13 +1528,20 @@ internal sealed class ContextMeter : Decorator
                 if (presented && popup is not null) Presentation.Presenter.Current.SetPresented(popup, false);
                 presented = false;
                 state.IsPresented = false;
-                Child = null;
-                button = null;
-                popup = null;
+                if (inTree && button is { } leaving)
+                {
+                    inTree = false;
+                    leaving.IsHitTestVisible = false; // a view on its way out takes no click
+                    Transaction.WithAnimation(RingMotion(), () => SwiftTransition.Remove(slot, leaving));
+                }
+                arrived = true;
                 return;
             }
             var ring = new Grid { Width = 15, Height = 15 }; // :717,725
-            var track = new Avalonia.Controls.Shapes.Ellipse { StrokeThickness = 2.5 }; // :718-719
+            // :718-719 Circle().stroke(.quaternary, lineWidth: 2.5): the stroke is centred on the 15 point circle, as the arc's is. An Avalonia
+            // Ellipse insets its outline by half the stroke, which drew the track 1.25 inside the arc (VIDEO static.composer-context-ring:
+            // track centre-line radius 7.53), so the track is the same 15 by 15 circle geometry as a Path.
+            var track = new Avalonia.Controls.Shapes.Path { StrokeThickness = 2.5, Data = new EllipseGeometry(new Rect(0, 0, 15, 15)) };
             track.Stroke = SwiftColor.Quaternary.Brush(track);
             var arc = new Avalonia.Controls.Shapes.Path
             {
@@ -1412,9 +1559,17 @@ internal sealed class ContextMeter : Decorator
                 button.Padding = new Thickness(6, 5); // :726-728 rectangular hit area
                 popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :737
                 popup.Closed += (_, _) => state.IsPresented = false;
-                Child = button;
             }
             else button.Content = ring;
+            if (!inTree)
+            {
+                inTree = true;
+                button.IsHitTestVisible = true;
+                var arriving = button;
+                if (!arrived) SwiftTransition.Place(slot, 0, arriving);
+                else Transaction.WithAnimation(RingMotion(), () => SwiftTransition.Insert(slot, 0, arriving));
+            }
+            arrived = true;
             var sentence = fraction is { } value ? ((long)(value * 100)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "% of the context window used" : "";
             ToolTip.SetTip(button, fraction is not null ? sentence : input.Credits ? "Remaining credits" : "Usage limits"); // :732,764-767
             AutomationProperties.SetName(button, fraction is not null ? "Context window" : input.Credits ? "Remaining credits" : "Usage limits"); // :733,769-772
@@ -1458,6 +1613,9 @@ internal sealed class ContextMeter : Decorator
             return presentedContent;
         }
     }
+
+    // The ring comes and goes under the change's own transaction, else panelSlide (a frame clock that is not running cuts).
+    private static Animation? RingMotion() => FrameClock.IsBound ? Transaction.Current ?? Chrome.PanelSlide : Transaction.Current;
 
     // :720-723 A circle trimmed from zero, before its -90 degree rotation.
     private static Geometry Arc(double fraction)
@@ -1555,16 +1713,30 @@ internal sealed class SendDraftState : Decorator
         button.Margin = new Thickness(4,0,0,0); // :841
         ToolTip.SetTip(button, HelpText(isRunning, headsWorking, goesToHead, queueGoesToHead)); // :842
         AutomationProperties.SetName(button, isRunning ? "Stop" : goesToHead ? "Send to a head" : "Send"); // :843
-        void Apply(bool empty, bool reverting)
+        var fill = new AnimatedColor(label); // the disc's fill and the glyph's ink follow the state along a transition (OD-0076)
+        label.Background = fill.Brush;
+        var ink = new AnimatedColor(image);
+        image.Foreground = ink.Brush;
+        void Apply(bool empty, bool reverting, Animation? animation)
         {
             var enabled = isRunning || !empty; // :826-827
             button.IsEnabled = enabled && !reverting; // :840
-            label.Background = (enabled ? Popovers.GetTint(this) ?? SwiftColor.AccentColor : SwiftColor.Quaternary).Brush(label); // :836
+            // A disabled plain button dims its label: VIDEO content.composer-send-states (C 81.640, C 90.5): the empty composer's disc is
+            // a faint grey and its arrow about half white, measured on the extracted frames as 0.48 to 0.51 of the white over the disc.
+            var dim = button.IsEnabled ? 1 : DisabledLabelOpacity;
+            fill.Set((enabled ? Popovers.GetTint(this) ?? SwiftColor.AccentColor : SwiftColor.Quaternary).Opacity(dim), animation); // :836
+            ink.Set(SwiftColor.White.Opacity(dim), animation); // :833
         }
-        Apply(runtime.Draft.IsEmpty, runtime.IsReverting);
-        this.Track(() => (Empty: runtime.Draft.IsEmpty, Reverting: runtime.IsReverting), input => Apply(input.Empty, input.Reverting));
+        Apply(runtime.Draft.IsEmpty, runtime.IsReverting, null);
+        // The Mac changes the fill in one frame; the owner's OD-0076 has every change transitioned, in the Mac's motion language
+        // for a hover (0.12 s ease-out), unless the change is made inside an animation of its own.
+        this.Track(() => (Empty: runtime.Draft.IsEmpty, Reverting: runtime.IsReverting),
+            input => Apply(input.Empty, input.Reverting, FrameClock.IsBound ? Transaction.Current ?? Animation.EaseOut(duration: 0.12) : null)); // a still frame clock (a view with no display) cuts, as AnimatedColor does
         Child = button;
     }
+
+    /// <summary>PORT-ONLY: how much of itself a disabled send button's label keeps (VIDEO, see <c>Apply</c>).</summary>
+    internal const double DisabledLabelOpacity = 0.5;
 
     /// <summary>:831 the button's symbol: stop.fill while running, else arrow.up.</summary>
     internal static string Symbol(bool isRunning) => isRunning ? "stop.fill" : "arrow.up";
@@ -1592,6 +1764,11 @@ internal sealed class DraftChips : Decorator
     private readonly ThreadRuntime runtime;
     private readonly Panel rows = new();
     private Control? current;
+    private StackPanel? chipRow; // :881 the HStack the scroller holds
+    private ForEach<ChipItem, string>? chips; // :882, :908 the command's chip and ForEach(quotes), by their identities
+    private readonly Dictionary<string, ChipItem> drawn = new(SwiftStringComparer.Instance);
+    private readonly Dictionary<string, ChipSlot> slots = new(SwiftStringComparer.Instance); // each chip's place in the row
+    private ChipKey? shownKey;
     private bool evaluated;
     /// <summary>:871-874 <c>private struct ChipKey: Equatable</c>.</summary>
     private sealed record ChipKey
@@ -1599,6 +1776,9 @@ internal sealed class DraftChips : Decorator
         public required ValueList<Guid> QuoteIDs { get; init; } // :872
         public string? CommandName { get; init; } // :873
     }
+
+    /// <summary>One chip of the row: the command's (identity "command", :882) or a quote's (its id, :908).</summary>
+    private sealed record ChipItem(string Id, string Symbol, string Text, string Detail, string RemoveLabel, bool CommandChip);
 
     // :869 let runtime; :876-943 body
     public DraftChips(ThreadRuntime runtime)
@@ -1612,63 +1792,178 @@ internal sealed class DraftChips : Decorator
     {
         var wasEvaluated = evaluated;
         evaluated = true;
+        var key = new ChipKey { QuoteIDs = new ValueList<Guid>(quotes.Select(quote => quote.Id)), CommandName = command?.Name }; // :941
         // :879 nothing to show: no row, so the column's zero spacing leaves no room for it
         if (quotes.Count == 0 && command is null)
         {
             if (current is { } leaving) Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Remove(rows, leaving));
             current = null;
+            chipRow = null;
+            chips = null;
+            drawn.Clear();
+            slots.Clear();
+            shownKey = key;
             return;
         }
-        var chipRow = Row(quotes, command);
-        chipRow.Margin = new Thickness(0, 0, 0, 8); // :939 .padding(.bottom, 8)
-        chipRow.Transition(SwiftTransition.Modifier(new ChipRowCollapse(true), new ChipRowCollapse(false))); // :940
-        if (current is null && wasEvaluated)
-            Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Insert(rows, 0, chipRow));
-        else if (current is null) SwiftTransition.Insert(rows, 0, chipRow);
+
+        var items = Items(quotes, command);
+        if (current is null)
+        {
+            // The row arrives whole: its chips are there as it grows from nothing, none of them arriving of their own.
+            var scroller = Scroller();
+            Transaction.WithAnimation(null, () => chips!.Apply(items));
+            scroller.Margin = new Thickness(0, 0, 0, 8); // :939 .padding(.bottom, 8)
+            scroller.Transition(SwiftTransition.Modifier(new ChipRowCollapse(true), new ChipRowCollapse(false))); // :940
+            if (wasEvaluated)
+                Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Insert(rows, 0, scroller));
+            else SwiftTransition.Insert(rows, 0, scroller);
+            current = scroller;
+        }
+        else if (!key.Equals(shownKey))
+        {
+            // :941 .animation(Chrome.panelSlide, value: ChipKey): a chip arriving or leaving the row that stays moves
+            // under the spring; the scroller, and where it is scrolled to, are the same ones throughout.
+            Transaction.WithAnimation(Chrome.PanelSlide, () =>
+            {
+                var staying = items.Select(item => item.Id).ToHashSet(SwiftStringComparer.Instance);
+                var leaving = slots.Where(pair => !staying.Contains(pair.Key)).ToArray();
+                chips!.Apply(items);
+                // A leaving chip fades where it stands (the ForEach's removal) while its place closes, so the chips after it
+                // follow it under the same spring instead of jumping when its fade is over (SwiftUI takes it out of the
+                // layout at once and moves the others under the transaction).
+                foreach (var (id, slot) in leaving)
+                {
+                    slots.Remove(id);
+                    slot.FoldShut(Chrome.PanelSlide);
+                }
+            });
+        }
         else
         {
-            // :941 Text edits leave the animation key alone. A nonempty single-line scroller keeps its height.
-            rows.Children.Clear();
-            SwiftTransition.Insert(rows, 0, chipRow);
+            // Nothing in the key moved (a text edit re-evaluated the draft; a command's detail): drawn again in place,
+            // with no animation.
+            Transaction.WithAnimation(null, () => chips!.Apply(items));
         }
-        current = chipRow;
+        shownKey = key;
     }
 
-    // :880-938 the chips' scroller, and :940-941 its transition; internal movement awaits STOP #7.
-    private Control Row(ValueList<ReplyQuote> quotes, DraftCommand? command)
+    private static List<ChipItem> Items(ValueList<ReplyQuote> quotes, DraftCommand? command)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 }; // :881
+        var items = new List<ChipItem>();
         if (command is not null) // :882
-            row.Children.Add(Chip(command.IsBuiltIn ? "command" : "sparkles", "/" + command.Name, command.Detail,
-                "Remove command", () => runtime.Draft = runtime.Draft with { Command = null }, true)); // :883-906
+            items.Add(new ChipItem("command", command.IsBuiltIn ? "command" : "sparkles", "/" + command.Name, command.Detail, "Remove command", true)); // :883-906
         foreach (var quote in quotes) // :908
-            row.Children.Add(Chip("text.quote", quote.Excerpt, quote.Text, "Remove quote",
-                () => runtime.Draft = runtime.Draft with { Quotes = new ValueList<ReplyQuote>(runtime.Draft.Quotes.Where(held => held.Id != quote.Id)) }, false)); // :909-935
-        return new ScrollViewer { Content = row, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
+            items.Add(new ChipItem(quote.Id.ToString(), "text.quote", quote.Excerpt, quote.Text, "Remove quote", false)); // :909-935
+        return items;
+    }
+
+    // :880-881 the horizontal scroller and its HStack(spacing: 6)
+    private ScrollViewer Scroller()
+    {
+        // HStack(spacing: 6): each chip's place keeps the 6 after it, and the row takes the last one back, so a leaving chip's whole
+        // footprint, its gap too, can close (ChipSlot); the chips stand exactly 6 apart.
+        chipRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, Margin = new Thickness(0, 0, -ChipSlot.Gap, 0) };
+        chips = new ForEach<ChipItem, string>(chipRow, item => item.Id, Make, Update);
+        drawn.Clear();
+        slots.Clear();
+        return new ScrollViewer { Content = chipRow, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; // :880
     }
 
-    // :883-906,909-935 Each capsule combines the label and remove action; full detail is its tooltip.
-    private static Control Chip(string symbol, string text, string detail, string removeLabel, Action remove, bool commandChip)
+    private Control Make(ChipItem item)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 }; // :883,909
-        row.Children.Add(SwiftImage.SystemName(symbol)
-            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText)); // :884-886,910-912
-        var title = new TextBlock { Text = text, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :887,913,916-917
-        SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: commandChip ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(title); // :888,914
-        title.Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(title); // :889,915
-        if (!commandChip) { title.MaxWidth = 260; title.HorizontalAlignment = HorizontalAlignment.Left; } // :918
+        drawn[item.Id] = item;
+        var chrome = new ChipChrome().Body(Content(item)); // :904, :933
+        Describe(chrome, item);
+        return slots[item.Id] = new ChipSlot((Border)chrome);
+    }
+
+    private void Update(Control slot, ChipItem item)
+    {
+        if (drawn.TryGetValue(item.Id, out var old) && old == item) return;
+        drawn[item.Id] = item;
+        var chrome = ((ChipSlot)slot).Chip;
+        chrome.Child = Content(item);
+        Describe(chrome, item);
+    }
+
+    // :905-906, :934-935 the chip's help and its combined accessibility name
+    private static void Describe(Control chrome, ChipItem item)
+    {
+        ToolTip.SetTip(chrome, item.Detail);
+        AutomationProperties.SetName(chrome, item.Text);
+    }
+
+    // :883-906, :909-935 Each capsule combines the label and the remove action; full detail is its tooltip.
+    private Control Content(ChipItem item)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 }; // :883, :909
+        row.Children.Add(SwiftImage.SystemName(item.Symbol)
+            .Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText)); // :884-886, :910-912
+        var title = new TextBlock { Text = item.Text, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :887, :913, :916-917
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: item.CommandChip ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(title); // :888, :914
+        title.Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(title); // :889, :915
+        if (!item.CommandChip) { title.MaxWidth = 260; title.HorizontalAlignment = HorizontalAlignment.Left; } // :918
         row.Children.Add(title);
-        var x = SwiftImage.SystemName("xmark").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText); // :895-897,924-926
-        var button = PlainControls.Button(x, () => Transaction.WithAnimation(Chrome.PanelSlide, remove)); // :890-899,919-928
-        button.Focusable = false; // :900,929
-        ToolTip.SetTip(button, removeLabel); // :901,930
-        AutomationProperties.SetName(button, removeLabel); // :902,931
+        var x = SwiftImage.SystemName("xmark").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText); // :895-897, :924-926
+        var button = PlainControls.Button(x, () => Transaction.WithAnimation(Chrome.PanelSlide, () => Remove(item))); // :890-899, :919-928
+        button.Focusable = false; // :900, :929
+        ToolTip.SetTip(button, item.RemoveLabel); // :901, :930
+        AutomationProperties.SetName(button, item.RemoveLabel); // :902, :931
         row.Children.Add(button);
-        var chrome = new ChipChrome().Body(row); // :904,933
-        ToolTip.SetTip(chrome, detail); // :905,934
-        AutomationProperties.SetName(chrome, text); // :906,935 combined chip name
-        return chrome;
+        return row;
+    }
+
+    private void Remove(ChipItem item)
+    {
+        if (item.CommandChip) runtime.Draft = runtime.Draft with { Command = null }; // :891-893
+        else runtime.Draft = runtime.Draft with { Quotes = new ValueList<ReplyQuote>(runtime.Draft.Quotes.Where(held => held.Id.ToString() != item.Id)) }; // :920-922
+    }
+}
+
+/// <summary>
+/// PORT-ONLY (ED-282, UI-COMPOSER-007; OD-0076): a chip's place in the chip row. A leaving view in SwiftUI is out of the
+/// layout at once and the others move under the transaction; a leaving row of the foundation's ForEach keeps its place until its fade
+/// is over, so the chips after it jumped then. The place closes under the same animation as the fade instead, the chip keeping its
+/// own width and its left edge where it stood.
+/// </summary>
+internal sealed class ChipSlot : Decorator
+{
+    private IFrameSource? source;
+    private Action<TimeSpan>? frame;
+
+    /// <summary>:881 the HStack's spacing.</summary>
+    public const double Gap = 6;
+
+    public ChipSlot(Border chip)
+    {
+        Chip = chip;
+        Child = chip;
+        Margin = new Thickness(0, 0, Gap, 0);
+    }
+
+    public Border Chip { get; }
+
+    public void FoldShut(Animation animation)
+    {
+        if (frame is not null) source!.CancelFrame(frame);
+        var natural = Bounds.Width > 0 ? Bounds.Width : Chip.DesiredSize.Width;
+        Chip.MinWidth = natural; // the chip keeps its width however little room the place has
+        Chip.HorizontalAlignment = HorizontalAlignment.Left;
+        Width = natural;
+        var start = SwiftClock.Now;
+        source = FrameClock.Source.Current;
+        frame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds;
+            var complete = elapsed >= animation.Duration;
+            var open = complete ? 0 : Math.Max(0, 1 - animation.Progress(elapsed));
+            Width = natural * open;
+            Margin = new Thickness(0, 0, Gap * open, 0);
+            if (complete) frame = null;
+            else source!.RequestFrame(frame!);
+        };
+        source.RequestFrame(frame);
     }
 }
 
