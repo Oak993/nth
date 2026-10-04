@@ -2866,7 +2866,10 @@ internal sealed class HeadCardsRow : Decorator
             var previousSlots = drawnSlots;
             var previousChevronSlot = drawnChevronSlot;
             var previousStarts = glideStarts;
-            var leftOfGlide = 1 - glideProgress; // how much of an earlier glide is still to run
+            // How much of an earlier glide is still to run. Deliberately NOT clamped at 0: a spring overshoots, its progress passes 1, and the
+            // glyph is then drawn past its slot by start * (1 - progress), a negative share; clamping it would put an interrupted glyph back at its
+            // slot in one frame (a jump). HeadCardGlideTests.A_glide_interrupted_while_the_spring_overshoots_continues_from_where_the_glyph_is_drawn.
+            var leftOfGlide = 1 - glideProgress;
             drawnGlyphs = [];
             drawnSlots = [];
             drawnChevronSlot = null;

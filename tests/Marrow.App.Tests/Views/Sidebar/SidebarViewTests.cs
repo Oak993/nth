@@ -203,7 +203,7 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   minimum heights, the Settled accessibility value, the pin's 0.9 scale, MiniSpinner cellSize 2.4, the dot's offset,
 //   the project line's fonts and spacing, monospaced digits on the time label, the failed dot in ActivityStatus, the
 //   fold chevron's symbols, the title-width glide on hover). UI-SIDEBAR-020: the settle pop (:1909 spring 0.3/0.45) is
-//   a cut: SettleCheck is rebuilt with its 1.35 scale fixed.
+//   proven by the Swift source under OD-0105 (SidebarSettleBounceTests, SidebarLeftoversTests) and the hover colour eases (SettleCheckHoverColourTests).
 // - UI-SIDEBAR-026/-027: dismissal by click-away/Escape and the Closed -> carryOutConfirmedDeletion hookup cannot run
 //   headless (STOP #12); UI-SIDEBAR-028/-029/-030/PR-SIDEBAR-091: STOP #6 (the controls' chrome);
 //   UI-SIDEBAR-031/-032: `.controlSize(.small)`'s metrics are unverified.

@@ -193,4 +193,58 @@ public sealed class HeadCardGlideTests(HeadlessSession headless)
         }
         finally { harness.Main.OnMain(() => window.Close()); }
     });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // :1541 panelSlide is a spring: its progress passes 1 before it settles; a glide cut off then goes on from where the glyph is drawn
+    public void A_glide_interrupted_while_the_spring_overshoots_continues_from_where_the_glyph_is_drawn() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 5).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        var (card, window) = Mount(harness, model, parent, heads);
+        try
+        {
+            var shown = SidebarView.OrderedHeads(heads).ToList();
+            // The frame (of 16 ms) at which the curve is past its end: the share of the glide that is left is negative there.
+            var overshoot = Enumerable.Range(1, 24).First(frame => Chrome.PanelSlide.Progress(frame * 0.016) > 1.0005);
+            var first = new List<ChatThread> { shown[0], shown[2], shown[3], shown[4] };
+            harness.Main.OnMain(() => window.UpdateLayout());
+            harness.Main.OnMain(() => CallOn(card, "Update", first)); // shown[1] goes: the three behind it glide one place left on panelSlide
+            harness.Main.OnMain(() => window.UpdateLayout());
+            for (var frame = 0; frame < overshoot; frame++)
+            {
+                harness.Main.AdvanceMilliseconds(16);
+                harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(16)));
+            }
+            double before = 0;
+            harness.Main.OnMain(() =>
+            {
+                before = Drawn(card, Buttons(card, first)[shown[2].Id]).X;
+                Assert.True(before < Settled(card, Buttons(card, first)[shown[2].Id]).X, "drawn past its slot, as a spring overshoots"); // the glide is past its end
+            });
+            var second = new List<ChatThread> { shown[0], shown[2], shown[3] }; // shown[4] goes: shown[2] keeps its slot, the glide is cut off by this pass
+            harness.Main.OnMain(() => CallOn(card, "Update", second));
+            harness.Main.OnMain(() => window.UpdateLayout());
+            harness.Main.OnMain(() =>
+            {
+                var button = Buttons(card, second)[shown[2].Id];
+                Assert.Equal(before, Drawn(card, button).X, 0.01); // not put back at its slot in one frame
+            });
+            harness.Main.AdvanceMilliseconds(1500);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromSeconds(1.5)));
+            harness.Main.OnMain(() =>
+            {
+                foreach (var head in second)
+                {
+                    var button = Buttons(card, second)[head.Id];
+                    Assert.Equal(Settled(card, button).X, Drawn(card, button).X, 0.01); // arrived
+                }
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
 }
