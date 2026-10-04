@@ -4419,7 +4419,7 @@
       "element": "\"Start new chats on\" submenu",
       "role": "menu item",
       "exact_text": "Start new chats on",
-      "geometry": "preceded by a Divider; a Label with the systemImage point.3.connected.trianglepath.dotted",
+      "geometry": "preceded by a Divider (a menu separator); upstream a Label with the systemImage point.3.connected.trianglepath.dotted; on Windows the native menu row shows the title alone (deviation OD-0042)",
       "typography": "native menu",
       "colors": "native menu",
       "states": [
@@ -4431,7 +4431,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1140-1165"
       ],
-      "notes": "This submenu exists only on the AppKit context menu; the ellipsis popover does not offer it. That asymmetry is in the source."
+      "notes": "This submenu exists only on the AppKit context menu; the ellipsis popover does not offer it. That asymmetry is in the source.",
+      "deviation": {
+        "decision": "OD-0042",
+        "upstream": "SidebarView.swift:1155-1160 a Divider, then a Menu whose label is Label(\"Start new chats on\", systemImage: \"point.3.connected.trianglepath.dotted\") in the AppKit context menu, which draws the symbol beside the title.",
+        "port": "The context menu is the native Win32 popup menu (NativeContextMenus, TrackPopupMenuEx): a separator, then a submenu row titled exactly `Start new chats on` with no symbol (OD-0042: no SF Symbol icons in the native menu); hovering or clicking it opens the system submenu."
+      }
     },
     {
       "id": "UI-SIDEBAR-016",
@@ -4443,7 +4448,7 @@
       "typography": "native menu",
       "colors": "native menu",
       "states": [
-        "the current choice is drawn as a Label with the systemImage checkmark; every other item is plain Text"
+        "the current choice is drawn as a Label with the systemImage checkmark; every other item is plain Text (Windows, OD-0042: the current choice carries the native menu check mark, MF_CHECKED; every other item is plain text)"
       ],
       "interactions": [
         "click sets or clears project.hydraPairID"
@@ -4451,8 +4456,13 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1238-1270"
       ],
-      "notes": "The check is rendered by swapping the whole label for a Label with a checkmark image, not by a menu state flag, so the unchecked items have no reserved check column.",
-      "b2_change": "Re-cited to B2 :1239-1271. Items, labels and check logic unchanged; only the actions' capture changed from `[weak model]` to a direct capture (PR-SIDEBAR-133), which is not visible."
+      "notes": "Upstream renders the check by swapping the whole label for a Label with a checkmark image, not by a menu state flag, so the unchecked items have no reserved check column. On Windows the context menu is the native Win32 popup (OD-0042), which draws its own check mark in a check gutter that every row reserves; that gutter is the platform's and is not reproduced as upstream's layout.",
+      "b2_change": "Re-cited to B2 :1239-1271. Items, labels and check logic unchanged; only the actions' capture changed from `[weak model]` to a direct capture (PR-SIDEBAR-133), which is not visible.",
+      "deviation": {
+        "decision": "OD-0042",
+        "upstream": "SidebarView.swift:1250-1266 draws the current choice as Label(title, systemImage: \"checkmark\") and every other choice as Text(title) inside the AppKit context menu, with no reserved check column.",
+        "port": "The native Win32 popup menu marks the current choice with its own check mark (MF_CHECKED) and reserves a check gutter on every row; no symbol image is drawn."
+      }
     },
     {
       "id": "UI-SIDEBAR-017",

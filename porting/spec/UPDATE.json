@@ -3134,7 +3134,7 @@
       "typography": "n/a",
       "colors": "Chrome.accent = ThemeManager.spec.accent ?? NSColor.controlAccentColor, so it follows the theme and falls back to the system accent for System, Light and Dark",
       "states": [
-        "Present only while UpdateChecker.shared.updateAvailable is true; disappears immediately when the running version catches up"
+        "Present only while UpdateChecker.shared.updateAvailable is true; upstream it disappears immediately (a cut) when the running version catches up. On Windows it starts to leave in that same frame, fading out and scaling to 0.8 over Chrome.hover (0.1 s ease-out), and arrives the same way; Reduce Motion takes it in and out at once (OD-0076)."
       ],
       "interactions": [
         "None of its own; the row itself opens Settings"
@@ -3143,7 +3143,12 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:168-175",
         "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:527-534"
       ],
-      "notes": "Accessibility label \"Update available\". The offset pushes it outside the badge's bounds, so the container must not clip."
+      "notes": "Accessibility label \"Update available\". The offset pushes it outside the badge's bounds, so the container must not clip.",
+      "deviation": {
+        "decision": "OD-0008 C6; OD-0012 I1; OD-0076",
+        "upstream": "SidebarView.swift:171-173 `if UpdateChecker.shared.updateAvailable { UpdateAvailableDot() }` cuts the dot in and out with no animation; UpdateChecker.swift:70 and :93-96 set updateAvailable from Droppy's own GitLab releases.",
+        "port": "No Droppy feed is queried; while the internal feed is empty (OD-0012 I1) updateAvailable stays false and the dot does not show. When the availability changes, the dot fades in and scales up from 0.8 over Chrome.hover (0.1 s ease-out) and leaves the same way (OD-0076, SidebarView.cs Settings row), stilled by Reduce Motion."
+      }
     },
     {
       "id": "UI-UPDATE-011",
