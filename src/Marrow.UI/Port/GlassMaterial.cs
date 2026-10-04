@@ -4,6 +4,7 @@
 // Optical values are an ED proposal in glass-material.report.md, UNVERIFIED under OD-0001.
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Avalonia;
@@ -35,7 +36,7 @@ internal static class GlassMaterial
         private CompositionContainerVisual? parent;
         private Control? input;
         private State? previous;
-        private bool queued, requested, hovered, pressed, resend;
+        private bool queued, requested, hovered, pressed;
         private Point pointer;
         // A container's regions carry each piece's opacity and place as they were at its last synchronisation, and a piece fades or
         // rises with the opacity and render transform of any visual between it and the container (a soft appear moves only those,
@@ -48,6 +49,8 @@ internal static class GlassMaterial
         private readonly EventHandler<AvaloniaPropertyChangedEventArgs> watchedChanged;
         private readonly EventHandler transformChanged;
         private readonly Action posted, synchronize;
+
+        internal Control Owner => owner;
 
         public Attachment(Control owner)
         {
@@ -64,20 +67,26 @@ internal static class GlassMaterial
             owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); Unwatch(); StopTurn(); requested = false; };
             owner.LayoutUpdated += (_, _) => Queue();
             owner.PropertyChanged += (_, _) => Queue();
-            owner.ActualThemeVariantChanged += (_, _) => { resend = true; Queue(); RepaintWindow(owner); };
+            owner.ActualThemeVariantChanged += (_, _) => Queue();
         }
 
-        // The window an appearance change reaches is redrawn whole, once per change, with the glass redrawn in the same pass (the material is told again so its
-        // visual is invalidated with the rest). Left to the partial redraw of the visuals whose colours moved, the pixels around a glass piece differ from a whole
-        // drawing by a few levels (a vector icon's antialiased edge: LookCardTurnoverTests, the Models and Mcp pages, 1 and 9 pixels), so the frame of the click
-        // is not the frame before it. Measured, not traced into Avalonia's compositor: without the repaint or without the re-send those two pages fail.
-        private static readonly ConditionalWeakTable<TopLevel, StrongBox<ThemeVariant>> repainted = new();
-        private static void RepaintWindow(Control owner)
+        // The window is redrawn whole once, a frame after an eased turnover of its glass has ended. The turnover is drawn by partial redraws, the glass's
+        // own and those of the colours that ease beside it, and where they overlap the antialiased edge of a vector icon near a piece (the Models page's
+        // chevron, the Mcp page's server icon) is left a few levels from what a whole drawing gives (LookCardTurnoverTests: 4 and 44 channels, past the
+        // 2 allowed); one whole redraw after the last frame of the ease settles the picture to the whole drawing. Measured, not traced into Avalonia's
+        // dirty-region merging. One per turnover and window (a later turnover is a later count); nothing is drawn extra for a change made at once.
+        private sealed class WindowTurns { public int Started, Repainted; }
+        private static readonly ConditionalWeakTable<TopLevel, WindowTurns> windowTurns = new();
+        private static int Turns(Control control, bool begin)
         {
-            if (TopLevel.GetTopLevel(owner) is not { } top) return;
-            var variant = top.ActualThemeVariant;
-            if (repainted.TryGetValue(top, out var last) && last.Value == variant) return;
-            repainted.AddOrUpdate(top, new StrongBox<ThemeVariant>(variant));
+            if (TopLevel.GetTopLevel(control) is not { } top) return 0;
+            var turns = windowTurns.GetOrCreateValue(top);
+            return begin ? ++turns.Started : turns.Started;
+        }
+        private static void RepaintWhole(Control control, int turn)
+        {
+            if (TopLevel.GetTopLevel(control) is not { } top || !windowTurns.TryGetValue(top, out var turns) || turn != turns.Started || turns.Repainted == turn) return;
+            turns.Repainted = turn;
             foreach (var visual in top.GetVisualDescendants()) visual.InvalidateVisual();
         }
 
@@ -142,6 +151,26 @@ internal static class GlassMaterial
             unwanted.Clear();
         }
 
+        // Puts the material directly before the owner's visual in the parent's composition children. A material not yet in the parent reads -1, which
+        // is also "just before" a control at index 0, so only a material that is present and directly before the owner stays where it is (a control
+        // that is its parent's first child got no material at all).
+        private void Place(CompositionVisual visual)
+        {
+            if (material is null || parent is null) return;
+            var index = parent.Children.IndexOf(visual);
+            if (index < 0) return;
+            var existing = parent.Children.IndexOf(material);
+            if (existing >= 0 && existing == index - 1) return;
+            if (existing >= 0) parent.Children.Remove(material);
+            parent.Children.Insert(parent.Children.IndexOf(visual), material);
+        }
+
+        // Put back after Avalonia re-synchronised the parent's composition children (see WindowHook).
+        internal void Reinsert()
+        {
+            if (material is not null && parent is not null && ElementComposition.GetElementVisual(owner) is { } visual) Place(visual);
+        }
+
         private void Synchronize()
         {
             requested = false;
@@ -169,14 +198,8 @@ internal static class GlassMaterial
             }
             var index = parent.Children.IndexOf(visual);
             if (index < 0 || material is null) return;
-            var existing = parent.Children.IndexOf(material);
-            // A material not yet in the parent reads -1, which is also "just before" a control at index 0: only a material that is
-            // present and directly before the control stays where it is (a control that is its parent's first child got no material at all).
-            if (existing < 0 || existing != index - 1)
-            {
-                if (existing >= 0) parent.Children.Remove(material);
-                parent.Children.Insert(parent.Children.IndexOf(visual), material);
-            }
+            Place(visual);
+            Hook(this);
             // Preserve source control type, layout, tint, hairline and foreground; draw immediately before it.
             material.Offset = visual.Offset;
             material.Translation = visual.Translation;
@@ -212,9 +235,8 @@ internal static class GlassMaterial
             }
             Rewatch();
             var state = new State(regions.ToArray(), spacing ?? 0);
-            if (resend || previous is null || previous.Spacing != state.Spacing || !previous.Regions.SequenceEqual(state.Regions))
+            if (previous is null || previous.Spacing != state.Spacing || !previous.Regions.SequenceEqual(state.Regions))
             {
-                resend = false;
                 previous = state;
                 material.SendHandlerMessage(state);
             }
@@ -288,10 +310,13 @@ internal static class GlassMaterial
                 (darkShown, tintShown) = (darkTo, resolved);
                 return (darkShown, tintShown);
             }
+            var eased = AppearanceTurn.Eases(control);
+            var turn = eased ? Turns(control, begin: true) : 0;
             stopTurn = AppearanceTurn.Run(control, progress =>
             {
                 (darkShown, tintShown) = progress >= 1 ? (darkTo, resolved) : (darkFrom + (darkTo - darkFrom) * progress, tintFrom == resolved ? resolved : progress <= 0 ? tintFrom : SwiftColor.PremultipliedMix(tintFrom, resolved, progress));
                 this.drawing?.RequestSynchronize();
+                if (progress >= 1 && eased) FrameClock.Source.Current.RequestFrame(_ => RepaintWhole(control, turn));
             });
             return (darkShown, tintShown);
         }
@@ -331,11 +356,69 @@ internal static class GlassMaterial
         private void RemoveMaterial()
         {
             if (material is not null) parent?.Children.Remove(material);
+            Unhook(this);
             Unwatch();
             parent = null;
             material = null;
             previous = null;
         }
+    }
+
+    // Avalonia 12.1.2 (CompositingRenderer.UpdateCore, Visual.SynchronizeCompositionChildVisuals) re-checks the composition children of every visual that is
+    // dirty at a render update, even for a change that is only to how it draws (a new Background, a hover, a colour ease): if their count differs from the
+    // visual children's it clears them and adds back only the controls' own visuals. A parent that holds a material always has one more, so each such
+    // update dropped every material in it, and nothing put it back until the owner's next layout pass. The point is not open to a subclass (an internal
+    // virtual of Visual; the one extension, ElementComposition.SetElementChildVisual, adds a child after all the others, above the owner and its content),
+    // so each window's renderer is given a step after its update, in the same composition update and before the frame is committed, that puts every material
+    // of the window back directly before its owner. The pinned package version is what makes the private member safe to name (Directory.Packages.props);
+    // if it is not there the materials keep to the layout pass as before.
+    private sealed class WindowHook
+    {
+        public readonly HashSet<Attachment> Materials = [];
+        private readonly List<Attachment> pass = [];
+        public void Repair()
+        {
+            if (Materials.Count == 0) return;
+            pass.AddRange(Materials);
+            foreach (var material in pass) material.Reinsert();
+            pass.Clear();
+        }
+    }
+    private static readonly ConditionalWeakTable<TopLevel, WindowHook> windows = new();
+    private static readonly ConditionalWeakTable<Attachment, TopLevel> hooked = new();
+
+    private static void Hook(Attachment attachment)
+    {
+        if (hooked.TryGetValue(attachment, out _) || TopLevel.GetTopLevel(attachment.Owner) is not { } top) return;
+        if (!windows.TryGetValue(top, out var hook))
+        {
+            hook = new WindowHook();
+            windows.Add(top, hook);
+            Install(top, hook);
+        }
+        hook.Materials.Add(attachment);
+        hooked.Add(attachment, top);
+    }
+
+    private static void Unhook(Attachment attachment)
+    {
+        if (!hooked.TryGetValue(attachment, out var top)) return;
+        hooked.Remove(attachment);
+        if (windows.TryGetValue(top, out var hook)) hook.Materials.Remove(attachment);
+    }
+
+    private static void Install(TopLevel top, WindowHook hook)
+    {
+        try
+        {
+            var renderer = typeof(TopLevel).GetProperty("Renderer", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(top);
+            var update = renderer?.GetType().GetField("_update", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (renderer is null || update?.GetValue(renderer) is not Action original) return;
+            update.SetValue(renderer, new Action(() => { original(); hook.Repair(); }));
+            // An update already queued holds the old delegate: one more step, after it, in the next composition update.
+            if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(hook.Repair);
+        }
+        catch (Exception e) when (e is ArgumentException or MemberAccessException or TargetInvocationException or InvalidCastException or FieldAccessException) { }
     }
 
     private sealed record Region(Size Size, GlassShape Shape, CornerRadius Corners, Color Tint, bool DrawnTint,
@@ -351,7 +434,7 @@ internal static class GlassMaterial
             state = next;
             Invalidate(); // Event-driven, no animation-frame registration or idle timer.
         }
-        public override Rect GetRenderBounds() => state is { Regions.Length: > 0 } s ? UnionBounds(s).Inflate(s.Spacing / 2 + 1) : default;
+        public override Rect GetRenderBounds() => state is { Regions.Length: > 0 } s ? UnionBounds(s).Inflate(s.Spacing / 2 + 1 + SampledMargin) : default;
         public override void OnRender(ImmediateDrawingContext context)
         {
             if (state is not { Regions.Length: > 0 } s) return;
@@ -361,6 +444,9 @@ internal static class GlassMaterial
             Draw(lease, s);
         }
     }
+
+    // How far past its shape the material reads the pixels under it: the blur's 3 sigma, the refraction's largest displacement and the antialiased edge (Draw).
+    private const double SampledMargin = 66;
 
     private static Rect UnionBounds(State s)
     {
@@ -479,7 +565,7 @@ internal static class GlassMaterial
             MathF.Sqrt(transform.ScaleY * transform.ScaleY + transform.SkewX * transform.SkewX));
         if (scale <= 0) return;
         var sampled = transform.MapRect(local);
-        sampled.Inflate(66 * scale, 66 * scale); // 3 sigma (36), max P1 displacement (28.6), antialias margin.
+        sampled.Inflate((float)SampledMargin * scale, (float)SampledMargin * scale); // 3 sigma (36), max P1 displacement (28.6), antialias margin.
         var crop = SKRectI.Ceiling(sampled);
         // Immutable app-owned pixels: no screen capture or visual-tree replay.
         using var snapshot = lease.SkSurface?.Snapshot();
