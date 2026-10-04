@@ -1341,7 +1341,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11): freshly built cards switch with the state (:2287); the record's open-popover result conflicts with the source (setFixedContent, ChatBadge.swift:138-147)
+    [Trait("Req", "PR-CHAT-113")] // TimelineRows.swift:2287 `MarkdownView(text: plan.markdown, isStreaming: plan.state == .drafting)`: the flag is the drafting state alone, read when the detail is built
     public void A_drafting_plan_renders_with_the_streaming_markdown_and_it_switches_the_moment_the_state_leaves_drafting() => headless.OnUiThread(() =>
     {
         using var h = Harness();
