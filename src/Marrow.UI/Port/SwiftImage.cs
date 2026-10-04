@@ -29,7 +29,7 @@ namespace Marrow.UI.Port;
 //   (Q5) composed renderings (SymbolCatalogue.Composition): the glyph at 50 % in the centre of its container, the
 //        (2,2)-(22,22) slash, the radius 4 badge at (18,6) knocked out 1.5 around, text in Inter Semibold 11 of 24 units;
 //   (Q6) .symbolRenderingMode draws monochrome in the foreground colour (named visual compromise), except .palette with
-//        two styles on a .fill name that has a container (ED-NEW-composerview palette; ComposerView.swift:1008-1010,
+//        two styles on a .fill name that has a container (ED-282 palette; ComposerView.swift:1008-1010,
 //        EditorAttachments.swift:30): the container is painted in the secondary style and the elements that Q4 knocks
 //        out are drawn in the primary one, as the symbol's second and first layers are on the Mac (a white x on a disc).
 //

@@ -845,7 +845,7 @@ public sealed class SwiftImageTests(HeadlessSession headless)
         var palette = Base().SymbolRenderingMode(SymbolRenderingMode.Palette).ForegroundStyle(Red, SwiftColor.Rgb(0x0000FF));
         Assert.Equal(SymbolRenderingMode.Palette, palette.SymbolRendering);
         Assert.NotNull(palette.SecondaryForeground);
-        // ED-NEW-composerview palette: two styles in palette mode on a .fill symbol with a container draw its two layers
+        // ED-282 palette: two styles in palette mode on a .fill symbol with a container draw its two layers
         // (the next test); every mode with one style, and every other mode, still draws monochrome.
         Assert.NotEqual(monochrome, Drawn(palette, 64));
         foreach (var mode in Enum.GetValues<SymbolRenderingMode>())

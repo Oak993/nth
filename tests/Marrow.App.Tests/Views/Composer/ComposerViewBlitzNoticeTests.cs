@@ -22,7 +22,7 @@ namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :219-225, :511-524, :576-583 (the attachment notice): the
 // blitz-composerview unit's proof for UI-COMPOSER-004's transitions; the owner's OD-0076 gives the pill's height the ease the
-// transaction asks for (ED-NEW-composerview, the notice's row).
+// transaction asks for (ED-282, the notice's row).
 public sealed partial class ComposerViewTests
 {
     private const string CapNotice = "One file was left out: a message holds 8 attachments";

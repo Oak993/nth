@@ -3044,7 +3044,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
             var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
             using var h = RuntimeHarness(); h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([new() { Text = "quote" }]) });
             var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
-            h.Main.OnMain(() => { Assert.Equal(6, ChipControls(chips).Single().Margin.Right); /* the 6 point gap: each chip's place keeps it after the chip and the row takes the last back (ED-NEW-composerview-12); the gap between two chips is measured in The_command_chip_names_... */ Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
+            h.Main.OnMain(() => { Assert.Equal(6, ChipControls(chips).Single().Margin.Right); /* the 6 point gap: each chip's place keeps it after the chip and the row takes the last back (ED-282-12); the gap between two chips is measured in The_command_chip_names_... */ Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
         });
     }
 
@@ -3615,7 +3615,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // Kind: resolved for PR-COMPOSER-088's clauses and for UI-COMPOSER-007. DraftChips keeps one row, one scroller and its chips, applies
 // them through the keyed ForEach under panelSlide when the ChipKey changes and asks for no frame on a text edit. A leaving chip fades
 // where it stands while its place (ChipSlot) closes under panelSlide and the chips after it follow, on the layout, under reduce motion
-// too (ED-NEW-composerview-12; Removing_the_middle_quote_fades_it_where_it_stands_...).
+// too (ED-282-12; Removing_the_middle_quote_fades_it_where_it_stands_...).
 //
 // STOP App.Views.Composer.ComposerView #11
 // Kind: native-only. UI-COMPOSER-029 (the attach dialog, ComposerView.swift:526-533, PromptEditor.swift:117-124). The options reach the

@@ -173,7 +173,7 @@ public sealed class AttachmentArrival : Grid
     {
         MainActor.AssumeIsolated();
         if (!isNew) return;
-        // PORT-ONLY (ED-NEW-composerview): the reader also reports when the cell joins the window, before its first arrange, with an empty
+        // PORT-ONLY (ED-282): the reader also reports when the cell joins the window, before its first arrange, with an empty
         // rectangle; the ghost has no frame to land in then (it flew to the cell's origin, 0 by 0), so the cell's first laid-out frame is
         // its appearance.
         if (rect.Width <= 0 || rect.Height <= 0) return;

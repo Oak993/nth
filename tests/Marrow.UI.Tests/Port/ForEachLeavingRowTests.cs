@@ -4,7 +4,7 @@ using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Port;
 
-// ED-218 and ED-NEW-composerview-12: a row that is leaving stays where it stands, behind the row before it, while the rows that
+// ED-218 and ED-282-12: a row that is leaving stays where it stands, behind the row before it, while the rows that
 // stay settle round it. A leaving row used to be moved to the end of the panel by the survivors' placement.
 [Collection("Headless")]
 public sealed class ForEachLeavingRowTests(HeadlessSession headless)

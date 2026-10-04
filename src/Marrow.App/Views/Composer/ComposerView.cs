@@ -1220,7 +1220,7 @@ internal sealed class ComposerTextColumn : Decorator
 }
 
 /// <summary>
-/// PORT-ONLY (OD-0076, UI-COMPOSER-004; ED-NEW-composerview): the room the attachment notice takes in the text column. SwiftUI lays the
+/// PORT-ONLY (OD-0076, UI-COMPOSER-004; ED-282): the room the attachment notice takes in the text column. SwiftUI lays the
 /// column out with the notice and animates the move under the transaction the change was made in (:523, :224), so the text view
 /// and the pill's height ease; an Avalonia transition moves no sibling, so the notice's row folds open and shut under the same
 /// transaction instead, its line top-aligned and clipped (ChipRowCollapse's way). The line itself keeps its own transition.
@@ -1473,7 +1473,7 @@ internal sealed class ContextMeter : Decorator
     public ContextMeter(ThreadRuntime runtime, ProviderKind provider, ProviderKind? headsProvider)
     {
         // :713 `if !isPoppedOut, ... { Button }`: the ring is an if-branch, so it arrives and leaves through the default opacity
-        // transition under the change's own transaction (ED-NEW-composerview-ring). The slot holds it while it is there.
+        // transition under the change's own transaction (ED-282-ring). The slot holds it while it is there.
         var slot = new Panel();
         Child = slot;
         ContextButton? button = null;
@@ -1870,7 +1870,7 @@ internal sealed class DraftChips : Decorator
 }
 
 /// <summary>
-/// PORT-ONLY (ED-NEW-composerview, UI-COMPOSER-007; OD-0076): a chip's place in the chip row. A leaving view in SwiftUI is out of the
+/// PORT-ONLY (ED-282, UI-COMPOSER-007; OD-0076): a chip's place in the chip row. A leaving view in SwiftUI is out of the
 /// layout at once and the others move under the transaction; a leaving row of the foundation's ForEach keeps its place until its fade
 /// is over, so the chips after it jumped then. The place closes under the same animation as the fade instead, the chip keeping its
 /// own width and its left edge where it stood.
