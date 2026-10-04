@@ -3612,10 +3612,30 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // (c) PR-COMPOSER-050: resolved, a retry that fails again replaces the note (A_retry_that_fails_again_...).
 //
 // STOP App.Views.Composer.ComposerView #7
-// Kind: resolved for PR-COMPOSER-088's clauses. DraftChips keeps one row, one scroller and its chips, applies them through the
-// keyed ForEach under panelSlide when the ChipKey changes and asks for no frame on a text edit. STILL OPEN (foundation, ED-218):
-// a chip that leaves lingers in layout while it fades, so the chips after it move when it is gone, not with it, and the glide of
-// the chips that stay is off under reduce motion. Neither is a clause of the record.
+// Kind: resolved for PR-COMPOSER-088's clauses and for UI-COMPOSER-007. DraftChips keeps one row, one scroller and its chips, applies
+// them through the keyed ForEach under panelSlide when the ChipKey changes and asks for no frame on a text edit. A leaving chip fades
+// where it stands while its place (ChipSlot) closes under panelSlide and the chips after it follow, on the layout, under reduce motion
+// too (ED-NEW-composerview-12; Removing_the_middle_quote_fades_it_where_it_stands_...).
+//
+// STOP App.Views.Composer.ComposerView #11
+// Kind: native-only. UI-COMPOSER-029 (the attach dialog, ComposerView.swift:526-533, PromptEditor.swift:117-124). The options reach the
+// runner (multiple true, directories false, "Attach") and cancel and accept are seam-tested (B3_file_chooser_..., B3_attach_default_
+// dialog_..., B3_accepting_the_chooser_...); the real Windows common dialog is never shown headless: whether OK reads "Attach", whether
+// two files multi-select, whether a folder cannot be chosen, and what caption an empty SetTitle("") gives (OpenPanel.cs:74) need a
+// real window on a quiet PC (OD-0007).
+//
+// STOP App.Views.Composer.ComposerView #12
+// Kind: foundation question, UI-COMPOSER-004. The notice arrives on the foundation's SoftAppear, whose modifier has no animatable data,
+// so SwiftTransition applies the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): the line is at full opacity
+// at its first frame where SwiftUI animates the opacity and the 4 point offset inside the modifier's body over smooth(0.32). Every
+// SoftAppear site shares it. The notice's row and the pill's height do ease (The_notice_row_opens_under_panelSlide_...,
+// After_5_s_the_notice_fades_out_...).
+//
+// STOP App.Views.Composer.ComposerView #13
+// Kind: source contradiction, UI-COMPOSER-002. The record says an empty pill is 44 points high (ComposerView.swift:157-158); the
+// source's own arithmetic (text view ceil(max(18, content) + 4) = 22, column 22 + 8, pill 30 + 16) and the reference video (rim to rim,
+// C 0.5 and C 84.5) both give 46, which is what the port draws (An_empty_pill_is_46_points_high_...). The number in the record is the
+// column before its first measure.
 //
 // STOP App.Views.Composer.ComposerView #10
 // Kind: resolved for the container (SwiftGlass.SetContainerSpacing is implemented and asserted: PR-COMPOSER-002, UI-COMPOSER-001);
