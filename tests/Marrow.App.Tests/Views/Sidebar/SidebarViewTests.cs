@@ -5654,13 +5654,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     // ---- helpers for ProjectRow (part 6) ----
 
-    internal static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true)
+    internal static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true, double width = 320)
     {
         var row = (Control)Activator.CreateInstance(Private("ProjectRow"), project, count, togglesExpansion)!;
         row.VerticalAlignment = VerticalAlignment.Top; // the row's own 28pt height, not the host's full stretch
         var host = new Border { Child = row };
         AppEnvironment.SetAppModel(host, model);
-        var window = new AvaloniaWindow { Content = host, Width = 320, Height = 100 };
+        var window = new AvaloniaWindow { Content = host, Width = width, Height = 100 };
         window.Show();
         window.UpdateLayout();
         return row;
@@ -8687,9 +8687,21 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var model = Model(harness, [project], []);
         Control row = null!;
         AvaloniaWindow window = null!;
+        // Chrome.swift:711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) }: SwiftUI puts the stack's spacing between
+        // every adjacent pair of subviews, the Spacer included, so the title's room is the row less the 8 + 40 trailing, the 8
+        // + 20 + 8 before it and the 8 + 4 after it (ED-NEW-rec-sidebar). The title is cut at its tail at a whole character. The
+        // row is made 17 glyphs + 92 wide: the exact room is then 17 glyphs less 4, so 16 characters fit, where the room
+        // of a spacer without its spacing (8 more) would let the 17th in.
+        double glyphWidth = 0;
         harness.Main.OnMain(() =>
         {
-            row = ShownProjectRow(model, project, 0);
+            var probe = ShownProjectRow(model, project, 0);
+            var probeTitle = LogicalQuery.SelfAndDescendants<TextBlock>(probe).Single(t => t.Text == project.Name);
+            var glyph = new TextBlock { Text = "W", FontFamily = probeTitle.FontFamily, FontSize = probeTitle.FontSize, FontWeight = probeTitle.FontWeight };
+            glyph.Measure(Size.Infinity);
+            glyphWidth = glyph.DesiredSize.Width;
+            Close(probe);
+            row = ShownProjectRow(model, project, 0, width: 17 * glyphWidth + 92);
             window = WindowOf(row);
         });
         Border shape = null!;
@@ -8711,9 +8723,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
             Assert.Equal(0, ((ISolidColorBrush)shape.Background!).Color.A); // clear while not hovered
             idleRight = Frame(title, row).Right;
-            // The title never runs under the reserved 40 pt, the trailing padding or the spacer's minimum 4 pt.
-            Assert.True(idleRight <= row.Bounds.Width - 8 - 40 - 4 + 0.01, $"title ends at {idleRight}");
-            Assert.True(idleRight > 150, $"title ends at {idleRight}"); // and it is truncated there, not collapsed
+            // The title never runs under the reserved 40 pt, the trailing padding or the spacer's 8 + 4 pt; its right edge is the
+            // largest whole-character one that fits, less than one glyph short of the exact edge.
+            var exactEdge = row.Bounds.Width - 8 - 40 - 8 - 4;
+            Assert.True(idleRight <= exactEdge + 0.01, $"title ends at {idleRight}, past {exactEdge}");
+            Assert.True(idleRight > exactEdge - glyphWidth, $"title ends at {idleRight}, more than a glyph ({glyphWidth}) short of {exactEdge}");
+            Assert.InRange(idleRight, 8 + 20 + 8 + 16 * glyphWidth - 1, 8 + 20 + 8 + 16 * glyphWidth + 1); // 16 characters (layout rounds the text run to a whole pixel), not the 17 the old room let in
         });
         harness.Main.OnMain(() => window.MouseMove(row.TranslatePoint(new Point(120, 14), window)!.Value)); // hover
         harness.Main.AdvanceMilliseconds(300);
