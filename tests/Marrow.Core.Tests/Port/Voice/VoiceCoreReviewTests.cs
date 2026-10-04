@@ -23,7 +23,7 @@ public sealed class VoiceCoreReviewTests
     // Decide with the basis of the timing (GPU or processor). The REVIEW commit found this overload by reflection so that the file
     // compiled before the fix; the fix made the basis a parameter of Decide, so this is now a plain call.
     private static SelfTestDecision Decide(string modelId, double rtf, bool steppedDown, RecommendationBasis basis) =>
-        SelfTestPlan.Decide(modelId, rtf, steppedDown, basis);
+        SelfTestPlan.Decide(modelId, rtf, steppedDown, basis, answeredForThisKey: false);
 
     // ---- finding 1: every GPU is never asked and stays live ----
 
@@ -61,7 +61,7 @@ public sealed class VoiceCoreReviewTests
     [InlineData("large-v3")]   // the user's own choice, on no ladder
     public void REVIEW_with_no_smaller_model_the_slow_band_asks_nothing_and_decides_live_words(string model)
     {
-        var d = SelfTestPlan.Decide(model, 0.3, steppedDown: false, RecommendationBasis.Cpu);
+        var d = SelfTestPlan.Decide(model, 0.3, steppedDown: false, RecommendationBasis.Cpu, answeredForThisKey: false);
         Assert.Equal(SelfTestAction.Keep, d.Action);
         Assert.Equal(model, d.ModelId);
         Assert.False(d.AskUser, "the slow-PC question would offer a smaller model where none exists");
@@ -80,7 +80,7 @@ public sealed class VoiceCoreReviewTests
     public void REVIEW_a_processor_too_slow_after_the_one_step_is_asked_while_a_smaller_rung_exists(string model)
     {
         Assert.NotNull(SelfTestPlan.StepDown(model));
-        var d = SelfTestPlan.Decide(model, 0.8, steppedDown: true, RecommendationBasis.Cpu);
+        var d = SelfTestPlan.Decide(model, 0.8, steppedDown: true, RecommendationBasis.Cpu, answeredForThisKey: false);
         Assert.Equal(SelfTestAction.Keep, d.Action);
         Assert.Equal(model, d.ModelId);
         Assert.True(d.AskUser, "ED-NEW-f-vt-1 item 8 asks nothing here; OD-0099 Q-V-1 C asks once when the PC is too slow to run the accurate model live");

@@ -81,7 +81,7 @@ public sealed class SelfTestPlanTests
     [Trait("Decision", "ED-267")] // voice-SPEC V-10.3: RTF <= 0.15 keeps the model, live words on, nothing to ask
     public void A_fast_first_timing_keeps_the_model_with_live_words()
     {
-        var d = SelfTestPlan.Decide("large-v3-turbo-q8_0", 0.06, steppedDown: false, RecommendationBasis.Cpu);
+        var d = SelfTestPlan.Decide("large-v3-turbo-q8_0", 0.06, steppedDown: false, RecommendationBasis.Cpu, answeredForThisKey: false);
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q8_0", LiveWords: true, AskUser: false), d);
     }
 
@@ -93,7 +93,7 @@ public sealed class SelfTestPlanTests
     {
         foreach (var rtf in new[] { 0.16, 0.3, 0.5 })
         {
-            var d = SelfTestPlan.Decide("large-v3-turbo-q5_0", rtf, steppedDown: false, RecommendationBasis.Cpu);
+            var d = SelfTestPlan.Decide("large-v3-turbo-q5_0", rtf, steppedDown: false, RecommendationBasis.Cpu, answeredForThisKey: false);
             Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", LiveWords: null, AskUser: true), d);
         }
     }
@@ -104,11 +104,11 @@ public sealed class SelfTestPlanTests
     [Trait("Decision", "ED-267")] // voice-SPEC V-10.3: RTF > 0.5 steps down one rung, to be timed again
     public void A_too_slow_first_timing_steps_down_one_rung()
     {
-        var d = SelfTestPlan.Decide("large-v3-turbo-q8_0", 0.51, steppedDown: false, RecommendationBasis.Cpu);
+        var d = SelfTestPlan.Decide("large-v3-turbo-q8_0", 0.51, steppedDown: false, RecommendationBasis.Cpu, answeredForThisKey: false);
         Assert.Equal(new SelfTestDecision(SelfTestAction.StepDown, "large-v3-turbo-q5_0", LiveWords: null, AskUser: false), d);
-        Assert.Equal("medium-q8_0", SelfTestPlan.Decide("large-v3-turbo-q5_0", 2.0, false, RecommendationBasis.Cpu).ModelId);
-        Assert.Equal("tiny.en", SelfTestPlan.Decide("base.en", 0.9, false, RecommendationBasis.Cpu).ModelId);
-        Assert.Equal(SelfTestAction.StepDown, SelfTestPlan.Decide("small-q8_0", 0.9, false, RecommendationBasis.Cpu).Action);
+        Assert.Equal("medium-q8_0", SelfTestPlan.Decide("large-v3-turbo-q5_0", 2.0, false, RecommendationBasis.Cpu, answeredForThisKey: false).ModelId);
+        Assert.Equal("tiny.en", SelfTestPlan.Decide("base.en", 0.9, false, RecommendationBasis.Cpu, answeredForThisKey: false).ModelId);
+        Assert.Equal(SelfTestAction.StepDown, SelfTestPlan.Decide("small-q8_0", 0.9, false, RecommendationBasis.Cpu, answeredForThisKey: false).Action);
     }
 
     [Fact]
@@ -117,13 +117,13 @@ public sealed class SelfTestPlanTests
     [Trait("Decision", "ED-267")] // voice-SPEC V-10.3 "time again once only": after a step down there is no second step down
     public void After_one_step_down_the_second_timing_is_final_whatever_it_reads()
     {
-        var fast = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.1, steppedDown: true, RecommendationBasis.Cpu);
+        var fast = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.1, steppedDown: true, RecommendationBasis.Cpu, answeredForThisKey: false);
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", LiveWords: true, AskUser: false), fast);
-        var slow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.4, steppedDown: true, RecommendationBasis.Cpu);
+        var slow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.4, steppedDown: true, RecommendationBasis.Cpu, answeredForThisKey: false);
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", LiveWords: null, AskUser: true), slow);
         // Lead ruling R3 (2026-10-04, from the OD-0099 Q-V-1 C amendment) replaces ED-NEW-f-vt-1 item 8: still too slow after the one step,
         // with a smaller rung left (medium-q8_0), the model is kept and the question is asked; no second timing.
-        var tooSlow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 3.0, steppedDown: true, RecommendationBasis.Cpu);
+        var tooSlow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 3.0, steppedDown: true, RecommendationBasis.Cpu, answeredForThisKey: false);
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", LiveWords: null, AskUser: true), tooSlow);
     }
 
@@ -134,7 +134,7 @@ public sealed class SelfTestPlanTests
     public void With_no_rung_below_a_too_slow_model_is_kept_with_live_words_off()
     {
         foreach (var id in new[] { "small-q5_1", "tiny.en", "large-v3", "medium.en" })
-            Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, id, LiveWords: false, AskUser: false), SelfTestPlan.Decide(id, 1.0, steppedDown: false, RecommendationBasis.Cpu));
+            Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, id, LiveWords: false, AskUser: false), SelfTestPlan.Decide(id, 1.0, steppedDown: false, RecommendationBasis.Cpu, answeredForThisKey: false));
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public sealed class SelfTestPlanTests
         var timings = 0;
         foreach (var rtf in new[] { 0.9, 0.9, 0.9, 0.9 })
         {
-            var d = SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Cpu);
+            var d = SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Cpu, answeredForThisKey: false);
             timings++;
             model = d.ModelId;
             if (d.Action == SelfTestAction.Keep) break;
@@ -163,8 +163,8 @@ public sealed class SelfTestPlanTests
     [Trait("Decision", "ED-267")] // voice-SPEC V-10.3: the Slow band names no live-words value; Fast and the final TooSlow do
     public void Only_the_slow_band_leaves_live_words_to_the_users_answer()
     {
-        Assert.Null(SelfTestPlan.Decide("medium-q8_0", 0.3, false, RecommendationBasis.Cpu).LiveWords);
-        Assert.True(SelfTestPlan.Decide("medium-q8_0", 0.15, false, RecommendationBasis.Cpu).LiveWords);
+        Assert.Null(SelfTestPlan.Decide("medium-q8_0", 0.3, false, RecommendationBasis.Cpu, answeredForThisKey: false).LiveWords);
+        Assert.True(SelfTestPlan.Decide("medium-q8_0", 0.15, false, RecommendationBasis.Cpu, answeredForThisKey: false).LiveWords);
     }
 
     [Theory]

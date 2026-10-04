@@ -64,14 +64,14 @@ public sealed record VoiceOrbSettings
         using (var w = new Utf8JsonWriter(stream, VoiceJson.WriterOptions))
         {
             w.WriteStartObject();
-            w.WriteString("orb", OrbNames[(int)Orb]);
-            w.WriteString("lstyle", StyleNames[(int)ListeningStyle]);
+            w.WriteString("orb", VoiceJson.WireName(OrbNames, Orb, Default.Orb));
+            w.WriteString("lstyle", VoiceJson.WireName(StyleNames, ListeningStyle, Default.ListeningStyle));
             w.WriteNumber("orbSize", OrbSize);
-            w.WriteString("attach", AttachNames[(int)Attachment]);
-            w.WriteString("afterVoice", AfterNames[(int)AfterVoice]);
-            w.WriteString("labels", LabelNames[(int)Labels]);
-            w.WriteString("lightVoice", LightNames[(int)LightVoice]);
-            w.WriteString("langMode", LangModeNames[(int)LangMode]);
+            w.WriteString("attach", VoiceJson.WireName(AttachNames, Attachment, Default.Attachment));
+            w.WriteString("afterVoice", VoiceJson.WireName(AfterNames, AfterVoice, Default.AfterVoice));
+            w.WriteString("labels", VoiceJson.WireName(LabelNames, Labels, Default.Labels));
+            w.WriteString("lightVoice", VoiceJson.WireName(LightNames, LightVoice, Default.LightVoice));
+            w.WriteString("langMode", VoiceJson.WireName(LangModeNames, LangMode, Default.LangMode));
             w.WriteEndObject();
         }
         return stream.ToArray();

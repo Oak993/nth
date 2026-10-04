@@ -10,8 +10,9 @@ public enum SelfTestAction { Keep, StepDown }
 
 /// <summary>
 /// The outcome of one timing. <see cref="ModelId"/> is the model to keep, or to install and time next. <see cref="LiveWords"/> is true
-/// (RTF at most 0.15), false (too slow and no further step), or null when the answer to the slow-PC question decides (Q-V-1 C);
-/// <see cref="AskUser"/> is true then.
+/// (live words on), false (text after the user stops), or null when the answer to the slow-PC question decides (Q-V-1 C; also for a
+/// step down, which is timed again). <see cref="AskUser"/> is true when that question is to be asked now; null live words with no
+/// question means the answer already stored for this hardware key decides.
 /// </summary>
 public sealed record SelfTestDecision(SelfTestAction Action, string ModelId, bool? LiveWords, bool AskUser);
 
@@ -62,27 +63,40 @@ public static class SelfTestPlan
     }
 
     /// <summary>
-    /// V-10.3 for one timing of <paramref name="modelId"/>. RTF at most 0.15: keep, live words on. Up to 0.5: keep and ask the user once
-    /// (OD-0099 Q-V-1 C). Above 0.5: step down one rung to be timed again, once only: after a step (<paramref name="steppedDown"/>), or with
-    /// no rung below, the model is kept with live words off and nothing to ask (ED: the question offers a smaller model for live words,
-    /// which "once only" no longer allows). <paramref name="basis"/> is where the timing ran: OD-0099 Q-V-1 C (the amendment of
-    /// 2026-10-04) says "a fast PC (every GPU) is never asked and stays live with the accurate model", so a GPU timing in the slow band
-    /// keeps the model with live words on and asks nothing.
+    /// V-10.3 for one timing of <paramref name="modelId"/>, with the lead's rulings R1 to R3 (2026-10-04, from the OD-0099 Q-V-1 C amendment:
+    /// "when the speed test finds the PC too slow to run the accurate model live, the app asks the user once ... a fast PC (every GPU) is
+    /// never asked and stays live with the accurate model").
+    /// <list type="bullet">
+    /// <item>R1: a timing on a working GPU backend (<paramref name="basis"/> Gpu) keeps the model with live words on and asks nothing, at any RTF.</item>
+    /// <item>The processor: RTF at most 0.15 keeps the model with live words on. Above 0.5, before any step (<paramref name="steppedDown"/>
+    /// false) and with a rung below, steps down one rung to be timed again (once only).</item>
+    /// <item>Otherwise the processor is too slow for live words. R3: with a smaller rung on the model's ladder the model is kept and the
+    /// slow-PC question is asked, also after the step, unless it was already answered for this hardware key
+    /// (<paramref name="answeredForThisKey"/>, see <see cref="AnsweredFor"/>): then the stored answer decides and nothing is asked.
+    /// R2: with no smaller rung (the bottom of a ladder, or a model on none) the model is kept with text after the user stops (live words
+    /// off) and nothing is asked.</item>
+    /// </list>
     /// </summary>
-    public static SelfTestDecision Decide(string modelId, double rtf, bool steppedDown, RecommendationBasis basis)
+    public static SelfTestDecision Decide(string modelId, double rtf, bool steppedDown, RecommendationBasis basis, bool answeredForThisKey)
     {
-        switch (BandOf(rtf))
-        {
-            case SelfTestBand.Fast:
-                return new SelfTestDecision(SelfTestAction.Keep, modelId, true, false);
-            case SelfTestBand.Slow when basis == RecommendationBasis.Gpu:
-                return new SelfTestDecision(SelfTestAction.Keep, modelId, true, false);
-            case SelfTestBand.Slow:
-                return new SelfTestDecision(SelfTestAction.Keep, modelId, null, true);
-            default:
-                if (!steppedDown && StepDown(modelId) is { } next)
-                    return new SelfTestDecision(SelfTestAction.StepDown, next, null, false);
-                return new SelfTestDecision(SelfTestAction.Keep, modelId, false, false);
-        }
+        if (basis == RecommendationBasis.Gpu)
+            return new SelfTestDecision(SelfTestAction.Keep, modelId, true, false);
+        var band = BandOf(rtf);
+        if (band == SelfTestBand.Fast)
+            return new SelfTestDecision(SelfTestAction.Keep, modelId, true, false);
+        var smaller = StepDown(modelId);
+        if (band == SelfTestBand.TooSlow && !steppedDown && smaller is not null)
+            return new SelfTestDecision(SelfTestAction.StepDown, smaller, null, false);
+        if (smaller is null)
+            return new SelfTestDecision(SelfTestAction.Keep, modelId, false, false);
+        return new SelfTestDecision(SelfTestAction.Keep, modelId, null, !answeredForThisKey);
     }
+
+    /// <summary>
+    /// R3's "the same hardware key": the slow-PC question counts as answered for this PC when an answer is stored
+    /// (<c>voiceTyping.liveWordsChoice</c>) and the stored check (<c>voiceHardware</c>) has today's key (V-10.5). A new GPU, driver or app
+    /// build (a stale record) asks again.
+    /// </summary>
+    public static bool AnsweredFor(VoiceHardwareRecord? stored, string currentKey, VoiceTypingSettings typing) =>
+        typing.SlowChoice is not null && !HardwareKey.IsStale(stored, currentKey);
 }

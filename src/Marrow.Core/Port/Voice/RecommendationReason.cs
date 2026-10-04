@@ -17,9 +17,19 @@ public static class RecommendationReason
         return seconds.ToString("R", CultureInfo.InvariantCulture);
     }
 
+    /// <summary>
+    /// <c>{t} seconds</c>, and <c>1 second</c> for exactly one: lead ruling R4 (2026-10-04, from the OD-0099 Q-V-1 C amendment review),
+    /// grammar only; the Q-V-4 A templates are otherwise unchanged (0.5 and 1.5 stay plural).
+    /// </summary>
+    public static string Seconds(double rtf)
+    {
+        var t = SecondsText(rtf);
+        return t + (t == "1" ? " second" : " seconds");
+    }
+
     /// <summary>GPU: <c>Your {GPU name} runs it on the graphics card: text about {t} seconds after you stop speaking.</c></summary>
     public static string Gpu(string gpuName, double rtf) =>
-        "Your " + gpuName + " runs it on the graphics card: text about " + SecondsText(rtf) + " seconds after you stop speaking.";
+        "Your " + gpuName + " runs it on the graphics card: text about " + Seconds(rtf) + " after you stop speaking.";
 
     /// <summary>
     /// CPU: <c>On the processor alone {Model} answers in about {t} seconds; {Bigger model} would take {t2} seconds or more.</c> The model
@@ -28,8 +38,8 @@ public static class RecommendationReason
     /// </summary>
     public static string Cpu(string modelId, double rtf, string? biggerModelId, double? biggerRtf)
     {
-        var head = "On the processor alone " + (ModelCatalog.ShortName(modelId) ?? modelId) + " answers in about " + SecondsText(rtf) + " seconds";
+        var head = "On the processor alone " + (ModelCatalog.ShortName(modelId) ?? modelId) + " answers in about " + Seconds(rtf);
         if (biggerModelId is null || biggerRtf is not { } biggerTime) return head + ".";
-        return head + "; " + (ModelCatalog.ShortName(biggerModelId) ?? biggerModelId) + " would take " + SecondsText(biggerTime) + " seconds or more.";
+        return head + "; " + (ModelCatalog.ShortName(biggerModelId) ?? biggerModelId) + " would take " + Seconds(biggerTime) + " or more.";
     }
 }

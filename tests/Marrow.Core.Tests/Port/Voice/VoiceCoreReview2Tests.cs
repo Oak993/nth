@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text;
 using Marrow.Core.Port.Voice;
 
@@ -22,22 +21,12 @@ public sealed class VoiceCoreReview2Tests
     private const string Feature = "VT-1";
     private const string CurrentKey = "1111111111111111111111111111111111111111111111111111111111111111";
 
-    // Decide with the answered-for-this-key flag (R3). Reflection so that this file compiles before the implementation adds it.
-    private static SelfTestDecision Decide(string modelId, double rtf, bool steppedDown, RecommendationBasis basis, bool answeredForThisKey)
-    {
-        var method = typeof(SelfTestPlan).GetMethod("Decide", BindingFlags.Public | BindingFlags.Static, null,
-            [typeof(string), typeof(double), typeof(bool), typeof(RecommendationBasis), typeof(bool)], null);
-        Assert.True(method is not null, "SelfTestPlan.Decide has no answered-for-this-key parameter, so it cannot keep R3's 'never twice for the same hardware key'");
-        return (SelfTestDecision)method!.Invoke(null, [modelId, rtf, steppedDown, basis, answeredForThisKey])!;
-    }
+    // The REVIEW commit (66aa57560) found these two by reflection so that the file compiled before they existed; now plain calls.
+    private static SelfTestDecision Decide(string modelId, double rtf, bool steppedDown, RecommendationBasis basis, bool answeredForThisKey) =>
+        SelfTestPlan.Decide(modelId, rtf, steppedDown, basis, answeredForThisKey);
 
-    private static bool AnsweredFor(VoiceHardwareRecord? stored, string currentKey, VoiceTypingSettings typing)
-    {
-        var method = typeof(SelfTestPlan).GetMethod("AnsweredFor", BindingFlags.Public | BindingFlags.Static, null,
-            [typeof(VoiceHardwareRecord), typeof(string), typeof(VoiceTypingSettings)], null);
-        Assert.True(method is not null, "SelfTestPlan has no AnsweredFor(stored record, current key, voiceTyping)");
-        return (bool)method!.Invoke(null, [stored, currentKey, typing])!;
-    }
+    private static bool AnsweredFor(VoiceHardwareRecord? stored, string currentKey, VoiceTypingSettings typing) =>
+        SelfTestPlan.AnsweredFor(stored, currentKey, typing);
 
     // ---- R1 ----
 
@@ -52,7 +41,7 @@ public sealed class VoiceCoreReview2Tests
     [InlineData("large-v3-turbo-q8_0", 0.06, false)]
     [InlineData("large-v3", 2.0, false)]
     public void R1_a_GPU_timing_never_steps_down_and_never_asks_at_any_RTF(string model, double rtf, bool steppedDown) =>
-        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: true, AskUser: false), SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Gpu));
+        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: true, AskUser: false), SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Gpu, answeredForThisKey: false));
 
     [Fact]
     [Trait("Feature", Feature)]
@@ -60,7 +49,7 @@ public sealed class VoiceCoreReview2Tests
     [Trait("Decision", "ED-267")] // lead ruling R1: the V-10.3 step down applies to the processor basis only
     public void R1_the_processor_still_steps_down_once() =>
         Assert.Equal(new SelfTestDecision(SelfTestAction.StepDown, "medium-q8_0", LiveWords: null, AskUser: false),
-            SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.9, false, RecommendationBasis.Cpu));
+            SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.9, false, RecommendationBasis.Cpu, answeredForThisKey: false));
 
     // ---- R2 ----
 
@@ -75,7 +64,7 @@ public sealed class VoiceCoreReview2Tests
     [InlineData("tiny.en", 0.9, true)]
     [InlineData("large-v3", 0.9, false)]
     public void R2_a_slow_processor_timing_with_no_smaller_rung_keeps_the_model_without_live_words_and_asks_nothing(string model, double rtf, bool steppedDown) =>
-        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: false, AskUser: false), SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Cpu));
+        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: false, AskUser: false), SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Cpu, answeredForThisKey: false));
 
     // ---- R3 ----
 
@@ -89,7 +78,7 @@ public sealed class VoiceCoreReview2Tests
     [InlineData("medium-q8_0", 0.8, true)]          // too slow after the step
     [InlineData("base.en", 2.0, true)]
     public void R3_a_processor_too_slow_for_live_words_with_a_smaller_rung_is_asked_and_keeps_the_model(string model, double rtf, bool steppedDown) =>
-        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: null, AskUser: true), SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Cpu));
+        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: null, AskUser: true), SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Cpu, answeredForThisKey: false));
 
     [Theory]
     [Trait("Feature", Feature)]

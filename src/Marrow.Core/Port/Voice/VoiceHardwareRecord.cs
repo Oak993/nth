@@ -53,17 +53,17 @@ public sealed record VoiceHardwareRecord
         {
             w.WriteStartObject();
             w.WriteString("key", Key);
-            w.WriteString("origin", OriginNames[(int)Origin]);
+            w.WriteString("origin", VoiceJson.WireName(OriginNames, Origin, HardwareOrigin.Auto));
             w.WriteString("cpu", Cpu);
             w.WriteNumber("cores", Cores);
             w.WriteNumber("ramGB", RamGB);
             w.WriteString("gpu", Gpu);
-            w.WriteNumber("vramGB", VramGB);
-            w.WriteNumber("freeVramGB", FreeVramGB);
-            w.WriteString("backend", BackendNames[(int)Backend]);
+            VoiceJson.WriteNumberOrNull(w, "vramGB", VramGB);
+            VoiceJson.WriteNumberOrNull(w, "freeVramGB", FreeVramGB);
+            w.WriteString("backend", VoiceJson.WireName(BackendNames, Backend, VoiceBackend.Cpu));
             w.WriteString("candidate", Candidate);
             w.WriteString("model", Model);
-            w.WriteNumber("rtf", Rtf);
+            VoiceJson.WriteNumberOrNull(w, "rtf", Rtf);
             w.WriteBoolean("liveWords", LiveWords);
             w.WriteString("at", At.UtcDateTime.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture));
             w.WriteString("app", App);

@@ -38,6 +38,22 @@ internal static class VoiceJson
     internal static double Number(JsonElement o, string key, double fallback) =>
         o.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d) && double.IsFinite(d) ? d : fallback;
 
+    /// <summary>
+    /// The wire name of <paramref name="value"/>, or of <paramref name="fallback"/> (the record's default) for a value outside the names:
+    /// a writer never throws, and an unknown value reads back as the default anyway (V-16.6). ENGINEERING DECISION, review round 1.
+    /// </summary>
+    internal static string WireName<T>(string[] names, T value, T fallback) where T : struct, Enum
+    {
+        var i = Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
+        return i >= 0 && i < names.Length ? names[i] : names[Convert.ToInt32(fallback, System.Globalization.CultureInfo.InvariantCulture)];
+    }
+
+    /// <summary>A finite number, or null for NaN and the infinities (JSON has no form for them; null reads back as the default).</summary>
+    internal static void WriteNumberOrNull(Utf8JsonWriter w, string key, double value)
+    {
+        if (double.IsFinite(value)) w.WriteNumber(key, value); else w.WriteNull(key);
+    }
+
     /// <summary>The enum value whose wire name (<paramref name="names"/>, indexed by the enum's order) is at <paramref name="key"/>, else <paramref name="fallback"/>.</summary>
     internal static T Name<T>(JsonElement o, string key, string[] names, T fallback) where T : struct, Enum
     {

@@ -47,11 +47,11 @@ public sealed record VoiceTypingSettings
         using (var w = new Utf8JsonWriter(stream, VoiceJson.WriterOptions))
         {
             w.WriteStartObject();
-            w.WriteString("engine", EngineNames[(int)Engine]);
+            w.WriteString("engine", VoiceJson.WireName(EngineNames, Engine, Default.Engine));
             if (Lang is null) w.WriteNull("lang"); else w.WriteString("lang", Lang);
             if (Model is null) w.WriteNull("model"); else w.WriteString("model", Model);
             if (Mic is not null) w.WriteString("mic", Mic);
-            if (SlowChoice is { } choice) w.WriteString("liveWordsChoice", ChoiceNames[(int)choice]);
+            if (SlowChoice is { } choice && (int)choice >= 0 && (int)choice < ChoiceNames.Length) w.WriteString("liveWordsChoice", ChoiceNames[(int)choice]); // an unknown answer is no answer
             w.WriteEndObject();
         }
         return stream.ToArray();
