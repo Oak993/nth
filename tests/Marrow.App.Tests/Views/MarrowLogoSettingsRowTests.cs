@@ -16,9 +16,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views;
 
-// OD-0015, OD-0002, OD-0033: every place upstream shows its own app logo (Image("droppy-logo")) draws the Marrow icon
-// (src/Marrow.App/Assets/icon.svg artwork), at the source's size: the Welcome page (104 pt, RootView.swift:307-309),
-// the new-thread prompt (72 pt, NewThreadPrompt.swift:17-21) and Settings > About "Made by" row (40 pt, SettingsView.swift:1090-1093).
+// OD-0015, OD-0002, OD-0033: only the Settings > About "Made by" row uses Image("droppy-logo") (SettingsView.swift:1067, 40 pt); it draws the Marrow tile render.
 // The Droppy Code logo must be in none of them: its tile is blue-violet; the Marrow tile is dark navy with a white core.
 [Collection("Headless")]
 public sealed class MarrowLogoSettingsRowTests(HeadlessSession headless) : SettingsRestFixture(headless)

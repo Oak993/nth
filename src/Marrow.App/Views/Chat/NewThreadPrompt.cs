@@ -84,12 +84,7 @@ public sealed class NewThreadPrompt : Decorator
         if (shownModel is not null) { shownModel = model; lineSlot?.Swap(MakeLine(model), null); return; } // another window's model: the line's picker reads it (the same words)
         shownModel = model;
         // :17-21
-        var icon = SwiftImage.Named("droppy-logo")
-            .Resizable()
-            .Interpolation(BitmapInterpolationMode.HighQuality)
-            .AspectRatio(ContentMode.Fit);
-        icon.Width = 72;
-        icon.Height = 72;
+        var icon = AppIconImage.Make(72); // :17-20 NSApp.applicationIconImage; OD-0015: the packaged Marrow app icon, as the About pill draws it
         AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw); // :21 .accessibilityHidden(true)
 
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 26, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
