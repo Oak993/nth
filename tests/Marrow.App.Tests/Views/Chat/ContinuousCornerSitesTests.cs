@@ -114,6 +114,8 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Port/SwiftShapes.cs", "CapsuleCornerRadius(e.NewSize)", 1, Other),
         ("Marrow.UI/Port/SwiftShapes.cs", "cornerRadii", 1, Other),
         ("Marrow.UI/Port/SwiftShapes.cs", "cornerRadius", 1, Other),
+        ("Marrow.UI/Port/SystemButtons.cs", "radius", 2, Fit), // H3 (ED-291): a capsule (height / 2) under presentedChrome, else the kit's Radius 6 on a 22-24 pt button: never 2r < h < 3.057r
+        ("Marrow.UI/Port/SystemButtons.cs", "radius + FocusBand", 1, Fit),
         ("Marrow.UI/Port/SystemButtons.cs", "Radius", 2, Fit),
         ("Marrow.UI/Port/SystemButtons.cs", "Radius + FocusBand", 1, Fit),
     ];
