@@ -329,6 +329,31 @@ public sealed class VoiceGlowViewTests(HeadlessSession headless)
     [Trait("Feature", "VT-9")]
     [Trait("Spec", "V-T62")]
     [Trait("Decision", "ED-302")]
+    public void The_surface_is_made_when_the_composer_is_laid_out_not_when_the_glow_first_shows() => headless.OnUiThread(() =>
+    {
+        // V-13.5: "its surfaces are created at the first composer layout, not at the first click": the half-size layer, 360 x 48 for the 720 x 96 shape, exists while the glow is still off
+        using var motion = new VoiceGlowMotion();
+        var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
+        var (window, view) = Show();
+        try
+        {
+            Run(clock, 0.2);
+            var painter = view.Handler!.Painter;
+            Assert.False(view.Active);
+            Assert.Equal((ShapeW / 2, ShapeH / 2), painter.SurfaceSize);
+            Assert.Equal(1, painter.SurfaceCreations);
+            view.Active = true;
+            Tick();
+            Run(clock, 1);
+            Assert.Equal(1, painter.SurfaceCreations);                       // showing the glow made no surface
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Feature", "VT-9")]
+    [Trait("Spec", "V-T62")]
+    [Trait("Decision", "ED-302")]
     public void The_glow_is_under_the_content() => headless.OnUiThread(() =>
     {
         using var motion = new VoiceGlowMotion();

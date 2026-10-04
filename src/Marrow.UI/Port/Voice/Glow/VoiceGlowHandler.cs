@@ -92,6 +92,7 @@ internal sealed class VoiceGlowHandler : CompositionCustomVisualHandler
         var m = canvas.TotalMatrix;
         var dpr = Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));
         var input = software && !s.Input.ReduceMotion ? s.Input with { ReduceMotion = true } : s.Input;
+        painter.Prepare(lease.GrContext, input.Width, input.Height, dpr);       // V-13.5: the surface exists from the first layout, not from the first click
         scene.Advance(Seconds(s.Clock), input);
         if (scene.Visible && scene.Frame is { } frame && scene.Look is { } look)
         {

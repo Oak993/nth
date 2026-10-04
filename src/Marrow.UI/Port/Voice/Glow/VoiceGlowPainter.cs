@@ -122,6 +122,16 @@ internal sealed class VoiceGlowPainter : IDisposable
         return filter;
     }
 
+    /// <summary>
+    /// Makes the soft layers' surface for a shape of <paramref name="width"/> x <paramref name="height"/> before the first glow frame (V-13.5: "its surfaces are created at the first
+    /// composer layout, not at the first click"): the surface is the half-size layer in device pixels, the one <see cref="Draw"/> will use.
+    /// </summary>
+    public void Prepare(GRContext? gpu, double width, double height, double dpr, double z = HalfSize)
+    {
+        if (disposed || !(width > 0) || !(height > 0)) return;
+        Surface(gpu, Math.Max(1, (int)Math.Ceiling(width * z * dpr - Epsilon)), Math.Max(1, (int)Math.Ceiling(height * z * dpr - Epsilon)));
+    }
+
     // ---- surface
     private SKCanvas Surface(GRContext? gpu, int w, int h)
     {
