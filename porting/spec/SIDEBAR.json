@@ -3074,10 +3074,10 @@
       "side_effects": [],
       "persistence": "Reads project.icon.",
       "failure_cases": [
-        "A symbol name the system does not have renders as a missing-image placeholder; the picker filters its own shortlist but not a hand-edited library value."
+        "A symbol name the system does not have draws nothing (SwiftUI, OD-0098: the 20 pt square stays, the mark is empty); the picker filters its own shortlist but not a hand-edited library value."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Emoji render from the Windows emoji font. By owner ruling OD-0010 a stored symbol name, and the `folder.fill` fallback, are drawn as the Lucide icons the published table porting/icons/sf-symbols-to-lucide.json maps them to (`folder.fill` as `folder`; the table maps every catalogue and shortlist name); a name with no mapping must render a defined placeholder rather than nothing.",
+      "windows_path": "Emoji render from the Windows emoji font. By owner ruling OD-0010 a stored symbol name, and the `folder.fill` fallback, are drawn as the Lucide icons the published table porting/icons/sf-symbols-to-lucide.json maps them to (`folder.fill` as `folder`; the table maps every catalogue and shortlist name); an unknown symbol name draws nothing, as SwiftUI does (OD-0098).",
       "verification_method": "capture comparison with an emoji icon, a symbol icon and no icon.",
       "status": "DISCOVERED",
       "upstream_defect": null,
@@ -3089,8 +3089,7 @@
         "port": "Each name is drawn as its Lucide icon per porting/icons/sf-symbols-to-lucide.json; emoji are unchanged."
       },
       "b2_change": "Citation corrected (wrong at B1 and B2 alike; SidebarView.swift keeps the same line numbers at B2): the ProjectRow icon closure is SidebarView.swift:1107-1115, not :1100-1107. Citation only: B1 Chrome.swift:618-636 SidebarSymbol -> B2 :651-669.",
-      "resolved_unknown": "UNK-0007 resolved by OD-0010",
-      "open_question": "What the port draws for a stored `symbolName` that porting/icons/sf-symbols-to-lucide.json does not map. Such a name can only come from a hand-edited library.json, since the picker offers mapped names only. Upstream passes it to `Image(systemName:)` (ProjectIconPicker.swift:21), whose rendering of an unknown name was never observed on a Mac (UNK-0003), and no owner or engineering decision names the Windows placeholder the windows_path requires."
+      "resolved_unknown": "UNK-0007 resolved by OD-0010"
     },
     {
       "id": "PR-SIDEBAR-128",
@@ -4931,7 +4930,7 @@
         "rides with a dragged parent"
       ],
       "interactions": [
-        "click anywhere on the row, including the connector stub, unfolds the helpers"
+        "click the label half (chevron, count, empty trailing region) or one of the connector's drawn dots unfolds the helpers; the undrawn gaps of the connector column do not (SwiftUI hit-tests a bare stroked shape on its stroke, and .contentShape at SidebarView.swift:1608 covers only the text half; OD-0098; SidebarView.swift:1583-1608, :1636-1658, where the sibling HelperConnector adds .contentShape(.rect) to take the whole column)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1552-1620"
