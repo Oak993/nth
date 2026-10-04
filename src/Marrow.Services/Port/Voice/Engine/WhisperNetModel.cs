@@ -25,8 +25,8 @@ public sealed class WhisperNetModel(WhisperFactory factory, RuntimeKind runtime)
 
     public void Dispose() => factory.Dispose();
 
-    // WhisperToken.Start and End are whisper.cpp's t0 and t1: 10 ms units (UNVERIFIED until the voice-evidence run). A special token's text is "[_BEG_]", "[_TT_n]" or "<|...|>".
-    private static BackendToken ToToken(WhisperToken token)
+    // WhisperToken.Start and End are whisper.cpp's t0 and t1: 10 ms units (confirmed on the Windows run: 22 words between 0.23 s and 10.01 s for a 10.02 s clip). A special token's text is "[_BEG_]", "[_TT_n]" or "<|...|>".
+    public static BackendToken ToToken(WhisperToken token)
     {
         var text = token.Text ?? "";
         return new BackendToken(text, token.Start * 0.01, token.End * 0.01,

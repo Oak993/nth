@@ -84,6 +84,29 @@ public sealed class OpenAiTranscriberErrorTests
         exchange.Abort();
     }
 
+    // The time is for silence, not for the whole reply: a stream that keeps sending events lasts as long as it likes.
+    [Fact]
+    [Trait("Feature", "VT-16")]
+    [Trait("Rule", "R-TEST-4")]
+    public async Task V_T112_a_stream_that_keeps_sending_events_is_not_cut_off_by_the_time_of_its_silence()
+    {
+        await using var server = new LoopbackHttpServer();
+        var (keys, _) = CloudFixtures.KeyStore();
+        using var engine = new OpenAiTranscriber(keys, new HttpClientHandler(), timeout: TimeSpan.FromMilliseconds(700), endpoint: server.Url("/v1/audio/transcriptions"));
+        var call = engine.TranscribeAsync(CloudFixtures.Audio(1), CloudFixtures.Request(), CancellationToken.None);
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"));
+        foreach (var word in new[] { "one ", "two ", "three ", "four ", "five " })
+        {
+            await exchange.WriteChunk(System.Text.Encoding.UTF8.GetBytes(CloudFixtures.Sse(CloudFixtures.Delta(word))));
+            await Task.Delay(300);                                        // five events over 1.5 s, every gap under the 700 ms
+        }
+        await exchange.WriteChunk(System.Text.Encoding.UTF8.GetBytes(CloudFixtures.Sse(CloudFixtures.Done("one two three four five"))));
+        await exchange.EndChunks();
+        var result = await call.WaitAsync(LoopbackHttpServer.Guard);
+        Assert.Equal(["one", "two", "three", "four", "five"], result.Words.Select(w => w.Text));
+    }
+
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
