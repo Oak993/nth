@@ -192,4 +192,45 @@ public sealed class OrbRendererTests
         Assert.True(perFrame < 1536, $"a frame allocates {perFrame} B");
         Assert.Equal(1, renderer.SurfaceCreations);
     }
+
+    // V-11.5 / V-T53 on the renderer: the crossfade's mix is the opacity the orb is drawn with, through the 2x surface (below 128 device px) as straight onto the
+    // canvas (from 128). Windows review (unit/integ-vt8): a 2x path that dropped the opacity drew both orbs whole during a swap at 100 % and 150 % scaling and survived
+    // every other test.
+    [Theory]
+    [InlineData(1.0)]
+    [InlineData(1.5)]
+    [InlineData(2.0)]
+    [Trait("Feature", "VT-8")]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T53")]
+    public void The_opacity_scales_the_drawn_orb_on_both_paths(double dpr)
+    {
+        var runtime = OrbRig.Runtime(Rest, dpr);
+        runtime.Frame(1.3, Rest.FrameState);
+        SKBitmap Draw(float opacity)
+        {
+            using var renderer = new OrbRenderer();
+            var info = new SKImageInfo(runtime.DevicePx, runtime.DevicePx, SKColorType.Rgba8888, SKAlphaType.Premul);
+            using var surface = SKSurface.Create(info);
+            surface.Canvas.Clear(SKColors.Transparent);
+            surface.Canvas.Scale((float)(runtime.DevicePx / OrbScene.ViewPx));
+            renderer.Draw(surface.Canvas, null, runtime.Values, runtime.Mrw, runtime.DevicePx, runtime.RenderPx, (float)OrbScene.ViewPx, opacity);
+            var bitmap = new SKBitmap(info);
+            surface.ReadPixels(info, bitmap.GetPixels(), info.RowBytes, 0, 0);
+            return bitmap;
+        }
+        using var whole = Draw(1);
+        using var half = Draw(0.5f);
+        var inked = 0; var worst = 0;
+        for (var y = 0; y < whole.Height; y++)
+            for (var x = 0; x < whole.Width; x++)
+            {
+                var a = whole.GetPixel(x, y).Alpha;
+                if (a < 64) continue;
+                inked++;
+                worst = Math.Max(worst, Math.Abs(half.GetPixel(x, y).Alpha - a / 2));
+            }
+        Assert.True(inked > 100, $"the orb drew {inked} opaque pixels");
+        Assert.True(worst <= 2, $"at opacity 0.5 a pixel's alpha is {worst}/255 away from half the whole draw's");
+    }
 }
