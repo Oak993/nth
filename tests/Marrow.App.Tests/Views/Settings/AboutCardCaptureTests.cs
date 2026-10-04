@@ -13,8 +13,12 @@ namespace Marrow.App.Tests.Views.Settings;
 // at 1 px = 1 pt, its origin at screen (891, 404); measured with PIL, single sample): card x 235 to 755 (520 wide), top 80; header 88 high
 // (a divider 88 below the card top: 16 + the 56 icon + 16); the icon frame at the card's (16, 16); the version block 14 after the icon;
 // the dividers 88, 163, 222 and 281 below the card top; the Show pill 48 x 20 with its right edge 10 inside the card, centred in its row.
-// The words differ by owner ruling (OD-0012 F1, H; OD-0072) and the faces differ (Inter for SF, ED-059), so the row heights that follow the
-// text are not compared; the boxes the source fixes are.
+// The rows that follow the text are compared through the text-style line boxes (ED-290 (1), SETTLED 2026-10-04: body 18, callout 17,
+// subheadline 16): the still's dividers 88, 163, 222 and 281 are 88 + 1 + 74 (Welcome tour: 11 + body 18 + 2 + two subheadline lines 32 + 11),
+// + 1 + 58 (Software update while it asks GitLab: one subheadline line) and + 1 + 58 (the paragraph: 11 + two body lines 36 + 11). The Welcome tour
+// row has the Mac's words and wraps as the still does, so its divider is compared at 163; the other rows' words differ by owner ruling (OD-0012 F1,
+// H; OD-0072) or by state (the port's card rests with the two-line "not checked yet" sentence), so each is held to the same arithmetic for the
+// lines it draws. The faces differ (Inter for SF, ED-059) only in their glyphs; the boxes the source fixes are compared as before.
 [Collection("Headless")]
 public sealed class AboutCardCaptureTests(HeadlessSession headless) : SettingsFinishFixture(headless)
 {
@@ -63,6 +67,17 @@ public sealed class AboutCardCaptureTests(HeadlessSession headless) : SettingsFi
             Assert.InRange(showBox.Width, 45, 52); Near(20, showBox.Height, 1); // the small accent capsule; the reference's 48 is its label's width plus 21, so the Inter label moves it by a point or two
             Near(520 - 10, showBox.Right, 1); // Chrome.rowControlTrailingPadding
             Assert.InRange(showBox.Y + showBox.Height / 2, tourBox.Y + tourBox.Height / 2 - 0.5, tourBox.Y + tourBox.Height / 2 + 0.5); // centred in its row (to the layout's half point)
+            // The text rows (ED-290 (1)): a ChromeRow is 11 + body 18 + 2 + 16 per subheadline line + 11 (Chrome.swift:1055-1078), a paragraph 11 + its lines + 11.
+            static int Lines(TextBlock text) => text.TextLayout.TextLines.Count;
+            var tourDetail = Nodes<TextBlock>(tour).Except(Nodes<TextBlock>(show)).Single(t => t.FontSize == 11); // the detail, not the Show label
+            Assert.Equal(2, Lines(tourDetail)); // as in the still
+            Near(74, tourBox.Height, 1); Near(163, BoxIn(Assert.IsType<ChromeRowDivider>(rows.Children[3]), card).Y, 1); // S 213.0: 88 + 1 + 74
+            var update = Assert.IsType<AboutUpdateCheckRow>(rows.Children[4]); // a ChromeRow inside (AboutUpdateViews.swift:826-844)
+            var updateDetail = Nodes<TextBlock>(update).Except(Nodes<Button>(update).SelectMany(b => Nodes<TextBlock>(b))).Where(t => t.FontSize == 11 && t.Opacity > 0 && t.IsVisible).First(); // the drawn sentence
+            Near(22 + 18 + 2 + 16 * Lines(updateDetail), BoxIn(update, card).Height, 1); // S 212.0 to 213.0: 74 with two lines, 58 with one
+            var what = Assert.IsType<TextBlock>(rows.Children[6]); var licence = Assert.IsType<TextBlock>(rows.Children[8]);
+            Near(22 + 18 * Lines(what), BoxIn(what, card).Height + 22, 1); // S 213.0: the paragraph row 707..764 = 58 = 22 + two body lines
+            Near(22 + 17 * Lines(licence), BoxIn(licence, card).Height + 22, 1); // callout lines of 17
         });
     }
 }

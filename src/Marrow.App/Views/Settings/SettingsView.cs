@@ -1037,14 +1037,14 @@ internal sealed class AboutSettingsPage : Decorator
     private Control AppCard()
     {
         var icon = new Image { Source = Marrow.App.Views.AppIconImage.Bitmap, Width = 56, Height = 56 };
-        var labels = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(15, SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(12)) } };
+        var labels = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.Callout) } }; // :976-979 .system(.title3, weight: .semibold) and .system(.callout) (ED-290 (1): text styles)
         return new StackPanel { Children =
         {
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(16), Children = { icon, labels } }, new ChromeRowDivider(),
             new ChromeRow("Welcome tour", () => SmallAccentGlassButton.Create("Show", () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this)), true), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
-            new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(13)),
+            new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Body), // :991-995 .system(.body), its 18-point line (ED-290 (1))
             new ChromeRowDivider(), // :996
-            new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(12)), // :997-1002, OD-0012 F1, H (OD-0072).
+            new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout), // .system(.callout), its 17-point line (ED-290 (1)); :997-1002, OD-0012 F1, H (OD-0072).
         } };
     }
 }
