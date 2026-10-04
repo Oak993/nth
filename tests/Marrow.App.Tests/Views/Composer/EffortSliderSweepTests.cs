@@ -58,7 +58,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:641-650
     [Trait("Req", "UI-COMPOSER-037")] // App/Views/Composer/EffortSlider.swift:641-650
     [Trait("Req", "UI-COMPOSER-033")] // App/Views/Composer/EffortSlider.swift:659-683
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-112 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:543-555
+    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:543-555
     public void Pair_card_uses_a_gradient_and_lifts_its_single_line_caption_by_six_points()
     {
         headless.OnUiThread(() =>
@@ -661,7 +661,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")] // App/Views/Composer/EffortSlider.swift:568-597
-    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-031 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:568-597
+    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:568-597
     [Trait("Req", "UI-COMPOSER-034")] // App/Views/Composer/EffortSlider.swift:564
     public void Title_and_reset_are_real_buttons_with_exact_help_and_actions()
     {

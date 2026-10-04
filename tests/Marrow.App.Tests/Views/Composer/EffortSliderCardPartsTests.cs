@@ -80,7 +80,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
     // ---- UI-COMPOSER-031: the title button ---------------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-031 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:531-534,543-597
+    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:531-534,543-597
     public void The_title_button_is_the_efforts_title_in_its_colour_with_a_chevron_a_hover_plate_and_a_tap_that_opens_the_list() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);

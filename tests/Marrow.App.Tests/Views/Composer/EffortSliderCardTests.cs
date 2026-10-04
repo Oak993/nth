@@ -108,7 +108,8 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
     private static readonly Color GeminiRose = Rgb(new SwiftColor(0.85, 0.40, 0.44));
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-112 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:543-555 titleStyle: the four (maximum, fast) cases without a pair
+    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:543-555 titleStyle: the four (maximum, fast) cases without a pair
+    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:543-555
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
@@ -145,7 +146,8 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-112 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:545-551,880 Antigravity's brand title at maximum is the Gemini sweep, and with fast mode it is the brand's violet into gold
+    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:545-551,880 Antigravity's brand title at maximum is the Gemini sweep, and with fast mode it is the brand's violet into gold
+    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:545-551,880
     public void Antigravity_at_maximum_sweeps_the_gemini_colours_and_Silver_wears_the_primary_label_colour() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -164,7 +166,8 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-112 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:545-548 in a pair the title runs from the lead's colour into the heads', gold last in fast mode
+    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:545-548 in a pair the title runs from the lead's colour into the heads', gold last in fast mode
+    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:545-548
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
@@ -197,7 +200,8 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // PR-COMPOSER-112 is not claimed (STOP effortslider-fix #1): App/Views/Composer/EffortSlider.swift:582-583 .animation(.smooth(duration: 0.3), value: isFast): fast mode alone fades the title's colour over 0.3 s
+    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:582-583 .animation(.smooth(duration: 0.3), value: isFast): fast mode alone fades the title's colour over 0.3 s
+    [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:582-583
     public void Turning_fast_mode_on_fades_the_titles_colour_to_gold_over_smooth_point_three_and_back() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
