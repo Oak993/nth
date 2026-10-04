@@ -610,7 +610,7 @@ internal static class GlassMaterial
         private static readonly ConcurrentQueue<IDisposable> released = new();
         private SKSurface? kept, blurred;
         private SKRectI area;
-        private IntPtr surface, context;
+        private IntPtr surface, context, blurredContext; // blurredContext: the GPU context the blur's own surface was made on
         private SKSizeI size, keptSize, blurredSize;
         private bool valid;
 
@@ -637,9 +637,10 @@ internal static class GlassMaterial
         public SKSurface? Blurred(ISkiaSharpApiLease lease, SKRectI crop)
         {
             var wanted = new SKSizeI(Math.Max(1, crop.Width), Math.Max(1, crop.Height));
-            if (blurred is not null && blurredSize == wanted && (lease.GrContext?.Handle ?? IntPtr.Zero) == context) return blurred;
-            blurred?.Dispose();
-            blurredSize = wanted;
+            var gpu = lease.GrContext?.Handle ?? IntPtr.Zero;
+            if (blurred is not null && blurredSize == wanted && gpu == blurredContext) return blurred;
+            if (blurred is not null) released.Enqueue(blurred);
+            (blurredSize, blurredContext) = (wanted, gpu);
             return blurred = Create(lease, wanted.Width, wanted.Height);
         }
 
@@ -649,12 +650,10 @@ internal static class GlassMaterial
             if (lease.SkSurface is not { } source) return null;
             var handle = source.Handle;
             var gpu = lease.GrContext?.Handle ?? IntPtr.Zero;
-            var whole = size;
-            if (handle != surface || gpu != context || !valid)
-            {
-                using var probe = source.Snapshot(); // released at once, before anything is drawn, so Skia copies nothing
-                whole = new SKSizeI(probe.Width, probe.Height);
-            }
+            // Measured every frame: a new window surface (a resize, another scale) can be given a freed one's address. The snapshot is released at once,
+            // before anything is drawn, so Skia copies nothing.
+            SKSizeI whole;
+            using (var probe = source.Snapshot()) whole = new SKSizeI(probe.Width, probe.Height);
             var at = SKRectI.Intersect(crop, new SKRectI(0, 0, whole.Width, whole.Height));
             if (at.IsEmpty) return null;
             var same = valid && dirty is not null && handle == surface && gpu == context && size == whole && kept is not null;
