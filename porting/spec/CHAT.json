@@ -1742,7 +1742,7 @@
       "cancellation": "The thumbnail task is keyed on the attachment path and is cancelled when the row goes away.",
       "windows_path": "The Finder icon becomes the Windows shell icon for the file type at the same size. Keep the lazy anchor: the anchor view is mounted only once the pointer has been on the photo, because a strip scrolling past should not build views for a tap that never comes.",
       "verification_method": "capture comparison plus interaction test opening the panel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2205,7 +2205,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Chrome.danger and Chrome.warning are theme colours, not system red and orange (chrome-design-tokens section 6.1). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison across the four statuses in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2251,7 +2251,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Count lines by scanning for newline bytes; do not split the whole output into an array, because a running command's row re-renders on every flush. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over the head function plus capture comparison at 29, 30 and 31 lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2273,7 +2273,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key composition, the same limit of 60 per generation and the same two-generation rotation, so up to 120 entries are held (RecentCache.swift:43-55); port_impacts.md 312 requires the three caches be sized together.",
       "verification_method": "unit counting parses",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2329,7 +2329,7 @@
         "port": "turn-end swap transitions (OD-0076); the Mac cuts (2-chat-use.mov 125.743 -> 125.762 s): the finished block eases its height from the running block's in about 0.3 s and its rows fade in over about 0.2 s, the running rows are gone at once, Reduce Motion shows the end state."
       },
       "verification_method": "interaction test plus capture comparison folded and expanded",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2398,7 +2398,7 @@
       "cancellation": "The task is keyed on the turn id; a cancelled task writes nothing.",
       "windows_path": "Same guard conditions, so opening a long history does not parse every old turn's diff.",
       "verification_method": "restart test with a legacy fixture thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2423,7 +2423,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The anchor is captured lazily on first hover because a folded turn is a block of a virtualized list; keep that laziness but ensure a keyboard activation also captures an anchor, or the control silently does nothing. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2470,7 +2470,7 @@
       "cancellation": "Dismissing the popover cancels.",
       "windows_path": "This revert always restores files, unlike the message menu's two-way choice. Do not merge the two confirmations. The glass and glass-prominent button styles are a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2540,7 +2540,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both renderers must exist and switch on this flag alone (port_impacts.md 250 and 306), the flag read when the popover's content is built at open and not again while it stays open (ChatBadge.swift:112-147); the visual step at the end of streaming is deliberate and must not be normalized away.",
       "verification_method": "interaction test across the drafting-to-proposed transition: a popover left open through it keeps the streaming renderer, and one opened again shows the finished-prose surface",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2587,7 +2587,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Chrome.warning and Chrome.danger come from the active theme spec; do not substitute system colours. The message's callout line is the text style's 17-point box (ED-290 (1)), so a one-line warning or error pill is 33 tall (2-chat-use.mov C 9.0) and an info notice its 17-point line.",
       "verification_method": "capture comparison across the three levels in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3240,7 +3240,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The disabled-with-no-tooltip case is deliberate (port_impacts.md 288). The outcome markers are the literal substrings (failed and (stopped, with the opening parenthesis. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over the summary builder plus capture comparison of the pill",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3407,7 +3407,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The seven stage strings are verbatim, including the apostrophe in team's. A count of seconds beside the stage is deliberately absent, because it read as a stall.",
       "verification_method": "interaction test across a full merge plus capture comparison per stage",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3449,7 +3449,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Trailing alignment is explicitly wrong here; the source records that it hung each narrower pill off the widest one's right edge. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison with heads of differing name lengths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4605,7 +4605,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:673-677"
       ],
       "notes": "Tooltip is exactly Jump to latest. Glyph is arrow.down.",
-      "b2_change": "Chrome.iconFont, which ChromeCircleButton draws its glyph in (Chrome.swift:423), was respelled as a text style of the same macOS size: B1 Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`."
+      "b2_change": "Chrome.iconFont, which ChromeCircleButton draws its glyph in (Chrome.swift:423), was respelled as a text style of the same macOS size: B1 Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-007",
@@ -4629,7 +4630,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1167-1207"
       ],
       "notes": "The bubble hugs its text rather than filling the row. The tail's path control points are exact and are not a generic speech-bubble pointer.",
-      "b2_change": "'Body type at the chat zoom' no longer holds: the chat zoom was removed at B2 (ChatFont.swift:6). The quote-chip fonts in the same range were respelled as text styles of the same macOS size (B1/B2 TimelineRows.swift:100, :103). Line numbers are unchanged."
+      "b2_change": "'Body type at the chat zoom' no longer holds: the chat zoom was removed at B2 (ChatFont.swift:6). The quote-chip fonts in the same range were respelled as text styles of the same macOS size (B1/B2 TimelineRows.swift:100, :103). Line numbers are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-008",
@@ -4908,7 +4910,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1353-1390"
       ],
       "notes": "Only the turn's last reply carries a summary, so only that reply shows a duration on hover.",
-      "b2_change": "B1 TimelineRows.swift:1377-1378 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :1370-1371 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`; the markdown no longer has a chat zoom. Moved from B1 :1359-1397 to B2 :1353-1390."
+      "b2_change": "B1 TimelineRows.swift:1377-1378 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :1370-1371 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`; the markdown no longer has a chat zoom. Moved from B1 :1359-1397 to B2 :1353-1390.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-020",
@@ -4978,7 +4981,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1586-1634"
       ],
       "notes": "The example text is one of many; the label is built from the kinds present in the fixed order edit, read, command, search, web, mcp, agent, other, with only the first part capitalized and a running kind in the present tense. A group with no tool entries reads exactly Worked. Tooltip and accessibility label are Show these steps or Hide these steps.",
-      "b2_change": "Fonts dropped zoom; B1 TimelineRows.swift:1491, :1494 `.foregroundStyle(.secondary)` and :1497 `.foregroundStyle(.tertiary)` -> B2 :1483, :1486, :1489 `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :1471-1517 to B2 :1463-1509."
+      "b2_change": "Fonts dropped zoom; B1 TimelineRows.swift:1491, :1494 `.foregroundStyle(.secondary)` and :1497 `.foregroundStyle(.tertiary)` -> B2 :1483, :1486, :1489 `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :1471-1517 to B2 :1463-1509.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-023",
@@ -5267,7 +5271,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2385-2431"
       ],
       "notes": "Glyphs are info.circle, exclamationmark.triangle and exclamationmark.octagon. The colours are the theme's own status hues, not system orange and red. Warnings and errors stay visible when their turn folds; info notices do not.",
-      "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` -> B2 :2397 `.font(.chat(.callout))`. Colours are unchanged. Moved from B1 :2400-2447 to B2 :2385-2431."
+      "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` -> B2 :2397 `.font(.chat(.callout))`. Colours are unchanged. Moved from B1 :2400-2447 to B2 :2385-2431.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-035",
@@ -5317,7 +5322,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2598-2701"
       ],
       "notes": "Tooltip and accessibility label are exactly Show this turn's steps or Hide this turn's steps. The fold happens in the same block with no transition, because a fade over a very tall layer may be drawn as nothing.",
-      "b2_change": "Fonts dropped zoom; B1 TimelineRows.swift:2630 `.foregroundStyle(.secondary)` and :2633 `.foregroundStyle(.tertiary)` -> B2 :2612 and :2615 `.foregroundStyle(Chrome.secondaryText)`. The initial state no longer follows a setting: B1 ThreadTimeline.swift:353 `model.settings.chronologicalTimeline` -> B2 :330 `false`. Moved from B1 :2616-2719 to B2 :2598-2701."
+      "b2_change": "Fonts dropped zoom; B1 TimelineRows.swift:2630 `.foregroundStyle(.secondary)` and :2633 `.foregroundStyle(.tertiary)` -> B2 :2612 and :2615 `.foregroundStyle(Chrome.secondaryText)`. The initial state no longer follows a setting: B1 ThreadTimeline.swift:353 `model.settings.chronologicalTimeline` -> B2 :330 `false`. Moved from B1 :2616-2719 to B2 :2598-2701.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-037",
@@ -5342,7 +5348,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2735-2827"
       ],
       "notes": "Tooltip on the title is exactly Show the files this turn changed. The badge-edit image is a bundled asset drawn as a template at 18 by 18.",
-      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:2769, :2774 -> B2 :2750, :2755); the chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :2775 -> B2 :2756). Moved from B1 :2754-2846 to B2 :2735-2827."
+      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:2769, :2774 -> B2 :2750, :2755); the chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :2775 -> B2 :2756). Moved from B1 :2754-2846 to B2 :2735-2827.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-038",
@@ -5388,7 +5395,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2777-2798"
       ],
       "notes": "Body text is exactly Files go back to how they were before this turn, and the turn leaves the conversation. This revert always restores files, unlike the message menu's two-way choice.",
-      "b2_change": "Font respelled as a text style of the same macOS size: B1 TimelineRows.swift:2801 `.font(.system(size: 12))` -> B2 :2782 `.font(.system(.callout))`; the title is unchanged. Moved from B1 :2796-2817 to B2 :2777-2798."
+      "b2_change": "Font respelled as a text style of the same macOS size: B1 TimelineRows.swift:2801 `.font(.system(size: 12))` -> B2 :2782 `.font(.system(.callout))`; the title is unchanged. Moved from B1 :2796-2817 to B2 :2777-2798.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-040",
@@ -5695,7 +5703,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:398-418"
       ],
       "notes": "Tooltip is exactly Show the report. Leading alignment is required: trailing alignment hung each narrower pill off the widest one's right edge and moved them all when a head came or went.",
-      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:457, :461 -> B2 :455, :459); the chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :462 -> B2 :460). Moved from B1 :439-478 to B2 :438-476."
+      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:457, :461 -> B2 :455, :459); the chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :462 -> B2 :460). Moved from B1 :439-478 to B2 :438-476.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-053",
@@ -5748,7 +5757,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:652-783"
       ],
       "notes": "The fenced hydra JSON itself is never shown. A head sent to another project shows an arrow.right and that project's last path component, announced as in <project>.",
-      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:670, :674, :689, :728, :738 -> B2 :665, :669, :684, :723, :733). Colours are unchanged. Moved from B1 :657-788 to B2 :652-783."
+      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:670, :674, :689, :728, :738 -> B2 :665, :669, :684, :723, :733). Colours are unchanged. Moved from B1 :657-788 to B2 :652-783.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-055",
@@ -5869,7 +5879,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2631-2663"
       ],
-      "notes": "Contains assistant rows, work groups, plan cards, checklists and notices; user, reasoning and turn-end entries render nothing here."
+      "notes": "Contains assistant rows, work groups, plan cards, checklists and notices; user, reasoning and turn-end entries render nothing here.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-060",
