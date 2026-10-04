@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -24,4 +24,17 @@
     <ProjectReference Include="..\..\src\Marrow.Core\Marrow.Core.csproj" />
   </ItemGroup>
 
+  <!-- SK-6: build local fake target and launcher; no dependency from Services to launcher. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Marrow.Shim.FakeTarget\Marrow.Shim.FakeTarget.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\Marrow.Shim\Marrow.Shim.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Target Name="CopyShimFixtures" AfterTargets="Build">
+    <ItemGroup>
+      <ShimFixture Include="..\Marrow.Shim.FakeTarget\bin\$(Configuration)\net10.0\*" />
+      <ShimLauncher Include="..\..\src\Marrow.Shim\bin\$(Configuration)\net10.0\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ShimFixture)" DestinationFolder="$(OutDir)shim-fixture" />
+    <Copy SourceFiles="@(ShimLauncher)" DestinationFolder="$(OutDir)shim-launcher" />
+  </Target>
 </Project>
