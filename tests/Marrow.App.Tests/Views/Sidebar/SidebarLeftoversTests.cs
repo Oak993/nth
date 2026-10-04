@@ -32,6 +32,7 @@ using Marrow.UI.Common;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
 using Xunit;
+using static Marrow.App.Tests.Views.Sidebar.SidebarViewTests;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Sidebar;
@@ -41,8 +42,9 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // them provable: OD-0098 (where no reference video frame shows a state, the pinned Swift source is the proof, so each
 // test below reads its expected values from the Swift lines it cites) and OD-0076 (every change is transitioned; where
 // the Mac snaps the port eases in the Mac's motion language, hover about 0.1 s). Continuous corners are ED-275's.
-// Same class as SidebarViewTests (partial) so these tests share its private reflection and fixture helpers.
-public sealed partial class SidebarViewTests
+// A class of its own (TraceabilityTests: one class per file); it shares SidebarViewTests' reflection and fixture helpers (internal static).
+[Collection("Headless")]
+public sealed class SidebarLeftoversTests(HeadlessSession headless)
 {
     // ---- PR-SIDEBAR-013, UI-SIDEBAR-043, UI-UPDATE-010: the update dot comes and goes on Chrome.hover, not by a cut ----
 
@@ -1007,8 +1009,8 @@ public sealed partial class SidebarViewTests
                 Call(view, "RequestRename", thread); // the ellipsis popover's path with the stale snapshot
                 Assert.Equal("Live title", Get(Field(view, "state")!, "RenameText"));
                 SetProp(Field(view, "state")!, "Renaming", null);
-                var requests = (SidebarMenuRequestsHandle)new(Field(view, "menuRequests")!);
-                requests.Post(thread); // the AppKit context menu's path posts the snapshot as it was
+                var requests = Field(view, "menuRequests")!;
+                requests.GetType().GetProperty("Rename")!.SetValue(requests, thread); // the AppKit context menu's path posts the snapshot as it was
             });
             harness.Main.OnMain(() =>
             {
@@ -1018,11 +1020,6 @@ public sealed partial class SidebarViewTests
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
-
-    private readonly struct SidebarMenuRequestsHandle(object requests)
-    {
-        public void Post(ChatThread thread) => requests.GetType().GetProperty("Rename")!.SetValue(requests, thread);
-    }
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-030")] // SidebarView.swift:249 `.presentedChrome()` -> Popovers.swift:10 `.buttonBorderShape(.capsule)`: Cancel (.bordered) and Rename (.borderedProminent) are capsules, "not the stock rounded rectangle"

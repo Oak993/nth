@@ -355,44 +355,44 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   UNRESOLVED. The lift's scale and the release are proven (The_lift_scales_to_1_02_..., On_a_real_release_...).
 
 [Collection("Headless")]
-public sealed partial class SidebarViewTests(HeadlessSession headless)
+public sealed class SidebarViewTests(HeadlessSession headless)
 {
-    private static readonly Assembly AppAssembly = typeof(SidebarView).Assembly;
-    private static readonly DateTimeOffset Base = new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
+    internal static readonly Assembly AppAssembly = typeof(SidebarView).Assembly;
+    internal static readonly DateTimeOffset Base = new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
 
     // ---- reflection over the file's private declarations ----
 
-    private static Type Private(string name) => AppAssembly.GetType("Marrow.App.Views.Sidebar." + name, throwOnError: true)!;
+    internal static Type Private(string name) => AppAssembly.GetType("Marrow.App.Views.Sidebar." + name, throwOnError: true)!;
 
-    private static object? Call(object target, string method, params object?[] args) =>
+    internal static object? Call(object target, string method, params object?[] args) =>
         target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(target, args);
 
-    private static object? Get(object target, string property) =>
+    internal static object? Get(object target, string property) =>
         target.GetType().GetProperty(property, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.GetValue(target);
 
-    private static List<object> Items(object? list) => ((IEnumerable)list!).Cast<object>().ToList();
+    internal static List<object> Items(object? list) => ((IEnumerable)list!).Cast<object>().ToList();
 
-    private static string IdOf(object item) => (string)Get(item, "Id")!;
+    internal static string IdOf(object item) => (string)Get(item, "Id")!;
 
-    private static object KindOf(object item) => Get(item, "SidebarItemKind")!;
+    internal static object KindOf(object item) => Get(item, "SidebarItemKind")!;
 
-    private static string KindName(object item) => KindOf(item).GetType().Name;
+    internal static string KindName(object item) => KindOf(item).GetType().Name;
 
     // projectItems(helpers:) (:515-557) over the view's own placements and helper grouping (:72-73).
-    private static List<object> ProjectItems(SidebarView view)
+    internal static List<object> ProjectItems(SidebarView view)
     {
         var helpers = Call(view, "HelpersByParent", Get(view, "ThreadPlacements"));
         return Items(Call(view, "ProjectItems", helpers));
     }
 
-    private static SwiftTransition RowTransition(SidebarView view, object item) => (SwiftTransition)Call(view, "RowTransition", item)!;
+    internal static SwiftTransition RowTransition(SidebarView view, object item) => (SwiftTransition)Call(view, "RowTransition", item)!;
 
-    private static string? MergeStage(ThreadRuntime? runtime) =>
+    internal static string? MergeStage(ThreadRuntime? runtime) =>
         (string?)Private("SidebarThreadRow").GetMethod("MergeStage", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, [runtime]);
 
     // ---- building the view ----
 
-    private static SidebarView Detached(AppModel model, bool inPopover = false, Action? dismiss = null)
+    internal static SidebarView Detached(AppModel model, bool inPopover = false, Action? dismiss = null)
     {
         var host = new Border();
         AppEnvironment.SetAppModel(host, model);
@@ -401,7 +401,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         return view;
     }
 
-    private static SidebarView Attached(AppModel model, bool inPopover = false, Action? dismiss = null)
+    internal static SidebarView Attached(AppModel model, bool inPopover = false, Action? dismiss = null)
     {
         var host = new Border();
         AppEnvironment.SetAppModel(host, model);
@@ -413,46 +413,46 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         return view;
     }
 
-    private static void Close(Control view)
+    internal static void Close(Control view)
     {
         if (TopLevel.GetTopLevel(view) is AvaloniaWindow window) window.Close();
     }
 
-    private static Rect Frame(Control control, Control relativeTo)
+    internal static Rect Frame(Control control, Control relativeTo)
     {
         var origin = control.TranslatePoint(new Point(0, 0), relativeTo)!.Value;
         return new Rect(origin, control.Bounds.Size);
     }
 
-    private static string[] Texts(Control control) =>
+    internal static string[] Texts(Control control) =>
         LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? "").ToArray();
 
-    private static TextBox SearchBox(SidebarView view) => LogicalQuery.SelfAndDescendants<TextBox>(view).Single();
+    internal static TextBox SearchBox(SidebarView view) => LogicalQuery.SelfAndDescendants<TextBox>(view).Single();
 
-    private static Button ButtonNamed(Control root, string name) =>
+    internal static Button ButtonNamed(Control root, string name) =>
         LogicalQuery.SelfAndDescendants<Button>(root).Single(button => AutomationProperties.GetName(button) == name);
 
-    private static SidebarRow RowNamed(SidebarView view, string title) =>
+    internal static SidebarRow RowNamed(SidebarView view, string title) =>
         LogicalQuery.SelfAndDescendants<SidebarRow>(view)
             .Single(row => LogicalQuery.SelfAndDescendants<Button>(row).Any(button => AutomationProperties.GetName(button) == title));
 
-    private static bool Press(TextBox box, Key key)
+    internal static bool Press(TextBox box, Key key)
     {
         var args = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, Source = box };
         box.RaiseEvent(args);
         return args.Handled;
     }
 
-    private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    internal static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
     // ---- library samples (Library.swift shapes through AppModelSamples) ----
 
-    private static Project NewProject(AppModelHarness harness, string name) => AppModelSamples.Project(name, harness.NewFolder(name));
+    internal static Project NewProject(AppModelHarness harness, string name) => AppModelSamples.Project(name, harness.NewFolder(name));
 
-    private static ChatThread NewThread(Project project, string title, int minute) =>
+    internal static ChatThread NewThread(Project project, string title, int minute) =>
         AppModelSamples.Thread(project) with { Title = title, CreatedAt = Base.AddMinutes(minute), UpdatedAt = Base.AddMinutes(minute) };
 
-    private static AppModel Model(AppModelHarness harness, IEnumerable<Project> projects, IEnumerable<ChatThread> threads)
+    internal static AppModel Model(AppModelHarness harness, IEnumerable<Project> projects, IEnumerable<ChatThread> threads)
     {
         harness.WriteLibrary(projects, threads);
         return harness.MakeModel();
@@ -947,10 +947,10 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     }
 
     // :93-96 the binding SidebarView passes the bell: settings.sidebarActivityView, an observed value.
-    private static Binding<bool> ActivityViewSetting(AppModel model) =>
+    internal static Binding<bool> ActivityViewSetting(AppModel model) =>
         new(() => model.Settings.SidebarActivityView, value => model.Settings.SidebarActivityView = value);
 
-    private static Control AttachedToggle(Binding<bool> binding)
+    internal static Control AttachedToggle(Binding<bool> binding)
     {
         var toggle = (Control)Activator.CreateInstance(Private("ActivityViewToggle"), binding)!;
         var window = new AvaloniaWindow { Content = new Border { Child = toggle }, Width = 100, Height = 100 };
@@ -1377,7 +1377,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         });
     }
 
-    private static StackPanel ListStack(SidebarView view) =>
+    internal static StackPanel ListStack(SidebarView view) =>
         Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Content);
 
     [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
@@ -1438,7 +1438,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- PR-SIDEBAR-020 / -022: transitions and item ids ----
 
-    private static AppModel RichLibrary(AppModelHarness harness, out (Project Alpha, Project Beta, ChatThread Pinned, ChatThread Parent, ChatThread Helper, ChatThread Head, ChatThread Folded, ChatThread FoldedHelper, ChatThread Settled) s)
+    internal static AppModel RichLibrary(AppModelHarness harness, out (Project Alpha, Project Beta, ChatThread Pinned, ChatThread Parent, ChatThread Helper, ChatThread Head, ChatThread Folded, ChatThread FoldedHelper, ChatThread Settled) s)
     {
         var alpha = NewProject(harness, "Alpha");
         var beta = NewProject(harness, "Beta");
@@ -1498,7 +1498,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // :1064-1076 `.asymmetric(insertion: .opacity.animation(.easeIn(duration: 0.18).delay(0.12)),
     // removal: .opacity.animation(.easeOut(duration: 0.06)))`, built here from the cited values.
-    private static SwiftTransition SidebarRowTransition => SwiftTransition.Asymmetric(
+    internal static SwiftTransition SidebarRowTransition => SwiftTransition.Asymmetric(
         SwiftTransition.Opacity.Animation(Animation.EaseIn(duration: 0.18).Delay(0.12)),
         SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.06)));
 
@@ -1748,40 +1748,40 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ======== Part 2 of 8 ========
 
-    private static object? Field(object target, string name) =>
+    internal static object? Field(object target, string name) =>
         target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(target);
 
-    private static object? CallOn(object target, string method, params object?[] args) =>
+    internal static object? CallOn(object target, string method, params object?[] args) =>
         target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.Invoke(target, args);
 
     // helpersByParent(placements:) (:410-422) over the view's own placements (:386-388).
-    private static ValueMap<Guid, ValueList<ChatThread>> Helpers(SidebarView view) =>
+    internal static ValueMap<Guid, ValueList<ChatThread>> Helpers(SidebarView view) =>
         (ValueMap<Guid, ValueList<ChatThread>>)Call(view, "HelpersByParent", Get(view, "ThreadPlacements"))!;
 
-    private static ValueList<ChatThread> HelpersOf(SidebarView view, Guid parent) =>
+    internal static ValueList<ChatThread> HelpersOf(SidebarView view, Guid parent) =>
         Helpers(view).TryGetValue(parent, out var own) ? own : ValueList<ChatThread>.Empty;
 
     // activityItems(helpers:) (:561-605).
-    private static List<object> ActivityItems(SidebarView view) => Items(Call(view, "ActivityItems", Helpers(view)));
+    internal static List<object> ActivityItems(SidebarView view) => Items(Call(view, "ActivityItems", Helpers(view)));
 
     // helperItems(under:helpers:) (:458-474).
-    private static List<object> HelperItems(SidebarView view, ChatThread under, IReadOnlyList<ChatThread> helpers) =>
+    internal static List<object> HelperItems(SidebarView view, ChatThread under, IReadOnlyList<ChatThread> helpers) =>
         Items(Call(view, "HelperItems", under, helpers));
 
-    private static ChatThread ThreadOf(object item) => (ChatThread)Get(KindOf(item), "Value")!;
+    internal static ChatThread ThreadOf(object item) => (ChatThread)Get(KindOf(item), "Value")!;
 
-    private static IEnumerable<object> ThreadItems(IEnumerable<object> items) => items.Where(item => KindName(item) == "Thread");
+    internal static IEnumerable<object> ThreadItems(IEnumerable<object> items) => items.Where(item => KindName(item) == "Thread");
 
-    private static string U(Guid id) => SwiftUUID.UuidString(id);
+    internal static string U(Guid id) => SwiftUUID.UuidString(id);
 
     // The manual clock's start (Marrow.Testing ManualTimeProvider): 2026-09-22 12:00 UTC, a Tuesday.
-    private static readonly DateTimeOffset Now = new(2026, 9, 22, 12, 0, 0, TimeSpan.Zero);
+    internal static readonly DateTimeOffset Now = new(2026, 9, 22, 12, 0, 0, TimeSpan.Zero);
 
-    private static ChatThread ThreadAt(Project project, string title, DateTimeOffset updatedAt) =>
+    internal static ChatThread ThreadAt(Project project, string title, DateTimeOffset updatedAt) =>
         AppModelSamples.Thread(project) with { Title = title, CreatedAt = updatedAt, UpdatedAt = updatedAt };
 
     // Calendar.current, the formatters' locale and zone, pinned for one flow (ED-094: a Gregorian culture per flow).
-    private static void InDays(Action body, TimeZoneInfo? zone = null)
+    internal static void InDays(Action body, TimeZoneInfo? zone = null)
     {
         using var zoneScope = SwiftFormatters.CurrentTimeZone.Override(zone ?? TimeZoneInfo.Utc);
         using var localeScope = SwiftFormatters.CurrentLocale.Override("en_US");
@@ -1798,21 +1798,21 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         }
     }
 
-    private static void Approve(AppModel model, Guid thread) =>
+    internal static void Approve(AppModel model, Guid thread) =>
         model.Runtime(thread).Rehearse(new ProviderEvent.Approval(new ApprovalRequest(
             "approval", ApprovalRequest.Kind.Command, "Run it?", ValueList<ApprovalRequest.Option>.Empty)));
 
-    private static void Ask(AppModel model, Guid thread) =>
+    internal static void Ask(AppModel model, Guid thread) =>
         model.Runtime(thread).Rehearse(new ProviderEvent.Question(new QuestionRequest("question", ValueList<QuestionRequest.Question>.Empty)));
 
-    private static RowDrag<Guid> Drag(SidebarView view) => (RowDrag<Guid>)Get(Field(view, "state")!, "Drag")!;
+    internal static RowDrag<Guid> Drag(SidebarView view) => (RowDrag<Guid>)Get(Field(view, "state")!, "Drag")!;
 
-    private static void NoteFrame(SidebarView view, Guid id, Rect frame) => CallOn(Field(view, "rowFrames")!, "Note", id, frame);
+    internal static void NoteFrame(SidebarView view, Guid id, Rect frame) => CallOn(Field(view, "rowFrames")!, "Note", id, frame);
 
-    private static Guid? ThreadAtPoint(object frames, Point point) => (Guid?)CallOn(frames, "Thread", point);
+    internal static Guid? ThreadAtPoint(object frames, Point point) => (Guid?)CallOn(frames, "Thread", point);
 
     // The list's stack (:103), the scroll view's content.
-    private static StackPanel ListPanel(SidebarView view) => (StackPanel)LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Content!;
+    internal static StackPanel ListPanel(SidebarView view) => (StackPanel)LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Content!;
 
     // ---- PR-SIDEBAR-026: a folded project's count ----
 
@@ -2407,17 +2407,17 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- PR-SIDEBAR-043 / -044 / -045: search ----
 
-    private static List<object> SearchResults(SidebarView view, string query)
+    internal static List<object> SearchResults(SidebarView view, string query)
     {
         SearchBox(view).Text = query;
         return Items(Call(view, "SearchResults", Helpers(view)));
     }
 
-    private static string ResultProject(object result) => ((Project)Get(result, "Project")!).Name;
+    internal static string ResultProject(object result) => ((Project)Get(result, "Project")!).Name;
 
-    private static Guid[] ResultThreads(object result) => ((IEnumerable<ChatThread>)Get(result, "Threads")!).Select(thread => thread.Id).ToArray();
+    internal static Guid[] ResultThreads(object result) => ((IEnumerable<ChatThread>)Get(result, "Threads")!).Select(thread => thread.Id).ToArray();
 
-    private static long ResultCount(object result) => (long)Get(result, "Count")!;
+    internal static long ResultCount(object result) => (long)Get(result, "Count")!;
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift:737-749
@@ -2573,10 +2573,10 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-046 to -050: the drag ----
 
     // A stand-in for a row's own button (every row is a plain button): a 28 pt slot that counts its clicks.
-    private static Button StandInRow(Action clicked) =>
+    internal static Button StandInRow(Action clicked) =>
         PlainControls.Button(new Border { Height = 28, Background = Brushes.Transparent }, clicked);
 
-    private static Point At(Control control, double x, double y, Visual window) => control.TranslatePoint(new Point(x, y), window)!.Value;
+    internal static Point At(Control control, double x, double y, Visual window) => control.TranslatePoint(new Point(x, y), window)!.Value;
 
     [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
@@ -2929,14 +2929,14 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // missing collaborator (BackgroundFill, ShowsCheck, SelectThread, NoteHover, ApplyDraggedLift,
     // BuildSettleCheckOverlay, BuildTrailingOverlay) that the row's own body will call once part 4 lands the rest.
 
-    private static object? CallStatic(Type type, string method, params object?[] args) =>
+    internal static object? CallStatic(Type type, string method, params object?[] args) =>
         type.GetMethod(method, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!.Invoke(null, args);
 
     // Every type below builds its whole Child reactively through Track (R-VIEW-1), whose apply runs only once
     // attached to a real visual tree (ViewLifetime.Track: AttachedToVisualTree), never for a merely logical,
     // unshown one (the file's own part-1 header: a DETACHED view's "tracked parts stay inert"). A shown window is
     // therefore required, not a bare host, to observe anything these views draw.
-    private static Border Hosted(AppModel model, Control child)
+    internal static Border Hosted(AppModel model, Control child)
     {
         var host = new Border();
         AppEnvironment.SetAppModel(host, model);
@@ -2946,19 +2946,19 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         return host;
     }
 
-    private static T Shown<T>(T control) where T : Control
+    internal static T Shown<T>(T control) where T : Control
     {
         var window = new AvaloniaWindow { Content = control, Width = 200, Height = 100 };
         window.Show();
         return control;
     }
 
-    private static Control MakeFace(ChatThread thread, string? projectName, bool isSelected, double trailingClearance,
+    internal static Control MakeFace(ChatThread thread, string? projectName, bool isSelected, double trailingClearance,
         ProjectIcon? projectIcon = null, string? mergeStage = null) =>
         (Control)Activator.CreateInstance(Private("ThreadRowFace"), thread, projectName, isSelected, trailingClearance,
             (Func<Control>)(() => new Border { Tag = "badge" }), projectIcon, mergeStage)!;
 
-    private static ChatThread HeadHelper(Project project, Guid parentID, long index, int minute) =>
+    internal static ChatThread HeadHelper(Project project, Guid parentID, long index, int minute) =>
         NewThread(project, "Head" + index, minute) with
         {
             ParentThreadID = parentID,
@@ -3855,7 +3855,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // under Needed (and presentedChrome's capsule shape, Popovers.swift:10); PR-SIDEBAR-091, UI-SIDEBAR-028, -029 and
     // -030 are not certified.
 
-    private static object? SetProp(object target, string name, object? value)
+    internal static object? SetProp(object target, string name, object? value)
     {
         target.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.SetValue(target, value);
         return null;
@@ -3935,7 +3935,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- PR-SIDEBAR-091: the rename popover (STOP #6 closed 2026-10-01) ----
 
-    private static Control ShownRename(string title, Action<string> onRename, Action onCancel)
+    internal static Control ShownRename(string title, Action<string> onRename, Action onCancel)
     {
         var popover = (Control)Activator.CreateInstance(Private("RenameThreadPopover"), title, onRename, onCancel)!;
         var window = new AvaloniaWindow { Content = popover, Width = 360, Height = 200 };
@@ -4059,15 +4059,15 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- PR-SIDEBAR-088: DeleteThreadPopover's content ----
 
-    private static string? TextOf(Button button) =>
+    internal static string? TextOf(Button button) =>
         LogicalQuery.SelfAndDescendants<TextBlock>(button).Select(t => t.Text).FirstOrDefault();
 
     // A StyledText.Render(host) target holds its text as Inlines' Runs, not host.Text (matches
     // tests/Marrow.UI.Tests/Port/StyledTextTests.cs's own pattern).
-    private static string InlineText(TextBlock block) =>
+    internal static string InlineText(TextBlock block) =>
         block.Inlines is { } inlines ? string.Concat(inlines.OfType<Avalonia.Controls.Documents.Run>().Select(r => r.Text)) : "";
 
-    private static AvaloniaWindow WindowOf(Control control) => (AvaloniaWindow)TopLevel.GetTopLevel(control)!;
+    internal static AvaloniaWindow WindowOf(Control control) => (AvaloniaWindow)TopLevel.GetTopLevel(control)!;
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-088")] // App/Views/Sidebar/SidebarView.swift:966-981
@@ -4130,7 +4130,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // see the constructor's own comment). These two helpers host a throwaway anchor alongside the popover in one
     // window -- a degenerate stand-in for ArchivePopover's real `Panel { row, popup }`, adequate for every test below
     // except Through_a_real_popup_..., which deliberately keeps the anchor and the popover in separate top-levels.
-    private static Control ShownArchivePopover(ChatThread thread, Action onArchive, Action onDelete, Action onDismiss)
+    internal static Control ShownArchivePopover(ChatThread thread, Action onArchive, Action onDelete, Action onDismiss)
     {
         var anchor = new Border();
         var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, anchor, onArchive, onDelete, onDismiss)!;
@@ -4138,7 +4138,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         return popover;
     }
 
-    private static Control ShownWithAnchor(Control anchor, Control content)
+    internal static Control ShownWithAnchor(Control anchor, Control content)
     {
         new AvaloniaWindow { Content = new Panel { Children = { anchor, content } }, Width = 200, Height = 100 }.Show();
         return content;
@@ -4741,11 +4741,11 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- PR-SIDEBAR-098, 099, 100, 101, 102, 103: ThreadActions ----
 
-    private static List<RowAction> ThreadActionsMake(AppModel model, ChatThread thread, Action? onSettle = null, Action? onReopen = null) =>
+    internal static List<RowAction> ThreadActionsMake(AppModel model, ChatThread thread, Action? onSettle = null, Action? onReopen = null) =>
         ((IEnumerable)CallStatic(Private("ThreadActions"), "Make", model, thread, (Action)(() => { }), (Action)(() => { }), onSettle, onReopen)!)
             .Cast<RowAction>().ToList();
 
-    private static List<RowAction> ThreadActionsMakeContextMenu(AppModel model, ChatThread thread, bool settleFirst, object requests) =>
+    internal static List<RowAction> ThreadActionsMakeContextMenu(AppModel model, ChatThread thread, bool settleFirst, object requests) =>
         ((IEnumerable)CallStatic(Private("ThreadActions"), "MakeContextMenu", model, thread, settleFirst, requests)!)
             .Cast<RowAction>().ToList();
 
@@ -5001,7 +5001,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // and the project-removal confirmation gated behind it remain (PR-SIDEBAR-133/-130, UI-SIDEBAR-033/-037).
     // No missing HeadCardsRow, SidebarThreadRow.windowFrame or SidebarThreadRow.glide body is claimed here.
 
-    private static IReadOnlyList<object> Enumerate(object valueList) => ((IEnumerable)valueList).Cast<object>().ToList();
+    internal static IReadOnlyList<object> Enumerate(object valueList) => ((IEnumerable)valueList).Cast<object>().ToList();
 
     // ---- PR-SIDEBAR-111: the connector shape's exact extent, including the horizontal tick ----
 
@@ -5602,7 +5602,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- helpers for ProjectRow (part 6) ----
 
-    private static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true)
+    internal static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true)
     {
         var row = (Control)Activator.CreateInstance(Private("ProjectRow"), project, count, togglesExpansion)!;
         row.VerticalAlignment = VerticalAlignment.Top; // the row's own 28pt height, not the host's full stretch
@@ -5614,13 +5614,13 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         return row;
     }
 
-    private static ValueList<RowAction> ProjectRowContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model) =>
+    internal static ValueList<RowAction> ProjectRowContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model) =>
         (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "ContextMenuActions", project, isActive, hasOverride, model, (Action<Project>)model.RemoveProject)!;
 
-    private static ValueList<RowAction> ProjectRowActions(AppModel model, Project project, bool isActive) =>
+    internal static ValueList<RowAction> ProjectRowActions(AppModel model, Project project, bool isActive) =>
         (ValueList<RowAction>)CallStatic(Private("ProjectRow"), "Actions", model, project, isActive, (Action<Project>)model.RemoveProject)!;
 
-    private static object ProjectPairChoices(params (Guid Id, string Title)[] pairs)
+    internal static object ProjectPairChoices(params (Guid Id, string Title)[] pairs)
     {
         var choiceType = Private("ProjectPairChoice");
         var list = (System.Collections.IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(choiceType))!;
@@ -5634,7 +5634,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         return list;
     }
 
-    private static IReadOnlyList<Control> ProjectRowBuildContextMenuItems(Project project, bool isActive, bool hasOverride, AppModel model, object pairs) =>
+    internal static IReadOnlyList<Control> ProjectRowBuildContextMenuItems(Project project, bool isActive, bool hasOverride, AppModel model, object pairs) =>
         (IReadOnlyList<Control>)CallStatic(Private("ProjectRow"), "BuildContextMenuItems", project, isActive, hasOverride, model, pairs, (Action<Project>)model.RemoveProject)!;
 
     // ---- PR-SIDEBAR-160: the Archive item ----
@@ -5947,7 +5947,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // job's own scope (SidebarView.cs, ROUND3.md item 2) does not touch. Opening has already run and mutated Items
     // by the time this throws, so the menu's Items still show the real right-click's own fresh read; only the
     // popup's own visible surface never renders here.
-    private static void PointerRightClick(Control control)
+    internal static void PointerRightClick(Control control)
     {
         var window = WindowOf(control);
         window.UpdateLayout();
@@ -5965,9 +5965,9 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ShownProjectRow returns the outer ProjectRow (a Decorator); ContextMenu is set on the inner SidebarRow this
     // constructor builds and wraps (beside the removal question's popup, OD-0008 A9), not on ProjectRow itself.
-    private static ContextMenu ContextMenuOf(Control row) => LogicalQuery.SelfAndDescendants<SidebarRow>(row).First().ContextMenu!;
+    internal static ContextMenu ContextMenuOf(Control row) => LogicalQuery.SelfAndDescendants<SidebarRow>(row).First().ContextMenu!;
 
-    private static string MenuItemTitle(object item) => item switch
+    internal static string MenuItemTitle(object item) => item switch
     {
         MenuItem { Header: TextBlock tb } => tb.Text ?? "",
         MenuItem { Header: Control header } => LogicalQuery.SelfAndDescendants<TextBlock>(header).First().Text ?? "",
@@ -6999,7 +6999,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // verifies a real SidebarThreadRow in the dragged state.
 
     // Window critical path: assembled rows, not synthetic row builders.
-    private static Control LiveThreadRow(ChatThread thread, string? projectName = null, bool dragged = false,
+    internal static Control LiveThreadRow(ChatThread thread, string? projectName = null, bool dragged = false,
         object? listFrame = null, Action? fold = null) =>
         WithNaturalRowHeight((Control)Activator.CreateInstance(Private("SidebarThreadRow"), thread, projectName, null,
             Activator.CreateInstance(Private("SidebarMenuRequests")), (Action)(() => { }), (Action)(() => { }),
@@ -7061,7 +7061,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         finally { harness.Main.OnMain(() => window.Close()); }
     });
 
-    private static Control WithNaturalRowHeight(Control row)
+    internal static Control WithNaturalRowHeight(Control row)
     {
         row.VerticalAlignment = VerticalAlignment.Top;
         return row;
@@ -7871,7 +7871,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
             });
         }
     });
-    private static void PointerClick(Button button)
+    internal static void PointerClick(Button button)
     {
         var window = WindowOf(button);
         window.UpdateLayout();
@@ -8642,10 +8642,10 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- PR-SIDEBAR-133, UI-SIDEBAR-016: the "Start new chats on" submenu and its checked choice ----
 
-    private static bool IsChecked(Control item) =>
+    internal static bool IsChecked(Control item) =>
         item is MenuItem { Header: Control header } && LogicalQuery.SelfAndDescendants<SwiftImage>(header).Any(i => i.SymbolName == "checkmark");
 
-    private static string PairItemTitle(Control item) =>
+    internal static string PairItemTitle(Control item) =>
         item is MenuItem { Header: Control header } ? LogicalQuery.SelfAndDescendants<TextBlock>(header).Single().Text! : "";
 
     [Fact]
@@ -8769,7 +8769,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- UI-SIDEBAR-033: the helper row ----
 
-    private static Control ShownHelperRow(AppModel model, ChatThread helper, object requests, bool isLast = false)
+    internal static Control ShownHelperRow(AppModel model, ChatThread helper, object requests, bool isLast = false)
     {
         var row = (Control)Activator.CreateInstance(Private("SidebarHelperRow"), helper, isLast, requests, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
         row.VerticalAlignment = VerticalAlignment.Top; // the row's own 24 pt height, not the host's full stretch
@@ -8947,7 +8947,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
         finally { harness.Main.OnMain(() => window.Close()); }
     });
 
-    private static object? DocumentPrefetchTake(Guid id) => DocumentPrefetch.Shared.Take(id);
+    internal static object? DocumentPrefetchTake(Guid id) => DocumentPrefetch.Shared.Take(id);
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1387-1397 .contextMenu on the helper row; :2253-2312 ThreadActions.makeContextMenu
@@ -8993,10 +8993,10 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // ---- UI-SIDEBAR-040: the Settled section header ----
 
     // Where layout put the control, before its own render transform (the chevron is turned 90 degrees).
-    private static Rect LayoutFrame(Control control, Control relativeTo) =>
+    internal static Rect LayoutFrame(Control control, Control relativeTo) =>
         new(Frame((Control)control.Parent!, relativeTo).Position + control.Bounds.Position, control.Bounds.Size);
 
-    private static double FirstBaselineOf(Control control, Control relativeTo) =>
+    internal static double FirstBaselineOf(Control control, Control relativeTo) =>
         LayoutFrame(control, relativeTo).Y + (control is TextBlock text ? text.TextLayout.TextLines[0].Baseline : TextBlock.GetBaselineOffset(control));
 
     [Fact]
@@ -9374,7 +9374,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // first while confirmBeforeDeleting is on, in the thread delete question's own style (DeleteThreadPopover,
     // :966-981) with the OD-0012 E2 wording; with the setting off it removes at once, as upstream.
 
-    private static Popup RemovalPopup(Control row) =>
+    internal static Popup RemovalPopup(Control row) =>
         LogicalQuery.SelfAndDescendants<Popup>(row).Single(p => PopoverHost.Content(p)?.GetType() == Private("RemoveProjectPopover"));
 
     [Fact]
@@ -9537,7 +9537,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // ---- UI-SIDEBAR-025: a thread row's action items ----
 
-    private static string[] Described(IEnumerable<RowAction> actions) =>
+    internal static string[] Described(IEnumerable<RowAction> actions) =>
         actions.Select(a => $"{a.Title}/{a.Symbol}{(a.StartsGroup ? "+" : "")}{(a.IsDestructive ? "!" : "")}").ToArray();
 
     [Fact]
@@ -10113,7 +10113,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // The dotted guide beside a helper and beside the folded stub (2-chat-use.mov 162 s: a column of dots then the
     // tick, left of "> 4 heads"; evidence E:\Droppy\work\parity\evidence\SidebarView\z_stub.png). Counts the drawn
     // dots down the connector's line at x = 18 on a real rendered frame.
-    private static int DotsDownTheLine(AvaloniaWindow window, Control column, int bottom)
+    internal static int DotsDownTheLine(AvaloniaWindow window, Control column, int bottom)
     {
         window.UpdateLayout();
         var origin = column.TranslatePoint(default, window)!.Value;
@@ -10544,20 +10544,20 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // while the first twelve stay whole. The port's Rebuild cleared and refilled every row, so the new glyphs were whole
     // at once (and the leaving ones gone at once).
 
-    private static double ShownOpacityWithin(Control control, Control root) =>
+    internal static double ShownOpacityWithin(Control control, Control root) =>
         control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => !ReferenceEquals(v, root)).Aggregate(1d, (o, v) => o * v.Opacity);
 
     // A head card's leaving glyphs and chevrons fade on the canvas layer over the card, which takes no input
     // (ED-258 (2)); the live ones sit in the card's own rows.
-    private static bool OnGhostLayer(Control control) => control.GetVisualAncestors().OfType<Canvas>().Any(canvas => !canvas.IsHitTestVisible);
+    internal static bool OnGhostLayer(Control control) => control.GetVisualAncestors().OfType<Canvas>().Any(canvas => !canvas.IsHitTestVisible);
 
-    private static List<Button> ChevronButtons(Control card) => LogicalQuery.SelfAndDescendants<Button>(card)
+    internal static List<Button> ChevronButtons(Control card) => LogicalQuery.SelfAndDescendants<Button>(card)
         .Where(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true)).ToList();
 
     // The chevron the card draws now (:1514-1526), not one still fading out where it stood.
-    private static Button LiveChevron(Control card) => ChevronButtons(card).Single(b => !OnGhostLayer(b));
+    internal static Button LiveChevron(Control card) => ChevronButtons(card).Single(b => !OnGhostLayer(b));
 
-    private static string ChevronSymbolOf(Button chevron) => LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).First(i => i.SymbolName is not null).SymbolName!;
+    internal static string ChevronSymbolOf(Button chevron) => LogicalQuery.SelfAndDescendants<SwiftImage>(chevron).First(i => i.SymbolName is not null).SymbolName!;
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1466-1516: the toggle's snappy animation carries the glyphs' default opacity transition
@@ -11076,7 +11076,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // recording presenter never raises. Dismissing removes nothing; the red action closes the question and removes the
     // project only on the next main-actor turn after the popup is gone; never in the click that confirms.
 
-    private static void RaisePopup(Popup popup, string name)
+    internal static void RaisePopup(Popup popup, string name)
     {
         var field = typeof(Popup).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
             ?? throw new InvalidOperationException("Popup." + name + " backing field not found");
@@ -11085,9 +11085,9 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
 
     // Both menus' Remove project call the row's RequestRemoval (the context menu's own click is proven above); the
     // lifecycle tests ask through it directly, so no menu popup stays open beside the question under test.
-    private static void AskToRemove(Control row, Project project) => CallOn(row, "RequestRemoval", project);
+    internal static void AskToRemove(Control row, Project project) => CallOn(row, "RequestRemoval", project);
 
-    private static Button RemoveAction(Popup popup) =>
+    internal static Button RemoveAction(Popup popup) =>
         LogicalQuery.SelfAndDescendants<Button>(PopoverHost.Content(popup)!).Single(b => AutomationProperties.GetName(b) == "Remove project");
 
     [Fact]
@@ -11835,7 +11835,7 @@ public sealed partial class SidebarViewTests(HeadlessSession headless)
     // The ellipsis a row keeps (above) opens on the actions its body builds now (:1375-1376 makeActions() over the live
     // thread, :1118 actions(isActive:) over the live project and activation): the kept button reads them as its menu opens,
     // not when the button was first drawn.
-    private static string[] MenuTitles(RecordingPresenter presenter, Button more) =>
+    internal static string[] MenuTitles(RecordingPresenter presenter, Button more) =>
         LogicalQuery.SelfAndDescendants<Button>(presenter.Calls.Last(call => call.Presented && ReferenceEquals(call.Popup.PlacementTarget, more)).Popup.Child!)
             .Select(b => AutomationProperties.GetName(b) ?? "").Where(name => name.Length > 0).ToArray();
 
