@@ -63,6 +63,10 @@ public sealed class TimelineRowsFinMergeRowTests(HeadlessSession headless)
                 var pill = PillOf(row);
                 // :1012-1017 12 leading, 14 trailing, 8 vertical, radius 18, .tint at 0.1; :1016-1017 lead-aligned with 96 clear.
                 Assert.Equal(new CornerRadius(18), pill.CornerRadius);
+                // :1015 `.background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))` (ED-181
+                // closed): one line is 33 pt tall, less than the 55 pt two run-ins of an 18 pt corner need, so the corner is the circular arc.
+                Assert.True(pill.Bounds.Height < 55, $"the merge pill is {pill.Bounds.Height} pt tall");
+                ContinuousCornerChecks.Drawn(pill, expectApple: false);
                 Paints(pill.Background, ChromeTokens.Accent.Opacity(0.1), pill, "pill fill");
                 Assert.Equal(new Thickness(0, 0, 96, 0), row.Padding);
                 Near("nMergeRow:1", Left(host, window), Left(pill, window));
@@ -81,6 +85,9 @@ public sealed class TimelineRowsFinMergeRowTests(HeadlessSession headless)
                 // :959 HStack(spacing: 8): the track and the stage words share one centre line.
                 Near("stage words after the track (spacing 8, slot padded 2 then given back)", 8, Left(shown, window) - (Left(track, window) + track.Bounds.Width));
                 OnOneCentreLine(window, track, shown);
+                // :1056-1062 the running state's words shimmer: the visible words sit in the shimmer's own panel, beside its masked band layer.
+                var shimmer = Assert.IsType<Panel>(shown.Parent);
+                Assert.Contains(shimmer.Children, child => child is Panel { OpacityMask: not null });
                 // :1044-1079 the still copy that sizes the slot is set in the same callout medium as the words that show.
                 Assert.All(words, text => Near("still copy and visible words alike", shown.Bounds.Width, text.Bounds.Width));
                 Assert.All(words, text => Assert.Equal(FontWeight.Medium, text.FontWeight));

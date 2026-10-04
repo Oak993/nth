@@ -57,6 +57,11 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
                 var pill = Mounted<Border>(one).First(border => border.Padding == new Thickness(12, 6, 6, 6));
                 // :2818-2822 padded 12 leading, 6 trailing and 6 vertical, radius 18, .quaternary at 0.32, hugging its content, leading.
                 Assert.Equal(new CornerRadius(18), pill.CornerRadius);
+                // :2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`: the radius
+                // 18 is the Swift's and the video's nominal one (static.timeline-rows: radius 18, no frame was fitted). The card is 40 pt tall (28 + 12), in the
+                // band (13.1 < r < 20) where what Apple draws is UNRESOLVED (ED-275 (2)); the port draws the circular arc there, asserted as the port's
+                // own regime and not as a reference fit, so UI-GIT-044 and PR-CHAT-108 stay open on it.
+                ContinuousCornerChecks.Drawn(pill, expectApple: false);
                 Paints(pill.Background, SwiftColor.Quaternary.Opacity(0.32), pill, "card fill");
                 Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
                 Near("gap 1", Left(panel, window), Left(pill, window));
@@ -93,6 +98,12 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
                 Near("gap 5", 8 + 20 + 8, Left(revert, window) - (Left(oneTitle, window) + oneTitle.Bounds.Width));
                 Near("gap 6", 8, Left(review, window) - (Left(revert, window) + revert.Bounds.Width));
                 Near("gap 7", 6, Left(pill, window) + pill.Bounds.Width - (Left(review, window) + review.Bounds.Width));
+                // The reference video's Edited card (catalogue static.timeline-rows, 13 files: pill 40 tall, radius 18, badge 18 at x + 13, discs 28
+                // with centres 36 apart and the last centre 20 from the right edge) equals the Swift constants asserted here: 40 = 28 + 12; pitch
+                // 28 + 8; 14 + 6 trailing padding; the badge at the 12 pt leading padding (its ink starts a pixel further in, the symbol's own inset).
+                Near("disc pitch", 36, Left(review, window) - Left(revert, window));
+                Near("last disc centre from the right edge", 20, Left(pill, window) + pill.Bounds.Width - (Left(review, window) + review.Bounds.Width / 2));
+                Near("badge from the left edge", 12, Left(badge, window) - Left(pill, window));
                 Assert.Equal("Revert this turn's files and conversation", ToolTip.GetTip(revert));
                 Assert.Equal("Show this turn's changes", ToolTip.GetTip(review));
                 Assert.False(revert.Focusable);
@@ -154,6 +165,50 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
                 var glyph = Assert.Single(Mounted<SwiftImage>(disc));
                 Paints(glyph.Foreground, ChromeTokens.PrimaryText, glyph, "hovered glyph");
                 Paints(circle.Background, ChromeTokens.Overlay(0.18), circle, "hovered fill");
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-GIT-044 (STOP #10): the click; the card's corner at 40 pt is UNRESOLVED (ED-275 (2)); TimelineRows.swift:2745-2757, :2829-2858
+    public void Clicking_the_title_opens_the_files_popover_below_it_with_twelve_rows_and_a_second_click_closes_it() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        TurnFileCard card = null!;
+        AvaloniaWindow window = null!;
+        Button title = null!;
+        runtime.OnMain(() =>
+        {
+            card = new TurnFileCard(Files(13), canUndo: true, onRevert: () => { }, onReview: _ => { });
+            window = Show(new StackPanel { Margin = new Thickness(20), Children = { card } });
+            title = Assert.Single(Mounted<Button>(card), button => ToolTip.GetTip(button) as string == "Show the files this turn changed");
+            Assert.DoesNotContain(presenter.Calls, call => call.Presented);
+            Click(window, title);
+        });
+        runtime.OnMain(() =>
+        {
+            try
+            {
+                var opened = Assert.Single(presenter.Calls, call => call.Presented).Popup; // :2757 .popover(isPresented:, arrowEdge: .bottom)
+                Assert.Equal(PlacementMode.Bottom, opened.Placement);
+                // :2829-2858 the first twelve files, then "and 1 more file" for the thirteenth.
+                Assert.Equal(12, LogicalQuery.SelfAndDescendants<MiddleTruncatingTextBlock>(opened).Count());
+                Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(opened), text => text.Text == "and 1 more file");
+                Click(window, title); // the toggle: a second click dismisses it
+            }
+            catch { Close(window); throw; }
+        });
+        runtime.OnMain(() =>
+        {
+            try
+            {
+                var shown = presenter.Calls.Where(call => call.Presented).Select(call => call.Popup).Distinct().Single();
+                Assert.False(presenter.Calls[^1].Presented);
+                Assert.Same(shown, presenter.Calls[^1].Popup);
             }
             finally { Close(window); }
         });

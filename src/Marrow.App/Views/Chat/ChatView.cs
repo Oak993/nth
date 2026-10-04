@@ -2291,13 +2291,14 @@ internal sealed class ScriptsEditor : Decorator
         var commandField = new TextBox { Text = script.Command, PlaceholderText = "Command" }; // :1681-1682
         ChatDialogControls.TextEditor(commandField, style: "RoundedBorder"); // :1682, STOP #5.
         SwiftFont.System(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced).Apply(commandField); // :1683 (Cascadia Mono, OD-0009)
-        // :1686-1691 the outline overlay, as a Border wrapping the field (no adorner layer needed for this shape).
-        var commandFrame = new Border { Child = commandField }.RoundedRectangle(6, RoundedCornerStyle.Continuous); // :1688
+        // :1686-1691 `.overlay { if incomplete { RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Chrome.danger.opacity(0.65), lineWidth: 1) } }`:
+        // the outline is drawn over the field and takes no room, so the field keeps its size whether or not it shows.
+        var outline = new SwiftShapeBorder { BorderThickness = new Thickness(1), IsHitTestVisible = false }.RoundedRectangle(6, RoundedCornerStyle.Continuous); // :1688
+        var commandFrame = new Panel { Children = { commandField, outline } };
         void UpdateOutline() =>
-            commandFrame.BorderBrush = IsIncomplete(scripts.FirstOrDefault(s => s.Id == script.Id) ?? script)
-                ? Chrome.Danger.Opacity(0.65).Brush(commandFrame) : null; // :1687,1689
+            outline.BorderBrush = IsIncomplete(scripts.FirstOrDefault(s => s.Id == script.Id) ?? script)
+                ? Chrome.Danger.Opacity(0.65).Brush(outline) : null; // :1687,1689
         UpdateOutline();
-        commandFrame.BorderThickness = new Thickness(1);
         commandField.PropertyChanged += (_, e) =>
         {
             if (e.Property != TextBox.TextProperty) return;

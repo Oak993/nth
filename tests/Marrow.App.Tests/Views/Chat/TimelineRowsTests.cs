@@ -4608,7 +4608,19 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Kind: visual/interaction verification gap
 // Swift: App/Views/Chat/TimelineRows.swift:1-2859; individual exact sites remain beside each partial-proof test.
 // Decisions: OD-0001, ED-059, ED-117, ED-216, ED-217 do not turn structural evidence into capture comparisons.
-// Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019; UI-CHAT-020.
+// Proven and removed from this note on 2026-10-04 (the continuous-corners unit, ED-181 closed; OD-0098: where no frame shows a state the Swift source is the proof,
+// asserted on the mounted control, with mutation checks): UI-CHAT-020 (TimelineRowsFinReplyTests), UI-GIT-050 (TimelineRowsFinUserRowTests),
+// UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests, the shimmer).
+// Back in this note on 2026-10-04 (adversarial review of the continuous-corners unit): UI-GIT-044, UI-RUNTIME-002 and UI-RUNTIME-003, and PR-CHAT-108 in STOP #11 below.
+// The reason, for all four: ED-275 (2) calls UNRESOLVED what SwiftUI draws for a `.continuous` rounded rect with h / 3.057 < r < h / 2, and these
+// records' shapes are in that band while no frame and no source text settles it. UI-GIT-044 and PR-CHAT-108: the Edited card is 40 pt tall with radius 18
+// (band 13.1 < r < 20); the video's card edge is too faint to fit (a 0.32 quaternary over the blurred wallpaper) and the video fit of the composer (r 22 on 46)
+// cannot tell a circular end from the iOS 7 shape_2 end at 1 pt radius apart. UI-RUNTIME-002 and UI-RUNTIME-003: a notice of two lines is about 48 pt tall
+// with radius 18 (band 15.7 < r < 24); the video's two-line error banner (C 10.6-12.0) has no extractable end. Neither the Swift source (`.continuous`
+// and the radius only) nor Apple's documentation (SPEC.md sources) states the regime. Everything else those records say is proven.
+// Needed to close them: one frame (or Apple's statement) of a `.continuous` rounded rect in that band with a measurable edge, or an owner ruling on the regime.
+// Records: UI-GIT-044; UI-RUNTIME-002; UI-RUNTIME-003.
+// Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019.
 // Records: UI-CHAT-021; UI-CHAT-022; UI-CHAT-023; UI-CHAT-024; UI-CHAT-025.
 // Records: UI-CHAT-028; UI-CHAT-029.
 // Records: UI-CHAT-033; UI-CHAT-034.
@@ -4617,7 +4629,6 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Records: UI-CHAT-052; UI-CHAT-053; UI-CHAT-054; UI-CHAT-056.
 // Records: UI-CHAT-057; UI-CHAT-059.
 // Records: UI-GIT-044.
-// Records: UI-HYDRAMERGE-002.
 // Records: UI-RUNTIME-002; UI-RUNTIME-003.
 // 2026-10-04, unit blitz-timelinerows-cd, OD-0098 (where a record asks for a comparison with a frame the reference videos do not
 // contain, the pinned Swift is the proof): taken out of the lists above as fully proven from the Swift lines by mounted scenarios,
@@ -4625,7 +4636,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // UI-CHAT-026, -027, -030, -031, -032, -035, -038, -040, -041, -049, -050, -055, -061; UI-GIT-045, -046, -048, -049, -050;
 // UI-HYDRAMERGE-004, -005, -006, -007; UI-RUNTIME-001, -004. What stays above is CORNER-ONLY (ED-181's continuous curve is the
 // one open clause) except UI-CHAT-052 (also the soft arrival of the settle glide, STOP #12).
-// Missing: ED-181's continuous corner curve for the records above, and the .controlSize(.small) metric of UI-CHAT-039 and
+// Missing: each record's corner re-proven against ED-181's built curve (ED-275; some sizes sit in its UNRESOLVED band), and the .controlSize(.small) metric of UI-CHAT-039 and
 // UI-GIT-047 (STOP #5, #12); every other clause of these records is proven. (Formerly: the source/Windows capture of every state.)
 // Reference runtime (2026-10-03): the owner's video of Droppy Code 1.7.0 (work/reference-video/2-chat-use.mov, catalogue
 // static.user-bubble, static.attachment-plate, static.timeline-rows, static.thread-timeline) shows, in the dark Monokai
@@ -4635,8 +4646,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // the folded-turn header and rule (UI-CHAT-036; the expanded state is in no frame), the error notice pill (UI-CHAT-034,
 // UI-RUNTIME-003; info and warning levels and the light theme are in no frame), the Edited-files card (UI-CHAT-037,
 // UI-GIT-044), the heads' report and note pills (UI-CHAT-048) and a sent-head badge (UI-CHAT-056). Every one of those
-// pills, cards and plates is drawn in a .continuous rounded rectangle, which ED-181 still draws with circular arcs
-// (STOP opencode #1), so none of them can match yet; no frame shows any other record of this list.
+// pills, cards and plates is drawn in a .continuous rounded rectangle, which ED-181 (closed 2026-10-04, STOP opencode #1
+// resolved) now draws as Apple's continuous corner where the size allows; the type face and text metrics remain the OD-0001
+// and ED-059 residual; no frame shows any other record of this list.
 // Six explicit label contracts are closed by TimelineRowsUiLabelsTests with clause-by-clause mutations.
 // Precise remaining UI dependency sites are recorded in TimelineRowsUiAuditTests.
 // UI-CHAT-024's finite-width defect is fixed and mounted long/short labels are now regression tested for
@@ -4654,7 +4666,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // on ThreadTimeline.Draw.)
 // Records: PR-CHAT-020; PR-CHAT-078; PR-CHAT-079; PR-CHAT-080; PR-CHAT-082; PR-CHAT-088.
 // Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
-// Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-108; PR-CHAT-109.
+// Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-109.
+// Records: PR-CHAT-108 (back 2026-10-04: every clause is asserted, the hover on the 0.1 s ease-out curve included, except the Edited card's corner: 40 pt tall, radius 18,
+// in the band ED-275 (2) calls UNRESOLVED; see the note in STOP #10 above).
 // Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
 // Records: PR-CHAT-116; PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
 // Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.
@@ -4664,7 +4678,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // -082 (the confirmation dialog), -088 (the reply's duration hover line), -092, -094 (seven of the eight kinds), -098, -099,
 // -100, -101, -104 (expanded state), -109, -110, -111, -112, -114, -115 (info and warning, light theme), -146, -147, -148,
 // -150, -151, -152, -153 (running and failed), -154, PR-COMPOSER-211, PR-HYDRAMERGE-101, -102, -103, -106, -107.
-// In a frame but drawn in an ED-181 .continuous shape (STOP opencode #1): PR-CHAT-079 (plate), -108 (Edited card),
+// In a frame, in a `.continuous` shape that ED-181 now draws (closed 2026-10-04): PR-CHAT-079 (plate), -108 (Edited card),
 // -143 (report pill), -153 (sent badge). PR-CHAT-020 also needs the per-site static check (STOP cloud #13).
 // PR-CHAT-116: the video gives the reference formatter's "5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
 // (catalogue static.timeline-rows); 0 s, a negative interval and the hour cases (3599, 3725 s) appear in no frame.

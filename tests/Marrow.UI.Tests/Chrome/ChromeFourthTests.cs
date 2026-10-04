@@ -49,8 +49,9 @@ using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not th
 //   static class SwiftGlass { AttachedProperty<GlassEffect?> EffectProperty; GlassEffect? GetEffect(Control control);
 //       void SetEffect(Control control, GlassEffect? effect) }
 // and SwiftShapes / RoundedCornerStyle as SwiftShapesTests states them (ED-181).
-// Not asserted: the app-drawn glass material and its press response (MARROW_DEFERRED ED-180), the continuous corner
-// curve (MARROW_DEFERRED ED-181), and the drawn size of a symbol (ED-182, oracle O-63).
+// Not asserted: the app-drawn glass material and its press response (MARROW_DEFERRED ED-180) and the drawn size of a symbol
+// (ED-182, oracle O-63). The continuous corner curve (ED-181) is closed: SwiftShapesContinuousTests, SwiftShapesOracleTests and
+// GlassContinuousCornerTests hold the curve; the tests below keep the shapes' radius and style.
 [Collection("Headless")]
 public sealed class ChromeFourthTests(HeadlessSession headless)
 {
@@ -119,6 +120,10 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     private static List<Border> Glass(Control root) =>
         VisualQuery.Descendants<Border>(root).Where(b => SwiftGlass.GetEffect(b) is not null).ToList();
+
+    // The window backdrop's own layers are SwiftShapeBorders (ED-181: a `.continuous` shape that strokes is a SwiftShapeBorder).
+    private static List<SwiftShapeBorder> BackdropGlass(Control root) =>
+        VisualQuery.Descendants<SwiftShapeBorder>(root).Where(b => SwiftGlass.GetEffect(b) is not null).ToList();
 
     private static List<Border> Continuous(Control root) =>
         VisualQuery.Descendants<Border>(root).Where(b => SwiftShapes.GetCornerStyle(b) == RoundedCornerStyle.Continuous).ToList();
@@ -424,16 +429,16 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
         var backdrop = new WindowBackdrop(opacity: setting);
         var window = Show(backdrop, ThemeVariant.Dark, 400, 300);
 
-        var layer = Assert.Single(Glass(backdrop));
+        var layer = Assert.Single(BackdropGlass(backdrop));
         var effect = SwiftGlass.GetEffect(layer)!;
         Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(26, RoundedCornerStyle.Continuous)), effect);
         Assert.Null(effect.TintColor); // `.glassEffect(in:)`: no tint, no .interactive()
         Assert.False(effect.IsInteractive);
         Assert.Null(layer.Background); // drawn as data only, over the window's Acrylic (OD-0005, OD-0014)
         Assert.Equal(new Rect(backdrop.Bounds.Size), BoundsIn(layer, backdrop));
-        var scrim = Assert.Single(VisualQuery.Descendants<Border>(backdrop),
+        var scrim = Assert.Single(VisualQuery.Descendants<SwiftShapeBorder>(backdrop),
             b => b.Background is not null && b.Opacity == WindowBackdrop.Scrim(setting, isDark: true));
-        var layers = VisualQuery.Descendants<Border>(backdrop).ToList();
+        var layers = VisualQuery.Descendants<SwiftShapeBorder>(backdrop).ToList();
         Assert.True(layers.IndexOf(layer) < layers.IndexOf(scrim)); // :255 the scrim is an overlay on the glass
         window.Close();
     });
@@ -445,7 +450,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
     {
         var backdrop = new WindowBackdrop(opacity: 0.98);
         var window = Show(backdrop, ThemeVariant.Light, 400, 300);
-        Assert.Empty(Glass(backdrop));
+        Assert.Empty(BackdropGlass(backdrop));
         window.Close();
     });
 
@@ -458,7 +463,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
         var backdrop = new WindowBackdrop(opacity: 0.4, wallpaper: picture);
         var window = Show(backdrop, ThemeVariant.Dark, 400, 300);
 
-        var layer = Assert.Single(Glass(backdrop));
+        var layer = Assert.Single(BackdropGlass(backdrop));
         Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(26, RoundedCornerStyle.Continuous)), SwiftGlass.GetEffect(layer));
         Assert.Equal(new Rect(backdrop.Bounds.Size), BoundsIn(layer, backdrop));
         var image = Assert.Single(VisualQuery.Descendants<Image>(backdrop));
@@ -467,11 +472,11 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
         backdrop.Update(opacity: 0.98, wallpaper: picture);
         Dispatcher.UIThread.RunJobs();
-        Assert.Empty(Glass(backdrop));
+        Assert.Empty(BackdropGlass(backdrop));
 
         backdrop.Update(opacity: 0.5, wallpaper: picture);
         Dispatcher.UIThread.RunJobs();
-        Assert.Single(Glass(backdrop));
+        Assert.Single(BackdropGlass(backdrop));
         window.Close();
     });
 
@@ -488,7 +493,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
         var backdrop = new WindowBackdrop(opacity: setting, wallpaper: withWallpaper ? Picture() : null);
         var window = Show(backdrop, ThemeVariant.Light, 400, 300);
 
-        var layers = VisualQuery.Descendants<Border>(backdrop).ToList();
+        var layers = VisualQuery.Descendants<SwiftShapeBorder>(backdrop).ToList();
         Assert.NotEmpty(layers);
         foreach (var layer in layers)
         {

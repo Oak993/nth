@@ -445,7 +445,7 @@ internal sealed class BadgeLayers : Panel
     protected override Size ArrangeOverride(Size finalSize)
     {
         var pillSize = Children.Count > 0 ? Children[0].DesiredSize : default;
-        Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(pillSize), CornerRadius.TopLeft, RoundedCornerStyle.Continuous); // :65 .clipShape(RoundedRectangle(cornerRadius:, style: .continuous)), through the one helper of ED-181
+        Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(pillSize), CornerRadius.TopLeft, RoundedCornerStyle.Continuous); // :65 clipped to the pill shape: RoundedRectangle(cornerRadius:, style: .continuous) (ED-181)
         if (Children.Count > 0)
             Children[0].Arrange(new Rect(pillSize)); // :49-50 the pill keeps its intrinsic size at the leading edge
         for (var i = 1; i < Children.Count; i++)

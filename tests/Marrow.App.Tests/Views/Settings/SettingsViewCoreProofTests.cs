@@ -321,7 +321,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         Assert.Single(Nodes<StackPanel>(row), s => s.Orientation == Orientation.Horizontal && s.Spacing == 12); Assert.Single(Nodes<NoWindowDragArea>(row));
         for (var i = 0; i < tiles.Length; i++)
         {
-            var tile = tiles[i]; var stage = Field<Border>(tile, "stageBack"); var ring = Field<Border>(tile, "paddedStage"); var caption = Field<TextBlock>(tile, "captionBlock");
+            var tile = tiles[i]; var stage = Field<Border>(tile, "stageBack"); var ring = Field<SwiftShapeBorder>(tile, "paddedStage"); var caption = Field<TextBlock>(tile, "captionBlock");
             Assert.Equal(76, stage.Width); Assert.Equal(48, stage.Height); Assert.Equal(new CornerRadius(6), stage.CornerRadius); Assert.Equal(new Thickness(1), ring.Padding); Assert.Equal(new CornerRadius(9), ring.CornerRadius);
             // ChromeVisualPicker.swift:96-101: .padding(ringInset=3) then an overlay .strokeBorder(lineWidth: ringWidth=2) drawn
             // inward from that padded edge (Avalonia's Border draws its border inside its own bounds the same way), so the gap
@@ -331,11 +331,14 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
             var image = Nodes<SwiftImage>(tile).Single(); Assert.Equal(symbols[i], image.SymbolName); Glyph(image, SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium), i == 0 ? Chrome.Accent : Chrome.SecondaryText);
             Foreground(caption, i == 0 ? Chrome.PrimaryText : Chrome.SecondaryText); Assert.Equal((i == 0 ? Chrome.Overlay(0.10) : Chrome.Overlay(0.06)).Resolve(stage.ActualThemeVariant), ColorOf(stage.Background));
             Assert.Equal(new Thickness(2), ring.BorderThickness); if (i == 0) Assert.Equal(Chrome.Accent.Resolve(ring.ActualThemeVariant), ColorOf(ring.BorderBrush)); else Assert.Null(ring.BorderBrush);
+            // ChromeVisualPicker.swift:92-102 (ED-181 closed): the stage is `.continuous` radius 6 and the ring a continuous radius-9 strokeBorder, whose outer edge is the 82 x 54 shape.
+            Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(stage)); Assert.Equal(RoundedCornerStyle.Continuous, ring.CornerStyle); Assert.NotNull(stage.Clip);
+            Assert.All(SwiftShapes.Outline(new Rect(0, 0, 82, 54), ring.CornerRadius, ring.CornerStyle).Corners, k => Assert.Equal(CornerKind.Continuous, k));
         }
         Hover(Nodes<Button>(tiles[1]).Single(), true); Sync(); Frame(h, 101); Assert.Equal(Chrome.Overlay(0.10).Resolve(tiles[1].ActualThemeVariant), ColorOf(Field<Border>(tiles[1], "stageBack").Background));
         Click(Nodes<Button>(tiles[1]).Single()); Sync(); Assert.True(tiles[1].IsSelected); Assert.False(tiles[0].IsSelected);
         Glyph(Nodes<SwiftImage>(tiles[1]).Single(), SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium), Chrome.Accent);
-        Assert.Equal(new Thickness(2), Field<Border>(tiles[1], "paddedStage").BorderThickness); Foreground(Field<TextBlock>(tiles[1], "captionBlock"), Chrome.PrimaryText);
+        Assert.Equal(new Thickness(2), Field<SwiftShapeBorder>(tiles[1], "paddedStage").BorderThickness); Foreground(Field<TextBlock>(tiles[1], "captionBlock"), Chrome.PrimaryText);
     }
 
     [Fact]
@@ -445,10 +448,10 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     // theme-free app, and SmallSwitch explicitly documents its invented track/knob sizes. No ED/PA approves
     // complete appearance parity. Needed: shared native-control/focus-adornment mapping or approved visual method.
     // Pointer/Space, labelsHidden, disabled state and rendered exact accent are still exercised above.
-    // STOP opencode-proofs-settings-core #6
-    // UI-SETTINGS-004 UI-SETTINGS-014 UI-SETTINGS-015: Chrome.swift:722 / ChromeVisualPicker.swift:92,95,99 request
-    // continuous corners. SwiftShapes.cs MARROW_DEFERRED ED-181 still draws circular arcs; the oracle-backed
-    // continuous curve has not landed. Exact radius/style descriptors and states/interactions are proven above.
+    // Former STOP opencode-proofs-settings-core #6 (ED-181) is closed: Chrome.swift:722 / ChromeVisualPicker.swift:92,95,99
+    // continuous corners are Apple's curve (SwiftShapes.Outline, SwiftShapeBorder; the tile stage and the sidebar row by
+    // Visual.Clip, the ring by its own path). CheckTiles asserts the style, the continuous outline and the clip; the curve
+    // itself is SwiftShapesContinuousTests / SwiftShapesOracleTests in Marrow.UI.Tests.
 
     [Fact]
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.

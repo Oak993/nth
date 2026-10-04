@@ -66,7 +66,7 @@ public sealed class RootView : Decorator
     private readonly WindowCornerWedge cornerWedge = new(AppSettings.DefaultBackdropOpacity);
     private readonly WindowChromeProbe chromeProbe = new();
     private readonly WindowChromeConfigurator chromeConfig = new();
-    private readonly Border windowClip;
+    private readonly SwiftShapeBorder windowClip;
     private readonly Panel outerRoot = new();
     private readonly Panel paletteHost = new();
     private CommandPalette? palette;
@@ -86,7 +86,7 @@ public sealed class RootView : Decorator
         new(() => (dialog, owner) => dialog.ShowDialog(owner));
 
     /// <summary>Test-only: the window's own rounded clip (PR-WIN-062, :66-68).</summary>
-    internal Border WindowClip => windowClip;
+    internal SwiftShapeBorder WindowClip => windowClip;
 
     /// <summary>Test-only: the layer that fills the wedge between the window's rectangle and its 26 pt shape with the scrim (OD-0075).</summary>
     internal WindowCornerWedge CornerWedge => cornerWedge;
@@ -196,17 +196,15 @@ public sealed class RootView : Decorator
         // window is OD-0075's, added below as a fifth layer). .ignoresSafeArea() (:68) has nothing to do here: Windows reserves no OS-drawn
         // safe area over this fully custom-chromed window, the identical call WindowChrome.cs's own top-of-file
         // note already makes for the titlebar container it has no counterpart for.
-        windowClip = new Border
+        // :66 Clip the entire composition, including the backdrop: `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))`
+        // is the shape's own clip (ClipToBounds on a SwiftShapeBorder clips to its continuous path, ED-181).
+        windowClip = new SwiftShapeBorder
         {
             Child = behindContent,
             ClipToBounds = true,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
-
-        // :66 Clip the entire composition, including the backdrop. ED-181's shared curve deferral applies.
-        windowClip.SizeChanged += (_, e) => windowClip.Clip = SwiftShapes.RoundedRectangleGeometry(
-            new Rect(e.NewSize), Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
 
         // :69 .coordinateSpace(.named(GenieAnimator.coordinateSpace)): nothing to install here. Every consumer reaches
         // "the window" through Avalonia's own ancestor-relative TranslatePoint/TransformToVisual directly

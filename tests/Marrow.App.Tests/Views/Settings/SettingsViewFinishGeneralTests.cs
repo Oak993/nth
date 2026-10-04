@@ -123,7 +123,7 @@ public sealed class SettingsViewFinishGeneralTests(HeadlessSession headless) : S
         {
             for (var i = 0; i < tiles.Length; i++)
             {
-                var tile = tiles[i]; var on = i == selected; var stage = Assert.Single(Nodes<Border>(tile), b => b.Width == 76 && b.Height == 48); var ring = Assert.Single(Nodes<Border>(tile), b => b.BorderThickness == new Thickness(2)); var caption = Assert.Single(Nodes<TextBlock>(tile));
+                var tile = tiles[i]; var on = i == selected; var stage = Assert.Single(Nodes<Border>(tile), b => b.Width == 76 && b.Height == 48); var ring = Assert.Single(Nodes<SwiftShapeBorder>(tile), b => b.BorderThickness == new Thickness(2)); var caption = Assert.Single(Nodes<TextBlock>(tile));
                 // :86-102 the stage is 76 x 48 with 6pt corners; .padding(ringInset 3) makes the tile 82 x 54, the ring (radius 6 + 3) drawn 2pt wide in that padding; the caption 6pt below.
                 Assert.Equal(82, tile.Bounds.Width, 3); Assert.Equal(new Point(3, 3), TopLeft(stage, tile)); Assert.Equal(new CornerRadius(6), stage.CornerRadius); Assert.Equal(new Point(0, 0), TopLeft(ring, tile)); Assert.Equal(82, ring.Bounds.Width, 3); Assert.Equal(54, ring.Bounds.Height, 3); Assert.Equal(new CornerRadius(9), ring.CornerRadius);
                 Assert.Equal(54 + 6, TopLeft(caption, tile).Y, 3); Assert.Equal(3, TopLeft(caption, tile).X, 3); Assert.Equal(76, caption.Bounds.Width, 3);

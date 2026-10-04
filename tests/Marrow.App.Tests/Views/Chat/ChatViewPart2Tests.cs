@@ -4,7 +4,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.VisualTree;
 using Marrow.App;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -330,8 +333,23 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 var editor = Show(new ScriptsEditor(model, project.Id, () => { }));
 
                 var commandField = LogicalQuery.SelfAndDescendants<TextBox>(editor).Single(t => t.PlaceholderText == "Command");
-                var frame = LogicalQuery.SelfAndDescendants<Border>(editor).Single(b => b.Child == commandField);
-                Assert.NotNull(frame.BorderBrush); // :1687-1689 danger outline while blank
+                // :1686-1691 `.overlay { if incomplete { RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Chrome.danger.opacity(0.65), lineWidth: 1) } }`:
+                // the outline is a shape beside the field in a Panel (an overlay, no layout contribution), not a border around it.
+                var frame = LogicalQuery.SelfAndDescendants<SwiftShapeBorder>(editor).Single(b => b.Parent is Panel p && p.Children.Contains(commandField));
+                Assert.Null(frame.Child);
+                Assert.False(frame.IsHitTestVisible);
+                Assert.Equal(new Thickness(1), frame.BorderThickness);
+                Assert.Equal(new CornerRadius(6), frame.CornerRadius);
+                Assert.Equal(RoundedCornerStyle.Continuous, frame.CornerStyle);
+                // :1670-1693 the field is the second item of the card's VStack(spacing: 8): the name row above it, the checkbox below.
+                var fieldFrame = Assert.IsType<Panel>(frame.Parent);
+                var column = Assert.IsType<StackPanel>(fieldFrame.Parent);
+                Assert.Equal(8, column.Spacing);
+                Assert.Equal(3, column.Children.Count);
+                Assert.Same(fieldFrame, column.Children[1]);
+                Assert.IsType<StackPanel>(column.Children[0]);
+                Assert.IsType<CheckBox>(column.Children[2]);
+                Assert.Equal(Chrome.Danger.Opacity(0.65).Resolve(frame.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(frame.BorderBrush).Color); // :1687-1689 danger at 0.65 while blank
                 Assert.False(editor.SaveButton.IsEnabled); // :1711,1717
                 Assert.Equal("Every script needs a command.", ToolTip.GetTip(editor.SaveButton)); // :1718
 
@@ -355,6 +373,43 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 commandField.Text = "   ";
                 Assert.NotNull(frame.BorderBrush);
                 Assert.False(editor.SaveButton.IsEnabled);
+
+                // :1726-1729 `.whitespaces` is spaces, tabs and the other Zs characters, NOT newlines: a command holding only a line feed
+                // is complete (string.IsNullOrWhiteSpace would call it blank), so there is no outline and Save is held no longer.
+                foreach (var spaces in new[] { "\u00A0", "\u2003", " \t " })
+                {
+                    commandField.Text = spaces;
+                    Assert.Equal(spaces, commandField.Text);
+                    Assert.NotNull(frame.BorderBrush);
+                    Assert.False(editor.SaveButton.IsEnabled, $"{spaces.Length} Zs/tab characters are blank");
+                }
+                foreach (var withNewline in new[] { "\n", " \n ", "make\n", "\r\n" })
+                {
+                    commandField.Text = withNewline;
+                    Assert.Equal(withNewline, commandField.Text); // the field kept the line break, so the check below is about the command
+                    Assert.Null(frame.BorderBrush);
+                    Assert.True(editor.SaveButton.IsEnabled, $"a command of {withNewline.Length} characters holding a line break is complete");
+                    Assert.Equal("Save these scripts", ToolTip.GetTip(editor.SaveButton));
+                }
+
+                // :1681-1682 `.textFieldStyle(.roundedBorder)` (OD-0042 / OD-0045: the Mac look from Apple's macOS UI Kit, "Rounded-border text
+                // field", size 3 Rg, layer style Content Area / Input Fields / 01 - Idle; E:/Droppy/work/apple-kit/macos27-uikit-controls.md
+                // lines 27-31 and 77-83): 24 high, radius 6, a 1 px border, dark fill #1E1E1E with border white at 0.04, light fill #FFFFFF with
+                // border black at 0.05, the text left-aligned and centred vertically. The default bezel is the field's applied template.
+                Assert.Equal("RoundedBorder", commandField.GetValue(Marrow.App.Port.ChatDialogControls.InputStyleProperty));
+                commandField.ApplyTemplate();
+                var bezel = Assert.IsType<Border>(commandField.GetVisualChildren().Single());
+                Assert.Equal(new CornerRadius(6), bezel.CornerRadius);
+                Assert.Equal(24, bezel.MinHeight);
+                Assert.Equal(new Thickness(1), bezel.BorderThickness);
+                Assert.Equal(Color.Parse("#1E1E1E"), Marrow.App.Port.ChatDialogControls.FieldFill.Resolve(ThemeVariant.Dark));
+                Assert.Equal(Color.Parse("#FFFFFF"), Marrow.App.Port.ChatDialogControls.FieldFill.Resolve(ThemeVariant.Light));
+                Assert.Equal(new SwiftColor(white: 1, opacity: 0.04).Resolve(ThemeVariant.Dark), Marrow.App.Port.ChatDialogControls.FieldStroke.Resolve(ThemeVariant.Dark));
+                Assert.Equal(new SwiftColor(white: 0, opacity: 0.05).Resolve(ThemeVariant.Light), Marrow.App.Port.ChatDialogControls.FieldStroke.Resolve(ThemeVariant.Light));
+                var variant = bezel.ActualThemeVariant;
+                Assert.Equal(Marrow.App.Port.ChatDialogControls.FieldFill.Resolve(variant), Assert.IsAssignableFrom<ISolidColorBrush>(bezel.Background).Color);
+                Assert.Equal(Marrow.App.Port.ChatDialogControls.FieldStroke.Resolve(variant), Assert.IsAssignableFrom<ISolidColorBrush>(bezel.BorderBrush).Color);
+                Assert.Equal(VerticalAlignment.Center, Assert.IsType<ScrollViewer>(bezel.Child).VerticalAlignment);
             });
         });
     }

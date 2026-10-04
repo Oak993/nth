@@ -6,6 +6,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
@@ -790,7 +792,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     private static void Press(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
     public void The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -828,7 +830,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
     public void A_card_with_no_files_has_a_disabled_title_and_no_chevron() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -848,7 +850,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
     public void The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -880,6 +882,9 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 // :2818-2822 padded 12 leading, 6 trailing and 6 vertical on .quaternary at 0.32, hugging its content.
                 var pill = undoable.GetVisualDescendants().OfType<Border>().First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
                 Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                // :2822 `.continuous`: the card is 40 pt tall, in the band (13.1 < r < 20) where what Apple draws is UNRESOLVED (ED-275 (2)); the port draws the circular arc there,
+                // asserted as the port's own regime and not as a reference fit (PR-CHAT-108 stays open on it).
+                ContinuousCornerChecks.Drawn(pill, expectApple: false);
                 Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), pill), BrushColor(pill.Background));
                 Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
                 // both popovers open below their buttons (arrowEdge: .bottom)
@@ -890,7 +895,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
     public void A_muted_round_glyph_is_a_28_point_overlay_disc_whose_glyph_and_fill_come_up_under_the_pointer() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -915,23 +920,67 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         });
         try
         {
-            // Chrome.hover, an ease-out of 0.1 s on the frame clock.
+            // :2475 withAnimation(Chrome.hover), `.easeOut(duration: 0.1)`: the glyph and the fill are sampled on the frame clock at 20, 50 and 100 ms
+            // and sit where the ease-out Bezier (0, 0, 0.58, 1) puts them (35, 68 and 100 per cent), not where a linear or slower fade would
+            // (a 0.2 s linear animation is at 10, 25 and 50 per cent at the same instants).
+            void Sample(int ms, double fraction)
+            {
+                h.Main.OnMain(() =>
+                {
+                    var disc = glyph!.GetVisualDescendants().OfType<Border>().Single(border => border.Width == 28 && border.Height == 28);
+                    var image = glyph!.GetVisualDescendants().OfType<SwiftImage>().Single();
+                    var expected = HoverEaseOut(fraction);
+                    var fill = Along(Resolved(ChromeTokens.Overlay(0.1), disc), Resolved(ChromeTokens.Overlay(0.18), disc), BrushColor(disc.Background));
+                    var glyphShare = Along(Resolved(ChromeTokens.SecondaryText, image), Resolved(ChromeTokens.PrimaryText, image), BrushColor(image.Foreground));
+                    Assert.True(Math.Abs(fill - expected) <= 0.06, $"at {ms} ms the fill is {fill:F3} of the way to the hovered fill; the 0.1 s ease-out has it at {expected:F3}");
+                    Assert.True(Math.Abs(glyphShare - expected) <= 0.06, $"at {ms} ms the glyph is {glyphShare:F3} of the way to primary; the 0.1 s ease-out has it at {expected:F3}");
+                });
+            }
+            h.Main.OnMain(() =>
+            {
+                // Hovering cuts nothing: in the frame the pointer arrives both are still at rest.
+                var disc = glyph!.GetVisualDescendants().OfType<Border>().Single(border => border.Width == 28 && border.Height == 28);
+                var image = glyph!.GetVisualDescendants().OfType<SwiftImage>().Single();
+                Assert.Equal(Resolved(ChromeTokens.Overlay(0.1), disc), BrushColor(disc.Background));
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, image), BrushColor(image.Foreground));
+            });
             frames.Advance(TimeSpan.Zero);
-            h.Main.AdvanceMilliseconds(1000);
-            frames.Advance(TimeSpan.FromMilliseconds(1000));
+            h.Main.AdvanceMilliseconds(20); frames.Advance(TimeSpan.FromMilliseconds(20)); Sample(20, 0.2);
+            h.Main.AdvanceMilliseconds(30); frames.Advance(TimeSpan.FromMilliseconds(30)); Sample(50, 0.5);
+            h.Main.AdvanceMilliseconds(50); frames.Advance(TimeSpan.FromMilliseconds(50)); Sample(100, 1.0);
+            h.Main.AdvanceMilliseconds(900); frames.Advance(TimeSpan.FromMilliseconds(900));
             h.Main.OnMain(() =>
             {
                 var disc = glyph!.GetVisualDescendants().OfType<Border>().Single(border => border.Width == 28 && border.Height == 28);
                 var image = glyph!.GetVisualDescendants().OfType<SwiftImage>().Single();
                 Assert.Equal(Resolved(ChromeTokens.PrimaryText, image), BrushColor(image.Foreground));
                 Assert.Equal(Resolved(ChromeTokens.Overlay(0.18), disc), BrushColor(disc.Background));
+                // The pointer leaves: the same curve back (:2475 withAnimation on the hover change, either way).
+                window!.MouseMove(new Point(2, 2), RawInputModifiers.None);
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            });
+            frames.Advance(TimeSpan.Zero);
+            h.Main.AdvanceMilliseconds(50); frames.Advance(TimeSpan.FromMilliseconds(50));
+            h.Main.OnMain(() =>
+            {
+                var disc = glyph!.GetVisualDescendants().OfType<Border>().Single(border => border.Width == 28 && border.Height == 28);
+                var back = 1 - Along(Resolved(ChromeTokens.Overlay(0.1), disc), Resolved(ChromeTokens.Overlay(0.18), disc), BrushColor(disc.Background));
+                Assert.True(Math.Abs(back - HoverEaseOut(0.5)) <= 0.06, $"50 ms after the pointer left the fill has come {back:F3} of the way back; the ease-out has it at {HoverEaseOut(0.5):F3}");
+            });
+            h.Main.AdvanceMilliseconds(200); frames.Advance(TimeSpan.FromMilliseconds(200));
+            h.Main.OnMain(() =>
+            {
+                var disc = glyph!.GetVisualDescendants().OfType<Border>().Single(border => border.Width == 28 && border.Height == 28);
+                var image = glyph!.GetVisualDescendants().OfType<SwiftImage>().Single();
+                Assert.Equal(Resolved(ChromeTokens.Overlay(0.1), disc), BrushColor(disc.Background));
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, image), BrushColor(image.Foreground));
             });
         }
         finally { h.Main.OnMain(() => Close(window!)); }
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
     public void The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -4699,7 +4748,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
     public void The_file_cards_title_row_is_a_hit_target_across_its_width() => headless.OnUiThread(() =>
     {
         using var h = Harness();

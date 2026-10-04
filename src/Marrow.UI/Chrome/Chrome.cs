@@ -44,7 +44,7 @@ using Marrow.UI.Theme;
 // `.onHover`, `.popover`, `.fixedSize`, a font on any view, an animated colour) are in Port/PlainControls.cs.
 // Settled by the orchestrator's run4 ruling on this unit's stops: Image(systemName:) and Image(_:) are SwiftImage
 // (ED-179, ED-182; OD-0010 Lucide icons); SwiftGlass draws the app-owned material with the source's shape, tint and
-// interaction data; `.continuous` border geometry remains under SwiftShapes/ED-181.
+// interaction data; `.continuous` shapes are SwiftShapes' (ED-181: Apple's continuous corner, closed by ED-275).
 
 namespace Marrow.UI.Chrome
 {
@@ -332,7 +332,7 @@ namespace Marrow.UI.Chrome
         private Base? drawn;
         private Control? baseView;
         private Image? picture;
-        private Border? scrim;
+        private SwiftShapeBorder? scrim;
         private Panel? wallpaperOverlay;
 
         /// <param name="opacity">:205 <c>let opacity: Double</c>.</param>
@@ -397,11 +397,11 @@ namespace Marrow.UI.Chrome
         }
 
         // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous), the size of the backdrop.
-        private static Border Shape() => new Border().RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+        private static SwiftShapeBorder Shape() => new SwiftShapeBorder().RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
 
         // `shape.fill(.clear).glassEffect(in: shape)` (:243-245, :252-254): the default glass, no tint, no .interactive()
         // and no container, drawn over the app-owned backdrop (OD-0005, ADR-0002 Glass (b)).
-        private static Border GlassLayer()
+        private static SwiftShapeBorder GlassLayer()
         {
             var layer = Shape();
             SwiftGlass.SetEffect(layer, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous)));

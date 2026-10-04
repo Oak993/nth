@@ -140,7 +140,7 @@ public sealed class SettingsView : Decorator
     private Control? noResults; // :166-177 the "No results" block while it shows
     private readonly Control sidebar;
     private readonly Border detail = new();
-    private readonly Border frame;
+    private readonly SwiftShapeBorder frame;
     private Control? pageStack;
     private SettingsPage? builtPage;
     private readonly SidebarSearchField search;
@@ -183,7 +183,7 @@ public sealed class SettingsView : Decorator
         detail.Margin = new Thickness(0, Chrome.SheetInset, Chrome.SheetInset, Chrome.SheetInset); // :114-115
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("212,*") }; Grid.SetColumn(detail, 1); grid.Children.Add(sidebar); grid.Children.Add(detail);
         backdrop = new WindowBackdrop(0); // :118
-        frame = new Border { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous); frame.ClipToBounds = true; // :119-120
+        frame = new SwiftShapeBorder { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous); frame.ClipToBounds = true; // :119-120 `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))` (ED-181)
         // OD-0075 (owner, 2026-10-02): the wedge between the window's rectangle (system Acrylic, ED-236) and the 26 pt shape is filled with the window's
         // scrim. Painted first (ZIndex -1), under the clipped frame, so the glass and its hairline still stop at the curve.
         cornerWedge.ZIndex = -1;

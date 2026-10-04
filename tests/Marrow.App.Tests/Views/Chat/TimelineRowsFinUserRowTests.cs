@@ -153,6 +153,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
                     // ChipChrome: 9 leading, 7 trailing, 5 vertical; a continuous capsule filled with Chrome.overlay(0.12).
                     Assert.Equal(new Thickness(9, 5, 7, 5), chip.Padding);
                     Assert.Equal(chip.Bounds.Height / 2, chip.CornerRadius.TopLeft, 0.5);
+                    ContinuousCornerChecks.Drawn(chip, expectApple: false); // `Capsule(style: .continuous)` (ED-181 closed): its radius is half its height, past the continuous limit
                     Paints(chip.Background, ChromeTokens.Overlay(0.12), chip, "capsule fill");
                     var glyph = Assert.Single(Mounted<SwiftImage>(chip));
                     Assert.Equal("text.quote", glyph.SymbolName);
@@ -364,6 +365,10 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             // :223-225 the click only posts an intent; the row takes it up and confirms on itself (:184-196).
             menu = HostMenu(popup);
             var edit = LogicalQuery.SelfAndDescendants<PopoverItem>(second).Single(item => Title(item) == "Edit from here");
+            // :216-228 each item is a PopoverItem whose hover surface is `RoundedRectangle(cornerRadius: 6, style: .continuous)` on a 26 pt row (Chrome.swift:322-326;
+            // ED-181 closed): the 18 pt two run-ins of a 6 pt corner fit, so each is cut to Apple's corner.
+            Settle(menu);
+            foreach (var item in LogicalQuery.SelfAndDescendants<PopoverItem>(second)) ContinuousCornerChecks.MenuItemSurface(Mounted<Border>(item).First(border => SwiftShapes.GetCornerStyle(border) is not null));
             Assert.Empty(dialogs.Shown);
             ClickButton(menu, Assert.Single(LogicalQuery.SelfAndDescendants<Button>(edit)));
         });

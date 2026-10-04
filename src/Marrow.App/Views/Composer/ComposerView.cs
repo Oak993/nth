@@ -38,8 +38,8 @@ namespace Marrow.App.Views.Composer;
 // isolated tests. The ModelEffortButton and chip-style sites are implemented; STOP #7 leaves
 // surviving chip/approval layout movement unanimated pending foundation support; #8 records ProviderRegistry's
 // missing notifications; #9 records the SlashCommand.Suggestions dependency after inherited cross-unit code removal.
-// Diff popup and suggestion popup headless limits are documented in tests (STOP #3/#5). ED-180/181/182 retain the
-// existing material, continuous-corner, palette and symbol-transition deferrals; visual macOS parity is unverified.
+// Diff popup and suggestion popup headless limits are documented in tests (STOP #3/#5). ED-180/182 retain the
+// existing material, palette and symbol-transition deferrals (ED-181, the continuous corner, is closed); visual macOS parity is unverified.
 
 /// <summary>:4-58 <c>struct ComposerArea: View</c>.</summary>
 public sealed class ComposerArea : Decorator
@@ -1289,8 +1289,7 @@ internal sealed class ComposerWorkingDotsSlot : Decorator
     public ComposerWorkingDotsSlot(ThreadRuntime runtime)
     {
         var panel = new Panel();
-        var clip = new Border { Child = panel, ClipToBounds = true }.RoundedRectangle(22, RoundedCornerStyle.Continuous); // :671
-        clip.SizeChanged += (_, e) => clip.Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(e.NewSize), 22, RoundedCornerStyle.Continuous);
+        var clip = new Border { Child = panel, ClipToBounds = true }.RoundedRectangle(22, RoundedCornerStyle.Continuous); // :671 `.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))`: clipped to the shape (ED-181)
         Control? current = null;
         this.Track(() => runtime.IsRunning, running =>
         {

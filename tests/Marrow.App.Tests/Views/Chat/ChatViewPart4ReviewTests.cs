@@ -275,7 +275,8 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     // STOP App.Views.Chat.ChatView #5
     // Kind: missing dependency / native style metrics.
     // Swift: App/Views/Chat/ChatView.swift:1582-1584,1672-1673,1681-1682.
-    // Records: UI-GIT-035, UI-TERM-024, UI-TERM-026 (also PR-TERM-076).
+    // Records: UI-GIT-035, UI-TERM-024 (also PR-TERM-076). UI-TERM-026 left this note on 2026-10-04: OD-0042 / OD-0045 make Apple's macOS UI Kit the reference for
+    // `.roundedBorder`, and ChatViewPart2Tests.A_blank_command_is_outlined_in_danger... asserts the field's bezel against the kit's values (24 high, radius 6, fills, border).
     // The theme-less port has no common roundedBorder TextField or small ProgressView template.
     // Keep the source style kind and small-control-size metadata, and draw the text/interaction already defined;
     // leave the native bezel and spinner styling unwritten. Do not invent their metric values.

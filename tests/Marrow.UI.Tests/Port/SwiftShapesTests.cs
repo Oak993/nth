@@ -8,9 +8,10 @@ using Marrow.UI.Tests.Fixtures;
 namespace Marrow.UI.Tests.Port;
 
 // ED-181 (orchestrator ruling on the UI.Chrome.Chrome stop #3): SwiftUI's RoundedRectangle(cornerRadius:style:) and
-// Capsule(style:) as one shared helper. The corner style is a parameter; `.continuous` is drawn with circular arcs at
-// the exact radius until the continuous curve lands (MARROW_DEFERRED ED-181, tracked incomplete work), so both styles
-// draw the same arcs today and the style is kept on the shape for that later work.
+// Capsule(style:) as one shared helper. The corner style is a parameter; `.continuous` is Apple's continuous-curvature
+// corner (SwiftShapesContinuousTests.cs holds the curve; the former deferral, circular arcs for both styles, is closed).
+// This file keeps the helper's surface: the Border takes the radius and keeps its style, capsules are half the shorter
+// side, and `.circular` is the circular arc at the exact radius at every size.
 // PORT-ONLY surface these tests fix, namespace Marrow.UI.Port, src/Marrow.UI/Port/SwiftShapes.cs:
 //   enum RoundedCornerStyle { Circular, Continuous }   (SwiftUI RoundedCornerStyle .circular, .continuous)
 //   static class SwiftShapes {
@@ -77,12 +78,11 @@ public sealed class SwiftShapesTests(HeadlessSession headless)
         Assert.Equal(14, SwiftShapes.CapsuleCornerRadius(new Size(28, 28)));
     });
 
-    [Theory]
+    [Fact]
     [Trait("Decision", "ED-181")]
-    [InlineData(RoundedCornerStyle.Continuous)]
-    [InlineData(RoundedCornerStyle.Circular)]
-    public void A_rounded_rectangle_geometry_has_circular_corners_at_the_exact_radius(RoundedCornerStyle style) => headless.OnUiThread(() =>
+    public void A_circular_rounded_rectangle_geometry_has_circular_corners_at_the_exact_radius() => headless.OnUiThread(() =>
     {
+        const RoundedCornerStyle style = RoundedCornerStyle.Circular;
         var rect = new Rect(0, 0, 400, 300);
         var shape = SwiftShapes.RoundedRectangleGeometry(rect, 26, style);
         Assert.Equal(rect, shape.Bounds);
@@ -113,14 +113,21 @@ public sealed class SwiftShapesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-181")]
-    public void Until_the_continuous_curve_lands_both_styles_draw_the_same_arcs() => headless.OnUiThread(() =>
+    public void A_continuous_rounded_rectangle_geometry_is_not_the_circular_one_and_has_the_continuous_corners_extent() => headless.OnUiThread(() =>
     {
-        // MARROW_DEFERRED ED-181: `.continuous` is drawn with circular arcs at the exact radius.
+        // The deferral is closed: `.continuous` is no longer drawn with the `.circular` arcs. A shape a corner of the
+        // same radius on a 120 x 80 rect holds (2 * 1.528665 * 26 = 79.5 <= 80) differs from the circle by up to 0.0138 r.
         var rect = new Rect(0, 0, 120, 80);
         var continuous = SwiftShapes.RoundedRectangleGeometry(rect, 26, RoundedCornerStyle.Continuous);
         var circular = SwiftShapes.RoundedRectangleGeometry(rect, 26, RoundedCornerStyle.Circular);
-        for (var x = 0.25; x < 30; x += 0.5)
-            for (var y = 0.25; y < 30; y += 0.5)
+        var differing = 0;
+        for (var x = 0.05; x < 40; x += 0.1)
+            for (var y = 0.05; y < 40; y += 0.1)
+                if (circular.FillContains(new Point(x, y)) != continuous.FillContains(new Point(x, y))) differing++;
+        Assert.True(differing > 50, $"{differing} probes differ"); // the sliver between the curves is about 4 pt^2 over the corner's two halves: hundreds of 0.1 pt probes
+        // Past the corner's run-in (1.528665 * 26 = 39.7 pt along an edge) the two shapes are the same.
+        for (var x = 40.0; x < 80; x += 0.5)
+            for (var y = 0.05; y < 1; y += 0.1)
                 Assert.Equal(circular.FillContains(new Point(x, y)), continuous.FillContains(new Point(x, y)));
     });
 }
