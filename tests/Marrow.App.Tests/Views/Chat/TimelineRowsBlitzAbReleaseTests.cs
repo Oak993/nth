@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
@@ -92,5 +93,74 @@ public sealed class TimelineRowsBlitzAbReleaseTests(HeadlessSession headless)
             GC.KeepAlive(kept.Menu);
             Close(window);
         });
+    });
+
+    // The tool row and the entry that made it are made here and stay in the panel; only weak references leave.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (WeakReference Row, WeakReference Entry) MountToolRowAndTap(AppModel app, ThreadRuntime runtime, AvaloniaWindow window, Panel panel)
+    {
+        var headID = app.Threads.Single(thread => thread.IsHydraHead).Id;
+        var entry = ToolEntry(Call(ToolCall.Kind.Agent, "Tidy the popover " + Guid.NewGuid()));
+        runtime.RehearseHydraHead(entry.Id, headID);
+        var row = new ToolRow(entry, runtime);
+        panel.Children.Insert(0, row);
+        Settle(window);
+        Hover(window, row);
+        Settle(window);
+        // The tap, with no pointer in it: the row's own button raises its click.
+        row.GetSelfAndVisualDescendants().OfType<Button>().Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        return (new WeakReference(row), new WeakReference(entry));
+    }
+
+    // The popover's content, kept; the row scrolls out of the panel.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ScrollAwayWithPopoverOpen(AvaloniaWindow window, Panel panel, TimelineRowsPrPopupPresenter presenter)
+    {
+        Assert.Contains(presenter.Calls, call => call.Presented && call.Popup.IsOpen);
+        panel.Children.Clear();
+        window.MouseMove(new Point(2, 690), RawInputModifiers.None);
+        Settle(window);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-161")] // TimelineRows.swift:1678-1687, :1761-1763: a tool row that scrolls away with its head-steps popover open is released while 
+    public void A_tool_row_that_scrolls_away_with_its_head_steps_open_is_released_by_the_collector_while_the_popovers_content_lives_on() => headless.OnUiThread(() =>
+    {
+        var presenter = new TimelineRowsPrPopupPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var (store, app, runtime) = TimelineRowsFinTeam.Make(TimelineRowsFinTeam.Head(3, HydraHeadInfo.Status.Completed));
+        using (store)
+        {
+            var panel = new StackPanel { Spacing = 20 };
+            var host = new Border { Child = panel };
+            AppEnvironment.SetAppModel(host, app);
+            var window = Show(host);
+            (WeakReference Row, WeakReference Entry) kept = (null!, null!);
+            store.Main.OnMain(() =>
+            {
+                _ = AppCurrentEvent.CurrentWindow;
+                kept = MountToolRowAndTap(app, runtime, window, panel);
+            });
+            store.Main.OnMain(() =>
+            {
+                Settle(window);
+                ScrollAwayWithPopoverOpen(window, panel, presenter);
+                window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null); // a newer input event than the one the row's elements saw (AppCurrentEvent)
+            });
+            for (var pass = 0; pass < 4; pass++)
+            {
+                store.Main.OnMain(() => Settle(window));
+                if (pass == 1) store.Main.OnMain(() => { Assert.DoesNotContain(presenter.Calls, call => call.Popup.IsOpen); presenter.Calls.Clear(); });
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+            }
+            store.Main.OnMain(() =>
+            {
+                Assert.False(kept.Row.IsAlive, "the tool row is pinned by its popover");
+                Assert.False(kept.Entry.IsAlive, "the tool row's entry is pinned by its popover");
+                Close(window);
+            });
+        }
     });
 }
