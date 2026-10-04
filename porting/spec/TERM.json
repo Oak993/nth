@@ -23,7 +23,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Renderer-side conditional mount with the same spring and ease pair, reading the OS Reduce Motion preference (SPI_GETCLIENTAREAANIMATION on Windows). Platform boundary: the Reduce Motion source.",
       "verification_method": "interaction test asserting mount and unmount, plus capture comparison of the transition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -517,7 +517,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same padding and capsule shape. Platform boundary: the terminal SF Symbol draws as Lucide \"square-terminal\" under OD-0010 (porting/icons/sf-symbols-to-lucide.json). Sizes per ED-059: the glyph's .caption is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) and the chip's .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), the text set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -542,7 +542,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same conditional control, same strings, drawn in the secondary text token (label colour at 0.7 opacity at B2, ED-062), not in the tab's inherited foreground. ED-059: the restart glyph's .caption2 is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), bold, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test: exit the shell, assert the button appears, click it, assert a live shell in the same position",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -568,7 +568,7 @@
       "cancellation": "not cancellable",
       "windows_path": "opacity 0 plus pointer-events: none, not display: none, so the layout width is unchanged. The glyph uses the secondary text token (label colour at 0.7 opacity at B2, ED-062). ED-059: the close glyph's .caption2 is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), bold, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test clicking the invisible cross position on an unselected, unhovered tab and asserting selection rather than close",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -592,7 +592,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the capsule as the click target.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -612,7 +612,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two states with the primary label colour at 8 percent for the selected fill.",
       "verification_method": "capture comparison in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -632,7 +632,7 @@
       "cancellation": "not cancellable",
       "windows_path": "opacity: 0.55 on the chip element.",
       "verification_method": "capture comparison after exiting a shell",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -653,7 +653,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings byte for byte, including U+00B7. UI Automation: ControlType Button, SelectionItemPattern IsSelected for the selected tab, Name set to the accessibility variant.",
       "verification_method": "unit test on the string builders plus an accessibility-tree assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -755,7 +755,7 @@
       "windows_path": "Named accepted deviation OD-0031 / ED-046: on Escape enumerate live descendants of the ConPTY shell; close and consume only when the shell has no live child program. Otherwise pass Escape to the terminal; unknown/error/timeout also passes it through. Keep the source key/modifier/focus guards. This is the approved Windows approximation, not foreground-process-group parity.",
       "cancellation": "not cancellable",
       "verification_method": "interaction test with the shell at its prompt and again with a foreground program running",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -789,7 +789,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A document-level keydown listener scoped to the session, attached and detached with the terminal component. Avoid leaking one listener per tab switch.",
       "verification_method": "unit test counting installed listeners across repeated tab switches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -815,7 +815,7 @@
       "cancellation": "The pending beat is cancelled by finishResize and by the container's deinit.",
       "windows_path": "Throttle the terminal fit/reflow to one call per 50 ms while a window resize is in progress, and stop the element from following the container in the meantime. Platform boundary: Windows has no willStartLiveResize notification; use the window's resize-modal messages or an equivalent in the host layer. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; this 50 ms terminal throttle is the source's own behaviour (TerminalPanel.swift:253-256, :414-426) and is kept.",
       "verification_method": "unit test on the coalescer plus a timing assertion during a scripted resize",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -838,7 +838,7 @@
       "cancellation": "not cancellable",
       "windows_path": "On resize end, clear the throttle and issue one final fit. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; it does not change this single final fit.",
       "verification_method": "interaction test asserting the final column count matches the settled width",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -885,7 +885,7 @@
       "cancellation": "The pending beat is cancelled here.",
       "windows_path": "Add and remove the window resize listeners with the component lifecycle; the pending throttle timer must be cleared on unmount.",
       "verification_method": "unit test counting registrations across window moves",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1552,7 +1552,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same placement, same string.",
       "verification_method": "capture comparison plus an interaction test on a project-less thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1576,7 +1576,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same header string and ordering.",
       "verification_method": "interaction test with zero, one and several scripts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1598,7 +1598,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings using the single ellipsis character, not three periods, and the Lucide plus and pencil icons that OD-0010's published table (porting/icons/sf-symbols-to-lucide.json) gives for the two SF Symbols.",
       "verification_method": "unit test on the label choice plus a byte comparison of the strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1829,7 +1829,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings and the same active state; the chord label in Windows notation (OD-0008 B7).",
       "verification_method": "capture comparison of both states plus a tooltip assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1908,7 +1908,7 @@
       "cancellation": "Dismissing discards the copy.",
       "windows_path": "Same copy-on-open, edit-locally, commit-on-save shape.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1956,7 +1956,7 @@
       "cancellation": "Dismissing with Cancel undoes the removal, because it was only local.",
       "windows_path": "Same single-click removal with no confirmation.",
       "verification_method": "interaction test including the cancel-restores case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1981,7 +1981,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same outline, same two tooltips, and the same narrower trim character set.",
       "verification_method": "unit test over blank, space-only and tab-only commands",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2002,7 +2002,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same label, same defaults.",
       "verification_method": "interaction test asserting the appended record and the disabled Save",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2026,7 +2026,7 @@
       "cancellation": "Cancel and Escape both discard.",
       "windows_path": "Same two labels, the same wholesale replacement and the same Escape-cancels behaviour.",
       "verification_method": "restart test after a save, plus an interaction test on cancel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3709,7 +3709,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1165 help: \"Terminal\" + ShortcutStore.hint(for: .toggleTerminal), \"Terminal (⌘J)\" by default; DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): \"Terminal (Ctrl+J)\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-016",
@@ -3730,7 +3731,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1153-1158",
         "DroppyCode/App/Views/Chat/ChatView.swift:1442"
       ],
-      "notes": "Tooltip is exactly \"Run a project script\". SF Symbol \"play\"; in the port it draws as Lucide \"play\" (OD-0010, porting/icons/sf-symbols-to-lucide.json)."
+      "notes": "Tooltip is exactly \"Run a project script\". SF Symbol \"play\"; in the port it draws as Lucide \"play\" (OD-0010, porting/icons/sf-symbols-to-lucide.json).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-017",
@@ -3750,7 +3752,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1443-1444"
       ],
-      "notes": "When it is omitted, so are the script rows and the divider, leaving only the add row."
+      "notes": "When it is omitted, so are the script rows and the divider, leaving only the add row.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-018",
@@ -3770,7 +3773,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1444-1448"
       ],
-      "notes": "The row's glyph is the script's own symbol, which comes from droppy-code.json's icon field mapped through the five-entry table, or \"play\". There is no way to change the symbol from the UI."
+      "notes": "The row's glyph is the script's own symbol, which comes from droppy-code.json's icon field mapped through the five-entry table, or \"play\". There is no way to change the symbol from the UI.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-019",
@@ -3791,7 +3795,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1452-1454"
       ],
-      "notes": "The ellipsis is the single character U+2026, not three full stops. SF Symbols \"plus\" and \"pencil\"; in the port Lucide \"plus\" and \"pencil\" (OD-0010, porting/icons/sf-symbols-to-lucide.json)."
+      "notes": "The ellipsis is the single character U+2026, not three full stops. SF Symbols \"plus\" and \"pencil\"; in the port Lucide \"plus\" and \"pencil\" (OD-0010, porting/icons/sf-symbols-to-lucide.json).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-020",
@@ -3817,7 +3822,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1463 `.presentationBackground { WindowBackdrop(opacity: model.settings.backdropOpacity) }`, macOS Liquid Glass (DroppyCode/UI/Chrome/Chrome.swift:202 `struct WindowBackdrop: View {`)",
         "port": "Over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing. The Acrylic-class Windows system material, without lensing, refraction or chromatic fringing, is used only where the window shows the desktop, which this surface does not"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-021",
@@ -3839,7 +3845,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:49 - `case .title2: 17` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1666 `.font(.system(size: 17, weight: .semibold))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1662 `.font(.system(.title2, weight: .semibold))`, 17 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). String unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1666 `.font(.system(size: 17, weight: .semibold))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1662 `.font(.system(.title2, weight: .semibold))`, 17 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). String unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-022",
@@ -3866,7 +3873,8 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1663 `Text(\"Scripts run in a terminal at the project root. Droppy Code also picks up scripts from droppy-code.json.\")`",
         "port": "The explanation reads \"Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.\"; the file name droppy-code.json is kept (OD-0008 B13, excepted by F1)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-023",
@@ -3891,7 +3899,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:224 `case .runScript: KeyChord(keyCode: 15, modifiers: .command)` (⌘R)",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the Run top script chord is Ctrl+R by default."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-024",
@@ -3911,7 +3920,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1672-1674"
       ],
-      "notes": "Only the command is validated. A script saved with an empty name shows as an empty menu row."
+      "notes": "Only the command is validated. A script saved with an empty name shows as an empty menu row.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-025",
@@ -3931,7 +3941,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1674-1679"
       ],
-      "notes": "SF Symbol \"trash\"; in the port Lucide \"trash\" (OD-0010, porting/icons/sf-symbols-to-lucide.json). settings.confirmBeforeDeleting is NOT consulted here. Cancel still restores the script, because the removal is local until Save."
+      "notes": "SF Symbol \"trash\"; in the port Lucide \"trash\" (OD-0010, porting/icons/sf-symbols-to-lucide.json). settings.confirmBeforeDeleting is NOT consulted here. Cancel still restores the script, because the removal is local until Save.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-026",
@@ -3955,7 +3966,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "The trim is trimmingCharacters(in: .whitespaces), not .whitespacesAndNewlines: .whitespaces holds Unicode Zs plus the tab, so a tab-only command is incomplete and a command holding a line feed is complete (corrected 2026-09-27; R-STR-7). The comment at :1684-1685 records that such a script used to be dropped on save without a word.",
-      "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1687 `.font(.system(size: 12, design: .monospaced))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1683 `.font(.system(.callout, design: .monospaced))`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Placeholder, overlay and trim rule unchanged; lines moved."
+      "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1687 `.font(.system(size: 12, design: .monospaced))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1683 `.font(.system(.callout, design: .monospaced))`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Placeholder, overlay and trim rule unchanged; lines moved.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-027",
@@ -3975,7 +3987,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1692-1693"
       ],
-      "notes": "Flagged scripts run in the NEW WORKTREE path, not the project path, when a worktree is created for a thread."
+      "notes": "Flagged scripts run in the NEW WORKTREE path, not the project path, when a worktree is created for a thread.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-028",
@@ -4000,7 +4013,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1707 `.buttonStyle(.glass)` on the Add script button, macOS Liquid Glass, drawn over the Project scripts sheet's content",
         "port": "Over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing. The Acrylic-class Windows system material, without lensing, refraction or chromatic fringing, is used only where the window shows the desktop, which this surface does not"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-029",
@@ -4025,7 +4039,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1710 `.buttonStyle(.glass)` on the Cancel button, macOS Liquid Glass, drawn over the Project scripts sheet's content",
         "port": "Over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing. The Acrylic-class Windows system material, without lensing, refraction or chromatic fringing, is used only where the window shows the desktop, which this surface does not"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-030",
@@ -4051,7 +4066,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1716 `.buttonStyle(.glassProminent)` on the Save button, macOS Liquid Glass, drawn over the Project scripts sheet's content",
         "port": "Over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing. The Acrylic-class Windows system material, without lensing, refraction or chromatic fringing, is used only where the window shows the desktop, which this surface does not"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-031",

@@ -3026,7 +3026,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the condition.",
       "verification_method": "interaction test on a fresh thread and on one with a turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3431,7 +3431,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of all five verbs and the three-step title fallback.",
       "verification_method": "interaction test observing the title during a slow push",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3456,7 +3456,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the unsingularised tooltip variant.",
       "verification_method": "interaction test at zero, one and several changed files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3507,7 +3507,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Direct port, including that a push failure surfaces under the commit's title.",
       "verification_method": "interaction test with a failing pre-commit hook and with a failing push",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3533,7 +3533,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. The %s and %b format tokens must reach git.exe unexpanded, so no shell.",
       "verification_method": "interaction test with an empty commit body asserting the fallback body string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4034,7 +4034,7 @@
       "cancellation": "not applicable",
       "windows_path": "Reveal maps to opening Explorer at that path. Keep the detail text verbatim including the omission of tea.",
       "verification_method": "capture comparison of the settings section plus an interaction test on Reveal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4864,7 +4864,8 @@
         "decision": "OD-0005",
         "upstream": "`ChromeCapsule {` (DroppyCode/App/Views/Chat/ChatView.swift:1164) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-025",
@@ -4910,7 +4911,8 @@
         "decision": "OD-0005",
         "upstream": "`ChromeCapsule {` (DroppyCode/App/Views/Chat/ChatView.swift:1153) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-027",
@@ -4926,7 +4928,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1479-1480"
       ],
-      "notes": "Exactly \"1 changed file\" at one, otherwise the count followed by \" changed files\". This note is correctly singularised even though the button's tooltip is not."
+      "notes": "Exactly \"1 changed file\" at one, otherwise the count followed by \" changed files\". This note is correctly singularised even though the button's tooltip is not.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-028",
@@ -4946,7 +4949,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1481"
       ],
-      "notes": "The trailing character is the single ellipsis character U+2026, not three periods."
+      "notes": "The trailing character is the single ellipsis character U+2026, not three periods.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-029",
@@ -4967,7 +4971,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1482",
         "DroppyCode/App/Views/Chat/ChatView.swift:1495-1503"
       ],
-      "notes": "There is no confirmation step. A failure raises an alert titled \"Push failed\"."
+      "notes": "There is no confirmation step. A failure raises an alert titled \"Push failed\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-030",
@@ -4988,7 +4993,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1483",
         "DroppyCode/App/Views/Chat/ChatView.swift:1505-1527 openPullRequest() - `try await repository.push()`, the reads `repository.output([\"log\", \"-1\", \"--pretty=%s\"])` and `repository.output([\"log\", \"-1\", \"--pretty=%b\"])`, `repository.createPullRequest(...)`, then `NSWorkspace.shared.open(url)` on success"
       ],
-      "notes": "The label says pull request even on GitLab, where the object created is a merge request."
+      "notes": "The label says pull request even on GitLab, where the object created is a merge request.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-031",
@@ -5008,7 +5014,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1484-1487"
       ],
-      "notes": "The symbol names a specific browser but the action uses the user's default one."
+      "notes": "The symbol names a specific browser but the action uses the user's default one.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-032",
@@ -5032,7 +5039,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:49 - `case .title2: 17` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "The title is \"Commit changes\", two words, sentence case. ED-059: .title2 at 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
-      "b2_change": "title `.font(.system(size: 17, weight: .semibold))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1550) -> `.font(.system(.title2, weight: .semibold))` (B2 :1546); B1 DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The sheet moved from B1 :1534-1614 to B2 :1530-1610 (four lines removed at B1 :120-123)."
+      "b2_change": "title `.font(.system(size: 17, weight: .semibold))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1550) -> `.font(.system(.title2, weight: .semibold))` (B2 :1546); B1 DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The sheet moved from B1 :1534-1614 to B2 :1530-1610 (four lines removed at B1 :120-123).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-033",
@@ -5054,7 +5062,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 - `case .subheadline: 11` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "The content is the raw output of git status --short, unparsed. ED-059: .subheadline at 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
-      "b2_change": "`.font(.system(size: 11, design: .monospaced))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1554) -> `.font(.system(.subheadline, design: .monospaced))` (B2 :1550); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. Lines moved from B1 :1551-1560 to B2 :1547-1556."
+      "b2_change": "`.font(.system(size: 11, design: .monospaced))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1554) -> `.font(.system(.subheadline, design: .monospaced))` (B2 :1550); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. Lines moved from B1 :1551-1560 to B2 :1547-1556.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-034",
@@ -5079,7 +5088,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "The generating placeholder ends with the single ellipsis character U+2026. ED-059: .body at 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "editor `.font(.system(size: 13))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1563) -> `.font(.system(.body))` (B2 :1559); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The placeholder had no font modifier at B1 either (B1 :1567-1571) and still inherits the default body style, so its rendered size is unchanged. Lines moved from B1 :1561-1575 to B2 :1557-1571."
+      "b2_change": "editor `.font(.system(size: 13))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1563) -> `.font(.system(.body))` (B2 :1559); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The placeholder had no font modifier at B1 either (B1 :1567-1571) and still inherits the default body style, so its rendered size is unchanged. Lines moved from B1 :1561-1575 to B2 :1557-1571.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-035",
@@ -5105,7 +5115,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Chat/ChatView.swift:1590), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-036",
@@ -5126,7 +5137,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1541",
         "DroppyCode/App/Views/Chat/ChatView.swift:1593-1594"
       ],
-      "notes": "It is not persisted: the default is off every time the sheet opens. A push that fails is reported under the title \"Commit failed\"."
+      "notes": "It is not persisted: the default is off every time the sheet opens. A push that fails is reported under the title \"Commit failed\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-037",
@@ -5149,7 +5161,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Chat/ChatView.swift:1597), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-038",
@@ -5175,7 +5188,8 @@
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glassProminent)` (DroppyCode/App/Views/Chat/ChatView.swift:1599), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-039",
@@ -5202,7 +5216,8 @@
         "decision": "OD-0005",
         "upstream": "ChromeTextMenu (DroppyCode/App/Views/Chat/ChatView.swift:1355) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:504), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-040",
@@ -5223,7 +5238,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1360-1369"
       ],
-      "notes": "The list is capped at 25 with no overflow affordance, so a repository with more branches simply cannot reach the rest from here."
+      "notes": "The list is capped at 25 with no overflow affordance, so a repository with more branches simply cannot reach the rest from here.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-041",
@@ -5241,7 +5257,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1370-1374"
       ],
-      "notes": "Trailing character is the single ellipsis U+2026."
+      "notes": "Trailing character is the single ellipsis U+2026.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-042",
@@ -5262,7 +5279,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1375-1379",
         "DroppyCode/App/AppModel.swift:1125-1150"
       ],
-      "notes": "Once the thread has a single turn the row disappears, so a thread's working directory never changes mid-conversation."
+      "notes": "Once the thread has a single turn the row disappears, so a thread's working directory never changes mid-conversation.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-043",
@@ -5283,7 +5301,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1381-1385",
         "DroppyCode/App/Views/Chat/ChatView.swift:1398-1408 createBranch() - `let name = branchName.trimmed.replacingOccurrences(of: \" \", with: \"-\")`; `guard !name.isEmpty else { return }`"
       ],
-      "notes": "Alert title \"New branch\"; the field's placeholder is \"Branch name\"; the buttons are \"Create\" and \"Cancel\", the latter carrying the cancel role. An empty name after normalisation does nothing at all, with no message."
+      "notes": "Alert title \"New branch\"; the field's placeholder is \"Branch name\"; the buttons are \"Create\" and \"Cancel\", the latter carrying the cancel role. An empty name after normalisation does nothing at all, with no message.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-044",
@@ -5659,7 +5678,8 @@
         "decision": "OD-0005",
         "upstream": "Reveal `.buttonStyle(.glass)` (DroppyCode/App/Views/Settings/SettingsView.swift:840), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-060",
@@ -5683,7 +5703,8 @@
         "DroppyCode/App/AppModel.swift:1129",
         "DroppyCode/App/AppModel.swift:1148"
       ],
-      "notes": "The seven titles in this area are exactly: \"Could not switch branch\", \"Could not create branch\", \"Push failed\", \"Could not open a pull request\", \"Commit failed\", \"Worktree unavailable\" and \"Could not create a worktree\". Every body is the thrown error's description, which for a git failure is the trimmed stderr, else the trimmed stdout, else \"The command failed with exit code <n>.\" The one fixed body is the worktree one: \"New worktrees need a git repository with at least one commit.\""
+      "notes": "The seven titles in this area are exactly: \"Could not switch branch\", \"Could not create branch\", \"Push failed\", \"Could not open a pull request\", \"Commit failed\", \"Worktree unavailable\" and \"Could not create a worktree\". Every body is the thrown error's description, which for a git failure is the trimmed stderr, else the trimmed stdout, else \"The command failed with exit code <n>.\" The one fixed body is the worktree one: \"New worktrees need a git repository with at least one commit.\"",
+      "status": "IMPLEMENTED"
     }
   ]
 }

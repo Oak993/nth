@@ -4887,7 +4887,8 @@
         "decision": "OD-0005",
         "upstream": "The setting is documented \"How solid the window's backdrop is, 0 (clear glass, the desktop shows through) to 1 (a solid base).\" (DroppyCode/App/AppSettings.swift:293-294): below the solid end the desktop shows through the window's glass",
         "port": "Where the backdrop lets the desktop show through, it shows through an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing. The slider itself is unchanged; the backdrop rendering is specified by the WIN area"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-010",
@@ -4908,7 +4909,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:528-531"
       ],
       "notes": "The tooltip is the only text; the glyph itself carries no label.",
-      "b2_change": "Re-cited B1 SettingsView.swift:544-547 -> B2 :528-531. Font `.system(size: 11)` (B1 :545) -> `.system(.subheadline)` (B2 :529); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage)."
+      "b2_change": "Re-cited B1 SettingsView.swift:544-547 -> B2 :528-531. Font `.system(size: 11)` (B1 :545) -> `.system(.subheadline)` (B2 :529); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-011",
@@ -4955,7 +4957,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:543-560"
       ],
       "notes": "Because it is an overlay, the slider must not move when it appears; a layout-participating reset is the wrong implementation.",
-      "b2_change": "Re-cited B1 SettingsView.swift:559-576 -> B2 :543-560. Font `.system(size: 11, weight: .medium)` (B1 :565) -> `.system(.subheadline, weight: .medium)` (B2 :549); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Threshold, offset, transition and tooltip unchanged."
+      "b2_change": "Re-cited B1 SettingsView.swift:559-576 -> B2 :543-560. Font `.system(size: 11, weight: .medium)` (B1 :565) -> `.system(.subheadline, weight: .medium)` (B2 :549); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Threshold, offset, transition and tooltip unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-013",
@@ -5290,7 +5293,8 @@
         "DroppyCode/App/AppSettings.swift:122",
         "DroppyCode/App/AppSettings.swift:713"
       ],
-      "notes": "Detail is the fixed string \"A soft chime, whether or not the thread is in view\". Persisted under the key \"chimeWhenFinished\"."
+      "notes": "Detail is the fixed string \"A soft chime, whether or not the thread is in view\". Persisted under the key \"chimeWhenFinished\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-027",
@@ -5313,7 +5317,8 @@
         "DroppyCode/App/AppSettings.swift:126",
         "DroppyCode/App/AppSettings.swift:717"
       ],
-      "notes": "Detail is the fixed string \"A small note as the thread settles\". Persisted under the key \"settleSound\". A newly connected MCP server plays this chime without consulting this setting."
+      "notes": "Detail is the fixed string \"A small note as the thread settles\". Persisted under the key \"settleSound\". A newly connected MCP server plays this chime without consulting this setting.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-028",

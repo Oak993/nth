@@ -4685,7 +4685,8 @@
         "upstream": "DroppyCode/App/AppSettings.swift:369, :378, :389 through storeAPIKeyChange (:483-487) with storeAPIKeyFallback (:489-498): a key the Keychain refuses is kept in plain text in UserDefaults and nothing is shown under the field.",
         "port": "A refused key is not stored and the line 'Credential Manager did not accept this key, so it was not saved.' shows under the field."
       },
-      "b2_change": "The field moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:688-698 to B2 :720-730 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789): visible, editable and focusable only while that section is expanded, and a provider that is not signed in starts collapsed (:594-596, :608)."
+      "b2_change": "The field moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:688-698 to B2 :720-730 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789): visible, editable and focusable only while that section is expanded, and a provider that is not signed in starts collapsed (:594-596, :608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-006",

@@ -6183,7 +6183,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The product name in the header and in the licence sentence reads \"Marrow\" (OD-0002; OD-0012 F1). The body paragraph is the owner-ruled \"A native home for your coding agents, built in C# with Avalonia.\" (OD-0008 B15, worded by OD-0012 H). The licence sentence keeps its AGPL attribution clause; its SwiftTerm clause names the terminal component the Windows build actually ships, with that component's licence (OD-0012 H). The component is whichever terminal the Windows build ships and is taken from that build, not chosen here. Upstream defect 99 (an MIT copyright string against an AGPL licence) is an owner decision and is not reproduced blindly.",
       "verification_method": "capture comparison of the card; unit test on the version string format",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "99",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7213,7 +7213,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51-52 chatBaseSize - .body 13, .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The prompt is the SidebarSearchField default \"Search\"; SettingsView passes no prompt. Do not copy ChromeSearchField's metrics here: the two fields differ in twelve documented ways.",
-      "spec_fix": "typography gave the B1 literals `.system(size: 13)` and `.system(size: 12, weight: .medium)` -> at B2 SidebarSearchField sets the field in `.system(.body)` and the magnifier in `.system(.callout, weight: .medium)` (DroppyCode/UI/Chrome/Chrome.swift:791, :787), and the clear icon in `.system(.callout)` (:801); 13pt and 12pt by B1:DroppyCode/UI/Common/ChatZoom.swift:51-52 (ED-059)"
+      "spec_fix": "typography gave the B1 literals `.system(size: 13)` and `.system(size: 12, weight: .medium)` -> at B2 SidebarSearchField sets the field in `.system(.body)` and the magnifier in `.system(.callout, weight: .medium)` (DroppyCode/UI/Chrome/Chrome.swift:791, :787), and the clear icon in `.system(.callout)` (:801); 13pt and 12pt by B1:DroppyCode/UI/Common/ChatZoom.swift:51-52 (ED-059)",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-004",
@@ -7363,7 +7364,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "This is ChromeSearchField, not SidebarSearchField; the two differ in twelve recorded ways and must not share one implementation blindly.",
-      "spec_fix": "typography gave the magnifier as the B1 literal `.system(size: 12, weight: .semibold)` -> at B2 ChromeSearchField draws it at `.system(.callout, weight: .semibold)` (DroppyCode/UI/Chrome/Chrome.swift:836) and the clear icon at `.system(.callout)` (:850); the field stays `.system(size: 12.5)` (:844); 12pt by B1:DroppyCode/UI/Common/ChatZoom.swift:52 (ED-059)"
+      "spec_fix": "typography gave the magnifier as the B1 literal `.system(size: 12, weight: .semibold)` -> at B2 ChromeSearchField draws it at `.system(.callout, weight: .semibold)` (DroppyCode/UI/Chrome/Chrome.swift:836) and the clear icon at `.system(.callout)` (:850); the field stays `.system(size: 12.5)` (:844); 12pt by B1:DroppyCode/UI/Common/ChatZoom.swift:52 (ED-059)",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-010",
@@ -7384,7 +7386,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:251-253"
       ],
-      "notes": "Prompt differs from the Models field only in its text."
+      "notes": "Prompt differs from the Models field only in its text.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-011",
@@ -7408,7 +7411,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"arrow.clockwise\". The tooltip uses a single horizontal ellipsis character.",
-      "spec_fix": "typography gave Chrome.iconFont as the B1 literal `.system(size: 12, weight: .semibold)` -> at B2 it is `.system(.callout, weight: .semibold)` (DroppyCode/UI/Chrome/Chrome.swift:28), 12pt by B1:DroppyCode/UI/Common/ChatZoom.swift:52 (ED-059)"
+      "spec_fix": "typography gave Chrome.iconFont as the B1 literal `.system(size: 12, weight: .semibold)` -> at B2 it is `.system(.callout, weight: .semibold)` (DroppyCode/UI/Chrome/Chrome.swift:28), 12pt by B1:DroppyCode/UI/Common/ChatZoom.swift:52 (ED-059)",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-012",
@@ -7431,7 +7435,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:296-305"
       ],
-      "notes": "One shared component; every boolean row in General, Hydra and Providers uses it."
+      "notes": "One shared component; every boolean row in General, Hydra and Providers uses it.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-013",
@@ -7458,7 +7463,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "GlassPickerButton is 4pt shorter than ChromeTextMenu and ChromeTextButton because it omits the 2pt vertical capsule padding. This is an upstream inconsistency that is to be reproduced. The popover's ForEach identity is the option's index, not its value.",
-      "spec_fix": "typography gave the leading symbol as the B1 literal `.system(size: 12, weight: .medium)` -> at B2 GlassPickerButton draws it at `.system(.callout, weight: .medium)` (DroppyCode/UI/Chrome/Chrome.swift:898), 12pt by B1:DroppyCode/UI/Common/ChatZoom.swift:52 (ED-059)"
+      "spec_fix": "typography gave the leading symbol as the B1 literal `.system(size: 12, weight: .medium)` -> at B2 GlassPickerButton draws it at `.system(.callout, weight: .medium)` (DroppyCode/UI/Chrome/Chrome.swift:898), 12pt by B1:DroppyCode/UI/Common/ChatZoom.swift:52 (ED-059)",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-014",
@@ -7525,7 +7531,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:1130-1147"
       ],
-      "notes": "Tooltip is the verbatim \"Choose a mark for each project\". Rows inside the popover are ChromeRow with the project name as title and its path as detail."
+      "notes": "Tooltip is the verbatim \"Choose a mark for each project\". Rows inside the popover are ChromeRow with the project name as title and its path as detail.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-017",
@@ -7576,7 +7583,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The reset is an overlay, not a layout sibling, so the slider stays flush with the card's other controls whether or not it is showing. Accessibility label is the verbatim \"Window transparency\", which differs from the row title.",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:535-580 -> 1fbf81e6 :519-563; glyph fonts 11 -> .subheadline (11pt)."
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra). Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:535-580 -> 1fbf81e6 :519-563; glyph fonts 11 -> .subheadline (11pt).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-019",
@@ -8422,7 +8430,8 @@
         "decision": "OD-0008 A6; OD-0012 E5",
         "upstream": "A key the Keychain refuses is kept in plain text under the defaults and nothing is shown (AppSettings.swift:367-400, :491-498).",
         "port": "The refused key is stored nowhere and \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-051",
@@ -8447,7 +8456,8 @@
         "DroppyCode/UI/Common/Components.swift:117-133"
       ],
       "notes": "The 16-point label clamp exists so a monospaced label does not draw a taller capsule than a plain one beside it. The Sign in row is hidden while a check runs so it never flashes in before the answer.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:710-748 -> 1fbf81e6 :742-780; unchanged."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:710-748 -> 1fbf81e6 :742-780; unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-052",
@@ -8688,7 +8698,8 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1013 `(\"Droppy Code\", \"LICENSE\")`",
         "port": "The LICENSE block is titled \"Marrow\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-061",
@@ -8844,7 +8855,8 @@
         "DroppyCode/App/AppSettings.swift:882-889"
       ],
       "notes": "There are fourteen of these, one per provider, and every one is present whether or not the provider is installed. Its accessible name comes from the section header, which is the provider's display name.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:659-662 -> 1fbf81e6 :691-694; the switch now sits inside the collapsible card and is unreachable while the section is collapsed."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:659-662 -> 1fbf81e6 :691-694; the switch now sits inside the collapsible card and is unreachable while the section is collapsed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-067",
@@ -8889,7 +8901,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:808-816",
         "DroppyCode/App/AppSettings.swift:3-19"
       ],
-      "notes": "The icon lookup is `ProviderKind(rawValue: $0.rawValue)?.iconName`, which deliberately finds nothing for two of the four options."
+      "notes": "The icon lookup is `ProviderKind(rawValue: $0.rawValue)?.iconName`, which deliberately finds nothing for two of the four options.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-069",
@@ -9188,7 +9201,8 @@
         "DroppyCode/UI/Common/AppZoom.swift:6-15",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
-      "notes": "Symbols \"textformat.size.smaller\", \"textformat.size.larger\", \"arrow.counterclockwise\". No explicit accessibility label or value is set on the group. Levels 75, 90, 100, 110, 125, 150, 175, 200."
+      "notes": "Symbols \"textformat.size.smaller\", \"textformat.size.larger\", \"arrow.counterclockwise\". No explicit accessibility label or value is set on the group. Levels 75, 90, 100, 110, 125, 150, 175, 200.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-080",

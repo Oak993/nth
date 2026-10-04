@@ -3563,7 +3563,7 @@
       "cancellation": "The flag clears when every drag state releases.",
       "windows_path": "Disable pointer events on the conversation for the duration of a panel drag.",
       "verification_method": "interaction test measuring frame times during a panel drag",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3585,7 +3585,7 @@
       "cancellation": "The slide is suppressed during a live resize, while a panel grip is held, and across a thread switch.",
       "windows_path": "Animate a transform, never the padding. This is a measured performance requirement on long conversations.",
       "verification_method": "interaction test docking a panel on a long thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3912,7 +3912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The caption-button band, not the sidebar, is the trigger. ED-063: the caption controls are app-drawn on the leading edge; the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its leading-edge controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu. The caption buttons therefore stay on the leading edge and the inset is the leading clearance the source states; the rule stays 'clear the caption buttons, animated on the same value'. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test toggling the sidebar across the holdsTrafficLights threshold and asserting the leading inset and the animation token",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3934,7 +3934,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both tooltip strings are user-visible and are kept verbatim. The two-way behaviour (toggle the panel versus open a popover) is a real branch, not a presentation detail.",
       "verification_method": "interaction test over the four combinations of sidebarFloats and sidebarOnlyFloats, asserting presence, tooltip text and the action taken",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3955,7 +3955,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The width follows the live sidebar width; only the 560 height is fixed. The capture-frame observer is not ported: the capture subsystem runs only under the --website-captures or --tour-captures launch arguments (porting/dead_code.md entries 28 and 33, ED-061) and ED-001 decides not to port it or its CaptureRun indirection.",
       "verification_method": "interaction test asserting the popover size and arrow edge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3978,7 +3978,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation. The tooltip is a concatenation, so the Windows shortcut-hint formatter feeds the same slot. The hint renders the chord in Windows notation (Ctrl+Alt+Shift+key) under decision B7 of owner decision OD-0008, a named deviation, not parity.",
       "verification_method": "interaction test asserting the symbol, the concatenated tooltip and the newThread call with the row's project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4003,7 +4003,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The em dash in the tooltip is part of the reproduced upstream string and is kept; the port repository's own no-em-dash rule governs its own code and prose, not text copied verbatim from the source. The disabled animation is load-bearing and must not be left to a default crossfade. The row's gaps drag the window while the button takes its presses through the title-bar hit testing of ED-063 (leading-edge controls declared through SetNonClientHitTestResult, WndProc hook for the caption actions). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison of the empty and non-empty title, plus an interaction test that a thread switch shows no crossfade",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4032,7 +4032,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Clear-then-set is observable (a prior clipboard flavour does not survive), so the Windows clipboard write empties the clipboard first. The item strings and the single-character ellipsis are kept verbatim.",
       "verification_method": "interaction test asserting the header and item strings and that the clipboard is cleared before the write",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4054,7 +4054,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A modal dialog with the same three strings and the same placeholder. Cancel must be the cancel-role button so Escape dismisses it.",
       "verification_method": "interaction test asserting the three strings, the placeholder, and that Cancel performs no write",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4076,7 +4076,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The tooltip separator is U+00B7 with a space on each side, not a hyphen and not a comma. The item list is generated from the enum, never hard-coded, so adding a mode cannot leave the menu stale.",
       "verification_method": "contract fixture asserting the tooltip format and one item per RuntimeMode case in order, with the check on the current mode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4099,7 +4099,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Deviation OD-0012 G4: the first item reads \"File Explorer\" and opens the directory in File Explorer; \"Terminal\" in the editor list is Windows Terminal, and Xcode and iTerm are left out because they do not exist on Windows. \"Open in another app\", \"Open in\" and \"Copy path\" are platform-neutral and are kept verbatim. Which editors count as installed, and how the directory is handed to each, follow PR-CHAT-181 and PR-CHAT-182.",
       "verification_method": "interaction test asserting the header, the File Explorer item, the editor items in catalogue order, the divider and Copy path, and the clear-then-set clipboard write",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4187,7 +4187,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The asymmetry is real and must be kept: the terminal button writes the flag, the changes button calls toggleDiff. Both tooltips are concatenations with the shortcut hint. Both hints render the chord in Windows notation (Ctrl+Alt+Shift+key) under decision B7 of owner decision OD-0008, a named deviation, not parity.",
       "verification_method": "interaction test asserting the two symbols, both concatenated tooltips, the active binding in both directions and that Changes routes through toggleDiff",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4919,7 +4919,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1401-1405",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:38-54"
       ],
-      "notes": "Symbol chevron.left.forwardslash.chevron.right. The scan is a line-prefix test and does not understand indented fences, tildes or info strings."
+      "notes": "Symbol chevron.left.forwardslash.chevron.right. The scan is a line-prefix test and does not understand indented fences, tildes or info strings.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-021",
@@ -6189,7 +6190,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1125-1131",
         "DroppyCode/App/Views/Chat/ChatView.swift:1244-1265"
       ],
-      "notes": "Symbol list.bullet. The second tooltip string is exactly \"Threads\". The popover holds SidebarView(inPopover: true, dismiss:) with .presentedChrome()."
+      "notes": "Symbol list.bullet. The second tooltip string is exactly \"Threads\". The popover holds SidebarView(inPopover: true, dismiss:) with .presentedChrome().",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-075",
@@ -6209,7 +6211,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1132-1134"
       ],
-      "notes": "Symbol square.and.pencil. The tooltip is \"New thread\" with ShortcutStore.hint(for: .newThread) appended. The hint renders the chord in Windows notation (Ctrl+Alt+Shift+key) under decision B7 of owner decision OD-0008, a named deviation, not parity."
+      "notes": "Symbol square.and.pencil. The tooltip is \"New thread\" with ShortcutStore.hint(for: .newThread) appended. The hint renders the chord in Windows notation (Ctrl+Alt+Shift+key) under decision B7 of owner decision OD-0008, a named deviation, not parity.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-076",
@@ -6240,7 +6243,8 @@
         "decision": "OD-0012 G3",
         "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1212 `.help(\"Thread title — click to copy or rename\")`",
         "port": "Kept verbatim: the tooltip reads \"Thread title — click to copy or rename\" with the U+2014 em dash, as OD-0008 B14 keeps the other eight."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-077",
@@ -6261,7 +6265,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1215-1230"
       ],
-      "notes": "Header \"Thread title\"; items \"Copy title\" (doc.on.doc) and \"Rename…\" (pencil, single U+2026)."
+      "notes": "Header \"Thread title\"; items \"Copy title\" (doc.on.doc) and \"Rename…\" (pencil, single U+2026).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-078",
@@ -6282,7 +6287,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1231-1237"
       ],
-      "notes": "Field placeholder \"Title\"; buttons \"Rename\" and \"Cancel\"."
+      "notes": "Field placeholder \"Title\"; buttons \"Rename\" and \"Cancel\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-079",
@@ -6303,7 +6309,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1329-1343"
       ],
-      "notes": "The symbol is the current mode's own symbol; the tooltip is \"<title> · <summary>\" with U+00B7 and one space on each side. Section header \"Permissions\"."
+      "notes": "The symbol is the current mode's own symbol; the tooltip is \"<title> · <summary>\" with U+00B7 and one space on each side. Section header \"Permissions\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-080",
@@ -6331,7 +6338,8 @@
         "decision": "OD-0012 G4",
         "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1417-1419 `PopoverItem(\"Finder\", image: Workspace.finderIcon) { NSWorkspace.shared.open(URL(fileURLWithPath: directory)) }`; the editor items come from Workspace.installedEditors (:1420-1424), filtered from the seven-entry catalogue at DroppyCode/UI/Common/Components.swift:107-115, which includes Xcode, Terminal (com.apple.Terminal) and iTerm.",
         "port": "The first item reads \"File Explorer\", carries File Explorer's icon and opens the chat's directory in File Explorer. The editor items come from the Windows catalogue of PR-CHAT-181, where \"Terminal\" is Windows Terminal and Xcode and iTerm are left out, so they never appear."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-081",
@@ -6353,7 +6361,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1164-1172"
       ],
-      "notes": "Symbols terminal and plusminus. The tooltips are \"Terminal\" and \"Changes\" with the toggleTerminal and toggleChanges shortcut hints appended. Both hints render in Windows notation (Ctrl+Alt+Shift+key) under decision B7 of owner decision OD-0008, a named deviation, not parity."
+      "notes": "Symbols terminal and plusminus. The tooltips are \"Terminal\" and \"Changes\" with the toggleTerminal and toggleChanges shortcut hints appended. Both hints render in Windows notation (Ctrl+Alt+Shift+key) under decision B7 of owner decision OD-0008, a named deviation, not parity.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-082",

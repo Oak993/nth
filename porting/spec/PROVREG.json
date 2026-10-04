@@ -6610,7 +6610,8 @@
         "E:/Droppy/port/porting/extracts/chrome-design-tokens.md:1343-1348"
       ],
       "notes": "Each divider belongs to the row that follows it, so a card whose optional rows are all absent shows the status row with no divider at all. The asymmetric leading-only padding is a source fact.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-010",
@@ -7318,7 +7319,8 @@
         "decision": "OD-0012 E5",
         "upstream": "No message: a refused Keychain write falls back to a plaintext copy silently (AppSettings.swift:367-400, :483-487, :489-498).",
         "port": "Under the key field: \"Credential Manager did not accept this key, so it was not saved.\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-039",
@@ -7396,7 +7398,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The placeholders are the executable names, so Cursor's reads cursor-agent, Antigravity's reads agy, Command Code's reads cmd, and OpenCode Zen's and OpenCode Go's both read opencode; each of the two has its own stored path. Unlike the API key field, editing this does not re-check the provider: the user must press the refresh button or relaunch. The detail line showing the resolved path is the only feedback that a path took effect, and it only updates after a refresh.",
-      "b2_change": "Row unchanged apart from its lines (B1 SettingsView.swift:721-728 -> B2 :753-760), but ProviderKind grew to 14 (B2 Provider.swift:8) and opencodeGo is not API-key based, so the row is shown for eleven of the fourteen providers, not ten of thirteen; OpenCode Go's placeholder is \"opencode\" (B2 Provider.swift:46). B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
+      "b2_change": "Row unchanged apart from its lines (B1 SettingsView.swift:721-728 -> B2 :753-760), but ProviderKind grew to 14 (B2 Provider.swift:8) and opencodeGo is not API-key based, so the row is shown for eleven of the fourteen providers, not ten of thirteen; OpenCode Go's placeholder is \"opencode\" (B2 Provider.swift:46). B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-042",

@@ -1732,7 +1732,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-part gate in the chat layout; the measured-size gate matters because the placer divides the pane.",
       "verification_method": "interaction test toggling the setting, switching threads and resizing from zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1760,7 +1760,7 @@
       "cancellation": "Releasing commits whatever corner was last computed; there is no revert.",
       "windows_path": "Same corner enumeration and the same persisted key; the nearest-dock computation belongs to the shared panel layout.",
       "verification_method": "interaction test dragging across all four corners plus a restart test on the stored corner",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1806,7 +1806,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same precedence ladder and the same double floor; the 94 constant must be derived from the strip height, not hardcoded independently.",
       "verification_method": "unit test on the height function across the precedence cases and a tiny pane",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1832,7 +1832,7 @@
       "cancellation": "not cancellable; releasing commits.",
       "windows_path": "Same grip arithmetic including both sign flips; commit on pointer-up only.",
       "verification_method": "interaction test dragging each grip from each corner, asserting one write on release",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1858,7 +1858,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Delete the key from the settings store; a null value must not be persisted.",
       "verification_method": "restart test after a reset, asserting the key is absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3815,7 +3815,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:527, :554-579, :581-590"
       ],
-      "notes": "Width and height go to different persisted keys; a naive single-size implementation would resize every panel's height too."
+      "notes": "Width and height go to different persisted keys; a naive single-size implementation would resize every panel's height too.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-042",
@@ -3876,7 +3877,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:378",
         "DroppyCode/App/AppSettings.swift:635-637, :774"
       ],
-      "notes": "The same setting is written by the popover's pop-out button and by the panel's close button, so all three stay in sync."
+      "notes": "The same setting is written by the popover's pop-out button and by the panel's close button, so all three stay in sync.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-045",

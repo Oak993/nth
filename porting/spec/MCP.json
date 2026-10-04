@@ -8534,7 +8534,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:214",
         "DroppyCode/App/Views/Settings/SettingsView.swift:280"
       ],
-      "notes": "The control belongs to the Settings area, but its query is the MCP page's only input for filtering and the matching rule (PR-MCP-202) is owned here."
+      "notes": "The control belongs to the Settings area, but its query is the MCP page's only input for filtering and the matching rule (PR-MCP-202) is owned here.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-091",

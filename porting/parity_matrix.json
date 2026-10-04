@@ -7,11 +7,11 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3770,
+      "IMPLEMENTED": 3825,
       "RETIRED": 15,
-      "SPECIFIED": 180,
+      "SPECIFIED": 127,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
-      "DISCOVERED": 5
+      "DISCOVERED": 3
     },
     "by_area": {
       "CHAT": 193,
@@ -3757,7 +3757,7 @@
       "cancellation": "The flag clears when every drag state releases.",
       "windows_path": "Disable pointer events on the conversation for the duration of a panel drag.",
       "verification_method": "interaction test measuring frame times during a panel drag",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3780,7 +3780,7 @@
       "cancellation": "The slide is suppressed during a live resize, while a panel grip is held, and across a thread switch.",
       "windows_path": "Animate a transform, never the padding. This is a measured performance requirement on long conversations.",
       "verification_method": "interaction test docking a panel on a long thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4121,7 +4121,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The caption-button band, not the sidebar, is the trigger. ED-063: the caption controls are app-drawn on the leading edge; the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its leading-edge controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu. The caption buttons therefore stay on the leading edge and the inset is the leading clearance the source states; the rule stays 'clear the caption buttons, animated on the same value'. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test toggling the sidebar across the holdsTrafficLights threshold and asserting the leading inset and the animation token",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4144,7 +4144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both tooltip strings are user-visible and are kept verbatim. The two-way behaviour (toggle the panel versus open a popover) is a real branch, not a presentation detail.",
       "verification_method": "interaction test over the four combinations of sidebarFloats and sidebarOnlyFloats, asserting presence, tooltip text and the action taken",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4166,7 +4166,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The width follows the live sidebar width; only the 560 height is fixed. The capture-frame observer is not ported: the capture subsystem runs only under the --website-captures or --tour-captures launch arguments (porting/dead_code.md entries 28 and 33, ED-061) and ED-001 decides not to port it or its CaptureRun indirection.",
       "verification_method": "interaction test asserting the popover size and arrow edge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4190,7 +4190,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation. The tooltip is a concatenation, so the Windows shortcut-hint formatter feeds the same slot. The hint renders the chord in Windows notation (Ctrl+Alt+Shift+key) under decision B7 of owner decision OD-0008, a named deviation, not parity.",
       "verification_method": "interaction test asserting the symbol, the concatenated tooltip and the newThread call with the row's project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4216,7 +4216,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The em dash in the tooltip is part of the reproduced upstream string and is kept; the port repository's own no-em-dash rule governs its own code and prose, not text copied verbatim from the source. The disabled animation is load-bearing and must not be left to a default crossfade. The row's gaps drag the window while the button takes its presses through the title-bar hit testing of ED-063 (leading-edge controls declared through SetNonClientHitTestResult, WndProc hook for the caption actions). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison of the empty and non-empty title, plus an interaction test that a thread switch shows no crossfade",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4246,7 +4246,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Clear-then-set is observable (a prior clipboard flavour does not survive), so the Windows clipboard write empties the clipboard first. The item strings and the single-character ellipsis are kept verbatim.",
       "verification_method": "interaction test asserting the header and item strings and that the clipboard is cleared before the write",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4269,7 +4269,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A modal dialog with the same three strings and the same placeholder. Cancel must be the cancel-role button so Escape dismisses it.",
       "verification_method": "interaction test asserting the three strings, the placeholder, and that Cancel performs no write",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4292,7 +4292,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The tooltip separator is U+00B7 with a space on each side, not a hyphen and not a comma. The item list is generated from the enum, never hard-coded, so adding a mode cannot leave the menu stale.",
       "verification_method": "contract fixture asserting the tooltip format and one item per RuntimeMode case in order, with the check on the current mode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4316,7 +4316,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Deviation OD-0012 G4: the first item reads \"File Explorer\" and opens the directory in File Explorer; \"Terminal\" in the editor list is Windows Terminal, and Xcode and iTerm are left out because they do not exist on Windows. \"Open in another app\", \"Open in\" and \"Copy path\" are platform-neutral and are kept verbatim. Which editors count as installed, and how the directory is handed to each, follow PR-CHAT-181 and PR-CHAT-182.",
       "verification_method": "interaction test asserting the header, the File Explorer item, the editor items in catalogue order, the divider and Copy path, and the clear-then-set clipboard write",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4407,7 +4407,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The asymmetry is real and must be kept: the terminal button writes the flag, the changes button calls toggleDiff. Both tooltips are concatenations with the shortcut hint. Both hints render the chord in Windows notation (Ctrl+Alt+Shift+key) under decision B7 of owner decision OD-0008, a named deviation, not parity.",
       "verification_method": "interaction test asserting the two symbols, both concatenated tooltips, the active binding in both directions and that Changes routes through toggleDiff",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12937,7 +12937,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the condition.",
       "verification_method": "interaction test on a fresh thread and on one with a turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13358,7 +13358,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of all five verbs and the three-step title fallback.",
       "verification_method": "interaction test observing the title during a slow push",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13384,7 +13384,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the unsingularised tooltip variant.",
       "verification_method": "interaction test at zero, one and several changed files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13437,7 +13437,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Direct port, including that a push failure surfaces under the commit's title.",
       "verification_method": "interaction test with a failing pre-commit hook and with a failing push",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13464,7 +13464,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. The %s and %b format tokens must reach git.exe unexpanded, so no shell.",
       "verification_method": "interaction test with an empty commit body asserting the fallback body string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -13984,7 +13984,7 @@
       "cancellation": "not applicable",
       "windows_path": "Reveal maps to opening Explorer at that path. Keep the detail text verbatim including the omission of tea.",
       "verification_method": "capture comparison of the settings section plus an interaction test on Reveal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25434,7 +25434,7 @@
       "cancellation": "The loop is never cancelled by the quit path; it ends with the process. The activation observer is never removed here.",
       "windows_path": "Direct port of the three literals - 8 s delay, 6 h interval, stale-on-activation rule - and the three start guards. The activation notification is replaced by the Windows window-activation event. Under OD-0008 C6 and OD-0012 I1 the feed is an internal value, empty by default, with no settings UI until the owner has a feed; while it is empty each scheduled or activation check makes no network request and the About pill shows upstream's \"Check failed\" (AboutUpdateViews.swift:603) with the note \"No update feed is set.\"; the schedule above is unchanged.",
       "verification_method": "unit test with an injected clock and an activation event",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25548,7 +25548,7 @@
       "cancellation": "The deferral cannot be cancelled and there is no user-visible way to say 'quit now'. The reply is unconditionally true; the quit is never refused.",
       "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0006): the Windows close and shutdown path must offer the same deferral with the same 250 ms poll and the same 240 second cap, and must then run the same three shutdown steps in the same order. A Windows session end (logoff or shutdown) grants only a limited time before the OS terminates the process, so the 4 minute cap cannot be honoured under session end; that divergence must be recorded rather than hidden.",
       "verification_method": "interaction test: quit with a simulated merge that finishes at 10 s, and one that never finishes, asserting exit at about 10 s and at about 240 s",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25926,7 +25926,7 @@
       "cancellation": "not applicable",
       "windows_path": "PLATFORM BOUNDARY: the Windows toast activation handler performs the same three steps in the same order. port_impacts.md entry 115 - port both payload shapes, both identifier schemes and the routing branch order exactly.",
       "verification_method": "interaction test on a toast activation with a valid and an unknown thread id",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25950,7 +25950,7 @@
       "cancellation": "not applicable",
       "windows_path": "PLATFORM BOUNDARY: same routing branch, same order, same skip of the main window. Closing the main window quits the app in the port (OD-0008 C1, PR-LAUNCH-074), so the upstream case in which every window was closed and the main window stays closed is not reached by closing it. The notification's own text belongs to the update area; under OD-0012 F1 its title is \"Marrow <version> is available\" and its body \"Open Settings › About to update and restart.\" is unchanged. Under OD-0012 I1, while the update feed value is empty no update request is made, so no update is ever found and this notification is never posted.",
       "verification_method": "interaction test on the update toast activation: showMain is not called, the app is activated, and the Settings window opens on About",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -72278,7 +72278,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The product name in the header and in the licence sentence reads \"Marrow\" (OD-0002; OD-0012 F1). The body paragraph is the owner-ruled \"A native home for your coding agents, built in C# with Avalonia.\" (OD-0008 B15, worded by OD-0012 H). The licence sentence keeps its AGPL attribution clause; its SwiftTerm clause names the terminal component the Windows build actually ships, with that component's licence (OD-0012 H). The component is whichever terminal the Windows build ships and is taken from that build, not chosen here. Upstream defect 99 (an MIT copyright string against an AGPL licence) is an owner decision and is not reproduced blindly.",
       "verification_method": "capture comparison of the card; unit test on the version string format",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "99",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -81919,7 +81919,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Renderer-side conditional mount with the same spring and ease pair, reading the OS Reduce Motion preference (SPI_GETCLIENTAREAANIMATION on Windows). Platform boundary: the Reduce Motion source.",
       "verification_method": "interaction test asserting mount and unmount, plus capture comparison of the transition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82433,7 +82433,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same padding and capsule shape. Platform boundary: the terminal SF Symbol draws as Lucide \"square-terminal\" under OD-0010 (porting/icons/sf-symbols-to-lucide.json). Sizes per ED-059: the glyph's .caption is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) and the chip's .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), the text set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82459,7 +82459,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same conditional control, same strings, drawn in the secondary text token (label colour at 0.7 opacity at B2, ED-062), not in the tab's inherited foreground. ED-059: the restart glyph's .caption2 is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), bold, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test: exit the shell, assert the button appears, click it, assert a live shell in the same position",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82486,7 +82486,7 @@
       "cancellation": "not cancellable",
       "windows_path": "opacity 0 plus pointer-events: none, not display: none, so the layout width is unchanged. The glyph uses the secondary text token (label colour at 0.7 opacity at B2, ED-062). ED-059: the close glyph's .caption2 is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), bold, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test clicking the invisible cross position on an unselected, unhovered tab and asserting selection rather than close",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82511,7 +82511,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the capsule as the click target.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82532,7 +82532,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two states with the primary label colour at 8 percent for the selected fill.",
       "verification_method": "capture comparison in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82553,7 +82553,7 @@
       "cancellation": "not cancellable",
       "windows_path": "opacity: 0.55 on the chip element.",
       "verification_method": "capture comparison after exiting a shell",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82575,7 +82575,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings byte for byte, including U+00B7. UI Automation: ControlType Button, SelectionItemPattern IsSelected for the selected tab, Name set to the accessibility variant.",
       "verification_method": "unit test on the string builders plus an accessibility-tree assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82681,7 +82681,7 @@
       "windows_path": "Named accepted deviation OD-0031 / ED-046: on Escape enumerate live descendants of the ConPTY shell; close and consume only when the shell has no live child program. Otherwise pass Escape to the terminal; unknown/error/timeout also passes it through. Keep the source key/modifier/focus guards. This is the approved Windows approximation, not foreground-process-group parity.",
       "cancellation": "not cancellable",
       "verification_method": "interaction test with the shell at its prompt and again with a foreground program running",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82716,7 +82716,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A document-level keydown listener scoped to the session, attached and detached with the terminal component. Avoid leaking one listener per tab switch.",
       "verification_method": "unit test counting installed listeners across repeated tab switches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82743,7 +82743,7 @@
       "cancellation": "The pending beat is cancelled by finishResize and by the container's deinit.",
       "windows_path": "Throttle the terminal fit/reflow to one call per 50 ms while a window resize is in progress, and stop the element from following the container in the meantime. Platform boundary: Windows has no willStartLiveResize notification; use the window's resize-modal messages or an equivalent in the host layer. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; this 50 ms terminal throttle is the source's own behaviour (TerminalPanel.swift:253-256, :414-426) and is kept.",
       "verification_method": "unit test on the coalescer plus a timing assertion during a scripted resize",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82767,7 +82767,7 @@
       "cancellation": "not cancellable",
       "windows_path": "On resize end, clear the throttle and issue one final fit. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; it does not change this single final fit.",
       "verification_method": "interaction test asserting the final column count matches the settled width",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82816,7 +82816,7 @@
       "cancellation": "The pending beat is cancelled here.",
       "windows_path": "Add and remove the window resize listeners with the component lifecycle; the pending throttle timer must be cleared on unmount.",
       "verification_method": "unit test counting registrations across window moves",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83510,7 +83510,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same placement, same string.",
       "verification_method": "capture comparison plus an interaction test on a project-less thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83535,7 +83535,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same header string and ordering.",
       "verification_method": "interaction test with zero, one and several scripts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83558,7 +83558,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings using the single ellipsis character, not three periods, and the Lucide plus and pencil icons that OD-0010's published table (porting/icons/sf-symbols-to-lucide.json) gives for the two SF Symbols.",
       "verification_method": "unit test on the label choice plus a byte comparison of the strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83797,7 +83797,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two strings and the same active state; the chord label in Windows notation (OD-0008 B7).",
       "verification_method": "capture comparison of both states plus a tooltip assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -83879,7 +83879,7 @@
       "cancellation": "Dismissing discards the copy.",
       "windows_path": "Same copy-on-open, edit-locally, commit-on-save shape.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83929,7 +83929,7 @@
       "cancellation": "Dismissing with Cancel undoes the removal, because it was only local.",
       "windows_path": "Same single-click removal with no confirmation.",
       "verification_method": "interaction test including the cancel-restores case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83955,7 +83955,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same outline, same two tooltips, and the same narrower trim character set.",
       "verification_method": "unit test over blank, space-only and tab-only commands",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83977,7 +83977,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same label, same defaults.",
       "verification_method": "interaction test asserting the appended record and the disabled Save",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84002,7 +84002,7 @@
       "cancellation": "Cancel and Escape both discard.",
       "windows_path": "Same two labels, the same wholesale replacement and the same Escape-cancels behaviour.",
       "verification_method": "restart test after a save, plus an interaction test on cancel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -90832,7 +90832,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Electron Notification 'click' handler: focus the app, open the Settings surface on the About page, and deliberately do NOT restore or show the main window first.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -92377,7 +92377,7 @@
       "cancellation": "not cancellable",
       "windows_path": "OD-0008 B15, OD-0012 H and F1. The first paragraph is exactly \"A native home for your coding agents, built in C# with Avalonia.\". The licence sentence reads \"Marrow is licensed under the GNU AGPL v3.0 with attribution terms; \" followed by a clause naming the terminal component the Windows build ships and its licence; attribution to Droppy Code stays in the Credits card's F3 line (PR-UPDATE-086) and in the LICENSE the Licenses row shows. The component is not named by the ruling or by any decision or package pin in the port (Directory.Packages.props pins none), so that clause is not invented here. The glass itself is ruled by OD-0005.",
       "verification_method": "capture comparison against the approved Windows wording (OD-0008 B15)",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -94981,7 +94981,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-part gate in the chat layout; the measured-size gate matters because the placer divides the pane.",
       "verification_method": "interaction test toggling the setting, switching threads and resizing from zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -95010,7 +95010,7 @@
       "cancellation": "Releasing commits whatever corner was last computed; there is no revert.",
       "windows_path": "Same corner enumeration and the same persisted key; the nearest-dock computation belongs to the shared panel layout.",
       "verification_method": "interaction test dragging across all four corners plus a restart test on the stored corner",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -95058,7 +95058,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same precedence ladder and the same double floor; the 94 constant must be derived from the strip height, not hardcoded independently.",
       "verification_method": "unit test on the height function across the precedence cases and a tiny pane",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -95085,7 +95085,7 @@
       "cancellation": "not cancellable; releasing commits.",
       "windows_path": "Same grip arithmetic including both sign flips; commit on pointer-up only.",
       "verification_method": "interaction test dragging each grip from each corner, asserting one write on release",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -95112,7 +95112,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Delete the key from the settings store; a null value must not be persisted.",
       "verification_method": "restart test after a reset, asserting the key is absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -97851,7 +97851,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -97881,7 +97881,7 @@
         "A merge that never finishes: the quit proceeds anyway at the four-minute deadline, and the merge is lost"
       ],
       "cancellation": "The quit cannot be cancelled once deferred; the source has no path back to .terminateCancel.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -97958,7 +97958,7 @@
         "An unparseable threadID leaves the selection unchanged and still shows the window"
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

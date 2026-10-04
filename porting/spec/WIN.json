@@ -1661,7 +1661,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1690,7 +1690,7 @@
         "A merge that never finishes: the quit proceeds anyway at the four-minute deadline, and the merge is lost"
       ],
       "cancellation": "The quit cannot be cancelled once deferred; the source has no path back to .terminateCancel.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1764,7 +1764,7 @@
         "An unparseable threadID leaves the selection unchanged and still shows the window"
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
