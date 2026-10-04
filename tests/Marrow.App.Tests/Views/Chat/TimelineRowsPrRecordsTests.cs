@@ -161,6 +161,9 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     // 2026-10-03: the reference video now gives "5s", "10s", "28s", "38s", "1m 23s" and "Failed after 1s"
     // (TimelineRowsCaptureTests.The_turn_end_label_reads_as_the_reference_video_shows); 0 s, a negative interval and the
     // hour cases are in no frame, so the record stays open (STOP #11 in TimelineRowsTests). ----
+    // SUPERSEDED 2026-10-04 (OD-0098, ED-197): TimelineRowsBlitzAbCardTests proves PR-CHAT-116 from the source and swift-foundation's
+    // documented narrow units formatting (ENGINEERING DECISION: the strings of ED-197 / O-65, read from its source), for the frames' strings
+    // and for 0, a negative interval, a half second, 60, 3599, 3600 and 3725 seconds.
 
     [Theory]
     [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: TimelineRows.Duration needs icu.dll for the current locale.
@@ -578,6 +581,11 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     // comparison" half (rendering the actual eight 96-point/four 820-point sites and asserting their geometry
     // reads from these constants, per the record's own windows_path) is undone in this session too. Not claiming
     // this record.
+    // SUPERSEDED 2026-10-04 (OD-0098, unit blitz-timelinerows-ab): TimelineRowsBlitzAbBlockTests claims PR-CHAT-020: the pills and cards
+    // of the conversation mounted and measured, the seven 96-point sites of the Swift (six in TimelineRows.swift, one in ChatBadge.swift:77;
+    // the record's "eight" is one too many, and its four 820-point sites are ThreadTimeline's and SubagentPanel's, not this file's) laid out in
+    // a column, and a targeted static check (the literals that would duplicate a constant), without the false positives a scan of every 8, 12, 14, 16,
+    // 18, 20 and 22 gave.
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // one clause of PR-CHAT-020 (expected_result's exact values); see STOP #13 above.
@@ -2464,7 +2472,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     public void A_checklist_with_no_steps_draws_nothing_and_an_update_rewrites_the_same_rows_in_place() => headless.OnUiThread(() =>
     {
         using var h = Harness();
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var clock = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(clock);
         TodoListRow? row = null;
         TextBlock? before = null;
         AvaloniaWindow? window = null;
@@ -2483,6 +2492,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             before = TextNamed(row, "One");
             entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Done), ("Two", TodoStep.Status.Active)) };
         });
+        Animate(h.Main, clock, 2000); // the change is animated (:2372): the glyphs and the count are read once they have settled
         h.Main.OnMain(() =>
         {
             Settle(window!);
@@ -3441,7 +3451,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 Assert.Equal(16, mark.Width);
                 Assert.Equal(16, mark.Height);
                 Assert.Equal(Resolved(ChromeTokens.SecondaryText, mark), BrushColor(LogicalQuery.SelfAndDescendants<SwiftImage>(mark).Single().Foreground));
-                var title = Assert.IsType<TextBlock>(header.Children[1]);
+                var title = Assert.IsType<TextBlock>(Assert.IsType<OpacityCrossfade>(header.Children[1]).Current); // the title's words crossfade (:664), so the Text sits in a crossfade
                 Assert.Equal("Summoning heads", title.Text);
                 Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontWeight, title.FontWeight);
                 var rows = Assert.IsType<StackPanel>(column.Children[1]);
