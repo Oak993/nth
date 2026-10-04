@@ -2154,7 +2154,7 @@
       "element": "Composer pill surface",
       "role": "surface",
       "exact_text": null,
-      "geometry": "RoundedRectangle(cornerRadius: 22, style: .continuous); .padding(.leading, 14); .padding(.trailing, 8); .padding(.vertical, 8); HStack(alignment: .bottom, spacing: 8); text column adds .padding(.vertical, 4); an empty pill is 44 points high",
+      "geometry": "RoundedRectangle(cornerRadius: 22, style: .continuous); .padding(.leading, 14); .padding(.trailing, 8); .padding(.vertical, 8); HStack(alignment: .bottom, spacing: 8); text column adds .padding(.vertical, 4); an empty pill is 46 points high: the text view is ceil(max(18, content) + 2 * 2) = 22 (ComposerTextView.swift:374, textContainerInset (0, 2) at :249), the text column adds .padding(.vertical, 4) for 30 (ComposerView.swift:158), and the pill's .padding(.vertical, 8) adds 16 (:178); the 28 point send button, bottom aligned, is shorter (:835). The comment at ComposerView.swift:157-158 says 44, which is the column's 20 point starting height (:552, :554) before the text view reports 22; the reference video measures 46 empty and with one typed line (2-chat-use.mov C 0.5 and C 84.5, ED-282-11)",
       "typography": "n/a",
       "colors": "glassEffect(.regular) in the chat; inside a glass panel, Chrome.panelControlFill(isDark:) clipped to the same shape. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
@@ -2168,7 +2168,9 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:145-189",
-        "DroppyCode/App/Views/Composer/ComposerView.swift:1293-1307"
+        "DroppyCode/App/Views/Composer/ComposerView.swift:1293-1307",
+        "DroppyCode/App/Views/Composer/ComposerTextView.swift:249 textContainerInset = NSSize(width: 0, height: 2); :360-376 updateHeight, total = ceil(max(18, contentHeight) + textContainerInset.height * 2)",
+        "DroppyCode/App/Views/Composer/ComposerView.swift:157-158 the source comment (44); :552-564 the column's textHeight starts at 20 and is clamped to at least 20"
       ],
       "notes": "The dots must be inside the glass content, not a sibling background: a glass view renders above ordinary siblings and would cover them."
     },
