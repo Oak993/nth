@@ -153,7 +153,9 @@ public sealed class FirstRunPreparation
     }
 
     // the events of one run: a step is Running from when the step before it completes (the first from the start), and its parts are
-    // counted as the work reports them; nothing here reads the clock but to stamp the event
+    // counted as the work reports them, each program once (the programs it made are what is counted, not the reports: a warm-up
+    // that starts a pass again on a new GPU context reports its programs again, and those ticks are taken back until they are made
+    // again); nothing here reads the clock but to stamp the event
     private sealed class Run
     {
         private readonly List<FirstRunStepInfo> plan;
@@ -164,6 +166,9 @@ public sealed class FirstRunPreparation
         private readonly FirstRunStepState[] state;
         private readonly Dictionary<string, int> stepOf = [];    // a step id: its place in the plan
         private readonly Dictionary<string, int> programOf = []; // a program's name: its step's place in the plan
+        private readonly Dictionary<string, bool> works = [];    // a program's name: true for a step of other work (never done again)
+        private readonly HashSet<string> made = [];              // the programs and work steps done so far (this pass, for a program that draws)
+        private int graphicsRead;                                // the graphics card's own read, a part of its step: 1 once done
 
         public Run(List<FirstRunStepInfo> plan, IReadOnlyList<GpuProgram> programs, IFirstRunScreen screen, TimeProvider clock)
         {
@@ -175,7 +180,10 @@ public sealed class FirstRunPreparation
             state = new FirstRunStepState[plan.Count];
             for (var i = 0; i < plan.Count; i++) stepOf[plan[i].Step.Id] = i;
             foreach (var program in programs)
+            {
                 programOf[program.Name] = stepOf[program.Step.Id];
+                works[program.Name] = program.IsWork;
+            }
         }
 
         public void Begun()
@@ -186,29 +194,69 @@ public sealed class FirstRunPreparation
         }
 
         // a part of the step is done: the graphics card's read
-        public void Completed(string stepId) => Part(stepOf[stepId]);
+        public void Completed(string stepId)
+        {
+            graphicsRead = 1;
+            var i = stepOf[stepId];
+            done[i]++;
+            Counted(i);
+        }
 
         // a program or work step reported done by the warm-up; one the plan does not name (registered after the plan was made) is
         // not this run's to count
         public void Completed(GpuWarmupStep report)
         {
-            if (programOf.TryGetValue(report.Program, out var i)) Part(i);
+            if (!programOf.TryGetValue(report.Program, out var i)) return;
+            if (!made.Add(report.Program))
+            {
+                // a program that draws, reported again: the pass started again (a new GPU context): what it made is to be made
+                // again, so the steps stand as the work done on the context it ends on. A step of other work is done once.
+                if (works[report.Program]) return;
+                Restarted();
+                made.Add(report.Program);
+            }
+            done[i]++;
+            Counted(i);
         }
 
-        // the warm-up completed: a step it had no work for (the CPU renderer has nothing to compile ahead) is done
+        // the warm-up completed: a step it had no work for (the CPU renderer has nothing to compile ahead) is done; a step with a
+        // step of other work that was never reported did not do it, and is not ticked (the run fails)
         public void Finished()
         {
             for (var i = 0; i < plan.Count; i++)
-                if (state[i] != FirstRunStepState.Done) Complete(i);
+            {
+                if (state[i] == FirstRunStepState.Done) continue;
+                var unreported = works.FirstOrDefault(w => w.Value && programOf[w.Key] == i && !made.Contains(w.Key)).Key;
+                if (unreported is not null)
+                    throw new InvalidOperationException("The first-run step " + plan[i].Step.Name + " was not run: " + unreported + " was never done.");
+                Complete(i);
+            }
         }
 
-        private void Part(int i)
+        private void Counted(int i)
         {
             if (state[i] == FirstRunStepState.Done) return;
-            done[i]++;
             if (done[i] >= plan[i].Parts) { Complete(i); return; }
             state[i] = FirstRunStepState.Running;
             Emit(i);
+        }
+
+        // the pass starts again: the programs that draw are no longer made, the steps stand as what is made; a step is Done when
+        // all its parts are, Running when it has some done or is the first not done, Waiting otherwise. Reports the steps that changed.
+        private void Restarted()
+        {
+            foreach (var name in made.Where(n => !works[n]).ToArray()) made.Remove(name);
+            var before = (State: (FirstRunStepState[])state.Clone(), Done: (int[])done.Clone());
+            for (var i = 0; i < plan.Count; i++)
+                done[i] = (plan[i].Step.Id == FirstRunSteps.Graphics.Id ? graphicsRead : 0) + made.Count(n => programOf.TryGetValue(n, out var at) && at == i);
+            var first = true;
+            for (var i = 0; i < plan.Count; i++)
+            {
+                if (done[i] >= plan[i].Parts) state[i] = FirstRunStepState.Done;
+                else if (first || done[i] > 0) { state[i] = FirstRunStepState.Running; first = false; }
+                else state[i] = FirstRunStepState.Waiting;
+                if (state[i] != before.State[i] || done[i] != before.Done[i]) Emit(i);
+            }
         }
 
         private void Complete(int i)

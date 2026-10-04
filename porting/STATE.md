@@ -72,9 +72,11 @@ the engineering ones: `E:\Droppy\work\design\open-questions-2026-10-04.md` (43 r
 `FirstRunStartup.RunAsync` has no caller and `FirstRunStartup.Screen` is null until GR-2's Getting Ready sheet sets it
 from its startup hook, so startup behaves as before (the idle fallback of ED-252 still prepares the knob). The Voice
 hardware step is absent from the plan until VT-15 registers its work step with `GpuWarmup.Register`. The composer light,
-slider liquid and strike programs are verified on the CPU renderer only; a GPU check (the programs made, a
-`RenderTargetBitmap` on the render thread GPU-backed, one cache entry per program) is left to the supervised native
-session (ED-NEW-f-gr-1 (8)); `EffortSliderNativeFrameTests` now cover nine programs.
+slider liquid and strike programs are verified on the CPU renderer only (the liquid and strike draw into a surface the
+window's GPU context makes, through `GpuWarmup.WarmTarget`; a `RenderTargetBitmap` is a CPU raster in Avalonia 12.1.2 and
+is not used); a GPU check (the programs made, one cache entry per program, `WarmTarget`'s reflection on Avalonia.Skia's
+`DrawingContextImpl` working on a real context) is left to the supervised native session (ED-NEW-f-gr-1 (8));
+`EffortSliderNativeFrameTests` now cover nine programs.
 
 ## Current checkpoint: 2026-09-23 04:30, orchestrator Claude Opus 5.5
 

@@ -314,8 +314,10 @@ public static class GpuWarmup
     /// screen meant for it), reporting each step; completes when they are compiled and cached (at once on the CPU renderer).
     /// Faults with a <see cref="TimeoutException"/> when a step is not drawn in time (the window minimised or hidden) and an
     /// <see cref="InvalidOperationException"/> when the window is not shown or closes meanwhile. Called while a warm-up of
-    /// the window runs, it hurries that one and reports its remaining steps; the idle runs going in the window (its hosts')
-    /// are hurried too, so none of them waits to compile after the screen meant for it.
+    /// the window runs, it hurries that one and reports its remaining steps; called while an idle-gated one of the window runs
+    /// (a new scaling or GPU context began it: its items leave the work steps out), it hurries that one to its end and then
+    /// runs its own pass, which reports every program and step and runs the work steps. The idle runs going in the window (its
+    /// hosts') are hurried too, so none of them waits to compile after the screen meant for it.
     /// </summary>
     public static Task WarmAsync(TopLevel window, IProgress<GpuWarmupStep>? progress = null, CancellationToken cancellation = default)
     {
@@ -347,7 +349,7 @@ public static class GpuWarmup
         private CompositionCustomVisual? visual;
         private TopLevel? watched; // the window whose scaling it follows: its host's, while the host is in it
         private Task? running;
-        private bool again, hurry;
+        private bool again, hurry, runningIdle;
         private IProgress<GpuWarmupStep>? progress;
 
         // WhenIdle's host is in a window: follow its scaling; warm after the window's first frame, then at idle (never in
@@ -395,10 +397,13 @@ public static class GpuWarmup
 
         public Task Run(bool idle, IProgress<GpuWarmupStep>? progress, CancellationToken cancellation)
         {
-            if (running is { IsCompleted: false })
+            if (running is { IsCompleted: false } going)
             {
-                if (!idle) { hurry = true; this.progress = progress ?? this.progress; } // WarmAsync joins it: no more idle waits
-                return running.WaitAsync(cancellation);
+                if (idle) return going.WaitAsync(cancellation);
+                hurry = true; // WarmAsync joins it: no more idle waits
+                if (runningIdle) return AfterIdle(going, progress, cancellation); // its items leave the work steps out
+                this.progress = progress ?? this.progress;
+                return going.WaitAsync(cancellation);
             }
             if (TopLevel.GetTopLevel(host) is not { } top)
                 return Task.FromException(new InvalidOperationException("GPU warm-up: its host is not in a window."));
@@ -414,7 +419,20 @@ public static class GpuWarmup
                 if (host == top) Follow(top); // WarmAsync's window: its own scaling
             }
             (hurry, this.progress) = (!idle, progress);
+            runningIdle = idle;
             return running = Steps(top, idle, cancellation);
+        }
+
+        // WarmAsync found an idle-gated run going (begun by a new scaling or GPU context): that run took its items with the work
+        // steps left out (a first run's), so it is hurried to its end, silently, and the first run's own pass follows it, reporting
+        // every program and step (the programs it made are found made) and running the work steps. The idle run's own failure is
+        // not this caller's: its pass tells.
+        private async Task AfterIdle(Task idleRun, IProgress<GpuWarmupStep>? progress, CancellationToken cancellation)
+        {
+            try { await idleRun.WaitAsync(cancellation); }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
+            catch (Exception) { }
+            await Run(idle: false, progress, cancellation);
         }
 
         // a step given up on (its host not drawn): the fallback starts again, idle-gated, once its host is drawn again (the
@@ -514,7 +532,9 @@ public static class GpuWarmup
     // (and, on ANGLE, their binaries kept by GpuProgramCache). ENGINEERING DECISION (UNVERIFIED on a GPU until the supervised
     // native session): what a warm-up draws is a representative frame of each, so a program is made for each shader the owner
     // draws with: the composer light's three shader families, the liquid's passes with Grok's oil and its bubbles, and the
-    // lightning with the lit glass. The target is an offscreen RGBA surface (the knob's own way), not the window's framebuffer.
+    // lightning with the lit glass. The target is an offscreen RGBA surface made by the window's GPU context (the knob's own way),
+    // not the window's framebuffer; the liquid and the strike draw into it through a WarmTarget, because a RenderTargetBitmap is a
+    // CPU raster whatever the window draws with (Avalonia 12.1.2) and would compile nothing.
 
     private static IEnumerable<GpuProgram> Builtins()
     {
@@ -601,16 +621,108 @@ public static class GpuWarmup
             scene.Spec.Segments.Select(segment => segment.Strand.Resolve(ThemeVariant.Dark)).ToArray(), scene.Flow, scene.Strike, scene.Ink);
     }
 
-    // the liquid's own public entry point, LiquidTrack.Draw, into a bitmap's drawing context: its custom operation draws at once,
-    // here on the render thread, through the Skia renderer on the window's GPU context
+    // the liquid's own public entry point, LiquidTrack.Draw, into a target on the window's GPU context (WarmTarget): its custom
+    // operation runs at once, here on the render thread, and makes its surfaces and compiles its shaders on that context
     private static void DrawLiquid(GpuWarmContext context, bool strike)
     {
         var scale = Math.Max(1, context.Scaling);
         var scene = Scene(strike, scale);
-        var pixels = new PixelSize((int)Math.Ceiling(scene.Size.Width * scale), (int)Math.Ceiling(scene.Size.Height * scale));
-        using var bitmap = new RenderTargetBitmap(pixels, new Vector(96 * scale, 96 * scale));
-        using var drawing = bitmap.CreateDrawingContext();
-        LiquidTrack.Draw(drawing, scene.Size, scene.Size.Width, scene.Time, scene.Spec, scene.Gradient, scene.Bubbles, false, ThemeVariant.Dark, scene.Flow, scene.Strike, scene.Ink);
+        var info = new SKImageInfo((int)Math.Ceiling(scene.Size.Width * scale), (int)Math.Ceiling(scene.Size.Height * scale), SKColorType.Rgba8888, SKAlphaType.Premul);
+        using var target = WarmTarget.Open(context.Gpu, info, scale);
+        LiquidTrack.Draw(target.Context, scene.Size, scene.Size.Width, scene.Time, scene.Spec, scene.Gradient, scene.Bubbles, false, ThemeVariant.Dark, scene.Flow, scene.Strike, scene.Ink);
+    }
+
+    /// <summary>
+    /// An offscreen surface and the drawing context a program draws into it with, for a program that draws through its owner's
+    /// public entry point taking a DrawingContext (LiquidTrack.Draw). With a GPU context the surface is made by it and the drawing
+    /// context carries it (Avalonia.Skia's DrawingContextImpl.CreateInfo.GrContext), so what the entry point's custom operation reads off its lease
+    /// (ISkiaSharpApiLeaseFeature: GrContext, SkSurface, the canvas's scaling) is the GPU's and it makes its own surfaces, and
+    /// compiles its shaders, on that context. RenderTargetBitmap cannot do that: in Avalonia 12.1.2 it is always a CPU raster
+    /// (Avalonia.Skia, decompiled: PlatformRenderInterface.CreateRenderTargetBitmap returns RenderTargetBitmapImpl, a
+    /// WriteableBitmapImpl drawn through a FramebufferRenderTarget, no GRContext). A GPU context that makes no surface fails the
+    /// target: a draw on the CPU would be reported as the GPU's.
+    /// </summary>
+    internal sealed class WarmTarget : IDisposable
+    {
+        /// <summary>The surface a GPU context makes for a target (tests substitute it: no GPU can be made there).</summary>
+        internal static Func<GRContext, SKImageInfo, SKSurface?> GpuSurface { get; set; } = (gpu, info) => SKSurface.Create(gpu, true, info);
+
+        /// <summary>Tests only: sees the surface as the target is disposed, after the drawing.</summary>
+        internal static Action<SKSurface>? Inspect { get; set; }
+
+        // Avalonia 12.1.2 (decompiled) keeps what makes such a context internal: Avalonia.Skia's DrawingContextImpl (an impl over a
+        // surface, naming the GPU context: its CreateInfo's Surface, GrContext, Dpi and ScaleDrawingToDpi, public fields of a nested
+        // struct) and Avalonia.Base's PlatformDrawingContext (the DrawingContext over an impl, as DrawingContextHelper.RenderAsync
+        // makes it). Read once, by reflection (the way this file reads Avalonia's clock); where one is not found (another Avalonia)
+        // the target fails, it does not draw somewhere else, and a test pins that the pinned Avalonia has them.
+        private const System.Reflection.BindingFlags Any = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+        private static readonly Type? implType = typeof(SkiaOptions).Assembly.GetType("Avalonia.Skia.DrawingContextImpl");
+        private static readonly Type? infoType = implType?.GetNestedType("CreateInfo");
+        private static readonly System.Reflection.ConstructorInfo? implConstructor = infoType is null ? null : implType!.GetConstructor(Any, [infoType, typeof(IDisposable[])]);
+        private static readonly System.Reflection.ConstructorInfo? contextConstructor = typeof(DrawingContext).Assembly.GetType("Avalonia.Media.PlatformDrawingContext")
+            ?.GetConstructor(Any, [typeof(Avalonia.Platform.IDrawingContextImpl), typeof(bool)]);
+
+        /// <summary>True when the pinned Avalonia has the types a target is made of (tests pin it).</summary>
+        internal static bool Available
+        {
+            get
+            {
+                var info = infoType;
+                return info is not null && implConstructor is not null && contextConstructor is not null
+                    && new[] { "Surface", "GrContext", "Dpi", "ScaleDrawingToDpi" }.All(name => info.GetField(name) is not null);
+            }
+        }
+
+        private readonly IDisposable impl;
+
+        private WarmTarget(SKSurface surface, IDisposable impl, DrawingContext context)
+        {
+            Surface = surface;
+            this.impl = impl;
+            Context = context;
+        }
+
+        /// <summary>The surface drawn into.</summary>
+        public SKSurface Surface { get; }
+
+        /// <summary>The drawing context over it, at the scaling given to <see cref="Open"/>.</summary>
+        public DrawingContext Context { get; }
+
+        /// <summary>A target of <paramref name="info"/>'s size (device pixels) on <paramref name="gpu"/> (null: the CPU, a test or
+        /// the renderer without a GPU), drawn at <paramref name="scale"/>.</summary>
+        public static WarmTarget Open(GRContext? gpu, SKImageInfo info, double scale)
+        {
+            var surface = (gpu is null ? SKSurface.Create(info) : GpuSurface(gpu, info))
+                ?? throw new InvalidOperationException(gpu is null ? "GPU warm-up: no surface could be made for the target." : "GPU warm-up: the GPU context made no surface for the target.");
+            try
+            {
+                if (!Available) throw new InvalidOperationException("GPU warm-up: this Avalonia has not the types a target's drawing context is made of.");
+                surface.Canvas.Clear(SKColors.Transparent);
+                // ScaleDrawingToDpi: the impl sets the canvas to the scaling itself (as a RenderTargetBitmap's does), which the custom
+                // operation reads off the canvas as its scale
+                var createInfo = Activator.CreateInstance(infoType!)!;
+                infoType!.GetField("Surface")!.SetValue(createInfo, surface);
+                infoType.GetField("GrContext")!.SetValue(createInfo, gpu);
+                infoType.GetField("Dpi")!.SetValue(createInfo, new Vector(96 * scale, 96 * scale));
+                infoType.GetField("ScaleDrawingToDpi")!.SetValue(createInfo, true);
+                var impl = (IDisposable)implConstructor!.Invoke([createInfo, Array.Empty<IDisposable>()]);
+                try { return new WarmTarget(surface, impl, (DrawingContext)contextConstructor!.Invoke([impl, false])); }
+                catch { impl.Dispose(); throw; }
+            }
+            catch
+            {
+                surface.Dispose();
+                throw;
+            }
+        }
+
+        public void Dispose()
+        {
+            Context.Dispose();
+            impl.Dispose(); // lets go of the GPU context it holds
+            Inspect?.Invoke(Surface);
+            Surface.Dispose();
+        }
     }
 
     // a step's answer: its time on the render thread, whether a GPU context drew it, and whether that context was new (the
