@@ -674,6 +674,7 @@ public sealed class HydraHeadsWorkingRow : Decorator
     private readonly ThreadRuntime runtime;
     private readonly StackPanel headsColumn = new() { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly Dictionary<long, (HydraHeadInfo Head, Control View)> shownHeads = [];
+    private bool built; // the row has applied its team once: a pill made after that joins a parent on screen
     /// <param name="heads">:395 <c>let heads: [Int]</c>.</param>
     /// <param name="runtime">:396 <c>let runtime: ThreadRuntime</c>.</param>
     // :398-418 body
@@ -716,9 +717,13 @@ public sealed class HydraHeadsWorkingRow : Decorator
                 if (prior.View is not null) SwiftTransition.Remove(column, prior.View);
                 var pill = new FinishedHeadPill(head).Transition(SwiftTransition.SettleGlide);
                 shown[head.Index] = (head, pill);
-                SwiftTransition.Insert(column, Math.Min(i, column.Children.Count), pill);
+                // :411-415 SwiftUI runs a transition only for a view that joins a parent already on screen: the pills a row has when it first appears are in place, with no
+                // arrival (ED-NEW-rec-tlr (9)); the settle glide's wrappers are still built so a later removal can glide them away.
+                if (built) SwiftTransition.Insert(column, Math.Min(i, column.Children.Count), pill);
+                else SwiftTransition.Place(column, Math.Min(i, column.Children.Count), pill);
             }
         });
+        built = true;
     }
 
     // :420-433 static func finishedHeads(in:) -> [HydraHeadInfo]: the finished heads whose report has not reached the

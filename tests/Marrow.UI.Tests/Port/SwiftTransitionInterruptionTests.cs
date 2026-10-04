@@ -378,4 +378,68 @@ public sealed class SwiftTransitionInterruptionTests(HeadlessSession headless)
         Assert.Equal(0, completed);
         window.Close();
     });
+
+    // UI-CHAT-052 (unit rec-tlr review): the soft arrival (opacity and a 4 pt rise on its own curve) is cut short by a removal of the asymmetric transition. The removal runs
+    // from its own start, but carries what the arrival had put on the child at that instant: its opacity multiplies the fade, its rise eases out over the removal. Before, the removal
+    // presented from opacity 1 and no rise, so a half-arrived view flashed to full strength for a frame before it faded.
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
+    [Trait("Decision", "ED-159")] // the interruption follow-up
+    public void A_removal_cutting_a_soft_arrival_short_carries_the_opacity_and_rise_the_arrival_had_reached() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var panel = new Canvas { Width = 300, Height = 200 };
+        var window = new Window { Width = 400, Height = 300, Content = panel };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var child = new Border { Width = 100, Height = 40 }.Transition(
+            SwiftTransition.Asymmetric(SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)), SwiftTransition.Opacity));
+        var arrival = Animation.EaseOut(duration: 0.32);
+        Transaction.WithAnimation(arrival, () => SwiftTransition.Insert(panel, 0, child));
+        window.UpdateLayout();
+        clocks.Frame(0.05);
+        var p = arrival.Progress(0.05);
+        Assert.InRange(p, 0.1, 0.8);
+        Assert.Equal(p, EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(4 * (1 - p), Top(child, panel), Tolerance);
+        var removal = Animation.EaseOut(duration: 0.12);
+        Transaction.WithAnimation(removal, () => SwiftTransition.Remove(panel, child));
+        // The removal's first state is the arrival's last: no jump to full opacity, no snap of the rise.
+        Assert.Equal(p, EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(4 * (1 - p), Top(child, panel), Tolerance);
+        clocks.Frame(0.04);
+        var q = removal.Progress(0.04);
+        Assert.Equal(p * (1 - q), EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(4 * (1 - p) * (1 - q), Top(child, panel), Tolerance);
+        clocks.Frame(0.09); // 0.13 s: past the removal's 0.12 s
+        Assert.Empty(panel.Children);
+        Assert.Equal(0, clocks.Frames.Pending);
+        window.Close();
+    });
+
+    // The counterpart: a removal that interrupts nothing in flight (the arrival finished) is the removal half alone, from the full child.
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")] // OD-0076: no change by a cut
+    [Trait("Decision", "ED-159")] // the interruption follow-up
+    public void A_removal_after_the_soft_arrival_has_finished_fades_from_full_opacity() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var panel = new Canvas { Width = 300, Height = 200 };
+        var window = new Window { Width = 400, Height = 300, Content = panel };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var child = new Border { Width = 100, Height = 40 }.Transition(
+            SwiftTransition.Asymmetric(SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)), SwiftTransition.Opacity));
+        var arrival = Animation.EaseOut(duration: 0.32);
+        Transaction.WithAnimation(arrival, () => SwiftTransition.Insert(panel, 0, child));
+        window.UpdateLayout();
+        clocks.Frame(0.4);
+        var removal = Animation.EaseOut(duration: 0.12);
+        Transaction.WithAnimation(removal, () => SwiftTransition.Remove(panel, child));
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        clocks.Frame(0.04);
+        Assert.Equal(1 - removal.Progress(0.04), EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(0, Top(child, panel), Tolerance);
+        window.Close();
+    });
 }
