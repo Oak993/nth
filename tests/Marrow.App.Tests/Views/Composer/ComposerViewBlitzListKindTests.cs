@@ -10,10 +10,17 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // PR-COMPOSER-052, the visible observer's kind guard (found open by the adversarial review of this unit).
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzListKindTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Req", "PR-COMPOSER-052")] // App/Views/Composer/ComposerView.swift:213-215 `if visible, suggestions.kind == .command { Task { await loadCommands() } }`

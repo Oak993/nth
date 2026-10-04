@@ -23,13 +23,20 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :973-1032 (the draft attachment strip, its thumbnails and
 // their remove badges): the blitz-composerview unit's proofs for UI-COMPOSER-009 and UI-COMPOSER-010.
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzStripTests(HeadlessSession headless)
 {
-    private static (DraftAttachments Strip, AvaloniaWindow Window) StripOnScreen(ThreadRuntimePart12Harness h, params Attachment[] attachments)
+    internal static (DraftAttachments Strip, AvaloniaWindow Window) StripOnScreen(ThreadRuntimePart12Harness h, params Attachment[] attachments)
     {
         h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Attachments = new ValueList<Attachment>(attachments) });
         var strip = h.Main.OnMain(() => new DraftAttachments(h.Runtime));
@@ -38,13 +45,13 @@ public sealed partial class ComposerViewTests
         return (strip, window);
     }
 
-    private static AttachmentPreviewCoordinator PreviewOf(DraftAttachments strip)
+    internal static AttachmentPreviewCoordinator PreviewOf(DraftAttachments strip)
     {
         var slot = (AttachmentPreviewSlot)typeof(DraftAttachments).GetField("preview", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(strip)!;
         return slot.Panel;
     }
 
-    private static Rect ScreenRect(AvaloniaWindow window, Control control)
+    internal static Rect ScreenRect(AvaloniaWindow window, Control control)
     {
         var origin = window.PointToScreen(control.TranslatePoint(default, window)!.Value);
         var scale = window.RenderScaling;

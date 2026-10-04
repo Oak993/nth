@@ -22,14 +22,21 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :868-970 (the draft chips: the slash command chip, the reply
 // quote chips, their remove buttons and the chip capsule): the blitz-composerview unit's proofs for UI-COMPOSER-005, 006, 007, 008.
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzChipTests(HeadlessSession headless)
 {
     // The draft written while the transaction it is written in is watched: Swift's willSet, so the animation it was written under.
-    private static Animation? WrittenUnder(ThreadRuntimePart12Harness h, ThreadRuntime runtime, Action write)
+    internal static Animation? WrittenUnder(ThreadRuntimePart12Harness h, ThreadRuntime runtime, Action write)
     {
         Animation? seen = null;
         var wrote = false;
@@ -42,7 +49,7 @@ public sealed partial class ComposerViewTests
         return seen;
     }
 
-    private static Color InkOf(Control control) => control switch
+    internal static Color InkOf(Control control) => control switch
     {
         SwiftImage image => Assert.IsAssignableFrom<ISolidColorBrush>(image.Foreground).Color,
         TextBlock text => Assert.IsAssignableFrom<ISolidColorBrush>(text.Foreground).Color,

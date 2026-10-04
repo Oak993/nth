@@ -24,32 +24,22 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :239-262 (the suggestion panel), :1061-1101 (its rows),
 // DroppyCode/UI/Chrome/Popovers.swift :117-150 (the section header and the note): the blitz-composerview unit's proofs for
 // UI-COMPOSER-019, 020, 021 and 022.
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzPanelTests(HeadlessSession headless)
 {
-    // A pill on screen whose list is hosted in a window of 340 wide as it is when presented, the first suggestions shown.
-    private sealed class HostedList : IDisposable
-    {
-        public required ThreadRuntimePart12Harness H { get; init; }
-        public required ComposerView View { get; init; }
-        public required AvaloniaWindow PillWindow { get; init; }
-        public required AvaloniaWindow ListWindow { get; init; }
-        public required Decorator Host { get; init; }
-        public required IDisposable Seam { get; init; }
 
-        public void Dispose()
-        {
-            Close(H, ListWindow);
-            Close(H, PillWindow);
-            Seam.Dispose();
-        }
-    }
-
-    private static HostedList HostedSuggestions(ThreadRuntimePart12Harness h, ThreadRuntime runtime, string? directory, string typed, Func<ComposerView, bool> shown)
+    internal static HostedList HostedSuggestions(ThreadRuntimePart12Harness h, ThreadRuntime runtime, string? directory, string typed, Func<ComposerView, bool> shown)
     {
         var host = new Decorator();
         AvaloniaWindow listWindow = null!;
@@ -83,7 +73,7 @@ public sealed partial class ComposerViewTests
         });
     }
 
-    private static void AssertHeader(HostedList list, string title)
+    internal static void AssertHeader(HostedList list, string title)
     {
         list.H.Main.OnMain(() =>
         {
@@ -156,7 +146,7 @@ public sealed partial class ComposerViewTests
         });
     }
 
-    private static void AssertSelectedInView(ThreadRuntimePart12Harness h, HostedList list, int index) => h.Main.OnMain(() =>
+    internal static void AssertSelectedInView(ThreadRuntimePart12Harness h, HostedList list, int index) => h.Main.OnMain(() =>
     {
         var scroll = One<ScrollViewer>(list.Host);
         var selected = LogicalQuery.SelfAndDescendants<SuggestionPopoverRow>(list.Host).ElementAt(index);

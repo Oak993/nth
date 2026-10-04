@@ -21,15 +21,22 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :190-273, :311-330, :426-501 and the slash and @ list
 // the pill hosts (the blitz-composerview unit).
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzListTests(HeadlessSession headless)
 {
     // Raises the Deactivated or Activated callback the headless window platform hands the window: the window's own IsActive
     // flips as an operating-system focus change flips it, and the text box keeps its own keyboard focus.
-    private static void SetWindowActive(AvaloniaWindow window, bool active)
+    internal static void SetWindowActive(AvaloniaWindow window, bool active)
     {
         const System.Reflection.BindingFlags all =
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
@@ -40,7 +47,7 @@ public sealed partial class ComposerViewTests
     }
 
     // Until, naming what never happened when the wait runs out.
-    private static void UntilBecause(string what, ThreadRuntimePart12Harness h, AvaloniaWindow? window, Func<bool> condition)
+    internal static void UntilBecause(string what, ThreadRuntimePart12Harness h, AvaloniaWindow? window, Func<bool> condition)
     {
         try { Until(h, window, condition); }
         catch (TimeoutException) { throw new TimeoutException("never happened: " + what + "; errors: " + string.Join(" | ", h.App.Providers.CommandErrors.Values)); }
@@ -662,18 +669,4 @@ public sealed partial class ComposerViewTests
         });
     }
 
-    // Puts what a popup shows into a window at once.
-    private sealed class HostingPresenter(Decorator host, Action layout) : IPopoverPresenter
-    {
-        public int Shown { get; private set; }
-
-        public void SetPresented(Popup popup, bool presented)
-        {
-            if (!presented || popup.Child is not { } frame) return;
-            popup.Child = null;
-            host.Child = frame;
-            layout();
-            Shown++;
-        }
-    }
 }

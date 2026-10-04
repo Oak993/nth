@@ -24,22 +24,29 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :692-773 (the context ring): the blitz-composerview unit's
 // proofs for UI-COMPOSER-013 and UI-USAGE-001, 002.
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzRingTests(HeadlessSession headless)
 {
-    private static double EffectiveOpacity(Visual control, Visual root)
+    internal static double EffectiveOpacity(Visual control, Visual root)
     {
         var opacity = 1.0;
         for (Visual? at = control; at is not null && !ReferenceEquals(at, root); at = at.GetVisualParent()) opacity *= at.Opacity;
         return opacity;
     }
 
-    private static bool Reaches(Visual? hit, Control target) => hit is not null && (ReferenceEquals(hit, target) || hit.GetVisualAncestors().Contains(target));
+    internal static bool Reaches(Visual? hit, Control target) => hit is not null && (ReferenceEquals(hit, target) || hit.GetVisualAncestors().Contains(target));
 
-    private static void Elapse(ThreadRuntimePart12Harness h, ManualFrameSource frames, AvaloniaWindow window, double seconds)
+    internal static void Elapse(ThreadRuntimePart12Harness h, ManualFrameSource frames, AvaloniaWindow window, double seconds)
     {
         h.Main.Advance(TimeSpan.FromSeconds(seconds));
         h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(seconds)));
@@ -119,9 +126,9 @@ public sealed partial class ComposerViewTests
 
     // What the ring draws at points on its centre line, clockwise from twelve o'clock (angles in degrees), over a white ground: whether the
     // pixel is the tint (the arc) rather than grey (the quaternary track), and its brightness.
-    private static readonly int[] RingAngles = [20, 70, 110, 160, 200, 250, 290, 340];
+    internal static readonly int[] RingAngles = [20, 70, 110, 160, 200, 250, 290, 340];
 
-    private static (bool Tint, double Level)[] RingSamples(ThreadRuntimePart12Harness h, ContextMeter meter, AvaloniaWindow window)
+    internal static (bool Tint, double Level)[] RingSamples(ThreadRuntimePart12Harness h, ContextMeter meter, AvaloniaWindow window)
     {
         h.Main.OnMain(() => Host(window).Background = Brushes.White);
         Pump(h, window);
@@ -138,10 +145,10 @@ public sealed partial class ComposerViewTests
         return hues.Select((hue, index) => (hue.Green < 0.97, levels[index])).ToArray(); // the track and the ground are exactly grey (1.00), the tint is not (0.56 at its middle, 0.9 at an anti-aliased edge)
     }
 
-    private static string Describe((bool Tint, double Level)[] samples) =>
+    internal static string Describe((bool Tint, double Level)[] samples) =>
         string.Join(" ", samples.Select((sample, index) => $"{RingAngles[index]}:{(sample.Tint ? "tint" : "grey")}/{sample.Level:0.00}"));
 
-    private static void AssertRing((bool Tint, double Level)[] samples, int tintedUpTo)
+    internal static void AssertRing((bool Tint, double Level)[] samples, int tintedUpTo)
     {
         for (var index = 0; index < RingAngles.Length; index++)
         {

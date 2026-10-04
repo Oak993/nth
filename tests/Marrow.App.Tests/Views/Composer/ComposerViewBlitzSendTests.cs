@@ -19,17 +19,22 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :783-866 (the send and stop button): the blitz-composerview
 // unit's proof for UI-COMPOSER-016.
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzSendTests(HeadlessSession headless)
 {
-    private static string QueueTail(string idleOrRunning) => SendShortcutText.Queue is { } queue ? " · " + queue + idleOrRunning : "";
+    internal static string QueueTail(string idleOrRunning) => SendShortcutText.Queue is { } queue ? " · " + queue + idleOrRunning : "";
 
-    private sealed record SendLook(bool Enabled, string Symbol, string Name, string Tip, Color Fill, Color Ink);
-
-    private static SendLook LookAt(Control send)
+    internal static SendLook LookAt(Control send)
     {
         var button = One<Button>(send);
         var label = Assert.IsType<Border>(button.Content);

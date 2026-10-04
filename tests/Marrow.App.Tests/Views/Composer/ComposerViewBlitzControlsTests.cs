@@ -24,17 +24,24 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :487-501, :552-565, :599-604, :625-656, :868-959 (the
 // blitz-composerview unit): the pick's one undo step, the text view's growth and its live-resize rule, the attach button, the
 // control row and the chip row.
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzControlsTests(HeadlessSession headless)
 {
-    private static IEnumerable<Control> ChipControls(DraftChips chips) =>
+    internal static IEnumerable<Control> ChipControls(DraftChips chips) =>
         Assert.IsType<StackPanel>(One<ScrollViewer>(chips).Content).Children.OfType<Control>();
 
-    private static Panel ChipRows(DraftChips chips) => Assert.IsAssignableFrom<Panel>(chips.Child);
+    internal static Panel ChipRows(DraftChips chips) => Assert.IsAssignableFrom<Panel>(chips.Child);
 
     // ---- PR-COMPOSER-049 (:487-501; ComposerTextView.swift:43-49) ----
 

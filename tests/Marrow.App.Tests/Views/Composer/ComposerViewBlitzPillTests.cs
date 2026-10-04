@@ -23,11 +23,18 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :22-57 (the area), :143-189 (the pill), :625-646 (the attach button),
 // DroppyCode/UI/Common/Components.swift :57-97 (ChipButtonStyle): the blitz-composerview unit's proofs for UI-COMPOSER-001, 002 and 011.
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzPillTests(HeadlessSession headless)
 {
     // ---- UI-COMPOSER-001 (:22-57) ----
 

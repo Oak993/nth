@@ -18,14 +18,21 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :219-225, :511-524, :576-583 (the attachment notice): the
 // blitz-composerview unit's proof for UI-COMPOSER-004's transitions; the owner's OD-0076 gives the pill's height the ease the
 // transaction asks for (ED-282, the notice's row).
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzNoticeTests(HeadlessSession headless)
 {
-    private const string CapNotice = "One file was left out: a message holds 8 attachments";
+    internal const string CapNotice = "One file was left out: a message holds 8 attachments";
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-004")] // App/Views/Composer/ComposerView.swift:576-583, :522-524

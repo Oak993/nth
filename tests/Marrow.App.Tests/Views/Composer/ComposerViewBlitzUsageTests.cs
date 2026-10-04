@@ -24,34 +24,23 @@ using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzListTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzRingTests;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzUsageTests;
+
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerView.swift (B3 52bc792), :692-773 (the context ring, its usage popover and the pop-out
 // button) and DroppyCode/UI/Chrome/Chrome.swift :412-437 (ChromeCircleButton): the blitz-composerview unit's proofs for
 // UI-COMPOSER-013, 014, 015 and UI-USAGE-001 to 004, over the existing B3 tests of the same records.
-public sealed partial class ComposerViewTests
+[Collection("Headless")]
+public sealed class ComposerViewBlitzUsageTests(HeadlessSession headless)
 {
-    private const string PopOutLabel = "Open as a floating panel beside the chat";
+    internal const string PopOutLabel = "Open as a floating panel beside the chat";
 
-    // The ring on screen with the presenter recording what it is asked to show, then its popover opened by a click.
-    private sealed class OpenRing : IDisposable
-    {
-        public required ThreadRuntimePart12Harness H { get; init; }
-        public required ContextMeter Meter { get; init; }
-        public required AvaloniaWindow Window { get; init; }
-        public required ContentRecordingPresenter Presenter { get; init; }
-        public required IDisposable Seam { get; init; }
-        public Control? Content { get; set; }
-        public AvaloniaWindow? PopupWindow { get; set; }
-
-        public void Dispose()
-        {
-            H.Main.OnMain(() => { PopupWindow?.Close(); Window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
-            Seam.Dispose();
-        }
-    }
-
-    private static OpenRing RingOnScreen(ThreadRuntimePart12Harness h, ProviderKind provider = ProviderKind.Codex, bool usage = true)
+    internal static OpenRing RingOnScreen(ThreadRuntimePart12Harness h, ProviderKind provider = ProviderKind.Codex, bool usage = true)
     {
         var presenter = new ContentRecordingPresenter();
         var seam = Presentation.Presenter.Override(presenter);
@@ -63,7 +52,7 @@ public sealed partial class ComposerViewTests
     }
 
     // The popover's content handed to a window of its own, which has no model above it (the popup's own window is outside the tree).
-    private static void OpenPopover(OpenRing ring, bool host)
+    internal static void OpenPopover(OpenRing ring, bool host)
     {
         var h = ring.H;
         h.Main.OnMain(() => Click(One<Button>(ring.Meter)));

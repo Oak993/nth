@@ -28,6 +28,7 @@ using Marrow.UI.Port;
 using Marrow.UI.Theme;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
+using static Marrow.App.Tests.Views.Composer.ComposerViewBlitzControlsTests;
 
 namespace Marrow.App.Tests.Views.Composer;
 
@@ -48,7 +49,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 {
     private const string Plan = "Describe what you want to plan";
 
-    private static ThreadRuntimePart12Harness RuntimeHarness()
+    internal static ThreadRuntimePart12Harness RuntimeHarness()
     {
         // FollowUpEditorTests' note: LoginEnvironment.Load is completed once on a pool thread first, so the harness's
         // own Load().Wait() on the headless UI thread returns at once instead of deadlocking.
@@ -67,17 +68,17 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // The runtime installs its thread document when the load lands (ThreadRuntime.swift:539-554), replacing turns and
     // entries, so a test waits for it before rehearsing anything.
-    private static void Loaded(ThreadRuntimePart12Harness h, ThreadRuntime runtime) =>
+    internal static void Loaded(ThreadRuntimePart12Harness h, ThreadRuntime runtime) =>
         h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
 
-    private static ThreadRuntime Unresolved(ThreadRuntimePart12Harness h)
+    internal static ThreadRuntime Unresolved(ThreadRuntimePart12Harness h)
     {
         var runtime = h.Main.OnMain(() => new ThreadRuntime(Guid.NewGuid(), h.App));
         Loaded(h, runtime);
         return runtime;
     }
 
-    private static AvaloniaWindow Show(Control content, AppModel app, double width)
+    internal static AvaloniaWindow Show(Control content, AppModel app, double width)
     {
         var host = new Border
         {
@@ -93,9 +94,9 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
         return window;
     }
 
-    private static Border Host(AvaloniaWindow window) => (Border)window.Content!;
+    internal static Border Host(AvaloniaWindow window) => (Border)window.Content!;
 
-    private static void Settle(AvaloniaWindow window)
+    internal static void Settle(AvaloniaWindow window)
     {
         for (var pass = 0; pass < 5; pass++)
         {
@@ -105,40 +106,40 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
     }
 
     // Track reactions land on the next main turn; layout and the text box's posted jobs run on the dispatcher.
-    private static void Pump(ThreadRuntimePart12Harness h, AvaloniaWindow window)
+    internal static void Pump(ThreadRuntimePart12Harness h, AvaloniaWindow window)
     {
         for (var round = 0; round < 4; round++) h.Main.OnMain(() => Settle(window));
     }
 
-    private static void Close(ThreadRuntimePart12Harness h, AvaloniaWindow window) => h.Main.OnMain(() =>
+    internal static void Close(ThreadRuntimePart12Harness h, AvaloniaWindow window) => h.Main.OnMain(() =>
     {
         Settle(window);
         window.Close();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     });
 
-    private static Rect Frame(Visual control, Visual relativeTo) =>
+    internal static Rect Frame(Visual control, Visual relativeTo) =>
         new(control.TranslatePoint(default, relativeTo)!.Value, control.Bounds.Size);
 
-    private static T One<T>(ILogical root) where T : class => LogicalQuery.SelfAndDescendants<T>(root).Single();
+    internal static T One<T>(ILogical root) where T : class => LogicalQuery.SelfAndDescendants<T>(root).Single();
 
-    private static IEnumerable<ILogical> Ancestors(ILogical control)
+    internal static IEnumerable<ILogical> Ancestors(ILogical control)
     {
         for (var parent = control.LogicalParent; parent is not null; parent = parent.LogicalParent) yield return parent;
     }
 
     // The VStack(alignment: .center, spacing: -ThreadChangesTab.overlap) holding the tab slot and the pill (:28-31).
-    private static StackPanel Group(ComposerArea area) => (StackPanel)One<ComposerView>(area).Parent!;
+    internal static StackPanel Group(ComposerArea area) => (StackPanel)One<ComposerView>(area).Parent!;
 
     // The VStack(spacing: 12) holding the approval cards and that group (:24-50).
-    private static StackPanel Stack(ComposerArea area) =>
+    internal static StackPanel Stack(ComposerArea area) =>
         Ancestors(Group(area)).OfType<StackPanel>().First(panel => panel.Spacing == 12);
 
     private static string Patch(string path) =>
         "diff --git a/" + path + " b/" + path + "\nnew file mode 100644\n--- /dev/null\n+++ b/" + path + "\n@@ -0,0 +1 @@\n+new\n";
 
     // A turn whose provider patch adds one file, then the stats the changes tab shows (ThreadRuntime.swift:1945-1953).
-    private static void GiveStats(ThreadRuntimePart12Harness h, ThreadRuntime runtime, string path = "src/new.txt")
+    internal static void GiveStats(ThreadRuntimePart12Harness h, ThreadRuntime runtime, string path = "src/new.txt")
     {
         h.Main.OnMain(() => runtime.RehearseTurn("edit " + path, providerDiff: Patch(path)));
         h.Main.OnMain(runtime.NoteDiffChanged);
@@ -146,7 +147,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
         Assert.NotNull(runtime.ChangeStats);
     }
 
-    private static bool Press(ComposerView view, Key key)
+    internal static bool Press(ComposerView view, Key key)
     {
         var textView = One<ComposerNSTextView>(view);
         var args = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key };
@@ -154,7 +155,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
         return args.Handled;
     }
 
-    private static ComposerView Pill(ThreadRuntimePart12Harness h, ThreadRuntime runtime) => h.Main.OnMain(() =>
+    internal static ComposerView Pill(ThreadRuntimePart12Harness h, ThreadRuntime runtime) => h.Main.OnMain(() =>
     {
         var view = new ComposerView(runtime, workingDirectory: null);
         AppEnvironment.SetAppModel(view, h.App);
@@ -164,7 +165,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // The text box raises TextChanged from a posted dispatcher job (FollowUpEditorTests' note); that reaches the draft
     // through the text binding, so it must run on the main actor, inside h.Main.OnMain.
-    private static void Drain() => Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+    internal static void Drain() => Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
     // ---- ComposerArea (:4-58) ----
 
@@ -724,7 +725,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // ---- ComposerTextColumn (:540-607) ----
 
-    private static ComposerTextColumn Column(ThreadRuntime runtime, string? notice) => new(
+    internal static ComposerTextColumn Column(ThreadRuntime runtime, string? notice) => new(
         runtime,
         new ComposerController(),
         placeholder: "",
@@ -788,7 +789,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // The five-line ceiling (ComposerView.swift:556-561) with the port's text face, Inter (OD-0009): the line height is
     // ceil(ascender - descender + leading) of the 14 point face, taken here from Inter's own metrics.
-    private static double FiveLineCeiling()
+    internal static double FiveLineCeiling()
     {
         var font = SwiftFont.SystemFont(14).Resolve();
         Assert.True(FontManager.Current.TryGetGlyphTypeface(new Typeface(font.FontFamily, font.FontStyle, font.FontWeight), out var glyph));
@@ -1227,7 +1228,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
     // attach ========
 
     // The key the text view reports for a chord (ComposerTextView.swift:329-357), raised as part 1's Press does.
-    private static bool Press(ComposerView view, Key key, KeyModifiers modifiers)
+    internal static bool Press(ComposerView view, Key key, KeyModifiers modifiers)
     {
         var textView = One<ComposerNSTextView>(view);
         var args = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers };
@@ -1237,7 +1238,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // The text box as a user leaves it: the text, then the caret. The text view reports both (ComposerTextView.swift:
     // 317-327), the text through the draft binding.
-    private static void Type(ComposerView view, string text, int? caret = null)
+    internal static void Type(ComposerView view, string text, int? caret = null)
     {
         var box = One<ComposerNSTextView>(view);
         box.Text = text;
@@ -1251,7 +1252,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // Pumps the main loop, the dispatcher and layout until the condition holds: a search or an index build runs off main
     // and comes back to it.
-    private static void Until(ThreadRuntimePart12Harness h, AvaloniaWindow? window, Func<bool> condition) =>
+    internal static void Until(ThreadRuntimePart12Harness h, AvaloniaWindow? window, Func<bool> condition) =>
         h.Main.Loop.RunUntil(() =>
         {
             if (window is null) Drain();
@@ -1261,7 +1262,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // A pill that is not on screen, with a working directory, for the resolved harness thread: the controls a resolved
     // thread draws (ComposerControls) are part 3's, so such a pill is exercised unattached, as part 1 does.
-    private static ComposerView Pill(ThreadRuntimePart12Harness h, ThreadRuntime runtime, string? workingDirectory) => h.Main.OnMain(() =>
+    internal static ComposerView Pill(ThreadRuntimePart12Harness h, ThreadRuntime runtime, string? workingDirectory) => h.Main.OnMain(() =>
     {
         var view = new ComposerView(runtime, workingDirectory);
         AppEnvironment.SetAppModel(view, h.App);
@@ -1271,7 +1272,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // A pill on screen beside another focusable control, its text view focused. Its runtime resolves no thread, so the
     // controls are left out (ComposerView.swift:160) and the file list, which needs no thread, can be shown.
-    private static (ComposerView View, AvaloniaWindow Window, Button Other, StackPanel Stack) OnScreen(
+    internal static (ComposerView View, AvaloniaWindow Window, Button Other, StackPanel Stack) OnScreen(
         ThreadRuntimePart12Harness h, ThreadRuntime runtime, string? workingDirectory, bool takesFocusOnAppear = true)
     {
         var (view, window, other, stack) = h.Main.OnMain(() =>
@@ -1299,7 +1300,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
     }
 
     // Empty files at the given relative paths ("/" separated) under root.
-    private static void Touch(string root, params string[] relative)
+    internal static void Touch(string root, params string[] relative)
     {
         foreach (var path in relative)
         {
@@ -1311,14 +1312,14 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     // Builds the shared index for a directory before a composer asks for it (ComposerView.swift:1121-1127: a composer
     // that finds its directory built is served at once).
-    private static void Indexed(ThreadRuntimePart12Harness h, string directory)
+    internal static void Indexed(ThreadRuntimePart12Harness h, string directory)
     {
         var index = h.Main.OnMain(() => new FileIndex());
         h.Main.Loop.Run(() => index.Prepare(directory), AppModelHarness.Bound);
     }
 
     // What the controller last handed the popover (ComposerTextView.swift:51-84): the fixed frame holding the menu.
-    private static Border Shown(RecordingPresenter presenter)
+    internal static Border Shown(RecordingPresenter presenter)
     {
         var (popup, presented) = presenter.Calls[^1];
         Assert.True(presented);
@@ -1327,15 +1328,15 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 
     private static string HeaderText(Control menu) => Assert.IsType<TextBlock>(One<PopoverSectionHeader>(menu).Child).Text!;
 
-    private static string[] Titles(ComposerView view) => view.Suggestions.Items.Select(item => item.Title).ToArray();
+    internal static string[] Titles(ComposerView view) => view.Suggestions.Items.Select(item => item.Title).ToArray();
 
     private static ShortcutStore FreshStore() => (ShortcutStore)Activator.CreateInstance(typeof(ShortcutStore), nonPublic: true)!;
 
     // ED-211: use an offline CLI under the allowed scratch root; never use a system-installed executable.
-    private static string FailingCommandCLI() =>
+    internal static string FailingCommandCLI() =>
         ProviderProbeStandIns.CopyFor("composer-command-discovery-failure").SetExitCode(1).ExecutablePath;
 
-    private static Attachment Fake(int index) => new()
+    internal static Attachment Fake(int index) => new()
     {
         Name = "held" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".txt",
         Path = @"C:\no-such-folder\held" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".txt",
@@ -2976,7 +2977,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
         Assert.Equal(8, ComposerView.MaxAttachments);
         Assert.Equal(Storage.AttachmentLimit, ComposerView.MaxAttachments);
     }
-    private static ApprovalRequest Approval(string id) => new(id, ApprovalRequest.Kind.Tool, id,
+    internal static ApprovalRequest Approval(string id) => new(id, ApprovalRequest.Kind.Tool, id,
         new ValueList<ApprovalRequest.Option>([new("no", "Decline", ApprovalRequest.Option.Role.Decline)]));
 
     [Fact]
@@ -3087,9 +3088,9 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
         Touch(ranked, "a cafe\u0301.txt", "f0\u00e9.txt");
         Assert.Equal(["a cafe\u0301.txt", "f0\u00e9.txt"], Search(store, Prepared(store, ranked), "f\u00e9"));
     }
-    private static Button Named(Control root, string name) => LogicalQuery.SelfAndDescendants<Button>(root).Single(b => AutomationProperties.GetName(b) == name);
-    private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-    private static void InvokePrivate(object target, string method, params object[] args) => target.GetType().GetMethod(method, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(target, args);
+    internal static Button Named(Control root, string name) => LogicalQuery.SelfAndDescendants<Button>(root).Single(b => AutomationProperties.GetName(b) == name);
+    internal static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    internal static void InvokePrivate(object target, string method, params object[] args) => target.GetType().GetMethod(method, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(target, args);
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-060")] // App/Views/Composer/ComposerView.swift:219-225
