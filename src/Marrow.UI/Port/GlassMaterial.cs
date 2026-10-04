@@ -217,7 +217,7 @@ internal static class GlassMaterial
             // A shape's fill and corners are the Border's or, for a SwiftUI shape with its own curve, the SwiftShapeBorder's (ED-181).
             var (fill, ownCorners) = control switch
             {
-                Border border => (border.Background, (CornerRadius?)border.CornerRadius),
+                Border border => (border.Background, (CornerRadius?)SwiftShapes.StatedCornerRadius(border)), // the stated radius: the shader draws the corner (OD-0102) itself
                 SwiftShapeBorder shape => (shape.Background, shape.CornerRadius),
                 _ => ((IBrush?)null, null),
             };
@@ -304,8 +304,9 @@ internal static class GlassMaterial
 
     // The shape's signed distance (negative inside). A `.continuous` rounded rectangle is the circular corner's distance plus the
     // offset of Apple's curve from the circle (ContinuousCorner.ShaderSource, ED-181): the zero level lies on the path
-    // SwiftShapes draws (to 2e-5 r) and the field is the plain circle's wherever the curve is not drawn (a capsule, a radius past
-    // ContinuousCorner.LargestRadius, `.circular`), so those stay what the video shows. The C# mirror is ContinuousCorner.Distance.
+    // SwiftShapes draws (to 2e-5 r) and the field is the plain circle's wherever the curve is not drawn (a capsule, `.circular`, and the composer
+    // pill, which the video measures circular in ED-275 (2)'s band); a radius between ContinuousCorner.LargestRadius and half the shorter side
+    // is Apple's corner at LargestRadius (OD-0102). The C# mirror is ContinuousCorner.Distance.
     internal static readonly string ShaderHeader = string.Concat(
         "uniform shader backdrop;\nuniform float merge;\n",
         ContinuousCorner.ShaderSource(),
@@ -318,6 +319,10 @@ internal static class GlassMaterial
             float radius = kind > 0.5 ? min(c.x, c.y) :
                 (p.y < 0.0 ? (p.x < 0.0 ? corners.x : corners.y) : (p.x < 0.0 ? corners.w : corners.z));
             radius = min(radius, min(c.x, c.y));
+            // OD-0102: a continuous corner that does not fit at its radius yet is under half the shorter side (ED-275 (2)'s band) is Apple's corner at the
+            // largest radius that fits (ContinuousCorner.LargestRadius), unless the shape is measured circular there (continuous == 2: the composer pill).
+            float largest = min(c.x, c.y) / EXTENT;
+            if (continuous > 0.5 && continuous < 1.5 && kind < 0.5 && radius > largest && radius < min(c.x, c.y) - 0.000001) radius = largest;
             float2 q = abs(p) - c + radius;
             float2 qc = max(q, 0.0);
             float cd = length(qc) + min(max(q.x, q.y), 0.0) - radius;
@@ -328,7 +333,7 @@ internal static class GlassMaterial
             float h = max(merge - abs(a - b), 0.0) / merge;
             return min(a, b) - h * h * merge * 0.25;
         }
-        """);
+        """.Replace("EXTENT", ContinuousCorner.Extent.ToString("R", CultureInfo.InvariantCulture), StringComparison.Ordinal));
     private static readonly ConcurrentDictionary<int, Lazy<SKRuntimeEffect>> effects = new();
 
     private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>
@@ -448,7 +453,7 @@ internal static class GlassMaterial
             uniforms[$"tint{i}"] = new[] { r.Tint.R / 255f, r.Tint.G / 255f, r.Tint.B / 255f, r.Tint.A / 255f };
             uniforms[$"frost{i}"] = r.Dark ? new[] { 30 / 255f, 30 / 255f, 32 / 255f, 0.18f } : new[] { 245 / 255f, 245 / 255f, 247 / 255f, 0.18f };
             var distanceScale = Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21));
-            uniforms[$"flags{i}"] = new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? 1f : 0f, (float)distanceScale, (float)r.Opacity };
+            uniforms[$"flags{i}"] = new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f, (float)distanceScale, (float)r.Opacity };
             uniforms[$"pointer{i}"] = new[] { (float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f };
         }
         var children = new SKRuntimeEffectChildren(effect) { ["backdrop"] = backdrop };
