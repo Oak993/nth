@@ -41,4 +41,34 @@ public sealed class DownloadHarnessReviewTests
         Assert.Equal(0, outside.Available);
         Assert.Equal(0, server.ConnectionCount);
     }
+
+    // Added by the review (it passed on the merged branch; a mutant that left the listener open after DisposeAsync survived every SK-0 test).
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "SK-0")]
+    public async Task After_dispose_nothing_listens_and_a_download_still_in_flight_ends()
+    {
+        var https = FakeDownloadServer.StartHttps()
+            .Serve("/slow.bin", Artifact, new FakeBehavior { Trickle = new FakeTrickle(10, TimeSpan.FromDays(1)) });
+        var plain = FakeDownloadServer.StartPlainHttp().Serve("/a.bin", Artifact);
+        using var handler = FakeDownloadTransport.CreateHandler(https, plain);
+        using var client = DownloadFixtures.Client(handler);
+        using var slow = await client.GetAsync(https.Url("/slow.bin"), HttpCompletionOption.ResponseHeadersRead).WaitAsync(FakeDownloadServer.Guard);
+        var reading = slow.Content.ReadAsByteArrayAsync();
+        Assert.Equal(Artifact.Bytes, (await DownloadFixtures.Get(client, plain.Url("/a.bin"))).Body);
+        var endpoints = new[] { https.EndPoint, plain.EndPoint };
+
+        await https.DisposeAsync();
+        await plain.DisposeAsync();
+
+        var cut = await Record.ExceptionAsync(() => reading.WaitAsync(FakeDownloadServer.Guard));
+        Assert.NotNull(cut);
+        Assert.IsNotType<TimeoutException>(cut);
+        foreach (var endpoint in endpoints)
+        {
+            using var probe = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var refused = await Assert.ThrowsAsync<SocketException>(() => probe.ConnectAsync(endpoint).WaitAsync(FakeDownloadServer.Guard));
+            Assert.Equal(SocketError.ConnectionRefused, refused.SocketErrorCode);
+        }
+    }
 }
