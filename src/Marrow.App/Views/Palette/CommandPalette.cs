@@ -395,7 +395,7 @@ file sealed class CommandPaletteRow : Decorator
         // on nearly every row here, since almost every action carries a shortcut (PR-WIN-171/172/173). The Star
         // column also gives titleBlock/subtitleBlock a real bounded width, which is what lets their MaxLines(1)
         // truncation (above, and :124-130) actually clip rather than only ever measuring their full text.
-        // ENGINEERING DECISION, UNRESOLVED (ED-NEW-tail): the record says "at least 8 points of space" between the text block and the
+        // ENGINEERING DECISION, UNRESOLVED (ED-273): the record says "at least 8 points of space" between the text block and the
         // chord (UI-WIN-032, UI-WIN-033), which the margin ahead of the chord keeps (CommandPaletteChordTests). The port puts the HStack's
         // 12 points of spacing and the Spacer's 8 ahead of the chord, 20 in all; whether SwiftUI also puts the stack's 12 after the Spacer
         // (32 in all) is not decidable without a Mac, and no reference capture shows a row whose title fills its room.

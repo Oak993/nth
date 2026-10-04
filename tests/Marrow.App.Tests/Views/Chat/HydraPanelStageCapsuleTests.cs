@@ -151,7 +151,7 @@ public sealed class HydraPanelStageCapsuleTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-HYDRA-019")] // HydraPanel.swift:136-165 (no .id: one capsule view), :199 (.animation(liveResize.isActive ? nil : Chrome.panelSlide, value: selected?.id)): a head change keeps the one capsule and its contents change on the panel slide; a live resize does it at once
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-019: the head-change state (the dip, the swap and the width glide are ENGINEERING DECISIONS under OD-0076, ED-NEW-tail)
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-019: the head-change state (the dip, the swap and the width glide are ENGINEERING DECISIONS under OD-0076, ED-273)
     public void A_head_change_keeps_the_one_capsule_and_changes_its_contents_on_the_panel_slide_and_a_live_resize_does_it_at_once() => Run(c =>
     {
         var before = CapsuleOf(c);

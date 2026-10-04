@@ -150,7 +150,7 @@ public sealed class CommandPaletteChordTests(HeadlessSession headless)
     [InlineData("Add project", 120)]
     [Trait("Req", "UI-WIN-033")] // :132-137 geometry: the trailing edge of the row, after at least 8 points of space
     [Trait("Req", "UI-WIN-032")] // :111, :132: the text block, at least 8 points of space, then the chord
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-WIN-032 and UI-WIN-033: the chord's place (the floor of 8 points and the trailing edge); the port's 20 points is UNRESOLVED against SwiftUI's HStack spacing around a Spacer (ED-NEW-tail)
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-WIN-032 and UI-WIN-033: the chord's place (the floor of 8 points and the trailing edge); the port's 20 points is UNRESOLVED against SwiftUI's HStack spacing around a Spacer (ED-273)
     public void The_chord_is_the_trailing_item_with_at_least_8_points_between_it_and_the_text_at_the_narrowest_the_row_asks_for(string title, double extraRoom)
     {
         headless.OnUiThread(() =>
