@@ -305,7 +305,7 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   both recorded in the ED entry as not told apart by any headless check.
 
 [Collection("Headless")]
-public sealed class SidebarViewTests(HeadlessSession headless)
+public sealed partial class SidebarViewTests(HeadlessSession headless)
 {
     private static readonly Assembly AppAssembly = typeof(SidebarView).Assembly;
     private static readonly DateTimeOffset Base = new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);

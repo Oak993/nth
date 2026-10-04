@@ -410,21 +410,46 @@ public sealed class SidebarView : Decorator
         var badge = new SidebarIconBadge(() => new SidebarSymbol("gear", scale: 1.15)); // :169
         var overlay = new Panel { Children = { badge } };
         UpdateAvailableDot? dot = null;
+        AnimatedScalar? shown = null;
+        var wanted = false;
+        var primed = false;
+        // DEVIATION OD-0076 (leftovers pass 2026-10-04; the dot is a conditional view the Mac cuts in and out, :171-173
+        // with no animation): the dot fades in and scales up from 0.8 over Chrome.hover and leaves the same way, the
+        // clear button's motion (ED-280 (4)). UI-UPDATE-010's "disappears immediately" holds of the condition: the fade
+        // starts in the frame the version catches up. The first read, at mount, shows it as it stands. The scale turns
+        // about the circle's own centre, which :172's offset (2.5, -2.5) moves off the 7 pt box's centre (3.5, 3.5).
         overlay.Track(() => UpdateChecker.Shared.UpdateAvailable, available => // :171
         {
-            if (available && dot is null)
+            wanted = available;
+            var animation = primed ? Transaction.Current ?? Chrome.Hover : null;
+            primed = true;
+            if (available)
             {
-                dot = new UpdateAvailableDot // :172
+                if (dot is null)
                 {
-                    HorizontalAlignment = HorizontalAlignment.Right, // :170 .overlay(alignment: .topTrailing)
-                    VerticalAlignment = VerticalAlignment.Top,
-                };
-                overlay.Children.Add(dot);
+                    var created = new UpdateAvailableDot // :172
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Right, // :170 .overlay(alignment: .topTrailing)
+                        VerticalAlignment = VerticalAlignment.Top,
+                        RenderTransformOrigin = new RelativePoint(3.5 + 2.5, 3.5 - 2.5, RelativeUnit.Absolute),
+                    };
+                    dot = created;
+                    overlay.Children.Add(created);
+                    shown = new AnimatedScalar(created, animation is null ? 1 : 0, value =>
+                    {
+                        created.Opacity = value;
+                        var scale = 0.8 + 0.2 * value;
+                        created.RenderTransform = new ScaleTransform(scale, scale);
+                        if (value != 0 || wanted) return;
+                        overlay.Children.Remove(created); // faded out with nothing waiting
+                        if (ReferenceEquals(dot, created)) { dot = null; shown = null; }
+                    });
+                }
+                shown!.Set(1, animation);
             }
-            else if (!available && dot is { } shown)
+            else if (dot is not null)
             {
-                overlay.Children.Remove(shown);
-                dot = null;
+                shown!.Set(0, animation);
             }
         });
         return overlay;
@@ -1940,6 +1965,9 @@ internal sealed class ProjectRow : Decorator
     public ProjectRow(Project snapshot, long count, bool togglesExpansion = true)
     {
         var current = snapshot; // :1085, refreshed by the Track below
+        var shownIcon = snapshot.Icon; // the icon the badge draws now (:1108)
+        AnimatedScalar? dim = null; // :1136's opacity, eased (OD-0076)
+        var dimPrimed = false;
         var shownCount = count; // :1088, refreshed by Update
         var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         SidebarIconBadge? iconBadge = null;
@@ -2014,7 +2042,14 @@ internal sealed class ProjectRow : Decorator
         }, value =>
         {
             current = value.Item1;
-            Opacity = value.Item2 ? 1d : 0.55d; // :1135, on this ProjectRow itself (the whole body, as the source's own .opacity() wraps it), not the inner SidebarRow
+            // :1135, on this ProjectRow itself (the whole body, as the source's own .opacity() wraps it), not the inner
+            // SidebarRow. DEVIATION OD-0076 (ENGINEERING DECISION, leftovers pass 2026-10-04): the Mac snaps the dim; the
+            // port eases it on Chrome.hover, the quick state curve OD-0076 names for sites the Mac snaps. The first read
+            // shows the row as it stands.
+            var dimTarget = value.Item2 ? 1d : 0.55d;
+            dim ??= new AnimatedScalar(this, dimTarget, level => Opacity = level);
+            dim.Set(dimTarget, dimPrimed ? Transaction.Current ?? Chrome.Hover : null);
+            dimPrimed = true;
             // REVIEW FIX (part 6): SwiftUI re-reads `project.icon` (:1085, :1108) on every render, but the icon
             // slot (SidebarIconBadge, UI/Chrome/Chrome.cs) is built once, synchronously, inside SidebarRow's own
             // constructor (Chrome.cs:1079 `var iconSlot = icon();`), before this Track is ever installed; nothing
@@ -2022,7 +2057,13 @@ internal sealed class ProjectRow : Decorator
             // (the same record `current.Icon` reads), so it also re-populates the already-built badge in place,
             // the way this method's own header comment describes the whole constructor doing (surgical update,
             // not a fresh SidebarRow).
-            if (iconBadge is not null) ReplaceGlyph(iconBadge, BuildIconGlyph());
+            // DEVIATION OD-0076: a changed icon crossfades the marks (the source's `if let` swaps them by a cut, :1107-1113);
+            // a change of the record that leaves the icon as it was swaps nothing.
+            if (iconBadge is not null && !Equals(shownIcon, current.Icon))
+            {
+                shownIcon = current.Icon;
+                CrossfadeGlyph(iconBadge, BuildIconGlyph());
+            }
             row.RefreshAccessory(); // :1127 `!project.isExpanded`: the live project's expansion picks the accessory's branch
         });
         // :1091 isMenuPresented is this row's own @State, which SidebarRow's hover Track never reads; SwiftUI's body
@@ -2127,14 +2168,26 @@ internal sealed class ProjectRow : Decorator
     // centers it once, inside its own constructor, the moment the glyph factory first returns; swapping the glyph
     // afterwards (this method) must reapply that same treatment, since a freshly built ProjectIconMark or
     // SidebarSymbol does not get it a second time from SidebarIconBadge's own constructor.
-    private static void ReplaceGlyph(SidebarIconBadge badge, Control glyph)
+    // DEVIATION OD-0076 (leftovers pass 2026-10-04): the swap is a crossfade over Chrome.hover (or the transaction the
+    // change runs in): the new mark rises over the old one, which fades where it stands in the same 20 pt box and leaves
+    // once clear; each fades on its own scalar, so a swap that arrives mid-fade leaves nothing cut.
+    private static void CrossfadeGlyph(SidebarIconBadge badge, Control glyph)
     {
         glyph.SetValue(TextElement.ForegroundProperty, Chrome.PrimaryText.Opacity(0.85).Brush(glyph)); // Chrome.cs :676
         glyph.HorizontalAlignment = HorizontalAlignment.Center; // Chrome.cs :674, :677 (centered inside the Panel)
         glyph.VerticalAlignment = VerticalAlignment.Center;
         if (badge.Child is not Panel panel) return;
-        panel.Children.Clear();
+        var animation = Transaction.Current ?? Chrome.Hover;
+        var leaving = panel.Children.ToArray();
+        glyph.Opacity = 0;
         panel.Children.Add(glyph);
+        new AnimatedScalar(glyph, 0, level => glyph.Opacity = level).Set(1, animation);
+        foreach (var old in leaving)
+            new AnimatedScalar(old, old.Opacity, level =>
+            {
+                old.Opacity = level;
+                if (level == 0) panel.Children.Remove(old);
+            }).Set(0, animation);
     }
 
     // :5 @Environment(AppModel.self) private var model (this file's own convention: SidebarView.cs:337)
