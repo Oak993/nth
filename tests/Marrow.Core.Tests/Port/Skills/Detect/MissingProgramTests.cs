@@ -84,7 +84,7 @@ public sealed class MissingProgramTests
                 Assert.Equal(["T1"], DetectFixtures.Offered(detection));
             }
         // The alias message names Python, not the command; a command that holds neither python nor python3 gets nothing from it.
-        Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("node script.js", 9009, english, false)).Findings.Where(f => f.ItemId == "T1"));
+        Assert.DoesNotContain(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("node script.js", 9009, english, false)).Findings, f => f.ItemId == "T1");
         Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("python script.py", 1, english, false)).Findings);
     }
 

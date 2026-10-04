@@ -63,14 +63,26 @@ public sealed class NoProseSignalTests
     [Trait("Rule", "R-TEST-4")]
     public void The_detector_has_no_seam_to_the_machine_it_decides_from_the_facts_it_is_given()
     {
-        // Pure by construction (ONDEMAND-PLAN.md DL-10 "pure, Core"): no member takes a path, a process, a clock or a delegate to reach the outside.
-        var types = new[] { typeof(MissingToolDetector), typeof(CommandTokenizer), typeof(DetectionContext) };
-        foreach (var type in types)
+        // Pure by construction (ONDEMAND-PLAN.md DL-10 "pure, Core"): no public member takes a delegate, and the detector's source names no file, process, network,
+        // registry, clock, environment or delay API, so it cannot probe PATH, start a program or read a folder.
+        foreach (var type in new[] { typeof(MissingToolDetector), typeof(CommandTokenizer) })
             foreach (var method in type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly))
                 foreach (var parameter in method.GetParameters())
                     Assert.False(typeof(Delegate).IsAssignableFrom(parameter.ParameterType), $"{type.Name}.{method.Name}({parameter.Name})");
-        var context = typeof(DetectionContext).GetProperties().Select(p => p.PropertyType).ToList();
-        Assert.DoesNotContain(context, t => typeof(Delegate).IsAssignableFrom(t));
-        Assert.DoesNotContain(typeof(MissingToolDetector).Assembly.GetReferencedAssemblies(), a => a.Name is "System.Diagnostics.Process" or "System.Net.Http");
+        Assert.DoesNotContain(typeof(DetectionContext).GetProperties().Select(p => p.PropertyType), t => typeof(Delegate).IsAssignableFrom(t));
+        var forbidden = new System.Text.RegularExpressions.Regex(@"\b(Process|ProcessStartInfo|Environment|File|Directory|FileInfo|DirectoryInfo|HttpClient|Socket|Registry|Task\.Delay|Thread\.Sleep)\b|DateTime(Offset)?\.(Now|UtcNow)|System\.(IO|Net|Diagnostics)|ProcessLauncher|FileOps");
+        var folder = DetectSourceFolder();
+        var files = Directory.GetFiles(folder, "*.cs");
+        Assert.Equal(["CommandTokenizer.cs", "FailurePatterns.cs", "MissingToolDetector.cs", "ToolEvents.cs"], files.Select(f => Path.GetFileName(f)).OrderBy(f => f, StringComparer.Ordinal));
+        foreach (var file in files)
+            foreach (var line in File.ReadAllLines(file).Select((text, index) => (text, index)).Where(l => !l.text.TrimStart().StartsWith("//", StringComparison.Ordinal) && !l.text.TrimStart().StartsWith("///", StringComparison.Ordinal)))
+                Assert.False(forbidden.IsMatch(line.text), $"{Path.GetFileName(file)}:{line.index + 1}: {line.text.Trim()}");
+    }
+
+    private static string DetectSourceFolder([System.Runtime.CompilerServices.CallerFilePath] string path = "")
+    {
+        var directory = new DirectoryInfo(Path.GetDirectoryName(path)!);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Directory.Packages.props"))) directory = directory.Parent;
+        return Path.Combine(directory?.FullName ?? throw new InvalidOperationException("Directory.Packages.props was not found above " + path), "src", "Marrow.Core", "Port", "Skills", "Detect");
     }
 }

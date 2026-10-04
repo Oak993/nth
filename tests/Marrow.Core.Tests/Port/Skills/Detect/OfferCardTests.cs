@@ -67,7 +67,9 @@ public sealed class OfferCardTests
     [Trait("Rule", "R-TEST-4")]
     public void A_need_shared_by_two_requested_items_is_in_the_card_once()
     {
-        var card = DetectFixtures.Run(DetectFixtures.Ctx(), new CommandHeld("python -m docx"), DetectFixtures.Failed("python s.py", 1, "ModuleNotFoundError: No module named 'pypdf'", false)).Card!;
+        var card = DetectFixtures.Run(DetectFixtures.Ctx(),
+            DetectFixtures.Failed("python make.py", 1, "ModuleNotFoundError: No module named 'docx'", false),
+            DetectFixtures.Failed("python s.py", 1, "ModuleNotFoundError: No module named 'pypdf'", false)).Card!;
         Assert.Equal(["P1", "P2"], card.Requested);
         Assert.Equal(["T1", "T1p", "P1", "P2"], card.Items);
         Assert.Equal(12.6 + 1.8 + 5.3 + 17.2, card.ApproxSizeMb!.Value, 6);
@@ -82,9 +84,10 @@ public sealed class OfferCardTests
         Assert.Equal(["A2"], card.Requested);
         Assert.Equal("A2", card.Items[^1]);
         Assert.Equal(["P1", "P2", "P6", "T1", "T1p", "T2", "T3", "T4", "T5", "T6"], card.Items.Take(card.Items.Count - 1).OrderBy(i => i, StringComparer.Ordinal));
-        Assert.True(card.Items.IndexOf("T1") < card.Items.IndexOf("T1p"));
-        Assert.True(card.Items.IndexOf("T1p") < card.Items.IndexOf("P1"));
-        Assert.True(card.Items.IndexOf("T2") < card.Items.IndexOf("P6"));
+        var items = card.Items.ToList();
+        Assert.True(items.IndexOf("T1") < items.IndexOf("T1p"));
+        Assert.True(items.IndexOf("T1p") < items.IndexOf("P1"));
+        Assert.True(items.IndexOf("T2") < items.IndexOf("P6"));
         Assert.Null(card.ApproxSizeMb);
     }
 

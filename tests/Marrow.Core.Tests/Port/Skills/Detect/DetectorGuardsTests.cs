@@ -138,11 +138,8 @@ public sealed class DetectorGuardsTests
     public void When_several_guards_apply_the_first_in_this_order_is_the_reason_installed_found_removing_attach_declined_offered()
     {
         var found = new FoundOnPc("T3", @"C:\LO\soffice.exe");
-        AddonsState Build(ItemRecord? record, bool isFound, bool declined)
-        {
-            var state = AddonsState.Restore(record is null ? [] : [record], [], declined ? [new ChatDeclined("chat-1", ["T3"])] : [], isFound ? [found] : []);
-            return state;
-        }
+        AddonsState Build(ItemRecord? item, bool isFound, bool declined) =>
+            AddonsState.Restore(item is null ? [] : [item], [], declined ? [new ChatDeclined("chat-1", ["T3"])] : [], isFound ? [found] : []);
         var installed = DetectFixtures.Has("T3");
         Assert.Equal(SuppressReason.InstalledAndHealthy, One(Held(Build(installed, true, true), "chat-1", "T3")).Reason);
         Assert.Equal(SuppressReason.FoundOnPc, One(Held(Build(null, true, true), "chat-1", "T3")).Reason);
@@ -183,7 +180,7 @@ public sealed class DetectorGuardsTests
         Assert.Throws<ArgumentException>(() => DetectFixtures.Run(ok with { ChatId = "  " }, Soffice));
         Assert.Throws<ArgumentNullException>(() => MissingToolDetector.Detect(null!, [Soffice]));
         Assert.Throws<ArgumentNullException>(() => MissingToolDetector.Detect(ok, (IEnumerable<ToolEvent>)null!));
-        Assert.Throws<ArgumentException>(() => MissingToolDetector.Detect(ok, new ToolEvent?[] { null }!));
+        Assert.Throws<ArgumentException>(() => MissingToolDetector.Detect(ok, new ToolEvent[] { null! }));
         Assert.Throws<ArgumentNullException>(() => DetectFixtures.Run(ok with { Catalogue = null! }, Soffice));
         Assert.Throws<ArgumentNullException>(() => DetectFixtures.Run(ok with { State = null! }, Soffice));
         Assert.Throws<ArgumentNullException>(() => DetectFixtures.Run(ok with { OfferedInChat = null! }, Soffice));
