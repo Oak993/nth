@@ -1,0 +1,485 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.27]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Removing_the_deny_or_renaming_a_locked_tree_is_checked_on_the_next_use [SKIP]
+[xUnit.net 00:00:01.28]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Reset_ACLs_then_clear_read_only_then_delete_removes_the_whole_locked_fixture [SKIP]
+[xUnit.net 00:00:01.29]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_named_stream_is_damage_even_when_the_main_stream_matches [SKIP]
+[xUnit.net 00:00:01.29]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_handle_without_delete_sharing_defers_GC_until_the_next_pass [SKIP]
+[xUnit.net 00:00:01.29]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_exact_inherited_deny_refuses_create_write_append_attribute_rename_and_delete [SKIP]
+[xUnit.net 00:00:01.29]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(binary: "fixture.exe") [FAIL]
+[xUnit.net 00:00:01.30]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Missing_deny_entries_read_only_attributes_or_stream_inspection_fail_closed [FAIL]
+[xUnit.net 00:00:01.30]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_named_stream_reported_by_the_platform_is_damage [FAIL]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Removing_the_deny_or_renaming_a_locked_tree_is_checked_on_the_next_use [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Reset_ACLs_then_clear_read_only_then_delete_removes_the_whole_locked_fixture [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_named_stream_is_damage_even_when_the_main_stream_matches [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_handle_without_delete_sharing_defers_GC_until_the_next_pass [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_exact_inherited_deny_refuses_create_write_append_attribute_rename_and_delete [1 ms]
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(binary: "fixture.exe") [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(String binary) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 20
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Missing_deny_entries_read_only_attributes_or_stream_inspection_fail_closed [4 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Missing_deny_entries_read_only_attributes_or_stream_inspection_fail_closed() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 76
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_named_stream_reported_by_the_platform_is_damage [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_named_stream_reported_by_the_platform_is_damage() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 93
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:01.36]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_changed_size_or_same_size_changed_hash_is_damage(sameSize: True) [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_changed_size_or_same_size_changed_hash_is_damage(sameSize: False) [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(area: "store", kind: Skillset) [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(area: "tools", kind: Tool) [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(area: "store", kind: Plugin) [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(binary: "fixture.node") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(binary: "fixture.DLL") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(binary: "fixture.pyd") [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_changed_size_or_same_size_changed_hash_is_damage(sameSize: True) [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_changed_size_or_same_size_changed_hash_is_damage(Boolean sameSize) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 54
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_changed_size_or_same_size_changed_hash_is_damage(sameSize: False) [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_changed_size_or_same_size_changed_hash_is_damage(Boolean sameSize) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 54
+   at InvokeStub_StoreVerifierTests.A_changed_size_or_same_size_changed_hash_is_damage(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(area: "store", kind: Skillset) [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(String area, ItemKind kind) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 18
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(area: "tools", kind: Tool) [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(String area, ItemKind kind) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 18
+   at InvokeStub_StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(area: "store", kind: Plugin) [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(String area, ItemKind kind) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 18
+   at InvokeStub_StoreVerifierTests.The_complete_locked_tree_verifies_in_both_data_layouts(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(binary: "fixture.node") [1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(String binary) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 20
+   at InvokeStub_SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(binary: "fixture.DLL") [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(String binary) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 20
+   at InvokeStub_SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(binary: "fixture.pyd") [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(String binary) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 20
+   at InvokeStub_SkillsStoreTests.Every_launch_rechecks_the_binary_seal_and_reports_damaged_without_a_lease(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Paths_and_condemnation_cannot_escape_the_data_root_or_follow_a_link_to_a_fake_home [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Repair_downloads_the_installed_pin_and_verifies_before_making_it_usable [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a/./b") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a:stream") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a\\b") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a//b") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "C:/drive") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "../escape") [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Paths_and_condemnation_cannot_escape_the_data_root_or_follow_a_link_to_a_fake_home [3 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Paths_and_condemnation_cannot_escape_the_data_root_or_follow_a_link_to_a_fake_home() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 221
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Repair_downloads_the_installed_pin_and_verifies_before_making_it_usable [1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Repair_downloads_the_installed_pin_and_verifies_before_making_it_usable() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 46
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a/./b") [4 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.ArgumentException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(String path) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.<>c__DisplayClass8_0.<Unsafe_manifest_paths_are_refused_before_IO>b__0() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a:stream") [< 1 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.ArgumentException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(String path) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+   at InvokeStub_StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.<>c__DisplayClass8_0.<Unsafe_manifest_paths_are_refused_before_IO>b__0() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a\\b") [< 1 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.ArgumentException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(String path) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+   at InvokeStub_StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.<>c__DisplayClass8_0.<Unsafe_manifest_paths_are_refused_before_IO>b__0() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a//b") [< 1 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.ArgumentException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(String path) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+   at InvokeStub_StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.<>c__DisplayClass8_0.<Unsafe_manifest_paths_are_refused_before_IO>b__0() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "C:/drive") [< 1 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.ArgumentException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(String path) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+   at InvokeStub_StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.<>c__DisplayClass8_0.<Unsafe_manifest_paths_are_refused_before_IO>b__0() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "../escape") [< 1 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.ArgumentException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(String path) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+   at InvokeStub_StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.<>c__DisplayClass8_0.<Unsafe_manifest_paths_are_refused_before_IO>b__0() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a/../b") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "/absolute") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_file_or_directory_symlink_is_refused_without_following_it(directory: False) [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.GC_preserves_active_items_and_leases_and_deletes_old_tools_stores_and_generations [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_running_probe_or_chat_leases_its_generation_until_session_end [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_live_lease_keeps_a_condemned_tree_until_repair_can_publish_and_restart_keeps_the_mark [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.No_production_ACL_seam_silently_succeeds_on_non_Windows [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Two_repairs_share_no_download_and_GC_never_deletes_an_active_build [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "a/../b") [< 1 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.ArgumentException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(String path) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+   at InvokeStub_StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.<>c__DisplayClass8_0.<Unsafe_manifest_paths_are_refused_before_IO>b__0() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(path: "/absolute") [< 1 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.ArgumentException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(String path) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+   at InvokeStub_StoreVerifierTests.Unsafe_manifest_paths_are_refused_before_IO(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.<>c__DisplayClass8_0.<Unsafe_manifest_paths_are_refused_before_IO>b__0() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 124
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_file_or_directory_symlink_is_refused_without_following_it(directory: False) [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_file_or_directory_symlink_is_refused_without_following_it(Boolean directory) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 104
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.GC_preserves_active_items_and_leases_and_deletes_old_tools_stores_and_generations [3 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.GC_preserves_active_items_and_leases_and_deletes_old_tools_stores_and_generations() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 107
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_running_probe_or_chat_leases_its_generation_until_session_end [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_running_probe_or_chat_leases_its_generation_until_session_end() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 123
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_live_lease_keeps_a_condemned_tree_until_repair_can_publish_and_restart_keeps_the_mark [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_live_lease_keeps_a_condemned_tree_until_repair_can_publish_and_restart_keeps_the_mark() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 83
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.No_production_ACL_seam_silently_succeeds_on_non_Windows [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.No_production_ACL_seam_silently_succeeds_on_non_Windows() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 273
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Two_repairs_share_no_download_and_GC_never_deletes_an_active_build [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Two_repairs_share_no_download_and_GC_never_deletes_an_active_build() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 252
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_file_or_directory_symlink_is_refused_without_following_it(directory: True) [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Seal_checks_binaries_on_every_launch_and_full_verify_also_checks_text [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(extra: ".hidden") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(extra: "json.py") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(extra: "sample/scripts/__pycache__/run.cpython-314.pyc") [FAIL]
+[xUnit.net 00:00:01.37]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(extra: "sample-workspace") [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(extra: "empty") [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(extra: "sample/scripts/__pycache__") [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_missing_file_or_missing_root_is_damage [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_file_or_directory_symlink_is_refused_without_following_it(directory: True) [3 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_file_or_directory_symlink_is_refused_without_following_it(Boolean directory) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 104
+   at InvokeStub_StoreVerifierTests.A_file_or_directory_symlink_is_refused_without_following_it(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Seal_checks_binaries_on_every_launch_and_full_verify_also_checks_text [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Seal_checks_binaries_on_every_launch_and_full_verify_also_checks_text() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 142
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(extra: ".hidden") [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(String extra) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 29
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(extra: "json.py") [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(String extra) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 29
+   at InvokeStub_StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(extra: "sample/scripts/__pycache__/run.cpython-314.pyc") [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(String extra) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 29
+   at InvokeStub_StoreVerifierTests.Any_extra_file_is_damage_even_when_hidden_or_bytecode(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(extra: "sample-workspace") [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(String extra) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 41
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(extra: "empty") [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(String extra) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 41
+   at InvokeStub_StoreVerifierTests.An_empty_extra_folder_is_damage(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(extra: "sample/scripts/__pycache__") [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.An_empty_extra_folder_is_damage(String extra) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 41
+   at InvokeStub_StoreVerifierTests.An_empty_extra_folder_is_damage(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_missing_file_or_missing_root_is_damage [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_missing_file_or_missing_root_is_damage() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 63
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_manifest_is_an_immutable_case_insensitive_set_and_not_an_on_disk_trust_root [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Teardown_unlocks_everything_before_any_delete_and_keeps_enabled_and_accepted_terms [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Corrupt_repair_and_unconfigured_download_or_installer_seams_never_become_installed [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Full_app_update_verification_detects_text_damage_before_use [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Invalid_condemnation_file_is_not_silently_replaced_and_outside_paths_are_refused [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_sharing_failure_is_deferred_to_next_GC_without_waiting_or_losing_condemnation [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_damaged_generation_is_condemned_never_released_to_a_second_session_and_survives_restart [FAIL]
+[xUnit.net 00:00:01.38]     Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Teardown_leaves_a_held_tree_unlocked_and_later_GC_removes_it [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_manifest_is_an_immutable_case_insensitive_set_and_not_an_on_disk_trust_root [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StoreManifest..ctor(IEnumerable`1 files) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StoreManifest.cs:line 8
+   at Marrow.Services.Tests.Port.Skills.Store.StoreVerifierTests.A_manifest_is_an_immutable_case_insensitive_set_and_not_an_on_disk_trust_root() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs:line 131
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Teardown_unlocks_everything_before_any_delete_and_keeps_enabled_and_accepted_terms [3 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Teardown_unlocks_everything_before_any_delete_and_keeps_enabled_and_accepted_terms() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 181
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Corrupt_repair_and_unconfigured_download_or_installer_seams_never_become_installed [1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Corrupt_repair_and_unconfigured_download_or_installer_seams_never_become_installed() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 62
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Full_app_update_verification_detects_text_damage_before_use [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Full_app_update_verification_detects_text_damage_before_use() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 34
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Invalid_condemnation_file_is_not_silently_replaced_and_outside_paths_are_refused [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Invalid_condemnation_file_is_not_silently_replaced_and_outside_paths_are_refused() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 239
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_sharing_failure_is_deferred_to_next_GC_without_waiting_or_losing_condemnation [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_sharing_failure_is_deferred_to_next_GC_without_waiting_or_losing_condemnation() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 163
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_damaged_generation_is_condemned_never_released_to_a_second_session_and_survives_restart [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.A_damaged_generation_is_condemned_never_released_to_a_second_session_and_survives_restart() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 141
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Teardown_leaves_a_held_tree_unlocked_and_later_GC_removes_it [< 1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.StorePaths..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/StorePaths.cs:line 6
+   at Marrow.Services.Tests.Port.Skills.Store.Fixtures.StoreFixture..ctor(Boolean windows) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/Fixtures/StoreFixture.cs:line 21
+   at Marrow.Services.Tests.Port.Skills.Store.SkillsStoreTests.Teardown_leaves_a_held_tree_unlocked_and_later_GC_removes_it() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs:line 205
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:    44, Passed:     0, Skipped:     5, Total:    49, Duration: 117 ms - Marrow.Services.Tests.dll (net10.0)
