@@ -130,6 +130,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
                 Assert.Equal("Welcome tour", titles[4]); // right after Settings (titles[3])
                 var row = RowParts(palette.RowsPanel.Children[4]);
                 Assert.Equal("sparkles", Assert.IsType<SwiftImage>(Assert.Single(row.Icon.Children)).SymbolName);
+                Assert.Equal("welcome-tour", CommandPaletteRig.RowId(palette.RowsPanel.Children[4])); // OD-0053: place, symbol and id
                 Assert.True(string.IsNullOrEmpty(row.Chord.Text)); // the source gives the command no shortcut
                 Assert.True(palette.RowsPanel.Children[4].IsEnabled);
                 // with a thread selected the row still follows Settings
