@@ -3801,6 +3801,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-150")]
+    [Trait("Req", "PR-HYDRAMERGE-102")] // TimelineRows.swift:963-965, :1036-1039: with the outcome landed and the runtime's step cleared the head is pinned to the last dot, done under the flourish and resting after
     [Trait("Req", "PR-HYDRAMERGE-104")]
     [Trait("Req", "PR-HYDRAMERGE-107")]
     public void When_the_note_lands_the_pill_morphs_to_its_title_and_link_and_a_successful_merge_flourishes_for_1100_milliseconds()
