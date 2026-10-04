@@ -227,6 +227,45 @@ public sealed class CodexSessionUnchangedTests
 
     [WindowsOnlyFact("the CodexStandIn is compiled with the .NET Framework csc.exe and spawned through CreateProcessW")]
     [Trait("Feature", "SK-11b")]
+    [Trait("Spec", "SK-T11")]
+    [Trait("Rule", "R-TEST-10")]
+    public void The_child_environment_differs_from_today_only_by_addons_bin_in_PATH()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var path = @"C:\Windows\system32;C:\Users\x\AppData\Local\Microsoft\WindowsApps;C:\Windows";
+
+        CodexScript Launch(string label, CodexChildRoot? root)
+        {
+            var script = new CodexScript(label);
+            script.SetResponse("initialize", "{}");
+            script.SetResponse("thread/start", "{\"thread\":{\"id\":\"t1\"}}");
+            var configuration = new SessionConfiguration
+            {
+                Provider = ProviderKind.Codex,
+                Executable = CodexWiringFixture.Url(script.ExecutablePath),
+                WorkingDirectory = CodexWiringFixture.Url(Path.GetDirectoryName(script.ExecutablePath)!),
+                Environment = new ValueMap<string, string>(new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value, ["PATH"] = path, ["SK11B_PROBE"] = "kept" }),
+                RuntimeMode = RuntimeMode.Supervised,
+                InteractionMode = InteractionMode.Build,
+            };
+            using (CodexChildEnvironment.Root.Override(root ?? new CodexChildRoot(() => null))) Drive(runtime, new CodexSession(configuration).Start());
+            return script;
+        }
+
+        var today = Launch("sk11b-env-today", null).LaunchEnvironment(0);
+        var dataRoot = Path.Combine(storage.Root, "env-root");
+        var wired = Launch("sk11b-env-bin", new CodexChildRoot(() => dataRoot)).LaunchEnvironment(0);
+        var bin = Path.Combine(dataRoot, "addons", "bin");
+        Assert.Equal(path, today["PATH"]);
+        Assert.Equal(@"C:\Windows\system32;" + bin + @";C:\Users\x\AppData\Local\Microsoft\WindowsApps;C:\Windows", wired["PATH"]);
+        foreach (var (name, value) in today.Where(p => p.Key != "PATH" && p.Key != "CODEX_STANDIN_DIR")) Assert.Equal(value, wired[name]);
+        Assert.Equal(today.Keys.Order(StringComparer.OrdinalIgnoreCase), wired.Keys.Order(StringComparer.OrdinalIgnoreCase));
+        Assert.Equal("kept", wired["SK11B_PROBE"]);
+    }
+
+    [WindowsOnlyFact("the CodexStandIn is compiled with the .NET Framework csc.exe and spawned through CreateProcessW")]
+    [Trait("Feature", "SK-11b")]
     [Trait("Spec", "SK-T7")]
     [Trait("Rule", "R-TEST-10")]
     public void Start_with_wiring_sends_skills_list_and_extraRoots_between_initialized_and_thread_start_and_changes_no_other_line()

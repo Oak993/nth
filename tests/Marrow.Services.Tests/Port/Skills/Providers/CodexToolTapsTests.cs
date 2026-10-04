@@ -12,15 +12,13 @@ namespace Marrow.Services.Tests.Port.Skills.Providers;
 
 public sealed class CodexToolTapsTests
 {
-    private sealed record Line(string Kind, int? Id, string Method, JSONValue Params);
-
-    private static IEnumerable<Line> Transcript(string chatFolder) => File.ReadLines(CodexWiringFixture.FixturePath("codex-app-server-skills.jsonl")).Where(l => l.Length > 0).Select(raw =>
+    private static IEnumerable<CodexTranscriptLine> Transcript(string chatFolder) => File.ReadLines(CodexWiringFixture.FixturePath("codex-app-server-skills.jsonl")).Where(l => l.Length > 0).Select(raw =>
     {
         var json = CodexWiringFixture.Json(raw.Replace("{{CHAT}}", chatFolder.Replace('\\', '/'), StringComparison.Ordinal));
-        return new Line(json["kind"]!.JSONValueString!, json["id"]?.JSONValueInt is { } id ? (int)id : null, json["method"]!.JSONValueString!, json["params"]!);
+        return new CodexTranscriptLine(json["kind"]!.JSONValueString!, json["id"]?.JSONValueInt is { } id ? (int)id : null, json["method"]!.JSONValueString!, json["params"]!);
     });
 
-    private static void Play(CodexSession session, IEnumerable<Line> lines)
+    private static void Play(CodexSession session, IEnumerable<CodexTranscriptLine> lines)
     {
         foreach (var line in lines)
         {
