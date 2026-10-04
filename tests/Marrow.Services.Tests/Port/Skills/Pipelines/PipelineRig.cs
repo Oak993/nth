@@ -25,7 +25,8 @@ internal sealed class PipelineRig : IDisposable
     public List<double?> Reports { get; } = [];
     public IProgress<double?> Progress => new PipelineProgress(Reports);
     public string? LastDownloadPin { get; private set; }
-    public PipelineRig(bool nonOpen = false, bool windows = false, bool skillset = false, bool multiPin = false, bool emptyDirectory = false, bool msi = false, string? root = null)
+    public string? FailDownload { get; set; }
+    public PipelineRig(bool nonOpen = false, bool windows = false, bool skillset = false, bool multiPin = false, bool emptyDirectory = false, bool msi = false, string? root = null, bool disclosure = false)
     {
         install = root is null ? new() : new(root);
         if (windows) { protection = new WindowsStoreProtection(); sealing = new WindowsInstallLock(); }
@@ -40,7 +41,7 @@ internal sealed class PipelineRig : IDisposable
         }
         if (skillset)
         {
-            var skill = "Fixture skill instructions"u8.ToArray();
+            var skill = disclosure ? Disclosure("OLD BODY") : "Fixture skill instructions"u8.ToArray();
             plan = plan with { Kind = InstallerKind.Skillset, Item = plan.Item with { Kind = ItemKind.Skillset, Artifacts = [], SkillCount = 1, SkillsListed = true,
                 Files = plan.Item.Files.Append(new CatalogueFile { Path = "skill/SKILL.md", Size = skill.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(skill)) }).ToArray(),
                 Skills = [new CatalogueSkill { Folder = "skill", Name = "skill", Path = "skill", Needs = [] }] },
@@ -51,6 +52,13 @@ internal sealed class PipelineRig : IDisposable
         plan = plan with { Item = Old };
         Next = Old with { Pin = "abcdef1234567890abcdef1234567890abcdef12", TermsClass = nonOpen ? TermsClass.Proprietary : TermsClass.Open };
         nextFiles = plan.LocalFiles;
+        if (disclosure)
+        {
+            // integ-sk8-sk9: SK-9 needs reviewed frontmatter; the new pin carries a new body so a generation shows which pin it was built from.
+            var skill = Disclosure("NEW BODY");
+            Next = Next with { Files = Next.Files.Select(f => f.Path == "skill/SKILL.md" ? f with { Size = skill.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(skill)) } : f).ToArray() };
+            nextFiles = new Dictionary<string, string>(nextFiles) { ["skill/SKILL.md"] = install.Input("NEXT-SKILL", skill) };
+        }
         if (!skillset)
         {
             var archive = emptyDirectory ? InstallRig.Zip(("payload.txt", "new offline fixture"), ("empty/", "")) : InstallRig.Zip(("payload.txt", "new offline fixture"));
@@ -83,6 +91,7 @@ internal sealed class PipelineRig : IDisposable
         downloads: (item, record, progress, cancellation) =>
         {
             cancellation.ThrowIfCancellationRequested(); Downloads++; progress.Report(0.5); LastDownloadPin = item.Pin;
+            if (item.Id == FailDownload) throw new IOException("Injected failure");
             // Repair downloads the installed pin's own files; an update gets the new pin's.
             return Task.FromResult(plan with { Item = item, Record = record, LocalFiles = item.Pin is not null && item.Pin == Old.Pin ? plan.LocalFiles : nextFiles });
         }, bindings: (item, result) =>
@@ -94,6 +103,9 @@ internal sealed class PipelineRig : IDisposable
     private static PipelineRoute Bind(CatalogueItem item, InstallResult result) => new(item.Id, UpdateCheck.CataloguePin(item)!, result.Path, result.SparePaths.ToArray(),
         item.Kind == ItemKind.Skillset ? new(StringComparer.Ordinal) : new(StringComparer.Ordinal) { [item.Id + ".exe"] = new ShimDefinition { Target = Path.Combine(result.Path, "payload.txt") } });
     public SkillsPipeline Restart() => Build(AddonsState.Empty);
+    public IStoreProtection Protection => protection;
+    public StoreItem Trusted(string pin) => versions.Last(v => v.Pin == pin);
+    private static byte[] Disclosure(string body) => System.Text.Encoding.UTF8.GetBytes("---\nname: skill\ndescription: Fixture description\n---\n" + body + "\n");
     public int ProcessRuns => process?.Commands.Count ?? 0;
     // integ-sk8-sk9: tamper one installed file under the lock, as an agent removing the deny entry would.
     public void Damage(string folder)
@@ -119,6 +131,24 @@ internal sealed class PipelineRig : IDisposable
     }
     public SkillsPipeline Unbound() => new(Paths, catalogue, versions, AddonsState.Empty, new ItemInstaller(sealing), protection,
         trustedDirectories: directories);
+    // integ-sk8-sk9: two installed tools, both with a newer catalogue pin, for UE-2's per-item group.
+    public async Task<SkillsPipeline> CreateTwo()
+    {
+        Directory.CreateDirectory(Paths.Addons);
+        var records = new List<ItemRecord>();
+        foreach (var id in new[] { "fixture", "second" })
+        {
+            var item = Old with { Id = id };
+            var result = await new ItemInstaller(sealing, process).InstallAsync(plan with { Item = item, Record = plan.Record with { Id = id } });
+            versions.Add(new StoreItem(item, result.Path, new StoreManifest(result.Manifest), result.Record.InstalledPin));
+            directories[(id, result.Record.InstalledPin!)] = result.Directories;
+            PipelineRoutes.Prepare(Paths.StateFile, Bind(item, result));
+            records.Add(result.Record);
+        }
+        catalogue = catalogue with { Items = [Next, Next with { Id = "second" }] };
+        return Build(AddonsState.Restore(records, [], [], []));
+    }
+
     public async Task<SkillsPipeline> CreateDependencies()
     {
         Directory.CreateDirectory(Paths.Addons);
