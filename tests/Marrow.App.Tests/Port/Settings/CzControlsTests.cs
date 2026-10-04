@@ -267,6 +267,20 @@ public sealed class CzControlsTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-251")] // customization-SPEC CZ-12.6 with OD-0099 Q-CZ-3 B: the picker stores a custom colour as #RRGGBBAA (red, green, blue, then alpha)
+    public void Colour_wells_show_an_eight_digit_colour_as_RGB_then_alpha_not_alpha_first() => headless.OnUiThread(() =>
+    {
+        var well = new CzColorWell("First colour", "One side", "#ff550080", _ => { });
+        Assert.Equal("#FF550080", well.Hex);
+        Assert.Equal(Color.FromArgb(0x80, 0xFF, 0x55, 0x00), well.Fill);   // Avalonia's own Color.Parse reads eight digits as AARRGGBB
+        well.SetColor("#00aaff40");
+        Assert.Equal("#00AAFF40", well.Hex);
+        Assert.Equal(Color.FromArgb(0x40, 0x00, 0xAA, 0xFF), well.Fill);
+        well.SetColor("#00AAFF");                                            // six digits read as opaque
+        Assert.Equal(Color.FromArgb(0xFF, 0x00, 0xAA, 0xFF), well.Fill);
+    });
+
+    [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-12.8
     public void Visible_dividers_follow_shown_rows_and_never_follow_a_caption()
     {
