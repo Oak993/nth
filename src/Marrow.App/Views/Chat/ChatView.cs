@@ -377,6 +377,7 @@ public sealed class ChatView : Decorator
                 {
                     terminal = back.Panel;
                     SwiftTransition.InsertContinuing(terminalHost, terminalHost.Children.Count, terminal);
+                    terminal.TakeKeyboardIfWanted(); // never left the visual tree: the reopen's focus request is spent here (TerminalPanel.swift:224-239).
                 }
                 else
                 {

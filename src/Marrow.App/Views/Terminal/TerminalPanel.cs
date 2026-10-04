@@ -224,6 +224,14 @@ public sealed class TerminalPanel : Decorator
         terminalArea.Child = host;
     }
 
+    /// <summary>
+    /// :224-239 The drawer taken back while it is still closing (ChatView.RefreshTerminal through
+    /// SwiftTransition.InsertContinuing) is the same panel, still in the visual tree, so its host's attach handler does not
+    /// run again; the reopen's focus request (ThreadRuntime.swift:240-243) is spent here, on the host it shows. With no
+    /// session there is no host, and the request stays pending as the Mac's does with no TerminalHost to update.
+    /// </summary>
+    internal void TakeKeyboardIfWanted() => (terminalArea.Child as TerminalHost)?.TakeKeyboardIfWanted();
+
     private Control MakeEmptyState(AppModel current)
     {
         var label = new TextBlock
@@ -505,21 +513,34 @@ public sealed class TerminalHost : Decorator
         // TerminalHostView is that view and is never rebuilt while this session survives.
         Child = new TerminalHostContainer { HostedView = session.View };
 
-        // :354-364 Give a newly opened terminal focus after it is attached to the visual tree, once, so keyboard input
+        // :224-239 Give a newly opened terminal focus after it is attached to the visual tree, once, so keyboard input
         // goes to the terminal surface rather than the drawer chrome.
         AttachedToVisualTree += (_, _) =>
         {
             session.ApplyAppearance(SwiftTheme.IsDark(this));
             AttachEscapeListener();
-            if (!runtime.TerminalWantsFocus) return;
-            runtime.TerminalWantsFocus = false;
-            Dispatcher.UIThread.Post(() => session.View.Focus(), DispatcherPriority.Input);
+            TakeKeyboardIfWanted();
         };
         DetachedFromVisualTree += (_, _) => DetachEscapeListener();
 
         // :59,225-227 `isDark: colorScheme == .dark` is an input of the host: a light/dark change reaches updateNSView, which
         // calls session.applyAppearance(isDark:) unconditionally (the session itself skips an unchanged value).
         ActualThemeVariantChanged += (_, _) => session.ApplyAppearance(SwiftTheme.IsDark(this));
+    }
+
+    /// <summary>
+    /// :224-239 updateNSView spends runtime.terminalWantsFocus on any update of the host that is in its window, not only on
+    /// its first attach: a terminal the reader just opened takes the keyboard, once. The attach handler and a drawer taken
+    /// back while it is still closing (TerminalPanel.TakeKeyboardIfWanted; it never left the visual tree) both come here.
+    /// :236's `let window = view.window else { return }` holds at both by construction: the attach handler runs in a tree, and
+    /// ChatView observes isTerminalVisible only while it is attached (ViewLifetime.Track), so a host out of its window is
+    /// never asked and the request stays pending until the host is attached (ChatViewParityRound5Tests).
+    /// </summary>
+    internal void TakeKeyboardIfWanted()
+    {
+        if (!runtime.TerminalWantsFocus) return;
+        runtime.TerminalWantsFocus = false;
+        Dispatcher.UIThread.Post(() => session.View.Focus(), DispatcherPriority.Input);
     }
 
     private void AttachEscapeListener()
