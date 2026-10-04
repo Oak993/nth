@@ -7,6 +7,7 @@ namespace Marrow.Services.Tests.Port.Skills.Store;
 [Trait("Feature", "SK-5")]
 [Trait("Platform", "WINDOWS-ONLY")]
 [Trait("Rule", "R-TEST-9")]
+[Collection("Dev data root env")]
 public sealed class WindowsStoreProtectionTests
 {
     [WindowsOnlyFact]
@@ -88,4 +89,85 @@ public sealed class WindowsStoreProtectionTests
         f.Protection.Unlock(renamed);
         Assert.False(new StoreVerifier(f.Protection).Verify(renamed, item.Manifest).IsValid);
     }
+    [WindowsOnlyFact]
+    [Trait("Feature", "SK-5")]
+    [Trait("Rule", "R-TEST-9")]
+    public void A_process_working_directory_defers_GC_without_running_a_real_CLI()
+    {
+        using var f = new StoreFixture(windows: true);
+        var item = f.Create();
+        var store = new SkillsStore(f.Paths, [item], f.Open(item).State, f.Protection);
+        store.Retire(item.Folder);
+        var before = Environment.CurrentDirectory;
+        try
+        {
+            Environment.CurrentDirectory = item.Folder;
+            store.Collect();
+            Assert.True(Directory.Exists(item.Folder));
+            Assert.False(f.Protection.IsLocked(item.Folder));
+        }
+        finally { Environment.CurrentDirectory = before; }
+        store.Collect();
+        Assert.False(Directory.Exists(item.Folder));
+    }
+
+    [WindowsOnlyFact]
+    [Trait("Feature", "SK-5")]
+    [Trait("Rule", "R-TEST-9")]
+    public void The_lock_is_one_exact_current_user_deny_with_both_inheritance_flags()
+    {
+        using var f = new StoreFixture(windows: true);
+        var item = f.Create();
+        f.Trees.Lock(item.Folder); // Idempotent, and does not attempt denied attribute writes.
+        using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+        var acl = new DirectoryInfo(item.Folder).GetAccessControl(System.Security.AccessControl.AccessControlSections.Access);
+        var denies = acl.GetAccessRules(true, false, typeof(System.Security.Principal.SecurityIdentifier))
+            .Cast<System.Security.AccessControl.FileSystemAccessRule>().Where(r => r.IdentityReference.Equals(identity.User) &&
+                r.AccessControlType == System.Security.AccessControl.AccessControlType.Deny).ToArray();
+        var rule = Assert.Single(denies);
+        Assert.Equal(System.Security.AccessControl.FileSystemRights.WriteData | System.Security.AccessControl.FileSystemRights.AppendData |
+            System.Security.AccessControl.FileSystemRights.WriteExtendedAttributes | System.Security.AccessControl.FileSystemRights.WriteAttributes |
+            System.Security.AccessControl.FileSystemRights.Delete | System.Security.AccessControl.FileSystemRights.DeleteSubdirectoriesAndFiles, rule.FileSystemRights);
+        Assert.Equal(System.Security.AccessControl.InheritanceFlags.ObjectInherit | System.Security.AccessControl.InheritanceFlags.ContainerInherit, rule.InheritanceFlags);
+        Assert.Equal(System.Security.AccessControl.PropagationFlags.None, rule.PropagationFlags);
+    }
+
+    [WindowsOnlyFact]
+    [Trait("Feature", "SK-5")]
+    [Trait("Rule", "R-TEST-9")]
+    public void Native_hidden_and_system_entries_are_never_excluded_from_verification()
+    {
+        using var f = new StoreFixture(windows: true);
+        var item = f.Create();
+        f.Trees.Unlock(item.Folder);
+        var extra = Path.Combine(item.Folder, "planted.py");
+        File.WriteAllBytes(extra, [1]);
+        File.SetAttributes(extra, FileAttributes.Hidden | FileAttributes.System);
+        f.Trees.Lock(item.Folder);
+        Assert.False(new StoreVerifier(f.Protection).Verify(item.Folder, item.Manifest).IsValid);
+    }
+
+    [WindowsOnlyFact]
+    [Trait("Feature", "SK-5")]
+    [Trait("Rule", "R-TEST-9")]
+    public void A_real_NTFS_junction_is_damage_and_GC_unlinks_it_without_touching_its_target()
+    {
+        // Only protection is faked here so the planted junction can coexist with a sealed-looking tree.
+        // Reparse detection and deletion run on the real Windows filesystem and a real NTFS junction.
+        using var f = new StoreFixture();
+        var item = f.Create();
+        var target = Path.Combine(f.Root, "fake home");
+        Directory.CreateDirectory(target);
+        File.WriteAllText(Path.Combine(target, "sentinel"), "untouched");
+        WindowsJunction.Create(f.Root, Path.Combine(item.Folder, "junction"), target);
+        f.Fake.Lock(item.Folder);
+        Assert.False(new StoreVerifier(f.Protection).Verify(item.Folder, item.Manifest).IsValid);
+        Assert.Throws<IOException>(() => f.Trees.Lock(item.Folder));
+        var store = f.Open(item);
+        store.Retire(item.Folder);
+        store.Collect();
+        Assert.False(Directory.Exists(item.Folder));
+        Assert.Equal("untouched", File.ReadAllText(Path.Combine(target, "sentinel")));
+    }
+
 }

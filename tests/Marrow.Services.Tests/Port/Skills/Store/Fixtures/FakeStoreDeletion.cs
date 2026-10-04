@@ -10,7 +10,8 @@ public sealed class FakeStoreDeletion : IStoreDeletion
     public void Delete(string folder)
     {
         BeforeDelete?.Invoke(folder);
-        if (Held.Contains(folder)) throw new IOException("Fixture sharing violation");
+        if (Held.Any(path => path.Equals(folder, StringComparison.Ordinal) || path.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+            throw new IOException("Fixture sharing violation");
         StoreDeletion.Instance.Delete(folder);
     }
 }

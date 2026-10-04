@@ -82,6 +82,11 @@ public sealed class SkillsStore
     private void SaveCondemned()
     {
         StorePaths.EnsureAncestors(paths.CondemnedFile);
+        if (tornDown && condemned.Count == 0)
+        {
+            File.Delete(paths.CondemnedFile);
+            return;
+        }
         Directory.CreateDirectory(paths.Skills);
         FileOps.WriteAtomic(paths.CondemnedFile, JsonSerializer.SerializeToUtf8Bytes(condemned.OrderBy(p => p, StringComparer.Ordinal).ToArray()));
     }
@@ -99,14 +104,21 @@ public sealed class SkillsStore
             SaveState(state.Transition(item.Catalogue.Id, ItemState.Damaged));
     }
 
-    public StoreLease? Acquire(string id)
+    public StoreLease? Acquire(string id) => AcquireItem(id, sealOnly: true);
+
+    /// <summary>PLAN 2.1: every view build first verifies its source store whole.</summary>
+    public StoreLease? AcquireForViewBuild(string id) => AcquireItem(id, sealOnly: false);
+
+    private bool IsCondemned(string folder) => condemned.Any(p => StorePaths.Comparer.Equals(p, folder) || StorePaths.Under(p, folder) || StorePaths.Under(folder, p));
+
+    private StoreLease? AcquireItem(string id, bool sealOnly)
     {
         lock (gate)
         {
             if (tornDown || !items.TryGetValue(id, out var item)) return null;
             var record = state.Get(id);
             if (record.State is not (ItemState.Installed or ItemState.UpdateAvailable)) return null;
-            if (condemned.Contains(item.Folder) || !verifier.Verify(item.Folder, item.Manifest, sealOnly: true).IsValid)
+            if (IsCondemned(item.Folder) || !verifier.Verify(item.Folder, item.Manifest, sealOnly).IsValid)
             {
                 Damage(item);
                 return null;
@@ -122,7 +134,7 @@ public sealed class SkillsStore
         {
             folder = paths.RequireManaged(folder);
             if (!StorePaths.Under(folder, paths.Views)) throw new ArgumentException("A generation must be under skills/views.", nameof(folder));
-            if (tornDown || condemned.Contains(folder)) return null;
+            if (tornDown || IsCondemned(folder)) return null;
             if (!verifier.Verify(folder, manifest).IsValid)
             {
                 Condemn(folder);
@@ -153,7 +165,7 @@ public sealed class SkillsStore
         lock (gate)
             foreach (var item in items.Values)
                 if (state.Get(item.Catalogue.Id).State is ItemState.Installed or ItemState.UpdateAvailable &&
-                    (condemned.Contains(item.Folder) || !verifier.Verify(item.Folder, item.Manifest).IsValid)) Damage(item);
+                    (IsCondemned(item.Folder) || !verifier.Verify(item.Folder, item.Manifest).IsValid)) Damage(item);
     }
 
     /// <summary>True when published; false when a verified repair waits for an old lease/handle. The next GC attempts promotion.</summary>
@@ -240,6 +252,7 @@ public sealed class SkillsStore
                     reserved.Remove(prepared);
                     TryDelete(prepared);
                 }
+                if (tornDown) Collect();
             }
         }
     }
@@ -257,10 +270,12 @@ public sealed class SkillsStore
             return false;
         }
         if (!TryDelete(repair.Item.Folder)) return false;
+        var moved = false;
         try
         {
             paths.RequireManaged(repair.Item.Folder);
             Directory.Move(repair.PreparedFolder, repair.Item.Folder);
+            moved = true;
             trees.Lock(repair.Item.Folder);
             if (!verifier.Verify(repair.Item.Folder, repair.Item.Manifest).IsValid) throw new IOException(ChecksumFailure);
             // Keep condemnation until the final check and installed state both succeed.
@@ -271,9 +286,17 @@ public sealed class SkillsStore
             reserved.Remove(repair.PreparedFolder);
             return true;
         }
-        catch (IOException)
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
             Condemn(repair.Item.Folder);
+            if (moved)
+            {
+                // The prepared path no longer exists. Do not retain a pending repair pointing at that vanished path.
+                pending.Remove(id);
+                reserved.Remove(repair.PreparedFolder);
+                if (state.Get(id).State == ItemState.Checking) SaveState(state.Transition(id, ItemState.Failed, failure: error.Message));
+                else Damage(repair.Item);
+            }
             return false; // A held target is retried at the next GC, with no sleep.
         }
     }
@@ -330,11 +353,32 @@ public sealed class SkillsStore
             foreach (var folder in candidates)
             {
                 var path = paths.RequireManaged(folder);
-                if (retained.Any(p => StorePaths.Comparer.Equals(p, path) || StorePaths.Under(p, path)) ||
-                    reserved.Any(p => StorePaths.Comparer.Equals(p, path) || StorePaths.Under(p, path)) || HasLease(path)) continue;
+                if (retained.Any(p => StorePaths.Comparer.Equals(p, path) || StorePaths.Under(p, path) || StorePaths.Under(path, p)) ||
+                    reserved.Any(p => StorePaths.Comparer.Equals(p, path) || StorePaths.Under(p, path) || StorePaths.Under(path, p)) || HasLease(path)) continue;
                 if (TryDelete(path)) condemned.Remove(path);
             }
+            if (tornDown) DeleteTeardownResidue();
             SaveCondemned();
+        }
+    }
+
+    private bool HasRetainedMetadata => state.AcceptedTerms.Count != 0 || state.Declined.Count != 0 || state.Found.Count != 0;
+
+    private void DeleteTeardownResidue()
+    {
+        // Repeat whole-root cleanup on later collections, including held bin/work/downloads files outside versioned tools.
+        foreach (var root in new[] { paths.Addons, paths.Store, paths.Views })
+        {
+            StorePaths.EnsureAncestors(root);
+            if (!Directory.Exists(root)) continue;
+            var keepState = root == paths.Addons && HasRetainedMetadata;
+            var targets = HasLease(root) || keepState ? Directory.EnumerateFileSystemEntries(root).ToArray() : [root];
+            foreach (var target in targets)
+            {
+                if (HasLease(target) || (keepState && StorePaths.Comparer.Equals(target, paths.StateFile))) continue;
+                try { deletion.Delete(target); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { /* Next GC; all locks were already removed. */ }
+            }
         }
     }
 
@@ -365,8 +409,10 @@ public sealed class SkillsStore
             pending.Clear();
             reserved.Clear();
             foreach (var item in items.Values) Condemn(item.Folder);
-            SaveState(AddonsState.Restore([], state.AcceptedTerms, state.Declined, state.Found));
-            SaveCondemned();
+            var retained = AddonsState.Restore([], state.AcceptedTerms, state.Declined, state.Found);
+            if (retained.AcceptedTerms.Count != 0 || retained.Declined.Count != 0 || retained.Found.Count != 0) SaveState(retained);
+            else state = retained; // Do not recreate an empty addons/state.json after removing everything.
+            Collect(); // A live lease in one tree must not retain unrelated ended chats or old versions.
         }
     }
 }

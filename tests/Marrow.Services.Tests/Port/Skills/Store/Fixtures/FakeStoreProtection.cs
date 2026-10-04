@@ -9,8 +9,10 @@ public sealed class FakeStoreProtection : IStoreProtection
     public List<string> Events { get; } = [];
     public HashSet<string> Streams { get; } = new(StringComparer.Ordinal);
     public bool Refuse { get; set; }
+    public Action<string>? BeforeLock { get; set; }
     public void Lock(string folder)
     {
+        BeforeLock?.Invoke(folder);
         if (Refuse) throw new IOException("Fixture protection unavailable");
         foreach (var path in StoreTrees.Entries(folder).Prepend(folder)) locked.Add(path);
         Events.Add("lock:" + folder);

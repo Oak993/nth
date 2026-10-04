@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Services.Port.Skills.Store;
@@ -96,7 +97,7 @@ public sealed class SkillsStoreTests
         var lease = store.Acquire("T1")!;
         f.Tamper(item, "sample/native/fixture.exe", [9]);
         Assert.Null(store.Acquire("T1"));
-        Assert.Contains(item.Folder, File.ReadAllText(f.Paths.CondemnedFile), StringComparison.Ordinal);
+        Assert.Contains(item.Folder, JsonSerializer.Deserialize<string[]>(File.ReadAllBytes(f.Paths.CondemnedFile))!);
         Assert.False(await store.RepairAsync("T1"));
         Assert.Equal(new byte[] { 9 }, File.ReadAllBytes(Path.Combine(item.Folder, "sample/native/fixture.exe")));
         store.Collect();
@@ -186,11 +187,11 @@ public sealed class SkillsStoreTests
         store.Collect();
         Assert.True(Directory.Exists(item.Folder));
         Assert.False(f.Protection.IsLocked(item.Folder));
-        Assert.Contains(item.Folder, File.ReadAllText(f.Paths.CondemnedFile), StringComparison.Ordinal);
+        Assert.Contains(item.Folder, JsonSerializer.Deserialize<string[]>(File.ReadAllBytes(f.Paths.CondemnedFile))!);
         f.Deletion.Held.Clear();
         store.Collect();
         Assert.False(Directory.Exists(item.Folder));
-        Assert.DoesNotContain(item.Folder, File.ReadAllText(f.Paths.CondemnedFile), StringComparison.Ordinal);
+        Assert.DoesNotContain(item.Folder, JsonSerializer.Deserialize<string[]>(File.ReadAllBytes(f.Paths.CondemnedFile))!);
     }
 
     [Fact]
@@ -299,11 +300,10 @@ public sealed class SkillsStoreTests
     [Trait("Rule", "R-TEST-9")]
     public void No_production_ACL_seam_silently_succeeds_on_non_Windows()
     {
-        if (OperatingSystem.IsWindows()) return; // This assertion concerns the unsupported platform, not native ACL verification.
         using var f = new StoreFixture();
         var item = f.Create();
         var protection = new WindowsStoreProtection();
-        Assert.Throws<PlatformNotSupportedException>(() => protection.Lock(item.Folder));
+        if (!OperatingSystem.IsWindows()) Assert.Throws<PlatformNotSupportedException>(() => protection.Lock(item.Folder));
         Assert.False(new StoreVerifier(protection).Verify(item.Folder, item.Manifest).IsValid);
     }
 }
