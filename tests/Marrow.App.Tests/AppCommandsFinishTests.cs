@@ -325,6 +325,49 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25; Core/Models/Shortcuts.swift:233 (Command-0 is the showMainWindow default, key 29); App/Window/WindowManager.swift:57-63
+    [Trait("Req", "PR-WIN-224")] // App/AppCommands.swift:57-58; OD-0012 G6 (no default chord for showMainWindow)
+    [Trait("Req", "UI-WIN-007")] // App/AppCommands.swift:21-25; Core/Support/Text.swift:4; OD-0012 F1, G6
+    public void Ctrl_0_pressed_in_the_focused_Settings_window_zooms_to_100_and_does_not_front_the_hidden_main_window() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            var model = launch.Manager.Model;
+            // The item is titled with the app's display name, second, with no chord and never disabled (:21-25).
+            var item = new AppCommands(model).Body[1];
+            Assert.Equal(AppInfo.Current.Name, item.Title); // :22 Text.swift:4 AppInfo.name (the product name, OD-0012 F1; the literal "Zed Test" case is the test above)
+            Assert.Null(item.Shortcut); // OD-0012 G6: no default chord, so Ctrl+0 belongs to Actual Size alone
+
+            launch.Manager.ShowMain();
+            var main = LaunchHarness.WindowOf(launch.MainContent)!;
+            main.Hide();
+            var input = new TextBox();
+            launch.SettingsContent.Child = input;
+            launch.Manager.ShowSettings();
+            var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+            try
+            {
+                Assert.True(input.Focus());
+                Assert.False(main.IsVisible);
+                model.Settings.AppZoom = 150;
+                var built = launch.Events.Count(value => value == "main window built");
+
+                // A real Ctrl+0 key press in the focused Settings window, through the dispatch MakeWindow installed.
+                Press(settings, Key.D0, PhysicalKey.Digit0, RawInputModifiers.Control);
+                Assert.Equal(100, model.Settings.AppZoom); // :57-58 Actual Size, from 150
+                Assert.False(main.IsVisible); // the show-main item answers only a chord that is recorded for it ...
+                Assert.False(main.IsActive);
+                Assert.Equal(built, launch.Events.Count(value => value == "main window built")); // ... and built nothing
+                Assert.Null(NativeMenu.GetMenu(settings)); // OD-0008 C3: no menu bar in the window the chord went to
+                Assert.Empty(settings.GetVisualDescendants().OfType<Menu>());
+            }
+            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
     // ===== PR-WIN-089: the whole command table, with no menu bar =====
 
     [Fact]

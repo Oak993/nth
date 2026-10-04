@@ -188,6 +188,80 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-UPDATE-092")] // App/AppCommands.swift:111-113; App/Views/Tour/TourPages.swift:26-28; TourWindowController.swift:27-31: the palette row, the open tour only refocused
+    [Trait("Req", "PR-WIN-115")] // App/AppCommands.swift:111-113; OD-0008 C3 (no menu bar), OD-0012 G5, OD-0053 (the row's place, symbol and id)
+    [Trait("Req", "UI-UPDATE-055")] // App/AppCommands.swift:111-113: one item, no chord, never disabled; port: no menu bar, the palette row instead
+    [Trait("Req", "UI-WIN-027")] // App/AppCommands.swift:111-113
+    public void Choosing_the_welcome_tour_row_with_the_tour_open_only_refocuses_it_and_no_window_draws_a_help_menu()
+    {
+        // The About page's Show button presenting the tour is SettingsViewTests.About_Show_replays_all_eight_tour_pages_even_when_the_tour_was_already_seen.
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            AvaloniaWindow window = null!;
+            CommandPalette palette = null!;
+            var controller = Marrow.App.Views.Tour.TourWindowController.Shared;
+            var tourWindow = typeof(Marrow.App.Views.Tour.TourWindowController).GetField("window", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            AvaloniaWindow Tour() => (AvaloniaWindow)tourWindow.GetValue(controller)!;
+            void ChooseTourRow()
+            {
+                (_, window, palette) = Build(model);
+                model.IsCommandPalettePresented = true;
+                var row = palette.RowsPanel.Children[Array.IndexOf(Titles(palette), "Welcome tour")];
+                Assert.True(string.IsNullOrEmpty(RowParts(row).Chord.Text)); // AppCommands.swift:112: no .keyboardShortcut
+                var point = Centre(row, window);
+                window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                window.Close();
+            }
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.HasSeenTour = false;
+                controller.Close();
+                Assert.Null(tourWindow.GetValue(controller));
+                try
+                {
+                    // The help group holds exactly one item, last, titled "Welcome tour", with no chord, never disabled (:111-113);
+                    // the port draws no Help menu and no menu at all (OD-0008 C3).
+                    var body = new AppCommands(model).Body;
+                    Assert.Single(body, command => command.Title == "Welcome tour");
+                    Assert.Equal("Welcome tour", body[^1].Title);
+                    Assert.Null(body[^1].Shortcut);
+                    Assert.False(body[^1].IsDisabled);
+                    Assert.DoesNotContain(body, command => command.Title is "Help" or "Help…");
+
+                    ChooseTourRow();
+                    Assert.False(model.IsCommandPalettePresented); // CommandPalette.swift:204 close() runs before the action
+                    var first = Tour();
+                    Assert.True(first.IsVisible);
+                    Assert.Null(NativeMenu.GetMenu(first));
+                    Assert.Empty(first.GetVisualDescendants().OfType<Menu>());
+                    Assert.False(model.Settings.HasSeenTour); // hasSeenTour is written by the tour's own close, not by presenting it
+
+                    // With the tour open and not the active window, the row only brings that window forward (TourWindowController.swift:27-31).
+                    AppCommandsRig.Deactivate(first);
+                    Assert.False(first.IsActive);
+                    ChooseTourRow();
+                    Assert.Same(first, Tour());
+                    Assert.True(first.IsActive);
+                    Assert.False(model.IsCommandPalettePresented);
+                    Assert.False(model.Settings.HasSeenTour);
+
+                    // Closing it from its own checkmark marks the tour seen (TourPages.swift:26-28), as before.
+                    var view = Assert.IsType<Marrow.App.Views.Tour.TourView>(first.Content);
+                    view.GetVisualDescendants().OfType<Button>()
+                        .Single(button => button.GetVisualDescendants().OfType<SwiftImage>().Any(image => image.SymbolName == "checkmark"))
+                        .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                    Assert.True(model.Settings.HasSeenTour);
+                }
+                finally { controller.Close(); Dispatcher.UIThread.RunJobs(); }
+            });
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-WIN-171")] // App/Views/Palette/CommandPalette.swift:154-162 exact ids and shortcuts
     public void Base_action_rows_carry_their_exact_ids_symbols_and_live_shortcut_labels()
     {
