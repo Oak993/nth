@@ -83,7 +83,7 @@ public sealed class MissingProgramTests
         const string german = "Die Benennung \"qpdf\" wurde nicht als Name eines Cmdlet erkannt.\n+ FullyQualifiedErrorId : CommandNotFoundException";
         foreach (var text in new[] { english, german })
         {
-            foreach (var exit in new int?[] { null, 1, 0x10 })
+            foreach (var exit in new int?[] { null, 1, 0x10, -1, unchecked((int)0xC0000135) })
                 Assert.Equal(["T5"], DetectFixtures.Offered(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("qpdf --check a.pdf", exit, text, exit is null))));
         }
         // The same words on a command that succeeded are no failure.
