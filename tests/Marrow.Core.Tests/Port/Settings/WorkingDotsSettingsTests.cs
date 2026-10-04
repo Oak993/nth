@@ -89,7 +89,7 @@ public sealed class WorkingDotsSettingsTests
     [Fact]
     [Trait("Feature", "SA-1")]
     [Trait("Spec", "CZ-T50")]
-    [Trait("Decision", "ED-251")] // a hand-built record with a mode or id outside the lists still writes readable, default-valued JSON
+    [Trait("Decision", "ED-251")] // a hand-built value holding a mode or id outside the lists still writes readable, default-valued JSON
     public void A_record_outside_the_lists_writes_the_defaults_for_those_fields()
     {
         var odd = new WorkingDotsSettings { Mode = (WorkingDotsMode)9, Custom = "nope" };
