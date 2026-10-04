@@ -2,6 +2,7 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App.Tests.Fixtures;
@@ -115,6 +116,36 @@ public sealed class TimelineMinimapFrameTests(HeadlessSession headless)
                 Assert.InRange(shortStrength, 0.32, 0.36);
                 Assert.Equal(26, Tick(hovered, First + 160, windowColour).Width); // the lit tick stays at its 26
             }
+            // :195-199 the change is eased on .smooth(duration: 0.22): half way through, an unselected tick is between 0.25 and 0.4 of the label colour at the curve's place.
+            Hover(rail, null);
+            Step(runtime, frames, 1000);
+            Hover(rail, "long3");
+            Step(runtime, frames, 110);
+            var middle = Animation.Smooth(0.22).Progress(0.11);
+            Assert.InRange(middle, 0.05, 0.95);
+            Assert.Equal(0.25 + (0.4 - 0.25) * middle, rail.GetLogicalDescendants().OfType<Button>().ElementAt(1).Opacity, 2);
+            // The light theme has no frame (OD-0098: the Swift is the proof): the label colour of that theme at the same opacities, the accent on the lit tick.
+            window.Content = null; window.Close();
+            var lightRail = new TimelineMinimapRail(entries, 400, "lit", (_, _) => { });
+            var lightWindow = new Avalonia.Controls.Window { Width = 80, Height = 400, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light, Content = lightRail };
+            lightWindow.Show();
+            try
+            {
+                Dispatcher.UIThread.RunJobs();
+                var buttons = lightRail.GetLogicalDescendants().OfType<Button>().ToArray();
+                var label = Chrome.PrimaryText.Resolve(Avalonia.Styling.ThemeVariant.Light);
+                Assert.NotEqual(Chrome.PrimaryText.Resolve(Avalonia.Styling.ThemeVariant.Dark), label);
+                Assert.Equal(label, Assert.IsType<SolidColorBrush>(buttons[1].Background).Color);
+                Assert.Equal(0.25, buttons[1].Opacity);
+                Assert.Equal(Chrome.Accent.Resolve(Avalonia.Styling.ThemeVariant.Light), Assert.IsType<SolidColorBrush>(buttons[16].Background).Color);
+                Assert.Equal(1, buttons[16].Opacity);
+                // :195-199 with reduced motion (or a live window resize) the change is instant: no curve, the expanded value at once.
+                Marrow.UI.Port.EnvironmentValues.SetAccessibilityReduceMotion(lightRail, true);
+                Hover(lightRail, "long3");
+                Assert.Equal(0.4, buttons[1].Opacity);
+                Assert.Equal(0.95, buttons[3].Opacity);
+            }
+            finally { lightWindow.Content = null; lightWindow.Close(); }
         }
         finally { window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs(); ThemeManager.Current = previousTheme; }
     });

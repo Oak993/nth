@@ -44,6 +44,7 @@ public sealed class ComposerViewFrameTests(HeadlessSession headless)
                     Assert.Equal(2, Frame(row.Children[index], row).X - Frame(row.Children[index - 1], row).Right, 0.5);
                 // On the frame: the disc 8 from the pill's right edge, 28 across; the ring 17.5 across with its centre 55.5 from the edge.
                 var pill = Frame(view, window);
+                Assert.Equal(46, pill.Height, 0.5); // the pill with its controls is 46 from rim to rim on the frame (rows 1298-1343), not the record's 44
                 var send = Frame(row.Children[3], window);
                 var disc = Frame(LogicalQuery.SelfAndDescendants<Button>(row.Children[3]).First(button => button.Bounds.Width >= 27), window);
                 Assert.Equal(pill.Right - 8, disc.Right, 1);

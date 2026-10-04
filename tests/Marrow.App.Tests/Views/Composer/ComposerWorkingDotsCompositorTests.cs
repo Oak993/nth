@@ -15,10 +15,9 @@ using SkiaSharp;
 namespace Marrow.App.Tests.Views.Composer;
 
 // Source: DroppyCode/App/Views/Composer/ComposerWorkingDots.swift (B3 52bc792), :5-11, :124-190.
-// STOP cloud-verify #3 (2026-10-04, review of cloud/b3-swift-proof-leftovers): OD-0098 closes PR-COMPOSER-104 (no frame shows reduced motion) but NOT
-// PR-COMPOSER-102, PR-COMPOSER-103 or UI-COMPOSER-017. The reference video shows the one-line composer working with its dot field (2-chat-use.mov, CATALOG
-// scene 29 "Composer working indicator ... pink halftone glow along the composer lower edge", C 87.9-95.0 and C 96.0-126.4 animated, still C 92.00), and
-// OD-0098 keeps the comparison required where a frame exists; none has been made. PR-COMPOSER-103 and UI-COMPOSER-017 also carry "no main-thread drawing"
+// STOP cloud-verify #3 (2026-10-04): OD-0098 closes PR-COMPOSER-104 (no frame shows reduced motion). The reference video shows the one-line composer working with its dot
+// field (2-chat-use.mov, CATALOG scene 29, still C 92.00); ComposerWorkingDotsFrameTests compares it dot by dot (the geometry, the three rows, the wave and its phase against
+// the Swift curve) and found the third row clipped at the field's bounds (fixed). PR-COMPOSER-102, PR-COMPOSER-103 and UI-COMPOSER-017 also carry "no main-thread drawing"
 // (windows_path: "it must not tick on the UI thread"), which is not a capture clause and which the headless renderer cannot show: it needs a native
 // (Win32 compositor) test that the draw runs off the UI thread. The three stay partly proven.
 // The literals these classes assert from the Swift: ComposerWorkingDotsTests, ...FieldTests,
