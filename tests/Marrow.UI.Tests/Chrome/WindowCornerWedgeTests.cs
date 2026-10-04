@@ -83,8 +83,9 @@ public sealed class WindowCornerWedgeTests(HeadlessSession headless)
         // The corner pixels themselves, and a pixel on the diagonal just outside the curve (the arc meets the diagonal 7.6 px in).
         foreach (var (x, y) in new[] { (0, 0), (1, 1), (5, 5), (width - 1, 0), (width - 2, 1), (width - 6, 5), (0, height - 1), (1, height - 2), (5, height - 6), (width - 1, height - 1), (width - 2, height - 2), (width - 6, height - 6) })
             AssertGrey(px[x, y].Red, px[x, y].Green, px[x, y].Blue, filled, $"corner ({x}, {y})");
-        // Inside the shape and along its straight edges nothing is drawn: the grey of the window itself.
-        foreach (var (x, y) in new[] { (10, 10), (13, 13), (26, 26), (width / 2, height / 2), (width / 2, 0), (width / 2, height - 1), (0, height / 2), (width - 1, height / 2), (30, 0), (0, 30), (width - 31, height - 1), (width - 1, height - 31) })
+        // Inside the shape and along its straight edges nothing is drawn: the grey of the window itself. ED-275 (1): Apple's continuous corner
+        // runs in 1.528665 r (39.7 pt at r 26) along each side, so the straight edges start 40 pt from a vertex (at 30 pt the curve still leaves a sliver).
+        foreach (var (x, y) in new[] { (10, 10), (13, 13), (26, 26), (width / 2, height / 2), (width / 2, 0), (width / 2, height - 1), (0, height / 2), (width - 1, height / 2), (40, 0), (0, 40), (width - 41, height - 1), (width - 1, height - 41) })
             AssertGrey(px[x, y].Red, px[x, y].Green, px[x, y].Blue, Grey.R, $"inside ({x}, {y})");
     });
 
@@ -109,9 +110,13 @@ public sealed class WindowCornerWedgeTests(HeadlessSession headless)
                 if (shaped) inShape++; else inWedge++;
             }
         Assert.True(inWedge > 0 && inShape > 0);
-        // Four corners of the 26 pt circular arc: r^2 (1 - pi/4) each; the sample is every quarter point-squared.
+        // Four corners of Apple's continuous 26 pt corner (ED-275 (1), the shape the content is clipped to since ED-181 closed). Analytically
+        // the area between the vertex and the three cubics is 0.2252971 r^2 a corner (Green's theorem on ContinuousCorner's control points),
+        // 609.2 pt^2 for four; on this sample (every quarter point-squared, offset a quarter point) Apple's curve covers 605.0 pt^2, the run-in's
+        // sliver thinner than the offset going unsampled (the same grid over the analytic cubics, scratch). The circular arc of the same radius
+        // samples to about 580 (r^2 (1 - pi/4) = 0.2146 r^2 a corner), so the tolerance tells the two apart.
         var area = inWedge * 0.25;
-        Assert.Equal(4 * 26 * 26 * (1 - Math.PI / 4), area, 1.5);
+        Assert.Equal(605.0, area, 1.5);
     });
 
     [Theory]
