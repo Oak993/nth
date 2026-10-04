@@ -897,14 +897,14 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-005")] // App/Views/Settings/SettingsView.swift:4-32
     public void Pages_keep_declaration_order_exact_titles_and_raw_identifiers()
     {
-        var pages = SwiftEnum<SettingsPage>.AllCases;
+        var pages = UpstreamSettingsPages.All; // SA-1: the five port-added pages are taken out; the pinned order, titles and raw values of the rest are unchanged
         Assert.Equal(new[] { "general", "hydra", "appearance", "providers", "mcp", "models", "sourceControl", "shortcuts", "archive", "about" }, pages.Select(x => x.Id));
         Assert.Equal(new[] { "General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About" }, pages.Select(x => x.Title));
     }
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-006")] // App/Views/Settings/SettingsView.swift:34-49,151-157
-    public void Symbols_keep_the_exhaustive_source_mapping() => Assert.Equal(new[] { "gear", "point.3.connected.trianglepath.dotted", "paintpalette", "cpu", "puzzlepiece.extension", "slider.horizontal.3", "arrow.triangle.branch", "command", "archivebox", "info.circle" }, SwiftEnum<SettingsPage>.AllCases.Select(x => x.Symbol));
+    public void Symbols_keep_the_exhaustive_source_mapping() => Assert.Equal(new[] { "gear", "point.3.connected.trianglepath.dotted", "paintpalette", "cpu", "puzzlepiece.extension", "slider.horizontal.3", "arrow.triangle.branch", "command", "archivebox", "info.circle" }, UpstreamSettingsPages.All.Select(x => x.Symbol)); // SA-1: without the port-added pages
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-007")] // App/Views/Settings/SettingsView.swift:51-64

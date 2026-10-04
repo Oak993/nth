@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.App.Port;
+using Marrow.App.Port.Settings;
 using Marrow.Services.Providers;
 using Marrow.Services.Store;
 using Marrow.UI.Common;
@@ -38,14 +39,21 @@ namespace Marrow.App.Views.Settings;
 // computed members are C# 14 extension members of SettingsPageExtensions (R-NAME-4); `@MainActor @Observable` is
 // MainActorModel (R-OBS-6); Color is SwiftColor; URL is SwiftURL. Swift `private` top-level types are `internal`.
 
-/// <summary>:4-80 <c>enum SettingsPage: String, CaseIterable, Identifiable</c>.</summary>
+/// <summary>:4-80 <c>enum SettingsPage: String, CaseIterable, Identifiable</c>. PORT-ONLY (first-release SA-1, customization-SPEC CZ-2.1): five
+/// pages the owner added, in sidebar order: Customization and Voice typing right after Appearance (Q-CZ-1 A), Updates where the Tools page of
+/// OD-0075 sits (OD-0100 place A), Plugins directly above Skills after MCP (OD-0099 Sections C). Each is hidden until its shell IsReady const is true.</summary>
 public enum SettingsPage
 {
     [RawValue("general")] General, // :5
     [RawValue("hydra")] Hydra, // :7
     [RawValue("appearance")] Appearance, // :8
+    [RawValue("customization")] Customization, // PORT-ONLY CZ-2.1
+    [RawValue("voiceTyping")] VoiceTyping, // PORT-ONLY CZ-2.1, Q-CZ-1 A
     [RawValue("providers")] Providers, // :9
+    [RawValue("updates")] Updates, // PORT-ONLY OD-0100 place A
     [RawValue("mcp")] Mcp, // :10
+    [RawValue("plugins")] Plugins, // PORT-ONLY OD-0099 Sections C
+    [RawValue("skills")] Skills, // PORT-ONLY OD-0099 Sections C
     [RawValue("models")] Models, // :11
     [RawValue("sourceControl")] SourceControl, // :12
     [RawValue("shortcuts")] Shortcuts, // :13
@@ -65,6 +73,8 @@ public static class SettingsPageExtensions
         public string Title => page switch
         {
             SettingsPage.General => "General", SettingsPage.Hydra => "Hydra", SettingsPage.Appearance => "Appearance",
+            SettingsPage.Customization => "Customization", SettingsPage.VoiceTyping => "Voice typing", SettingsPage.Updates => "Updates",
+            SettingsPage.Plugins => "Plugins", SettingsPage.Skills => "Skills",
             SettingsPage.Providers => "Providers", SettingsPage.Mcp => "MCP", SettingsPage.Models => "Models",
             SettingsPage.SourceControl => "Source control", SettingsPage.Shortcuts => "Shortcuts", SettingsPage.Archive => "Archive", SettingsPage.About => "About",
         };
@@ -76,6 +86,9 @@ public static class SettingsPageExtensions
             SettingsPage.Mcp => "puzzlepiece.extension", SettingsPage.Models => "slider.horizontal.3",
             SettingsPage.Hydra => "point.3.connected.trianglepath.dotted", SettingsPage.SourceControl => "arrow.triangle.branch",
             SettingsPage.Shortcuts => "command", SettingsPage.Archive => "archivebox", SettingsPage.About => "info.circle",
+            // PORT-ONLY (CZ-2.1, CZ-2.1.1): names the symbol catalogue resolves (the last four through its port-added list)
+            SettingsPage.Customization => "sparkles", SettingsPage.VoiceTyping => "waveform", SettingsPage.Updates => "arrow.triangle.2.circlepath",
+            SettingsPage.Plugins => "powerplug", SettingsPage.Skills => "wand.and.sparkles",
         };
 
         // :51-64 var tint: Color
@@ -85,6 +98,8 @@ public static class SettingsPageExtensions
             SettingsPage.Mcp => new(0.95, 0.55, 0.20), SettingsPage.Models => new(0.686, 0.322, 0.871), SettingsPage.Hydra => new(0.188, 0.690, 0.780),
             SettingsPage.SourceControl => new(0.345, 0.337, 0.839), SettingsPage.Shortcuts => new(0.32, 0.48, 0.93),
             SettingsPage.Archive => Chrome.Orange, SettingsPage.About => new(0.204, 0.780, 0.349),
+            // PORT-ONLY (CZ-2.1.2): the port sidebar never draws a Tint (SidebarIconBadge draws in the label colour); these arms are unused.
+            SettingsPage.Customization or SettingsPage.VoiceTyping or SettingsPage.Updates or SettingsPage.Plugins or SettingsPage.Skills => Chrome.Gray,
         };
 
         // :66-79 var keywords: [String]
@@ -98,7 +113,23 @@ public static class SettingsPageExtensions
             SettingsPage.Mcp => new[] { "mcp", "model context protocol", "servers", "tools", "connect", "integrations", "github", "playwright", "notion", "linear", "slack", "figma", "supabase", "stripe", "resend", "email", "context7", "sentry", "postgres", "browser", "netlify", "deploy", "hosting" },
             SettingsPage.SourceControl => new[] { "git", "commit", "pull request", "titles", "text generation" },
             SettingsPage.Shortcuts => new[] { "keyboard", "keys" }, SettingsPage.Archive => new[] { "archived", "restore" }, SettingsPage.About => new[] { "version", "license" },
+            // PORT-ONLY. Customization and Voice typing: the words Q-CZ-4 picks (the design six, then orb, voice, dots, uiverse, aura; and the ten for dictation).
+            // Updates, Plugins and Skills: ENGINEERING DECISION, the page own name and what a person would type to find it (the specs name no words).
+            SettingsPage.Customization => new[] { "light", "glow", "beam", "composer", "effects", "customization", "orb", "voice", "dots", "uiverse", "aura" },
+            SettingsPage.VoiceTyping => new[] { "voice", "dictation", "microphone", "mic", "whisper", "speech", "transcribe", "language", "model", "hardware" },
+            SettingsPage.Updates => new[] { "updates", "update", "version", "latest", "upgrade", "check now", "restart" },
+            SettingsPage.Plugins => new[] { "plugins", "plugin", "download", "install", "add" },
+            SettingsPage.Skills => new[] { "skills", "skill", "download", "install", "add", "slash" },
         });
+
+        // PORT-ONLY (first-release SA-1, OD-0103; the pattern of voice-SPEC V-2.6): whether the page unit has built it. A page that is not
+        // ready is not listed in the sidebar, not found by its search and not opened by a request; the page shell holds the const.
+        public bool IsReady => page switch
+        {
+            SettingsPage.Customization => CustomizationSettingsPage.IsReady, SettingsPage.VoiceTyping => VoiceTypingSettingsPage.IsReady,
+            SettingsPage.Updates => UpdatesSettingsPage.IsReady, SettingsPage.Plugins => PluginsSettingsPage.IsReady, SettingsPage.Skills => SkillsSettingsPage.IsReady,
+            _ => true,
+        };
     }
 }
 
@@ -163,8 +194,7 @@ public sealed class SettingsView : Decorator
     {
         get
         {
-            var query = FoundationText.Trim(state.Search, includeNewlines: true);
-            return new(SwiftEnum<SettingsPage>.AllCases.Where(page => query.Length == 0 || SwiftString.LocalizedCaseInsensitiveContains(page.Title, query) || page.Keywords.Any(word => SwiftString.LocalizedCaseInsensitiveContains(word, query))));
+            return new(SettingsSidebar.Pages(state.Search)); // :100-106 plus the pages whose shell is ready (SA-1)
         }
     }
 
@@ -192,7 +222,7 @@ public sealed class SettingsView : Decorator
         this.Track(() => SettingsNavigation.Shared.RequestedPage, requested => // :123-127
         {
             if (requested is not { } page) return;
-            state.Page = page;
+            if (page.IsReady) state.Page = page; // PORT-ONLY (SA-1): a page whose unit has not built it is not opened; the request is still consumed
             SettingsNavigation.Shared.RequestedPage = null;
         });
         this.Track(() => VisiblePages, pages => // :130-133
@@ -280,13 +310,8 @@ public sealed class SettingsView : Decorator
             AutomationProperties.SetName(symbol, "No archived threads"); // :204
             detail.Child = symbol.DetailSheet(); pageStack = null; riseChrome = null; risePage = symbol; return;
         }
-        Control content = state.Page switch // :276-287
-        {
-            SettingsPage.General => new GeneralSettingsPage(), SettingsPage.Appearance => new AppearanceSettingsPage(), SettingsPage.Providers => new ProvidersSettingsPage(),
-            SettingsPage.Mcp => new MCPSettingsPage(state.McpSearch), SettingsPage.Models => new ModelsSettingsPage(state.ModelSearch), SettingsPage.Hydra => new HydraSettingsPage(),
-            SettingsPage.SourceControl => new SourceControlSettingsPage(), SettingsPage.Shortcuts => new ShortcutsSettingsPage(), SettingsPage.Archive => new ArchiveSettingsPage(), SettingsPage.About => new AboutSettingsPage(),
-        };
-        var hasControls = state.Page is SettingsPage.Providers or SettingsPage.Models or SettingsPage.Mcp or SettingsPage.Archive or SettingsPage.About; // :270-272
+        var content = PageFor(state.Page, state.McpSearch, state.ModelSearch); // :276-287
+        var hasControls = HasChromeControls(state.Page, content); // :270-272
         pageStack = new StackPanel { Spacing = Chrome.SectionSpacing, Margin = new Thickness(Chrome.ContentHorizontalPadding + 8, hasControls ? Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16 : PageTopWithoutControls, Chrome.ContentHorizontalPadding + 8, 24), Children = { content } }; // :220-227
         pageStack.Track(() => scrollTracker.IsFrozen, value => pageStack.IsHitTestVisible = !value);
         var scroll = new ScrollViewer { Template = SettingsScrollTemplate, Content = ClearingCaptionButtons(pageStack, hasControls), VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
@@ -299,9 +324,27 @@ public sealed class SettingsView : Decorator
         if (state.Page == SettingsPage.Providers) accessories.Children.Add(new ProvidersRefreshButton()); // :254-256
         if (state.Page == SettingsPage.Archive) accessories.Children.Add(new ArchiveDeleteAllButton()); // :257-259
         if (state.Page == SettingsPage.About) accessories.Children.Add(new AboutUpdateChromeAccessory()); // :260-262
+        foreach (var accessory in ChromeAccessoriesOf(content)) accessories.Children.Add(accessory); // PORT-ONLY (SA-1): a page supplies its own accessories
         riseChrome = accessories.Children.Count > 0 ? chrome : null; risePage = content; // OD-0074, ED-249
         detail.Child = new Panel { Children = { scroll, new PaneTopVeil(scrollChrome) { VerticalAlignment = VerticalAlignment.Top }, chrome } }.DetailSheet();
     }
+
+    // :276-287 the page for a case. The five port-added pages are shells their units fill (SA-1): this factory line never changes again.
+    internal static Control PageFor(SettingsPage page, string mcpSearch, string modelSearch) => page switch
+    {
+        SettingsPage.General => new GeneralSettingsPage(), SettingsPage.Appearance => new AppearanceSettingsPage(), SettingsPage.Providers => new ProvidersSettingsPage(),
+        SettingsPage.Mcp => new MCPSettingsPage(mcpSearch), SettingsPage.Models => new ModelsSettingsPage(modelSearch), SettingsPage.Hydra => new HydraSettingsPage(),
+        SettingsPage.SourceControl => new SourceControlSettingsPage(), SettingsPage.Shortcuts => new ShortcutsSettingsPage(), SettingsPage.Archive => new ArchiveSettingsPage(), SettingsPage.About => new AboutSettingsPage(),
+        SettingsPage.Customization => new CustomizationSettingsPage(), SettingsPage.VoiceTyping => new VoiceTypingSettingsPage(), SettingsPage.Updates => new UpdatesSettingsPage(),
+        SettingsPage.Plugins => new PluginsSettingsPage(), SettingsPage.Skills => new SkillsSettingsPage(),
+    };
+
+    // :270-272 the pages that carry controls in the chrome row; a port-added page says so itself (ISettingsPageChrome).
+    internal static bool HasChromeControls(SettingsPage page, Control content) =>
+        page is SettingsPage.Providers or SettingsPage.Models or SettingsPage.Mcp or SettingsPage.Archive or SettingsPage.About
+        || content is ISettingsPageChrome { HasChromeControls: true };
+
+    internal static IReadOnlyList<Control> ChromeAccessoriesOf(Control content) => content is ISettingsPageChrome chrome ? chrome.ChromeAccessories : [];
 
     // DEVIATION OD-0044, OD-0046, ED-239: a page's content starts below the Windows caption buttons. The source puts the
     // traffic lights over the sidebar's empty top (:137-140), so its pages that have no chrome controls start 22 below the

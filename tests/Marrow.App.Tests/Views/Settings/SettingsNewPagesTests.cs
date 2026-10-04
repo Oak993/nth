@@ -1,0 +1,202 @@
+using System.Reflection;
+using System.Text.RegularExpressions;
+using Avalonia.Controls;
+using Marrow.App.Port.Settings;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Settings;
+using Marrow.Core.Port;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
+
+namespace Marrow.App.Tests.Views.Settings;
+
+// SA-1 (customization-SPEC CZ-2.1, CZ-2.2, OD-0099 Sections C and Q-CZ-1 A, OD-0100): the Settings pages the first release adds,
+// in sidebar order, hidden behind their shell's IsReady const until the unit that builds the page sets it.
+[Collection("Headless")]
+public sealed class SettingsNewPagesTests(HeadlessSession headless)
+{
+    private static readonly IReadOnlyList<SettingsPage> NewPages = UpstreamSettingsPages.PortAdded;
+
+    private static readonly string[] UpstreamRaw = ["general", "hydra", "appearance", "providers", "mcp", "models", "sourceControl", "shortcuts", "archive", "about"];
+
+    private static readonly string[] UpstreamTitles = ["General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // CZ-T1 / CZ-2.1: raw values, and AllCases puts Customization and Voice typing after Appearance; Updates takes the Tools place; Plugins sits directly above Skills
+    public void The_new_pages_sit_in_the_sidebar_order_with_their_raw_values()
+    {
+        var pages = SwiftEnum<SettingsPage>.AllCases;
+        Assert.Equal(
+            ["general", "hydra", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "models", "sourceControl", "shortcuts", "archive", "about"],
+            pages.Select(page => page.Id));
+        Assert.Equal(["customization", "voiceTyping", "updates", "plugins", "skills"], NewPages.Select(page => page.Id));
+        Assert.Equal(pages.ToList().IndexOf(SettingsPage.Plugins) + 1, pages.ToList().IndexOf(SettingsPage.Skills));
+        Assert.Equal(SettingsPage.Appearance, pages[2]);
+        Assert.Equal(SettingsPage.Customization, pages[3]);
+        Assert.Equal(SettingsPage.VoiceTyping, pages[4]);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // the pinned upstream pages keep their order, titles and raw values with the new ones taken out (PR-SETTINGS-005)
+    public void The_upstream_pages_keep_their_relative_order_and_texts()
+    {
+        var upstream = UpstreamSettingsPages.All;
+        Assert.Equal(UpstreamRaw, upstream.Select(page => page.Id));
+        Assert.Equal(UpstreamTitles, upstream.Select(page => page.Title));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // CZ-T2 / CZ-2.1: titles, symbols and the Q-CZ-4 search words, exactly
+    public void Titles_symbols_and_keywords_are_the_specs()
+    {
+        Assert.Equal(["Customization", "Voice typing", "Updates", "Plugins", "Skills"], NewPages.Select(page => page.Title));
+        Assert.Equal(["sparkles", "waveform", "arrow.triangle.2.circlepath", "powerplug", "wand.and.sparkles"], NewPages.Select(page => page.Symbol));
+        Assert.Equal(["light", "glow", "beam", "composer", "effects", "customization", "orb", "voice", "dots", "uiverse", "aura"], SettingsPage.Customization.Keywords);
+        Assert.Equal(["voice", "dictation", "microphone", "mic", "whisper", "speech", "transcribe", "language", "model", "hardware"], SettingsPage.VoiceTyping.Keywords);
+        Assert.Equal(["updates", "update", "version", "latest", "upgrade", "check now", "restart"], SettingsPage.Updates.Keywords);
+        Assert.Equal(["plugins", "plugin", "download", "install", "add"], SettingsPage.Plugins.Keywords);
+        Assert.Equal(["skills", "skill", "download", "install", "add", "slash"], SettingsPage.Skills.Keywords);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // CZ-T3 / CZ-2.1.1: every new page symbol resolves, and the sidebar row draws a non-empty icon
+    public void Every_new_pages_symbol_draws_a_non_empty_icon() => headless.OnUiThread(() =>
+    {
+        foreach (var page in NewPages)
+        {
+            Assert.NotNull(SymbolCatalogue.Mapping(page.Symbol));
+            Assert.False(SwiftImage.SystemName(page.Symbol).IsEmpty, page.Title);
+        }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // CZ-2.1.2: the Tint arms are Chrome.Gray, and no code path of the app reads a SettingsPage's Tint
+    public void The_new_tints_are_gray_and_no_sidebar_code_reads_a_tint()
+    {
+        var theme = Avalonia.Styling.ThemeVariant.Light;
+        foreach (var page in NewPages)
+            Assert.Equal(Chrome.Gray.Resolve(theme), page.Tint.Resolve(theme));
+        var read = new Regex(@"(\bpage|\bitem|\bSettingsPage\.\w+)\.Tint\b", RegexOptions.CultureInvariant);
+        foreach (var file in Directory.EnumerateFiles(Path.Combine(RepoRoot(), "src", "Marrow.App"), "*.cs", SearchOption.AllDirectories)
+                     .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
+            Assert.False(read.IsMatch(File.ReadAllText(file)), file + " reads a SettingsPage's Tint");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // CZ-T2 / CZ-2.1.3: search matches titles and keywords for a ready page ("glow" finds Customization); a hidden page is never found
+    public void Search_finds_a_ready_page_by_title_or_keyword_and_never_a_hidden_one()
+    {
+        Func<SettingsPage, bool> allReady = _ => true;
+        Assert.Equal([SettingsPage.Customization], SettingsSidebar.Pages("glow", allReady));
+        Assert.Equal([SettingsPage.Customization], SettingsSidebar.Pages("  GLOW ", allReady));
+        Assert.Equal([SettingsPage.Customization, SettingsPage.VoiceTyping], SettingsSidebar.Pages("voice", allReady));
+        Assert.Equal([SettingsPage.VoiceTyping], SettingsSidebar.Pages("dictation", allReady));
+        Assert.Equal([SettingsPage.Updates], SettingsSidebar.Pages("latest", allReady));
+        Assert.Equal([SettingsPage.Plugins, SettingsPage.Skills], SettingsSidebar.Pages("install", allReady));
+        Assert.Equal(SwiftEnum<SettingsPage>.AllCases, SettingsSidebar.Pages("", allReady));
+        Assert.Empty(SettingsSidebar.Pages("glow"));
+        Assert.Empty(SettingsSidebar.Pages("dictation"));
+        Assert.Equal(["General", "Providers"], SettingsSidebar.Pages("credits").Select(page => page.Title));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // OD-0103 / V-2.6 pattern: each page is a shell whose IsReady const is false until its unit sets it
+    public void Each_new_page_is_a_shell_with_an_IsReady_const_that_is_still_false()
+    {
+        (SettingsPage Page, string Type)[] shells =
+        [
+            (SettingsPage.Customization, "CustomizationSettingsPage"), (SettingsPage.VoiceTyping, "VoiceTypingSettingsPage"),
+            (SettingsPage.Updates, "UpdatesSettingsPage"), (SettingsPage.Plugins, "PluginsSettingsPage"), (SettingsPage.Skills, "SkillsSettingsPage"),
+        ];
+        foreach (var (page, name) in shells)
+        {
+            var type = typeof(SettingsSidebar).Assembly.GetType("Marrow.App.Port.Settings." + name);
+            Assert.NotNull(type);
+            var field = type.GetField("IsReady", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            Assert.NotNull(field);
+            Assert.True(field.IsLiteral, name + ".IsReady is a const");
+            Assert.Equal(typeof(bool), field.FieldType);
+            Assert.Equal(false, field.GetRawConstantValue());
+            Assert.Equal((bool)field.GetRawConstantValue()!, page.IsReady);
+            Assert.True(typeof(Control).IsAssignableFrom(type));
+        }
+        Assert.All(SwiftEnum<SettingsPage>.AllCases.Where(page => !NewPages.Contains(page)), page => Assert.True(page.IsReady, page.Title));
+        Assert.Equal(UpstreamRaw, SettingsSidebar.Pages("").Select(page => page.Id));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // CZ-2.2: the factory line per page, and the chrome row (hasControls) per page
+    public void The_factory_builds_each_new_pages_shell_and_the_chrome_row_follows_the_spec()
+    {
+        headless.OnUiThread(() =>
+        {
+            Assert.IsType<CustomizationSettingsPage>(SettingsView.PageFor(SettingsPage.Customization, "", ""));
+            Assert.IsType<VoiceTypingSettingsPage>(SettingsView.PageFor(SettingsPage.VoiceTyping, "", ""));
+            Assert.IsType<UpdatesSettingsPage>(SettingsView.PageFor(SettingsPage.Updates, "", ""));
+            Assert.IsType<PluginsSettingsPage>(SettingsView.PageFor(SettingsPage.Plugins, "", ""));
+            Assert.IsType<SkillsSettingsPage>(SettingsView.PageFor(SettingsPage.Skills, "", ""));
+            Assert.True(SettingsView.HasChromeControls(SettingsPage.Customization, new CustomizationSettingsPage()));   // its chrome row carries the Preview control (CZ-3.2)
+            Assert.False(SettingsView.HasChromeControls(SettingsPage.VoiceTyping, new VoiceTypingSettingsPage()));      // no chrome accessory (V-16.3)
+            Assert.False(SettingsView.HasChromeControls(SettingsPage.Updates, new UpdatesSettingsPage()));
+            Assert.False(SettingsView.HasChromeControls(SettingsPage.Plugins, new PluginsSettingsPage()));
+            Assert.False(SettingsView.HasChromeControls(SettingsPage.Skills, new SkillsSettingsPage()));
+            // the pages upstream names keep the source's list (:270-272)
+            Assert.True(SettingsView.HasChromeControls(SettingsPage.Providers, new Border()));
+            Assert.False(SettingsView.HasChromeControls(SettingsPage.General, new Border()));
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // a page unit supplies its own chrome accessories through ISettingsPageChrome, so SettingsView.cs is never edited again
+    public void A_page_that_implements_the_chrome_interface_asks_for_the_row_and_supplies_its_controls()
+    {
+        headless.OnUiThread(() =>
+        {
+            var page = new ChromePageSample();
+            Assert.True(SettingsView.HasChromeControls(SettingsPage.Skills, page));
+            Assert.Single(SettingsView.ChromeAccessoriesOf(page));
+            Assert.Empty(SettingsView.ChromeAccessoriesOf(new Border()));
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // hidden pages are absent from the real sidebar and from its search
+    public void Hidden_pages_are_absent_from_the_sidebar_and_from_search() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
+    {
+        Assert.Equal(UpstreamTitles, SettingsViewRig.RowTitles(sidebar));
+        foreach (var query in new[] { "glow", "customization", "voice typing", "dictation", "microphone", "updates", "version", "plugins", "skills", "install" })
+        {
+            SettingsViewRig.Search(sidebar, query);
+            var titles = SettingsViewRig.RowTitles(sidebar);
+            Assert.DoesNotContain(titles, title => title is "Customization" or "Voice typing" or "Updates" or "Plugins" or "Skills");
+        }
+        SettingsViewRig.Search(sidebar, "glow");
+        Assert.Empty(SettingsViewRig.RowTitles(sidebar));
+        SettingsViewRig.Search(sidebar, "");
+        Assert.Equal(UpstreamTitles, SettingsViewRig.RowTitles(sidebar));
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // a request for a hidden page (from an app command or a link) is consumed and the window stays where it was
+    public void A_request_for_a_hidden_page_is_consumed_and_changes_nothing() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
+    {
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.Hydra;
+        SettingsViewRig.Sync();
+        Assert.Null(SettingsNavigation.Shared.RequestedPage);
+        Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
+        foreach (var hidden in NewPages)
+        {
+            SettingsNavigation.Shared.RequestedPage = hidden;
+            SettingsViewRig.Sync();
+            Assert.Null(SettingsNavigation.Shared.RequestedPage);
+            Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
+        }
+    });
+
+    private static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Marrow.sln"))) dir = dir.Parent;
+        return dir?.FullName ?? throw new InvalidOperationException("Marrow.sln not found above the test output");
+    }
+}
