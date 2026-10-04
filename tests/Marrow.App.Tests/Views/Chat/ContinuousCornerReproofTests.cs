@@ -445,6 +445,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-TEST-4")] // the corner clause only of UI-CHAT-034, UI-CHAT-036, UI-CHAT-037, UI-CHAT-054, read off the rendered pixels
     [Trait("Req", "UI-CHAT-034")] // the two-line notice, all four corners: the pixels follow Apple's corner at h / 3.057, not the circle of 18 (the corner clause)
+    [Trait("Req", "UI-CHAT-054")] // the delegation card of one head, all four corners (the corner clause)
     [Trait("Req", "UI-CHAT-037")] // the Edited-files card, all four corners (the corner clause)
     [Trait("Req", "UI-CHAT-036")] // the steps card of one step, all four corners (the corner clause)
     public void REVIEW_the_four_band_elements_render_Apples_corner_at_the_largest_radius_not_the_circle_of_18() => headless.OnUiThread(() =>
