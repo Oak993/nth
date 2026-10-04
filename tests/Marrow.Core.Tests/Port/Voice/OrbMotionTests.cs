@@ -210,10 +210,10 @@ public sealed class OrbMotionTests
 
         // Rest -> hover: speed 1 -> 2.0 with tau 0.2 up, glow 0 -> 0.55 with 0.12, lift 0 -> 0.15 with 0.12
         var motion = new OrbMotion(26);
-        motion.Step(1.0, 0.1, Input(OrbMotionMode.Rest, hovered: true));
-        Assert.Equal(Follow(1, 2.0, 0.1, 0.2), motion.Speed, 1e-12);
-        Assert.Equal(Follow(0, 0.55, 0.1, 0.12), motion.Glow, 1e-12);
-        Assert.Equal(Follow(0, 0.15, 0.1, 0.12), motion.Lift, 1e-12);
+        motion.Step(1.0, 0.05, Input(OrbMotionMode.Rest, hovered: true));
+        Assert.Equal(Follow(1, 2.0, 0.05, 0.2), motion.Speed, 1e-12);
+        Assert.Equal(Follow(0, 0.55, 0.05, 0.12), motion.Glow, 1e-12);
+        Assert.Equal(Follow(0, 0.15, 0.05, 0.12), motion.Lift, 1e-12);
 
         // hover -> rest: speed 0.5 down, glow 0.25 down, lift 0.3 down
         var speed = motion.Speed;

@@ -35,17 +35,30 @@ public static class OrbExportRuntime
     /// <summary>Takes the bands into the uniforms (<c>applyAudioUniforms</c>); a style with no strength leaves them untouched.</summary>
     public static void ApplyAudioUniforms(Span<float> values, OrbBands bands)
     {
-        throw new NotImplementedException();
+        // Math.round(values[15]) in JavaScript is floor(x + 0.5)
+        var styleValue = Math.Floor(values[15] + 0.5);
+        var style = styleValue is >= int.MinValue and <= int.MaxValue ? (int)styleValue : int.MinValue;
+        var strength = AudioFlowStrength(style);
+        if (strength == 0) return;
+        foreach (var rule in AudioRules)
+        {
+            var input = bands[rule.Band];
+            var level = (double.IsFinite(input) ? Math.Max(0, Math.Min(1, input)) : 0) * strength;
+            if (level == 0) continue;
+            var current = (double)values[rule.Index];
+            values[rule.Index] = (float)Math.Min(Math.Max(rule.Ceiling, current), current * (1 + rule.Proportional * level) + rule.Additive * level);
+        }
     }
 
     /// <summary><c>srgbToLinear</c>.</summary>
-    public static double SrgbToLinear(double value) => throw new NotImplementedException();
+    public static double SrgbToLinear(double value) => value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
 
     /// <summary><c>linearToSrgb</c>.</summary>
-    public static double LinearToSrgb(double value) => throw new NotImplementedException();
+    public static double LinearToSrgb(double value) => value <= 0.0031308 ? value * 12.92 : 1.055 * Math.Pow(value, 1 / 2.4) - 0.055;
 
     /// <summary><c>mixSrgb</c>: a mix of two sRGB components done in linear light.</summary>
-    public static double MixSrgb(double from, double to, double progress) => throw new NotImplementedException();
+    public static double MixSrgb(double from, double to, double progress) =>
+        LinearToSrgb(SrgbToLinear(from) + (SrgbToLinear(to) - SrgbToLinear(from)) * progress);
 
     /// <summary>
     /// <c>sampleTransition</c> with the progress handed in: indexes 3 and up; colours (index &gt;= 40 and (index - 40) % 4 &lt; 3) mixed in
@@ -53,6 +66,11 @@ public static class OrbExportRuntime
     /// </summary>
     public static void SampleTransition(ReadOnlySpan<float> from, ReadOnlySpan<float> target, double progress, Span<float> displayed)
     {
-        throw new NotImplementedException();
+        for (var index = 3; index < displayed.Length; index++)
+        {
+            double a = from[index], b = target[index];
+            var colorComponent = index >= 40 && (index - 40) % 4 < 3;
+            displayed[index] = (float)(colorComponent ? MixSrgb(a, b, progress) : a + (b - a) * progress);
+        }
     }
 }

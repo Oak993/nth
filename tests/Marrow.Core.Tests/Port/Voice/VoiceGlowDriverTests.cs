@@ -140,7 +140,7 @@ public sealed class VoiceGlowDriverTests
         Assert.Equal(0, f.Cx);
         Assert.Equal(1, f.Mw);
         Assert.Equal(1, f.Warp);
-        Assert.Equal(0, f.LobeX[0]);
+        Assert.Equal(0, f.LobeX[0], 1e-9); // the wrap of 0 into the period can leave a rounding crumb
         Assert.Equal(0.6, f.LobeL[0], 1e-12);
         Assert.Equal(-36 * 1.47, f.LobeX[1], 1e-9);
         Assert.Equal(36 * 1.47, f.LobeX[2], 1e-9);

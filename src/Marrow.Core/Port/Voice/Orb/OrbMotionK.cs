@@ -54,6 +54,15 @@ public static class OrbMotionK
     /// <summary>The Processing scale spring's damping (voice-composer.js:731): 0.75, response <see cref="PopResp"/>.</summary>
     public const double ProcDamp = 0.75;
 
+    /// <summary>The lift targets the table gives without a name in K: Hover 0.15, Listening 1, Processing 0.8.</summary>
+    public const double HoverLift = 0.15;
+
+    public const double ListenLift = 1.0;
+    public const double ProcLift = 0.8;
+
+    /// <summary>The glow of a hovered Blocked orb (V-11.4 table; ED-NEW-f-vt-4 item 3).</summary>
+    public const double BlockedHoverGlow = 0.15;
+
     /// <summary>The slot size spring (V-11.4): response 0.34, damping 0.86.</summary>
     public const double SlotResp = 0.34;
 
