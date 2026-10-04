@@ -99,6 +99,9 @@ public sealed class VoiceSession : IAudioCaptureSink
     /// <summary>The words as the composer holds them (committed solid, then the tentative tail).</summary>
     public IReadOnlyList<TranscriptWord> Words => shown;
 
+    /// <summary>The VAD's speech state now (V-6.2): on at p &gt;= 0.5, off after 100 ms below 0.35.</summary>
+    public bool InSpeech => state == VoiceSessionState.Listening && inSpeech;
+
     /// <summary>Q-V-6 B: true from 270 s of listening until the cap at 300 s.</summary>
     public bool CapCountdownActive => state == VoiceSessionState.Listening && countdownActive;
 

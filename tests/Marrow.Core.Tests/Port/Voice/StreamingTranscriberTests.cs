@@ -268,13 +268,15 @@ public sealed class StreamingTranscriberTests
     [Trait("Decision", "ED-267")] // V-7.4: over 25 s uncommitted without a commit, tentative words ending more than 10 s back are committed
     public async Task Over_25_s_without_a_commit_the_words_ending_more_than_10_s_back_are_committed()
     {
-        // 13 words, word k from 2k to 2k + 1.5. At 26 s, "more than 10 s back" is an end before 16 s: ends 1.5, 3.5, ... 15.5 (k = 0 to 7).
-        var words = Enumerable.Range(0, 13).Select(k => W("w" + k, 2.0 * k, 2.0 * k + 1.5)).ToArray();
+        // Word k from 2k to 2k + 1.5 for k = 0 to 7 (ends 1.5, 3.5, ... 15.5), then "edge" from 15.9 to 16.5, then more words ending 17.5 and later.
+        // At 26 s, "more than 10 s back" is an end before 16 s: the first eight words, not "edge" (16.5).
+        var words = Enumerable.Range(0, 8).Select(k => W("w" + k, 2.0 * k, 2.0 * k + 1.5))
+            .Append(W("edge", 15.9, 16.5)).Concat(Enumerable.Range(9, 5).Select(k => W("w" + k, 2.0 * k - 0.5, 2.0 * k + 1.0))).ToArray();
         var (transcriber, engine) = Make("en", H(words), H());
         Feed(transcriber, 26.0, true);
         var delta = await Live(transcriber);
         Assert.Equal(8, delta.Committed);
-        Assert.Equal(13, delta.Words.Count);
+        Assert.Equal(14, delta.Words.Count);
         Assert.All(delta.Words.Take(8), w => Assert.False(w.Tentative));
         Assert.All(delta.Words.Skip(8), w => Assert.True(w.Tentative));
         // The buffer is cut at the end of the last committed word (15.5 s) less the 0.1 s overlap.
@@ -282,6 +284,22 @@ public sealed class StreamingTranscriberTests
         Feed(transcriber, 0.6, true);
         await Live(transcriber);
         Assert.Equal(TimeSpan.FromSeconds(15.4), engine.Decodes[1].Request.AudioStart);
+    }
+
+    [Theory]
+    [Trait("Feature", "VT-3")]
+    [Trait("Spec", "V-T24")]
+    [Trait("Decision", "ED-267")] // V-7.4: "exceeds 25 s" is strict: at 24.9 s and exactly 25 s nothing is forced, at 25.1 s the words older than 10 s are
+    [InlineData(24.9, 0)]
+    [InlineData(25.0, 0)]
+    [InlineData(25.1, 7)] // ends before 15.1 s: 1.5, 3.5, ... 13.5
+    public async Task The_cap_applies_only_beyond_25_s(double seconds, int expectedCommitted)
+    {
+        var words = Enumerable.Range(0, 12).Select(k => W("w" + k, 2.0 * k, 2.0 * k + 1.5)).ToArray();
+        var (transcriber, _) = Make("en", H(words));
+        Feed(transcriber, seconds, true);
+        var delta = await Live(transcriber);
+        Assert.Equal(expectedCommitted, delta.Committed);
     }
 
     [Fact]

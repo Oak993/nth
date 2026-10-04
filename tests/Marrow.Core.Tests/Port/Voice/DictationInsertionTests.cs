@@ -62,7 +62,7 @@ public sealed class DictationInsertionTests
     [InlineData(",")]
     [InlineData(".")]
     [InlineData("?")]
-    [InlineData("…")] // U+2026 HORIZONTAL ELLIPSIS
+    [InlineData("\U00002026")] // U+2026 HORIZONTAL ELLIPSIS
     public void No_space_goes_before_a_first_word_that_begins_with_punctuation(string word)
     {
         var result = new DictationInsertion(Caret("hello", 5)).Apply(Words(word));
