@@ -328,6 +328,33 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
         });
     }
 
+    private static void Laid(Control page)
+    {
+        for (var pass = 0; pass < 4; pass++) { ((Avalonia.Controls.Window)TopLevel.GetTopLevel(page)!).UpdateLayout(); Dispatcher.UIThread.RunJobs(); }
+    }
+
+    // Chrome.swift:1021-1025 `.background(RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous).fill(Chrome.overlay(0.03)))` with cardCornerRadius 16
+    // (:58): the Connected card is a fill, so SwiftShapes cuts it to Apple's continuous corner once it is 2 * 1.528665 * 16 = 48.9 pt tall, which one connected row
+    // (11 + two lines of copy + 11) already is. OD-0098: the Swift source is the proof where no frame shows the corner.
+    [Fact]
+    [Trait("Req", "UI-MCP-007")] // MCPSettingsPage.swift:40-45; Chrome.swift:1021-1025 RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous)
+    [Trait("Rule", "R-TEST-4")] // the corner clause only: the lazy row creation of STOP opencode-proofs-mcp-a #4 is still open
+    public void The_Connected_card_is_cut_to_Apples_continuous_corner_of_radius_16_with_one_row_and_with_two() => Flow((model, runtime, _, _) =>
+    {
+        var page = new MCPSettingsPage(""); EnvironmentValues.SetAccessibilityReduceMotion(page, true); using var window = runtime.OnMain(() => Attach(page, model));
+        runtime.OnMain(() => { ObservableState(model, "github", new MCPConnectionState.Connected(3)); });
+        runtime.RunUntilIdle(); runtime.OnMain(() => Laid(page));
+        var surface = Assert.IsType<Border>(Assert.Single(Nodes<ChromeCard>(Assert.IsType<ChromeSection>(Assert.IsType<StackPanel>(page.Child).Children[1]))).Child);
+        Assert.Equal(new CornerRadius(16), surface.CornerRadius);
+        Assert.Single(Nodes<MCPConnectedRow>(page));
+        Assert.True(surface.Bounds.Height >= 2 * 1.528665 * 16, $"one connected row makes a {surface.Bounds.Height} pt card");
+        Assert.True(ContinuousCornerChecks.Drawn(surface, expectApple: true));
+        runtime.OnMain(() => { ObservableState(model, "gitlab", new MCPConnectionState.Connected(2)); });
+        runtime.RunUntilIdle(); runtime.OnMain(() => Laid(page));
+        Assert.Equal(2, Nodes<MCPConnectedRow>(page).Count());
+        Assert.True(ContinuousCornerChecks.Drawn(surface, expectApple: true));
+    });
+
     [Fact]
     [Trait("Req", "UI-MCP-006")] // App/Views/Settings/MCPSettingsPage.swift:38-47; UI/Chrome/Chrome.swift:1038-1051
     [Trait("Req", "UI-MCP-008")] // App/Views/Settings/MCPSettingsPage.swift:152-203

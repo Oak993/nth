@@ -4636,6 +4636,12 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // UI-CHAT-026, -027, -030, -031, -032, -035, -038, -040, -041, -049, -050, -055, -061; UI-GIT-045, -046, -048, -049, -050;
 // UI-HYDRAMERGE-004, -005, -006, -007; UI-RUNTIME-001, -004. What stays above is CORNER-ONLY (ED-181's continuous curve is the
 // one open clause) except UI-CHAT-052 (also the soft arrival of the settle glide, STOP #12).
+// 2026-10-04 (cloud corner re-proof, ContinuousCornerReproofTests; OD-0098, the Swift source is the proof): the corner clause is now proven on the mounted
+// element, so these leave the CORNER-ONLY lists above and below: UI-CHAT-024, -025, -028, -029, -033, -048, -051, -053, -056, -057. Each pill of radius 18 on a
+// 34 pt line is a capsule (circular ends, ED-275 (2)); the checklist card (63 pt+), the 10 pt plates and the diff block are Apple's corner, control points
+// and clip asserted. STILL OPEN on ED-275 (2)'s UNRESOLVED band (36 < h < 55 at r 18; each record has a state there, pinned without a Req in
+// ContinuousCornerReproofTests.The_wrapped_notice_...): UI-CHAT-034 (a notice two lines tall), UI-CHAT-036 (a turn of ONE step: the steps card is 43 pt),
+// UI-CHAT-037 (the Edited-files card, 40 pt), UI-CHAT-054 (a delegation card of one head, 54 pt).
 // Missing: each record's corner re-proven against ED-181's built curve (ED-275; some sizes sit in its UNRESOLVED band), and the .controlSize(.small) metric of UI-CHAT-039 and
 // UI-GIT-047 (STOP #5, #12); every other clause of these records is proven. (Formerly: the source/Windows capture of every state.)
 // Reference runtime (2026-10-03): the owner's video of Droppy Code 1.7.0 (work/reference-video/2-chat-use.mov, catalogue
