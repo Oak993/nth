@@ -1,0 +1,27 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.27]     Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Successful_teardown_removes_condemnation_and_empty_addons_metadata [FAIL]
+[xUnit.net 00:00:01.30]     Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.A_failure_after_repair_rename_is_unusable_and_can_be_retried_without_a_stale_pending_repair [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Successful_teardown_removes_condemnation_and_empty_addons_metadata [61 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Successful_teardown_removes_condemnation_and_empty_addons_metadata() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreLifecycleReviewTests.cs:line 270
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.A_failure_after_repair_rename_is_unusable_and_can_be_retried_without_a_stale_pending_repair [24 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: Failed
+Actual:   Checking
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.A_failure_after_repair_rename_is_unusable_and_can_be_retried_without_a_stale_pending_repair() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreLifecycleReviewTests.cs:line 286
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 106 ms - Marrow.Services.Tests.dll (net10.0)

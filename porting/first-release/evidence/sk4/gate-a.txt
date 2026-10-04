@@ -1,0 +1,44 @@
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+Droppy Code -> Windows port verification
+pinned source 52bc7926097cd622d08d6294e0d8b08a48c7516e
+reference     E:/Droppy/reference/droppy-code-v1.7.0
+
+Gate A
+  [FAIL] reference checkout is at the pinned commit
+         Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 rev-parse HEAD
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+  [FAIL] reference tree hash matches the pinned tree
+         Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 rev-parse HEAD^{tree}
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+  [FAIL] reference working tree is unmodified
+         Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 status --porcelain
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+  [FAIL] inventory reconciles against the pinned git tree
+         Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 ls-files
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+  [FAIL] every inventory sha256 matches the file on disk
+         ENOENT: no such file or directory, open 'E:/Droppy/reference/droppy-code-v1.7.0/.commandcode/taste/taste.md'
+  [PASS] every first-party file is marked READ
+         441/441 read
+  [PASS] read ledger has exactly one record per inventory path
+         441 records, 1:1 with inventory
+  [PASS] ledger digests match the pinned inventory digests
+         441 ledger digests match
+  [PASS] text-file coverage reaches the true last line
+         all text files covered end to end
+  [PASS] binary assets carry an inspection record
+         30 binary assets inspected
+  [PASS] no generic finding reused across different files
+         every purpose is file-specific
+  [PASS] every critic finding has been adjudicated
+         1079 findings adjudicated across 10 families
+
+FAIL=5  PASS=7
+RESULT: NOT ACCEPTABLE (mandatory checks unmet)

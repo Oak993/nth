@@ -1,0 +1,41 @@
+
+Welcome to .NET 10.0!
+---------------------
+SDK Version: 10.0.100
+
+Telemetry
+---------
+The .NET tools collect usage data in order to help us improve your experience. It is collected by Microsoft and shared with the community. You can opt-out of telemetry by setting the DOTNET_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your favorite shell.
+
+Read more about .NET CLI Tools telemetry: https://aka.ms/dotnet-cli-telemetry
+
+----------------
+Installed an ASP.NET Core HTTPS development certificate.
+To trust the certificate, run 'dotnet dev-certs https --trust'
+Learn about HTTPS: https://aka.ms/dotnet-https
+
+----------------
+Write your first app: https://aka.ms/dotnet-hello-world
+Find out what's new: https://aka.ms/dotnet-whats-new
+Explore documentation: https://aka.ms/dotnet-docs
+Report issues and find source on GitHub: https://github.com/dotnet/core
+Use 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli
+--------------------------------------------------------------------------------------
+  Determining projects to restore...
+  Restored /workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj (in 3.78 sec).
+  Restored /workspace/marrow-port/src/Marrow.Core/Marrow.Core.csproj (in 5 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Testing/Marrow.Testing.csproj (in 1.33 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/Marrow.Shim.FakeTarget.csproj (in 1 ms).
+  Restored /workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj (in 7.01 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj (in 2.06 sec).
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineAcceptanceTests.cs(4,35): error CS0234: The type or namespace name 'Pipelines' does not exist in the namespace 'Marrow.Services.Port.Skills' (are you missing an assembly reference?) [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineAcceptanceTests.cs(38,93): error CS0246: The type or namespace name 'PipelineStep' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineAcceptanceTests.cs(34,17): error CS0103: The name 'PipelineStep' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineAcceptanceTests.cs(35,17): error CS0103: The name 'PipelineStep' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineAcceptanceTests.cs(36,17): error CS0103: The name 'PipelineStep' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineAcceptanceTests.cs(37,17): error CS0103: The name 'PipelineStep' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]

@@ -37,4 +37,9 @@
     <Copy SourceFiles="@(ShimFixture)" DestinationFolder="$(OutDir)shim-fixture" />
     <Copy SourceFiles="@(ShimLauncher)" DestinationFolder="$(OutDir)shim-launcher" />
   </Target>
+  <ItemGroup><ProjectReference Include="..\Marrow.Skills.PipelineWorker\Marrow.Skills.PipelineWorker.csproj" ReferenceOutputAssembly="false" /></ItemGroup>
+  <Target Name="CopyPipelineWorker" AfterTargets="Build">
+    <ItemGroup><PipelineWorker Include="..\Marrow.Skills.PipelineWorker\bin\$(Configuration)\net10.0-windows\*" /></ItemGroup>
+    <Copy SourceFiles="@(PipelineWorker)" DestinationFolder="$(OutDir)pipeline-worker" />
+  </Target>
 </Project>

@@ -7,4 +7,9 @@
   </PropertyGroup>
   <!-- SK-6: same BCL-only implementation in Services and standalone AOT launcher. -->
   <ItemGroup><Compile Include="..\Marrow.Services\Port\Skills\Shims\*.cs" Link="Shims\%(Filename)%(Extension)" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Marrow.Services\Port\Skills\Pipelines\PipelineRoute.cs" Link="Pipelines\PipelineRoute.cs" />
+    <Compile Include="..\Marrow.Services\Port\Skills\Pipelines\PipelineJsonContext.cs" Link="Pipelines\PipelineJsonContext.cs" />
+    <Compile Include="..\Marrow.Services\Port\Skills\Pipelines\PipelineRoutingReader.cs" Link="Pipelines\PipelineRoutingReader.cs" />
+  </ItemGroup>
 </Project>

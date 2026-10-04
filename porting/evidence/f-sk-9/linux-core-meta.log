@@ -1,0 +1,10 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   204, Skipped:     0, Total:   204, Duration: 657 ms - Marrow.Core.Tests.dll (net10.0)

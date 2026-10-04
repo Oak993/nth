@@ -1,0 +1,37 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.86]     Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Full_store_verification_precedes_every_view_build [FAIL]
+[xUnit.net 00:00:00.88]     Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Teardown_deletes_unleased_trees_now_and_leased_trees_after_session_end_while_retaining_terms [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Full_store_verification_precedes_every_view_build [1 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Store.SkillsStore.AcquireForViewBuild(String id) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Store/SkillsStore.cs:line 137
+   at Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Full_store_verification_precedes_every_view_build() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreLifecycleReviewTests.cs:line 21
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Teardown_deletes_unleased_trees_now_and_leased_trees_after_session_end_while_retaining_terms [22 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.Teardown_deletes_unleased_trees_now_and_leased_trees_after_session_end_while_retaining_terms() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreLifecycleReviewTests.cs:line 42
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.91]     Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.GC_never_deletes_a_descendant_of_an_active_installed_tree [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.GC_never_deletes_a_descendant_of_an_active_installed_tree [1 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Store.StoreLifecycleReviewTests.GC_never_deletes_a_descendant_of_an_active_installed_tree() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Store/StoreLifecycleReviewTests.cs:line 147
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:     3, Passed:     7, Skipped:     0, Total:    10, Duration: 166 ms - Marrow.Services.Tests.dll (net10.0)
