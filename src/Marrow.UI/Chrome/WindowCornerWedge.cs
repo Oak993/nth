@@ -20,10 +20,18 @@ namespace Marrow.UI.Chrome;
 /// 0.98 up, is solid in its corners too). It sits BELOW the content's clip, so the glass and its hairline still stop at the curve, and it
 /// takes no pointer.
 /// </para>
+/// <para>
+/// In a window that turns over (<see cref="AppearanceTurn"/>, the Settings window: OD-0088, OD-0076, ED-254) the wedge's colour and alpha ease
+/// with the scrim it wears, as the backdrop's do (its brush per channel premultiplied, its opacity along the turnover's curve, both from the
+/// change's own frame), so the corners never change a frame before the rest of the window.
+/// </para>
 /// </summary>
 public sealed class WindowCornerWedge : Control
 {
     private double opacity;
+    private (Color Color, double Alpha)? turning; // the turnover's values while it runs (ED-254)
+    private (Color Color, double Alpha)? drawn; // what the last frame drew
+    private Action stopTurn = static () => { };
 
     /// <param name="opacity">The window's backdrop opacity setting (<c>settings.backdropOpacity</c>, RootView.swift:64, SettingsView.swift:118).</param>
     public WindowCornerWedge(double opacity)
@@ -32,14 +40,40 @@ public sealed class WindowCornerWedge : Control
         IsHitTestVisible = false;
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;
-        ActualThemeVariantChanged += (_, _) => InvalidateVisual(); // the scrim is white in the light theme and black in the dark one
+        ActualThemeVariantChanged += (_, _) => Turn(); // the scrim is white in the light theme and black in the dark one
     }
+
+    // ED-254 (OD-0088, OD-0076): in a tree that turns over, the appearance change eases from what the wedge shows to the new scrim, as
+    // WindowBackdrop's scrim layer does (its SwiftColor brush, SwiftColor.PremultipliedMix; its opacity, AppearanceTurn.Run); at once elsewhere.
+    private void Turn()
+    {
+        stopTurn();
+        turning = null;
+        var to = Target();
+        if (drawn is not { } from || from == to || !AppearanceTurn.Eases(this))
+        {
+            InvalidateVisual();
+            return;
+        }
+        stopTurn = AppearanceTurn.Run(this, progress =>
+        {
+            turning = progress >= 1 ? null : (SwiftColor.PremultipliedMix(from.Color, to.Color, progress), from.Alpha + (to.Alpha - from.Alpha) * progress);
+            InvalidateVisual();
+        });
+    }
+
+    private (Color Color, double Alpha) Target() => (ScrimColor(ActualThemeVariant), Alpha(opacity, PlainControls.IsDark(ActualThemeVariant)));
+
+    // Chrome.swift:256-257 `isDark ? Color.black : Color.white`, the colour WindowBackdrop's scrim is filled with.
+    private static Color ScrimColor(Avalonia.Styling.ThemeVariant theme) => SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Resolve(theme);
 
     /// <summary>The window's backdrop opacity setting changed; the wedge follows the backdrop it is the corner of.</summary>
     public void Update(double opacity)
     {
         if (this.opacity == opacity) return;
         this.opacity = opacity;
+        stopTurn();
+        turning = null;
         InvalidateVisual();
     }
 
@@ -68,7 +102,9 @@ public sealed class WindowCornerWedge : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        Paint(context, Bounds.Size, opacity, ActualThemeVariant);
+        var shown = turning ?? Target();
+        drawn = shown;
+        Paint(context, Bounds.Size, shown.Color, shown.Alpha);
     }
 
     /// <summary>
@@ -77,10 +113,12 @@ public sealed class WindowCornerWedge : Control
     /// </summary>
     public static void Paint(DrawingContext context, Size size, double opacity, Avalonia.Styling.ThemeVariant theme)
     {
+        Paint(context, size, ScrimColor(theme), Alpha(opacity, PlainControls.IsDark(theme)));
+    }
+
+    private static void Paint(DrawingContext context, Size size, Color color, double alpha)
+    {
         if (size.Width <= 0 || size.Height <= 0) return;
-        var isDark = PlainControls.IsDark(theme);
-        // Chrome.swift:256-257 `isDark ? Color.black : Color.white`, the colour WindowBackdrop's scrim is filled with.
-        var color = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Resolve(theme);
-        context.DrawGeometry(new SolidColorBrush(color, Alpha(opacity, isDark)), null, WedgeGeometry(size));
+        context.DrawGeometry(new SolidColorBrush(color, alpha), null, WedgeGeometry(size));
     }
 }

@@ -3738,7 +3738,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         using var harness = new AppModelHarness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var project = NewProject(harness, "Alpha");
-        var thread = AppModelSamples.Thread(project) with { Title = "Fix the build" }; // a fresh thread: the label reads "now" (no ICU needed)
+        // A fresh thread: the label reads "now" (no ICU needed). Its age is taken against MinuteClock.Shared.Now (:2690), the process's minute hand,
+        // which stands where it was made until its next 60 s tick, so the thread is dated by that hand and not by the wall clock (in a full run the
+        // hand was made minutes earlier and the label read "Nm").
+        var now = harness.Main.OnMain(() => MinuteClock.Shared.Now);
+        var thread = AppModelSamples.Thread(project) with { Title = "Fix the build", CreatedAt = now, UpdatedAt = now };
         var model = Model(harness, [project], [thread]);
         harness.Main.OnMain(() =>
         {

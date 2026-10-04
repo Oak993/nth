@@ -87,7 +87,8 @@ public sealed class NewThreadPromptGeometryTests(HeadlessSession headless)
             Assert.InRange(column.TranslatePoint(default, window)!.Value.X, (900 - column.Bounds.Width) / 2 - 0.51, (900 - column.Bounds.Width) / 2 + 0.51); // (layout rounding allows half a point)
             Assert.InRange(column.TranslatePoint(default, window)!.Value.Y, (600 - column.Bounds.Height) / 2 - 0.51, (600 - column.Bounds.Height) / 2 + 0.51);
 
-            var icon = Assert.IsType<SwiftImage>(column.Children[0]);
+            var icon = column.Children[0];
+            MarrowLogoCheck.AssertIsTheAppIconImage(icon, 72); // :17 Image(nsImage: NSApp.applicationIconImage); OD-0015, ED-276: the packaged app icon
             Assert.Equal(72, icon.Bounds.Width);
             Assert.Equal(72, icon.Bounds.Height);
             Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(icon)); // :21 accessibilityHidden(true)

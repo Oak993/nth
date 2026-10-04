@@ -144,15 +144,36 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
                 var clip = Assert.IsType<Border>(slot.Child);
                 Assert.True(clip.ClipToBounds);
                 Assert.Equal(new CornerRadius(22), clip.CornerRadius);
-                // The outline is the shared continuous-corner helper's (SwiftShapes, every `.continuous` site goes through it); that helper
-                // draws the circular arc until ED-181's continuous curve lands, so this is the part of the clause not yet provable.
+                // The outline is the shared continuous-corner helper's (SwiftShapes, every `.continuous` site goes through it). ED-275 (2), (3b):
+                // while Apple's corner fits (2 x 1.528665 x 22 = 67.3 <= the height, here 100) the Border is cut to the curve by its Visual.Clip
+                // (ContinuousClip); below that (60) the shape is the circular arc of radius 22, which the Border's own ClipToBounds draws with
+                // its CornerRadius (Avalonia clips a Border's child to its rounded rectangle), so no Visual.Clip is set.
                 var expected = SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, 400, height), 22, RoundedCornerStyle.Continuous);
-                Assert.NotNull(clip.Clip);
-                for (var x = 0.25; x < 24; x += 0.5)
-                    for (var y = 0.25; y < 24; y += 0.5)
-                        Assert.Equal(expected.FillContains(new Point(x, y)), clip.Clip!.FillContains(new Point(x, y)));
-                Assert.False(clip.Clip!.FillContains(new Point(1, 1))); // the corner is cut away
-                Assert.True(clip.Clip!.FillContains(new Point(200, height / 2.0)));
+                var apple = SwiftShapes.HasContinuousCorner(new Size(400, height), new CornerRadius(22), RoundedCornerStyle.Continuous);
+                Assert.Equal(height >= 2 * 1.528665 * 22, apple);
+                if (apple)
+                {
+                    Assert.NotNull(clip.Clip);
+                    for (var x = 0.25; x < 24; x += 0.5)
+                        for (var y = 0.25; y < 24; y += 0.5)
+                            Assert.Equal(expected.FillContains(new Point(x, y)), clip.Clip!.FillContains(new Point(x, y)));
+                    Assert.False(clip.Clip!.FillContains(new Point(1, 1))); // the corner is cut away
+                    Assert.True(clip.Clip!.FillContains(new Point(200, height / 2.0)));
+                }
+                else
+                {
+                    Assert.Null(clip.Clip);
+                    Assert.Contains(clip.GetType().GetInterfaces(), i => i.Name == "IVisualWithRoundRectClip"); // Avalonia's rounded ClipToBounds of a Border
+                    var circle = new Point(22, 22);
+                    for (var x = 0.25; x < 24; x += 0.5)
+                        for (var y = 0.25; y < 24; y += 0.5)
+                        {
+                            var p = new Point(x, y);
+                            var inCircle = x >= 22 || y >= 22 || (p - circle).X * (p - circle).X + (p - circle).Y * (p - circle).Y <= 22 * 22;
+                            if (Math.Abs(Math.Sqrt((x - 22) * (x - 22) + (y - 22) * (y - 22)) - 22) < 0.05) continue; // on the edge itself
+                            Assert.Equal(inCircle, expected.FillContains(p)); // the shape is the Border's own circular corner of 22
+                        }
+                }
             });
         }
         h.Main.OnMain(() => { Settle(window); window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });

@@ -8,6 +8,7 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 using Xunit;
 
 namespace Marrow.App.Tests.Window;
@@ -74,11 +75,15 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
         AssertCorners(window, Over(WindowBackdrop.Scrim(0.25, true), true), "at 0.25 dark");
         manager.Model.Settings.BackdropOpacity = 0.75; Drain(window);
         AssertCorners(window, Over(WindowBackdrop.Scrim(0.75, true), true), "at 0.75 dark");
-        window.RequestedThemeVariant = ThemeVariant.Light; Drain(window);
+        // OD-0088, OD-0076 (ED-254): the Settings window turns over on a change of appearance, the corners with the scrim they wear, so the
+        // new appearance is read once the 0.32 s turnover has run (on a frame clock and a clock the test steps).
+        using var rig = new SettingsRiseRig();
+        void TurnOver() { for (var frame = 0; frame < 40; frame++) { rig.Frame(1.0 / 60); Drain(window); } }
+        window.RequestedThemeVariant = ThemeVariant.Light; Drain(window); TurnOver();
         AssertCorners(window, Over(WindowBackdrop.Scrim(0.75, false), false), "at 0.75 light");
         manager.Model.Settings.BackdropOpacity = 1; Drain(window);
         AssertCorners(window, 1.0, "solid light: the window is white, corners too");
-        window.RequestedThemeVariant = ThemeVariant.Dark; Drain(window);
+        window.RequestedThemeVariant = ThemeVariant.Dark; Drain(window); TurnOver();
         AssertCorners(window, 0.0, "solid dark: the window is black, corners too");
     });
 
@@ -92,10 +97,11 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
         var view = View(manager);
         var wedge = view.RiseWedge;
         var layers = Assert.IsAssignableFrom<Panel>(view.Child);
-        var frame = Assert.IsType<Border>(layers.Children[0]);
+        var frame = Assert.IsType<SwiftShapeBorder>(layers.Children[0]); // ED-275 (3a): the Settings frame is the exact continuous shape (SettingsView.swift:119-120)
         Assert.Same(wedge, layers.Children[1]);
         Assert.True(wedge.ZIndex < frame.ZIndex, "painted first, under the frame whose 26 pt clip the glass and its edge stop at");
         Assert.Equal(new CornerRadius(26), frame.CornerRadius);
+        Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(frame)); // the shape the wedge is the complement of
         Assert.True(frame.ClipToBounds);
         Assert.False(wedge.IsHitTestVisible);
         Assert.Equal(new Avalonia.Size(Width, Height), wedge.Bounds.Size);

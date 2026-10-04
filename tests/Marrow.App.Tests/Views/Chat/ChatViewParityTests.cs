@@ -314,7 +314,9 @@ public sealed class ChatViewParityTests(HeadlessSession headless)
                 var editor = new ScriptsEditor(model, project.Id, () => { }) { IsVisible = false };
                 Show(editor);
                 var command = LogicalQuery.SelfAndDescendants<TextBox>(editor).Single(t => t.PlaceholderText == "Command");
-                var frame = LogicalQuery.SelfAndDescendants<Border>(editor).Single(b => b.Child == command);
+                // :1686-1691 `.overlay { ... strokeBorder ... }`: the outline is a shape over the field (ED-275 (3a): the exact continuous
+                // SwiftShapeBorder, where the stroke is seen), beside it in a Panel, not a Border around it.
+                var frame = LogicalQuery.SelfAndDescendants<SwiftShapeBorder>(editor).Single(b => b.Parent is Panel p && p.Children.Contains(command));
                 Assert.Equal(new Thickness(1), frame.BorderThickness); // :1689 lineWidth: 1
                 Assert.Equal(new CornerRadius(6), frame.CornerRadius); // :1688 cornerRadius: 6
                 Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(frame)); // :1688 style: .continuous
