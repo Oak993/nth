@@ -289,7 +289,7 @@ public sealed class CodexSessionUnchangedTests
 
         Assert.Equal(["app-server"], Assert.Single(script.Calls()).Arguments);
         Assert.Equal(5, script.MessageCount(0));
-        var methods = Enumerable.Range(0, 5).Select(i => CodexWiringFixture.Json(script.CapturedLine(0, i))["method"]!.JSONValueString).ToArray();
+        var methods = Enumerable.Range(0, 5).Select(i => CodexWiringFixture.Json(script.CapturedLine(0, i))["method"]!.JSONValueString!).ToArray();
         Assert.Equal(["initialize", "initialized", "skills/list", "skills/extraRoots/set", "thread/start"], methods);
         Assert.Equal(Line(bare, 0), Line(script, 0));
         Assert.Equal(Line(bare, 1), Line(script, 1));

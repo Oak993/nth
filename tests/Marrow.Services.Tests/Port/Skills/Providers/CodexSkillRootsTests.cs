@@ -101,7 +101,7 @@ public sealed class CodexSkillRootsTests
         await CodexSkillRoots.Register(wire.Request, "/work/project", one.Folder, listFirst: true);
         await CodexSkillRoots.Register(wire.Request, "/work/project", one.Folder, listFirst: true); // a reconnect of the same chat
         await CodexSkillRoots.Register(wire.Request, "/work/project", two.Folder, listFirst: true);
-        var roots = wire.Sent.Where(s => s.Method == "skills/extraRoots/set").Select(s => CodexWiringFixture.Json(s.Params)["extraRoots"]![0]!.JSONValueString).ToArray();
+        var roots = wire.Sent.Where(s => s.Method == "skills/extraRoots/set").Select(s => CodexWiringFixture.Json(s.Params)["extraRoots"]![0]!.JSONValueString!).ToArray();
         Assert.Equal([one.Folder, one.Folder, two.Folder], roots);
         Assert.NotEqual(one.Folder, two.Folder);
     }
