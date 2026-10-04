@@ -98,6 +98,21 @@ public sealed class VoiceCoreReview4Tests
     [Fact]
     [Trait("Feature", Feature)]
     [Trait("Spec", "V-T16")]
+    [Trait("Decision", "ED-267")] // lead ruling R5: a key with no readable answer beside it, or a key that differs in any way, is no answer (mutants P6, P14)
+    public void R5_a_key_without_an_answer_or_with_another_spelling_counts_as_not_answered()
+    {
+        var part = HardwarePart(PcA);
+        Assert.False(AnsweredFor(VoiceTypingSettings.Default with { SlowChoiceKey = part }, part));
+        var unreadable = VoiceTypingSettings.FromJson(Encoding.UTF8.GetBytes("{\"liveWordsChoice\":\"maybe\",\"liveWordsChoiceKey\":\"" + part + "\"}"));
+        Assert.Equal(part, AnswerKey(unreadable));
+        Assert.False(AnsweredFor(unreadable, part));
+        var answered = WithSlowAnswer(VoiceTypingSettings.Default, LiveWordsChoice.Live, part);
+        Assert.False(AnsweredFor(answered with { SlowChoiceKey = part.ToUpperInvariant() }, part)); // compared as stored, like HardwareKey.IsStale
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Spec", "V-T16")]
     [Trait("Decision", "ED-267")] // lead ruling R5: the question comes back on new hardware only, whatever the order of the timings
     public void R5_the_question_comes_back_on_new_hardware_only()
     {
