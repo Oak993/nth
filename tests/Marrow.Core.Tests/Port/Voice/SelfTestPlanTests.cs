@@ -160,7 +160,7 @@ public sealed class SelfTestPlanTests
     [Fact]
     [Trait("Feature", "VT-1")]
     [Trait("Spec", "V-T15")]
-    [Trait("Decision", "ED-267")] // voice-SPEC V-10.3: the Slow band names no live-words value; Fast and the final TooSlow do
+    [Trait("Decision", "ED-267")] // voice-SPEC V-10.3 with lead rulings R2, R3 (ED-NEW-f-vt-1 item 13): a processor timing too slow for live words with a smaller rung (the slow band, or too slow after the one step) names no live-words value, the answer decides; a fast timing names it
     public void Only_the_slow_band_leaves_live_words_to_the_users_answer()
     {
         Assert.Null(SelfTestPlan.Decide("medium-q8_0", 0.3, false, RecommendationBasis.Cpu, answeredForThisKey: false).LiveWords);
