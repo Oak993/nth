@@ -6,11 +6,11 @@ using Marrow.Services.Port.Skills.Shims;
 
 namespace Marrow.Services.Tests.Port.Skills.Pipelines;
 
-[Trait("Feature", "SK-8")]
-[Trait("Rule", "DL-8")]
 public sealed class PipelineAcceptanceTests
 {
     [Fact]
+    [Trait("Feature", "SK-8")]
+    [Trait("Rule", "R-TEST-4")]
     public async Task New_pin_switches_shims_and_generations_together_and_old_lease_survives_GC()
     {
         using var rig = new PipelineRig();
@@ -27,10 +27,13 @@ public sealed class PipelineAcceptanceTests
         lease.Dispose();
         pipeline.Collect();
         Assert.False(Directory.Exists(old));
-        Assert.NotNull(pipeline.Acquire("fixture"));
+        using var current = pipeline.Acquire("fixture");
+        Assert.NotNull(current);
     }
 
     [Theory]
+    [Trait("Feature", "SK-8")]
+    [Trait("Rule", "R-TEST-4")]
     [InlineData(PipelineStep.Downloaded)]
     [InlineData(PipelineStep.Installed)]
     [InlineData(PipelineStep.RoutesPrepared)]
@@ -48,6 +51,8 @@ public sealed class PipelineAcceptanceTests
     }
 
     [Theory]
+    [Trait("Feature", "SK-8")]
+    [Trait("Rule", "R-TEST-4")]
     [InlineData(Marrow.Services.Port.Skills.Install.InstallStep.Created)]
     [InlineData(Marrow.Services.Port.Skills.Install.InstallStep.Built)]
     [InlineData(Marrow.Services.Port.Skills.Install.InstallStep.Renamed)]
@@ -65,18 +70,24 @@ public sealed class PipelineAcceptanceTests
     }
 
     [Fact]
+    [Trait("Feature", "SK-8")]
+    [Trait("Rule", "R-TEST-4")]
     public async Task Changed_non_open_terms_block_before_download_and_acceptance_allows_update()
     {
         using var rig = new PipelineRig(nonOpen: true);
         var pipeline = await rig.Create();
+        Assert.True(pipeline.State.HasAccepted(ItemTerms.LicenceHash(rig.Old)!));
+        Assert.False(pipeline.State.HasAccepted(ItemTerms.LicenceHash(rig.Next)!));
         await Assert.ThrowsAsync<PipelineTermsRequiredException>(() => pipeline.UpdateAsync("fixture", rig.Progress));
         Assert.Equal(0, rig.Downloads);
-        pipeline.AcceptTerms("fixture", DateTimeOffset.UtcNow);
+        pipeline.AcceptTerms("fixture", new DateTimeOffset(2026, 10, 4, 12, 0, 0, TimeSpan.Zero));
         await pipeline.UpdateAsync("fixture", rig.Progress);
         Assert.Equal(1, rig.Downloads);
     }
 
     [Fact]
+    [Trait("Feature", "SK-8")]
+    [Trait("Rule", "R-TEST-4")]
     public async Task Update_everything_lists_installed_latest_progress_and_result()
     {
         using var rig = new PipelineRig();
@@ -95,6 +106,8 @@ public sealed class PipelineAcceptanceTests
     }
 
     [Fact]
+    [Trait("Feature", "SK-8")]
+    [Trait("Rule", "R-TEST-4")]
     public async Task Remove_while_leased_removes_route_now_and_deletes_after_lease_ends()
     {
         using var rig = new PipelineRig();
@@ -110,6 +123,8 @@ public sealed class PipelineAcceptanceTests
     }
 
     [Fact]
+    [Trait("Feature", "SK-8")]
+    [Trait("Rule", "R-TEST-4")]
     public async Task Removing_Python_removes_package_sets_and_keeps_skills_with_missing_needs()
     {
         using var rig = new PipelineRig();
@@ -121,17 +136,19 @@ public sealed class PipelineAcceptanceTests
     }
 
     [Fact]
+    [Trait("Feature", "SK-8")]
+    [Trait("Rule", "R-TEST-4")]
     public async Task Reset_preserves_enabled_and_accepted_terms_and_defers_live_tree()
     {
         using var rig = new PipelineRig(nonOpen: true);
         var pipeline = await rig.Create();
-        pipeline.AcceptTerms("fixture", DateTimeOffset.UtcNow);
+        pipeline.AcceptTerms("fixture", new DateTimeOffset(2026, 10, 4, 12, 0, 0, TimeSpan.Zero));
         Directory.CreateDirectory(rig.Paths.Skills);
         File.WriteAllText(rig.Paths.EnabledFile, "fixture enabled switches");
         using var lease = pipeline.Acquire("fixture")!;
         await pipeline.ResetAsync();
         Assert.Empty(pipeline.Snapshot());
-        Assert.Single(pipeline.State.AcceptedTerms);
+        Assert.Equal(new[] { ItemTerms.LicenceHash(rig.Old), ItemTerms.LicenceHash(rig.Next) }.Order(StringComparer.Ordinal), pipeline.State.AcceptedTerms.Select(t => t.LicenceSha256));
         Assert.Equal("fixture enabled switches", File.ReadAllText(rig.Paths.EnabledFile));
         Assert.True(Directory.Exists(lease.Folder));
         lease.Dispose();

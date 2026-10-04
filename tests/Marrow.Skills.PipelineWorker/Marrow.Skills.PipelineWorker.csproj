@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Marrow.Services/Marrow.Services.csproj" />
+    <PackageReference Include="xunit" />
+    <Using Include="Xunit" />
+    <Compile Include="../Marrow.Services.Tests/Port/Skills/Pipelines/PipelineRig.cs" Link="Fixtures/PipelineRig.cs" />
+    <Compile Include="../Marrow.Services.Tests/Port/Skills/Pipelines/PipelineProtection.cs" Link="Fixtures/PipelineProtection.cs" />
+    <Compile Include="../Marrow.Services.Tests/Port/Skills/Pipelines/PipelineProgress.cs" Link="Fixtures/PipelineProgress.cs" />
+    <Compile Include="../Marrow.Services.Tests/Port/Skills/Install/InstallRig.cs" Link="Fixtures/InstallRig.cs" />
+    <Compile Include="../Marrow.Services.Tests/Port/Skills/Install/FakeInstallLock.cs" Link="Fixtures/FakeInstallLock.cs" />
+    <Compile Include="../Marrow.Services.Tests/Port/Skills/Install/FakeInstallProcess.cs" Link="Fixtures/FakeInstallProcess.cs" />
+  </ItemGroup>
+</Project>
