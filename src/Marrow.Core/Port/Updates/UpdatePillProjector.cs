@@ -90,7 +90,7 @@ public sealed class UpdatePillProjector
         var title = $"{failed.Title} didn’t update";
         var detail = (updated.Count > 0 ? $"Updated {NameList(updated)}. " : "") + "The fix is below.";
         var banner = !string.IsNullOrWhiteSpace(failed.Message) ? failed.Message
-            : failed.Installed is { } installed ? $"{failed.Title} is still {installed} after its updater ran. Retry." : "Retry.";
+            : failed.Installed is { } installed ? $"{failed.Title} is still {installed} after its updater ran. Retry{(UpdateRowCommand.For(failed) is { } command ? $", or run {command} in a terminal" : "")}." : "Retry.";
         return new UpdatePillState(UpdatePillPhase.Failed, title, title, detail, "Retry", UpdatePillAction.Retry, true, 1, title, banner, list);
     }
 

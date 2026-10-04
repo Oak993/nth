@@ -1,4 +1,5 @@
 // PORT-ONLY: first-release feature unit UE-5 (BUILD-PLAN.md 2.4 UE-5, OD-0100 place D). The app's one "Update everything": the orchestrator (UE-2) with its pill state. UE-4's Updates page reads the same service.
+using Marrow.App.Port.Settings;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Updates;
 using Marrow.Core.Support;
@@ -11,7 +12,7 @@ namespace Marrow.App.Port.Updates;
 /// (ED-NEW-f-ue-5): the background check starts after a launch delay and repeats on the same interval as <see cref="UpdateChecker"/>'s, and never in a development run or while a
 /// run goes; a press while a run goes does nothing; the restart is a seam the app fills (Marrow's item applies its downloaded package).
 /// </summary>
-public sealed class UpdateEverythingService : MainActorModel
+public sealed class UpdateEverythingService : MainActorModel, IUpdatesRunner
 {
     /// <summary>Seconds after launch before the first check: after <see cref="UpdateChecker"/>'s own launch check (8 s), so the two do not ask the feed at once.</summary>
     public const double LaunchDelaySeconds = 15;
@@ -62,8 +63,12 @@ public sealed class UpdateEverythingService : MainActorModel
         return created;
     }
 
+    /// <summary>Raised after every change of a row, on whatever thread made it (UE-4: the Updates page follows the same orchestrator as the pill).</summary>
+    public event Action? Changed;
+
     private void OnChanged()
     {
+        Changed?.Invoke();
         if (MainActor.IsIsolated) Refresh();
         else MainActor.Post(Refresh);
     }
@@ -79,6 +84,15 @@ public sealed class UpdateEverythingService : MainActorModel
         catch (InvalidOperationException) { } // a run began between the test above and the start
         finally { OnChanged(); }
     }
+
+    // UE-4: the Updates page drives the same orchestrator through IUpdatesRunner (one service, one set of rows for the pill and the page). The run's own refusals (a run is going) are the caller's to catch.
+    Task IUpdatesRunner.UpdateEverything() => orchestrator.UpdateEverything();
+
+    Task IUpdatesRunner.UpdateOne(string id) => orchestrator.UpdateOne(id);
+
+    Task IUpdatesRunner.Retry(string id) => orchestrator.Retry(id);
+
+    void IUpdatesRunner.Restart() => restart();
 
     /// <summary>What a press of the pill's button does (<see cref="UpdatePillState.Action"/>).</summary>
     public void Perform(UpdatePillAction action)

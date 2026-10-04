@@ -65,7 +65,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         for (var i = 0; i < rows.Length; i++)
         {
             Assert.Contains(Nodes<TextBlock>(rows[i]), text => text.Text == PageTitles[i]);
-            items.Add((i + 1, PageTitles[i], [rows[i]]));
+            items.Add((Math.Min(i + 1, SettingsRiseTiming.LastIndex), PageTitles[i], [rows[i]])); // the rise caps a row's start at the spec's last index (SettingsRiseTiming.LastIndex), so a row past the tenth starts with it
         }
         var section = Nodes<ChromeSection>(view).First();
         var heading = Assert.IsAssignableFrom<StackPanel>(section.Child).Children[0];

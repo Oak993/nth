@@ -79,17 +79,18 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             var checker = UpdateChecker.Shared; Assert.Null(checker.LastError);
             var sidebar = Field<Control>(view, "sidebar"); var field = Assert.Single(Nodes<TextBox>(sidebar));
             var about = Nodes<SidebarRow>(view).Single(row => Text(row).Contains("About"));
-            Assert.Equal(10, Nodes<SidebarRow>(view).Length);
+            Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, Nodes<SidebarRow>(view).Length);
             Click(w, about); Drain(w);
             Assert.Single(Nodes<AboutSettingsPage>(view)); Assert.Empty(Nodes<GeneralSettingsPage>(view)); // the click selects the page
             for (var i = 0; i < 50 && checker.LastError is null; i++) Drain(w);
             Assert.Equal("No update feed is set.", checker.LastError); // ... and the page's section checked for updates (the feed is empty, so no request is made)
-            foreach (var (query, expected) in new[] { ("version", 1), ("license", 1), ("VERSION", 1), ("licence", 0) }) // :77 keywords are the American "license"
+            // :77 keywords are the American "license". "version" is also a keyword of the Updates page (SA-1, ED-251), listed since UE-4.
+            foreach (var (query, expectedTitles) in new[] { ("version", new[] { "Updates", "About" }), ("license", new[] { "About" }), ("VERSION", new[] { "Updates", "About" }), ("licence", Array.Empty<string>()) })
             {
                 field.Text = query; Drain(w);
                 var shown = Nodes<SidebarRow>(view).Where(row => Text(row).Length > 0 && Text(row)[0] != "No results").ToArray();
-                Assert.Equal(expected, shown.Length); if (expected == 1) Assert.Equal("About", Text(shown[0]).Single());
-                if (expected == 0) { Assert.Contains("No results", Text(view)); Assert.Contains("Try a setting or a provider name.", Text(view)); }
+                Assert.Equal(expectedTitles.Length, shown.Length); Assert.Equal(expectedTitles, shown.Select(row => Text(row).Single()));
+                if (expectedTitles.Length == 0) { Assert.Contains("No results", Text(view)); Assert.Contains("Try a setting or a provider name.", Text(view)); }
             }
         });
     }

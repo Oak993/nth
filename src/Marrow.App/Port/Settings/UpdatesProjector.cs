@@ -128,7 +128,7 @@ internal static class UpdatesProjector
         var installed = r.Installed is null ? "" : VersionText.Number(r.Installed);
         var latest = r.Latest is not null ? VersionText.Number(r.Latest) : r.State == UpdateRowState.ChecksWhenUpdated ? "\u2014" : installed;
         var (status, text) = StatusOf(r, flags);
-        var command = CommandOf(r);
+        var command = UpdateRowCommand.For(r);
         string? lead = null, commandText = null, tail = null;
         if (r.State == UpdateRowState.Failed)
         {
@@ -163,12 +163,9 @@ internal static class UpdatesProjector
     private static string SubOf(UpdateRow r) => r.Kind switch
     {
         UpdateItemKind.Marrow => "The app",
-        UpdateItemKind.ProviderCli => CommandOf(r) ?? "Updates through its own installer",
+        UpdateItemKind.ProviderCli => UpdateRowCommand.For(r) ?? "Updates through its own installer",
         _ => "",
     };
-
-    private static string? CommandOf(UpdateRow r) =>
-        r.Kind == UpdateItemKind.ProviderCli && r.Id.StartsWith("cli:", StringComparison.Ordinal) && r.Id[4..] is "claude" or "codex" ? r.Id[4..] + " update" : null;
 
     private static string SectionTitle(UpdateItemKind kind) => kind switch
     {

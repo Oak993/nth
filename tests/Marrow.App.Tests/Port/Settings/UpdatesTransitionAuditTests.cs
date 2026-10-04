@@ -45,29 +45,32 @@ public sealed class UpdatesTransitionAuditTests(HeadlessSession headless)
         window.Show();
         runtime.RunUntilIdle();
         List<double[]> samples = [];
-        string[] names = [];
+        List<string[]> identities = [];
+        List<(string Name, Func<double> Value, Func<string> Identity)> series =
+        [
+            ("title in", () => page.TitleText.IncomingOpacity, () => page.TitleText.Text), ("title out", () => page.TitleText.OutgoingOpacity, () => "~" + page.TitleText.Text),
+            ("detail in", () => page.DetailText.IncomingOpacity, () => page.DetailText.Text), ("detail out", () => page.DetailText.OutgoingOpacity, () => "~" + page.DetailText.Text),
+            ("banner fold", () => page.BannerFold.Fraction, () => ""), ("banner title in", () => page.BannerTitleText.IncomingOpacity, () => page.BannerTitleText.Text),
+            ("button primary", () => page.MainButton.PrimaryFill.Opacity, () => ""), ("button quiet", () => page.MainButton.QuietFill.Opacity, () => ""), ("button busy", () => page.MainButton.BusyFill.Opacity, () => ""),
+            ("spinner slot", () => page.MainButton.SpinnerSlotWidth / 21, () => ""), ("button width", () => page.MainButton.Bounds.Width / 150, () => ""),
+        ];
+        foreach (var row in page.RowControls)
+        {
+            var id = row.RowId;
+            series.Add(($"{id} status in", () => row.StatusCell.IncomingOpacity, () => row.StatusCell.Status.ToString()));
+            series.Add(($"{id} status out", () => row.StatusCell.OutgoingOpacity, () => "~" + row.StatusCell.Status.ToString()));
+            series.Add(($"{id} progress fold", () => row.ProgressFold.Fraction, () => ""));
+            series.Add(($"{id} failure fold", () => row.FailureFold.Fraction, () => ""));
+            series.Add(($"{id} installed in", () => row.InstalledText.IncomingOpacity, () => row.InstalledText.Text));
+            series.Add(($"{id} latest in", () => row.LatestText.IncomingOpacity, () => row.LatestText.Text));
+            series.Add(($"{id} bar fill", () => row.ProgressBar.Fraction, () => ""));
+        }
 
-        (string[] Names, double[] Values) Sample()
+        void Sample()
         {
             window.UpdateLayout();
-            List<(string, double)> series =
-            [
-                ("title in", page.TitleText.IncomingOpacity), ("title out", page.TitleText.OutgoingOpacity), ("detail in", page.DetailText.IncomingOpacity), ("detail out", page.DetailText.OutgoingOpacity),
-                ("banner fold", page.BannerFold.Fraction), ("banner title in", page.BannerTitleText.IncomingOpacity),
-                ("button primary", page.MainButton.PrimaryFill.Opacity), ("button quiet", page.MainButton.QuietFill.Opacity), ("button busy", page.MainButton.BusyFill.Opacity),
-                ("spinner slot", page.MainButton.SpinnerSlotWidth / 21), ("button width", page.MainButton.Bounds.Width / 150),
-            ];
-            foreach (var row in page.RowControls)
-            {
-                series.Add(($"{row.RowId} status in", row.StatusCell.IncomingOpacity));
-                series.Add(($"{row.RowId} status out", row.StatusCell.OutgoingOpacity));
-                series.Add(($"{row.RowId} progress fold", row.ProgressFold.Fraction));
-                series.Add(($"{row.RowId} failure fold", row.FailureFold.Fraction));
-                series.Add(($"{row.RowId} installed in", row.InstalledText.IncomingOpacity));
-                series.Add(($"{row.RowId} latest in", row.LatestText.IncomingOpacity));
-                series.Add(($"{row.RowId} bar fill", row.ProgressBar.Fraction));
-            }
-            return (series.Select(s => s.Item1).ToArray(), series.Select(s => s.Item2).ToArray());
+            samples.Add(series.Select(entry => entry.Value()).ToArray());
+            identities.Add(series.Select(entry => entry.Identity()).ToArray());
         }
 
         void Run(double milliseconds)
@@ -77,9 +80,7 @@ public sealed class UpdatesTransitionAuditTests(HeadlessSession headless)
                 runtime.AdvanceMilliseconds(FrameMilliseconds);
                 frames.Advance(TimeSpan.FromMilliseconds(FrameMilliseconds));
                 runtime.RunUntilIdle();
-                var (n, v) = Sample();
-                names = n;
-                samples.Add(v);
+                Sample();
             }
         }
 
@@ -110,14 +111,25 @@ public sealed class UpdatesTransitionAuditTests(HeadlessSession headless)
             page.MainButton.Activate(); // Restart Marrow
             runtime.RunUntilIdle();
             Run(700);
-            Assert.Equal("Restarting…", page.TitleText.Text);
+            Assert.Equal("Restarting Marrow…", page.TitleText.Text);
 
             Assert.True(samples.Count > 20, "the story was sampled");
-            for (var series = 0; series < names.Length; series++)
+            // A line of text that is replaced hands over: its incoming copy must start low (it fades up) and the step is not counted across the hand-over, where the old copy becomes the outgoing one (series
+            // marked "~" are those outgoing copies, which start high by nature).
+            for (var index = 0; index < series.Count; index++)
             {
                 var worst = 0.0;
-                for (var frame = 1; frame < samples.Count; frame++) worst = Math.Max(worst, Math.Abs(samples[frame][series] - samples[frame - 1][series]));
-                Assert.True(worst <= LargestStep, $"{names[series]} moved {worst:0.000} of its range in one {FrameMilliseconds} ms frame");
+                for (var frame = 1; frame < samples.Count; frame++)
+                {
+                    var step = Math.Abs(samples[frame][index] - samples[frame - 1][index]);
+                    if (identities[frame][index] != identities[frame - 1][index])
+                    {
+                        Assert.True(identities[frame][index].StartsWith('~') || samples[frame][index] <= LargestStep, $"{series[index].Name} appeared at {samples[frame][index]:0.000} in the frame its text changed");
+                        continue;
+                    }
+                    worst = Math.Max(worst, step);
+                }
+                Assert.True(worst <= LargestStep, $"{series[index].Name} moved {worst:0.000} of its range in one {FrameMilliseconds} ms frame");
             }
         }
         finally { window.Close(); }

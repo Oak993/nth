@@ -1,6 +1,6 @@
 // PORT-ONLY, first-release UE-4 (BUILD-PLAN.md 2.4). What the Updates page asks of "Update everything": the actions of UE-2's orchestrator, plus the restart UE-1's engine provides. The page reads and
 // drives this and nothing else, so it shares the app's one orchestrator through UE-2's types only (the pill of UE-5 reads the same rows).
-using Marrow.Core.Port;
+using Marrow.App.Port.Updates;
 using Marrow.Core.Port.Updates;
 
 namespace Marrow.App.Port.Settings;
@@ -51,18 +51,25 @@ internal sealed class OrchestratorUpdatesRunner(UpdateOrchestrator orchestrator,
 }
 
 /// <summary>
-/// The runner the Updates page uses. Until the app gives it the real one (the unit that builds the app's items, UE-5's UpdateEverythingProduction, binds it at start-up with
-/// <see cref="Bind"/>) it has no items, so the page lists nothing: the orchestrator is fed through UE-2's types only (ED-NEW-f-ue-4).
+/// The runner the Updates page uses: the app's one <see cref="UpdateEverythingService"/> (UE-5), which owns the orchestrator the sidebar's pill reads too, so the page and the pill always show the same rows
+/// (ED-NEW-f-ue-4). A test replaces it for its own async flow.
 /// </summary>
 internal static class UpdatesRunnerSource
 {
-    private static readonly Ambient<IUpdatesRunner> Running = new(() => new OrchestratorUpdatesRunner(new UpdateOrchestrator([]), () => { }));
+    private static readonly System.Threading.AsyncLocal<IUpdatesRunner?> Scoped = new();
 
-    public static IUpdatesRunner Shared => Running.Current;
-
-    /// <summary>App start-up: the one runner of the process.</summary>
-    public static void Bind(IUpdatesRunner runner) => Running.SetProcessDefault(runner);
+    public static IUpdatesRunner Shared => Scoped.Value ?? UpdateEverythingService.Shared;
 
     /// <summary>For tests only: replaces <see cref="Shared"/> for the calling async flow.</summary>
-    public static IDisposable OverrideShared(IUpdatesRunner runner) => Running.Override(runner);
+    public static IDisposable OverrideShared(IUpdatesRunner runner)
+    {
+        var previous = Scoped.Value;
+        Scoped.Value = runner;
+        return new Restorer(() => Scoped.Value = previous);
+    }
+
+    private sealed class Restorer(Action restore) : IDisposable
+    {
+        public void Dispose() => restore();
+    }
 }
