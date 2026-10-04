@@ -24,6 +24,24 @@ internal static class WindowInvisibleBorder
     /// <paramref name="scaling"/> (the DPI scale it will have): zero for a window that has no HWND.</summary>
     internal static Ambient<Func<AvaloniaWindow, double, int>> Pixels { get; } = new(() => FromSystem);
 
+    private const int SM_CYCAPTION = 4;
+
+    /// <summary>ENGINEERING DECISION (ED-NEW-rec-settings-win (1), UI-LAUNCH-001 / PR-LAUNCH-028; WindowManager.swift:65 contentMinSize):
+    /// the pixels Avalonia adds to a window's minimum tracking height (WM_GETMINMAXINFO) for the standard frame's caption and
+    /// top border, which a window of the factory's chrome (client area extended under the title bar) does not have: its client
+    /// starts at the top of the HWND. MEASURED on this PC (WindowManagerNativeTests, the real main HWND): MinHeight 560 gave a
+    /// minimum track height of 599 against an HWND that is 8 px taller than its client, so the smallest client was 591, 31 more than the
+    /// source's 560. 31 at 100 % is SM_CYCAPTION (23) + SM_CXSIZEFRAME (4) + SM_CXPADDEDBORDER (4) at the window's DPI; zero for a window
+    /// that has no HWND.</summary>
+    internal static Ambient<Func<AvaloniaWindow, double, int>> CaptionAboveClient { get; } = new(() => CaptionFromSystem);
+
+    private static int CaptionFromSystem(AvaloniaWindow window, double scaling)
+    {
+        if (!OperatingSystem.IsWindows() || window.TryGetPlatformHandle() is not { Handle: not 0 } handle || handle.HandleDescriptor != "HWND") return 0;
+        var dpi = (uint)Math.Max(1, (int)Math.Round(96 * scaling));
+        return GetSystemMetricsForDpi(SM_CYCAPTION, dpi) + GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+    }
+
     private static int FromSystem(AvaloniaWindow window, double scaling)
     {
         if (!OperatingSystem.IsWindows() || window.TryGetPlatformHandle() is not { Handle: not 0 } handle || handle.HandleDescriptor != "HWND") return 0;

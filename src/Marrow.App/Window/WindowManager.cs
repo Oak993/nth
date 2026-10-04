@@ -286,7 +286,12 @@ public sealed class WindowManager
         };
         // :66 window.contentMinSize: Avalonia reports it to Windows as the minimum tracking size (WM_GETMINMAXINFO).
         window.MinWidth = Size.MainMinimum.Width;
-        window.MinHeight = Size.MainMinimum.Height;
+        // ENGINEERING DECISION (ED-NEW-rec-settings-win (1)): the minimum HEIGHT of the CLIENT is 560, but Avalonia adds the standard
+        // frame's caption to the minimum tracking height of a window whose client area is extended under it (WindowInvisibleBorder.
+        // CaptionAboveClient); that caption is taken off, per DPI, so the HWND stops at the source's 560 and not at 591.
+        void ApplyMinimumHeight() => window.MinHeight = Size.MainMinimum.Height - WindowInvisibleBorder.CaptionAboveClient.Current(window, window.RenderScaling) / window.RenderScaling;
+        ApplyMinimumHeight();
+        window.ScalingChanged += (_, _) => ApplyMinimumHeight();
         // :67-69 if !window.setFrameUsingName(Self.mainFrameName) { window.center() }
         if (!SetFrameUsingName(window, MainFrameName)) WindowCentering.Center(window, FrameSizeOf(window)); // :68, ED-225
         SetFrameAutosaveName(window, MainFrameName); // :70

@@ -504,6 +504,67 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
         });
     }
 
+    // WindowManager.swift:65 window.contentMinSize = NSSize(width: 860, height: 560): "Resized below the minimum: prevented by
+    // contentMinSize". The fixture's main window is 880 x 570, so a real drag of its right edge 300 px left and of its bottom edge
+    // 300 px up asks for 580 x 270 points; the HWND must stop at the minimum, measured as the client size in points at its DPI.
+    [Fact]
+    [Trait("Req", "UI-LAUNCH-001")] // AppDelegate.swift:22; WindowManager.swift:62-69 (contentMinSize :65)
+    [Trait("Req", "PR-LAUNCH-028")] // the same minimum
+    public void The_main_window_refuses_an_actual_border_resize_below_860_by_560_points()
+    {
+        native.Run(subject =>
+        {
+            const int HTBOTTOM = 15;
+            subject.Focus(subject.Main, subject.MainProbe);
+            using var pointer = new WindowManagerNativePointer(subject);
+            var scale = native.OnUi(() => subject.Main.DesktopScaling);
+            var before = native.OnUi(() => subject.Main.ClientSize);
+            // WM_GETMINMAXINFO read back from the HWND's own procedure: the minimum track size less the HWND's non-client frame
+            // (outer less client, both measured) is the smallest client the window allows, in pixels.
+            var track = N.MinTrackSize(subject.MainProbe.Handle);
+            var outer = N.Rect(subject.MainProbe.Handle);
+            var frameWidth = outer.Width - before.Width * scale;
+            var frameHeight = outer.Height - before.Height * scale;
+            Assert.Equal(860 * scale, track.X - frameWidth, 1.5);
+            Assert.Equal(560 * scale, track.Y - frameHeight, 1.5);
+            Assert.True(before.Width > 860 && before.Height > 560, $"the fixture's main window starts above the minimum: {before}");
+
+            var edge = WindowManagerNativePointer.RightEdge(subject.MainProbe, resizable: true);
+            pointer.Down(subject.MainProbe, edge, N.HTRIGHT);
+            N.Until(() => N.Gui(native.ThreadId).Capture == subject.MainProbe.Handle, "Native edge drag did not capture.");
+            var moved = new NativeWindowPoint(edge.X - (int)(300 * scale), edge.Y);
+            pointer.Move(subject.MainProbe, moved);
+            N.Until(() => subject.MainProbe.Count(N.WM_SIZING) > 0, "The actual drag produced no WM_SIZING.");
+            pointer.Up(subject.MainProbe, moved);
+            N.Until(() => subject.MainProbe.Count(N.WM_EXITSIZEMOVE) > 0 && !subject.MainProbe.IsResizing, "Live resize did not end after the release.");
+            var narrowed = native.OnUi(() => subject.Main.ClientSize);
+            Assert.True(narrowed.Width < before.Width, $"the drag did not narrow the window: {before.Width} to {narrowed.Width}");
+            Assert.InRange(narrowed.Width, 860 - 1.0 / scale, 860 + 1.0 / scale); // stopped at the minimum, 300 points short of the request
+            Assert.Equal(before.Height, narrowed.Height, 1);
+
+            subject.Focus(subject.Main, subject.MainProbe);
+            var rectangle = N.Rect(subject.MainProbe.Handle);
+            var bottom = default(NativeWindowPoint?);
+            for (var inset = 1; inset <= 20 && bottom is null; inset++)
+            {
+                var point = new NativeWindowPoint(rectangle.Left + rectangle.Width / 2, rectangle.Bottom - inset);
+                if (N.RootAt(point) == subject.MainProbe.Handle && N.Hit(subject.MainProbe.Handle, point) == HTBOTTOM) bottom = point;
+            }
+            Assert.NotNull(bottom);
+            var exitsBefore = subject.MainProbe.Count(N.WM_EXITSIZEMOVE);
+            pointer.Down(subject.MainProbe, bottom.Value, HTBOTTOM);
+            N.Until(() => N.Gui(native.ThreadId).Capture == subject.MainProbe.Handle, "Native bottom edge drag did not capture.");
+            var up = new NativeWindowPoint(bottom.Value.X, bottom.Value.Y - (int)(300 * scale));
+            pointer.Move(subject.MainProbe, up);
+            pointer.Up(subject.MainProbe, up);
+            N.Until(() => subject.MainProbe.Count(N.WM_EXITSIZEMOVE) > exitsBefore && !subject.MainProbe.IsResizing, "Live resize did not end after the second release.");
+            var shortened = native.OnUi(() => subject.Main.ClientSize);
+            Assert.True(shortened.Height < before.Height, $"the drag did not shorten the window: {before.Height} to {shortened.Height}");
+            Assert.InRange(shortened.Height, 560 - 1.0 / scale, 560 + 1.0 / scale);
+            Assert.InRange(shortened.Width, 860 - 1.0 / scale, 860 + 1.0 / scale);
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-WIN-017")]
     public void A_real_caption_move_does_not_publish_a_resize_on_either_factory_window()
