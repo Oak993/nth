@@ -903,7 +903,8 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
 //   AutoContinueReviewTests and ThreadRuntimeCLIUpdateTests.
 //
 // 2026-10-04 (cloud corner re-proof): UI-CHAT-024, -025, -028, -029, -033, -048, -051, -053, -056, -057 are proven on their corner by
-// ContinuousCornerReproofTests and are no longer CORNER-ONLY; UI-CHAT-034, -036, -037, -054 stay open on ED-275 (2)'s unresolved band (see TimelineRowsTests, STOP #10).
+// ContinuousCornerReproofTests and are no longer CORNER-ONLY; UI-CHAT-034, -036, -037, -054 were open on ED-275 (2)'s band and are proven on their corner under OD-0102
+// (unit blitz-cornerband, 2026-10-04: Apple's corner at the largest radius that fits; ContinuousCornerReproofTests, the four tests at its end).
 // CORNER-ONLY (every clause but ED-181's continuous curve is proven; CD pins the radius and the .continuous style of each site, so the
 // records close when the curve lands in SwiftShapes): UI-CHAT-024 (FT, CD spacer, PR-CHAT-097 interactions), UI-CHAT-025 (FD),
 //   UI-CHAT-028 (FD, CD selection), UI-CHAT-029 (FP, CD wave), UI-CHAT-033 (FN, CD animation), UI-CHAT-034 and UI-RUNTIME-002,

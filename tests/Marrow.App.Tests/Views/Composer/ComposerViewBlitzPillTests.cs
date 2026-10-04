@@ -70,7 +70,7 @@ public sealed class ComposerViewBlitzPillTests(HeadlessSession headless)
                 var glass = LogicalQuery.SelfAndDescendants<Control>(area).Where(control => SwiftGlass.GetEffect(control) is not null).ToArray();
                 Assert.NotEmpty(glass);
                 Assert.All(glass, piece => Assert.Same(container, piece.GetVisualAncestors().OfType<Control>().First(ancestor => SwiftGlass.GetContainerSpacing(ancestor) is not null)));
-                Assert.Contains(glass, piece => SwiftGlass.GetEffect(piece)!.Shape.Equals(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)) && pill.GetLogicalDescendants().Contains(piece)); // the pill's
+                Assert.Contains(glass, piece => SwiftGlass.GetEffect(piece)!.Shape.Equals(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous, circularInBand: true)) && pill.GetLogicalDescendants().Contains(piece)); // the pill's
                 Assert.Contains(glass, piece => tab.GetLogicalDescendants().Contains(piece) || ReferenceEquals(piece, tab)); // and the tab's
             });
             Close(h, window);

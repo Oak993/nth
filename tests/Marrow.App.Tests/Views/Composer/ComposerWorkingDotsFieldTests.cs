@@ -149,8 +149,11 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
                 // (ContinuousClip); below that (60) the shape is the circular arc of radius 22, which the Border's own ClipToBounds draws with
                 // its CornerRadius (Avalonia clips a Border's child to its rounded rectangle), so no Visual.Clip is set.
                 ContinuousCornerChecks.Drawn(clip, expectApple: height > 2 * 22 * 1.528665);
-                var expected = SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, 400, height), 22, RoundedCornerStyle.Continuous);
-                var apple = SwiftShapes.HasContinuousCorner(new Size(400, height), new CornerRadius(22), RoundedCornerStyle.Continuous);
+                // The slot is the composer pill's overlay (ComposerView.swift:671, the same r 22), so it keeps the pill's circular arc in OD-0102's band (CircularInBand,
+                // ED-275 (2): the video measures the pill circular), and is Apple's corner only from 67.3 pt up.
+                var expected = SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, 400, height), 22, RoundedCornerStyle.Continuous, circularInBand: true);
+                var apple = SwiftShapes.HasContinuousCorner(new Size(400, height), new CornerRadius(22), RoundedCornerStyle.Continuous, circularInBand: true);
+                Assert.True(SwiftShapes.GetCircularInBand(clip));
                 Assert.Equal(height >= 2 * 1.528665 * 22, apple);
                 if (apple)
                 {

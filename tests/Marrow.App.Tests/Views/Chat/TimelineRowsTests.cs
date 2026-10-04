@@ -4612,13 +4612,16 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // asserted on the mounted control, with mutation checks): UI-CHAT-020 (TimelineRowsFinReplyTests), UI-GIT-050 (TimelineRowsFinUserRowTests),
 // UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests, the shimmer).
 // Back in this note on 2026-10-04 (adversarial review of the continuous-corners unit): UI-GIT-044, UI-RUNTIME-002 and UI-RUNTIME-003, and PR-CHAT-108 in STOP #11 below.
-// The reason, for all four: ED-275 (2) calls UNRESOLVED what SwiftUI draws for a `.continuous` rounded rect with h / 3.057 < r < h / 2, and these
+// UPDATE 2026-10-04 (unit blitz-cornerband): OD-0102 (owner, "corner-band: A") settles ED-275 (2)'s band: Apple's corner at the largest radius that fits. The Edited-files
+// card and the two-line notice are asserted on the mounted elements (ContinuousCornerReproofTests; TimelineRowsFinFileCardTests, TimelineRowsPrRecordsTests), so the
+// reason below no longer stands for these four; the lead's ledger decides their status (they were not this unit's records, and their other clauses are as listed).
+// The reason, for all four: ED-275 (2) called UNRESOLVED what SwiftUI draws for a `.continuous` rounded rect with h / 3.057 < r < h / 2, and these
 // records' shapes are in that band while no frame and no source text settles it. UI-GIT-044 and PR-CHAT-108: the Edited card is 40 pt tall with radius 18
 // (band 13.1 < r < 20); the video's card edge is too faint to fit (a 0.32 quaternary over the blurred wallpaper) and the video fit of the composer (r 22 on 46)
 // cannot tell a circular end from the iOS 7 shape_2 end at 1 pt radius apart. UI-RUNTIME-002 and UI-RUNTIME-003: a notice of two lines is about 48 pt tall
 // with radius 18 (band 15.7 < r < 24); the video's two-line error banner (C 10.6-12.0) has no extractable end. Neither the Swift source (`.continuous`
 // and the radius only) nor Apple's documentation (SPEC.md sources) states the regime. Everything else those records say is proven.
-// Needed to close them: one frame (or Apple's statement) of a `.continuous` rounded rect in that band with a measurable edge, or an owner ruling on the regime.
+// Needed to close them (now met by OD-0102): one frame (or Apple's statement) of a `.continuous` rounded rect in that band with a measurable edge, or an owner ruling on the regime.
 // Records: UI-GIT-044; UI-RUNTIME-002; UI-RUNTIME-003.
 // Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019.
 // Records: UI-CHAT-021; UI-CHAT-022; UI-CHAT-023; UI-CHAT-024; UI-CHAT-025.
@@ -4639,9 +4642,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // 2026-10-04 (cloud corner re-proof, ContinuousCornerReproofTests; OD-0098, the Swift source is the proof): the corner clause is now proven on the mounted
 // element, so these leave the CORNER-ONLY lists above and below: UI-CHAT-024, -025, -028, -029, -033, -048, -051, -053, -056, -057. Each pill of radius 18 on a
 // 34 pt line is a capsule (circular ends, ED-275 (2)); the checklist card (63 pt+), the 10 pt plates and the diff block are Apple's corner, control points
-// and clip asserted. STILL OPEN on ED-275 (2)'s UNRESOLVED band (36 < h < 55 at r 18; each record has a state there, pinned without a Req in
-// ContinuousCornerReproofTests.The_wrapped_notice_...): UI-CHAT-034 (a notice two lines tall), UI-CHAT-036 (a turn of ONE step: the steps card is 43 pt),
-// UI-CHAT-037 (the Edited-files card, 40 pt), UI-CHAT-054 (a delegation card of one head, 54 pt).
+// and clip asserted. The four that sat in ED-275 (2)'s band (36 < h < 55 at r 18) were closed on 2026-10-04 by unit blitz-cornerband under OD-0102 (owner,
+// "corner-band: A": Apple's corner at the largest radius that fits, height / 3.057), each proven on its mounted element in ContinuousCornerReproofTests:
+// UI-CHAT-034 (a notice two lines tall), UI-CHAT-036 (a turn of ONE step: the steps card is 43 pt), UI-CHAT-037 (the Edited-files card, 40 pt),
+// UI-CHAT-054 (a delegation card of one head, 54 pt).
 // Missing: each record's corner re-proven against ED-181's built curve (ED-275; some sizes sit in its UNRESOLVED band), and the .controlSize(.small) metric of UI-CHAT-039 and
 // UI-GIT-047 (STOP #5, #12); every other clause of these records is proven. (Formerly: the source/Windows capture of every state.)
 // Reference runtime (2026-10-03): the owner's video of Droppy Code 1.7.0 (work/reference-video/2-chat-use.mov, catalogue
@@ -4674,7 +4678,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
 // Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-109.
 // Records: PR-CHAT-108 (back 2026-10-04: every clause is asserted, the hover on the 0.1 s ease-out curve included, except the Edited card's corner: 40 pt tall, radius 18,
-// in the band ED-275 (2) calls UNRESOLVED; see the note in STOP #10 above).
+// in the band ED-275 (2) called UNRESOLVED and OD-0102 settles; see the note in STOP #10 above).
 // Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
 // Records: PR-CHAT-116; PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
 // Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.

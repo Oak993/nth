@@ -882,9 +882,9 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 // :2818-2822 padded 12 leading, 6 trailing and 6 vertical on .quaternary at 0.32, hugging its content.
                 var pill = undoable.GetVisualDescendants().OfType<Border>().First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
                 Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
-                // :2822 `.continuous`: the card is 40 pt tall, in the band (13.1 < r < 20) where what Apple draws is UNRESOLVED (ED-275 (2)); the port draws the circular arc there,
-                // asserted as the port's own regime and not as a reference fit (PR-CHAT-108 stays open on it).
-                ContinuousCornerChecks.Drawn(pill, expectApple: false);
+                // :2822 `.continuous`: the card is 40 pt tall, in the band (13.1 < r < 20) of ED-275 (2), which OD-0102 (owner, 2026-10-04) settles as Apple's corner at the
+                // largest radius that fits, 40 / (2 * 1.528665) = 13.08 (control points and clip: ContinuousCornerReproofTests, the Edited-files card).
+                Assert.True(ContinuousCornerChecks.Drawn(pill, expectApple: true));
                 Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), pill), BrushColor(pill.Background));
                 Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
                 // both popovers open below their buttons (arrowEdge: .bottom)
