@@ -644,4 +644,49 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
             }
         });
     }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-001")] // SidebarView.swift:74-80 the Color.clear clearance spacer, :146 `.background { if !inPopover { WindowDragArea() } }`: "pressing it drags the window"
+    public void The_actual_main_sidebar_clearance_spacer_reaches_native_caption_hit_testing_and_drags_the_window()
+    {
+        native.Run(subject =>
+        {
+            subject.Focus(subject.Main, subject.MainProbe);
+            // The real SidebarView (the column, not the popover form) over the factory's main window, below the fixture's own caption zone,
+            // so that the only caption under the points is the one the sidebar's own WindowDragArea gives.
+            var (view, area, spacer, field) = native.OnUi(() =>
+            {
+                FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Main));
+                var host = new Border { Width = 280, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, Margin = new Thickness(0, 60, 0, 0) };
+                AppEnvironment.SetAppModel(host, subject.Manager.Model);
+                var column = new Marrow.App.Views.Sidebar.SidebarView(false, null);
+                host.Child = column;
+                subject.MainContent.Children.Add(host);
+                subject.Main.UpdateLayout();
+                var drag = Assert.Single(column.GetVisualDescendants().OfType<WindowDragArea>());
+                var search = Assert.Single(column.GetVisualDescendants().OfType<SidebarSearchField>());
+                return (column, drag, new Point(140, 23), search.TranslatePoint(new Point(20, 14), column) ?? throw new InvalidOperationException("the search field is not under the column"));
+            });
+            // :74-80 the spacer sits 16..30 pt down, in the gutter beside the search row's top padding.
+            N.Until(() => native.OnUi(() => view.InputHitTest(spacer) is Visual hit && (ReferenceEquals(hit, area) || hit.GetVisualAncestors().Contains(area))),
+                "The sidebar's drag area did not become the managed hit target at the clearance spacer after native layout.");
+            Assert.Equal(Win32Properties.Win32HitTestValue.Caption, native.OnUi(() => Win32Properties.GetNonClientHitTestResult(area)));
+            NativeWindowPoint Screen(Point at) => native.OnUi(() => { var point = view.PointToScreen(at); return new NativeWindowPoint(point.X, point.Y); });
+            var spacerPoint = Screen(spacer);
+            var fieldPoint = Screen(field);
+            Assert.Equal(N.HTCAPTION, N.Hit(subject.MainProbe.Handle, spacerPoint)); // the spacer is the window's caption to Windows
+            Assert.Equal(N.HTCLIENT, N.Hit(subject.MainProbe.Handle, fieldPoint)); // the search field is the field's own
+            using var pointer = new WindowManagerNativePointer(subject);
+            var before = N.Rect(subject.MainProbe.Handle);
+            pointer.Down(subject.MainProbe, spacerPoint, N.HTCAPTION);
+            N.Until(() => N.Gui(native.ThreadId).Capture == subject.MainProbe.Handle, "Pressing the clearance spacer did not start the system move loop.");
+            var moved = new NativeWindowPoint(spacerPoint.X + 56, spacerPoint.Y + 30);
+            pointer.Move(subject.MainProbe, moved);
+            N.Until(() => N.Rect(subject.MainProbe.Handle).Left != before.Left, "Dragging from the clearance spacer did not move the native frame.");
+            pointer.Up(subject.MainProbe, moved);
+            N.Until(() => subject.MainProbe.Count(N.WM_EXITSIZEMOVE) > 0, "The move from the clearance spacer did not end.");
+            Assert.InRange(N.Rect(subject.MainProbe.Handle).Left, before.Left + 56 - 8, before.Left + 56 + 8); // it followed the pointer (the system may clamp to the work area by a few pixels)
+            Assert.Empty(subject.MainProbe.ResizeTransitions); // a move, not a resize
+        });
+    }
 }
