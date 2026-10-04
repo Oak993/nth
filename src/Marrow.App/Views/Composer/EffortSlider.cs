@@ -74,13 +74,43 @@ public static class ModelCatalog
 /// <summary>:36-150 <c>struct ModelEffortButton: View</c>.</summary>
 public sealed class ModelEffortButton : Decorator
 {
+    // :38-39 the chip's inputs. SwiftUI re-evaluates the chip's body with new values and keeps its @State (isPresented,
+    // naturalWidth, lockedWidth, the popover), so a thread write made from the open popover (the slider's effort, the fast
+    // toggle, a pair, a model) changes these two and never makes the chip again. ComposerControls hands them in with Update.
+    private sealed class Inputs(ChatThread thread, bool hasHistory) : MainActorModel
+    {
+        private ChatThread thread = thread;
+        private bool hasHistory = hasHistory;
+        public ChatThread Thread { get => Read(thread); set => Set(ref thread, value); }
+        public bool HasHistory { get => Read(hasHistory); set => Set(ref hasHistory, value); }
+    }
+    private readonly Inputs inputs;
+    private ModelEffortPanel? openPanel;
+
+    /// <summary>:38-39 the composer hands the chip the thread it now draws and the turns it now has (SwiftUI's re-evaluated
+    /// body); the chip, its popover and its held width stay as they are, and the open panel is given the new
+    /// <c>hasHistory</c> (:121).</summary>
+    internal void Update(ChatThread thread, bool hasHistory)
+    {
+        inputs.Thread = thread;
+        inputs.HasHistory = hasHistory;
+        openPanel?.SetHasHistory(hasHistory);
+    }
+
     /// <param name="thread">:38 <c>let thread: ChatThread</c>.</param>
     /// <param name="hasHistory">:39 <c>let hasHistory: Bool</c>.</param>
     /// <param name="compact">:42 <c>var compact: Bool = false</c>.</param>
     // :59-138 body
     public ModelEffortButton(ChatThread thread, bool hasHistory, bool compact = false)
     {
-        var frame = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto") };
+        inputs = new Inputs(thread, hasHistory);
+        // :105-108 the held box (.frame(width: lockedWidth)) with the label's HStack(spacing: 5) centred in it. A DockPanel is that
+        // HStack: its marks and its effort and chevron keep their size, and the name, the one flexible part and the last
+        // child, takes what is left and is what gets cut (:89-94); every item after the first carries the 5 point gap, so
+        // an icon alone has none (:65, a one-child HStack has no spacing).
+        var frame = new Grid();
+        var row = new DockPanel { LastChildFill = !compact, HorizontalAlignment = HorizontalAlignment.Center };
+        frame.Children.Add(row);
         var presented = false;
         double? naturalWidth = null;
         double? lockedWidth = null;
@@ -96,27 +126,33 @@ public sealed class ModelEffortButton : Decorator
             lockedWidth = presented ? naturalWidth : null; frame.Width = compact ? double.NaN : lockedWidth ?? double.NaN; // :108-117
             if (presented)
             {
-                var content = new ModelEffortPanel(thread.Id, hasHistory).PresentedChrome();
+                var panel = openPanel = new ModelEffortPanel(inputs.Thread.Id, inputs.HasHistory);
+                var content = panel.PresentedChrome();
                 AppEnvironment.SetAppModel(content, AppEnvironment.GetAppModel(this));
                 Popovers.SetClosePopover(content, () => Presentation.Presenter.Current.SetPresented(popup, false));
                 popup.Child = content;
             }
-            else popup.Child = null;
+            else { popup.Child = null; openPanel = null; }
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         button.Focusable = false; popup.PlacementTarget = button; // :115,120
         GpuWarmup.WhenIdle(this); // OD-0090 / ED-252: the effort knob's programs primed before this chip can open the popover
         button.Chip(); // :114 inactive until the popover opens.
         frame.SizeChanged += (_, _) => { if (lockedWidth is null) naturalWidth = frame.Bounds.Width; }; // :109-112
-        popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; }; // :114,116-117
+        popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; openPanel = null; }; // :114,116-117
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         Child = button;
         ProviderRegistry registry = null!; // :60 `let registry = model.providers`, set by every body evaluation below
         TextBlock? shownName = null, shownEffort = null;
+        // :73 .id(pair.id): the fused mark's view, and with it its state, is kept while the pair (and the providers it fuses) stay the same, so a
+        // change of effort or of fast mode does not play the fuse-in again (HydraFusedPairIcon.swift:37-42 plays it from its own .task(id:)).
+        HydraFusedPairIcon? keptMark = null;
+        (Guid Pair, ProviderKind Lead, ProviderKind Heads)? keptKey = null;
         this.Track(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
-            var currentThread = model.Thread(thread.Id) ?? thread;
+            var input = inputs.Thread;
+            var currentThread = model.Thread(input.Id) ?? input;
             var option = model.Providers.Model(currentThread.Model, currentThread.Provider);
             var pair = model.HydraIsOn(currentThread) ? model.HydraPair(currentThread) : null;
             return (model, currentThread, option, pair);
@@ -126,29 +162,45 @@ public sealed class ModelEffortButton : Decorator
             registry = model.Providers;
             var (oldName, oldEffort) = (shownName, shownEffort);
             (shownName, shownEffort) = (null, null);
-            frame.Children.Clear();
-            Control mark = pair is null
-                ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 real provider artwork from Components.
-                : new HydraFusedPairIcon(pair.Provider, model.HydraHeadsProvider(pair), 15); // :70-72
-            mark.Margin = new Thickness(0, 0, 5, 0); frame.Children.Add(mark);
+            Control mark;
+            if (pair is null)
+            {
+                (keptMark, keptKey) = (null, null);
+                mark = new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 }; // :73-75 real provider artwork from Components.
+            }
+            else
+            {
+                var key = (pair.Id, pair.Provider, model.HydraHeadsProvider(pair));
+                if (keptMark is null || keptKey != key) (keptMark, keptKey) = (new HydraFusedPairIcon(key.Provider, key.Item3, 15), key); // :70-72
+                mark = keptMark;
+            }
+            // everything but the kept mark is rebuilt; the mark itself stays in the row, never detached, so it keeps its state
+            foreach (var child in row.Children.ToArray()) if (!ReferenceEquals(child, mark)) row.Children.Remove(child);
+            DockPanel.SetDock(mark, Dock.Left); if (!row.Children.Contains(mark)) row.Children.Insert(0, mark);
             if (currentThread.FastMode && current?.SupportsFast == true)
             {
-                var bolt = SwiftImage.SystemName("bolt.fill").Font(Chrome.InlineIconFont).ForegroundStyle(SwiftColor.Yellow); bolt.Margin = new Thickness(0, 0, 5, 0);
-                Grid.SetColumn(bolt, 1); frame.Children.Add(bolt); // :77-80
+                var bolt = SwiftImage.SystemName("bolt.fill").Font(Chrome.InlineIconFont).ForegroundStyle(SwiftColor.Yellow); bolt.Margin = new Thickness(5, 0, 0, 0);
+                DockPanel.SetDock(bolt, Dock.Left); row.Children.Add(bolt); // :77-80
             }
             if (!compact)
             {
-                var name = EffortView.Text(pair?.CustomName ?? current?.ChipName ?? currentThread.Model ?? currentThread.Provider.DisplayName, SwiftFont.Callout, Chrome.PrimaryText);
-                name.TextTrimming = TextTrimming.CharacterEllipsis; Grid.SetColumn(name, 2); frame.Children.Add(name); // :90-94
-                CrossFade(frame, oldName, name, 2); shownName = name;
+                // the right-docked items come before the name that fills the rest, the chevron first so it ends the row
+                var chevron = SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText);
+                chevron.Margin = new Thickness(5, 0, 0, 0); DockPanel.SetDock(chevron, Dock.Right); row.Children.Add(chevron); // :101-103
+                Grid? effortCell = null;
+                TextBlock? effort = null;
                 if (current is { Efforts.Count: > 0 })
                 {
-                    var effort = EffortView.Text(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""), SwiftFont.Callout, Chrome.PrimaryText.Opacity(0.72));
-                    effort.Margin = new Thickness(5, 0, 0, 0); Grid.SetColumn(effort, 3); frame.Children.Add(effort); // :95-99
-                    CrossFade(frame, oldEffort, effort, 3); shownEffort = effort;
+                    effort = EffortView.Text(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""), SwiftFont.Callout, Chrome.PrimaryText.Opacity(0.72));
+                    effortCell = new Grid { Margin = new Thickness(5, 0, 0, 0), Children = { effort } }; // :95-99
+                    DockPanel.SetDock(effortCell, Dock.Right); row.Children.Add(effortCell);
                 }
-                var chevron = SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText);
-                chevron.Margin = new Thickness(5, 0, 0, 0); Grid.SetColumn(chevron, 4); frame.Children.Add(chevron); // :101-103
+                var name = EffortView.Text(pair?.CustomName ?? current?.ChipName ?? currentThread.Model ?? currentThread.Provider.DisplayName, SwiftFont.Callout, Chrome.PrimaryText);
+                name.TextTrimming = TextTrimming.CharacterEllipsis; // :90-94
+                var nameCell = new Grid { Children = { name } };
+                row.Children.Add(new TruncationFill(name) { Margin = new Thickness(5, 0, 0, 0), Child = nameCell });
+                CrossFade(nameCell, oldName, name); shownName = name;
+                if (effortCell is not null && effort is not null) { CrossFade(effortCell, oldEffort, effort); shownEffort = effort; }
             }
             var parts = new System.Collections.Generic.List<string> { current?.ShortName ?? currentThread.Model ?? currentThread.Provider.DisplayName };
             if (current is { Efforts.Count: > 0 }) parts.Add(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""));
@@ -157,8 +209,20 @@ public sealed class ModelEffortButton : Decorator
         });
         // :138 the body closes over the registry of the body evaluation (:60), attached before this task starts; it
         // never looks the environment up, so a task left queued by a chip that has since left the tree still has it.
-        this.Task(() => thread.Provider, async provider => await registry.LoadCatalog(provider)); // :138
+        this.Task(() => inputs.Thread.Provider, async provider => await registry.LoadCatalog(provider)); // :138
         // :125-137 capture-only anchor/frame sites remain outside the shipped path (ED-001).
+    }
+
+    /// <summary>:92-94 a Text cut short by the width it is offered takes the whole of it, as SwiftUI sizes a truncated Text to its
+    /// proposal: the name's cell then spans what the held box leaves, and not the last whole character's width.</summary>
+    private sealed class TruncationFill(TextBlock text) : Decorator
+    {
+        protected override Size MeasureOverride(Size available)
+        {
+            var size = base.MeasureOverride(available);
+            return !double.IsInfinity(available.Width) && size.Width < available.Width && text.TextLayout.TextLines.Any(line => line.HasCollapsed)
+                ? new Size(available.Width, size.Height) : size;
+        }
     }
 
     // :90-99 plain Texts: a change made inside an animation (the slider's withAnimation(.snappy(duration: 0.2)), :631)
@@ -170,21 +234,21 @@ public sealed class ModelEffortButton : Decorator
     // alone it trailed the video by about a frame: 0.22 and 0.50 at 27 and 49 ms).
     internal const double FadeLead = 0.013;
 
-    private static void CrossFade(Grid frame, TextBlock? old, TextBlock fresh, int column)
+    private static void CrossFade(Grid cell, TextBlock? old, TextBlock fresh)
     {
         if (Transaction.Current is not { } change || old is null || old.Text == fresh.Text || old.Bounds.Width <= 0) return;
         var animation = change.Delay(-FadeLead); // ahead: at the change's moment already FadeLead into the curve
         var width = old.Bounds.Width;
         var height = old.Bounds.Height;
+        (old.Parent as Panel)?.Children.Remove(old); // it leaves the cell it was laid out in
         old.Width = width;
         var from = old.Opacity; // a text still fading in when the next change comes fades out from where it was
         var layer = new Canvas { Height = height, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false, Children = { old } };
-        Grid.SetColumn(layer, column);
-        frame.Children.Add(layer);
+        cell.Children.Add(layer); // over the fresh text's own cell, taking no room
         EffortView.Animate(old, animation, progress => // replaces the fade-in it may still be running
         {
             old.Opacity = from * (1 - Math.Clamp(progress, 0, 1));
-            if (progress >= 1) frame.Children.Remove(layer);
+            if (progress >= 1) cell.Children.Remove(layer);
         });
         EffortView.Animate(fresh, animation, progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
     }
@@ -197,12 +261,16 @@ public sealed class ModelEffortPanel : Decorator
     {
         private bool showsModels;
         public bool ShowsModels { get => Read(showsModels); set => Set(ref showsModels, value); }
+        // :157 the input the chip hands the panel again when the composer re-renders under the open popover (:121)
+        private bool hasHistory;
+        public bool HasHistory { get => Read(hasHistory); set => Set(ref hasHistory, value); }
     }
     private readonly ViewState state = new();
+    internal void SetHasHistory(bool hasHistory) => state.HasHistory = hasHistory;
     private AppModel model = null!;
     private readonly Panel pages = new();
     private bool? displayedModels;
-    private (ProviderKind Provider, string? Model, HydraPair? Pair, ModelOption? Option)? sliderKey;
+    private (ProviderKind Provider, string? Model, ModelOption? Option)? sliderKey;
     private EffortBrand? shownBrand; // OD-0090: the maker the last slider wore, so a model change crossfades from it
     /// <param name="threadID">:156 <c>let threadID: UUID</c>.</param>
     /// <param name="hasHistory">:157 <c>let hasHistory: Bool</c>.</param>
@@ -210,29 +278,30 @@ public sealed class ModelEffortPanel : Decorator
     public ModelEffortPanel(Guid threadID, bool hasHistory)
     {
         Width = 330; Child = pages; // :186
+        state.HasHistory = hasHistory;
         this.Track(() =>
         {
             var app = AppEnvironment.GetAppModel(this);
             var thread = app.Thread(threadID);
             // :196 the body reads hydraLaunch's resolved heads effort, so the caption follows it.
-            return (app, thread, state.ShowsModels, HeadsEffort: thread is null ? null : app.HydraLaunch(thread)?.WorkerEffort);
+            return (app, thread, state.ShowsModels, HeadsEffort: thread is null ? null : app.HydraLaunch(thread)?.WorkerEffort, History: state.HasHistory);
         }, snapshot =>
         {
-            var (app, thread, showsModels, headsEffort) = snapshot; model = app;
+            var (app, thread, showsModels, headsEffort, history) = snapshot; model = app;
             if (thread is null) { pages.Children.Clear(); displayedModels = null; return; } // :162
-            var key = (thread.Provider, thread.Model, model.HydraIsOn(thread) ? model.HydraPair(thread) : null, model.Providers.Model(thread.Model, thread.Provider));
-            // :163-185 the branch retains its view/state while only the bound effort or fast mode changes.
-            if (!showsModels && displayedModels == false && Equals(sliderKey, key))
+            var key = (thread.Provider, thread.Model, model.Providers.Model(thread.Model, thread.Provider));
+            // :163-185 the branch retains its view/state while only the bound effort or fast mode changes, and :196 while the
+            // pair the chat leads with (or its resolved heads effort) changes: the card is handed the new look.
+            if (!showsModels && displayedModels == false && Equals(sliderKey, key) && pages.Children.OfType<EffortSliderCard>().FirstOrDefault() is { } card)
             {
-                // Only the resolved heads effort can differ here: the caption is the one part of the card it reaches.
-                if (key.Item3 is { } keptPair && pages.Children.FirstOrDefault() is EffortSliderCard card)
-                    card.UpdateHeadsEffort(new EffortPairLook(keptPair, model.Providers, headsEffort));
+                var kept = model.HydraIsOn(thread) ? model.HydraPair(thread) : null;
+                card.UpdatePair(kept is null ? null : new EffortPairLook(kept, model.Providers, headsEffort));
                 return;
             }
             sliderKey = key;
             Control content;
             if (showsModels)
-                content = new ModelList(thread, hasHistory, entry => { Choose(entry, thread); state.ShowsModels = false; },
+                content = new ModelList(thread, history, entry => { Choose(entry, thread); state.ShowsModels = false; },
                     () => state.ShowsModels = false, pair =>
                     {
                         model.EnterHydraPair(pair, thread.Id); state.ShowsModels = false;
@@ -265,7 +334,9 @@ public sealed class ModelEffortPanel : Decorator
             new Binding<bool>(() => model.Thread(thread.Id)?.FastMode ?? false, fast => { model.UpdateThread(thread.Id, current => current with { FastMode = fast }); Remember(thread.Id); }),
             () =>
             {
-                var leadEffort = pair?.OrchestratorEffort is { } effort && option?.Efforts.Contains(effort) == true ? effort : null;
+                // :219-224 read when it is tapped: the pair the chat leads with then (the card stays while that changes)
+                var leading = model.Thread(thread.Id) is { } now && model.HydraIsOn(now) ? model.HydraPair(now) : null;
+                var leadEffort = leading?.OrchestratorEffort is { } effort && option?.Efforts.Contains(effort) == true ? effort : null;
                 model.UpdateThread(thread.Id, current => current with { Effort = leadEffort, FastMode = false }); Remember(thread.Id);
             }, pairLook, () => state.ShowsModels = true, fadeFrom);
     }
@@ -329,7 +400,7 @@ public sealed class ModelList : Decorator
             var rows = new StackPanel { Spacing = 1 };
             if (pairs.Count > 0)
             {
-                rows.Children.Add(new PopoverSectionHeader("Pairs")); // :311
+                rows.Children.Add(new PopoverSectionHeader("Pairs") { Height = SectionHeaderHeight }); // :311; :273 the 22 the arithmetic reserves, whatever this line's font makes of its own
                 foreach (var pair in pairs)
                 {
                     var locked = hasHistory && pair.Provider != thread.Provider;
@@ -337,7 +408,7 @@ public sealed class ModelList : Decorator
                     rows.Children.Add(new HydraPairListRow(pair, HydraPairSummary.Title(pair, model.Providers), locked ? "New chats only" : detail, PairRowHeight,
                         model.LeadsWithHydraPair(pair, thread), !locked, () => onEnterPair?.Invoke(pair))); // :312-323
                 }
-                rows.Children.Add(new PopoverSectionHeader("Models")); // :325
+                rows.Children.Add(new PopoverSectionHeader("Models") { Height = SectionHeaderHeight }); // :325
             }
             foreach (var entry in entries)
             {
@@ -350,7 +421,7 @@ public sealed class ModelList : Decorator
                 var loading = EffortView.Text("Loading models…", SwiftFont.Body, Chrome.SecondaryText); loading.Margin = new Thickness(10); rows.Children.Add(loading); // :340-345
             }
             var backIcon = SwiftImage.SystemName("chevron.left").Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
-            var back = PlainControls.Button(new Border { Width = 20, Height = 20, Child = backIcon }, onBack); ToolTip.SetTip(back, "Back"); // :290-299
+            var back = PlainControls.Button(new Border { Width = 20, Height = 20, Background = Brushes.Transparent, Child = backIcon }, onBack); ToolTip.SetTip(back, "Back"); // :290-299, :294 .contentShape(.rect): the whole frame takes the press
             var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(8, 8, 8, 4), Children = { back, EffortView.Text("Select model", SwiftFont.Body, Chrome.SecondaryText) } };
             var scroll = new ScrollViewer { Content = rows, Height = Math.Min(pairsHeight + Math.Max(entries.Count, 1) * (rowHeight + 1), 440), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
             Child = new Border { Padding = new Thickness(6), Child = new StackPanel { Spacing = 0, Children = { header, scroll } } }; // :348-353
@@ -381,11 +452,11 @@ public sealed class HydraPairListRow : Decorator
         // :386 HStack(spacing:10), :400 Spacer(minLength:12): preserve the gap on EACH side of the spacer.
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("18,10,*,10,12,10,Auto") };
         row.Children.Add(new HydraFusedPairIcon(pair.Provider, pair.HeadsProvider, 16, false) { Width = 18 }); // :387-388
-        var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children =
-        {
-            EffortView.Text(title, SwiftFont.System(14), Chrome.PrimaryText),
-            EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText),
-        } }; Grid.SetColumn(texts, 2); row.Children.Add(texts); // :389-399
+        var titleText = EffortView.Text(title, SwiftFont.System(14), Chrome.PrimaryText);
+        var detailText = EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText);
+        foreach (var line in new[] { titleText, detailText }) { line.TextTrimming = TextTrimming.CharacterEllipsis; line.TextWrapping = TextWrapping.NoWrap; } // :393, :397 .lineLimit(1): the default truncation mode is the tail
+        var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { titleText, detailText } };
+        Grid.SetColumn(texts, 2); row.Children.Add(texts); // :389-399
         var check = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.PrimaryText);
         check.Opacity = isSelected ? 1 : 0; Grid.SetColumn(check, 6); row.Children.Add(check); // :401-405
         Child = EffortView.Row(row, rowHeight, isEnabled, action); // :407-419
@@ -405,7 +476,12 @@ public sealed class ModelListRow : Decorator
     // :433-476 body
     public ModelListRow(ModelCatalog.Entry entry, string? detail, bool showsIcon, double rowHeight, bool isSelected, bool isEnabled, Action action)
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions(showsIcon ? "18,10,*,12,Auto,10,Auto" : "*,12,Auto,10,Auto") };
+        // :435 HStack(spacing: 10): SwiftUI puts the spacing between EVERY two neighbours, the :451 Spacer(minLength: 12) included
+        // (the pair row above does the same), so the text column is followed by 10 + 12 + 10 before the bolt (a model with a fast
+        // tier) or the checkmark, and the checkmark 10 after the bolt. The columns follow the children that are there: no icon, no
+        // icon column; no bolt, no bolt column and no gap for it.
+        var fast = entry.Option.SupportsFast;
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions((showsIcon ? "18,10," : "") + "*,10,12," + (fast ? "10,Auto," : "") + "10,Auto") };
         var column = 0;
         if (showsIcon)
         {
@@ -419,14 +495,16 @@ public sealed class ModelListRow : Decorator
         if (detail is not null) texts.Children.Add(EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText)); // :445-449
         Grid.SetColumn(texts, column);
         row.Children.Add(texts);
-        if (entry.Option.SupportsFast)
+        column += 3; // the text column, its 10, the spacer's 12
+        if (fast)
         {
             var bolt = SwiftImage.SystemName("bolt").Font(SwiftFont.System(SwiftFont.TextStyle.Footnote)).ForegroundStyle(Chrome.SecondaryText);
-            Grid.SetColumn(bolt, column + 2); row.Children.Add(bolt); // :452-455
+            Grid.SetColumn(bolt, column + 1); row.Children.Add(bolt); // :452-455
+            column += 2;
         }
         var check = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.PrimaryText);
         check.Opacity = isSelected ? 1 : 0; // :456-460
-        Grid.SetColumn(check, column + 4); row.Children.Add(check);
+        Grid.SetColumn(check, column + 1); row.Children.Add(check);
         Child = EffortView.Row(row, rowHeight, isEnabled, action); // :462-475
     }
 }
@@ -469,14 +547,22 @@ public sealed class EffortSliderCard : Decorator
     /// <param name="onReset">:517 <c>let onReset: () -> Void</c>; moves before onTitleTap (ED-095).</param>
     /// <param name="pair">:510 <c>var pair: EffortPairLook? = nil</c>.</param>
     /// <param name="onTitleTap">:516 <c>var onTitleTap: (() -> Void)?</c>.</param>
-    private TextBlock? pairCaption;
-
-    /// <summary>:191-197, :500-503 the body runs again with the pair's freshly resolved heads effort: the caption is the
-    /// only part of the look that reads it.</summary>
-    internal void UpdateHeadsEffort(EffortPairLook look)
+    // :510 `var pair: EffortPairLook?` is read again each time the parent's body runs: the chat may enter or leave a pair, and
+    // the pair's heads effort may resolve differently, while the card is on screen. The panel hands the new look to the card
+    // that stays (UpdatePair), and everything the pair reaches follows it in place.
+    private sealed class ViewState : MainActorModel
     {
-        if (pairCaption is { } caption && caption.Text != look.Caption) caption.Text = look.Caption;
+        private EffortPairLook? pair;
+
+        public EffortPairLook? Pair { get => Read(pair); set => Set(ref pair, value); }
     }
+
+    private readonly ViewState live = new();
+
+    /// <summary>:191-197, :510 the body runs again with the pair the chat leads with now (or none) and its heads effort
+    /// freshly resolved: the title's colours, the line under it, the track and the caption follow in place, the caption
+    /// joining or leaving the card on its soft-appear transition (:650).</summary>
+    internal void UpdatePair(EffortPairLook? look) => live.Pair = look;
 
     // :557-656 body
     public EffortSliderCard(
@@ -531,48 +617,85 @@ public sealed class EffortSliderCard : Decorator
         titleButton.HorizontalAlignment = HorizontalAlignment.Center; // :567 a VStack centres each child at its own width, so the hover plate fits the title
         centre.Children.Add(titleButton);
         var subtitle = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), HorizontalAlignment = HorizontalAlignment.Center };
-        if (pair is not null)
+        string? subtitleOf = null; // the title the line under it shows now: a pair's, or null for the model's
+        bool subtitleMade = false;
+        void Subtitle(EffortPairLook? look)
         {
-            var mark = new HydraMarkImage { Width = 12, Height = 12 };
-            if (mark.Child is SwiftImage image) image.ForegroundStyle(Chrome.PrimaryText.Opacity(0.75));
-            subtitle.Children.Add(mark); // :602-605
+            if (subtitleMade && subtitleOf == look?.Title) return; // only the heads effort changed: the line is the same
+            subtitleMade = true; subtitleOf = look?.Title;
+            subtitle.Children.Clear();
+            if (look is not null)
+            {
+                var mark = new HydraMarkImage { Width = 12, Height = 12 };
+                if (mark.Child is SwiftImage image) image.ForegroundStyle(Chrome.PrimaryText.Opacity(0.75));
+                subtitle.Children.Add(mark); // :602-605
+            }
+            else if (provider is { } kind) subtitle.Children.Add(new ProviderIcon { Provider = kind, Size = 12, Width = 12, Height = 12 }); // :606-608 real provider artwork from Components.
+            var name = EffortView.Text(look?.Title ?? modelName, SwiftFont.Body, Chrome.PrimaryText.Opacity(0.7)); // :609-614
+            name.TextTrimming = TextTrimming.CharacterEllipsis;
+            name.Margin = new Thickness(subtitle.Children.Count == 0 ? 0 : 5, 0, 0, 0); // :599 HStack spacing, leaving a finite text column.
+            var scaledName = TextScaling.Apply(name, 0.85); // :614 minimumScaleFactor, ED-214.
+            Grid.SetColumn(scaledName, 1); subtitle.Children.Add(scaledName);
         }
-        else if (provider is { } kind) subtitle.Children.Add(new ProviderIcon { Provider = kind, Size = 12, Width = 12, Height = 12 }); // :606-608 real provider artwork from Components.
-        var name = EffortView.Text(pair?.Title ?? modelName, SwiftFont.Body, Chrome.PrimaryText.Opacity(0.7)); // :609-614
-        name.TextTrimming = TextTrimming.CharacterEllipsis;
-        name.Margin = new Thickness(subtitle.Children.Count == 0 ? 0 : 5, 0, 0, 0); // :599 HStack spacing, leaving a finite text column.
-        var scaledName = TextScaling.Apply(name, 0.85); // :614 minimumScaleFactor, ED-214.
-        Grid.SetColumn(scaledName, 1); subtitle.Children.Add(scaledName);
+        Subtitle(pair);
         centre.Children.Add(subtitle); header.Children.Add(centre); rows.Children.Add(header);
         var sliderSlot = new Panel(); rows.Children.Add(sliderSlot);
         if (efforts.Count == 0)
         {
+            // :620-624 .frame(height: EffortSlider.thumbSize): the slot the slider would fill, with the line centred in it (a TextBlock
+            // given that height draws its line at the top, so the slot is the Panel and the line sits in the middle of it)
             var note = EffortView.Text("This model has one reasoning level.", SwiftFont.Callout, Chrome.SecondaryText);
-            note.Height = EffortSlider.ThumbSize; note.HorizontalAlignment = HorizontalAlignment.Center; sliderSlot.Children.Add(note); // :620-624
+            sliderSlot.Height = EffortSlider.ThumbSize; note.HorizontalAlignment = HorizontalAlignment.Center; note.VerticalAlignment = VerticalAlignment.Center; sliderSlot.Children.Add(note);
         }
-        if (pair is not null && efforts.Count > 0)
+        // :642-651 `if let pair, !efforts.isEmpty { Text(...).transition(.softAppear) }`: a transition runs only for a view that
+        // joins or leaves a card already on screen (SwiftUI). A card made with a pair has its caption whole from its first paint
+        // (reference runtime, 2-chat-use.mov 43.665-43.757 s, the popover growing out of its arrow).
+        Control? captionHost = null;
+        TextBlock? caption = null;
+        void Caption(EffortPairLook? look, bool onScreen)
         {
-            var caption = EffortView.Text(pair.Caption, SwiftFont.System(SwiftFont.TextStyle.Subheadline), Chrome.SecondaryText);
-            pairCaption = caption;
+            if (look is null || efforts.Count == 0)
+            {
+                if (captionHost is { } leaving)
+                {
+                    captionHost = null; caption = null;
+                    // Chrome.swift:957 the removal half of softAppear: opacity, easeOut(0.12)
+                    EffortView.Animate(leaving, Animation.EaseOut(0.12), progress =>
+                    {
+                        leaving.Opacity = 1 - Math.Clamp(progress, 0, 1);
+                        if (progress >= 1) rows.Children.Remove(leaving);
+                    });
+                }
+                return;
+            }
+            if (caption is not null) { if (caption.Text != look.Caption) caption.Text = look.Caption; return; }
+            caption = EffortView.Text(look.Caption, SwiftFont.System(SwiftFont.TextStyle.Subheadline), Chrome.SecondaryText);
             caption.Margin = new Thickness(0, -6, 0, 0); caption.TextTrimming = TextTrimming.CharacterEllipsis;
             var scaledCaption = TextScaling.Apply(caption, 0.9); // :648 (ED-214).
             scaledCaption.HorizontalAlignment = HorizontalAlignment.Center; // :558 a VStack centres each child at its own width
+            captionHost = scaledCaption;
             rows.Children.Add(scaledCaption);
-            // :650, UI/Chrome/Chrome.swift:940-944,960: animate the modifier's layer properties
-            // with its shared timing; the Bool modifier itself carries no interpolated animatable data.
-            EffortView.Animate(scaledCaption, Animation.SoftAppear, progress =>
-            {
-                scaledCaption.Opacity = Math.Clamp(progress, 0, 1);
-                scaledCaption.RenderTransform = new TranslateTransform(0, 4 * (1 - progress));
-            });
+            // :650, Chrome.swift:940-944,949-955,960: the insertion half of softAppear animates the modifier's layer properties on
+            // its shared timing (Animation.softAppear, smooth 0.32): opacity 0 to 1 and a 4 point rise (the Bool modifier itself
+            // carries no interpolated data, so the transition type snaps; the layer properties are what move)
+            if (onScreen)
+                EffortView.Animate(scaledCaption, Animation.SoftAppear, progress =>
+                {
+                    scaledCaption.Opacity = Math.Clamp(progress, 0, 1);
+                    scaledCaption.RenderTransform = new TranslateTransform(0, 4 * (1 - progress));
+                });
         }
+        Caption(pair, onScreen: false);
         Child = new Border { Padding = new Thickness(16, 14, 16, 16), Child = rows }; // :653-655
         string? previousTitle = null;
         var previousMaximum = false;
         var previousFast = false;
-        this.Track(() => (ResolvedIndex(), supportsFast && fastMode.Value, ActualThemeVariant), value =>
+        live.Pair = pair;
+        this.Track(() => (ResolvedIndex(), supportsFast && fastMode.Value, ActualThemeVariant, live.Pair), value =>
         {
-            var (index, fast, theme) = value;
+            var (index, fast, theme, pairNow) = value;
+            Subtitle(pairNow);
+            if (previousTitle is not null) Caption(pairNow, onScreen: true);
             var maximum = efforts.Count > 1 && index == efforts.Count - 1; // :527-529
             var nextTitle = efforts.Count == 0 ? "Standard" : ModelOption.EffortTitle(efforts[index]);
             // :574 .contentTransition(.numericText()) morphs the title inside the change's animation (the slider's
@@ -591,8 +714,8 @@ public sealed class EffortSliderCard : Decorator
             previousMaximum = maximum;
             previousFast = fast;
             // :543-555 AnyShapeStyle is represented by Avalonia's brush; every literal colour comes from Swift.
-            var titleBrush = pair is not null
-                ? EffortView.Gradient(new[] { brand.TitleColor }.Concat(pair.Brand.TitleColors).Concat(fast ? new[] { EffortPalette.Fast } : Array.Empty<SwiftColor>()), theme)
+            var titleBrush = pairNow is not null
+                ? EffortView.Gradient(new[] { brand.TitleColor }.Concat(pairNow.Brand.TitleColors).Concat(fast ? new[] { EffortPalette.Fast } : Array.Empty<SwiftColor>()), theme)
                 : maximum && fast ? EffortView.Gradient([brand.TitleColor, EffortPalette.Fast], theme)
                 : maximum ? EffortView.BrandTitle(brand, theme)
                 : (fast ? EffortPalette.Fast : EffortPalette.Title).Brush(title);
@@ -605,10 +728,10 @@ public sealed class EffortSliderCard : Decorator
             if (efforts.Count == 0) return;
             // :626-637 keep the gesture's own binding alive; changes to look/title update it without replacing the dragging view.
             if (sliderSlot.Children.FirstOrDefault() is EffortSlider existing)
-                existing.UpdateLook(fast, title.Text!, pair?.Brand);
+                existing.UpdateLook(fast, title.Text!, pairNow?.Brand);
             else sliderSlot.Children.Add(new EffortSlider(efforts.Count,
                 new Binding<int>(ResolvedIndex, chosen => Transaction.WithAnimation(Animation.Snappy(0.2), () => effort.Value = efforts[chosen])),
-                title.Text!, fast, brand, pair?.Brand, fadeFrom)); // OD-0090: a model change crossfades from the last maker's colours
+                title.Text!, fast, brand, pairNow?.Brand, fadeFrom)); // OD-0090: a model change crossfades from the last maker's colours
         });
     }
 }
@@ -760,7 +883,7 @@ public sealed class EffortSlider : Decorator
     private bool fastMode;
     private EffortPairBrand? pair;
     private SwiftColor?[] stopTargets = [];
-    private readonly Canvas canvas = new();
+    private readonly Canvas canvas = new() { Background = Brushes.Transparent }; // :800 .contentShape(.rect): the whole frame takes a press, the knob's proud 7 px above and below the track and the rounded ends too
     private readonly Border track = new() { Height = TrackHeight };
     private readonly Border fill = new() { Name = "EffortFill", Height = TrackHeight };
     private readonly Panel effects = new();
@@ -966,7 +1089,7 @@ public sealed class EffortSlider : Decorator
             var kind = count > 1 && index.Value == count - 1
                 ? fastMode ? TrackLook.Kind.Fusion : TrackLook.Kind.Supercharged
                 : fastMode ? TrackLook.Kind.Fast : TrackLook.Kind.Plain;
-            if (cachedLook is { } kept && kept.TrackLookKind == kind && ReferenceEquals(kept.Pair, pair)) return kept;
+            if (cachedLook is { } kept && kept.TrackLookKind == kind && Equals(kept.Pair, pair)) return kept;
             return cachedLook = new TrackLook(kind, brand, pair);
         }
     }
@@ -1595,6 +1718,20 @@ public sealed record EffortPairBrand
 
     // :964 var titleColors: [Color]
     public ValueList<SwiftColor> TitleColors => new(Colors.Select(color => color.Mix(SwiftColor.White, 0.18)));
+
+    // :942 `struct EffortPairBrand: Hashable`: equal when the colours are equal, whichever instance built them. SwiftColor here is a class, so the
+    // record's own member-wise comparison would tell two brands made from the same pair apart, and a card that stays while the thread
+    // is written (ModelEffortPanel hands it a new brand each time) would look like a different pair to the track's effect identity
+    // (:1020-1026), which would restart the effect's clock on every write.
+    public bool Equals(EffortPairBrand? other) =>
+        other is not null && IsLight == other.IsLight && Equals(HeadsBrand, other.HeadsBrand) && Colors.Count == other.Colors.Count &&
+        Colors.Zip(other.Colors).All(pair => SameColour(pair.First, pair.Second));
+
+    public override int GetHashCode() => HashCode.Combine(IsLight, HeadsBrand, Colors.Count);
+
+    private static bool SameColour(SwiftColor a, SwiftColor b) =>
+        a.Resolve(Avalonia.Styling.ThemeVariant.Light) == b.Resolve(Avalonia.Styling.ThemeVariant.Light) &&
+        a.Resolve(Avalonia.Styling.ThemeVariant.Dark) == b.Resolve(Avalonia.Styling.ThemeVariant.Dark);
 }
 
 /// <summary>:968-1027 <c>struct TrackLook: Hashable</c>.</summary>

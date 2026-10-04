@@ -25,7 +25,7 @@ public sealed class EffortSliderFusionTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:650
     [Trait("Req", "UI-COMPOSER-037")] // App/Views/Composer/EffortSlider.swift:650
-    public void The_pair_caption_enters_with_the_shared_soft_appear_transition() => headless.OnUiThread(() =>
+    public void The_pair_caption_is_whole_at_a_cards_first_paint_and_the_soft_appear_is_for_a_caption_joining_a_live_card() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
         var clock = new ManualTimeProvider(); using var clockBinding = SwiftClock.Provider.Override(clock);
@@ -37,7 +37,10 @@ public sealed class EffortSliderFusionTests(HeadlessSession headless)
         var window = new Avalonia.Controls.Window { Content = card, Width = 330, Height = 220 };
         window.Show(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var caption = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == pair.Caption);
-        Assert.Contains(caption.GetVisualAncestors().OfType<Control>(), ancestor => ancestor.Opacity == 0);
+        // SwiftUI runs `.transition(.softAppear)` (EffortSlider.swift:650) only for a view that joins a parent already on screen; the card
+        // appears as a whole (the popover's own opacity transition), so its caption is whole from the first paint, as in the reference
+        // runtime (2-chat-use.mov 43.665-43.757 s). The caption joining a live card is EffortSliderCardTests'.
+        Assert.All(caption.GetVisualAncestors().OfType<Control>(), ancestor => Assert.Equal(1, ancestor.Opacity));
         clock.Advance(TimeSpan.FromSeconds(Animation.SoftAppear.Duration));
         frames.Advance(TimeSpan.FromSeconds(Animation.SoftAppear.Duration)); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         Assert.All(caption.GetVisualAncestors().OfType<Control>(), ancestor => Assert.Equal(1, ancestor.Opacity));

@@ -48,7 +48,7 @@ public sealed class EffortSliderComponentsTests(HeadlessSession headless)
     [Theory]
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:73-75
     [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:82-103
-    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:73-75,114
+    [Trait("Rule", "R-TEST-4")] // partial: UI-COMPOSER-012 (blocked: its text says the popover hangs below the chip, the source and the video put it above; see ED-262 (6)); this test proves one part of it // App/Views/Composer/EffortSlider.swift:73-75,114
     [InlineData(false)]
     [InlineData(true)]
     public void Both_model_chip_forms_draw_the_real_14_point_provider_mark(bool compact) => headless.OnUiThread(() =>
@@ -66,7 +66,7 @@ public sealed class EffortSliderComponentsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:114; UI/Common/Components.swift:75-80,89-91
-    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:114
+    [Trait("Rule", "R-TEST-4")] // partial: UI-COMPOSER-012 (blocked: its text says the popover hangs below the chip, the source and the video put it above; see ED-262 (6)); this test proves one part of it // App/Views/Composer/EffortSlider.swift:114
     public void Opening_and_closing_the_model_popover_updates_its_real_chip_plate() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());

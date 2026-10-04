@@ -25,7 +25,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
     // OD-0076 (owner ruling) transitions every other change too. The last step now asserts the morph; nothing else changed.
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")]
-    [Trait("Req", "UI-COMPOSER-031")]
+    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-031 is not claimed (STOP effortslider-fix #1)
     public void The_title_morphs_when_the_effort_changes_inside_an_animation_and_outside_one() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());

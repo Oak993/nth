@@ -885,8 +885,11 @@ public sealed partial class ProviderRegistry : MainActorModel
 
     // :429-431. Swift: models(for:). PR-PROVREG-147: the empty array, never null, for a provider with no
     // catalog.
+    // R-VIEW: read through the observed Catalogs property (:34 an @Observable var), so a view that lists the models (the model
+    // list's "Loading models…" line, the chip, the slider card) is drawn again when the catalogue arrives; the field alone read
+    // as a view's dependency never was one.
     public ValueList<ModelOption> Models(ProviderKind provider) =>
-        catalogs.TryGetValue(provider, out var list) ? list : ValueList<ModelOption>.Empty;
+        Catalogs.TryGetValue(provider, out var list) ? list : ValueList<ModelOption>.Empty;
 
     // :433-440. Swift: model(_:for:). PR-PROVREG-148: exact match first (so a bracketed seed id like the
     // Claude Fable row still resolves to itself), then the part before the first bracket; only for

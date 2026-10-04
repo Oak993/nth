@@ -536,10 +536,17 @@ public sealed class ComposerView : Decorator
     {
         if (inputs == drawnControls) return;
         drawnControls = inputs;
+        // :161-173. SwiftUI re-evaluates ComposerControls with the new values and keeps its views and their @State (the chip's
+        // open popover among them), so the drawn controls are handed the new inputs and only a missing or new thread
+        // draws them again.
+        if (controls is { } drawn && inputs is { } update)
+        {
+            drawn.Update(update.Thread, update.RecentDownloadsPicker, update.GoesToHead, update.QueueGoesToHead, update.HeadsProvider);
+            return;
+        }
         if (controls is { } previous) row.Children.Remove(previous);
         controls = null;
         if (inputs is not { } value) return; // :160 no resolved thread: no controls at all
-        // :161-173. ComposerControls takes its inputs once (part 3 of this unit), so new inputs draw it again.
         var made = new ComposerControls(
             runtime,
             value.Thread,
@@ -1207,6 +1214,21 @@ internal sealed class ComposerTextColumn : Decorator
 /// <summary>:609-657 <c>private struct ComposerControls: View</c>.</summary>
 internal sealed class ComposerControls : Decorator
 {
+    private bool recentDownloadsPicker;
+    private readonly ModelEffortSlot slot;
+    private readonly ContextMeter? meter;
+    private readonly SendButton send;
+
+    /// <summary>:613-623 the inputs a re-evaluated body is handed. The views below keep their state (the chip's popover, the
+    /// ring's popover, the attach popover) and take the new values.</summary>
+    internal void Update(ChatThread thread, bool recentDownloadsPicker, bool goesToHead, bool queueGoesToHead, ProviderKind? headsProvider)
+    {
+        this.recentDownloadsPicker = recentDownloadsPicker;
+        slot.Update(thread);
+        meter?.Update(thread.Provider, headsProvider);
+        send.Update(goesToHead, queueGoesToHead);
+    }
+
     // :613-623 the view's inputs; :625-656 body
     public ComposerControls(
         ThreadRuntime runtime,
@@ -1221,11 +1243,12 @@ internal sealed class ComposerControls : Decorator
         Action onChooseFiles,
         Action onSend)
     {
+        this.recentDownloadsPicker = recentDownloadsPicker;
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 }; // :626
         var icon = SwiftImage.SystemName("paperclip").Font(Chrome.IconFont); // :634-635
         var attach = PlainControls.Button(icon, () =>
         {
-            if (recentDownloadsPicker) showingRecents.Value = !showingRecents.Value; // :628-629
+            if (this.recentDownloadsPicker) showingRecents.Value = !showingRecents.Value; // :628-629
             else onChooseFiles(); // :631
         });
         attach.Chip(showingRecents.Value); // :637 .buttonStyle(.chip(active: showingRecents)).
@@ -1248,9 +1271,9 @@ internal sealed class ComposerControls : Decorator
         popup.Closed += (_, _) => { if (showingRecents.Value) showingRecents.Value = false; };
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         row.Children.Add(attach);
-        row.Children.Add(new ModelEffortSlot(runtime, thread, compact)); // :647
-        if (!compact) row.Children.Add(new ContextMeter(runtime, thread.Provider, headsProvider)); // :650-651
-        row.Children.Add(new SendButton(runtime, goesToHead, queueGoesToHead, onSend)); // :653
+        row.Children.Add(slot = new ModelEffortSlot(runtime, thread, compact)); // :647
+        if (!compact) row.Children.Add(meter = new ContextMeter(runtime, thread.Provider, headsProvider)); // :650-651
+        row.Children.Add(send = new SendButton(runtime, goesToHead, queueGoesToHead, onSend)); // :653
         Child = row;
     }
 
@@ -1299,12 +1322,21 @@ internal sealed class ComposerWorkingDotsSlot : Decorator
 internal sealed class ModelEffortSlot : Decorator
 {
     // :683-685 the view's inputs; :687-689 body
+    private readonly ModelEffortButton chip;
+    private ChatThread thread;
+    private bool hasHistory;
+
     public ModelEffortSlot(ThreadRuntime runtime, ChatThread thread, bool compact)
     {
-        Child = new ModelEffortButton(thread, runtime.Turns.Count > 0, compact); // :688
-        this.Track(() => runtime.Turns.Count > 0,
-            hasHistory => Child = new ModelEffortButton(thread, hasHistory, compact)); // :688 the slot alone reads turns.
+        this.thread = thread;
+        hasHistory = runtime.Turns.Count > 0;
+        Child = chip = new ModelEffortButton(thread, hasHistory, compact); // :688
+        // :688 the slot alone reads turns. The chip is handed the new value and stays, with its popover (:121).
+        this.Track(() => runtime.Turns.Count > 0, history => chip.Update(this.thread, hasHistory = history));
     }
+
+    /// <summary>:683-685 the thread the composer now draws; the chip keeps its popover and takes it.</summary>
+    internal void Update(ChatThread thread) => chip.Update(this.thread = thread, hasHistory);
 }
 
 /// <summary>:692-773 <c>private struct ContextMeter: View</c>.</summary>
@@ -1333,20 +1365,26 @@ internal sealed class ContextMeter : Decorator
     {
         private bool isPresented;
         public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+        // :698-700 the inputs a re-evaluated body is handed
+        private (ProviderKind Provider, ProviderKind? HeadsProvider) inputs;
+        public (ProviderKind Provider, ProviderKind? HeadsProvider) Inputs { get => Read(inputs); set => Set(ref inputs, value); }
     }
     private readonly ViewState state = new();
+    /// <summary>:698-700 the provider and heads provider the composer now draws; the ring and its popover stay and read them.</summary>
+    internal void Update(ProviderKind provider, ProviderKind? headsProvider) => state.Inputs = (provider, headsProvider);
     // :698-700 the view's inputs; :704-762 body
     public ContextMeter(ThreadRuntime runtime, ProviderKind provider, ProviderKind? headsProvider)
     {
+        state.Inputs = (provider, headsProvider);
         ContextButton? button = null;
         Popup? popup = null;
         var presented = false;
-        this.Track(() => (Usage: runtime.Usage, Model: AppEnvironment.GetAppModel(this),
-                Credits: CreditsReader.ExposesCredits(provider) && AppEnvironment.GetAppModel(this).Settings.HasAPIKey(provider),
+        this.Track(() => (Usage: runtime.Usage, Model: AppEnvironment.GetAppModel(this), Provider: state.Inputs.Provider, Heads: state.Inputs.HeadsProvider,
+                Credits: CreditsReader.ExposesCredits(state.Inputs.Provider) && AppEnvironment.GetAppModel(this).Settings.HasAPIKey(state.Inputs.Provider),
                 PoppedOut: AppEnvironment.GetAppModel(this).Settings.ShowsUsagePanel), input =>
         {
             var fraction = input.Usage?.Fraction; // :705-706
-            if (input.PoppedOut || !(fraction is not null || PlanLimitsReader.ExposesLimits(provider) || input.Credits)) // :709-713
+            if (input.PoppedOut || !(fraction is not null || PlanLimitsReader.ExposesLimits(input.Provider) || input.Credits)) // :709-713
             {
                 if (presented && popup is not null) Presentation.Presenter.Current.SetPresented(popup, false);
                 presented = false;
@@ -1412,7 +1450,7 @@ internal sealed class ContextMeter : Decorator
             });
             Grid.SetColumn(popout, 2); header.Children.Add(popout); // :748
             stack.Children.Add(header);
-            stack.Children.Add(new UsagePanel(usage, provider, headsProvider)); // :757 width and padding are owned by UsagePanel
+            stack.Children.Add(new UsagePanel(usage, state.Inputs.Provider, state.Inputs.HeadsProvider)); // :757 width and padding are owned by UsagePanel
             var presentedContent = stack.PresentedChrome(); // :759
             // :757 SwiftUI hands the popover the presenting view's environment; the popup's own window sits outside this view's
             // tree, so the panel's inherited @Environment(AppModel.self) (UsagePanel.swift:9,27) is attached to it directly,
@@ -1452,23 +1490,38 @@ internal static class SendShortcutText
 internal sealed class SendButton : Decorator
 {
     // :784-791 the view's inputs; :793-795 body
+    private readonly SendRunState state;
     public SendButton(ThreadRuntime runtime, bool goesToHead, bool queueGoesToHead, Action send) =>
-        Child = new SendRunState(runtime, goesToHead, queueGoesToHead, send); // :794
+        Child = state = new SendRunState(runtime, goesToHead, queueGoesToHead, send); // :794
+
+    /// <summary>:784-791 the inputs a re-evaluated body is handed.</summary>
+    internal void Update(bool goesToHead, bool queueGoesToHead) => state.Update(goesToHead, queueGoesToHead);
 }
 
 /// <summary>:798-813 <c>private struct SendRunState: View</c>.</summary>
 internal sealed class SendRunState : Decorator
 {
     // :801-804 the view's inputs; :806-812 body
+    private sealed class Inputs : MainActorModel
+    {
+        private (bool GoesToHead, bool QueueGoesToHead) value;
+        public (bool GoesToHead, bool QueueGoesToHead) Value { get => Read(value); set => Set(ref this.value, value); }
+    }
+    private readonly Inputs inputs = new();
+
+    /// <summary>:801-804 the inputs a re-evaluated body is handed: the button is drawn again from them.</summary>
+    internal void Update(bool goesToHead, bool queueGoesToHead) => inputs.Value = (goesToHead, queueGoesToHead);
+
     public SendRunState(ThreadRuntime runtime, bool goesToHead, bool queueGoesToHead, Action send)
     {
+        inputs.Value = (goesToHead, queueGoesToHead);
         bool? shown = null;
-        this.Track(() => (Running: runtime.IsRunning, Heads: runtime.IsRunning && runtime.HasWorkingHeads), input =>
+        this.Track(() => (Running: runtime.IsRunning, Heads: runtime.IsRunning && runtime.HasWorkingHeads, ToHead: inputs.Value), input =>
         {
             // :834 the symbol's replace transition plays when the symbol itself changes (running flipped).
             var previous = shown is { } was && was != input.Running ? SendDraftState.Symbol(was) : null;
             shown = input.Running;
-            Child = new SendDraftState(runtime, input.Running, input.Heads, goesToHead, queueGoesToHead, send, previous); // :807-811
+            Child = new SendDraftState(runtime, input.Running, input.Heads, input.ToHead.GoesToHead, input.ToHead.QueueGoesToHead, send, previous); // :807-811
         });
     }
 }
