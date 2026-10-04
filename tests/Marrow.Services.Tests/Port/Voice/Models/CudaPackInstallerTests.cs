@@ -3,6 +3,7 @@ using System.Text.Json;
 using Marrow.Services.Port.Downloads;
 using Marrow.Services.Port.Voice.Models;
 using Marrow.Services.Tests.Fixtures;
+using Marrow.Testing;
 using Marrow.Testing.Downloads;
 
 namespace Marrow.Services.Tests.Port.Voice.Models;
@@ -14,17 +15,35 @@ public sealed class CudaPackInstallerTests
     private static string PinsJson([CallerFilePath] string here = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "..", "..", "..", "src", "Marrow.Services", "Port", "Voice", "Assets", "voice-pins.json"));
 
-    private static (DownloadRig Rig, CudaPackInstaller Installer, string Root) Make(DownloadRig rig, CudaRuntimePack pin)
+    private static (DownloadRig Rig, CudaPackInstaller Installer, string Root) Make(DownloadRig rig, CudaRuntimePack pin, TimeProvider? clock = null)
     {
         var root = Path.Combine(rig.Root, "data");
         var downloader = new Downloader(rig.PartFolder, new DownloadPolicy(["127.0.0.1"]), handler: rig.Counting);
-        return (rig, new CudaPackInstaller(root, downloader, _ => rig.Server.Url("/pack.nupkg")), root);
+        return (rig, new CudaPackInstaller(root, downloader, _ => rig.Server.Url("/pack.nupkg"), clock), root);
+    }
+
+    /// <summary>Runs an install whose folder swap may wait on <paramref name="clock"/>, moving that clock whenever it waits (bounded).</summary>
+    private static async Task<CudaInstallResult> InstallPumping(CudaPackInstaller installer, CudaRuntimePack pin, ManualTimeProvider clock, Action? onFirstWait = null)
+    {
+        var running = installer.Install(pin);
+        var waited = false;
+        using var stop = new CancellationTokenSource(FakeDownloadServer.Guard);
+        while (!running.IsCompleted)
+        {
+            await DownloadRig.Until(() => clock.ActiveTimers > 0 || running.IsCompleted);
+            if (running.IsCompleted) break;
+            if (!waited) onFirstWait?.Invoke();
+            waited = true;
+            clock.Advance(TimeSpan.FromSeconds(5));
+            await Task.Delay(1, stop.Token);
+        }
+        return await running.WaitAsync(FakeDownloadServer.Guard);
     }
 
     [Fact]
     [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-7")]
-    public void The_pinned_pack_is_VT_0s_and_has_no_SHA_256_so_it_is_marked_unpinned()
+    public void The_pinned_pack_is_VT_0s_including_the_SHA_256_the_lead_pinned()
     {
         using var json = JsonDocument.Parse(File.ReadAllBytes(PinsJson()));
         var pin = json.RootElement.GetProperty("cuda").GetProperty("packs").GetProperty("Whisper.net.Runtime.Cuda12.Windows");
@@ -37,7 +56,8 @@ public sealed class CudaPackInstallerTests
         Assert.Equal(pin.GetProperty("packFolder").GetString(), pack.PackFolder);
         Assert.Equal(pin.GetProperty("files").EnumerateArray().Select(f => (f.GetProperty("name").GetString()!, f.GetProperty("bytes").GetInt64())),
             pack.Files.Select(f => (f.Name, f.Bytes)));
-        Assert.Null(pack.Sha256);
+        Assert.Equal(pin.GetProperty("sha256").GetString(), pack.Sha256);
+        Assert.Matches("^[0-9a-f]{64}$", pack.Sha256!);
     }
 
     [Fact]
@@ -46,9 +66,11 @@ public sealed class CudaPackInstallerTests
     public async Task An_unpinned_pack_is_refused_before_any_connection_or_folder()
     {
         await using var rig = new DownloadRig();
-        var (_, installer, root) = Make(rig, CudaRuntimePack.Cuda12);
+        // A deliberately unpinned stand-in (the real pack now carries its SHA-256): everything else is the real pin, so a refusal cannot come from it.
+        var unpinned = CudaRuntimePack.Cuda12 with { Sha256 = null };
+        var (_, installer, root) = Make(rig, unpinned);
 
-        var result = await installer.Install(CudaRuntimePack.Cuda12);
+        var result = await installer.Install(unpinned);
 
         Assert.Equal(CudaInstallStatus.Unpinned, result.Status);
         Assert.Equal(0, rig.Counting.Sent);
@@ -199,5 +221,104 @@ public sealed class CudaPackInstallerTests
         Assert.Equal(CudaInstallStatus.Cancelled, result.Status);
         Assert.False(installer.IsInstalled(pin));
         Assert.Equal(1_000, new FileInfo(Path.Combine(rig.PartFolder, nupkg.Sha256Hex[..8] + ".part")).Length);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "VT-7")]
+    public void The_pinned_pack_url_is_on_the_packs_first_url_list()
+    {
+        Assert.Equal(["api.nuget.org"], CudaPackInstaller.AllowedHosts);
+        Assert.True(new DownloadPolicy(CudaPackInstaller.AllowedHosts).AllowsFirstUrl(new Uri(CudaRuntimePack.Cuda12.Url)));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "VT-7")]
+    public async Task An_old_folder_a_handle_holds_is_left_whole_and_the_install_fails_without_throwing()
+    {
+        // WINDOWS-ONLY in effect (ED-NEW-f-vt-7 (9)): Windows refuses to rename or empty a folder while a handle is open inside it (a loaded DLL, a
+        // scanner); elsewhere the swap succeeds and the install ends Installed.
+        await using var rig = new DownloadRig();
+        var (nupkg, pin) = VoiceModelFixtures.Pack();
+        rig.Server.Serve("/pack.nupkg", nupkg);
+        var clock = new ManualTimeProvider();
+        var (_, installer, root) = Make(rig, pin, clock);
+        var folder = installer.FolderFor(pin);
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(Path.Combine(folder, "whisper.dll"), "half");
+        await File.WriteAllTextAsync(Path.Combine(folder, "leftover.dll"), "old");
+
+        CudaInstallResult result;
+        using (new FileStream(Path.Combine(folder, "leftover.dll"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            result = await InstallPumping(installer, pin, clock);
+
+        var siblings = Directory.GetDirectories(Path.GetDirectoryName(folder)!).Select(Path.GetFileName);
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal((CudaInstallStatus.Failed, DownloadFailureKind.DiskError), (result.Status, result.Failure?.Kind));
+            Assert.Equal("half", await File.ReadAllTextAsync(Path.Combine(folder, "whisper.dll"))); // nothing half-deleted
+            Assert.Equal("old", await File.ReadAllTextAsync(Path.Combine(folder, "leftover.dll")));
+        }
+        else Assert.Equal(CudaInstallStatus.Installed, result.Status);
+        Assert.Equal(["win-x64"], siblings); // no temp or set-aside folder is left
+        Assert.Empty(Directory.EnumerateFiles(Path.Combine(root, "runtimes"), "*.nupkg*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "VT-7")]
+    public async Task A_folder_held_for_a_moment_is_waited_for_on_the_clock_and_then_replaced()
+    {
+        // Windows review (ED-NEW-f-vt-7 (9)): a scanner looks at fresh files for a moment; the swap tries again after a wait instead of failing.
+        await using var rig = new DownloadRig();
+        var (nupkg, pin) = VoiceModelFixtures.Pack();
+        rig.Server.Serve("/pack.nupkg", nupkg);
+        var clock = new ManualTimeProvider();
+        var (_, installer, _) = Make(rig, pin, clock);
+        var folder = installer.FolderFor(pin);
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(Path.Combine(folder, "whisper.dll"), "half");
+        var holder = new FileStream(Path.Combine(folder, "whisper.dll"), FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        CudaInstallResult result;
+        try
+        {
+            result = await InstallPumping(installer, pin, clock, onFirstWait: holder.Dispose);
+        }
+        finally
+        {
+            await holder.DisposeAsync();
+        }
+
+        Assert.Equal(CudaInstallStatus.Installed, result.Status);
+        Assert.True(installer.IsInstalled(pin));
+        Assert.Equal(["win-x64"], Directory.GetDirectories(Path.GetDirectoryName(folder)!).Select(Path.GetFileName));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "VT-7")]
+    public async Task Remove_of_a_pack_a_handle_holds_deletes_nothing_and_says_so()
+    {
+        // WINDOWS-ONLY in effect (ED-NEW-f-vt-7 (9)): a loaded runtime cannot be deleted on Windows; Remove leaves the whole pack rather than half of it.
+        await using var rig = new DownloadRig();
+        var (nupkg, pin) = VoiceModelFixtures.Pack();
+        rig.Server.Serve("/pack.nupkg", nupkg);
+        var (_, installer, _) = Make(rig, pin);
+        Assert.Equal(CudaInstallStatus.Installed, (await installer.Install(pin)).Status);
+
+        bool removed;
+        using (new FileStream(Path.Combine(installer.FolderFor(pin), "whisper.dll"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            removed = installer.Remove(pin);
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.False(removed);
+            Assert.True(installer.IsInstalled(pin));
+            Assert.True(installer.Remove(pin));
+        }
+        Assert.False(Directory.Exists(installer.FolderFor(pin)));
+        Assert.Empty(Directory.GetDirectories(Path.GetDirectoryName(installer.FolderFor(pin))!));
     }
 }

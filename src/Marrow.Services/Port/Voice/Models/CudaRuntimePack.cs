@@ -9,12 +9,12 @@ public sealed record CudaRuntimePack(string Id, string Version, string Url, long
     string PackFolder, IReadOnlyList<CudaPackFile> Files)
 {
     /// <summary>
-    /// Whisper.net.Runtime.Cuda12.Windows 1.9.1, the pack VT-0 reproduced loading from a downloaded folder. Every value is voice-pins.json's; the
-    /// SHA-256 was never pinned, so it is null: UNPINNED.
+    /// Whisper.net.Runtime.Cuda12.Windows 1.9.1, the pack VT-0 reproduced loading from a downloaded folder. Every value is voice-pins.json's,
+    /// the SHA-256 included (the lead computed it from the cached copy whose size and SHA-512 equal the pin: ED-NEW-f-vt-7 (5), Windows review).
     /// </summary>
     public static CudaRuntimePack Cuda12 { get; } = new("Whisper.net.Runtime.Cuda12.Windows", "1.9.1",
         "https://api.nuget.org/v3-flatcontainer/whisper.net.runtime.cuda12.windows/1.9.1/whisper.net.runtime.cuda12.windows.1.9.1.nupkg",
-        250058371, "a73be8db5ef2f271cf7196aff36cc9fee1ecb67b02169367e9da1dace8b65a3c18de3ef1c8f701061197791befa51b9989163472e4fc0444dc63d9ca1aa54e67", null, "runtimes/cuda12/win-x64", "build/win-x64",
+        250058371, "a73be8db5ef2f271cf7196aff36cc9fee1ecb67b02169367e9da1dace8b65a3c18de3ef1c8f701061197791befa51b9989163472e4fc0444dc63d9ca1aa54e67", "eb8d4233c202fe948cace50e3fa08fec7beead699db86a17df9820d03180a30c", "runtimes/cuda12/win-x64", "build/win-x64",
         [
         new("ggml-base-whisper.dll", 636928),
         new("ggml-cpu-whisper.dll", 782848),

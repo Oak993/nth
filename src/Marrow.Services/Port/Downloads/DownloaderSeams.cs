@@ -14,7 +14,8 @@ public static class DownloaderSeams
     /// </summary>
     public static Ambient<HttpMessageHandler> Handler { get; } = new(CreateProductionHandler);
 
-    private static HttpMessageHandler CreateProductionHandler() => new SocketsHttpHandler
+    /// <summary>The app's transport (internal so a Windows test can run it against the loopback fake: ED-NEW-f-sk-3 (15)).</summary>
+    internal static HttpMessageHandler CreateProductionHandler() => new SocketsHttpHandler
     {
         AllowAutoRedirect = false,
         AutomaticDecompression = DecompressionMethods.None,

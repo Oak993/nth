@@ -200,6 +200,36 @@ public sealed class DownloaderSetTests
     [Fact]
     [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "SK-3")]
+    public async Task Two_files_of_a_set_with_the_same_bytes_both_land()
+    {
+        // Windows review (ED-NEW-f-sk-3 (15)): a skill set often holds byte-identical files (the same LICENSE.txt in several skills, empty
+        // __init__.py files). They share a pinned hash and so one <sha8>.part; each trickles until the server's clock moves, so a second
+        // writer meets the first one's open partial (on Windows it cannot even open it).
+        await using var rig = new DownloadRig();
+        var same = Artifact(0);
+        var slow = new FakeBehavior { Trickle = new FakeTrickle(1_000, TimeSpan.FromSeconds(1)) };
+        rig.Server.Serve("/skills/a/LICENSE.txt", same, slow);
+        rig.Server.Serve("/skills/b/LICENSE.txt", same, slow);
+        var job = rig.Create().StartSet([rig.Request("/skills/a/LICENSE.txt", same, destName: "a.txt"), rig.Request("/skills/b/LICENSE.txt", same, destName: "b.txt")]);
+
+        using (var stop = new CancellationTokenSource(FakeDownloadServer.Guard))
+            while (!job.Completion.IsCompleted)
+            {
+                await DownloadRig.Until(() => rig.ServerClock.ActiveTimers > 0 || job.Completion.IsCompleted);
+                rig.ServerClock.Advance(TimeSpan.FromSeconds(1));
+                await Task.Delay(1, stop.Token);
+            }
+        var outcome = await job.Completion.WaitAsync(FakeDownloadServer.Guard);
+
+        Assert.True(outcome.Succeeded, outcome.Failure?.Message);
+        Assert.Equal(same.Bytes, await System.IO.File.ReadAllBytesAsync(rig.Dest("a.txt")));
+        Assert.Equal(same.Bytes, await System.IO.File.ReadAllBytesAsync(rig.Dest("b.txt")));
+        Assert.Empty(Directory.GetFiles(rig.PartFolder));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "SK-3")]
     public async Task An_empty_set_succeeds_at_once_and_touches_nothing()
     {
         await using var rig = new DownloadRig();

@@ -233,4 +233,46 @@ public sealed class ModelDownloaderTests
         Assert.Equal(DownloadFailureKind.Refused, result.Failure!.Kind);
         Assert.Equal(0, rig.Counting.Sent);
     }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "VT-7")]
+    public async Task A_download_that_ends_at_once_never_leaves_its_row_downloading()
+    {
+        // Review (ED-NEW-f-vt-7 (8)): a refused download ends before Start has returned; its end must not be overtaken by Start's own bookkeeping.
+        await using var rig = new DownloadRig();
+        var s = Make(rig, allowLoopback: false);
+
+        for (var n = 0; n < 300; n++)
+        {
+            var result = await s.Downloader.Start(s.Tiny).Completion.WaitAsync(FakeDownloadServer.Guard);
+            Assert.Equal(ModelDownloadStatus.Failed, result.Status);
+            Assert.Equal(ModelInstallKind.NotInstalled, s.Store.State(s.Tiny).Kind);
+            Assert.Null(s.Downloader.Active(s.Tiny));
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "VT-7")]
+    public async Task A_verified_download_whose_installed_json_cannot_be_written_still_ends_installed_and_gains_no_trust_on_disk()
+    {
+        // WINDOWS-ONLY in effect (ED-NEW-f-vt-7 (8)): a reader holding installed.json (another store, a scanner, a backup tool) makes Windows refuse
+        // the rename that replaces it; elsewhere the rename succeeds and the test passes trivially.
+        await using var rig = new DownloadRig();
+        var s = Make(rig);
+        Assert.Equal(ModelDownloadStatus.Installed, (await s.Downloader.Start(s.Base).Completion.WaitAsync(FakeDownloadServer.Guard)).Status);
+
+        ModelDownloadResult result;
+        using (new FileStream(s.Store.InstalledJsonPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            result = await s.Downloader.Start(s.Tiny).Completion.WaitAsync(FakeDownloadServer.Guard);
+
+        Assert.Equal(ModelDownloadStatus.Installed, result.Status);
+        Assert.Equal(ModelInstallKind.Installed, s.Store.State(s.Tiny).Kind);
+        Assert.Null(s.Downloader.Active(s.Tiny));
+        Assert.Equal(Tiny.Bytes, await File.ReadAllBytesAsync(s.Store.PathFor(s.Tiny)));
+        var reopened = new ModelStore(Path.Combine(rig.Root, "data"), () => null, rig.Runtime.Time);
+        // The record that could not be written is not on disk, so the next process hashes the file before trusting it.
+        Assert.Equal(OperatingSystem.IsWindows() ? ModelVerification.Rehashed : ModelVerification.Trusted, await reopened.VerifyForLoad(s.Tiny, CancellationToken.None));
+    }
 }

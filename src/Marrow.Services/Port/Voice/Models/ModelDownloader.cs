@@ -58,10 +58,22 @@ public sealed class ModelDownloader
 
     private async Task<ModelDownloadResult> Finish(ModelFile file, DownloadJob job, Func<ModelDownload> self)
     {
+        await Task.Yield(); // never run on inside Start (an already ended job would otherwise continue here at once, before Start's bookkeeping)
         var outcome = await job.Completion;
-        if (outcome.Succeeded) store.RecordInstalled(file);
-        store.SetDownloading(file, null);
-        lock (gate) active.Remove(file.Id);
+        try
+        {
+            if (outcome.Succeeded) store.RecordInstalled(file);
+        }
+        finally
+        {
+            // Under the gate: Start marks the row Downloading under it, so a download that ended at once cannot be marked after its end
+            // (ED-NEW-f-vt-7 (8)); and whatever the store does, the row never stays Downloading.
+            lock (gate)
+            {
+                store.SetDownloading(file, null);
+                active.Remove(file.Id);
+            }
+        }
         return outcome.Status switch
         {
             DownloadStatus.Succeeded => new ModelDownloadResult(ModelDownloadStatus.Installed, null),

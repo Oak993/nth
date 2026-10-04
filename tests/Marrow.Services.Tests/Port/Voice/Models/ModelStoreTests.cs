@@ -238,6 +238,27 @@ public sealed class ModelStoreTests : IDisposable
     [Fact]
     [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-7")]
+    public void Remove_of_a_file_another_handle_holds_open_is_refused_as_in_use_and_keeps_the_file_and_its_record()
+    {
+        // WINDOWS-ONLY in effect (ED-NEW-f-vt-7 (7)): Windows will not delete a file a handle holds without delete sharing (a load or a hash in
+        // progress, a scanner); elsewhere the delete succeeds, so there is nothing to refuse.
+        if (!OperatingSystem.IsWindows()) return;
+        var store = Installed((File1, Tiny), (File2, Base));
+
+        using (new FileStream(store.PathFor(File2), FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            Assert.Equal(ModelRemoveResult.InUse, store.Remove(File2));
+            Assert.True(System.IO.File.Exists(store.PathFor(File2)));
+            Assert.Equal(2, store.Records.Count);
+            Assert.Equal(2, new ModelStore(root, () => selected, runtime.Time).Records.Count);
+        }
+
+        Assert.Equal(ModelRemoveResult.Removed, store.Remove(File2));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "VT-7")]
     public void The_installed_total_is_the_sum_of_the_installed_files()
     {
         var store = Installed((File1, Tiny), (File2, Base));

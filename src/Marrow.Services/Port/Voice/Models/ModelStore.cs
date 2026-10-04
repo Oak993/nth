@@ -1,5 +1,6 @@
 // PORT-ONLY, owner-ruled addition (OD-0092, OD-0099 Q-V-9 C and Q-V-13 B; first-release voice typing, VT-7): the model store (voice-SPEC V-9.3, V-9.4, Q-V-13 B).
 using System.Security.Cryptography;
+using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Support;
 
@@ -11,6 +12,8 @@ namespace Marrow.Services.Port.Voice.Models;
 /// </summary>
 public sealed class ModelStore
 {
+    private static readonly Logger Log = new("voice", "models");
+
     private readonly Lock gate = new();
     private readonly string folder;
     private readonly Func<string?> selectedModel;
@@ -101,7 +104,10 @@ public sealed class ModelStore
         return ModelVerification.Corrupt;
     }
 
-    /// <summary>Q-V-13 B, store side: the model in use is never removed. Returns what happened.</summary>
+    /// <summary>
+    /// Q-V-13 B, store side: the model in use is never removed. Returns what happened. A file another handle holds open (a load or a hash in progress,
+    /// a scanner: Windows refuses the delete) is in use too, and keeps its record (ED-NEW-f-vt-7 (7)).
+    /// </summary>
     public ModelRemoveResult Remove(ModelFile file)
     {
         var path = PathFor(file);
@@ -109,7 +115,14 @@ public sealed class ModelStore
         lock (gate) recorded = records.Any(r => r.Id == file.Id);
         if (!File.Exists(path) && !recorded) return ModelRemoveResult.NotInstalled;
         if (string.Equals(selectedModel(), file.Id, StringComparison.Ordinal)) return ModelRemoveResult.InUse;
-        if (File.Exists(path)) File.Delete(path);
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return ModelRemoveResult.InUse;
+        }
         Drop(file.Id);
         return ModelRemoveResult.Removed;
     }
@@ -136,7 +149,7 @@ public sealed class ModelStore
         {
             records.RemoveAll(r => r.Id == file.Id);
             records.Add(new InstalledModelRecord(file.Id, length, file.Sha256, clock.GetUtcNow().UtcDateTime, fileTimeUtc));
-            InstalledModelsFile.Write(InstalledJsonPath, records);
+            Save();
         }
     }
 
@@ -144,7 +157,23 @@ public sealed class ModelStore
     {
         lock (gate)
         {
-            if (records.RemoveAll(r => r.Id == id) > 0) InstalledModelsFile.Write(InstalledJsonPath, records);
+            if (records.RemoveAll(r => r.Id == id) > 0) Save();
+        }
+    }
+
+    /// <summary>
+    /// Writes installed.json; a write Windows refuses (a reader holds the file) is skipped, not thrown (ED-NEW-f-vt-7 (8)): the next write carries the
+    /// whole list again, and until then the file on disk vouches for no more than before, so the next process re-hashes what it lacks.
+    /// </summary>
+    private void Save()
+    {
+        try
+        {
+            InstalledModelsFile.Write(InstalledJsonPath, records);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("installed.json could not be written: " + error.GetType().Name);
         }
     }
 

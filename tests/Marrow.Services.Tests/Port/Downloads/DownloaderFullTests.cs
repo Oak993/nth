@@ -35,6 +35,23 @@ public sealed class DownloaderFullTests
     [Fact]
     [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "SK-3")]
+    public async Task A_destination_deeper_than_260_characters_is_created_and_written()
+    {
+        // Windows review: skill sets land under store\<source>@<pin8>\<skill>\..., which can pass the old 260-character limit.
+        await using var rig = new DownloadRig();
+        rig.Server.Serve("/a.bin", Artifact);
+        var deep = Path.Combine([rig.Root, "out", .. Enumerable.Range(0, 12).Select(n => $"folder-{n:D2}-of-a-deep-skill-tree"), "a.bin"]);
+        Assert.True(deep.Length > 300, "the path is " + deep.Length + " characters");
+
+        var outcome = await rig.Run(rig.Request("/a.bin", Artifact) with { DestinationPath = deep });
+
+        Assert.True(outcome.Succeeded, outcome.Failure?.Message);
+        Assert.Equal(Artifact.Bytes, await File.ReadAllBytesAsync(deep));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "SK-3")]
     public async Task The_partial_file_is_named_for_the_first_eight_digits_of_the_pinned_hash_and_the_destination_appears_only_when_verified()
     {
         await using var rig = new DownloadRig();
