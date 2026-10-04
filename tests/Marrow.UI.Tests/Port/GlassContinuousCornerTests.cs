@@ -71,6 +71,9 @@ public sealed class GlassContinuousCornerTests(HeadlessSession headless)
     [InlineData(780, 580, 26)] // the Settings window
     [InlineData(400, 280, 22)] // Hydra's card
     [InlineData(300, 90, 12)] // a row card
+    [InlineData(380, 40, 18)] // OD-0102's band: r 18 on 40 pt is Apple's corner at 40 / (2 E) = 13.08 (the Edited-files card)
+    [InlineData(380, 48, 18)] // a two-line notice
+    [InlineData(380, 54, 18)] // a one-head delegation card
     [InlineData(140, 28, 14)] // Chrome.swift:164 a 28 pt capsule: the circular regime (radius half the height)
     public void The_distance_field_is_zero_on_the_path_to_a_twentieth_of_a_pixel_and_a_pixel_away_is_a_pixel(double w, double h, double r)
     {
@@ -116,13 +119,14 @@ public sealed class GlassContinuousCornerTests(HeadlessSession headless)
     [Trait("Decision", "ED-181")]
     public void A_circular_style_and_a_radius_past_the_limit_keep_the_plain_circle_distance()
     {
-        // `.circular`, a capsule and the composer's 22 pt corner on a 46 pt bar (past the limit) are what the video shows: circular ends.
-        foreach (var (w, h, r, continuous) in new (double, double, double, bool)[] { (400, 300, 26, false), (818, 46, 22, true), (60, 22, 11, true), (200, 28, 14, true) })
+        // `.circular`, a capsule and the composer's 22 pt corner on a 46 pt bar are what the video shows: circular ends. Under OD-0102 the composer is the one band shape
+        // that says so (circularInBand); any other shape between the capsule and the full corner takes Apple's corner (the theory above runs those).
+        foreach (var (w, h, r, continuous, inBand) in new (double, double, double, bool, bool)[] { (400, 300, 26, false, false), (818, 46, 22, true, true), (60, 22, 11, true, false), (200, 28, 14, true, false) })
         {
             var half = new Size(w / 2, h / 2);
             for (var x = -w / 2 - 3; x <= w / 2 + 3; x += 3.7)
                 for (var y = -h / 2 - 3; y <= h / 2 + 3; y += 2.3)
-                    Assert.Equal(ContinuousCorner.Distance(new Point(x, y), half, r, false), ContinuousCorner.Distance(new Point(x, y), half, r, continuous), 12);
+                    Assert.Equal(ContinuousCorner.Distance(new Point(x, y), half, r, false), ContinuousCorner.Distance(new Point(x, y), half, r, continuous, inBand), 12);
         }
     }
 
@@ -165,7 +169,11 @@ public sealed class GlassContinuousCornerTests(HeadlessSession headless)
     [InlineData(400, 300, 26, 26, 26, 26, 0, 1)] // the window: continuous
     [InlineData(400, 300, 26, 26, 26, 26, 0, 0)] // `.circular`
     [InlineData(120, 80, 26, 26, 26, 26, 0, 1)] // 2 * 1.528665 * 26 = 79.5 <= 80: continuous
-    [InlineData(120, 70, 26, 26, 26, 26, 0, 1)] // 79.5 > 70: the circular fall-back
+    [InlineData(120, 70, 26, 26, 26, 26, 0, 1)] // 79.5 > 70, 26 < 35: OD-0102's band, Apple's corner at 70 / (2 E) = 22.9
+    [InlineData(380, 40, 18, 18, 18, 18, 0, 1)] // the Edited-files card's band size (r 18 on 40 pt): Apple's corner at 13.08
+    [InlineData(380, 54, 18, 18, 18, 18, 0, 1)] // a one-head delegation card (r 18 on 54 pt): Apple's corner at 17.66
+    [InlineData(818, 46, 22, 22, 22, 22, 0, 2)] // the composer pill (continuous 2: measured circular in the band, ED-275 (2))
+    [InlineData(380, 34, 18, 18, 18, 18, 0, 1)] // a single-line pill (r 18 on 34 pt): a capsule, circular
     [InlineData(200, 80, 22, 22, 22, 22, 0, 1)] // Hydra's 22
     [InlineData(300, 90, 12, 12, 0, 0, 0, 1)] // an uneven shape (ThreadChangesTab.swift:15,38: 12 on top): per-corner radii
     [InlineData(200, 28, 14, 14, 14, 14, 1, 1)] // a capsule (kind 1): circular
@@ -183,7 +191,7 @@ public sealed class GlassContinuousCornerTests(HeadlessSession headless)
                 else
                 {
                     var radius = kind > 0.5 ? Math.Min(w, h) / 2.0 : p.Y < 0 ? (p.X < 0 ? tl : tr) : (p.X < 0 ? bl : br);
-                    expected = ContinuousCorner.Distance(p, new Size(w / 2.0, h / 2.0), radius, continuous > 0.5);
+                    expected = ContinuousCorner.Distance(p, new Size(w / 2.0, h / 2.0), radius, continuous > 0.5, circularInBand: continuous > 1.5);
                 }
                 worst = Math.Max(worst, Math.Abs(field[y, x] - expected));
             }
