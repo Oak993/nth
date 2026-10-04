@@ -100,6 +100,9 @@ public sealed class ClaudeSkillsTests
         Assert.Contains("\"name\":\"marrow\"", File.ReadAllText(Path.Combine(gen.Folder, ".claude-plugin", "plugin.json")), StringComparison.Ordinal);
         Assert.Contains("\"version\":\"fixture\"", File.ReadAllText(Path.Combine(gen.Folder, ".claude-plugin", "plugin.json")), StringComparison.Ordinal);
         Assert.Equal(new[] { "pdf", "marrow:pdf" }, Assert.Single(events.OfType<ProviderEvent.Commands>()).Value.Select(x => x.Name));
+        var normalized = new List<ToolEvent>(); s.OnSkillEvent = normalized.Add;
+        s.Handle(JSONValue.Parse(File.ReadLines(Fixture("claude-tools.jsonl")).Skip(2).First())!);
+        Assert.Contains(new SkillUsed("pdf", "A1"), normalized);
         s.Stop(); Drain(runtime, gen); Assert.False(gen.Verify());
     }
 
@@ -298,7 +301,10 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5)); runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5));
         var notices = events.OfType<ProviderEvent.Notice>().ToArray();
         Assert.Single(notices); Assert.Equal("A Marrow skill file changed during this chat; new chats are not affected", notices[0].Value.Message);
-        service.Collect(); Assert.True(Directory.Exists(gen.Folder)); s.Stop(); Drain(runtime); service.Collect();
+        var released = false; var disposed = gen.OnDisposed;
+        gen.OnDisposed = () => { disposed?.Invoke(); released = true; };
+        service.Collect(); Assert.True(Directory.Exists(gen.Folder)); s.Stop();
+        runtime.Loop.RunUntil(() => released, TimeSpan.FromSeconds(5)); service.Collect();
     }
 
     private static void Drain(TestRuntime runtime, Generation? generation = null)
