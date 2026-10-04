@@ -5521,7 +5521,7 @@
         "a search that matches nothing leaves only the lead card, the Custom section when it is not searching, and the footer"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same order and the same literal spacings. The footer's product name is \"Marrow\" (OD-0012 F1).",
+      "windows_path": "Same order and the same literal spacings. The footer's product name is \"Marrow\" (OD-0012 F1). The page's body, callout and subheadline text draws in the text styles' line boxes, 18, 17 and 16 (ED-290 (1)), so its cards measure as 1-settings-tour.mov shows them: the lead card 94, Connected rows 58 / 74 / 58 in a 192 card, the Custom card 97 (S 183.5), a catalog card 126 at a 136 row pitch (S 186.0), 144 at 154 with a two-line title (S 187.5).",
       "verification_method": "capture comparison against a rendered page plus an interaction test on the section order",
       "status": "SPECIFIED",
       "upstream_defect": null,
