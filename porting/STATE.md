@@ -3,6 +3,70 @@
 Continuation record. Reread `porting/PORT_CONTRACT.md` before acting on this file.
 This file is a navigation aid; the contract and the source are the authority.
 
+## Current checkpoint: 2026-10-04 03:17 AST, orchestrator Claude (written by the ledger-text agent from `E:\Droppy\work\NEXT_SESSION_CLAUDE.md`, top block and log up to 2026-10-04 02:59, and from git on this date)
+
+This section supersedes every checkpoint below it. The checkpoints below are history: the baseline is B3, not B2, and
+the working branches are the ones named here.
+
+**Baseline.** B3 (owner decision OD-0024, amendment AM-0003): Droppy Code 1.7.0 build 21, commit `52bc7926`, checkout
+`E:\Droppy\reference\droppy-code-v1.7.0` (read only); record `porting/baseline.json`. Owner rulings in force:
+OD-0001 to OD-0098 (`porting/owner_decisions.md`, last entry OD-0098 with its 2026-10-04 amendments). Engineering
+decisions run to ED-261; the next free number is ED-262, and `ED-NEW-ledger-1` to `-10` (commit `ece699396` on
+`claude/ledger-text-20261004`) are renumbered by the lead at merge.
+
+**Branches (read from git, 2026-10-04 03:17).**
+- Staging: `claude/verify-terminal-20261001`, worktree `E:\Droppy\wt\cl\terminal-verify`, head `24c4e5cfd`
+  ("records IMPLEMENTED: About and update views (19) ..."). Its local copy of the pushed ref is `746158d28`; the head is
+  ahead of it. It has NOT been fast-forwarded to `impl/b2`: `origin/impl/b2` is `9efdc27fa`, an ancestor of staging with
+  485 commits between them (the local `impl/b2` in `E:\Droppy\wt\integration` is older, `6ae70226e`). Only a gated
+  fast-forward moves `impl/b2` (quiet-PC gate with the native window tests alone, flake rule: a failure counts only if it
+  fails alone twice); nothing is signed, released or published without the owner's word.
+- Port workspace branch `port/windows-exact-parity` (`E:\Droppy\port`), instruction files at `9f1413954` (2026-10-03
+  prompt audit: B3 everywhere, every OD in force, this file as the current gate).
+
+**Completion** (`python E:\Droppy\work\claude-verify\completion.py <checkout>`, reproduced on `claude/ledger-text-20261004`
+at 24c4e5cfd plus the ledger commits): denominator 5007 records (N/A and RETIRED excluded), IMPLEMENTED
+4558 = 91.03 %, IMPLEMENTED and named by at least one `Trait("Req", id)` test 4556 = 90.99 %. The two without a Req test:
+PR-COMPOSER-131 (the R8 guard test forbids crediting it until proven) and PR-WIN-025 (`WindowChromeTests.cs:22` says no
+Avalonia property can prove it). `node porting/tools/progress.mjs`: source files read 441/441, requirements VERIFIED
+0/5007 (no verification run yet), test methods 12277, open quarantine 0. Owner-added features (composer lights, accent
+picker, Jewel knob, Strike, Customization page, voice typing, skills) count on top of this and are not in the 5007.
+
+**Units** (worktrees `E:\Droppy\wt\u\<name>`, branches `unit/<name>`; counts are commits ahead of staging, read from git;
+a recent commit time is not proof the agent is still running).
+- Launched from 24c4e5cfd at 02:59 (log line): blitz-appdelegate (2 ahead, last commit 03:14), blitz-terminalpanel (2
+  ahead, 03:12), blitz-windowmanager (1 ahead, 03:14). Each ends with an adversarial review, fixes, a scoped check and a
+  merge into staging, one at a time.
+- Also committing in the last ten minutes and not yet merged: blitz-composerview (14 ahead, 143 behind), blitz-corners
+  (8, 142), blitz-effortslider (15, 143), blitz-settingsview (13, 143), blitz-tail (18, 143), blitz-timelinerows-ab (19,
+  142), parity-chatview (37 ahead, 17 behind; the log says its review fix-first list is being closed).
+- Merged into staging today (log): MCP settings (ED-257), SidebarView (ED-258), TimelineRows c+d (ED-260),
+  integ-defects (ED-259), About and update views (ED-261), network-leaks.
+- Not started or waiting: the strike unit waits for `unit/fast-strike` round 3 (still `6d173a080`, not an ancestor of
+  staging; jewel-knob is merged at `a9484a49f`); Settings > Customization and voice typing wait for the build questions
+  below; the paused units are listed in NEXT_SESSION_CLAUDE.md section 7 item 6.
+
+**Decisions recorded this checkpoint (this branch).** The turn fold animates under OD-0076 (ED-NEW-ledger-1); Reduce
+Motion stills only what OD-0076 added beyond the Mac (-2); PR-CHAT-107 follows the Mac exactly (-3); both About Show
+buttons are the small accent glass pill (-4); internal choices for voice, Customization, the strike unit, zoom chords,
+the update toast (silent) and the Terminal credit (-5 to -10). Records amended: PR-UPDATE-061 (the sweep checks the
+phase once, AboutUpdateViews.swift:801) and PR-COMPOSER-129 (deviation, OD-0090). Open build questions for the owner and
+the engineering ones: `E:\Droppy\work\design\open-questions-2026-10-04.md` (43 rows: 24 owner, 19 engineering).
+
+**Next actions.**
+1. Let blitz-appdelegate, -terminalpanel and -windowmanager finish; merge each into staging when its scoped check says
+   merge; set the closed records IMPLEMENTED with `set_status.py` and `merge_spec.mjs`; rerun `completion.py`.
+2. Merge this branch's ledger commits into staging (renumber ED-NEW-ledger-1 to -10 from ED-262; amend PR-UPDATE-025 for
+   the silent update toast, the record text of PR-CHAT-104's `windows_path`, and add PR-CHAT-107's defect to
+   `porting/upstream_defects.md`).
+3. Build what the decisions order: the turn fold's transition (ED-NEW-ledger-1) and the About Show buttons (-4), then
+   the zoom chords by character (-8) and the silent update toast (-9), each test-first.
+4. Put the 24 owner questions to the owner (Q-V-11 differs from the spec's recommendation, see the file).
+5. Gate staging on a quiet PC and fast-forward `impl/b2` (gated only); then fast-strike round 3, the strike unit,
+   Settings > Customization, voice typing, skills, in the order of NEXT_SESSION_CLAUDE.md section 7.
+6. Rules that stay: tests only through `E:\Droppy\work\claude-verify\one.sh`, `one-full.sh`, `one-names.sh`; never a bare
+   `dotnet test`; never open the app "Marrow"; never write to the reference checkout; agents never push `unit/*`.
+
 ## Current checkpoint: 2026-09-23 04:30, orchestrator Claude Opus 5.5
 
 This section supersedes every checkpoint below it.
