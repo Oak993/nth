@@ -73,20 +73,31 @@ internal static class GlassMaterial
         // The window is redrawn whole once, a frame after an eased turnover of its glass has ended. The turnover is drawn by partial redraws, the glass's
         // own and those of the colours that ease beside it, and where they overlap the antialiased edge of a vector icon near a piece (the Models page's
         // chevron, the Mcp page's server icon) is left a few levels from what a whole drawing gives (LookCardTurnoverTests: 4 and 44 channels, past the
-        // 2 allowed); one whole redraw after the last frame of the ease settles the picture to the whole drawing. Measured, not traced into Avalonia's
-        // dirty-region merging. One per turnover and window (a later turnover is a later count); nothing is drawn extra for a change made at once.
-        private sealed class WindowTurns { public int Started, Repainted; }
+        // 2 allowed; with the kept backdrop (Backdrop) and the material's full render bounds, 5 of 18 pages without it); one whole redraw after the last frame
+        // of the ease settles the picture to the whole drawing. Measured, not traced into Avalonia's dirty-region merging. The window counts the pieces still turning; when the last one ends or leaves the tree (its run stopped, GlassMaterialTurnoverRepaintTests),
+        // the repaint comes a frame later, unless another turn has begun by then (a turnover that a later one interrupts does not repaint; the later one does).
+        // Nothing is drawn extra for a change made at once.
+        private sealed class WindowTurns { public int Turning; public bool Owed; }
         private static readonly ConditionalWeakTable<TopLevel, WindowTurns> windowTurns = new();
-        private static int Turns(Control control, bool begin)
+        // Begins a piece's eased turn in its window; the action returned ends it (once, whether the run reached its end or was stopped).
+        private static Action BeginTurn(Control control)
         {
-            if (TopLevel.GetTopLevel(control) is not { } top) return 0;
+            if (TopLevel.GetTopLevel(control) is not { } top) return static () => { };
             var turns = windowTurns.GetOrCreateValue(top);
-            return begin ? ++turns.Started : turns.Started;
+            turns.Turning++;
+            turns.Owed = true;
+            var ended = false;
+            return () =>
+            {
+                if (ended) return;
+                ended = true;
+                if (--turns.Turning == 0) FrameClock.Source.Current.RequestFrame(_ => RepaintWhole(top, turns));
+            };
         }
-        private static void RepaintWhole(Control control, int turn)
+        private static void RepaintWhole(TopLevel top, WindowTurns turns)
         {
-            if (TopLevel.GetTopLevel(control) is not { } top || !windowTurns.TryGetValue(top, out var turns) || turn != turns.Started || turns.Repainted == turn) return;
-            turns.Repainted = turn;
+            if (turns.Turning != 0 || !turns.Owed) return;
+            turns.Owed = false;
             foreach (var visual in top.GetVisualDescendants()) visual.InvalidateVisual();
         }
 
@@ -313,14 +324,14 @@ internal static class GlassMaterial
                 (darkShown, tintShown) = (darkTo, resolved);
                 return (darkShown, tintShown);
             }
-            var eased = AppearanceTurn.Eases(control);
-            var turn = eased ? Turns(control, begin: true) : 0;
-            stopTurn = AppearanceTurn.Run(control, progress =>
+            var endTurn = AppearanceTurn.Eases(control) ? BeginTurn(control) : static () => { };
+            var stopRun = AppearanceTurn.Run(control, progress =>
             {
                 (darkShown, tintShown) = progress >= 1 ? (darkTo, resolved) : (darkFrom + (darkTo - darkFrom) * progress, tintFrom == resolved ? resolved : progress <= 0 ? tintFrom : SwiftColor.PremultipliedMix(tintFrom, resolved, progress));
                 this.drawing?.RequestSynchronize();
-                if (progress >= 1 && eased) FrameClock.Source.Current.RequestFrame(_ => RepaintWhole(control, turn));
+                if (progress >= 1) endTurn();
             });
+            stopTurn = () => { stopRun(); endTurn(); };
             return (darkShown, tintShown);
         }
 
