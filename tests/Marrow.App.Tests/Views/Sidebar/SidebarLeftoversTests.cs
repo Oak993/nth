@@ -1463,4 +1463,69 @@ public sealed partial class SidebarViewTests
         }
         finally { harness.Main.OnMain(() => window.Close()); }
     });
+
+    // ======== The head glyph (UI-SIDEBAR-037) ========
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-037")] // SidebarView.swift:1484-1486 `.scaleEffect(hoveredID == head.id ? 1.18 : 1).animation(Chrome.hover, value: ...)`, :1487-1488 the hover clears `hoveredID` inside withAnimation(Chrome.hover): it eases back the way it came
+    public void A_hovered_head_glyph_eases_back_from_1_18_to_1_on_the_hover_curve() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var head = HeadHelper(project, parent.Id, 0, 1);
+        var model = Model(harness, [project], [parent, head]);
+        Control card = null!; AvaloniaWindow window = null!;
+        Button HeadButton() => (Button)LogicalQuery.SelfAndDescendants<HydraGlyph>(card).Single().Parent!.Parent!;
+        ScaleTransform Scale() => (ScaleTransform)((Panel)LogicalQuery.SelfAndDescendants<HydraGlyph>(card).Single().Parent!).RenderTransform!;
+        void Tick(int ms) { harness.Main.AdvanceMilliseconds(ms); harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms))); }
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+                card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, new[] { head }, requests, (Action)(() => { }))!;
+                card.VerticalAlignment = VerticalAlignment.Top;
+                window = WindowOf(Hosted(model, card));
+                window.UpdateLayout();
+                window.MouseMove(HeadButton().TranslatePoint(new Point(7, 7), window)!.Value);
+            });
+            Tick(300);
+            harness.Main.OnMain(() => { Assert.Equal(1.18, Scale().ScaleX, 3); window.MouseMove(new Point(window.Width - 1, window.Height - 1)); });
+            Tick(40);
+            harness.Main.OnMain(() => Assert.Equal(1.18 - 0.18 * Animation.EaseOut(0.1).Progress(0.04), Scale().ScaleX, 3)); // part way back, not cut
+            Tick(200);
+            harness.Main.OnMain(() => Assert.Equal(1d, Scale().ScaleX, 3));
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-037")] // SidebarView.swift:1296-1301 headBadgeOverhang = 3, :1500-1503 `.padding(.trailing, headBadgeOverhang)` on each row of glyphs: "the outcome badge rides about 3 pt past the frame on the trailing side"
+    public void Each_row_of_head_glyphs_trails_the_overhang_of_the_last_marks_badge_with_3_points() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 3).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            WindowOf(Hosted(model, card)).UpdateLayout();
+            try
+            {
+                Assert.Equal(3d, ThreadRowMetrics.HeadBadgeOverhang);
+                var row = LogicalQuery.SelfAndDescendants<StackPanel>(card).First(r => r.Orientation == Avalonia.Layout.Orientation.Horizontal && r.Children.OfType<Button>().Any());
+                Assert.Equal(3d, row.Margin.Right);
+                Assert.Equal(14d, LogicalQuery.SelfAndDescendants<HydraGlyph>(row).First().Size); // headGlyphSize
+            }
+            finally { Close(card); }
+        });
+    });
 }
