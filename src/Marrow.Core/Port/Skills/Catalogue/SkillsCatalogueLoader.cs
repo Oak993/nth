@@ -48,12 +48,40 @@ public static class SkillsCatalogueLoader
     {
         try
         {
-            return JsonSerializer.Deserialize<SkillsCatalogue>(json, Options)
+            var catalogue = JsonSerializer.Deserialize<SkillsCatalogue>(json, Options)
                 ?? throw new CatalogueFormatException("The catalogue is null.");
+            RejectNullElements(catalogue);
+            return catalogue;
         }
         catch (JsonException error)
         {
             throw new CatalogueFormatException("The catalogue does not match its schema: " + error.Message, error);
+        }
+    }
+
+    /// <summary>
+    /// REVIEW fix (unit/integ-sk): <c>RespectNullableAnnotations</c> does not reach the elements of a list, so a <c>null</c> inside one passed the
+    /// reader and crashed the gate later. Every list element is checked here, so it fails closed as the other format errors do.
+    /// </summary>
+    private static void RejectNullElements(SkillsCatalogue catalogue)
+    {
+        static void Check<T>(IReadOnlyList<T?> list, string where)
+        {
+            for (var i = 0; i < list.Count; i++)
+                if (list[i] is null) throw new CatalogueFormatException($"The catalogue does not match its schema: {where}[{i}] is null.");
+        }
+        Check(catalogue.Items, "items");
+        foreach (var item in catalogue.Items)
+        {
+            var at = "item " + item.Id + ": ";
+            Check(item.Needs, at + "needs");
+            Check(item.Provides, at + "provides");
+            Check(item.Artifacts, at + "artifacts");
+            Check(item.Files, at + "files");
+            Check(item.Skills, at + "skills");
+            Check(item.Folders, at + "folders");
+            Check(item.Packages, at + "packages");
+            foreach (var skill in item.Skills) Check(skill.Needs, at + "skills " + skill.Folder + " needs");
         }
     }
 

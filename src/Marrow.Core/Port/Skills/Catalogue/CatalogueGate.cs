@@ -137,6 +137,9 @@ public static partial class CatalogueGate
             case ItemKind.Plugin:
                 if (item.Files.Count == 0) missing.Add("files");
                 if (item.SkillCount is null) missing.Add("skillCount");
+                // REVIEW fix (unit/integ-sk): DL-1's name rule (every skill folder name equals its frontmatter name) can be checked only for
+                // skills the item lists, so an item is pinned only when its skills are listed.
+                if (!item.SkillsListed) missing.Add("skills");
                 if (item.SkillsListed)
                     foreach (var skill in item.Skills)
                     {
