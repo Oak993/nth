@@ -104,6 +104,8 @@ public sealed class WasapiCapture : IAudioCapture
             }
         }
 
+        // Order matters (V-7.6, V-4.7): the capture thread is stopped and joined first (Stop asks, Dispose waits for it), so its last buffer is in the ring; only then is the ring
+        // flushed into the sink and cleared. Clearing first would lose that buffer or leave it written into a cleared ring.
         public void Close(bool flush)
         {
             closing = true;
@@ -114,10 +116,8 @@ public sealed class WasapiCapture : IAudioCapture
             }
             catch (Exception)
             {
-                // The device is gone already; nothing more to close.
+                // The device is gone already; nothing more to stop.
             }
-            if (flush) Pipeline.Flush();
-            Pipeline.Dispose();
             try
             {
                 Device.Dispose();
@@ -126,6 +126,8 @@ public sealed class WasapiCapture : IAudioCapture
             {
                 // As above.
             }
+            if (flush) Pipeline.Flush();
+            Pipeline.Dispose();
         }
 
         // The same loss reaches us twice (the endpoint notice and the stream's end): one event per kind.

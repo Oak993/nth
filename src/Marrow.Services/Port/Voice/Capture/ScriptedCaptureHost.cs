@@ -36,6 +36,9 @@ public sealed class ScriptedCaptureHost : ICaptureHost
         get { lock (gate) return watchers.Count; }
     }
 
+    /// <summary>When set, every device opened afterwards throws it from <c>Start</c>.</summary>
+    public Exception? StartFailure { get; set; }
+
     public ScriptedCaptureDevice? LastDevice => Devices.Count == 0 ? null : Devices[^1];
 
     /// <summary>Adds an active endpoint (and tells the watchers).</summary>
@@ -81,7 +84,7 @@ public sealed class ScriptedCaptureHost : ICaptureHost
         var id = endpointId ?? DefaultId;
         if (id is null || endpoints.All(e => e.Id != id)) throw new CaptureDeviceException(CaptureDeviceFailure.NotFound, "No such capture endpoint.");
         if (openFailures.TryGetValue(id, out var failure)) throw new CaptureDeviceException(failure, "The capture endpoint cannot be opened.");
-        var device = new ScriptedCaptureDevice(id, formats.GetValueOrDefault(id, DefaultFormat));
+        var device = new ScriptedCaptureDevice(id, formats.GetValueOrDefault(id, DefaultFormat)) { FailStart = StartFailure };
         Devices.Add(device);
         return device;
     }

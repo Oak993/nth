@@ -30,17 +30,22 @@ public sealed class CapturePipelineTests
             using var pipeline = new CapturePipeline(format, new CollectingSink(), runThread: false);
             var buffer = new byte[480 * format.BytesPerFrame]; // 10 ms
             for (var i = 0; i < buffer.Length; i++) buffer[i] = (byte)((i * 7 + 3) & 0xFF);
-            // The runtime's own tiered-JIT bookkeeping allocates on the calling thread while a method is being promoted; the steady state is what V-2.2 asks for, so the
-            // first rounds settle it and the last three must each allocate nothing (a callback that allocated per call would show in every round).
+            // The runtime's own tiered-JIT bookkeeping allocates on the calling thread while a method is being promoted (that takes a hundred milliseconds or so), so the steady
+            // state is waited for: three rounds in a row of 100 calls that allocate nothing, within ten seconds. A callback that allocated per call never gets there.
             var rounds = new List<long>();
-            for (var round = 0; round < 6; round++)
+            var quiet = 0;
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (quiet < 3 && DateTime.UtcNow < deadline)
             {
                 var before = GC.GetAllocatedBytesForCurrentThread();
                 for (var i = 0; i < 100; i++) pipeline.OnBuffer(buffer, silent: i % 10 == 9);
-                rounds.Add(GC.GetAllocatedBytesForCurrentThread() - before);
+                var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+                rounds.Add(bytes);
+                quiet = bytes == 0 ? quiet + 1 : 0;
                 pipeline.Pump(); // empties the ring between rounds (100 buffers of 10 ms are 1 s of its 2 s)
+                Thread.Sleep(5);
             }
-            Assert.True(rounds.Skip(3).All(bytes => bytes == 0), $"{encoding}: the capture callback allocated {string.Join(", ", rounds)} B per 100 calls");
+            Assert.True(quiet >= 3, $"{encoding}: the capture callback allocated {string.Join(", ", rounds.TakeLast(8))} B per 100 calls");
         }
     }
 

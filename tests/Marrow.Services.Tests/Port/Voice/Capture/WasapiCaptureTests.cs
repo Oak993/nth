@@ -349,4 +349,46 @@ public sealed class WasapiCaptureTests
         capture.Stop();
         Assert.Equal(3840, sink.Samples.Count);
     }
+
+    [Fact]
+    [Trait("Feature", "VT-5")]
+    [Trait("Spec", "V-T41")]
+    [Trait("Decision", "ED-267")] // V-7.6 / V-4.7: the capture thread is stopped and joined (Stop, then Dispose) BEFORE the flush and the clear, so its last buffers are neither lost nor left in memory
+    public void A_buffer_the_device_delivers_during_Stop_or_while_it_is_joined_reaches_the_sink_and_nothing_after()
+    {
+        using var runtime = new TestRuntime();
+        var host = Host();
+        var capture = Capture(host);
+        var sink = new CollectingSink();
+        capture.Start(sink);
+        var device = host.LastDevice!;
+        device.PushSignal(_ => 0.25f, TimeSpan.FromMilliseconds(10)); // 960 samples, never pumped
+        device.InFlightDuringStop = new float[480 * 2];
+        device.InFlightDuringDispose = new float[240 * 2];
+        capture.Stop();
+        Assert.Equal(960 + 960 + 480, sink.Samples.Count);
+        Assert.Equal(["audio:2400"], sink.Journal);
+        Assert.True(device.IsDisposed);
+        runtime.RunUntilIdle();
+        Assert.Equal(2400, sink.Samples.Count);
+    }
+
+    [Fact]
+    [Trait("Feature", "VT-5")]
+    [Trait("Spec", "V-T41")]
+    [Trait("Decision", "ED-267")] // V-4.4: a device that opens but cannot start leaves nothing behind (item 3: the failure reaches the session as a CaptureDeviceException)
+    public void A_device_that_fails_to_start_is_closed_and_unsubscribed_and_the_failure_propagates()
+    {
+        using var runtime = new TestRuntime();
+        var host = Host();
+        var capture = Capture(host);
+        var failure = new CaptureDeviceException(CaptureDeviceFailure.InUse, "taken");
+        host.StartFailure = failure;
+        Assert.Same(failure, Assert.Throws<CaptureDeviceException>(() => capture.Start(new CollectingSink())));
+        Assert.True(host.LastDevice!.IsDisposed);
+        Assert.Equal(0, host.WatcherCount);
+        var stops = host.LastDevice!.StopCount;
+        capture.Stop(); // nothing left to stop
+        Assert.Equal(stops, host.LastDevice!.StopCount);
+    }
 }
