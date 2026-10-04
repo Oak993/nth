@@ -7812,7 +7812,12 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:868 `case .codex, .cursor, .grok, .opencode, .devin, .copilot, .commandcode, .pi, .zai: .silver` (nine providers; the B1 title said seven) -> B2 :868 `case .codex, .cursor, .grok, .opencode, .opencodeGo, .devin, .copilot, .commandcode, .pi, .zai: .silver` (ten). The new case is ProviderKind.opencodeGo (B2 DroppyCode/Core/Models/Provider.swift:8, display name \"OpenCode Go\" at :27). titleColor (874-883) and fill, spark and glow (911-928) unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:868 `case .codex, .cursor, .grok, .opencode, .devin, .copilot, .commandcode, .pi, .zai: .silver` (nine providers; the B1 title said seven) -> B2 :868 `case .codex, .cursor, .grok, .opencode, .opencodeGo, .devin, .copilot, .commandcode, .pi, .zai: .silver` (ten). The new case is ProviderKind.opencodeGo (B2 DroppyCode/Core/Models/Provider.swift:8, display name \"OpenCode Go\" at :27). titleColor (874-883) and fill, spark and glow (911-928) unchanged.",
+      "deviation": {
+        "decision": "OD-0090",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:777-792 the knob is a Liquid Glass lens, `.glassEffect(.regular.tint(Color.white.opacity(look.isLightFill ? 0.55 : 0.32)).interactive(), in: Circle())` with `.strokeBorder(Color.black.opacity(look.isLightFill ? 0.14 : 0), lineWidth: 1)` as its edge on a light fill (:788-791); :1015 `stopColor` is `.black.opacity(0.35)` on a light fill and `.white.opacity(0.6)` otherwise; that is how the knob and the passed stops read against the white silver fill",
+        "port": "The knob clause is superseded: the knob is the 48 px Jewel orb (OD-0090, ED-252), coloured from the selected maker's own liquid (liquid-palettes.json) and drawn as the locked page work/design/jewel-knob-locked/ draws it, not the white-tinted lens with a black 0.14 edge ring; what the orb looks like over the silver fill is that page's, and the source's isLightFill tint and ring (:788-791) are not drawn. The stops clause is unchanged: the passed stops read dark (black at 0.35) on the silver fill (:1015), at the OD-0090 positions (a knob radius in from each end). The brand mapping, the black sparks and the light fill are unchanged."
+      }
     },
     {
       "area": "COMPOSER",
@@ -91754,14 +91759,14 @@
       ],
       "preconditions": "The celebration was consumed.",
       "action": "The sweep plays.",
-      "expected_result": "After 550 ms the target is set to 1.0 with haptics suppressed by apply. With Reduce Motion off: 900 ms later an .alignment haptic, 450 ms later a .levelChange haptic, 700 ms later the phase resets to idle at fraction 0 (total 2600 ms). With Reduce Motion on: the .alignment haptic fires immediately after the target is set and the reset happens 900 ms later (total 1450 ms). Every step re-checks cancellation and the phase.",
+      "expected_result": "After 550 ms the target is set to 1.0 with haptics suppressed by apply. With Reduce Motion off: 900 ms later an .alignment haptic, 450 ms later a .levelChange haptic, 700 ms later the phase resets to idle at fraction 0 (total 2600 ms). With Reduce Motion on: the .alignment haptic fires immediately after the target is set and the reset happens 900 ms later (total 1450 ms). The sweep's own code checks the phase once: after the first 550 ms sleep (AboutUpdateViews.swift:801 `guard !Task.isCancelled, progress.phase == .celebrating`). Every later step re-checks only cancellation (:808, :811, :815; the Reduce Motion branch has no check between the haptic and its sleep). The phase is read again only inside finishCelebrationSweep and completeCelebration, each of which does nothing unless phase == .celebrating (AppUpdater.swift:169, :174).",
       "side_effects": [
         "Two (or one) haptics.",
         "A multi-second task."
       ],
       "persistence": "None.",
       "failure_cases": [
-        "A phase change mid-sweep aborts it at the next guard."
+        "Once the first guard has passed, a phase change does not stop the sweep: its remaining sleeps and haptics still run, and only the final completeCelebration becomes a no-op (AppUpdater.swift:174). Only cancellation (leaving the page, PR-UPDATE-063) ends the task early."
       ],
       "cancellation": "Cancelled by leaving the page; see PR-UPDATE-063.",
       "windows_path": "Same timings. Respect the Windows 'animation effects off' system setting as the Reduce Motion analogue and take the shortened branch when it is off. Haptics are the no-op shim.",
