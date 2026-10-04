@@ -180,8 +180,10 @@ internal static class WindowManagerNativePlacementExercise
                 ObservedMainDpi = visitedDpi.Order().ToArray(),
                 RecordedCaseCount = results.Count,
                 AvailableMonitorPlacementPassed = finished,
-                // STOP TWO-PHYSICAL-MONITORS: the saved machine has one physical region.
-                // A passing available-monitor run must not be promoted to WIN-011's two-monitor clause.
+                // ACCEPTED-BY-LEAD (2026-10-04, PR-WIN-011, ED-NEW-rec-e1 (1)): the two-monitor clause is satisfied by the stub-topology
+                // proofs (WindowManagerSettingsScreenTests) plus the one-monitor native run; no second display is required and no
+                // virtual display driver is installed. This flag stays a recorded, standing and non-blocking check: it is false on a
+                // one-monitor PC and records true whenever the run happens on a machine with two displays (e.g. at release testing).
                 TwoMonitorPlacementClauseExercised = finished && completedMonitors.Count >= 2,
                 MixedDpiTransitionExercised = results.Any(item => item.BeforeMain.Dpi != item.BeforeSettings.Dpi),
                 WorkareaVsBoundsDiscriminatorCases = results.Count(item => item.DistinguishesBounds),
@@ -190,7 +192,7 @@ internal static class WindowManagerNativePlacementExercise
                 ActualSettingsViewProven = false,
                 Error = failure?.ToString(),
                 Limitation = physical.Length < 2
-                    ? "Only one independently movable physical desktop region is available. PR-WIN-011's two-monitor clause remains UNVERIFIED."
+                    ? "Only one independently movable physical desktop region is available. PR-WIN-011's two-monitor clause is accepted by the lead on the stub-topology proofs plus this one-monitor run (2026-10-04); it records true on a machine with two displays."
                     : "This Fact covers the reported physical topology only; review the case evidence and all other requirement clauses separately.",
             });
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
