@@ -29,13 +29,14 @@ public sealed class CatalogueChangeReportTests
     [Fact]
     [Trait("Feature", "SK-2")]
     [Trait("Rule", "R-TEST-4")]
-    public void The_embedded_catalogue_against_itself_has_no_change_and_the_non_open_items_without_a_licence_hash_need_attention()
+    public void The_embedded_catalogue_against_itself_has_no_change_and_every_non_open_item_without_a_licence_hash_needs_attention()
     {
         var report = CatalogueChangeReport.Compare(CatalogueFixtures.Real, CatalogueFixtures.Real);
         Assert.Empty(report.Items);
         Assert.Equal(CatalogueFixtures.Real.Items.Count, report.Unchanged.Count);
-        // ONDEMAND-PLAN.md 2.5: A2 and O5 show their terms first; with no hash of the licence file in the catalogue they cannot be accepted (ED-295).
-        Assert.Equal(["A2", "A6", "O5", "O6"], report.Attention.Select(a => a.ItemId).OrderBy(i => i, StringComparer.Ordinal));
+        // ONDEMAND-PLAN.md 2.5: a non-open item shows its terms first; with no hash of the licence file in the catalogue they cannot be accepted (ED-295).
+        var expected = CatalogueFixtures.Real.Items.Where(i => i.TermsClass != TermsClass.Open && Marrow.Core.Port.Skills.State.ItemTerms.LicenceHash(i) is null).Select(i => i.Id);
+        Assert.Equal(expected.OrderBy(i => i, StringComparer.Ordinal), report.Attention.Select(a => a.ItemId).OrderBy(i => i, StringComparer.Ordinal));
         Assert.All(report.Attention, a => Assert.Equal(ChangeFlag.LicenceTextNotRecorded, a.Flag));
     }
 

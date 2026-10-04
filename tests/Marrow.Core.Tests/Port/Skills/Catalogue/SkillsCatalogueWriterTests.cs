@@ -53,33 +53,45 @@ public sealed class SkillsCatalogueWriterTests
     [Trait("Rule", "R-TEST-4")]
     public void Required_keys_with_no_value_are_written_as_null_and_empty_optional_ones_are_left_out()
     {
-        var unpinned = CatalogueFixtures.Real;
-        var root = JsonNode.Parse(SkillsCatalogueWriter.Serialize(unpinned))!;
-        var a6 = root["items"]!.AsArray().Single(i => (string)i!["id"]! == "A6")!.AsObject();
+        var bare = CatalogueFixtures.Pinned() with
+        {
+            Items =
+            [
+                CatalogueFixtures.PinnedTool() with { Pin = null, LicenceName = null, LicenceUrl = null, LicenceFile = null, ApproxSizeMb = null, PinState = PinState.Unpinned,
+                    Artifacts = [new CatalogueArtifact { Name = "tool.zip", Url = null, Size = null, Sha256 = null, Sha256Hint = null }] },
+                CatalogueFixtures.PinnedSkillset() with { PinHint = "0123456", LicenceNotes = "a note", Skills = [new CatalogueSkill { Folder = "alpha-skill", Name = null, Path = null, Needs = [] }, new CatalogueSkill { Folder = "beta", Name = "beta", Path = "skills/beta", Needs = [], TermsClass = TermsClass.None, Pin = CatalogueFixtures.FixturePin }] },
+            ],
+        };
+        var root = JsonNode.Parse(SkillsCatalogueWriter.Serialize(bare))!;
+        var tool = root["items"]![0]!.AsObject();
         foreach (var key in new[] { "pin", "licenceName", "licenceUrl", "licenceFile", "approxSizeMb" })
         {
-            Assert.True(a6.ContainsKey(key), key);
-            Assert.Null(a6[key]);
+            Assert.True(tool.ContainsKey(key), key);
+            Assert.Null(tool[key]);
         }
-        Assert.Equal("ab024cdc", (string)a6["pinHint"]!);
-        var t1 = root["items"]!.AsArray().Single(i => (string)i!["id"]! == "T1")!.AsObject();
-        Assert.False(t1.ContainsKey("skills"));
-        Assert.False(t1.ContainsKey("folders"));
-        Assert.False(t1.ContainsKey("packages"));
-        Assert.False(t1.ContainsKey("skillsListed"));
-        Assert.False(t1.ContainsKey("skillCount"));
-        Assert.False(t1.ContainsKey("pinHint"));
-        Assert.True(t1.ContainsKey("needs"));
-        Assert.True(t1.ContainsKey("files"));
-        Assert.True(t1.ContainsKey("provides"));
-        var artifact = t1["artifacts"]![0]!.AsObject();
+        foreach (var key in new[] { "skills", "folders", "packages", "skillsListed", "skillCount", "pinHint", "licenceNotes" }) Assert.False(tool.ContainsKey(key), key);
+        foreach (var key in new[] { "needs", "files", "provides", "artifacts" }) Assert.True(tool.ContainsKey(key), key);
+        var artifact = tool["artifacts"]![0]!.AsObject();
         Assert.False(artifact.ContainsKey("sha256Hint"));
-        Assert.True(artifact.ContainsKey("sha256"));
-        Assert.Null(artifact["sha256"]);
-        var a1 = root["items"]!.AsArray().Single(i => (string)i!["id"]! == "A1")!.AsObject();
-        Assert.True((bool)a1["skillsListed"]!);
-        Assert.False(a1["skills"]![0]!.AsObject().ContainsKey("termsClass"));
-        Assert.False(a1["skills"]![0]!.AsObject().ContainsKey("pin"));
+        foreach (var key in new[] { "url", "size", "sha256" })
+        {
+            Assert.True(artifact.ContainsKey(key), key);
+            Assert.Null(artifact[key]);
+        }
+        var skills = root["items"]![1]!.AsObject();
+        Assert.Equal("0123456", (string)skills["pinHint"]!);
+        Assert.Equal("a note", (string)skills["licenceNotes"]!);
+        Assert.True((bool)skills["skillsListed"]!);
+        Assert.Equal(2, (int)skills["skillCount"]!);
+        var first = skills["skills"]![0]!.AsObject();
+        Assert.True(first.ContainsKey("name"));
+        Assert.Null(first["name"]);
+        Assert.True(first.ContainsKey("path"));
+        Assert.False(first.ContainsKey("termsClass"));
+        Assert.False(first.ContainsKey("pin"));
+        var second = skills["skills"]![1]!.AsObject();
+        Assert.Equal("none", (string)second["termsClass"]!);
+        Assert.Equal(CatalogueFixtures.FixturePin, (string)second["pin"]!);
     }
 
     [Fact]
@@ -91,18 +103,30 @@ public sealed class SkillsCatalogueWriterTests
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-            var text = SkillsCatalogueWriter.Serialize(CatalogueFixtures.Real);
+            var catalogue = CatalogueFixtures.Pinned() with
+            {
+                Items =
+                [
+                    CatalogueFixtures.PinnedTool() with { ApproxSizeMb = 8.1, Provides = [new CatalogueProvide { Kind = ProvideKind.Message, Name = "Executable doesn't exist at" }],
+                        Artifacts = [new CatalogueArtifact { Name = "tool.zip", Url = "https://github.com/example/t.zip", Size = 12601679, Sha256 = CatalogueFixtures.Sha("t"), Sha256Hint = null }] },
+                    CatalogueFixtures.PinnedPyset() with { Provides = [new CatalogueProvide { Kind = ProvideKind.PyModule, Name = "m" }] },
+                    CatalogueFixtures.PinnedSkillset() with { TermsClass = TermsClass.Proprietary, CountState = CountState.Added, PinState = PinState.Unpinned },
+                ],
+            };
+            var text = SkillsCatalogueWriter.Serialize(catalogue);
+            Assert.Contains("\"kind\": \"tool\"", text, StringComparison.Ordinal);
+            Assert.Contains("\"kind\": \"pyset\"", text, StringComparison.Ordinal);
             Assert.Contains("\"kind\": \"skillset\"", text, StringComparison.Ordinal);
-            Assert.Contains("\"kind\": \"nodeset\"", text, StringComparison.Ordinal);
             Assert.Contains("\"termsClass\": \"proprietary\"", text, StringComparison.Ordinal);
             Assert.Contains("\"countState\": \"added\"", text, StringComparison.Ordinal);
             Assert.Contains("\"pinState\": \"unpinned\"", text, StringComparison.Ordinal);
             Assert.Contains("\"kind\": \"pyModule\"", text, StringComparison.Ordinal);
+            Assert.Contains("\"kind\": \"message\"", text, StringComparison.Ordinal);
             Assert.Contains("\"approxSizeMb\": 8.1,", text, StringComparison.Ordinal);
             Assert.Contains("\"size\": 12601679,", text, StringComparison.Ordinal);
             Assert.Contains("\"name\": \"Executable doesn't exist at\"", text, StringComparison.Ordinal);
             Assert.DoesNotContain("\\u0027", text, StringComparison.Ordinal);
-            Assert.Equal(text, SkillsCatalogueWriter.Serialize(CatalogueFixtures.Real));
+            Assert.Equal(text, SkillsCatalogueWriter.Serialize(catalogue));
         }
         finally
         {
