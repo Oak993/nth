@@ -1,0 +1,1921 @@
+{
+  "source": "porting/first-release/design-src/customization/cz.js",
+  "sha256": "ca85f5a461d9778f0cdd8d26bc7b5ac3684e50c2f9484451cb743c376a389097",
+  "fmt": [
+    {
+      "v": 0,
+      "n": 0,
+      "text": "0"
+    },
+    {
+      "v": 0,
+      "n": 1,
+      "text": "0"
+    },
+    {
+      "v": 0,
+      "n": 2,
+      "text": "0"
+    },
+    {
+      "v": 0,
+      "n": 4,
+      "text": "0"
+    },
+    {
+      "v": 0,
+      "n": 8,
+      "text": "0"
+    },
+    {
+      "v": -0.005,
+      "n": 0,
+      "text": "0"
+    },
+    {
+      "v": -0.005,
+      "n": 1,
+      "text": "0"
+    },
+    {
+      "v": -0.005,
+      "n": 2,
+      "text": "0"
+    },
+    {
+      "v": -0.005,
+      "n": 4,
+      "text": "-0.005"
+    },
+    {
+      "v": -0.005,
+      "n": 8,
+      "text": "-0.005"
+    },
+    {
+      "v": -0.5,
+      "n": 0,
+      "text": "0"
+    },
+    {
+      "v": -0.5,
+      "n": 1,
+      "text": "-0.5"
+    },
+    {
+      "v": -0.5,
+      "n": 2,
+      "text": "-0.5"
+    },
+    {
+      "v": -0.5,
+      "n": 4,
+      "text": "-0.5"
+    },
+    {
+      "v": -0.5,
+      "n": 8,
+      "text": "-0.5"
+    },
+    {
+      "v": -1.5,
+      "n": 0,
+      "text": "-1"
+    },
+    {
+      "v": -1.5,
+      "n": 1,
+      "text": "-1.5"
+    },
+    {
+      "v": -1.5,
+      "n": 2,
+      "text": "-1.5"
+    },
+    {
+      "v": -1.5,
+      "n": 4,
+      "text": "-1.5"
+    },
+    {
+      "v": -1.5,
+      "n": 8,
+      "text": "-1.5"
+    },
+    {
+      "v": -2.675,
+      "n": 0,
+      "text": "-3"
+    },
+    {
+      "v": -2.675,
+      "n": 1,
+      "text": "-2.7"
+    },
+    {
+      "v": -2.675,
+      "n": 2,
+      "text": "-2.67"
+    },
+    {
+      "v": -2.675,
+      "n": 4,
+      "text": "-2.675"
+    },
+    {
+      "v": -2.675,
+      "n": 8,
+      "text": "-2.675"
+    },
+    {
+      "v": 0.005,
+      "n": 0,
+      "text": "0"
+    },
+    {
+      "v": 0.005,
+      "n": 1,
+      "text": "0"
+    },
+    {
+      "v": 0.005,
+      "n": 2,
+      "text": "0.01"
+    },
+    {
+      "v": 0.005,
+      "n": 4,
+      "text": "0.005"
+    },
+    {
+      "v": 0.005,
+      "n": 8,
+      "text": "0.005"
+    },
+    {
+      "v": 0.5,
+      "n": 0,
+      "text": "1"
+    },
+    {
+      "v": 0.5,
+      "n": 1,
+      "text": "0.5"
+    },
+    {
+      "v": 0.5,
+      "n": 2,
+      "text": "0.5"
+    },
+    {
+      "v": 0.5,
+      "n": 4,
+      "text": "0.5"
+    },
+    {
+      "v": 0.5,
+      "n": 8,
+      "text": "0.5"
+    },
+    {
+      "v": 1.005,
+      "n": 0,
+      "text": "1"
+    },
+    {
+      "v": 1.005,
+      "n": 1,
+      "text": "1"
+    },
+    {
+      "v": 1.005,
+      "n": 2,
+      "text": "1"
+    },
+    {
+      "v": 1.005,
+      "n": 4,
+      "text": "1.005"
+    },
+    {
+      "v": 1.005,
+      "n": 8,
+      "text": "1.005"
+    },
+    {
+      "v": 2.675,
+      "n": 0,
+      "text": "3"
+    },
+    {
+      "v": 2.675,
+      "n": 1,
+      "text": "2.7"
+    },
+    {
+      "v": 2.675,
+      "n": 2,
+      "text": "2.68"
+    },
+    {
+      "v": 2.675,
+      "n": 4,
+      "text": "2.675"
+    },
+    {
+      "v": 2.675,
+      "n": 8,
+      "text": "2.675"
+    },
+    {
+      "v": 3.69,
+      "n": 0,
+      "text": "4"
+    },
+    {
+      "v": 3.69,
+      "n": 1,
+      "text": "3.7"
+    },
+    {
+      "v": 3.69,
+      "n": 2,
+      "text": "3.69"
+    },
+    {
+      "v": 3.69,
+      "n": 4,
+      "text": "3.69"
+    },
+    {
+      "v": 3.69,
+      "n": 8,
+      "text": "3.69"
+    },
+    {
+      "v": 14,
+      "n": 0,
+      "text": "14"
+    },
+    {
+      "v": 14,
+      "n": 1,
+      "text": "14"
+    },
+    {
+      "v": 14,
+      "n": 2,
+      "text": "14"
+    },
+    {
+      "v": 14,
+      "n": 4,
+      "text": "14"
+    },
+    {
+      "v": 14,
+      "n": 8,
+      "text": "14"
+    },
+    {
+      "v": 0.000001,
+      "n": 0,
+      "text": "0"
+    },
+    {
+      "v": 0.000001,
+      "n": 1,
+      "text": "0"
+    },
+    {
+      "v": 0.000001,
+      "n": 2,
+      "text": "0"
+    },
+    {
+      "v": 0.000001,
+      "n": 4,
+      "text": "0"
+    },
+    {
+      "v": 0.000001,
+      "n": 8,
+      "text": "0.000001"
+    },
+    {
+      "v": 1e-7,
+      "n": 0,
+      "text": "0"
+    },
+    {
+      "v": 1e-7,
+      "n": 1,
+      "text": "0"
+    },
+    {
+      "v": 1e-7,
+      "n": 2,
+      "text": "0"
+    },
+    {
+      "v": 1e-7,
+      "n": 4,
+      "text": "0"
+    },
+    {
+      "v": 1e-7,
+      "n": 8,
+      "text": "1e-7"
+    },
+    {
+      "v": 100000000000000000000,
+      "n": 0,
+      "text": "100000000000000000000"
+    },
+    {
+      "v": 100000000000000000000,
+      "n": 1,
+      "text": "100000000000000000000"
+    },
+    {
+      "v": 100000000000000000000,
+      "n": 2,
+      "text": "100000000000000000000"
+    },
+    {
+      "v": 100000000000000000000,
+      "n": 4,
+      "text": "100000000000000000000"
+    },
+    {
+      "v": 100000000000000000000,
+      "n": 8,
+      "text": "100000000000000000000"
+    },
+    {
+      "v": 1e+21,
+      "n": 0,
+      "text": "1e+21"
+    },
+    {
+      "v": 1e+21,
+      "n": 1,
+      "text": "1e+21"
+    },
+    {
+      "v": 1e+21,
+      "n": 2,
+      "text": "999999999999999900000"
+    },
+    {
+      "v": 1e+21,
+      "n": 4,
+      "text": "1.0000000000000001e+21"
+    },
+    {
+      "v": 1e+21,
+      "n": 8,
+      "text": "999999999999999900000"
+    }
+  ],
+  "tone": [
+    {
+      "hex": "#000000",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#666666"
+    },
+    {
+      "hex": "#000000",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#000000"
+    },
+    {
+      "hex": "#000000",
+      "title": "#000000",
+      "dark": true,
+      "text": "#666666"
+    },
+    {
+      "hex": "#000000",
+      "title": "#000000",
+      "dark": false,
+      "text": "#000000"
+    },
+    {
+      "hex": "#000000",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#666666"
+    },
+    {
+      "hex": "#000000",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#000000"
+    },
+    {
+      "hex": "#000000",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#9d4f31"
+    },
+    {
+      "hex": "#000000",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#000000"
+    },
+    {
+      "hex": "#FFFFFF",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#FFFFFF"
+    },
+    {
+      "hex": "#FFFFFF",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#a4a4a5"
+    },
+    {
+      "hex": "#FFFFFF",
+      "title": "#000000",
+      "dark": true,
+      "text": "#FFFFFF"
+    },
+    {
+      "hex": "#FFFFFF",
+      "title": "#000000",
+      "dark": false,
+      "text": "#a6a6a6"
+    },
+    {
+      "hex": "#FFFFFF",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#FFFFFF"
+    },
+    {
+      "hex": "#FFFFFF",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#a4a4a5"
+    },
+    {
+      "hex": "#FFFFFF",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#FFFFFF"
+    },
+    {
+      "hex": "#FFFFFF",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#d59e89"
+    },
+    {
+      "hex": "#1F30C6",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#4c59d1"
+    },
+    {
+      "hex": "#1F30C6",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#1F30C6"
+    },
+    {
+      "hex": "#1F30C6",
+      "title": "#000000",
+      "dark": true,
+      "text": "#4c59d1"
+    },
+    {
+      "hex": "#1F30C6",
+      "title": "#000000",
+      "dark": false,
+      "text": "#1F30C6"
+    },
+    {
+      "hex": "#1F30C6",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#4c59d1"
+    },
+    {
+      "hex": "#1F30C6",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#1F30C6"
+    },
+    {
+      "hex": "#1F30C6",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#8b5064"
+    },
+    {
+      "hex": "#1F30C6",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#1F30C6"
+    },
+    {
+      "hex": "#A14827",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#A14827"
+    },
+    {
+      "hex": "#A14827",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#A14827"
+    },
+    {
+      "hex": "#A14827",
+      "title": "#000000",
+      "dark": true,
+      "text": "#A14827"
+    },
+    {
+      "hex": "#A14827",
+      "title": "#000000",
+      "dark": false,
+      "text": "#A14827"
+    },
+    {
+      "hex": "#A14827",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#A14827"
+    },
+    {
+      "hex": "#A14827",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#A14827"
+    },
+    {
+      "hex": "#A14827",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#A14827"
+    },
+    {
+      "hex": "#A14827",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#A14827"
+    },
+    {
+      "hex": "#FAFCFF",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#FAFCFF"
+    },
+    {
+      "hex": "#FAFCFF",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#a1a2a5"
+    },
+    {
+      "hex": "#FAFCFF",
+      "title": "#000000",
+      "dark": true,
+      "text": "#FAFCFF"
+    },
+    {
+      "hex": "#FAFCFF",
+      "title": "#000000",
+      "dark": false,
+      "text": "#a3a4a6"
+    },
+    {
+      "hex": "#FAFCFF",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#FAFCFF"
+    },
+    {
+      "hex": "#FAFCFF",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#a1a2a5"
+    },
+    {
+      "hex": "#FAFCFF",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#FAFCFF"
+    },
+    {
+      "hex": "#FAFCFF",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#d39d89"
+    },
+    {
+      "hex": "#06060B",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#6a6a6d"
+    },
+    {
+      "hex": "#06060B",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#06060B"
+    },
+    {
+      "hex": "#06060B",
+      "title": "#000000",
+      "dark": true,
+      "text": "#6a6a6d"
+    },
+    {
+      "hex": "#06060B",
+      "title": "#000000",
+      "dark": false,
+      "text": "#06060B"
+    },
+    {
+      "hex": "#06060B",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#6a6a6d"
+    },
+    {
+      "hex": "#06060B",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#06060B"
+    },
+    {
+      "hex": "#06060B",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#9e5033"
+    },
+    {
+      "hex": "#06060B",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#06060B"
+    },
+    {
+      "hex": "#8C65BA",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#8C65BA"
+    },
+    {
+      "hex": "#8C65BA",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#8C65BA"
+    },
+    {
+      "hex": "#8C65BA",
+      "title": "#000000",
+      "dark": true,
+      "text": "#8C65BA"
+    },
+    {
+      "hex": "#8C65BA",
+      "title": "#000000",
+      "dark": false,
+      "text": "#8C65BA"
+    },
+    {
+      "hex": "#8C65BA",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#8C65BA"
+    },
+    {
+      "hex": "#8C65BA",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#8C65BA"
+    },
+    {
+      "hex": "#8C65BA",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#8C65BA"
+    },
+    {
+      "hex": "#8C65BA",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#8C65BA"
+    },
+    {
+      "hex": "#123456",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#4d6780"
+    },
+    {
+      "hex": "#123456",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#123456"
+    },
+    {
+      "hex": "#123456",
+      "title": "#000000",
+      "dark": true,
+      "text": "#4d6780"
+    },
+    {
+      "hex": "#123456",
+      "title": "#000000",
+      "dark": false,
+      "text": "#123456"
+    },
+    {
+      "hex": "#123456",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#4d6780"
+    },
+    {
+      "hex": "#123456",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#123456"
+    },
+    {
+      "hex": "#123456",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#8f5341"
+    },
+    {
+      "hex": "#123456",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#123456"
+    },
+    {
+      "hex": "#FEEDAB",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#FEEDAB"
+    },
+    {
+      "hex": "#FEEDAB",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#afa47a"
+    },
+    {
+      "hex": "#FEEDAB",
+      "title": "#000000",
+      "dark": true,
+      "text": "#FEEDAB"
+    },
+    {
+      "hex": "#FEEDAB",
+      "title": "#000000",
+      "dark": false,
+      "text": "#b2a678"
+    },
+    {
+      "hex": "#FEEDAB",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#FEEDAB"
+    },
+    {
+      "hex": "#FEEDAB",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#afa47a"
+    },
+    {
+      "hex": "#FEEDAB",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#FEEDAB"
+    },
+    {
+      "hex": "#FEEDAB",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#d89e6d"
+    }
+  ],
+  "snap": [
+    {
+      "min": 0.5,
+      "max": 14,
+      "step": 0.05,
+      "v": -0.5,
+      "result": 0.5
+    },
+    {
+      "min": 0.5,
+      "max": 14,
+      "step": 0.05,
+      "v": 0.5,
+      "result": 0.5
+    },
+    {
+      "min": 0.5,
+      "max": 14,
+      "step": 0.05,
+      "v": 0.525,
+      "result": 0.55
+    },
+    {
+      "min": 0.5,
+      "max": 14,
+      "step": 0.05,
+      "v": 7.25,
+      "result": 7.25
+    },
+    {
+      "min": 0.5,
+      "max": 14,
+      "step": 0.05,
+      "v": 14,
+      "result": 14
+    },
+    {
+      "min": 0.5,
+      "max": 14,
+      "step": 0.05,
+      "v": 15,
+      "result": 14
+    },
+    {
+      "min": 0.2,
+      "max": 3,
+      "step": 0.05,
+      "v": -0.8,
+      "result": 0.2
+    },
+    {
+      "min": 0.2,
+      "max": 3,
+      "step": 0.05,
+      "v": 0.2,
+      "result": 0.2
+    },
+    {
+      "min": 0.2,
+      "max": 3,
+      "step": 0.05,
+      "v": 0.225,
+      "result": 0.25
+    },
+    {
+      "min": 0.2,
+      "max": 3,
+      "step": 0.05,
+      "v": 1.6,
+      "result": 1.6
+    },
+    {
+      "min": 0.2,
+      "max": 3,
+      "step": 0.05,
+      "v": 3,
+      "result": 3
+    },
+    {
+      "min": 0.2,
+      "max": 3,
+      "step": 0.05,
+      "v": 4,
+      "result": 3
+    },
+    {
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "v": 0.005,
+      "result": 0.01
+    },
+    {
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "v": 0.5,
+      "result": 0.5
+    },
+    {
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "v": 1,
+      "result": 1
+    },
+    {
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "v": 2,
+      "result": 1
+    },
+    {
+      "min": -180,
+      "max": 180,
+      "step": 1,
+      "v": -181,
+      "result": -180
+    },
+    {
+      "min": -180,
+      "max": 180,
+      "step": 1,
+      "v": -180,
+      "result": -180
+    },
+    {
+      "min": -180,
+      "max": 180,
+      "step": 1,
+      "v": -179.5,
+      "result": -179
+    },
+    {
+      "min": -180,
+      "max": 180,
+      "step": 1,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": -180,
+      "max": 180,
+      "step": 1,
+      "v": 180,
+      "result": 180
+    },
+    {
+      "min": -180,
+      "max": 180,
+      "step": 1,
+      "v": 181,
+      "result": 180
+    },
+    {
+      "min": 0,
+      "max": 2.5,
+      "step": 0.05,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 2.5,
+      "step": 0.05,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 2.5,
+      "step": 0.05,
+      "v": 0.025,
+      "result": 0.05
+    },
+    {
+      "min": 0,
+      "max": 2.5,
+      "step": 0.05,
+      "v": 1.25,
+      "result": 1.25
+    },
+    {
+      "min": 0,
+      "max": 2.5,
+      "step": 0.05,
+      "v": 2.5,
+      "result": 2.5
+    },
+    {
+      "min": 0,
+      "max": 2.5,
+      "step": 0.05,
+      "v": 3.5,
+      "result": 2.5
+    },
+    {
+      "min": 0,
+      "max": 180,
+      "step": 1,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 180,
+      "step": 1,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 180,
+      "step": 1,
+      "v": 0.5,
+      "result": 1
+    },
+    {
+      "min": 0,
+      "max": 180,
+      "step": 1,
+      "v": 90,
+      "result": 90
+    },
+    {
+      "min": 0,
+      "max": 180,
+      "step": 1,
+      "v": 180,
+      "result": 180
+    },
+    {
+      "min": 0,
+      "max": 180,
+      "step": 1,
+      "v": 181,
+      "result": 180
+    },
+    {
+      "min": 0.25,
+      "max": 3,
+      "step": 0.05,
+      "v": -0.75,
+      "result": 0.25
+    },
+    {
+      "min": 0.25,
+      "max": 3,
+      "step": 0.05,
+      "v": 0.25,
+      "result": 0.25
+    },
+    {
+      "min": 0.25,
+      "max": 3,
+      "step": 0.05,
+      "v": 0.275,
+      "result": 0.3
+    },
+    {
+      "min": 0.25,
+      "max": 3,
+      "step": 0.05,
+      "v": 1.625,
+      "result": 1.65
+    },
+    {
+      "min": 0.25,
+      "max": 3,
+      "step": 0.05,
+      "v": 3,
+      "result": 3
+    },
+    {
+      "min": 0.25,
+      "max": 3,
+      "step": 0.05,
+      "v": 4,
+      "result": 3
+    },
+    {
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "v": 0.025,
+      "result": 0.05
+    },
+    {
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "v": 1,
+      "result": 1
+    },
+    {
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "v": 2,
+      "result": 2
+    },
+    {
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "v": 3,
+      "result": 2
+    },
+    {
+      "min": 0,
+      "max": 26,
+      "step": 1,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 26,
+      "step": 1,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 26,
+      "step": 1,
+      "v": 0.5,
+      "result": 1
+    },
+    {
+      "min": 0,
+      "max": 26,
+      "step": 1,
+      "v": 13,
+      "result": 13
+    },
+    {
+      "min": 0,
+      "max": 26,
+      "step": 1,
+      "v": 26,
+      "result": 26
+    },
+    {
+      "min": 0,
+      "max": 26,
+      "step": 1,
+      "v": 27,
+      "result": 26
+    },
+    {
+      "min": 0,
+      "max": 20,
+      "step": 0.5,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 20,
+      "step": 0.5,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 20,
+      "step": 0.5,
+      "v": 0.25,
+      "result": 0.5
+    },
+    {
+      "min": 0,
+      "max": 20,
+      "step": 0.5,
+      "v": 10,
+      "result": 10
+    },
+    {
+      "min": 0,
+      "max": 20,
+      "step": 0.5,
+      "v": 20,
+      "result": 20
+    },
+    {
+      "min": 0,
+      "max": 20,
+      "step": 0.5,
+      "v": 21,
+      "result": 20
+    },
+    {
+      "min": 0,
+      "max": 60,
+      "step": 0.5,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 60,
+      "step": 0.5,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 60,
+      "step": 0.5,
+      "v": 0.25,
+      "result": 0.5
+    },
+    {
+      "min": 0,
+      "max": 60,
+      "step": 0.5,
+      "v": 30,
+      "result": 30
+    },
+    {
+      "min": 0,
+      "max": 60,
+      "step": 0.5,
+      "v": 60,
+      "result": 60
+    },
+    {
+      "min": 0,
+      "max": 60,
+      "step": 0.5,
+      "v": 61,
+      "result": 60
+    },
+    {
+      "min": 0.35,
+      "max": 4,
+      "step": 0.01,
+      "v": -0.65,
+      "result": 0.35
+    },
+    {
+      "min": 0.35,
+      "max": 4,
+      "step": 0.01,
+      "v": 0.35,
+      "result": 0.35
+    },
+    {
+      "min": 0.35,
+      "max": 4,
+      "step": 0.01,
+      "v": 0.355,
+      "result": 0.36
+    },
+    {
+      "min": 0.35,
+      "max": 4,
+      "step": 0.01,
+      "v": 2.175,
+      "result": 2.17
+    },
+    {
+      "min": 0.35,
+      "max": 4,
+      "step": 0.01,
+      "v": 4,
+      "result": 4
+    },
+    {
+      "min": 0.35,
+      "max": 4,
+      "step": 0.01,
+      "v": 5,
+      "result": 4
+    },
+    {
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "v": -0.5,
+      "result": 0.5
+    },
+    {
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "v": 0.5,
+      "result": 0.5
+    },
+    {
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "v": 0.505,
+      "result": 0.51
+    },
+    {
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "v": 1.25,
+      "result": 1.25
+    },
+    {
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "v": 2,
+      "result": 2
+    },
+    {
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "v": 3,
+      "result": 2
+    },
+    {
+      "min": 0,
+      "max": 3,
+      "step": 0.05,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 3,
+      "step": 0.05,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 3,
+      "step": 0.05,
+      "v": 0.025,
+      "result": 0.05
+    },
+    {
+      "min": 0,
+      "max": 3,
+      "step": 0.05,
+      "v": 1.5,
+      "result": 1.5
+    },
+    {
+      "min": 0,
+      "max": 3,
+      "step": 0.05,
+      "v": 3,
+      "result": 3
+    },
+    {
+      "min": 0,
+      "max": 3,
+      "step": 0.05,
+      "v": 4,
+      "result": 3
+    },
+    {
+      "min": 3,
+      "max": 40,
+      "step": 0.5,
+      "v": 2,
+      "result": 3
+    },
+    {
+      "min": 3,
+      "max": 40,
+      "step": 0.5,
+      "v": 3,
+      "result": 3
+    },
+    {
+      "min": 3,
+      "max": 40,
+      "step": 0.5,
+      "v": 3.25,
+      "result": 3.5
+    },
+    {
+      "min": 3,
+      "max": 40,
+      "step": 0.5,
+      "v": 21.5,
+      "result": 21.5
+    },
+    {
+      "min": 3,
+      "max": 40,
+      "step": 0.5,
+      "v": 40,
+      "result": 40
+    },
+    {
+      "min": 3,
+      "max": 40,
+      "step": 0.5,
+      "v": 41,
+      "result": 40
+    },
+    {
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "v": 0.5,
+      "result": 1
+    },
+    {
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "v": 50,
+      "result": 50
+    },
+    {
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "v": 100,
+      "result": 100
+    },
+    {
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "v": 101,
+      "result": 100
+    },
+    {
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "v": -1,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "v": 0,
+      "result": 0
+    },
+    {
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "v": 0.5,
+      "result": 1
+    },
+    {
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "v": 20,
+      "result": 20
+    },
+    {
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "v": 40,
+      "result": 40
+    },
+    {
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "v": 41,
+      "result": 40
+    },
+    {
+      "min": 4,
+      "max": 64,
+      "step": 1,
+      "v": 3,
+      "result": 4
+    },
+    {
+      "min": 4,
+      "max": 64,
+      "step": 1,
+      "v": 4,
+      "result": 4
+    },
+    {
+      "min": 4,
+      "max": 64,
+      "step": 1,
+      "v": 4.5,
+      "result": 5
+    },
+    {
+      "min": 4,
+      "max": 64,
+      "step": 1,
+      "v": 34,
+      "result": 34
+    },
+    {
+      "min": 4,
+      "max": 64,
+      "step": 1,
+      "v": 64,
+      "result": 64
+    },
+    {
+      "min": 4,
+      "max": 64,
+      "step": 1,
+      "v": 65,
+      "result": 64
+    },
+    {
+      "min": 0.5,
+      "max": 5,
+      "step": 0.25,
+      "v": -0.5,
+      "result": 0.5
+    },
+    {
+      "min": 0.5,
+      "max": 5,
+      "step": 0.25,
+      "v": 0.5,
+      "result": 0.5
+    },
+    {
+      "min": 0.5,
+      "max": 5,
+      "step": 0.25,
+      "v": 0.625,
+      "result": 0.75
+    },
+    {
+      "min": 0.5,
+      "max": 5,
+      "step": 0.25,
+      "v": 2.75,
+      "result": 2.75
+    },
+    {
+      "min": 0.5,
+      "max": 5,
+      "step": 0.25,
+      "v": 5,
+      "result": 5
+    },
+    {
+      "min": 0.5,
+      "max": 5,
+      "step": 0.25,
+      "v": 6,
+      "result": 5
+    },
+    {
+      "min": 2,
+      "max": 8,
+      "step": 0.5,
+      "v": 1,
+      "result": 2
+    },
+    {
+      "min": 2,
+      "max": 8,
+      "step": 0.5,
+      "v": 2,
+      "result": 2
+    },
+    {
+      "min": 2,
+      "max": 8,
+      "step": 0.5,
+      "v": 2.25,
+      "result": 2.5
+    },
+    {
+      "min": 2,
+      "max": 8,
+      "step": 0.5,
+      "v": 5,
+      "result": 5
+    },
+    {
+      "min": 2,
+      "max": 8,
+      "step": 0.5,
+      "v": 8,
+      "result": 8
+    },
+    {
+      "min": 2,
+      "max": 8,
+      "step": 0.5,
+      "v": 9,
+      "result": 8
+    }
+  ],
+  "texts": [
+    "Style",
+    "Light",
+    "beam",
+    "Border beam",
+    "A beam of colour travels the edge",
+    "aura",
+    "Uiverse light",
+    "A soft two-tone glow turns around it",
+    "off",
+    "Off",
+    "No light around the composer",
+    "cardfill",
+    "tile",
+    "tilesel",
+    "sel",
+    "composerLight.style",
+    "x2(v) = fmt(v, 2) + '×'",
+    "deg(v) = round(v) + '°'",
+    "s(v) = fmt(v, 2) + ' s'",
+    "px(v) = fmt(v, 1) + ' px'",
+    "pc(v) = round(v * 100) + '%'",
+    "round",
+    "Math.round",
+    "BorderBeamResolved.AutoValues(beam, appDark, w, 52, 22)",
+    "w",
+    "Look",
+    "Motion",
+    "Rotate",
+    "Pulse",
+    "family",
+    "size",
+    "md",
+    "pulse-inner",
+    "BorderBeamOptions.WithFamily",
+    "Travels around the edge",
+    "Breathes in place",
+    "Shape",
+    "Large",
+    "Line",
+    "Small",
+    "Inside",
+    "Outside",
+    "A wide beam with an inner glow",
+    "A short streak glides along the edge",
+    "A slimmer beam, a tighter glow",
+    "Colour pools just inside the edge",
+    "A glow spills out past the edge",
+    "Colours",
+    "color",
+    "colorful",
+    "Colourful",
+    "mono",
+    "Mono",
+    "ocean",
+    "Ocean",
+    "sunset",
+    "Sunset",
+    "forest",
+    "Forest",
+    "candy",
+    "Candy",
+    "ice",
+    "Ice",
+    "gold",
+    "Gold",
+    "BorderBeamTables",
+    "border",
+    "Pace and strength",
+    "Speed",
+    "duration",
+    "s",
+    "Auto: the designed pace",
+    "Seconds for one lap",
+    "Seconds for one sweep",
+    "Seconds for one breath",
+    "Brightness",
+    "brightness",
+    "x2",
+    "Auto: set for the theme",
+    "Lighter or deeper colours",
+    "Intensity",
+    "strength",
+    "pc",
+    "How strongly the light shows",
+    "Follow the composer",
+    "respond",
+    "Softer at rest, fuller as you type and while a turn runs",
+    "Advanced",
+    "Colour recipe, glow layers and corner",
+    "Show",
+    "Hide",
+    "Colour shift",
+    "hueShift",
+    "deg",
+    "Turns every colour around the wheel",
+    "Saturation",
+    "saturation",
+    "Vivid or muted colours",
+    "Colour drift",
+    "hueRange",
+    "'±' + round(line ? min(13, v) : v) + '°'",
+    "Pulse always runs through every hue",
+    "Off while the colours hold still",
+    "How far the colours wander (Line keeps it under 13°)",
+    "How far the colours wander",
+    "Hold colours still",
+    "staticColors",
+    "Mono always holds still",
+    "The palette stops drifting",
+    "Glow size",
+    "glowSize",
+    "Softness of every glow",
+    "Edge line",
+    "strokeX",
+    "The thin line on the edge",
+    "Inner glow",
+    "innerX",
+    "The wash inside the edge",
+    "Outer glow",
+    "bloomX",
+    "The bloom beyond the edge",
+    "Corner",
+    "radius",
+    "v + ' px'",
+    "Auto: follows the composer",
+    "Rounder or squarer than the composer",
+    "Tuned for",
+    "theme",
+    "Auto",
+    "Dark",
+    "Matches the app’s theme",
+    "Always the dark recipe",
+    "Always the light recipe",
+    "Outside glow",
+    "Core softness",
+    "coreBlur",
+    "px",
+    "The bright glow near the edge",
+    "Bloom softness",
+    "bloomBlur",
+    "The wide glow around it",
+    "Glow width",
+    "glowX",
+    "clamp(w / 350, 0.35, 4)",
+    "How far it spreads sideways",
+    "Glow height",
+    "glowY",
+    "clamp(52 / 140, 0.35, 4)",
+    "How far it spreads up and down",
+    "Glow boost",
+    "boost",
+    "Extra brightness in the glow",
+    "Flare",
+    "spike",
+    "How much the streak flares as it goes",
+    "Defaults",
+    "Border beam as Marrow ships it",
+    "BorderBeamOptions.Default",
+    "fit",
+    "faithful",
+    "active",
+    "Return every Border beam setting to how it ships",
+    "Reset to defaults",
+    "Beam = BorderBeamOptions.Default",
+    "Library defaults",
+    "Calm for the composer",
+    "pc(v) = round(v) + '%'",
+    "Original",
+    "Model",
+    "Accent",
+    "Custom",
+    "scheme",
+    "Orange and blue",
+    "The model in use: {maker name}",
+    "Your accent: {accent name}",
+    "Two colours you pick",
+    "Your colours",
+    "One side",
+    "The other",
+    "First colour",
+    "Second colour",
+    "c1",
+    "c2",
+    "One for each side of the glow",
+    "Rim light",
+    "rim",
+    "A bright line hugging the edge",
+    "Halftone",
+    "dots",
+    "The glow seen through fine dots",
+    "{maker name}",
+    "{accent name}",
+    "AccentPalette",
+    "speed",
+    "fmt(v, 1) + ' s'",
+    "Seconds for one turn",
+    "Breathing",
+    "breathing",
+    "The glow slowly swells and settles",
+    "Brightness by moment",
+    "At rest",
+    "rest",
+    "While the composer waits",
+    "While typing",
+    "typing",
+    "As you write a message",
+    "While a turn runs",
+    "running",
+    "As the agent works",
+    "Halo, rim and dot sizes",
+    "Halo size",
+    "haloSize",
+    "How far the glow reaches",
+    "Halo softness",
+    "haloBlur",
+    "How soft its outer edge is",
+    "Rim width",
+    "rimW",
+    "Thickness of the rim light",
+    "Turn on Rim light to use it",
+    "Dot spacing",
+    "dotCell",
+    "Finer or coarser dots",
+    "Turn on Halftone to use it",
+    "Dot strength",
+    "dotStr",
+    "How visible the dots are",
+    "The Uiverse light as Marrow ships it",
+    "UiverseAuraOptions",
+    "Default",
+    "Return every Uiverse light setting to how it ships",
+    "Aura = UiverseAuraOptions.Default",
+    "The composer has no light. Your Border beam and Uiverse light settings are kept for when you\nturn one back on."
+  ],
+  "constants": {
+    "style": {
+      "beam": "Border beam",
+      "aura": "Uiverse light",
+      "off": "Off"
+    },
+    "description": {
+      "beam": "A beam of colour travels the edge",
+      "aura": "A soft two-tone glow turns around it",
+      "off": "No light around the composer"
+    },
+    "palettes": {
+      "colorful": "Colourful",
+      "mono": "Mono",
+      "ocean": "Ocean",
+      "sunset": "Sunset",
+      "forest": "Forest",
+      "candy": "Candy",
+      "ice": "Ice",
+      "gold": "Gold"
+    },
+    "shape": {
+      "md": "A wide beam with an inner glow",
+      "line": "A short streak glides along the edge",
+      "sm": "A slimmer beam, a tighter glow",
+      "pulse-inner": "Colour pools just inside the edge",
+      "pulse-outside": "A glow spills out past the edge"
+    }
+  }
+}
