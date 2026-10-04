@@ -1,0 +1,379 @@
+{
+  "schema": 1,
+  "unit": "VT-0",
+  "purpose": "The facts voice typing stands on, pinned in unit VT-0 (voice SPEC V-3.1 to V-3.6, V-6.1, V-7.1; OD-0099 Q-V-9 C and Q-V-5). Held to the artifacts by Marrow.Services.Tests.Port.Voice.VoicePinsTests; never trusted from a server at run time.",
+  "measuredOn": "2026-10-04, the owner PC (Windows 11 26200, .NET SDK 10.0.401, RTX 4080 driver 616.92)",
+  "packages": [
+    {
+      "id": "Whisper.net",
+      "version": "1.9.1",
+      "licence": "MIT",
+      "copyright": "Copyright (c) 2024 sandrohanea",
+      "use": "managed wrapper",
+      "nugetSha512": "6fd3a7b64ae240fe7295cd3b298e2002728e80025f8d33b8a8eb1c7e07c66cd3f3b588343b71b6f843ab20c6cb0a423e64d1f3be4647e8a86292e11433f757f3",
+      "nugetBytes": 843394
+    },
+    {
+      "id": "Whisper.net.Runtime",
+      "version": "1.9.1",
+      "licence": "MIT",
+      "copyright": "Copyright (c) 2024 sandrohanea",
+      "use": "CPU natives (the package also depends on Whisper.net.Runtime.Metal, which adds nothing on win-x64)",
+      "nugetSha512": "a22ae380ab11fc2b6ac00ef96ac2c53784f233d9a00e8457229aab4fadb7a1344cb1e938f5d62fc219c4213d70da081895a13f21d2c47fc073d8d11bd1d380ed",
+      "nugetBytes": 18482556
+    },
+    {
+      "id": "Whisper.net.Runtime.Vulkan",
+      "version": "1.9.1",
+      "licence": "MIT",
+      "copyright": "Copyright (c) 2024 sandrohanea",
+      "use": "Vulkan natives",
+      "nugetSha512": "85161bae3efacb4f60dfcc1971c19bdc3bcd89e9a960caba65fe855ff80acf18d2d857f525e4d9fd7492b89d14814d77abf4c0b03fc697f0adbb43e635c16374",
+      "nugetBytes": 36867136
+    },
+    {
+      "id": "NAudio.Wasapi",
+      "version": "3.1.0",
+      "licence": "MIT",
+      "copyright": "Copyright 2020 Mark Heath (the project LICENSE; the package metadata says (c) Mark Heath 2026)",
+      "use": "WASAPI capture (net9.0 target, runs on net10.0)",
+      "nugetSha512": "0ce52fa38591d5c59ff5859026d10c4e1492840516c7f8272bdab123d206c01249164414249c8c78ba6000d077b76ca4dfd0d04804d82d0d979c5c0466ab621d",
+      "nugetBytes": 246138
+    }
+  ],
+  "transitiveClosure": [
+    {
+      "id": "Microsoft.Extensions.AI.Abstractions",
+      "version": "10.2.0",
+      "licence": "MIT",
+      "copyright": "Copyright (c) Microsoft Corporation",
+      "via": "Whisper.net"
+    },
+    {
+      "id": "System.Numerics.Tensors",
+      "version": "9.0.0",
+      "licence": "MIT",
+      "copyright": "Copyright (c) Microsoft Corporation",
+      "via": "Microsoft.Extensions.AI.Abstractions"
+    },
+    {
+      "id": "NAudio.Core",
+      "version": "3.1.0",
+      "licence": "MIT",
+      "copyright": "Copyright 2020 Mark Heath",
+      "via": "NAudio.Wasapi"
+    }
+  ],
+  "natives": {
+    "note": "The published win-x64 natives (the Marrow.App self-contained publish, 2026-10-04). The runtime packages by themselves copy 126,744,840 bytes of natives for every platform; Marrow.Services.csproj (target MarrowTrimWhisperNatives) keeps only these nine files.",
+    "files": [
+      {
+        "directory": "runtimes/win-x64",
+        "name": "ggml-base-whisper.dll",
+        "bytes": 636928,
+        "sha256": "e6c362421b6d5a5c1b52341f88d3d72764de29f05141748cc3faad2f6348063f"
+      },
+      {
+        "directory": "runtimes/win-x64",
+        "name": "ggml-cpu-whisper.dll",
+        "bytes": 782848,
+        "sha256": "480a23afc6deea301c5cda66cf462fa2f2eb7ff9bca63b8f4f933a0e8dc5d4dd"
+      },
+      {
+        "directory": "runtimes/win-x64",
+        "name": "ggml-whisper.dll",
+        "bytes": 67072,
+        "sha256": "2e0ac238c2bc178a5c1f09b3bde2421904b191bce1cc1c13dc64309ca3b9cb36"
+      },
+      {
+        "directory": "runtimes/win-x64",
+        "name": "whisper.dll",
+        "bytes": 484864,
+        "sha256": "07ec2fac4946005ba7380f2c2e9ccfa3ad23007592d074aa698ed5df6bfb4938"
+      },
+      {
+        "directory": "runtimes/vulkan/win-x64",
+        "name": "ggml-base-whisper.dll",
+        "bytes": 636928,
+        "sha256": "0faff6ab28a1e10dfc7319dc92608259d1f68aacb897b8dbff60323dce46bcb8"
+      },
+      {
+        "directory": "runtimes/vulkan/win-x64",
+        "name": "ggml-cpu-whisper.dll",
+        "bytes": 782848,
+        "sha256": "98120d5ebb99beb37a319d9de624ffdb61bfe528a9829f9a6a1a55af3dab06c5"
+      },
+      {
+        "directory": "runtimes/vulkan/win-x64",
+        "name": "ggml-vulkan-whisper.dll",
+        "bytes": 58013696,
+        "sha256": "e325725c18b88bed00443a2ca4ac3d6fdb7587fb055b52c623df3b04e87fb039"
+      },
+      {
+        "directory": "runtimes/vulkan/win-x64",
+        "name": "ggml-whisper.dll",
+        "bytes": 67072,
+        "sha256": "4566056b3a710ffdf89c7627aa3ab7a73fb0f78374e14f13198628dcbf27cc2d"
+      },
+      {
+        "directory": "runtimes/vulkan/win-x64",
+        "name": "whisper.dll",
+        "bytes": 484864,
+        "sha256": "56fe7c2e626fc0c981e87638d3e8c8bec39de8877636ac885929212b81ddb9ed"
+      }
+    ],
+    "totalBytes": 61957120,
+    "budgetBytes": 50000000,
+    "withinBudget": false,
+    "overBudgetBytes": 11957120,
+    "deflateBytes": 18879675,
+    "deflateNote": "zlib level 6 over the nine files; the installer packs compressed, so about 19 MB of the installer, 62.0 MB unpacked on disk. V-3.2 estimated under 50 MB unpacked: the Vulkan backend alone (ggml-vulkan-whisper.dll) is 58.0 MB. The owner is told in the unit report.",
+    "loaderOrder": "Whisper.net looks in runtimes\\<runtime>\\win-x64 (vulkan) and runtimes\\win-x64 (the CPU runtime) under the app folder."
+  },
+  "vcRuntime": {
+    "importedByNatives": [
+      "MSVCP140.dll",
+      "VCOMP140.DLL",
+      "VCRUNTIME140.dll",
+      "VCRUNTIME140_1.dll"
+    ],
+    "carriedByPublish": false,
+    "finding": "The whisper natives import the Visual C++ 2015-2022 x64 runtime (MSVCP140, VCRUNTIME140, VCRUNTIME140_1 and the OpenMP runtime VCOMP140). The self-contained app does NOT carry it and does not need it itself: coreclr.dll, hostpolicy.dll, Marrow.App.exe, libSkiaSharp.dll, libHarfBuzzSharp.dll and av_libglesv2.dll import only the Windows Universal CRT (api-ms-win-crt-*) or nothing. On a PC without the redistributable the voice natives fail to load. This PC has all four DLLs in System32. Not changed in this unit: either Velopack gets its vcredist143-x64 prerequisite or the four DLLs are shipped app-local; both are installer or packaging decisions that need the owner (V-3.2). Item F of BUILD-PLAN section 4 (Windows Sandbox) settles it on a clean PC.",
+    "vulkanDriverDll": "vulkan-1.dll is imported by ggml-vulkan-whisper.dll and comes from the GPU driver, not from the app."
+  },
+  "whisperNet": {
+    "version": "1.9.1",
+    "apiMembers": [
+      "WhisperFactory.FromPath(String)",
+      "WhisperFactory.FromPath(String,WhisperFactoryOptions)",
+      "WhisperFactory.CreateBuilder()",
+      "WhisperFactory.GetRuntimeInfo()",
+      "WhisperFactory.Dispose()",
+      "WhisperFactoryOptions.UseGpu",
+      "WhisperFactoryOptions.GpuDevice",
+      "WhisperFactoryOptions.UseFlashAttention",
+      "WhisperFactoryOptions.DelayInitialization",
+      "WhisperProcessorBuilder.Build()",
+      "WhisperProcessorBuilder.WithLanguage(String)",
+      "WhisperProcessorBuilder.WithLanguageDetection()",
+      "WhisperProcessorBuilder.WithThreads(Int32)",
+      "WhisperProcessorBuilder.WithGreedySamplingStrategy(Action`1)",
+      "WhisperProcessorBuilder.WithBeamSearchSamplingStrategy(Action`1)",
+      "WhisperProcessorBuilder.WithPrompt(String)",
+      "WhisperProcessorBuilder.WithTokenTimestamps()",
+      "WhisperProcessorBuilder.WithTemperature(Single)",
+      "WhisperProcessorBuilder.WithTemperatureInc(Single)",
+      "WhisperProcessorBuilder.WithSegmentEventHandler(OnSegmentEventHandler)",
+      "GreedySamplingStrategyBuilder.WithBestOf(Int32)",
+      "BeamSearchSamplingStrategyBuilder.WithBeamSize(Int32)",
+      "BeamSearchSamplingStrategyBuilder.WithPatience(Single)",
+      "WhisperProcessor.Process(Single[])",
+      "WhisperProcessor.Process(ReadOnlySpan`1)",
+      "WhisperProcessor.ProcessAsync(Single[],CancellationToken)",
+      "WhisperProcessor.ProcessAsync(ReadOnlyMemory`1,CancellationToken)",
+      "WhisperProcessor.DetectLanguage(Single[])",
+      "WhisperProcessor.DetectLanguageWithProbability(Single[])",
+      "WhisperProcessor.ChangeLanguage(String)",
+      "WhisperProcessor.Dispose()",
+      "SegmentData.Start",
+      "SegmentData.End",
+      "SegmentData.Text",
+      "SegmentData.Language",
+      "SegmentData.Probability",
+      "SegmentData.NoSpeechProbability",
+      "SegmentData.Tokens",
+      "WhisperToken.Text",
+      "WhisperToken.Start",
+      "WhisperToken.End",
+      "WhisperToken.Probability",
+      "WhisperToken.DtwTimestamp",
+      "WhisperVadFactory.FromPath(String)",
+      "WhisperVadFactory.FromPath(String,WhisperFactoryOptions)",
+      "WhisperVadFactory.CreateBuilder()",
+      "WhisperVadFactory.Dispose()",
+      "WhisperVadProcessorBuilder.Build()",
+      "WhisperVadProcessorBuilder.WithThreshold(Single)",
+      "WhisperVadProcessorBuilder.WithUseGpu(Boolean)",
+      "WhisperVadProcessorBuilder.WithGpuDevice(Int32)",
+      "WhisperVadProcessorBuilder.WithThreads(Int32)",
+      "WhisperVadProcessorBuilder.WithMinSpeechDuration(TimeSpan)",
+      "WhisperVadProcessorBuilder.WithMinSilenceDuration(TimeSpan)",
+      "WhisperVadProcessorBuilder.WithSpeechPadding(TimeSpan)",
+      "WhisperVadProcessor.DetectSpeech(Single[])",
+      "WhisperVadProcessor.DetectSpeech(ReadOnlySpan`1)",
+      "WhisperVadProcessor.DetectSpeechNoReset(Single[])",
+      "WhisperVadProcessor.ResetState()",
+      "WhisperVadProcessor.Dispose()",
+      "VadSegmentData.Start",
+      "VadSegmentData.End",
+      "LibraryLoader.RuntimeOptions.LibraryPath",
+      "LibraryLoader.RuntimeOptions.LoadedLibrary",
+      "LibraryLoader.RuntimeOptions.RuntimeLibraryOrder"
+    ],
+    "perFrameProbabilityApi": false,
+    "perFrameProbabilityNote": "The VAD types return speech segments (start, end) only: V-6.1 takes its fallback and P/Invokes whisper.cpp in the same native library.",
+    "nativeVadExports": [
+      "whisper_vad_free",
+      "whisper_vad_init_from_file_with_params",
+      "whisper_vad_detect_speech",
+      "whisper_vad_n_probs",
+      "whisper_vad_probs"
+    ],
+    "runtimeLibraryNames": [
+      "Cpu",
+      "CpuNoAvx",
+      "Cuda",
+      "Cuda12",
+      "CoreML",
+      "OpenVino",
+      "Vulkan"
+    ],
+    "notInThisVersion": [
+      "RuntimeOptions.ForcedRuntimeLibrary"
+    ],
+    "runtimeOptionsNote": "RuntimeOptions in 1.9.1 holds three public static properties: LibraryPath, LoadedLibrary (the runtime that loaded) and RuntimeLibraryOrder."
+  },
+  "vad": {
+    "file": "ggml-silero-v6.2.0.bin",
+    "repository": "ggml-org/whisper-vad",
+    "commit": "9ffd54a1e1ee413ddf265af9913beaf518d1639b",
+    "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/ggml-silero-v6.2.0.bin",
+    "bytes": 885098,
+    "sha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "licence": "MIT",
+    "copyright": "Copyright (c) 2020-present Silero Team",
+    "licenceEvidence": "the repository card (license: mit) and the LICENSE of github.com/snakers4/silero-vad; the file hash equals the repository listing's LFS oid",
+    "bundled": "src/Marrow.Services/Port/Voice/Assets (copied beside the app under Port\\Voice\\Assets)"
+  },
+  "selfTestClip": {
+    "file": "selftest-clip.wav",
+    "dataset": "google/fleurs",
+    "datasetCommit": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
+    "archive": "data/en_us/audio/dev.tar.gz",
+    "member": "dev/10290896634244679159.wav",
+    "language": "en_us",
+    "originalSha256": "39097469197371ff2e4eb4450f3b7b86b65e79b3962c5e8c4eadc77786f4204d",
+    "transcription": "The Tibetan Buddhism is based on the teachings of Buddha, but were extended by the mahayana path of love and by a lot of techniques from Indian Yoga.",
+    "seconds": 10.02,
+    "bytes": 320684,
+    "sha256": "acd1980c18801a7ffbc3e955c4340aab1dd0410b7b12af812b0166c3f5da0d3c",
+    "format": "16 kHz, mono, 16-bit PCM WAV, 44-byte header",
+    "licence": "CC-BY-4.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "licenceEvidence": "the dataset card at the pinned commit lists license: cc-by-4.0 and states that all FLEURS datasets are licensed CC-BY; redistribution with attribution is permitted",
+    "attribution": "FLEURS, Conneau, Ma, Khanuja, Zhang, Axelrod, Dalmia, Riesa, Rivera, Bapna (Google), arXiv:2205.12446, CC BY 4.0",
+    "change": "The original is a 32-bit float WAV at 16 kHz mono (peak 0.0062); the samples were rounded to 16-bit PCM and the file re-headed. No gain, filter, trim or resampling was applied.",
+    "vadCheck": "The Silero VAD run on the clip found two speech segments, 0.71-5.92 s and 6.08-9.21 s (scratch probe, 2026-10-04).",
+    "decision": "Q-V-5: ED-NEW-ledger-5 (the lead settles it); this unit implements the FLEURS pick."
+  },
+  "cuda": {
+    "offered": "Whisper.net.Runtime.Cuda12.Windows",
+    "offeredWhy": "ENGINEERING DECISION (VT-0): the CUDA 12 pack is the one proven to load from a downloaded folder with NVIDIA 12.4 libraries beside it on the owner PC; the CUDA 13 pack is recorded but could not be tried (this PC has no cuBLAS 13).",
+    "packs": {
+      "Whisper.net.Runtime.Cuda12.Windows": {
+        "version": "1.9.1",
+        "url": "https://api.nuget.org/v3-flatcontainer/whisper.net.runtime.cuda12.windows/1.9.1/whisper.net.runtime.cuda12.windows.1.9.1.nupkg",
+        "bytes": 250058371,
+        "sha512": "a73be8db5ef2f271cf7196aff36cc9fee1ecb67b02169367e9da1dace8b65a3c18de3ef1c8f701061197791befa51b9989163472e4fc0444dc63d9ca1aa54e67",
+        "sha512Base64": "pzvo217y8nHPcZav82zJ/uHstnsCFpNn6dodrOi2WjwY3j7xyPcBBhGXeRvvpRuZiRY0cuT8BETcY9nKGqVOZw==",
+        "licence": "MIT",
+        "loaderFolder": "runtimes/cuda12/win-x64",
+        "packFolder": "build/win-x64",
+        "files": [
+          {
+            "name": "ggml-base-whisper.dll",
+            "bytes": 636928
+          },
+          {
+            "name": "ggml-cpu-whisper.dll",
+            "bytes": 782848
+          },
+          {
+            "name": "ggml-cuda-whisper.dll",
+            "bytes": 563957248
+          },
+          {
+            "name": "ggml-whisper.dll",
+            "bytes": 67072
+          },
+          {
+            "name": "whisper.dll",
+            "bytes": 484864
+          }
+        ],
+        "imports": [
+          "cudart64_12.dll",
+          "cublas64_12.dll",
+          "nvcuda.dll"
+        ]
+      },
+      "Whisper.net.Runtime.Cuda.Windows": {
+        "version": "1.9.1",
+        "url": "https://api.nuget.org/v3-flatcontainer/whisper.net.runtime.cuda.windows/1.9.1/whisper.net.runtime.cuda.windows.1.9.1.nupkg",
+        "bytes": 142586522,
+        "sha512": "27b6723999a182b64264b18d28da08c5619c0d06184ecaa20d86874ea022cbf628df037fed4017a8f100f48202986c29f17d16641364703f3af77e3200b80465",
+        "sha512Base64": "J7ZyOZmhgrZCZLGNKNoIxWGcDQYYTsqiDYaHTqAiy/Yo3wN/7UAXqPEA9IICmGwp8X0WZBNkcD86934yALgEZQ==",
+        "licence": "MIT",
+        "loaderFolder": "runtimes/cuda/win-x64",
+        "packFolder": "build/win-x64",
+        "files": [
+          {
+            "name": "ggml-base-whisper.dll",
+            "bytes": 636928
+          },
+          {
+            "name": "ggml-cpu-whisper.dll",
+            "bytes": 782848
+          },
+          {
+            "name": "ggml-cuda-whisper.dll",
+            "bytes": 154601984
+          },
+          {
+            "name": "ggml-whisper.dll",
+            "bytes": 67072
+          },
+          {
+            "name": "whisper.dll",
+            "bytes": 484864
+          }
+        ],
+        "imports": [
+          "cublas64_13.dll",
+          "nvcuda.dll"
+        ]
+      }
+    },
+    "hashEvidence": "Both packs were downloaded once on 2026-10-04 and their SHA-512 equals the nuget.org registration entry (packageHash).",
+    "feasibility": {
+      "loadsFromDownloadedFolder": true,
+      "libraryPathSemantics": "directory-of-the-path",
+      "libraryPathNote": "RuntimeOptions.LibraryPath is read through Path.GetDirectoryName: set it to a file path (any name) inside the download root, e.g. <root>\\runtime.dll; the loader then searches <root>\\runtimes\\<runtime>\\win-x64 (cuda12, cuda, vulkan) and <root>\\runtimes\\win-x64 (CPU). Passing the folder or whisper.dll itself finds nothing: the search root becomes its parent.",
+      "whenCudaCannotLoad": "falls-back-to-the-next-runtime",
+      "order": "RuntimeOptions.RuntimeLibraryOrder = [Cuda12, Vulkan, Cpu] (names of Whisper.net.LibraryLoader.RuntimeLibrary); a CUDA runtime that cannot load (the NVIDIA libraries missing) is skipped when a later runtime is listed, and throws \"Failed to load native whisper library\" when it is the only one.",
+      "packDoesNotCarry": [
+        "cublas64_12.dll",
+        "cublasLt64_12.dll",
+        "cudart64_12.dll"
+      ],
+      "packDoesNotCarryNote": "The pack holds whisper and ggml natives only. ggml-cuda-whisper.dll imports cudart64_12.dll and cublas64_12.dll (which needs cublasLt64_12.dll) from the NVIDIA CUDA runtime, and nvcuda.dll from the driver. The owner PC has no CUDA toolkit; the probe worked only with NVIDIA 12.4 copies (100,033,536 + 473,551,360 + 553,984 bytes unpacked) from the benchmark folder placed in the same runtimes folder.",
+      "probe": "Scratch console on the owner PC, 2026-10-04: with LibraryPath set and natives laid out as above, RuntimeOptions.LoadedLibrary read Cpu, Vulkan and Cuda12 for the three orders, each loading the Silero VAD model (WhisperVadFactory, UseGpu on) and finding the same two speech segments; with the three NVIDIA libraries removed, order [Cuda12] failed and [Cuda12, Cpu] loaded Cpu. Not measured: inference speed on CUDA (BENCH holds the whisper.cpp figures; BUILD-PLAN section 4 item D measures it through Whisper.net)."
+    },
+    "nvidiaCompanions": {
+      "licenceNote": "NVIDIA CUDA Toolkit licence (NVIDIA EULA, redistributables of the CUDA Toolkit). UNRESOLVED for the owner: whether Marrow may download and unpack these on the user's PC, and which CUDA 12.x release the offer pins.",
+      "manifest": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.4.0.json",
+      "libcublas": {
+        "version": "12.4.2.65",
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-12.4.2.65-archive.zip",
+        "bytes": 391101865,
+        "sha256": "4229d2b590e4382e1b36651dde644e04c5a8664f99f53bb43dca967982a84f58"
+      },
+      "cuda_cudart": {
+        "version": "12.4.99",
+        "url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.4.99-archive.zip",
+        "bytes": 2474121,
+        "sha256": "1034ca43da4afbc79f69269cc60dc081de631e1c0d229d60f045d9516409317a"
+      }
+    }
+  }
+}

@@ -22,6 +22,12 @@ public static partial class Traceability
 
     [GeneratedRegex(@"\AO-[0-9]{2}\z")] private static partial Regex OracleId();
 
+    // ED-NEW-f-vt-0: the feature units of the first release (BUILD-PLAN 2) name the feature they build and the spec test or clause
+    // they prove: Spec "V-T2" (a spec test id) or "V-3.2" (a spec clause), Feature "VT-0" (a unit id).
+    [GeneratedRegex(@"\A[A-Z]{1,4}-(?:T[0-9]+|[0-9]+(?:\.[0-9]+)*)\z")] private static partial Regex SpecId();
+
+    [GeneratedRegex(@"\A[A-Z]{1,4}-[A-Z0-9]+\z")] private static partial Regex FeatureId();
+
     [GeneratedRegex(@"\b(?:class|record)\s+(\w+)")] private static partial Regex TypeKeyword();
 
     [GeneratedRegex(@"\A\[(?:assembly:\s*)?[A-Z][A-Za-z0-9_.]*\s*(?:\(|\]|\z)")] private static partial Regex AttributeStart();
@@ -44,7 +50,7 @@ public static partial class Traceability
         {
             var traits = Traits(method);
             var name = $"{method.DeclaringType!.Name}.{method.Name}";
-            if (!traits.Any(t => t.Name is "Req" or "Rule" or "Decision")) problems.Add($"{name}: no Req, Rule or Decision trait");
+            if (!traits.Any(t => t.Name is "Req" or "Rule" or "Decision" or "Spec")) problems.Add($"{name}: no Req, Rule, Decision or Spec trait");
             // An expectation resting on an open oracle item cannot verify a requirement (R-TEST-6): Gate D stays honest.
             if (traits.Any(t => t.Name == "Oracle") && traits.Any(t => t.Name == "Req"))
                 problems.Add($"{name}: an Oracle test cannot carry a Req trait until the oracle item is settled");
@@ -56,6 +62,8 @@ public static partial class Traceability
                     "Rule" => RuleId().IsMatch(value),
                     "Decision" => DecisionId().IsMatch(value),
                     "Oracle" => OracleId().IsMatch(value),
+                    "Spec" => SpecId().IsMatch(value),
+                    "Feature" => FeatureId().IsMatch(value),
                     _ => false,
                 };
                 if (!ok) problems.Add($"{name}: bad trait {trait}='{value}'");

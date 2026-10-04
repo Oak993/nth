@@ -4,10 +4,37 @@
     <ProjectReference Include="..\Marrow.Core\Marrow.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Voice typing (voice SPEC V-3.1, VT-0). The two runtime packages carry the whisper.cpp natives (CPU: runtimes\win-x64; Vulkan: runtimes\vulkan\win-x64; the target below keeps only those). -->
+    <PackageReference Include="Whisper.net" />
+    <PackageReference Include="Whisper.net.Runtime" />
+    <PackageReference Include="Whisper.net.Runtime.Vulkan" />
+    <PackageReference Include="NAudio.Wasapi" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- VT-0 (V-3.3 to V-3.5): the bundled VAD model, the self-test clip and the recorded pins (voice-pins.json) are copied beside the
+         app, to the build output and to the publish folder, under Port\Voice\Assets. -->
+    <None Update="Port\Voice\Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    VT-0 (V-3.2, Q-V-9 C): the Whisper.net runtime packages put every platform's natives in the build output (win-arm64, win-x86, Linux
+    and, through the Metal dependency, macOS), 126 MB for a Windows x64 app. The Windows port ships the win-x64 CPU runtime
+    (runtimes\win-x64) and the win-x64 Vulkan runtime (runtimes\vulkan\win-x64) only; every other runtimes\ file is taken off the copy list
+    before the target paths are assigned, so it reaches neither this project's output, nor an app that references it, nor a publish
+    folder. CUDA is not shipped (Q-V-9 C): it is a separate download that the loader finds through RuntimeOptions.LibraryPath.
+  -->
+  <Target Name="MarrowTrimWhisperNatives" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <None Remove="@(None)" Condition="'%(None.TargetPath)' != '' And $([System.String]::Copy('%(None.TargetPath)').StartsWith('runtimes/', System.StringComparison.Ordinal)) And !$([System.String]::Copy('%(None.TargetPath)').StartsWith('runtimes/win-x64/', System.StringComparison.Ordinal)) And !$([System.String]::Copy('%(None.TargetPath)').StartsWith('runtimes/vulkan/win-x64/', System.StringComparison.Ordinal))" />
+    </ItemGroup>
+  </Target>
 
 </Project>
