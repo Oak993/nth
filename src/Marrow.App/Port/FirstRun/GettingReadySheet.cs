@@ -83,6 +83,14 @@ public static class GettingReadyLook
 
     public static double PaneOpacity(double hand) => PaneOpacityRest + (1 - PaneOpacityRest) * Hi(hand);
 
+    /// <summary>
+    /// The sheet's shadow (gr_lib.py --gshadow) as a share of the page's: whole while the sheet rises (to --hi = 1), then down to zero on
+    /// the hand-over's own curve by its end, the frame the sheet is taken out of the tree. ENGINEERING DECISION (ED-NEW-f-gr-2-fix (1)):
+    /// at --hi = 1 the sheet rests 30 px above the window and only its shadow's tail is still over the pane (the page keeps it: its sheet is
+    /// never taken away); removing it there would cut (OD-0076).
+    /// </summary>
+    public static double ShadowOpacity(double hand) => hand <= HiSpan ? 1 : Math.Max(0, 1 - (hand - HiSpan) / (1 - HiSpan));
+
     internal static Animation HandOver { get; } = new CubicInOut(HandOverSeconds);
 
     // CSS "ease" and the page's cubic-bezier(.32,.72,0,1)
@@ -322,7 +330,7 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
     private readonly Panel card = new() { Width = GettingReadyLook.SheetWidth };
     private readonly Grid titleBox = new() { Height = GettingReadyLook.TitleLine };
     private readonly TextBlock title, ready, line;
-    private readonly Border barTrack;
+    private readonly Border barTrack, shadow;
     private readonly GettingReadyBar bar = new();
     private readonly AnimatedScalar barShare, readyOpacity, readyRise;
     private readonly TaskCompletionSource ended = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -355,7 +363,7 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
 
         // the glass is the app's, taller than the window's top edge so the page's square top is the edge itself (ED-NEW-f-gr-2 (3));
         // gr_lib.py --gshadow under it
-        var shadow = new Border { Margin = new Thickness(0, -GettingReadyLook.CornerRadius, 0, 0), CornerRadius = new CornerRadius(GettingReadyLook.CornerRadius), IsHitTestVisible = false };
+        shadow = new Border { Margin = new Thickness(0, -GettingReadyLook.CornerRadius, 0, 0), CornerRadius = new CornerRadius(GettingReadyLook.CornerRadius), IsHitTestVisible = false };
         shadow.BoxShadow = new BoxShadows(new BoxShadow { OffsetY = 18, Blur = 40, Color = Color.FromArgb(71, 0, 0, 0) },
             [new BoxShadow { OffsetY = 2, Blur = 6, Color = Color.FromArgb(41, 0, 0, 0) }]);
         var glass = new SwiftShapeBorder { Margin = new Thickness(0, -GettingReadyLook.CornerRadius, 0, 0), Background = Brushes.Transparent }
@@ -498,6 +506,7 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         Hand = hand;
         RenderTransform = new TranslateTransform(0, GettingReadyLook.LiftOffset(hand, Bounds.Height > 0 ? Bounds.Height : card.DesiredSize.Height));
         Opacity = GettingReadyLook.SheetOpacity(hand);
+        shadow.Opacity = GettingReadyLook.ShadowOpacity(hand);
         HandChanged?.Invoke(hand);
     }
 
