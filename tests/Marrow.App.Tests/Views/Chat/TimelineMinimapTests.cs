@@ -459,4 +459,4 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
 }
 
 // B3 review fixes: animation STOP #1 is satisfied for persistent ticks and the preview's fade/offset/glide logic.
-// PR-CHAT-073 remains partly proven until the required light/dark capture comparison exists.
+// PR-CHAT-073: the light/dark capture comparison is closed from the Swift (OD-0098) by TimelineMinimapAnimationAuditTests; nothing of it remains open.

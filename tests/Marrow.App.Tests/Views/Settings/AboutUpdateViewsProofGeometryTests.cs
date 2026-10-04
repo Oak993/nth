@@ -184,7 +184,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-180")] // PR-UPDATE-074 source geometry proven; macOS capture comparison remains unavailable (OD-0001).
+    [Trait("Decision", "ED-180")] // PR-UPDATE-074: the Swift is the proof where no frame exists (OD-0098); every phase is walked below.
     [Trait("Req", "PR-UPDATE-074")] // App/Views/Settings/AboutUpdateViews.swift:625-636: 104 pt slider in the capsule (12/28/2), no label or button, failed phase not in the set
     [Trait("Req", "UI-UPDATE-006")] // App/Views/Settings/AboutUpdateViews.swift:625-636; App/AppUpdater.swift:72-78
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:625-636
@@ -275,7 +275,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Decision", "ED-059")] // App/Views/Settings/AboutUpdateViews.swift:255-301; partial proof, macOS capture unavailable (OD-0001).
+    [Trait("Decision", "ED-059")] // App/Views/Settings/AboutUpdateViews.swift:255-301; the Swift is the proof where no frame exists (OD-0098).
     [Trait("Req", "PR-SETTINGS-246")] // App/Views/Settings/AboutUpdateViews.swift:255-301: header, bullets 9 apart, rollup last and smaller, one colour
     [Trait("Req", "UI-UPDATE-015")] // App/Views/Settings/AboutUpdateViews.swift:255-301: popover geometry, typography, colours, scroll cap
     [InlineData(false)] [InlineData(true)]
