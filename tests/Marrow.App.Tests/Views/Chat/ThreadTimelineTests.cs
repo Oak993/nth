@@ -296,11 +296,13 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // ThreadTimelineMountedTests.The_timeline_checks_itself_when_the_app_or_its_own_window_comes_back_and_not_when_another_window_does.
     // Needed: a Windows occlusion tracker (SetWinEventHook over the top-level windows, as Chromium's native occlusion tracker does); no occlusion state is invented here.
 
-    // STOP App.Views.Chat.ThreadTimeline #6
-    // Kind: owner decision. Swift: TimelineRows.swift:2589-2715 (the fold), ThreadTimeline.swift:1907-1926. Records: PR-CHAT-104 (windows_path: the fold is a change of what the block shows in the same frame, no transition), PR-CHAT-117/121 (the working card's open and close).
-    // Missing: OD-0076 ("nothing on screen changes by a cut") beats the source where it snaps, and its transition audit has no entry for the turn-end swap (running block to folded block, one frame on the reference
-    // runtime, CATALOGUE.md C 125.743-125.78) or for the turn header's chevron fold; the port cuts as the Mac does (ThreadTimelineFoldTests proves the swap in one pass, the TimelineRows tests the fold).
-    // Needed: the owner's ruling on those two entries; no transition is invented here.
+    // STOP App.Views.Chat.ThreadTimeline #6 - CLOSED 2026-10-04 (unit rec-e1) by OD-0076 and the lead's ruling (E_rulings.md, PR-CHAT-104).
+    // Swift: TimelineRows.swift:2589-2715 (the fold), ThreadTimeline.swift:1907-1926. Records: PR-CHAT-104 (windows_path amended), PR-CHAT-117/121 (the working card's open and close).
+    // Header fold: not a cut in the Swift either (:2609-2616 withAnimation(.snappy(duration: 0.24)), the chevron :2623 in the same transaction, the if/else branches :2631/:2661 animated inside it);
+    // the body's height glides on snappy(0.24) in both directions, the chevron on the same clock, the incoming rows fade in, the outgoing branch is gone at once
+    // (TimelineRowsTurnFoldMotionTests). Turn-end swap (running block to finished block): the Mac cuts it (2-chat-use.mov 125.743 -> 125.762 s, one frame); by OD-0076 the port transitions it: the
+    // finished block takes the running block's height and eases to its own in 0.3 s, its rows fade in over 0.2 s, the running rows are gone at once, Reduce Motion shows the end state
+    // (ThreadTimelineFoldTests, ED-NEW-rec-e1 (2): both entries are in the transition audit; no listed exception).
 
     // STOP App.Views.Chat.ThreadTimeline #7
     // Kind: shared symbol metrics. Swift: ThreadTimeline.swift:2129-2135 (the chevron joins the header, the time glides over to make room). Record: UI-CHAT-043.

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
@@ -70,6 +71,89 @@ public sealed class ThreadTimelineFoldTests(HeadlessSession headless)
         header.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); mount.Advance(600);
         Assert.Equal(1, reveals); Assert.Empty(LogicalQuery.SelfAndDescendants<WorkGroup>(folded.Row)); Assert.Single(LogicalQuery.SelfAndDescendants<HydraHeadsList>(folded.Row));
     });
+    // The turn-end swap (running block to finished block): the Mac cuts it in one frame (2-chat-use.mov 125.743 s "Weaving 37s" to 125.762 s "Worked for 38s >" plus the answer; ThreadTimeline.swift:1907-1926
+    // `.transition(.identity)`). OD-0076 ("nothing on screen changes by a cut"; where the source snaps, the port transitions in the Mac's motion language) rules that the port
+    // transitions it, and the lead's ruling of 2026-10-04 (E_rulings.md PR-CHAT-104 implement 2) fixes how: the finished block's height eases in about 0.3 s (the size-change language)
+    // from the running block's, its rows fade in over about 0.2 s, the running block's rows are gone at once (no double image), and Reduce Motion shows the end state at once.
+    private static (string Id, DisplayBlock Block, Control Row) EndTheTurn(TimelineMount mount, List<TimelineEntry> entries)
+    {
+        var answer = string.Join("\n\n", Enumerable.Repeat("Both heads are out and working on their parts of the task.", 6)); // several paragraphs: the finished block is clearly taller than the running one
+        typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Entries))!.SetValue(mount.Runtime, new ValueList<TimelineEntry>(entries.Append(Reply("final", Turn, answer)).Append(End("end", Turn)).ToArray()));
+        typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Phase))!.SetValue(mount.Runtime, RuntimePhase.Idle);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+        return mount.Blocks().Single(block => block.Block is DisplayBlock.Turn);
+    }
+
+    private static void RunUntilTurnEnd(TimelineMount mount, out List<TimelineEntry> entries, out double runningHeight)
+    {
+        entries = [User("prompt", Turn, "send out two heads"), Reply("said", Turn, "I will send two heads out"), ToolEntry("run", Turn)];
+        mount.SetEntries(entries); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle();
+        var running = mount.Blocks().Single(block => block.Block is DisplayBlock.Turn);
+        Assert.Null(Assert.IsType<DisplayBlock.Turn>(running.Block).Summary);
+        runningHeight = SwiftTransition.Container(running.Row).Bounds.Height;
+        Assert.True(runningHeight > 60, $"the running block is {runningHeight:0.0} tall");
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")] // OD-0076; ThreadTimeline.swift:1907-1926 (the Mac cuts: 2-chat-use.mov 125.743 -> 125.762 s); the lead's ruling of 2026-10-04
+    public void The_turn_end_eases_the_finished_blocks_height_from_the_running_blocks_and_fades_its_rows_in_with_the_running_rows_gone_at_once() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        RunUntilTurnEnd(mount, out var entries, out var runningHeight);
+        var folded = EndTheTurn(mount, entries);
+        var finished = Assert.Single(LogicalQuery.SelfAndDescendants<TurnFinishedBlock>(folded.Row));
+        var natural = ((Control)finished.Child!).DesiredSize.Height;
+        Assert.True(Math.Abs(natural - runningHeight) > 20, $"the finished block is {natural:0.0}, the running one was {runningHeight:0.0}");
+        var height = Animation.Smooth(duration: 0.3);
+        var fade = Animation.EaseOut(duration: 0.2);
+        var header = LogicalQuery.SelfAndDescendants<Button>(folded.Row).First(button => ToolTip.GetTip(button) as string == "Show this turn's steps");
+        var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<UserMessageRow>(folded.Row));
+        var previousHeight = runningHeight;
+        for (var elapsed = 0; elapsed <= 450; elapsed += 50)
+        {
+            var seconds = elapsed / 1000.0;
+            // Where the block's height is: the running block's at the first frame, the finished block's own at the end, and on the curve between (a frame is 50 ms here).
+            double At(double t) => runningHeight + (natural - runningHeight) * height.Progress(t);
+            var low = Math.Min(At(Math.Max(0, seconds - 0.05)), At(seconds + 0.05)) - 0.75;
+            var high = Math.Max(At(Math.Max(0, seconds - 0.05)), At(seconds + 0.05)) + 0.75;
+            Assert.InRange(finished.Bounds.Height, Math.Min(low, high), Math.Max(low, high));
+            // No double image: nothing of the running block is on screen at any frame.
+            Assert.Empty(LogicalQuery.SelfAndDescendants<TurnRunningBlock>(mount.Column));
+            Assert.Empty(LogicalQuery.SelfAndDescendants<WorkingIndicator>(mount.Column));
+            Assert.Single(LogicalQuery.SelfAndDescendants<TurnFinishedBlock>(mount.Column));
+            // The prompt was on screen already: it does not blink. The rows that are new fade in.
+            Assert.Equal(1, prompt.Opacity);
+            var shown = header.Opacity;
+            var expectedLow = Math.Min(fade.Progress(Math.Max(0, seconds - 0.05)), fade.Progress(seconds + 0.05)) - 0.02;
+            var expectedHigh = Math.Max(fade.Progress(Math.Max(0, seconds - 0.05)), fade.Progress(seconds + 0.05)) + 0.02;
+            Assert.InRange(shown, Math.Max(0, expectedLow), Math.Min(1, expectedHigh));
+            if (elapsed == 0) { Assert.Equal(0, header.Opacity, 3); Assert.Equal(runningHeight, finished.Bounds.Height, 0.5); }
+            Assert.True(Math.Abs(natural - finished.Bounds.Height) <= Math.Abs(natural - previousHeight) + 0.5, "the height went away from where it is easing to");
+            previousHeight = finished.Bounds.Height;
+            if (elapsed < 450) mount.Advance(50);
+        }
+        Assert.Equal(natural, finished.Bounds.Height, 0.5);
+        Assert.Equal(1, header.Opacity);
+        Assert.False(finished.ClipToBounds);
+        Assert.Equal(1, Assert.Single(LogicalQuery.SelfAndDescendants<FoldedAnswerView>(folded.Row)).GetVisualAncestors().OfType<Control>().First(c => c is HeightFoldHost).Opacity);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")] // OD-0076 and Q-RM A (OD-0099): Reduce Motion stills the port's additions and shows the end state; the Mac cuts here, so the end state is the same frame as the Mac's
+    public void With_Reduce_Motion_the_turn_end_shows_the_finished_block_at_once() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        EnvironmentValues.SetAccessibilityReduceMotion(mount.Host, true);
+        RunUntilTurnEnd(mount, out var entries, out var runningHeight);
+        var folded = EndTheTurn(mount, entries);
+        var finished = Assert.Single(LogicalQuery.SelfAndDescendants<TurnFinishedBlock>(folded.Row));
+        var natural = ((Control)finished.Child!).DesiredSize.Height;
+        Assert.True(Math.Abs(natural - runningHeight) > 20);
+        Assert.Equal(natural, finished.Bounds.Height, 0.5); // the end state at the first frame
+        var header = LogicalQuery.SelfAndDescendants<Button>(folded.Row).First(button => ToolTip.GetTip(button) as string == "Show this turn's steps");
+        Assert.Equal(1, header.Opacity);
+        Assert.False(finished.ClipToBounds);
+        Assert.Empty(LogicalQuery.SelfAndDescendants<TurnRunningBlock>(mount.Column));
+    });
+
     [Fact]
     [Trait("Req", "PR-CHAT-155")] // ThreadTimeline.swift:1985-1989 (`if let heads { TurnRow(group: heads...) }`: the list is the same view while heads join it, and a view whose value changed is not brought in again)
     public void A_head_joining_the_list_a_running_turn_shows_does_not_bring_the_whole_list_in_again() => ThreadTimelineRig.Run(headless, mount =>
