@@ -3,6 +3,7 @@
 // PORT-ONLY: OD-0005 / ADR-0002 Glass (b), Skia leases as demonstrated in porting/probes/p1-glass.
 // Optical values are an ED proposal in glass-material.report.md, UNVERIFIED under OD-0001.
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -18,6 +19,7 @@ using Avalonia.Styling;
 using Avalonia.Skia;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Marrow.Core.Port;
 using SkiaSharp;
 
 namespace Marrow.UI.Port;
@@ -469,6 +471,10 @@ internal static class GlassMaterial
         }
     }
 
+    /// <summary>The one-time log of the same-frame reach switching off (ResizeStretchLog writes once, ED-101's pattern). The process default writes to
+    /// System.Diagnostics.Trace; tests replace it.</summary>
+    internal static Ambient<ResizeStretchLog> ReachLog { get; } = new(() => new ResizeStretchLog(message => Trace.WriteLine(message)));
+
     // Test-only readback (InternalsVisibleTo): how many times any material has drawn, on the render thread.
     internal static int DrawsForTests;
 
@@ -745,6 +751,7 @@ internal static class GlassMaterial
         public static Reach? ReachOf(object target)
         {
             if (reaches.TryGetValue(target, out var known)) return known;
+            if (refused) return null; // a failure to set the reach up is not tried again on every frame
             try
             {
                 if (events is null || Tracker(target) is not { } tracker) return null;
@@ -757,8 +764,18 @@ internal static class GlassMaterial
                 reaches.Add(target, reach);
                 return reach;
             }
-            catch (Exception e) when (Expected(e) || e is NotSupportedException or InvalidOperationException) { return null; }
+            catch (Exception e) // any failure, the adder's compilation included: no reach, the frames are drawn as in item 11
+            {
+                refused = true;
+                Off("the reach could not be set up: " + e.GetType().Name + ": " + e.Message);
+                return null;
+            }
         }
+
+        private static bool refused;
+
+        public static void Off(string reason) =>
+            ReachLog.Current.Once("GlassMaterial: the same-frame reach is off (" + reason + "); a change under the glass redraws only its own rect, its frost around it a frame late.");
 
         // Avalonia's LtrbRect (a struct with public fields and internal constructors) read from its box, and the tracker's AddRect called with one,
         // through lambdas compiled once (a compiled lambda may reach internal members): nothing is boxed and no argument array is made per rect.
@@ -822,8 +839,14 @@ internal static class GlassMaterial
             switch (targetMethod?.Name)
             {
                 case "RectInvalidated" when args is [{ } rect]:
+                    // Anything thrown here would go through the proxy into Avalonia's update on the render thread: a refused call, a rect the reader cannot be
+                    // compiled for. The reach gives up for good, says why once, and the frame is drawn as before.
                     try { Grow(rect); }
-                    catch (Exception e) when (e is MemberAccessException or InvalidCastException) { tracker = null; } // the reach gives up; the frame is drawn as before
+                    catch (Exception e)
+                    {
+                        tracker = null;
+                        Frame.Off("a rect could not be grown: " + e.GetType().Name + ": " + e.Message);
+                    }
                     return null;
                 case "get_RenderedVisuals": return rendered;
                 case "set_RenderedVisuals" when args is [int count]: rendered = count; return null;
@@ -871,7 +894,9 @@ internal static class GlassMaterial
             var wide = Grow(changed, Blur + Bend);
             return Grow(changed, !Inner.IsEmpty && Inner.Contains(wide) ? Blur : Math.Max(Margin, Blur + Bend));
         }
-        private static SKRectI Grow(SKRectI r, int by) => new(r.Left - by, r.Top - by, r.Right + by, r.Bottom + by);
+        // Clamped to int: a huge or infinite rect (an unbounded dirty rect) must not overflow the checked arithmetic (Directory.Build.props).
+        private static SKRectI Grow(SKRectI r, int by) => new(Clamp((long)r.Left - by), Clamp((long)r.Top - by), Clamp((long)r.Right + by), Clamp((long)r.Bottom + by));
+        private static int Clamp(long value) => (int)Math.Clamp(value, int.MinValue, int.MaxValue);
     }
 
     // Draws the material; returns what it covers in the surface's pixels and how far a change under it reaches, for the window's Reach.
