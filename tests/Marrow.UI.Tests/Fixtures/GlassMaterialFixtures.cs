@@ -36,9 +36,9 @@ internal sealed class GlassScene : IDisposable
 {
     private readonly Window window;
     public Window Window => window;
-    public GlassScene(Control backdrop, Control glass)
+    public GlassScene(Control backdrop, Control glass, double width = 256, double height = 160)
     {
-        window = new Window { Width = 256, Height = 160, RequestedThemeVariant = ThemeVariant.Dark,
+        window = new Window { Width = width, Height = height, RequestedThemeVariant = ThemeVariant.Dark,
             Content = new Panel { Children = { backdrop, glass } } };
         window.Show();
     }

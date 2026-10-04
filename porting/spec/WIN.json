@@ -254,7 +254,7 @@
         "Working area narrower or shorter than the settings window: the clamp's max term goes below its min term and the max wins, so the window is pinned to the working area's right/bottom edge. Reproduce this ordering."
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

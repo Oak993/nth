@@ -6,6 +6,9 @@ namespace Marrow.Services.Port.Skills.Shims;
 public sealed record ShimDefinition
 {
     public required string Target { get; init; }
+    // SK-8: fixed sidecar selects a definition through the single atomic state file.
+    public string? RoutingStateFile { get; init; }
+    public string? RoutingName { get; init; }
     public Dictionary<string, string> Environment { get; init; } = new(StringComparer.Ordinal);
     public string[] PrefixArguments { get; init; } = [];
     public string? PythonPathFile { get; init; }
@@ -19,6 +22,9 @@ public sealed record ShimDefinition
     public static ShimDefinition Read(string path)
     {
         var read = JsonSerializer.Deserialize(File.ReadAllText(path), ShimJsonContext.Default.ShimDefinition) ?? throw new InvalidDataException(path);
+        if (read.RoutingStateFile is not null)
+            read = Marrow.Services.Port.Skills.Pipelines.PipelineRoutingReader.ResolveShim(read.RoutingStateFile,
+                read.RoutingName ?? throw new InvalidDataException("RoutingName"));
         return read with
         {
             Environment = read.Environment ?? new Dictionary<string, string>(StringComparer.Ordinal),

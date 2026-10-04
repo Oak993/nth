@@ -5,7 +5,7 @@ using Marrow.Testing.Downloads;
 
 namespace Marrow.Services.Tests.Port.Downloads;
 
-// SK-3 (ED-NEW-f-sk-0 (6)): the product seam fails closed in a test assembly. The downloader's ambient transport is SK-0's handler with no fake server,
+// SK-3 (ED-293 (6)): the product seam fails closed in a test assembly. The downloader's ambient transport is SK-0's handler with no fake server,
 // so a test that forgets to give its Downloader a handler cannot reach the network, loopback included.
 public sealed class DownloaderSeamTests
 {

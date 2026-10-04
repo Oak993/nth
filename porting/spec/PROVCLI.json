@@ -6375,7 +6375,7 @@
       "cancellation": "The 30 second timeout.",
       "windows_path": "ANSI stripping is load-bearing. The two-or-more-space column split is applied to text the CLI printed; a Windows console that pads differently would change which rows parse, so the real output must be captured on Windows before this is called verified. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test against a captured --list-models output, plus a Windows capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
