@@ -3881,11 +3881,9 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // where SwiftUI animates the opacity and the 4 point offset inside the modifier's body over smooth(0.32). SoftAppearModifier now carries a progress that the transition
 // interpolates (Chrome.cs), so the shared SoftAppear and SettleGlide arrive on that curve. The attachment notice still plays its arrival itself (NoticeSlot.Arrive).
 //
-// STOP App.Views.Composer.ComposerView #13
-// Kind: source contradiction, UI-COMPOSER-002. The record says an empty pill is 44 points high (ComposerView.swift:157-158); the
-// source's own arithmetic (text view ceil(max(18, content) + 4) = 22, column 22 + 8, pill 30 + 16) and the reference video (rim to rim,
-// C 0.5 and C 84.5) both give 46, which is what the port draws (An_empty_pill_is_46_points_high_...). The number in the record is the
-// column before its first measure.
+// STOP App.Views.Composer.ComposerView #13: RESOLVED (unit rec-composer). UI-COMPOSER-002's record was amended to 46 (0f85fb3a1, ED-282-11), the source's
+// arithmetic and the reference video's measure (An_empty_pill_is_46_points_high_...); the pill's glass is drawn (ED-320; ComposerAreaGlassFrostTests,
+// GlassMaterialNativeTests). Its r 22 corner on the 46 pt pill is the circular arc the video measures (ED-275 (2); OD-0102 keeps the composer as measured).
 //
 // STOP App.Views.Composer.ComposerView #10
 // Kind: resolved for the container (SwiftGlass.SetContainerSpacing is implemented and asserted: PR-COMPOSER-002, UI-COMPOSER-001);
