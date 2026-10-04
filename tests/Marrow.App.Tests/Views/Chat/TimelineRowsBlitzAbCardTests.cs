@@ -398,7 +398,7 @@ public sealed class TimelineRowsBlitzAbCardTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-114")] // TimelineRows.swift:2372 .animation(.snappy(duration: 0.2), value: steps), :2355-2358; OD-0076 (ENGINEERING DECISION: the glyph itself is swapped at once)
+    [Trait("Req", "PR-CHAT-114")] // TimelineRows.swift:2372 .animation(.snappy(duration: 0.2), value: steps), :2355-2358; OD-0076 (the glyph crossfades, the colours move; the card's size and the glyph and count crossfades are proved in TimelineRowsBlitzAbMotionTests)
     public void Checking_an_item_off_moves_the_same_lines_colours_along_the_snappy_animation_and_a_new_step_fades_in_without_adding_a_second_list() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -445,7 +445,8 @@ public sealed class TimelineRowsBlitzAbCardTests(HeadlessSession headless)
                 Assert.NotEqual(secondaryColour, Ink(one));
                 Assert.Same(one, TextNamed(row, "One")); // the same line, not a new one
                 // :2355 the next step's glyph moves from tertiary to the tint.
-                var glyph = Mounted<SwiftImage>(row).Single(image => image.SymbolName == "circle.dotted.circle");
+                // The step's own line (the first step's glyph, which was the dotted one, is still fading out in its own line while it turns to the check).
+                var glyph = Mounted<SwiftImage>((Control)two.GetVisualParent()!).Single(image => image.SymbolName == "circle.dotted.circle");
                 Assert.NotEqual(SwiftColor.Tertiary.Resolve(window.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color);
                 Assert.NotEqual(ChromeTokens.Accent.Resolve(window.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color);
             });

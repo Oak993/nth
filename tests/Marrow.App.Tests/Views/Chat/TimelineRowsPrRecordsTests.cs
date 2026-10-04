@@ -2423,7 +2423,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     public void A_checklist_with_no_steps_draws_nothing_and_an_update_rewrites_the_same_rows_in_place() => headless.OnUiThread(() =>
     {
         using var h = Harness();
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var clock = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(clock);
         TodoListRow? row = null;
         TextBlock? before = null;
         AvaloniaWindow? window = null;
@@ -2442,6 +2443,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             before = TextNamed(row, "One");
             entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Done), ("Two", TodoStep.Status.Active)) };
         });
+        Animate(h.Main, clock, 2000); // the change is animated (:2372): the glyphs and the count are read once they have settled
         h.Main.OnMain(() =>
         {
             Settle(window!);
@@ -3400,7 +3402,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 Assert.Equal(16, mark.Width);
                 Assert.Equal(16, mark.Height);
                 Assert.Equal(Resolved(ChromeTokens.SecondaryText, mark), BrushColor(LogicalQuery.SelfAndDescendants<SwiftImage>(mark).Single().Foreground));
-                var title = Assert.IsType<TextBlock>(header.Children[1]);
+                var title = Assert.IsType<TextBlock>(Assert.IsType<OpacityCrossfade>(header.Children[1]).Current); // the title's words crossfade (:664), so the Text sits in a crossfade
                 Assert.Equal("Summoning heads", title.Text);
                 Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontWeight, title.FontWeight);
                 var rows = Assert.IsType<StackPanel>(column.Children[1]);

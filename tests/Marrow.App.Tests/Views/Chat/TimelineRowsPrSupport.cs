@@ -50,6 +50,16 @@ internal static class TimelineRowsPrSupport
         typeof(VisualLayerManager).GetProperty("EnablePopupOverlayLayer", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.SetValue(layers, true);
         return layers;
     }
+    /// <summary>Lets the frame clock run for <paramref name="milliseconds"/> in 10 ms frames, so every animation started so far has settled (the transitions of OD-0076 leave the old view mounted until it has gone).</summary>
+    internal static void Animate(Marrow.Testing.TestRuntime main, ManualFrameSource clock, double milliseconds)
+    {
+        clock.Advance(TimeSpan.Zero);
+        for (var elapsed = 0.0; elapsed < milliseconds; elapsed += 10)
+        {
+            main.AdvanceMilliseconds(10);
+            clock.Advance(TimeSpan.FromMilliseconds(10));
+        }
+    }
     internal static void Settle(AvaloniaWindow window)
     {
         for (var i = 0; i < 4; i++) { window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }

@@ -3462,7 +3462,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var runtime = new TestRuntime();
-            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var clock = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(clock);
             TodoListRow? row = null;
             TextBlock? before = null;
             AvaloniaWindow? window = null;
@@ -3480,6 +3481,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 before = TextNamed(row, "One");
                 entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Done), ("Two", TodoStep.Status.Active)) };
             });
+            TimelineRowsPrSupport.Animate(runtime, clock, 2000); // the change is animated (:2372): the glyphs and the count are read once they have settled
             runtime.OnMain(() =>
             {
                 Settle(window!);

@@ -824,7 +824,8 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     public void A_streaming_delegation_block_is_read_into_the_card_flush_by_flush_and_never_shows_its_json() => headless.OnUiThread(() =>
     {
         using var h = Harness();
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var clock = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(clock);
         var previous = MarkdownDelegationCard.Render;
         MarkdownDelegationCard.Render = (json, sent) => new HydraDelegationBlock(json, sent); // AppDelegate.cs:50 (:14)
         AvaloniaWindow window = null!;
@@ -851,6 +852,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 {
                     entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Assistant(new AssistantMessage { Text = flush.Text, IsStreaming = flush.Streaming }) };
                 });
+                Animate(h.Main, clock, 2000); // the card's changes are animated (:703-704): what each flush shows is read once they have settled
                 h.Main.OnMain(() =>
                 {
                     Settle(window);
