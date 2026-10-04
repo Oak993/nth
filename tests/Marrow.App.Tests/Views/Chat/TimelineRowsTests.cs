@@ -4593,13 +4593,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // restart the turn is parsed again; the port reproduces the source (TimelineRowsPrSourceConflictTests proves it). The
 // in-memory store, the document snapshot and the guards are proven in TimelineRowsFinLegacyChangesTests.
 //
-// STOP App.Views.Chat.TimelineRows #8 (review fixes, 2026-09-27; unchanged 2026-10-03)
-// Kind: verification gap
-// Swift: App/Views/Chat/TimelineRows.swift:937-952; App/Models/AppModel+HydraMerge.swift:229-249, :302-304.
-// Records: PR-HYDRAMERGE-089.
-// Missing: coordinator-driven mid-rebase, repeated-identical-failure and first-retryable-failure scenarios.
-// Needed: temporary repository fixtures driving those outcomes and mounted-pill disappearance assertions (the
-// coordinator belongs to AppModel+HydraMerge). Manually lowering IsHydraMerging tests the view transition only.
+// STOP App.Views.Chat.TimelineRows #8: RESOLVED 2026-10-04 (unit blitz-timelinerows-ab). PR-HYDRAMERGE-089's silent paths are driven for real
+// in TimelineRowsBlitzAbMergeSilentTests: the real coordinator on temporary repositories with a real merge pill mounted from before the
+// merge (mid-merge and mid-rebase checkouts, a lead taking up work again, a lead no longer ready after a landing, the same failure again,
+// a first retryable failure, a checkout that is no repository, work that is gone): the pill is drawn while the merge runs and gone, with
+// no note in its place, when it lets go (mutation checked). The one path not driven mounted is an .alreadyOnMain run that posts no
+// settlement note: a run that never suspends lowers the flag in the turn it raised it, so the row never gets a turn to draw the pill
+// (ED-NEW-timelinerows-ab (10)); the coordinator side of it is PR-CHAT-189's test.
 //
 // STOP App.Views.Chat.TimelineRows #9: RESOLVED. PR-HYDRAMERGE-105's real clicks on title, track and Open, with the tooltips,
 // are in TimelineRowsPrMergeTests.Real_pointer_clicks_on_title_track_and_Open_route_to_their_separate_destinations.
@@ -4608,8 +4608,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Kind: visual/interaction verification gap
 // Swift: App/Views/Chat/TimelineRows.swift:1-2859; individual exact sites remain beside each partial-proof test.
 // Decisions: OD-0001, ED-059, ED-117, ED-216, ED-217 do not turn structural evidence into capture comparisons.
-// Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019; UI-CHAT-020.
-// Records: UI-CHAT-021; UI-CHAT-022; UI-CHAT-023; UI-CHAT-024; UI-CHAT-025.
+// Records: UI-CHAT-024; UI-CHAT-025. (UI-CHAT-007, -008, -010, -019, -020, -021, -022, -023: proven under OD-0098, below.)
 // Records: UI-CHAT-026; UI-CHAT-027; UI-CHAT-028; UI-CHAT-029; UI-CHAT-030.
 // Records: UI-CHAT-031; UI-CHAT-032; UI-CHAT-033; UI-CHAT-034; UI-CHAT-035.
 // Records: UI-CHAT-036; UI-CHAT-037; UI-CHAT-038; UI-CHAT-040; UI-CHAT-041.
@@ -4633,6 +4632,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // (STOP opencode #1), so none of them can match yet; no frame shows any other record of this list.
 // Six explicit label contracts are closed by TimelineRowsUiLabelsTests with clause-by-clause mutations.
 // Precise remaining UI dependency sites are recorded in TimelineRowsUiAuditTests.
+// Proven and removed from this note on 2026-10-04 under OD-0098 (unit blitz-timelinerows-ab, TimelineRowsBlitzAbUiTests: every state the Swift
+// names mounted and drawn headless in both themes against the values the code states, each proof mutation checked): UI-CHAT-007 (the bubble at
+// two lengths against a shape built from the numbers of :1167-1207 alone, pixel-identical, and the editing state), UI-CHAT-008 (the chips'
+// capsule, glyph, excerpt, 260-point cap), UI-CHAT-010 (the pencil absent, clear, secondary on hover, tinted while the editor is open),
+// UI-CHAT-019 (the reply at rest, hovered, streaming), UI-CHAT-020 and -021 (the menu, the divider, each confirmation in its own row),
+// UI-CHAT-022 and -023 (the summary line collapsed and open, the earlier-steps line). Defect found and fixed: a longer quote excerpt was
+// narrower than the 260-point frame the source gives it.
 // UI-CHAT-024's finite-width defect is fixed and mounted long/short labels are now regression tested for
 // ordinary tools, head badges and MCP badges. That geometry proof is not a complete visual-capture claim.
 // All existing appearance/state assertions remain. UI-CHAT-039/UI-GIT-047 remain separately in STOP #5.
@@ -4651,12 +4657,16 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // new proof mutation checked; TimelineRowsBlitzAbToolTests, -UserTests, -FileCardTests, -CardTests, -BlockTests):
 // PR-CHAT-020, -078, -080, -082, -088, -092, -094, -098, -100, -101, -104, -109, -110, -111, -112, -114, -116.
 // Records: PR-CHAT-079; PR-CHAT-099; PR-CHAT-102; PR-CHAT-108; PR-CHAT-113; PR-CHAT-115.
-// Records: PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
-// Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.
-// Records: PR-CHAT-153; PR-CHAT-154; PR-CHAT-161; PR-COMPOSER-211.
-// Records: PR-HYDRAMERGE-101; PR-HYDRAMERGE-102; PR-HYDRAMERGE-103; PR-HYDRAMERGE-106; PR-HYDRAMERGE-107; PR-HYDRAMERGE-108.
-// Capture comparisons with no frame in the reference video (UNRESOLVED until a capture exists): PR-CHAT-146, -147, -148,
-// -150, -151, -152, -153 (running and failed), -154, PR-COMPOSER-211, PR-HYDRAMERGE-101, -102, -103, -106, -107.
+// Records: PR-CHAT-143; PR-CHAT-145; PR-CHAT-149.
+// Proven and removed from this note on 2026-10-04 under OD-0098 (unit blitz-timelinerows-ab, TimelineRowsBlitzAbMergeTests, -HeadTests,
+// -MergeSilentTests, -DelegationTests, -ReleaseTests; every state the Swift names mounted and rendered headless in both themes, each proof
+// mutation checked): PR-CHAT-146, -147, -148, -150, -151, -152, -153, -154, -161; PR-COMPOSER-211; PR-HYDRAMERGE-089, -101, -102, -103, -106,
+// -107, -108. Defects found and fixed by those renders and tests: the merge track's drawing was centred in its shrinking frame, so the settled
+// head sat 14 points left, half outside the pill (:912-915); a sent message's open menu pinned the whole row (its right-click builder shared a
+// closure class with the lambdas that read the row); WindowTransients kept a closed popup, and through it its row, for good. Caveats, in
+// ED-NEW-timelinerows-ab: a dot's fade is composited per element in Avalonia and as a group in SwiftUI (UNRESOLVED, about 5 percent of a
+// 4-point dot); PR-HYDRAMERGE-108's first-open latency is shown by the cache's state, not by a clock; PR-CHAT-161's file-card review closure
+// is not GC-proved.
 // What is left of this unit's records after OD-0098 (2026-10-04, unit blitz-timelinerows-ab; everything else of them is proven):
 // - CORNER-ONLY: PR-CHAT-079 (the attachment plate), -108 (the Edited card; its 40-point height is the frame's, measured on
 //   2-chat-use.mov 9.0 s), -143 (the report pill): in a frame, drawn in an ED-181 .continuous shape (STOP opencode #1).
@@ -4671,11 +4681,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // but changed every colour and row at once (now tweened and faded, :2372).
 // PR-CHAT-102: record vs source (STOP opencode #2): RecentCache(limit: 60) keeps two generations, so more than sixty
 // parsed files can be held; the record's "at most sixty" needs correcting before a counting test can claim it.
-// PR-CHAT-145, PR-HYDRAMERGE-108: the first-tap frame time / first-open latency must be measured on a quiet PC (native
-// gate); the warm-off-main mechanism is tested, a timing under the shared build load is not evidence.
+// PR-CHAT-145: the first-tap frame time must be measured on a quiet PC (native gate); the warm-off-main mechanism is tested, a
+// timing under the shared build load is not evidence. (PR-HYDRAMERGE-108's first-open latency is shown by the cache's state: proven.)
 // PR-CHAT-149: the streamed fixture is read flush by flush and never shows JSON (TimelineRowsParityScenarioTests), but the
 // card's changes do not animate with Chrome.panelSlide (:703-704): every flush rebuilds the reply's MarkdownView and a new
-// card, where SwiftUI keeps the card's identity. Needed: block identity kept across streaming re-renders (UI.Markdown).
+// card, where SwiftUI keeps the card's identity. Needed: block identity kept across streaming re-renders (UI.Markdown) and a layout
+// animation of the card's height and rows (SwiftTransition animates a view's own insertion, not its siblings' layout). The card's five
+// states are drawn in both themes (TimelineRowsBlitzAbDelegationTests, 2026-10-04): this animation is the one clause of the record left.
 // PR-CHAT-113: record vs source. The record's action is "the popover is open while the markdown arrives" and its result
 // that the plan "switches to the finished-prose surface the moment the state leaves drafting". The pinned source freezes
 // the popover's content when it opens (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147: the hosted
@@ -4685,10 +4697,11 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // conflict: the streaming flag is the drafting state alone (:2287); the open popover survives the plan's own updates
 // (ChatBadge.Update) and, on the real timeline, the running turn's other rows arriving (a PlanCard keeps one identity per plan
 // entry: TimelineRowsParityReviewTests.REVIEW_An_open_plan_popover_stays_open_on_the_real_timeline_...).
-// PR-CHAT-161: a row's open menu lets go of the row when the row is gone (MessagePopoverMenu fix, structural test: a row
-// only moved to another stack, as ThreadTimeline.Draw does on every change, keeps its menu); the GC release asked for cannot
-// be observed headless: Avalonia 12.1.2 keeps any element that took a pointer press reachable after it leaves the tree (a
-// bare Border the same way), so the record's unit stays unproven by GC.
+// PR-CHAT-161: PROVEN 2026-10-04 (TimelineRowsBlitzAbReleaseTests): a sent message's and a reply's row scrolled away with its menu open, and
+// a tool row scrolled away with its head-steps popover open, are released by the collector (the menus opened by the context-menu key, which
+// puts no pointer in the row: Avalonia 12.1.2 keeps any element that took a pointer press reachable after it leaves the tree, a bare Border
+// the same way); the two defects it found are fixed (above). A row's open menu lets go of the row when the row is gone (MessagePopoverMenu
+// fix, structural test: a row only moved to another stack, as ThreadTimeline.Draw does on every change, keeps its menu).
 // History, before the ThreadTimeline change below was merged: observed (measured, not inferred), outside this unit (ThreadTimeline.Draw): a real Avalonia Popup closes itself in the Remove
 // call that takes its placement target out of the tree (probed 2026-10-03 with the overlay presenter, the row's handler disabled
 // too), and ThreadTimeline.Draw takes every kept row out of its stack and puts it into a new one on each change of the thread.
