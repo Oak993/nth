@@ -114,4 +114,101 @@ public sealed class ChatViewFramesReviewTests(HeadlessSession headless)
             });
         });
     }
+
+    // ---- the same gap on every other soft-appear piece of the row: the arrival of the Threads button and the departures of both ----
+
+    private const double Tolerance = 0.02, Place = 0.5;
+
+    // Drives a row through one change a frame at a time (16 ms frames, no forced layout pass: only what the app itself queues) and, after every frame, compares what the frame
+    // shows (each glass piece at its shown opacity and place) with what the container's one glass pass last received. Returns the frames shown, to assert the fade was seen.
+    private static List<List<(double Opacity, double X, double Y)>> Frames(HeadlessSession headless, bool holdsAtStart, bool hydraAtStart, Action<AppModel> change, Action<AppModel>? arrange = null, int frameCount = 45)
+    {
+        var seen = new List<List<(double Opacity, double X, double Y)>>();
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var (row, window) = h.Main.OnMain(() =>
+            {
+                model.Settings.SidebarFloats = false;
+                model.Settings.HydraEnabled = hydraAtStart;
+                if (holdsAtStart) model.Sidebar.NoteLaidOutWidth(400);
+                arrange?.Invoke(model);
+                var runtime = model.Runtime(model.NewThread(model.AddProject(new Project("P", h.NewFolder("p")).Url))!.Id);
+                var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
+                var window = new AvaloniaWindow { Content = row, Width = 1400, Height = 300 };
+                ChatHeadlessFixtures.Track(window);
+                window.Show();
+                return (row, window);
+            });
+            Step(h, window, time, frames, 0);
+            Step(h, window, time, frames, 400);
+            var container = h.Main.OnMain(() => Assert.Single(row.GetVisualDescendants().OfType<GlassEffectContainer>()));
+            h.Main.OnMain(() => Assert.Equal(Shown(container), Drawn(container)));
+            h.Main.OnMain(() => change(model));
+            Step(h, window, time, frames, 0);
+            for (var frame = 0; frame <= frameCount; frame++)
+            {
+                h.Main.OnMain(() =>
+                {
+                    var shown = Shown(container); var drawn = Drawn(container);
+                    seen.Add(shown);
+                    Assert.True(shown.Count == drawn.Count && shown.Zip(drawn).All(p => Math.Abs(p.First.Opacity - p.Second.Opacity) < Tolerance && Math.Abs(p.First.X - p.Second.X) < Place && Math.Abs(p.First.Y - p.Second.Y) < Place),
+                        $"frame {frame} ({frame * 16} ms): shown " + string.Join(" ", shown) + " | drawn " + string.Join(" ", drawn));
+                });
+                Step(h, window, time, frames, 16);
+            }
+        });
+        return seen;
+    }
+
+    // A piece fading is on screen at some frame with an opacity strictly between nothing and full (so a pass that kept the opacity of its last layout would be seen to differ).
+    private static bool SawFade(List<List<(double Opacity, double X, double Y)>> frames) => frames.Any(f => f.Any(r => r.Opacity is > 0.05 and < 0.95));
+
+    // The Threads button comes and goes in two ways. When the sidebar takes or gives back the window buttons (sidebarVisible) the whole row glides and its padding animates, so a
+    // layout pass follows every frame; when the floating list becomes or stops being the only sidebar nothing else moves, so only the button's own soft appear changes anything.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void REVIEW_The_Threads_buttons_glass_fades_and_rises_with_it_when_it_arrives(bool withTheRowGliding)
+    {
+        var frames = withTheRowGliding
+            ? Frames(headless, holdsAtStart: true, hydraAtStart: false, model => model.Sidebar.NoteLaidOutWidth(0))
+            : Frames(headless, holdsAtStart: false, hydraAtStart: false, model => model.Settings.SidebarOnlyFloats = false, model => { model.Settings.SidebarFloats = true; model.Settings.SidebarOnlyFloats = true; });
+        Assert.True(SawFade(frames), "the arrival was seen mid-fade");
+        Assert.True(frames[^1].Count > frames[0].Count, "the Threads circle is drawn once it has settled");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void REVIEW_The_Threads_buttons_glass_fades_out_with_it_when_it_leaves(bool withTheRowGliding)
+    {
+        var frames = withTheRowGliding
+            ? Frames(headless, holdsAtStart: false, hydraAtStart: false, model => model.Sidebar.NoteLaidOutWidth(400))
+            : Frames(headless, holdsAtStart: false, hydraAtStart: false, model => model.Settings.SidebarOnlyFloats = true, model => { model.Settings.SidebarFloats = true; model.Settings.SidebarOnlyFloats = false; });
+        Assert.True(SawFade(frames), "the departure was seen mid-fade");
+        Assert.True(frames[^1].Count < frames[0].Count, "the Threads circle is gone at the end of the fade");
+    }
+
+    [Fact]
+    public void REVIEW_The_Hydra_buttons_glass_fades_out_with_it_when_Hydra_is_switched_off()
+    {
+        var frames = Frames(headless, holdsAtStart: false, hydraAtStart: true, model => model.Settings.HydraEnabled = false);
+        Assert.True(SawFade(frames), "the departure was seen mid-fade");
+        Assert.True(frames[^1].Count < frames[0].Count, "the Hydra circle is gone at the end of the fade");
+    }
+
+    [Fact]
+    public void REVIEW_The_Hydra_buttons_glass_follows_each_frame_of_its_arrival_without_a_layout_pass()
+    {
+        var frames = Frames(headless, holdsAtStart: false, hydraAtStart: false, model => model.Settings.HydraEnabled = true);
+        Assert.True(SawFade(frames), "the arrival was seen mid-fade");
+        Assert.True(frames[^1].Count > frames[0].Count, "the Hydra circle is drawn once it has settled");
+    }
 }
