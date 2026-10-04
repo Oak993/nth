@@ -34,6 +34,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "GR-1")]
     [Trait("Spec", "GR-1.run")]
+    [Trait("Decision", "ED-252")]
     public void A_work_step_that_answers_after_its_bound_is_not_done_and_leaves_the_machine_unprepared() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -65,6 +66,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "GR-1")]
     [Trait("Spec", "GR-1.run")]
+    [Trait("Decision", "ED-252")]
     public void A_work_step_that_throws_after_the_run_gave_up_on_it_is_not_left_unobserved() => headless.OnUiThread(() =>
     {
         using var cache = new GpuProgramCacheFolder();
@@ -152,6 +154,7 @@ public sealed class FirstRunPreparationReview4FixTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "GR-1")]
     [Trait("Spec", "GR-1.skip")]
+    [Trait("Decision", "ED-252")]
     public void The_CPU_marker_is_kept_for_each_adapter_and_a_GPU_marker_takes_away_only_its_own() => headless.OnUiThread(() =>
     {
         var root = Path.Combine(Path.GetTempPath(), "gr1-review4fix-" + Guid.NewGuid().ToString("N"));
