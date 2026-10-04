@@ -12,13 +12,14 @@ using Avalonia.Skia;
 using Avalonia.Styling;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Voice.Light;
 
 namespace Marrow.UI.Port.ComposerLights;
 
 /// <summary>Everything the render thread needs for one composer's light, as one immutable value.</summary>
 public sealed record ComposerLightSnapshot(
     ComposerLightSettings Settings, ComposerLightPhase Phase, bool Dark, Rect Composer, bool ReduceMotion,
-    ComposerLightPalette Palette, double? FadeBottom, TimeProvider Clock);
+    ComposerLightPalette Palette, double? FadeBottom, TimeProvider Clock, double VoiceLight = 1);
 
 /// <summary>The view left the tree: the handler stops and releases its bakes on the render thread.</summary>
 internal sealed class ComposerLightStop
@@ -39,6 +40,9 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
     private int stopped;
     private double reach = 2, drawnReach = 2;
     private bool software;
+    private readonly VoiceLightFollower voice = new();
+    private double? lastVoiceNow;
+    private bool standingStill;
 
     /// <summary>
     /// ENGINEERING DECISION (ED-251): with no GPU (Skia's software rasterizer), the light is drawn as one still, as under
@@ -58,6 +62,9 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
     /// <summary>True while the handler has asked the compositor for a frame.</summary>
     public bool IsAnimating => Volatile.Read(ref animating) != 0;
     private int animating;
+
+    /// <summary>The light's level while you speak as the render thread has it (1: the light as it is; V-13.4).</summary>
+    public double VoiceLight => voice.Value;
 
     /// <summary>True once the handler has stopped and released its renderer.</summary>
     public bool IsStopped => Volatile.Read(ref stopped) != 0;
@@ -79,6 +86,7 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
         if (IsStopped || message is not ComposerLightSnapshot next) return;
         var now = Seconds(next.Clock);
         var size = next.Composer.Size;
+        if (light is null) voice.Jump(next.VoiceLight);                  // a first frame never starts from full: the level is the host's
         if (light is null)
             Volatile.Write(ref light, new ComposerLightAnimator(next.Settings, next.Phase, next.Dark, size.Width, size.Height, next.ReduceMotion || software, next.Palette));
         else
@@ -104,8 +112,27 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
 
     private void Step(double now)
     {
-        if (light is null) return;
-        wantsFrames = light.Advance(now) || renderer.Settling;
+        if (light is null || snapshot is null) return;
+        // V-13.4: vis = follow(vis, target, dt, 0.2, 0.17) on the frame clock; reduce motion jumps
+        // the follower moves by the frame it is in: a light that stood still (or a level that did not move) has no frame to measure from, so its first step after a change is 0 s
+        var voiceDt = voice.Moving && lastVoiceNow is { } previous ? Math.Max(0, now - previous) : 0;
+        lastVoiceNow = now;
+        voice.Step(snapshot.VoiceLight, voiceDt, snapshot.ReduceMotion);
+        if (voice.Value <= 0)
+        {
+            // at 0 the light draws nothing, asks for no frames (unless the level is on its way back) and its motion clock stands still
+            standingStill = true;
+            wantsFrames = voice.Moving;
+            Invalidate();
+            if (wantsFrames && drawnSinceRequest) Request();
+            return;
+        }
+        if (standingStill)
+        {
+            light.ResumeAt(now);                                          // the clock goes on from where it stopped, not from the time that passed
+            standingStill = false;
+        }
+        wantsFrames = light.Advance(now) || renderer.Settling || voice.Moving;
         reach = Reach(light);
         Invalidate();
         // the board's port notes: frames only while something moves, and only while it is seen. A frame is asked for
@@ -144,7 +171,7 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
         if (IsStopped || snapshot is not { } s || light is null) return;
         drawnSinceRequest = true;
         drawnReach = reach;
-        if (light.AuraVisible || light.DrawnCount > 0)
+        if (voice.Value > 0 && (light.AuraVisible || light.DrawnCount > 0))
         {
             var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
             if (feature is null) return;
@@ -161,7 +188,7 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
             var scale = (float)Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));
             canvas.Save();
             canvas.Translate((float)s.Composer.X, (float)s.Composer.Y);
-            renderer.Draw(canvas, lease.GrContext, light, scale, now, (float)lease.CurrentOpacity,
+            renderer.Draw(canvas, lease.GrContext, light, scale, now, (float)(lease.CurrentOpacity * voice.Value),
                 s.FadeBottom is { } f ? (float)(f - s.Composer.Y) : null);
             canvas.Restore();
             Interlocked.Increment(ref frames);
@@ -189,6 +216,8 @@ public sealed class ComposerLightView : Control
         AvaloniaProperty.Register<ComposerLightView, Rect>(nameof(ComposerRect));
     public static readonly StyledProperty<double?> FadeBottomProperty =
         AvaloniaProperty.Register<ComposerLightView, double?>(nameof(FadeBottom));
+    public static readonly StyledProperty<double> VoiceLightProperty =
+        AvaloniaProperty.Register<ComposerLightView, double>(nameof(VoiceLight), 1, coerce: static (_, value) => double.IsNaN(value) ? 1 : Math.Clamp(value, 0, 1));
 
     private CompositionCustomVisual? visual;
     private ComposerLightHandler? handler;
@@ -219,13 +248,20 @@ public sealed class ComposerLightView : Control
     /// <summary>Where (view px) the light outside the composer has faded out (the window's bottom edge); null for none.</summary>
     public double? FadeBottom { get => GetValue(FadeBottomProperty); set => SetValue(FadeBottomProperty, value); }
 
+    /// <summary>
+    /// The light's level while you speak, 0 to 1 (V-13.4): 1 is the light as it is (the default); the host sets <c>VoiceLightTarget.For(setting, state)</c> (0, 0.35 or 1) and
+    /// the light follows it on the render thread (0.2 s up, 0.17 s down), its whole output multiplied by the level; at 0 it draws nothing, asks for no frames and its motion
+    /// clock stands still until the level returns. Under reduce motion the level jumps.
+    /// </summary>
+    public double VoiceLight { get => GetValue(VoiceLightProperty); set => SetValue(VoiceLightProperty, value); }
+
     internal ComposerLightHandler? Handler => handler;
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
         if (change.Property == SettingsProperty || change.Property == PhaseProperty || change.Property == PaletteProperty
-            || change.Property == ComposerRectProperty || change.Property == FadeBottomProperty
+            || change.Property == ComposerRectProperty || change.Property == FadeBottomProperty || change.Property == VoiceLightProperty
             || change.Property == EnvironmentValues.AccessibilityReduceMotionProperty || change.Property == BoundsProperty)
             Send();
     }
@@ -258,7 +294,7 @@ public sealed class ComposerLightView : Control
         // not laid out yet: nothing to light (a 0 x 0 composer is never sent)
         if (!(composer.Width > 0) || !(composer.Height > 0)) return;
         var snapshot = new ComposerLightSnapshot(Settings, Phase, ActualThemeVariant == ThemeVariant.Dark, composer,
-            EnvironmentValues.GetAccessibilityReduceMotion(this), Palette, FadeBottom, SwiftClock.Provider.Current);
+            EnvironmentValues.GetAccessibilityReduceMotion(this), Palette, FadeBottom, SwiftClock.Provider.Current, VoiceLight);
         if (snapshot == sent) return;
         sent = snapshot;
         visual.Size = new Vector(Bounds.Width, Bounds.Height);

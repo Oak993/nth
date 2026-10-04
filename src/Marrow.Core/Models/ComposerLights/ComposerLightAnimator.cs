@@ -246,6 +246,12 @@ public sealed class ComposerLightAnimator
         return auraGroup.IsRunning(now) || beamGroup.IsRunning(now) || active.IsRunning(now);
     }
 
+    /// <summary>
+    /// The light stood still (VT-9, V-13.4: at a voice level of 0 nothing is advanced, so its motion clock stops) and is about to move again: the next <see cref="Advance"/> starts from
+    /// <paramref name="now"/>, so the motion resumes where it stopped instead of jumping by the time that passed.
+    /// </summary>
+    public void ResumeAt(double now) => last = now;
+
     /// <summary>The playground's absolute-time hook for stills and tests (window.__bbT): the beam at T seconds.</summary>
     public void SetBeamTime(double seconds, double now)
     {
