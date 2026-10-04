@@ -357,4 +357,37 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
         Assert.True(differing > 40, $"only {differing} pixels differ between the band's corner and the circular r 22 corner");
         bandWindow.Close();
     });
+
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void REVIEW_a_plain_Border_in_the_band_draws_Apples_corner_at_the_largest_radius_not_the_circle_of_the_stated_radius() => headless.OnUiThread(() =>
+    {
+        // REVIEW (adversarial, unit blitz-cornerband): every record of OD-0102 (UI-CHAT-034/036/037/054) is a PLAIN Border (ED-275 (3) (b)): it keeps
+        // CornerRadius 18 (Avalonia draws the circle of 18) and is cut by a Clip. Apple's corner at L = 40 / (2 E) = 13.08 lies OUTSIDE the circle of 18
+        // (2.06 pt at the diagonal), so the clip removes nothing the fill drew and the pixels are the circle of 18 (option B), not option A.
+        // A plain Border must draw what the SwiftShapeBorder of the same shape draws (its fill is the path itself), and must differ from the circle.
+        Control Make(int kind) => kind switch
+        {
+            0 => new Border { Width = 200, Height = 40, Background = Brushes.Red, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }.RoundedRectangle(18, RoundedCornerStyle.Continuous),
+            1 => new SwiftShapeBorder { Width = 200, Height = 40, Background = Brushes.Red, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }.RoundedRectangle(18, RoundedCornerStyle.Continuous),
+            _ => new Border { Width = 200, Height = 40, Background = Brushes.Red, CornerRadius = new CornerRadius(18), Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top },
+        };
+        var (w0, plain) = Render(Make(0), 220, 60);
+        var (w1, path) = Render(Make(1), 220, 60);
+        var (w2, circle) = Render(Make(2), 220, 60);
+        int Diff(RenderedPixels a, RenderedPixels b)
+        {
+            var worst = 0;
+            for (var y = 0; y < 60; y++)
+                for (var x = 0; x < 220; x++) worst = Math.Max(worst, Math.Abs(a.At(x, y).Red - b.At(x, y).Red));
+            return worst;
+        }
+        var plainVsCircle = Diff(plain, circle);
+        var plainVsPath = Diff(plain, path);
+        var pathVsCircle = Diff(path, circle);
+        w0.Close(); w1.Close(); w2.Close();
+        // The diagonal pixel (14, 14) is inside Apple's corner at 13.08 (its curve crosses the diagonal at 13.81) and outside the circle of 18 (15.27).
+        Assert.True(pathVsCircle > 100, $"the SwiftShapeBorder's band corner differs from the circle by only {pathVsCircle}");
+        Assert.True(plainVsPath < 40, $"the plain Border in the band differs from Apple's corner at L by {plainVsPath} levels of 255 (it differs from the circle of 18 by {plainVsCircle})");
+    });
 }
