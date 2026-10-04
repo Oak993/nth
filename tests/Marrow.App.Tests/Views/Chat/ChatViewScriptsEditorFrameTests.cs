@@ -42,7 +42,7 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-TERM-074")] // App/Views/Chat/ChatView.swift:1660-1665, :1721-1722, :1456-1463; OD-0098 (no frame of the sheet), OD-0005 and OD-0012 F1 deviations as the record names them
+    [Trait("Req", "PR-TERM-074")] // App/Views/Chat/ChatView.swift:1660-1665, :1721-1722, :1456-1463; OD-0098 (no frame of the sheet), OD-0005 and OD-0012 F1 deviations as the ledger names them
     public void The_scripts_editor_is_a_580_by_460_sheet_padded_20_with_its_children_14_apart_titled_Project_scripts_over_the_two_sentence_explanation_on_the_window_backdrop()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -122,7 +122,7 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-TERM-076")] // App/Views/Chat/ChatView.swift:1666-1699, :1700; OD-0098 (no frame of the sheet), OD-0009 (Cascadia Mono) as the record names it
+    [Trait("Req", "PR-TERM-076")] // App/Views/Chat/ChatView.swift:1666-1699, :1700; OD-0098 (no frame of the sheet), OD-0009 (Cascadia Mono) as the ledger names it
     public void Each_script_is_a_14_padded_card_of_a_Name_field_filling_the_row_beside_a_trash_button_a_monospaced_Command_field_and_a_worktree_checkbox_8_apart_in_cards_10_apart()
     {
         ChatHeadlessFixtures.Run(headless, () =>

@@ -116,8 +116,9 @@ public sealed class ComposerWorkingDotsCompositorTests(HeadlessSession headless)
             var second = new DotFieldControl(new SwiftColor(1, 0, 0), true, false);
             var host = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal };
             first.Width = second.Width = 16;
+            second.Margin = new Thickness(24, 0, 0, 0); // the field's extra column past its width spills beyond its bounds, as the replicator's does (the frame of C 92.000 shows the third row above its field): the two are kept clear of each other
             window.Content = null;
-            host.Children.Add(first); host.Children.Add(second); window.Content = host;
+            host.Children.Add(first); host.Children.Add(second); window.Content = host; window.Width = 80;
             Render(window);
             Assert.Equal(Opacity(first, 0, 0), Opacity(second, 0, 0), 8);
             var properties = 0;
@@ -146,7 +147,7 @@ public sealed class ComposerWorkingDotsCompositorTests(HeadlessSession headless)
             capture!.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
             using var pixels = SKBitmap.Decode(stream.ToArray());
             Assert.True(pixels.GetPixel(3, 19).Red > 100); // Real composited dot, not just a state sampler.
-            Assert.Equal(pixels.GetPixel(3, 19), pixels.GetPixel(19, 19));
+            Assert.Equal(pixels.GetPixel(3, 19), pixels.GetPixel(43, 19));
         }
         finally { window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs(); }
     });

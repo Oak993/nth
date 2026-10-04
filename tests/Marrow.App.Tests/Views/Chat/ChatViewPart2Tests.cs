@@ -348,7 +348,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 Assert.Equal(8, column.Spacing);
                 Assert.Equal(3, column.Children.Count);
                 Assert.Same(fieldFrame, column.Children[1]);
-                Assert.IsType<StackPanel>(column.Children[0]);
+                Assert.IsType<Grid>(column.Children[0]); // the name row: an HStack whose field is flexible (a grid with a star column, ED-NEW-frames-2)
                 Assert.IsType<CheckBox>(column.Children[2]);
                 Assert.Equal(Chrome.Danger.Opacity(0.65).Resolve(frame.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(frame.BorderBrush).Color); // :1687-1689 danger at 0.65 while blank
                 Assert.False(editor.SaveButton.IsEnabled); // :1711,1717
