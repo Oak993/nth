@@ -147,7 +147,7 @@ public sealed class TimelineRowsBlitzAbMergeSilentTests(HeadlessSession headless
     {
         using var f = Review(origin: false);
         f.Edit();
-        f.Run(); // the first try: a record and a note, the pill's place taken by the outcome
+        f.Run(); // the first try: an entry and a note, the pill's place taken by the outcome
         Assert.Single(f.Notes);
         var before = f.Notes.Length;
         var pill = Drive(f.H, f.Runtime, observer => f.Run(observer));

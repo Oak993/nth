@@ -150,11 +150,27 @@ public static class TimelineRows
     internal static SwiftImage Chevron() => SwiftImage.SystemName("chevron.right")
         .Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
 
-    // :313-316, :464-467, :579-582, :691-694.
-    internal static Border Pill(Control child, SwiftColor? fill = null, Thickness? padding = null)
+    /// <summary>A pill whose edge, background and corners can be laid out at a size other than its contents' (a card being eased to a new size) while the contents keep
+    /// the size they take, so their words do not re-wrap or re-trim along the way; whatever lies past the pill is clipped by the slot around it.</summary>
+    private sealed class ContentKeepingPill : Border
     {
-        var pill = new Border { Child = child, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
-            Padding = padding ?? new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical) };
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            base.ArrangeOverride(new Size(Math.Max(finalSize.Width, DesiredSize.Width), Math.Max(finalSize.Height, DesiredSize.Height)));
+            return finalSize;
+        }
+    }
+
+    /// <summary>PORT-ONLY. The animation of a change, or none when the system asks for reduced motion: the closures of OD-0076's second round (the work group's steps, the checklist's
+    /// strike, the delegation card's size) cut under it.</summary>
+    internal static Animation? UnlessReduced(Animation? animation) => Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion ? null : animation;
+
+    // :313-316, :464-467, :579-582, :691-694.
+    internal static Border Pill(Control child, SwiftColor? fill = null, Thickness? padding = null, bool keepsContentSize = false)
+    {
+        var pill = keepsContentSize ? new ContentKeepingPill() : new Border();
+        pill.Child = child; pill.HorizontalAlignment = HorizontalAlignment.Left; pill.VerticalAlignment = VerticalAlignment.Top;
+        pill.Padding = padding ?? new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical);
         pill.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous);
         pill.Background = (fill ?? Chrome.Accent.Opacity(0.1)).Brush(pill);
         return pill;
@@ -895,7 +911,7 @@ public sealed class HydraDelegationBlock : Decorator
     private readonly HStack header;
     private readonly Panel overlay = new();
     private readonly Border pill;
-    private readonly HeightSlot slot;
+    private readonly SizeSlot slot; // :703-704 the card's size (height and width) follows its contents along Chrome.panelSlide (OD-0076: a card that changes size eases to it)
     private StackPanel? rows;                       // :677 the heads' list, there once a brief has closed
     private Control? writing;                       // :681-686 "Writing the next brief…"
     private SwiftImage? check;                      // :667-675 the green check, once sent
@@ -919,10 +935,10 @@ public sealed class HydraDelegationBlock : Decorator
         titleText = new OpacityCrossfade(TimelineRows.ChatText("", weight: SwiftFont.Weight.Medium));
         header.Children.Add(titleText);
         column.Children.Add(header);
-        pill = TimelineRows.Pill(column);
+        pill = TimelineRows.Pill(column, keepsContentSize: true);
         overlay.Children.Add(pill);
         pill.SizeChanged += (_, e) => { if (sweep is not null) sweep.Clip = new RectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, TimelineMetrics.PillRadius); };
-        slot = new HeightSlot(overlay);
+        slot = new SizeSlot(overlay) { ContentFollowsSize = true };
         Child = slot;
         Apply(json, sent, animated: false);
         this.Transition(SwiftTransition.Opacity);
@@ -937,7 +953,7 @@ public sealed class HydraDelegationBlock : Decorator
         Json = json; Sent = sent;
         Transaction.WithAnimation(Chrome.PanelSlide, () =>
         {
-            slot.Note(Transaction.Current); // the layout pass that follows reads the animation the change was made under
+            slot.Note(TimelineRows.UnlessReduced(Transaction.Current)); // the layout pass that follows reads the animation the change was made under; reduce motion cuts (OD-0076)
             Apply(json, sent, animated: true);
         });
     }
@@ -1018,49 +1034,6 @@ public sealed class HydraDelegationBlock : Decorator
             }
         }
         if (shown.Count == 0 && delegations.Count == 0) writing = null;
-    }
-
-    // :703-704 the card's height follows its contents: a spring over the change, never a jump. The contents are laid out at their own size and the slot is as tall as the
-    // spring has got to, clipped to it (the same idea as the merge pill's width slot, MorphSlot).
-    private sealed class HeightSlot : Panel
-    {
-        private readonly Control content;
-        private readonly AnimatedDouble height;
-        private double presented, target;
-        private bool measured;
-        private Animation? pending;
-
-        public HeightSlot(Control content)
-        {
-            this.content = content;
-            ClipToBounds = true;
-            Children.Add(content);
-            height = new AnimatedDouble(value => { presented = value; InvalidateMeasure(); });
-        }
-
-        // A change under an animation is noted when it is made: the layout pass that follows reads it.
-        public void Note(Animation? animation) => pending = animation;
-
-        protected override Size MeasureOverride(Size availableSize)
-        {
-            content.Measure(new Size(availableSize.Width, double.PositiveInfinity));
-            var natural = content.DesiredSize.Height;
-            if (!measured || natural != target)
-            {
-                var animation = measured ? pending : null;
-                pending = null;
-                target = natural;
-                measured = true;
-                height.Set(natural, animation);
-            }
-            return new Size(content.DesiredSize.Width, presented);
-        }
-
-        protected override Size ArrangeOverride(Size finalSize)
-        {
-            content.Arrange(new Rect(0, 0, finalSize.Width, content.DesiredSize.Height));
-            return finalSize;
-        }
     }
 
     // :711-741
@@ -1996,7 +1969,9 @@ public sealed class WorkGroup : Decorator
     // :1467-1507
     private Control Group()
     {
-        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = TimelineMetrics.RowSpacing }; // :1467
+        // :1467 VStack: the header and, once open, the steps at rowSpacing. The gap belongs to the steps' own body (GrowingBody.LeadingSpace), so a closed group has none
+        // and the steps' height, gap included, grows along the open's curve (:1470-1472 withAnimation(.snappy(duration: 0.24)); OD-0076: rows that appear fold open).
+        var stack = new StackPanel { Orientation = Orientation.Vertical };
 
         var glyphSlot = new Decorator { Width = TimelineMetrics.IconWidth }; // :1484 .frame(width: TimelineMetrics.iconWidth)
         var summary = new TextBlock(); // :1485
@@ -2049,6 +2024,7 @@ public sealed class WorkGroup : Decorator
         });
 
         WorkSteps? steps = null;
+        GrowingBody? body = null;
         header.Track(() => state.IsCollapsed, collapsed =>
         {
             turn.Set(collapsed ? 0 : 90, Transaction.Current); // :1490
@@ -2058,12 +2034,15 @@ public sealed class WorkGroup : Decorator
             if (!collapsed && steps is null) // :1499-1501 if !isCollapsed { WorkSteps(...) }
             {
                 steps = new WorkSteps(state.Entries, runtime, new Binding<bool>(() => state.ShowsAll, value => state.ShowsAll = value), workingDirectory);
-                SwiftTransition.Insert(stack, 1, steps);
+                // The steps fold open: the body's height (and its fade) follow the transaction the toggle was made in, so what follows the group moves down with it.
+                var opening = body = new GrowingBody { LeadingSpace = TimelineMetrics.RowSpacing, Child = steps };
+                stack.Children.Insert(1, opening);
+                opening.Open(TimelineRows.UnlessReduced(Transaction.Current)); // reduce motion cuts (OD-0076)
             }
-            else if (collapsed && steps is { } shown)
+            else if (collapsed && steps is not null && body is { } closing)
             {
-                steps = null;
-                SwiftTransition.Remove(stack, shown);
+                steps = null; body = null;
+                closing.Close(TimelineRows.UnlessReduced(Transaction.Current), () => stack.Children.Remove(closing));
             }
         });
         stack.Track(() => state.Entries, entries => steps?.Update(entries));
@@ -3281,7 +3260,7 @@ public sealed class TodoListRow : Decorator
         // :2372 .animation(.snappy(duration: 0.2), value: steps) sits on the whole card, so the card's size follows its contents too: a step that
         // arrives, a line that grows or wraps, a card that gets wider (OD-0076: a card that changes size eases to it).
         var slot = new SizeSlot(card);
-        var rows = new List<(TimelineBaselineRow Row, OpacityCrossfade Icon, TextBlock Text, AnimatedColor IconColour, AnimatedColor TextColour)>();
+        var rows = new List<(TimelineBaselineRow Row, OpacityCrossfade Icon, TextBlock Text, AnimatedColor IconColour, AnimatedColor TextColour, Action<bool, Animation?> Strike)>();
         // A step that has gone has faded out before it leaves the column; the card then eases to the size it has without it.
         column.Children.CollectionChanged += (_, e) => { if (e.Action == NotifyCollectionChangedAction.Remove) slot.Note(Animation.Snappy(duration: 0.2)); };
         // :2372 .animation(.snappy(duration: 0.2), value: steps): the colours a step is drawn in follow the change along the animation, as
@@ -3289,6 +3268,27 @@ public sealed class TodoListRow : Decorator
         // out (the default transition of a view in a stack). ENGINEERING DECISION (OD-0076: content that swaps crossfades).
         static SwiftColor IconColourFor(TodoStep.Status status) => status == TodoStep.Status.Pending ? SwiftColor.Tertiary : Chrome.Accent; // :2355
         static SwiftColor TextColourFor(TodoStep.Status status) => status == TodoStep.Status.Done ? SwiftColor.Secondary : SwiftColor.Primary; // :2357
+        // :2357 `.strikethrough(step.status == .done, color: .secondary)` changes under the same animation: the strike's colour moves between clear and
+        // .secondary along it, so the line comes in (or goes out) with the step's other changes instead of cutting (OD-0076). The decoration is on the text
+        // while the strike is drawn or on its way out, and off once it is gone, so a step that is not done has none.
+        static Action<bool, Animation?> StrikeOf(TimelineBaselineRow row, TextBlock text)
+        {
+            var colour = new AnimatedColor(row);
+            var decoration = new TextDecoration { Location = TextDecorationLocation.Strikethrough, Stroke = colour.Brush };
+            var struck = false;
+            colour.Brush.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == SolidColorBrush.ColorProperty && !struck && colour.Brush.Color.A == 0) text.TextDecorations = null;
+            };
+            colour.Set(SwiftColor.Secondary.Opacity(0), null);
+            return (done, animation) =>
+            {
+                struck = done;
+                if (done && text.TextDecorations is null) text.TextDecorations = new TextDecorationCollection { decoration };
+                colour.Set(done ? SwiftColor.Secondary : SwiftColor.Secondary.Opacity(0), animation);
+                if (!done && colour.Brush.Color.A == 0) text.TextDecorations = null;
+            };
+        }
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Todos todos || todos.Value.Count == 0) { Child = null; return; }
@@ -3310,7 +3310,9 @@ public sealed class TodoListRow : Decorator
                 text.Foreground = textColour.Brush;
                 row.Children.Add(icon); row.Children.Add(text);
                 arrived.Add(rows.Count);
-                rows.Add((row, icon, text, iconColour, textColour));
+                var strike = StrikeOf(row, text);
+                strike(steps[rows.Count].TodoStepStatus == TodoStep.Status.Done, null); // a step arriving is not tweened from nothing
+                rows.Add((row, icon, text, iconColour, textColour, strike));
                 SwiftTransition.Insert(column, column.Children.Count, row);
             }
             for (var i = 0; i < steps.Count; i++)
@@ -3329,7 +3331,7 @@ public sealed class TodoListRow : Decorator
                 row.Text.Text = step.Text;
                 var done = step.TodoStepStatus == TodoStep.Status.Done;
                 row.TextColour.Set(TextColourFor(step.TodoStepStatus), Transaction.Current);
-                row.Text.TextDecorations = done ? new TextDecorationCollection { new TextDecoration { Location = TextDecorationLocation.Strikethrough, Stroke = SwiftColor.Secondary.Brush(row.Text) } } : null;
+                row.Strike(done, TimelineRows.UnlessReduced(Transaction.Current)); // reduce motion cuts (OD-0076)
             }
             Child = slot;
         }
@@ -3445,6 +3447,10 @@ internal sealed class SizeSlot : Panel
         height = new AnimatedDouble(value => { presentedHeight = value; InvalidateMeasure(); });
     }
 
+    /// <summary>Whether the content itself is arranged at the size the slot has got to (so its own edge, background and corners move along the curve), rather than at its
+    /// natural size and clipped to the slot. The content then keeps its words at their natural size itself (see HydraDelegationBlock.NaturalColumn).</summary>
+    internal bool ContentFollowsSize { get; init; }
+
     /// <summary>The size the card is drawn at now.</summary>
     internal Size Presented => new(presentedWidth, presentedHeight);
 
@@ -3480,7 +3486,8 @@ internal sealed class SizeSlot : Panel
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        content.Arrange(new Rect(default, content.DesiredSize)); // laid out at its own size, clipped to the slot
+        // laid out at its own size, clipped to the slot; or, for a card whose own edge moves, at the size the slot has got to
+        content.Arrange(ContentFollowsSize ? new Rect(default, new Size(Math.Max(0, presentedWidth), Math.Max(0, presentedHeight))) : new Rect(default, content.DesiredSize));
         return finalSize;
     }
 }

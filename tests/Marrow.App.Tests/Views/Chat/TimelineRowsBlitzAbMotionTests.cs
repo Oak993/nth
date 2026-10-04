@@ -50,6 +50,9 @@ public sealed class TimelineRowsBlitzAbMotionTests(HeadlessSession headless)
         }
     }
 
+    // The steps' opacity as drawn: their own times that of the body they fold open in.
+    private static double Effective(Visual visual) => visual.GetSelfAndVisualAncestors().Aggregate(1.0, (product, at) => product * at.Opacity);
+
     private static double Angle(Control chevron) => Assert.IsType<RotateTransform>(chevron.RenderTransform).Angle;
 
     // ---- UI-CHAT-022: the work group opens and closes over 0.24 seconds on the snappy curve ----
@@ -84,7 +87,7 @@ public sealed class TimelineRowsBlitzAbMotionTests(HeadlessSession headless)
             {
                 var expected = Snappy(0.24, elapsed / 1000);
                 var turned = Angle(Chevron()) / 90;
-                var shown = Assert.Single(Mounted<WorkSteps>(group)).Opacity;
+                var shown = Effective(Assert.Single(Mounted<WorkSteps>(group)));
                 Assert.True(Math.Abs(turned - expected) <= 0.02, $"open at {elapsed} ms: the chevron has turned {turned:F3} of its way, the snappy 0.24 s curve has {expected:F3}");
                 Assert.True(Math.Abs(shown - expected) <= 0.02, $"open at {elapsed} ms: the steps are {shown:F3} in, the snappy 0.24 s curve has {expected:F3}");
             });
@@ -93,7 +96,7 @@ public sealed class TimelineRowsBlitzAbMotionTests(HeadlessSession headless)
             {
                 Settle(window);
                 Assert.Equal(90, Angle(Chevron()));
-                Assert.Equal(1, Assert.Single(Mounted<WorkSteps>(group)).Opacity);
+                Assert.Equal(1, Effective(Assert.Single(Mounted<WorkSteps>(group))));
                 Click(window, Assert.Single(Mounted<Button>(group)));
             });
             frames.Advance(TimeSpan.Zero);
@@ -102,7 +105,7 @@ public sealed class TimelineRowsBlitzAbMotionTests(HeadlessSession headless)
             {
                 var expected = Snappy(0.24, elapsed / 1000);
                 var turned = Angle(Chevron()) / 90;
-                var shown = Mounted<WorkSteps>(group).Single().Opacity;
+                var shown = Effective(Mounted<WorkSteps>(group).Single());
                 Assert.True(Math.Abs(turned - (1 - expected)) <= 0.02, $"close at {elapsed} ms: the chevron has {turned:F3} of its turn left, the snappy 0.24 s curve has {1 - expected:F3}");
                 Assert.True(Math.Abs(shown - (1 - expected)) <= 0.02, $"close at {elapsed} ms: the steps are {shown:F3} showing, the snappy 0.24 s curve has {1 - expected:F3}");
             });
