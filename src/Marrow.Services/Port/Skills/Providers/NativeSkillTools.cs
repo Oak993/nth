@@ -1,16 +1,136 @@
-// PORT-ONLY: SK-11f / WU-12, DL-14. Not implemented yet.
-#pragma warning disable CS9113 // stub, replaced by the implementation
+// PORT-ONLY: SK-11f / WU-12, DL-14 (skills-PLAN.md 3.3 native row; skills-ONDEMAND-PLAN.md 4.1, 5.1 S4, 5.5 R4; OD-0099 progressive-disclosure amendment). Marrow's own tools for the
+// API providers, which run no CLI and so have no skills folder to point at: a catalogue block for the system prompt (names and descriptions of the installed, enabled skills,
+// never a body), use_skill (the full text on invocation, files a skill's instructions mention on request), and request_tool (ask the user to download a missing tool).
+// The block and use_skill list what the session's generation holds (SK-9) plus, behind its switch, the user's own skills (Q17). Nothing here downloads anything.
+using System.Text;
+using Marrow.Core.Port;
+using Marrow.Core.Port.Skills.Detect;
 using Marrow.Core.Support;
 using Marrow.Services.Port.Skills.Generations;
 
 namespace Marrow.Services.Port.Skills.Providers;
 
-public sealed class NativeSkillTools(Generation? generation, NativeUserSkills? ownSkills = null, IToolRequestOffer? offer = null)
+public sealed class NativeSkillTools
 {
     public const string UseSkillName = "use_skill";
     public const string RequestToolName = "request_tool";
-    public string? CatalogueBlock() => throw new NotImplementedException();
-    public IReadOnlyList<JSONValue> Definitions => throw new NotImplementedException();
-    public bool Owns(string toolName) => throw new NotImplementedException();
-    public Task<NativeToolResult> Execute(string toolName, JSONValue arguments) => throw new NotImplementedException();
+    private const string Header = "Skills (call use_skill with a skill's name to read its instructions):";
+    private const string BadPath = "Error: the file path must be a relative path inside the skill's folder.";
+
+    private readonly Generation? generation;
+    private readonly NativeUserSkills? ownSkills;
+    private readonly IToolRequestOffer? offer;
+
+    /// <param name="generation">The session's generation (SK-9), which the caller keeps alive for the session; null when nothing is installed.</param>
+    /// <param name="ownSkills">The user's own skills; consulted only while its switch is on.</param>
+    /// <param name="offer">The offer flow request_tool asks; the tool is offered to the model only while it says something is installed.</param>
+    public NativeSkillTools(Generation? generation, NativeUserSkills? ownSkills = null, IToolRequestOffer? offer = null)
+    {
+        this.generation = generation;
+        this.ownSkills = ownSkills;
+        this.offer = offer;
+    }
+
+    private bool UseSkillOffered => Listing().Count > 0;
+    private bool RequestToolOffered => offer is { Available: true };
+
+    /// <summary>The skills the model is told about: the user's own first, then Marrow's that the user's do not shadow. Explicit-only skills are never listed.</summary>
+    private List<(string Name, string Description)> Listing()
+    {
+        var result = new List<(string, string)>();
+        var own = ownSkills?.List() ?? [];
+        result.AddRange(own.Select(s => (s.Name, s.Description)));
+        var shadowed = own.Select(s => GenerationFilters.Normalize(s.Name)).ToHashSet(StringComparer.Ordinal);
+        if (generation is not null)
+            result.AddRange(generation.Skills.Where(s => !s.ExplicitOnly && !shadowed.Contains(GenerationFilters.Normalize(s.Name))).Select(s => (s.Name, s.Description)));
+        return result;
+    }
+
+    /// <summary>The block for the system prompt, or null when there is no skill to list.</summary>
+    public string? CatalogueBlock()
+    {
+        var listing = Listing();
+        return listing.Count == 0 ? null : Header + "\n" + string.Join("\n", listing.Select(s => s.Name + ": " + s.Description));
+    }
+
+    /// <summary>The function-tool definitions to add to the request: only the tools that are offered at the moment.</summary>
+    public IReadOnlyList<JSONValue> Definitions
+    {
+        get
+        {
+            var definitions = new List<JSONValue>();
+            if (UseSkillOffered) definitions.Add(NativeSkillToolDefinitions.UseSkill());
+            if (RequestToolOffered) definitions.Add(NativeSkillToolDefinitions.RequestTool());
+            return definitions;
+        }
+    }
+
+    /// <summary>True for a tool name Marrow handles and is offering now. Anything else stays the unknown tool it always was.</summary>
+    public bool Owns(string toolName) => toolName switch
+    {
+        UseSkillName => UseSkillOffered,
+        RequestToolName => RequestToolOffered,
+        _ => false,
+    };
+
+    /// <summary>
+    /// Runs one of the tools this object owns. A refusal or an error is a result with <see cref="NativeToolResult.Failed"/> set, not an exception; a wait on the user is cancelled by
+    /// the turn's own cancellation and then throws <see cref="OperationCanceledException"/>.
+    /// </summary>
+    public Task<NativeToolResult> Execute(string toolName, JSONValue arguments)
+    {
+        if (!Owns(toolName)) throw new InvalidOperationException($"{toolName} is not a tool offered now.");
+        return toolName == UseSkillName ? Task.FromResult(UseSkill(arguments)) : RequestTool(arguments);
+    }
+
+    /// <summary>The timeline row's title for a call, known before it runs (U+00B7 MIDDLE DOT, as the MCP rows use).</summary>
+    public static string Title(string toolName, JSONValue arguments) =>
+        toolName == UseSkillName ? "Skill" + (arguments["name"]?.JSONValueString is { Length: > 0 } name ? " \u00B7 " + name : "") : toolName;
+
+    private NativeToolResult UseSkill(JSONValue arguments)
+    {
+        var name = arguments["name"]?.JSONValueString ?? "";
+        var title = Title(UseSkillName, arguments);
+        if (name.Length == 0) return Failure(title, "Error: a skill name is required.");
+        var file = arguments["file"]?.JSONValueString;
+        var instructions = string.IsNullOrEmpty(file) || file == "SKILL.md";
+        var relative = instructions ? "SKILL.md" : file!;
+        try
+        {
+            string? folder, itemId = null, text;
+            if (ownSkills?.List().FirstOrDefault(s => s.Name == name) is { } own)
+            {
+                folder = own.Folder;
+                text = ownSkills.Read(name, relative);
+            }
+            else if (generation?.Skills.FirstOrDefault(s => s.Name == name && !s.ExplicitOnly) is { } skill)
+            {
+                folder = skill.Folder;
+                itemId = skill.Id[..skill.Id.IndexOf('/', StringComparison.Ordinal)];
+                text = generation.ReadReference(skill.Name, relative);
+            }
+            else return Failure(title, $"Error: unknown skill {name}.");
+            if (text is null) return Failure(title, $"Error: unknown skill {name}.");
+            return instructions
+                ? new NativeToolResult(title, $"Skill folder: {folder}\n\n{text}", false, [new SkillUsed(name, itemId)])
+                : new NativeToolResult(title, text, false, []);
+        }
+        catch (ArgumentException error) when (error is not DecoderFallbackException) { return Failure(title, BadPath); }
+        catch (Exception error) when (error is InvalidOperationException or IOException or DecoderFallbackException or InvalidDataException)
+        {
+            return Failure(title, "Error: " + error.Message);
+        }
+    }
+
+    private async Task<NativeToolResult> RequestTool(JSONValue arguments)
+    {
+        var name = arguments["name"]?.JSONValueString ?? "";
+        var reason = arguments["reason"]?.JSONValueString ?? "";
+        if (name.Trim().Length == 0) return Failure(RequestToolName, "Error: a tool name is required.");
+        if (!offer!.InCatalogue(name)) return Failure(RequestToolName, $"Error: {name} is not in the catalogue.");
+        var outcome = await offer.Ask(name, reason, SwiftTask.CancellationToken);
+        return new NativeToolResult(RequestToolName, outcome.InstalledPath is { } path ? $"installed at {path}" : "declined", false, [new ToolRequested(name, reason)]);
+    }
+
+    private static NativeToolResult Failure(string title, string output) => new(title, output, true, []);
 }

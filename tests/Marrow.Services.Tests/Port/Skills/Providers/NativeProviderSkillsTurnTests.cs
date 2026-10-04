@@ -113,7 +113,25 @@ public sealed class NativeProviderSkillsTurnTests
     }
 
     [Fact, Trait("Rule", "R-TEST-4")]
-    public async Task The_block_comes_after_the_policy_and_before_the_projects_own_guidelines_and_is_the_same_every_turn()
+    public async Task The_block_follows_the_policy_and_is_the_same_every_turn()
+    {
+        using var kit = new NativeSkillsKit();
+        kit.Add("A1", "pdf");
+        using var generation = kit.Start();
+        var tools = new NativeSkillTools(generation);
+        await using var rig = NativeSessionRig.Create(["plain-turn.sse", "plain-turn.sse"], configure: s => s.SkillTools = tools);
+        await rig.Begin();
+        await rig.Turn("one");
+        await rig.Turn("two");
+
+        var prompt = SystemContent(rig.Json(0));
+        Assert.True(prompt.IndexOf("[Marrow anti-slop guidance]", StringComparison.Ordinal) is var policy and >= 0 && policy < prompt.IndexOf(tools.CatalogueBlock()!, StringComparison.Ordinal));
+        Assert.EndsWith("\n\n" + tools.CatalogueBlock(), prompt, StringComparison.Ordinal); // no project guidelines here: the block is the last thing
+        Assert.Equal(prompt, SystemContent(rig.Json(1)));
+    }
+
+    [WindowsGuidanceFact, Trait("Rule", "R-TEST-4")]
+    public async Task The_block_comes_before_the_projects_own_guidelines()
     {
         var folder = Path.Combine(TestDataDirectory.Read()!, "sk11f-guidance-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
@@ -124,17 +142,15 @@ public sealed class NativeProviderSkillsTurnTests
             kit.Add("A1", "pdf");
             using var generation = kit.Start();
             var tools = new NativeSkillTools(generation);
-            await using var rig = NativeSessionRig.Create(["plain-turn.sse", "plain-turn.sse"], configure: s => s.SkillTools = tools, workingDirectory: folder);
+            await using var rig = NativeSessionRig.Create(["plain-turn.sse"], configure: s => s.SkillTools = tools, workingDirectory: folder);
             await rig.Begin();
             await rig.Turn("one");
-            await rig.Turn("two");
 
             var prompt = SystemContent(rig.Json(0));
             var policy = prompt.IndexOf("[Marrow anti-slop guidance]", StringComparison.Ordinal);
             var block = prompt.IndexOf(tools.CatalogueBlock()!, StringComparison.Ordinal);
             var guidance = prompt.IndexOf("PROJECT RULES SENTINEL", StringComparison.Ordinal);
             Assert.True(policy >= 0 && policy < block && block < guidance, $"policy {policy}, block {block}, guidance {guidance}");
-            Assert.Equal(prompt, SystemContent(rig.Json(1)));
         }
         finally { Directory.Delete(folder, recursive: true); }
     }

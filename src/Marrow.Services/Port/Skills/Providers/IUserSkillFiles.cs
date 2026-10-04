@@ -3,9 +3,12 @@ namespace Marrow.Services.Port.Skills.Providers;
 
 public interface IUserSkillFiles
 {
-    /// <summary>The folders directly under <paramref name="root"/> that hold a SKILL.md; empty when the root does not exist.</summary>
+    /// <summary>The folders directly under <paramref name="root"/> that hold a SKILL.md, in name order; empty when the root does not exist.</summary>
     IReadOnlyList<string> SkillFolders(string root);
 
-    /// <summary>The text of a file inside a skill folder, or null when it is not a plain readable file there.</summary>
-    string? ReadText(string file);
+    /// <summary>
+    /// The text of <paramref name="file"/>, which must lie under <paramref name="root"/> and be reached through plain folders and a plain file; null when it is not
+    /// (missing, a link, outside the root, or not text).
+    /// </summary>
+    string? ReadText(string root, string file);
 }

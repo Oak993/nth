@@ -45,11 +45,12 @@ public sealed class OwnSkillsSwitchTests
         Assert.Empty(own.List());
         Assert.Empty(own.Existing());
         Assert.Null(own.Read("private-skill", "SKILL.md"));
-        foreach (var text in new[] { block, refused.Output, refusedFile.Output, string.Concat(tools.Definitions.Select(d => d.CompactString)) })
+        foreach (var text in new[] { block, string.Concat(tools.Definitions.Select(d => d.CompactString)) })
         {
             Assert.DoesNotContain("private-skill", text, StringComparison.Ordinal);
             Assert.DoesNotContain("PRIVATE", text, StringComparison.Ordinal);
         }
+        Assert.DoesNotContain("PRIVATE", refused.Output + refusedFile.Output, StringComparison.Ordinal); // the refusal repeats only the name the model typed
         Assert.Empty(files.Accesses);
     }
 

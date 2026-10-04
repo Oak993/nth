@@ -33,9 +33,9 @@ public sealed class DiskUserSkillFilesTests : IDisposable
         Write("empty/readme.md", "not a skill");
         var disk = new DiskUserSkillFiles();
         Assert.Equal([Path.Combine(root, "a"), Path.Combine(root, "b")], disk.SkillFolders(root));
-        Assert.Equal("REF", disk.ReadText(Path.Combine(root, "a", "references", "x.txt")));
-        Assert.Null(disk.ReadText(Path.Combine(root, "a", "references", "missing.txt")));
-        Assert.Null(disk.ReadText(Path.Combine(root, "a", "references")));
+        Assert.Equal("REF", disk.ReadText(root, Path.Combine(root, "a", "references", "x.txt")));
+        Assert.Null(disk.ReadText(root, Path.Combine(root, "a", "references", "missing.txt")));
+        Assert.Null(disk.ReadText(root, Path.Combine(root, "a", "references")));
         Assert.Empty(disk.SkillFolders(Path.Combine(root, "no-such-folder")));
     }
 
@@ -50,8 +50,10 @@ public sealed class DiskUserSkillFilesTests : IDisposable
         var directoryLink = Path.Combine(root, "dirlink");
         Directory.CreateSymbolicLink(directoryLink, Path.Combine(root, "outside"));
         var disk = new DiskUserSkillFiles();
-        Assert.Null(disk.ReadText(link));
-        Assert.Null(disk.ReadText(Path.Combine(directoryLink, "secret.txt")));
+        Assert.Null(disk.ReadText(root, link));
+        Assert.Null(disk.ReadText(root, Path.Combine(directoryLink, "secret.txt")));
         Assert.DoesNotContain(directoryLink, disk.SkillFolders(root));
+        Assert.Null(disk.ReadText(Path.Combine(root, "a"), outside)); // a real file, but not under the skill's own root
+        Assert.Equal("a", disk.ReadText(Path.Combine(root, "a"), Path.Combine(root, "a", "SKILL.md")));
     }
 }

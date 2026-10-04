@@ -86,9 +86,8 @@ public sealed class NativeProviderRequestToolTurnTests
         await turn;
 
         Assert.DoesNotContain(rig.Events, e => e is ProviderEvent.Approval);
-        var golden = JSONValue.Parse(File.ReadAllBytes(NativeSessionRig.GoldenPath("golden-request-plain.json")))!;
         var now = rig.Json(0);
-        Assert.Equal(golden["messages"]![0]!["content"]!.JSONValueString, now["messages"]![0]!["content"]!.JSONValueString); // no skills: no block
+        Assert.Equal(File.ReadAllText(NativeSessionRig.GoldenPath("golden-prompt-supervised-build.txt")), now["messages"]![0]!["content"]!.JSONValueString); // no skills: no block
         var names = now["tools"]!.JSONValueArray!.Select(t => t["function"]!["name"]!.JSONValueString!).ToArray();
         Assert.Equal(["read_file", "list_files", "search_text", "write_file", "edit_file", "run_command", "request_tool"], names);
     }

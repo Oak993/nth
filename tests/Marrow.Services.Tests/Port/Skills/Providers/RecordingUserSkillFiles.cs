@@ -20,7 +20,7 @@ public sealed class RecordingUserSkillFiles : IUserSkillFiles
             .Select(f => Path.GetDirectoryName(f)!).Order(StringComparer.Ordinal).ToArray();
     }
 
-    public string? ReadText(string file)
+    public string? ReadText(string root, string file)
     {
         accesses.Add("read:" + file);
         return files.GetValueOrDefault(file);

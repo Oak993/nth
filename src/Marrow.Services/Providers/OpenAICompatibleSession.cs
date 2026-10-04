@@ -103,6 +103,9 @@ public class OpenAICompatibleSession : ProviderSession
     private List<MCPHub.Tool> mcpTools = [];                // :59
     private bool didLoadMCPTools;                            // :60
 
+    // PORT-ONLY (SK-11f): Marrow's own tools (use_skill, request_tool), empty unless SkillTools offers them, so the request is the Mac's byte for byte by default.
+    private IReadOnlyList<JSONValue> SkillToolDefinitions => SkillTools?.Definitions ?? [];
+
     // :61-65
     private IReadOnlyList<JSONValue> McpToolDefinitions => [.. mcpTools.Select(tool => JSONValue.FromDictionaryLiteral(
         ("type", "function"),
@@ -803,7 +806,7 @@ public class OpenAICompatibleSession : ProviderSession
         };
         if (withTools) // :575
         {
-            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. McpToolDefinitions]); // :576
+            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. SkillToolDefinitions, .. McpToolDefinitions]); // :576
             payload["tool_choice"] = "auto"; // :577
         }
         ApplyProviderPayload(payload, model, effort, withTools); // :579
@@ -1307,6 +1310,8 @@ public class OpenAICompatibleSession : ProviderSession
                 var command = ToolTitles.UnwrapShell(args["command"]?.JSONValueString ?? ""); // :1012
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = command.Length == 0 ? "Run command" : command }; // :1013
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1014
+                // PORT-ONLY (SK-11f, DL-12): a command that is about to wait for the user is a held command; nothing else changes.
+                if (OnToolEvent is { } held && command.Trimmed().Length > 0 && !interrupted && RequiresApproval(ToolCall.Kind.Command)) held(new CommandHeld(command));
                 if (!await ApproveIfNeeded(ToolCall.Kind.Command, command, null, null)) // :1015-1017
                 {
                     return Declined(callID);
@@ -1314,6 +1319,7 @@ public class OpenAICompatibleSession : ProviderSession
                 var (output, exitCode) = await RunCommand(command); // :1018
                 // The user stopped the turn while the command ran: say no more about it. :1019-1020
                 if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+                OnToolEvent?.Invoke(new CommandFinished(command, exitCode, exitCode != 0, output)); // PORT-ONLY (SK-11f, DL-12)
                 var update = new ToolUpdate // :1021-1024
                 {
                     Output = output.Length == 0 ? "" : Summary(output, 12_000),
@@ -1325,12 +1331,30 @@ public class OpenAICompatibleSession : ProviderSession
             }
             default: // :1027
             {
+                if (SkillTools is { } skillTools && skillTools.Owns(tool.Name)) return await ExecuteSkillTool(skillTools, tool, args); // PORT-ONLY (SK-11f)
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = tool.Name }; // :1028
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1029
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = "Unknown tool.", Status = ToolCall.Status.Failed })); // :1030
                 return $"Error: unknown tool {tool.Name}."; // :1031
             }
         }
+    }
+
+    // PORT-ONLY (SK-11f, WU-12, DL-14). Runs one of Marrow's own tools. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
+    private async Task<string> ExecuteSkillTool(NativeSkillTools skillTools, PendingToolCall tool, JSONValue args)
+    {
+        OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = NativeSkillTools.Title(tool.Name, args) }));
+        NativeToolResult result;
+        try { result = await skillTools.Execute(tool.Name, args); }
+        catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }
+        if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
+        {
+            Output = Summary(result.Output, 4_000),
+            Status = result.Failed ? ToolCall.Status.Failed : ToolCall.Status.Completed,
+        }));
+        if (OnToolEvent is { } tap) foreach (var toolEvent in result.Events) tap(toolEvent);
+        return result.Output;
     }
 
     // :1035-1038. Used by the later part's approveIfNeeded/executeTool bodies; kept here because
@@ -1579,7 +1603,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (trimmed.Length == 0) return ("Error: a command is required.", 1); // :1154
         var shell = WindowsShellForCommands.Resolve(); // :1155 DEVIATION OD-0008 C5
         async Task<ShellResult?> Attempt() => await Shell.Run(
-            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, LoginEnvironment.Current, timeout: 120, outputLimit: 24_000); // :1157
+            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, ProviderChildEnvironment.Apply(LoginEnvironment.Current), timeout: 120, outputLimit: 24_000); // :1157 DEVIATION ED-309 (SK-11f): addons\bin on PATH
         var result = await SwiftTry.OptionalAsync(Attempt);
         if (result is null) return ("The command could not start.", 1); // :1158-1159
         var output = (result.Output + (result.ErrorOutput.Length == 0 ? "" : "\n" + result.ErrorOutput)).Trimmed(); // :1160
@@ -1630,9 +1654,11 @@ public class OpenAICompatibleSession : ProviderSession
         }.Where(value => value is not null));
         // The project's own root guidelines come last, so the policy above stays higher
         // priority. They are re-read here only when the files changed. :1195-1197
+        // PORT-ONLY (SK-11f): the skills catalogue sits between the policy and the project's own guidelines; null (nothing to list) leaves the prompt as it was.
         var appendedPolicy = string.Join("\n\n", new[]
         {
             policy.Length == 0 ? null : policy,
+            SkillTools?.CatalogueBlock(),
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
         // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1200 reads
