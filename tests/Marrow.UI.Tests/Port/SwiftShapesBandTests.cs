@@ -81,13 +81,14 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
 
     // ---- the band: the sizes of the four records and the corner-band page's own ---------------------------------------
 
-    // 40 pt (the Edited-files card), 43 pt (a turn of one step), 48 pt (the corner-band page's size; a notice two lines tall is 46 pt when mounted at 380 pt wide) and 54 pt (a delegation card of one head), all r 18.
+    // 40 pt (the Edited-files card), 43 pt (a turn of one step), 48 pt (the corner-band page's size), 50 pt (a notice two lines tall, mounted at 380 pt wide: 16 + two callout lines of 17, ED-290 (1)) and 54 pt (a delegation card of one head), all r 18.
     // The corner-band page's JS port (cb-geometry.js optionA) draws the same: Outline(rect, min(r, LargestRadius), .continuous).
     [Theory]
     [Trait("Decision", "ED-181")]
     [InlineData(380, 40)]
     [InlineData(380, 43)]
     [InlineData(380, 48)]
+    [InlineData(380, 50)] // a two-line notice
     [InlineData(380, 54)]
     public void A_shape_in_the_band_draws_Apples_corner_at_the_largest_radius_that_fits(double w, double h)
     {
