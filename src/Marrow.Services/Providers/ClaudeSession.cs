@@ -6,6 +6,10 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Store;
+using Marrow.Services.Port.Skills.Generations;
+using Marrow.Services.Port.Skills.Providers;
+using Marrow.Services.Port.Skills.Shims;
+using Marrow.Core.Port.Skills.Detect;
 
 namespace Marrow.Services.Providers;
 
@@ -73,7 +77,7 @@ public sealed class ClaudeSession : ProviderSession
     }
 
     private readonly SessionConfiguration configuration; // :29
-    private StdioProcess? process;                        // :30
+    private IClaudeProcess? process;                        // :30
     private TaskHandle? readTask;                          // :31
     private string? sessionID;                             // :32
     private string permissionMode;                         // :33
@@ -103,13 +107,24 @@ public sealed class ClaudeSession : ProviderSession
     private string? launchError;                            // :55
     private static readonly Dictionary<string, HashSet<string>> knownOptions = new(SwiftStringComparer.Instance); // :56
 
-    public ClaudeSession(SessionConfiguration configuration) // :58-63
+    // DEVIATION OD-0099: SK-19 supplies a factory for this chat's SK-9 generation.
+    // Null/no content means no additional skills; unsupported CLIs never call the factory.
+    private readonly Func<Generation?>? acquireSkills;
+    private Generation? generation;
+    private readonly ClaudeSkillEvents skillEvents = new();
+    private bool skillWarningShown;
+
+    public ClaudeSession(SessionConfiguration configuration, Func<Generation?>? acquireSkills = null) // :58-63
     {
         this.configuration = configuration;
+        this.acquireSkills = acquireSkills;
         runtimeMode = configuration.RuntimeMode;
         permissionMode = ModeName(configuration.RuntimeMode, configuration.InteractionMode);
         model = configuration.Model;
     }
+
+    public Action<ToolEvent>? OnSkillEvent { get; set; }
+    public Exception? LastSkillEventFailure => skillEvents.LastFailure;
 
     public Action<ProviderEvent>? OnEvent { get; set; } // :13
 
@@ -137,17 +152,30 @@ public sealed class ClaudeSession : ProviderSession
     internal static async Task<HashSet<string>> KnownOptions(SwiftURL executable, IReadOnlyDictionary<string, string> environment) // :72-80
     {
         if (knownOptions.TryGetValue(executable.Path, out var cached)) return cached;
-        var result = await SwiftTry.OptionalAsync<ShellResult>(async () => await Shell.Run(executable.Path, ["--help"], environment: environment, timeout: 20));
+        var result = await SwiftTry.OptionalAsync<ShellResult>(async () => await ClaudeProviderRuntime.Help.Current(executable, environment));
         if (result is null) return [];
         var help = TextCleanup.StripANSI(result.Output + result.ErrorOutput);
         var found = new[] { "--system-prompt-snapshot", "--forward-subagent-text" }
             .Where(option => help.Contains(option, StringComparison.Ordinal));
         var options = new HashSet<string>(found, SwiftStringComparer.Instance);
+        if (result.Succeeded && help.Contains("--plugin-dir", StringComparison.Ordinal)) options.Add("--plugin-dir");
         knownOptions[executable.Path] = options;
         return options;
     }
 
-    public async Task<string> Start() // :82-167
+    public async Task<string> Start()
+    {
+        try { return await StartCore(); }
+        catch
+        {
+            // Keep a lease until the reader observes process exit, including a failed initialize.
+            if (generation is not null && process?.IsRunning == true) process.Terminate();
+            else ReleaseSkills();
+            throw;
+        }
+    }
+
+    private async Task<string> StartCore() // :82-167
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :83
         var id = configuration.ResumeID ?? SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid())); // :84
@@ -180,8 +208,22 @@ public sealed class ClaudeSession : ProviderSession
             arguments.Add(mcpConfig);
             arguments.Add("--strict-mcp-config");
         }
-        var environment = configuration.Environment; // :97
+        var environment = new ValueMap<string, string>(ShimPath.ForChild(configuration.Environment, Storage.Root), SwiftStringComparer.Instance); // DEVIATION OD-0099 DL-6: only PATH changes.
         var options = await KnownOptions(executable, environment); // :98
+        if (options.Contains("--plugin-dir") && acquireSkills is not null)
+        {
+            generation = await Task.Run(acquireSkills);
+            if (generation is not null)
+            {
+                if (!await Task.Run(generation.Verify)) throw new IOException("The generation failed whole-tree verification.");
+                if (generation.Skills.Count == 0 && generation.PluginFolders.Count == 0) ReleaseSkills();
+                else
+                {
+                    arguments.Add("--plugin-dir"); arguments.Add(generation.Folder);
+                    foreach (var folder in generation.PluginFolders) { arguments.Add("--plugin-dir"); arguments.Add(folder); }
+                }
+            }
+        }
         // Resumed chats must use the current setting, even with Hydra off. :99-100
         if (options.Contains("--system-prompt-snapshot"))
         {
@@ -211,7 +253,7 @@ public sealed class ClaudeSession : ProviderSession
         }
         // Exactly one combined system prompt segment for every session, Hydra or not. :121-128
         arguments.Add("--append-system-prompt");
-        arguments.Add(string.Join("\n\n", new[] { hydraPolicy, AntiSlopPolicy.Instructions(configuration.AntiSlopEnabled) }.OfType<string>()));
+        arguments.Add(string.Join("\n\n", new[] { hydraPolicy, AntiSlopPolicy.Instructions(configuration.AntiSlopEnabled), SkillsMoved() }.OfType<string>()));
         if (configuration.ResumeID is { } resumeID) // :129-134
         {
             arguments.Add("--resume");
@@ -228,7 +270,7 @@ public sealed class ClaudeSession : ProviderSession
             arguments.Add(id);
         }
 
-        var process = new StdioProcess(executable.Path, arguments, configuration.WorkingDirectory.Path, environment); // :136-141
+        var process = ClaudeProviderRuntime.Process.Current(executable.Path, arguments, configuration.WorkingDirectory.Path, environment); // :136-141
         this.process = process;
         process.Start(); // :143
         var messages = process.Messages; // :144
@@ -276,11 +318,21 @@ public sealed class ClaudeSession : ProviderSession
 
     /// <summary>PR-PROVCLI-022 to 024: the static catalog probe. A bare process, not a session.</summary>
     public static async Task<(ValueList<ModelOption> Models, ValueList<SlashCommand> Commands)> Handshake( // :185-212
-        SwiftURL executable, SwiftURL directory, IReadOnlyDictionary<string, string> environment)
+        SwiftURL executable, SwiftURL directory, IReadOnlyDictionary<string, string> environment,
+        Func<ClaudeSkillProbe?>? acquireSkills = null)
     {
-        var process = new StdioProcess(
+        using var skills = acquireSkills is null ? null : await Task.Run(acquireSkills);
+        environment = ShimPath.ForChild(environment, Storage.Root);
+        List<string> arguments = ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence", "--setting-sources", "user,project,local"];
+        if (skills?.HasContent == true && (await KnownOptions(executable, environment)).Contains("--plugin-dir"))
+        {
+            if (!await Task.Run(skills.Verify)) throw new IOException("A listing generation failed verification.");
+            arguments.Add("--plugin-dir"); arguments.Add(skills.Folder);
+            foreach (var folder in skills.PluginFolders) { arguments.Add("--plugin-dir"); arguments.Add(folder); }
+        }
+        var process = ClaudeProviderRuntime.Process.Current(
             executable.Path,
-            ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence", "--setting-sources", "user,project,local"],
+            arguments,
             directory.Path,
             environment);
         process.Start(); // :192
@@ -357,6 +409,7 @@ public sealed class ClaudeSession : ProviderSession
     /// HandleSystem below, its subtypes) without a live child process (see the file header note).</summary>
     internal void Handle(JSONValue message) // :330-384
     {
+        skillEvents.Handle(message, OnSkillEvent);
         // A head's message names the tool call that spawned it; the lead's carries null. :332
         var parent = message["parent_tool_use_id"]?.JSONValueString;
         switch (message["type"]?.JSONValueString)
@@ -854,6 +907,8 @@ public sealed class ClaudeSession : ProviderSession
     private void DidClose() // :678-690
     {
         hasClosed = true;
+        ReleaseSkills();
+        skillEvents.Clear();
         var tail = process?.ErrorTail ?? "";
         // The result's own error names the failure better than the stderr tail can.
         var reason = launchError ?? TextCleanup.LastLines(tail);
@@ -870,6 +925,11 @@ public sealed class ClaudeSession : ProviderSession
     public async Task Send(TurnInput input) // :214-236
     {
         if (process is not { IsRunning: true }) throw new ProviderError(new ProviderError.Case.NotRunning()); // :215
+        if (generation is not null && !await Task.Run(generation.Verify) && !skillWarningShown)
+        {
+            skillWarningShown = true;
+            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = "A Marrow skill file changed during this chat; new chats are not affected" }));
+        }
         runtimeMode = input.RuntimeMode; // :216
         var mode = ModeName(input.RuntimeMode, input.InteractionMode); // :217
         if (!SwiftString.Equal(mode, permissionMode)) // :218-221
@@ -957,6 +1017,7 @@ public sealed class ClaudeSession : ProviderSession
     {
         isStopping = true; // :290
         process?.Terminate(); // :291
+        if (process is null) ReleaseSkills();
     }
 
     public async Task<bool> StopAgent(string id) // :294-297
@@ -964,6 +1025,12 @@ public sealed class ClaudeSession : ProviderSession
         if (!tasksByAgent.TryGetValue(id, out var taskID)) return false;
         return await SwiftTry.OptionalAsync(async () => (JSONValue?)await Control(JSONValue.FromDictionaryLiteral(("subtype", "stop_task"), ("task_id", taskID)))) is not null;
     }
+
+    private string? SkillsMoved() => generation?.PreviousFolder is { } old
+        ? $"Marrow's skills for this chat are now in {generation.Folder}. Paths under {old} earlier in this conversation no longer exist; use the same relative path under the new folder."
+        : null;
+
+    private void ReleaseSkills() { generation?.Dispose(); generation = null; }
 
     // MARK: - Mapping
 
