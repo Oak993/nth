@@ -209,4 +209,31 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         }
         finally { window.Close(); }
     });
+    // ---- REVIEW (blitz-cornerband CB-0 re-check, 2026-10-04) ------------------------------------------------------------------------------------------------
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // REVIEW: the table's census reads only `CornerRadius = new CornerRadius(...)`; a Border given its radius from a variable or a ternary is never counted
+    public void REVIEW_every_CornerRadius_assignment_in_src_is_in_the_census_not_only_the_new_CornerRadius_ones()
+    {
+        var root = SourceRoot();
+        var missed = new List<string>();
+        foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
+        {
+            var relative = System.IO.Path.GetRelativePath(root, path).Replace('\\', '/');
+            if (relative.Contains("/obj/", StringComparison.Ordinal) || relative.Contains("/bin/", StringComparison.Ordinal)) continue;
+            if (relative is "Marrow.UI/Port/SwiftShapes.cs" or "Marrow.UI/Port/SwiftShapeBorder.cs") continue; // the shape helpers themselves
+            var lines = File.ReadAllLines(path);
+            for (var i = 0; i < lines.Length; i++)
+            {
+                // an assignment (object initializer or property set) of a Border's CornerRadius whose value is not a `new CornerRadius(...)` the census reads
+                var m = Regex.Match(lines[i], @"\bCornerRadius\s*=(?![=>])(?!\s*new\s*(?:CornerRadius)?\s*\()(.+)");
+                if (!m.Success) continue;
+                var line = lines[i].TrimStart();
+                if (line.StartsWith("private const", StringComparison.Ordinal) || line.StartsWith("public const", StringComparison.Ordinal)
+                    || line.StartsWith("internal const", StringComparison.Ordinal) || line.Contains("double CornerRadius", StringComparison.Ordinal)) continue;
+                missed.Add($"{relative}:{i + 1}: {line}");
+            }
+        }
+        Assert.True(missed.Count == 0, "CornerRadius assignments outside the census (each is a raw Border the table neither routes nor classes):" + Environment.NewLine + string.Join(Environment.NewLine, missed));
+    }
 }
