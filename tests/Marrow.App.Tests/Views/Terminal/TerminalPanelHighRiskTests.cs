@@ -724,6 +724,34 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
             }, (session, _, _, _, _) => { });
     }
 
+    // REVIEW (PR-TERM-032): ActiveEscapeListenerCount is the host's own bookkeeping, not the view's subscriptions, so the
+    // counting tests above pass with the `KeyDown -=` of DetachEscapeListener removed. The source's coordinator deinit
+    // removes the monitor itself (TerminalPanel.swift:202-204): a host that has left the tree must not answer an Escape
+    // that a later host of the same long-lived view (:60 .id(selected.id), :242-249 attach) now owns.
+    [Fact]
+    [Trait("Req", "PR-TERM-032")]
+    [Trait("Rule", "R-TEST-4")] // the removal half: the detached host's listener is really gone
+    public void REVIEW_A_detached_host_no_longer_answers_Escape_once_a_new_host_holds_the_same_view()
+    {
+        var oldHostCloses = 0;
+        WithAttachedHost("review stale listener", null, (session, host, window, _, runtime) =>
+        {
+            Assert.True(UiPump.Until(() => TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId),
+                TimeSpan.FromSeconds(15)), "the ConPTY shell did not reach its prompt");
+            var root = Assert.IsType<Border>(window.Content);
+            root.Child = null; // the old host leaves the tree (a tab switch releases it)
+            Dispatcher.UIThread.RunJobs();
+
+            var newHostCloses = 0;
+            root.Child = new TerminalHost(session, runtime, () => newHostCloses++);
+            Settle(window);
+            Assert.True(session.View.Focus());
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Assert.Equal(0, oldHostCloses); // :202-204 the old monitor was removed
+            Assert.Equal(1, newHostCloses);
+        }, (session, _, _, _, _) => { }, () => oldHostCloses++);
+    }
+
     private void WithAttachedHost(
         string label,
         string? command,
