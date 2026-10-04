@@ -49,11 +49,13 @@ public sealed class ShimLauncherTests
         var pth = Path.Combine(targetDirectory, "python314._pth");
         const string original = "python314.zip\n.\nLib/site-packages\nimport site\n";
         File.WriteAllText(pth, original);
+        File.WriteAllText(Path.Combine(targetDirectory, "pip.ini"), "[global]\ntarget=agent-packages\n");
         var package = Path.Combine(fixture.Root, "package set 日本語");
         var agent = Path.Combine(fixture.Work, "python-agent", "3.14");
         Directory.CreateDirectory(package);
         Directory.CreateDirectory(agent);
-        var before = Directory.GetFiles(targetDirectory).ToDictionary(Path.GetFileName, File.ReadAllBytes);
+        foreach (var file in Directory.GetFiles(targetDirectory)) File.SetAttributes(file, File.GetAttributes(file) | FileAttributes.ReadOnly);
+        var before = Directory.GetFiles(targetDirectory).ToDictionary(p => Path.GetFileName(p)!, File.ReadAllBytes);
         var parentUtf8 = Environment.GetEnvironmentVariable("PYTHONUTF8");
         var shim = fixture.Install("python", new ShimDefinition
         {
@@ -61,6 +63,11 @@ public sealed class ShimLauncherTests
         });
         Assert.Equal("1", ShimFixtures.Decode(Assert.Single(await fixture.Lines(shim, "env", "PYTHONUTF8"))));
         Assert.Equal(parentUtf8, Environment.GetEnvironmentVariable("PYTHONUTF8"));
+        var childPaths = await fixture.Lines(shim, "python-paths");
+        Assert.Equal("1", childPaths[0]);
+        var pthEntries = ShimFixtures.Decode(childPaths[1]).Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
+        Assert.Contains(package, pthEntries);
+        Assert.Contains(agent, pthEntries);
         // Per-call ._pth preparation is also inspected while the fake child is alive.
         using (var run = PythonShimRun.Prepare(fixture.Target, pth, [package, agent], fixture.Work))
         {
@@ -71,10 +78,16 @@ public sealed class ShimLauncherTests
             Assert.Contains(agent, entries);
             Assert.Equal("import site", entries[^1]);
             Assert.NotEqual(fixture.Target, run.Target);
+            Assert.All(Directory.GetFiles(Path.GetDirectoryName(run.Target)!), file => Assert.False(File.GetAttributes(file).HasFlag(FileAttributes.ReadOnly)));
+            Assert.Equal("[global]\ntarget=agent-packages\n", File.ReadAllText(Path.Combine(Path.GetDirectoryName(run.Target)!, "pip.ini")));
         }
         Assert.Empty(Directory.GetDirectories(fixture.Work, "python-run-*"));
         Assert.Equal(before.Keys.Order(), Directory.GetFiles(targetDirectory).Select(Path.GetFileName).Order());
-        foreach (var item in before) Assert.Equal(item.Value, File.ReadAllBytes(Path.Combine(targetDirectory, item.Key!)));
+        foreach (var item in before)
+        {
+            Assert.Equal(item.Value, File.ReadAllBytes(Path.Combine(targetDirectory, item.Key!)));
+            Assert.True(File.GetAttributes(Path.Combine(targetDirectory, item.Key!)).HasFlag(FileAttributes.ReadOnly));
+        }
         // The original target is the user's tool in this fixture: no shim override.
         Assert.Equal(parentUtf8 ?? "<absent>", ShimFixtures.Decode(Assert.Single(await fixture.Lines(fixture.Target, "env", "PYTHONUTF8"))));
     }
@@ -103,11 +116,25 @@ public sealed class ShimLauncherTests
         Assert.False(Directory.Exists(b));
     }
     [Fact, Trait("Feature", "SK-6")]
+    public async Task Soffice_profile_is_deleted_even_when_the_target_exits_with_failure()
+    {
+        using var fixture = new ShimFixtures();
+        var shim = fixture.Install("soffice", new ShimDefinition { Target = fixture.Target, LibreOffice = true, WorkDirectory = fixture.Work });
+        using var child = fixture.Start(shim, "profile", "fail");
+        child.StandardInput.Close();
+        var profile = (await child.StandardOutput.ReadToEndAsync()).TrimEnd('\r', '\n');
+        await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Equal(42, child.ExitCode);
+        Assert.False(Directory.Exists(profile));
+        Assert.Equal("", await child.StandardError.ReadToEndAsync());
+    }
+    [Fact, Trait("Feature", "SK-6")]
     public async Task Child_tree_lifetime_is_armed_before_start_through_the_seam()
     {
         using var fixture = new ShimFixtures();
-        var lifetime = new RecordingShimLifetime();
-        Assert.Equal(0, await ShimRunner.RunAsync(new ShimDefinition { Target = fixture.Target }, ["args"], lifetime));
+        var marker = Path.Combine(fixture.Root, "armed");
+        var lifetime = new RecordingShimLifetime(() => File.WriteAllText(marker, "armed"));
+        Assert.Equal(0, await ShimRunner.RunAsync(new ShimDefinition { Target = fixture.Target }, ["armed", marker], lifetime));
         Assert.True(lifetime.Armed);
     }
 }

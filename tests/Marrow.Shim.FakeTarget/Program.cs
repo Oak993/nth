@@ -17,6 +17,7 @@ if (args[0] == "tree")
     File.WriteAllText(args[1], grandchild.Id.ToString(CultureInfo.InvariantCulture));
     await Task.Delay(Timeout.Infinite);
 }
+if (args[0] == "armed") return File.Exists(args[1]) ? 0 : 91;
 if (args[0] == "wait") await Task.Delay(Timeout.Infinite);
 if (args[0] == "provider")
 {
@@ -36,6 +37,12 @@ if (args[0] == "provider")
     }
     return 0;
 }
+if (args[0] == "python-paths")
+{
+    Console.WriteLine(Environment.GetEnvironmentVariable("PYTHONUTF8"));
+    Console.WriteLine(Convert.ToBase64String(Encoding.UTF8.GetBytes(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "python314._pth")))));
+    return 0;
+}
 if (args[0] == "env")
 {
     foreach (var key in args.Skip(1))
@@ -49,7 +56,7 @@ if (args[0] == "profile")
     Directory.CreateDirectory(path);
     File.WriteAllText(Path.Combine(path, "used"), "fixture");
     Console.WriteLine(path);
-    return 0;
+    return args.Contains("fail", StringComparer.Ordinal) ? 42 : 0;
 }
 foreach (var arg in args.Skip(1)) Console.WriteLine(Convert.ToBase64String(Encoding.UTF8.GetBytes(arg)));
 return 0;

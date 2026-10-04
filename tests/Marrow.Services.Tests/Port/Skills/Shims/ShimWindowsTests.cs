@@ -22,13 +22,18 @@ public sealed class ShimWindowsTests
         var shim = fixture.Install("qpdf", new ShimDefinition { Target = fixture.Target });
         // Shell-specific escaping; argv includes spaces, literal quote and Unicode.
         string[] expected = ["two words", "a\"quote", "مرحبا 日本語"];
-        var command = shell switch
+        string Command(bool echo) => shell switch
         {
-            "cmd.exe" => "\"\"" + shim + "\" args \"two words\" \"a\\\"quote\" \"مرحبا 日本語\"\"",
-            "powershell.exe" => "& '" + shim + "' args 'two words' 'a\"quote' 'مرحبا 日本語'; exit $LASTEXITCODE",
-            "bash.exe" => "exec '" + shim.Replace('\\', '/') + "' args 'two words' 'a\"quote' 'مرحبا 日本語'",
+            "cmd.exe" => "\"\"" + shim + "\" " + (echo ? "echo" : "args \"two words\" \"a\\\"quote\" \"مرحبا 日本語\"") + "\"",
+            // Start-Process -NoNewWindow inherits native handles without PowerShell's pipeline transcoding.
+            // ArgumentList here is the raw Windows command line, whose quoted argv is tested below.
+            "powershell.exe" => "$p=Start-Process -FilePath '" + shim + "' -ArgumentList '" +
+                (echo ? "echo" : "args \"two words\" \"a\\\"quote\" \"مرحبا 日本語\"") +
+                "' -NoNewWindow -Wait -PassThru; exit $p.ExitCode",
+            "bash.exe" => "exec '" + shim.Replace('\\', '/') + "' " + (echo ? "echo" : "args 'two words' 'a\"quote' 'مرحبا 日本語'"),
             _ => throw new InvalidOperationException()
         };
+        var command = Command(false);
         string[] prefix = shell switch
         {
             "cmd.exe" => ["/d", "/s", "/c"],
@@ -36,7 +41,11 @@ public sealed class ShimWindowsTests
             "bash.exe" => ["--noprofile", "--norc", "-c"],
             _ => throw new InvalidOperationException()
         };
-        using (var child = fixture.Start(shell, [.. prefix, command]))
+        var executable = shell == "bash.exe"
+            ? Environment.GetEnvironmentVariable("MARROW_SK6_GIT_BASH") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Git", "bin", "bash.exe")
+            : shell;
+        Assert.True(shell != "bash.exe" || File.Exists(executable), "WINDOWS-ONLY prerequisite: Git for Windows Bash (or MARROW_SK6_GIT_BASH).");
+        using (var child = fixture.Start(executable, [.. prefix, command]))
         {
             child.StandardInput.Close();
             var output = await child.StandardOutput.ReadToEndAsync();
@@ -47,8 +56,8 @@ public sealed class ShimWindowsTests
             Assert.Equal(expected, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => ShimFixtures.Decode(l.TrimEnd('\r'))));
         }
         // Native command invoked through each shell inherits byte streams; no PowerShell pipeline transcoding.
-        command = command[..command.IndexOf(" args", StringComparison.Ordinal)] + " echo" + (shell == "powershell.exe" ? "; exit $LASTEXITCODE" : shell == "cmd.exe" ? "\"" : "");
-        using var echo = fixture.Start(shell, [.. prefix, command]);
+        command = Command(true);
+        using var echo = fixture.Start(executable, [.. prefix, command]);
         using var stdout = new MemoryStream();
         using var stderr = new MemoryStream();
         var outTask = echo.StandardOutput.BaseStream.CopyToAsync(stdout);

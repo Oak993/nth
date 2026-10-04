@@ -7,7 +7,7 @@ namespace Marrow.Services.Tests.Port.Skills.Shims;
 // PORT-ONLY: SK-6 disposable distribution and child processes.
 internal sealed class ShimFixtures : IDisposable
 {
-    public string Root { get; } = Path.Combine(Path.GetTempPath(), "marrow-sk6-" + Guid.NewGuid().ToString("N"));
+    public string Root { get; } = Path.Combine(Path.GetTempPath(), "marrow-sk6-空间 with spaces-" + Guid.NewGuid().ToString("N"));
     public string Bin => Path.Combine(Root, "addons", "bin");
     public string Work => Path.Combine(Root, "addons", "work");
     public string Target => Path.Combine(Root, "target", "Marrow.Shim.FakeTarget" + Extension);
@@ -36,7 +36,10 @@ internal sealed class ShimFixtures : IDisposable
             RedirectStandardOutput = true, RedirectStandardError = true
         };
         start.Environment["MARROW_PORT_DATA_DIR"] = Root;
-        foreach (var arg in args) start.ArgumentList.Add(arg);
+        if (Path.GetFileName(executable).Equals("cmd.exe", StringComparison.OrdinalIgnoreCase))
+            start.Arguments = string.Join(' ', args); // cmd /c consumes a raw command, not CRT argv quoting.
+        else
+            foreach (var arg in args) start.ArgumentList.Add(arg);
         return Process.Start(start)!;
     }
     public async Task<string[]> Lines(string shim, params string[] args)
@@ -51,5 +54,10 @@ internal sealed class ShimFixtures : IDisposable
         return (await output).Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.TrimEnd('\r')).ToArray();
     }
     public static string Decode(string value) => Encoding.UTF8.GetString(Convert.FromBase64String(value));
-    public void Dispose() => Directory.Delete(Root, true);
+    public void Dispose()
+    {
+        foreach (var file in Directory.GetFiles(Root, "*", SearchOption.AllDirectories))
+            File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
+        Directory.Delete(Root, true);
+    }
 }
