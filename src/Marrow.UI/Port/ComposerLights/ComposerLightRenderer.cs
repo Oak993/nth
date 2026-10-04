@@ -316,9 +316,12 @@ public sealed class ComposerLightRenderer : IDisposable
         paint.Shader = null;
     }
 
+    [ThreadStatic] private static float[]? scratch;
+
     private static void Set(SKRuntimeEffectUniforms u, string name, double x, double y, double z, double w)
     {
-        Span<float> v = stackalloc float[4];
+        // a reused array, not a stackalloc'd Span: SDK 10.0.112's span-safety rules reject the Span's implicit conversion to SKRuntimeEffectUniform
+        var v = scratch ??= new float[4];
         v[0] = (float)x; v[1] = (float)y; v[2] = (float)z; v[3] = (float)w;
         u[name] = v;
     }

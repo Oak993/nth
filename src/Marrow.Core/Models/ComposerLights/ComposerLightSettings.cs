@@ -137,7 +137,8 @@ public sealed record BorderBeamOptions
 
 /// <summary>
 /// The Uiverse light's options (AURA_DEFAULTS, the playground's calm defaults; "Original values" restores the reference's
-/// own, AURA_ORIGINAL). Colours are #RRGGBB.
+/// own, AURA_ORIGINAL). Colours are #RRGGBBAA as the glass picker stores them (OD-0099 Look Picks, Q-CZ-3 B); a stored #RRGGBB
+/// reads as opaque.
 /// </summary>
 public sealed record UiverseAuraOptions
 {
@@ -186,7 +187,7 @@ public sealed record UiverseAuraOptions
         Rim = true, RimWidth = 2, Dots = true, DotCell = 3, DotStrength = 67,
     };
 
-    /// <summary>Every value inside its slider's range and on its step; colours as #RRGGBB (an unreadable one falls back to the default).</summary>
+    /// <summary>Every value inside its slider's range and on its step; colours as #RRGGBB or #RRGGBBAA (an unreadable one falls back to the default).</summary>
     public UiverseAuraOptions Clamped() => this with
     {
         Color1 = NormalizedHex(Color1) ?? Default.Color1,
@@ -202,13 +203,20 @@ public sealed record UiverseAuraOptions
         DotStrength = DotStrengthSlider.Snap(DotStrength),
     };
 
-    /// <summary>"#rrggbb" in upper case, or null when the text is not a six-digit hex colour.</summary>
+    /// <summary>"#RRGGBB" or "#RRGGBBAA" in upper case, or null when the text is neither a six- nor an eight-digit hex colour.</summary>
     public static string? NormalizedHex(string? text)
     {
-        if (text is not { Length: 7 } || text[0] != '#') return null;
-        for (var i = 1; i < 7; i++) if (!Uri.IsHexDigit(text[i])) return null;
+        if (text is not { Length: 7 or 9 } || text[0] != '#') return null;
+        for (var i = 1; i < text.Length; i++) if (!Uri.IsHexDigit(text[i])) return null;
         return text.ToUpperInvariant();
     }
+
+    /// <summary>The colour without its alpha: the first six digits of a normalised colour ("#RRGGBB").</summary>
+    public static string OpaqueHex(string hex) => hex.Length > 7 ? hex[..7] : hex;
+
+    /// <summary>The alpha (0..1) of a normalised colour: the last pair of "#RRGGBBAA" as a byte / 255 (the design's own hex field reads it so); 1 for "#RRGGBB".</summary>
+    public static double AlphaOf(string hex) =>
+        hex.Length == 9 ? int.Parse(hex.AsSpan(7, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture) / 255.0 : 1;
 }
 
 /// <summary>

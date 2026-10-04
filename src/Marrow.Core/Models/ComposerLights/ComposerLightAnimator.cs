@@ -112,12 +112,17 @@ public sealed class ComposerLightAnimator
     {
         var a = settings.Aura;
         string c1, c2, k1, k2, n1, n2;
+        double al1 = 1, al2 = 1; // OD-0099 (Q-CZ-3 B): a Custom colour's alpha belongs to the halo's two colours; k and n mix from the opaque hex
         if (a.Scheme == AuraScheme.Original) { c1 = "#ff5500"; c2 = "#0055ff"; k1 = "#ff9955"; k2 = "#5599ff"; n1 = "#ffcc99"; n2 = "#99ccff"; }
         else
         {
             if (a.Scheme == AuraScheme.Maker) { c1 = dark ? palette.MakerHeartDark : palette.MakerHeartLight; c2 = dark ? palette.MakerSecondDark : palette.MakerSecondLight; }
             else if (a.Scheme == AuraScheme.Accent) { c1 = dark ? palette.AccentDark : palette.AccentLight; c2 = BorderBeamMath.MixHex(c1, "#ffffff", 0.45); }
-            else { c1 = a.Color1; c2 = a.Color2; }
+            else
+            {
+                c1 = UiverseAuraOptions.OpaqueHex(a.Color1); c2 = UiverseAuraOptions.OpaqueHex(a.Color2);
+                al1 = UiverseAuraOptions.AlphaOf(a.Color1); al2 = UiverseAuraOptions.AlphaOf(a.Color2);
+            }
             k1 = BorderBeamMath.MixHex(c1, "#ffffff", 0.35); k2 = BorderBeamMath.MixHex(c2, "#ffffff", 0.35);
             n1 = BorderBeamMath.MixHex(c1, "#ffffff", 0.6); n2 = BorderBeamMath.MixHex(c2, "#ffffff", 0.6);
         }
@@ -128,6 +133,7 @@ public sealed class ComposerLightAnimator
             var c = CssColor.Parse(hex);
             o[i++] = c.R / 255; o[i++] = c.G / 255; o[i++] = c.B / 255; o[i++] = 1;
         }
+        o[3] = al1; o[7] = al2;
         return o;
     }
 
