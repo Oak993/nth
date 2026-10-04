@@ -175,9 +175,18 @@ public sealed class ThreadTimeline : Decorator
                     // :332-334 `.id(block.id)`: a block whose id survives keeps its view. A running turn's block changes with every step that lands in it, and its
                     // working line, its expansion and its bar must go on through that, so the row is told its new block instead of being made again.
                     var same = hadIdentity && existing.Block == block && existing.Context == context;
-                    var row = same ? existing.Row
-                        : hadIdentity && existing.Row is DisplayBlockView alive && alive.TryUpdate(block, context) ? alive
-                        : new DisplayBlockView(block, runtime, context).Transition(Transition(block));
+                    Control row;
+                    if (same) row = existing.Row;
+                    else if (hadIdentity && existing.Row is DisplayBlockView alive && alive.TryUpdate(block, context)) row = alive;
+                    else
+                    {
+                        var fresh = new DisplayBlockView(block, runtime, context);
+                        // The turn ends: the running block's row is replaced by the finished block's (the Mac cuts here, 2-chat-use.mov 125.743 -> 125.762 s). OD-0076, PR-CHAT-104: the
+                        // finished block takes the running block's height and eases to its own, its rows fading in; the running rows are gone at once. Reduce Motion: the end state.
+                        if (hadIdentity && existing.Block is DisplayBlock.Turn { Summary: null } && block is DisplayBlock.Turn { Summary: not null })
+                            fresh.BeginTurnEnd(SwiftTransition.Container(existing.Row).Bounds.Height, EnvironmentValues.GetAccessibilityReduceMotion(this));
+                        row = fresh.Transition(Transition(block));
+                    }
                     var made = !same && !(hadIdentity && ReferenceEquals(row, existing.Row));
                     if (made && hadIdentity) stale.Add(existing.Row);
                     rowViews[block.Id] = (block, context, row);
@@ -1269,6 +1278,12 @@ public sealed class DisplayBlockView : Decorator
 
     private DisplayBlock shown;
     private RowContext shownContext;
+
+    /// <summary>PORT-ONLY (OD-0076, PR-CHAT-104): this view replaces a running turn's at the turn's end; see <see cref="TurnFinishedBlock.BeginTurnEnd"/>.</summary>
+    internal void BeginTurnEnd(double fromHeight, bool reduceMotion)
+    {
+        if (Child is TurnFinishedBlock finished) finished.BeginTurnEnd(fromHeight, reduceMotion);
+    }
 
     /// <summary>:1896-1936, :332-334 the same view with a new block or a new context under the same id (`.id(block.id)` on an `.equatable()` row: the body runs again and every
     /// @State inside it survives). The view is the same while the body's branch is: the merge pill (in either of its phases), a group, a turn that is running (or finished), the

@@ -2926,10 +2926,9 @@ public sealed class ToolStatusIcon : Decorator
     {
         Control icon = call.ToolCallStatus switch
         {
-            // :2075-2077 ProgressView().controlSize(.mini): an indeterminate progress control in the icon column; the
-            // mini control's own metrics are platform drawing with no source value (UNVERIFIED OD-0001), the
-            // AttachmentPreview.cs precedent for ProgressView.
-            ToolCall.Status.Running => new ProgressBar { IsIndeterminate = true },
+            // :2075-2077 ProgressView().controlSize(.mini): the mini spinner is 10 x 10 pt, centred in the 16 pt icon column
+            // (2-chat-use.mov 145.0-145.6 s, the usage popover's own .mini control, UsageViews.swift:22; crop 1894,1148,64x64: 10x10 px; PR-CHAT-099).
+            ToolCall.Status.Running => new ProgressBar { IsIndeterminate = true, Width = 10, Height = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             ToolCall.Status.Failed => Glyph("xmark.circle.fill", Chrome.Danger), // :2078-2080
             ToolCall.Status.Declined => Glyph("hand.raised.slash", Chrome.Warning), // :2081-2083
             ToolCall.Status.Completed => Glyph(symbol ?? ToolPresentation.Symbol(call.ToolCallKind), Chrome.SecondaryText), // :2084-2086
@@ -3608,6 +3607,115 @@ internal sealed class SizeSlot : Panel
     }
 }
 
+/// <summary>PORT-ONLY (OD-0076, PR-CHAT-104). The height a block presents while it eases to the height its content has. The content is laid out at its own
+/// natural height and the block is as tall as the animation has got to, clipping it while it runs, so a growing block reveals its content from the top and a
+/// shrinking one hides it from the bottom (a height reveal: no opacity lies on the content, which for a finished turn's open steps can run to thousands of
+/// points). A change made under an animation is noted with <see cref="Note"/> before the layout pass that reads it; a block that is to arrive at its place
+/// one height and ease to its own is begun with <see cref="Begin"/>; a height that changes with no animation noted is followed at once, and one that changes
+/// while an ease is running goes on easing to the new height on the same animation.</summary>
+internal sealed class HeightEase
+{
+    private readonly AnimatedDouble height;
+    private readonly Action invalidate;
+    private readonly Action<bool> clip;
+    private double presented, target;
+    private bool measured;
+    private Animation? pending, last;
+    private int noted;
+    private bool lapsing;
+
+    public HeightEase(Action invalidate, Action<bool> clip)
+    {
+        this.invalidate = invalidate;
+        this.clip = clip;
+        height = new AnimatedDouble(value =>
+        {
+            presented = value;
+            clip(IsEasing);
+            invalidate();
+        });
+    }
+
+    /// <summary>The height is on its way to another.</summary>
+    public bool IsEasing => measured && Math.Abs(presented - target) > 0.01;
+
+    /// <summary>A change under <paramref name="animation"/> is noted when it is made; the layout pass that follows reads it. It lapses once the layout passes are done, so a
+    /// later change of another kind (a resize) is followed at once.</summary>
+    public void Note(Animation? animation)
+    {
+        pending = animation;
+        lapsing = false;
+        invalidate();
+        // The note lapses once the layout pass that reads it is done: the first pass after this job has run (a pass may come before or after the job, so the job
+        // only marks the note as one that lapses at the next pass, and the pass takes it away).
+        var turn = ++noted;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (turn == noted) lapsing = true; }, Avalonia.Threading.DispatcherPriority.Background);
+    }
+
+    /// <summary>Takes the place of a block <paramref name="from"/> tall and eases to the content's own height under <paramref name="animation"/> at the first layout pass.</summary>
+    public void Begin(double from, Animation animation)
+    {
+        presented = from;
+        target = from;
+        measured = true;
+        height.Set(from, null);
+        pending = animation;
+        last = animation;
+        clip(false);
+        invalidate();
+    }
+
+    /// <summary>The height to present for a content <paramref name="natural"/> tall.</summary>
+    public double Resolve(double natural)
+    {
+        if (!measured || natural != target)
+        {
+            var animation = measured ? pending ?? (IsEasing ? last : null) : null;
+            pending = null;
+            target = natural;
+            measured = true;
+            height.Set(natural, animation);
+            if (animation is not null) last = animation;
+            clip(IsEasing);
+        }
+        if (lapsing) { pending = null; lapsing = false; }
+        return presented;
+    }
+}
+
+/// <summary>PORT-ONLY (OD-0076, PR-CHAT-104). A host whose height follows its content's along the animation a change was noted under (<see cref="HeightEase"/>): the finished
+/// turn's body, which folds open and shut on the header's <c>.snappy(duration: 0.24)</c> (TimelineRows.swift:2609-2616).</summary>
+internal sealed class HeightFoldHost : Panel
+{
+    private readonly HeightEase ease;
+
+    public HeightFoldHost(Control content)
+    {
+        Content = content;
+        Children.Add(content);
+        ease = new HeightEase(InvalidateMeasure, clip => ClipToBounds = clip);
+    }
+
+    /// <summary>The content, laid out at its own natural height.</summary>
+    public Control Content { get; }
+
+    /// <summary>A change to the content made under <paramref name="animation"/> (null: none).</summary>
+    public void Note(Animation? animation) => ease.Note(animation);
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        Content.Measure(new Size(availableSize.Width, double.PositiveInfinity));
+        var natural = Content.DesiredSize;
+        return new Size(natural.Width, ease.Resolve(natural.Height));
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        Content.Arrange(new Rect(0, 0, finalSize.Width, Content.DesiredSize.Height));
+        return finalSize;
+    }
+}
+
 // PORT-ONLY: source HStack(alignment: .firstTextBaseline) at :2356, :1959, :1991 and :2389. Give the
 // text the remaining proposed width, and align native text metrics with SwiftImage's ED-182 baseline.
 internal sealed class TimelineBaselineRow : Panel
@@ -3751,6 +3859,11 @@ public sealed class TurnFinishedBlock : Decorator
     private int directoryVersion;                      // bumped when the directory the heads' rows are made with changed
     private List<(TimelineEntry Entry, UserMessageRow Row)> userRows = [];
     private TextBlock? headerLabel;
+    // PORT-ONLY (OD-0076, PR-CHAT-104): the finished block's height at the turn-end swap, and the rows that fade in with it.
+    private readonly HeightEase ease;
+    private Button? headerButton;
+    private HeightFoldHost? bodyHost;
+    private Decorator? headsHostRow, cardHostRow;
 
     // :2497 @State private var isExpanded: Bool and :2523 @State private var legacyChanges: FileChangeSummary?, both read
     // by the body; Revision stands for the inputs the body is handed again.
@@ -3800,17 +3913,26 @@ public sealed class TurnFinishedBlock : Decorator
         // (ThreadTimeline.swift:330), so a finished turn opens folded.
         state = new ViewState(chronological);
 
+        ease = new HeightEase(InvalidateMeasure, clip => ClipToBounds = clip);
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 }; // :2598
         SyncUserRows(stack); // :2599-2602
-        stack.Children.Add(Header()); // :2603-2622
+        headerButton = Header();
+        stack.Children.Add(headerButton); // :2603-2622
 
         // :2624-2701 if showsBody { the rule; the steps or the answer; the heads; the file card }
         var ruleHost = new Decorator();
         var middleHost = new Panel();
         var headsHost = new Decorator();
         var cardHost = new Decorator();
-        stack.Children.Add(ruleHost);
-        stack.Children.Add(middleHost);
+        // The rule and the steps or the answer are one body whose height glides when the fold changes what it holds: the header's action runs under
+        // `.snappy(duration: 0.24)` (:2609-2616) and the branches below are animated inside that transaction. OD-0076, PR-CHAT-104.
+        var bodyColumn = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+        bodyColumn.Children.Add(ruleHost);
+        bodyColumn.Children.Add(middleHost);
+        var body = bodyHost = new HeightFoldHost(bodyColumn);
+        headsHostRow = headsHost;
+        cardHostRow = cardHost;
+        stack.Children.Add(body);
         stack.Children.Add(headsHost);
         stack.Children.Add(cardHost);
 
@@ -3831,6 +3953,7 @@ public sealed class TurnFinishedBlock : Decorator
             var changes = summary.Changes ?? legacy; // :2593-2595 the files as the turn's own diff saw them, or as worked out once
             var hasFiles = changes is { Files.Count: > 0 }; // :2596
             var showsBody = showsHeads || hasFiles || (expanded ? turn.DetailGroups.Count != 0 : turn.HasResponse); // :2597
+            body.Note(Transaction.Current); // what the body holds changes under the fold's animation: its height glides (OD-0076)
 
             // :2625-2629 Divider().opacity(0.6).padding(.vertical, rowSpacing / 2): half a row gap on each side, so the
             // header and the body sit one row gap apart with the rule in between.
@@ -3842,7 +3965,11 @@ public sealed class TurnFinishedBlock : Decorator
                 middleKey = (showsBody, expanded, contentVersion);
                 if (middle is { } previous) SwiftTransition.Remove(middleHost, previous);
                 middle = !showsBody ? null : expanded ? Steps(turn, showsHeads) : turn.HasResponse ? Answer(turn) : null;
-                if (middle is { } next) SwiftTransition.Insert(middleHost, middleHost.Children.Count, next);
+                if (middle is { } next)
+                {
+                    SwiftTransition.Insert(middleHost, middleHost.Children.Count, next);
+                    if (Transaction.Current is { } fold) FadeRowsIn(RowsOf(next), fold); // the incoming rows fade in, row by row: no opacity on the body
+                }
             }
 
             // :2682-2686 the heads the turn sent out stay in view under the response, folded or not: one list for as long as there are heads, whose rows follow the heads.
@@ -3893,6 +4020,54 @@ public sealed class TurnFinishedBlock : Decorator
             runtime.StoreLegacyChanges(changes, turnID); // :2713
         });
         Child = stack;
+    }
+
+    // PORT-ONLY (OD-0076): the rows the incoming branch of the fold brings: the steps card's groups, or the folded answer's column.
+    private static IEnumerable<Control> RowsOf(Control middle) => middle switch
+    {
+        Border { Child: StackPanel steps } => steps.Children,
+        StackPanel answer => answer.Children,
+        _ => [],
+    };
+
+    private static void FadeRowsIn(IEnumerable<Control> rows, Animation animation)
+    {
+        foreach (var row in rows.ToArray())
+        {
+            var fade = new AnimatedDouble(value => row.Opacity = Math.Clamp(value, 0, 1));
+            fade.Set(0, null);
+            fade.Set(1, animation);
+        }
+    }
+
+    /// <summary>PORT-ONLY (OD-0076, PR-CHAT-104). The turn-end swap: the block that showed the running turn is replaced by this one. The Mac cuts it in one frame
+    /// (2-chat-use.mov 125.743 s to 125.762 s; ThreadTimeline.swift:1907-1926 <c>.transition(.identity)</c>); the port takes the running block's place at its height and eases to its own
+    /// in about 0.3 s, its header, body, heads and file card fading in over about 0.2 s while the prompt, which was on screen already, stays as it is. The running block's rows are gone
+    /// at once, so the two are never drawn together. Reduce Motion shows the end state (Q-RM A, OD-0099).</summary>
+    internal void BeginTurnEnd(double fromHeight, bool reduceMotion)
+    {
+        if (reduceMotion || !(fromHeight > 0)) return;
+        ease.Begin(fromHeight, Animation.Smooth(duration: 0.3));
+        var fade = Animation.EaseOut(duration: 0.2);
+        foreach (var row in new Control?[] { headerButton, bodyHost, headsHostRow, cardHostRow }.OfType<Control>())
+        {
+            var opacity = new AnimatedDouble(value => row.Opacity = Math.Clamp(value, 0, 1));
+            opacity.Set(0, null);
+            opacity.Set(1, fade);
+        }
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var size = base.MeasureOverride(availableSize);
+        return new Size(size.Width, ease.Resolve(size.Height));
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        if (!ease.IsEasing || Child is not { } child) return base.ArrangeOverride(finalSize);
+        child.Arrange(new Rect(0, 0, finalSize.Width, child.DesiredSize.Height)); // laid out at its own height, clipped to the height it has got to
+        return finalSize;
     }
 
     /// <summary>The block handed its inputs again under the same id (:1896-1912, :2589): its @State (the fold, the files worked out once), the header and the rows that stand

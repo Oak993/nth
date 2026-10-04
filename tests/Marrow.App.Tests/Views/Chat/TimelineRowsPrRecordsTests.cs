@@ -2308,7 +2308,9 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-104")]
-    public void Both_body_branches_stay_opaque_and_leave_immediately_under_the_fold_animation() => headless.OnUiThread(() =>
+    // Rewritten for the lead's ruling of 2026-10-04 (OD-0076): the branches themselves still carry no transition and no opacity (no whole-layer fade over a body that can run to
+    // thousands of points), but the fold is no longer a cut: the body's height glides on snappy(0.24) and the incoming rows fade in (TimelineRowsTurnFoldMotionTests).
+    public void Neither_body_branch_carries_an_opacity_of_its_own_the_height_glide_and_the_row_fades_are_the_blocks() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         using var clock = FrameClock.Source.Override(new ManualFrameSource());

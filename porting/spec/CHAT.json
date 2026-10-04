@@ -2322,7 +2322,12 @@
       "persistence": "None; the fold is view state, initialized from the chronological flag, which the timeline always passes as false (PR-CHAT-125), so a finished turn always opens folded.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The fold is a change of what the block shows in the same frame with no transition, because a fade over a block that can run to thousands of points is a whole-layer composite the renderer may draw as nothing. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "windows_path": "The fold animates, as the Swift does (TimelineRows.swift:2609-2616 withAnimation(.snappy(duration: 0.24)), the chevron at :2623 in the same transaction): the body's height glides on snappy(0.24) in both directions and the incoming rows fade in row by row, the outgoing branch is gone at once; no opacity lies on the whole body, because a fade over a block that can run to thousands of points is a whole-layer composite the renderer may draw as nothing (ThreadTimeline.swift:1907-1926 keeps `.transition(.identity)` on the block swap for that reason). The turn-end swap (the running block replaced by the finished block) is cut on the Mac (2-chat-use.mov 125.743 -> 125.762 s) and transitions in the port by OD-0076: the finished block takes the running block's height and eases to its own in about 0.3 s while its rows fade in over about 0.2 s and the running block's rows are gone at once; Reduce Motion shows the end state. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "deviation": {
+        "decision": "OD-0076",
+        "upstream": "ThreadTimeline.swift:1907-1926 swaps the running turn block for the finished one with `.transition(.identity)`: one frame (2-chat-use.mov 125.743 -> 125.762 s).",
+        "port": "turn-end swap transitions (OD-0076); the Mac cuts (2-chat-use.mov 125.743 -> 125.762 s): the finished block eases its height from the running block's in about 0.3 s and its rows fade in over about 0.2 s, the running rows are gone at once, Reduce Motion shows the end state."
+      },
       "verification_method": "interaction test plus capture comparison folded and expanded",
       "status": "SPECIFIED",
       "upstream_defect": null,
