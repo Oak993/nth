@@ -195,6 +195,9 @@ internal static class GlassMaterial
                 RemoveMaterial();
                 parent = nextParent;
                 material = visual.Compositor.CreateCustomVisual(new Handler());
+                // A custom visual clips to its Size unless told not to, and that clip also cut its render bounds back to the owner's: Avalonia then
+                // redrew only the owner's box when the material appeared or changed, not the margin it reads (SampledMargin, Backdrop).
+                material.ClipToBounds = false;
             }
             var index = parent.Children.IndexOf(visual);
             if (index < 0 || material is null) return;
@@ -355,6 +358,7 @@ internal static class GlassMaterial
         }
         private void RemoveMaterial()
         {
+            material?.SendHandlerMessage(Released.Message);
             if (material is not null) parent?.Children.Remove(material);
             Unhook(this);
             Unwatch();
@@ -428,8 +432,10 @@ internal static class GlassMaterial
     private sealed class Handler : CompositionCustomVisualHandler
     {
         private State? state;
+        private readonly Backdrop backdrop = new();
         public override void OnMessage(object message)
         {
+            if (message is Released) { backdrop.Release(); return; }
             if (message is not State next) return;
             state = next;
             Invalidate(); // Event-driven, no animation-frame registration or idle timer.
@@ -441,11 +447,17 @@ internal static class GlassMaterial
             var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
             if (feature is null) return;
             using var lease = feature.Lease();
-            Draw(lease, s);
+            Backdrop.DisposeReleased();
+            Draw(lease, s, backdrop, DirtyRect.Of(this));
         }
     }
 
+    // Sent before a material leaves its parent: its handler gives up the backdrop it keeps (disposed at the next render, where the GPU context is current).
+    private sealed class Released { public static readonly Released Message = new(); }
+
     // How far past its shape the material reads the pixels under it: the blur's 3 sigma, the refraction's largest displacement and the antialiased edge (Draw).
+    // It is also the material's render bounds: whenever the material appears, moves or changes, Avalonia redraws all it reads, so the backdrop it keeps is
+    // taken whole there (Backdrop; GlassMaterialPartialRedrawTests, the label beside a piece that appears).
     private const double SampledMargin = 66;
 
     private static Rect UnionBounds(State s)
@@ -552,10 +564,107 @@ internal static class GlassMaterial
             ?? throw new InvalidOperationException("Glass shader did not compile: " + error);
     })).Value;
 
+    // The pixels under a material as they are when it draws: what a whole drawing of the window has drawn before it (ED-NEW-glass-firstchild 11). The surface
+    // holds them only inside the region Avalonia redraws in this frame; outside it the surface is the last finished frame, the glass itself and what lies
+    // over it, so a redraw of a control over the glass blurred the glass's own output into its frost (8 to 11 levels, GlassMaterialPartialRedrawReviewTests).
+    // Outside that region nothing under the material has changed (whatever changes adds its bounds to the region), so the material keeps what it took the
+    // last time and takes new pixels only inside the region. With no known region (another dirty-rect tracker, another surface) it takes them all, as before.
+    private sealed class Backdrop
+    {
+        private static readonly ConcurrentQueue<SKImage> released = new();
+        private SKImage? image;
+        private SKRectI area;
+        private IntPtr surface;
+        private SKSizeI size;
+
+        public static void DisposeReleased()
+        {
+            while (released.TryDequeue(out var old)) old.Dispose();
+        }
+
+        public void Release()
+        {
+            if (image is not null) released.Enqueue(image);
+            image = null;
+        }
+
+        public (SKImage Image, SKRectI Area)? Take(ISkiaSharpApiLease lease, SKImage snapshot, SKRectI crop, SKRectI? dirty)
+        {
+            var whole = new SKSizeI(snapshot.Width, snapshot.Height);
+            var at = SKRectI.Intersect(crop, new SKRectI(0, 0, whole.Width, whole.Height));
+            if (at.IsEmpty) return null;
+            var handle = lease.SkSurface?.Handle ?? IntPtr.Zero;
+            var known = image is not null && dirty is not null && handle == surface && size == whole;
+            var info = new SKImageInfo(at.Width, at.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+            using var target = lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
+            if (target is null) return null;
+            var canvas = target.Canvas;
+            canvas.Clear(SKColors.Transparent);
+            using var copy = new SKPaint { BlendMode = SKBlendMode.Src };
+            if (known)
+            {
+                var keptAt = new SKRect(area.Left - at.Left, area.Top - at.Top, area.Right - at.Left, area.Bottom - at.Top);
+                canvas.DrawImage(image!, keptAt.Left, keptAt.Top, copy);
+                canvas.Save(); // what was not kept (the piece moved or grew past it) is taken as the surface has it
+                canvas.ClipRect(keptAt, SKClipOperation.Difference);
+                canvas.DrawImage(snapshot, -at.Left, -at.Top, copy);
+                canvas.Restore();
+                var fresh = SKRectI.Intersect(dirty!.Value, at);
+                if (!fresh.IsEmpty)
+                {
+                    canvas.Save();
+                    canvas.ClipRect(new SKRect(fresh.Left - at.Left, fresh.Top - at.Top, fresh.Right - at.Left, fresh.Bottom - at.Top));
+                    canvas.DrawImage(snapshot, -at.Left, -at.Top, copy);
+                    canvas.Restore();
+                }
+            }
+            else canvas.DrawImage(snapshot, -at.Left, -at.Top, copy);
+            image?.Dispose();
+            image = target.Snapshot();
+            (area, surface, size) = (at, handle, whole);
+            if (dirty is not null) return (image, at);
+            var taken = image; // nothing to keep without a known region: the next frame takes the surface whole again
+            image = null;
+            released.Enqueue(taken);
+            return (taken, at);
+        }
+    }
+
+    // The region Avalonia redraws in this frame, in the window surface's pixels: Avalonia 12.1.2's ServerCompositionTarget.DirtyRects, a
+    // SingleDirtyRectTracker unless region clipping is turned on (it is not: no CompositionOptions are set), whose CombinedRect is the frame's clip
+    // (ServerCompositionTarget.RenderRootToContextWithClip clears it and draws everything that meets it). Read through the handler's host; the package is
+    // pinned (Directory.Packages.props). Null when a member is not found or the tracker is another kind: the material then takes the surface whole.
+    private static class DirtyRect
+    {
+        private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        private static readonly FieldInfo? host = typeof(CompositionCustomVisualHandler).GetField("_host", Members);
+        private static PropertyInfo? root, rects, combined;
+        private static FieldInfo? left, top, right, bottom;
+
+        public static SKRectI? Of(CompositionCustomVisualHandler handler)
+        {
+            try
+            {
+                if (host?.GetValue(handler) is not { } visual) return null;
+                root ??= visual.GetType().GetProperty("Root", Members);
+                if (root?.GetValue(visual) is not { } target) return null;
+                rects ??= target.GetType().GetProperty("DirtyRects", Members);
+                if (rects?.GetValue(target) is not { } tracker || tracker.GetType().Name != "SingleDirtyRectTracker") return null;
+                combined ??= tracker.GetType().GetProperty("CombinedRect", Members);
+                if (combined?.GetValue(tracker) is not { } rect) return null;
+                var type = rect.GetType();
+                (left, top, right, bottom) = (left ?? type.GetField("Left"), top ?? type.GetField("Top"), right ?? type.GetField("Right"), bottom ?? type.GetField("Bottom"));
+                if (left?.GetValue(rect) is not double l || top?.GetValue(rect) is not double t || right?.GetValue(rect) is not double r || bottom?.GetValue(rect) is not double b) return null;
+                return new SKRectI((int)Math.Round(l), (int)Math.Round(t), (int)Math.Round(r), (int)Math.Round(b));
+            }
+            catch (Exception e) when (e is ArgumentException or MemberAccessException or TargetInvocationException or InvalidCastException or FieldAccessException) { return null; }
+        }
+    }
+
     // The veil's channel between the light appearance's and the dark one's (a whole level, as the two ends were): darkness 0 is light, 1 is dark.
     private static byte Veil(double darkness, int dark, int light) => (byte)Math.Round(light + (dark - light) * Math.Clamp(darkness, 0, 1));
 
-    private static void Draw(ISkiaSharpApiLease lease, State state)
+    private static void Draw(ISkiaSharpApiLease lease, State state, Backdrop kept, SKRectI? dirty)
     {
         var canvas = lease.SkCanvas;
         var bounds = UnionBounds(state).Inflate(state.Spacing / 2 + 1);
@@ -574,7 +683,7 @@ internal static class GlassMaterial
         using var surface = lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
         if (surface is null) return;
         surface.Canvas.Clear(new SKColor(Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 32, 247)));
-        if (snapshot is not null)
+        if (snapshot is not null && kept.Take(lease, snapshot, crop, dirty) is { } under)
         {
             // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
             // it is not washed out by what lies around it (the effort knob over its fill and glow; see the shader note).
@@ -582,7 +691,7 @@ internal static class GlassMaterial
             var radius = (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
             using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
             using var blurPaint = new SKPaint { ImageFilter = blur };
-            surface.Canvas.DrawImage(snapshot, -crop.Left, -crop.Top, blurPaint);
+            surface.Canvas.DrawImage(under.Image, under.Area.Left - crop.Left, under.Area.Top - crop.Top, blurPaint);
         }
         using var image = surface.Snapshot();
         var sourceTransform = transform;
