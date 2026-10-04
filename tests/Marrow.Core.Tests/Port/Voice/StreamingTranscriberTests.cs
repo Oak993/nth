@@ -262,6 +262,49 @@ public sealed class StreamingTranscriberTests
         Assert.Equal("hello", engine.Decodes[1].Request.Prompt);
     }
 
+    private sealed class GatedEngine : ISpeechEngine
+    {
+        public readonly List<(DecodeRequest Request, int Samples)> Decodes = [];
+
+        public TaskCompletionSource<Hypothesis>? Gate;
+
+        public Task LoadAsync(SpeechModel model, EngineLoadOptions options, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<Hypothesis> TranscribeAsync(ReadOnlyMemory<float> audio16k, DecodeRequest request, CancellationToken cancellationToken)
+        {
+            Decodes.Add((request, audio16k.Length));
+            if (Gate is { } gate)
+            {
+                Gate = null;
+                return gate.Task;
+            }
+            return Task.FromResult(Hypothesis.Empty);
+        }
+    }
+
+    [Fact]
+    [Trait("Feature", "VT-3")]
+    [Trait("Spec", "V-T24")]
+    [Trait("Decision", "ED-267")] // V-7.4 (review, unit/integ-vt3): only the SILENT audio is dropped; speech that arrives while the long-pause pass decodes is kept
+    public async Task Speech_that_arrives_during_the_long_pause_pass_is_kept_for_the_next_pass()
+    {
+        var engine = new GatedEngine { Gate = new TaskCompletionSource<Hypothesis>() };
+        var gate = engine.Gate;
+        var transcriber = new StreamingTranscriber(engine, "en");
+        Feed(transcriber, 1.0, true);
+        Feed(transcriber, 1.5, false);
+        var pass = transcriber.RunPass(TranscriberPass.LongPause, CancellationToken.None);
+        Feed(transcriber, 0.4, true); // the user speaks again at 2.5 s while the pass decodes
+        gate.SetResult(H(W("hello", 0.0, 0.5)));
+        await pass;
+        Feed(transcriber, 0.2, true);
+        Assert.Equal(TranscriberPass.Live, transcriber.DuePass);
+        await Live(transcriber);
+        // The new speech from 2.5 s (with its 0.1 s lead-in) reaches the next pass: nothing the user said after the pause is lost.
+        Assert.Equal(TimeSpan.FromSeconds(2.4), engine.Decodes[1].Request.AudioStart);
+        Assert.Equal((int)Math.Round(0.7 * 16000), engine.Decodes[1].Samples);
+    }
+
     [Fact]
     [Trait("Feature", "VT-3")]
     [Trait("Spec", "V-T24")]
