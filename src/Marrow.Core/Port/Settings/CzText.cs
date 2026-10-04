@@ -338,18 +338,8 @@ public static class CzText
         return target;
     }
 
-    // CZ-12.11: independent channel interpolation; order is shared with the Node fixture dependency.
-    private static string MixHex(string a, string b, double t)
-    {
-        var text = "#";
-        foreach (var i in new[] { 1, 3, 5 })
-        {
-            var from = int.Parse(a.AsSpan(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            var to = int.Parse(b.AsSpan(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            text += ((int)Round(from * (1 - t) + to * t)).ToString("x2", CultureInfo.InvariantCulture);
-        }
-        return text;
-    }
+    // CZ-12.11: the page's mixHex is the playground's (composer-lights logic.js:44: Math.round(x + (b - x) * t)); the port of it exists.
+    private static string MixHex(string a, string b, double t) => Marrow.Core.Models.ComposerLights.BorderBeamMath.MixHex(a, b, t);
 
     private static double Luminance(string hex)
     {

@@ -1476,6 +1476,150 @@
       "text": "#d89e6d"
     },
     {
+      "hex": "#00FFA5",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#00FFA5"
+    },
+    {
+      "hex": "#00FFA5",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#08bb7d"
+    },
+    {
+      "hex": "#00FFA5",
+      "title": "#000000",
+      "dark": true,
+      "text": "#00FFA5"
+    },
+    {
+      "hex": "#00FFA5",
+      "title": "#000000",
+      "dark": false,
+      "text": "#00bf7c"
+    },
+    {
+      "hex": "#00FFA5",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#00FFA5"
+    },
+    {
+      "hex": "#00FFA5",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#08bb7d"
+    },
+    {
+      "hex": "#00FFA5",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#00FFA5"
+    },
+    {
+      "hex": "#00FFA5",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#4abe7a"
+    },
+    {
+      "hex": "#2DFFA5",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#2DFFA5"
+    },
+    {
+      "hex": "#2DFFA5",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#28bb7d"
+    },
+    {
+      "hex": "#2DFFA5",
+      "title": "#000000",
+      "dark": true,
+      "text": "#2DFFA5"
+    },
+    {
+      "hex": "#2DFFA5",
+      "title": "#000000",
+      "dark": false,
+      "text": "#22bf7c"
+    },
+    {
+      "hex": "#2DFFA5",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#2DFFA5"
+    },
+    {
+      "hex": "#2DFFA5",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#28bb7d"
+    },
+    {
+      "hex": "#2DFFA5",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#2DFFA5"
+    },
+    {
+      "hex": "#2DFFA5",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#65be7a"
+    },
+    {
+      "hex": "#B4CF0E",
+      "title": "#FFFFFF",
+      "dark": true,
+      "text": "#B4CF0E"
+    },
+    {
+      "hex": "#B4CF0E",
+      "title": "#FFFFFF",
+      "dark": false,
+      "text": "#9db410"
+    },
+    {
+      "hex": "#B4CF0E",
+      "title": "#000000",
+      "dark": true,
+      "text": "#B4CF0E"
+    },
+    {
+      "hex": "#B4CF0E",
+      "title": "#000000",
+      "dark": false,
+      "text": "#99b00c"
+    },
+    {
+      "hex": "#B4CF0E",
+      "title": "#1C1C1E",
+      "dark": true,
+      "text": "#B4CF0E"
+    },
+    {
+      "hex": "#B4CF0E",
+      "title": "#1C1C1E",
+      "dark": false,
+      "text": "#9db410"
+    },
+    {
+      "hex": "#B4CF0E",
+      "title": "#B95D3A",
+      "dark": true,
+      "text": "#B4CF0E"
+    },
+    {
+      "hex": "#B4CF0E",
+      "title": "#B95D3A",
+      "dark": false,
+      "text": "#b6ad1b"
+    },
+    {
       "maker": "Claude",
       "stop": "deep",
       "hex": "#A14827",
@@ -1857,7 +2001,7 @@
       "hex": "#B4CF0E",
       "title": "#7AA141",
       "dark": false,
-      "text": "#97b827"
+      "text": "#97b828"
     },
     {
       "maker": "Meta",

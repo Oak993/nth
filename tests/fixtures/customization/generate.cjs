@@ -6,14 +6,15 @@ const rel = 'porting/first-release/design-src/customization/cz.js';
 const source = fs.readFileSync(path.join(root, rel), 'utf8');
 const context = vm.createContext({ window: {}, Component: class {}, BEAM_DEFAULTS: {}, AURA_DEFAULTS: {},
   hex2: h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16)),
-  mixHex: (a,b,t) => '#' + [1,3,5].map(i => Math.round(parseInt(a.slice(i,i+2),16)*(1-t)+parseInt(b.slice(i,i+2),16)*t).toString(16).padStart(2,'0')).join(''),
+  // the playground's own mixHex (composer-lights/playground/src/logic.js:44), which the page calls: x + (b - x) * t, rounded half up
+  mixHex: (a,b,t) => { const p = h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16)), x = p(a), y = p(b); return '#' + x.map((v,i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2,'0')).join(''); },
   fmt: (v,n) => (Math.round(v*10**n)/10**n).toString(), clamp: (v,a,b) => Math.max(a,Math.min(b,v)) });
 vm.runInContext(source, context, { filename: rel });
 const fmt = [];
 for (const v of [-0,-0.005,-0.5,-1.5,-2.675,0.005,0.5,1.005,2.675,3.69,14,0.000001,0.0000001,1e20,1e21])
  for (const n of [0,1,2,4,8]) fmt.push({v,n,text:context.fmt(v,n)});
 const tone = [];
-for (const hex of ['#000000','#FFFFFF','#1F30C6','#A14827','#FAFCFF','#06060B','#8C65BA','#123456','#FEEDAB'])
+for (const hex of ['#000000','#FFFFFF','#1F30C6','#A14827','#FAFCFF','#06060B','#8C65BA','#123456','#FEEDAB','#00FFA5','#2DFFA5','#B4CF0E'])
  for (const title of ['#FFFFFF','#000000','#1C1C1E','#B95D3A']) for (const dark of [true,false])
   tone.push({hex,title,dark,text:vm.runInContext(`czTone('${hex}',${dark},'${title}')`, context)});
 const ranges = [[.5,14,.05],[.2,3,.05],[0,1,.01],[-180,180,1],[0,2.5,.05],[0,180,1],[.25,3,.05],[0,2,.05],[0,26,1],[0,20,.5],[0,60,.5],[.35,4,.01],[.5,2,.01],[0,3,.05],[3,40,.5],[0,100,1],[0,40,1],[4,64,1],[.5,5,.25],[2,8,.5]];
