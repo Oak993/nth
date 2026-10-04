@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Rendering.Composition;
 using Avalonia.Skia;
+using SkiaSharp;
 using Avalonia.Threading;
 using Marrow.Core.Support;
 using Marrow.UI.Port;
@@ -38,13 +39,37 @@ namespace Marrow.App.Views.Composer;
 
 /// <summary>One step of the GPU warm-up: which program, how long it took on the render thread, and whether it waited for an
 /// idle frame and was forced at the cap.</summary>
-public sealed record GpuWarmupStep(int Index, int Count, string Program, double Milliseconds, bool Forced);
+public sealed record GpuWarmupStep(int Index, int Count, string Program, double Milliseconds, bool Forced, string StepId = "");
+
+/// <summary>GR-1 skeleton.</summary>
+public readonly record struct GpuWarmContext(GRContext? Gpu, double Scaling);
+
+/// <summary>GR-1 skeleton.</summary>
+public sealed class GpuProgram
+{
+    private GpuProgram(string name, Marrow.App.Port.FirstRun.FirstRunStep step) { Name = name; Step = step; }
+    public string Name { get; }
+    public Marrow.App.Port.FirstRun.FirstRunStep Step { get; }
+    public bool IsWork => false;
+    public static GpuProgram Draw(string name, Marrow.App.Port.FirstRun.FirstRunStep step, Action<GpuWarmContext> draw) => new(name, step);
+    public static GpuProgram Work(string name, Marrow.App.Port.FirstRun.FirstRunStep step, Func<CancellationToken, Task> run) => new(name, step);
+}
 
 /// <summary>Prepares the knob's GPU programs ahead of their first use (see the file note).</summary>
 public static class GpuWarmup
 {
     /// <summary>The programs, one step each.</summary>
     public static IReadOnlyList<string> Programs { get; } = ["noise", "fluid", "orb", "page"];
+
+    /// <summary>GR-1 skeleton.</summary>
+    public static IReadOnlyList<GpuProgram> Registered => [];
+
+    internal enum LightKind { Rotate, Moving, Aura }
+    internal static Marrow.Core.Models.ComposerLights.ComposerLightAnimator LightAnimator(LightKind kind) => throw new NotImplementedException();
+    internal static LiquidTrack.Frame LiquidFrame(bool strike) => throw new NotImplementedException();
+
+    /// <summary>GR-1 skeleton.</summary>
+    public static IDisposable Register(GpuProgram program) => throw new NotImplementedException();
 
     /// <summary>How many steps a warm-up takes.</summary>
     public static int Steps => Programs.Count;
