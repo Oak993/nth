@@ -52,7 +52,7 @@ public sealed record ChangeReportRenderOptions
 /// <summary>
 /// DL-2: "a fixture 'previous' and 'next' catalogue produce a change report listing every version, hash, size and licence-text change; a licence change in a non-open item
 /// is flagged 'asks the terms again'". Every field of SK-1's schema is compared (a test lists them), so nothing a pin run changes goes unreported. What the plan leaves open
-/// is decided in ED-NEW-f-sk-2.
+/// is decided in ED-298.
 /// </summary>
 public sealed record CatalogueChangeReport(
     string PreviousReadOn,

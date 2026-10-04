@@ -9,7 +9,7 @@ using System.Text.Json.Serialization.Metadata;
 namespace Marrow.Core.Port.Skills.Catalogue;
 
 /// <summary>
-/// ENGINEERING DECISIONS (ED-NEW-f-sk-2): the text is indented with two spaces, line feeds only, ends in one line feed, writes the keys in the order the schema declares
+/// ENGINEERING DECISIONS (ED-298): the text is indented with two spaces, line feeds only, ends in one line feed, writes the keys in the order the schema declares
 /// them, writes a required key that has no value as an explicit null (SK-1's loader refuses a missing key) and leaves an optional key out when it has nothing (no pin hint,
 /// no notes, no skill count, no false <c>skillsListed</c>, no empty skills, folders or packages, no per-artifact hash hint, no per-skill terms class or pin), writes enums as
 /// their camelCase words and numbers the invariant way, and does not escape letters that need no escape (an apostrophe stays an apostrophe). One catalogue, one text.

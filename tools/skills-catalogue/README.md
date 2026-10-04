@@ -57,7 +57,7 @@ If any item fails (a hash that does not match a published digest, a signature th
 - Package sets: `pip download` for `win_amd64`, Python 3.14, wheels only, then each wheel against the size and sha256 PyPI lists; `npm install --package-lock-only
   --ignore-scripts`, then each tarball against the integrity the lock records. A set's pin is `lock-` and 16 digits of the hash of its file list.
 
-## After a run: what to expect (details in ED-NEW-f-sk-2)
+## After a run: what to expect (details in ED-298)
 
 - Licence files: `licenceFile` is the licence at the root of the repository when there is one; folders that carry their own licences are listed in the Pin run section, and
   an item with none at the root stays unpinned until `licenceFile` is set in `sources.json` or the schema changes. Tools and package sets have no licence file or URL source at
