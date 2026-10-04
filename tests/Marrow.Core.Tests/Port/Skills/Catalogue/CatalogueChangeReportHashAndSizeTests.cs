@@ -135,6 +135,21 @@ public sealed class CatalogueChangeReportHashAndSizeTests
     [Fact]
     [Trait("Feature", "SK-2")]
     [Trait("Rule", "R-TEST-4")]
+    public void A_files_total_that_shrinks_or_appears_or_goes_away_is_a_size_change_as_much_as_one_that_grows()
+    {
+        var shrunk = Compare(c => ChangeReportFixtures.Mutate(c, "X3", i => ChangeReportFixtures.ChangeFile(i, "skills/beta/SKILL.md", f => f with { Size = 1 })));
+        Assert.Equal("files.totalBytes: 21 -> 11", ChangeReportFixtures.Only(shrunk, "X3", ChangeCategory.Size, "files.totalBytes").Message);
+        var emptied = Compare(c => ChangeReportFixtures.Mutate(c, "X3", i => i with { Files = [] }));
+        Assert.Equal("files.totalBytes: 21 -> (none)", ChangeReportFixtures.Only(emptied, "X3", ChangeCategory.Size, "files.totalBytes").Message);
+        var filled = CatalogueChangeReport.Compare(ChangeReportFixtures.Mutate(ChangeReportFixtures.Previous(), "X3", i => i with { Files = [] }), ChangeReportFixtures.Previous());
+        Assert.Equal("files.totalBytes: (none) -> 21", ChangeReportFixtures.Only(filled, "X3", ChangeCategory.Size, "files.totalBytes").Message);
+        var smaller = Compare(c => ChangeReportFixtures.Mutate(c, "X1", i => ChangeReportFixtures.ChangeArtifact(i, "tool.zip", a => a with { Size = 24 })));
+        Assert.Equal("artifacts[tool.zip].size: 1,024 -> 24", ChangeReportFixtures.Only(smaller, "X1", ChangeCategory.Size, "artifacts[tool.zip].size").Message);
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-2")]
+    [Trait("Rule", "R-TEST-4")]
     public void The_download_size_of_an_item_is_its_artifacts_or_failing_that_its_files_and_the_change_is_carried_before_and_after()
     {
         var report = Compare(c => ChangeReportFixtures.Mutate(ChangeReportFixtures.Mutate(c, "X1", i => ChangeReportFixtures.ChangeArtifact(i, "tool.zip", a => a with { Size = 4096 })),

@@ -179,3 +179,6 @@ export async function mapLimit(items, limit, fn) {
   await Promise.all(workers);
   return results;
 }
+
+/** True when a command must go through the shell to start: on Windows npm and npx are .cmd files, which spawnSync cannot start directly (ENOENT for "npm", EINVAL for "npm.cmd"). */
+export const needsShell = (cmd, platform) => platform === 'win32' && /^(npm|npx)$|\.(cmd|bat)$/i.test(cmd);

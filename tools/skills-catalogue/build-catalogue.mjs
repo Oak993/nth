@@ -122,7 +122,7 @@ async function getTree(repo, sha) {
 
 // ---------------------------------------------------------------- running tools
 function run(cmd, cmdArgs, options = {}) {
-  const r = spawnSync(cmd, cmdArgs, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, ...options });
+  const r = spawnSync(cmd, cmdArgs, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, shell: L.needsShell(cmd, process.platform), ...options });
   return { status: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '', error: r.error };
 }
 const available = (cmd, probe = ['--version']) => { const r = run(cmd, probe); return !r.error && r.status === 0; };
@@ -291,7 +291,7 @@ async function buildNodeset(prev, cfg) {
   try {
     const dependencies = Object.fromEntries(prev.packages.filter((p) => p.version).map((p) => [p.name, p.version]));
     fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'marrow-lock', version: '0.0.0', private: true, dependencies }, null, 2));
-    const r = run(args.npmExe, ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: dir, env: { ...process.env, npm_config_os: f.os, npm_config_cpu: f.cpu }, shell: process.platform === 'win32' });
+    const r = run(args.npmExe, ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: dir, env: { ...process.env, npm_config_os: f.os, npm_config_cpu: f.cpu } });
     if (r.status !== 0) throw new Error(`${id}: npm install --package-lock-only failed: ${(r.stderr || r.stdout).trim().slice(-600)}`);
     const { kept, skipped } = L.filterNpmLock(JSON.parse(fs.readFileSync(path.join(dir, 'package-lock.json'), 'utf8')), { os: f.os, cpu: f.cpu });
     e.notes.push(`${kept.length} packages for ${f.os}/${f.cpu}; skipped ${skipped.length} (${skipped.map((s) => `${s.name}: ${s.reason}`).slice(0, 12).join('; ')}${skipped.length > 12 ? '; ...' : ''})`);

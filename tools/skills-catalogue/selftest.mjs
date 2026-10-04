@@ -130,6 +130,17 @@ await t('percent off and the bounded pool', async () => {
   assert.equal(L.percentOff(8, null), null);
 });
 
+await t('npm needs a shell on Windows only (spawnSync cannot start npm.cmd directly there)', () => {
+  assert.equal(L.needsShell('npm', 'win32'), true);
+  assert.equal(L.needsShell('npx', 'win32'), true);
+  assert.equal(L.needsShell('C:/tools/npm.cmd', 'win32'), true);
+  assert.equal(L.needsShell('dotnet', 'win32'), false);
+  assert.equal(L.needsShell('python', 'win32'), false);
+  assert.equal(L.needsShell('gpg', 'win32'), false);
+  assert.equal(L.needsShell('npm', 'linux'), false);
+  assert.equal(L.needsShell('npm', 'darwin'), false);
+});
+
 const order = [];
 const results = await L.mapLimit([30, 5, 10, 1], 2, async (ms, i) => { await new Promise((r) => setTimeout(r, ms)); order.push(i); return ms * 2; });
 assert.deepEqual(results, [60, 10, 20, 2]);

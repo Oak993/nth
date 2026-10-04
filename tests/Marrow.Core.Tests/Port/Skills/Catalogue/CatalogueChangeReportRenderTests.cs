@@ -125,6 +125,27 @@ public sealed class CatalogueChangeReportRenderTests
     [Fact]
     [Trait("Feature", "SK-2")]
     [Trait("Rule", "R-TEST-4")]
+    public void The_note_about_files_left_out_comes_after_the_last_file_shown_and_only_when_a_file_is_left_out()
+    {
+        var files = Enumerable.Range(0, 3).Select(n => new CatalogueFile { Path = $"skills/s/f{n}.md", Size = 1, Sha256 = CatalogueFixtures.Sha("a" + n) }).ToList();
+        var previous = ChangeReportFixtures.Mutate(ChangeReportFixtures.Previous(), "X3", i => i with { Files = files });
+        var next = ChangeReportFixtures.Mutate(previous, "X3", i => i with { Files = files.Select(f => f with { Sha256 = CatalogueFixtures.Sha("b" + f.Path) }).ToList() });
+        var report = CatalogueChangeReport.Compare(previous, next);
+        var lines = Render(report, new ChangeReportRenderOptions { MaxFilesPerItem = 2 }).Split('\n');
+        var note = Array.FindIndex(lines, l => l.Contains("more file changes", StringComparison.Ordinal));
+        Assert.Equal("- hash: and 1 more file changes (not shown; the full list is in the report data)", lines[note]);
+        Assert.StartsWith("- hash: files[skills/s/f1.md]", lines[note - 1], StringComparison.Ordinal);
+        Assert.Equal(2, lines.Count(l => l.StartsWith("- hash: files[", StringComparison.Ordinal)));
+        foreach (var limit in new[] { 3, 4 })
+            Assert.DoesNotContain("more file changes", Render(report, new ChangeReportRenderOptions { MaxFilesPerItem = limit }), StringComparison.Ordinal);
+        var none = Render(report, new ChangeReportRenderOptions { MaxFilesPerItem = 0 });
+        Assert.Contains("- hash: and 3 more file changes", none, StringComparison.Ordinal);
+        Assert.DoesNotContain("- hash: files[", none, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-2")]
+    [Trait("Rule", "R-TEST-4")]
     public void The_text_is_the_same_each_time_uses_line_feeds_and_ends_with_one_whatever_the_culture()
     {
         var next = ChangeReportFixtures.Mutate(ChangeReportFixtures.Previous(), "X1", i => ChangeReportFixtures.ChangeArtifact(i with { ApproxSizeMb = 1.5 }, "tool.zip", a => a with { Size = 1_234_567 }));

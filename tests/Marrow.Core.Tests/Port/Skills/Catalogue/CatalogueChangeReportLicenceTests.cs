@@ -126,6 +126,7 @@ public sealed class CatalogueChangeReportLicenceTests
         var added = CatalogueFixtures.PinnedSkillset("X8") with { TermsClass = TermsClass.Proprietary };
         var report = CatalogueChangeReport.Compare(ChangeReportFixtures.Previous(), CatalogueFixtures.Add(ChangeReportFixtures.Previous(), added));
         Assert.Equal([ChangeFlag.LicenceTextNotRecorded], report.Attention.Select(a => a.Flag));
+        Assert.Equal([ChangeFlag.LicenceTextNotRecorded], report.Items.Single(i => i.ItemId == "X8").Flags);
         Assert.Empty(report.AsksTermsAgain);
         Assert.Equal(["X8"], report.Added);
         var hashed = CatalogueChangeReport.Compare(ChangeReportFixtures.Previous(), CatalogueFixtures.Add(ChangeReportFixtures.Previous(), ChangeReportFixtures.WithLicenceText(added, "terms")));
