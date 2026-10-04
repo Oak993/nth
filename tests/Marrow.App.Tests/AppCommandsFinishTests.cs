@@ -7,6 +7,8 @@ using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Composer;
+using Marrow.Services.Providers;
 using Marrow.App.Views.Palette;
 using Marrow.App.Views.Sidebar;
 using Marrow.App.Window;
@@ -265,6 +267,73 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
             Assert.False(model.Thread(thread.Id)!.IsArchived);
             Assert.Equal("Settle thread", On(commands, CtrlS).Title);
         });
+    });
+
+    // ===== PR-WIN-105 and UI-WIN-018: Queue a chat against an approval card =====
+
+    [Fact]
+    [Trait("Req", "PR-WIN-105")] // App/AppCommands.swift:69-77; App/Views/Composer/RequestCards.swift:47-54; App/Views/Composer/ComposerView.swift:384-398
+    [Trait("Req", "UI-WIN-018")] // App/AppCommands.swift:69-77; App/Runtime/ThreadRuntime.swift:771-788
+    public void With_an_approval_waiting_Ctrl_Return_approves_through_the_card_even_with_the_composer_focused_and_with_none_it_queues_the_draft() => headless.OnUiThread(() =>
+    {
+        System.Threading.Tasks.Task.Run(() => LoginEnvironment.Load()).GetAwaiter().GetResult(); // as RequestCardsTests: no pool-thread load inside the dispatcher
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the composer's working dots animate
+        using var h = new ThreadRuntimePart12Harness();
+        using var shortcuts = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var runtime = h.Main.OnMain(() => h.App.Runtime(h.Thread.Id)); // the model's own runtime, the one AppCommands reads
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+        var approval = new ApprovalRequest("req-1", ApprovalRequest.Kind.Command, "echo hello", new ValueList<ApprovalRequest.Option>([
+            new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),
+            new ApprovalRequest.Option("approve", "Approve", ApprovalRequest.Option.Role.Approve),
+        ]));
+        h.Main.OnMain(() =>
+        {
+            h.App.Settings.HydraQueueHeads = false; // a stored follow-up, not a Hydra head dispatched from the queue (ThreadRuntime.swift:999-1013)
+            h.App.Settings.HydraAlwaysHeads = false;
+            h.App.SelectedThreadID = h.Thread.Id;
+            runtime.RehearseTurn("working"); // a turn is running, so there is something to queue behind (ThreadRuntime.swift:771-773)
+            runtime.Draft = new ComposerDraft { Text = "next step" };
+            runtime.Rehearse(new ProviderEvent.Approval(approval));
+        });
+        var (window, textView) = h.Main.OnMain(() =>
+        {
+            var stack = new StackPanel { Width = 700 };
+            stack.Children.Add(new ApprovalCard(runtime.Approvals.Single(), runtime)); // the card the transcript draws
+            stack.Children.Add(new ComposerView(runtime, workingDirectory: null)); // the composer beneath it
+            AppEnvironment.SetAppModel(stack, h.App);
+            var shown = new AvaloniaWindow { Content = stack, Width = 900, Height = 700 };
+            shown.Show();
+            SettleLayout(shown);
+            var box = stack.GetVisualDescendants().OfType<ComposerNSTextView>().Single();
+            Assert.True(box.Focus()); // the composer has the focus, as it does when the user is typing
+            SettleLayout(shown);
+            return (shown, box);
+        });
+        using var attached = h.Main.OnMain(() => MenuKeyEquivalents.Attach(window, (positional, typed) => new AppCommands(h.App).PerformKeyDown(positional, typed)));
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Assert.True(textView.IsFocused);
+                Assert.True(new AppCommands(h.App).Body.Single(command => command.Title == "Queue a chat").IsDisabled); // :76-77 off while an approval waits
+                Press(window, Key.Enter, PhysicalKey.Enter, RawInputModifiers.Control);
+                // :69-73 the chord is the approve button's now: the card resolves its request, and the draft is not queued.
+                Assert.Empty(runtime.Approvals);
+                Assert.Empty(runtime.FollowUps);
+                Assert.Equal("next step", runtime.Draft.Text);
+            });
+
+            // With the approval gone and the turn still running, the same chord queues the draft behind it.
+            h.Main.OnMain(() =>
+            {
+                Assert.True(runtime.IsRunning);
+                Assert.False(new AppCommands(h.App).Body.Single(command => command.Title == "Queue a chat").IsDisabled);
+                Press(window, Key.Enter, PhysicalKey.Enter, RawInputModifiers.Control);
+                Assert.Equal(["next step"], runtime.FollowUps.Select(followUp => followUp.Text));
+                Assert.True(runtime.DraftIsEmpty);
+            });
+        }
+        finally { h.Main.OnMain(() => { SettleLayout(window); window.Close(); SettleLayout(window); }); }
     });
 
     // ===== PR-WIN-112 and UI-WIN-024: the finish item, carried out =====

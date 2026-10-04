@@ -42,6 +42,19 @@ public static class AppCommandsRig
         return window;
     }
 
+    /// <summary>
+    /// Runs layout and the dispatcher until what a view posts has run (a text box raises TextChanged from posted jobs, and
+    /// each layout pass can post more); it must be called on the main actor, since those jobs write the observable draft.
+    /// </summary>
+    public static void SettleLayout(AvaloniaWindow window)
+    {
+        for (var pass = 0; pass < 5; pass++)
+        {
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
     /// <summary>A real key-down and key-up delivered to <paramref name="window"/> through Avalonia's keyboard device.</summary>
     public static void Press(AvaloniaWindow window, Key key, PhysicalKey physical, RawInputModifiers modifiers)
     {
