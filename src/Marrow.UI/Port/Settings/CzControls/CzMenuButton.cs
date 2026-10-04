@@ -15,12 +15,16 @@ public sealed class CzMenuButton : CzButton
     private readonly Popup popup;
     private readonly Border surface;
     private readonly CzNumber fade, grow, lift, valueWidth;
+    private readonly StackPanel list = new();
+    private string? valueText;
+    private (IReadOnlyList<(string Id, string Text)> Options, string? Selected, string? ValueText)? pending;
     private TopLevel? watched;
     private int focused;
     public CzCrossfadeText ValueLabel { get; }
     public CzChevron Chevron { get; }
-    public IReadOnlyList<CzMenuItem> Items { get; }
-    public string SelectedId { get; private set; }
+    public IReadOnlyList<CzMenuItem> Items { get; private set; }
+    /// <summary>The id of the checked item; null when no item is checked (<see cref="SetOptions"/>, VT-13's Language row under language default D).</summary>
+    public string? SelectedId { get; private set; }
     public double WidestLabel { get; private set; }
     public double MenuWidth { get; private set; } = 220;
     public bool IsOpen { get; private set; }
@@ -31,14 +35,13 @@ public sealed class CzMenuButton : CzButton
     public double ValueWidth => valueWidth.Value;
     public CzMenuButton(string title, IReadOnlyList<(string Id, string Text)> options, string selected, string detail = "") : base(title, detail)
     {
-        if (options.Count == 0 || !options.Any(x => x.Id == selected)) throw new ArgumentException("The selected menu option must exist.", nameof(selected));
-        if (options.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count() != options.Count) throw new ArgumentException("Option IDs must be unique.", nameof(options));
+        Validate(options, selected, null);
         SelectedId = selected; Height = 28; CornerRadius = new CornerRadius(14); Padding = new Thickness(10, 0); PressScale = .97;
         ValueLabel = new CzCrossfadeText(options.First(x => x.Id == selected).Text) { FontSize = 13 };
         Chevron = new CzChevron { VerticalAlignment = VerticalAlignment.Center };
         var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, VerticalAlignment = VerticalAlignment.Center };
         line.Children.Add(ValueLabel); line.Children.Add(Chevron);
-        var list = new StackPanel(); Items = options.Select(x => new CzMenuItem(this, x.Id, x.Text)).ToArray();
+        Items = options.Select(x => new CzMenuItem(this, x.Id, x.Text)).ToArray();
         foreach (var item in Items) list.Children.Add(item);
         surface = new Border { Padding = new Thickness(5), CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1),
             Background = CzTheme.Brush(CzTheme.Token(this, "popbg")), BorderBrush = CzTheme.Brush(CzTheme.Token(this, "popedge")), Child = list,
@@ -48,7 +51,7 @@ public sealed class CzMenuButton : CzButton
         // The existing presenter opt-out suppresses its popover tip; automation remains a menu.
         PopoverHost.SetIsSheet(popup, true);
         line.Children.Add(popup); Child = line;
-        fade = new CzNumber(Motion, 0, v => { surface.Opacity = v; if (!IsOpen && v == 0) Presentation.SetPresented(popup, false, this, () => CloseMenu()); });
+        fade = new CzNumber(Motion, 0, v => { surface.Opacity = v; if (!IsOpen && v == 0) { Presentation.SetPresented(popup, false, this, () => CloseMenu()); ApplyPending(); } });
         grow = new CzNumber(Motion, .96, _ => Transform()); lift = new CzNumber(Motion, -4, _ => Transform());
         valueWidth = new CzNumber(Motion, 0, v => ValueLabel.Width = v);
         popup.Closed += (_, _) => { if (IsOpen) CloseMenu(false); };
@@ -62,15 +65,54 @@ public sealed class CzMenuButton : CzButton
         // Actual rendered font metrics, not string length or a fixed-width approximation.
         foreach (var item in Items) item.Label.Measure(Size.Infinity);
         WidestLabel = Items.Max(x => x.Label.DesiredSize.Width); MenuWidth = Math.Max(220, Math.Ceiling(WidestLabel) + 48); surface.Width = MenuWidth;
-        var current = Items.First(x => x.Id == SelectedId);
-        var width = Math.Ceiling(current.Label.DesiredSize.Width);
+        var width = valueText is null ? Math.Ceiling(Items.First(x => x.Id == SelectedId).Label.DesiredSize.Width) : Math.Ceiling(MeasureValue(valueText));
         if (initial) valueWidth.Jump(width); else valueWidth.To(width, CzMotion.Ez(.3));
+    }
+    // The width of the button's own text, measured as the items' labels are (13 regular Inter).
+    private static double MeasureValue(string text)
+    {
+        var probe = new TextBlock { Text = text, FontFamily = new FontFamily("fonts:Inter#Inter"), FontSize = 13 };
+        probe.Measure(Size.Infinity);
+        return probe.DesiredSize.Width;
+    }
+    private static void Validate(IReadOnlyList<(string Id, string Text)> options, string? selected, string? valueText)
+    {
+        if (options.Count == 0 || (selected is null ? valueText is null : !options.Any(x => x.Id == selected))) throw new ArgumentException("The selected menu option must exist.", nameof(selected));
+        if (options.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count() != options.Count) throw new ArgumentException("Option IDs must be unique.", nameof(options));
+    }
+    /// <summary>
+    /// PORT-ONLY (VT-13): the options, the checked item and the shown text follow the data. <paramref name="selected"/> null checks no item and then
+    /// <paramref name="valueText"/> is the text the button shows (voice-SPEC V-16.3.1, language default D); with an item checked the button shows its text unless
+    /// <paramref name="valueText"/> says otherwise. The value crossfades and its width eases (OD-0076), as a pick's does; no <see cref="SelectionChanged"/> is raised.
+    /// While the menu is open or still fading out the change waits until it is gone, so the list never changes under the pointer.
+    /// </summary>
+    public void SetOptions(IReadOnlyList<(string Id, string Text)> options, string? selected, string? valueText = null)
+    {
+        Validate(options, selected, valueText);
+        if (IsOpen || fade.Value > 0) { pending = (options, selected, valueText); return; }
+        pending = null;
+        Apply(options, selected, valueText);
+    }
+    private void ApplyPending()
+    {
+        if (pending is not { } next) return;
+        pending = null;
+        Apply(next.Options, next.Selected, next.ValueText);
+    }
+    private void Apply(IReadOnlyList<(string Id, string Text)> options, string? selected, string? text)
+    {
+        list.Children.Clear();
+        Items = options.Select(x => new CzMenuItem(this, x.Id, x.Text)).ToArray();
+        foreach (var item in Items) list.Children.Add(item);
+        SelectedId = selected; valueText = text;
+        ValueLabel.SetText(text ?? options.First(x => x.Id == selected).Text);
+        UpdateChecks(); MeasureLabels();
     }
     public void Select(string id)
     {
         if (!IsEffectivelyEnabled) return;
         var item = Items.FirstOrDefault(x => x.Id == id) ?? throw new ArgumentOutOfRangeException(nameof(id));
-        SelectedId = id; ValueLabel.SetText(item.Label.Text!); UpdateChecks(); MeasureLabels(); SelectionChanged?.Invoke(id); CloseMenu();
+        SelectedId = id; valueText = null; ValueLabel.SetText(item.Label.Text!); UpdateChecks(); MeasureLabels(); SelectionChanged?.Invoke(id); CloseMenu();
     }
     private void UpdateChecks() { foreach (var item in Items) item.SetChecked(item.Id == SelectedId); }
     public Rect Place(Rect button, Rect viewport, bool stacked)
@@ -96,7 +138,7 @@ public sealed class CzMenuButton : CzButton
         watched = TopLevel.GetTopLevel(this);
         if (watched is not null) watched.AddHandler(KeyDownEvent, MenuKey, RoutingStrategies.Tunnel, handledEventsToo: true);
         surface.AddHandler(KeyDownEvent, MenuKey, RoutingStrategies.Tunnel, handledEventsToo: true);
-        focused = Items.ToList().FindIndex(x => x.Id == SelectedId); Items[focused].Focus(NavigationMethod.Directional);
+        focused = Math.Max(0, Items.ToList().FindIndex(x => x.Id == SelectedId)); Items[focused].Focus(NavigationMethod.Directional);
         Refresh();
     }
     public void CloseMenu(bool refocus = true)
