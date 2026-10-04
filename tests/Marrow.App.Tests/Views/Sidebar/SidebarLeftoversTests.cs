@@ -1063,4 +1063,42 @@ public sealed partial class SidebarViewTests
             finally { WindowOf(stock).Close(); }
         });
     });
+
+    // ======== The archive question popover's small controls (UI-SIDEBAR-031, -032) ========
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-031")] // SidebarView.swift:923-941 `.controlSize(.small)` on a HStack of .glass and .glassProminent text buttons
+    [Trait("Req", "UI-SIDEBAR-032")] // "small controls, 6 pt apart": Delete .glass (red label), Archive .glassProminent
+    // SOURCE FACT (SwiftGlass.GlassButtonSmall*, ED-280 (2), the reference runtime: `Show`, a `.glass` text button at
+    // `.controlSize(.small)`, 48 x 20 with an 11 pt label and 10.5 pt either side) read for every glass text button at the
+    // small size; ENGINEERING DECISION (OD-0098): the prominent style takes the same metrics, a control size fixing the size.
+    public void The_archive_popovers_small_glass_buttons_are_20_high_with_an_11_point_label_and_10_5_points_either_side() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Fix the bug", 0);
+        var anchor = new Border();
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, anchor, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
+        var window = new AvaloniaWindow { Content = new Panel { Children = { anchor, popover } }, Width = 400, Height = 300 };
+        window.Show();
+        window.UpdateLayout();
+        try
+        {
+            foreach (var name in new[] { "Delete", "Archive" })
+            {
+                var button = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == name);
+                var label = LogicalQuery.SelfAndDescendants<TextBlock>(button).Single();
+                Assert.Equal(SwiftGlass.GlassButtonSmallHeight, button.Bounds.Height, 1);
+                Assert.Equal(11d, label.FontSize);
+                var labelFrame = Frame(label, button);
+                var frame = LogicalQuery.SelfAndDescendants<Border>(button).First(b => b.Padding.Left > 0);
+                Assert.Equal(new Thickness(10.5, 0), frame.Padding); // exact in the tree; the drawn offset is layout-rounded to whole pixels at scale 1
+                Assert.InRange(labelFrame.Left, 10, 11);
+                Assert.InRange(button.Bounds.Width - labelFrame.Right, 10, 11);
+                Assert.Equal(20d, SwiftGlass.GlassButtonSmallHeight);
+                Assert.Equal(10.5, SwiftGlass.GlassButtonSmallPadding);
+            }
+        }
+        finally { window.Close(); }
+    });
 }

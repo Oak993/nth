@@ -1704,11 +1704,20 @@ internal sealed class ArchiveThreadPopover : Decorator
 
     // :926-929, :931-936 the untinted and accent-tinted twins of FollowUpEditor.cs's glass buttons, sized to their
     // content: OD-0005 governs the material, not this button's height.
+    // :923 `.controlSize(.small)`: the small glass text button's measured metrics (SwiftGlass.GlassButtonSmall*, ED-280 (2):
+    // 20 high, an 11 pt label, 10.5 pt either side); the same for the prominent style (ENGINEERING DECISION, OD-0098).
+    private static Border SmallGlassFrame(Control label)
+    {
+        if (label is TextBlock text) SwiftFont.System(SwiftGlass.GlassButtonSmallFontSize).Apply(text);
+        var framed = new Border { Height = SwiftGlass.GlassButtonSmallHeight, Padding = new Thickness(SwiftGlass.GlassButtonSmallPadding, 0), Child = label };
+        framed.Capsule(RoundedCornerStyle.Continuous);
+        return framed;
+    }
+
     private static Button GlassButton(Control label, Action action)
     {
         label.VerticalAlignment = VerticalAlignment.Center;
-        var framed = new Border { Padding = new Thickness(10, 4), Child = label };
-        framed.Capsule(RoundedCornerStyle.Continuous);
+        var framed = SmallGlassFrame(label);
         SwiftGlass.SetEffect(framed, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive());
         return PlainControls.Button(framed, action);
     }
@@ -1716,8 +1725,7 @@ internal sealed class ArchiveThreadPopover : Decorator
     private static Button GlassProminentButton(Control label, Action action)
     {
         label.VerticalAlignment = VerticalAlignment.Center;
-        var framed = new Border { Padding = new Thickness(10, 4), Child = label };
-        framed.Capsule(RoundedCornerStyle.Continuous);
+        var framed = SmallGlassFrame(label);
         SwiftGlass.SetEffect(framed, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Tint(Chrome.Accent, 0.3).Interactive());
         framed.Background = Chrome.Accent.Opacity(0.3).Brush(framed);
         return PlainControls.Button(framed, action);
