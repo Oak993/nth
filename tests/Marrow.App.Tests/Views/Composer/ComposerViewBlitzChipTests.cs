@@ -217,6 +217,7 @@ public sealed partial class ComposerViewTests
             double X(Control control) => h.Main.OnMain(() => Frame(control, chips).X);
             var (x1, x2, x3) = (X(first), X(middle), X(last));
             var travel = x3 - x2; // the middle chip's width and the 6 point gap
+            var widthOfMiddle = h.Main.OnMain(() => ((ChipSlot)middle).Chip.Bounds.Width);
             Assert.True(travel > 30, $"the middle chip takes room: {travel}");
             h.Main.OnMain(() => Click(Named(middle, "Remove quote")));
             Pump(h, window);
@@ -234,6 +235,7 @@ public sealed partial class ComposerViewTests
             Assert.InRange(Math.Abs(X(last) - expected), 0, 1.5); // the spring's curve, not a step
             Assert.InRange(X(last), x2 - 1, x3 - 1); // part-way
             Assert.Equal(x1, X(first), 3); // the chip before it stays
+            Assert.Equal(widthOfMiddle, h.Main.OnMain(() => ((ChipSlot)middle).Chip.Bounds.Width), 3); // the leaving chip keeps its shape while its place closes
             Assert.True(Math.Abs(x2 - X(middle)) < 0.01, $"the leaving chip fades where it stands: {x2} then {X(middle)}; chip {h.Main.OnMain(() => Frame(((ChipSlot)middle).Chip, chips))}, slot {h.Main.OnMain(() => middle.Bounds)}");
             Elapse(h, frames, window, 3);
             Assert.Equal(x2, X(last), 1); // and lands exactly where the middle chip was, no step at the end
