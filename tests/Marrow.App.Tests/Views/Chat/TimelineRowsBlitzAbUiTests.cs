@@ -270,4 +270,67 @@ public sealed class TimelineRowsBlitzAbUiTests(HeadlessSession headless)
             });
         }
     });
+
+    // ---- UI-CHAT-008: the quote chips above a sent message ----
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-008")] // TimelineRows.swift:92-117, ComposerView.swift:962-970 ChipChrome; OD-0098: the chips drawn at their own widths, their glyph and excerpt in their type and inks, in both themes
+    public void A_quote_chip_is_a_capsule_9_in_and_7_out_around_a_footnote_glyph_and_a_subheadline_excerpt_capped_at_260_points_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            foreach (var (theme, backdrop) in Themes)
+            {
+                var longQuote = new string('x', 30) + " " + new string('y', 60);
+                var row = new UserMessageRow(UserEntry("> Hello    big   world\n> second line\n\n> short\n\n> " + longQuote + "\n\nthe typed words", Guid.NewGuid()), h.Runtime, canRevert: false);
+                BlitzAbRender.Render(new Border { Padding = new Thickness(24, 20, 24, 20), Child = row }, theme, backdrop, 640, 300, (window, frame) =>
+                {
+                    var capsule = BlitzAbFrame.Over(ChromeTokens.Overlay(0.12).Resolve(theme), backdrop); // ChipChrome: Chrome.overlay(0.12)
+                    var chips = Mounted<Border>(row).Where(border => AutomationProperties.GetName(border)?.StartsWith("Quote: ", StringComparison.Ordinal) == true).ToList();
+                    Assert.Equal(3, chips.Count);
+                    var bubble = BlitzAbRender.BoxIn(Bubble(row), window);
+                    var excerpts = new[] { "Hello big world", "short", longQuote[..72] + "…" };
+                    for (var i = 0; i < chips.Count; i++)
+                    {
+                        var chip = chips[i];
+                        var box = BlitzAbRender.BoxIn(chip, window);
+                        var because = $"{theme}: chip {i}";
+                        // :113 the accessibility label and :111 the whole quote as the tooltip; the excerpt is the first non-empty line, collapsed, cut at 72 characters with an ellipsis.
+                        Assert.Equal("Quote: " + excerpts[i], AutomationProperties.GetName(chip));
+                        var glyph = Assert.Single(Mounted<SwiftImage>(chip));
+                        var words = Assert.Single(Mounted<TextBlock>(chip));
+                        var glyphBox = BlitzAbRender.BoxIn(glyph, window);
+                        var wordsBox = BlitzAbRender.BoxIn(words, window);
+                        // ChipChrome: 9 leading, 7 trailing, 5 vertical; :98 the glyph and the words 5 apart on one centre line.
+                        Assert.Equal(box.Left + 9, glyphBox.Left, 0.5);
+                        Assert.Equal(glyphBox.Right + 5, wordsBox.Left, 0.5);
+                        Assert.Equal(box.Right - 7, wordsBox.Right, 0.5);
+                        Assert.Equal(Math.Max(glyphBox.Height, wordsBox.Height) + 10, box.Height, 1.0);
+                        Assert.Equal(box.Center.Y, wordsBox.Center.Y, 1.0);
+                        // :103-106 the words are capped at 260 points and cut with an ellipsis at the tail; a short excerpt is as wide as it is.
+                        if (i == 2) { Assert.Equal(260, wordsBox.Width, 0.5); Assert.Equal(TextTrimming.CharacterEllipsis, words.TextTrimming); }
+                        else Assert.True(wordsBox.Width < 260);
+                        Assert.Equal(1, words.MaxLines);
+                        // A continuous capsule filled with the overlay at 0.12: its corner is bare, its middle filled, its ends round.
+                        Assert.True(BlitzAbFrame.Distance(frame.At((int)box.Left + 3, (int)(box.Top + box.Height / 2)), capsule) <= 6, $"{because}: the capsule's fill");
+                        Assert.True(BlitzAbFrame.Distance(frame.At((int)box.Left + 1, (int)box.Top + 1), backdrop) <= 6, $"{because}: the capsule's corner is filled");
+                        Assert.True(BlitzAbFrame.Distance(frame.At((int)(box.Left + box.Height / 2), (int)box.Top + 1), capsule) <= 6, $"{because}: the capsule's top edge");
+                        // :99-105 the glyph in .footnote semibold (10 points) in the secondary ink, the words in .subheadline (11) in the primary ink at 0.9.
+                        var font = SwiftImage.GetFont(glyph)!.Resolve();
+                        Assert.Equal(10, font.FontSize);
+                        Assert.Equal(FontWeight.SemiBold, font.FontWeight);
+                        Assert.Equal("text.quote", glyph.SymbolName);
+                        SymbolInkedLike(frame, glyph, glyphBox, capsule, ChromeTokens.SecondaryText, theme, $"{because}: the glyph");
+                        IsInkedLike(frame, wordsBox, capsule, excerpts[i], SwiftFont.System(SwiftFont.TextStyle.Subheadline), ChromeTokens.PrimaryText.Opacity(0.9), theme, $"{because}: the excerpt");
+                        // :96, :116 each chip at its own width flush right, 4 short of the bubble's tail edge, and 4 between chips.
+                        Assert.Equal(bubble.Right - 4, box.Right, 0.5);
+                        if (i > 0) Assert.Equal(4, box.Top - BlitzAbRender.BoxIn(chips[i - 1], window).Bottom, 0.5);
+                    }
+                    Assert.True(BlitzAbRender.BoxIn(chips[1], window).Width < BlitzAbRender.BoxIn(chips[0], window).Width);
+                });
+            }
+        });
+    });
 }

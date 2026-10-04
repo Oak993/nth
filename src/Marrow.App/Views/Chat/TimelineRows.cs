@@ -377,6 +377,13 @@ public sealed class UserMessageRow : Decorator
         };
         SwiftFont.Subheadline.Apply(excerpt); // :103 .font(.system(.subheadline))
         excerpt.Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(excerpt); // :104
+        // :107 .frame(maxWidth: 260) under the chip's .fixedSize(): the frame is the words' own width up to 260, and a longer excerpt gets the whole 260 and is cut at
+        // the tail inside it. A TextBlock reports only the width of the line it drew (the cut one, a pixel or two short of 260), which left the capsule narrower
+        // than the frame: so a longer excerpt is given the frame's width itself.
+        var probe = new TextBlock { Text = quote.Excerpt };
+        SwiftFont.Subheadline.Apply(probe);
+        probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        if (probe.DesiredSize.Width > 260) excerpt.Width = 260;
         // :98 HStack(spacing: 5); :109 .fixedSize(): a horizontal StackPanel measures its children at their ideal size.
         var chip = new HStack { Spacing = 5, HorizontalAlignment = HorizontalAlignment.Right }; // HStack :98: its children share one centre line
         chip.Children.Add(glyph);
