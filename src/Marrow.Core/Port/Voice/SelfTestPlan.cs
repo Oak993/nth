@@ -65,13 +65,17 @@ public static class SelfTestPlan
     /// V-10.3 for one timing of <paramref name="modelId"/>. RTF at most 0.15: keep, live words on. Up to 0.5: keep and ask the user once
     /// (OD-0099 Q-V-1 C). Above 0.5: step down one rung to be timed again, once only: after a step (<paramref name="steppedDown"/>), or with
     /// no rung below, the model is kept with live words off and nothing to ask (ED: the question offers a smaller model for live words,
-    /// which "once only" no longer allows).
+    /// which "once only" no longer allows). <paramref name="basis"/> is where the timing ran: OD-0099 Q-V-1 C (the amendment of
+    /// 2026-10-04) says "a fast PC (every GPU) is never asked and stays live with the accurate model", so a GPU timing in the slow band
+    /// keeps the model with live words on and asks nothing.
     /// </summary>
-    public static SelfTestDecision Decide(string modelId, double rtf, bool steppedDown)
+    public static SelfTestDecision Decide(string modelId, double rtf, bool steppedDown, RecommendationBasis basis)
     {
         switch (BandOf(rtf))
         {
             case SelfTestBand.Fast:
+                return new SelfTestDecision(SelfTestAction.Keep, modelId, true, false);
+            case SelfTestBand.Slow when basis == RecommendationBasis.Gpu:
                 return new SelfTestDecision(SelfTestAction.Keep, modelId, true, false);
             case SelfTestBand.Slow:
                 return new SelfTestDecision(SelfTestAction.Keep, modelId, null, true);
