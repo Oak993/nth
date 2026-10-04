@@ -55,7 +55,7 @@ if (args[0] == "profile")
     var path = new Uri(value).LocalPath;
     Directory.CreateDirectory(path);
     File.WriteAllText(Path.Combine(path, "used"), "fixture");
-    Console.WriteLine(path);
+    using (var stdout = Console.OpenStandardOutput()) stdout.Write(new UTF8Encoding(false).GetBytes(path + "\n"));
     return args.Contains("fail", StringComparer.Ordinal) ? 42 : 0;
 }
 foreach (var arg in args.Skip(1)) Console.WriteLine(Convert.ToBase64String(Encoding.UTF8.GetBytes(arg)));

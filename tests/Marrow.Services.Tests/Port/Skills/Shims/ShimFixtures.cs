@@ -33,7 +33,9 @@ internal sealed class ShimFixtures : IDisposable
         var start = new ProcessStartInfo(executable)
         {
             UseShellExecute = false, RedirectStandardInput = true,
-            RedirectStandardOutput = true, RedirectStandardError = true
+            RedirectStandardOutput = true, RedirectStandardError = true,
+            // Windows decodes a redirected stream with the console's OEM page by default; the fake target writes UTF-8.
+            StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
         };
         start.Environment["MARROW_PORT_DATA_DIR"] = Root;
         if (Path.GetFileName(executable).Equals("cmd.exe", StringComparison.OrdinalIgnoreCase))
@@ -51,13 +53,18 @@ internal sealed class ShimFixtures : IDisposable
         await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(20));
         Assert.Equal("", await error);
         Assert.Equal(0, child.ExitCode);
-        return (await output).Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.TrimEnd('\r')).ToArray();
+        return (await output).Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.TrimEnd('\r')).Where(l => l.Length != 0).ToArray();
     }
     public static string Decode(string value) => Encoding.UTF8.GetString(Convert.FromBase64String(value));
     public void Dispose()
     {
         foreach (var file in Directory.GetFiles(Root, "*", SearchOption.AllDirectories))
             File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
-        Directory.Delete(Root, true);
+        // Windows keeps an exited program's image mapped for a moment, so deleting it right away can be refused.
+        for (var attempt = 0; ; attempt++)
+        {
+            try { Directory.Delete(Root, true); return; }
+            catch (Exception error) when (attempt < 50 && error is UnauthorizedAccessException or IOException) { Thread.Sleep(100); }
+        }
     }
 }
