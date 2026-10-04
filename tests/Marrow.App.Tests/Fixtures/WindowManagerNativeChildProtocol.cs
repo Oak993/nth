@@ -46,6 +46,10 @@ internal static class WindowManagerNativeChildProtocol
         Directory.CreateDirectory(run);
         foreach (var name in new[] { "data", "temp", "dev", "home", "local", "roaming", "nuget", "results" })
             Directory.CreateDirectory(WindowManagerProcessProtocol.UnderRun(run, Path.Combine(run, name)));
+        // The shell's known folders of the child's profile (USERPROFILE is <run>\home, ChildEnvironment): a shell dialog opens at the profile's
+        // Desktop, and with none the shell puts a "Location is not available" box on top of it. Inside the run directory, never the real profile.
+        foreach (var name in new[] { "Desktop", "Documents", "Downloads", "Music", "Pictures", "Videos" })
+            Directory.CreateDirectory(WindowManagerProcessProtocol.UnderRun(run, Path.Combine(run, "home", name)));
         using var parent = Process.GetCurrentProcess();
         var request = new WindowManagerNativeRequest(nonce, fact, run, Environment.ProcessId,
             parent.StartTime.ToUniversalTime().Ticks, Path.GetFullPath(typeof(WindowManagerNativeTests).Assembly.Location),

@@ -27,7 +27,6 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
     [DllImport("user32.dll")] private static extern nint GetDlgItem(nint dialog, int id);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern nint SendMessage(nint window, uint message, nint wParam, string lParam);
     [DllImport("user32.dll")] private static extern nint SendMessage(nint window, uint message, nint wParam, nint lParam);
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(nint window, StringBuilder text, int maximum);
 
     private static OpenPanel SidebarPanel() => new()
     {
@@ -38,31 +37,37 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
         Message = Message, // :506
     };
 
-    private static string TextOf(nint window)
-    {
-        var text = new StringBuilder(512);
-        _ = GetWindowText(window, text, text.Capacity);
-        return text.ToString();
-    }
+    private static string TextOf(nint window) => OpenPanelNativeRun.TitleOf(window);
 
-    // The dialog window: a visible window of the dialog thread that is a dialog (class #32770) and carries the panel's title.
+    // The dialog window: the one titled dialog (class #32770) of the dialog thread, and it carries the panel's message as its title. A second
+    // titled dialog (a system error box such as "Location is not available") fails here, naming it.
     private static nint Dialog(OpenPanelNativeRun shown)
     {
-        nint found = 0;
-        N.Until(() =>
-        {
-            found = 0;
-            NativeWindowEnumerator callback = (window, _) =>
-            {
-                if (N.IsWindowVisible(window) && N.ClassName(window) == "#32770" && TextOf(window).Length > 0) found = window;
-                return true;
-            };
-            _ = N.EnumThreadWindows(shown.ThreadId, callback, 0);
-            GC.KeepAlive(callback);
-            return found != 0;
-        }, "The folder chooser never appeared.", 15000);
+        N.Until(() => shown.VisibleWindows().Any(window => window.Class == "#32770" && window.Title.Length > 0), "The folder chooser never appeared.", 15000);
         Thread.Sleep(1200); // the dialog's own contents are built after its frame shows
-        return found;
+        var titled = shown.VisibleWindows().Where(window => window.Class == "#32770" && window.Title.Length > 0).ToList();
+        var chooser = titled.Where(window => window.Title == Message).ToList();
+        if (titled.Count != 1 || chooser.Count != 1)
+        {
+            var description = string.Join("; ", titled.Select(window => $"\"{window.Title}\": {OpenPanelNativeRun.ChildTexts(window.Handle)}"));
+            foreach (var window in titled.Where(window => window.Title != Message)) N.Post(window.Handle, 0x0010, 0, 0); // WM_CLOSE: nothing is left on screen
+            Assert.Fail($"Expected exactly one titled dialog, titled \"{Message}\"; the dialog thread shows {titled.Count}: {description}");
+        }
+        shown.RequireNoOtherWindow(chooser[0].Handle, "while the chooser is open");
+        return chooser[0].Handle;
+    }
+
+    // After OK or Cancel: until the panel has answered, nothing but the chooser may appear (an error box would hold the panel open).
+    private static void Close(OpenPanelNativeRun shown, nint dialog, int button)
+    {
+        _ = SendMessage(GetDlgItem(dialog, button), BM_CLICK, 0, 0);
+        var until = Environment.TickCount64 + 15000;
+        while (!shown.Done && Environment.TickCount64 < until)
+        {
+            shown.RequireNoOtherWindow(dialog, "after " + (button == IDOK ? "OK" : "Cancel"));
+            Thread.Sleep(50);
+        }
+        shown.Finish();
     }
 
     // The file name edit control of the dialog (the Edit inside its ComboBoxEx32).
@@ -92,6 +97,11 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
         Assert.Equal((uint)0x20, (uint)WindowsOpenPanelRunner.PickFoldersOption); // FOS_PICKFOLDERS
         Assert.Equal((uint)0x200, (uint)WindowsOpenPanelRunner.AllowMultiSelectOption); // FOS_ALLOWMULTISELECT
 
+        // The chooser opens at the profile's Desktop when it has no last folder to return to: the child's profile must have it, or the shell
+        // answers with a "Location is not available" box of its own on top of the chooser.
+        foreach (var known in new[] { Environment.SpecialFolder.DesktopDirectory, Environment.SpecialFolder.MyDocuments })
+            Assert.True(Directory.Exists(Environment.GetFolderPath(known)), $"The child's {known} folder does not exist: {Environment.GetFolderPath(known)}");
+
         var root = Path.Combine(Path.GetTempPath(), "openpanel-native-" + Guid.NewGuid().ToString("N")[..8]);
         var first = Path.Combine(root, "first project");
         var second = Path.Combine(root, "second project");
@@ -110,8 +120,7 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
             Assert.NotEqual((nint)0, box);
             _ = SendMessage(box, WM_SETTEXT, 0, "\"" + first + "\" \"" + second + "\"");
             Thread.Sleep(300);
-            _ = SendMessage(ok, BM_CLICK, 0, 0);
-            shown.Finish();
+            Close(shown, dialog, IDOK);
             Assert.NotNull(shown.Urls);
             static string Url(string path) => "/" + path.Replace('\\', '/');// the file URL's path of a Windows path (OpenPanel.cs FileURL)
             Assert.Equal(
@@ -123,8 +132,7 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
             shown = OpenPanelNativeRun.Show(SidebarPanel());
             dialog = Dialog(shown);
             Assert.Equal(Message, TextOf(dialog));
-            _ = SendMessage(GetDlgItem(dialog, IDCANCEL), BM_CLICK, 0, 0);
-            shown.Finish();
+            Close(shown, dialog, IDCANCEL);
             Assert.Null(shown.Urls);
         }
         finally
