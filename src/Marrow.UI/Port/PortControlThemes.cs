@@ -236,6 +236,7 @@ public static class PortControlThemes
         application.Resources[typeof(ToolTip)] = ToolTipTheme;
         application.Resources[typeof(Slider)] = SliderTheme;
         RegisterPrimaryTextDefault(application);
+        GreyscaleText.Register(application); // OD-0099 Q-TEXT A: text is greyscale everywhere (GreyscaleText.cs)
         PopoverHost.Register(application); // the panel a presented popover's top-level draws (PopoverHost.cs, ED-238)
     }
 
