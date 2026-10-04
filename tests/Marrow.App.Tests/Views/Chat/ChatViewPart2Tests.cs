@@ -121,6 +121,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
         ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the toggle capsule's circle fades on the frame clock (OD-0076).
             var model = harness.MakeModel();
             ChatChromeRow row = null!;
             ThreadRuntime runtime = null!;
@@ -179,7 +180,8 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ScriptsEditor: PR-TERM-074 --------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-TERM-074")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
+    // STOP (round 4, traceability), still open: PR-TERM-074: the sheet's capture against the reference is owed on native (ED-278, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-020")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-021")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
     [Trait("Req", "UI-TERM-022")] // App/Views/Chat/ChatView.swift:1660-1665,1721-1722
@@ -239,7 +241,8 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     // ---- ScriptsEditor: PR-TERM-076 --------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-TERM-076")] // App/Views/Chat/ChatView.swift:1666-1699
+    // STOP (round 4, traceability), still open: PR-TERM-076: the sheet's capture against the reference is owed on native (ED-278, owed list). This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-023")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-024")] // App/Views/Chat/ChatView.swift:1666-1699
     [Trait("Req", "UI-TERM-027")] // App/Views/Chat/ChatView.swift:1666-1699
@@ -624,18 +627,16 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
         });
     }
 
-    // ---- UI-CHAT-006, PR-USAGE-071/073/074: deferred, same category as PR-CHAT-159/PR-TERM-001 in part 1 --------
-    // JumpToLatestButton cites ThreadTimeline (ChatView.swift:1085-1104, ThreadTimeline.swift:402-409,673-677), a
-    // separate TODO unit; it stays MARROW_STUB. usagePanel's origin arithmetic (:491-531, PR-USAGE-071), the resize
-    // grips (:533-590, PR-USAGE-073) and the double-click reset (:574-577, PR-USAGE-074), and dockUsage's own drag
-    // reassignment (:611-639, the rest of PR-USAGE-070) are all private members of ChatView's own body/methods,
-    // which is not built here (it composes ThreadTimeline, TerminalPanel and ComposerView, all still TODO units per
-    // porting/deps/units.json). No test for these four exists this part; see the CLOUD REPORT.
+    // ---- UI-CHAT-006, PR-USAGE-071/073/074 (updated 2026-10-03): the column is built and these are proven elsewhere -----
+    // UI-CHAT-006: ChatViewFollowupTests.Jump_to_latest_has_the_source_action_zero_height_and_asymmetric_transitions.
+    // PR-USAGE-071/073/074 and the drag half of PR-USAGE-070: ChatViewPart2ReviewTests, ChatViewReviewFixTests (a real
+    // grip drag), ChatViewParityChromeTests and ChatViewParityMountedTests (a real drag of the panel by its strip).
 
     // ---- ChatChromeRow states not covered by part 1: UI-CHAT-073 -----------------------------------------------
 
     [Fact]
-    [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1106-1182 (states: no project, not a repository)
+    // STOP (round 4, traceability), still open: UI-CHAT-073: the one-glass-pass clause (the glass over the row; ED-180, OD-0005 UNVERIFIED) is not proven. This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1106-1182 (states: no project, not a repository)
     public void With_no_project_the_Scripts_item_is_absent_and_with_no_repository_the_branch_and_git_items_are_absent()
     {
         ChatHeadlessFixtures.Run(headless, () =>

@@ -655,15 +655,32 @@ namespace Marrow.UI.Chrome
         // :370-382 body
         public ChromeIconButton(string symbol, string help, Action action, bool isEnabled = true, bool isActive = false)
         {
-            var state = new ViewState();
-            var label = new ChromeIconLabel(symbol, isEnabled, isActive, isHovering: false); // :372
-            label.Track(() => state.IsHovering, hovering => label.Update(isEnabled, isActive, hovering));
+            state = new ViewState();
+            this.isEnabled = isEnabled;
+            this.isActive = isActive;
+            label = new ChromeIconLabel(symbol, isEnabled, isActive, isHovering: false); // :372
+            label.Track(() => state.IsHovering, hovering => label.Update(this.isEnabled, this.isActive, hovering));
             var button = PlainControls.Button(label, action); // :371, :374 .buttonStyle(.plain)
             button.IsEnabled = isEnabled; // :375 .disabled(!isEnabled)
             button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :376-378
             ToolTip.SetTip(button, help); // :379 .help(help)
             AutomationProperties.SetName(button, help); // :380 .accessibilityLabel(Text(help))
             Child = PlainControls.Background(button, new NoWindowDragArea()); // :381
+        }
+
+        private readonly ViewState state;
+        private readonly ChromeIconLabel label;
+        private readonly bool isEnabled;
+        private bool isActive;
+
+        /// <summary>PORT-ONLY (ED-278 (5)). SwiftUI re-evaluates a parent's body and the same button keeps its identity,
+        /// its hover state and its place; the new <c>isActive</c> changes its fill and its glyph's colour under the transaction in force
+        /// (a column's `.animation(Chrome.panelSlide, value:)`, ChatView.swift:290), so the "on" circle fades in and out.</summary>
+        public void Update(bool isActive)
+        {
+            if (this.isActive == isActive) return;
+            this.isActive = isActive;
+            label.Update(isEnabled, isActive, state.IsHovering);
         }
     }
 

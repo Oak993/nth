@@ -123,7 +123,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-CHAT-176")] // App/Views/Chat/ChatView.swift:1147-1151,1203-1214
     [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203-1214
-    public void Updating_the_title_input_cuts_to_the_new_text_without_replacing_its_button()
+    public void Updating_the_title_input_of_a_title_not_yet_drawn_takes_the_new_text_in_place_without_replacing_its_button()
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -180,7 +180,8 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-GIT-126")] // App/Views/Chat/ChatView.swift:1284-1307
+    // STOP (round 4, traceability), still open: PR-GIT-126: the concurrent read of status, branches and the web URL (:1297-1299) is not observed (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1284-1307
     public void Git_snapshots_are_shared_and_are_fresh_only_while_their_age_is_less_than_thirty_seconds()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -272,15 +273,17 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
         });
     }
 
-    // STOP App.Views.Chat.ChatView #5
-    // Kind: missing dependency / native style metrics.
-    // Swift: App/Views/Chat/ChatView.swift:1582-1584,1672-1673,1681-1682.
-    // Records: UI-GIT-035, UI-TERM-024 (also PR-TERM-076). UI-TERM-026 left this note on 2026-10-04: OD-0042 / OD-0045 make Apple's macOS UI Kit the reference for
-    // `.roundedBorder`, and ChatViewPart2Tests.A_blank_command_is_outlined_in_danger... asserts the field's bezel against the kit's values (24 high, radius 6, fills, border).
-    // The theme-less port has no common roundedBorder TextField or small ProgressView template.
-    // Keep the source style kind and small-control-size metadata, and draw the text/interaction already defined;
-    // leave the native bezel and spinner styling unwritten. Do not invent their metric values.
-    // Needed: a shared primitive or an approved native-control metric mapping/oracle. Fonts/validation are independent.
+    // STOP App.Views.Chat.ChatView #5 (rewritten 2026-10-03)
+    // The native-control dependency it named is resolved under OD-0042/OD-0045: `.textFieldStyle(.roundedBorder)` draws the
+    // Apple-kit bezel of ChatDialogControls.TextEditor(style: "RoundedBorder") and ProgressView().controlSize(.small) draws
+    // SystemSpinner (PortControlThemes). Proofs: ChatViewParityDetailTests.Name_and_Command_draw_the_rounded_border_bezel...
+    // (UI-TERM-024, UI-TERM-026) and Appearing_with_an_empty_message_writes_a_draft_showing_the_small_spinner... (UI-GIT-035).
+    // Kind: capture UNRESOLVED (no reference frame). Swift: App/Views/Chat/ChatView.swift:1652-1730.
+    // Records: PR-TERM-074, PR-TERM-076.
+    // Neither reference video shows the Project scripts sheet: 2-chat-use.mov opens only the scripts menu (C 131.3-132.2,
+    // "Add a script…"), never the sheet, and 1-settings-tour.mov never reaches a chat. Every other clause of both records is
+    // proven (ChatViewPart2Tests, ChatViewPart2ReviewTests, ChatViewPart4Tests, ChatViewParityTests, ChatViewParityDetailTests);
+    // their capture comparison stays UNRESOLVED until a frame of the sheet exists.
 
     [Fact]
     [Trait("Req", "UI-TERM-023")] // App/Views/Chat/ChatView.swift:1667-1699
@@ -550,7 +553,9 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [InlineData(PanelDockCorner.TopTrailing, -1, 1)]
     [InlineData(PanelDockCorner.BottomLeading, 1, -1)]
     [InlineData(PanelDockCorner.BottomTrailing, -1, -1)]
-    [Trait("Req", "UI-USAGE-041")] // App/Views/Chat/ChatView.swift:527,554-590
+    // A part of UI-USAGE-041 (the pinned start, the exact commit, the stepped live width); it neither double-clicks nor drags below the 94 pt floor,
+    // so the record is carried by ChatViewParityRound2Tests.The_usage_panels_grips_sit_on_its_free_edges... (review round 2).
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:527,554-590,595-598
     public void Grip_resize_pins_the_start_commit_is_exact_and_the_live_width_is_stepped(PanelDockCorner corner, int across, int down)
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -610,7 +615,8 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1123
+    // STOP (round 4, traceability), still open: PR-CHAT-171: the one-glass-pass clause (the glass over the row; ED-180, OD-0005 UNVERIFIED) is not proven. This test proves its own clauses only, so it carries no Req trait for the open record.
+    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1123
     public void The_glass_group_retains_the_source_spacing_for_the_deferred_compositor()
     {
         ChatHeadlessFixtures.Run(headless, () =>

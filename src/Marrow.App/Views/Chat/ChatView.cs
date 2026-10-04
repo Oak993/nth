@@ -70,6 +70,7 @@ public sealed class ChatView : Decorator
     private readonly Panel floatingHost = new();
     private readonly Panel terminalHost = new();
     private readonly Dictionary<FloatingPanelID, (Control View, object Inputs)> mountedPanels = [];
+    private Dictionary<string, object?>? panelKeys; // the values the overlays' animations were last keyed on.
     private readonly Dictionary<Control, (Panel Host, Control Surface)> panelSurfaces = [];
     private ThreadTimeline? timeline;
     private ComposerArea? composer;
@@ -86,6 +87,9 @@ public sealed class ChatView : Decorator
     private string? composerDirectory;
     private bool? terminalWasVisible;
     private string? terminalDirectory;
+    private (TerminalPanel Panel, string? Directory)? leavingTerminal; // the drawer last taken out, while its removal may still be running.
+    private readonly ChatFrameAnimation terminalPush;
+    private (bool Showing, double Height)? push; // the terminal push under way: the pane's settled size is read through it.
     private long? seenDiffRevision;
 
     // :7 @Bindable var runtime: ThreadRuntime; :76-321 body
@@ -102,6 +106,16 @@ public sealed class ChatView : Decorator
         column.Children.Add(terminalHost); // :98,275-280 zero gap, terminal outside the conversation pane.
         Child = column.DetailSheet(); // :281-282
         this.Transition(SwiftTransition.Identity); // :283-288, no column transition on a switch.
+        terminalPush = new ChatFrameAnimation(pane);
+        terminalPush.AttachLifetime();
+        // A drawer that has finished leaving gives its row back; the pane no longer reaches under it.
+        terminalHost.Children.CollectionChanged += (_, _) =>
+        {
+            if (terminalHost.Children.Count != 0) return;
+            terminalPush.Stop();
+            push = null;
+            pane.Margin = default;
+        };
 
         this.Track(() => AppEnvironment.GetAppModel(this), attachedModel =>
         {
@@ -162,7 +176,7 @@ public sealed class ChatView : Decorator
             if (sceneThreadID is { } previous && previous != id) ResetThreadScene(); // :306-319
             sceneThreadID = id;
         });
-        pane.SizeChanged += (_, _) => NotePaneSize(pane.Bounds.Size); // :241-249
+        pane.SizeChanged += (_, _) => NotePaneSize(SettledPaneSize()); // :241-249
         composerHost.SizeChanged += (_, _) => NoteComposerAreaHeight(composerHost.Bounds.Height); // :129-138
         SizeChanged += (_, _) =>
         {
@@ -277,6 +291,14 @@ public sealed class ChatView : Decorator
         RefreshScene();
     }
 
+    // :241-249 onGeometryChange reads the size SwiftUI's layout settled at, and a layout animation (the terminal's push, :290) only
+    // interpolates what is drawn: paneSize takes its final value once. The port's push animates the pane's own bottom margin
+    // (PushTerminal), so the measured size passes through every value between (and layout rounding makes each a fraction off the
+    // last); the scene reads the size the push is heading for, the column less the drawer's row when it opens.
+    private Size SettledPaneSize() => push is { } heading
+        ? new Size(pane.Bounds.Width, Math.Max(0, columnHeight - (heading.Showing ? heading.Height : 0)))
+        : pane.Bounds.Size;
+
     private void NotePaneSize(Size size) // :241-249
     {
         if (paneSize == size) return;
@@ -336,21 +358,66 @@ public sealed class ChatView : Decorator
         var changed = terminalWasVisible is { } was && was != visible;
         void Apply()
         {
+            var animation = Transaction.Current;
             if (terminal is not null && (!visible || terminalDirectory != directory))
             {
-                SwiftTransition.Remove(terminalHost, terminal);
+                var leaving = terminal;
+                SwiftTransition.RemoveContinuing(terminalHost, leaving); // closed mid-open: back down from where it is (OD-0076; ED-278 (10)).
+                leavingTerminal = (leaving, terminalDirectory);
                 terminal = null;
+                if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height, rowHeld: true);
             }
             if (visible && terminal is null)
             {
                 terminalDirectory = directory;
-                terminal = new TerminalPanel(runtime, directory).Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
-                SwiftTransition.Insert(terminalHost, terminalHost.Children.Count, terminal);
+                var rowHeld = terminalHost.Children.Count != 0; // a drawer still leaving holds its row (and the pane's reach under it).
+                // Reopened while it is still closing: the leaving drawer comes back from where it is, the same TerminalPanel (OD-0076;
+                // ED-278 (10)); a new one would start a full drawer below under the chat box that is already rising.
+                if (leavingTerminal is { } back && back.Directory == directory && SwiftTransition.IsRemoving(back.Panel))
+                {
+                    terminal = back.Panel;
+                    SwiftTransition.InsertContinuing(terminalHost, terminalHost.Children.Count, terminal);
+                    terminal.TakeKeyboardIfWanted(); // never left the visual tree: the reopen's focus request is spent here (TerminalPanel.swift:224-239).
+                }
+                else
+                {
+                    terminal = new TerminalPanel(runtime, directory).Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
+                    SwiftTransition.Insert(terminalHost, terminalHost.Children.Count, terminal);
+                }
+                leavingTerminal = null;
+                if (changed && animation is not null)
+                    PushTerminal(showing: true, animation, double.IsNaN(terminal.Height) ? model!.Settings.TerminalHeight : terminal.Height, rowHeld);
             }
         }
         if (changed && sceneThreadID == runtime.ThreadID) Transaction.WithAnimation(Chrome.PanelSlide, Apply);
         else Apply();
         terminalWasVisible = visible;
+    }
+
+    // :96,276-279,290 the drawer joins the column's VStack under `.animation(_, value: isTerminalVisible)`: the layout change
+    // is animated, so the thread view above it (timeline, chat box, panels) is pushed up and let back down in lock-step with
+    // the drawer's move from the bottom edge, never cut to its new height (2-chat-use.mov C 132.2-132.55, the push measured
+    // frame by frame; OD-0076). The drawer's row takes its height at once, so the pane reaches under it by the part of the
+    // drawer still below its resting place: its bottom edge is the drawer's top on every frame. A push that starts while another is
+    // under way (the drawer reopened while it is still closing, or closed while it is still opening) goes on from where the pane is:
+    // the margin it has now, never a full drawer below (SwiftUI retargets the animated layout from its presentation; OD-0076). A
+    // fresh opening starts a full drawer below, as the drawer's row takes its height at once; a drawer that still holds its row (the
+    // one leaving) has already given the pane its reach, and the new push continues from the margin that reach has now.
+    private void PushTerminal(bool showing, Animation animation, double height, bool rowHeld)
+    {
+        terminalPush.Stop();
+        var from = showing && !rowHeld ? -height : pane.Margin.Bottom;
+        var to = showing ? 0 : -height;
+        push = (showing, height);
+        terminalPush.Start(animation, progress =>
+        {
+            pane.Margin = new Thickness(0, 0, 0, from + (to - from) * progress);
+            if (progress >= 1 && showing) push = null; // an open drawer has its row: the pane's own size is the settled one again.
+        });
+        // :241-249,290 paneSize takes the layout's settled value once, and the panels re-place under the same panelSlide as the thread
+        // view's push (the bottom-docked ones rise with the chat box): the scene is told the size the push heads for now, not
+        // the per-frame sizes the margin makes the pane pass through (those would each start a fresh settle from where the panel is).
+        if (columnHeight > 0) NotePaneSize(SettledPaneSize());
     }
 
     private static SwiftTransition PanelTransition => SwiftTransition.Asymmetric(
@@ -363,6 +430,7 @@ public sealed class ChatView : Decorator
         var host = new Panel();
         var placed = new PlacedPanel(drag, rest, size, host, resize, holds);
         panelSurfaces[placed] = (host, surface);
+        placed.PresentSurface = presented => SizeSurface(placed, presented);
         host.Children.CollectionChanged += (_, _) =>
         {
             if (host.Children.Count != 0) return;
@@ -370,6 +438,22 @@ public sealed class ChatView : Decorator
             panelSurfaces.Remove(placed);
         };
         return placed;
+    }
+
+    // :541-545 the frame of a placed panel includes its surface. The placement presents each size of a settle and the surface
+    // follows, so a panel that grows or shrinks (the usage panel's reset to its content height, :574-577; the pane changing size
+    // under it) glides under panelSlide rather than taking its final size ahead of the placement.
+    private void SizeSurface(Control placed, Size size)
+    {
+        if (!panelSurfaces.TryGetValue(placed, out var panel)) return;
+        panel.Surface.Width = size.Width;
+        panel.Surface.Height = size.Height;
+        // SubagentPanel.swift:299,340-354 frames both borders explicitly; Hydra/Usage frames its root.
+        if (panel.Surface is SubagentPanel { Child: Border { Child: Border shape } scrim })
+        {
+            scrim.Width = shape.Width = size.Width;
+            scrim.Height = shape.Height = size.Height;
+        }
     }
 
     private void RemovePanel(Control placed)
@@ -381,6 +465,32 @@ public sealed class ChatView : Decorator
     {
         if (model is null) return;
         var wanted = new HashSet<FloatingPanelID>();
+        // :163,180,224,232,240 each overlay animates on its own value only (`.animation(_, value:)`): the helper's id, the
+        // team panel's shown flag, the popped head's id, the automatic heads' ids, the usage providers. A panel that only
+        // waited for the pane's first measurement (the column's first frames, or a thread's) appears in place, as SwiftUI
+        // shows it when no keyed value changed; one whose value changed grows in and fades out on panelSlide.
+        var keys = new Dictionary<string, object?>
+        {
+            ["subagent"] = scene.Subagent?.Id,
+            ["hydra"] = scene.ShowsHydra,
+            ["popped"] = scene.Popped?.Id,
+            ["auto"] = string.Join(",", scene.AutoPopped.Select(head => head.Id)),
+            ["usage"] = scene.Usage,
+        };
+        var previousKeys = panelKeys;
+        panelKeys = keys;
+        bool Animates(FloatingPanelID id)
+        {
+            var key = id switch
+            {
+                FloatingPanelID.Subagent => "subagent",
+                FloatingPanelID.Hydra => "hydra",
+                FloatingPanelID.Popped => "popped",
+                FloatingPanelID.Auto => "auto",
+                _ => "usage",
+            };
+            return !switching && (previousKeys is null || !Equals(previousKeys[key], keys[key]));
+        }
         void Mount(FloatingPanelID id, object inputs, Func<Control> create)
         {
             wanted.Add(id);
@@ -401,6 +511,7 @@ public sealed class ChatView : Decorator
                 });
                 panelSurfaces[prior.View] = (existing.Host, surface);
                 mountedPanels[id] = (prior.View, inputs);
+                ((PlacedPanel)prior.View).PresentSurfaceNow(); // the new surface joins the frame the placement presents now.
                 UpdatePanelPlacement(id, (PlacedPanel)prior.View, holds);
                 return;
             }
@@ -410,7 +521,7 @@ public sealed class ChatView : Decorator
             mountedPanels[id] = (control, inputs);
             floatingHost.Children.Add(control);
             var panel = panelSurfaces[control];
-            Transaction.WithAnimation(!switching && prior.View is null ? Chrome.PanelSlide : null,
+            Transaction.WithAnimation(Animates(id) ? Chrome.PanelSlide : null,
                 () => SwiftTransition.Insert(panel.Host, 0, panel.Surface));
         }
         if (scene.Subagent is { } helper && scene.IsMeasured)
@@ -426,7 +537,7 @@ public sealed class ChatView : Decorator
         foreach (var id in mountedPanels.Keys.Where(id => !wanted.Contains(id)).ToArray())
         {
             var leaving = mountedPanels[id].View; mountedPanels.Remove(id);
-            Transaction.WithAnimation(switching ? null : Chrome.PanelSlide, () => RemovePanel(leaving));
+            Transaction.WithAnimation(Animates(id) ? Chrome.PanelSlide : null, () => RemovePanel(leaving));
         }
     }
 
@@ -474,16 +585,9 @@ public sealed class ChatView : Decorator
 
     private void UpdatePanelPlacement(FloatingPanelID id, PlacedPanel placed, bool holds)
     {
+        // The host's and the surface's frames come from the placement's own presentation (PanelPlacementView.Present), at once for a
+        // placement that does not settle and on every frame of one that does.
         var size = CurrentSize(id);
-        var panel = panelSurfaces[placed];
-        panel.Host.Width = panel.Surface.Width = size.Width;
-        panel.Host.Height = panel.Surface.Height = size.Height;
-        // SubagentPanel.swift:299,340-354 frames both borders explicitly; Hydra/Usage frames its root.
-        if (panel.Surface is SubagentPanel { Child: Border { Child: Border shape } scrim })
-        {
-            scrim.Width = shape.Width = size.Width;
-            scrim.Height = shape.Height = size.Height;
-        }
         placed.UpdatePlacement(CurrentOrigin(id), size, holds);
         // SubagentPanel.swift:599-615. Moving to a different dock updates the existing grips' free edges.
         var dock = CurrentSlot(id).Corner;
@@ -1203,6 +1307,14 @@ internal sealed class GlassEffectContainer : Decorator
 /// <summary>:1106-1182 <c>private struct ChatChromeRow: View</c>: the sticky glass controls across the top.</summary>
 internal sealed class ChatChromeRow : Decorator
 {
+    // :1130,1140 .transition(.softAppear) (Chrome.swift:938-955): arrives fading in with a 4-point rise under
+    // Animation.softAppear, leaves with .opacity.animation(.easeOut(duration: 0.12)). SwiftUI animates the opacity and offset
+    // the modifier's body sets; the shared SoftAppear (a modifier with no animatable data) switched them at once, so the
+    // insertion is decomposed into those layer effects, as ThreadTimeline's SoftAppearTransition does.
+    private static SwiftTransition SoftAppear => SwiftTransition.Asymmetric(
+        SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear),
+        SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
+
     private Action<string, Project?, string>? updateInputs;
     internal void UpdateInputs(string title, Project? project, string directory) => updateInputs?.Invoke(title, project, directory); // :1112-1115,1147-1151
     // :1109-1114 the view's inputs, plus AppModel explicitly (no Avalonia @Environment). scrollChrome is not read
@@ -1224,7 +1336,7 @@ internal sealed class ChatChromeRow : Decorator
         // The row's own children persist across refreshes, as SwiftUI keeps a view's identity (and its @State, such as an open
         // popover) while its body re-evaluates: only the controls whose branch changes come and go, and the two that carry
         // .transition(.softAppear) (ThreadsButton :1129-1131, HydraButton :1139-1140) arrive and leave through it.
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center }; // :1124
+        var row = new ChatChromeRowStack { Spacing = 10, VerticalAlignment = VerticalAlignment.Center }; // :1124, :1238
         var container = new GlassEffectContainer(2, () => row); // :1123
         host.Children.Add(container);
         ThreadsButton? threadsButton = null;
@@ -1233,6 +1345,10 @@ internal sealed class ChatChromeRow : Decorator
         var placed = new List<Control>();
         var leaving = new HashSet<Control>();
         var built = false;
+        var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :1152
+        ChromeCapsule? toggles = null;
+        ChromeIconButton? terminalToggle = null, diffToggle = null;
+        (string, string) toggleHelps = default;
 
         var clearanceAnimation = new ChatFrameAnimation(this);
         clearanceAnimation.AttachLifetime();
@@ -1241,7 +1357,7 @@ internal sealed class ChatChromeRow : Decorator
         updateInputs = (nextTitle, nextProject, nextDirectory) =>
         {
             title = nextTitle; project = nextProject; directory = nextDirectory;
-            titleView.UpdateTitle(title); // :1147-1151 no title animation.
+            titleView.UpdateTitle(title); // :1147-1151 no title animation on the Mac; the words crossfade (OD-0076, ED-278 (14)).
             Build();
         };
         void Drop(Control old)
@@ -1296,10 +1412,16 @@ internal sealed class ChatChromeRow : Decorator
                 else row.Children.Insert(position, control);
                 position++;
             }
+            // A removed control gives up its slot at once (the stack closes up around it) and fades where it stood.
+            row.Departing.Clear();
+            foreach (var control in leaving) row.Departing.Add(SwiftTransition.Container(control));
         }
         void Build()
         {
             var sidebarVisible = model.Sidebar.HoldsTrafficLights; // :1119
+            // :1179 `.animation(Chrome.panelSlide, value: sidebarVisible)` is on the whole row: when the buttons move to or from the
+            // sidebar, every control's new place in the HStack is reached by gliding on panelSlide, from where it was drawn.
+            if (built && previousSidebarVisible is { } wasVisible && wasVisible != sidebarVisible) row.Glide(Chrome.PanelSlide);
             var desired = new List<Control>();
             var transitioning = new HashSet<Control>();
             var silent = new HashSet<Control>();
@@ -1316,7 +1438,7 @@ internal sealed class ChatChromeRow : Decorator
                 }
                 if (threadsButton is null)
                 {
-                    threadsButton = new ThreadsButton(model).Transition(SwiftTransition.SoftAppear); // :1129-1131
+                    threadsButton = new ThreadsButton(model).Transition(SoftAppear); // :1129-1131
                     threadsFloats = floats;
                     if (renewed) silent.Add(threadsButton);
                 }
@@ -1335,7 +1457,7 @@ internal sealed class ChatChromeRow : Decorator
                 {
                     // :1139-1140 the view keeps its identity and its state while its `thread` input changes.
                     if (hydraButton is null)
-                        hydraButton = new HydraButton(thread, runtime).Transition(SwiftTransition.SoftAppear);
+                        hydraButton = new HydraButton(thread, runtime).Transition(SoftAppear);
                     else
                         hydraButton.Update(thread);
                     desired.Add(hydraButton);
@@ -1351,8 +1473,7 @@ internal sealed class ChatChromeRow : Decorator
             }
             desired.Add(titleView); // :1147-1151: no title animation; its popover state is retained.
 
-            var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :1152
-            trailing.Children.Add(new ChromeCapsule(() =>
+            var openCapsule = new ChromeCapsule(() =>
             {
                 var capsule = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 };
                 capsule.Children.Add(new OpenInMenu(directory)); // :1154
@@ -1367,23 +1488,44 @@ internal sealed class ChatChromeRow : Decorator
                     capsule.Children.Add(new GitActionsMenu(model, runtime, directory, git)); // :1161
                 }
                 return capsule;
-            })); // :1153-1163
-            trailing.Children.Add(new ChromeCapsule(() =>
+            }); // :1153-1163
+            // :1164-1172 the toggle capsule keeps its buttons across a refresh (a SwiftUI body re-evaluates and the views keep their identity), so
+            // the "on" circle of a button fades in and out where the flag it follows changes: the terminal's under the column's
+            // `.animation(Chrome.panelSlide, value: runtime.isTerminalVisible)` (:290); the Changes button's, which the Mac snaps, on the
+            // hover curve (OD-0076). A changed tooltip (the shortcut's hint) builds the capsule afresh.
+            var terminalHelp = "Terminal" + ShortcutStore.Hint(AppShortcut.ToggleTerminal); // :1165
+            var changesHelp = "Changes" + ShortcutStore.Hint(AppShortcut.ToggleChanges); // :1169
+            var togglesBuilt = false;
+            if (toggles is null || toggleHelps != (terminalHelp, changesHelp))
             {
-                var capsule = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 };
-                capsule.Children.Add(new ChromeIconButton(
-                    "terminal",
-                    "Terminal" + ShortcutStore.Hint(AppShortcut.ToggleTerminal), // :1165
+                var terminalButton = terminalToggle = new ChromeIconButton("terminal", terminalHelp,
                     () => runtime.IsTerminalVisible = !runtime.IsTerminalVisible, // :1166
-                    isActive: runtime.IsTerminalVisible));
-                capsule.Children.Add(new ChromeDivider()); // :1168
-                capsule.Children.Add(new ChromeIconButton(
-                    "plusminus",
-                    "Changes" + ShortcutStore.Hint(AppShortcut.ToggleChanges), // :1169
+                    isActive: runtime.IsTerminalVisible);
+                var changesButton = diffToggle = new ChromeIconButton("plusminus", changesHelp,
                     runtime.ToggleDiff, // :1170
-                    isActive: runtime.IsDiffVisible));
-                return capsule;
-            })); // :1164-1172
+                    isActive: runtime.IsDiffVisible);
+                toggles = new ChromeCapsule(() =>
+                {
+                    var capsule = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 };
+                    capsule.Children.Add(terminalButton);
+                    capsule.Children.Add(new ChromeDivider()); // :1168
+                    capsule.Children.Add(changesButton);
+                    return capsule;
+                }); // :1164-1172
+                toggleHelps = (terminalHelp, changesHelp);
+                togglesBuilt = true;
+            }
+            else
+            {
+                Transaction.WithAnimation(Chrome.PanelSlide, () => terminalToggle!.Update(runtime.IsTerminalVisible));
+                Transaction.WithAnimation(Chrome.Hover, () => diffToggle!.Update(runtime.IsDiffVisible));
+            }
+            if (trailing.Children.Count == 0) { trailing.Children.Add(openCapsule); trailing.Children.Add(toggles); }
+            else
+            {
+                trailing.Children[0] = openCapsule;
+                if (togglesBuilt) trailing.Children[1] = toggles;
+            }
             desired.Add(trailing);
             Reconcile(desired, transitioning, silent);
             built = true;
@@ -1420,8 +1562,15 @@ internal sealed class ChatChromeRow : Decorator
 /// (which drags the window from this row's gaps) never swallows the click.</summary>
 internal sealed class ChatChromeTitle : Decorator
 {
-    private readonly TextBlock titleText = new();
+    private TextBlock titleText = new();
     private string currentTitle;
+    private Panel? wordsHost; // the words on screen; a crossfade's leaving words sit in wordsLayer, over them, out of the layout.
+    private Canvas? wordsLayer;
+    private bool shownEmpty;
+
+    // OD-0076 (content that swaps crossfades), ED-278 (14): the Mac's title Text takes new words with no animation
+    // (ChatView.swift:1147-1151); the port fades the old words out and the new ones in on one ease-out of the Mac's motion language.
+    private static Animation WordsSwap => Animation.EaseOut(duration: 0.2);
 
     private sealed class ViewState : MainActorModel
     {
@@ -1442,20 +1591,16 @@ internal sealed class ChatChromeTitle : Decorator
     {
         currentTitle = title;
         var state = new ViewState();
-        var text = new TextBlock
-        {
-            Text = title.Length == 0 ? "New thread" : title, // :1203
-            MaxLines = 1, // :1206
-            TextTrimming = TextTrimming.CharacterEllipsis, // :1207 .truncationMode(.tail)
-        };
+        var text = NewWords(title);
         titleText = text;
-        SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(text); // :1204
-        text.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(text); // :1205
+        shownEmpty = title.Length == 0;
+        wordsLayer = new Canvas { IsHitTestVisible = false }; // no size of its own: the leaving words take no room
+        wordsHost = new Panel { Children = { text, wordsLayer } };
         var padded = new Border
         {
             Padding = new Thickness(0, 6), // :1208
             Background = Brushes.Transparent, // :1209 .contentShape(.rect)
-            Child = text,
+            Child = wordsHost,
         };
         var button = PlainControls.Button(padded, () => state.IsPresented = !state.IsPresented); // :1199-1202
         button.HorizontalContentAlignment = HorizontalAlignment.Left;
@@ -1467,17 +1612,59 @@ internal sealed class ChatChromeTitle : Decorator
             button,
             new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
             () => new PopoverMenu(() => BuildMenu(model, runtime, button, currentTitle))); // :1215-1230
-        Child = PlainControls.Background(new Panel { Children = { button, popover } }, new NoWindowDragArea());
+        // :1215-1217,1238 the button is the words' own width; the frame after it takes the row's leftover width, so the
+        // popover hangs under the words, and the leftover gap stays the title bar's (it drags the window, ED-063).
+        var pressable = PlainControls.Background(button, new NoWindowDragArea());
+        pressable.HorizontalAlignment = HorizontalAlignment.Left;
+        Child = new Panel { Children = { pressable, popover } };
         HorizontalAlignment = HorizontalAlignment.Stretch; // :1238 .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // :1147-1151,1203-1205 title input changes cut directly; the button/popover state keeps its identity.
+    // :1203-1207 the words, their face and their colour.
+    private static TextBlock NewWords(string title)
+    {
+        var text = new TextBlock
+        {
+            Text = title.Length == 0 ? "New thread" : title, // :1203
+            MaxLines = 1, // :1206
+            TextTrimming = TextTrimming.CharacterEllipsis, // :1207 .truncationMode(.tail)
+        };
+        SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(text); // :1204
+        text.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(text); // :1205
+        return text;
+    }
+
+    // :1147-1151,1203-1205 a title input change: the Mac's Text takes the new words with no animation, and the button/popover state keeps
+    // its identity. OD-0076 (owner-ruled deviation, the lead's decision for PR-CHAT-176 / UI-CHAT-076): on a drawn title the old words
+    // fade out where they stand while the new ones fade in; Reduce Motion, or words not yet laid out, cut.
     internal void UpdateTitle(string title)
     {
         currentTitle = title;
         if (Child is ChatChromeTitle body) body.UpdateTitle(title);
-        titleText.Text = title.Length == 0 ? "New thread" : title;
-        titleText.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(titleText);
+        var empty = title.Length == 0;
+        var shown = empty ? "New thread" : title;
+        if (titleText.Text == shown && shownEmpty == empty) return; // the words on screen are these: a refresh that leaves the title as it is changes nothing
+        if (wordsHost is null || wordsLayer is null || titleText.Bounds.Width <= 0
+            || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion)
+        {
+            titleText.Text = shown;
+            titleText.Foreground = (empty ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(titleText);
+            shownEmpty = empty;
+            return;
+        }
+        var leaving = titleText;
+        var arriving = NewWords(title);
+        shownEmpty = empty;
+        titleText = arriving;
+        // The leaving words keep the width they were laid out at (so their own truncation) and take no room.
+        leaving.Width = leaving.Bounds.Width;
+        wordsHost.Children.Remove(leaving);
+        wordsLayer.Children.Add(leaving);
+        Transaction.WithAnimation(WordsSwap, () =>
+        {
+            SwiftTransition.RemoveContinuing(wordsLayer, leaving); // words still arriving leave from where they have got to
+            SwiftTransition.Insert(wordsHost, 0, arriving);
+        });
     }
 
     // :1219-1229, extracted so a test can inspect the menu without a real popup (headless cannot open one).
@@ -1788,8 +1975,12 @@ internal sealed class OpenInMenu : Decorator
     {
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
         stack.Children.Add(new PopoverSectionHeader("Open in")); // :1416
-        // :1417-1419 deviation OD-0012 G4: "Finder" -> "File Explorer", using Components' workspace seam.
-        stack.Children.Add(new PopoverItem("File Explorer", () => Workspace.RevealInFileExplorer(directory), image: Workspace.FileExplorerIcon as IImage));
+        // :1417-1419 deviation OD-0012 G4: "Finder" -> "File Explorer". The row runs `NSWorkspace.shared.open(URL(fileURLWithPath: directory))`:
+        // it OPENS the chat's directory (a window showing its contents), which is not Workspace.revealInFinder
+        // (Components.swift:163-165, activateFileViewerSelecting: the parent folder with the directory selected). The UI layer's twin of
+        // NSWorkspace.shared.open is ShellWorkspace.OpenWithDefaultApp (ShellExecuteW "open" opens a folder in File Explorer), as
+        // DownloadsPopover's own open of the downloads folder uses it; RevealInFileExplorer stays for the source's revealInFinder sites.
+        stack.Children.Add(new PopoverItem("File Explorer", () => ShellWorkspace.OpenWithDefaultApp(directory), image: Workspace.FileExplorerIcon as IImage));
         foreach (var editor in Workspace.InstalledEditors) // :1420-1424
             stack.Children.Add(new PopoverItem(editor.Name, () => Workspace.Open(directory, editor),
                 symbol: "chevron.left.forwardslash.chevron.right", image: Workspace.Icon(editor) as IImage));
@@ -2026,6 +2217,7 @@ internal sealed class CommitSheet : Decorator
         messagePlaceholder = new TextBlock { Text = "Commit message", IsHitTestVisible = false,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(13, 8) }; // :1562-1567.
         messagePlaceholder.Foreground = Chrome.SecondaryText.Brush(messagePlaceholder);
+        SwiftFont.Body.Apply(messagePlaceholder); // :1563 no font of its own: the default body style, the editor's 13 pt (ED-059).
         messageFrame = new Border // :1557-1571
         {
             Child = new Panel { Children = { messageField, messagePlaceholder } },

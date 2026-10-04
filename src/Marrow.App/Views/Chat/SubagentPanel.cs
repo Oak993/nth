@@ -674,6 +674,17 @@ public sealed class PlacedPanel : Decorator
 
     // :535-546. Re-evaluate the Swift view's immutable placement inputs without replacing its conversation.
     public void UpdatePlacement(Point rest, Size size, bool isResizing = false) => placement.Update(rest, size, isResizing);
+
+    // :541-545 `.frame(width:height:)` frames the panel's surface too, so the surface takes each presented size of a settle (a
+    // frame that glides under panelSlide), not the placement's final size ahead of it. The owner sizes whatever it mounted inside.
+    internal Action<Size>? PresentSurface
+    {
+        get => placement.PresentSurface;
+        set => placement.PresentSurface = value;
+    }
+
+    // The surface just mounted (or swapped in) takes the size the placement is presenting now.
+    internal void PresentSurfaceNow() => placement.PresentSurfaceNow();
 }
 
 /// <summary>:527-547 <c>private struct PanelPlacement: ViewModifier</c>.</summary>
@@ -700,6 +711,11 @@ internal sealed class PanelPlacementView : Border
     private Size targetSize;
     private IFrameSource? frames;
     private Action<TimeSpan>? pending;
+
+    // Called with every size the placement presents: the surface mounted inside follows the frame as it glides.
+    internal Action<Size>? PresentSurface { get; set; }
+
+    internal void PresentSurfaceNow() => PresentSurface?.Invoke(presentedSize);
 
     public PanelPlacementView(PanelDragState drag, Point rest, Size size, Control content, bool isResizing, Control? frameContent = null)
     {
@@ -772,6 +788,7 @@ internal sealed class PanelPlacementView : Border
         Height = Child.Height = value.Height;
         frameContent.Width = value.Width;
         frameContent.Height = value.Height;
+        PresentSurface?.Invoke(value);
     }
 
     private void Stop()
