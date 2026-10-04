@@ -4656,8 +4656,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Reference runtime (2026-10-03): the owner's video of Droppy Code 1.7.0 (work/reference-video/2-chat-use.mov, catalogue
 // static.user-bubble, static.attachment-plate, static.timeline-rows, static.thread-timeline) shows, in the dark Monokai
 // theme only: the sent bubble at several lengths (UI-CHAT-007: geometry, tint, hug and type now compared in
-// TimelineRowsCaptureTests and selection by a real drag; its "editing" state is in no frame, so that clause stays
-// UNRESOLVED), the hover pencil (UI-CHAT-010, one-frame cut; the port fades it under OD-0076), the attachment plate,
+// TimelineRowsCaptureTests and selection by a real drag; its "editing" state is in no frame, and is proven under OD-0098 from the Swift:
+// TimelineRowsBlitzAbUiTests, below), the hover pencil (UI-CHAT-010, one-frame cut; the port fades it under OD-0076), the attachment plate,
 // the folded-turn header and rule (UI-CHAT-036; the expanded state is in no frame), the error notice pill (UI-CHAT-034,
 // UI-RUNTIME-003; info and warning levels and the light theme are in no frame), the Edited-files card (UI-CHAT-037,
 // UI-GIT-044), the heads' report and note pills (UI-CHAT-048) and a sent-head badge (UI-CHAT-056). Every one of those

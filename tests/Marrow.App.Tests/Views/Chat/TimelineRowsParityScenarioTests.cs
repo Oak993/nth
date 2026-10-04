@@ -606,6 +606,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // (NoLinkNetwork, R-TEST-10).
     [Fact]
     [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:119-123, :633, :1364; MarkdownView.swift:318, :1131, :1229; LinkParagraphView.swift:4-8, :312-313
+    [Trait("Req", "UI-CHAT-007")] // text selection within the sent bubble (:119-123)
     public void A_drag_selects_inside_the_block_it_starts_in_across_a_reply_its_code_block_and_a_bubble() => headless.OnUiThread(() =>
     {
         using var noNetwork = new NoLinkNetwork("hover-hand.com", "hover-hand-report.com"); // R-TEST-10, ED-256 (10)
