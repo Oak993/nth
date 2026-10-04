@@ -2919,7 +2919,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // - PR-WIN-222, PR-WIN-224, PR-WIN-225 and UI-WIN-074 (the Shift half of the "+" key equivalent, French Shift with the 0 key):
 //   AppCommandsZoomTests.Read_by_Windows_Ctrl_Shift_equals_and_Ctrl_equals_zoom_in_... presses the chords in the production main
 //   and Settings windows over the production reader (Port/KeyboardLayoutText.cs) bound to the real US and French layouts
-//   (Fixtures/WindowsLayoutReaders.cs, ED-NEW-appcommands item 7). The mutant "the reader ignores Shift" (which every table-layout
+//   (Fixtures/WindowsLayoutReaders.cs, ED-283 item 7). The mutant "the reader ignores Shift" (which every table-layout
 //   test let live) fails it, AppCommandsZoomTests.The_Windows_reader_over_the_US_German_and_French_layouts_... and
 //   AppCommandsReviewTests.REVIEW_the_Windows_layout_reader_applies_Shift.
 // - PR-WIN-115: CommandPaletteTests.The_welcome_tour_row_follows_settings_... now reads the row's id (welcome-tour, OD-0053); the
@@ -2927,7 +2927,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // - French AZERTY by window: the main window is a ThreadWindow, whose digit monitor (ThreadWindow.swift:11-23) takes Ctrl with the
 //   key at the US "6" position (the key that types "-" there) before the menu, so Ctrl with it selects Thread 6 and does not zoom
 //   out; in the Settings and tour windows it reaches Zoom Out (:55-56) before Thread 6 (:95-98), so Thread 6 is not reachable
-//   there on that layout. ED-NEW-appcommands item 5 and the French test's comment said Zoom Out in every window, which was wrong
+//   there on that layout. ED-283 item 5 and the French test's comment said Zoom Out in every window, which was wrong
 //   for the main window; both are corrected and AppCommandsZoomTests.On_a_French_keyboard_Ctrl_with_the_key_that_types_a_minus_...
 //   presses it in both production windows.
 // - Test hygiene: AppCommandsFinishTests.The_palette_holds_only_the_source_actions_... and Ctrl_0_pressed_in_the_focused_Settings_window_...

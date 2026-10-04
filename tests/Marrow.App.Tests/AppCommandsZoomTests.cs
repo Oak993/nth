@@ -232,7 +232,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
         }
     });
 
-    // ED-NEW-appcommands item 7: the layouts the fixture loads are in this process's layout list while it is alive and gone
+    // ED-283 item 7: the layouts the fixture loads are in this process's layout list while it is alive and gone
     // when it is disposed, and the layout the thread has active never moves, so the tests leave the user's session as found.
     [Fact]
     [Trait("Decision", "ED-270")]

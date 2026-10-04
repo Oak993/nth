@@ -34,7 +34,7 @@ public static class KeyboardLayoutText
 /// </summary>
 internal sealed class WindowsKeyboardLayoutText : IKeyboardLayoutText
 {
-    // ENGINEERING DECISION (ED-NEW-appcommands item 7): which layout is read is a seam, so a test can read a layout it names
+    // ENGINEERING DECISION (ED-283 item 7): which layout is read is a seam, so a test can read a layout it names
     // (a handle from LoadKeyboardLayout) instead of whichever one the PC running it has active. The default is the active
     // layout of the calling thread (GetKeyboardLayout(0)), which is all the app ever uses.
     private readonly Func<IntPtr> layoutOf;

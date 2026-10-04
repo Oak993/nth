@@ -10,7 +10,7 @@ namespace Marrow.App.Tests.Fixtures;
 /// (ED-270): the layout is loaded into this process by its identifier (US 00000409, German 00000407, French 0000040C) and
 /// never activated, so no test depends on the keyboard layout of the PC it runs on and none changes it. Disposing the fixture
 /// unloads every layout it brought into the session's layout list (GetKeyboardLayoutList), so the list is as it was before
-/// (ED-NEW-appcommands item 7); a layout the list already held is left loaded. Helper code, never in a test class (R-TEST-3).
+/// (ED-283 item 7); a layout the list already held is left loaded. Helper code, never in a test class (R-TEST-3).
 /// </summary>
 public sealed class WindowsLayoutReaders : IDisposable
 {
