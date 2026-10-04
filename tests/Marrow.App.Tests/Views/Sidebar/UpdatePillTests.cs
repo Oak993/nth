@@ -358,9 +358,12 @@ public sealed class UpdatePillTests(HeadlessSession headless)
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var harness = new AppModelHarness();
-        var service = harness.Main.OnMain(() => new UpdateEverythingService(
-            [Cli("c", "Claude Code", "2.1.283", "2.1.290"), Cli("x", "Codex", "0.157.1", "0.160.0"), Cli("o", "OpenCode", "1.4.2", "1.4.2"), Cli("g", "Gone", "1.0", "1.0"),
-             new FakeUpdateItem("m", "Marrow", UpdateItemKind.Marrow, "1.0.0", "1.1.0")], () => { }));
+        IUpdateItem[] items =
+        [
+            Cli("c", "Claude Code", "2.1.283", "2.1.290"), Cli("x", "Codex", "0.157.1", "0.160.0"), Cli("o", "OpenCode", "1.4.2", "1.4.2"), Cli("g", "Gone", "1.0", "1.0"),
+            new FakeUpdateItem("m", "Marrow", UpdateItemKind.Marrow, "1.0.0", "1.1.0"),
+        ];
+        var service = harness.Main.OnMain(() => new UpdateEverythingService(items, () => { }));
         using var shared = UpdateEverythingService.OverrideShared(service);
         var model = harness.MakeModel();
         SidebarView view = null!;

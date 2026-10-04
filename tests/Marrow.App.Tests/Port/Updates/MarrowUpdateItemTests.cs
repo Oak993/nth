@@ -25,13 +25,6 @@ public sealed class MarrowUpdateItemTests
 
     private static T Run<T>(TestRuntime runtime, Func<Task<T>> body) => runtime.OnMain(() => body().GetAwaiter().GetResult());
 
-    private sealed class Collect : IProgress<double?>
-    {
-        public List<double?> Values { get; } = [];
-
-        public void Report(double? value) => Values.Add(value);
-    }
-
     [Fact]
     [Trait("Decision", "ED-308")]
     public void A_run_that_is_not_a_Velopack_install_has_nothing_to_update_so_Marrow_is_not_a_row()
@@ -88,7 +81,7 @@ public sealed class MarrowUpdateItemTests
         var engine = new FakeSelfUpdateEngine { Offer = Newer, Percents = [0, 25, 100] };
         var (item, applied) = Make(runtime, engine);
         Run(runtime, () => item.LatestVersion(CancellationToken.None));
-        var progress = new Collect();
+        var progress = new CollectedProgress();
         var outcome = Run(runtime, () => item.Update(progress, CancellationToken.None));
         Assert.Equal(new UpdateOutcome(true, "2.0.0", true, true, null), outcome);
         Assert.Equal([0d, 0.25, 1d], progress.Values.Select(v => v!.Value));
@@ -105,7 +98,7 @@ public sealed class MarrowUpdateItemTests
         var engine = new FakeSelfUpdateEngine { Offer = Newer };
         var (item, applied) = Make(runtime, engine);
         Run(runtime, () => item.LatestVersion(CancellationToken.None));
-        Run(runtime, () => item.Update(new Collect(), CancellationToken.None));
+        Run(runtime, () => item.Update(new CollectedProgress(), CancellationToken.None));
         runtime.OnMain(item.Restart);
         Assert.Equal([(engine.PackagePath, "2.0.0")], applied);
     }
@@ -128,7 +121,7 @@ public sealed class MarrowUpdateItemTests
         var engine = new FakeSelfUpdateEngine { Offer = Newer, DownloadThrows = new HttpRequestException("The server returned 404.") };
         var (item, _) = Make(runtime, engine);
         Run(runtime, () => item.LatestVersion(CancellationToken.None));
-        var error = Assert.ThrowsAny<Exception>(() => Run(runtime, () => item.Update(new Collect(), CancellationToken.None)));
+        var error = Assert.ThrowsAny<Exception>(() => Run(runtime, () => item.Update(new CollectedProgress(), CancellationToken.None)));
         Assert.Contains("404", error.Message, StringComparison.Ordinal);
     }
 
@@ -140,7 +133,7 @@ public sealed class MarrowUpdateItemTests
         var engine = new FakeSelfUpdateEngine { Offer = null };
         var (item, _) = Make(runtime, engine);
         Run(runtime, () => item.LatestVersion(CancellationToken.None));
-        Assert.ThrowsAny<InvalidOperationException>(() => Run(runtime, () => item.Update(new Collect(), CancellationToken.None)));
+        Assert.ThrowsAny<InvalidOperationException>(() => Run(runtime, () => item.Update(new CollectedProgress(), CancellationToken.None)));
         Assert.DoesNotContain(engine.Calls, c => c.StartsWith("Download", StringComparison.Ordinal));
     }
 }
