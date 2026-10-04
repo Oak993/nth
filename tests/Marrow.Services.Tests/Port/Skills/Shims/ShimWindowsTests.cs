@@ -145,6 +145,7 @@ public sealed class ShimWindowsTests
         finally
         {
             if (!child.HasExited) child.Kill(true);
+            StopHeld(signal + ".self"); // the direct target: when the launcher did not own the tree it is not the shim's descendant any more
             if (grandchild != null) { if (!grandchild.HasExited) grandchild.Kill(true); grandchild.Dispose(); }
         }
     }

@@ -14,6 +14,7 @@ if (args[0] == "tree")
     var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
     start.ArgumentList.Add("wait");
     using var grandchild = Process.Start(start)!;
+    File.WriteAllText(args[1] + ".self", Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
     File.WriteAllText(args[1], grandchild.Id.ToString(CultureInfo.InvariantCulture));
     await Task.Delay(Timeout.Infinite);
 }
