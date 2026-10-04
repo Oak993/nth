@@ -223,8 +223,10 @@ public sealed partial class ComposerViewTests
                 var centre = surface.TranslatePoint(new Point(16, 16), ring.PopupWindow!)!.Value;
                 var corner = surface.TranslatePoint(new Point(1, 1), ring.PopupWindow!)!.Value;
                 var button = Named(surface, PopOutLabel);
-                Assert.True(ring.PopupWindow!.InputHitTest(centre) is Visual hit && (ReferenceEquals(hit, button) || hit.GetVisualAncestors().Contains(button)));
-                Assert.False(ring.PopupWindow!.InputHitTest(corner) is Visual near && (ReferenceEquals(near, button) || near.GetVisualAncestors().Contains(button)));
+                Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick(); // the hit test reads the committed scene
+                Settle(ring.PopupWindow!);
+                Assert.True(Reaches(ring.PopupWindow!.InputHitTest(centre) as Visual, button), $"the centre {centre} reaches the button: {ring.PopupWindow!.InputHitTest(centre)}; frame {popOutFrame}; window {ring.PopupWindow!.Bounds}");
+                Assert.False(Reaches(ring.PopupWindow!.InputHitTest(corner) as Visual, button), $"the corner {corner} does not: {ring.PopupWindow!.InputHitTest(corner)}");
                 Assert.Equal(new Size(32, 32), popOutFrame.Size);
                 // Hover: the glyph's 0.92 rises toward 1 over Chrome.hover, and is part-way at half the time.
                 var rest = Assert.IsAssignableFrom<ISolidColorBrush>(image.Foreground).Color;
