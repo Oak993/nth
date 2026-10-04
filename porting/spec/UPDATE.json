@@ -1509,14 +1509,14 @@
       ],
       "preconditions": "The celebration was consumed.",
       "action": "The sweep plays.",
-      "expected_result": "After 550 ms the target is set to 1.0 with haptics suppressed by apply. With Reduce Motion off: 900 ms later an .alignment haptic, 450 ms later a .levelChange haptic, 700 ms later the phase resets to idle at fraction 0 (total 2600 ms). With Reduce Motion on: the .alignment haptic fires immediately after the target is set and the reset happens 900 ms later (total 1450 ms). Every step re-checks cancellation and the phase.",
+      "expected_result": "After 550 ms the target is set to 1.0 with haptics suppressed by apply. With Reduce Motion off: 900 ms later an .alignment haptic, 450 ms later a .levelChange haptic, 700 ms later the phase resets to idle at fraction 0 (total 2600 ms). With Reduce Motion on: the .alignment haptic fires immediately after the target is set and the reset happens 900 ms later (total 1450 ms). The sweep's own code checks the phase once: after the first 550 ms sleep (AboutUpdateViews.swift:801 `guard !Task.isCancelled, progress.phase == .celebrating`). Every later step re-checks only cancellation (:808, :811, :815; the Reduce Motion branch has no check between the haptic and its sleep). The phase is read again only inside finishCelebrationSweep and completeCelebration, each of which does nothing unless phase == .celebrating (AppUpdater.swift:169, :174).",
       "side_effects": [
         "Two (or one) haptics.",
         "A multi-second task."
       ],
       "persistence": "None.",
       "failure_cases": [
-        "A phase change mid-sweep aborts it at the next guard."
+        "Once the first guard has passed, a phase change does not stop the sweep: its remaining sleeps and haptics still run, and only the final completeCelebration becomes a no-op (AppUpdater.swift:174). Only cancellation (leaving the page, PR-UPDATE-063) ends the task early."
       ],
       "cancellation": "Cancelled by leaving the page; see PR-UPDATE-063.",
       "windows_path": "Same timings. Respect the Windows 'animation effects off' system setting as the Reduce Motion analogue and take the shortened branch when it is off. Haptics are the no-op shim.",
