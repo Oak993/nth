@@ -145,8 +145,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         GpuWarmup.PretendGpu = true;
         var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
         window.Show();
-        var drawn = new List<(string, int, double)>();
-        using var program = GpuWarmup.Register(GpuProgram.Draw("between", Later, context => drawn.Add(("between", Environment.CurrentManagedThreadId, context.Scaling))));
+        var drawn = new List<double>();
+        using var program = GpuWarmup.Register(GpuProgram.Draw("between", Later, context => drawn.Add(context.Scaling)));
         try
         {
             var reports = new List<GpuWarmupStep>();
@@ -154,7 +154,7 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
             FramesFor(TimeSpan.FromSeconds(60), () => task.IsCompleted);
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.ToString());
             Assert.Equal(["noise", "fluid", "orb", "page", "between", "light-rotate"], reports.Select(r => r.Program).Take(6));
-            var (_, _, scaling) = Assert.Single(drawn); // (headless draws on the UI thread; on a window it is the render thread, GpuWarmup.Primer)
+            var scaling = Assert.Single(drawn); // (the headless renderer draws on the UI thread; on a window it is the render thread: GpuWarmup's primer)
             Assert.Equal(window.RenderScaling, scaling);
         }
         finally { GpuWarmup.PretendGpu = false; window.Close(); }
@@ -217,6 +217,37 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
             Assert.Equal(GpuWarmup.Steps, GpuWarmup.Programs.Count);   // Programs and Steps count what draws; a work step is no program
         }
         finally { GpuWarmup.PretendGpu = false; window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Feature", "GR-1")]
+    [Trait("Spec", "GR-1.registry")]
+    [Trait("Decision", "ED-252")] // a new GPU context starts the run again: the programs are made again on it, a work step is done once
+    public void A_work_step_is_not_repeated_when_a_new_gpu_context_starts_the_run_again() => headless.OnUiThread(() =>
+    {
+        var source = GpuProgramCache.MachineSource;
+        GpuProgramCache.MachineSource = () => "10de:2704:13bc196e:a1 NVIDIA GeForce RTX 4080 32.0.15.6094";
+        GpuWarmup.PretendGpu = true;
+        GpuWarmup.PretendContext = 0x7E570001;
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
+        window.Show();
+        var worked = 0;
+        using var early = GpuWarmup.Register(GpuProgram.Work("early-work", new FirstRunStep("early", "An early step", 5), _ => { worked++; return Task.CompletedTask; }));
+        try
+        {
+            var reports = new List<GpuWarmupStep>();
+            var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(step =>
+            {
+                reports.Add(step);
+                if (reports.Count == 2) GpuWarmup.PretendContext = 0x7E570002; // after the first program: the display moved to a new context
+            }));
+            FramesFor(TimeSpan.FromSeconds(60), () => task.IsCompleted);
+            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.ToString());
+            Assert.Equal(["early-work", "noise"], reports.Select(r => r.Program).Take(2));
+            Assert.Equal(GpuWarmup.Programs, reports.Select(r => r.Program).Skip(2)); // every program again, on the new context
+            Assert.Equal(1, worked);                                                  // the work step not again
+        }
+        finally { GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; GpuProgramCache.MachineSource = source; window.Close(); }
     });
 
     [Fact]

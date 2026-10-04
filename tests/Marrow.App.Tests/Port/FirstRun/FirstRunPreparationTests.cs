@@ -19,8 +19,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "GR-1")]
     [Trait("Spec", "GR-1.order")]
-    [Trait("Decision", "OD-0098")] // the pick "Look I, Words W1": the step names as W1 draws them (gr_lib.py:28-29)
-    public void W1s_steps_are_named_and_ordered_as_the_picked_words_draw_them()
+    public void W1s_steps_are_named_and_ordered_as_the_picked_words_draw_them() // OD-0098: "Look I, Words W1" (gr_lib.py:28-29)
     {
         Assert.Equal(["Graphics card", "Effort slider knob", "Composer light", "Slider liquid", "Fast mode lightning", "Voice hardware"],
             FirstRunSteps.W1.Select(s => s.Name));
@@ -54,6 +53,48 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         Assert.Equal([1, 4, 1, 3, 1, 2, 1], plan.Select(s => s.Parts)); // a new strike program is one more part of its step
         voice.Dispose(); step.Dispose(); strike.Dispose();
         Assert.Equal(5, new FirstRunPreparation().Plan().Count);
+    }
+
+    [Fact]
+    [Trait("Feature", "GR-1")]
+    [Trait("Spec", "GR-1.order")]
+    public void With_nothing_registered_the_plan_is_the_graphics_card_alone_and_a_program_naming_gpu_joins_it()
+    {
+        var log = new List<string>();
+        Assert.Equal([(FirstRunSteps.Graphics, 1)], Scripted([], log).Plan().Select(s => (s.Step, s.Parts)));
+        var registry = Programs(("g1", FirstRunSteps.Graphics with { Name = "Whatever a program says", Order = 11 }), ("k1", FirstRunSteps.Knob));
+        var plan = Scripted(registry, log).Plan();
+        Assert.Equal([(FirstRunSteps.Graphics, 2), (FirstRunSteps.Knob, 1)], plan.Select(s => (s.Step, s.Parts))); // the graphics card is W1's
+    }
+
+    [Fact]
+    [Trait("Feature", "GR-1")]
+    [Trait("Spec", "GR-1.progress")]
+    public async Task A_program_under_the_graphics_step_is_a_second_part_of_it()
+    {
+        var log = new List<string>();
+        var registry = Programs(("g1", FirstRunSteps.Graphics), ("k1", FirstRunSteps.Knob));
+        var run = Scripted(registry, log, warm: (_, progress, _) =>
+        {
+            progress.Report(new GpuWarmupStep(0, 2, "g1", 1, false, "gpu"));
+            progress.Report(new GpuWarmupStep(1, 2, "k1", 1, false, "knob"));
+            return Task.CompletedTask;
+        });
+        await run.RunAsync(null!, new RecordingScreen(log));
+        Assert.Equal(["begin:gpu,knob", "gpu:Running:0/2", "gpu:Running:1/2", "gpu:Done:2/2", "knob:Running:0/1", "knob:Done:1/1", "end:Prepared"], log);
+    }
+
+    [Fact]
+    [Trait("Feature", "GR-1")]
+    [Trait("Spec", "GR-1.progress")]
+    public void A_steps_fraction_is_its_parts_done_over_its_parts()
+    {
+        var step = FirstRunSteps.Knob;
+        Assert.Equal(0, new FirstRunProgress(step, 1, 5, FirstRunStepState.Running, 0, 4, TimeSpan.Zero).Fraction);
+        Assert.Equal(0.75, new FirstRunProgress(step, 1, 5, FirstRunStepState.Running, 3, 4, TimeSpan.Zero).Fraction);
+        Assert.Equal(1, new FirstRunProgress(step, 1, 5, FirstRunStepState.Done, 4, 4, TimeSpan.Zero).Fraction);
+        Assert.Equal(1, new FirstRunProgress(step, 1, 5, FirstRunStepState.Done, 0, 0, TimeSpan.Zero).Fraction); // a step with no parts is done or it is not
+        Assert.Equal(0, new FirstRunProgress(step, 1, 5, FirstRunStepState.Running, 0, 0, TimeSpan.Zero).Fraction);
     }
 
     // ----- real progress only -----

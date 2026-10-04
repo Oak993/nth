@@ -67,6 +67,15 @@ the engineering ones: `E:\Droppy\work\design\open-questions-2026-10-04.md` (43 r
 6. Rules that stay: tests only through `E:\Droppy\work\claude-verify\one.sh`, `one-full.sh`, `one-names.sh`; never a bare
    `dotnet test`; never open the app "Marrow"; never write to the reference checkout; agents never push `unit/*`.
 
+**Incomplete (GR-1, `unit/f-gr-1`, first release OD-0103).** The first-run preparation service is built and tested
+(`GpuWarmup` registry; `src\Marrow.App\Port\FirstRun\FirstRunPreparation.cs`), but NOT wired to startup:
+`FirstRunStartup.RunAsync` has no caller and `FirstRunStartup.Screen` is null until GR-2's Getting Ready sheet sets it
+from its startup hook, so startup behaves as before (the idle fallback of ED-252 still prepares the knob). The Voice
+hardware step is absent from the plan until VT-15 registers its work step with `GpuWarmup.Register`. The composer light,
+slider liquid and strike programs are verified on the CPU renderer only; a GPU check (the programs made, a
+`RenderTargetBitmap` on the render thread GPU-backed, one cache entry per program) is left to the supervised native
+session (ED-NEW-f-gr-1 (8)); `EffortSliderNativeFrameTests` now cover nine programs.
+
 ## Current checkpoint: 2026-09-23 04:30, orchestrator Claude Opus 5.5
 
 This section supersedes every checkpoint below it.
