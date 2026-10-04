@@ -859,3 +859,33 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Owner pick, 2026-10-04 (chat, from the Getting Ready decision page):** "getting-ready: Look I, Words W1, Download D3". Locked: look I "Sheet" (Welcome waits behind, blurred; a glass sheet hangs from the top with the steps and lifts away), words W1 "Plain" (title "Getting ready", line "Marrow is preparing its graphics and voice for this PC. This happens once.", the step names as drawn, "Ready" when done), download D3 with the consent amendment above (the Welcome screen asks first). Source of the look: work/design/decisions-2026-10-03/getting-ready/ (variant I).
 - **Amendment, 2026-10-04 (chat):** "Also, let the user know that if they wish to change the voice model, where can they do it eg: Settings > Voice > Model Select (Whatever is the path in the settings menu)". Effect: the Welcome voice message (after a yes, and after a no) also names where the model is changed: Settings > Voice typing > Speech model (the page and section the voice spec defines; the words follow the real page names if they change).
 - **Pick, 2026-10-04 (chat):** "welcome-voice: Place A, Words V2". Effect: the Welcome voice question is built as variant A (a "Voice typing" section above the Activity list, in Welcome's own section-and-row pattern) with word set V2 (Warm), from the decision page E:\Droppy\work\design\decisions-2026-10-04\welcome-voice\ (published as https://claude.ai/artifact/3p4diCLGDqjAXSABHQpffY). The page's stated assumptions stand unless the owner says otherwise: the slow-PC question (OD-0097 Q-V-1) shows after the speed test that follows the download, in the answer's place if Welcome is still up, otherwise on the next orb click; until answered the accurate model is used.
+
+
+## OD-0099 Answers to the open owner questions, and Marrow's own skills (2026-10-04)
+
+- **Asked:** 2026-10-04, on the decision page "Open Owner Questions" (E:\Droppy\work\design\decisions-2026-10-04\owner-questions\, published https://claude.ai/artifact/EUYSt98wu5Pt4mCeUmAZfe), built from E:\Droppy\work\design\open-questions-2026-10-04.md.
+- **Answer, verbatim (picks line):** "owner-questions: Q-V-4 A, Q-V-6 B, Q-V-7 A, Q-V-8 A, Q-V-9 C, Q-V-11 C, Q-V-13 B, Q-V-19 B, Q-CZ-1 A, U-06 C, Q-RM A, Q-PICKER A, Q-SKILLS-1 A, Q-SKILLS-4 A, Q-SKILLS-8 A"
+- **Effect of the picks:**
+  - Q-V-4 A: the hardware check's reason line is two sentences with this PC's measured times (voice SPEC V-10.4 templates).
+  - Q-V-6 B: the voice pill counts down the last 30 seconds before the 5-minute cap (OD-0092), then finishes the text as if the orb were clicked.
+  - Q-V-7 A: each error note says what happened plus one link to the place that fixes it; the wording list goes on a variants page for the owner's pick (OD-0070).
+  - Q-V-8 A: the first time each engine is used, the composer's note shows that engine's privacy line for about 5 seconds, once per engine.
+  - Q-V-9 C: the installer ships Vulkan only; on NVIDIA PCs the hardware check offers CUDA as a separate download.
+  - Q-V-11 C: with "Send it as the prompt" on and a turn running, voice text does what Return does: interrupt the turn and send (queue when heads are at work), ComposerView.swift:370-381.
+  - Q-V-13 B: an installed model (not the one in use) can be removed from a trash icon shown on hover at the row's end, confirmed by a second click.
+  - Q-V-19 B: the Voice typing page gets a Microphone row to choose the input.
+  - Q-CZ-1 A: the Voice typing page is locked as drawn, its own sidebar page directly below Customization (voice SPEC V-16.3).
+  - U-06 C: the owner sees the strike's bubbles both ways side by side first; the port's drawing (inside the liquid) stays until then.
+  - Q-RM A: Reduce Motion stills what OD-0076 added and the places the Mac already gates, not the Mac's un-gated animations (ED-264).
+  - Q-PICKER A: the OpenRouter model picker is approved as drawn on the OD-0076 canvas (versions 4 and 5).
+  - Q-SKILLS-1 A: all bundled skills install; the document, review, security, GitHub, design and skill-building ones are on at the start; those needing a key, login or internet start off with the need shown.
+  - Q-SKILLS-4 A: no brand-guidelines skill.
+  - Q-SKILLS-8 A: one removable Marrow-owned plugin in Antigravity's and Cursor's plugin folders, only after a live test on this PC shows it works; otherwise those two get skills only when named.
+- **Answer in chat, 2026-10-04 (Hindi, recorded in English; the owner's words):** do not ask Anthropic or OpenAI for anything; study the skills they already ship and build our own, so we have the full functionality with no licence and no dependency; the Word, PDF, Excel and slides skills are built by us the same way; the larger catalogue (about 370 more Anthropic skills and OpenAI's open plugins) is studied and rebuilt as our own and integrated, "even if the app becomes 1 GB", shipped ready to use; the basic tools the skills need (Python, Node, LibreOffice) ship with the app so users save time; a Figma skill is an ordinary skill: when someone uses it, Figma's login comes up on screen, they authenticate, and it works.
+- **Effect of the chat answer (closes Q-SKILLS-2, -3, -5, -6, -7):**
+  - Marrow ships its own original skills covering the capabilities of the Anthropic and OpenAI catalogues that make sense for the app, documents first. They are written clean-room: the published skills are studied for what they do and which public formats and libraries they use; no text, prompt, code or example is copied. Anything shipped that is third-party is under a permissive licence with notices (THIRD_PARTY_NOTICES). Plan: E:\Droppy\work\skills\ORIGINALS-PLAN.md.
+  - No request goes to Anthropic or OpenAI; no skill of theirs ships.
+  - The installer carries the skills' runtime: Python, Node and LibreOffice (headless), plus the packages the document skills need, installed under Marrow's own data folder; the app size may grow to about 1 GB.
+  - Figma: a Marrow Figma skill that, on first use, opens Figma's own sign-in on screen and then works with the user's account.
+  - This supersedes OD-0080's "8 decisions pending" and the OWNER-BRIEF recommendations for Q-SKILLS-2, -3, -5, -6 and -7.
+- **Still open from that page:** Q-V-15 (the opt-in cloud engine's model; the owner asked why it costs money when the model runs free on the graphics card), Q-CZ-3, Q-RIM and Q-TEXT (the owner asked to see each option drawn first), and U-06's side-by-side.
