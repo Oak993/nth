@@ -1,5 +1,6 @@
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Core.Port.Voice.Transcript;
+using Marrow.Core.Tests.Fixtures;
 using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Port.Voice;
@@ -262,33 +263,13 @@ public sealed class StreamingTranscriberTests
         Assert.Equal("hello", engine.Decodes[1].Request.Prompt);
     }
 
-    private sealed class GatedEngine : ISpeechEngine
-    {
-        public readonly List<(DecodeRequest Request, int Samples)> Decodes = [];
-
-        public TaskCompletionSource<Hypothesis>? Gate;
-
-        public Task LoadAsync(SpeechModel model, EngineLoadOptions options, CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task<Hypothesis> TranscribeAsync(ReadOnlyMemory<float> audio16k, DecodeRequest request, CancellationToken cancellationToken)
-        {
-            Decodes.Add((request, audio16k.Length));
-            if (Gate is { } gate)
-            {
-                Gate = null;
-                return gate.Task;
-            }
-            return Task.FromResult(Hypothesis.Empty);
-        }
-    }
-
     [Fact]
     [Trait("Feature", "VT-3")]
     [Trait("Spec", "V-T24")]
     [Trait("Decision", "ED-267")] // V-7.4 (review, unit/integ-vt3): only the SILENT audio is dropped; speech that arrives while the long-pause pass decodes is kept
     public async Task Speech_that_arrives_during_the_long_pause_pass_is_kept_for_the_next_pass()
     {
-        var engine = new GatedEngine { Gate = new TaskCompletionSource<Hypothesis>() };
+        var engine = new GatedSpeechEngine { Gate = new TaskCompletionSource<Hypothesis>() };
         var gate = engine.Gate;
         var transcriber = new StreamingTranscriber(engine, "en");
         Feed(transcriber, 1.0, true);

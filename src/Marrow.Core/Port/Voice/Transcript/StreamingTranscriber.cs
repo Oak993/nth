@@ -124,7 +124,7 @@ public sealed class StreamingTranscriber
             var (start, samples) = Window(end, padSilence: false);
             var hypothesis = await engine.TranscribeAsync(samples, Request(start, DecodeMode.Live), cancellationToken);
             if (cleared) return Unchanged();
-            return ApplyLive(hypothesis, start, pass);
+            return ApplyLive(hypothesis, start, pass, end);
         }
         catch
         {
@@ -210,7 +210,7 @@ public sealed class StreamingTranscriber
         return result;
     }
 
-    private TranscriptDelta ApplyLive(Hypothesis hypothesis, long windowStart, TranscriberPass pass)
+    private TranscriptDelta ApplyLive(Hypothesis hypothesis, long windowStart, TranscriberPass pass, long decodedEnd)
     {
         var fresh = NewWords(hypothesis, windowStart);
         if (pass == TranscriberPass.LongPause)
@@ -218,7 +218,10 @@ public sealed class StreamingTranscriber
             // V-7.4: a pause of 1.5 s commits every word and drops the silent audio.
             committed.AddRange(fresh);
             tail = [];
-            bufferStart = total;
+            // Only the silence goes: speech that arrived while this pass decoded (a span ending after the decoded end) stays in the buffer,
+            // from its 0.1 s lead-in, for the next pass (review, unit/integ-vt3).
+            var resumed = speechSpans.FindIndex(span => span.End > decodedEnd);
+            bufferStart = resumed < 0 ? total : Math.Max(decodedEnd, speechSpans[resumed].Start - (long)Math.Round(OverlapSeconds * SampleRate));
             TrimFront();
         }
         else
