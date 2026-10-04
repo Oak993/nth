@@ -186,7 +186,7 @@ public sealed class TimelineRowsBlitzAbMergeSilentTests(HeadlessSession headless
     });
 
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-089")] // AppModel+HydraMerge.swift:184-186, :902-906 an .alreadyOnMain run settles with a note only when nothing is left unmerged: a lead with a file still unmerged gets neither a record nor a note, and the pill goes
+    [Trait("Req", "PR-HYDRAMERGE-089")] // AppModel+HydraMerge.swift:184-186, :902-906 an .alreadyOnMain run settles with a note only when nothing is left unmerged: a lead with a file still unmerged gets no settled entry and no note, and the pill goes
     public void An_already_on_the_branch_run_that_leaves_a_file_unmerged_posts_no_settlement_note_and_the_pill_goes_with_no_note() => headless.OnUiThread(() =>
     {
         using var f = Review(); // a.txt is committed and unchanged: the team's tree is the branch's tree (:308 .alreadyOnMain)
@@ -207,7 +207,7 @@ public sealed class TimelineRowsBlitzAbMergeSilentTests(HeadlessSession headless
         }));
         Assert.True(late, "the pass never reached its capture");
         Silent(pill, before, f.Notes.Length);
-        Assert.Empty(f.Runtime.HydraMerges); // no settled record either
+        Assert.Empty(f.Runtime.HydraMerges); // no settled entry either
         Assert.Contains(f.Runtime.Turns, turn => turn.Id == f.Turn.Id && turn.HydraMerged); // the pass's own turn is spent
         Assert.Contains(f.Runtime.Turns, turn => turn.Index == 0 && !turn.HydraMerged); // what the pass did not take stays unmerged
     });
