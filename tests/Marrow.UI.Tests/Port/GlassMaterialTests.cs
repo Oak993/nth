@@ -209,6 +209,201 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
         Assert.True(joins ? contrast < 64 : contrast == 255, $"Source container spacing {spacing} must govern joining the six-DIP gap.");
     });
 
+    // ---- PR-CHAT-171 / UI-CHAT-073: a container draws every piece from the opacity and place the piece has NOW ---------------------
+    // A soft appear (Chrome.swift:933-960) moves only the Opacity and the RenderTransform of a parent of the glass piece; no layout pass follows. The container's one
+    // material pass must refresh in the frame that change is made. Each case drives one such change with only the dispatcher and the render tick in between.
+
+    private static readonly Type Material = typeof(SwiftGlass).Assembly.GetType("Marrow.UI.Port.GlassMaterial", throwOnError: true)!;
+
+    // The regions the container's material last received: (opacity, translation x, translation y) of each piece.
+    private static List<(double Opacity, double X, double Y)> Drawn(Control container)
+    {
+        var table = Material.GetField("attachments", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null)!;
+        var args = new object?[] { container, null };
+        Assert.True((bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, args)!, "the container has a material attachment");
+        var state = args[1]!.GetType().GetField("previous", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(args[1]);
+        if (state is null) return [];
+        var drawn = new List<(double, double, double)>();
+        foreach (var region in (Array)state.GetType().GetProperty("Regions")!.GetValue(state)!)
+        {
+            var transform = (Matrix)region.GetType().GetProperty("Transform")!.GetValue(region)!;
+            drawn.Add(((double)region.GetType().GetProperty("Opacity")!.GetValue(region)!, transform.M31, transform.M32));
+        }
+        return drawn;
+    }
+
+    // container (spacing 2) > outer > inner > glass piece, the piece 40 x 40 at (30, 20) of the container.
+    private static (Panel Container, Border Outer, Border Inner, Border Piece) Group()
+    {
+        var piece = Circle(30);
+        var inner = new Border { Child = piece };
+        var outer = new Border { Child = inner };
+        var container = new Panel { Width = 200, Height = 100, Children = { outer } };
+        SwiftGlass.SetContainerSpacing(container, 2);
+        return (container, outer, inner, piece);
+    }
+
+    private static Border Circle(double left)
+    {
+        var piece = new Border { Background = Brushes.Transparent, Width = 40, Height = 40, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Margin = new Thickness(left, 20, 0, 0) };
+        SwiftGlass.SetEffect(piece, GlassEffect.Regular(GlassShape.Circle));
+        return piece;
+    }
+
+    private static bool SynchronisationRequested(Control container)
+    {
+        var table = Material.GetField("attachments", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null)!;
+        var args = new object?[] { container, null };
+        Assert.True((bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, args)!);
+        return (bool)args[1]!.GetType().GetField("requested", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(args[1])!;
+    }
+
+    private static void Settle() { for (var i = 0; i < 4; i++) GlassScene.Drain(); }
+
+    private static void AssertDrawn(Panel container, double opacity, double x, double y, string because)
+    {
+        var drawn = Drawn(container);
+        Assert.True(opacity <= 0 ? drawn.Count == 0 : drawn.Count == 1 && Math.Abs(drawn[0].Opacity - opacity) < 1e-6 && Math.Abs(drawn[0].X - x) < 1e-6 && Math.Abs(drawn[0].Y - y) < 1e-6,
+            $"{because}: expected ({opacity}, {x}, {y}), drawn " + string.Join(" ", drawn));
+    }
+
+    [Theory]
+    [InlineData(0)] // the visual directly above the container
+    [InlineData(1)] // the one above the piece
+    [InlineData(2)] // the piece itself
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1120-1123 (UI-CHAT-073): the container's one pass fades with the pieces
+    public void AnOpacityChangeBetweenThePieceAndTheContainerReachesTheOnePassInTheSameFrame(int level) => headless.OnUiThread(() =>
+    {
+        var (container, outer, inner, piece) = Group();
+        Control[] levels = [outer, inner, piece];
+        using var scene = new Scene(new Pattern(), container);
+        Settle();
+        AssertDrawn(container, 1, 30, 20, "at rest");
+        levels[level].Opacity = 0.4;
+        Settle();
+        AssertDrawn(container, 0.4, 30, 20, "faded");
+        levels[level].Opacity = 0;
+        Settle();
+        AssertDrawn(container, 0, 0, 0, "invisible");
+        levels[level].Opacity = 1; // arrival: the piece was inserted at opacity 0 and its glass was skipped
+        Settle();
+        AssertDrawn(container, 1, 30, 20, "arrived");
+    });
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [Trait("Req", "PR-CHAT-171")]
+    public void AVisibilityChangeBetweenThePieceAndTheContainerReachesTheOnePassInTheSameFrame(int level) => headless.OnUiThread(() =>
+    {
+        var (container, outer, inner, _) = Group();
+        Control[] levels = [outer, inner];
+        using var scene = new Scene(new Pattern(), container);
+        Settle();
+        levels[level].IsVisible = false;
+        Settle();
+        AssertDrawn(container, 0, 0, 0, "hidden");
+        levels[level].IsVisible = true;
+        Settle();
+        AssertDrawn(container, 1, 30, 20, "shown again");
+    });
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [Trait("Req", "PR-CHAT-171")]
+    public void ARenderTransformChangeBetweenThePieceAndTheContainerReachesTheOnePassInTheSameFrame(int level) => headless.OnUiThread(() =>
+    {
+        var (container, outer, inner, _) = Group();
+        Control[] levels = [outer, inner];
+        using var scene = new Scene(new Pattern(), container);
+        Settle();
+        levels[level].RenderTransform = new TranslateTransform(0, 4);
+        Settle();
+        AssertDrawn(container, 1, 30, 24, "the soft appear's 4-point rise");
+        levels[level].RenderTransform = new TranslateTransform(0, 0);
+        Settle();
+        AssertDrawn(container, 1, 30, 20, "risen");
+    });
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [Trait("Req", "PR-CHAT-171")]
+    public void ATransformChangedInPlaceBetweenThePieceAndTheContainerReachesTheOnePassInTheSameFrame(int level) => headless.OnUiThread(() =>
+    {
+        var (container, outer, inner, _) = Group();
+        Control[] levels = [outer, inner];
+        var translate = new TranslateTransform(0, 0);
+        levels[level].RenderTransform = translate;
+        using var scene = new Scene(new Pattern(), container);
+        Settle();
+        AssertDrawn(container, 1, 30, 20, "at rest");
+        translate.X = 25;
+        Settle();
+        AssertDrawn(container, 1, 55, 20, "the transform moved in place");
+        var replacement = new TranslateTransform(-5, 0); // a transform that replaces it is the one watched from then on
+        levels[level].RenderTransform = replacement;
+        Settle();
+        AssertDrawn(container, 1, 25, 20, "replaced");
+        replacement.X = 10;
+        Settle();
+        AssertDrawn(container, 1, 40, 20, "the replacement moved in place");
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-171")]
+    public void APieceAddedUnderAnotherVisualLaterIsWatchedToo() => headless.OnUiThread(() =>
+    {
+        var (container, _, _, _) = Group();
+        using var scene = new Scene(new Pattern(), container);
+        Settle();
+        var later = new Border { Opacity = 0, Child = Circle(100) }; // inserted at opacity 0, as a soft appear does
+        container.Children.Add(later);
+        Settle();
+        Assert.Single(Drawn(container));
+        later.Opacity = 0.7; // nothing but this opacity changes from here on
+        Settle();
+        var drawn = Drawn(container).OrderBy(r => r.X).ToList();
+        Assert.Equal(2, drawn.Count);
+        Assert.Equal(0.7, drawn[1].Opacity, 6);
+    });
+
+    [Theory]
+    [InlineData(0, "opacity")]
+    [InlineData(1, "opacity")]
+    [InlineData(2, "opacity")]
+    [InlineData(0, "replaced transform")]
+    [InlineData(1, "replaced transform")]
+    [InlineData(2, "replaced transform")]
+    [InlineData(0, "transform in place")]
+    [InlineData(1, "transform in place")]
+    [InlineData(2, "transform in place")]
+    [Trait("Req", "PR-CHAT-171")]
+    public void TheChangeIsDrawnByTheOneRenderFrameThatFollowsIt(int level, string change) => headless.OnUiThread(() =>
+    {
+        var (container, outer, inner, piece) = Group();
+        Control[] levels = [outer, inner, piece];
+        var translate = new TranslateTransform(0, 0);
+        levels[level].RenderTransform = translate;
+        using var scene = new Scene(new Pattern(), container);
+        Settle();
+        Assert.False(SynchronisationRequested(container));
+        double opacity = 1, y = 20;
+        switch (change)
+        {
+            case "opacity": levels[level].Opacity = opacity = 0.25; break;
+            case "replaced transform": levels[level].RenderTransform = new TranslateTransform(0, 3); y = 23; break;
+            default: translate.Y = 3; y = 23; break;
+        }
+        // The change asks the compositor for the synchronisation itself, at once (not through a posted dispatcher job that would add a hop before the frame).
+        Assert.True(SynchronisationRequested(container), "the change has asked for the next composition update");
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); // one frame
+        AssertDrawn(container, opacity, 30, y, "the frame of the change");
+        Assert.False(SynchronisationRequested(container), "and the request is spent");
+    });
+
     private static Border Surface(GlassShape shape)
     {
         // :171 shape.fill(.clear): give the fixture the source's clear hit area for pointer tests.

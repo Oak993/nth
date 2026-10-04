@@ -597,7 +597,6 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     // ---- ChatChromeRow composition: PR-CHAT-171, PR-CHAT-172, PR-CHAT-175, PR-CHAT-183 ----
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-CHAT-171: the one-glass-pass clause (the glass over the row; ED-180, OD-0005 UNVERIFIED) is not proven. This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1124-1174
     public void The_row_lays_out_in_the_fixed_order_for_a_thread_with_a_project_and_a_repository()
     {

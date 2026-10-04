@@ -39,7 +39,7 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
     private static ThreadTimeline Timeline(ChatView view) => Assert.Single(LogicalQuery.SelfAndDescendants<ThreadTimeline>(view));
 
     private void WithColumn(Action<AppModelHarness, AppModel, ThreadRuntime, ChatView, AvaloniaWindow, ManualFrameSource> check,
-        double width = 1400, Action<AppModel>? configure = null, bool messages = false) => ChatHeadlessFixtures.Run(headless, () =>
+        double width = 1400, Action<AppModel>? configure = null, bool messages = false, double height = 900) => ChatHeadlessFixtures.Run(headless, () =>
     {
         using var h = new AppModelHarness();
         h.Main.Loop.Run(() => Marrow.Core.Support.LoginEnvironment.Load(), AppModelHarness.Bound);
@@ -66,7 +66,7 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
                 typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Entries))!.SetValue(runtime, new ValueList<TimelineEntry>([User("a"), User("b")]));
             }
             view = new ChatView(runtime);
-            window = new AvaloniaWindow { Content = view, Width = width, Height = 900 };
+            window = new AvaloniaWindow { Content = view, Width = width, Height = height };
             AppEnvironment.SetAppModel(window, model);
             AppEnvironment.SetWindowLiveResize(window, new WindowLiveResize(window));
             ChatHeadlessFixtures.Track(window);
@@ -301,4 +301,46 @@ public sealed class ChatViewParityMountedTests(HeadlessSession headless)
             Drain(h, window);
             Assert.Empty(LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(view));
         }, messages: true);
+
+    // PR-USAGE-071 (ChatView.swift:496-503) against the frames of the floating panel: 1-settings-tour.mov S 38.30-38.70 (bottom leading) and 2-chat-use.mov C 69.6 (top trailing),
+    // the main window 2290 x 1321 beside a 268 wide sidebar with its top at video row 29.5 (the circles of the chrome row start 12 below it), 1 px = 1 pt. MEASURED: the bottom
+    // leading panel's pixel columns 796 to 1190 (528 from the pane's left edge), its rows 907 to 1335 (428 tall, bottom 1305.5 below the pane's top: 15.5 above the pane's foot); the
+    // top trailing panel's columns 1628 to 2026 (1360 from the pane's left edge) and its top at row 104 (74.5 below the pane's top). The panel is shorter than the slot's full height
+    // (520): the bottom one keeps its bottom edge where the full-height one would sit (the pane's foot less 14), so it grows upward; the top one keeps its top edge.
+    [Fact]
+    [Trait("Req", "PR-USAGE-071")] // App/Views/Chat/ChatView.swift:496-503
+    public void A_short_usage_panel_keeps_its_bottom_edge_when_docked_at_the_bottom_and_its_top_edge_when_docked_at_the_top_as_the_frames_show_them()
+        => WithColumn((h, model, _, view, window, frames) =>
+        {
+            (Rect Box, double Full) Panel(PanelDockCorner corner, double contentHeight)
+            {
+                h.Main.OnMain(() =>
+                {
+                    model.Settings.UsagePanelDock = corner; model.Settings.ShowsUsagePanel = true;
+                    model.Settings.UsagePanelHeight = contentHeight; // the panel's own height, which the scene takes before the content's (ChatView.swift:949)
+                });
+                Drain(h, window);
+                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero); Drain(h, window); // the placement settles on panelSlide
+                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero); Drain(h, window);
+                var placed = Assert.Single(LogicalQuery.SelfAndDescendants<PlacedPanel>(view));
+                var offset = (Avalonia.Media.TranslateTransform)placed.Child!.RenderTransform!;
+                return (new Rect(offset.X, offset.Y, placed.Child.Width, placed.Child.Height), Field<PanelScene>(view, "scene").Layout.PanelSize.Height);
+            }
+            // The slot's full height is 520 and the pane's foot 1321 (a bottom-docked full-height panel's bottom edge is 1321 - 14, ChatView.swift:496-503 with SubagentPanel.swift:112).
+            var (bottom, full) = Panel(PanelDockCorner.BottomLeading, 380);
+            Assert.Equal(520, full);
+            Assert.True(bottom.Height < full, "the panel is shorter than the slot: " + bottom.Height);
+            Assert.Equal(1321 - 14, bottom.Bottom, 0.5); // the bottom edge of the full-height panel
+            var (shorter, _) = Panel(PanelDockCorner.BottomLeading, 300);
+            Assert.True(shorter.Height < bottom.Height, $"{shorter} vs {bottom}");
+            Assert.Equal(bottom.Bottom, shorter.Bottom, 0.5); // a shorter panel keeps the bottom edge and grows upward, not floating in the middle of the pane
+            Assert.Equal(528, bottom.X, 2.0); // the frame: 528 from the pane's left edge
+            Assert.Equal(1305.5, bottom.Bottom, 3.0); // the frame: 1305.5 below the pane's top (a 1.5 point difference in where the window's top is read)
+            var (top, _) = Panel(PanelDockCorner.TopTrailing, 380);
+            var (topShorter, _) = Panel(PanelDockCorner.TopTrailing, 300);
+            Assert.Equal(top.Y, topShorter.Y, 0.5); // a top-docked panel keeps its top edge at the slot's rest origin
+            Assert.True(topShorter.Height < top.Height, $"{topShorter} vs {top}");
+            Assert.Equal(1360, top.X, 2.0); // the frame
+            Assert.Equal(74.5, top.Y, 3.0);
+        }, width: 2290, height: 1321);
 }

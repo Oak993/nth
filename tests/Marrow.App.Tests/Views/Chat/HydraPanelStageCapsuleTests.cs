@@ -122,6 +122,24 @@ public sealed class HydraPanelStageCapsuleTests(HeadlessSession headless)
     });
 
     [Theory]
+    [InlineData(HydraHeadInfo.Status.Running)]
+    [InlineData(HydraHeadInfo.Status.Completed)]
+    [Trait("Req", "UI-HYDRA-019")] // HydraPanel.swift:132 `HydraGlyph(persona:, size: 16, status:)` is a 16 point frame in an HStack (centre alignment), not a view stretched to the row
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-019: the glyph sits at the capsule's vertical centre
+    public void The_capsules_glyph_is_centred_in_the_row_at_its_own_16_points_not_stretched_to_it(HydraHeadInfo.Status status) => Run(c =>
+    {
+        c.Status(c.First, status);
+        c.Tick(0.2);
+        var capsule = CapsuleOf(c);
+        var glyph = Assert.IsType<HydraGlyph>(capsule.Content.Children[0]);
+        Assert.Equal(Avalonia.Layout.VerticalAlignment.Center, glyph.VerticalAlignment); // the source's HStack centres its children; Avalonia's default would stretch the glyph to the row
+        Assert.Equal(16, glyph.Bounds.Height);
+        Assert.Equal(16, glyph.Bounds.Width);
+        var centre = glyph.TranslatePoint(new Point(8, 8), capsule.Padded)!.Value;
+        Assert.Equal(capsule.Padded.Bounds.Height / 2, centre.Y, 3); // on the capsule's horizontal midline
+    });
+
+    [Theory]
     [InlineData(HydraHeadInfo.Status.Completed, "done")]
     [InlineData(HydraHeadInfo.Status.Failed, "failed")]
     [InlineData(HydraHeadInfo.Status.Stopped, "stopped")]

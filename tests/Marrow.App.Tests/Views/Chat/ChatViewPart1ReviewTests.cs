@@ -18,9 +18,8 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
     // Kind: missing dependency
     // Swift: DroppyCode/App/Views/Chat/ChatView.swift:1123 (1.7.0).
     // Records: PR-CHAT-171, UI-CHAT-073.
-    // ED-180 explicitly defers the shared GlassEffectContainer compositor pass. Its layout can be
-    // checked here; one glass sampling pass cannot be claimed from the current container.
-    // Needed: ED-180 compositor implementation; visual parity remains UNVERIFIED under OD-0001.
+    // RESOLVED (blitz-frames): the container sets SwiftGlass.SetContainerSpacing(2) and the material foundation draws every glass piece under it in one pass; proven in
+    // ChatViewParityAppearTests.The_chrome_row_is_one_glass_pass_holding_its_slots_in_the_fixed_order_in_every_project_and_repository_state. Visual parity of the material stays UNVERIFIED under OD-0001.
 
     [Fact]
     [Trait("Req", "PR-CHAT-158")] // App/Views/Chat/ChatView.swift:751-768
@@ -71,7 +70,6 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1128-1131
-    // STOP (round 4, traceability), still open: PR-CHAT-171: the one-glass-pass clause (the glass over the row; ED-180, OD-0005 UNVERIFIED) is not proven. This test proves its own clauses only, so it carries no Req trait for the open record.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1135-1142
     public void Changing_the_sidebar_and_Hydra_settings_updates_the_conditional_slots_live()
     {

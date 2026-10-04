@@ -22,11 +22,11 @@ public sealed class GlassMaterialSiteTests(HeadlessSession headless)
         Assert.NotNull(inside.Background);
     });
 
-    // STOP F.GlassMaterial #1
-    // Kind: unported dependency. Swift: App/Views/Chat/ChatView.swift:1120-1124 (GlassEffectContainer spacing: 2).
-    // Records: PA-0001 glass site inventory / PR-WIN-180 material foundation.
-    // ChatChromeRow's body remains MARROW_STUB :1116 in this checkout. The toolbar has no control tree to attach to.
-    // Needed: ChatView unit's implemented toolbar; apply SwiftGlass.SetContainerSpacing(toolbar, 2) there.
+    // RESOLVED F.GlassMaterial #1 (was a STOP: unported dependency).
+    // Swift: App/Views/Chat/ChatView.swift:1120-1124 (GlassEffectContainer spacing: 2). Records: PA-0001 glass site inventory / PR-WIN-180 material foundation; PR-CHAT-171 / UI-CHAT-073.
+    // ChatChromeRow is built (Views/Chat/ChatView.cs): its GlassEffectContainer calls SwiftGlass.SetContainerSpacing(this, 2), so the chrome row's glass is drawn in one material pass.
+    // Proven by ChatViewFramesReviewTests (the pass follows every frame of the Threads and Hydra buttons' soft appear and fade out, with no layout pass) and by GlassMaterialTests
+    // (a container refreshes in the frame an opacity or render transform between it and a piece changes).
 
     // STOP F.GlassMaterial #2
     // Kind: unported dependency. Swift: App/Views/Composer/EffortSlider.swift:784-793 (.regular white tint 0.55/0.32, interactive Circle).
