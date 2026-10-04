@@ -139,15 +139,57 @@ public sealed class GreyscaleTextRenderTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-107")]
-    public void A_visual_may_still_ask_for_subpixel_text_so_the_fringe_check_can_fail() => headless.OnUiThread(() =>
+    public void Every_top_level_gets_greyscale_antialiasing_and_no_hinting_before_its_first_frame() => headless.OnUiThread(() =>
+    {
+        var first = new Window { Width = 100, Height = 60, Content = new TextBlock { Text = "a" } };
+        var second = new Window { Width = 100, Height = 60, Content = new TextBlock { Text = "b" } };
+        first.Show(); second.Show();
+        try
+        {
+            foreach (var window in new[] { first, second })
+            {
+                Assert.Equal(TextRenderingMode.Antialias, TextOptions.GetTextRenderingMode(window));
+                Assert.Equal(TextHintingMode.None, TextOptions.GetTextHintingMode(window));
+            }
+        }
+        finally { first.Close(); second.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void The_hinting_mode_the_style_sets_reaches_the_rasterizer() => headless.OnUiThread(() =>
+    {
+        // Same text, same window; only the hinting differs. If the rasterizer ignored the mode, the two renders would match.
+        int[] Render(TextHintingMode mode)
+        {
+            var text = new TextBlock { Text = "Hamburgefonstiv 0123456789 The quick brown fox", Foreground = Brushes.White, FontSize = 13 };
+            var window = Show(text);
+            try
+            {
+                TextOptions.SetTextHintingMode(window, mode);
+                var (bytes, width) = Capture(window);
+                var area = Area(window, text);
+                var values = new List<int>();
+                for (var y = (int)area.Top; y < (int)Math.Ceiling(area.Bottom); y++)
+                    for (var x = (int)area.Left; x < (int)Math.Ceiling(area.Right); x++) values.Add(bytes[(y * width + x) * 4]);
+                return values.ToArray();
+            }
+            finally { window.Close(); }
+        }
+        Assert.NotEqual(Render(TextHintingMode.None), Render(TextHintingMode.Strong));
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void A_window_asking_for_subpixel_text_draws_fringes_so_the_fringe_check_can_fail() => headless.OnUiThread(() =>
     {
         // Sensitivity: the same render with the mode switched to SubpixelAntialias on the text must show fringes here,
         // or the proofs above would pass whatever the app does.
         var text = new TextBlock { Text = "The quick brown fox jumps over the lazy dog", Foreground = Brushes.White, FontSize = 13 };
-        TextOptions.SetTextRenderingMode(text, TextRenderingMode.SubpixelAntialias);
         var window = Show(text);
         try
         {
+            TextOptions.SetTextRenderingMode(window, TextRenderingMode.SubpixelAntialias); // after the style set Antialias on it
             Drain();
             var (ink, fringed) = Fringes(window, Area(window, text));
             Assert.True(ink > 100);
