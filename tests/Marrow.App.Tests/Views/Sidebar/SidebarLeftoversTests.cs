@@ -1287,8 +1287,9 @@ public sealed class SidebarLeftoversTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-006")] // SidebarView.swift:517-519 a gap item `gap-<projectUUID>` of 10 pt before every project but the first; :321-322 `.opacity` (the gaps "ride the list's own motion"); :113-118
     // The list reacts to a project added or removed (the earlier note's doubt, STOP #11, does not hold): the gap goes with its
     // project's row, on the plain opacity transition and not the row's quick 0.06 s removal fade, and it comes at once with
-    // its row, with none of the 0.12 s handover delay the other rows wait out (:1072). The source cuts a change of the projects
-    // alone (no value of :113-118 changes with it); the port eases it (OD-0076).
+    // its row, with none of the 0.12 s handover delay the other rows wait out (:1072). REVIEW (2026-10-04): the source does
+    // not cut it: a project added or removed changes `model.projects.map(\.isExpanded)` (:118, the array's length), so the
+    // pass runs in Chrome.panelSlide as the port's ListMotion has it; no OD-0076 deviation is involved.
     public void A_gap_leaves_with_its_removed_project_and_comes_with_an_added_one_on_the_plain_opacity_transition() => headless.OnUiThread(() =>
     {
         var manual = new ManualFrameSource();
@@ -1316,7 +1317,7 @@ public sealed class SidebarLeftoversTests(HeadlessSession headless)
             Tick(1600);
             harness.Main.OnMain(() => Assert.Single(Gaps())); // gone once faded
             var folder = harness.NewFolder("D");
-            harness.Main.OnMain(() => model.AddProject(SwiftURL.FileURLWithPath(folder)));
+            harness.Main.OnMain(() => model.AddProject(SwiftURL.FileURLWithPath("/" + folder.Replace('\\', '/')))); // the POSIX-shaped path FileURLWithPath is narrowed to (a Windows "C:\..." traps)
             Tick(30);
             harness.Main.OnMain(() =>
             {
