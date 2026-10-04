@@ -65,7 +65,8 @@ public sealed class VoiceCoreReviewTests
         Assert.Equal(SelfTestAction.Keep, d.Action);
         Assert.Equal(model, d.ModelId);
         Assert.False(d.AskUser, "the slow-PC question would offer a smaller model where none exists");
-        Assert.NotNull(d.LiveWords);
+        Assert.False(d.LiveWords); // lead ruling R2: the current model is kept with text after the user stops
+
     }
 
     // ---- finding 3: still too slow after the one step, with a smaller rung left ----

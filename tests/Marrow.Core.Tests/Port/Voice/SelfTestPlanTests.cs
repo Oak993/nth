@@ -121,8 +121,10 @@ public sealed class SelfTestPlanTests
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", LiveWords: true, AskUser: false), fast);
         var slow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 0.4, steppedDown: true, RecommendationBasis.Cpu);
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", LiveWords: null, AskUser: true), slow);
+        // Lead ruling R3 (2026-10-04, from the OD-0099 Q-V-1 C amendment) replaces ED-NEW-f-vt-1 item 8: still too slow after the one step,
+        // with a smaller rung left (medium-q8_0), the model is kept and the question is asked; no second timing.
         var tooSlow = SelfTestPlan.Decide("large-v3-turbo-q5_0", 3.0, steppedDown: true, RecommendationBasis.Cpu);
-        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", LiveWords: false, AskUser: false), tooSlow);
+        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, "large-v3-turbo-q5_0", LiveWords: null, AskUser: true), tooSlow);
     }
 
     [Fact]
@@ -200,8 +202,10 @@ public sealed class SelfTestPlanTests
     [Trait("Decision", "ED-267")] // OD-0099 Q-V-4 A; voice-SPEC V-10.4: the CPU template with the measured times of this rung and the rung above
     public void The_CPU_reason_is_the_template_with_both_measured_times()
     {
-        Assert.Equal("On the processor alone Large v3 Turbo answers in about 2.5 seconds; Medium would take 6 seconds or more.",
-            RecommendationReason.Cpu("large-v3-turbo-q5_0", 0.25, "medium-q8_0", 0.6));
+        // The 8-core multilingual flow (V-10.2, V-10.3): large-v3-turbo-q5_0 timed too slow, the one step down kept medium-q8_0, so Large v3
+        // Turbo is the bigger model (the design's example has the same shape: "Small answers in about 3 to 6 seconds; Large v3 Turbo would take 15").
+        Assert.Equal("On the processor alone Medium answers in about 4 seconds; Large v3 Turbo would take 9 seconds or more.",
+            RecommendationReason.Cpu("medium-q8_0", 0.4, "large-v3-turbo-q5_0", 0.9));
         Assert.Equal("On the processor alone Base (English only) answers in about 2 seconds; Small (English only) would take 5 seconds or more.",
             RecommendationReason.Cpu("base.en", 0.2, "small.en-q8_0", 0.5));
     }
