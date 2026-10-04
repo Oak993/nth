@@ -99,7 +99,7 @@ public sealed class ComposerLightEvidenceTests(HeadlessSession headless)
             h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
             foreach (var dark in new[] { true, false })
             {
-                var area = h.Main.OnMain(() => new ComposerArea(runtime, workingDirectory: null));
+                var area = h.Main.OnMain(() => new ComposerArea(runtime, workingDirectory: null, takesFocusOnAppear: false));
                 var window = h.Main.OnMain(() =>
                 {
                     var host = new Border { Child = area, VerticalAlignment = VerticalAlignment.Bottom };

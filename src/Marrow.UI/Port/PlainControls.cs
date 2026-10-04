@@ -250,6 +250,7 @@ public sealed class AnimatedColor
 {
     private readonly Control owner;
     private SwiftColor? color;
+    private Color target;
     private IFrameSource? source;
     private Action<TimeSpan>? pending;
 
@@ -265,8 +266,11 @@ public sealed class AnimatedColor
                 Set(color, AppearanceTurn.Curve);
                 return;
             }
-            Stop();
-            Brush.Color = color.Resolve(owner.ActualThemeVariant);
+            // A fade still running goes on towards the colour the new appearance resolves, from where it stands (a view put
+            // into another parent, a popover's list shown again, is re-evaluated without having stopped its fade).
+            target = color.Resolve(owner.ActualThemeVariant);
+            if (pending is not null) return;
+            Brush.Color = target;
         };
     }
 
@@ -278,6 +282,7 @@ public sealed class AnimatedColor
     {
         color = value;
         var to = value.Resolve(owner.ActualThemeVariant);
+        target = to;
         Stop();
         if (animation is null || Brush.Color == to)
         {
@@ -293,7 +298,7 @@ public sealed class AnimatedColor
         {
             var now = SwiftClock.Now;
             var complete = FrameClock.IsComplete(start, now, span);
-            Brush.Color = complete ? to : Mix(from, to, animation.Progress((now - start).TotalSeconds));
+            Brush.Color = complete ? target : Mix(from, target, animation.Progress((now - start).TotalSeconds));
             if (complete) pending = null;
             else frames.RequestFrame(tick!);
         };

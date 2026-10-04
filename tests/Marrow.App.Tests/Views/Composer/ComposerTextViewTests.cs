@@ -71,7 +71,7 @@ public sealed class ComposerTextViewTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-019")] // ComposerTextView.swift:198-211
     public void The_placeholder_draws_only_while_empty_at_the_container_inset() => headless.OnUiThread(() =>
     {
-        var h = new ComposerTextViewHarness(placeholder: "Ask anything");
+        var h = new ComposerTextViewHarness(placeholder: "Ask anything", takesFocusOnAppear: false); // a focused box draws its caret too: only the placeholder is measured here
         h.Layout();
         var ink = Ink.Bounds(h.Window, new Rect(0, 0, h.View.Bounds.Width, ComposerTextViewHarness.ComposerHeight));
         var reference = Ink.Reference("Ask anything", h.TextView, new Point(0, 2),
@@ -87,7 +87,7 @@ public sealed class ComposerTextViewTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-019")] // ComposerTextView.swift:200, failure_cases: an empty placeholder draws nothing
     public void An_empty_placeholder_string_draws_nothing() => headless.OnUiThread(() =>
     {
-        var h = new ComposerTextViewHarness(placeholder: "");
+        var h = new ComposerTextViewHarness(placeholder: "", takesFocusOnAppear: false); // a focused box draws its caret too
         h.Layout();
         var ink = Ink.Bounds(h.Window, new Rect(0, 0, h.View.Bounds.Width, ComposerTextViewHarness.ComposerHeight));
         Assert.Null(ink);

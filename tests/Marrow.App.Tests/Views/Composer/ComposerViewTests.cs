@@ -44,7 +44,7 @@ namespace Marrow.App.Tests.Views.Composer;
 // (ComposerView.swift:160) and the whole area can be attached and laid out.
 
 [Collection("Headless")]
-public sealed class ComposerViewTests(HeadlessSession headless)
+public sealed partial class ComposerViewTests(HeadlessSession headless)
 {
     private const string Plan = "Describe what you want to plan";
 
@@ -751,7 +751,8 @@ public sealed class ComposerViewTests(HeadlessSession headless)
                 Assert.Equal(4, stack.Children.Count);
                 Assert.IsType<DraftChips>(stack.Children[0]);
                 Assert.IsType<DraftAttachments>(stack.Children[1]);
-                var notice = Assert.IsType<TextBlock>(stack.Children[2]);
+                // The notice's row (a NoticeSlot: UI-COMPOSER-004's fold) holds the line; it sits third in the column.
+                var notice = One<TextBlock>(Assert.IsType<NoticeSlot>(stack.Children[2]));
                 Assert.Equal("2 files left out", notice.Text);
                 Assert.Equal(new Thickness(0, 0, 0, 6), notice.Margin);
                 Assert.Equal(1, notice.MaxLines);
@@ -2167,6 +2168,8 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:245
+    [Trait("Req", "UI-COMPOSER-022")] // App/Views/Composer/ComposerView.swift:245-247: the retry row only with the error and only in the command list
+    [Trait("Rule", "R-TEST-4")] // The row's symbol, label and place: A_failed_command_load_shows_its_description_then_a_Retry_...; the forced reload: B3_retry_enters_a_new_command_load_even_when_the_cached_commands_are_fresh
     public void The_failure_rows_belong_to_the_command_list_only()
     {
         headless.OnUiThread(() =>
@@ -3292,7 +3295,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             var frames = new ManualFrameSource(); using var fs = FrameClock.Source.Override(frames);
             using var h = RuntimeHarness(); h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Quotes = new ValueList<ReplyQuote>([new() { Text = "quote" }]) });
             var chips = h.Main.OnMain(() => new DraftChips(h.Runtime)); var window = h.Main.OnMain(() => Show(chips, h.App, 400)); Pump(h, window);
-            h.Main.OnMain(() => { Assert.Equal(6, Assert.IsType<StackPanel>(One<ScrollViewer>(chips).Content).Spacing); Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
+            h.Main.OnMain(() => { Assert.Equal(6, ChipControls(chips).Single().Margin.Right); /* the 6 point gap: each chip's place keeps it after the chip and the row takes the last back (ED-282-12); the gap between two chips is measured in The_command_chip_names_... */ Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, One<ScrollViewer>(chips).HorizontalScrollBarVisibility); var collapsed = Assert.IsType<Border>(new ChipRowCollapse(true).Body(new Border())); Assert.Equal(0, collapsed.Height); Assert.Equal(0, collapsed.Opacity); Assert.True(collapsed.ClipToBounds); }); Close(h, window);
         });
     }
 
@@ -3327,8 +3330,11 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            // The ring is an if-branch: it leaves and returns through the opacity transition (UI-COMPOSER-013), so its end is read once the fade has run.
+            var frames = new ManualFrameSource(); using var frameScope = FrameClock.Source.Override(frames);
             using var h = RuntimeHarness(); var meter = h.Main.OnMain(() => new ContextMeter(h.Runtime, ProviderKind.Codex,null)); var window = h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(meter));
-            h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=true); Pump(h,window); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=false); Pump(h,window); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
+            void Fade() { h.Main.Advance(TimeSpan.FromSeconds(2)); h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(2))); Pump(h,window); }
+            h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=true); Pump(h,window); Fade(); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel=false); Pump(h,window); Fade(); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
             var noLimits = h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Cursor,null)); var other = h.Main.OnMain(() => Show(noLimits,h.App,200)); Pump(h,other); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(noLimits));
             h.Main.OnMain(() => h.Runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens=5,WindowTokens=10 }))); Pump(h,other); Assert.Single(LogicalQuery.SelfAndDescendants<Button>(noLimits)); Close(h,other);
         });
@@ -3344,7 +3350,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness(); var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window);
-            h.Main.OnMain(() => { var button=One<Button>(meter); Assert.False(button.Focusable); Assert.Equal(new Thickness(6,5),button.Padding); var ring=Assert.IsType<Grid>(button.Content); Assert.Equal(15,ring.Width); Assert.Equal(15,ring.Height); var track=Assert.IsType<Avalonia.Controls.Shapes.Ellipse>(ring.Children[0]); var arc=Assert.IsType<Avalonia.Controls.Shapes.Path>(ring.Children[1]); Assert.Equal(2.5,track.StrokeThickness); Assert.Equal(2.5,arc.StrokeThickness); Assert.Equal(PenLineCap.Round,arc.StrokeLineCap); Assert.Equal(-90,Assert.IsType<RotateTransform>(arc.RenderTransform).Angle); }); Close(h,window);
+            h.Main.OnMain(() => { var button=One<Button>(meter); Assert.False(button.Focusable); Assert.Equal(new Thickness(6,5),button.Padding); var ring=Assert.IsType<Grid>(button.Content); Assert.Equal(15,ring.Width); Assert.Equal(15,ring.Height); var track=Assert.IsType<Avalonia.Controls.Shapes.Path>(ring.Children[0]); Assert.Equal(new Rect(0,0,15,15),Assert.IsType<EllipseGeometry>(track.Data).Rect); /* the circle's centre line is the 15 point frame's edge, as the arc's (VIDEO static.composer-context-ring: radius 7.53) */ var arc=Assert.IsType<Avalonia.Controls.Shapes.Path>(ring.Children[1]); Assert.Equal(2.5,track.StrokeThickness); Assert.Equal(2.5,arc.StrokeThickness); Assert.Equal(PenLineCap.Round,arc.StrokeLineCap); Assert.Equal(-90,Assert.IsType<RotateTransform>(arc.RenderTransform).Angle); }); Close(h,window);
         });
     }
 
@@ -3369,11 +3375,12 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            var frames=new ManualFrameSource(); using var frameScope=FrameClock.Source.Override(frames); // the ring's fade (UI-COMPOSER-013) runs on the frame clock
             using var h=RuntimeHarness(); var presenter=new RecordingPresenter(); using var ps=Presentation.Presenter.Override(presenter);
             var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null)); var window=h.Main.OnMain(() => Show(meter,h.App,200)); Pump(h,window);
             h.Main.OnMain(() => Click(One<Button>(meter))); Pump(h,window); var popup=presenter.Calls[^1].Popup; Assert.Equal(Avalonia.Controls.PlacementMode.Bottom,popup.Placement); Assert.NotNull(popup.Child);
             var content=popup.Child!; Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(content), t=>t.Text=="Usage");
-            h.Main.OnMain(() => Click(Named(content,"Open as a floating panel beside the chat"))); Pump(h,window); Assert.True(h.App.Settings.ShowsUsagePanel); Assert.False(presenter.Calls[^1].Presented); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
+            h.Main.OnMain(() => Click(Named(content,"Open as a floating panel beside the chat"))); Pump(h,window); h.Main.Advance(TimeSpan.FromSeconds(2)); h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(2))); Pump(h,window); Assert.True(h.App.Settings.ShowsUsagePanel); Assert.False(presenter.Calls[^1].Presented); Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(meter)); Close(h,window);
         });
     }
 
@@ -3392,6 +3399,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            var frames=new ManualFrameSource(); using var frameScope=FrameClock.Source.Override(frames); // the disc's fill eases on the frame clock (UI-COMPOSER-016)
             using var h=RuntimeHarness(); var send=h.Main.OnMain(() => new SendDraftState(h.Runtime,false,false,true,false,()=>{})); var window=h.Main.OnMain(() => Show(send,h.App,200)); Pump(h,window);
             var button=One<Button>(send); Assert.False(button.IsEnabled); Assert.False(button.Focusable); Assert.Equal("Send to a head",AutomationProperties.GetName(button)); Assert.Equal(new Thickness(4,0,0,0),button.Margin);
             h.Main.OnMain(() => h.Runtime.Draft=new ComposerDraft{Text="message"}); Pump(h,window); Assert.True(button.IsEnabled); var label=Assert.IsType<Border>(button.Content); Assert.Equal(28,label.Width); Assert.Equal(28,label.Height); Assert.Equal("arrow.up",One<SwiftImage>(label).SymbolName); Close(h,window);
@@ -3458,7 +3466,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             h.Main.OnMain(() => h.Runtime.Rehearse(new ProviderEvent.Usage(new ContextUsage { UsedTokens=used,WindowTokens=1000 })));
             var meter=h.Main.OnMain(() => new ContextMeter(h.Runtime,ProviderKind.Codex,null));
             var window=h.Main.OnMain(() => { Popovers.SetTint(meter, SwiftColor.White); return Show(meter,h.App,200); }); Pump(h,window);
-            h.Main.OnMain(() => { var arc=One<Avalonia.Controls.Shapes.Path>(meter); Assert.Equal((warns ? Chrome.Warning : SwiftColor.White).Resolve(arc.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(arc.Stroke).Color); }); Close(h,window);
+            h.Main.OnMain(() => { var arc=LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(meter).Last(); Assert.Equal((warns ? Chrome.Warning : SwiftColor.White).Resolve(arc.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(arc.Stroke).Color); }); Close(h,window);
         });
     }
 
@@ -3821,28 +3829,18 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // implemented and tested (PR-COMPOSER-015).
 //
 // STOP App.Views.Composer.ComposerView #2
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:25-27, :56 (B3 52bc792)
-// Requirements: PR-COMPOSER-002, PR-COMPOSER-003
-// What is unclear or missing: the approval cards are ApprovalCard (App.Views.Composer.RequestCards), whose constructor
-// is MARROW_STUB in the tree, so no card can be built and neither the order and 12 point spacing of real cards nor the
-// Chrome.panelSlide re-layout keyed on their ids can be observed. The site itself is written (keyed rows under
-// Transaction.WithAnimation(Chrome.PanelSlide) when the id list changes).
-// Needed to proceed: unit App.Views.Composer.RequestCards.
-// Done so far: the empty case of PR-COMPOSER-002 is tested and passes; PR-COMPOSER-003 has no test.
+// Kind: historical dependency blocker, resolved (RequestCards is real). PR-COMPOSER-002 is proven (container spacing 8, the 12 point
+// gaps, runtime order through a removal). PR-COMPOSER-003: the curve (spring response 0.32, damping 0.9; 0.18 s ease-out under
+// reduce motion), the id-list key and the arrival and resolution fades are proven (A_card_arriving_and_a_card_resolved_...,
+// Changing_a_request_without_changing_the_id_list_...). STILL OPEN: the stack's own re-layout is a cut, not an animation: the
+// cards that stay and the area's height do not move under the spring (the foundation's ForEach glide is parent-relative and a
+// leaving row lingers in layout; the area is bottom-pinned, so SwiftUI moves the cards above the new one in window coordinates).
 //
 // STOP App.Views.Composer.ComposerView #3
-// Kind: untestable
-// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:32-34, :40-49, :84-85 (B3 52bc792)
-// Requirements: PR-COMPOSER-008, PR-COMPOSER-009
-// What is unclear or missing: DiffPopoverCoordinator (DiffInspector.cs) opens its Popup by setting IsOpen directly,
-// and Avalonia 12.1.2 headless throws "Unable to create IPopupImpl and no overlay layer is found for the target
-// control" for it (probed on this machine for this unit, with and without a VisualLayerManager). The open, reopen and
-// close wirings and which anchor the popover hangs from are therefore not observable in a test.
-// Needed to proceed: a decision on how DiffPopoverCoordinator presents (the R-VIEW-9 seam), in its own unit.
-// Done so far: the sites are written; the arrival rule on appear and the 640 by 540 size are tested and pass.
-// Resolved for PR-COMPOSER-009 (2026-10-02): DiffPopoverCoordinator now presents through Presentation.Presenter (R-VIEW-9),
-// so the anchor it hangs from is observed with RecordingPresenter (The_changes_popover_hangs_from_the_changes_tab_...).
+// Kind: historical (untestable), resolved: DiffPopoverCoordinator presents through Presentation.Presenter (R-VIEW-9), so the
+// area's wirings are observed with RecordingPresenter: The_area_opens_reopens_and_closes_the_changes_popover_... (PR-COMPOSER-008:
+// the flag, the open request, the hidden column, disappearance, 640 by 540) and the placement edge and held desire tests
+// (PR-COMPOSER-009). The thread-change arm (:40-41) cannot fire: ThreadRuntime.threadID is `let` (ThreadRuntime.swift:169).
 //
 // STOP App.Views.Composer.ComposerView #4
 // Kind: historical dependency blocker, resolved; command-observer proof gaps resolved by notify2-proofs.
@@ -3858,36 +3856,40 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // This uses the R-VIEW-9 recording presenter; native popup hit-testing and scrolling remain separately in STOP #5.
 //
 // STOP App.Views.Composer.ComposerView #5
-// Kind: untestable
-// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:231, :247, :260 (B3 52bc792); ComposerTextView.swift:92-96
-// Requirements: PR-COMPOSER-053, PR-COMPOSER-055, PR-COMPOSER-050
-// What is unclear or missing: the list's panel is an Avalonia Popup, which headless tests cannot open (the R-VIEW-9
-// seam records the show instead, see STOP #3). So (a) a focus loss whose click lands inside the open panel
-// (isClickInsideSuggestions, IsPointerOverPopup) cannot be produced, (b) the selected row being scrolled into view
-// (:260, BringIntoView once the show has put the list in the popover) cannot be measured, because the list is never
-// laid out, and (c) activating "Retry loading commands" reloads with force (:247), but every failure a test can
-// provoke stores the same description, and a forced and a stale reload are indistinguishable from the registry's
-// public state.
-// Needed to proceed: a presenter seam that hosts the popover content in a window, or an oracle run.
-// Done so far: the sites are written. Tested: a focus loss outside the panel closes it (PR-COMPOSER-053), hovering a
-// row selects it and Return commits that row (PR-COMPOSER-055), and the failure note and the retry row with its
-// label, symbol and place (PR-COMPOSER-050).
-
+// Kind: native-only for (a), resolved for (b) and (c).
+// (a) PR-COMPOSER-053: a focus loss whose click lands inside the open panel (isClickInsideSuggestions, Popup.IsPointerOverPopup)
+// needs a real popup window; headless proves the other half (a refresh still searching is cancelled by the blur).
+// (b) PR-COMPOSER-055: resolved, Selecting_a_row_far_down_a_long_list_scrolls_it_into_view hosts each show's frame in a window.
+// (c) PR-COMPOSER-050: resolved, a retry that fails again replaces the note (A_retry_that_fails_again_...).
+//
 // STOP App.Views.Composer.ComposerView #7
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:941 (B3 52bc792)
-// Records: PR-COMPOSER-088 (keyed movement within a nonempty chip row).
-// Missing: foundation ForEach applies topology immediately and carries no animated re-layout of surviving rows.
-// Needed: geometric layout animation in its owning foundation unit. Arrival/departure clip and fade are implemented;
-// adding/removing/reordering chips while the row remains nonempty has immediate layout, explicitly unverified.
-
+// Kind: resolved for PR-COMPOSER-088's clauses and for UI-COMPOSER-007. DraftChips keeps one row, one scroller and its chips, applies
+// them through the keyed ForEach under panelSlide when the ChipKey changes and asks for no frame on a text edit. A leaving chip fades
+// where it stands while its place (ChipSlot) closes under panelSlide and the chips after it follow, on the layout, under reduce motion
+// too (ED-282-12; Removing_the_middle_quote_fades_it_where_it_stands_...).
+//
+// STOP App.Views.Composer.ComposerView #11
+// Kind: native-only. UI-COMPOSER-029 (the attach dialog, ComposerView.swift:526-533, PromptEditor.swift:117-124). The options reach the
+// runner (multiple true, directories false, "Attach") and cancel and accept are seam-tested (B3_file_chooser_..., B3_attach_default_
+// dialog_..., B3_accepting_the_chooser_...); the real Windows common dialog is never shown headless: whether OK reads "Attach", whether
+// two files multi-select, whether a folder cannot be chosen, and what caption an empty SetTitle("") gives (OpenPanel.cs:74) need a
+// real window on a quiet PC (OD-0007).
+//
+// STOP App.Views.Composer.ComposerView #12
+// Kind: foundation question, outside UI-COMPOSER-004 (which is proven). The foundation's SoftAppear modifier has no animatable data, so
+// SwiftTransition applies the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): every SoftAppear site arrives at
+// full opacity at its first frame where SwiftUI animates the opacity and the 4 point offset inside the modifier's body over smooth(0.32).
+// The attachment notice plays that arrival itself (NoticeSlot.Arrive); the other sites are the foundation's to settle.
+//
+// STOP App.Views.Composer.ComposerView #13
+// Kind: source contradiction, UI-COMPOSER-002. The record says an empty pill is 44 points high (ComposerView.swift:157-158); the
+// source's own arithmetic (text view ceil(max(18, content) + 4) = 22, column 22 + 8, pill 30 + 16) and the reference video (rim to rim,
+// C 0.5 and C 84.5) both give 46, which is what the port draws (An_empty_pill_is_46_points_high_...). The number in the record is the
+// column before its first measure.
+//
 // STOP App.Views.Composer.ComposerView #10
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:23,56 (B3 52bc792)
-// Records: UI-COMPOSER-001 (glass merging spacing 8), PR-COMPOSER-003 (surviving approval row movement).
-// Missing: foundation has no GlassEffectContainer spacing/merging implementation or animated geometric re-layout.
-// Needed: foundation/compositor support; glass is deferred under ED-180. Approval insertion/removal fading and all
-// measured area ordering, spacing, cap and padding are verified. Continuous-corner rendering is ED-181, closed 2026-10-04.
+// Kind: resolved for the container (SwiftGlass.SetContainerSpacing is implemented and asserted: PR-COMPOSER-002, UI-COMPOSER-001);
+// the surviving approval rows' movement is open, see #2. Continuous-corner rendering is ED-181, closed 2026-10-04.
 
 // B3 resolution of historical STOP #5(c): forced retry is now proven by observing the in-flight registry load after
 // clicking the actual retry row while a fetched command list is still fresh. #5(a)/(b) popup hit/scroll limits remain.
