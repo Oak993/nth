@@ -14,7 +14,7 @@ public sealed record SegmentTarget(string Program, string? Module);
 /// <summary>
 /// ONDEMAND-PLAN.md 5.3: "split the command line into pipeline and &amp;&amp;/; segments with a quote-aware tokenizer (cmd, PowerShell and bash quoting); take each segment's
 /// first word; strip a path and an extension; skip leading cd, &amp;, call, start, env assignments and py -3 -m &lt;module&gt; (the module counts)". The shell is not
-/// known, so one scanner serves all three (ENGINEERING DECISIONS, ED-NEW-f-sk-10): separators are <c>| || |&amp; &amp;&amp; &amp; ;</c> and line breaks outside quotes (an
+/// known, so one scanner serves all three (ENGINEERING DECISIONS, ED-296): separators are <c>| || |&amp; &amp;&amp; &amp; ;</c> and line breaks outside quotes (an
 /// ampersand next to a redirection, as in <c>2&gt;&amp;1</c> or <c>&amp;&gt;</c>, belongs to the word); single and double quotes group; inside double quotes a backslash
 /// before a quote escapes it; every other backslash is a plain character, so <c>C:\x\soffice.exe</c> survives; an unterminated quote runs to the end.
 /// </summary>

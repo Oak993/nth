@@ -137,7 +137,7 @@ public static class MissingToolDetector
 
     private static bool InFlight(ItemRecord record) => record.State is ItemState.Queued or ItemState.Downloading or ItemState.Checking;
 
-    // ONDEMAND-PLAN.md 5.3 Guards. The order when several apply is an ENGINEERING DECISION (ED-NEW-f-sk-10).
+    // ONDEMAND-PLAN.md 5.3 Guards. The order when several apply is an ENGINEERING DECISION (ED-296).
     private static (FindingVerdict, SuppressReason?) Guard(DetectionContext context, string id)
     {
         var record = context.State.Get(id);

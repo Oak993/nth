@@ -4,7 +4,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 
 // Unit SK-10: S4, the model asks (ONDEMAND-PLAN.md 5.1): "A Marrow tool request_tool {name, reason} for the native API providers, which blocks until the
 // user answers". The detector only decides whether the name is a catalogue item and whether an offer is owed; the tool itself is DL-14. The name is an item id
-// or a program name from the provides index (ED-NEW-f-sk-10: the plan does not say which spelling the model uses).
+// or a program name from the provides index (ED-296: the plan does not say which spelling the model uses).
 public sealed class ModelRequestTests
 {
     private static Detection Asked(string name, DetectionContext? context = null) =>
