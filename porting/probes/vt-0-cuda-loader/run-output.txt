@@ -1,0 +1,25 @@
+== case 1: LibraryPath is a file path inside the root, order Cpu
+LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Cpu useGpu=False
+LoadedLibrary=Cpu
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+== case 2: LibraryPath is the root folder itself, order Cpu
+LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root order=Cpu useGpu=False
+FAIL FileNotFoundException: Native Library not found in default paths.Verify you have have included the native Whisper library in your application, or install the default libraries with the Whisper.net.Runtime NuGet.
+== case 3: LibraryPath is whisper.dll inside runtimes\win-x64, order Cpu
+LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtimes\win-x64\whisper.dll order=Cpu useGpu=False
+FAIL FileNotFoundException: Native Library not found in default paths.Verify you have have included the native Whisper library in your application, or install the default libraries with the Whisper.net.Runtime NuGet.
+== case 4: LibraryPath is a file path inside the root, order Vulkan, gpu on
+LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Vulkan useGpu=True
+LoadedLibrary=Vulkan
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+== case 5: order Cuda12,Vulkan,Cpu with an unloadable runtimes\cuda12\win-x64\whisper.dll
+LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Cuda12,Vulkan,Cpu useGpu=True
+LoadedLibrary=Vulkan
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+== case 6: order Cuda12,Cpu with the same unloadable cuda12 runtime
+LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Cuda12,Cpu useGpu=False
+LoadedLibrary=Cpu
+VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]
+== case 7: order Cuda12 only with the same unloadable cuda12 runtime
+LibraryPath=E:\Droppy\work\scratch\f-vt-0\probe3\work\root\runtime.dll order=Cuda12 useGpu=False
+FAIL Exception: Failed to load native whisper library. Error: Cannot load the library on this platform using NativeLibrary. PInvokeError: The operation completed successfully.

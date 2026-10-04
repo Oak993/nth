@@ -116,11 +116,9 @@ SOFTWARE.
 
 ## Voice typing
 
-Voice typing (owner decisions OD-0091, OD-0092 and OD-0097, with their amendments)
-runs OpenAI's Whisper on the user's computer through whisper.cpp
+Voice typing (owner decisions OD-0091, OD-0092; ED-267) runs OpenAI's Whisper on the user's computer through whisper.cpp
 and `Whisper.net`, captures the microphone with NAudio, detects speech with Silero VAD, and draws the voice orb and the
-composer's voice glow from the two works credited last. The installer carries the Silero VAD model, a ten-second test clip
-and the whisper.cpp libraries for the CPU and Vulkan; speech models are downloaded on request from Hugging Face
+composer's voice glow from the two works credited last. Model files are downloaded on request from Hugging Face
 (ggerganov/whisper.cpp, commit 5359861c739e955e79d9a303bcbc70fb988958b1) and are not part of the installer.
 
 ### OpenAI Whisper (model weights and reference code)
@@ -153,7 +151,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### whisper.cpp and ggml (the native engine inside `Whisper.net`'s runtimes; the ggml model files)
+### whisper.cpp and ggml (native engine inside `Whisper.net`'s runtimes; the ggml model files)
 
 - Source: https://github.com/ggml-org/whisper.cpp. Licence: MIT, "Copyright (c) 2023-2026 The ggml authors".
 
@@ -267,16 +265,49 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### Microsoft.Extensions.AI.Abstractions and System.Numerics.Tensors
+### Microsoft.Extensions.AI.Abstractions (dependency of `Whisper.net`)
 
-- Source: https://dot.net/ (NuGet Microsoft.Extensions.AI.Abstractions 10.2.0 and System.Numerics.Tensors 9.0.0, which
-  `Whisper.net` brings in). Licence: MIT, "Copyright (c) Microsoft Corporation". The System.Numerics.Tensors package also
+- Source: https://dot.net/ (NuGet Microsoft.Extensions.AI.Abstractions 10.2.0, which `Whisper.net` brings in).
+  Licence: MIT, "Copyright (c) .NET Foundation. All rights reserved." (the LICENSE of github.com/dotnet/extensions).
+
+```
+The MIT License (MIT)
+
+Copyright (c) .NET Foundation. All rights reserved.
+
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### System.Numerics.Tensors (dependency of Microsoft.Extensions.AI.Abstractions)
+
+- Source: https://dot.net/ (NuGet System.Numerics.Tensors 9.0.0, which Microsoft.Extensions.AI.Abstractions brings in).
+  Licence: MIT, "Copyright (c) .NET Foundation and Contributors" (the LICENSE.TXT of the package). The package also
   carries a THIRD-PARTY-NOTICES file of its own for code taken from other projects.
 
 ```
-MIT License
+The MIT License (MIT)
 
-Copyright (c) Microsoft Corporation
+Copyright (c) .NET Foundation and Contributors
+
+All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -300,20 +331,27 @@ SOFTWARE.
 ### FLEURS (the self-test clip)
 
 - Source: https://huggingface.co/datasets/google/fleurs (dataset commit 70bb2e84b976b7e960aa89f1c648e09c59f894dd, English
-  (United States), the file dev/10290896634244679159.wav of data/en_us/audio/dev.tar.gz). Licence: CC BY 4.0,
+  (United States), the file test/1618638950277648344.wav of data/en_us/audio/test.tar.gz). Licence: CC BY 4.0,
   https://creativecommons.org/licenses/by/4.0/ .
 - Attribution: "FLEURS: Few-shot Learning Evaluation of Universal Representations of Speech", Alexis Conneau, Min Ma,
   Simran Khanuja, Yu Zhang, Vera Axelrod, Siddharth Dalmia, Jason Riesa, Clara Rivera and Ankur Bapna (Google),
   https://arxiv.org/abs/2205.12446 .
-- Changes made: the recording's 32-bit float samples were rounded to 16-bit PCM and the file given a new header; nothing
-  else (rate, channel, length and level are unchanged). The clip is used only to time speech recognition once, on first use.
+- Changes made: the recording's 32-bit float samples were converted to 16 kHz mono 16-bit PCM and scaled by
+  one gain of 1.062187 (a level match to about -20 dBFS RMS), and the file given a new header; nothing else (no filter, trim
+  or resampling; the length is unchanged). The clip is used only to time speech recognition once, on first use.
 
 ### Liquid Orb Editor (LerSent001): the voice orb
 
 - Source: https://github.com/LerSent001/orb. Licence: MIT, "Copyright (c) 2026 LerSent001". The port carries the site's
   Web export of the Siri Wave and Voice Membrane presets: their state seeds (136 values each), the export's runtime
   (applyAudioUniforms with audioRules and audioFlowStrengths, the sRGB transitions, the integrated motion phase) and the
-  shader (effect.wgsl and shader-source.ts) translated to SkSL.
+  shader (effect.wgsl and shader-source.ts) translated to SkSL function by function with the same names (mfEdgeD,
+  mfEdgeGlow, glsFinishPresetFluid, glsFinishEmissionFluid, glsSiriBand, glsSiriFluid, glsVoiceWaveFluid, glsPresetFluid,
+  glsOver, glsRefractionProfile, glsHighlightLobe, glsContourWave, glsContourStrength, glsContourScale, glsContourNormal,
+  glsRefractionNormal, orbGlassLiquidAnim, fs_main). The Toolcraft UI code of the same project (MIT, Pixel Point) is not used.
+- Marrow's own (not covered by this licence): the framing of the ball through the source's radius and edge softness, the
+  state layer's speed, the glow amount (through the source's Outer Glow), the lift shadow and the error desaturation, and
+  the 2x render below 128 device px.
 
 ```
 MIT License
@@ -344,6 +382,9 @@ SOFTWARE.
 - Source: https://www.npmjs.com/package/voice-glow (github.com/Jakubantalik/Libraries.dev, packages/voice-glow).
   Licence: MIT, "Copyright (c) 2026 Jakub Antalik". The port re-implements its driver (envelope, flow, processing sweep,
   lobes, band polyline, hue drift), its theme presets, palettes and type presets, and its layer recipe.
+- The code carried is dist/index.es.js lines 3-997 and 1014-1016 of the package (colour helpers, theme presets, lobes and
+  palettes, the stylesheet generator, the shared audio context, the frame driver, defaults and type presets). Marrow's own:
+  mountVoiceGlow, the stand-in for the package's React component, and the drawing of the layers.
 
 ```
 MIT License
@@ -371,7 +412,7 @@ SOFTWARE.
 
 ### Apache License 2.0 (OpenAI Whisper large-v3 model files)
 
-The text below is the Apache License, Version 2.0, as published at https://www.apache.org/licenses/LICENSE-2.0.txt , with its three title lines left-aligned and nothing else changed.
+The text below is the Apache License, Version 2.0, as published at https://www.apache.org/licenses/LICENSE-2.0.txt , with its three title lines left-aligned and its leading blank line left out (spaces and a blank line only; no word is changed).
 
 ```
 Apache License
@@ -576,5 +617,3 @@ http://www.apache.org/licenses/
    See the License for the specific language governing permissions and
    limitations under the License.
 ```
-
-Border-beam and the Uiverse button are credited above (ED-251).

@@ -11,7 +11,7 @@ namespace Marrow.Services.Tests.Port.Voice;
 // Unit VT-0 (voice typing phase V0, the pins): tests for the packages, native binaries, bundled assets and notices that
 // voice typing stands on. Spec: E:\Droppy\work\design\build-specs\voice\SPEC.md V-3.1 to V-3.6, V-6.1, V-7.1, V-9.x, V-T2 to V-T5.
 // Owner rulings: OD-0091, OD-0092, OD-0097 (and amendments); OD-0099 picks Q-V-9 C (Vulkan and CPU in the installer, CUDA a
-// separate download) and Q-V-5 (a FLEURS CC BY 4.0 clip, decided by the lead as ED-NEW-ledger-5).
+// separate download) and Q-V-5 (a FLEURS CC BY 4.0 clip, ED-267).
 //
 // Expected values here come from the sources named beside them (nuget.org registration entries, the Hugging Face file
 // listing and licence cards, the dataset card, the licence files of the projects), never from running the port (R-TEST-4).
@@ -118,6 +118,7 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T5")]
     public void Directory_Packages_props_pins_the_four_voice_packages_at_the_V_3_1_versions()
     {
@@ -128,6 +129,7 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T5")]
     public void The_Services_project_references_the_four_voice_packages_without_a_version_and_nothing_V_3_1_leaves_out()
     {
@@ -135,6 +137,29 @@ public sealed class VoicePinsTests
         foreach (var id in new[] { "Whisper.net", "Whisper.net.Runtime", "Whisper.net.Runtime.Vulkan", "NAudio.Wasapi" })
             Assert.Contains("<PackageReference Include=\"" + id + "\" />", project, StringComparison.Ordinal);
         // V-3.1 "Not taken": CUDA runtimes (Q-V-9 C: a separate download), the no-AVX runtime (Q-V-12), any OpenAI SDK, ONNX Runtime.
+        // Every project and props file of the repository is read (the installer is built from the app project and everything it
+        // references), not only the two the pins live in: a package named anywhere would ship.
+        var files = new[] { Root }.Concat(new[] { "src", "tests" }.Select(d => Path.Combine(Root, d))).SelectMany((d, i) => Directory.EnumerateFiles(d, "*.*", i == 0 ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories))
+            .Where(f => f.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".props", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".targets", StringComparison.OrdinalIgnoreCase))
+            .Where(f => !Path.GetRelativePath(Root, f).Split(Path.DirectorySeparatorChar).Any(part => part is "obj" or "bin" or ".git" or "node_modules"))
+            .ToList();
+        Assert.Contains(files, f => Path.GetFileName(f) == "Marrow.App.csproj");
+        Assert.Contains(files, f => Path.GetFileName(f) == "Directory.Packages.props");
+        var packageNames = new List<(string File, string Name)>();
+        foreach (var file in files)
+            foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(file, Encoding.UTF8), "<(?:PackageReference|PackageVersion|GlobalPackageReference)\\s[^>]*?(?:Include|Update)=\"([^\"]+)\"", System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+                packageNames.Add((Path.GetRelativePath(Root, file), match.Groups[1].Value));
+        Assert.Contains(packageNames, n => n.Name == "Whisper.net.Runtime.Vulkan");
+        foreach (var (file, name) in packageNames)
+        {
+            Assert.False(name.StartsWith("Whisper.net.Runtime.Cuda", StringComparison.OrdinalIgnoreCase), file + " names " + name);
+            Assert.False(name.StartsWith("Whisper.net.Runtime.NoAvx", StringComparison.OrdinalIgnoreCase), file + " names " + name);
+            Assert.False(name.Contains("OpenAI", StringComparison.OrdinalIgnoreCase), file + " names " + name);
+            Assert.False(name.StartsWith("Microsoft.ML.OnnxRuntime", StringComparison.OrdinalIgnoreCase), file + " names " + name);
+        }
+        // The shipped Whisper.net runtime packages are exactly the CPU and Vulkan ones, in every project that names a runtime.
+        Assert.Equal(["Whisper.net.Runtime", "Whisper.net.Runtime.Vulkan"], packageNames.Select(n => n.Name).Where(n => n.StartsWith("Whisper.net.Runtime", StringComparison.Ordinal)).Distinct().Order(StringComparer.Ordinal).ToArray());
+        // The two files that hold the pins are also free of the names as plain text (a comment naming a pack would mislead the next reader).
         var props = ReadRepositoryText("Directory.Packages.props");
         foreach (var text in new[] { project, props })
         {
@@ -147,22 +172,51 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-3.1")]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T5")]
     public void The_resolved_transitive_closure_is_recorded_with_licences_and_matches_what_the_build_loads()
     {
-        var closure = Pins().GetProperty("transitiveClosure").EnumerateArray().Select(e => (Id: e.GetProperty("id").GetString()!, Version: e.GetProperty("version").GetString()!, Licence: e.GetProperty("licence").GetString()!)).ToList();
+        var closure = Pins().GetProperty("transitiveClosure").EnumerateArray()
+            .Select(e => (Id: e.GetProperty("id").GetString()!, Version: e.GetProperty("version").GetString()!, Licence: e.GetProperty("licence").GetString()!, Copyright: e.GetProperty("copyright").GetString()!, Shipped: e.GetProperty("shipped").GetBoolean()))
+            .OrderBy(c => c.Id, StringComparer.Ordinal).ToArray();
+        // The copyright holders are the ones the projects' own licence files state (never the nuspec <copyright> field, which is
+        // "Microsoft Corporation" for packages whose LICENSE says ".NET Foundation"): Microsoft.Extensions.AI.Abstractions from
+        // dotnet/extensions LICENSE ("Copyright (c) .NET Foundation. All rights reserved."), System.Numerics.Tensors from the LICENSE.TXT
+        // inside the package (read below), NAudio from NAudio's LICENSE, Whisper.net.Runtime.Metal from the Whisper.net repository's LICENSE.
         Assert.Equal(
-            [("Microsoft.Extensions.AI.Abstractions", "10.2.0", "MIT"), ("NAudio.Core", "3.1.0", "MIT"), ("System.Numerics.Tensors", "9.0.0", "MIT")],
-            closure.OrderBy(c => c.Id, StringComparer.Ordinal).ToArray());
+            [
+                ("Microsoft.Extensions.AI.Abstractions", "10.2.0", "MIT", "Copyright (c) .NET Foundation. All rights reserved.", true),
+                ("NAudio.Core", "3.1.0", "MIT", "Copyright 2020 Mark Heath", true),
+                ("System.Numerics.Tensors", "9.0.0", "MIT", "Copyright (c) .NET Foundation and Contributors", true),
+                ("Whisper.net.Runtime.Metal", "1.9.1", "MIT", "Copyright (c) 2024 sandrohanea", false),
+            ],
+            closure);
+        // The closure is complete: it equals the packages project.assets.json resolved for the Services project besides the four direct ones.
+        var assets = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "src", "Marrow.Services", "obj", "project.assets.json"), Encoding.UTF8)).RootElement;
+        var direct = new[] { "Whisper.net", "Whisper.net.Runtime", "Whisper.net.Runtime.Vulkan", "NAudio.Wasapi" };
+        var resolved = assets.GetProperty("targets").EnumerateObject().Single().Value
+            .EnumerateObject().Where(p => p.Value.GetProperty("type").GetString() == "package").Select(p => p.Name).Where(n => !n.StartsWith("Marrow.", StringComparison.Ordinal)).ToList();
+        var resolvedTransitive = resolved.Where(n => !direct.Contains(n[..n.IndexOf('/', StringComparison.Ordinal)]))
+            .Select(n => n[..n.IndexOf('/', StringComparison.Ordinal)] + " " + n[(n.IndexOf('/', StringComparison.Ordinal) + 1)..]).Order(StringComparer.Ordinal).ToArray();
+        Assert.Equal(closure.Select(c => c.Id + " " + c.Version).Order(StringComparer.Ordinal).ToArray(), resolvedTransitive);
         // The managed assemblies of the closure sit beside the tests (copied from the Services references).
         foreach (var assembly in new[] { "Whisper.net.dll", "NAudio.Wasapi.dll", "NAudio.Core.dll", "Microsoft.Extensions.AI.Abstractions.dll", "System.Numerics.Tensors.dll" })
             Assert.True(File.Exists(Path.Combine(AppContext.BaseDirectory, assembly)), assembly);
+        // The Metal package ships nothing to a Windows build (its only file is ggml-metal.metal, copied for macOS target frameworks only).
+        Assert.False(Directory.EnumerateFiles(AppContext.BaseDirectory, "ggml-metal*", SearchOption.AllDirectories).Any());
+        // The packages' own licence files, from the restored copies: the copyright line of the closure record is the one in the file.
+        var folder = assets.GetProperty("packageFolders").EnumerateObject().First().Name;
+        string Licence(string id, string version, string file) => File.ReadAllText(Path.Combine(folder, id.ToLowerInvariant(), version, file), Encoding.UTF8);
+        Assert.Contains("Copyright (c) .NET Foundation and Contributors", Licence("System.Numerics.Tensors", "9.0.0", "LICENSE.TXT"), StringComparison.Ordinal);
+        Assert.DoesNotContain("Microsoft Corporation", Licence("System.Numerics.Tensors", "9.0.0", "LICENSE.TXT"), StringComparison.Ordinal);
+        Assert.Contains("Copyright (c) 2024 sandrohanea", Licence("Whisper.net", "1.9.1", "LICENSE"), StringComparison.Ordinal);
     }
 
     // ---- V-T2: Whisper.net API members the adapter uses exist (reflection; names recorded) ----
 
     [Fact]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T2")]
     public void The_Whisper_net_members_V_7_1_names_exist()
     {
@@ -194,6 +248,7 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T2")]
     public void The_recorded_member_names_all_exist_and_the_record_names_the_static_runtime_options()
     {
@@ -213,7 +268,8 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-6.1")]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T2")]
     public void Whisper_net_1_9_1_exposes_no_per_frame_speech_probability_so_the_native_export_fallback_is_the_route()
     {
         // V-6.1: "the per-frame probability API is UNVERIFIED". Verified here: the VAD types hand out segments only.
@@ -224,7 +280,8 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-6.1")]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T2")]
     public void The_shipped_whisper_dll_exports_the_five_VAD_functions_the_P_Invoke_fallback_needs()
     {
         foreach (var directory in new[] { "runtimes/win-x64", "runtimes/vulkan/win-x64" })
@@ -240,7 +297,7 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-3.2")]
+    [Trait("Decision", "ED-267")]
     public void The_build_output_holds_exactly_the_win_x64_CPU_and_Vulkan_natives_and_no_other_platform()
     {
         var runtimes = Path.Combine(AppContext.BaseDirectory, "runtimes");
@@ -259,7 +316,7 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-3.2")]
+    [Trait("Decision", "ED-267")]
     public void The_record_lists_the_same_natives_and_totals_them_against_the_50_MB_budget_honestly()
     {
         var natives = Pins().GetProperty("natives");
@@ -279,7 +336,7 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-3.2")]
+    [Trait("Decision", "ED-267")]
     public void The_natives_import_the_Visual_C_runtime_DLLs_the_record_lists_and_the_record_states_who_carries_them()
     {
         var recorded = Pins().GetProperty("vcRuntime");
@@ -303,6 +360,7 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T3")]
     public void The_bundled_Silero_VAD_model_is_the_pinned_file()
     {
@@ -315,6 +373,7 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T3")]
     public void The_VAD_model_is_copied_beside_the_app_and_the_record_pins_its_source_and_licence()
     {
@@ -331,17 +390,19 @@ public sealed class VoicePinsTests
         Assert.Equal("Copyright (c) 2020-present Silero Team", vad.GetProperty("copyright").GetString());
     }
 
-    // ---- V-3.5: the self-test clip (Q-V-5, decided by the lead: a FLEURS clip, CC BY 4.0) ----
+    // ---- V-3.5: the self-test clip (Q-V-5, ED-267: a FLEURS clip, CC BY 4.0) ----
+
+    private const string ClipSha256 = "5c3db8924bb4953997de132f84000841ca0d2a9257b439b10dbc79ef400b01df";
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-3.5")]
+    [Trait("Decision", "ED-267")]
     public void The_self_test_clip_is_the_pinned_ten_second_16_kHz_mono_16_bit_WAV()
     {
         var path = Path.Combine(AssetsDirectory, "selftest-clip.wav");
         var bytes = File.ReadAllBytes(path);
         Assert.Equal(320684, bytes.Length);
-        Assert.Equal("acd1980c18801a7ffbc3e955c4340aab1dd0410b7b12af812b0166c3f5da0d3c", Sha256(path));
+        Assert.Equal(ClipSha256, Sha256(path));
         Assert.Equal("RIFF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Equal("WAVE", Encoding.ASCII.GetString(bytes, 8, 4));
         Assert.Equal("fmt ", Encoding.ASCII.GetString(bytes, 12, 4));
@@ -360,7 +421,33 @@ public sealed class VoicePinsTests
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-3.5")]
+    [Trait("Decision", "ED-267")]
+    public void The_self_test_clip_is_at_the_level_of_the_BENCH_clips_the_V_10_3_thresholds_came_from()
+    {
+        // V-10.3 compares the self-test's real-time factor with thresholds measured by BENCH on clips level-matched to an RMS of 3000
+        // (16-bit units, about -20 dBFS; BENCH scripts/prep_audio.py: gain = 3000 / rms, capped so the peak stays at or under 30000),
+        // whose peaks lay between -3.2 and -0.8 dBFS. The bundled clip is that very clip (BENCH en_10s_1.wav), so the timing it
+        // gives is the one the thresholds were taken from; a quiet or coarsely quantised clip would not reproduce those conditions.
+        var bytes = File.ReadAllBytes(Path.Combine(AssetsDirectory, "selftest-clip.wav"));
+        var samples = new short[(bytes.Length - 44) / 2];
+        Buffer.BlockCopy(bytes, 44, samples, 0, samples.Length * 2);
+        var rms = Math.Sqrt(samples.Sum(x => (double)x * x) / samples.Length);
+        var peak = samples.Max(x => Math.Abs((int)x));
+        var peakDbfs = 20 * Math.Log10(peak / 32768.0);
+        Assert.InRange(rms, 2970.0, 3030.0);
+        Assert.InRange(peakDbfs, -3.2, -0.8);
+        // Fine quantisation: the levels come from a float recording scaled once, not from an already coarse 16-bit file.
+        Assert.True(samples.Distinct().Count() > 10000, "distinct 16-bit levels: " + samples.Distinct().Count());
+        var clip = Pins().GetProperty("selfTestClip");
+        Assert.Equal(Math.Round(rms, 1), Math.Round(clip.GetProperty("rms").GetDouble(), 1));
+        Assert.Equal(peak, clip.GetProperty("peak").GetInt32());
+        Assert.Equal("3000 / rms, capped so the peak stays at or under 30000", clip.GetProperty("gainRule").GetString());
+        Assert.InRange(clip.GetProperty("gain").GetDouble(), 1.06, 1.07);
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     public void The_clip_record_names_the_dataset_commit_the_licence_and_the_change_made()
     {
         var clip = Pins().GetProperty("selfTestClip");
@@ -368,21 +455,29 @@ public sealed class VoicePinsTests
         Assert.Equal("70bb2e84b976b7e960aa89f1c648e09c59f894dd", clip.GetProperty("datasetCommit").GetString());
         Assert.Equal("CC-BY-4.0", clip.GetProperty("licence").GetString());
         Assert.Equal("https://creativecommons.org/licenses/by/4.0/", clip.GetProperty("licenceUrl").GetString());
-        Assert.Equal("data/en_us/audio/dev.tar.gz", clip.GetProperty("archive").GetString());
-        Assert.Equal("dev/10290896634244679159.wav", clip.GetProperty("member").GetString());
-        Assert.Equal("39097469197371ff2e4eb4450f3b7b86b65e79b3962c5e8c4eadc77786f4204d", clip.GetProperty("originalSha256").GetString());
-        Assert.Equal("acd1980c18801a7ffbc3e955c4340aab1dd0410b7b12af812b0166c3f5da0d3c", clip.GetProperty("sha256").GetString());
+        // The archive's LFS oid at the pinned commit (the Hugging Face tree listing of data/en_us/audio) equals the archive BENCH
+        // downloaded, and the clip is the BENCH timing clip en_10s_1 (sentence 1935 of the English test split).
+        Assert.Equal("data/en_us/audio/test.tar.gz", clip.GetProperty("archive").GetString());
+        Assert.Equal("d9c2e37b41aacd41bc283554a0a82b5476b36887049774ecb2819dcaaa55a356", clip.GetProperty("archiveSha256").GetString());
+        Assert.Equal(289851356L, clip.GetProperty("archiveBytes").GetInt64());
+        Assert.Equal("test/1618638950277648344.wav", clip.GetProperty("member").GetString());
+        Assert.Equal("6c55023cd69a460977509d43dc714f4544dc9acad2cf1f42bc266f63b2ed9e35", clip.GetProperty("originalSha256").GetString());
+        Assert.Equal(641338L, clip.GetProperty("originalBytes").GetInt64());
+        Assert.Equal(ClipSha256, clip.GetProperty("sha256").GetString());
         Assert.Equal(320684L, clip.GetProperty("bytes").GetInt64());
-        // The only change: the 32-bit float samples were rounded to 16-bit PCM (rate, channel and length unchanged).
-        Assert.Contains("32-bit float", clip.GetProperty("change").GetString(), StringComparison.Ordinal);
-        Assert.Contains("16-bit", clip.GetProperty("change").GetString(), StringComparison.Ordinal);
+        Assert.Equal("However, that is not true. Although there is something written on the back of the document, it is not a treasure map.", clip.GetProperty("transcription").GetString());
+        // The change made (CC BY 4.0 requires it to be stated): decoded to 16 kHz mono 16-bit PCM and scaled once by the stated gain.
+        var change = clip.GetProperty("change").GetString()!;
+        foreach (var part in new[] { "32-bit float", "16 kHz", "mono", "16-bit", "ffmpeg", "one gain", "3000", "1.062187" })
+            Assert.Contains(part, change, StringComparison.Ordinal);
+        Assert.StartsWith("1.062187", clip.GetProperty("gain").GetDouble().ToString("R", CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 
     // ---- Q-V-9 C: the CUDA feasibility and pin record ----
 
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-3.2")]
+    [Trait("Decision", "ED-267")]
     public void The_CUDA_pack_pins_are_the_nuget_org_registration_values()
     {
         // nuget.org registration entries (packageSize, packageHash in base64 of SHA-512) for the two Windows CUDA packs at 1.9.1.
@@ -405,20 +500,71 @@ public sealed class VoicePinsTests
         Assert.Equal("Whisper.net.Runtime.Cuda12.Windows", cuda.GetProperty("offered").GetString());
     }
 
+    // The saved console output of the loader probe (porting\probest-0-cuda-loader): every claim of the feasibility record that rests on
+    // the probe is held to a line of that file, so the record is not asserted against itself.
+    private static Dictionary<int, List<string>> ProbeCases()
+    {
+        var cases = new Dictionary<int, List<string>>();
+        List<string>? current = null;
+        foreach (var line in ReadRepositoryText("porting", "probes", "vt-0-cuda-loader", "run-output.txt").Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            var header = System.Text.RegularExpressions.Regex.Match(line, @"^== case ([0-9]+):");
+            if (header.Success) cases[int.Parse(header.Groups[1].Value, CultureInfo.InvariantCulture)] = current = [];
+            else if (current is not null && line.Length > 0) current.Add(line);
+        }
+        return cases;
+    }
+
     [Fact]
     [Trait("Feature", Feature)]
-    [Trait("Spec", "V-3.2")]
-    public void The_CUDA_feasibility_finding_states_how_the_loader_finds_a_downloaded_folder_and_what_the_pack_lacks()
+    [Trait("Decision", "ED-267")]
+    public void The_CUDA_loader_probe_output_backs_each_claim_the_feasibility_record_makes_about_RuntimeOptions_LibraryPath()
     {
+        var cases = ProbeCases();
+        Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7 }, cases.Keys.Order().ToArray());
+        const string Segments = "VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]";
+        // Cases 1 to 3: the path is read through its directory, so a file path inside the root works and the folder or a file two levels down does not.
+        Assert.Equal(["LoadedLibrary=Cpu", Segments], cases[1].Skip(1).ToArray());
+        Assert.StartsWith("FAIL FileNotFoundException: Native Library not found", cases[2][1], StringComparison.Ordinal);
+        Assert.StartsWith("FAIL FileNotFoundException: Native Library not found", cases[3][1], StringComparison.Ordinal);
+        // Case 4: the Vulkan runtime loads from the downloaded folder too, and finds the same segments as the CPU one.
+        Assert.Equal(["LoadedLibrary=Vulkan", Segments], cases[4].Skip(1).ToArray());
+        // Cases 5 to 7: a CUDA runtime that cannot be loaded is skipped when a later one is listed, and is an error when it is the only one.
+        Assert.Equal(["LoadedLibrary=Vulkan", Segments], cases[5].Skip(1).ToArray());
+        Assert.Equal(["LoadedLibrary=Cpu", Segments], cases[6].Skip(1).ToArray());
+        Assert.StartsWith("FAIL Exception: Failed to load native whisper library", cases[7][1], StringComparison.Ordinal);
+
         var finding = Pins().GetProperty("cuda").GetProperty("feasibility");
-        Assert.True(finding.GetProperty("loadsFromDownloadedFolder").GetBoolean());
-        // RuntimeOptions.LibraryPath is a file path: its DIRECTORY is the search root, under which the loader looks in
-        // runtimes/<runtime>/win-x64 (cuda12 for the CUDA 12 pack, cuda for the CUDA 13 pack, vulkan, and win-x64 for the CPU).
+        Assert.Equal("porting/probes/vt-0-cuda-loader/run-output.txt", finding.GetProperty("probeOutput").GetString());
         Assert.Equal("directory-of-the-path", finding.GetProperty("libraryPathSemantics").GetString());
         Assert.Equal("falls-back-to-the-next-runtime", finding.GetProperty("whenCudaCannotLoad").GetString());
-        // The pack carries no NVIDIA runtime libraries: the pack's own native imports name them.
+        Assert.Equal(Segments, finding.GetProperty("vadCheck").GetString());
+        var loads = finding.GetProperty("loadsFromDownloadedFolder");
+        Assert.Equal("reproduced (probe case 1)", loads.GetProperty("Cpu").GetString());
+        Assert.Equal("reproduced (probe case 4)", loads.GetProperty("Vulkan").GetString());
+        // What no artifact backs is recorded as such, never as a verified fact: the real CUDA 12 pack was loaded once on the owner PC with
+        // NVIDIA 12.4 copies from the benchmark folder (console output not saved; the copies are no longer on this PC), so it is an
+        // observation. The fall-back above is shown with an unloadable stand-in for the pack, not with the pack itself.
+        var cuda12 = loads.GetProperty("Cuda12");
+        Assert.Equal("observed-not-reproduced", cuda12.GetProperty("status").GetString());
+        Assert.Contains("not saved", cuda12.GetProperty("note").GetString(), StringComparison.Ordinal);
+        Assert.Contains("stand-in", finding.GetProperty("fallbackEvidence").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    public void The_CUDA_feasibility_finding_states_what_the_pack_lacks_and_pins_the_NVIDIA_companions()
+    {
+        var finding = Pins().GetProperty("cuda").GetProperty("feasibility");
+        // The pack carries no NVIDIA runtime libraries: the pack's own native imports name them (read from the PE import table of
+        // ggml-cuda-whisper.dll in the downloaded pack, 2026-10-04; the 250 MB pack was not kept, so this one is a recorded reading).
         var needs = finding.GetProperty("packDoesNotCarry").EnumerateArray().Select(e => e.GetString()!).Order(StringComparer.Ordinal).ToArray();
         Assert.Equal(new[] { "cublas64_12.dll", "cublasLt64_12.dll", "cudart64_12.dll" }, needs);
+        var imports = Pins().GetProperty("cuda").GetProperty("packs").GetProperty("Whisper.net.Runtime.Cuda12.Windows").GetProperty("imports").EnumerateArray().Select(e => e.GetString()!).ToArray();
+        Assert.Contains("cudart64_12.dll", imports);
+        Assert.Contains("cublas64_12.dll", imports);
+        Assert.Equal("recorded-reading-pack-not-kept", Pins().GetProperty("cuda").GetProperty("importsEvidence").GetString());
         var companions = Pins().GetProperty("cuda").GetProperty("nvidiaCompanions");
         Assert.Equal("12.4.2.65", companions.GetProperty("libcublas").GetProperty("version").GetString());
         Assert.Equal("4229d2b590e4382e1b36651dde644e04c5a8664f99f53bb43dca967982a84f58", companions.GetProperty("libcublas").GetProperty("sha256").GetString());
@@ -439,50 +585,171 @@ public sealed class VoicePinsTests
         return next < 0 ? text[start..] : text[start..next];
     }
 
+    // One "### " block of the section: its text up to the next heading.
+    private static string NoticesBlock(string heading)
+    {
+        var section = VoiceNoticesSection();
+        var at = section.IndexOf("\n" + heading + "\n", StringComparison.Ordinal);
+        Assert.True(at >= 0, heading);
+        var next = section.IndexOf("\n### ", at + heading.Length + 2, StringComparison.Ordinal);
+        return next < 0 ? section[(at + 1)..] : section[(at + 1)..next];
+    }
+
+    // The text above a block's first code fence (the bullets) and the text inside it (the licence).
+    private static (string Bullets, string Licence) Split(string block)
+    {
+        var open = block.IndexOf("\n```\n", StringComparison.Ordinal);
+        if (open < 0) return (block, "");
+        var close = block.IndexOf("\n```", open + 5, StringComparison.Ordinal);
+        return (block[..open], block[(open + 5)..close]);
+    }
+
+    // The component blocks of the V-3.6 section: heading, source, and the copyright line that appears in the licence text.
+    // V-3.6 gives one block for Microsoft.Extensions.AI.Abstractions and System.Numerics.Tensors; they are two here because their
+    // licence files name different holders (see the closure record and ED-NEW-f-vt-0).
     [Theory]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T4")]
     [InlineData("### OpenAI Whisper (model weights and reference code)", "https://github.com/openai/whisper", "Copyright (c) 2022 OpenAI")]
-    [InlineData("### whisper.cpp and ggml", "https://github.com/ggml-org/whisper.cpp", "Copyright (c) 2023-2026 The ggml authors")]
+    [InlineData("### whisper.cpp and ggml (native engine inside `Whisper.net`'s runtimes; the ggml model files)", "https://github.com/ggml-org/whisper.cpp", "Copyright (c) 2023-2026 The ggml authors")]
     [InlineData("### `Whisper.net`", "https://github.com/sandrohanea/whisper.net", "Copyright (c) 2024 sandrohanea")]
     [InlineData("### NAudio", "https://github.com/naudio/NAudio", "Copyright 2020 Mark Heath")]
     [InlineData("### Silero VAD", "https://github.com/snakers4/silero-vad", "Copyright (c) 2020-present Silero Team")]
-    [InlineData("### Liquid Orb Editor (LerSent001)", "https://github.com/LerSent001/orb", "Copyright (c) 2026 LerSent001")]
-    [InlineData("### voice-glow 0.2.1 (Jakub Antalik)", "https://www.npmjs.com/package/voice-glow", "Copyright (c) 2026 Jakub Antalik")]
-    [InlineData("### Microsoft.Extensions.AI.Abstractions and System.Numerics.Tensors", "https://dot.net/", "Copyright (c) Microsoft Corporation")]
-    [InlineData("### FLEURS (the self-test clip)", "https://huggingface.co/datasets/google/fleurs", "https://creativecommons.org/licenses/by/4.0/")]
-    public void The_Voice_typing_section_credits_each_component_with_its_source_licence_and_copyright(string heading, string source, string line)
+    [InlineData("### Liquid Orb Editor (LerSent001): the voice orb", "https://github.com/LerSent001/orb", "Copyright (c) 2026 LerSent001")]
+    [InlineData("### voice-glow 0.2.1 (Jakub Antalik): the composer's voice glow", "https://www.npmjs.com/package/voice-glow", "Copyright (c) 2026 Jakub Antalik")]
+    [InlineData("### Microsoft.Extensions.AI.Abstractions (dependency of `Whisper.net`)", "https://dot.net/", "Copyright (c) .NET Foundation. All rights reserved.")]
+    [InlineData("### System.Numerics.Tensors (dependency of Microsoft.Extensions.AI.Abstractions)", "https://dot.net/", "Copyright (c) .NET Foundation and Contributors")]
+    public void The_Voice_typing_section_credits_each_component_with_its_source_licence_and_copyright(string heading, string source, string copyright)
     {
-        var section = VoiceNoticesSection();
-        var at = section.IndexOf(heading, StringComparison.Ordinal);
-        Assert.True(at >= 0, heading);
-        var next = section.IndexOf("\n### ", at + heading.Length, StringComparison.Ordinal);
-        var block = next < 0 ? section[at..] : section[at..next];
-        Assert.Contains(source, block, StringComparison.Ordinal);
-        Assert.Contains(line, block, StringComparison.Ordinal);
-        Assert.Contains(heading.StartsWith("### FLEURS", StringComparison.Ordinal) ? "CC BY 4.0" : "MIT", block, StringComparison.Ordinal);
+        var (bullets, licence) = Split(NoticesBlock(heading));
+        Assert.Contains(source, bullets, StringComparison.Ordinal);
+        // The component's own bullet states the licence and the holder (not merely some line somewhere in the block) ...
+        Assert.Contains("Licence: MIT, \"" + copyright + "\"", bullets, StringComparison.Ordinal);
+        // ... and the licence text carried under it is the MIT text with the same copyright line.
+        Assert.Contains("\n" + copyright + "\n", "\n" + licence + "\n", StringComparison.Ordinal);
+        Assert.Contains("Permission is hereby granted, free of charge, to any person obtaining a copy", licence, StringComparison.Ordinal);
+        Assert.Contains("THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND", licence, StringComparison.Ordinal);
     }
 
     [Fact]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T4")]
-    public void The_Voice_typing_section_opens_with_V_3_6s_paragraph_and_carries_the_model_commit_and_both_licence_texts()
+    public void The_MIT_texts_of_the_two_dotnet_packages_are_their_own_licence_files()
+    {
+        // System.Numerics.Tensors: LICENSE.TXT inside the package (restored copy). Microsoft.Extensions.AI.Abstractions: the LICENSE of
+        // dotnet/extensions (its package carries no licence file; the nuspec only names the MIT expression): the same text with the
+        // holder line "Copyright (c) .NET Foundation. All rights reserved.".
+        var assets = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "src", "Marrow.Services", "obj", "project.assets.json"), Encoding.UTF8)).RootElement;
+        var folder = assets.GetProperty("packageFolders").EnumerateObject().First().Name;
+        var tensors = File.ReadAllText(Path.Combine(folder, "system.numerics.tensors", "9.0.0", "LICENSE.TXT"), Encoding.UTF8).Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd();
+        var (_, tensorsText) = Split(NoticesBlock("### System.Numerics.Tensors (dependency of Microsoft.Extensions.AI.Abstractions)"));
+        Assert.Equal(tensors, tensorsText.TrimEnd());
+        var extensions = "The MIT License (MIT)\n\nCopyright (c) .NET Foundation. All rights reserved.\n\nAll rights reserved.\n\n" + tensors[tensors.IndexOf("Permission is hereby granted", StringComparison.Ordinal)..];
+        var (_, extensionsText) = Split(NoticesBlock("### Microsoft.Extensions.AI.Abstractions (dependency of `Whisper.net`)"));
+        Assert.Equal(extensions, extensionsText.TrimEnd());
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T4")]
+    public void The_FLEURS_block_carries_the_creator_attribution_the_licence_requires_and_states_the_change()
+    {
+        var block = NoticesBlock("### FLEURS (the self-test clip)");
+        Assert.Contains("https://huggingface.co/datasets/google/fleurs", block, StringComparison.Ordinal);
+        Assert.Contains("Licence: CC BY 4.0,", block, StringComparison.Ordinal);
+        Assert.Contains("https://creativecommons.org/licenses/by/4.0/", block, StringComparison.Ordinal);
+        // CC BY 4.0 section 3(a)(1): the creators, the title, the licence and the change notice.
+        foreach (var author in new[] { "Alexis Conneau", "Min Ma", "Simran Khanuja", "Yu Zhang", "Vera Axelrod", "Siddharth Dalmia", "Jason Riesa", "Clara Rivera", "Ankur Bapna" })
+            Assert.Contains(author, block, StringComparison.Ordinal);
+        Assert.Contains("\"FLEURS: Few-shot Learning Evaluation of Universal Representations of Speech\"", block, StringComparison.Ordinal);
+        Assert.Contains("https://arxiv.org/abs/2205.12446", block, StringComparison.Ordinal);
+        Assert.Contains("test/1618638950277648344.wav of data/en_us/audio/test.tar.gz", block, StringComparison.Ordinal);
+        // The change made is the one the record states: a gain of 1.062187 (3000 / rms) after the conversion to 16 kHz mono 16-bit.
+        Assert.Contains("Changes made:", block, StringComparison.Ordinal);
+        foreach (var part in new[] { "32-bit float", "16 kHz", "mono", "16-bit", "one gain of 1.062187" })
+            Assert.Contains(part, block, StringComparison.Ordinal);
+    }
+
+    // V-3.6's opening paragraph, as the spec words it. Two replacements are made on purpose and named in ED-NEW-f-vt-0: "ED-nnn" is the
+    // spec's placeholder for the engineering decision that records the section, filled with ED-267 (the voice decision that settles
+    // the clip credited in it), and the name Whisper.net is written as inline code so MarkdownView does not turn it into a link (ED 10).
+    private const string SpecParagraph =
+        "Voice typing (owner decisions OD-0091, OD-0092; ED-nnn) runs OpenAI's Whisper on the user's computer through whisper.cpp\n" +
+        "and Whisper.net, captures the microphone with NAudio, detects speech with Silero VAD, and draws the voice orb and the\n" +
+        "composer's voice glow from the two works credited last. Model files are downloaded on request from Hugging Face\n" +
+        "(ggerganov/whisper.cpp, commit 5359861c739e955e79d9a303bcbc70fb988958b1) and are not part of the installer.";
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T4")]
+    public void The_Voice_typing_section_opens_with_V_3_6s_paragraph_word_for_word()
     {
         var section = VoiceNoticesSection();
-        Assert.Contains("runs OpenAI's Whisper on the user's computer through whisper.cpp", section, StringComparison.Ordinal);
-        Assert.Contains("and `Whisper.net`, captures the microphone with NAudio, detects speech with Silero VAD", section, StringComparison.Ordinal);
-        Assert.Contains("(ggerganov/whisper.cpp, commit 5359861c739e955e79d9a303bcbc70fb988958b1) and are not part of the installer.", section, StringComparison.Ordinal);
-        // The MIT permission notice appears once per credited work (nine works carry the licence text) and the Apache text once.
-        Assert.True(CountOf(section, "Permission is hereby granted, free of charge, to any person obtaining a copy") >= 8);
+        const string Opening = "\n## Voice typing\n\n";
+        Assert.StartsWith(Opening, section, StringComparison.Ordinal);
+        var firstHeading = section.IndexOf("\n\n### ", StringComparison.Ordinal);
+        var paragraph = section[Opening.Length..firstHeading];
+        var expected = SpecParagraph.Replace("ED-nnn", "ED-267", StringComparison.Ordinal).Replace("Whisper.net", "`Whisper.net`", StringComparison.Ordinal);
+        Assert.Equal(expected, paragraph);
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T4")]
+    public void The_Voice_typing_section_has_the_V_3_6_headings_in_the_order_the_paragraph_implies()
+    {
+        // V-3.6's list, with the orb and the glow last as its opening paragraph says ("the two works credited last"), the two .NET
+        // packages in one block each, FLEURS (Q-V-5) before them and the Apache text after (V-3.6's closing bracket).
+        string[] expected =
+        [
+            "### OpenAI Whisper (model weights and reference code)",
+            "### whisper.cpp and ggml (native engine inside `Whisper.net`'s runtimes; the ggml model files)",
+            "### `Whisper.net`",
+            "### NAudio",
+            "### Silero VAD",
+            "### Microsoft.Extensions.AI.Abstractions (dependency of `Whisper.net`)",
+            "### System.Numerics.Tensors (dependency of Microsoft.Extensions.AI.Abstractions)",
+            "### FLEURS (the self-test clip)",
+            "### Liquid Orb Editor (LerSent001): the voice orb",
+            "### voice-glow 0.2.1 (Jakub Antalik): the composer's voice glow",
+            "### Apache License 2.0 (OpenAI Whisper large-v3 model files)",
+        ];
+        var headings = new List<string>();
+        var inFence = false;
+        foreach (var line in VoiceNoticesSection().Split('\n'))
+        {
+            if (line.StartsWith("```", StringComparison.Ordinal)) inFence = !inFence;
+            else if (!inFence && line.StartsWith("### ", StringComparison.Ordinal)) headings.Add(line);
+        }
+        Assert.Equal(expected, headings);
+    }
+
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    [Trait("Spec", "V-T4")]
+    public void The_Voice_typing_section_carries_the_model_commit_and_both_licence_texts()
+    {
+        var section = VoiceNoticesSection();
+        // The MIT permission notice appears once per credited work that carries its text (nine works) and the Apache text once.
+        Assert.Equal(9, CountOf(section, "Permission is hereby granted, free of charge, to any person obtaining a copy"));
+        Assert.Equal(1, CountOf(section, "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION"));
         Assert.Contains("```\nApache License\nVersion 2.0, January 2004\nhttp://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n", section, StringComparison.Ordinal);
         Assert.Contains("END OF TERMS AND CONDITIONS", section, StringComparison.Ordinal);
         Assert.Contains("the Apache License 2.0 text is included below for the large-v3 files", section, StringComparison.Ordinal);
         Assert.Contains("while the repository states MIT", section, StringComparison.Ordinal);
-        Assert.Contains("Border-beam and the Uiverse button are credited above (ED-251)", section, StringComparison.Ordinal);
+        // Border-beam and the Uiverse button are credited above (ED-251): the Voice typing section does not repeat them.
+        Assert.DoesNotContain("border-beam", section, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T4")]
     public void The_Voice_typing_section_never_leaves_the_name_Whisper_net_bare_for_the_markdown_autolinker()
     {

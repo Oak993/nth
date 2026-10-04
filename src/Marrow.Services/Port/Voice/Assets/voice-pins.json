@@ -46,22 +46,38 @@
       "id": "Microsoft.Extensions.AI.Abstractions",
       "version": "10.2.0",
       "licence": "MIT",
-      "copyright": "Copyright (c) Microsoft Corporation",
-      "via": "Whisper.net"
+      "copyright": "Copyright (c) .NET Foundation. All rights reserved.",
+      "copyrightSource": "LICENSE of github.com/dotnet/extensions (the package carries no licence file; its nuspec says <copyright> Microsoft Corporation, which is not the holder the licence names)",
+      "via": "Whisper.net",
+      "shipped": true
     },
     {
       "id": "System.Numerics.Tensors",
       "version": "9.0.0",
       "licence": "MIT",
-      "copyright": "Copyright (c) Microsoft Corporation",
-      "via": "Microsoft.Extensions.AI.Abstractions"
+      "copyright": "Copyright (c) .NET Foundation and Contributors",
+      "copyrightSource": "LICENSE.TXT inside the package (its nuspec <copyright> says Microsoft Corporation, which is not the holder the licence names)",
+      "via": "Microsoft.Extensions.AI.Abstractions",
+      "shipped": true
     },
     {
       "id": "NAudio.Core",
       "version": "3.1.0",
       "licence": "MIT",
       "copyright": "Copyright 2020 Mark Heath",
-      "via": "NAudio.Wasapi"
+      "copyrightSource": "LICENSE of github.com/naudio/NAudio",
+      "via": "NAudio.Wasapi",
+      "shipped": true
+    },
+    {
+      "id": "Whisper.net.Runtime.Metal",
+      "version": "1.9.1",
+      "licence": "MIT",
+      "copyright": "Copyright (c) 2024 sandrohanea",
+      "copyrightSource": "the nuspec names the MIT expression and the project url github.com/sandrohanea/whisper.net; the package carries no licence file, so the holder is the one in the LICENSE of Whisper.net 1.9.1 (same repository)",
+      "via": "Whisper.net.Runtime",
+      "shipped": false,
+      "note": "macOS and iOS natives (build/ggml-metal.metal). Its build targets copy the file only for macOS target frameworks (a TFM without a dash) and as a MAUI asset, never for net10.0-windows: nothing from it reaches the build output or the installer (asserted by VoicePinsTests), so it needs no notice of its own beyond the whisper.cpp and Whisper.net ones."
     }
   ],
   "natives": {
@@ -249,26 +265,37 @@
     "file": "selftest-clip.wav",
     "dataset": "google/fleurs",
     "datasetCommit": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
-    "archive": "data/en_us/audio/dev.tar.gz",
-    "member": "dev/10290896634244679159.wav",
+    "archive": "data/en_us/audio/test.tar.gz",
+    "archiveSha256": "d9c2e37b41aacd41bc283554a0a82b5476b36887049774ecb2819dcaaa55a356",
+    "archiveBytes": 289851356,
+    "archiveEvidence": "The Hugging Face tree listing of data/en_us/audio at the pinned commit gives this LFS oid and size for test.tar.gz (read 2026-10-04); it equals the archive BENCH downloaded (BENCH audio/SOURCES.md) and the clip was extracted from that archive.",
+    "member": "test/1618638950277648344.wav",
+    "originalSha256": "6c55023cd69a460977509d43dc714f4544dc9acad2cf1f42bc266f63b2ed9e35",
+    "originalBytes": 641338,
     "language": "en_us",
-    "originalSha256": "39097469197371ff2e4eb4450f3b7b86b65e79b3962c5e8c4eadc77786f4204d",
-    "transcription": "The Tibetan Buddhism is based on the teachings of Buddha, but were extended by the mahayana path of love and by a lot of techniques from Indian Yoga.",
+    "sentenceId": 1935,
+    "transcription": "However, that is not true. Although there is something written on the back of the document, it is not a treasure map.",
     "seconds": 10.02,
     "bytes": 320684,
-    "sha256": "acd1980c18801a7ffbc3e955c4340aab1dd0410b7b12af812b0166c3f5da0d3c",
+    "sha256": "5c3db8924bb4953997de132f84000841ca0d2a9257b439b10dbc79ef400b01df",
     "format": "16 kHz, mono, 16-bit PCM WAV, 44-byte header",
     "licence": "CC-BY-4.0",
     "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
     "licenceEvidence": "the dataset card at the pinned commit lists license: cc-by-4.0 and states that all FLEURS datasets are licensed CC-BY; redistribution with attribution is permitted",
     "attribution": "FLEURS, Conneau, Ma, Khanuja, Zhang, Axelrod, Dalmia, Riesa, Rivera, Bapna (Google), arXiv:2205.12446, CC BY 4.0",
-    "change": "The original is a 32-bit float WAV at 16 kHz mono (peak 0.0062); the samples were rounded to 16-bit PCM and the file re-headed. No gain, filter, trim or resampling was applied.",
-    "vadCheck": "The Silero VAD run on the clip found two speech segments, 0.71-5.92 s and 6.08-9.21 s (scratch probe, 2026-10-04).",
-    "decision": "Q-V-5: ED-NEW-ledger-5 (the lead settles it); this unit implements the FLEURS pick."
+    "benchClip": "en_10s_1.wav of the BENCH audio set (E:\\Droppy\\work\\voice\\bench\\audio\\en), byte-identical to this file (sha256 above): the clip the V-10.3 thresholds were measured with",
+    "gainRule": "3000 / rms, capped so the peak stays at or under 30000",
+    "gain": 1.06218722459188,
+    "rms": 3000.0,
+    "peak": 25439,
+    "peakDbfs": -2.2,
+    "change": "The recording is a 32-bit float WAV; it was decoded with ffmpeg (2026-04-09 build) to 16 kHz mono 16-bit PCM and the samples scaled by one gain, 1.062187 (3000 divided by the decoded RMS of 2824.36, a level match to about -20 dBFS RMS, the level of every BENCH clip; the 30000 peak cap did not apply, the decoded peak was 23950), then rounded to 16-bit PCM and re-headed. No filter, trim or resampling was applied. Reproduced byte for byte from the archive member by BENCH scripts/prep_audio.py's recipe.",
+    "vadCheck": "The Silero VAD run on the clip (CPU and Vulkan) found three speech segments, [1.35-3.10] [3.65-6.78] [6.95-8.70] s (porting/probes/vt-0-cuda-loader/run-output.txt, cases 1 and 4).",
+    "decision": "Q-V-5: ED-267 (the lead settled it); this unit implements the FLEURS pick."
   },
   "cuda": {
     "offered": "Whisper.net.Runtime.Cuda12.Windows",
-    "offeredWhy": "ENGINEERING DECISION (VT-0): the CUDA 12 pack is the one proven to load from a downloaded folder with NVIDIA 12.4 libraries beside it on the owner PC; the CUDA 13 pack is recorded but could not be tried (this PC has no cuBLAS 13).",
+    "offeredWhy": "ENGINEERING DECISION (VT-0): the CUDA 12 pack is the one observed to load from a downloaded folder with NVIDIA 12.4 libraries beside it on the owner PC (an observation, see feasibility.loadsFromDownloadedFolder.Cuda12); the CUDA 13 pack is recorded but could not be tried (this PC has no cuBLAS 13).",
     "packs": {
       "Whisper.net.Runtime.Cuda12.Windows": {
         "version": "1.9.1",
@@ -346,18 +373,28 @@
     },
     "hashEvidence": "Both packs were downloaded once on 2026-10-04 and their SHA-512 equals the nuget.org registration entry (packageHash).",
     "feasibility": {
-      "loadsFromDownloadedFolder": true,
+      "probeOutput": "porting/probes/vt-0-cuda-loader/run-output.txt",
+      "loadsFromDownloadedFolder": {
+        "Cpu": "reproduced (probe case 1)",
+        "Vulkan": "reproduced (probe case 4)",
+        "Cuda12": {
+          "status": "observed-not-reproduced",
+          "note": "The real Whisper.net.Runtime.Cuda12.Windows natives were loaded from a downloaded folder once on the owner PC on 2026-10-04 (RuntimeOptions.LoadedLibrary read Cuda12, with NVIDIA 12.4 cudart, cublas and cublasLt copied from the benchmark folder into the same runtimes folder). The console output was not saved and the NVIDIA copies are no longer on this PC, so this is an observation, not a verified fact; BUILD-PLAN section 4 item D (the CUDA download) measures it again."
+        }
+      },
       "libraryPathSemantics": "directory-of-the-path",
-      "libraryPathNote": "RuntimeOptions.LibraryPath is read through Path.GetDirectoryName: set it to a file path (any name) inside the download root, e.g. <root>\\runtime.dll; the loader then searches <root>\\runtimes\\<runtime>\\win-x64 (cuda12, cuda, vulkan) and <root>\\runtimes\\win-x64 (CPU). Passing the folder or whisper.dll itself finds nothing: the search root becomes its parent.",
+      "libraryPathNote": "RuntimeOptions.LibraryPath is read through Path.GetDirectoryName: set it to a file path (any name) inside the download root, e.g. <root>\\runtime.dll; the loader then searches <root>\\runtimes\\<runtime>\\win-x64 (cuda12, cuda, vulkan) and <root>\\runtimes\\win-x64 (CPU). Passing the folder (probe case 2) or whisper.dll inside runtimes\\win-x64 (case 3) finds nothing: the search root becomes its parent.",
       "whenCudaCannotLoad": "falls-back-to-the-next-runtime",
-      "order": "RuntimeOptions.RuntimeLibraryOrder = [Cuda12, Vulkan, Cpu] (names of Whisper.net.LibraryLoader.RuntimeLibrary); a CUDA runtime that cannot load (the NVIDIA libraries missing) is skipped when a later runtime is listed, and throws \"Failed to load native whisper library\" when it is the only one.",
+      "fallbackEvidence": "Probe cases 5 to 7 use an unloadable stand-in file at runtimes\\cuda12\\win-x64\\whisper.dll (the real pack was not available): [Cuda12, Vulkan, Cpu] loaded Vulkan, [Cuda12, Cpu] loaded Cpu, [Cuda12] alone failed with \"Failed to load native whisper library\". A CUDA pack whose NVIDIA libraries are missing fails LoadLibrary the same way, but that exact case was not run.",
+      "order": "RuntimeOptions.RuntimeLibraryOrder = [Cuda12, Vulkan, Cpu] (names of Whisper.net.LibraryLoader.RuntimeLibrary)",
+      "vadCheck": "VAD segments=3 [1.35-3.10] [3.65-6.78] [6.95-8.70]",
       "packDoesNotCarry": [
         "cublas64_12.dll",
         "cublasLt64_12.dll",
         "cudart64_12.dll"
       ],
-      "packDoesNotCarryNote": "The pack holds whisper and ggml natives only. ggml-cuda-whisper.dll imports cudart64_12.dll and cublas64_12.dll (which needs cublasLt64_12.dll) from the NVIDIA CUDA runtime, and nvcuda.dll from the driver. The owner PC has no CUDA toolkit; the probe worked only with NVIDIA 12.4 copies (100,033,536 + 473,551,360 + 553,984 bytes unpacked) from the benchmark folder placed in the same runtimes folder.",
-      "probe": "Scratch console on the owner PC, 2026-10-04: with LibraryPath set and natives laid out as above, RuntimeOptions.LoadedLibrary read Cpu, Vulkan and Cuda12 for the three orders, each loading the Silero VAD model (WhisperVadFactory, UseGpu on) and finding the same two speech segments; with the three NVIDIA libraries removed, order [Cuda12] failed and [Cuda12, Cpu] loaded Cpu. Not measured: inference speed on CUDA (BENCH holds the whisper.cpp figures; BUILD-PLAN section 4 item D measures it through Whisper.net)."
+      "packDoesNotCarryNote": "The pack holds whisper and ggml natives only. ggml-cuda-whisper.dll imports cudart64_12.dll and cublas64_12.dll (which needs cublasLt64_12.dll) from the NVIDIA CUDA runtime, and nvcuda.dll from the driver (read from its PE import table in the downloaded pack on 2026-10-04; the pack was not kept). The owner PC has no CUDA toolkit.",
+      "notMeasured": "Inference speed on CUDA (BENCH holds the whisper.cpp figures; BUILD-PLAN section 4 item D measures it through Whisper.net)."
     },
     "nvidiaCompanions": {
       "licenceNote": "NVIDIA CUDA Toolkit licence (NVIDIA EULA, redistributables of the CUDA Toolkit). UNRESOLVED for the owner: whether Marrow may download and unpack these on the user's PC, and which CUDA 12.x release the offer pins.",
@@ -374,6 +411,7 @@
         "bytes": 2474121,
         "sha256": "1034ca43da4afbc79f69269cc60dc081de631e1c0d229d60f045d9516409317a"
       }
-    }
+    },
+    "importsEvidence": "recorded-reading-pack-not-kept"
   }
 }
