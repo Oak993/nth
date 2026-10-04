@@ -977,3 +977,10 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Second amendment, owner, 2026-10-05 (chat, verbatim):** "बल्कि 15 सेकेंड जब रह जाए ना तो उस वक्त येलो ज़रूर कर देना लेकिन रेड करना जब 5 सेकेंड रह जाए ठीक है ना"
   - **In English:** "Rather: when 15 seconds are left, do make it yellow then, but make it red when 5 seconds are left."
   - **Effect (replaces the amendment's red point):** the line is colourless from 0:30 to 0:15, eases to yellow at 0:15, and eases to red at 0:05 (not 0:10). Each change is the same smooth crossfade of about 0.6 s, never a cut.
+- **Clarification, owner, 2026-10-05 (chat, verbatim):** "आई डोंट नो अब वो फेड होगा या तो कोई स्मूथ ट्रांजिशन होगा कि जिसमें कलर चेंज हो ठीक है ना लेकिन यू नो इट शुड बी प्रॉपर वे प्रीमियम तरीके से नजर आना चाहिए ठीक है"
+  - **In English:** "I don't know whether it will be a fade or some smooth transition in which the colour changes, but it should look properly premium."
+  - **Effect:** the lead chooses how the colour changes. It must read as premium, never as a cut or a muddy blend.
+  - **Lead's choice (ENGINEERING DECISION, VT-17):** the line's colour glides along a perceptual path in OKLCH, so the hue turns cleanly with even brightness and no grey or brown midpoint. Each glide runs over about 0.8 s on a gentle ease-in-out.
+  - **Arrival accent:** as each colour arrives, the line gives one soft, restrained brightening of about 0.4 s, so the change is noticed without flashing.
+  - **Reduce Motion:** the glide stays, at about 0.2 s, with no brightening.
+  - **Proof:** a frame-by-frame test samples the colour at 60 Hz through each change, and the result is compared on a variant still before it ships.
