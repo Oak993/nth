@@ -31,6 +31,21 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
     private const double Sharp = 42.5;
     private const double Blurred = 6;
 
+    // The scene settles: the first frames of a fresh process build the material's GPU programs, which took up to about 4 s on this PC (ED-NEW-rec-composer):
+    // the line is read until it is frosted, for at most 8 s, and how long that took is written out.
+    private static ScreenGrab Settled(Func<ScreenGrab> line, string what)
+    {
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var grab = line();
+        while (grab.StripeContrast() >= Blurred && clock.ElapsedMilliseconds < 8000)
+        {
+            Thread.Sleep(100);
+            grab = line();
+        }
+        Console.WriteLine($"GlassMaterialNativeTests: {what} frosted {clock.ElapsedMilliseconds} ms after the scene settled (contrast {grab.StripeContrast():F2})");
+        return grab;
+    }
+
     // A line one physical pixel high and three long blocks of the screen, from a control's point (x, y) to (x + width, y), in points.
     private ScreenGrab Line(Control control, double x, double y, double width) => native.OnUi(() =>
     {
@@ -94,7 +109,7 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
             ? width > height + 8 ? Line(piece, height / 2, 3, width - height) : Line(piece, width / 2 - 8, 5, 16) : throw new InvalidOperationException();
         foreach (var piece in pieces)
         {
-            var frosted = Inside(piece);
+            var frosted = Settled(() => Inside(piece), piece.GetType().Name);
             Assert.True(frosted.StripeContrast() < Blurred, $"{piece.GetType().Name}: the stripes behind it keep a contrast of {frosted.StripeContrast():F2} of {Sharp}");
         }
 
@@ -137,7 +152,7 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
         });
         var bare = Line(pill, 24, -30, width - 48);
         Assert.InRange(bare.StripeContrast(), Sharp - 6, Sharp + 3); // the instrument sees the stripes straight above the composer
-        var frosted = Line(pill, 24, 3, width - 48); // 3 points below the pill's top edge, above its 22 pt text row, clear of the 22 pt corners
+        var frosted = Settled(() => Line(pill, 24, 3, width - 48), "the pill"); // 3 points below the pill's top edge, above its 22 pt text row, clear of the 22 pt corners
         Assert.True(frosted.StripeContrast() < Blurred, $"the stripes behind the pill keep a contrast of {frosted.StripeContrast():F2} of {Sharp}");
 
         native.OnUi(() =>
@@ -176,7 +191,7 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
         });
         var bare = Line(sheet, 30, -20, width - 60);
         Assert.InRange(bare.StripeContrast(), Sharp - 6, Sharp + 3); // the instrument sees the stripes straight above the sheet
-        var frosted = Line(sheet, 30, 6, width - 60); // 6 points below the sheet's top edge, inside its 20 point padding, clear of its 26 point corners
+        var frosted = Settled(() => Line(sheet, 30, 6, width - 60), "the scripts sheet"); // 6 points below the sheet's top edge, inside its 20 point padding, clear of its 26 point corners
         Assert.True(frosted.StripeContrast() < Blurred, $"the stripes behind the scripts sheet keep a contrast of {frosted.StripeContrast():F2} of {Sharp}");
 
         native.OnUi(() =>
