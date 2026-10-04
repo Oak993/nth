@@ -1367,4 +1367,100 @@ public sealed partial class SidebarViewTests
             WindowOf(row).Close();
         });
     });
+
+    // ======== The head card's two heights (UI-SIDEBAR-036) ========
+
+    private static (Control Card, AvaloniaWindow Window, List<ChatThread> Heads, ChatThread Parent, ManualFrameSource Manual, Func<Grid> Grid) MountedCard(
+        AppModelHarness harness, AppModel model, ChatThread parent, List<ChatThread> heads, ManualFrameSource manual)
+    {
+        Control card = null!; AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        harness.Main.OnMain(() => window.UpdateLayout());
+        return (card, window, heads, parent, manual, () => Assert.IsType<Grid>(Get(card, "Child")));
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // SidebarView.swift:1535 `.animation(.snappy(duration: 0.18), value: cardRows)`, :1515-1516 `withAnimation(.snappy(duration: 0.18)) { showsAllHeads.toggle() }`: the row count changes animate on the snappy spring, the connector's height with the card's
+    public void The_card_and_the_connector_travel_between_their_two_heights_on_the_snappy_curve() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 15).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        var perRow = HeadCardsRow.PerRow(200);
+        long RowsFor(long n) => (n + perRow - 1) / perRow;
+        var before = ThreadRowMetrics.HeadCardHeight(RowsFor(12) + 1);
+        var after = ThreadRowMetrics.HeadCardHeight(RowsFor(15) + 1);
+        Assert.NotEqual(before, after);
+        var (card, window, _, _, _, grid) = MountedCard(harness, model, parent, heads, manual);
+        try
+        {
+            harness.Main.OnMain(() => Click(LogicalQuery.SelfAndDescendants<Button>(card).Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true))));
+            harness.Main.OnMain(() => { });
+            var snappy = Animation.Snappy(duration: 0.18);
+            double elapsed = 0;
+            foreach (var step in new[] { 0.032, 0.032 })
+            {
+                harness.Main.AdvanceMilliseconds((int)(step * 1000));
+                harness.Main.OnMain(() => manual.Advance(TimeSpan.FromSeconds(step)));
+                elapsed += step;
+                harness.Main.OnMain(() =>
+                {
+                    var expected = before + (after - before) * snappy.Progress(elapsed);
+                    Assert.NotEqual(after, grid().Children[1].Height); // under way
+                    Assert.Equal(expected, grid().Children[0].Height, 0.5); // the connector's column
+                    Assert.Equal(expected, grid().Children[1].Height, 0.5); // the card
+                });
+            }
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // SidebarView.swift:1541 `.animation(Chrome.panelSlide, value: heads.map(\.id))` on the whole row, :1535 `.animation(.snappy(duration: 0.18), value: cardRows)` on the card inside it
+    // A change of the head set that also changes the row count: the card has its own, nearer animation (snappy) and the
+    // connector, outside it, takes the row's (panelSlide): the two heights travel on their own curves to the same end.
+    public void When_the_head_set_changes_the_connector_slides_on_panelSlide_while_the_card_keeps_its_snappy() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 13).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        var perRow = HeadCardsRow.PerRow(200);
+        long RowsFor(long n) => (n + perRow - 1) / perRow;
+        var fewer = heads.Take(3).ToList();
+        var before = ThreadRowMetrics.HeadCardHeight(RowsFor(12) + 1); // capped: 13 > 12, the chevron row
+        var after = ThreadRowMetrics.HeadCardHeight(RowsFor(3)); // not capped
+        Assert.NotEqual(before, after);
+        var (card, window, _, _, _, grid) = MountedCard(harness, model, parent, heads, manual);
+        try
+        {
+            harness.Main.OnMain(() => CallOn(card, "Update", fewer));
+            harness.Main.OnMain(() => { });
+            harness.Main.AdvanceMilliseconds(48);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(48)));
+            harness.Main.OnMain(() =>
+            {
+                var snappy = before + (after - before) * Animation.Snappy(duration: 0.18).Progress(0.048);
+                var slide = before + (after - before) * Chrome.PanelSlide.Progress(0.048);
+                Assert.NotEqual(snappy, slide, 0.5); // the two curves differ here, or the test proves nothing
+                Assert.Equal(slide, grid().Children[0].Height, 0.5); // the connector, outside the card's own animation
+                Assert.Equal(snappy, grid().Children[1].Height, 0.5); // the card
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
 }
