@@ -665,7 +665,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
         Assert.True(true);
     }
 
-    // ---- PR-TERM-049: PLATFORM BOUNDARY, DEVIATION ED-046 (not yet owner-accepted, see Port/ProcessDescendants.cs) --
+    // ---- PR-TERM-049: PLATFORM BOUNDARY, accepted deviation OD-0031 / ED-046 (see Port/ProcessDescendants.cs) --
 
     [Fact]
     [Trait("Req", "PR-TERM-049")] // App/Views/Terminal/TerminalStore.swift:69-76
