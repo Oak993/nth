@@ -8778,7 +8778,7 @@
       "typography": "n/a",
       "colors": "fill is Chrome.primaryText at opacity 0.03",
       "states": [
-        "rows are built lazily as they scroll into view"
+        "rows are built up front, not as they scroll into view: the port's ChromeCard records lazy and builds the same eager stack in both branches (ED-299, the ChromeCard decision; PR-WIN-202, UI-WIN-052); upstream :40 ChromeCard(lazy: true) builds them in a LazyVStack as they scroll into view"
       ],
       "interactions": [
         "none on the card itself"
@@ -8788,7 +8788,12 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1006-1027 ChromeCard - :1009 var lazy = false | :1015 if lazy { | :1016 LazyVStack(alignment: .leading, spacing: 0) { content }",
         "DroppyCode/UI/Chrome/Chrome.swift:1082-1087"
       ],
-      "notes": "The card is a filled shape, not a clip, so a long page costs no mask per card while scrolling."
+      "notes": "The card is a filled shape, not a clip, so a long page costs no mask per card while scrolling.",
+      "deviation": {
+        "decision": "ED-299 (ChromeCard eager fallback, src/Marrow.UI/Chrome/Chrome.cs:1827-1833)",
+        "upstream": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:40 ChromeCard(lazy: true) -> DroppyCode/UI/Chrome/Chrome.swift:1015-1016 LazyVStack(alignment: .leading, spacing: 0) { content }",
+        "port": "An eager StackPanel with spacing 0: the same layout and the same fill-not-clip card; only when the rows are built differs (all at once)."
+      }
     },
     {
       "area": "MCP",
@@ -18172,7 +18177,7 @@
       "deviation": {
         "decision": "OD-0042",
         "upstream": "SidebarView.swift:1250-1266 draws the current choice as Label(title, systemImage: \"checkmark\") and every other choice as Text(title) inside the AppKit context menu, with no reserved check column.",
-        "port": "The native Win32 popup menu marks the current choice with its own check mark (MF_CHECKED) and reserves a check gutter on every row; no symbol image is drawn."
+        "port": "The native Win32 popup menu marks the current choice with its own check mark (MF_CHECKED) and reserves a check gutter on every row; no symbol image is drawn (ED-300: the label swap's glyph is the menu check mark)."
       }
     },
     {

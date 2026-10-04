@@ -4461,7 +4461,7 @@
       "deviation": {
         "decision": "OD-0042",
         "upstream": "SidebarView.swift:1250-1266 draws the current choice as Label(title, systemImage: \"checkmark\") and every other choice as Text(title) inside the AppKit context menu, with no reserved check column.",
-        "port": "The native Win32 popup menu marks the current choice with its own check mark (MF_CHECKED) and reserves a check gutter on every row; no symbol image is drawn."
+        "port": "The native Win32 popup menu marks the current choice with its own check mark (MF_CHECKED) and reserves a check gutter on every row; no symbol image is drawn (ED-300: the label swap's glyph is the menu check mark)."
       }
     },
     {
