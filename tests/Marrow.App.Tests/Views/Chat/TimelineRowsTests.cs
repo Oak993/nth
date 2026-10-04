@@ -4688,6 +4688,12 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // PR-CHAT-149: PROVEN 2026-10-04 (TimelineRowsBlitzAbDelegationTests; the streamed fixture of TimelineRowsParityScenarioTests): the card's five states
 // are drawn in both themes, and the card keeps its identity across the streaming flushes (AssistantMessageRow hands the new block to the card on show)
 // with its changes animated by Chrome.panelSlide (:703-704): its height follows its contents as a spring, a new head row fades in, the check scales in.
+// Review of that unit, fixed 2026-10-04 (TimelineRowsReviewAbTests, TimelineRowsBlitzAbMotionTests; ED-NEW-timelinerows-ab (12)): an open brief closed at the head's
+// next step (HydraBriefRow rebuilt its button and popover: PR-CHAT-147), the delegation card's title cut, its wave and next-brief line came in at once (PR-CHAT-149),
+// and a checked-off step's glyph, the count and the card's size changed by a cut (PR-CHAT-114); all now transitioned and proved against the closed form of the
+// spring the Swift names. Test gaps closed: the work group's snappy 0.24 s open and close (UI-CHAT-022), the shimmer's thirty frames a second (PR-CHAT-148), the
+// merging pill's glide on the glide spring (PR-HYDRAMERGE-089). Still open, not claimed by this unit: whether Return reaches a popover's default button in the real
+// app (PR-CHAT-110: PopoverHost moves no focus into its popup; UNRESOLVED, needs a native run).
 // PR-CHAT-113: record vs source. The record's action is "the popover is open while the markdown arrives" and its result
 // that the plan "switches to the finished-prose surface the moment the state leaves drafting". The pinned source freezes
 // the popover's content when it opens (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147: the hosted
