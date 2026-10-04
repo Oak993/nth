@@ -83,8 +83,8 @@ internal static class GlassMaterial
 
         private void WatchedChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
         {
-            var property = e.Property;
-            if (property != Visual.OpacityProperty && property != Visual.IsVisibleProperty && property != Visual.RenderTransformProperty && property != Visual.RenderTransformOriginProperty) return;
+            var property = e.Property; // IsVisible is not watched: it invalidates layout, and the layout pass that follows synchronises (the visibility tests prove it)
+            if (property != Visual.OpacityProperty && property != Visual.RenderTransformProperty && property != Visual.RenderTransformOriginProperty) return;
             if (property == Visual.RenderTransformProperty && sender is Visual visual && watched.TryGetValue(visual, out var old))
             {
                 if (old is not null) old.Changed -= transformChanged;

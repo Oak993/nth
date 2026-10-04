@@ -251,6 +251,14 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
         return piece;
     }
 
+    private static bool SynchronisationRequested(Control container)
+    {
+        var table = Material.GetField("attachments", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null)!;
+        var args = new object?[] { container, null };
+        Assert.True((bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, args)!);
+        return (bool)args[1]!.GetType().GetField("requested", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(args[1])!;
+    }
+
     private static void Settle() { for (var i = 0; i < 4; i++) GlassScene.Drain(); }
 
     private static void AssertDrawn(Panel container, double opacity, double x, double y, string because)
@@ -376,6 +384,8 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
         Settle();
         levels[level].Opacity = 0.25;
         ((TranslateTransform)levels[level].RenderTransform!).Y = 3;
+        // The change asks the compositor for the synchronisation itself, at once (not through a posted dispatcher job that would add a hop before the frame).
+        Assert.True(SynchronisationRequested(container), "the change has asked for the next composition update");
         AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); // one frame
         AssertDrawn(container, 0.25, 30, 23, "the frame of the change");
     });
