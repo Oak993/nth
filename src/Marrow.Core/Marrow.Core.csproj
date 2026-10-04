@@ -9,6 +9,8 @@
   <ItemGroup>
     <!-- ED-251 (OD-0089): border-beam 1.4.1's tables (MIT, Jakub Antalik), read out of its published dist/index.es.js. -->
     <EmbeddedResource Include="Models\ComposerLights\border-beam-tables.json" LogicalName="Marrow.Core.BorderBeamTables.json" />
+    <!-- ED-NEW-f-sk-1 (unit SK-1): the skills and tools catalogue, compiled in and never fetched at run time (ONDEMAND-PLAN.md 2.3). -->
+    <EmbeddedResource Include="Port\Skills\Catalogue\catalogue.json" LogicalName="Marrow.Core.SkillsCatalogue.json" />
   </ItemGroup>
 
 </Project>
