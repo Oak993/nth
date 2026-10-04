@@ -392,6 +392,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-CHAT-037")] // TimelineRows.swift:2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the Edited-files card (40 pt)
     [Trait("Req", "UI-GIT-044")] // TimelineRows.swift:2818-2822: the same card, the git view of it
+    [Trait("Req", "PR-CHAT-108")] // TimelineRows.swift:2735-2827: the corner of the 40 pt Edited card (the clause its Rule tests left)
     public void The_Edited_files_card_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -447,6 +448,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-TEST-4")] // the corner clause only of UI-CHAT-034, UI-CHAT-036, UI-CHAT-037, UI-CHAT-054, read off the rendered pixels
     [Trait("Req", "UI-CHAT-034")] // the two-line notice, all four corners: the pixels follow Apple's corner at h / 3.057, not the circle of 18 (the corner clause)
+    [Trait("Req", "PR-CHAT-108")] // the Edited-files card, all four corners (the corner clause)
     [Trait("Req", "UI-GIT-044")] // the Edited-files card, all four corners (the corner clause)
     [Trait("Req", "UI-CHAT-059")] // the steps card of one step, all four corners (the corner clause)
     [Trait("Req", "UI-CHAT-054")] // the delegation card of one head, all four corners (the corner clause)
