@@ -3,6 +3,7 @@ using Marrow.App.Port;
 using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.Core.Port;
+using Marrow.Core.Port.SelfUpdate;
 using Marrow.Core.Support;
 
 // Source: DroppyCode/App/AppUpdater.swift (B3 52bc792), :1-528. The Windows installer boundary is defined by PA-0014.
@@ -251,9 +252,12 @@ public sealed class UpdateInstallProgress : MainActorModel
 // :237-443
 public sealed class AppUpdater
 {
-    private static readonly Ambient<AppUpdater> running = new(() => new(new WindowsUpdateInstallBoundary()));
+    // UE-1 (OD-0062, OD-0100): the running app's own updater installs through Velopack (SelfUpdateEngine.Shared); an AppUpdater made
+    // without an engine keeps the installer-script pipeline of :287-410 over its boundary (the pipeline every earlier test drives).
+    private static readonly Ambient<AppUpdater> running = new(() => new(new WindowsUpdateInstallBoundary(), SelfUpdateEngine.Shared));
     private TaskHandle? installTask = null;
     private readonly IUpdateInstallBoundary boundary;
+    private readonly ISelfUpdateEngine? engine;
 
     // :239
     public static AppUpdater Shared => running.Current;
@@ -373,7 +377,11 @@ public sealed class AppUpdater
     // InternalsVisibleTo edit (ED-119 already declined that need for this unit).
     private AppUpdater() : this(new WindowsUpdateInstallBoundary()) { }
 
-    public AppUpdater(IUpdateInstallBoundary boundary) => this.boundary = boundary;
+    public AppUpdater(IUpdateInstallBoundary boundary, ISelfUpdateEngine? engine = null)
+    {
+        this.boundary = boundary;
+        this.engine = engine;
+    }
 
     private static UpdateInstallProgress Progress => UpdateInstallProgress.Shared;
 
@@ -396,11 +404,12 @@ public sealed class AppUpdater
             try
             {
                 Progress.Begin(); // :265
-                var image = await Download(update.DownloadURL); // :267
+                var image = engine is null ? await Download(update.DownloadURL) : await DownloadPackage(update.Version); // :267
                 Progress.BeginVerification(); // :268
                 var staged = await Stage(image, update.Version); // :269
                 Progress.BeginStaging(); // :270
-                HandOff(staged, update.Version); // :271
+                if (engine is null) HandOff(staged, update.Version); // :271
+                else HandOffToVelopack(update.Version);
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error))
             {
@@ -450,6 +459,40 @@ public sealed class AppUpdater
         return destination; // :294
     }
 
+    // UE-1 :287-295 through Velopack: its UpdateManager downloads the full package (a delta when it can) and verifies the feed's
+    // checksum; its percent is the byte ratio the pill takes (AppUpdater.swift:290-291, :496-502). A failure is worded as :523-527.
+    private async Task<string> DownloadPackage(string version)
+    {
+        try
+        {
+            return await engine!.DownloadAsync(version, percent =>
+                MainActor.Spawn(() => { UpdateInstallProgress.Shared.NoteDownloadProgress(SelfUpdateProgress.Fraction(percent)); return Task.CompletedTask; }),
+                CancellationToken.None);
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error) && error is not (UpdateError or UpdateInstallError))
+        {
+            // :523-527. Per-site decision (R-ERR-2, OD-0056: the platform's own error text, not Apple's): Velopack's and Windows'
+            // exceptions have no Swift text, so their own message follows the sentence.
+            throw new UpdateInstallError($"The update could not be downloaded. {error.Message}");
+        }
+    }
+
+    // UE-1 :372-410 over Velopack: the same writability gate and the same hand-off timing, with Velopack's Update.exe in place of
+    // install.ps1: it waits for this process to exit, swaps the install and starts the new Marrow ("Restart Marrow").
+    internal void HandOffToVelopack(string version, string? destinationOverride = null)
+    {
+        var destination = destinationOverride ?? InstalledAppDirectory(); // :375
+        var parent = SwiftPath.DeletingLastPathComponent(destination); // :376
+        if (!IsWritableDirectory(parent))
+            throw new UpdateInstallError($"Marrow cannot replace itself in {parent}. Reinstall it with the installer and try again."); // :377-379
+        try { engine!.WaitExitThenApplyAndRestart(); } // :385-395
+        catch (Exception error) when (SwiftTry.IsThrownError(error) && error is not UpdateInstallError)
+        {
+            throw new UpdateInstallError(error.Message); // per-site decision as DownloadPackage: the platform's own text (OD-0056)
+        }
+        FinishHandOff(version);
+    }
+
     // :372-410. PORT-ONLY: internal with an optional destinationOverride (not part of the Swift, which reads
     // Bundle.main.bundleURL directly) so a test can point the writability gate at a directory it controls.
     internal void HandOff(string staged, string version, string? destinationOverride = null)
@@ -468,7 +511,12 @@ public sealed class AppUpdater
         var log = SwiftPath.AppendingPathComponent(stagingDirectory, "install.log"); // :382-384
 
         boundary.LaunchDetachedInstaller(Environment.ProcessId, staged, destination, script, log); // :385-395
+        FinishHandOff(version);
+    }
 
+    // :396-409, shared by both pipelines.
+    private static void FinishHandOff(string version)
+    {
         UserDefaults.Standard.Current.Set(RelaunchVersionKey, version); // :396
         Progress.NoteHandoff(); // :397
 

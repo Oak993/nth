@@ -1188,7 +1188,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
-            var none = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], UpdateChecker.DefaultFeed));
+            var none = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], ""));
             harness.Defaults.Set("updateChecker_release", AvailableUpdate.EncodeToBytes(new AvailableUpdate
             {
                 Version = "2.0.0",
@@ -1197,7 +1197,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Notes = "",
                 PageURL = SwiftURL.Create("https://example.com/releases/v2.0.0")!,
             }));
-            var waiting = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], UpdateChecker.DefaultFeed));
+            var waiting = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], ""));
             harness.Main.OnMain(() =>
             {
                 Assert.False(none.UpdateAvailable);

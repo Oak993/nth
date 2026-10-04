@@ -178,7 +178,7 @@ public sealed class AppDelegateFourthTests(HeadlessSession headless)
             runtime.Advance(TimeSpan.FromSeconds(8)); // :135 launchDelay
             runtime.Loop.RunUntil(() => checker.LastError is not null, TimeSpan.FromSeconds(20)); // the check ended in failure
             Assert.Single(server.Requests);
-            Assert.Equal("GitLab answered with HTTP 500.", runtime.OnMain(() => checker.LastError));
+            Assert.Equal("GitHub answered with HTTP 500.", runtime.OnMain(() => checker.LastError));
 
             runtime.Advance(TimeSpan.FromHours(6) - TimeSpan.FromMilliseconds(1)); // :74 checkInterval
             Assert.Single(server.Requests);

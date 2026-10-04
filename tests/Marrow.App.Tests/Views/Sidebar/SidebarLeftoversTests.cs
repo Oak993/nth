@@ -78,7 +78,7 @@ public sealed class SidebarLeftoversTests(HeadlessSession headless)
         using var reduction = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduceMotion });
         using var harness = new AppModelHarness();
         var model = harness.MakeModel();
-        var checker = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], UpdateChecker.DefaultFeed));
+        var checker = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], ""));
         void Tick(int ms)
         {
             harness.Main.AdvanceMilliseconds(ms);

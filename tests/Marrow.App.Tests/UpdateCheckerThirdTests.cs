@@ -141,7 +141,7 @@ public sealed class UpdateCheckerThirdTests
     }
 
     [Fact]
-    [Trait("Req", "PR-UPDATE-027")] // UpdateChecker.swift:194 a malformed feed reports "Couldn't reach GitLab."
+    [Trait("Req", "PR-UPDATE-027")] // UpdateChecker.swift:194 a malformed feed reports "Couldn't reach GitHub."
     public void A_malformed_feed_element_makes_check_report_couldnt_reach_gitlab_not_a_decoding_error()
     {
         using var runtime = new TestRuntime();
@@ -149,7 +149,7 @@ public sealed class UpdateCheckerThirdTests
         var checker = runtime.OnMain(() => new UpdateChecker(Running("1.0.0"), [], server.Url("/releases")));
         var available = runtime.Loop.Run(() => checker.Check());
         Assert.False(available);
-        Assert.Equal("Couldn't reach GitLab.", checker.LastError); // ASCII U+0027, UpdateChecker.swift:182 byte 0x27 (PR-UPDATE-019)
+        Assert.Equal("Couldn't reach GitHub.", checker.LastError); // ASCII U+0027, UpdateChecker.swift:182 byte 0x27 (PR-UPDATE-019)
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public sealed class UpdateCheckerThirdTests
         using var runtime = new TestRuntime();
         var json = "{\"version\":\"2.0.0\",\"tag\":\"v2.0.0\",\"downloadURL\":{\"relative\":\"http://[::1\"},\"notes\":\"n\",\"pageURL\":{\"relative\":\"https://example.com/p\"}}";
         runtime.Defaults.Set("updateChecker_release", System.Text.Encoding.UTF8.GetBytes(json));
-        var checker = runtime.OnMain(() => new UpdateChecker(Running("1.0.0"), [], UpdateChecker.DefaultFeed));
+        var checker = runtime.OnMain(() => new UpdateChecker(Running("1.0.0"), [], ""));
         Assert.Null(runtime.OnMain(() => checker.Update));
     }
 
