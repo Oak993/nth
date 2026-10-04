@@ -111,6 +111,24 @@ public sealed class SettingsWriteCoalescerTests : IDisposable
     [Fact]
     [Trait("Feature", "SA-1")]
     [Trait("Spec", "CZ-T27")]
+    [Trait("Decision", "ED-251")] // REVIEW (SA-1): a key held while another key's later wait is armed is still written when ITS interval ends (ED-NEW-f-sa-1 item 7)
+    public void A_key_whose_interval_ends_first_is_not_held_for_another_keys_later_timer()
+    {
+        var coalescer = Create();
+        runtime.OnMain(() => coalescer.Write("b", 1L));        // t=0: b written
+        runtime.AdvanceMilliseconds(100);
+        runtime.OnMain(() => coalescer.Write("a", 1L));        // t=100: a written
+        runtime.AdvanceMilliseconds(10);
+        runtime.OnMain(() => coalescer.Write("a", 2L));        // t=110: a held; its interval ends at t=350
+        runtime.AdvanceMilliseconds(10);
+        runtime.OnMain(() => coalescer.Write("b", 2L));        // t=120: b held; its interval ends at t=250
+        runtime.AdvanceMilliseconds(140);                       // t=260
+        Assert.Equal(2L, runtime.Defaults.Object("b"));
+    }
+
+    [Fact]
+    [Trait("Feature", "SA-1")]
+    [Trait("Spec", "CZ-T27")]
     [Trait("Decision", "ED-251")] // after a quiet interval the next change is written at once again
     public void After_a_quiet_interval_the_next_change_is_written_at_once()
     {
