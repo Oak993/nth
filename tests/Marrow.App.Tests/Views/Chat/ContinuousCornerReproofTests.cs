@@ -451,6 +451,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // the corner clause only of UI-CHAT-034, UI-CHAT-036, UI-CHAT-037, UI-CHAT-054, read off the rendered pixels
     [Trait("Req", "UI-CHAT-034")] // the two-line notice, all four corners: the pixels follow Apple's corner at h / 3.057, not the circle of 18 (the corner clause)
     [Trait("Req", "UI-RUNTIME-002")] // the warning notice, two lines, all four corners (the corner clause)
+    [Trait("Req", "UI-RUNTIME-003")] // the error notice, two lines, all four corners (the corner clause)
     [Trait("Req", "PR-CHAT-108")] // the Edited-files card, all four corners (the corner clause)
     [Trait("Req", "UI-GIT-044")] // the Edited-files card, all four corners (the corner clause)
     [Trait("Req", "UI-CHAT-059")] // the steps card of one step, all four corners (the corner clause)
@@ -467,6 +468,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
         {
             const string twoLines = "A warning long enough that it wraps onto a second line when the row is only 380 points wide.";
             var notice = new NoticeRow(NoticeEntry(Notice.Level.Warning, twoLines));
+            var errorNotice = new NoticeRow(NoticeEntry(Notice.Level.Error, twoLines));
             var turn = Guid.NewGuid();
             var steps = new TurnFinishedBlock(h.Runtime, turn, Summary(turn) with { Duration = 64 }, ValueList<TimelineEntry>.Empty,
                 new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a"), turn)]), null, canUndo: false, chronological: true);
@@ -474,7 +476,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
                 canUndo: false, onRevert: () => { }, onReview: _ => { });
             var delegation = new HydraDelegationBlock("[{\"task\": \"Tidy 0\", \"prompt\": \"p\", \"name\": \"Hank\"}]", sent: true);
             var panel = new StackPanel { Width = 700, Spacing = 20 };
-            foreach (var control in new Control[] { new Border { Width = 380, Child = notice }, steps, files, delegation }) panel.Children.Add(control);
+            foreach (var control in new Control[] { new Border { Width = 380, Child = notice }, new Border { Width = 380, Child = errorNotice }, steps, files, delegation }) panel.Children.Add(control);
             var window = Show(panel);
             var results = new List<string>();
             var failures = new List<string>();
@@ -482,7 +484,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
             {
                 var shapes = new (string Name, Border Shape)[]
                 {
-                    ("notice, two lines", PillOf(notice, Pill)), ("steps card, one step", PillOf(steps, new Thickness(14))),
+                    ("notice, two lines", PillOf(notice, Pill)), ("error notice, two lines", PillOf(errorNotice, Pill)), ("steps card, one step", PillOf(steps, new Thickness(14))),
                     ("Edited-files card", PillOf(files, new Thickness(12, 6, 6, 6))), ("delegation card, one head", PillOf(delegation, Pill)),
                 };
                 foreach (var (_, shape) in shapes) shape.Background = Brushes.Red;
