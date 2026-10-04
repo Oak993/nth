@@ -119,11 +119,15 @@ public static class ContinuousCorner
     /// The signed distance (negative inside) from <paramref name="point"/> (relative to the shape's centre) to a rounded
     /// rectangle of half extents <paramref name="half"/> and corner radius <paramref name="radius"/> whose corners are
     /// continuous where <see cref="LargestRadius"/> allows and circular otherwise. The C# mirror of the glass shader's
-    /// <c>shapeDistance</c>; the tests evaluate it against the path and against the shader itself.
+    /// <c>shapeDistance</c>; the tests evaluate it against the path and against the shader itself. OD-0102: a continuous corner that does not fit at its
+    /// radius yet is under half the shorter side (ED-275 (2)'s band) is drawn at the largest radius that fits, <see cref="LargestRadius"/>, unless
+    /// <paramref name="circularInBand"/> (the composer pill, which the reference video measures circular there).
     /// </summary>
-    public static double Distance(Point point, Size half, double radius, bool continuous)
+    public static double Distance(Point point, Size half, double radius, bool continuous, bool circularInBand = false)
     {
         radius = Math.Min(radius, Math.Min(half.Width, half.Height));
+        if (continuous && !circularInBand && radius > Math.Min(half.Width, half.Height) / Extent && radius < Math.Min(half.Width, half.Height) - 0.000001)
+            radius = Math.Min(half.Width, half.Height) / Extent;
         var qx = Math.Abs(point.X) - half.Width + radius;
         var qy = Math.Abs(point.Y) - half.Height + radius;
         var outside = Math.Sqrt(Math.Max(qx, 0) * Math.Max(qx, 0) + Math.Max(qy, 0) * Math.Max(qy, 0));

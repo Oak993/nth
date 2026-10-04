@@ -42,8 +42,15 @@ public enum PathVerb
 public readonly record struct PathSegment(PathVerb Verb, Point End, Point Control1 = default, Point Control2 = default, double ArcRadius = 0);
 
 /// <summary>A closed rounded-rectangle path as data, in clockwise order from the end of the top-left corner, and how each corner was drawn.</summary>
-public sealed record ShapeOutline(Rect Rect, IReadOnlyList<PathSegment> Segments, IReadOnlyList<CornerKind> Corners)
+public sealed record ShapeOutline(Rect Rect, IReadOnlyList<PathSegment> Segments, IReadOnlyList<CornerKind> Corners, IReadOnlyList<double> Radii)
 {
+    /// <summary>
+    /// The radius each corner was really drawn at (index in the order top-left, top-right, bottom-right, bottom-left): 0 for a square corner, the circular
+    /// arc's radius (held to half the shorter side) for an arc, and for Apple's corner the radius of its curve, which is the requested radius where it
+    /// fits and, in ED-275 (2)'s band, the largest radius that fits (<see cref="ContinuousCorner.LargestRadius"/>, OD-0102).
+    /// </summary>
+    public double DrawnRadius(int index) => Radii[index];
+
     /// <summary>The corners in the order top-left, top-right, bottom-right, bottom-left.</summary>
     public CornerKind Corner(int index) => Corners[index];
 
@@ -59,6 +66,23 @@ public static class SwiftShapes
         AvaloniaProperty.RegisterAttached<Control, RoundedCornerStyle?>("CornerStyle", typeof(SwiftShapes));
 
     public static RoundedCornerStyle? GetCornerStyle(Control control) => control.GetValue(CornerStyleProperty);
+
+    /// <summary>
+    /// The one exception to OD-0102's in-between corners: a `.continuous` shape that a reference frame MEASURES as the circular arc where Apple's corner
+    /// does not fit at the stated radius (ED-275 (2): the composer pill, r 22 on 46 pt, circular 0.156 px rms against the clamped continuous corner's 1.148).
+    /// Such a shape keeps the circular arc in that band; every other `.continuous` shape takes Apple's corner at the largest radius that fits.
+    /// </summary>
+    public static readonly AttachedProperty<bool> CircularInBandProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("CircularInBand", typeof(SwiftShapes));
+
+    public static bool GetCircularInBand(Control control) => control.GetValue(CircularInBandProperty);
+
+    /// <summary>Marks a `.continuous` shape as measured circular in ED-275 (2)'s band (see <see cref="CircularInBandProperty"/>).</summary>
+    public static T CircularInBand<T>(this T control, bool value = true) where T : Control
+    {
+        control.SetValue(CircularInBandProperty, value);
+        return control;
+    }
 
     /// <summary>
     /// <c>RoundedRectangle(cornerRadius:style:)</c> as the corners of a Border that fills its bounds: its Background is
@@ -104,16 +128,16 @@ public static class SwiftShapes
     public static double CapsuleCornerRadius(Size size) => Math.Min(size.Width, size.Height) / 2;
 
     /// <summary><c>RoundedRectangle(cornerRadius:style:)</c> as a path in <paramref name="rect"/>. The geometry is shared: do not change it.</summary>
-    public static Geometry RoundedRectangleGeometry(Rect rect, double cornerRadius, RoundedCornerStyle style) =>
-        Geometry(rect, new CornerRadius(cornerRadius), style, clip: false);
+    public static Geometry RoundedRectangleGeometry(Rect rect, double cornerRadius, RoundedCornerStyle style, bool circularInBand = false) =>
+        Geometry(rect, new CornerRadius(cornerRadius), style, clip: false, circularInBand);
 
     /// <summary><c>UnevenRoundedRectangle</c> as a path in <paramref name="rect"/>. The geometry is shared: do not change it.</summary>
-    public static Geometry UnevenRoundedRectangleGeometry(Rect rect, CornerRadius cornerRadii, RoundedCornerStyle style) =>
-        Geometry(rect, cornerRadii, style, clip: false);
+    public static Geometry UnevenRoundedRectangleGeometry(Rect rect, CornerRadius cornerRadii, RoundedCornerStyle style, bool circularInBand = false) =>
+        Geometry(rect, cornerRadii, style, clip: false, circularInBand);
 
     /// <summary><c>Capsule(style:)</c> as a path in <paramref name="rect"/>. The geometry is shared: do not change it.</summary>
     public static Geometry CapsuleGeometry(Rect rect, RoundedCornerStyle style) =>
-        Geometry(rect, new CornerRadius(CapsuleCornerRadius(rect.Size)), style, clip: false);
+        Geometry(rect, new CornerRadius(CapsuleCornerRadius(rect.Size)), style, clip: false, circularInBand: false);
 
     // ---- The outline as data ---------------------------------------------------------------------------------------
 
@@ -134,13 +158,13 @@ public static class SwiftShapes
     /// (<see cref="ContinuousCorner.Extent"/> radii) and its neighbour's fit along each side they share
     /// (<c>2 * Extent * r &lt;= min(w, h)</c> for a uniform radius), else the circular arc.
     /// </summary>
-    public static ShapeOutline Outline(Rect rect, CornerRadius radii, RoundedCornerStyle style) => Build(rect, radii, style, slack: 0);
+    public static ShapeOutline Outline(Rect rect, CornerRadius radii, RoundedCornerStyle style, bool circularInBand = false) => Build(rect, radii, style, slack: 0, circularInBand);
 
     // The clip variant of the outline: the same corners, but every straight side and every corner that is not Apple's is
     // pushed ClipSlack outside, so the clip cuts along the continuous curves and not along any straight side (the Border's own fill, with its own
     // anti-aliased edge, stays what draws every straight side, and a child that draws beyond a side is not clipped, except within the run-ins of an
     // Apple-regime corner, where the quadrant outside the bounds is cut with the sliver: see ClipSlack).
-    internal static ShapeOutline ClipOutline(Rect rect, CornerRadius radii) => Build(rect, radii, RoundedCornerStyle.Continuous, ClipSlack);
+    internal static ShapeOutline ClipOutline(Rect rect, CornerRadius radii, bool circularInBand = false) => Build(rect, radii, RoundedCornerStyle.Continuous, ClipSlack, circularInBand);
 
     // Whether a corner's run-in fits: the corner and its neighbour on each side it shares need E r each along that side (the top side
     // joins corners 0 and 1, the bottom side 2 and 3, the left side 0 and 3, the right side 1 and 2; corners clockwise from the top-left).
@@ -153,15 +177,55 @@ public static class SwiftShapes
     }
 
     /// <summary>Whether any corner of this shape is Apple's continuous corner at this size (what <see cref="Outline"/> reports, without building the path).</summary>
-    public static bool HasContinuousCorner(Size size, CornerRadius radii, RoundedCornerStyle style)
+    public static bool HasContinuousCorner(Size size, CornerRadius radii, RoundedCornerStyle style, bool circularInBand = false)
     {
         if (style != RoundedCornerStyle.Continuous || !(size.Width > 0) || !(size.Height > 0)) return false;
-        double tl = Math.Max(0, radii.TopLeft), tr = Math.Max(0, radii.TopRight), br = Math.Max(0, radii.BottomRight), bl = Math.Max(0, radii.BottomLeft);
-        return (tl > 0 && FitsContinuous(0, size.Width, size.Height, tl, tr, br, bl)) || (tr > 0 && FitsContinuous(1, size.Width, size.Height, tl, tr, br, bl))
-            || (br > 0 && FitsContinuous(2, size.Width, size.Height, tl, tr, br, bl)) || (bl > 0 && FitsContinuous(3, size.Width, size.Height, tl, tr, br, bl));
+        var kinds = new CornerKind[4];
+        var drawn = new double[4];
+        ResolveCorners(size.Width, size.Height, [Math.Max(0, radii.TopLeft), Math.Max(0, radii.TopRight), Math.Max(0, radii.BottomRight), Math.Max(0, radii.BottomLeft)],
+            style, circularInBand, kinds, drawn);
+        return kinds.Contains(CornerKind.Continuous);
     }
 
-    private static ShapeOutline Build(Rect rect, CornerRadius radii, RoundedCornerStyle style, double slack)
+    // How each corner is drawn and at what radius (ENGINEERING DECISION backed by the oracle for capsules and large radii, ED-275 (2); the band is the
+    // owner's, OD-0102). Per corner, in order top-left, top-right, bottom-right, bottom-left:
+    //  - radius 0: square.
+    //  - `.circular`: the circular arc, the radius held to half the shorter side (so the path never folds over itself; a capsule's radius is exactly that).
+    //  - `.continuous` where the corner's run-in and its neighbour's fit along each side they share (2 * Extent * r <= min(w, h) for a uniform radius):
+    //    Apple's corner at the requested radius.
+    //  - `.continuous` in the BAND (it does not fit at the stated radius, yet the radius is under half the shorter side: for r 18 that is 36 < h < 55):
+    //    Apple's corner at the largest radius that fits, ContinuousCorner.LargestRadius(size) = min(w, h) / (2 * Extent), or the stated radius if
+    //    that is smaller (OD-0102, "corner-band: A"); a neighbour that then still does not fit leaves the corner circular. EXCEPT a shape marked
+    //    circularInBand (the composer pill, measured circular), which takes the circular arc as before.
+    //  - `.continuous` at half the shorter side or more (a capsule): the circular arc, held to half (the video shows circular ends, SPEC.md 2.3).
+    private static void ResolveCorners(double w, double h, double[] requested, RoundedCornerStyle style, bool circularInBand, CornerKind[] kinds, double[] drawn)
+    {
+        var half = Math.Min(w, h) / 2;
+        var largest = ContinuousCorner.LargestRadius(new Size(w, h));
+        var effective = (double[])requested.Clone();
+        var inBand = new bool[4];
+        for (var i = 0; i < 4; i++)
+        {
+            var r = requested[i];
+            if (r <= 0 || style != RoundedCornerStyle.Continuous || FitsContinuous(i, w, h, requested[0], requested[1], requested[2], requested[3])) continue;
+            if (!circularInBand && r < half - 1e-9)
+            {
+                inBand[i] = true;
+                effective[i] = Math.Min(r, largest);
+            }
+        }
+        for (var i = 0; i < 4; i++)
+        {
+            var r = requested[i];
+            if (r <= 0) { kinds[i] = CornerKind.Square; drawn[i] = 0; continue; }
+            var fits = style == RoundedCornerStyle.Continuous && (inBand[i] || FitsContinuous(i, w, h, requested[0], requested[1], requested[2], requested[3]))
+                && FitsContinuous(i, w, h, effective[0], effective[1], effective[2], effective[3]);
+            if (fits) { kinds[i] = CornerKind.Continuous; drawn[i] = effective[i]; }
+            else { kinds[i] = CornerKind.Arc; drawn[i] = Math.Min(r, half); }
+        }
+    }
+
+    private static ShapeOutline Build(Rect rect, CornerRadius radii, RoundedCornerStyle style, double slack, bool circularInBand)
     {
         double x0 = rect.Left, y0 = rect.Top, x1 = rect.Right, y1 = rect.Bottom;
         var w = rect.Width;
@@ -173,30 +237,20 @@ public static class SwiftShapes
             segments.Add(new PathSegment(PathVerb.Line, new Point(x1, y0)));
             segments.Add(new PathSegment(PathVerb.Line, new Point(x1, y1)));
             segments.Add(new PathSegment(PathVerb.Line, new Point(x0, y1)));
-            return new ShapeOutline(rect, segments, [CornerKind.Square, CornerKind.Square, CornerKind.Square, CornerKind.Square]);
+            return new ShapeOutline(rect, segments, [CornerKind.Square, CornerKind.Square, CornerKind.Square, CornerKind.Square], [0, 0, 0, 0]);
         }
-        var half = Math.Min(w, h) / 2;
         const double e = ContinuousCorner.Extent;
         // Clockwise corner order: top-left, top-right, bottom-right, bottom-left.
         var requested = new[] { Math.Max(0, radii.TopLeft), Math.Max(0, radii.TopRight), Math.Max(0, radii.BottomRight), Math.Max(0, radii.BottomLeft) };
         var kinds = new CornerKind[4];
+        var drawn = new double[4];
+        ResolveCorners(w, h, requested, style, circularInBand, kinds, drawn);
         var ext = new double[4];
         var arc = new double[4];
         for (var i = 0; i < 4; i++)
         {
-            var r = requested[i];
-            if (r <= 0) { kinds[i] = CornerKind.Square; continue; }
-            if (style == RoundedCornerStyle.Continuous && FitsContinuous(i, w, h, requested[0], requested[1], requested[2], requested[3]))
-            {
-                kinds[i] = CornerKind.Continuous;
-                ext[i] = e * r;
-            }
-            else
-            {
-                kinds[i] = CornerKind.Arc;
-                arc[i] = Math.Min(r, half);
-                ext[i] = arc[i];
-            }
+            if (kinds[i] == CornerKind.Continuous) ext[i] = e * drawn[i];
+            else if (kinds[i] == CornerKind.Arc) { arc[i] = drawn[i]; ext[i] = drawn[i]; }
         }
 
         // Where each corner starts and ends, clockwise (TL: left edge to top edge; TR: top to right; BR: right to bottom;
@@ -234,7 +288,7 @@ public static class SwiftShapes
                 case CornerKind.Continuous:
                     foreach (var cubic in ContinuousCorner.Cubics)
                     {
-                        var r = requested[i];
+                        var r = drawn[i];
                         var p1 = Map(i, cubic.Control1, r);
                         var p2 = Map(i, cubic.Control2, r);
                         var p3 = Map(i, cubic.End, r);
@@ -273,13 +327,13 @@ public static class SwiftShapes
                 if (corner == 0) break;
             }
         }
-        return new ShapeOutline(rect, segments, kinds);
+        return new ShapeOutline(rect, segments, kinds, drawn);
     }
 
     // ---- The cached geometry ---------------------------------------------------------------------------------------
 
     private readonly record struct ShapeKey(double X, double Y, double Width, double Height, double TopLeft, double TopRight,
-        double BottomRight, double BottomLeft, RoundedCornerStyle Style, bool Clip);
+        double BottomRight, double BottomLeft, RoundedCornerStyle Style, bool Clip, bool CircularInBand);
 
     private const int CacheLimit = 1024;
     private static readonly Dictionary<ShapeKey, StreamGeometry> cache = [];
@@ -289,14 +343,14 @@ public static class SwiftShapes
     /// <summary>How many geometries have been built (a test hook: a colour change builds none, a resize builds one).</summary>
     internal static int GeometryBuildCount => Volatile.Read(ref geometryBuilds);
 
-    private static Geometry Geometry(Rect rect, CornerRadius radii, RoundedCornerStyle style, bool clip)
+    private static Geometry Geometry(Rect rect, CornerRadius radii, RoundedCornerStyle style, bool clip, bool circularInBand)
     {
-        var key = new ShapeKey(rect.X, rect.Y, rect.Width, rect.Height, radii.TopLeft, radii.TopRight, radii.BottomRight, radii.BottomLeft, style, clip);
+        var key = new ShapeKey(rect.X, rect.Y, rect.Width, rect.Height, radii.TopLeft, radii.TopRight, radii.BottomRight, radii.BottomLeft, style, clip, circularInBand);
         lock (cacheLock)
         {
             if (cache.TryGetValue(key, out var found)) return found;
             if (cache.Count >= CacheLimit) cache.Clear();
-            var outline = clip ? ClipOutline(rect, radii) : Outline(rect, radii, style);
+            var outline = clip ? ClipOutline(rect, radii, circularInBand) : Outline(rect, radii, style, circularInBand);
             var geometry = new StreamGeometry();
             using (var context = geometry.Open())
             {
@@ -329,7 +383,7 @@ public static class SwiftShapes
     }
 
     /// <summary>The clip of a continuous shape of this size: Apple's corners cut, every other edge left to the shape's own fill.</summary>
-    internal static Geometry ClipGeometry(Rect rect, CornerRadius radii) => Geometry(rect, radii, RoundedCornerStyle.Continuous, clip: true);
+    internal static Geometry ClipGeometry(Rect rect, CornerRadius radii, bool circularInBand = false) => Geometry(rect, radii, RoundedCornerStyle.Continuous, clip: true, circularInBand);
 }
 
 /// <summary>
@@ -363,7 +417,8 @@ internal static class ContinuousClip
         var drawsBorder = border.BorderBrush is not null && border.BorderThickness != default;
         if (!drawsFill && !drawsBorder && !border.ClipToBounds) return null;
         var radii = border.CornerRadius;
-        return SwiftShapes.HasContinuousCorner(size, radii, RoundedCornerStyle.Continuous) ? SwiftShapes.ClipGeometry(new Rect(size), radii) : null;
+        var circularInBand = SwiftShapes.GetCircularInBand(border);
+        return SwiftShapes.HasContinuousCorner(size, radii, RoundedCornerStyle.Continuous, circularInBand) ? SwiftShapes.ClipGeometry(new Rect(size), radii, circularInBand) : null;
     }
 
     private sealed class Tracker
@@ -379,7 +434,7 @@ internal static class ContinuousClip
                 var p = e.Property;
                 if (p == Visual.BoundsProperty || p == Border.CornerRadiusProperty || p == Border.BackgroundProperty
                     || p == Border.BorderBrushProperty || p == Border.BorderThicknessProperty || p == Border.BoxShadowProperty
-                    || p == Visual.ClipToBoundsProperty || p == SwiftShapes.CornerStyleProperty)
+                    || p == Visual.ClipToBoundsProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty)
                     Update();
             };
             Update();
