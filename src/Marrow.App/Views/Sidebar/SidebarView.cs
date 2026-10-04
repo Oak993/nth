@@ -3874,7 +3874,9 @@ internal sealed class ThreadRowFace : Decorator
     private double clearanceTarget;
     private double weightTarget;
     private double titleOpacityTarget;
-    private TextBlock? title;
+    private Panel? titleHost; // the title's slot: one copy of the text at rest, a Regular and a Medium copy stacked while the weight changes
+    private TextBlock? regularTitle;
+    private TextBlock? mediumTitle;
     private TextBlock? label;
     private Panel? glyphHost;
     private string? glyphSymbol;
@@ -3940,7 +3942,7 @@ internal sealed class ThreadRowFace : Decorator
         }
         else
         {
-            if (title is not null && title.Text != thread.Title) title.Text = thread.Title;
+            foreach (var copy in TitleCopies()) if (copy.Text != thread.Title) copy.Text = thread.Title;
             if (label is not null) label.Text = mergeStage ?? projectName; // :2057
             if (leading is not null && leadingKey is not null && !Equals(leadingKey, BadgeKey(thread)))
             {
@@ -3983,14 +3985,46 @@ internal sealed class ThreadRowFace : Decorator
     private void ApplyPadding(double value) =>
         frame.Padding = new Thickness(leftPadding, vertical, Chrome.RowHorizontalPadding + value, vertical); // :2066-2069
 
+    /// <summary>
+    /// :2041/:2048 the title's weight, 400 (.regular) to 500 (.medium), as the value of the animation. The title NEVER asks for
+    /// a weight between the two: the embedded Inter is static faces and Avalonia resolves 413 and 425..498 to SemiBold or
+    /// Bold, past the source's .medium (measured: SidebarLeftoversReviewTests). A weight change is drawn as a crossfade of two
+    /// copies of the same text stacked exactly, one Regular and one Medium; their opacities are (1 - share) and share, share
+    /// being how far the value is from 400 to 500, so they run along the curve the weight rides. At rest only the copy whose
+    /// weight it is exists. A change that arrives mid-crossfade starts from the share the scalar stands at.
+    /// </summary>
     private void ApplyWeight(double value)
     {
-        if (title is not null) title.FontWeight = (FontWeight)(int)Math.Round(value);
+        if (titleHost is null) return;
+        var share = Math.Clamp((value - (int)FontWeight.Normal) / ((int)FontWeight.Medium - (int)FontWeight.Normal), 0, 1);
+        ShowTitleCopy(ref regularTitle, SwiftFont.Weight.Regular, 1 - share);
+        ShowTitleCopy(ref mediumTitle, SwiftFont.Weight.Medium, share);
     }
+
+    private void ShowTitleCopy(ref TextBlock? copy, SwiftFont.Weight weightOfCopy, double opacity)
+    {
+        if (titleHost is null) return;
+        if (opacity <= 0)
+        {
+            if (copy is not null) titleHost.Children.Remove(copy);
+            copy = null;
+            return;
+        }
+        if (copy is null)
+        {
+            copy = new TextBlock { Text = thread.Title, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2040/:2047, :2043-2044/:2050-2051
+            SwiftFont.System(thread.IsSettled ? 12 : 13, weightOfCopy).Apply(copy); // :2041/:2048
+            copy.Foreground = Chrome.PrimaryText.Opacity(titleOpacity.Value).Brush(copy); // :2042/:2049
+            titleHost.Children.Insert(weightOfCopy == SwiftFont.Weight.Regular ? 0 : titleHost.Children.Count, copy); // Medium over Regular
+        }
+        copy.Opacity = opacity;
+    }
+
+    private IEnumerable<TextBlock> TitleCopies() => new[] { regularTitle, mediumTitle }.OfType<TextBlock>();
 
     private void ApplyTitleOpacity(double value)
     {
-        if (title is not null) title.Foreground = Chrome.PrimaryText.Opacity(value).Brush(title); // :2042/:2049
+        foreach (var copy in TitleCopies()) copy.Foreground = Chrome.PrimaryText.Opacity(value).Brush(copy); // :2042/:2049
     }
 
     // What ThreadBadge reads off the thread (:2159-2169); the leading badge is built again only when one of them changes.
@@ -4007,7 +4041,9 @@ internal sealed class ThreadRowFace : Decorator
     {
         var isSettled = thread.IsSettled; // :2020
         var isDetailed = projectName is not null && !isSettled; // :2021
-        title = null;
+        titleHost = null;
+        regularTitle = null;
+        mediumTitle = null;
         label = null;
         glyphHost = null;
         glyphSymbol = null;
@@ -4046,7 +4082,7 @@ internal sealed class ThreadRowFace : Decorator
             glyphHost = new Panel();
             glyphSymbol = GlyphName(thread);
             glyphHost.Children.Add(MakeGlyph(glyphSymbol));
-            label = new TextBlock { Text = mergeStage ?? projectName, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2057-2059
+            label = new TextBlock { Tag = "projectName", Text = mergeStage ?? projectName, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2057-2059
             SwiftFont.Callout.Apply(label); // :2058
             label.Foreground = Chrome.SecondaryText.Brush(label); // :2061
             var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { glyphHost, label } }; // :2054
@@ -4074,14 +4110,11 @@ internal sealed class ThreadRowFace : Decorator
     }
 
     // :2040-2051 the title text, shared by the detailed-with-mark layout and the plain one.
-    private TextBlock MakeTitle()
+    private Panel MakeTitle()
     {
-        var made = new TextBlock { Text = thread.Title, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2040/:2047, :2043-2044/:2050-2051
-        SwiftFont.System(thread.IsSettled ? 12 : 13, SwiftFont.Weight.Regular).Apply(made); // :2041/:2048, the weight itself is the animated value's
-        title = made;
-        ApplyWeight(weight.Value);
-        ApplyTitleOpacity(titleOpacity.Value);
-        return made;
+        titleHost = new Panel();
+        ApplyWeight(weight.Value); // the copies the weight stands at: one at rest, two while it changes
+        return titleHost;
     }
 
     // :2055-2056, :2061 the project line's mark, a footnote-sized symbol in the secondary colour.

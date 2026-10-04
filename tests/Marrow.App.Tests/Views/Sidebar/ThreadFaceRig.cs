@@ -56,13 +56,17 @@ internal sealed class ThreadFaceRig : IDisposable
 
     public ThreadRowFace Face() => LogicalQuery.SelfAndDescendants<ThreadRowFace>(Row).Single();
 
-    public TextBlock Title() => LogicalQuery.SelfAndDescendants<TextBlock>(Face()).First();
+    // the copies of the title's text: one at rest, a Regular under a Medium one while the weight changes
+    public IReadOnlyList<TextBlock> Titles() => LogicalQuery.SelfAndDescendants<TextBlock>(Face()).Where(t => !"projectName".Equals(t.Tag)).ToList();
 
-    public TextBlock Label() => LogicalQuery.SelfAndDescendants<TextBlock>(Face()).Skip(1).First();
+    public TextBlock Title() => Titles()[0];
+
+    public TextBlock Label() => LogicalQuery.SelfAndDescendants<TextBlock>(Face()).Single(t => "projectName".Equals(t.Tag));
 
     public double Padding() => ((Border)Face().Child!).Padding.Right;
 
-    public double Weight() => (int)Title().FontWeight;
+    // the weight the title is drawn at, as 400 + 100 x the Medium copy's opacity (a lone Regular copy is 400, a lone Medium one 500)
+    public double Weight() => Titles().FirstOrDefault(t => t.FontWeight == FontWeight.Medium) is { } medium ? 400 + 100 * medium.Opacity : 400;
 
     public double OpacityByte() => ((ISolidColorBrush)Title().Foreground!).Color.A;
 

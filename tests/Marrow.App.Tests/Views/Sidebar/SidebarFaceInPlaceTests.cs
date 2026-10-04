@@ -233,4 +233,110 @@ public sealed class SidebarFaceInPlaceTests(HeadlessSession headless)
             Assert.Contains(LogicalQuery.SelfAndDescendants<SwiftImage>(Leading()), i => i.SymbolName == "pin.fill");
         });
     });
+
+    // PR-SIDEBAR-065 :2041 (lead ruling 2026-10-04: in-between weights resolve to heavier Inter faces, measured, so weight changes
+    // crossfade Regular and Medium). The faces drawn in every frame of the title turning medium: only Regular and Medium copies of
+    // the text, a lone Regular at the start, both stacked (Regular under Medium) in between, a lone Medium at rest.
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-065")]
+    public void The_title_turning_medium_draws_only_a_regular_and_a_medium_copy_stacked_and_one_copy_at_rest() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        rig.Harness.Main.OnMain(() => Assert.Equal(FontWeight.Normal, Assert.Single(rig.Titles()).FontWeight));
+        rig.Start(FaceProperty.Weight);
+        var frames = new List<string>();
+        for (var step = 0; step < 16; step++)
+        {
+            rig.Tick(8);
+            rig.Harness.Main.OnMain(() =>
+            {
+                var titles = rig.Titles();
+                frames.Add(string.Join("+", titles.Select(t => (int)t.FontWeight)));
+                Assert.All(titles, t => Assert.Contains((int)t.FontWeight, new[] { 400, 500 }));
+                Assert.All(titles, t => Assert.Equal("A long title that wants all the room it can get", t.Text)); // the same text in both copies
+                if (titles.Count == 2)
+                {
+                    Assert.Equal(FontWeight.Normal, titles[0].FontWeight); // Medium over Regular
+                    Assert.Equal(FontWeight.Medium, titles[1].FontWeight);
+                    Assert.Equal(titles[0].Bounds, titles[1].Bounds); // stacked exactly
+                    Assert.Equal(titles[0].FontSize, titles[1].FontSize);
+                }
+            });
+        }
+        var firstAtRest = frames.IndexOf("500");
+        Assert.True(firstAtRest > 1, string.Join(", ", frames)); // both drawn while it changes
+        Assert.All(frames.Take(firstAtRest), frame => Assert.Equal("400+500", frame)); // from the first frame to the last one before rest
+        Assert.All(frames.Skip(firstAtRest), frame => Assert.Equal("500", frame)); // at rest one copy, the Medium one, for good
+    });
+
+    // The copies' opacities run along the curve the weight used: Chrome.hover (.easeOut 0.1 s), Medium at the curve's value, Regular at its complement.
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-065")]
+    public void The_regular_and_medium_copies_opacities_follow_the_hover_curve_frame_by_frame() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        rig.Start(FaceProperty.Weight);
+        for (var step = 1; step <= 16; step++)
+        {
+            rig.Tick(8);
+            var seconds = step * 0.008;
+            rig.Harness.Main.OnMain(() =>
+            {
+                var share = seconds >= 0.1 ? 1d : Chrome.Hover.Progress(seconds);
+                var titles = rig.Titles();
+                var medium = titles.Single(t => t.FontWeight == FontWeight.Medium);
+                Assert.Equal(share, medium.Opacity, 6);
+                if (share < 1) Assert.Equal(1 - share, titles.Single(t => t.FontWeight == FontWeight.Normal).Opacity, 6);
+                else Assert.Single(titles);
+            });
+        }
+    });
+
+    // A reversal mid-crossfade (the title read again, unread -> read, inside an animation) turns round from the opacities it stands at:
+    // nothing cuts, no frame draws a face outside Regular and Medium, and it ends on a lone Regular copy.
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-065")]
+    public void A_weight_change_reversed_mid_crossfade_turns_round_from_the_current_opacities() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        rig.Start(FaceProperty.Weight);
+        rig.Tick(24);
+        double mediumBefore = 0, regularBefore = 0;
+        rig.Harness.Main.OnMain(() =>
+        {
+            var titles = rig.Titles();
+            Assert.Equal(2, titles.Count);
+            regularBefore = titles[0].Opacity;
+            mediumBefore = titles[1].Opacity;
+            Assert.InRange(mediumBefore, 0.05, 0.95);
+        });
+        rig.Harness.Main.OnMain(() => Transaction.WithAnimation(Chrome.Hover, () => rig.Model.UpdateThread(rig.Thread.Id, t => t with { HasUnread = false })));
+        rig.Harness.Main.OnMain(() =>
+        {
+            var titles = rig.Titles();
+            Assert.Equal(2, titles.Count);
+            Assert.Equal(regularBefore, titles[0].Opacity); // not cut: the same opacities as a moment ago
+            Assert.Equal(mediumBefore, titles[1].Opacity);
+        });
+        var last = mediumBefore;
+        for (var step = 0; step < 16; step++)
+        {
+            rig.Tick(8);
+            rig.Harness.Main.OnMain(() =>
+            {
+                var titles = rig.Titles();
+                Assert.All(titles, t => Assert.Contains((int)t.FontWeight, new[] { 400, 500 }));
+                var medium = titles.FirstOrDefault(t => t.FontWeight == FontWeight.Medium)?.Opacity ?? 0;
+                Assert.True(medium <= last + 1e-9, $"the Medium copy rose again ({last} then {medium})"); // turning back, never forward
+                if (titles.Count == 2) Assert.Equal(1d, titles[0].Opacity + titles[1].Opacity, 6);
+                last = medium;
+            });
+        }
+        rig.Harness.Main.OnMain(() =>
+        {
+            var only = Assert.Single(rig.Titles());
+            Assert.Equal(FontWeight.Normal, only.FontWeight);
+            Assert.Equal(1d, only.Opacity);
+        });
+    });
 }
