@@ -176,7 +176,7 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
     [Trait("Req", "PR-WIN-008")] // WindowManager.swift:96, defer:false realizes the native window before presentation.
     public void The_factory_realizes_its_owned_native_handle_before_the_first_Show()
     {
-        // A live invisible HWND proves realization (defer: false). RESOLVED FACTORY-RENDER-POLICY (ED-NEW-windowmanager): "buffered"
+        // A live invisible HWND proves realization (defer: false). RESOLVED FACTORY-RENDER-POLICY (ED-284): "buffered"
         // is NOT_APPLICABLE on Windows (an Avalonia window is drawn through DWM's composition buffer), and the system's window
         // animation is proved on real pixels by The_factory_windows_are_hidden_with_the_systems_fade_not_cut_...
         native.Run(subject => native.OnUi(() =>

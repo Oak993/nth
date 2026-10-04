@@ -15,7 +15,7 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Trait("Req", "PR-WIN-011")]
     public void Cached_show_centers_before_the_platform_show_request()
     {
-        // RESOLVED DISPLAY-PASS (ED-NEW-windowmanager): AppKit's setFrame(display: false) has no Windows analogue, so that clause is
+        // RESOLVED DISPLAY-PASS (ED-284): AppKit's setFrame(display: false) has no Windows analogue, so that clause is
         // recorded NOT_APPLICABLE; the observable part, that the origin is set before the window is shown (:36 before :37), is
         // what this test asserts (the Rise open shows the window cloaked at its final position, so no frame is ever displayed at an
         // old one).

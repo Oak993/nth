@@ -62,7 +62,7 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
         Assert.Equal(0, screens.OwnerReads);
     });
 
-    // ENGINEERING DECISION (ED-NEW-windowmanager, WindowInvisibleBorder): the frame ED-225 centres is the visible window; an
+    // ENGINEERING DECISION (ED-284, WindowInvisibleBorder): the frame ED-225 centres is the visible window; an
     // HWND of the factory's chrome keeps an invisible 8 px strip on its left, right and bottom and none above, so the HWND is
     // placed 8 px left of the centred visible window and at its top. Stood in for here; the real HWND is the native test.
     [Fact]
@@ -75,12 +75,12 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
         Assert.Equal(new PixelPoint(-1468, -1100), manager.MainWindow!.Position);
     });
 
-    // ENGINEERING DECISION (ED-NEW-windowmanager, WindowInvisibleBorder), arithmetic with a stood-in strip of 12 px (not the 8 px
+    // ENGINEERING DECISION (ED-284, WindowInvisibleBorder), arithmetic with a stood-in strip of 12 px (not the 8 px
     // the other tests use, so a constant 8 or a dropped term both differ): the HWND lies one strip left of the centred visible
     // window and at its top (no strip above). Proves WindowCentering.Center's left term and its absent top term; it does not
     // prove that a real HWND has such a strip (WindowManagerNativeCentringTests).
     [Fact]
-    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225, ED-NEW-windowmanager (1)
+    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225, ED-284 (1)
     public void The_HWND_is_placed_one_invisible_strip_left_of_the_centred_visible_window_and_at_its_top() => WithManager((manager, harness, screens, cursor) =>
     {
         using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));
@@ -91,7 +91,7 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
 
     // The same strip on the Settings window opened with no main window to centre over (WindowCentering.Center on the owner monitor's work area).
     [Fact]
-    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84, :42-45; ED-225, ED-NEW-windowmanager (1)
+    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84, :42-45; ED-225, ED-284 (1)
     [Trait("Req", "PR-SETTINGS-002")]
     public void The_Settings_HWND_without_a_main_window_is_placed_one_invisible_strip_left_of_the_centred_visible_window() => WithManager((manager, harness, screens, cursor) =>
     {
@@ -107,7 +107,7 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
     // taller than the work area keeps its leading edges on it, so the visible left edge is at the area's left (the HWND one
     // strip outside it) and the top at its top. Without the strip term the HWND would start at the area's left.
     [Fact]
-    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225, ED-NEW-windowmanager (1)
+    [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225, ED-284 (1)
     public void A_visible_main_window_larger_than_the_work_area_keeps_its_left_edge_on_it_and_the_strip_outside_it() => WithManager((manager, harness, screens, cursor) =>
     {
         using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));

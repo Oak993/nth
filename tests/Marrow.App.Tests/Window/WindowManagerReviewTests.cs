@@ -11,7 +11,7 @@ namespace Marrow.App.Tests.Window;
 public sealed class WindowManagerReviewTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
     // WindowManager.swift:46-49: the Settings window's centre is put on the main window's centre (main.frame, the visible
-    // window). ED-NEW-windowmanager (1) models the factory HWND's invisible strip as lying on the left, right and bottom only
+    // window). ED-284 (1) models the factory HWND's invisible strip as lying on the left, right and bottom only
     // and compensates for the bottom strip by adding it to the Settings frame. A MAXIMISED Win32 window is different: Windows
     // places its HWND with the resize border outside the monitor on all FOUR sides, and Avalonia 12.1.2's WM_NCCALCSIZE for a
     // maximised extended-client window insets the client by that border on all four sides too (decompiled

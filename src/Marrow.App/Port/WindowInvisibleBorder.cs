@@ -5,7 +5,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Port;
 
-// PORT-ONLY (ENGINEERING DECISION, ED-NEW-windowmanager; WindowManager.swift:67-69, :82, :43, :46-54): AppKit's NSWindow.frame
+// PORT-ONLY (ENGINEERING DECISION, ED-284; WindowManager.swift:67-69, :82, :43, :46-54): AppKit's NSWindow.frame
 // is the window as the user sees it, and a window made with .fullSizeContentView has no title bar above its content, so the
 // frame is the content rect (:93-96). A Windows window of the factory's chrome (ED-063: WindowDecorations.Full with the client
 // area extended under the title bar) is drawn the same way, but its HWND is larger than what shows: Windows keeps the

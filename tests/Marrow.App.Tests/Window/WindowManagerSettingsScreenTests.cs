@@ -267,7 +267,7 @@ public sealed class WindowManagerSettingsScreenTests(HeadlessSession headless) :
         }, realSettings: false);
     }
 
-    // ENGINEERING DECISION (ED-NEW-windowmanager, WindowInvisibleBorder): the frame AppKit centres and clamps is the visible
+    // ENGINEERING DECISION (ED-284, WindowInvisibleBorder): the frame AppKit centres and clamps is the visible
     // window, and an HWND of the factory's chrome keeps an invisible strip (8 px at 100 %) on its left, right and bottom. The
     // strip is stood in for here (a headless window has no HWND); the real HWND is WindowManagerNativeTests.
     [Fact]
@@ -300,7 +300,7 @@ public sealed class WindowManagerSettingsScreenTests(HeadlessSession headless) :
     // its frame: its visible window is centred on the main window's visible window, and dropping the strip from the Settings
     // frame would move it 12 px right and 6 px down. A headless HWND has no strip; the real one is WindowManagerNativeTests.
     [Fact]
-    [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:46-49, ED-NEW-windowmanager (1)
+    [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:46-49, ED-284 (1)
     [Trait("Req", "PR-WIN-011")]
     public void The_Settings_frame_carries_its_own_invisible_strip_when_centred_on_the_visible_main_window()
     {
@@ -327,7 +327,7 @@ public sealed class WindowManagerSettingsScreenTests(HeadlessSession headless) :
     // The clamp rectangle is the working area extended by the strip on its left, right and bottom, so the visible Settings
     // window may touch the area's edges while its HWND lies one strip outside them.
     [Theory]
-    [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:50-52, ED-NEW-windowmanager (1)
+    [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:50-52, ED-284 (1)
     [Trait("Req", "PR-WIN-011")]
     [InlineData(-600, 0, -12, 134)] // clamped at the left: the visible window starts at 0, its HWND 12 px outside the working area
     [InlineData(1700, 950, 1128, 460)] // clamped at the right and the bottom: the visible window ends at 1920, its HWND at 1052 (1040 + 12)
