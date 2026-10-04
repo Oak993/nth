@@ -3,14 +3,18 @@
 // top level drew under it (F.GlassMaterial), so the scripts sheet's glass can frost the chat under it only from inside the main window; a
 // Popup is a top level of its own (a PopupRoot window), whose surface holds nothing under the sheet. The layer covers the window's content,
 // so the window under a sheet takes no pointer while it shows (a sheet is window-modal), and it centres the sheet on its anchor, as the
-// Popup's PlacementMode.Center did.
+// Popup's PlacementMode.Center did. Beside the sheet a press that would land on the window's own drag region (a WindowDragArea, or any region
+// whose Windows hit test is the caption) passes through to it, so the window can still be dragged by it, as a Mac window with a sheet can be.
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Rendering;
+using Avalonia.VisualTree;
 
 namespace Marrow.App.Port;
 
-internal sealed class WindowSheetLayer : Panel
+internal sealed class WindowSheetLayer : Panel, ICustomHitTest
 {
     private readonly Control anchor;
 
@@ -19,6 +23,8 @@ internal sealed class WindowSheetLayer : Panel
         this.anchor = anchor;
         Sheet = sheet;
         Background = Brushes.Transparent; // hit-tested: a press beside the sheet reaches nothing under it
+        Focusable = true; // it takes the keyboard when it shows (ChatSheetPresentation.ShowInWindow)
+        KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
         Children.Add(sheet);
         // the anchor moves without this layer being laid out again (the sidebar opens, the column narrows): follow it
         anchor.PropertyChanged += OnAnchorChanged;
@@ -27,6 +33,22 @@ internal sealed class WindowSheetLayer : Panel
 
     /// <summary>The sheet's content, as the presentation built it.</summary>
     public Control Sheet { get; }
+
+    // Everywhere but where the content under the layer is the window's drag region (see the file note).
+    public bool HitTest(Point point)
+    {
+        if (new Rect(Bounds.Size).Contains(point) is false) return false;
+        if (Sheet.Bounds.Contains(point)) return true;
+        if (Parent is not Panel root) return true;
+        foreach (var under in root.Children.TakeWhile(child => !ReferenceEquals(child, this)).Reverse())
+        {
+            if (!under.IsEffectivelyVisible || this.TranslatePoint(point, under) is not { } at) continue;
+            if (under.InputHitTest(at) is not Visual hit) continue;
+            return !hit.GetSelfAndVisualAncestors().OfType<Control>().Any(control =>
+                Win32Properties.GetNonClientHitTestResult(control) == Win32Properties.Win32HitTestValue.Caption);
+        }
+        return true;
+    }
 
     private void OnAnchorChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {

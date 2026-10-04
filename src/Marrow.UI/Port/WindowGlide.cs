@@ -91,18 +91,27 @@ public sealed class WindowGlide
     public void Depart(Control view, Action<Panel, Control> removal)
     {
         var container = SwiftTransition.Container(view);
-        if (!panel.Children.Contains(container)) return;
+        // not one of the panel's views: the removal is the transition's own, wherever the view is (it is always run, so its completion is too)
+        if (!panel.Children.Contains(container)) { removal(panel, view); return; }
         var at = container.TranslatePoint(default, departures);
         var inWindow = TopLevel.GetTopLevel(panel) is { } top ? container.TranslatePoint(default, top) : null;
         var size = container.Bounds.Size;
         if (glides.Remove(container, out var glide)) glide.Stop();
         panel.Children.Remove(container);
-        if (at is not { } place || size.Width <= 0 || size.Height <= 0) return;
-        container.Width = size.Width;
-        container.Height = size.Height;
         container.IsHitTestVisible = false;
-        Canvas.SetLeft(container, place.X);
-        Canvas.SetTop(container, place.Y);
+        if (at is { } place && size.Width > 0 && size.Height > 0)
+        {
+            container.Width = size.Width;
+            container.Height = size.Height;
+            Canvas.SetLeft(container, place.X);
+            Canvas.SetTop(container, place.Y);
+        }
+        else
+        {
+            // never laid out (it left in the pass that brought it): nothing of it was drawn, and its removal still runs to its end
+            container.Width = container.Height = 0;
+            inWindow = null;
+        }
         departures.Children.Add(container);
         if (inWindow is { } fixedAt) departed[container] = fixedAt;
         removal(departures, view);
