@@ -7,10 +7,10 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3931,
+      "IMPLEMENTED": 3932,
       "RETIRED": 15,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
-      "SPECIFIED": 24
+      "SPECIFIED": 23
     },
     "by_area": {
       "CHAT": 193,
@@ -75574,7 +75574,7 @@
       "cancellation": "Cancel or clicking away closes the popover and changes nothing.",
       "windows_path": "Direct translation; the trim for the disabled state is `.whitespaces` only, which must be reproduced exactly rather than widened to whitespace-and-newlines.",
       "verification_method": "interaction test asserting the verbatim strings, the pre-fill, the focus, the disabled rule and the Return path.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
