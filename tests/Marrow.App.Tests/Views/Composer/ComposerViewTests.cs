@@ -3625,11 +3625,10 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // real window on a quiet PC (OD-0007).
 //
 // STOP App.Views.Composer.ComposerView #12
-// Kind: foundation question, UI-COMPOSER-004. The notice arrives on the foundation's SoftAppear, whose modifier has no animatable data,
-// so SwiftTransition applies the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): the line is at full opacity
-// at its first frame where SwiftUI animates the opacity and the 4 point offset inside the modifier's body over smooth(0.32). Every
-// SoftAppear site shares it. The notice's row and the pill's height do ease (The_notice_row_opens_under_panelSlide_...,
-// After_5_s_the_notice_fades_out_...).
+// Kind: foundation question, outside UI-COMPOSER-004 (which is proven). The foundation's SoftAppear modifier has no animatable data, so
+// SwiftTransition applies the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): every SoftAppear site arrives at
+// full opacity at its first frame where SwiftUI animates the opacity and the 4 point offset inside the modifier's body over smooth(0.32).
+// The attachment notice plays that arrival itself (NoticeSlot.Arrive); the other sites are the foundation's to settle.
 //
 // STOP App.Views.Composer.ComposerView #13
 // Kind: source contradiction, UI-COMPOSER-002. The record says an empty pill is 44 points high (ComposerView.swift:157-158); the

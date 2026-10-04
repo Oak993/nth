@@ -30,7 +30,7 @@ public sealed partial class ComposerViewTests
     [Fact]
     [Trait("Req", "UI-COMPOSER-004")] // App/Views/Composer/ComposerView.swift:576-583, :522-524
     [Trait("Rule", "R-TEST-4")] // The removal: the next test; the strings and style: B3_attachment_notice_*
-    public void The_notice_row_opens_under_panelSlide_so_the_pill_eases_to_its_new_height()
+    public void The_notice_row_opens_under_panelSlide_so_the_pill_eases_to_its_new_height_while_the_line_comes_in_as_softAppear()
     {
         headless.OnUiThread(() =>
         {
@@ -58,6 +58,8 @@ public sealed partial class ComposerViewTests
             Pump(h, window2);
             var line2 = h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<TextBlock>(view2).Single(text => text.Text == CapNotice));
             Assert.Equal(start, h.Main.OnMain(() => view2.Bounds.Height), 3); // the pill has not moved at the first frame
+            Assert.Equal(0, h.Main.OnMain(() => line2.Opacity)); // .softAppear: the line comes in from nothing ...
+            Assert.Equal(4, h.Main.OnMain(() => Assert.IsType<TranslateTransform>(line2.RenderTransform).Y), 3); // ... 4 points low
             foreach (var moment in new[] { 0.05, 0.05, 0.1 }) Elapse(h, frames, window2, moment);
             // 0.2 s in: the height is the transaction's spring.
             var elapsed = 0.2;
@@ -65,7 +67,11 @@ public sealed partial class ComposerViewTests
             var expected = total * Chrome.PanelSlide.Progress(elapsed);
             Assert.InRange(Math.Abs(grown - expected), 0, 1.0);
             Assert.InRange(grown, 1, total - 1);
-            // The line is the soft transition's (the foundation's SoftAppear: opacity and a 4 point rise); once it has run it is whole.
+            // The line's own arrival is on the soft curve (smooth 0.32): opacity up, the rise down, together.
+            var soft = Animation.SoftAppear.Progress(elapsed);
+            Assert.InRange(soft, 0.2, 0.999);
+            Assert.InRange(Math.Abs(h.Main.OnMain(() => line2.Opacity) - soft), 0, 0.02);
+            Assert.InRange(Math.Abs(h.Main.OnMain(() => Assert.IsType<TranslateTransform>(line2.RenderTransform).Y) - 4 * (1 - soft)), 0, 0.1);
             Elapse(h, frames, window2, 2);
             Assert.Equal(1, h.Main.OnMain(() => line2.Opacity));
             Assert.Equal(0, h.Main.OnMain(() => (line2.RenderTransform as TranslateTransform)?.Y ?? 0), 3);

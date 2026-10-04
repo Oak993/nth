@@ -1231,8 +1231,11 @@ internal sealed class NoticeSlot : Decorator
     private readonly Border clip;
     private double natural;
     private double fraction = 1;
+    private const double SoftRise = 4; // Chrome.swift:943
     private IFrameSource? source;
     private Action<TimeSpan>? frame;
+    private IFrameSource? softSource;
+    private Action<TimeSpan>? softFrame;
 
     public NoticeSlot()
     {
@@ -1243,18 +1246,42 @@ internal sealed class NoticeSlot : Decorator
     /// <summary>A line that is there from the first render: no transition in, whole.</summary>
     public void Place(Control line) => SwiftTransition.Place(inner, 0, line);
 
-    /// <summary>A line that arrives: its own transition in, and the row opens from nothing.</summary>
+    /// <summary>
+    /// A line that arrives: the row opens from nothing and the line comes in as <c>.softAppear</c> does (Chrome.swift:949-955): its
+    /// opacity from 0 and a 4 point rise, on smooth(0.32). The foundation's SoftAppear modifier carries no animatable data and so
+    /// applies its identity at once (SwiftAnimation.cs Gather), which left the line at full opacity at its first frame; its removal half,
+    /// the 0.12 s ease-out fade, is still the transition's.
+    /// </summary>
     public void Arrive(Control line)
     {
         Apply(0);
-        SwiftTransition.Insert(inner, 0, line);
+        SwiftTransition.Place(inner, 0, line);
         Run(0, 1, Transaction.Current ?? Chrome.PanelSlide, null);
+        var rise = new TranslateTransform(0, SoftRise);
+        line.Opacity = 0;
+        line.RenderTransform = rise;
+        var start = SwiftClock.Now;
+        var soft = Animation.SoftAppear;
+        softSource = FrameClock.Source.Current;
+        softFrame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds;
+            var complete = elapsed >= soft.Duration;
+            var progress = complete ? 1 : Math.Clamp(soft.Progress(elapsed), 0, 1);
+            line.Opacity = progress; // Chrome.swift:942
+            rise.Y = SoftRise * (1 - progress); // Chrome.swift:943
+            if (complete) softFrame = null;
+            else softSource!.RequestFrame(softFrame!);
+        };
+        softSource.RequestFrame(softFrame);
     }
 
     /// <summary>The line leaves on its transition's removal and the row folds shut; <paramref name="gone"/> runs when both are over.</summary>
     public void Leave(Control line, Action gone)
     {
         var fold = Transaction.Current ?? Chrome.PanelSlide;
+        if (softFrame is not null) softSource!.CancelFrame(softFrame); // a line still arriving leaves from where it is
+        softFrame = null;
         var removed = false;
         var folded = false;
         void Finish()
