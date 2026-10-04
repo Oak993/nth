@@ -1641,7 +1641,7 @@ internal sealed class SentenceHeightGlide : Panel
         {
             probe = new TextBlock
             {
-                FontFamily = text.FontFamily, FontSize = text.FontSize, FontWeight = text.FontWeight, FontStyle = text.FontStyle, FontFeatures = text.FontFeatures,
+                FontFamily = text.FontFamily, FontSize = text.FontSize, FontWeight = text.FontWeight, FontStyle = text.FontStyle, FontFeatures = text.FontFeatures, LineHeight = text.LineHeight,
                 TextWrapping = text.TextWrapping, Opacity = 0, IsHitTestVisible = false,
             };
             AutomationProperties.SetAccessibilityView(probe, AccessibilityView.Raw);

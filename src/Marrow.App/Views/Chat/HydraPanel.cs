@@ -244,7 +244,7 @@ public sealed class HydraPanel : Decorator
         content.Children.Clear();
         // :132-135 The head's stored record, not its live one: the strip sits over a streaming chat
         // and shows only the name and the state.
-        content.Children.Add(new HydraGlyph(info.Persona, 16, info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running, info.HydraHeadInfoStatus));
+        content.Children.Add(new HydraGlyph(info.Persona, 16, info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running, info.HydraHeadInfoStatus) { VerticalAlignment = VerticalAlignment.Center }); // :132 a 16 point frame centred in the HStack, not stretched to the row
         content.Children.Add(new HydraNameText(info.Persona, 12.5, SwiftFont.Weight.Medium, Chrome.PrimaryText.Opacity(0.92)));
         // :141-145 The provider's mark, so the strip says whose model is at work on stage.
         var providerIcon = new ProviderIcon { Provider = selected.Provider, Size = 12 };

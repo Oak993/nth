@@ -1291,15 +1291,17 @@ public sealed class JumpToLatestButton : Decorator
 
 /// <summary>PORT-ONLY. <c>GlassEffectContainer(spacing:)</c> (ChatView.swift:1123): on macOS 26 it groups nearby
 /// glass shapes so they sample and morph as one compositor pass instead of each drawing its own. Each control
-/// inside already carries its own glass (Chrome.ChromeGlassCapsule/ChromeGlassCircle), so grouping changes only
-/// the compositor's cost, never what is drawn. MARROW_DEFERRED ED-180: this container does not merge sampling
-/// passes; it lays out its content unchanged. Visual parity is UNVERIFIED without macOS (OD-0001).</summary>
+/// inside carries its own glass (Chrome.ChromeGlassCapsule/ChromeGlassCircle); the container's spacing is set on the
+/// material foundation (SwiftGlass.SetContainerSpacing, F.GlassMaterial), which draws every glass piece under it in the
+/// one material pass of the container, as the composer's container (ComposerView.swift:23) and the diff chrome's
+/// (DiffInspector.swift:25) are. Visual parity of the material itself is UNVERIFIED without macOS (OD-0001, OD-0005).</summary>
 internal sealed class GlassEffectContainer : Decorator
 {
     public double Spacing { get; }
     public GlassEffectContainer(double spacing, Func<Control> content)
     {
-        Spacing = spacing; // :1123 retained for ED-180's deferred grouped pass.
+        Spacing = spacing; // :1123
+        SwiftGlass.SetContainerSpacing(this, spacing); // :1120-1123 one glass pass for the whole row (PR-CHAT-171, UI-CHAT-073)
         Child = content();
     }
 }

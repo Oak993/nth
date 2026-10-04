@@ -78,7 +78,7 @@ public sealed class TimelineRowsFinNoticeTests(HeadlessSession headless)
                 foreach (var (words, symbol, status) in expected)
                 {
                     var text = TextNamed(row, words);
-                    var glyph = Mounted<SwiftImage>(row).First(image => image.SymbolName == symbol && Top(image, window) <= Top(text, window) + 1 && Top(image, window) >= Top(text, window) - 3);
+                    var glyph = Mounted<SwiftImage>(row).First(image => image.SymbolName == symbol && Top(image, window) <= Top(text, window) + 6 && Top(image, window) >= Top(text, window) - 3); // the callout's line box is 17 (ED-NEW-frames-1): the glyph sits on the first baseline, a few points below the box's top (asserted below)
                     Face(text, 12, FontWeight.Normal, ".chat(.callout)");
                     Assert.Equal(12, SwiftImage.GetFont(glyph)!.Resolve().FontSize);
                     Assert.Equal(8, Left(text, window) - (Left(glyph, window) + glyph.Bounds.Width), 0.5);

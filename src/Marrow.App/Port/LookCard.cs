@@ -68,12 +68,12 @@ public sealed class LookCard : Decorator
     internal static double SegmentWidthFor(string label, bool chevron) =>
         (BoardLabelWidths.TryGetValue(label, out var width) ? width : LookDraw.Width(label, SegmentFont)) + 22 + (chevron ? 11 : 0);
 
-    internal static readonly SwiftFont SegmentFont = SwiftFont.System(12, SwiftFont.Weight.Medium);
-    internal static readonly SwiftFont MoreFont = SwiftFont.System(11, SwiftFont.Weight.Medium);
-    internal static readonly SwiftFont SignatureFont = SwiftFont.System(12);
-    internal static readonly SwiftFont DetailFont = SwiftFont.System(SwiftFont.TextStyle.Subheadline);
-    internal static readonly SwiftFont HeaderFont = SwiftFont.System(11, SwiftFont.Weight.Semibold);
-    internal static readonly SwiftFont RowFont = SwiftFont.System(13);
+    internal static readonly SwiftFont SegmentFont = SwiftFont.System(12, SwiftFont.Weight.Medium).WithNaturalLineHeight();
+    internal static readonly SwiftFont MoreFont = SwiftFont.System(11, SwiftFont.Weight.Medium).WithNaturalLineHeight();
+    internal static readonly SwiftFont SignatureFont = SwiftFont.System(12).WithNaturalLineHeight();
+    internal static readonly SwiftFont DetailFont = SwiftFont.System(SwiftFont.TextStyle.Subheadline).WithNaturalLineHeight();
+    internal static readonly SwiftFont HeaderFont = SwiftFont.System(11, SwiftFont.Weight.Semibold).WithNaturalLineHeight();
+    internal static readonly SwiftFont RowFont = SwiftFont.System(13).WithNaturalLineHeight();
 
     private readonly AppSettings settings;
     private readonly Dictionary<string, (bool On, double X, bool Jump)> rings = [];
@@ -458,6 +458,8 @@ public sealed class LookCard : Decorator
         var grid = (Grid)((Border)row.Child!).Child!;
         var labels = (StackPanel)grid.Children[0];
         labels.Children[1] = detail;
+        // The card is the board's (OD-0088, ED-250: 54 high rows, 237 shut): its title takes the face's own line height, not the Mac's 18 (ED-NEW-frames-1).
+        foreach (var label in labels.Children.OfType<TextBlock>()) label.LineHeight = double.NaN;
         // SPEC 2.1: the board's 28 between the text column and the control (ChromeRow's HStack gives 16 + 12 + 16), so the
         // Accent detail has the board's column (SPEC 4.3) and no line of 4.3 is cut.
         grid.ColumnDefinitions[1].Width = new GridLength(RowGap);

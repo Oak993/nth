@@ -281,6 +281,7 @@ public sealed class DotFieldControl : Canvas
             if (ElementComposition.GetElementVisual(this) is not { } host) return;
             compositionHandler = new DotFieldCompositionHandler();
             compositionVisual = host.Compositor.CreateCustomVisual(compositionHandler);
+            compositionVisual.ClipToBounds = false;
             ElementComposition.SetElementChildVisual(this, compositionVisual);
         }
         compositionVisual.Size = new Vector(laidOutSize.Width, laidOutSize.Height);

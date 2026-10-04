@@ -84,6 +84,8 @@ public sealed record SwiftFont
     private Design FontDesign { get; init; }
     private bool IsItalic { get; init; }
     private bool HasMonospacedDigit { get; init; }
+    private bool IsAppKit { get; init; }
+    private bool UsesNaturalLineHeight { get; init; }
 
     /// <summary>NSFont.familyName (ED-175 (1)): set only by <see cref="Named"/>, for TerminalFont's nerdSibling
     /// (TerminalFont.swift :106) to build the family's "nf" sibling name. Null for every design-based font,
@@ -106,15 +108,15 @@ public sealed record SwiftFont
 
     /// <summary>AppKit <c>NSFont.systemFont(ofSize:weight:)</c> (ComposerView.swift:557; ProseRunView.swift:182).</summary>
     public static SwiftFont SystemFont(double ofSize, Weight weight = Weight.Regular) =>
-        new() { Size = ofSize, FontWeightValue = weight };
+        new() { Size = ofSize, FontWeightValue = weight, IsAppKit = true };
 
     /// <summary>AppKit <c>NSFont.boldSystemFont(ofSize:)</c> (LinkParagraphView.swift:115).</summary>
     public static SwiftFont BoldSystemFont(double ofSize) =>
-        new() { Size = ofSize, FontWeightValue = Weight.Bold };
+        new() { Size = ofSize, FontWeightValue = Weight.Bold, IsAppKit = true };
 
     /// <summary>AppKit <c>NSFont.monospacedSystemFont(ofSize:weight:)</c> (LinkParagraphView.swift:117).</summary>
     public static SwiftFont MonospacedSystemFont(double ofSize, Weight weight) =>
-        new() { Size = ofSize, FontWeightValue = weight, FontDesign = Design.Monospaced };
+        new() { Size = ofSize, FontWeightValue = weight, FontDesign = Design.Monospaced, IsAppKit = true };
 
     /// <summary>
     /// AppKit <c>NSFont(name:size:)</c> (TerminalFont.swift resolve(), :121-124 and :129; ED-175 (1)). Non-null
@@ -237,6 +239,7 @@ public sealed record SwiftFont
         text.FontWeight = resolved.FontWeight;
         text.FontStyle = resolved.FontStyle;
         text.FontFeatures = resolved.FontFeatures;
+        text.LineHeight = MacLineHeight() ?? double.NaN;
     }
 
     /// <summary>Sets the whole font on a TemplatedControl (Button, TextBox), replacing every font property a previous font set.</summary>
@@ -254,6 +257,20 @@ public sealed record SwiftFont
     // UNVERIFIED under OD-0001). An explicit weight, regular included, is always kept (ChatFont.swift:7-9).
     private Weight ResolvedWeight =>
         FontWeightValue ?? (Style == TextStyle.Headline ? Weight.Bold : Weight.Regular);
+
+    /// <summary>
+    /// ED-NEW-frames-1 (SOURCE FACT, 1-settings-tour.mov S 180.50-185.50, 1 px = 1 pt): a SwiftUI <c>Text</c> in the system font stands on a line box taller
+    /// than the face's own (Inter's is 1.21 times the size): 16 points at 11, 17 at 12, 18 at 13. Measured as the pitch of wrapped lines (the lead card's
+    /// callout lines 17 apart, the GitHub detail's subheadline lines 16 apart, "Chrome DevTools" at the body size 36 over two lines) and as the heights
+    /// they give: a Connected row is 58 = 11 + 18 + 2 + 16 + 11, a catalog card 126, the lead card 94. The other sizes have no measurement yet and keep
+    /// the face's own height. Not applied to AppKit fonts (their line heights are the text system's), to the monospaced design, to a named font, or where
+    /// a surface draws to a board's metrics (<see cref="WithNaturalLineHeight"/>).
+    /// </summary>
+    internal double? MacLineHeight() => FontDesign == Design.Default && FamilyName is null && !IsAppKit && !UsesNaturalLineHeight
+        ? (Size ?? StyleSize(Style!.Value)) switch { 11 => 16, 12 => 17, 13 => 18, _ => null } : null;
+
+    /// <summary>The same font on the face's own line height: for a surface the owner's board measured (the Look card, OD-0088, ED-250).</summary>
+    public SwiftFont WithNaturalLineHeight() => this with { UsesNaturalLineHeight = true };
 
     // ED-059: B1:DroppyCode/UI/Common/ChatZoom.swift:44-57, chatBaseSize, one point to one DIP (ED-071).
     private static double StyleSize(TextStyle style) => style switch
