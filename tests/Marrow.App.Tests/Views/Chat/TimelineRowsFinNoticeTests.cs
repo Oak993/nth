@@ -113,8 +113,11 @@ public sealed class TimelineRowsFinNoticeTests(HeadlessSession headless)
     [InlineData(Notice.Level.Error)]
     [Trait("Req", "UI-CHAT-034")] // TimelineRows.swift:2385-2431 the notice row
     [Trait("Req", "UI-RUNTIME-001")] // TimelineRows.swift:2385-2404, :2406-2430 the info-level notice
-    [Trait("Req", "UI-RUNTIME-002")] // TimelineRows.swift:2385-2431 the warning-level notice
-    [Trait("Req", "UI-RUNTIME-003")] // TimelineRows.swift:2385-2431 the error-level notice
+    // Partial proof UI-RUNTIME-002 and UI-RUNTIME-003 (STOP #10, TimelineRowsTests): every clause but one is proven here, from the Swift source (OD-0098). The one
+    // that is not: the corner of a notice two lines tall. 2-chat-use.mov shows one (C 10.6-12.0, the "API Error: 402 ..." banner, about 48 pt), but its end has no
+    // extractable edge (the red tint at 0.1 over a blurred wallpaper, compression blocks of 4 luma; the same failure as the one-line notice, SPEC.md 2.3), and neither
+    // the Swift source nor Apple's documentation says what a `.continuous` rounded rect of radius 18 draws when 36 < height < 55 (ED-NEW-corners (2): UNRESOLVED).
+    [Trait("Rule", "R-TEST-4")]
     [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:2394 a notice's message enables text selection
     public void A_notice_is_a_first_baseline_row_whose_pill_glyph_and_colours_follow_its_level(Notice.Level level) => headless.OnUiThread(() =>
     {
@@ -150,7 +153,8 @@ public sealed class TimelineRowsFinNoticeTests(HeadlessSession headless)
                 if (!isInfo) Assert.Equal(new CornerRadius(18), pill.CornerRadius);
                 // :2402 `.background(..., in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))` (ED-181 closed): a pill as tall as
                 // this wrapped message (2 * 1.528665 * 18 = 55 pt fits) is cut to Apple's continuous corner; a one-line notice (33 pt) is the circular
-                // arc (ED-NEW-corners (2): the reference video fits circular ends for a shape shorter than twice the run-in).
+                // arc (ED-NEW-corners (2): the reference video fits circular ends for the capsules and for a radius from half the height up). A notice two lines tall
+                // (36 to 55 pt) is in the band that ED-NEW-corners (2) names UNRESOLVED: no case below, and no frame, asserts its corner.
                 if (!isInfo)
                 {
                     Assert.True(pill.Bounds.Height >= 55, $"the wrapped notice is only {pill.Bounds.Height} pt tall");

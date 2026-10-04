@@ -4609,8 +4609,17 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Swift: App/Views/Chat/TimelineRows.swift:1-2859; individual exact sites remain beside each partial-proof test.
 // Decisions: OD-0001, ED-059, ED-117, ED-216, ED-217 do not turn structural evidence into capture comparisons.
 // Proven and removed from this note on 2026-10-04 (the continuous-corners unit, ED-181 closed; OD-0098: where no frame shows a state the Swift source is the proof,
-// asserted on the mounted control, with mutation checks): UI-CHAT-020 (TimelineRowsFinReplyTests), UI-GIT-044 (TimelineRowsFinFileCardTests, the click),
-// UI-GIT-050 (TimelineRowsFinUserRowTests), UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests, the shimmer), UI-RUNTIME-002 and UI-RUNTIME-003 (TimelineRowsFinNoticeTests).
+// asserted on the mounted control, with mutation checks): UI-CHAT-020 (TimelineRowsFinReplyTests), UI-GIT-050 (TimelineRowsFinUserRowTests),
+// UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests, the shimmer).
+// Back in this note on 2026-10-04 (adversarial review of the continuous-corners unit): UI-GIT-044, UI-RUNTIME-002 and UI-RUNTIME-003, and PR-CHAT-108 in STOP #11 below.
+// The reason, for all four: ED-NEW-corners (2) calls UNRESOLVED what SwiftUI draws for a `.continuous` rounded rect with h / 3.057 < r < h / 2, and these
+// records' shapes are in that band while no frame and no source text settles it. UI-GIT-044 and PR-CHAT-108: the Edited card is 40 pt tall with radius 18
+// (band 13.1 < r < 20); the video's card edge is too faint to fit (a 0.32 quaternary over the blurred wallpaper) and the video fit of the composer (r 22 on 46)
+// cannot tell a circular end from the iOS 7 shape_2 end at 1 pt radius apart. UI-RUNTIME-002 and UI-RUNTIME-003: a notice of two lines is about 48 pt tall
+// with radius 18 (band 15.7 < r < 24); the video's two-line error banner (C 10.6-12.0) has no extractable end. Neither the Swift source (`.continuous`
+// and the radius only) nor Apple's documentation (SPEC.md sources) states the regime. Everything else those records say is proven.
+// Needed to close them: one frame (or Apple's statement) of a `.continuous` rounded rect in that band with a measurable edge, or an owner ruling on the regime.
+// Records: UI-GIT-044; UI-RUNTIME-002; UI-RUNTIME-003.
 // Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019.
 // Records: UI-CHAT-021; UI-CHAT-022; UI-CHAT-023; UI-CHAT-024; UI-CHAT-025.
 // Records: UI-CHAT-026; UI-CHAT-027; UI-CHAT-028; UI-CHAT-029; UI-CHAT-030.
@@ -4652,7 +4661,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // on ThreadTimeline.Draw.)
 // Records: PR-CHAT-020; PR-CHAT-078; PR-CHAT-079; PR-CHAT-080; PR-CHAT-082; PR-CHAT-088.
 // Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
-// Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-109. (PR-CHAT-108 proven and removed 2026-10-04: TimelineRowsPrRecordsTests and TimelineRowsFinFileCardTests carry every clause, the video's card numbers equal the Swift constants asserted there.)
+// Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-109.
+// Records: PR-CHAT-108 (back 2026-10-04: every clause is asserted, the hover on the 0.1 s ease-out curve included, except the Edited card's corner: 40 pt tall, radius 18,
+// in the band ED-NEW-corners (2) calls UNRESOLVED; see the note in STOP #10 above).
 // Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
 // Records: PR-CHAT-116; PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
 // Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.

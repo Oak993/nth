@@ -4,7 +4,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.VisualTree;
 using Marrow.App;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -370,6 +373,43 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 commandField.Text = "   ";
                 Assert.NotNull(frame.BorderBrush);
                 Assert.False(editor.SaveButton.IsEnabled);
+
+                // :1726-1729 `.whitespaces` is spaces, tabs and the other Zs characters, NOT newlines: a command holding only a line feed
+                // is complete (string.IsNullOrWhiteSpace would call it blank), so there is no outline and Save is held no longer.
+                foreach (var spaces in new[] { "\u00A0", "\u2003", " \t " })
+                {
+                    commandField.Text = spaces;
+                    Assert.Equal(spaces, commandField.Text);
+                    Assert.NotNull(frame.BorderBrush);
+                    Assert.False(editor.SaveButton.IsEnabled, $"{spaces.Length} Zs/tab characters are blank");
+                }
+                foreach (var withNewline in new[] { "\n", " \n ", "make\n", "\r\n" })
+                {
+                    commandField.Text = withNewline;
+                    Assert.Equal(withNewline, commandField.Text); // the field kept the line break, so the check below is about the command
+                    Assert.Null(frame.BorderBrush);
+                    Assert.True(editor.SaveButton.IsEnabled, $"a command of {withNewline.Length} characters holding a line break is complete");
+                    Assert.Equal("Save these scripts", ToolTip.GetTip(editor.SaveButton));
+                }
+
+                // :1681-1682 `.textFieldStyle(.roundedBorder)` (OD-0042 / OD-0045: the Mac look from Apple's macOS UI Kit, "Rounded-border text
+                // field", size 3 Rg, layer style Content Area / Input Fields / 01 - Idle; E:/Droppy/work/apple-kit/macos27-uikit-controls.md
+                // lines 27-31 and 77-83): 24 high, radius 6, a 1 px border, dark fill #1E1E1E with border white at 0.04, light fill #FFFFFF with
+                // border black at 0.05, the text left-aligned and centred vertically. The default bezel is the field's applied template.
+                Assert.Equal("RoundedBorder", commandField.GetValue(Marrow.App.Port.ChatDialogControls.InputStyleProperty));
+                commandField.ApplyTemplate();
+                var bezel = Assert.IsType<Border>(commandField.GetVisualChildren().Single());
+                Assert.Equal(new CornerRadius(6), bezel.CornerRadius);
+                Assert.Equal(24, bezel.MinHeight);
+                Assert.Equal(new Thickness(1), bezel.BorderThickness);
+                Assert.Equal(Color.Parse("#1E1E1E"), Marrow.App.Port.ChatDialogControls.FieldFill.Resolve(ThemeVariant.Dark));
+                Assert.Equal(Color.Parse("#FFFFFF"), Marrow.App.Port.ChatDialogControls.FieldFill.Resolve(ThemeVariant.Light));
+                Assert.Equal(new SwiftColor(white: 1, opacity: 0.04).Resolve(ThemeVariant.Dark), Marrow.App.Port.ChatDialogControls.FieldStroke.Resolve(ThemeVariant.Dark));
+                Assert.Equal(new SwiftColor(white: 0, opacity: 0.05).Resolve(ThemeVariant.Light), Marrow.App.Port.ChatDialogControls.FieldStroke.Resolve(ThemeVariant.Light));
+                var variant = bezel.ActualThemeVariant;
+                Assert.Equal(Marrow.App.Port.ChatDialogControls.FieldFill.Resolve(variant), Assert.IsAssignableFrom<ISolidColorBrush>(bezel.Background).Color);
+                Assert.Equal(Marrow.App.Port.ChatDialogControls.FieldStroke.Resolve(variant), Assert.IsAssignableFrom<ISolidColorBrush>(bezel.BorderBrush).Color);
+                Assert.Equal(VerticalAlignment.Center, Assert.IsType<ScrollViewer>(bezel.Child).VerticalAlignment);
             });
         });
     }

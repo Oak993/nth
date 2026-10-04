@@ -145,7 +145,7 @@ public sealed class TimelineRowsFinReplyTests(HeadlessSession headless)
             Assert.Equal(["Copy message", "Copy as markdown", "Copied", "Add to reply"], items.Select(Title));
             // :1401-1410 PopoverItem's hover surface, `.background(..., in: RoundedRectangle(cornerRadius: 6, style: .continuous))` (Chrome.swift:322-326;
             // ED-181 closed): a 26 pt row holds the 18 pt two run-ins of a 6 pt corner, so each is cut to Apple's corner.
-            foreach (var item in items) ContinuousCornerChecks.Drawn(Mounted<Border>(item).First(border => SwiftShapes.GetCornerStyle(border) is not null), expectApple: true);
+            foreach (var item in items) ContinuousCornerChecks.MenuItemSurface(Mounted<Border>(item).First(border => SwiftShapes.GetCornerStyle(border) is not null));
             read = window.Clipboard!.TryGetTextAsync();
         });
         h.Main.OnMain(() =>

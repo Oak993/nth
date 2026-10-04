@@ -21,7 +21,7 @@ public sealed class TimelineRowsAlignmentTests(HeadlessSession headless)
         control.TranslatePoint(new Point(0, control.Bounds.Height / 2), root)!.Value.Y;
 
     [Fact]
-    [Trait("Req", "UI-GIT-044")] // TimelineRows.swift:2741-2757 HStack(spacing: 8) { HStack(spacing: 8) { badge, title, stats, chevron } ... }
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-GIT-044 (STOP #10): the centre line; the card's corner at 40 pt is UNRESOLVED (ED-NEW-corners (2)); TimelineRows.swift:2741-2757 HStack(spacing: 8) { HStack(spacing: 8) { badge, title, stats, chevron } ... }
     public void The_file_card_puts_its_badge_title_stats_chevron_and_round_buttons_on_one_centre_line() => headless.OnUiThread(() =>
     {
         using var h = Harness();

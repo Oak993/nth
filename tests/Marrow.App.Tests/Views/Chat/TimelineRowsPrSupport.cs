@@ -102,6 +102,27 @@ internal static class TimelineRowsPrSupport
             .Where(run => !Equals(run.FontFamily, mono) && run.Text is { Length: > 0 })
             .Select(run => run.FontSize).Append(text.FontSize).Distinct().ToArray();
     }
+    // SwiftUI's easeOut is the cubic Bezier (0, 0, 0.58, 1): the progress at a fraction of the duration, found independently of the port's
+    // own timing code (x(t) solved by bisection, then y(t)). Chrome.hover is `.easeOut(duration: 0.1)` (Chrome.swift).
+    internal static double HoverEaseOut(double fraction)
+    {
+        static double Bezier(double t, double p1, double p2) => 3 * (1 - t) * (1 - t) * t * p1 + 3 * (1 - t) * t * t * p2 + t * t * t;
+        double low = 0, high = 1;
+        for (var step = 0; step < 60; step++)
+        {
+            var mid = (low + high) / 2;
+            if (Bezier(mid, 0, 0.58) < fraction) low = mid; else high = mid;
+        }
+        return Bezier((low + high) / 2, 0, 1);
+    }
+    // How far along the straight line from <paramref name="from"/> to <paramref name="to"/> a colour has got (0 at from, 1 at to), all four channels.
+    internal static double Along(Color from, Color to, Color now)
+    {
+        double[] a = [from.A, from.R, from.G, from.B], b = [to.A, to.R, to.G, to.B], c = [now.A, now.R, now.G, now.B];
+        double dot = 0, length = 0;
+        for (var i = 0; i < 4; i++) { dot += (c[i] - a[i]) * (b[i] - a[i]); length += (b[i] - a[i]) * (b[i] - a[i]); }
+        return dot / length;
+    }
     internal static Color Resolved(SwiftColor color, Control on) => color.Resolve(on.ActualThemeVariant);
     internal static Color BrushColor(IBrush? brush) => (brush as ISolidColorBrush)!.Color;
     internal static string[] Texts(Control control) =>

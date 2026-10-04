@@ -64,6 +64,21 @@ internal static class ContinuousCornerChecks
         return true;
     }
 
+    /// <summary>
+    /// PopoverItem's hover surface (Popovers.swift:318-326: <c>.padding(.horizontal, 8).frame(height: 26).background { RoundedRectangle(cornerRadius: 6,
+    /// style: .continuous) }</c>): the radius, the row height and the horizontal inset the Swift states, then the corner it draws. A 26 pt row
+    /// holds the 18 pt run-ins of a 6 pt corner (2 * 1.528665 * 6 = 18.3), so every corner is Apple's.
+    /// </summary>
+    public static void MenuItemSurface(Border surface)
+    {
+        Assert.Equal(new CornerRadius(6), surface.CornerRadius);
+        Assert.Equal(26, surface.Bounds.Height, 0.01);
+        var row = Assert.IsAssignableFrom<Control>(surface.Child);
+        Assert.Equal(new Thickness(8, 0), row.Margin);
+        Assert.Equal(26, row.Height);
+        Assert.True(Drawn(surface, expectApple: true));
+    }
+
     // The point (u, v) from the vertex of a corner (0 top-left, 1 top-right, 2 bottom-right, 3 bottom-left), u along the horizontal edge.
     private static Point At(Size size, int corner, double u, double v) => corner switch
     {

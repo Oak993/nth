@@ -368,7 +368,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
             // :216-228 each item is a PopoverItem whose hover surface is `RoundedRectangle(cornerRadius: 6, style: .continuous)` on a 26 pt row (Chrome.swift:322-326;
             // ED-181 closed): the 18 pt two run-ins of a 6 pt corner fit, so each is cut to Apple's corner.
             Settle(menu);
-            foreach (var item in LogicalQuery.SelfAndDescendants<PopoverItem>(second)) ContinuousCornerChecks.Drawn(Mounted<Border>(item).First(border => SwiftShapes.GetCornerStyle(border) is not null), expectApple: true);
+            foreach (var item in LogicalQuery.SelfAndDescendants<PopoverItem>(second)) ContinuousCornerChecks.MenuItemSurface(Mounted<Border>(item).First(border => SwiftShapes.GetCornerStyle(border) is not null));
             Assert.Empty(dialogs.Shown);
             ClickButton(menu, Assert.Single(LogicalQuery.SelfAndDescendants<Button>(edit)));
         });

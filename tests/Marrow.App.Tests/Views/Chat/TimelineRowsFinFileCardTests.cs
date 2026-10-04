@@ -57,9 +57,10 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
                 var pill = Mounted<Border>(one).First(border => border.Padding == new Thickness(12, 6, 6, 6));
                 // :2818-2822 padded 12 leading, 6 trailing and 6 vertical, radius 18, .quaternary at 0.32, hugging its content, leading.
                 Assert.Equal(new CornerRadius(18), pill.CornerRadius);
-                // :2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))` (ED-181
-                // closed): the card is 40 pt tall (28 + 12), under the 55 pt an 18 pt continuous corner needs, so its ends are the circular arc the
-                // video shows for the Edited card (static.timeline-rows: radius 18).
+                // :2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`: the radius
+                // 18 is the Swift's and the video's nominal one (static.timeline-rows: radius 18, no frame was fitted). The card is 40 pt tall (28 + 12), in the
+                // band (13.1 < r < 20) where what Apple draws is UNRESOLVED (ED-NEW-corners (2)); the port draws the circular arc there, asserted as the port's
+                // own regime and not as a reference fit, so UI-GIT-044 and PR-CHAT-108 stay open on it.
                 ContinuousCornerChecks.Drawn(pill, expectApple: false);
                 Paints(pill.Background, SwiftColor.Quaternary.Opacity(0.32), pill, "card fill");
                 Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
@@ -170,7 +171,7 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-GIT-044")] // TimelineRows.swift:2745-2757, :2829-2858 clicking the title shows the file list in a popover below it
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-GIT-044 (STOP #10): the click; the card's corner at 40 pt is UNRESOLVED (ED-NEW-corners (2)); TimelineRows.swift:2745-2757, :2829-2858
     public void Clicking_the_title_opens_the_files_popover_below_it_with_twelve_rows_and_a_second_click_closes_it() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

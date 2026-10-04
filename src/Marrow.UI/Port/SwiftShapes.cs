@@ -119,8 +119,10 @@ public static class SwiftShapes
 
     /// <summary>
     /// How far outside its bounds a clip path reaches along the straight sides: far enough that it never cuts what the shape or a child draws
-    /// there (SwiftUI's `.background(shape)` does not clip its content: the effort title's letters leaving past the chevron are drawn), so
-    /// the clip removes only the four corner slivers.
+    /// beyond a side (SwiftUI's `.background(shape)` does not clip its content: the effort title's letters leaving past the chevron are drawn).
+    /// It holds along the sides between the corners' run-ins: within <see cref="ContinuousCorner.Extent"/> radii of an Apple-regime corner the path
+    /// runs in to the curve's ends, so the whole quadrant beyond the bounds there is cut too (on a 26 pt row of radius 6 a child drawing past a
+    /// side survives only for 9.2 &lt; y &lt; 16.8). No site is known to draw there (ED-NEW-corners (3)).
     /// </summary>
     internal const double ClipSlack = 4096;
 
@@ -135,8 +137,9 @@ public static class SwiftShapes
     public static ShapeOutline Outline(Rect rect, CornerRadius radii, RoundedCornerStyle style) => Build(rect, radii, style, slack: 0);
 
     // The clip variant of the outline: the same corners, but every straight side and every corner that is not Apple's is
-    // pushed ClipSlack outside, so the clip cuts only along the continuous curves (the Border's own fill, with its own
-    // anti-aliased edge, stays what draws every straight side, and a child that draws beyond a side is not clipped).
+    // pushed ClipSlack outside, so the clip cuts along the continuous curves and not along any straight side (the Border's own fill, with its own
+    // anti-aliased edge, stays what draws every straight side, and a child that draws beyond a side is not clipped, except within the run-ins of an
+    // Apple-regime corner, where the quadrant outside the bounds is cut with the sliver: see ClipSlack).
     internal static ShapeOutline ClipOutline(Rect rect, CornerRadius radii) => Build(rect, radii, RoundedCornerStyle.Continuous, ClipSlack);
 
     // Whether a corner's run-in fits: the corner and its neighbour on each side it shares need E r each along that side (the top side
