@@ -67,7 +67,20 @@ public static class SymbolCatalogue
     public static IReadOnlyList<SymbolCategory> Categories => Loaded.Value.Categories;
 
     /// <summary>The mapping entry for an SF name, or null when the name is not an SF Symbol the app can draw.</summary>
-    public static SymbolMapping? Mapping(string sf) => Loaded.Value.Symbols.GetValueOrDefault(sf);
+    public static SymbolMapping? Mapping(string sf) => Loaded.Value.Symbols.GetValueOrDefault(sf) ?? PortAdded.GetValueOrDefault(sf);
+
+    // PORT-ONLY (customization-SPEC CZ-2.1.1; first-release SA-1): the symbols of the Settings pages the owner added (Voice typing,
+    // Updates, Plugins) that the B2 table does not hold. The table (porting/icons/sf-symbols-to-lucide.json) stays embedded
+    // unmodified (ED-179), so these live here, beside it, and are not part of SymbolNames or the picker.
+    private static SymbolMapping Added(string sf, string lucide, string confidence, string note) =>
+        new(sf, lucide, confidence, note, ["app"], new SymbolVariant(false, null, false, null), false, null);
+
+    private static readonly IReadOnlyDictionary<string, SymbolMapping> PortAdded = new[]
+    {
+        Added("waveform", "audio-waveform", "close", "Voice typing page (CZ-2.1.1): SF waveform is vertical bars of different heights; Lucide audio-waveform is the same idea drawn as one line"),
+        Added("arrow.triangle.2.circlepath", "refresh-cw", "exact", "Updates page: two arrows chasing round"),
+        Added("powerplug", "plug", "close", "Plugins page: a plug"),
+    }.ToDictionary(mapping => mapping.Sf, StringComparer.Ordinal);
 
     /// <summary>The parsed Lucide icon of that name, or null when no such icon is embedded. Parsed once and shared.</summary>
     public static SvgIcon? Icon(string lucideName) => Icons.GetOrAdd(lucideName, static name =>

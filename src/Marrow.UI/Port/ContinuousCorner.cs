@@ -48,8 +48,9 @@ public static class ContinuousCorner
     /// <summary>
     /// The largest radius at which the continuous corner is drawn on a shape of this size: both neighbouring corners
     /// need their run-in of <see cref="Extent"/> radii along a side, so <c>2 * Extent * r &lt;= min(width, height)</c>.
-    /// ENGINEERING DECISION backed by the reference video (SPEC.md 2.3): above it (a capsule, the composer's 22 pt corner
-    /// on a 46 pt bar) the video shows circular ends, not PaintCode's clamped continuous corner.
+    /// A capsule (radius at least half the shorter side) is still the circular arc (SPEC.md 2.3: the video shows circular ends). Between the two, where
+    /// the stated radius does not fit yet is under half the shorter side (ED-275 (2)'s band), OD-0102 draws Apple's corner AT this radius
+    /// (PaintCode's clamped corner), except the composer pill, which the video measures circular (SwiftShapes.CircularInBandProperty).
     /// </summary>
     public static double LargestRadius(Size size) => Math.Min(size.Width, size.Height) / (2 * Extent);
 
@@ -119,11 +120,15 @@ public static class ContinuousCorner
     /// The signed distance (negative inside) from <paramref name="point"/> (relative to the shape's centre) to a rounded
     /// rectangle of half extents <paramref name="half"/> and corner radius <paramref name="radius"/> whose corners are
     /// continuous where <see cref="LargestRadius"/> allows and circular otherwise. The C# mirror of the glass shader's
-    /// <c>shapeDistance</c>; the tests evaluate it against the path and against the shader itself.
+    /// <c>shapeDistance</c>; the tests evaluate it against the path and against the shader itself. OD-0102: a continuous corner that does not fit at its
+    /// radius yet is under half the shorter side (ED-275 (2)'s band) is drawn at the largest radius that fits, <see cref="LargestRadius"/>, unless
+    /// <paramref name="circularInBand"/> (the composer pill, which the reference video measures circular there).
     /// </summary>
-    public static double Distance(Point point, Size half, double radius, bool continuous)
+    public static double Distance(Point point, Size half, double radius, bool continuous, bool circularInBand = false)
     {
         radius = Math.Min(radius, Math.Min(half.Width, half.Height));
+        if (continuous && !circularInBand && radius > Math.Min(half.Width, half.Height) / Extent && radius < Math.Min(half.Width, half.Height) - 0.000001)
+            radius = Math.Min(half.Width, half.Height) / Extent;
         var qx = Math.Abs(point.X) - half.Width + radius;
         var qy = Math.Abs(point.Y) - half.Height + radius;
         var outside = Math.Sqrt(Math.Max(qx, 0) * Math.Max(qx, 0) + Math.Max(qy, 0) * Math.Max(qy, 0));

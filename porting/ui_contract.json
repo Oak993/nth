@@ -590,7 +590,7 @@
       "typography": "Font.chat(.callout); glyph at Font.chat(.caption) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
       "colors": "Glyph and text Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
-        "shown only when more than two steps are hidden; the singular form is exactly 1 earlier step",
+        "shown only when the list has more than two steps, so at least one is hidden (hidden = entries.count - 2, TimelineRows.swift:1523-1524); the count is the number hidden and the singular form is exactly 1 earlier step",
         "disappears once all steps are shown"
       ],
       "interactions": [
@@ -1820,24 +1820,25 @@
       "element": "Chat chrome row",
       "role": "toolbar",
       "exact_text": null,
-      "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (10) while the sidebar does not hold the window buttons, otherwise 0; horizontal padding Chrome.chromeHorizontalPadding = 14; top padding Chrome.chromeTopPadding = 12",
+      "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.chromeHorizontalPadding = 14 whoever holds the window buttons; top padding Chrome.chromeTopPadding = 12; trailing padding WindowChrome.CaptionTrailingReserve = 156 (6 from the window's right edge, three 46-point caption buttons 2 apart, 8 of clearance), so the last capsule ends clear of the caption buttons. DEVIATION OD-0044: upstream's leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (60 + 10) while the sidebar does not hold the window buttons, otherwise 0, inside .padding(.horizontal, 14) (ChatView.swift:1176-1178; Chrome.swift:20-21, :31-32), is replaced by the trailing caption reserve, because the window buttons are Windows caption buttons at the top right.",
       "typography": "Per control; the title is .system(.title3, weight: .semibold) (15 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:50)",
       "colors": "Liquid Glass, one pass for the whole row, as a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001); controls tinted with Chrome.glassTint at 0.3 (PR-WIN-180)",
       "states": [
-        "sidebar holds the window buttons: no leading inset and no Threads button",
-        "sidebar away: leading inset applied and the Threads button present",
-        "sidebar floats as the only sidebar: leading inset applied but no Threads button",
+        "sidebar holds the window buttons: no Threads button",
+        "sidebar away: the Threads button present",
+        "sidebar floats as the only sidebar: no Threads button",
         "no project: the Scripts item and its divider are absent",
-        "not a git repository: the branch menu, the Git actions item and its divider are absent"
+        "not a git repository: the branch menu, the Git actions item and its divider are absent",
+        "DEVIATION OD-0044: in every state the leading padding is 14 and the trailing reserve 156 (upstream steps 70 points clear of the traffic lights while the sidebar does not hold them)"
       ],
       "interactions": [
         "the gaps between controls drag the window",
-        "the inset change animates with Chrome.panelSlide"
+        "DEVIATION OD-0044: upstream animates its leading inset change with Chrome.panelSlide keyed on holdsTrafficLights (ChatView.swift:1180); the port's padding does not change with holdsTrafficLights, so nothing moves"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1106-1182"
       ],
-      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner. ED-063: the caption controls are app-drawn on the leading edge; the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its leading-edge controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu."
+      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0017 (which closes OD-0013): every resizable top-level window uses stretch (ED-101); the remaining one-frame DWM lag and the one-frame scaled frames during a live resize are a named deviation. OD-0044: the caption buttons are app-drawn Windows buttons (minimise, maximise or restore, close) at the window's top right. ED-063: the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its caption controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu."
     },
     {
       "area": "CHAT",
@@ -2866,10 +2867,10 @@
       "screen": "Effort card",
       "element": "Effort title button",
       "role": "button",
-      "exact_text": "Low | Medium | High | Extra High | Default | Standard (the resolved effort's title) / tooltip: Choose a model",
+      "exact_text": "The resolved effort's title, Provider.effortTitle(effort) (DroppyCode/Core/Models/Provider.swift:284-290): Extra High (xhigh, extra-high) | Default (the empty effort) | otherwise the effort with its first letter upper-cased, e.g. Low | Medium | High | Max; Standard when the model has no reasoning levels / tooltip: Choose a model",
       "geometry": "HStack(spacing: 4) with a chevron.right; .padding(.horizontal, 8), .padding(.vertical, 2); hover plate RoundedRectangle(cornerRadius: 7, style: .continuous); the title block is inset 44 points on each side",
       "typography": "System .title2 medium; chevron .callout semibold (17 and 12 point at the macOS default)",
-      "colors": "titleStyle: EffortPalette.title (accent mixed 22 percent with white) when neither max nor fast; the brand's title style at max; EffortPalette.fast in fast mode; a brand-to-gold gradient when both; a lead-to-heads gradient in a pair; chevron Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
+      "colors": "titleStyle: EffortPalette.title (accent mixed 22 percent with white, in Color.mix's default perceptual space, Oklab: ED-286) when neither max nor fast; the brand's title style at max; EffortPalette.fast in fast mode; a brand-to-gold gradient when both; a lead-to-heads gradient in a pair; a gradient title's colours drift slowly along the letters at rest (OD-0094); chevron Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "hover: Chrome.overlay(0.08) plate",
         "colour changes animate over 0.3 s smooth",
@@ -2883,7 +2884,12 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:543-597 `private var titleStyle: AnyShapeStyle` (543-555) and the title button: `Text(verbatim: title).font(.system(.title2, weight: .medium)).contentTransition(.numericText())`, `Image(systemName: \"chevron.right\").font(.system(.callout, weight: .semibold)).foregroundStyle(Chrome.secondaryText)`, `.foregroundStyle(titleStyle)`, `.animation(.smooth(duration: 0.3), value: isMaxEffort)`, `.help(onTitleTap == nil ? \"\" : \"Choose a model\")`"
       ],
       "notes": "\"Standard\" is the literal title when the model has no reasoning levels; the button still renders.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:573 `.font(.system(size: 17, weight: .medium))` and :577 `.font(.system(size: 12, weight: .semibold))` -> B2 :573 `.font(.system(.title2, weight: .medium))` and :577 `.font(.system(.callout, weight: .semibold))`, 17 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:573 `.font(.system(size: 17, weight: .medium))` and :577 `.font(.system(size: 12, weight: .semibold))` -> B2 :573 `.font(.system(.title2, weight: .medium))` and :577 `.font(.system(.callout, weight: .semibold))`, 17 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059).",
+      "deviation": {
+        "decision": "OD-0094",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:543-555 titleStyle: a gradient title is a static LinearGradient (leading to trailing); its colours move along the letters only while the text changes (2-chat-use.mov, study/effort-title-2026-10-03)",
+        "port": "A gradient title's colours also drift slowly along the letters at rest (OD-0094): a mirrored, seamless 7 s loop (MorphingTextBlock.DriftPeriod, ENGINEERING DECISION ED-238), continuous with a change's own drawing, still under reduce motion, frames only while the title is shown. Single-colour titles, the geometry, typography, hover, tap and the 0.3 s smooth colour changes are the source's."
+      }
     },
     {
       "area": "COMPOSER",
@@ -8772,7 +8778,7 @@
       "typography": "n/a",
       "colors": "fill is Chrome.primaryText at opacity 0.03",
       "states": [
-        "rows are built lazily as they scroll into view"
+        "rows are built up front, not as they scroll into view: the port's ChromeCard records lazy and builds the same eager stack in both branches (ED-299, the ChromeCard decision; PR-WIN-202, UI-WIN-052); upstream :40 ChromeCard(lazy: true) builds them in a LazyVStack as they scroll into view"
       ],
       "interactions": [
         "none on the card itself"
@@ -8782,7 +8788,12 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1006-1027 ChromeCard - :1009 var lazy = false | :1015 if lazy { | :1016 LazyVStack(alignment: .leading, spacing: 0) { content }",
         "DroppyCode/UI/Chrome/Chrome.swift:1082-1087"
       ],
-      "notes": "The card is a filled shape, not a clip, so a long page costs no mask per card while scrolling."
+      "notes": "The card is a filled shape, not a clip, so a long page costs no mask per card while scrolling.",
+      "deviation": {
+        "decision": "ED-299 (ChromeCard eager fallback, src/Marrow.UI/Chrome/Chrome.cs:1827-1833)",
+        "upstream": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:40 ChromeCard(lazy: true) -> DroppyCode/UI/Chrome/Chrome.swift:1015-1016 LazyVStack(alignment: .leading, spacing: 0) { content }",
+        "port": "An eager StackPanel with spacing 0: the same layout and the same fill-not-clip card; only when the rows are built differs (all at once)."
+      }
     },
     {
       "area": "MCP",
@@ -13440,7 +13451,7 @@
       "states": [
         "enabled: help text is \"Check providers again\"",
         "disabled while a refresh runs: help text is \"Checking providers…\" with a horizontal ellipsis character",
-        "the button is the ONLY control on the page that probes providers; opening or scrolling the page probes nothing"
+        "the button is the only control on the page that re-checks every provider (refreshEverything); opening or scrolling the page, the switches and binary-path edits probe nothing; an API-key edit re-checks that one provider and reloads its catalogue 600 ms after the last edit (SettingsView.swift:784-795), a probe of its own and not this button's"
       ],
       "interactions": [
         "click: starts refreshEverything, which is single-flight"
@@ -13448,9 +13459,10 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:254-255",
         "DroppyCode/App/Views/Settings/SettingsView.swift:566-579",
-        "DroppyCode/Services/Providers/ProviderRegistry.swift:323-341"
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:323-341",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:784-795 - .onChange(of: apiKey): only an edit counts; after Task.sleep(for: .milliseconds(600)) it calls model.providers.refresh(provider) and loadCatalog(provider, force: true)"
       ],
-      "notes": "The symbol is arrow.clockwise. The two help strings differ only by the checking case; the ellipsis is U+2026, not three full stops. The button appears in the toolbar only while the Providers page is showing."
+      "notes": "The symbol is arrow.clockwise. The two help strings differ only by the checking case; the ellipsis is U+2026, not three full stops. The button appears in the toolbar only while the Providers page is showing. It is the only full re-check; an API-key edit's own delayed check of that provider is separate (PR records of SettingsView.swift:784-795)."
     },
     {
       "area": "PROVREG",
@@ -15991,7 +16003,7 @@
       "screen": "Settings, Appearance",
       "element": "Theme picker button",
       "role": "popover menu button",
-      "exact_text": "Theme / System / Dark / Light, plus the 26 theme display names",
+      "exact_text": "Theme / the 26 theme display names (System, Light and Dark among them) / the section headers \"Dark\" and \"Light\"",
       "geometry": "Glass capsule, horizontal padding 12, height 28, item spacing 6; swatch 14 x 14; sized to fit",
       "typography": "Theme name 12.5pt medium; chevron 8pt bold",
       "colors": "Label Chrome.primaryText at 1 while hovering or open and 0.92 otherwise; chevron Chrome.secondaryText; each swatch is a circle from the theme's surface hex into its accent hex with a 0.5pt rim of Color.primary at 0.22; System's swatch is a hard half-and-half of #FFFFFF and #1E1E20 split at 0.5 from leading to trailing",
@@ -16007,8 +16019,13 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:1157-1209",
         "DroppyCode/UI/Theme/AppTheme.swift:14-176"
       ],
-      "notes": "Section headers are the verbatim \"Dark\" and \"Light\". System is listed above both sections and belongs to neither. The dark section holds 17 themes and the light section 8; both lists are computed from each theme's fixed scheme, so a new theme lands in the right section on its own.",
-      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra)."
+      "notes": "Section headers are the verbatim \"Dark\" and \"Light\". System is listed above both sections and belongs to neither. The dark section holds 19 themes and the light section 6 (AppTheme.swift:14-41); both lists are computed from each theme's fixed scheme, so a new theme lands in the right section on its own. The 28 pt Capsule(style: .continuous) is in the circular regime (28 < 2 x 1.528665 x 14 = 42.8; ED-275 (2)), so its ends are drawn as half circles. Under OD-0088 (ED-250) the capsule is mounted on no screen: the Look card's Theme control takes its place.",
+      "b2_change": "Moved, behaviour unchanged: the Appearance section that holds this row left the General page and is now the only section of the new Appearance page (AppearanceSettingsPage, DroppyCode/App/Views/Settings/SettingsView.swift:417-457 at 1fbf81e6; sidebar page \"Appearance\", third after General and Hydra).",
+      "deviation": {
+        "decision": "OD-0088; ED-250",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:424-426 ChromeRow(title: \"Theme\", detail: settings.theme.detail) { ThemePickerButton(selection: $settings.theme) } on the Appearance page; ThemePickerButton :1157-1209",
+        "port": "The Appearance page shows OD-0088's Look card, whose Theme segmented control (System | Light | Dark | the named theme or \"More themes\", opening the full theme menu) replaces this capsule (ED-250). ThemePickerButton is built and tested to the Swift but mounted on no screen."
+      }
     },
     {
       "area": "SETTINGS",
@@ -17486,7 +17503,7 @@
       "screen": "Settings, About, Credits",
       "element": "Credit links",
       "role": "link",
-      "exact_text": "zeronsh/zeron | <the terminal component the Windows build ships> | rampatra/TourKit",
+      "exact_text": "zeronsh/zeron | rampatra/TourKit",
       "geometry": "Title and an \"arrow.up.right\" 4 points apart",
       "typography": "Title .system(.callout, weight: .medium); arrow .system(.footnote, weight: .semibold) (12pt and 10pt at the default text size)",
       "colors": "Chrome.accent",
@@ -17505,9 +17522,9 @@
       "notes": "Unlike the Made by Droppy row, these do not change opacity on hover. Their tooltip is the absolute URL string, not a sentence.",
       "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:1088-1105 -> 1fbf81e6 :1127-1144; literal sizes became text styles of the same default size.",
       "deviation": {
-        "decision": "OD-0008 B15; OD-0012 H",
+        "decision": "OD-0008 B15; OD-0012 H; OD-0072; ED-272",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:955 CreditLink(title: \"SwiftTerm\", url: URL(string: \"https://github.com/migueldeicaza/SwiftTerm\")!) in the \"Terminal\" row",
-        "port": "The Terminal row's link names the terminal component the Windows build actually ships, and the row's detail gives its licence (OD-0012 H); the component is taken from the Windows build, not chosen here."
+        "port": "Only the two links of the components the port credits exist. The Terminal row carries no link (ED-272: the terminal is Marrow's own, built on Windows ConPTY, a Windows API and not shipped third-party code), so the Swift's :955 CreditLink \"SwiftTerm\" has no counterpart."
       }
     },
     {
@@ -18117,7 +18134,7 @@
       "element": "\"Start new chats on\" submenu",
       "role": "menu item",
       "exact_text": "Start new chats on",
-      "geometry": "preceded by a Divider; a Label with the systemImage point.3.connected.trianglepath.dotted",
+      "geometry": "preceded by a Divider (a menu separator); upstream a Label with the systemImage point.3.connected.trianglepath.dotted; on Windows the native menu row shows the title alone (deviation OD-0042)",
       "typography": "native menu",
       "colors": "native menu",
       "states": [
@@ -18129,7 +18146,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1140-1165"
       ],
-      "notes": "This submenu exists only on the AppKit context menu; the ellipsis popover does not offer it. That asymmetry is in the source."
+      "notes": "This submenu exists only on the AppKit context menu; the ellipsis popover does not offer it. That asymmetry is in the source.",
+      "deviation": {
+        "decision": "OD-0042",
+        "upstream": "SidebarView.swift:1155-1160 a Divider, then a Menu whose label is Label(\"Start new chats on\", systemImage: \"point.3.connected.trianglepath.dotted\") in the AppKit context menu, which draws the symbol beside the title.",
+        "port": "The context menu is the native Win32 popup menu (NativeContextMenus, TrackPopupMenuEx): a separator, then a submenu row titled exactly `Start new chats on` with no symbol (OD-0042: no SF Symbol icons in the native menu); hovering or clicking it opens the system submenu."
+      }
     },
     {
       "area": "SIDEBAR",
@@ -18142,7 +18164,7 @@
       "typography": "native menu",
       "colors": "native menu",
       "states": [
-        "the current choice is drawn as a Label with the systemImage checkmark; every other item is plain Text"
+        "the current choice is drawn as a Label with the systemImage checkmark; every other item is plain Text (Windows, OD-0042: the current choice carries the native menu check mark, MF_CHECKED; every other item is plain text)"
       ],
       "interactions": [
         "click sets or clears project.hydraPairID"
@@ -18150,8 +18172,13 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:1238-1270"
       ],
-      "notes": "The check is rendered by swapping the whole label for a Label with a checkmark image, not by a menu state flag, so the unchecked items have no reserved check column.",
-      "b2_change": "Re-cited to B2 :1239-1271. Items, labels and check logic unchanged; only the actions' capture changed from `[weak model]` to a direct capture (PR-SIDEBAR-133), which is not visible."
+      "notes": "Upstream renders the check by swapping the whole label for a Label with a checkmark image, not by a menu state flag, so the unchecked items have no reserved check column. On Windows the context menu is the native Win32 popup (OD-0042), which draws its own check mark in a check gutter that every row reserves; that gutter is the platform's and is not reproduced as upstream's layout.",
+      "b2_change": "Re-cited to B2 :1239-1271. Items, labels and check logic unchanged; only the actions' capture changed from `[weak model]` to a direct capture (PR-SIDEBAR-133), which is not visible.",
+      "deviation": {
+        "decision": "OD-0042",
+        "upstream": "SidebarView.swift:1250-1266 draws the current choice as Label(title, systemImage: \"checkmark\") and every other choice as Text(title) inside the AppKit context menu, with no reserved check column.",
+        "port": "The native Win32 popup menu marks the current choice with its own check mark (MF_CHECKED) and reserves a check gutter on every row; no symbol image is drawn (ED-300: the label swap's glyph is the menu check mark)."
+      }
     },
     {
       "area": "SIDEBAR",
@@ -22428,7 +22455,7 @@
       "typography": "n/a",
       "colors": "Chrome.accent = ThemeManager.spec.accent ?? NSColor.controlAccentColor, so it follows the theme and falls back to the system accent for System, Light and Dark",
       "states": [
-        "Present only while UpdateChecker.shared.updateAvailable is true; disappears immediately when the running version catches up"
+        "Present only while UpdateChecker.shared.updateAvailable is true; upstream it disappears immediately (a cut) when the running version catches up. On Windows it starts to leave in that same frame, fading out and scaling to 0.8 over Chrome.hover (0.1 s ease-out), and arrives the same way; Reduce Motion takes it in and out at once (OD-0076)."
       ],
       "interactions": [
         "None of its own; the row itself opens Settings"
@@ -22437,7 +22464,12 @@
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:168-175",
         "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:527-534"
       ],
-      "notes": "Accessibility label \"Update available\". The offset pushes it outside the badge's bounds, so the container must not clip."
+      "notes": "Accessibility label \"Update available\". The offset pushes it outside the badge's bounds, so the container must not clip.",
+      "deviation": {
+        "decision": "OD-0008 C6; OD-0012 I1; OD-0076",
+        "upstream": "SidebarView.swift:171-173 `if UpdateChecker.shared.updateAvailable { UpdateAvailableDot() }` cuts the dot in and out with no animation; UpdateChecker.swift:70 and :93-96 set updateAvailable from Droppy's own GitLab releases.",
+        "port": "No Droppy feed is queried; while the internal feed is empty (OD-0012 I1) updateAvailable stays false and the dot does not show. When the availability changes, the dot fades in and scales up from 0.8 over Chrome.hover (0.1 s ease-out) and leaves the same way (OD-0076, SidebarView.cs Settings row), stilled by Reduce Motion."
+      }
     },
     {
       "area": "UPDATE",
@@ -22912,27 +22944,26 @@
       "screen": "Settings window, About page, Credits card",
       "element": "Terminal attribution row",
       "role": "row",
-      "exact_text": "Terminal / SwiftTerm by Miguel de Icaza, MIT License. / SwiftTerm",
-      "geometry": "ChromeRow metrics; link as UI-UPDATE-028",
-      "typography": "Title .system(.body); detail .system(.subheadline); link .system(.callout, weight: .medium) (13, 11 and 12 point at the macOS default)",
-      "colors": "Link in Chrome.accent",
+      "exact_text": "Terminal / Marrow's own terminal, built on Windows ConPTY.",
+      "geometry": "ChromeRow metrics; no link (ED-272)",
+      "typography": "Title .system(.body); detail .system(.subheadline) (13 and 11 point at the macOS default)",
+      "colors": "Title Chrome.primaryText; detail Chrome.secondaryText; no accent link (ED-272)",
       "states": [
         "Always enabled"
       ],
       "interactions": [
-        "Click the link: opens https://github.com/migueldeicaza/SwiftTerm"
+        "None: the row holds no link, and a click on it opens nothing (ED-272)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:954-956"
       ],
-      "notes": "Tooltip is the absolute URL. OD-0008 B15 and OD-0012 H: this row names the terminal component the Windows build actually ships, with its licence, instead of SwiftTerm; which component that is is not yet decided (PR-UPDATE-085), so its detail line and link are not written here.",
+      "notes": "No tooltip (the row has no link). OD-0008 B15, OD-0012 H and ED-272: the port ships no third-party terminal component; the terminal is Marrow's own, built on the Windows ConPTY API, so the row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link, the same words as the licence line (OD-0072). Upstream: \"SwiftTerm by Miguel de Icaza, MIT License.\" with the link \"SwiftTerm\" to https://github.com/migueldeicaza/SwiftTerm.",
       "deviation": {
-        "decision": "OD-0008 B15; OD-0012 H",
+        "decision": "OD-0008 B15; OD-0012 H; OD-0072; ED-272",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:954-956 'ChromeRow(title: \"Terminal\", detail: \"SwiftTerm by Miguel de Icaza, MIT License.\") { CreditLink(title: \"SwiftTerm\", url: URL(string: \"https://github.com/migueldeicaza/SwiftTerm\")!) }'",
-        "port": "OD-0012 H (porting/decision_batch_20260922b.md:51-60): the Terminal row names the terminal component the Windows build actually ships, with its licence. Which component that is is not yet decided; nothing is invented here."
+        "port": "The Terminal row reads \"Marrow's own terminal, built on Windows ConPTY.\" with no link (ED-272), the same words as the licence line settled under OD-0072."
       },
-      "b2_change": "ChromeRow title and detail became '.system(.body)' and '.system(.subheadline)' (B2 DroppyCode/UI/Chrome/Chrome.swift:1058, :1062) and CreditLink's label '.system(.callout, weight: .medium)' (B2 SettingsView.swift:1138). The row itself is unchanged at B2 SettingsView.swift:977-979. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. At B2 these sizes are then scaled by the app-wide zoom: the Settings window is built by 'makeWindow(title: \"Settings\", size: Size.settings, resizable: false, windowClass: SecondaryWindow.self) { SettingsView() }' (DroppyCode/App/Window/WindowManager.swift:81), whose root is hosted in HostedRoot (:104), and HostedEnvironment applies '.modifier(AppZoomModifier(percent: model.settings.appZoom))' to every window root (:150, :173-175); AppZoomModifier lays the content out at the unscaled size and draws it with scaleEffect (DroppyCode/UI/Common/AppZoom.swift:18-27) at one of 'static let levels = [75, 90, 100, 110, 125, 150, 175, 200]' percent (:6), 100 when the stored value is not a level (:8-10). Whether the text styles also follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, so the sizes scale only through the app's own zoom (UI/Common/AppZoom.swift).",
-      "open_question": "Which terminal component the Windows build ships (name, author, licence, link), for this row under OD-0012 H; see PR-UPDATE-085."
+      "b2_change": "ChromeRow title and detail became '.system(.body)' and '.system(.subheadline)' (B2 DroppyCode/UI/Chrome/Chrome.swift:1058, :1062) and CreditLink's label '.system(.callout, weight: .medium)' (B2 SettingsView.swift:1138). The row itself is unchanged at B2 SettingsView.swift:977-979. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. At B2 these sizes are then scaled by the app-wide zoom: the Settings window is built by 'makeWindow(title: \"Settings\", size: Size.settings, resizable: false, windowClass: SecondaryWindow.self) { SettingsView() }' (DroppyCode/App/Window/WindowManager.swift:81), whose root is hosted in HostedRoot (:104), and HostedEnvironment applies '.modifier(AppZoomModifier(percent: model.settings.appZoom))' to every window root (:150, :173-175); AppZoomModifier lays the content out at the unscaled size and draws it with scaleEffect (DroppyCode/UI/Common/AppZoom.swift:18-27) at one of 'static let levels = [75, 90, 100, 110, 125, 150, 175, 200]' percent (:6), 100 when the stored value is not a level (:8-10). Whether the text styles also follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, so the sizes scale only through the app's own zoom (UI/Common/AppZoom.swift)."
     },
     {
       "area": "UPDATE",

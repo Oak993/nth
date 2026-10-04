@@ -663,7 +663,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
             window.Show();
             var shape = Assert.IsType<Border>(surface);
             Assert.Same(content, shape.Child);
-            Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)), SwiftGlass.GetEffect(shape));
+            Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous, circularInBand: true)), SwiftGlass.GetEffect(shape)); // the composer pill: measured circular in OD-0102's band (ED-275 (2))
             Assert.Equal(new CornerRadius(22), shape.CornerRadius);
             Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape));
             Assert.False(shape.ClipToBounds);
@@ -694,7 +694,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
             Assert.Equal(ThemeVariant.Dark, shape.ActualThemeVariant);
             Assert.Equal(Chrome.PanelControlFill(isDark: true).Resolve(ThemeVariant.Dark), Assert.IsAssignableFrom<ISolidColorBrush>(shape.Background).Color);
             RenderBudget.SetIsOnGlassPanel(host, false);
-            Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)), SwiftGlass.GetEffect(shape));
+            Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous, circularInBand: true)), SwiftGlass.GetEffect(shape)); // the composer pill: measured circular in OD-0102's band (ED-275 (2))
             Assert.False(shape.ClipToBounds);
             window.Close();
         });

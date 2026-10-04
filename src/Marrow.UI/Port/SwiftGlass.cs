@@ -24,11 +24,15 @@ public enum GlassShapeKind
 /// A glass effect's shape: a rounded rectangle with its corner radius and style, a capsule with its style (its radius is
 /// half its shorter side, SwiftShapes.CapsuleCornerRadius) or a circle.
 /// </summary>
-public sealed record GlassShape(GlassShapeKind Kind, double? CornerRadius, RoundedCornerStyle? Style)
+public sealed record GlassShape(GlassShapeKind Kind, double? CornerRadius, RoundedCornerStyle? Style, bool CircularInBand = false)
 {
-    /// <summary><c>RoundedRectangle(cornerRadius:style:)</c>.</summary>
-    public static GlassShape RoundedRectangle(double cornerRadius, RoundedCornerStyle style) =>
-        new(GlassShapeKind.RoundedRectangle, cornerRadius, style);
+    /// <summary>
+    /// <c>RoundedRectangle(cornerRadius:style:)</c>. <paramref name="circularInBand"/> is <see cref="SwiftShapes.CircularInBandProperty"/>: the one shape a
+    /// reference frame measures as the circular arc where Apple's corner does not fit at the radius (the composer pill, ED-275 (2)); every other `.continuous`
+    /// rectangle takes OD-0102's corner there.
+    /// </summary>
+    public static GlassShape RoundedRectangle(double cornerRadius, RoundedCornerStyle style, bool circularInBand = false) =>
+        new(GlassShapeKind.RoundedRectangle, cornerRadius, style, circularInBand);
 
     /// <summary><c>Capsule(style:)</c>.</summary>
     public static GlassShape Capsule(RoundedCornerStyle style) => new(GlassShapeKind.Capsule, null, style);

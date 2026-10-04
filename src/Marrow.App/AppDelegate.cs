@@ -131,6 +131,7 @@ public sealed class AppDelegate
     // :56-61 func applicationWillTerminate(_ notification: Notification)
     public void ApplicationWillTerminate()
     {
+        Model?.Settings.FlushPendingWrites(); // PORT-ONLY (CZ-13.5): the settings a slider drag was still holding reach the store before the app ends
         Model?.SaveBeforeQuit(); // :57
         TokenLedger.Shared.Current.FlushLiveSpend(); // :58
         // The MCP servers the hub started go with the app.

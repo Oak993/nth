@@ -92,12 +92,12 @@ public sealed class TimelineRowsBlitzAbBlockTests(HeadlessSession headless)
             {
                 foreach (var (name, row) in heads)
                 {
-                    Assert.True(Mounted<Border>(row).Any(border => border.Padding == pill && border.CornerRadius == radius), $"{name} is not the metrics' pill");
-                    Assert.True(RoundedCornerStyle.Continuous == SwiftShapes.GetCornerStyle(Mounted<Border>(row).First(border => border.Padding == pill && border.CornerRadius == radius)), $"{name} is not drawn in the continuous style");
+                    Assert.True(Mounted<Border>(row).Any(border => border.Padding == pill && SwiftShapes.StatedCornerRadius(border) == radius), $"{name} is not the metrics' pill");
+                    Assert.True(RoundedCornerStyle.Continuous == SwiftShapes.GetCornerStyle(Mounted<Border>(row).First(border => border.Padding == pill && SwiftShapes.StatedCornerRadius(border) == radius)), $"{name} is not drawn in the continuous style");
                 }
-                Assert.Contains(Mounted<Border>(todo), border => border.Padding == new Thickness(14) && border.CornerRadius == radius);
-                Assert.Contains(Mounted<Border>(file), border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6) && border.CornerRadius == radius);
-                Assert.Contains(Mounted<Border>(finished), border => border.Padding == new Thickness(14) && border.CornerRadius == radius);
+                Assert.Contains(Mounted<Border>(todo), border => border.Padding == new Thickness(14) && SwiftShapes.StatedCornerRadius(border) == radius);
+                Assert.Contains(Mounted<Border>(file), border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6) && SwiftShapes.StatedCornerRadius(border) == radius);
+                Assert.Contains(Mounted<Border>(finished), border => border.Padding == new Thickness(14) && SwiftShapes.StatedCornerRadius(border) == radius);
             }
             finally { Close(window); }
         });

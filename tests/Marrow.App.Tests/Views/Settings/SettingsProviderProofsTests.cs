@@ -231,7 +231,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     {
         // :72 quoted, including B3 Go, spark and coding-plan terms; match every term through real shell search.
         var words = "codex|claude|cursor|opencode|opencode zen|opencode go|zen|grok|deepseek|meta|muse|spark|zai|z.ai|glm|coding plan|devin|cognition|antigravity|agy|google|gemini|copilot|github|command code|commandcode|cmd|binary|path|sign in|login|api key|usage|limits|limit|plan|quota|credits|balance".Split('|');
-        Assert.Equal(words, SettingsPage.Providers.Keywords); Assert.Equal(SettingsPage.Providers, SwiftEnum<SettingsPage>.AllCases[3]);
+        Assert.Equal(words, SettingsPage.Providers.Keywords); Assert.Equal(SettingsPage.Providers, UpstreamSettingsPages.All[3]); /* SA-1: upstream index, the port-added pages taken out */
         foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark }) Assert.Equal(new SwiftColor(0.040, 0.478, 1.000).Resolve(theme), SettingsPage.Providers.Tint.Resolve(theme));
         var sidebar = Field<Control>(view, "sidebar"); var field = Assert.Single(Nodes<TextBox>(sidebar));
         foreach (var word in words) { field.Text = word.ToUpperInvariant(); Sync(); Assert.Contains(Nodes<SidebarRow>(sidebar), row => Text(row).Contains("Providers")); }

@@ -901,7 +901,7 @@ internal sealed class HydraHeadFooter : Decorator
             CornerRadius = new CornerRadius(16),
             Background = fill.Brush(this),
             Margin = new Thickness(20, 0, 20, 14)
-        };
+        }.RoundedRectangle(16, RoundedCornerStyle.Continuous); // one line tall the bar is 37 pt: ED-275 (2)'s band, OD-0102 (a plain Border fills the circle of its CornerRadius)
     }
 }
 

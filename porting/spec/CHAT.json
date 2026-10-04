@@ -445,7 +445,7 @@
       "persistence": "None; compile-time constants.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Define the eight once and derive every badge, pill, notice, todo row, merge pill and head pill from them (port_impacts.md 144). Keep the same numbers at all eight 96-point sites and all four 820-point sites rather than inlining new values.",
+      "windows_path": "Define the eight once and derive every badge, pill, notice, todo row, merge pill and head pill from them (port_impacts.md 144). Keep the same number at all seven 96-point side insets (TimelineRows.swift:164, :326, :417, :589, :1017, :2369; ChatBadge.swift:77) and at the 820-point column sites, which live outside this file (ThreadTimeline.swift:64, :66, :416; SubagentPanel.swift:115; ComposerView.swift:52), rather than inlining new values.",
       "verification_method": "capture comparison plus a static check that no row hard-codes these numbers",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2598,19 +2598,18 @@
       ],
       "preconditions": "A turn has ended.",
       "action": "Its duration line is rendered, either as a standalone row or on a reply's hover line or as the folded turn's header.",
-      "expected_result": "Exactly one of the three phrasings, followed by a space and the duration: RelativeTime.duration of the turn's time, that is the interval rounded to whole seconds, clamped at zero and formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width, at most two units and the fraction hidden and rounded down. The exact rendered duration strings are those Foundation produces on the reference runtime and are UNRESOLVED until captured there (B3_PLAN.md 6.1 E1). A turn still marked running deliberately reads Worked for, the same as completed. The standalone row is suppressed when the turn produced a reply, because the duration lives on that reply's hover line instead.",
+      "expected_result": "Exactly one of the three phrasings, followed by a space and the duration: RelativeTime.duration of the turn's time, that is the interval rounded to whole seconds, clamped at zero and formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width, at most two units and the fraction hidden and rounded down. The rendered strings are the en narrow output of swift-foundation 6.2's Duration+UnitsFormatStyle as ED-197 (oracle O-65) reads it (for example 0s, 45s, 1m, 1m 4s, 59m 59s, 1h, 1h 2m), closed under OD-0098 and agreeing with every duration the reference video shows (5s, 10s, 28s, 38s, 1m 23s, Failed after 1s); O-65 stays open for a later macOS run. A turn still marked running deliberately reads Worked for, the same as completed. The standalone row is suppressed when the turn produced a reply, because the duration lives on that reply's hover line instead.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the formatter's output exactly from reference-runtime fixtures, including the rounding to whole seconds; do not substitute a hand-written template. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
-      "verification_method": "unit over the formatter against reference-runtime fixtures (0, 45, 64, 90, 3599 and 3725 seconds and a negative interval) plus capture comparison of the three phrasings",
+      "windows_path": "Reproduce the formatter's output exactly from the swift-foundation 6.2 Duration.UnitsFormatStyle fixtures of ED-197 (O-65), including the rounding to whole seconds; do not substitute a hand-written template. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "verification_method": "unit over the formatter against the ED-197 fixtures (0, 45, 60, 64, 90, 3599, 3600 and 3725 seconds, half seconds and a negative interval), the reference video's durations, plus a render of the three phrasings in both themes",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :2442-2443 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`; the row moved from B1 :2456-2462 to B2 :2439-2445. The wording is unchanged.",
-      "open_question": "The exact strings RelativeTime.duration's Duration.UnitsFormatStyle(allowed: [.seconds, .minutes, .hours], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)) produces on the reference runtime and locale (B3_PLAN.md 6.1 E1).",
       "b3_note": "1.7.0 replaces the hand-built 'Ns' / 'Mm Ss' / 'Hh Mm' duration with Duration.UnitsFormatStyle (B3 Components.swift:37-40)."
     },
     {
@@ -3649,11 +3648,11 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1228-1231 the attachment strip's anchor and disappear handlers capture the slot weakly",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1678-1687 and :1761-1763 the tool row's button action and anchor capture weak boxes only",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1406-1407 Add to reply captures the runtime weakly",
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2689-2698 the file card's review closure captures the runtime weakly"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2689-2698 the file card's review closure captures the runtime weakly; its revert closure (:2695) holds the runtime, so the card keeps the runtime alive in the source too"
       ],
       "preconditions": "A row scrolls out of the virtualized list while a menu, popover or panel it opened is still alive.",
       "action": "The menu is used or dismissed.",
-      "expected_result": "The row's storage, its entry and its message text are released when the row scrolls away, regardless of any menu, hover responder, anchor view or popover that outlives it. Intents travel back into the row through bindings and observable request objects, never through captured self.",
+      "expected_result": "The row's storage and its entry are released when the row scrolls away, regardless of any menu, hover responder, anchor view or popover that outlives it. An open menu keeps only the value snapshots its builder took (the message, canRevert and the confirmation binding, TimelineRows.swift:172-178), never the row, so the message's text lives as long as the menu does, as in the source. Intents travel back into the row through bindings and observable request objects, never through captured self.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -4983,7 +4982,7 @@
       "typography": "Font.chat(.callout); glyph at Font.chat(.caption) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
       "colors": "Glyph and text Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
-        "shown only when more than two steps are hidden; the singular form is exactly 1 earlier step",
+        "shown only when the list has more than two steps, so at least one is hidden (hidden = entries.count - 2, TimelineRows.swift:1523-1524); the count is the number hidden and the singular form is exactly 1 earlier step",
         "disappears once all steps are shown"
       ],
       "interactions": [
@@ -6163,24 +6162,25 @@
       "element": "Chat chrome row",
       "role": "toolbar",
       "exact_text": null,
-      "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (10) while the sidebar does not hold the window buttons, otherwise 0; horizontal padding Chrome.chromeHorizontalPadding = 14; top padding Chrome.chromeTopPadding = 12",
+      "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.chromeHorizontalPadding = 14 whoever holds the window buttons; top padding Chrome.chromeTopPadding = 12; trailing padding WindowChrome.CaptionTrailingReserve = 156 (6 from the window's right edge, three 46-point caption buttons 2 apart, 8 of clearance), so the last capsule ends clear of the caption buttons. DEVIATION OD-0044: upstream's leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (60 + 10) while the sidebar does not hold the window buttons, otherwise 0, inside .padding(.horizontal, 14) (ChatView.swift:1176-1178; Chrome.swift:20-21, :31-32), is replaced by the trailing caption reserve, because the window buttons are Windows caption buttons at the top right.",
       "typography": "Per control; the title is .system(.title3, weight: .semibold) (15 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:50)",
       "colors": "Liquid Glass, one pass for the whole row, as a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001); controls tinted with Chrome.glassTint at 0.3 (PR-WIN-180)",
       "states": [
-        "sidebar holds the window buttons: no leading inset and no Threads button",
-        "sidebar away: leading inset applied and the Threads button present",
-        "sidebar floats as the only sidebar: leading inset applied but no Threads button",
+        "sidebar holds the window buttons: no Threads button",
+        "sidebar away: the Threads button present",
+        "sidebar floats as the only sidebar: no Threads button",
         "no project: the Scripts item and its divider are absent",
-        "not a git repository: the branch menu, the Git actions item and its divider are absent"
+        "not a git repository: the branch menu, the Git actions item and its divider are absent",
+        "DEVIATION OD-0044: in every state the leading padding is 14 and the trailing reserve 156 (upstream steps 70 points clear of the traffic lights while the sidebar does not hold them)"
       ],
       "interactions": [
         "the gaps between controls drag the window",
-        "the inset change animates with Chrome.panelSlide"
+        "DEVIATION OD-0044: upstream animates its leading inset change with Chrome.panelSlide keyed on holdsTrafficLights (ChatView.swift:1180); the port's padding does not change with holdsTrafficLights, so nothing moves"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1106-1182"
       ],
-      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner. ED-063: the caption controls are app-drawn on the leading edge; the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its leading-edge controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu."
+      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0017 (which closes OD-0013): every resizable top-level window uses stretch (ED-101); the remaining one-frame DWM lag and the one-frame scaled frames during a live resize are a named deviation. OD-0044: the caption buttons are app-drawn Windows buttons (minimise, maximise or restore, close) at the window's top right. ED-063: the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its caption controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu."
     },
     {
       "id": "UI-CHAT-074",
