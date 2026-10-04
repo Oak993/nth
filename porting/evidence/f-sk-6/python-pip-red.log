@@ -1,0 +1,20 @@
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim.OfflineTests -> /workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.59]     Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Python_UTF8_and_package_paths_reach_only_the_child_and_locked_target_is_unchanged [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Python_UTF8_and_package_paths_reach_only_the_child_and_locked_target_is_unchanged [295 ms]
+  Error Message:
+   System.IO.FileNotFoundException : Could not find file '/tmp/marrow-sk6-05e9114979ba4c7bba1f8854b20ab4b6/addons/work/python-run-a7e4ed2ecbef4586b0f5f54610ca7088/pip.ini'.
+  Stack Trace:
+     at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Python_UTF8_and_package_paths_reach_only_the_child_and_locked_target_is_unchanged() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Shims/ShimLauncherTests.cs:line 75
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 295 ms - Marrow.Shim.OfflineTests.dll (net10.0)

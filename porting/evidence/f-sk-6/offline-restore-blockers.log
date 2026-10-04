@@ -1,0 +1,21 @@
+  Determining projects to restore...
+  Restored /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/Marrow.Shim.FakeTarget.csproj (in 186 ms).
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net.Runtime. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net.Runtime.Vulkan. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package NAudio.Wasapi. No packages exist with this id in source(s): /workspace/.tools/nuget
+  Restored /workspace/marrow-port/tests/Marrow.Testing/Marrow.Testing.csproj (in 386 ms).
+/workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj : error NU1101: Unable to find package Microsoft.DotNet.ILCompiler. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj : error NU1101: Unable to find package Microsoft.NET.ILLink.Tasks. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj : error NU1101: Unable to find package Microsoft.NETCore.App.Runtime.linux-x64. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj : error NU1101: Unable to find package Microsoft.AspNetCore.App.Runtime.linux-x64. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj : error NU1101: Unable to find package Microsoft.NETCore.App.Runtime.NativeAOT.linux-x64. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj : error NU1101: Unable to find package runtime.linux-x64.Microsoft.DotNet.ILCompiler. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+  Failed to restore /workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj (in 90 ms).
+  Failed to restore /workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj (in 174 ms).
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net.Runtime. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net.Runtime.Vulkan. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package NAudio.Wasapi. No packages exist with this id in source(s): /workspace/.tools/nuget [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+  Restored /workspace/marrow-port/src/Marrow.Core/Marrow.Core.csproj (in 5 ms).
+  Failed to restore /workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj (in 16 ms).

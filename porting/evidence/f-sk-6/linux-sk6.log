@@ -1,0 +1,46 @@
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Shim.OfflineTests -> /workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.16]   Discovering: Marrow.Shim.OfflineTests
+[xUnit.net 00:00:00.23]   Discovered:  Marrow.Shim.OfflineTests
+[xUnit.net 00:00:00.29]   Starting:    Marrow.Shim.OfflineTests
+[xUnit.net 00:00:00.38]     Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit [SKIP]
+[xUnit.net 00:00:00.39]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+[xUnit.net 00:00:00.48]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:00.48]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+[xUnit.net 00:00:00.48]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:00.48]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+[xUnit.net 00:00:00.48]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:00.48]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+[xUnit.net 00:00:00.48]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object [SKIP]
+[xUnit.net 00:00:00.48]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit [1 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Native_executable_and_sidecar_are_written_under_the_provided_name [74 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object [1 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Insert_before_first_WindowsApps_preserves_every_user_entry_and_empty_entry [1 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Real_python_wins_but_Marrow_shadows_the_Store_alias [2 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Concurrent_soffice_calls_get_distinct_profiles_and_delete_them_after_exit [524 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Running_fake_provider_finds_a_shim_added_after_launch_on_its_next_process [1 s]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.WindowsApps_match_is_case_insensitive_handles_quotes_and_trailing_slash_and_not_similar_names [< 1 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Empty_bin_exists_and_only_the_child_environment_changes [2 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Node_PATH_is_set_only_for_the_child [875 ms]
+[xUnit.net 00:00:02.96]   Finished:    Marrow.Shim.OfflineTests
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Python_UTF8_and_package_paths_reach_only_the_child_and_locked_target_is_unchanged [336 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Soffice_profile_is_deleted_even_when_the_target_exits_with_failure [151 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Child_tree_lifetime_is_armed_before_start_through_the_seam [50 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Arguments_with_spaces_quotes_empty_strings_and_Unicode_are_unchanged [345 ms]
+  Passed Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Binary_stdin_stdout_stderr_and_nonzero_exit_are_unchanged [184 ms]
+WARNING: Overwriting results file: /tmp/sk6-final.trx
+Results File: /tmp/sk6-final.trx
+
+Test Run Successful.
+Total tests: 18
+     Passed: 13
+    Skipped: 5
+ Total time: 3.8516 Seconds
