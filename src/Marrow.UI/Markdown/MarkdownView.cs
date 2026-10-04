@@ -936,7 +936,8 @@ public sealed class MarkdownBlockView : Decorator
         {
             // :512-516
             var text = new TextBlock { Text = number + "." };
-            var font = SwiftFont.Body.MonospacedDigit().FontWeight(SwiftFont.Weight.Medium);
+            // :513-515 no .font: SwiftUI's implicit default with the two modifiers, in the face's own line box (ED-290 (1)).
+            var font = SwiftFont.Default.MonospacedDigit().FontWeight(SwiftFont.Weight.Medium);
             font.Apply(text);
             text.Foreground = MarkerColor.Brush(text);
             return text;

@@ -85,6 +85,23 @@ public static class SwiftShapes
     }
 
     /// <summary>
+    /// Marks a plain `.continuous` Border whose content the source draws BEYOND the shape's sides (SwiftUI's <c>.background(shape)</c> does not clip its content: the
+    /// effort title's leaving letters carried past the chevron, EffortSlider.swift:589 <c>.buttonStyle(.plain)</c>). Such a Border keeps the slack clip of ED-275 (3),
+    /// which runs past the straight sides; every other Border is cut by the shape's exact outline, which Skia anti-aliases exactly (ED-317).
+    /// </summary>
+    public static readonly AttachedProperty<bool> ContentBeyondSidesProperty =
+        AvaloniaProperty.RegisterAttached<Border, bool>("ContentBeyondSides", typeof(SwiftShapes));
+
+    public static bool GetContentBeyondSides(Border border) => border.GetValue(ContentBeyondSidesProperty);
+
+    /// <summary>Marks a `.continuous` Border as one whose content is drawn beyond its sides (see <see cref="ContentBeyondSidesProperty"/>).</summary>
+    public static T ContentBeyondSides<T>(this T border, bool value = true) where T : Border
+    {
+        border.SetValue(ContentBeyondSidesProperty, value);
+        return border;
+    }
+
+    /// <summary>
     /// <c>RoundedRectangle(cornerRadius:style:)</c> as the corners of a Border that fills its bounds: its Background is
     /// the shape's <c>.fill</c>, its border the shape's <c>.strokeBorder</c> (a Border draws its border inside its
     /// bounds, the inner stroke strokeBorder draws). A `.continuous` shape keeps its Border (its CornerRadius is the circular corner of the same radius, and
@@ -478,13 +495,14 @@ internal static class ContinuousClip
     }
 
     /// <summary>
-    /// Whether the Border is cut by its exact outline rather than the slack clip (ED-297 (9)): the exact outline is convex, and Skia anti-aliases only a
-    /// convex path exactly (the slack clip's walls make it non-convex: 49 of 255 off the path fill at the worst pixel, 102 at 380 x 46). The slack exists for what is
-    /// drawn beyond a side (ED-275 (3)); a Border with no child draws only its own fill and border, inside its bounds, and one clipped to its bounds draws nothing
-    /// beyond a side either, so those take the exact outline. A corner that is an arc stays on the slack clip (see <see cref="SwiftShapes.ExactClipFits"/>).
+    /// Whether the Border is cut by its exact outline rather than the slack clip (ED-297 (9), ED-317): the exact outline is convex, and Skia anti-aliases
+    /// only a convex path exactly (the slack clip's walls make it non-convex: 64 of 255 off the path fill at the one-step steps card, 700 x 45, 102 at 380 x 46), and no
+    /// path that reaches beyond a straight side can be convex. So every Border is cut by the exact outline, with content or without, EXCEPT one whose site marks its
+    /// content as drawn beyond its sides (<see cref="SwiftShapes.ContentBeyondSidesProperty"/>) while it has a child that is not clipped to its bounds: that one keeps the
+    /// slack clip of ED-275 (3). A corner that is an arc stays on the slack clip (see <see cref="SwiftShapes.ExactClipFits"/>).
     /// </summary>
     private static bool CutsExactly(Border border, Size size, CornerRadius radii, bool circularInBand) =>
-        (border.Child is null || border.ClipToBounds) && SwiftShapes.ExactClipFits(size, radii, circularInBand);
+        (border.Child is null || border.ClipToBounds || !SwiftShapes.GetContentBeyondSides(border)) && SwiftShapes.ExactClipFits(size, radii, circularInBand);
 
     private sealed class Tracker
     {
@@ -512,7 +530,8 @@ internal static class ContinuousClip
                 }
                 else if (p == Visual.BoundsProperty || p == Border.BackgroundProperty
                     || p == Border.BorderBrushProperty || p == Border.BorderThicknessProperty || p == Border.BoxShadowProperty
-                    || p == Visual.ClipToBoundsProperty || p == Decorator.ChildProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty)
+                    || p == Visual.ClipToBoundsProperty || p == Decorator.ChildProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty
+                    || p == SwiftShapes.ContentBeyondSidesProperty)
                     Update();
             };
             Update();

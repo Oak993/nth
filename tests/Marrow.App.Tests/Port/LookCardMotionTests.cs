@@ -109,12 +109,12 @@ public sealed class LookCardMotionTests(HeadlessSession headless) : LookCardFixt
         Run(h, w, 21, height, opacity, y, more, less, chevron);
         Assert.True(Largest(height.Seen) <= 4.55, $"largest fold step {Largest(height.Seen):F2} px"); // SPEC 6.10: 4.5 px (to one place)
         Assert.Equal(36, card.Fold.Bounds.Height);
-        Assert.Equal(273, card.Bounds.Height); // the card and everything below follow the fold
+        Assert.Equal(281, card.Bounds.Height); // the card and everything below follow the fold (245 shut with the 58-point ChromeRows, ED-290 (1), lead ruling; SPEC 2.1's 273)
         Release(w, card.More); // scenario 03
         var shut = new LookTrack("fold shutting", () => card.Fold.LineOpacity.Value, FoldShutting, Ease(1, 0, 80), 1);
         var down = new LookTrack("fold height shutting", () => card.Fold.FoldHeight.Value, FoldHeight.Select(v => 36 - v).ToArray(), Ease(36, 0, 300), 36);
         Run(h, w, 21, shut, down);
-        Assert.Equal(237, card.Bounds.Height);
+        Assert.Equal(245, card.Bounds.Height); // 128 + 58 + 1 + 58 (SPEC 2.1's 237 before the line boxes)
     });
 
     // ED-253: what follows the card moves down by the fold's height rounded to the nearest pixel, as the locked board's frames

@@ -78,7 +78,9 @@ public sealed class TimelineRowsFinNoticeTests(HeadlessSession headless)
                 foreach (var (words, symbol, status) in expected)
                 {
                     var text = TextNamed(row, words);
-                    var glyph = Mounted<SwiftImage>(row).First(image => image.SymbolName == symbol && Top(image, window) <= Top(text, window) + 1 && Top(image, window) >= Top(text, window) - 3);
+                    // The step's own glyph: the one of its symbol beside the text's first line (the callout's 17-point box puts the baseline, and so the glyph,
+                    // half its extra leading, 1.2 pt, lower in the box than Inter's own box did; ED-290 (1)).
+                    var glyph = Mounted<SwiftImage>(row).First(image => image.SymbolName == symbol && Top(image, window) <= Top(text, window) + 3 && Top(image, window) >= Top(text, window) - 3);
                     Face(text, 12, FontWeight.Normal, ".chat(.callout)");
                     Assert.Equal(12, SwiftImage.GetFont(glyph)!.Resolve().FontSize);
                     Assert.Equal(8, Left(text, window) - (Left(glyph, window) + glyph.Bounds.Width), 0.5);

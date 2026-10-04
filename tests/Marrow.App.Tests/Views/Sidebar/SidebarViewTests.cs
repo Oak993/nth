@@ -172,8 +172,10 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // delete-note-sbs.png (152.6 s), slide_fit.py/.txt (154.43-154.79 s). What the captures settle and what stays open:
 // - Geometry beside the video: row pitch, 28 pt rows, 24 pt stub, 20 pt icon slot, 46 pt title inset, the footer rows,
 //   the head card's 9 columns at 248 pt, the delete note's line breaks and the panelSlide slide all match. Every text
-//   line box is about 2 pt shorter than the Mac's (SF Pro vs Inter, OD-0009/ED-059: e.g. the callout note's line pitch
-//   14.3 vs 16.5, so each 12 pt header sits 2-3 pt higher): UNRESOLVED, a font-metric question, not a sidebar one.
+//   line box was about 2 pt shorter than the Mac's (the callout note's line pitch 14.3 against the video's): RESOLVED
+//   2026-10-04 by ED-290 (1): the Mac draws the explicit text styles in 18 / 17 / 16 line boxes (body, callout,
+//   subheadline), measured on the same delete note at 2-chat-use.mov 152.6 s (callout baselines 134, 151, 168: 17, 17;
+//   the 16.5 here was a rough read), and SwiftFont now draws them so.
 // - SF Symbols draw narrower than their Lucide stand-ins (OD-0010): the stub's 8 pt chevron box is 10 pt wide where
 //   the Mac's glyph is about 5.5 pt, so "4 heads" sits 2.5 pt further right; the Settled header's 10 pt chevron the
 //   same (+3 pt). UNRESOLVED, a symbol-width question for the icon table, not a sidebar one.

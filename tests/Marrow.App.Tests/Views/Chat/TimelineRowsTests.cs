@@ -4704,8 +4704,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 //   included, except the Edited card's corner: 40 pt tall, radius 18, in the band ED-275 (2) calls UNRESOLVED (OD-0102 rules it: Apple's
 //   corner at the largest radius that fits; built 2026-10-04 by unit blitz-cornerband); see the note in STOP #10 above.
 // - PR-CHAT-115: the error notice is in a frame (2-chat-use.mov 9.0 s, "No message found ...") and its pill measures 33 points tall
-//   there against 31 in the port (the first-baseline row of an SF symbol against a Lucide one, ED-182 / O-63), with its corner
-//   ED-275's (a two-line notice is in ED-275 (2)'s band, OD-0102); info and warning, and the light theme, are proven under OD-0098.
+//   there; the port draws it 33 since the callout line box of 17 (ED-290 (1), SETTLED 2026-10-04; TimelineRowsBlitzAbCardTests, the C 9.0
+//   test), with its corner ED-275's (a two-line notice, 50 pt, is in ED-275 (2)'s band, OD-0102); info and warning, and the light theme,
+//   are proven under OD-0098.
 // - PR-CHAT-099: PROVEN 2026-10-04 (unit rec-e1): the running spinner is `.controlSize(.mini)`, 10 x 10 pt in the 16 pt column, measured on
 //   2-chat-use.mov 145.0-145.6 s (the usage popover's own mini control, UsageViews.swift:22; crop 1894,1148,64x64: 10x10 px); the port draws it at
 //   that size at TimelineRows.swift:2077's site and at the three UsageViews .mini sites (TimelineRowsBlitzAbToolTests, UsageViewsMiniSpinnerTests).

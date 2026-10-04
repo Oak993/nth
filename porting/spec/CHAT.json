@@ -2585,7 +2585,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Chrome.warning and Chrome.danger come from the active theme spec; do not substitute system colours.",
+      "windows_path": "Chrome.warning and Chrome.danger come from the active theme spec; do not substitute system colours. The message's callout line is the text style's 17-point box (ED-290 (1)), so a one-line warning or error pill is 33 tall (2-chat-use.mov C 9.0) and an info notice its 17-point line.",
       "verification_method": "capture comparison across the three levels in both themes",
       "status": "SPECIFIED",
       "upstream_defect": null,

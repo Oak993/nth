@@ -1642,6 +1642,7 @@ internal sealed class SentenceHeightGlide : Panel
             probe = new TextBlock
             {
                 FontFamily = text.FontFamily, FontSize = text.FontSize, FontWeight = text.FontWeight, FontStyle = text.FontStyle, FontFeatures = text.FontFeatures,
+                LineHeight = text.LineHeight, // the sentence's text-style line box (ED-290 (1)), so the new words are measured as they will be drawn
                 TextWrapping = text.TextWrapping, Opacity = 0, IsHitTestVisible = false,
             };
             AutomationProperties.SetAccessibilityView(probe, AccessibilityView.Raw);

@@ -29,7 +29,7 @@ namespace Marrow.App.Tests.Views.Chat;
 //    probes the sliver between the curve and the circle).
 //  - BAND (h / 3.057 < r < h / 2): settled by OD-0102 (owner, 2026-10-04, "corner-band: A"): Apple's corner at the largest radius that fits,
 //    ContinuousCorner.LargestRadius = h / 3.057, instead of a circular arc. The Edited-files card (40 pt, r 18), the one-step steps card (43 pt),
-//    a notice two lines tall (46 pt, measured mounted at 380 pt wide) and the delegation card of one head (54 pt) sit here; the tests at the end read it off the mounted element.
+//    a notice two lines tall (50 pt mounted at 380 pt wide: 16 + two callout lines of 17, ED-290 (1); 46 before the line boxes were settled) and the delegation card of one head (54 pt) sit here; the tests at the end read it off the mounted element.
 // OD-0098: where no video frame shows the element the pinned Swift is the proof; each test names the Swift lines it reads.
 [Collection("Headless")]
 public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
@@ -467,6 +467,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
             var window = Show(panel);
             try
             {
+                Assert.Equal(16 + 2 * 17, PillOf(warning, Pill).Bounds.Height, 0.5); // pillVertical 8 twice and two callout lines (ED-290 (1))
                 AssertBand(PillOf(warning, Pill), "warning notice, two lines");
                 AssertBand(PillOf(error, Pill), "error notice, two lines");
                 AssertCapsule(PillOf(oneLine, Pill), "warning notice, one line");
