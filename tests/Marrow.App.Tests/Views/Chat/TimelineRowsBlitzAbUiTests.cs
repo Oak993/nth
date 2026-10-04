@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Headless;
 using Path = Avalonia.Controls.Shapes.Path;
@@ -13,6 +14,7 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
@@ -21,6 +23,7 @@ using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 using static Marrow.App.Tests.Fixtures.TimelineRowsFinChecks;
+using static Marrow.App.Tests.Fixtures.TimelineRowsFinRig;
 using static Marrow.App.Tests.Views.Chat.TimelineRowsPrSupport;
 
 namespace Marrow.App.Tests.Views.Chat;
@@ -332,5 +335,171 @@ public sealed class TimelineRowsBlitzAbUiTests(HeadlessSession headless)
                 });
             }
         });
+    });
+
+    // ---- UI-CHAT-019: the assistant reply ----
+
+    private const string Fenced = "```swift\nlet x = 1\n```";
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-019")] // TimelineRows.swift:1353-1390; OD-0098: the reply at rest, hovered and streaming, drawn in both themes
+    public void A_reply_shows_its_turns_duration_under_its_text_on_hover_only_for_the_turns_last_reply_and_never_while_streaming_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var clock = new ManualFrameSource();
+        using var clockSeam = FrameClock.Source.Override(clock);
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+        foreach (var (theme, backdrop) in Themes)
+        {
+            AssistantMessageRow settled = null!, streaming = null!, middle = null!;
+            AvaloniaWindow window = null!;
+            var summary = Summary(Guid.NewGuid()) with { Duration = 64 };
+            h.Main.OnMain(() =>
+            {
+                settled = new AssistantMessageRow(Reply("The settled reply."), summary, h.Runtime);
+                streaming = new AssistantMessageRow(new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.Assistant(new AssistantMessage { Text = "The streaming reply", IsStreaming = true }))), summary, h.Runtime);
+                middle = new AssistantMessageRow(Reply("The middle reply."), null, h.Runtime); // only the turn's last reply carries a summary
+                var column = new StackPanel { Spacing = 70 };
+                foreach (var row in new Control[] { settled, streaming, middle }) column.Children.Add(row);
+                window = BlitzAbRender.Open(new Border { Padding = new Thickness(24), Child = column }, theme, backdrop, 560, 400);
+            });
+            Rect LabelArea(AssistantMessageRow row) => BlitzAbRender.BoxIn(HoverLine(row), window);
+            // At rest: the line is there, clear, under the text 2 points down, and takes no room from the row (:1363, :1377, :1388).
+            h.Main.OnMain(() =>
+            {
+                var frame = BlitzAbRender.Capture(window);
+                foreach (var row in new[] { settled, streaming, middle })
+                {
+                    var markdown = Assert.Single(Mounted<MarkdownView>(row));
+                    var line = HoverLine(row);
+                    Assert.Equal(22, line.Height);
+                    Assert.Equal(2, Top(line, window) - (Top(markdown, window) + markdown.Bounds.Height), 0.5);
+                    Assert.Equal(markdown.Bounds.Height, row.Bounds.Height, 0.5);
+                    Assert.Equal(0, line.Opacity);
+                    Assert.Equal(0, frame.InkCount(LabelArea(row).Deflate(new Thickness(0, 1)), backdrop));
+                }
+                Hover(window, Assert.Single(Mounted<MarkdownView>(settled)));
+            });
+            Frames(h.Main, clock, 60);
+            h.Main.OnMain(() => Assert.InRange(HoverLine(settled).Opacity, 0.01, 0.99)); // :1381 .easeOut(duration: 0.12): part way at 60 ms
+            Frames(h.Main, clock, 120);
+            h.Main.OnMain(() =>
+            {
+                var frame = BlitzAbRender.Capture(window);
+                var line = HoverLine(settled);
+                Assert.Equal(1, line.Opacity);
+                // :1368-1372 "Worked for 1m 4s" at caption in the secondary ink on the leading edge of the line, centred in its 22 points.
+                var label = Assert.Single(Mounted<TextBlock>(line));
+                Assert.Equal("Worked for 1m 4s", label.Text);
+                var box = BlitzAbRender.BoxIn(label, window);
+                Assert.Equal(Left(settled, window), box.Left, 0.5);
+                Assert.Equal(Top(line, window) + 11, box.Center.Y, 0.75);
+                IsInkedLike(frame, box, backdrop, "Worked for 1m 4s", SwiftFont.Caption, ChromeTokens.SecondaryText, theme, $"{theme}: the duration");
+                // Another reply of the turn has no summary: its line stays empty even with the pointer on it.
+                Hover(window, Assert.Single(Mounted<MarkdownView>(middle)));
+            });
+            Frames(h.Main, clock, 250);
+            h.Main.OnMain(() =>
+            {
+                var frame = BlitzAbRender.Capture(window);
+                Assert.Empty(Mounted<TextBlock>(HoverLine(middle)));
+                Assert.Equal(0, frame.InkCount(LabelArea(middle).Deflate(new Thickness(0, 1)), backdrop));
+                // :1378 a streaming reply never shows the line: the pointer on it changes nothing.
+                Hover(window, Assert.Single(Mounted<MarkdownView>(streaming)));
+            });
+            Frames(h.Main, clock, 250);
+            h.Main.OnMain(() =>
+            {
+                var frame = BlitzAbRender.Capture(window);
+                Assert.Equal(0, HoverLine(streaming).Opacity);
+                Assert.Equal(0, frame.InkCount(LabelArea(streaming).Deflate(new Thickness(0, 1)), backdrop));
+                BlitzAbRender.Shut(window);
+            });
+        }
+    });
+
+    // ---- UI-CHAT-020, UI-CHAT-021: the reply's context menu ----
+
+    // The recorded popup's content hosted in a themed window of its own so that its rows take real clicks and are drawn.
+    private static AvaloniaWindow HostMenu(Popup popup, ThemeVariant theme, Color backdrop)
+    {
+        var content = popup.Child!;
+        popup.Child = null;
+        return BlitzAbRender.Open(new Border { Padding = new Thickness(12), Child = content }, theme, backdrop, 360, 260);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-020")] // TimelineRows.swift:1401-1405, :38-54; OD-0098: the menu of a reply with a fenced block drawn, Copy last code block replaced in place by Copied, in both themes
+    [Trait("Req", "UI-CHAT-021")] // TimelineRows.swift:1406-1410: Add to reply behind a divider, replaced in place by Added, drawn in both themes
+    public void The_reply_menu_draws_Copy_last_code_block_only_with_a_whole_fence_and_Add_to_reply_behind_a_divider_each_reading_Copied_or_Added_in_its_own_row_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        foreach (var (theme, backdrop) in Themes)
+        {
+            AvaloniaWindow window = null!, menu = null!;
+            RowActionItems items = null!;
+            h.Main.OnMain(() =>
+            {
+                _ = AppCurrentEvent.CurrentWindow; // starts the app-wide event watch before the click
+                var withCode = new AssistantMessageRow(Reply("answer\n\n" + Fenced), null, h.Runtime);
+                var without = new AssistantMessageRow(Reply("answer\n\n```\nunfinished"), null, h.Runtime);
+                var panel = new StackPanel { Spacing = 80 };
+                panel.Children.Add(withCode); panel.Children.Add(without);
+                window = Show(panel);
+                // :1401-1405 an unfinished fence offers no code to copy.
+                var (plainPopup, plain) = RightClick(presenter, window, Assert.Single(Mounted<MarkdownView>(without)));
+                Assert.Equal(["Copy message", "Copy as markdown", "Add to reply"], ItemTitles(plain));
+                var (popup, actions) = RightClick(presenter, window, Assert.Single(Mounted<MarkdownView>(withCode)));
+                Assert.Equal(["Copy message", "Copy as markdown", "Copy last code block", "Add to reply"], ItemTitles(actions));
+                items = actions;
+                menu = HostMenu(popup, theme, backdrop);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(menu);
+                var frame = BlitzAbRender.Capture(menu);
+                var rows = LogicalQuery.SelfAndDescendants<PopoverItem>(items).ToList();
+                var boxes = rows.Select(row => BlitzAbRender.BoxIn(row, menu)).ToList();
+                // Four rows in the order the source builds them, one under another, each with its symbol and its title inked.
+                for (var i = 1; i < boxes.Count; i++) Assert.True(boxes[i].Top >= boxes[i - 1].Bottom - 0.5, $"{theme}: row {i} starts above the row before it");
+                var symbols = ItemSymbols(items);
+                Assert.Equal(["doc.on.doc", "number", "chevron.left.forwardslash.chevron.right", "arrow.turn.down.left"], symbols);
+                foreach (var box in boxes) Assert.True(frame.InkCount(box, backdrop) > 40, $"{theme}: a row of the menu draws nothing");
+                // :1406 startsGroup: a divider between the third row and Add to reply, none between the others.
+                var column = Assert.IsType<StackPanel>(items.Child);
+                Assert.IsType<PopoverDivider>(column.Children[3]);
+                Assert.DoesNotContain(column.Children.Take(3), child => child is PopoverDivider);
+                var divider = BlitzAbRender.BoxIn(column.Children[3], menu);
+                Assert.True(divider.Top >= boxes[2].Bottom - 0.5 && divider.Bottom <= boxes[3].Top + 0.5, $"{theme}: the divider is not between the rows");
+                Assert.True(frame.InkCount(divider.Inflate(new Thickness(0, 1)), backdrop, 8) > 100, $"{theme}: the divider is not drawn");
+                // Copy last code block: pressed, its own row now reads Copied, with the rows beside it where they were.
+                var titleBefore = frame.InkCount(boxes[2], backdrop);
+                ClickButton(menu, Assert.Single(LogicalQuery.SelfAndDescendants<Button>(rows[2])));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(menu);
+                var frame = BlitzAbRender.Capture(menu);
+                var rows = LogicalQuery.SelfAndDescendants<PopoverItem>(items).ToList();
+                Assert.Equal(["Copy message", "Copy as markdown", "Copied", "Add to reply"], rows.Select(Title));
+                Assert.True(rows[2].IsConfirmed);
+                Assert.True(frame.InkCount(BlitzAbRender.BoxIn(rows[2], menu), backdrop) > 20);
+                ClickButton(menu, Assert.Single(LogicalQuery.SelfAndDescendants<Button>(rows[3])));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(menu);
+                var rows = LogicalQuery.SelfAndDescendants<PopoverItem>(items).ToList();
+                // :1409 the reply is quoted into the draft; the confirmation is Added, not Copied.
+                Assert.Equal(["Copy message", "Copy as markdown", "Copied", "Added"], rows.Select(Title));
+                Assert.Equal(["answer\n\n" + Fenced], h.Runtime.Draft.Quotes.Select(quote => quote.Text));
+                BlitzAbRender.Shut(menu);
+                Close(window);
+            });
+            h.Main.OnMain(() => h.Runtime.Draft = h.Runtime.Draft with { Quotes = ValueList<ReplyQuote>.Empty });
+        }
     });
 }
