@@ -32,8 +32,9 @@ namespace Marrow.App.Port.FirstRun;
 //      blur and the dimming carry the look. UNVERIFIED against the page's frames; tracked in porting/STATE.md.
 //  (5) Reduce motion stills every transition here (the sheet is an addition beyond the Mac: the lead's rule of 2026-10-04, ED-084): each
 //      goes to its end at once; the 0.15 s hold stays (the page keeps it), the spinner turns on (ED-231).
-//  (6) The line under the title is the page's one line in Segoe UI Variable; in the app's own font (Inter, wider) it runs to a second line in
-//      the sheet's 408 px, and the sheet grows by one line (16.25 px) rather than cut the sentence: everything under it moves down with it.
+//  (6) The line under the title is the page's one line in Segoe UI Variable; in the app's own font (Inter, wider) it would leave "once." alone
+//      on a second line, so it is tracked to the page's own length (GettingReadyLook.SubTracking, ED-NEW-f-gr-2-fix): one line, the page's
+//      height. It still wraps rather than cut, should a font ever set it longer.
 //  (7) Input: Welcome behind is not pressable until the sheet has gone; the sheet is bounded by the work (GR-1's step bound), never held.
 
 /// <summary>The numbers of look I, as measured (see the file note).</summary>
@@ -41,6 +42,13 @@ public static class GettingReadyLook
 {
     public const double SheetWidth = 460, PaddingTop = 44, PaddingSide = 26, PaddingBottom = 22, CornerRadius = 18;
     public const double TitleSize = 20, TitleLine = 26, SubSize = 12.5, SubLine = 16.25, SubTop = 4, SubBottom = 14;
+
+    /// <summary>
+    /// The line under the title is tracked so that W1's sentence, in the app's Inter, runs the length the page gives it in Segoe UI Variable
+    /// Text (405.5 px of the 408 px box, one line). ENGINEERING DECISION (ED-NEW-f-gr-2-fix (2)): untracked, Inter sets it 437.7 px long and
+    /// leaves "once." alone on a second line; -0.435 px a letter brings it to the page's 405.5, its one line and its 16.25 px height.
+    /// </summary>
+    public const double SubTracking = -0.435;
     public const int Columns = 2;
     public const double ColumnGap = 20, RowHeight = 26, GlyphGap = 8, GlyphSize = 14, MarkSize = 16, LabelSize = 12, LabelLine = 15.6, ListBottom = 16, BarHeight = 4;
 
@@ -344,7 +352,7 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         ready = Word(GettingReadyLook.Done);
         titleBox.Children.Add(title);
         titleBox.Children.Add(ready);
-        line = new TextBlock { Text = GettingReadyLook.Line, LineHeight = GettingReadyLook.SubLine, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, GettingReadyLook.SubTop, 0, GettingReadyLook.SubBottom) };
+        line = new TextBlock { Text = GettingReadyLook.Line, LineHeight = GettingReadyLook.SubLine, LetterSpacing = GettingReadyLook.SubTracking, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, GettingReadyLook.SubTop, 0, GettingReadyLook.SubBottom) };
         SwiftFont.System(GettingReadyLook.SubSize, SwiftFont.Weight.Regular).Apply(line);
         line.Foreground = Chrome.SecondaryText.Brush(line);
         list.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));

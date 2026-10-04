@@ -50,6 +50,24 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
         Assert.Equal((GettingReadyRig.PaneWidth - GettingReadyLook.SheetWidth) / 2, rig.Rect(rig.Sheet.Card).Left, 3); // centred on the detail pane
     });
 
+    /// <summary>The page's line under the title, laid out by Chrome 154 in Segoe UI Variable Text 12.5 px with normal tracking: one line
+    /// of 405.5 px in the 408 px box (work/scratch/f-gr-2-fix/subwidth.cjs, span.getClientRects(), canvas measureText 405.499).</summary>
+    private const double PageLineWidth = 405.5;
+
+    [Fact] // GR-2.geometry
+    [Trait("Decision", "ED-288")]
+    public void The_line_under_the_title_breaks_as_the_pages_does_one_line_of_the_pages_length_and_height() => headless.OnUiThread(() =>
+    {
+        using var rig = new GettingReadyRig();
+        var line = (TextBlock)rig.Sheet.LineText;
+        var lines = line.TextLayout.TextLines;
+        Assert.True(lines.Count == 1, $"{lines.Count} lines: {string.Join(" | ", lines.Select(l => $"{l.Width:0.00} of {line.Bounds.Width:0.00}"))}");
+        Assert.InRange(lines[0].Width, PageLineWidth - 1, PageLineWidth + 1);
+        Assert.Equal(0, Extra(rig)); // the sheet is the page's height
+        Near(Fixture(GettingReadyFixture.Frame("workEnd").GetProperty("sub")), rig.Rect(line), "the line");
+        Assert.Equal(GettingReadyFixture.Line, line.Text); // W1's words, unchanged
+    });
+
     [Fact] // GR-2.geometry
     [Trait("Decision", "ED-288")]
     public void The_six_steps_are_two_columns_in_the_plans_order_each_row_placed_as_the_fixtures() => headless.OnUiThread(() =>
