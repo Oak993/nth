@@ -934,3 +934,30 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Asked (chat, 2026-10-04), from feature unit VT-0's findings:** 1. Can the installer add Microsoft's VC++ 2015-2022 x64 runtime (Velopack prerequisite vcredist143-x64, about 25 MB from Microsoft), which the voice natives import (MSVCP140, VCRUNTIME140, VCRUNTIME140_1, VCOMP140) and the app does not carry? 2. Is about 62 MB of voice-engine natives (CPU + Vulkan) acceptable against the 50 MB budget? 3. May the optional GPU (CUDA) download fetch NVIDIA's libraries (about 390 MB) straight from NVIDIA's own servers, Marrow never hosting them?
 - **Owner, verbatim:** "1. Yes 2. Yes 3. Yes"
 - **Effect:** (1) the installer adds Velopack's vcredist143-x64 prerequisite (V-3.2); (2) the voice natives' size budget is raised to fit the measured ~62 MB; (3) the Q-V-9 C CUDA offer downloads the Whisper.net CUDA pack from nuget.org and NVIDIA's redistributable libraries from NVIDIA's servers on the user's request, never bundled or hosted by Marrow, verified by hash, and a half-installed pack is never loaded (VT-0 probe case 15).
+
+## OD-0105 Open questions answered: loading hand-over, strikethrough, settle bounce, D-VN page, light warm-up, installer timing (2026-10-05)
+
+- **Asked (chat, 2026-10-05, plain-language multiple choice):**
+  1. "When a chat opens, the loading spinner gets replaced by the messages. On the Mac this happens instantly, in one frame. What should we do?" (UI-CHAT-001 STOP #10)
+  2. "When a checklist item is ticked, a line goes through its text. How should the line appear?" (PR-CHAT-114)
+  3. "In the sidebar, the tick mark does a small bounce when you mark a chat finished. The Mac's code gives the exact bounce, but no video shows it. Is the code enough proof?" (UI-SIDEBAR-020)
+  4. "Voice typing needs one design choice from you (D-VN). Shall I make a page showing the options, labelled A, B, C, for you to pick from?"
+  5. "The glowing light around the message box never stops moving. Warming up some graphics would cause a tiny stutter in it. My plan: skip those, so the first time you switch to a different light style it may stutter once. Is that OK?" (fix-knobcache)
+  6. "When the port is done, I'll build the installer. My plan: a normal Setup.exe for 64-bit Windows, not signed, saved to a folder on this PC. Nothing gets run, uploaded or published. OK?"
+  7. "Earlier small changes, just to check: Look cards 8 px taller (like the Mac), the Getting Ready subtitle letters slightly tighter, About saying "GitHub", and the colour code box taking 8 characters (with transparency). Are all of these fine?"
+- **Owner, verbatim (the picks):**
+  1. "Smooth fade (Recommended)"
+  2. "Fade in (Recommended)"
+  3. "Code is enough (Recommended)"
+  4. "Yes, make the page (Recommended)"
+  5. "No, find another way"
+  6. "do so after complete port and first release features are all done"
+  7. "All fine (Recommended)"
+- **Effect:**
+  1. The loading mark fades out while the rows fade and rise in, in about 0.2 s. Rows that leave together fold shut together, in about 0.3 s (OD-0076).
+  2. The checklist strikethrough fades in (PR-CHAT-114).
+  3. The settle bounce is proven by the Swift source: SidebarView.swift:1909, spring response 0.3 and damping 0.45, then Chrome.panelSlide (UI-SIDEBAR-020).
+  4. The D-VN variants page is built for the owner's pick.
+  5. The knob warm-up must cause neither a stutter in the composer light nor a hitch on the first switch of light style, so nothing is left to first use (LEAD RULING 2 of fix-knobcache, amended).
+  6. The installer (unsigned Setup.exe, x64, local folder) is built only after the whole port and every first-release feature are done. It is never run, signed or published without the owner.
+  7. The four FYIs stand.
