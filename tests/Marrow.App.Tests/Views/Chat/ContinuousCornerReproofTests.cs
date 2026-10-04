@@ -335,7 +335,11 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     // corner above.
 
     [Fact]
-    [Trait("Req", "UI-CHAT-034")] // TimelineRows.swift:2402 `.background(..., in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the corner of a notice two lines tall
+    // WITHDRAWN as a Req proof of UI-CHAT-034 (blitz-cornerband, 2026-10-04; STOP #10 stays open for this record): the record's own REVIEW test
+    // SwiftShapesBandTests.REVIEW_a_plain_Border_in_the_band_draws_Apples_corner_... (a plain 200 x 40 Border against a SwiftShapeBorder of the same shape) requires the
+    // rendered corner within 40 levels of the path fill and measures 49, at two pixels of the bottom run-in: the clip's anti-aliasing (ED-NEW-cornerband (8)). The element's
+    // own pixels pass REVIEW_the_four_band_elements_render_... below (tolerance 60) and the structure is pinned here; the 40 is the open point.
+    [Trait("Rule", "R-TEST-4")] // UI-CHAT-034: everything but the REVIEW test's tolerance of 40 levels is proven here and in the REVIEW test below
     public void A_warning_or_error_notice_two_lines_tall_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
     {
         using var h = Harness();
