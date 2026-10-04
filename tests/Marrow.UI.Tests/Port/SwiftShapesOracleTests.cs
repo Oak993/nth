@@ -398,7 +398,7 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
         Assert.True(rms < 0.6 * circleRms, $"the shape ({rms:F3}) is no nearer the analytic path than the circle ({circleRms:F3})");
 
         // A plain Border with `.continuous` corners is cut by Visual.Clip (ContinuousClip): its fill and the clip both anti-alias the edge, so
-        // it lands between the circle and the exact shape (ED-NEW-corners: measured 0.105 px rms against the circle's 0.135, SwiftShapeBorder 0).
+        // it lands between the circle and the exact shape (ED-275: measured 0.105 px rms against the circle's 0.135, SwiftShapeBorder 0).
         var border = new Border { Width = ShapeW, Height = ShapeH, Background = Brushes.White }.RoundedRectangle(ShapeR, RoundedCornerStyle.Continuous);
         var (borderRms, _) = Difference(RenderedCrossings(Render(border)), reference);
         Assert.NotNull(border.Clip);

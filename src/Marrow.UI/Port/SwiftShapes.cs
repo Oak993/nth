@@ -1,6 +1,6 @@
 // PORT-ONLY: SwiftUI's RoundedRectangle(cornerRadius:style:), Capsule(style:) and UnevenRoundedRectangle take a
 // RoundedCornerStyle that Avalonia has no counterpart for; this is the one shared helper every `.continuous` site goes
-// through (ED-181, closed by the continuous-corners build spec, ED-NEW-corners).
+// through (ED-181, closed by the continuous-corners build spec, ED-275).
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -122,7 +122,7 @@ public static class SwiftShapes
     /// beyond a side (SwiftUI's `.background(shape)` does not clip its content: the effort title's letters leaving past the chevron are drawn).
     /// It holds along the sides between the corners' run-ins: within <see cref="ContinuousCorner.Extent"/> radii of an Apple-regime corner the path
     /// runs in to the curve's ends, so the whole quadrant beyond the bounds there is cut too (on a 26 pt row of radius 6 a child drawing past a
-    /// side survives only for 9.2 &lt; y &lt; 16.8). No site is known to draw there (ED-NEW-corners (3)).
+    /// side survives only for 9.2 &lt; y &lt; 16.8). No site is known to draw there (ED-275 (3)).
     /// </summary>
     internal const double ClipSlack = 4096;
 
@@ -335,7 +335,7 @@ public static class SwiftShapes
 /// <summary>
 /// Keeps a `.continuous` Border cut to Apple's curve: <see cref="Visual.Clip"/> is set to the continuous path of the
 /// Border's own size and corner radius, so its fill and its border's outer edge follow the curve, a child it clips follows
-/// it, and hit testing follows it (the compositor hit-tests <see cref="Visual.Clip"/>). ENGINEERING DECISION (ED-NEW-corners):
+/// it, and hit testing follows it (the compositor hit-tests <see cref="Visual.Clip"/>). ENGINEERING DECISION (ED-275):
 /// Avalonia's <c>Border.Render</c> is sealed and draws circular corners, and 286 tests and the glass, SettingsRise and
 /// ChatView code treat these shapes as plain Borders, so the Border stays and its clip carries the curve instead of a
 /// replacement control. The clip is set only where it can be seen: while the shape draws a fill or a border or clips its

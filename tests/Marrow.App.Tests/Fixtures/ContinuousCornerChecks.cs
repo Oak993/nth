@@ -36,7 +36,7 @@ internal static class ContinuousCornerChecks
         Assert.Equal(expectApple, outline.HasContinuousCorner);
         if (!outline.HasContinuousCorner)
         {
-            // The circular regime (ED-NEW-corners (2)): every rounded corner is an arc, and a plain Border takes no clip of its own.
+            // The circular regime (ED-275 (2)): every rounded corner is an arc, and a plain Border takes no clip of its own.
             Assert.DoesNotContain(CornerKind.Continuous, outline.Corners);
             if (shape is Border) Assert.Null(clip);
             return false;

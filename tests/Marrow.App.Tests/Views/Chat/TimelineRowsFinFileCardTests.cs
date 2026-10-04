@@ -59,7 +59,7 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
                 Assert.Equal(new CornerRadius(18), pill.CornerRadius);
                 // :2822 `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`: the radius
                 // 18 is the Swift's and the video's nominal one (static.timeline-rows: radius 18, no frame was fitted). The card is 40 pt tall (28 + 12), in the
-                // band (13.1 < r < 20) where what Apple draws is UNRESOLVED (ED-NEW-corners (2)); the port draws the circular arc there, asserted as the port's
+                // band (13.1 < r < 20) where what Apple draws is UNRESOLVED (ED-275 (2)); the port draws the circular arc there, asserted as the port's
                 // own regime and not as a reference fit, so UI-GIT-044 and PR-CHAT-108 stay open on it.
                 ContinuousCornerChecks.Drawn(pill, expectApple: false);
                 Paints(pill.Background, SwiftColor.Quaternary.Opacity(0.32), pill, "card fill");
@@ -171,7 +171,7 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-GIT-044 (STOP #10): the click; the card's corner at 40 pt is UNRESOLVED (ED-NEW-corners (2)); TimelineRows.swift:2745-2757, :2829-2858
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-GIT-044 (STOP #10): the click; the card's corner at 40 pt is UNRESOLVED (ED-275 (2)); TimelineRows.swift:2745-2757, :2829-2858
     public void Clicking_the_title_opens_the_files_popover_below_it_with_twelve_rows_and_a_second_click_closes_it() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

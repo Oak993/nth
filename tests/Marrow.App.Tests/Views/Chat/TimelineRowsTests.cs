@@ -4612,7 +4612,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // asserted on the mounted control, with mutation checks): UI-CHAT-020 (TimelineRowsFinReplyTests), UI-GIT-050 (TimelineRowsFinUserRowTests),
 // UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests, the shimmer).
 // Back in this note on 2026-10-04 (adversarial review of the continuous-corners unit): UI-GIT-044, UI-RUNTIME-002 and UI-RUNTIME-003, and PR-CHAT-108 in STOP #11 below.
-// The reason, for all four: ED-NEW-corners (2) calls UNRESOLVED what SwiftUI draws for a `.continuous` rounded rect with h / 3.057 < r < h / 2, and these
+// The reason, for all four: ED-275 (2) calls UNRESOLVED what SwiftUI draws for a `.continuous` rounded rect with h / 3.057 < r < h / 2, and these
 // records' shapes are in that band while no frame and no source text settles it. UI-GIT-044 and PR-CHAT-108: the Edited card is 40 pt tall with radius 18
 // (band 13.1 < r < 20); the video's card edge is too faint to fit (a 0.32 quaternary over the blurred wallpaper) and the video fit of the composer (r 22 on 46)
 // cannot tell a circular end from the iOS 7 shape_2 end at 1 pt radius apart. UI-RUNTIME-002 and UI-RUNTIME-003: a notice of two lines is about 48 pt tall
@@ -4663,7 +4663,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
 // Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-109.
 // Records: PR-CHAT-108 (back 2026-10-04: every clause is asserted, the hover on the 0.1 s ease-out curve included, except the Edited card's corner: 40 pt tall, radius 18,
-// in the band ED-NEW-corners (2) calls UNRESOLVED; see the note in STOP #10 above).
+// in the band ED-275 (2) calls UNRESOLVED; see the note in STOP #10 above).
 // Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
 // Records: PR-CHAT-116; PR-CHAT-143; PR-CHAT-145; PR-CHAT-146; PR-CHAT-147.
 // Records: PR-CHAT-148; PR-CHAT-149; PR-CHAT-150; PR-CHAT-151; PR-CHAT-152.

@@ -44,7 +44,7 @@ using Marrow.UI.Theme;
 // `.onHover`, `.popover`, `.fixedSize`, a font on any view, an animated colour) are in Port/PlainControls.cs.
 // Settled by the orchestrator's run4 ruling on this unit's stops: Image(systemName:) and Image(_:) are SwiftImage
 // (ED-179, ED-182; OD-0010 Lucide icons); SwiftGlass draws the app-owned material with the source's shape, tint and
-// interaction data; `.continuous` shapes are SwiftShapes' (ED-181: Apple's continuous corner, closed by ED-NEW-corners).
+// interaction data; `.continuous` shapes are SwiftShapes' (ED-181: Apple's continuous corner, closed by ED-275).
 
 namespace Marrow.UI.Chrome
 {

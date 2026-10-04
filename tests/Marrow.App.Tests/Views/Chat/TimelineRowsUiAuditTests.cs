@@ -19,12 +19,12 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
     }
 }
 
-// STOP opencode-App.Views.Chat.TimelineRows #1: RESOLVED 2026-10-04 (ED-181 closed, the continuous-corners build, ED-NEW-corners).
+// STOP opencode-App.Views.Chat.TimelineRows #1: RESOLVED 2026-10-04 (ED-181 closed, the continuous-corners build, ED-275).
 // The foundation's oracle-backed continuous corner landed (SwiftShapes.Outline, SwiftShapeBorder, ContinuousClip; the curve is
 // SwiftShapesContinuousTests and SwiftShapesOracleTests in Marrow.UI.Tests). Every site below draws it where its size allows
 // (2 * 1.528665 * r <= min(w, h)) and the circular arc where not. The video backs the arc for capsules and for a radius from half the height up
 // (a one-line notice, 33 pt); for a shape in the band h / 3.057 < r < h / 2 (the Edited card, 40 pt, r 18; a two-line notice, about 48 pt, r 18) what
-// Apple draws is UNRESOLVED (ED-NEW-corners (2), corrected 2026-10-04 after the adversarial review: no frame has a measurable edge there).
+// Apple draws is UNRESOLVED (ED-275 (2), corrected 2026-10-04 after the adversarial review: no frame has a measurable edge there).
 // ContinuousCornerChecks.Drawn asserts the regime on the mounted control, in the tests that name the record: UI-CHAT-008
 // (TimelineRowsFinUserRowTests), UI-CHAT-020/UI-CHAT-021 (TimelineRowsFinReplyTests), UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests),
 // UI-GIT-050 (TimelineRowsFinUserRowTests). UI-RUNTIME-002/003 (TimelineRowsFinNoticeTests), UI-GIT-044 and PR-CHAT-108 (TimelineRowsFinFileCardTests,
