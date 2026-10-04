@@ -50,7 +50,8 @@ namespace Marrow.App.Views.Composer;
 // surfaces on the window's GPU context, so the knob's first visible draw finds them made. A new scaling warms again,
 // idle-gated. A new GPU context (a device lost, a display change) warms again too: idle-gated when no step waits, and when a
 // step waits it is answered at once, compiling nothing on the new context, and its run starts again from its first step (the
-// programs it made are on the old one). The CPU renderer has nothing to compile ahead: no steps.
+// programs it made are on the old one). The CPU renderer has nothing to compile ahead: no steps, and its completed pass is kept as
+// a CPU marker (GpuProgramCache.MarkWarmOnCpu: build and machine) so that IsWarm holds for it too (ED-NEW-f-gr-1 (17)).
 
 /// <summary>One step of the GPU warm-up: which program, how long it took on the render thread, and whether it waited for an
 /// idle frame and was forced at the cap.</summary>
@@ -303,6 +304,8 @@ public static class GpuWarmup
         get
         {
             if (GpuProgramCache.Root() is not { } root) return false;
+            // the CPU renderer keeps nothing: its marker (GR-1 review round 3, ED-NEW-f-gr-1 (17)) names this build and machine
+            if (GpuProgramCache.Machine() is { Length: > 0 } drawn && GpuProgramCache.WarmedOnCpu(root, drawn)) return true;
             try
             {
                 var marker = Path.Combine(root, "warm.txt");
@@ -517,7 +520,13 @@ public static class GpuWarmup
                     Record(report);
                     progress?.Report(report);
                 }
-                if (gpuLess) return;
+                if (gpuLess)
+                {
+                    // the CPU renderer has nothing to compile or keep, so there is no GPU marker to write: the machine is prepared
+                    // once every registered work step is done (the same bar as below), and the next launch skips the first run
+                    if (WorkIsDone()) await Task.Run(GpuProgramCache.MarkWarmOnCpu, CancellationToken.None);
+                    return;
+                }
                 // warm only when the cache took (or gave back) an entry for every program that draws: the programs are on disk
                 // (the marker and the clean-up of other builds' folders on a pool thread, the UI thread's frames untouched), and
                 // every registered step of other work has been done (an idle pass never runs one: it leaves the machine unprepared

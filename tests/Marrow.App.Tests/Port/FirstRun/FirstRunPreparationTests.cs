@@ -336,6 +336,96 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         }
     }
 
+    [Fact]
+    [Trait("Feature", "GR-1")]
+    [Trait("Spec", "GR-1.invalidation")]
+    [Trait("Decision", "ED-252")]
+    public void The_marker_names_the_adapter_and_driver_itself_not_only_through_the_folders_key()
+    {
+        // the key of the programs' folder names this machine as it is now, so GpuProgramCache.MadeHere agrees; only the marker's own
+        // third line (the machine it was written for) says otherwise, and the prepared state must not hold
+        var root = Path.Combine(Path.GetTempPath(), "gr1-marker-" + Guid.NewGuid().ToString("N"));
+        var gpu = Path.Combine(root, "0123456789abcdef01234567");
+        var source = GpuProgramCache.MachineSource;
+        var machine = "10de:2704:00000000:a1 Test GPU 32.0.15.6094";
+        GpuProgramCache.MachineSource = () => machine;
+        GpuProgramCache.FolderOverride = root;
+        try
+        {
+            Directory.CreateDirectory(gpu);
+            File.WriteAllText(Path.Combine(gpu, "key.txt"), "ANGLE (Test GPU)\nOpenGL ES 3.0.0\n" + GpuProgramCache.Build + "\n" + machine + "\n");
+            for (var k = 0; k < GpuWarmup.Steps; k++) File.WriteAllBytes(Path.Combine(gpu, k + ".bin"), [1, 2, 3]);
+            GpuProgramCache.MarkWarm(gpu);
+            Assert.True(new FirstRunPreparation().IsPrepared);
+            File.WriteAllLines(Path.Combine(root, "warm.txt"), [GpuProgramCache.Build, Path.GetFileName(gpu), "1002:73bf:00000000:c1 Another GPU 31.0.1.1"]);
+            Assert.False(new FirstRunPreparation().IsPrepared);      // the marker was written for another adapter
+        }
+        finally
+        {
+            GpuProgramCache.MachineSource = source;
+            GpuProgramCache.FolderOverride = null;
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Feature", "GR-1")]
+    [Trait("Spec", "GR-1.invalidation")]
+    [Trait("Decision", "ED-252")]
+    public void The_CPU_renderers_prepared_state_is_kept_for_this_build_adapter_and_driver_only()
+    {
+        // GR-1 review round 3: the CPU renderer keeps no programs, so its prepared state is its own marker, and it is invalid for
+        // a new build, adapter or driver, or a machine that cannot be read, exactly as the GPU's is
+        var root = Path.Combine(Path.GetTempPath(), "gr1-cpu-" + Guid.NewGuid().ToString("N"));
+        var source = GpuProgramCache.MachineSource;
+        string? machine = "10de:2704:00000000:a1 Test GPU 32.0.15.6094";
+        GpuProgramCache.MachineSource = () => machine;
+        GpuProgramCache.FolderOverride = root;
+        try
+        {
+            var preparation = new FirstRunPreparation();
+            Assert.False(preparation.IsPrepared);
+            GpuProgramCache.MarkWarmOnCpu();                          // the root does not exist yet: the CPU's marker makes it
+            Assert.True(preparation.IsPrepared);
+            GpuProgramCache.MarkWarmOnCpu();                          // again: the same
+            Assert.True(preparation.IsPrepared);
+
+            machine = "10de:2704:00000000:a1 Test GPU 32.0.15.7000";  // a driver update
+            Assert.False(preparation.IsPrepared);
+            machine = "1002:73bf:00000000:c1 Another GPU 31.0.1.1";   // another adapter
+            Assert.False(preparation.IsPrepared);
+            machine = "10de:2704:00000000:a1 Test GPU 32.0.15.6094";
+            Assert.True(preparation.IsPrepared);
+            machine = null;                                           // not readable: not proven, and nothing is written for it
+            Assert.False(preparation.IsPrepared);
+            machine = "";
+            Assert.False(preparation.IsPrepared);
+            machine = "10de:2704:00000000:a1 Test GPU 32.0.15.6094";
+
+            File.WriteAllLines(Path.Combine(root, "warm-cpu.txt"), ["another build", "cpu", machine]);
+            Assert.False(preparation.IsPrepared);                     // a new build
+            File.WriteAllLines(Path.Combine(root, "warm-cpu.txt"), [GpuProgramCache.Build, "cpu"]);
+            Assert.False(preparation.IsPrepared);                     // a short marker (read, not thrown)
+            File.WriteAllLines(Path.Combine(root, "warm-cpu.txt"), [GpuProgramCache.Build, "gpu", machine]);
+            Assert.False(preparation.IsPrepared);                     // not a CPU marker
+            GpuProgramCache.MarkWarmOnCpu();
+            Assert.True(preparation.IsPrepared);                      // rewritten for this build and machine
+
+            // a completed warm-up on a GPU proves the machine on its GPU: the CPU's marker goes
+            var gpu = Path.Combine(root, "0123456789abcdef01234567");
+            Directory.CreateDirectory(gpu);
+            GpuProgramCache.MarkWarm(gpu);
+            Assert.False(File.Exists(Path.Combine(root, "warm-cpu.txt")));
+            Assert.False(preparation.IsPrepared);                     // no programs in the GPU's folder: not prepared on the GPU
+        }
+        finally
+        {
+            GpuProgramCache.MachineSource = source;
+            GpuProgramCache.FolderOverride = null;
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
     // ----- the real preparation, on the headless renderer pretending a GPU -----
 
     [Fact]

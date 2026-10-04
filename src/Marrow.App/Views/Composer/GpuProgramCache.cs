@@ -160,7 +160,47 @@ internal static class GpuProgramCache
         try { File.WriteAllLines(Path.Combine(root, "warm.txt"), [Build, Path.GetFileName(keyFolder), here ?? ""]); }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
+        try { File.Delete(Path.Combine(root, CpuMarker)); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
         RemoveOthers(root, keyFolder, here);
+    }
+
+    /// <summary>
+    /// GR-1 review round 3 (ED-NEW-f-gr-1 (17)): a warm-up completed on the CPU renderer (the software fallback Avalonia's Win32
+    /// platform draws with when ANGLE/D3D11 cannot be made): there is nothing to compile or keep, so no cache folder exists and
+    /// <see cref="MarkWarm"/> cannot be written, yet the machine is prepared and the next launch must skip the first run (OD-0096:
+    /// "again only when the prepared state is invalid"). The root's CPU marker (warm-cpu.txt: this build, "cpu", the machine)
+    /// stands in for the marker: <see cref="WarmedOnCpu"/>. A GPU marker (<see cref="MarkWarm"/>) takes the CPU one away: the
+    /// machine is then proven on its GPU.
+    /// </summary>
+    internal static void MarkWarmOnCpu()
+    {
+        if (Root() is not { } root || Machine() is not { Length: > 0 } here) return; // a machine that cannot be read is not proven
+        try
+        {
+            Directory.CreateDirectory(root);
+            var file = Path.Combine(root, CpuMarker);
+            if (!WarmedOnCpu(root, here)) ReplaceWhole(file, Encoding.UTF8.GetBytes(string.Join("\n", Build, "cpu", here) + "\n"));
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    private const string CpuMarker = "warm-cpu.txt";
+
+    /// <summary>True when the root's CPU marker names this build and <paramref name="here"/> (the machine as it is now).</summary>
+    internal static bool WarmedOnCpu(string root, string here)
+    {
+        try
+        {
+            var file = Path.Combine(root, CpuMarker);
+            if (!File.Exists(file)) return false;
+            var lines = File.ReadAllLines(file);
+            return lines.Length >= 3 && lines[0] == Build && lines[1] == "cpu" && lines[2] == here;
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
     }
 
     /// <summary>True when <paramref name="keyFolder"/>'s key names this build and the machine as it is now (the programs in
