@@ -153,6 +153,8 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-UPDATE-092")] // App/AppCommands.swift:111-113; TourPages.swift:26-28: presents the tour whatever hasSeenTour says
     [Trait("Req", "PR-WIN-115")] // the tour is presented from the palette
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-002: the re-open path from the command palette (OD-0012 G5)
+    [Trait("Req", "UI-LAUNCH-002")] // App/Views/Tour/TourPages.swift:26-28; owner_decisions.md OD-0012 G5
     public void Choosing_the_welcome_tour_row_closes_the_palette_and_presents_the_tour_even_after_it_was_seen()
     {
         headless.OnUiThread(() =>

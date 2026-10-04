@@ -229,6 +229,8 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-026")] // App/AppDelegate.swift:28; App/UpdateChecker.swift:132-149
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-046: launch calls startBackgroundChecks (:28); the 8 s, 6 h and stale rules are UpdateCheckerSecondTests, the shell binding AppShellActivationTests
+    [Trait("Req", "PR-LAUNCH-046")] // App/AppDelegate.swift:28; App/UpdateChecker.swift:132-149
     public void Launch_starts_the_background_update_checks()
     {
         WithLaunch(null, launch =>
@@ -248,6 +250,8 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-LAUNCH-047")] // App/AppDelegate.swift:30-33; App/AppUpdater.swift:254-259
     [Trait("Req", "PR-WIN-071")] // App/AppDelegate.swift:30-33
     [Trait("Req", "PR-UPDATE-059")] // App/AppDelegate.swift:22-33
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-003: the matching marker arms the celebration and opens Settings on About after the main window; the window geometry is AppDelegateFourthTests
+    [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:29-33; App/AppUpdater.swift:254-259
     public void The_first_launch_after_an_install_arms_the_celebration_and_opens_Settings_on_About_after_the_main_window()
     {
         WithLaunch(h => h.Defaults.Set(RelaunchVersionKey, LaunchHarness.RunningVersion), launch =>
@@ -267,6 +271,8 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-LAUNCH-047")] // App/AppDelegate.swift:30; App/AppUpdater.swift:254-259
     [Trait("Req", "PR-WIN-071")] // App/AppDelegate.swift:30
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-003: a marker for another version is consumed and shows nothing
+    [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:30; App/AppUpdater.swift:254-259
     public void A_marker_for_another_version_is_consumed_and_launch_shows_no_Settings_and_arms_nothing()
     {
         WithLaunch(h => h.Defaults.Set(RelaunchVersionKey, "1.6.2"), launch =>
@@ -283,6 +289,8 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-048")] // App/AppDelegate.swift:36-39
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-WIN-072: the reopen with nothing visible shows the one cached window and answers true
+    [Trait("Req", "PR-WIN-072")] // App/AppDelegate.swift:36-39; App/Window/WindowManager.swift:26-30
     public void A_reopen_with_no_visible_window_shows_the_main_window_and_answers_true()
     {
         WithLaunch(null, launch =>
@@ -303,6 +311,8 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-048")] // App/AppDelegate.swift:36-39
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-WIN-072: with a window visible nothing extra happens
+    [Trait("Req", "PR-WIN-072")] // App/AppDelegate.swift:36-39
     public void A_reopen_with_a_visible_window_creates_and_shows_nothing_and_answers_true()
     {
         WithLaunch(null, launch =>
@@ -361,7 +371,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     }
 }
 
-// STOP Boot #1 (build agent, 2026-09-26)
+// STOP Boot #1 (build agent, 2026-09-26) - RESOLVED 2026-10-02 (ED-236, OD-0041, the native glass tests, the clean-data capture)
 // Kind: missing dependency (ED-103; built 2026-10-01, one visual check open)
 // Swift: DroppyCode/App/AppDelegate.swift:22 `windows.showMain()` (B3 52bc792); owner_decisions.md OD-0018
 // Requirements: PR-LAUNCH-028 (its OD-0018 deviation), UI-LAUNCH-001
@@ -381,7 +391,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // stage, the main window at the outline's landing, its content following the particles, the bootstrap as "ready", the
 // tour and About after the hand-over). The launch tests above keep the plain show through AppDelegate.StartBoot.
 
-// STOP Boot #2 (build agent, 2026-09-26)
+// STOP Boot #2 (build agent, 2026-09-26) - RESOLVED 2026-10-01 by OD-0040
 // Kind: ambiguity
 // Swift: DroppyCode/App/UpdateChecker.swift:141-149 (the didBecomeActiveNotification observer), reached from
 // AppDelegate.swift:28
@@ -400,7 +410,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // main window is made and hooked in applicationDidFinishLaunching and shown after :28, so its first activation runs
 // the catch-up check (AppShellActivationTests The_launch_activation_reaches_the_update_observer...).
 
-// STOP Boot #3 (build agent, 2026-09-26)
+// STOP Boot #3 (build agent, 2026-09-26) - RESOLVED 2026-10-01 by OD-0036 (reading (b))
 // Kind: ambiguity
 // Swift: DroppyCode/App/AppDelegate.swift:44-54; engineering_decisions.md ED-004 (2)
 // Requirements: PR-LAUNCH-050, PR-WIN-073 (their session-end note)
@@ -435,7 +445,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // still unredirected after a first pass. Debug-only (#if DEBUG), inert in Release. See
 // porting/engineering_decisions.md ED-212 and E:/Droppy/work/b3/DEV_LAUNCH.md for the launch and cleanup steps.
 
-// STOP Boot #5 (build agent, 2026-09-26)
+// STOP Boot #5 (build agent, 2026-09-26) - RESOLVED 2026-10-01 by OD-0038
 // Kind: ambiguity
 // Swift: DroppyCode/App/AppDelegate.swift:37 `WindowManager.shared.showMain()`; App/Window/WindowManager.swift:57-60
 // `NSApp.activate()` then `window.makeKeyAndOrderFront(nil)`
@@ -448,5 +458,5 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // a change to App.Window.WindowManager; (b) leave it minimised.
 // Needed to proceed: a reading of makeKeyAndOrderFront on a miniaturized window (an oracle item or a decision), owned
 // by App.Window.WindowManager.
-// Done so far: the reopen path is wired and tested for a hidden and for a visible main window; PR-WIN-072 stays
-// SPECIFIED.
+// Done so far: the reopen path is wired and tested for a hidden, a minimised and a visible main window (OD-0038: Present
+// restores a minimised window to its previous state).

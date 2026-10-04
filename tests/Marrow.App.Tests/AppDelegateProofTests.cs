@@ -194,6 +194,8 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-LAUNCH-063")] // App/AppDelegate.swift:67-74 as? String and UUID parse must both succeed
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-005: a missing, unparsable or non-string threadID gets banner plus sound
+    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:63-75
     [InlineData("malformed")]
     [InlineData("uuid object")]
     [InlineData("missing")]
@@ -219,16 +221,16 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // Swift: App/AppDelegate.swift:22; ED-103 (5), (7), ED-180, OD-0018.
 // Records: PR-LAUNCH-028, PR-LAUNCH-071, UI-LAUNCH-001.
 // Site: ApplicationDidFinishLaunching -> StartBoot. The ED-103 stage and hand-over landed 2026-10-01
-// (Port/BootStageWindow.cs, BootStageWindowTests; probes P12, P13). Open: the main window's Acrylic hint (WindowManager
-// STOP #5) and the owner's call on P13's ~150-200 ms blur lag at the hand-over (STOP Boot #1).
+// (Port/BootStageWindow.cs, BootStageWindowTests; probes P12, P13). The main window's Acrylic hint (WindowManager STOP #5)
+// landed with ED-236; P13's ~150-200 ms blur lag at the hand-over is what the native glass tests cover (STOP Boot #1).
 // OD-0030's withdrawn lensing probe is a different issue. Stand-in main content is not a full clean-data boot capture.
 
-// STOP opencode-App.AppDelegate #2
+// STOP opencode-App.AppDelegate #2 - RESOLVED: the shell binding is Port/AppShell.cs (WM_ACTIVATEAPP on the main window calls
+// UpdateChecker.HandleActivation; AppShellActivationTests) and the launch activation counts by OD-0040 (STOP Boot #2).
 // Kind: missing shell activation binding and launch-activation ruling.
 // Swift: App/AppDelegate.swift:28; App/UpdateChecker.swift:141-149.
 // Records: PR-LAUNCH-046.
-// Site: StartBackgroundChecks -> UpdateChecker.HandleActivation. The method exists; no production caller exists.
-// Need the shell activation event binding and a ruling on whether launch activation triggers the catch-up check.
+// Site: StartBackgroundChecks -> UpdateChecker.HandleActivation. It had no production caller; the shell now calls it.
 
 // STOP opencode-App.AppDelegate #3 - RESOLVED 2026-10-01 by OD-0036 (no reason text); the tests carry the Req.
 // Kind: missing session-end reason ruling/binding.

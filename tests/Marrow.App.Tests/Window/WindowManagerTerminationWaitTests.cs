@@ -42,6 +42,9 @@ public sealed class WindowManagerTerminationWaitTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-WIN-003")] // OD-0008 C1; AppDelegate.swift:45-53.
     [Trait("Req", "PR-WIN-008")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 and PR-WIN-073: the main window stays on screen and the quit waits for the next 250 ms poll
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:44-53; owner_decisions.md OD-0008 C1, OD-0036
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:44-53; owner_decisions.md OD-0008 C1, OD-0036
     public void The_bound_main_close_stays_visible_and_waits_until_the_next_250_millisecond_merge_poll()
     {
         WithMergingMain((launch, _, finishMerge, exits) =>
@@ -67,6 +70,9 @@ public sealed class WindowManagerTerminationWaitTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-WIN-003")] // OD-0008 C1; AppDelegate.swift:47-51.
     [Trait("Req", "PR-WIN-008")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-050 and PR-WIN-073: a merge that never ends holds the close for exactly 240 s
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0008 C1, OD-0036
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0008 C1, OD-0036
     public void The_bound_main_close_waits_exactly_four_minutes_for_a_merge_that_does_not_finish()
     {
         WithMergingMain((launch, _, _, exits) =>

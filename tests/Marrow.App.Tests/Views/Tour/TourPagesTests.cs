@@ -108,6 +108,8 @@ public sealed class TourPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-UPDATE-093")] // App/Views/Tour/TourPages.swift:26-28
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-002: the tour's close control writes hasSeenTour
+    [Trait("Req", "UI-LAUNCH-002")] // App/Views/Tour/TourPages.swift:26-28
     public void Clicking_the_checkmark_marks_the_tour_seen_and_closes_it()
     {
         headless.OnUiThread(() =>
@@ -133,6 +135,8 @@ public sealed class TourPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-UPDATE-093")] // App/Views/Tour/TourPages.swift:26-28; App/Views/Tour/TourWindowController.swift:103-106,139-148
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-002: a native window close only clears the controller; OD-0039 follows the Swift over the record's "closed without finishing writes it"
+    [Trait("Req", "UI-LAUNCH-002")] // App/Views/Tour/TourPages.swift:26-28; App/Views/Tour/TourWindowController.swift:103-107; owner_decisions.md OD-0039
     public void Closing_the_window_without_the_checkmark_does_not_mark_the_tour_seen()
     {
         headless.OnUiThread(() =>
@@ -151,6 +155,8 @@ public sealed class TourPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-UPDATE-093")] // App/Views/Tour/TourPages.swift:26-28
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-002: Done on the last page writes hasSeenTour
+    [Trait("Req", "UI-LAUNCH-002")] // App/Views/Tour/TourPages.swift:26-28
     public void Finishing_on_the_last_page_marks_the_tour_seen_and_closes_it()
     {
         headless.OnUiThread(() =>
