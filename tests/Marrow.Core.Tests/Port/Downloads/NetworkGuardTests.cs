@@ -127,16 +127,29 @@ public sealed class NetworkGuardTests
     [Trait("Feature", "SK-0")]
     public async Task An_ipv4_mapped_ipv6_spelling_of_an_allowed_endpoint_is_the_same_endpoint()
     {
-        var port = 4242;
-        var guard = new NetworkGuard([new IPEndPoint(IPAddress.Parse("::ffff:127.0.0.1"), port)]);
+        // REVIEW fix (unit/integ-sk): the port was a fixed 4242, so the test failed on a shared PC whenever anything listened there (seen:
+        // with 127.0.0.1:4242 taken it failed alone twice). The allowed endpoint is now a listener of this test's own, so the allowed connect
+        // is proved by a real connection rather than by an error from a port nobody listens on.
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var guard = new NetworkGuard([new IPEndPoint(IPAddress.Parse("::ffff:127.0.0.1"), port)]);
 
-        // Allowed (so it tries to connect, and nothing listens on the port: a plain socket error, not a refusal by the guard).
-        await Assert.ThrowsAnyAsync<SocketException>(() =>
-            guard.Connect(new DnsEndPoint("127.0.0.1", port), default).AsTask());
-
-        Assert.Empty(guard.Refusals);
-        await Assert.ThrowsAsync<SocketException>(() =>
-            guard.Connect(new DnsEndPoint("127.0.0.1", port + 1), default).AsTask());
-        Assert.Equal([$"127.0.0.1:{port + 1}"], guard.Refusals);
+            await using (await guard.Connect(new DnsEndPoint("127.0.0.1", port), default))
+            using (await listener.AcceptTcpClientAsync().WaitAsync(FakeDownloadServer.Guard))
+            {
+                Assert.Empty(guard.Refusals);
+            }
+            var other = port == IPEndPoint.MaxPort ? port - 1 : port + 1;
+            await Assert.ThrowsAsync<SocketException>(() =>
+                guard.Connect(new DnsEndPoint("127.0.0.1", other), default).AsTask());
+            Assert.Equal([$"127.0.0.1:{other}"], guard.Refusals);
+        }
+        finally
+        {
+            listener.Stop();
+        }
     }
 }
