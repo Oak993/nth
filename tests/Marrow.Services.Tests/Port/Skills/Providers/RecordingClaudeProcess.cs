@@ -7,6 +7,7 @@ namespace Marrow.Services.Tests.Port.Skills.Providers;
 internal sealed class RecordingClaudeProcess : IClaudeProcess
 {
     private readonly AsyncStream<JSONValue>.Continuation output;
+    private readonly TaskCompletionSource<int> exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public RecordingClaudeProcess(IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment)
     {
         Arguments = arguments.ToArray(); Environment = new Dictionary<string, string>(environment);
@@ -19,6 +20,8 @@ internal sealed class RecordingClaudeProcess : IClaudeProcess
     public bool IsRunning { get; private set; }
     public string ErrorTail => "";
     public Action? OnStart { get; set; }
+    public bool DelayExit { get; set; }
+    public bool TerminateRequested { get; private set; }
     public void Start() { OnStart?.Invoke(); IsRunning = true; }
     public void Send(JSONValue message)
     {
@@ -31,5 +34,8 @@ internal sealed class RecordingClaudeProcess : IClaudeProcess
             ("response", JSONValue.FromDictionaryLiteral(("commands", commands))));
         output.Yield(JSONValue.FromDictionaryLiteral(("type", "control_response"), ("response", response)));
     }
-    public void Terminate() { IsRunning = false; output.Finish(); }
+    public Task<int> WaitForExit() => exit.Task;
+    public void CloseOutput() => output.Finish();
+    public void CompleteExit() { IsRunning = false; output.Finish(); exit.TrySetResult(0); }
+    public void Terminate() { TerminateRequested = true; output.Finish(); if (!DelayExit) CompleteExit(); }
 }

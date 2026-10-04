@@ -7,6 +7,7 @@ using Marrow.Core.Support;
 using Marrow.Services.Providers;
 using Marrow.Services.Port.Skills.Providers;
 using Marrow.Services.Port.Skills.Shims;
+using Marrow.Services.Port.Skills.Generations;
 using Marrow.Services.Tests.Port.Skills.Generations;
 using Marrow.Testing;
 using Marrow.Services.Tests.Fixtures;
@@ -92,7 +93,7 @@ public sealed class ClaudeSkillsTests
         Assert.Contains("\"name\":\"marrow\"", File.ReadAllText(Path.Combine(gen.Folder, ".claude-plugin", "plugin.json")), StringComparison.Ordinal);
         Assert.Contains("\"version\":\"fixture\"", File.ReadAllText(Path.Combine(gen.Folder, ".claude-plugin", "plugin.json")), StringComparison.Ordinal);
         Assert.Equal(new[] { "pdf", "marrow:pdf" }, Assert.Single(events.OfType<ProviderEvent.Commands>()).Value.Select(x => x.Name));
-        s.Stop(); Drain(runtime); Assert.False(gen.Verify());
+        s.Stop(); Drain(runtime, gen); Assert.False(gen.Verify());
     }
 
     [Fact, Trait("Rule", "WU-6")]
@@ -154,7 +155,7 @@ public sealed class ClaudeSkillsTests
         var id = runtime.Loop.Run(() => start.Start(), TimeSpan.FromSeconds(5));
         var transcript = File.ReadAllText(Fixture("claude-resume.jsonl")).Replace("<GEN>", first.Folder.Replace("\\", "/", StringComparison.Ordinal), StringComparison.Ordinal);
         var baseDirectory = JSONValue.Parse(transcript)!["message"]!["content"]!.JSONValueArray![0]["content"]!.JSONValueString!["Base directory for this skill: ".Length..];
-        start.Stop(); Drain(runtime); service.Collect(); service.Dispose();
+        start.Stop(); Drain(runtime, first); service.Collect(); service.Dispose();
         var restarted = f.Open(); var next = restarted.Start("claude", "stable-chat", [item], switches, f.Budget, []);
         using var resumedTransport = ClaudeProviderRuntime.Process.Override((_, args, _, env) =>
         {
@@ -164,7 +165,7 @@ public sealed class ClaudeSkillsTests
         var resumed = new ClaudeSession(Config(id), () => next);
         runtime.Loop.Run(() => resumed.Start(), TimeSpan.FromSeconds(5));
         Assert.Equal(PluginArgs(calls[0].Arguments), PluginArgs(calls[1].Arguments)); Assert.Contains("--resume", calls[1].Arguments);
-        resumed.Stop(); Drain(runtime);
+        resumed.Stop(); Drain(runtime, next);
     }
 
     [Fact, Trait("Rule", "WU-6-held-folder")]
@@ -182,7 +183,7 @@ public sealed class ClaudeSkillsTests
         Assert.Contains(next.Folder, PluginArgs(call!.Arguments));
         var prompt = call.Arguments[Array.IndexOf(call.Arguments, "--append-system-prompt") + 1];
         Assert.Contains($"Marrow's skills for this chat are now in {next.Folder}. Paths under {path} earlier in this conversation no longer exist; use the same relative path under the new folder.", prompt, StringComparison.Ordinal);
-        resumed.Stop(); Drain(runtime); f.Deletion.Held.Clear();
+        resumed.Stop(); Drain(runtime, next); f.Deletion.Held.Clear();
     }
 
     [Fact, Trait("Rule", "WU-6-integrity")]
@@ -232,7 +233,42 @@ public sealed class ClaudeSkillsTests
         Assert.Equal(calls[0].Sent.Last(), calls[1].Sent.Last()); old.Stop(); current.Stop(); Drain(runtime);
     }
 
-    private static void Drain(TestRuntime runtime) => runtime.Loop.RunUntilIdle();
+    [Fact, Trait("Rule", "WU-6-lease")]
+    public void Session_generation_survives_stdout_EOF_and_Stop_until_child_exit()
+    {
+        using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
+        using var f = new GenerationFixture(); var item = f.Add("A1", "pdf"); var service = f.Open();
+        var gen = service.Start("claude", "exit-chat", [item], f.Switches((item, true)), f.Budget, []);
+        RecordingClaudeProcess? call = null;
+        using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => call = new(args, env) { DelayExit = true });
+        var s = new ClaudeSession(Config(), () => gen); runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5));
+        call!.CloseOutput(); runtime.Loop.RunUntilIdle();
+        Assert.True(gen.Verify()); service.Collect(); Assert.True(Directory.Exists(gen.Folder));
+        s.Stop(); runtime.Loop.RunUntilIdle(); Assert.True(gen.Verify());
+        call.CompleteExit(); Drain(runtime, gen); Assert.False(gen.Verify());
+    }
+
+    [Fact, Trait("Rule", "WU-6-lease")]
+    public void Handshake_listing_remains_leased_until_the_terminated_child_actually_exits()
+    {
+        using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
+        using var f = new GenerationFixture(); var item = f.Add("A1", "pdf"); var service = f.Open(); var switches = f.Switches((item, true));
+        var probe = new ClaudeSkillProbe(() => service.Listing("claude", [item], switches, f.Budget, []), [item], switches);
+        var path = probe.Folder; RecordingClaudeProcess? call = null;
+        using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => call = new(args, env) { DelayExit = true });
+        var c = Config(); Task<(ValueList<ModelOption>, ValueList<SlashCommand>)>? task = null;
+        runtime.Loop.Enqueue(() => task = ClaudeSession.Handshake(c.Executable!, c.WorkingDirectory, c.Environment, () => probe));
+        runtime.Loop.RunUntil(() => call?.TerminateRequested == true, TimeSpan.FromSeconds(5));
+        Assert.False(task!.IsCompleted); Assert.Equal(path, probe.Folder); service.Collect(); Assert.True(Directory.Exists(path));
+        call!.CompleteExit(); runtime.Loop.RunUntil(() => task.IsCompleted, TimeSpan.FromSeconds(5)); task.GetAwaiter().GetResult();
+        Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
+    }
+
+    private static void Drain(TestRuntime runtime, Generation? generation = null)
+    {
+        if (generation is null) runtime.Loop.RunUntilIdle();
+        else runtime.Loop.RunUntil(() => !generation.Verify(), TimeSpan.FromSeconds(5));
+    }
     private static byte[] Encode(IEnumerable<string> args) => Encoding.UTF8.GetBytes(string.Join('\0', args) + "\0");
     private static byte[] EncodeEnvironment(IReadOnlyDictionary<string, string> env) => Encode(env.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Key + "=" + x.Value));
     private static string[] PluginArgs(string[] args) => args.Select((a, i) => (a, i)).Where(x => x.a == "--plugin-dir").Select(x => args[x.i + 1]).ToArray();
