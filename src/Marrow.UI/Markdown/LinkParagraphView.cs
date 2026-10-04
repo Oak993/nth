@@ -552,6 +552,9 @@ public sealed class LinkTextView : Decorator
             MinHeight = 0,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
         };
+        // An NSTextView drawing an NSFont takes no line box from SwiftUI's .font environment (ED-290 (1)): under a .font(.callout)
+        // host (TimelineRows.swift:625-631, HydraHeadPopovers.swift:82-93 and :154-160, HydraReportsPopover.swift:640-647) it keeps its own line.
+        textBlock.SetValue(SwiftFont.LineBoxProperty, double.NaN);
         Child = textBlock;
         // :312-313 isSelectable = true: an NSTextView draws a selection in the system's selected-text colour. A
         // SelectableTextBlock has no SelectionBrush of its own with no control theme loaded, so a drag selected text that was
@@ -876,6 +879,9 @@ public sealed class LinkTextView : Decorator
 
         var pretty = RichLink.PrettyAttributed(source, streaming);
         var faces = Fonts(pointSize);
+        // The text view's own font is the base NSFont (:114), as an NSTextView's: its line metrics never come from the SwiftUI .font
+        // environment above it (ED-290 (1); an ancestor's 12-point callout made the paragraph 2 points shorter than with none).
+        faces.Base.Apply(block);
         var textColor = dimmed ? SwiftColor.LabelColor.Opacity(0.7) : SwiftColor.LabelColor;
         foreach (var run in pretty.Runs)
         {

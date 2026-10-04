@@ -92,6 +92,13 @@ public sealed class StyledText
         host.Inlines ??= new InlineCollection();
         host.Inlines.Clear();
         AppendTo(host.Inlines, host);
+        // ED-290 (1): a font given to the concatenated Text is the nearest .font, so it sets the host's line box as SwiftFont.Apply does:
+        // a text style's box (TimelineRows.swift:454-455, the callout's 17), or the face's own for a fixed size, which cuts an outer
+        // style's box off (HydraGlyph.swift:239-241). A line is as tall as its tallest run's box. With no font on any run the host keeps
+        // whatever box it has or inherits.
+        var fonts = runs.Where(static run => run.Image is null && run.Font is not null).Select(static run => run.Font!).ToArray();
+        if (fonts.Length > 0)
+            host.SetValue(SwiftFont.LineBoxProperty, fonts.Select(static font => font.LineBox).Max() ?? double.NaN);
     }
 
     // UI/Markdown/StreamVeil.swift:295-300, :326-331 interleaves styled values with its own prose.
