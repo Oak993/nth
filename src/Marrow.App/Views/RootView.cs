@@ -94,6 +94,55 @@ public sealed class RootView : Decorator
     /// <summary>Test-only: the detail column's own clip, before its (inert) padding (PR-WIN-063, :40).</summary>
     internal Border DetailClip => detailClip;
 
+    /// <summary>GR-2: the Getting ready sheet hanging over the detail pane, null when there is none (OD-0096).</summary>
+    internal Marrow.App.Port.FirstRun.GettingReadySheet? GettingReady { get; private set; }
+
+    /// <summary>Test-only: the detail column the sheet blurs and dims (:41-43).</summary>
+    internal Border DetailPane => detailPadded;
+
+    /// <summary>
+    /// GR-2 (OD-0096, look I "Sheet"): hangs the Getting ready sheet over the detail pane, centred on it and from the window's top edge,
+    /// with the pane behind blurred, dimmed and not pressable. The sheet brings the pane back as it lifts (<see cref="GettingReadySheet.HandChanged"/>)
+    /// and is taken out of the tree when it is gone. Called when the window's content is made (the launch's reveal of the window is the
+    /// sheet's entrance), never later.
+    /// ENGINEERING DECISION (ED-306): the pane is blurred with Gaussian sigma 9 returning to 0 and dimmed to 0.45 returning to 1
+    /// (the page's filter: blur(9px) saturate(.6) and opacity .45); the saturation is not drawn (Avalonia has no such effect). Below a
+    /// sigma of 0.5 the effect is taken off, which is the blur Skia gives a radius of zero.
+    /// </summary>
+    internal void ShowGettingReady(Marrow.App.Port.FirstRun.GettingReadySheet sheet)
+    {
+        if (GettingReady is not null) throw new InvalidOperationException("RootView already shows a Getting ready sheet.");
+        GettingReady = sheet;
+        sheet.HorizontalAlignment = HorizontalAlignment.Center;
+        sheet.VerticalAlignment = VerticalAlignment.Top;
+        sheet.ZIndex = 1;
+        var blur = CometPainter.GaussianBlur(Marrow.App.Port.FirstRun.GettingReadyLook.BlurSigma);
+        void Apply(double hand)
+        {
+            var sigma = Marrow.App.Port.FirstRun.GettingReadyLook.PaneBlurSigma(hand);
+            if (sigma >= 0.5)
+            {
+                blur.Radius = CometPainter.GaussianBlur(sigma).Radius;
+                detailPadded.Effect = blur;
+            }
+            else detailPadded.Effect = null;
+            detailPadded.Opacity = Marrow.App.Port.FirstRun.GettingReadyLook.PaneOpacity(hand);
+        }
+        sheet.HandChanged += Apply;
+        sheet.Lifted += () =>
+        {
+            sheet.HandChanged -= Apply;
+            detailPadded.Effect = null;
+            detailPadded.Opacity = 1;
+            detailPadded.IsHitTestVisible = true;
+            detailSlot.Children.Remove(sheet);
+            GettingReady = null;
+        };
+        detailPadded.IsHitTestVisible = false;
+        Apply(sheet.Hand);
+        detailSlot.Children.Add(sheet);
+    }
+
     // :8-92 body
     public RootView()
     {
