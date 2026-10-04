@@ -3372,8 +3372,17 @@ internal sealed class SidebarThreadRow : Decorator
                 if (crossfade) SwiftTransition.Insert(overlays, overlays.Children.Count, next);
                 else overlays.Children.Add(next);
             }
-            var nextCheck = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
-            Swap(ref check, nextCheck, (check is null) != (nextCheck is null)); // a settled row keeps its check: same branch
+            // :1763-1771. A check the row already shows for the same state is kept and told whether it pops (SwiftUI keeps
+            // the view under its identity and re-reads `isPopping`), so the pop (:1909) is the spring it rides.
+            if (ShowsCheck(settled, settles, actions, settling) && check is SettleCheck kept && kept.IsSettled == settled)
+            {
+                kept.SetPopping(settling);
+            }
+            else
+            {
+                var nextCheck = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
+                Swap(ref check, nextCheck, (check is null) != (nextCheck is null)); // a settled row keeps its check: same branch
+            }
             Swap(ref trailing, BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
                 actions ? MakeActions() : [], menuPresented), branchChanged: true); // :1772-1801 the hover always changes the branch
             var nextFold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
@@ -3946,22 +3955,33 @@ internal sealed class ThreadGhostBadge : Decorator
 /// <summary>:2114-2141 <c>private struct SettleCheck: View</c>.</summary>
 internal sealed class SettleCheck : Decorator
 {
+    private readonly ViewState state;
+    private readonly ScaleTransform popScale; // :2132 .scaleEffect(isPopping ? 1.35 : 1), one transform every glyph shares
+    private readonly AnimatedScalar pop;
+
+    /// <summary>:2115 <c>let isSettled: Bool</c>.</summary>
+    public bool IsSettled { get; }
+
     /// <param name="isSettled">:2115 <c>let isSettled: Bool</c>.</param>
     /// <param name="isPopping">:2117 <c>let isPopping: Bool</c>.</param>
     /// <param name="action">:2118 <c>let action: () -> Void</c>.</param>
     // :2122-2140 body. PR-SIDEBAR-078.
     public SettleCheck(bool isSettled, bool isPopping, Action action)
     {
-        var state = new ViewState();
+        IsSettled = isSettled;
+        state = new ViewState { IsPopping = isPopping };
+        popScale = new ScaleTransform(isPopping ? 1.35 : 1, isPopping ? 1.35 : 1);
         var glyphHost = new Panel { Width = 20, Height = 20, Background = Brushes.Transparent }; // :2130 frame, :2131 contentShape(.rect)
+        pop = new AnimatedScalar(glyphHost, isPopping ? 1.35 : 1, scale => { popScale.ScaleX = scale; popScale.ScaleY = scale; });
         Control? currentGlyph = null;
         string? currentSymbol = null;
         var button = PlainControls.Button(glyphHost, action); // :2125, :2134 .buttonStyle(.plain)
         button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :2135-2137
-        button.Track(() => state.IsHovering, hovering =>
+        button.Track(() => (state.IsHovering, state.IsPopping), value =>
         {
-            var filled = isPopping || (isSettled && !hovering); // :2124
-            var isDone = isSettled || isPopping; // :2123
+            var (hovering, popping) = value;
+            var filled = popping || (isSettled && !hovering); // :2124
+            var isDone = isSettled || popping; // :2123
             var color = isDone || hovering
                 ? Chrome.Success.Opacity(isSettled && !hovering ? 0.8 : 1) // :2128
                 : Chrome.SecondaryText;
@@ -3973,7 +3993,7 @@ internal sealed class SettleCheck : Decorator
             glyph.ForegroundStyle(color); // :2128
             glyph.HorizontalAlignment = HorizontalAlignment.Center;
             glyph.VerticalAlignment = VerticalAlignment.Center;
-            glyph.RenderTransform = new ScaleTransform(isPopping ? 1.35 : 1, isPopping ? 1.35 : 1); // :2132
+            glyph.RenderTransform = popScale; // :2132
             glyph.IsHitTestVisible = false;
             if (previous is not null && currentSymbol is not null && currentSymbol != symbol)
             {
@@ -3999,12 +4019,27 @@ internal sealed class SettleCheck : Decorator
         Child = button;
     }
 
+    /// <summary>
+    /// `isPopping` as the row hands it on a later render (:1765-1770): the row keeps the check it has and tells it, as
+    /// SwiftUI keeps the view and re-reads its input. The scale rides the transaction the change is made in, the
+    /// settle's `.spring(response: 0.3, dampingFraction: 0.45)` (:1909); with none it is taken at once.
+    /// </summary>
+    public void SetPopping(bool popping)
+    {
+        if (state.IsPopping == popping) return;
+        pop.Set(popping ? 1.35 : 1, Transaction.Current); // :2132, before the glyph's own change redraws it
+        state.IsPopping = popping;
+    }
+
     // :2120 @State private var isHovering = false
     private sealed class ViewState : MainActorModel
     {
         private bool isHovering;
+        private bool isPopping; // :2117, the row's input, written by SetPopping
 
         public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+
+        public bool IsPopping { get => Read(isPopping); set => Set(ref isPopping, value); }
     }
 }
 
@@ -4068,7 +4103,7 @@ internal sealed class ThreadBadge : Decorator
                     Height = 7,
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0, -2.5, -2.5, 0), // :2171 .offset(x: 2.5, y: -2.5)
+                    RenderTransform = new TranslateTransform(2.5, -2.5), // :2171 .offset(x: 2.5, y: -2.5): drawn moved, takes no layout (a negative Margin would round to whole pixels)
                 };
                 dot.Fill = (thread.LastStatus == TurnStatus.Failed ? Chrome.Danger : Chrome.Accent).Brush(dot); // :2169
                 overlay.Children.Add(dot);

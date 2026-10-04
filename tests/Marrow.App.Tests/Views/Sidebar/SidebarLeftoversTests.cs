@@ -1,18 +1,38 @@
+using System.Collections;
+using System.Globalization;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Marrow.App.Port;
+using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.App.Views.Sidebar;
+using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Services.Providers;
+using Marrow.Services.Store;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 using Xunit;
+using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Sidebar;
 
@@ -249,5 +269,343 @@ public sealed partial class SidebarViewTests
             harness.Main.OnMain(() => Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(row), i => i.SymbolName is not null));
         }
         finally { harness.Main.OnMain(() => Close(row)); }
+    });
+
+    // ---- UI-SIDEBAR-020: the settle pop springs (:1909), it is not a cut ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-020")] // SidebarView.swift:1909 `withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) { isSettling = true }`; :2132 `.scaleEffect(isPopping ? 1.35 : 1)`
+    // The pop is the check's scale riding the transaction isSettling is set in: from 1 to 1.35 on a spring of response 0.3
+    // and damping fraction 0.45 (it overshoots 1.35 and rings), measured against the curve itself at two instants.
+    public void A_check_that_starts_popping_scales_from_1_to_1_35_on_the_settle_spring() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        var clock = new ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var check = new SettleCheck(isSettled: false, isPopping: false, () => { });
+        check.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
+        check.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
+        var window = new AvaloniaWindow { Width = 100, Height = 100, Content = check };
+        window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        try
+        {
+            double ScaleNow() => ((ScaleTransform)check.GetLogicalDescendants().OfType<SwiftImage>().First().RenderTransform!).ScaleX; // the outgoing and incoming glyphs share the one transform
+            Assert.Equal(1d, ScaleNow());
+            var spring = Animation.Spring(response: 0.3, dampingFraction: 0.45);
+            Transaction.WithAnimation(spring, () => check.SetPopping(true));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(1d, ScaleNow()); // nothing has elapsed: not cut to 1.35
+            double elapsed = 0;
+            foreach (var step in new[] { 0.06, 0.07 }) // the second sample is past the first peak
+            {
+                clock.Advance(TimeSpan.FromSeconds(step)); manual.Advance(TimeSpan.FromSeconds(step));
+                elapsed += step;
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1 + 0.35 * spring.Progress(elapsed), ScaleNow(), 2);
+            }
+            Assert.NotEqual(1d, ScaleNow(), 2);
+            clock.Advance(TimeSpan.FromSeconds(2)); manual.Advance(TimeSpan.FromSeconds(2));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(1.35, ScaleNow(), 3); // rests on the source's value
+            // the glyph is the filled green check while popping (:2124, :2128), set in place, once the replace is over
+            var glyph = Assert.Single(check.GetLogicalDescendants().OfType<SwiftImage>());
+            Assert.Equal("checkmark.circle.fill", glyph.SymbolName);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-020")] // SidebarView.swift:1909 isSettling inside the spring, :1729 showsCheck keeps the check while settling, :2132
+    // The open row's own check is kept when the settle begins (the row asks it to pop) instead of being rebuilt with its
+    // scale already at 1.35, so the pop is seen and the check keeps its hover.
+    public void A_real_rows_open_check_is_kept_and_springs_when_the_row_starts_settling() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Settle me", 0);
+        var model = Model(harness, [project], [thread]);
+        using var shared = RowGlideAnimator.Shared.Override(new RowGlideAnimator(new FakeGeniePlatform()));
+        Control row = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+                row = LiveThreadRow(thread);
+                var window = WindowOf(Hosted(model, row));
+                window.UpdateLayout();
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            Tick(200); // the hover's own fade is done
+            SettleCheck before = null!;
+            double ScaleNow() => ((ScaleTransform)LogicalQuery.SelfAndDescendants<SwiftImage>(before).Last().RenderTransform!).ScaleX;
+            harness.Main.OnMain(() =>
+            {
+                before = LogicalQuery.SelfAndDescendants<SettleCheck>(row).Single();
+                Assert.Equal(1d, ScaleNow());
+                // Settle()'s first statement (:1909), without the model change that follows it
+                var state = typeof(SidebarView).Assembly.GetType("Marrow.App.Views.Sidebar.SidebarThreadRow")!.GetField("state", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(row)!;
+                Transaction.WithAnimation(Animation.Spring(response: 0.3, dampingFraction: 0.45), () => state.GetType().GetProperty("IsSettling")!.SetValue(state, true));
+            });
+            Tick(16);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(before, LogicalQuery.SelfAndDescendants<SettleCheck>(row).Single()); // kept, not rebuilt
+                Assert.InRange(ScaleNow(), 1.001, 1.349); // on its way up the spring, not at 1.35
+            });
+            Tick(2000);
+            harness.Main.OnMain(() => Assert.Equal(1.35, ScaleNow(), 3));
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    // ======== The thread row's clauses the parity unit listed as per-clause gaps (OD-0098: the Swift states them) ========
+
+    // ---- UI-SIDEBAR-017: the face's paddings and minimum heights, the hide, the accessibility value ----
+
+    [Theory]
+    [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:2066-2071 `.padding(.leading, rowHorizontalPadding + (settled ? settledTitleInset : 0))`, `.padding(.trailing, rowHorizontalPadding + trailingClearance)`, `.padding(.vertical, detailed ? detailedVerticalPadding : 0)`, `.frame(minHeight: settled ? settledHeight : rowHeight)`
+    [Trait("Req", "PR-SIDEBAR-065")] // the same face
+    [InlineData(false, null, 52d, 8d, 0d, 8d + 52, 28d)] // an open row in the project layout
+    [InlineData(false, "Alpha", 18d, 8d, 7d, 8d + 18, 28d)] // a detailed activity row: 7 pt above and below, minimum 28 (the 48 pt fallback is the list's own estimate)
+    [InlineData(true, null, 18d, 8d + 22, 0d, 8d + 18, 24d)] // a settled row: title inset 22, minimum 24
+    [InlineData(true, "Alpha", 30d, 8d + 22, 0d, 8d + 30, 24d)] // settled is never detailed
+    public void A_thread_rows_face_pads_and_floors_its_height_as_the_source_states(bool settled, string? projectName, double clearance, double left, double vertical, double right, double minHeight) => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Title", 0) with { IsSettled = settled };
+        harness.Main.OnMain(() =>
+        {
+            var face = MakeFace(thread, projectName, isSelected: false, trailingClearance: clearance);
+            var frame = Assert.IsType<Border>(((Decorator)face).Child);
+            Assert.Equal(new Thickness(left, vertical, right, vertical), frame.Padding);
+            Assert.Equal(minHeight, frame.MinHeight);
+            Assert.Equal(HorizontalAlignment.Stretch, frame.HorizontalAlignment); // :2071 .frame(maxWidth: .infinity, alignment: .leading)
+            // the inner HStack's 8 and the title column's 3 (:2022, :2034)
+            var texts = LogicalQuery.SelfAndDescendants<StackPanel>(face).First(panel => panel.Orientation == Avalonia.Layout.Orientation.Vertical);
+            Assert.Equal(3d, texts.Spacing);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:1871-1872 `.accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)`, `.accessibilityValue(Text(isSettled ? "Settled" : ""))`
+    public void A_thread_row_is_a_button_selected_when_selected_and_its_value_is_Settled_for_a_settled_row_and_empty_for_an_open_one() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var open = NewThread(project, "Open", 0);
+        var settled = NewThread(project, "Done", 1) with { IsSettled = true };
+        var model = Model(harness, [project], [open, settled]);
+        using var shared = RowGlideAnimator.Shared.Override(new RowGlideAnimator(new FakeGeniePlatform()));
+        Control openRow = null!, settledRow = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                openRow = LiveThreadRow(open); settledRow = LiveThreadRow(settled);
+                WindowOf(Hosted(model, openRow)).UpdateLayout(); WindowOf(Hosted(model, settledRow)).UpdateLayout();
+                (Avalonia.Automation.Provider.IValueProvider Value, Avalonia.Automation.Provider.ISelectionItemProvider Item) Providers(Control row)
+                {
+                    var button = LogicalQuery.SelfAndDescendants<Button>(row).First(b => Avalonia.Automation.AutomationProperties.GetName(b) is { } name && name == (row == openRow ? "Open" : "Done"));
+                    var peer = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(button);
+                    Assert.IsAssignableFrom<Avalonia.Automation.Peers.ButtonAutomationPeer>(peer); // .isButton
+                    return ((Avalonia.Automation.Provider.IValueProvider)peer, (Avalonia.Automation.Provider.ISelectionItemProvider)peer);
+                }
+                Assert.Equal("", Providers(openRow).Value.Value);
+                Assert.Equal("Settled", Providers(settledRow).Value.Value);
+                Assert.False(Providers(openRow).Item.IsSelected);
+                model.SelectedThreadID = open.Id; // :1721 isSelected -> .isSelected
+            });
+            harness.Main.OnMain(() =>
+            {
+                var button = LogicalQuery.SelfAndDescendants<Button>(openRow).First(b => Avalonia.Automation.AutomationProperties.GetName(b) == "Open");
+                var peer = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(button);
+                Assert.True(((Avalonia.Automation.Provider.ISelectionItemProvider)peer).IsSelected);
+            });
+        }
+        finally { harness.Main.OnMain(() => { WindowOf(openRow).Close(); WindowOf(settledRow).Close(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:1832-1838 `.opacity(isHidden ? 0 : 1)`, `.animation(isHidden ? nil : .easeOut(duration: 0.12), value: isHidden)`: hidden at once, shown again over 0.12 s
+    public void A_row_under_a_glide_is_hidden_at_once_and_returns_over_an_ease_out_of_0_12_seconds() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Row", 0);
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control row = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); Dispatcher.UIThread.RunJobs(); });
+        }
+        try
+        {
+            harness.Main.OnMain(() => { row = LiveThreadRow(thread); WindowOf(Hosted(model, row)).UpdateLayout(); Assert.Equal(1d, row.Opacity); });
+            harness.Main.OnMain(() =>
+            {
+                animator.Launch(thread.Id, RowGlideAnimator.Glide.Direction.Reopen, new Rect(0, 100, 200, 24), new Rect(0, -28, 200, 28), new Rect(0, 0, 200, 400), new FaceSample(200, 24), new FaceSample(200, 28), 0, 0);
+                Dispatcher.UIThread.RunJobs();
+            });
+            harness.Main.OnMain(() => Assert.Equal(0d, row.Opacity)); // hiding is instant
+            harness.Main.OnMain(() => animator.Arrive(animator.Glides[0].Id));
+            Tick(60); // half of 0.12 s
+            var half = Animation.EaseOut(duration: 0.12).Progress(0.06);
+            harness.Main.OnMain(() => Assert.Equal(half, row.Opacity, 2));
+            Tick(100);
+            harness.Main.OnMain(() => Assert.Equal(1d, row.Opacity));
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    // ---- UI-SIDEBAR-018, -024: the badge and the trailing status ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-018")] // SidebarView.swift:2143-2174, Chrome.swift:651-679: a 20 pt box; symbols fit symbolSize 14 (12.6 for the pin at 0.9); provider 14; spinner cellSize 2.4; the unread dot 7 pt at the top-trailing corner moved (2.5, -2.5)
+    public void The_badge_box_is_20_points_with_its_glyphs_at_the_recorded_sizes_and_the_dot_rides_the_top_trailing_corner() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var plain = NewThread(project, "Plain", 0);
+        var pinned = NewThread(project, "Pinned", 1) with { IsPinned = true };
+        var unread = NewThread(project, "Unread", 2) with { HasUnread = true, LastStatus = TurnStatus.Completed };
+        var model = Model(harness, [project], [plain, pinned, unread]);
+        harness.Main.OnMain(() =>
+        {
+            Border HostBadge(ChatThread thread)
+            {
+                var host = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), thread)!);
+                host.HorizontalAlignment = HorizontalAlignment.Left; host.VerticalAlignment = VerticalAlignment.Top;
+                WindowOf(host).UpdateLayout();
+                return host;
+            }
+            var plainHost = HostBadge(plain);
+            var box = LogicalQuery.SelfAndDescendants<SidebarIconBadge>(plainHost).Single();
+            var square = Assert.IsType<Panel>(box.Child);
+            Assert.Equal(new Size(20, 20), new Size(square.Width, square.Height)); // Chrome.iconSize
+            var provider = LogicalQuery.SelfAndDescendants<ProviderIcon>(plainHost).Single();
+            Assert.Equal(14d, provider.Size); // :2163 ProviderIcon(size: 14)
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(plainHost)); // no unread, no dot
+            var pinHost = HostBadge(pinned);
+            var pin = LogicalQuery.SelfAndDescendants<SwiftImage>(pinHost).Single();
+            Assert.Equal(14d * 0.9, pin.Width, 6); // :2160 SidebarSymbol("pin.fill", scale: 0.9): 12.6 pt
+            Assert.Equal(14d * 0.9, pin.Height, 6);
+            var unreadHost = HostBadge(unread);
+            var dot = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(unreadHost).Single();
+            var badgeFrame = Frame(LogicalQuery.SelfAndDescendants<SidebarIconBadge>(unreadHost).Single(), unreadHost);
+            var dotFrame = Frame(dot, unreadHost);
+            Assert.Equal(new Size(7, 7), dotFrame.Size);
+            Assert.Equal(badgeFrame.Right + 2.5, dotFrame.Right, 3); // :2170-2171 topTrailing, offset x +2.5
+            Assert.Equal(badgeFrame.Top - 2.5, dotFrame.Top, 3); // y -2.5
+            // the spinner, on the same 2.4 cell as the status's (:2157, :2419)
+            var runtime = model.Runtime(plain.Id); runtime.IsHydraMerging = true; runtime.HydraMergeStage = "S";
+            var runningHost = HostBadge(plain);
+            var spinner = LogicalQuery.SelfAndDescendants<MiniSpinner>(runningHost).Single();
+            var reference = new MiniSpinner(cellSize: 2.4); reference.Measure(Size.Infinity);
+            Assert.Equal(reference.DesiredSize, spinner.DesiredSize);
+            var bigger = new MiniSpinner(cellSize: 3); bigger.Measure(Size.Infinity);
+            Assert.NotEqual(bigger.DesiredSize, spinner.DesiredSize); // the cell size is what is measured
+            // the ghost's badge is the same marks with the spinner held still (:2100)
+            var ghost = (Control)Activator.CreateInstance(Private("ThreadGhostBadge"), model.Thread(plain.Id)!, model.ExistingRuntime(plain.Id))!;
+            WindowOf(Hosted(model, ghost)).UpdateLayout();
+            var still = LogicalQuery.SelfAndDescendants<MiniSpinner>(ghost).Single();
+            Assert.Equal(reference.DesiredSize, still.DesiredSize);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-024")] // SidebarView.swift:2412-2427: hand .subheadline in Chrome.warning; spinner cellSize 2.4; the unread dot 7x7 padded 4 at the trailing end, danger after a failed turn, accent otherwise
+    public void The_trailing_statuss_hand_spinner_and_dot_have_the_recorded_font_size_colour_and_padding() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var failed = NewThread(project, "Failed", 0) with { HasUnread = true, LastStatus = TurnStatus.Failed };
+        var done = NewThread(project, "Done", 1) with { HasUnread = true, LastStatus = TurnStatus.Completed };
+        var model = Model(harness, [project], [failed, done]);
+        harness.Main.OnMain(() =>
+        {
+            T Status<T>(ChatThread thread) where T : Control => LogicalQuery.SelfAndDescendants<T>(Hosted(model, (Control)Activator.CreateInstance(Private("ActivityStatus"), thread)!)).Single();
+            var failedDot = Status<Avalonia.Controls.Shapes.Ellipse>(failed);
+            Assert.Equal(new Size(7, 7), new Size(failedDot.Width, failedDot.Height));
+            Assert.Equal(new Thickness(0, 0, 4, 0), failedDot.Margin); // :2425 .padding(.trailing, 4)
+            Assert.Equal(Chrome.Danger.Resolve(failedDot.ActualThemeVariant), ((ISolidColorBrush)failedDot.Fill!).Color); // :2423 after a failed turn
+            var okDot = Status<Avalonia.Controls.Shapes.Ellipse>(done);
+            Assert.Equal(Chrome.Accent.Resolve(okDot.ActualThemeVariant), ((ISolidColorBrush)okDot.Fill!).Color);
+            var runtime = model.Runtime(done.Id); runtime.IsHydraMerging = true; runtime.HydraMergeStage = "S";
+            var spinner = Status<MiniSpinner>(done);
+            var reference = new MiniSpinner(cellSize: 2.4); reference.Measure(Size.Infinity);
+            Assert.Equal(reference.DesiredSize, spinner.DesiredSize); // :2419 cellSize 2.4
+            typeof(ThreadRuntime).GetProperty("Approvals")!.SetValue(runtime,
+                new ValueList<ApprovalRequest>([new ApprovalRequest("a1", ApprovalRequest.Kind.Tool, "Allow?", ValueList<ApprovalRequest.Option>.Empty)]));
+            var hand = Status<SwiftImage>(done);
+            Assert.Equal(SwiftFont.Subheadline, SwiftImage.GetFont(hand)); // :2416 .font(.system(.subheadline))
+            Assert.Equal(11d, SwiftImage.GetFont(hand)!.PointSize);
+            Assert.Equal(Chrome.Warning.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color); // :2417 Chrome.warning (the badge's :2155 is Chrome.orange: two tokens)
+        });
+    });
+
+    // ---- UI-SIDEBAR-019: the project line ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-019")] // SidebarView.swift:2053-2063 HStack(spacing: 4) { Image.font(.system(.footnote)); Text.font(.system(.callout)) }, 3 pt under the title (the VStack's spacing), Chrome.secondaryText
+    public void The_project_line_is_a_footnote_glyph_4_points_before_a_callout_text_3_points_under_the_title_in_secondary_text() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Title", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var face = MakeFace(thread, "Alpha", isSelected: false, trailingClearance: 18);
+            face.HorizontalAlignment = HorizontalAlignment.Left; face.VerticalAlignment = VerticalAlignment.Top; face.Width = 260;
+            var host = Hosted(model, face);
+            WindowOf(host).UpdateLayout();
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(face).First(t => t.Text == "Title");
+            var label = LogicalQuery.SelfAndDescendants<TextBlock>(face).Single(t => t.Text == "Alpha");
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(face).Single();
+            Assert.Equal(SwiftFont.Footnote, SwiftImage.GetFont(glyph)); // :2056 (10 pt)
+            Assert.Equal(10d, SwiftImage.GetFont(glyph)!.PointSize);
+            Assert.Equal(12d, label.FontSize); // :2058 callout
+            Assert.Equal(4d, Frame(label, face).Left - Frame(glyph, face).Right, 3); // HStack(spacing: 4)
+            Assert.Equal(3d, Frame(glyph, face).Top >= Frame(title, face).Bottom ? Frame(label, face).Top - Frame(title, face).Bottom : 0d, 1); // the VStack's 3 under the title
+            var secondary = Chrome.SecondaryText.Resolve(label.ActualThemeVariant);
+            Assert.Equal(secondary, ((ISolidColorBrush)label.Foreground!).Color); // :2061
+            Assert.Equal(secondary, ((ISolidColorBrush)glyph.Foreground!).Color);
+            // a deleted project yields an empty string and leaves the glyph alone on the line (notes of the record)
+            var orphan = MakeFace(thread, "", isSelected: false, trailingClearance: 18);
+            Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(orphan));
+            Assert.Equal("", LogicalQuery.SelfAndDescendants<TextBlock>(orphan).Last().Text);
+        });
+    });
+
+    // ---- UI-SIDEBAR-023: the time label's tabular digits ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-023")] // SidebarView.swift:2691 `.font(.system(.subheadline).monospacedDigit())`
+    public void The_relative_time_label_draws_tabular_digits() => headless.OnUiThread(() =>
+    {
+        var label = Shown((Control)Activator.CreateInstance(Private("RelativeTimeLabel"), MinuteClock.Shared.Now.AddMinutes(-3))!);
+        var text = LogicalQuery.SelfAndDescendants<TextBlock>(label).Single();
+        Assert.Equal(SwiftFont.Subheadline.MonospacedDigit().Resolve().FontFeatures, text.FontFeatures);
+        Assert.NotNull(text.FontFeatures);
+        Assert.Contains(text.FontFeatures!, feature => feature.Tag == "tnum");
     });
 }
