@@ -114,9 +114,12 @@ public static class SelfTestPlan
     /// <summary>
     /// Lead ruling R6: what a stored answer does for a model the processor is too slow to run live. Live takes the next smaller rung on the
     /// model's ladder with live words on, not timed again; accurate keeps the model with text after the user stops. With no smaller rung
-    /// (never asked then, R2) live keeps the model with text after the stop, as R2 does.
+    /// (never asked then, R2) live keeps the model with text after the stop, as R2 does. Lead ruling R8 (2026-10-04, from the owner's
+    /// welcome-voice pick in OD-0099, "until answered the accurate model is used"): <paramref name="answer"/> null, a question dismissed
+    /// (R7) or not answered yet, keeps the model with text after the user stops, live words off; the voiceHardware entry's
+    /// <c>liveWords</c> is written from this decision, so false.
     /// </summary>
-    public static SelfTestDecision ApplyAnswer(string modelId, LiveWordsChoice answer) =>
+    public static SelfTestDecision ApplyAnswer(string modelId, LiveWordsChoice? answer) =>
         answer == LiveWordsChoice.Live && StepDown(modelId) is { } smaller
             ? new SelfTestDecision(SelfTestAction.Keep, smaller, true, false)
             : new SelfTestDecision(SelfTestAction.Keep, modelId, false, false);

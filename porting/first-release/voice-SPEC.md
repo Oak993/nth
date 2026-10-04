@@ -358,7 +358,8 @@ once (also after the one step down); with no smaller rung the model is kept with
 The answer is `voiceTyping.liveWordsChoice` with the hardware part of the key it was given under
 (`liveWordsChoiceKey`: adapter, driver, processor, memory; not the app build or the runtime), so the question comes back
 on new hardware only; `live` takes the next smaller rung with live words on (not timed again), `accurate` keeps the
-model with text after the stop; a dismissed question stores nothing and is asked again at the next self-test.
+model with text after the stop; a dismissed question stores nothing and is asked again at the next self-test, and
+until it is answered the accurate model is kept with live words off (R8, OD-0099's welcome-voice pick).
 
 V-7.8 **No hallucinated text** (RESEARCH 6): no pass on VAD-silent audio; a session whose VAD never saw speech never calls
 the engine; the final pass drops segments whose words all lie in VAD-silent spans (ED).
@@ -938,7 +939,11 @@ never confused with `voiceTyping.lang`).
 `{"engine":"local","lang":null,"model":null}` (ED key names): `engine` local | cloud; `lang` `null` (nothing picked: the
 language default of V-7.14 decides; the default, ED for OD-0097), `auto` (Auto-detect picked) or a Whisper code;
 `model` a catalogue id or null (none selected yet). Lenient read: a missing `lang` is `null`; an unknown string is
-`null`. Languages in the design's order (voice.js:26) with codes:
+`null`. Written only when set, after `model` (lead ruling 2026-10-04; ED-NEW-f-vt-1 items 3 and 13): `mic` (the
+Microphone row's device id, OD-0099 Q-V-19 B; absent is "Windows default"), `liveWordsChoice` (`"live"` | `"accurate"`,
+the answer to the slow-PC question, OD-0099 Q-V-1 C) and `liveWordsChoiceKey` (the hardware part of the V-10.5 key the
+answer was given under: adapter, driver, processor, memory; R5). An unknown `liveWordsChoice` and an empty or non-string
+`mic` or `liveWordsChoiceKey` read as absent. Languages in the design's order (voice.js:26) with codes:
 `Auto-detect` auto, `English` en, `Hindi` hi, `Urdu` ur, `Arabic` ar, `Bengali` bn, `Chinese` zh, `French` fr, `German` de,
 `Indonesian` id, `Italian` it, `Japanese` ja, `Korean` ko, `Persian` fa, `Portuguese` pt, `Punjabi` pa, `Russian` ru,
 `Spanish` es, `Tamil` ta, `Turkish` tr, `Vietnamese` vi.
@@ -1260,7 +1265,7 @@ runtime, glow driver, live-words schedule, analyser) are produced offline by nod
 
 | # | Question | Recommended answer |
 |---|---|---|
-| Q-V-1 | On a PC too slow for live words (self-test RTF 0.15 to 0.5, e.g. a CPU-only laptop with Large v3 Turbo for Urdu), keep the more accurate model and show the words after you stop, or keep live words with a smaller, less accurate model? | Keep the accurate model; live words where the PC is fast enough (all GPUs), the text after the stop where it is not. The pill still shows Listening / Transcribing live. |
+| Q-V-1 | ~~On a PC too slow for live words (self-test RTF 0.15 to 0.5, e.g. a CPU-only laptop with Large v3 Turbo for Urdu), keep the more accurate model and show the words after you stop, or keep live words with a smaller, less accurate model?~~ | **RESOLVED by OD-0099 Q-V-1 C (the amendment of 2026-10-04) and engineering_decisions.md ED-NEW-f-vt-1 item 13 (lead rulings R1 to R8, 2026-10-04):** every GPU stays live with the accurate model and is never asked; a processor too slow for live words with a smaller rung is asked once per hardware part (`liveWordsChoice` with `liveWordsChoiceKey`, V-16.2): live takes the next smaller rung with live words on, accurate keeps the model with the text after the stop; dismissed or not yet answered keeps the accurate model with the text after the stop. See V-7.7. |
 | Q-V-2 | When does the first-run model download happen: on the Getting ready screen (D1), at the first click on the orb (D2), or behind Welcome in the background (D3)? | D3: Getting ready ends after the graphics and the hardware check; the model downloads and is timed behind Welcome; an early orb click shows the progress in the pill. |
 | Q-V-3 | ~~Border beam steps aside while you dictate (designed that way, provisional). Confirm?~~ | **RESOLVED by OD-0097 (2026-10-03):** it steps aside by default (B1); Dims to 35 % (B2) and Stays on (B3) are user choices in Settings > Customization (V-13.4). |
 | Q-V-4 | Wording of the hardware check's reason line. | The two templates of V-10.4, filled with this PC's measured times. |

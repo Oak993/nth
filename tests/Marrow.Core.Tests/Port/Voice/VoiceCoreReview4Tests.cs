@@ -162,6 +162,27 @@ public sealed class VoiceCoreReview4Tests
     public void R6_a_live_answer_on_a_model_with_no_smaller_rung_keeps_it_with_text_after_the_stop(string model) =>
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: false, AskUser: false), ApplyAnswer(model, LiveWordsChoice.Live));
 
+    // ---- R8 ----
+
+    [Theory]
+    [Trait("Feature", Feature)]
+    [Trait("Spec", "V-T15")]
+    [Trait("Decision", "ED-267")] // lead ruling R8, OD-0099 welcome-voice pick: "until answered the accurate model is used"
+    [InlineData("large-v3-turbo-q5_0", 0.8, true)] // too slow after the step, asked
+    [InlineData("small.en-q8_0", 0.3, false)]      // slow band, asked
+    public void R8_an_unanswered_or_dismissed_question_keeps_the_accurate_model_with_live_words_off(string model, double rtf, bool steppedDown)
+    {
+        var part = HardwarePart(PcA);
+        var dismissed = WithSlowAnswer(VoiceTypingSettings.Default, null, part);
+        var asked = SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Cpu, AnsweredFor(dismissed, part));
+        Assert.True(asked.AskUser);
+        var outcome = SelfTestPlan.ApplyAnswer(asked.ModelId, dismissed.SlowChoice);
+        Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: false, AskUser: false), outcome);
+        // the voiceHardware entry is written from the outcome: liveWords false
+        var stored = new VoiceHardwareRecord { Key = HardwareKey.Compute(PcA), Model = outcome.ModelId, Rtf = rtf, LiveWords = outcome.LiveWords!.Value };
+        Assert.Contains("\"liveWords\":false", Encoding.UTF8.GetString(stored.ToJson()), StringComparison.Ordinal);
+    }
+
     // ---- R7 ----
 
     [Fact]
