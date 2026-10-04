@@ -41,8 +41,8 @@ public sealed class ScriptedVoiceSourceTests
         Assert.Equal("switch, team", Texts(script.Answer(Decode(0, 1.91)))); // theme: 1.4 + 0.5
         Assert.Equal("switch, theme", Texts(script.Answer(Decode(0, 2.41)))); // 1.9 + 0.5
         Assert.Equal("switch, theme tool", Texts(script.Answer(Decode(0, 2.81)))); // tooltip: 2.1 + 0.7
-        Assert.Equal("switch, theme tooltip", Texts(script.Answer(Decode(0, 3.41)))); // 2.8 + 0.6
-        Assert.Equal("switch, theme tooltip too", Texts(script.Answer(Decode(0, 3.01)))); // too.: 2.6 + 0.4 = 3.0, its guess
+        Assert.Equal("switch, theme tool too", Texts(script.Answer(Decode(0, 3.01)))); // too.: 2.6 + 0.4 = 3.0, its guess; tooltip is still "tool"
+        Assert.Equal("switch, theme tooltip too", Texts(script.Answer(Decode(0, 3.41)))); // tooltip: 2.8 + 0.6 = 3.4
         Assert.Equal("switch, theme tooltip too.", Texts(script.Answer(Decode(0, 3.46)))); // 3.0 + 0.45
     }
 
@@ -128,6 +128,7 @@ public sealed class ScriptedVoiceSourceTests
         source.Session.Activate();
         runtime.Advance(TimeSpan.FromSeconds(4.5));
         source.Session.Activate();
+        runtime.RunUntilIdle();
         runtime.Advance(TimeSpan.FromSeconds(3.0));
         Assert.Equal([VoiceSessionState.Listening, VoiceSessionState.Processing, VoiceSessionState.Landing, VoiceSessionState.Rest], states);
         var ops = updates.Where(u => u.Update.Kind == TranscriptUpdateKind.Live).SelectMany(u => u.Update.Ops.Select(o => (u.At, o.Op))).ToList();
@@ -152,6 +153,7 @@ public sealed class ScriptedVoiceSourceTests
         source.Session.Activate();
         runtime.Advance(TimeSpan.FromSeconds(4.5));
         source.Session.Activate();
+        runtime.RunUntilIdle();
         runtime.Advance(TimeSpan.FromSeconds(3.0));
         Assert.IsType<FailClosedAudioCapture>(VoiceSeams.Capture.Current);
         Assert.IsType<FailClosedSpeechEngine>(VoiceSeams.Engine.Current);

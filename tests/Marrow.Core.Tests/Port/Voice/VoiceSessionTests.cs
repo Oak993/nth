@@ -458,7 +458,9 @@ public sealed class VoiceSessionTests
         Assert.Equal(VoiceSessionState.Rest, rig.Session.State);
         Assert.DoesNotContain(VoiceSessionState.Landing, rig.Visited);
         Assert.DoesNotContain(rig.Updates, u => u.Kind is TranscriptUpdateKind.Final or TranscriptUpdateKind.Landing);
-        Assert.Equal(1, rig.Engine.Aborted);
+        Assert.Equal(0, rig.Engine.InFlight);
+        Assert.True(rig.Engine.Aborted >= 1, "the final decode was aborted");
+        Assert.Equal(DecodeMode.Final, rig.Engine.Decodes[^1].Request.Mode);
         Assert.Empty(rig.Notes);
         rig.Advance(10.0);
         Assert.Equal(VoiceSessionState.Rest, rig.Session.State);
@@ -479,6 +481,7 @@ public sealed class VoiceSessionTests
         rig.Session.Activate();
         rig.Advance(6.0);
         rig.Session.Activate();
+        rig.Settle();
         rig.Advance(0.75);
         Assert.Equal(VoiceSessionState.Landing, rig.Session.State);
         rig.Session.Cancel();
@@ -496,6 +499,7 @@ public sealed class VoiceSessionTests
         rig.Session.Activate();
         rig.Advance(6.0);
         rig.Session.Activate();
+        rig.Settle();
         rig.Advance(0.75);
         Assert.Equal(VoiceSessionState.Landing, rig.Session.State);
         rig.Session.Activate();

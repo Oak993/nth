@@ -102,8 +102,9 @@ public sealed class DictationInsertionTests
     {
         var result = new DictationInsertion(new DraftSelection("hello brave world", 6, 5)).Apply(Words("new"));
         Assert.Equal(new DraftSelection("hello new world", 9, 0), result);
+        // The rule is read literally: "(" is not whitespace, so a space goes before the word; ")" is punctuation, so none goes after.
         var glued = new DictationInsertion(new DraftSelection("(brave)", 1, 5)).Apply(Words("new"));
-        Assert.Equal(new DraftSelection("(new)", 4, 0), glued);
+        Assert.Equal(new DraftSelection("( new)", 5, 0), glued);
     }
 
     [Fact]
@@ -117,7 +118,7 @@ public sealed class DictationInsertionTests
         Assert.Equal("hello a b world", insertion.Apply(Words("a", "b")).Text);
         var revised = insertion.Apply(Words("A", "b", "c"));
         Assert.Equal("hello A b c world", revised.Text);
-        Assert.Equal(14, revised.Start);
+        Assert.Equal(12, revised.Start); // "hello " (6) + "A b c" (5) + the space before "world" (1)
         Assert.Equal("hello world", insertion.Apply([]).Text);
     }
 

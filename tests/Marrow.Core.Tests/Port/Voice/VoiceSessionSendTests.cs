@@ -22,6 +22,7 @@ public sealed class VoiceSessionSendTests
         rig.Session.Activate();
         rig.Advance(6.0);
         rig.Session.Activate();
+        rig.Settle();
         rig.Advance(0.75);
     }
 
@@ -98,6 +99,7 @@ public sealed class VoiceSessionSendTests
         rig.Session.Activate();
         rig.Advance(3.0);
         rig.Capture.RaiseDeviceEvent(Marrow.Core.Port.Voice.Seams.CaptureDeviceEventKind.DeviceRemoved);
+        rig.Settle();
         rig.Advance(5.0);
         Assert.Equal(SendIntentKind.AsReturn, Assert.Single(rig.Sends).Kind);
     }

@@ -136,14 +136,14 @@ public sealed class TranscriptOpsTests
     [Trait("Feature", "VT-3")]
     [Trait("Spec", "V-T25")]
     [Trait("Decision", "ED-267")] // V-7.6: Processing lasts max(0.75 s, scheduleEnd + 0.3 s) from the click, the schedule starting after the result
-    [InlineData(0.10, 0.32, 0.75)] // 0.10 + 0.32 + 0.3 = 0.72 < 0.75
-    [InlineData(0.20, 0.32, 0.82)] // 0.20 + 0.32 + 0.3 = 0.82
-    [InlineData(0.00, 0.00, 0.75)] // nothing to schedule: the minimum
-    [InlineData(1.50, 0.18, 1.98)] // a slow pass: 1.5 + 0.18 + 0.3
-    public void Processing_lasts_the_longer_of_0_75_s_and_the_schedule_end_plus_0_3_s(double resultAfterClick, double scheduleEnd, double expected)
+    [InlineData(100, 320, 750)] // 0.10 + 0.32 + 0.3 = 0.72 < 0.75
+    [InlineData(200, 320, 820)] // 0.20 + 0.32 + 0.3 = 0.82
+    [InlineData(0, 0, 750)] // nothing to schedule: the minimum
+    [InlineData(1500, 180, 1980)] // a slow pass: 1.5 + 0.18 + 0.3
+    public void Processing_lasts_the_longer_of_0_75_s_and_the_schedule_end_plus_0_3_s(int resultAfterClickMs, int scheduleEndMs, int expectedMs)
     {
-        var plan = new FinalPlan([], S(scheduleEnd));
-        Assert.Equal(S(expected), plan.ProcessingDuration(S(resultAfterClick)));
+        var plan = new FinalPlan([], TimeSpan.FromMilliseconds(scheduleEndMs));
+        Assert.Equal(TimeSpan.FromMilliseconds(expectedMs), plan.ProcessingDuration(TimeSpan.FromMilliseconds(resultAfterClickMs)));
     }
 
     [Fact]

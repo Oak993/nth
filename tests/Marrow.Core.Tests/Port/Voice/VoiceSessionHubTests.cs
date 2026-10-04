@@ -29,7 +29,13 @@ public sealed class VoiceSessionHubTests
         Assert.True(other.StartQueued);
         Assert.Equal(1, rig.Capture.StartCount);
         Assert.Same(rig.Session, rig.Hub.Active);
-        rig.Advance(2.0);
+        // The new orb waits for the whole of Processing (never starts early) and starts the moment it ends.
+        for (var step = 0; step < 400 && rig.Session.State == VoiceSessionState.Processing; step++)
+        {
+            Assert.Equal(VoiceSessionState.Rest, other.State);
+            Assert.Equal(1, rig.Capture.StartCount);
+            rig.Advance(0.01);
+        }
         Assert.Equal(VoiceSessionState.Landing, rig.Session.State);
         Assert.Equal(VoiceSessionState.Listening, other.State);
         Assert.False(other.StartQueued);
@@ -68,6 +74,7 @@ public sealed class VoiceSessionHubTests
         rig.Session.Activate();
         rig.Advance(6.0);
         rig.Session.Activate();
+        rig.Settle();
         rig.Advance(0.75);
         Assert.Equal(VoiceSessionState.Landing, rig.Session.State);
         Assert.Null(rig.Hub.Active);
@@ -134,6 +141,7 @@ public sealed class VoiceSessionHubTests
         rig.Advance(3.0);
         second.Activate();
         third.Activate();
+        rig.Settle();
         Assert.False(second.StartQueued);
         Assert.True(third.StartQueued);
         rig.Advance(2.0);
@@ -197,6 +205,7 @@ public sealed class VoiceSessionHubTests
         rig.Session.Activate();
         rig.Advance(6.0);
         rig.Session.Activate();
+        rig.Settle();
         rig.Advance(0.75);
         Assert.Equal(VoiceSessionState.Landing, rig.Session.State);
         rig.Advance(0.1);
