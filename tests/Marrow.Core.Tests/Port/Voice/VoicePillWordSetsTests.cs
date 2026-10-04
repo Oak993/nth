@@ -43,7 +43,7 @@ public sealed class VoicePillWordSetsTests
             var word = VoicePillWordSets.Word(set, state);
             if (word.EndsWith(E, StringComparison.Ordinal)) Assert.DoesNotContain("...", word, StringComparison.Ordinal);
             else without.Add(word);
-            Assert.DoesNotContain('·', word); // U+00B7 MIDDLE DOT: the separator dot of OD-0097's amendment is never in a word
+            Assert.DoesNotContain("\U000000B7", word, StringComparison.Ordinal); // U+00B7 MIDDLE DOT: the separator dot of OD-0097's amendment is never in a word
         }
         Assert.Equal(["Speak now", "Listening", "Transcribing", "Finishing"], without);
     }
