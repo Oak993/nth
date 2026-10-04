@@ -80,7 +80,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
             card.RenderTransform = null;
             using var image = Render(card, card.Bounds.Size);
             var middle = image.GetPixel((int)(card.Bounds.Width / 2), 50);
-            // Before: #1E1E1E / #FFFFFF at alpha 255. Now the tint alone: white at 0.08 (Dark) or 0.40 (Light).
+            // Before: #1E1E1E / #FFFFFF at alpha 255. Now the tint alone: white at 0.10 (Dark) or 0.40 (Light).
             Assert.True(middle.Alpha < 128, $"the card's middle is {middle}: an opaque panel, not glass");
             var tint = PopoverHost.Tint.Resolve(appearance);
             Assert.InRange(middle.Alpha, tint.A - 2, tint.A + 2);
@@ -103,14 +103,14 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
         // Light 146 between 194 and 215: about 0.28), a rim a point inside brighter than the glass (Dark +25 to +47 over 60-90,
         // Light +8 over 215: white at about 0.2).
         static (byte A, byte W) Of(Color c) => (c.A, c.R);
-        Assert.Equal(((byte)20, (byte)255), Of(PopoverHost.Tint.Resolve(ThemeVariant.Dark)));    // white 0.08
+        Assert.Equal(((byte)26, (byte)255), Of(PopoverHost.Tint.Resolve(ThemeVariant.Dark)));    // white 0.10
         Assert.Equal(((byte)102, (byte)255), Of(PopoverHost.Tint.Resolve(ThemeVariant.Light)));  // white 0.40
         Assert.Equal(((byte)204, (byte)0), Of(PopoverHost.Edge.Resolve(ThemeVariant.Dark)));     // black 0.80
         Assert.Equal(((byte)71, (byte)0), Of(PopoverHost.Edge.Resolve(ThemeVariant.Light)));     // black 0.28
         Assert.Equal(((byte)51, (byte)255), Of(PopoverHost.Rim.Resolve(ThemeVariant.Dark)));     // white 0.20
         Assert.Equal(((byte)51, (byte)255), Of(PopoverHost.Rim.Resolve(ThemeVariant.Light)));
         Assert.Equal(20, PopoverCard.BodyRadius); // round corners of about 20 pt (20.5 fitted)
-        Assert.Equal(0x68, PopoverGlass.DarkCap);
+        Assert.Equal(0x64, PopoverGlass.DarkCap);
         Assert.Equal(0x99, PopoverGlass.LightFloor);
     }
 

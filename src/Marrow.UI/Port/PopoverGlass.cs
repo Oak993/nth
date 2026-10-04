@@ -34,7 +34,7 @@ internal sealed class PopoverGlass : IDisposable
 {
     /// <summary>Dark: the cap on each channel of the blurred backdrop (MinBlend), so a bright backdrop reads as mid grey
     /// under the card's tint and its white text keeps at least 4.5:1 (ED-NEW-glass-g2 (3)).</summary>
-    internal const byte DarkCap = 0x68;
+    internal const byte DarkCap = 0x64;
 
     /// <summary>Light: the floor on each channel of the blurred backdrop (an inverted MinBlend), so a dark backdrop reads as
     /// light grey under the card's tint and its black text keeps its contrast.</summary>

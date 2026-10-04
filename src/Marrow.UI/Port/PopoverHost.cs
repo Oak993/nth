@@ -63,7 +63,7 @@ public static class PopoverHost
     // (PopoverCard's file note): the glass reads lighter than what is round it, by about 20 in Dark and 25 in Light (8-bit),
     // over a backdrop the window's glass has already capped (Dark) or floored (Light) so its text keeps its contrast; a
     // near-black hairline outermost; a light rim a point inside it.
-    internal static SwiftColor Tint { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.40), new SwiftColor(white: 1, opacity: 0.08));
+    internal static SwiftColor Tint { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.40), new SwiftColor(white: 1, opacity: 0.10));
 
     internal static SwiftColor Edge { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.28), new SwiftColor(white: 0, opacity: 0.80));
 

@@ -29,7 +29,7 @@ internal static class GalleryBackdrop
     // in the gallery's output folder is shown filling the working area instead of the gradient.
     private static Control? Wallpaper()
     {
-        var path = Path.Combine(GalleryRun.OutputFolder(), "backdrop.png");
+        var path = System.IO.Path.Combine(GalleryRun.OutputFolder(), "backdrop.png");
         return File.Exists(path) ? new Image { Source = new Avalonia.Media.Imaging.Bitmap(path), Stretch = Stretch.UniformToFill } : null;
     }
 

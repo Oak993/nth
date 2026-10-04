@@ -142,7 +142,7 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
             // 1. Seen through: the stripes under the body are blurred away.
             var through = Grab(Math.Clamp(tip.X - 30, origin.X + 455, origin.X + 535), body.Y + 80);
             Assert.True(through.StripeContrast() < Blurred, $"{name}: the stripes under the glass read {through.StripeContrast():F2} (bare {bare.StripeContrast():F2})");
-            // 2. Legible over anything: over white (Dark) the cap holds the glass at about 104 x 0.92 + 20 = 116; over black
+            // 2. Legible over anything: over white (Dark) the cap holds the glass at about 100 x 0.9 + 25.5 = 115.5; over black
             //    (Light) the floor holds it at about 153 x 0.6 + 102 = 194 (ED-NEW-glass-g2 (3)).
             var overWhite = Grab(origin.X + 300, body.Y + 80, 60, 40).MeanLuma();
             var overBlack = Grab(origin.X + 700, body.Y + 80, 60, 40).MeanLuma();
@@ -156,14 +156,14 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
                 Assert.InRange(overBlack, 182, 206);
                 Assert.InRange(overWhite, 245, 256);
             }
-            // 3. The edge, down a column over white from outside the top edge in: the backdrop (and the shadow), the dark
-            //    hairline, the light rim, the glass.
-            var column = Grab(origin.X + 300, body.Y - 6, 1, 20);
+            // 3. The edge, down a column from outside the top edge in: the backdrop (and the shadow), the dark hairline, the
+            //    light rim, the glass. Dark over white, Light over black (a white rim cannot show over white glass).
+            var column = Grab(origin.X + (dark ? 300 : 700), body.Y - 6, 1, 20);
             var lumas = Enumerable.Range(0, 20).Select(y => column.Luma(0, y)).ToArray();
             var glass = lumas[^1];
             var hairline = lumas.Skip(4).Take(4).Min(); // body.Y is the hairline's row
             var rim = lumas.Skip(6).Take(4).Max();
-            Assert.True(hairline < glass - 15 && hairline < lumas[0] - 15, $"{name}: no dark hairline round the glass: {string.Join(",", lumas.Select(v => v.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)))}");
+            Assert.True(hairline < glass - (dark ? 15 : 8) && (!dark || hairline < lumas[0] - 15), $"{name}: no dark hairline round the glass: {string.Join(",", lumas.Select(v => v.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)))}");
             Assert.True(rim > glass + (dark ? 12 : 1), $"{name}: no light rim inside the hairline: {string.Join(",", lumas.Select(v => v.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)))}");
             // 4. The corners are round: a few pixels in from the top-left corner of the body's box is the backdrop (white, at
             //    most the shadow's 0.22 black over it), not the glass; on the diagonal 12 px in it is the glass.

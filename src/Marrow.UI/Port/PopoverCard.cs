@@ -70,6 +70,8 @@ internal sealed class PopoverGlassTimeline
     public long FirstGlass { get; set; }
     public long OpacityOne { get; set; }
     public long ScaleOne { get; set; }
+    public bool SawFade { get; set; }
+    public bool SawGrow { get; set; }
 
     public double Ms(long ticks) => ticks == 0 || Opened == 0 ? double.NaN : (ticks - Opened) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
 
@@ -547,8 +549,12 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         var now = System.Diagnostics.Stopwatch.GetTimestamp();
         if (placed && Timeline.Attached == 0) Timeline.Attached = now;
         if (Timeline.FirstGlass == 0 && shown.FirstShownTicks != 0) Timeline.FirstGlass = shown.FirstShownTicks;
-        if (Timeline.OpacityOne == 0 && Opacity >= 1) Timeline.OpacityOne = now;
-        if (Timeline.ScaleOne == 0 && RenderTransform is not ScaleTransform { ScaleX: < 1 }) Timeline.ScaleOne = now;
+        // The grow-in starts just after the popup has opened (Presentation: PopoverAppear.Play after IsOpen): a step counts
+        // once the card has been seen below it.
+        if (Opacity < 1) Timeline.SawFade = true;
+        if (RenderTransform is ScaleTransform { ScaleX: < 1 }) Timeline.SawGrow = true;
+        if (Timeline.OpacityOne == 0 && Timeline.SawFade && Opacity >= 1) Timeline.OpacityOne = now;
+        if (Timeline.ScaleOne == 0 && Timeline.SawGrow && RenderTransform is not ScaleTransform { ScaleX: < 1 }) Timeline.ScaleOne = now;
         var moving = !placed || RenderTransform is not null || Opacity < 1;
         if (moving && !pumping)
         {
