@@ -818,10 +818,9 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // flush the reply shows the card, never the JSON; each head appears as its brief closes; Writing the next brief shows
     // while one is still open; once sent the verb is Summoned with the check.
     [Fact]
-    // Partial proof PR-CHAT-149 (STOP #11): the reading, the titles, the rows and the never-JSON clauses hold here; the card's
-    // changes do not animate with Chrome.panelSlide (:703-704), because every streamed flush rebuilds the reply's
-    // MarkdownView and with it a new card (AssistantMessageRow.Body), where SwiftUI keeps the card's identity.
-    [Trait("Rule", "R-TEST-4")] // TimelineRows.swift:652-707, :711-741, :745-753, :771-782
+    // PR-CHAT-149: the reading, the titles, the rows and the never-JSON clauses hold here; the card keeps its identity across the flushes and
+    // its changes animate with Chrome.panelSlide (:703-704) in TimelineRowsBlitzAbDelegationTests (OD-0098, 2026-10-04).
+    [Trait("Req", "PR-CHAT-149")] // TimelineRows.swift:652-707, :711-741, :745-753, :771-782
     public void A_streaming_delegation_block_is_read_into_the_card_flush_by_flush_and_never_shows_its_json() => headless.OnUiThread(() =>
     {
         using var h = Harness();

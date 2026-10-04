@@ -883,49 +883,163 @@ public sealed class HydraReportPopover : Decorator
 /// <summary>:648-783 <c>struct HydraDelegationBlock: View</c>.</summary>
 public sealed class HydraDelegationBlock : Decorator
 {
+    private readonly StackPanel column = new() { Spacing = 6 }; // :658
+    private readonly TextBlock titleText;
+    private readonly HStack header;
+    private readonly Panel overlay = new();
+    private readonly Border pill;
+    private readonly HeightSlot slot;
+    private StackPanel? rows;                       // :677 the heads' list, there once a brief has closed
+    private Control? writing;                       // :681-686 "Writing the next brief…"
+    private SwiftImage? check;                      // :667-675 the green check, once sent
+    private DotFieldSweep? sweep;                   // :694-701 one wave through the card, once sent
+    private ValueList<HydraDelegation> shown = ValueList<HydraDelegation>.Empty;
+
+    /// <summary>The block as it was last handed (:649-650): the card is the same card for every flush of a streaming reply, so what changes in it is animated.</summary>
+    internal string Json { get; private set; }
+
+    internal bool Sent { get; private set; }
+
     /// <param name="json">:649 <c>let json: String</c>.</param>
     /// <param name="sent">:650 <c>var sent = false</c>.</param>
     // :652-707 body
     public HydraDelegationBlock(string json, bool sent = false)
     {
+        Json = json; Sent = sent;
+        // :655-666 the mark and the title share a line; the heads run under both, each glyph in the mark's column.
+        header = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :659: its children share one centre line
+        header.Children.Add(HydraReportRow.Mark(16));
+        titleText = TimelineRows.ChatText("", weight: SwiftFont.Weight.Medium);
+        header.Children.Add(titleText);
+        column.Children.Add(header);
+        pill = TimelineRows.Pill(column);
+        overlay.Children.Add(pill);
+        pill.SizeChanged += (_, e) => { if (sweep is not null) sweep.Clip = new RectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, TimelineMetrics.PillRadius); };
+        slot = new HeightSlot(overlay);
+        Child = slot;
+        Apply(json, sent, animated: false);
+        this.Transition(SwiftTransition.Opacity);
+    }
+
+    /// <summary>The card handed the block again (a flush of the streaming reply, or the reply sent): the same card, so its changes animate with Chrome.panelSlide
+    /// (:703-704 `.animation(Chrome.panelSlide, value: sent)` and `value: delegations.count`): the new head rows come in with the opacity transition, the title changes
+    /// in place, the check and the wave arrive, and the card's height follows its contents as a spring.</summary>
+    internal void Update(string json, bool sent)
+    {
+        if (json == Json && sent == Sent) return;
+        Json = json; Sent = sent;
+        Transaction.WithAnimation(Chrome.PanelSlide, () =>
+        {
+            slot.Note(Transaction.Current); // the layout pass that follows reads the animation the change was made under
+            Apply(json, sent, animated: true);
+        });
+    }
+
+    // :653-703 what the body reads: the delegations so far, whether the block is still streaming, and `sent`.
+    private void Apply(string json, bool sent, bool animated)
+    {
         var reading = Reading(json);
         var delegations = reading.Delegations;
         var streaming = !reading.IsComplete && !sent;
-        var column = new StackPanel { Spacing = 6 };
-        var header = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :659: its children share one centre line
-        header.Children.Add(HydraReportRow.Mark(16));
-        header.Children.Add(TimelineRows.ChatText(Title(delegations, streaming, sent), weight: SwiftFont.Weight.Medium));
-        if (sent)
+        titleText.Text = Title(delegations, streaming, sent); // :663-664 `.contentTransition(.opacity)`: the words change in place
+        // :667-675 once sent, a green check follows the title.
+        if (sent && check is null)
         {
             // ED-092 (1): documented framework .green, same HIG Default mapping as AppTheme.FrameworkGreen;
             // not theme success. Exact appearance is UNVERIFIED under OD-0001.
-            var check = SwiftImage.SystemName("checkmark.circle.fill").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).ForegroundStyle(SwiftColor.Rgb(0x34C759));
-            AutomationProperties.SetName(check, "sent");
-            header.Children.Add(check.Transition(SwiftTransition.Scale().Combined(SwiftTransition.Opacity)));
+            var mark = SwiftImage.SystemName("checkmark.circle.fill").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).ForegroundStyle(SwiftColor.Rgb(0x34C759));
+            AutomationProperties.SetName(mark, "sent");
+            mark.Transition(SwiftTransition.Scale().Combined(SwiftTransition.Opacity));
+            check = mark;
+            if (animated) SwiftTransition.Insert(header, header.Children.Count, mark); else header.Children.Add(mark);
         }
-        column.Children.Add(header);
-        if (delegations.Count != 0)
+        // :694-701 once sent, one wave of the accent flows through the card, clipped to the pill.
+        if (sent && sweep is null)
         {
-            var rows = new StackPanel { Spacing = 5 };
-            foreach (var delegation in delegations) rows.Children.Add(HeadRow(delegation));
-            if (streaming)
+            sweep = new DotFieldSweep { Tint = Chrome.AccentNSColor, Clip = new RectangleGeometry(new Rect(pill.Bounds.Size), TimelineMetrics.PillRadius, TimelineMetrics.PillRadius) };
+            overlay.Children.Add(sweep);
+        }
+        // :677-692 one row per head, the new ones in with the opacity transition; a block that is not a continuation of what was shown starts the list over.
+        var continues = delegations.Count >= shown.Count && shown.Select((item, index) => Equals(item, delegations[index])).All(same => same);
+        if (!continues && rows is not null)
+        {
+            rows.Children.Clear();
+            writing = null;
+            shown = ValueList<HydraDelegation>.Empty;
+        }
+        if (delegations.Count != 0 && rows is null)
+        {
+            rows = new StackPanel { Spacing = 5 };
+            if (animated) SwiftTransition.Insert(column, 1, rows); else column.Children.Add(rows);
+        }
+        if (rows is not null)
+        {
+            for (var index = shown.Count; index < delegations.Count; index++)
+            {
+                var head = HeadRow(delegations[index]);
+                var at = writing is not null ? rows.Children.IndexOf(writing) : rows.Children.Count;
+                if (animated) SwiftTransition.Insert(rows, at, head); else rows.Children.Insert(at, head);
+            }
+            shown = delegations;
+            // :681-686 while a brief is still streaming a line says the next one is on its way, past a 16-point clear column.
+            if (streaming && writing is null)
             {
                 var next = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :681: its children share one centre line
                 next.Children.Add(new Control { Width = 16, Height = 16 });
                 next.Children.Add(TimelineRows.ChatText("Writing the next brief\u2026", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
+                writing = next;
                 rows.Children.Add(next);
             }
-            column.Children.Add(rows);
+            else if (!streaming && writing is { } gone)
+            {
+                writing = null;
+                rows.Children.Remove(gone);
+            }
         }
-        var pill = TimelineRows.Pill(column);
-        if (sent)
+        if (shown.Count == 0 && delegations.Count == 0) writing = null;
+    }
+
+    // :703-704 the card's height follows its contents: a spring over the change, never a jump. The contents are laid out at their own size and the slot is as tall as the
+    // spring has got to, clipped to it (the same idea as the merge pill's width slot, MorphSlot).
+    private sealed class HeightSlot : Panel
+    {
+        private readonly Control content;
+        private readonly AnimatedDouble height;
+        private double presented, target;
+        private bool measured;
+        private Animation? pending;
+
+        public HeightSlot(Control content)
         {
-            var sweep = new DotFieldSweep { Tint = Chrome.AccentNSColor, Clip = new RectangleGeometry(new Rect()) };
-            pill.SizeChanged += (_, e) => sweep.Clip = new RectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, TimelineMetrics.PillRadius);
-            Child = new Panel { Children = { pill, sweep } };
+            this.content = content;
+            ClipToBounds = true;
+            Children.Add(content);
+            height = new AnimatedDouble(value => { presented = value; InvalidateMeasure(); });
         }
-        else Child = pill;
-        this.Transition(SwiftTransition.Opacity);
+
+        // A change under an animation is noted when it is made: the layout pass that follows reads it.
+        public void Note(Animation? animation) => pending = animation;
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            content.Measure(new Size(availableSize.Width, double.PositiveInfinity));
+            var natural = content.DesiredSize.Height;
+            if (!measured || natural != target)
+            {
+                var animation = measured ? pending : null;
+                pending = null;
+                target = natural;
+                measured = true;
+                height.Set(natural, animation);
+            }
+            return new Size(content.DesiredSize.Width, presented);
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            content.Arrange(new Rect(0, 0, finalSize.Width, content.DesiredSize.Height));
+            return finalSize;
+        }
     }
 
     // :711-741
@@ -1664,7 +1778,9 @@ public sealed class AssistantMessageRow : Decorator
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return;
             built = message;
-            Child = Body(message, this.summary, runtime, state);
+            var body = Body(message, this.summary, runtime, state);
+            KeepCards(Child, body);
+            Child = body;
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
@@ -1679,7 +1795,32 @@ public sealed class AssistantMessageRow : Decorator
     {
         if (Equals(summary, next)) return;
         summary = next;
-        if (built is { } message) Child = Body(message, summary, runtime, state);
+        if (built is { } message)
+        {
+            var body = Body(message, summary, runtime, state);
+            KeepCards(Child, body);
+            Child = body;
+        }
+    }
+
+    // :1364 .equatable() with the blocks of MarkdownView kept by position: a block that is still the same block when the reply streams on or its summary arrives is
+    // the same view, which keeps its state and animates what changes in it. A delegation card is the one block with state of its own that streams (:703-704), so
+    // the cards of the body just made are the cards already on show, handed the new block: the n-th card of the old body becomes the n-th card of the new.
+    private static void KeepCards(Control? old, Control next)
+    {
+        if (old is null) return;
+        var shown = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(old).OfType<HydraDelegationBlock>().ToList();
+        var made = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(next).OfType<HydraDelegationBlock>().ToList();
+        for (var i = 0; i < Math.Min(shown.Count, made.Count); i++)
+        {
+            var (card, fresh) = (shown[i], made[i]);
+            if (card.Parent is not Decorator from || fresh.Parent is not Decorator into) continue;
+            card.Update(fresh.Json, fresh.Sent);
+            // :326-329 the block's own look (the leaving card is clear, a little smaller and takes no taps) is the new block's.
+            card.Opacity = fresh.Opacity; card.RenderTransform = fresh.RenderTransform; card.RenderTransformOrigin = fresh.RenderTransformOrigin; card.IsHitTestVisible = fresh.IsHitTestVisible;
+            from.Child = null;
+            into.Child = card;
+        }
     }
 
     // :1363-1388

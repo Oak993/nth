@@ -4657,10 +4657,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // new proof mutation checked; TimelineRowsBlitzAbToolTests, -UserTests, -FileCardTests, -CardTests, -BlockTests):
 // PR-CHAT-020, -078, -080, -082, -088, -092, -094, -098, -100, -101, -104, -109, -110, -111, -112, -114, -116.
 // Records: PR-CHAT-079; PR-CHAT-099; PR-CHAT-102; PR-CHAT-108; PR-CHAT-113; PR-CHAT-115.
-// Records: PR-CHAT-143; PR-CHAT-145; PR-CHAT-149.
+// Records: PR-CHAT-143; PR-CHAT-145.
 // Proven and removed from this note on 2026-10-04 under OD-0098 (unit blitz-timelinerows-ab, TimelineRowsBlitzAbMergeTests, -HeadTests,
 // -MergeSilentTests, -DelegationTests, -ReleaseTests; every state the Swift names mounted and rendered headless in both themes, each proof
-// mutation checked): PR-CHAT-146, -147, -148, -150, -151, -152, -153, -154, -161; PR-COMPOSER-211; PR-HYDRAMERGE-089, -101, -102, -103, -106,
+// mutation checked): PR-CHAT-146, -147, -148, -149, -150, -151, -152, -153, -154, -161; PR-COMPOSER-211; PR-HYDRAMERGE-089, -101, -102, -103, -106,
 // -107, -108. Defects found and fixed by those renders and tests: the merge track's drawing was centred in its shrinking frame, so the settled
 // head sat 14 points left, half outside the pill (:912-915); a sent message's open menu pinned the whole row (its right-click builder shared a
 // closure class with the lambdas that read the row); WindowTransients kept a closed popup, and through it its row, for good. Caveats, in
@@ -4683,11 +4683,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // parsed files can be held; the record's "at most sixty" needs correcting before a counting test can claim it.
 // PR-CHAT-145: the first-tap frame time must be measured on a quiet PC (native gate); the warm-off-main mechanism is tested, a
 // timing under the shared build load is not evidence. (PR-HYDRAMERGE-108's first-open latency is shown by the cache's state: proven.)
-// PR-CHAT-149: the streamed fixture is read flush by flush and never shows JSON (TimelineRowsParityScenarioTests), but the
-// card's changes do not animate with Chrome.panelSlide (:703-704): every flush rebuilds the reply's MarkdownView and a new
-// card, where SwiftUI keeps the card's identity. Needed: block identity kept across streaming re-renders (UI.Markdown) and a layout
-// animation of the card's height and rows (SwiftTransition animates a view's own insertion, not its siblings' layout). The card's five
-// states are drawn in both themes (TimelineRowsBlitzAbDelegationTests, 2026-10-04): this animation is the one clause of the record left.
+// PR-CHAT-149: PROVEN 2026-10-04 (TimelineRowsBlitzAbDelegationTests; the streamed fixture of TimelineRowsParityScenarioTests): the card's five states
+// are drawn in both themes, and the card keeps its identity across the streaming flushes (AssistantMessageRow hands the new block to the card on show)
+// with its changes animated by Chrome.panelSlide (:703-704): its height follows its contents as a spring, a new head row fades in, the check scales in.
 // PR-CHAT-113: record vs source. The record's action is "the popover is open while the markdown arrives" and its result
 // that the plan "switches to the finished-prose surface the moment the state leaves drafting". The pinned source freezes
 // the popover's content when it opens (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147: the hosted
