@@ -432,4 +432,80 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
             finally { Close(window); }
         });
     });
+
+    // REVIEW (adversarial, unit blitz-cornerband): AssertBand reads the clip path and SwiftShapes.Outline, never the pixels. The four band elements are plain
+    // Borders whose fill Avalonia draws as the circle of CornerRadius 18; the clip (Apple's corner at L = h / 3.057) can only take away, and Apple's corner at L
+    // lies outside the circle of 18 near the diagonal (2.06 pt at 40 pt, 1.66 at 43, 0.98 at 48), so what is drawn is the circle there, not OD-0102's corner.
+    // This renders each mounted element with an opaque fill and compares its top-left corner with a SwiftShapeBorder (which fills the path itself) of the same size.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // the corner clause only of UI-CHAT-034, UI-CHAT-036, UI-CHAT-037, UI-CHAT-054, read off the rendered pixels
+    public void REVIEW_the_four_band_elements_render_Apples_corner_at_the_largest_radius_not_the_circle_of_18() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
+        h.Main.OnMain(() =>
+        {
+            const string twoLines = "A warning long enough that it wraps onto a second line when the row is only 380 points wide.";
+            var notice = new NoticeRow(NoticeEntry(Notice.Level.Warning, twoLines));
+            var turn = Guid.NewGuid();
+            var steps = new TurnFinishedBlock(h.Runtime, turn, Summary(turn) with { Duration = 64 }, ValueList<TimelineEntry>.Empty,
+                new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a"), turn)]), null, canUndo: false, chronological: true);
+            var files = new TurnFileCard(new FileChangeSummary(new ValueList<FileChangeSummary.File>([new FileChangeSummary.File("src/file1.swift", 1, 1, false)]), 40, 7),
+                canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var delegation = new HydraDelegationBlock("[{\"task\": \"Tidy 0\", \"prompt\": \"p\", \"name\": \"Hank\"}]", sent: true);
+            var panel = new StackPanel { Width = 700, Spacing = 20 };
+            foreach (var control in new Control[] { new Border { Width = 380, Child = notice }, steps, files, delegation }) panel.Children.Add(control);
+            var window = Show(panel);
+            var results = new List<string>();
+            var failures = new List<string>();
+            try
+            {
+                var shapes = new (string Name, Border Shape)[]
+                {
+                    ("notice, two lines", PillOf(notice, Pill)), ("steps card, one step", PillOf(steps, new Thickness(14))),
+                    ("Edited-files card", PillOf(files, new Thickness(12, 6, 6, 6))), ("delegation card, one head", PillOf(delegation, Pill)),
+                };
+                foreach (var (_, shape) in shapes) shape.Background = Brushes.Red;
+                Settle(window);
+                Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                var mounted = RedChannel(window);
+                foreach (var (name, shape) in shapes)
+                {
+                    var origin = shape.TranslatePoint(default, window) ?? throw new InvalidOperationException(name + " is not mounted");
+                    var size = shape.Bounds.Size;
+                    var reference = new SwiftShapeBorder { Width = size.Width, Height = size.Height, Background = Brushes.Red, Margin = new Thickness(origin.X, origin.Y, 0, 0),
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top }.RoundedRectangle(18, RoundedCornerStyle.Continuous);
+                    var refWindow = Show(new Panel { Children = { reference } });
+                    Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                    var expected = RedChannel(refWindow);
+                    Close(refWindow);
+                    var worst = 0;
+                    int x0 = (int)Math.Floor(origin.X), y0 = (int)Math.Floor(origin.Y);
+                    for (var y = y0; y < y0 + 8; y++)
+                        for (var x = x0; x < x0 + 8; x++) worst = Math.Max(worst, Math.Abs(mounted[y, x] - expected[y, x]));
+                    results.Add($"{name} ({size.Height:F1} pt at {origin}): worst {worst}; mounted diag {mounted[y0 + 4, x0 + 4]} {mounted[y0 + 5, x0 + 5]} ref {expected[y0 + 4, x0 + 4]} {expected[y0 + 5, x0 + 5]} inside {mounted[y0 + 10, x0 + 30]}/{expected[y0 + 10, x0 + 30]}");
+                    if (worst > 60) failures.Add($"{name} ({size.Height:F1} pt at {origin}): the rendered corner differs from Apple's corner at {size.Height / (2 * 1.528665):F2} by {worst} of 255");
+                }
+            }
+            finally { Close(window); }
+            Assert.True(failures.Count == 0, string.Join("; ", failures) + " | " + string.Join("; ", results));
+        });
+    });
+
+    private static int[,] RedChannel(TopLevel window)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        using var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window) ?? throw new Xunit.Sdk.XunitException("no rendered frame");
+        using var buffer = frame.Lock();
+        var row = new byte[buffer.RowBytes];
+        var red = new int[buffer.Size.Height, buffer.Size.Width];
+        for (var y = 0; y < buffer.Size.Height; y++)
+        {
+            System.Runtime.InteropServices.Marshal.Copy(buffer.Address + y * buffer.RowBytes, row, 0, buffer.RowBytes);
+            for (var x = 0; x < buffer.Size.Width; x++) red[y, x] = 255 - row[x * 4 + 1]; // the fill is opaque red over a light window: 255 less green is its coverage
+        }
+        return red;
+    }
 }
