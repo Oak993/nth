@@ -359,7 +359,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
     // 0.14 + 0.18 x progress / 0.30 + 0.26 x progress) and over it the tint (Chrome.glassTint at 0.30 / 0.18 of its own alpha), each held over the top 28 percent, eased to 0.45 at 62 and to
     // nothing at the foot. The whole veil's `.opacity(0.08 + 0.92 x progress)` (:622) sits on a ZStack with no compositing group, so it scales each of the two layers (the reading of
     // ThreadTimelineVeilTests): the backdrop is covered by the scrim at opacity x scrim, then by the tint at opacity x tint. Composing the two as a group and applying the opacity once
-    // would leave the backdrop up to 3.6 of 255 grey levels lighter (the tolerance below, 1.5 on the held rows, tells the two apart): UNVERIFIED on the Mac (OD-0001), ED-NEW-frames-4.
+    // would change the backdrop by up to 4.0 of 255 grey levels (lighter, dark theme) and 4.6 (darker, light theme), at progress 0.4 (the tolerance below, 1.5 on the held rows, tells the two apart): UNVERIFIED on the Mac (OD-0001), ED-NEW-frames-4.
     private static double[] VeilOver(double progress, bool dark, double row, double backdrop)
     {
         var u = row / 72.0;
@@ -461,8 +461,8 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
                     var onWhite = RenderedRows(progress, dark, Avalonia.Media.Colors.White);
                     for (var row = 0; row < 72; row += 3)
                     {
-                        // The held top 28 percent (rows 0 to 19) is flat and drawn to within a grey level and a half: that tells the layer-by-layer composite from the grouped one, up to 3.6 levels
-                        // lighter. Below it the gradient ramps and the renderer dithers it (about 2.5 levels either way on the headless Skia).
+                        // The held top 28 percent (rows 0 to 19) is flat and drawn to within a grey level and a half: that tells the layer-by-layer composite from the grouped one, up to 4.0 (dark, lighter) or 4.6 (light, darker) levels
+                        // away. Below it the gradient ramps and the renderer dithers it (about 2.5 levels either way on the headless Skia).
                         var tolerance = row <= 19 ? 1.5 : 3.5;
                         var expectedBlack = VeilOver(progress, dark, row + 0.5, 0);
                         var expectedWhite = VeilOver(progress, dark, row + 0.5, 255);
