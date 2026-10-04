@@ -106,7 +106,11 @@ public sealed class SwiftImage : Control
     // first-party app artwork, not SF Symbols (PA-0012): reusable, per platform_adaptations.md PA-0012.
     private static readonly Lazy<IReadOnlyDictionary<string, Asset>> Assets = new(() => new Dictionary<string, Asset>(StringComparer.Ordinal)
     {
-        ["droppy-logo"] = new(null, LoadBitmap("droppy-logo.png"), LoadBitmap("droppy-logo@2x.png"), ImageRenderingMode.Original),
+        // OD-0015 (OD-0002, OD-0033): "droppy-logo" is the Swift lookup key the view keeps (Image("droppy-logo") is used only at
+        // SettingsView.swift:1067, the "Made by Droppy" row), but the artwork is the Marrow icon: src/Marrow.App/Assets/icon.svg
+        // rendered with its viewBox cropped to the tile (72 72 880 880), 256 px and 512 px, so it fills the frame as the full-bleed
+        // upstream PNGs did. (The other upstream logo sites draw NSApp.applicationIconImage, i.e. Assets/icon.png: Views/AppIconImage.cs.) The Droppy Code PNGs are not shipped (ED-276).
+        ["droppy-logo"] = new(null, LoadBitmap("marrow-icon.png"), LoadBitmap("marrow-icon@2x.png"), ImageRenderingMode.Original),
         ["hydra-mark"] = new(LoadSvg("hydra-mark.svg"), null, null, ImageRenderingMode.Template),
         ["badge-edit"] = new(LoadSvg("badge-edit.svg"), null, null, ImageRenderingMode.Template),
         ["mcp-atlassian"] = LoadVectorAsset("mcp-atlassian.imageset/mcp-atlassian.svg", ImageRenderingMode.Template),

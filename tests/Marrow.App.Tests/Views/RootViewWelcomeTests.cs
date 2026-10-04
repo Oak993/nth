@@ -49,8 +49,8 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
         {
             var identity = Identity(host);
             var column = Column(host);
-            var icon = Assert.IsType<SwiftImage>(identity.Children[0]); // :307 Image(nsImage: NSApp.applicationIconImage), first of the stack
-            Assert.NotNull(icon.Bitmap); // the running application's own icon: a picture that is really there, not a symbol or an empty image
+            var icon = Assert.IsType<Image>(identity.Children[0]); // :307 Image(nsImage: NSApp.applicationIconImage), first of the stack
+            MarrowLogoCheck.AssertIsTheAppIconImage(icon, 104); // the running application's own icon (OD-0015): the packaged bitmap, as the About pill draws it
             Assert.Equal(new Size(104, 104), icon.Bounds.Size); // :309 .frame(width: 104, height: 104)
             Assert.Equal(0, icon.Bounds.Top); // top of the 14-point stack
             Assert.Equal(identity.Bounds.Width / 2, icon.Bounds.Center.X, 0.5); // a VStack centres its children

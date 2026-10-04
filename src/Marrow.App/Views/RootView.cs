@@ -889,12 +889,7 @@ public sealed class WelcomeView : Decorator
 
         // :306-315 the icon, product name and tagline, spacing 14. DEVIATION (OD-0002; OD-0012 F2): "Marrow" replaces
         // the literal "Droppy Code"; the tagline reads "A calm, native home for your coding agents."
-        var icon = SwiftImage.Named("droppy-logo")
-            .Resizable()
-            .Interpolation(BitmapInterpolationMode.HighQuality)
-            .AspectRatio(ContentMode.Fit);
-        icon.Width = 104;
-        icon.Height = 104;
+        var icon = AppIconImage.Make(104); // :307-309 NSApp.applicationIconImage; OD-0015: the packaged Marrow app icon, as the About pill draws it
 
         var title = new TextBlock { Text = "Marrow" }; // :310-311, OD-0002
         SwiftFont.System(34, SwiftFont.Weight.Semibold).Apply(title);

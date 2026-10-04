@@ -932,7 +932,7 @@ internal sealed class AboutSettingsPage : Decorator
     // :968-1005
     private Control AppCard()
     {
-        var icon = new Image { Source = new Bitmap(AssetLoader.Open(new Uri("avares://Marrow.App/Assets/icon.png"))), Width = 56, Height = 56 };
+        var icon = new Image { Source = Marrow.App.Views.AppIconImage.Bitmap, Width = 56, Height = 56 };
         var labels = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(15, SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(12)) } };
         return new StackPanel { Children =
         {

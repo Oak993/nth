@@ -292,16 +292,24 @@ public sealed class SwiftImageTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Decision", "ED-179")]
-    [InlineData("Images/droppy-logo.png", "307aca65b532fe56c1faf38423e40812fcdd4969e105bd1e936224cb19e4de95")]
-    [InlineData("Images/droppy-logo@2x.png", "467897a05e5b29238ee4df44e38eb130fb7bdf93a9d0acec38f342afdf1c242c")]
     [InlineData("Images/hydra-mark.svg", "26c998a5e343e9bc0e8110be443fcb5b716dec0c705f4a52a2b5066d5d3d8f72")]
     [InlineData("Images/badge-edit.svg", "91ce10a554cb96c12c59a2f778b9541014483c9e70f9b84f5a3f4776efd20e3e")]
     public void The_asset_images_are_the_pinned_catalogue_files_unchanged(string path, string sha256) => headless.OnUiThread(() =>
     {
-        // SHA-256 of DroppyCode/Resources/Assets.xcassets/<name>.imageset/<file> at the pinned commit. The two
-        // droppy-logo hashes moved at B3 52bc792 (Contents.json is byte-identical, only the two PNGs' bytes changed;
-        // both stay 256x256 and 512x512, RGBA, so the sibling PixelSize test below needs no change); hydra-mark.svg
-        // and badge-edit.svg are untouched by B3.
+        // SHA-256 of DroppyCode/Resources/Assets.xcassets/<name>.imageset/<file> at the pinned commit (hydra-mark.svg
+        // and badge-edit.svg are untouched by B3). The droppy-logo PNGs are no longer here: OD-0015 ships the Marrow icon
+        // under that lookup key (see the next test and MarrowLogoArtworkTests).
+        Assert.Equal(sha256, Convert.ToHexStringLower(SHA256.HashData(Asset(path))));
+    });
+
+    [Theory]
+    [Trait("Decision", "ED-179")] // OD-0015: the owner-ruled Marrow icon replaces the Droppy logo
+    [InlineData("Images/marrow-icon.png", "d4279b634d5ea3b7b26ccd09423607c8f7c6371d691387a4fa4ae7bc8cf6b42d")]
+    [InlineData("Images/marrow-icon@2x.png", "cd7fdbe9ef2fd3655f09af8200c60d2f6ea2a09ec6a3d8cba8722fdba78067e9")]
+    public void The_logo_images_are_the_Marrow_icon_renders_not_the_upstream_catalogue_files(string path, string sha256) => headless.OnUiThread(() =>
+    {
+        // OD-0015: icon.svg with its viewBox cropped to the tile (72 72 880 880), rendered at 256 and 512 px. The upstream
+        // droppy-logo PNG hashes (307aca65..., 467897a0...) are asserted absent in MarrowLogoArtworkTests.
         Assert.Equal(sha256, Convert.ToHexStringLower(SHA256.HashData(Asset(path))));
     });
 
@@ -309,7 +317,7 @@ public sealed class SwiftImageTests(HeadlessSession headless)
     [Trait("Decision", "ED-179")]
     public void The_three_asset_images_load_in_the_form_the_catalogue_holds() => headless.OnUiThread(() =>
     {
-        // droppy-logo: two PNG representations, 1x and 2x, rendering intent original.
+        // droppy-logo (the Swift key; the artwork is the Marrow icon, OD-0015): two PNG representations, 1x and 2x, rendering intent original.
         var logo = SwiftImage.Named("droppy-logo");
         Assert.False(logo.IsEmpty);
         Assert.Null(logo.Icon);
@@ -390,7 +398,7 @@ public sealed class SwiftImageTests(HeadlessSession headless)
     [Trait("Decision", "ED-179")]
     public void The_original_bitmap_draws_its_own_pixels_whatever_the_foreground() => headless.OnUiThread(() =>
     {
-        // SettingsView.swift:1090-1093: Image("droppy-logo").resizable().interpolation(.high).frame(40, 40).
+        // SettingsView.swift:1090-1093: Image("droppy-logo").resizable().interpolation(.high).frame(40, 40); the artwork is the Marrow icon (OD-0015).
         var logo = SwiftImage.Named("droppy-logo").Resizable().Interpolation(BitmapInterpolationMode.HighQuality).ForegroundStyle(Red);
         logo.Width = 40;
         logo.Height = 40;
@@ -399,7 +407,7 @@ public sealed class SwiftImageTests(HeadlessSession headless)
         var window = Show(logo, 64, 64);
         using var bitmap = Capture(window);
         var center = Pixel(bitmap, 20, 20);
-        using var reference = new Bitmap(new MemoryStream(Asset("Images/droppy-logo.png")));
+        using var reference = new Bitmap(new MemoryStream(Asset("Images/marrow-icon.png")));
         using var scaled = reference.CreateScaledBitmap(new PixelSize(40, 40), BitmapInterpolationMode.HighQuality);
         var expected = ReadPixel(scaled, 20, 20);
         var alpha = expected.A / 255.0;

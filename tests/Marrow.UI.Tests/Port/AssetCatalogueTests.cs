@@ -40,6 +40,19 @@ public sealed class AssetCatalogueTests(HeadlessSession headless)
                     using var contents = AssetLoader.Open(new Uri("avares://Marrow.UI/Assets/Images/" + name + ".imageset/Contents.json"));
                     Assert.Equal(entry.GetProperty("contentsSha256").GetString(), Convert.ToHexString(SHA256.HashData(contents)));
                 }
+                if (entry.TryGetProperty("deviation", out var deviation))
+                {
+                    // An owner-ruled deviation (only droppy-logo, OD-0015): the manifest records the upstream bytes, and none of
+                    // them may ship, so the deviation is on the record and cannot be a silent substitution.
+                    Assert.Equal("OD-0015", deviation.GetString());
+                    var shipped = entry.GetProperty("files").EnumerateArray().Select(f => f.GetProperty("sha256").GetString()).ToHashSet();
+                    foreach (var upstream in entry.GetProperty("upstreamFiles").EnumerateArray())
+                    {
+                        Assert.DoesNotContain(upstream.GetProperty("sha256").GetString(), shipped);
+                        Assert.False(AssetLoader.Exists(new Uri("avares://Marrow.UI/Assets/Images/" + upstream.GetProperty("filename").GetString())), upstream.GetProperty("filename").GetString());
+                    }
+                }
+                else Assert.False(entry.TryGetProperty("upstreamFiles", out _), name);
                 foreach (var file in entry.GetProperty("files").EnumerateArray())
                 {
                     var filename = file.GetProperty("filename").GetString()!;

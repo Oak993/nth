@@ -80,7 +80,7 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
         With(() => new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), (view, _, h, w) =>
         {
             var button = Assert.Single(Nodes<Button>(view)); var grid = Assert.IsType<Grid>(button.Content); Assert.Equal(12, grid.ColumnSpacing); Assert.Equal(new Thickness(16, 12, 14, 12), grid.Margin);
-            var logo = Assert.IsType<SwiftImage>(grid.Children[0]); Assert.Equal("droppy-logo", logo.AssetName); Assert.Equal(40, logo.Width); Assert.Equal(40, logo.Height); Assert.Equal(ContentMode.Fit, logo.AspectContentMode); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(logo));
+            var logo = Assert.IsType<SwiftImage>(grid.Children[0]); Assert.Equal("droppy-logo", logo.AssetName); MarrowLogoCheck.AssertIsTheMarrowIcon(logo); /* OD-0015: the Swift key, the Marrow artwork */ Assert.Equal(40, logo.Width); Assert.Equal(40, logo.Height); Assert.Equal(ContentMode.Fit, logo.AspectContentMode); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(logo));
             var labels = Assert.IsType<StackPanel>(grid.Children[1]); Assert.Equal(2, labels.Spacing); var title = Assert.IsType<TextBlock>(labels.Children[0]); var subtitle = Assert.IsType<TextBlock>(labels.Children[1]);
             Assert.Equal("Made by Droppy", title.Text); Font(title, 13, FontWeight.SemiBold); Ink(title, title.Foreground, Chrome.PrimaryText);
             Assert.Equal("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", subtitle.Text); Font(subtitle, 11); Ink(subtitle, subtitle.Foreground, Chrome.SecondaryText);

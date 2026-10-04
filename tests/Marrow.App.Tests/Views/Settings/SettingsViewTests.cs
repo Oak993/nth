@@ -712,7 +712,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         Assert.Contains("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Text(view));
         Assert.Contains("The slideshow from the first launch: Hydra, the effort slider, panels and themes.", Text(view));
         Assert.Equal(56, Assert.Single(Nodes<Image>(stack.Children[1])).Width);
-        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy), image => image.AssetName is not null); Assert.Equal("droppy-logo", mark.AssetName); Assert.Equal(40, mark.Width); Assert.Single(Nodes<SwiftImage>(droppy), image => image.SymbolName == "arrow.up.right");
+        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy), image => image.AssetName is not null); Assert.Equal("droppy-logo", mark.AssetName); MarrowLogoCheck.AssertIsTheMarrowIcon(mark); /* OD-0015: the Swift key, the Marrow artwork */ Assert.Equal(40, mark.Width); Assert.Single(Nodes<SwiftImage>(droppy), image => image.SymbolName == "arrow.up.right");
     });
 
     // Not PR-SETTINGS-249 (withdrawn, defects-priority review round 2): its windows_path ships the three documents with the installer, which no test

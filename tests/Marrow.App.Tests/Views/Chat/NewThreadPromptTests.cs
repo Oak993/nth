@@ -81,9 +81,11 @@ public sealed class NewThreadPromptTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 var host = Build(model, System.Guid.NewGuid(), null);
-                var icon = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(host));
+                var icon = Assert.Single(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Image>(host));
                 Assert.Equal(72d, icon.Width);
                 Assert.Equal(72d, icon.Height);
+                Assert.Equal(Avalonia.Automation.AccessibilityView.Raw, Avalonia.Automation.AutomationProperties.GetAccessibilityView(icon)); // :21 .accessibilityHidden(true)
+                MarrowLogoCheck.AssertIsTheAppIconImage(icon, 72); // :17 NSApp.applicationIconImage (OD-0015)
             });
         });
     }

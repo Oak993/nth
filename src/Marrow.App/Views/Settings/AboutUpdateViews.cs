@@ -1004,11 +1004,6 @@ internal sealed class AboutIdentityPill : Decorator
 {
     // :554 NSApp.applicationIconImage. OD-0015 / OD-0033 use the approved packaged app icon here.
     // Share the immutable app-lifetime bitmap; each pill keeps its own 20 pt layout and accessibility state.
-    private static readonly Lazy<Bitmap> appIcon = new(() =>
-    {
-        using var resource = AssetLoader.Open(new Uri("avares://Marrow.App/Assets/icon.png"));
-        return new Bitmap(resource);
-    });
     // Icon (20) + the HStack's :553 spacing (6) + the capsule's own left/right padding (:560-561, 8+12): the fixed
     // width the text's row never gives up, so a compressed offer can be translated into the text's own constraint.
     private const double NonTextWidth = 20 + 6 + (Chrome.CapsuleHorizontalPadding - 4) + Chrome.CapsuleHorizontalPadding;
@@ -1030,7 +1025,7 @@ internal sealed class AboutIdentityPill : Decorator
     public AboutIdentityPill()
     {
         var version = AppInfo.Current.Version;
-        var icon = new Image { Source = appIcon.Value, Width = 20, Height = 20, Stretch = Stretch.Uniform };
+        var icon = new Image { Source = Marrow.App.Views.AppIconImage.Bitmap, Width = 20, Height = 20, Stretch = Stretch.Uniform };
         RenderOptions.SetBitmapInterpolationMode(icon, BitmapInterpolationMode.HighQuality);
         AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
 
