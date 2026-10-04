@@ -3833,9 +3833,9 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // Kind: historical dependency blocker, resolved (RequestCards is real). PR-COMPOSER-002 is proven (container spacing 8, the 12 point
 // gaps, runtime order through a removal). PR-COMPOSER-003: the curve (spring response 0.32, damping 0.9; 0.18 s ease-out under
 // reduce motion), the id-list key and the arrival and resolution fades are proven (A_card_arriving_and_a_card_resolved_...,
-// Changing_a_request_without_changing_the_id_list_...). STILL OPEN: the stack's own re-layout is a cut, not an animation: the
-// cards that stay and the area's height do not move under the spring (the foundation's ForEach glide is parent-relative and a
-// leaving row lingers in layout; the area is bottom-pinned, so SwiftUI moves the cards above the new one in window coordinates).
+// Changing_a_request_without_changing_the_id_list_...). RESOLVED (unit rec-composer): the stack's own re-layout glides (WindowGlide, in window
+// coordinates: the area is bottom-pinned, so the cards above a new one rise and the pill stays) and a resolved card leaves the layout at once,
+// fading where it stood (ComposerAreaApprovalGlideTests).
 //
 // STOP App.Views.Composer.ComposerView #3
 // Kind: historical (untestable), resolved: DiffPopoverCoordinator presents through Presentation.Presenter (R-VIEW-9), so the
@@ -3887,7 +3887,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 //
 // STOP App.Views.Composer.ComposerView #10
 // Kind: resolved for the container (SwiftGlass.SetContainerSpacing is implemented and asserted: PR-COMPOSER-002, UI-COMPOSER-001);
-// the surviving approval rows' movement is open, see #2. Continuous-corner rendering is ED-181, closed 2026-10-04.
+// the surviving approval rows' movement glides, see #2. Continuous-corner rendering is ED-181, closed 2026-10-04.
 
 // B3 resolution of historical STOP #5(c): forced retry is now proven by observing the in-flight registry load after
 // clicking the actual retry row while a fetched command list is still fresh. #5(a) and (b) are resolved too (see #5).
