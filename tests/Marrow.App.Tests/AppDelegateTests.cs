@@ -708,7 +708,7 @@ public sealed class AppDelegateTests
 // not ported (PR-LAUNCH-027 NOT_APPLICABLE_WITH_EVIDENCE, ED-001/ED-061), rather than an unresolved dependency.
 // :22's OD-0018/ED-103 boot stage: P12 evidence and the Acrylic composition landed (ED-103, ED-236, probes P12 to P14; STOP Boot #1).
 // PR-LAUNCH-029 now has a launch-level test of all seven exclusion predicates and newest-unused selection.
-// PR-LAUNCH-071 and UI-LAUNCH-002 now have tests of the delayed tour / no extra onboarding path.
+// UI-LAUNCH-002 now has tests of the delayed tour. PR-LAUNCH-071 has none that claim it: see STOP App.AppDelegate #7.
 // PR-LAUNCH-038 now has aggregate compiled step/await order and safe runtime proof in AppDelegateProofTests, together
 // with the existing offline blocked updater stand-in test in AppModelBootstrapSweepTests.
 // PR-LAUNCH-046: the shell-to-UpdateChecker.HandleActivation binding (Port/AppShell.cs, WM_ACTIVATEAPP) and the launch-activation

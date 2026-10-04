@@ -96,8 +96,9 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")]
-    [Trait("Req", "PR-LAUNCH-071")] // App/AppDelegate.swift:22-33; the clean-data native capture: porting/verification/native/launch-2026-10-02
+    [Trait("Rule", "R-TEST-4")] // Today's sequence only; no requirement is claimed
+    // NOT a proof of PR-LAUNCH-071 (Req withdrawn, STOP App.AppDelegate #7 in AppDelegateProofTests): App/AppDelegate.swift:22-33 as it
+    // is today; OD-0096's first-run "Getting ready" sheet and the Welcome voice question are not built.
     public void First_launch_opens_the_chat_then_only_the_delayed_tour_with_no_onboarding_alert()
     {
         WithLaunch(h => WriteProjectWithUnusedThread(h), launch =>

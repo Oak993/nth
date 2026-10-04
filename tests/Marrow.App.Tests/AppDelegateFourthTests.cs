@@ -86,8 +86,11 @@ public sealed class AppDelegateFourthTests(HeadlessSession headless)
     // ===== :22-33 the whole launch sequence, on a clean data directory =====
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof of PR-LAUNCH-071 (the clean-data capture of the real exe is porting/verification/native/launch-2026-10-02/RESULT.md)
-    [Trait("Req", "PR-LAUNCH-071")] // App/AppDelegate.swift:22-33; App/AppModel.swift:121-147, :240-287
+    [Trait("Rule", "R-TEST-4")] // Today's sequence only; no requirement is claimed
+    // NOT a proof of PR-LAUNCH-071 (its Req trait is withdrawn, see STOP App.AppDelegate #7 in AppDelegateProofTests): this pins what
+    // AppDelegate.swift:22-33 does today (main window, bootstrap, the 700 ms tour). OD-0096 (owner_decisions.md) puts a "Getting
+    // ready" sheet before the Welcome screen on a first run and has the Welcome screen ask about voice typing; that is not built, so
+    // when it lands this sequence changes and this test is rewritten with it, not weakened.
     public void A_launch_on_clean_data_opens_the_chat_then_only_the_700_ms_tour_and_asks_for_no_account_terms_or_folder()
     {
         WithLaunch(null, launch =>

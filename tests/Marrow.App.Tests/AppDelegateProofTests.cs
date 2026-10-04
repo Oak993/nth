@@ -219,7 +219,7 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // (porting/verification/native/launch-2026-10-02/RESULT.md). The tests carry the Req.
 // Kind: missing external composition evidence/material dependency.
 // Swift: App/AppDelegate.swift:22; ED-103 (5), (7), ED-180, OD-0018.
-// Records: PR-LAUNCH-028, PR-LAUNCH-071, UI-LAUNCH-001.
+// Records: PR-LAUNCH-028, UI-LAUNCH-001.
 // Site: ApplicationDidFinishLaunching -> StartBoot. The ED-103 stage and hand-over landed 2026-10-01
 // (Port/BootStageWindow.cs, BootStageWindowTests; probes P12, P13). The main window's Acrylic hint (WindowManager STOP #5)
 // landed with ED-236; P13's ~150-200 ms blur lag at the hand-over is what the native glass tests cover (STOP Boot #1).
@@ -231,6 +231,9 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // Swift: App/AppDelegate.swift:28; App/UpdateChecker.swift:141-149.
 // Records: PR-LAUNCH-046.
 // Site: StartBackgroundChecks -> UpdateChecker.HandleActivation. It had no production caller; the shell now calls it.
+// The hook itself is proved: FinishLaunching puts exactly one procedure hook on the main window, before the boot shows it
+// (AppShell.AddWindowProcedureHook records it; AppShellActivationTests), and the recorded hook is what the tests call. Windows'
+// own delivery of WM_ACTIVATEAPP and Avalonia's call of the hook are the platform's and the framework's.
 
 // STOP opencode-App.AppDelegate #3 - RESOLVED 2026-10-01 by OD-0036 (no reason text); the tests carry the Req.
 // Kind: missing session-end reason ruling/binding.
@@ -264,9 +267,30 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // stays on the Windows verification list). WindowsToastRoutingTests drives the production window adapter.
 // Kind: missing safe native-notification hit-testing fixture or proof-method ruling.
 // Swift: App/AppDelegate.swift:77-92; WindowManager.swift:41-45; ED-220 (7), ED-225.
-// Records: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024, PR-WIN-076, UI-LAUNCH-003, UI-LAUNCH-005.
+// Records: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024, PR-WIN-076, UI-LAUNCH-003.
 // Site: WindowsToastPlatform.Show / WindowsToastLaunchTransport ingress -> UserNotificationCenter(didReceive).
 // Routing, payload transport and About centering landed. Recording callbacks do not prove a pointer hitting a
 // system-drawn toast. Mutation standard requires real hit testing; ED-220 (7) forbids real toast/registry/URI use in
 // tests. Need a safe native-toast hit-testing seam or a ruling accepting callback proof for this system UI. No fake
 // clickable toast is substituted. Partial callback assertions remain without these whole-record Req claims.
+
+// STOP App.AppDelegate #7 - OPEN: PR-LAUNCH-071 is not claimed.
+// Kind: owner ruling not built.
+// Swift: App/AppDelegate.swift:22-33.
+// Records: PR-LAUNCH-071.
+// OD-0096 (owner_decisions.md, 2026-10-03, with its 2026-10-04 amendments: look I, words W1, download D3) changes the first run: the
+// window first shows a "Getting ready" sheet, and the Welcome screen then asks whether the user wants voice typing. The record's
+// "no first-run onboarding beyond the welcome tour" and "no Windows-only first-run wizard" are what that ruling replaces, and it is
+// not built (nothing settles whether the 700 ms tour shows over the sheet). The tests that pin today's sequence (main window,
+// bootstrap, the 700 ms tour; AppDelegateFourthTests, AppDelegateThirdTests) carry no Req for it: they are rewritten with OD-0096.
+// The clean-data capture of the real exe (porting/verification/native/launch-2026-10-02/RESULT.md) was taken before OD-0096.
+
+// STOP App.AppDelegate #8 - OPEN: UI-LAUNCH-005 is not claimed (RECORD != SWIFT).
+// Kind: record conflicts with the pinned source.
+// Swift: App/AppDelegate.swift:63-75; App/UpdateChecker.swift:249-252; App/AppModel.swift:1224.
+// Records: UI-LAUNCH-005 ("Banner plus default sound in every other case ... including the update notification"), PR-UPDATE-025
+// ("with sound", "an audible alert").
+// willPresent returns [.banner, .sound] for an update (proved: AppDelegateTests, WindowsToastTests), but the update's content sets
+// no sound (UpdateChecker.swift:249-252), so nothing is audible; the port's update toast is now silent (it played the Windows
+// default sound). The taps and the suppression are proved. The records' wording needs the lead's correction; until then the
+// presentation-table tests are R-TEST-4 partial and the tap tests carry no UI-LAUNCH-005 Req.

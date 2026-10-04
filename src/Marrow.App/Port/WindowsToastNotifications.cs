@@ -129,9 +129,11 @@ public sealed class WindowsToastCenter(IWindowsToastPlatform platform, ToastBuil
         }
         catch (Exception) { } // AppModel.swift:1268; UpdateChecker.swift:260, try? add (also a denied toast).
     }
-    // UpdateChecker.swift:249-261; PR-UPDATE-025/ED-220: update banners retain default sound in the foreground.
+    // UpdateChecker.swift:249-261: the content has a title, a body and userInfo and no sound (:249-252), so the banner is
+    // silent, as a thread banner whose sound is nil is (AppModel.swift:1224; ED-227 (3)). willPresent's .sound (AppDelegate.swift:74)
+    // plays nothing without a content.sound. The PR-UPDATE-025 wording "with sound" is a RECORD != SWIFT conflict; Swift decides.
     public void Show(string identifier, string title, string body, string version) =>
-        MainActor.Spawn(() => Add(new ToastRequest(identifier, title, body, true,
+        MainActor.Spawn(() => Add(new ToastRequest(identifier, title, body, false,
             new Dictionary<string, object>(StringComparer.Ordinal) { ["update"] = version })));
 
     public static string Payload(ToastRequest request, ToastBuildIdentity identity) => new XElement("toast",

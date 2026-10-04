@@ -42,7 +42,7 @@ public sealed class WindowsToastRoutingTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; owner_decisions.md OD-0037
     [Trait("Req", "PR-WIN-076")] // App/AppDelegate.swift:82-90
-    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:71-86 the thread tap
+    // The thread tap :71-86; UI-LAUNCH-005 is withdrawn (STOP App.AppDelegate #8 in AppDelegateProofTests), so no Req for it here.
     public void Clicking_a_thread_notification_shows_the_main_window_and_selects_the_thread_and_opens_no_Settings() => WithLaunch(launch =>
     {
         var thread = Guid.NewGuid();
@@ -61,7 +61,7 @@ public sealed class WindowsToastRoutingTests(HeadlessSession headless)
     [Trait("Req", "PR-UPDATE-024")] // App/AppDelegate.swift:71-86; App/Window/WindowManager.swift:32-38
     [Trait("Req", "PR-WIN-076")] // App/AppDelegate.swift:83 presence, whatever the value
     [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:84 the update tap opens Settings on About without the main window
-    [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:71-86 the update tap
+    // The update tap :71-86; UI-LAUNCH-005 is withdrawn (STOP App.AppDelegate #8 in AppDelegateProofTests), so no Req for it here.
     [InlineData("1.7.1")]
     [InlineData("")]
     public void Clicking_an_update_notification_opens_Settings_on_About_and_never_the_main_window(string version) => WithLaunch(launch =>
