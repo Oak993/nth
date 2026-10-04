@@ -337,6 +337,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-CHAT-034")] // TimelineRows.swift:2402 `.background(..., in: .rect(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, the corner of a notice two lines tall
     [Trait("Req", "UI-RUNTIME-002")] // TimelineRows.swift:2398-2402: the warning notice's pill, two lines tall
+    [Trait("Req", "UI-RUNTIME-003")] // TimelineRows.swift:2398-2402: the error notice's pill, two lines tall
     public void A_warning_or_error_notice_two_lines_tall_is_cut_to_Apples_corner_at_the_largest_radius_that_fits() => headless.OnUiThread(() =>
     {
         using var h = Harness();
