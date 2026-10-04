@@ -1,0 +1,5 @@
+  Determining projects to restore...
+  Restored /workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj (in 9.4 sec).
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Release/net10.0/linux-x64/Marrow.Shim.dll
+  Generating native code
+  Marrow.Shim -> /tmp/sk8-aot/
