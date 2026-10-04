@@ -72,7 +72,7 @@ public sealed class CommandPaletteChordTests(HeadlessSession headless)
                 var cleared = RowParts(RowTitled(palette, title));
                 Assert.False(cleared.Chord.IsVisible);
                 Assert.Equal(0, cleared.Chord.Bounds.Width); // the chord takes no layout space
-                // :111, :132: the HStack's 12-point spacing and the Spacer(minLength: 8) stay without the chord (ED-NEW-small-fixes)
+                // :111, :132: the HStack's 12-point spacing and the Spacer(minLength: 8) stay without the chord (ED-279)
                 Assert.Equal(cleared.Grid.Bounds.Width - 20, cleared.TextStack.Bounds.Right, 1);
                 window.Close();
 
@@ -151,7 +151,7 @@ public sealed class CommandPaletteChordTests(HeadlessSession headless)
     [InlineData("Add project", 120)]
     [Trait("Req", "UI-WIN-033")] // :132-137 geometry: the trailing edge of the row, after at least 8 points of space
     [Trait("Req", "UI-WIN-032")] // :111, :132: the text block, at least 8 points of space, then the chord
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-WIN-032 and UI-WIN-033: the chord's place (the floor of 8 points, the 12 + 8 + 12 of the stack and the trailing edge; ED-NEW-small-fixes)
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-WIN-032 and UI-WIN-033: the chord's place (the floor of 8 points, the 12 + 8 + 12 of the stack and the trailing edge; ED-279)
     public void The_chord_is_the_trailing_item_with_at_least_8_points_between_it_and_the_text_at_the_narrowest_the_row_asks_for(string title, double extraRoom)
     {
         headless.OnUiThread(() =>

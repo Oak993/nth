@@ -395,7 +395,7 @@ file sealed class CommandPaletteRow : Decorator
         // on nearly every row here, since almost every action carries a shortcut (PR-WIN-171/172/173). The Star
         // column also gives titleBlock/subtitleBlock a real bounded width, which is what lets their MaxLines(1)
         // truncation (above, and :124-130) actually clip rather than only ever measuring their full text.
-        // ENGINEERING DECISION (ED-NEW-small-fixes, UI-WIN-032, UI-WIN-033): the spacing is derived from the Swift's stack, whose
+        // ENGINEERING DECISION (ED-279, UI-WIN-032, UI-WIN-033): the spacing is derived from the Swift's stack, whose
         // Spacer(minLength: 8) at :132 is outside `if let shortcut`. HStack(spacing: 12) puts 12 between each pair of adjacent
         // subviews and a Spacer is a subview, so the text block is followed by 12, the Spacer (at least 8) and, only when a chord
         // follows, another 12: 12 + 8 = 20 on every row, 12 + 8 + 12 = 32 before a chord. The 20 is the text block's trailing margin
