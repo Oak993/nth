@@ -1301,7 +1301,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the wording verbatim including the capitalised PATH, while resolving against a Windows PATH split on \";\" with PATHEXT-aware existence tests rather than an execute bit.",
       "verification_method": "unit asserting the exact message for each of the three names",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4883,7 +4883,8 @@
         "DroppyCode/App/Views/Palette/CommandPalette.swift:169",
         "DroppyCode/Core/Models/Shortcuts.swift:183"
       ],
-      "notes": "The same words are the shortcut's own title in the shortcuts settings, whose description is \"Shows or hides the changes panel.\""
+      "notes": "The same words are the shortcut's own title in the shortcuts settings, whose description is \"Shows or hides the changes panel.\"",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-026",

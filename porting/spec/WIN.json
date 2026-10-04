@@ -1407,7 +1407,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1483,7 +1483,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6382,7 +6382,8 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:34-41"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6409,7 +6410,8 @@
         "decision": "OD-0005",
         "upstream": "`.glassEffect(.regular, in: .rect(cornerRadius: 24, style: .continuous))` (DroppyCode/App/Views/Palette/CommandPalette.swift:97), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.glassEffect(.regular, in: .rect(cornerRadius: 24, style: .continuous))`: untinted, with no .interactive() and no container (DroppyCode/App/Views/Palette/CommandPalette.swift:97), so none is added."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Search threads, projects and actions",
@@ -6434,7 +6436,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:43-62 and :100-101"
       ],
-      "b2_change": "Magnifier colour B1 CommandPalette.swift:45 `.foregroundStyle(.secondary)` -> B2 :45 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Magnifier colour B1 CommandPalette.swift:45 `.foregroundStyle(.secondary)` -> B2 :45 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": "Nothing matches “<query>”",
@@ -6455,7 +6458,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:66-76"
       ],
-      "b2_change": "Font B1 CommandPalette.swift:70 `.font(.system(size: 13))` -> B2 :70 `.font(.system(.body))`; colour B1 :71 `.foregroundStyle(.secondary)` -> B2 :71 `.foregroundStyle(Chrome.secondaryText)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Font B1 CommandPalette.swift:70 `.font(.system(size: 13))` -> B2 :70 `.font(.system(.body))`; colour B1 :71 `.foregroundStyle(.secondary)` -> B2 :71 `.foregroundStyle(Chrome.secondaryText)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,
@@ -6510,7 +6514,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 `var description: String { KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode) }` and :43-50 modifierSymbols appends \"⌃\", \"⌥\", \"⇧\", \"⌘\" in that order with no separator",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,

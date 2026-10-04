@@ -114,7 +114,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:108-109"
       ],
       "notes": "Accessibility label is exactly Conversation outline. The pointer style is declared on the hit area (.pointerStyle(.link)); there is no cursor push or pop to balance.",
-      "b3_note": "1.7.0 replaces the NSCursor push/pop and its ownership flag with `.pointerStyle(.link)` on the hit area (B3 TimelineMinimap.swift:211)."
+      "b3_note": "1.7.0 replaces the NSCursor push/pop and its ownership flag with `.pointerStyle(.link)` on the hit area (B3 TimelineMinimap.swift:211).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1097,7 +1098,8 @@
         "DroppyCode/App/Views/Chat/HydraProgressBar.swift:558"
       ],
       "notes": "Tooltip is Show these steps or Hide these steps, and the empty string when nothing can open; the accessibility hint is Shows what the agent is doing, and the empty string otherwise. The rotating word comes from a fixed list of twenty-two, changing every seven seconds, seeded per thread.",
-      "b2_change": "The chevron B1 ThreadTimeline.swift:2103 `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` -> B2 :2119 `.font(.chat(.caption2, weight: .semibold))`, still `.tertiary`; the card font B1 :2156 -> B2 :2172 `.font(.chat(.callout))`; the title and time fonts were respelled as text styles of the same macOS size (HydraProgressBar.swift:504 `.system(size: 13, weight: .medium)` -> `.system(.body, weight: .medium)`, :558 `.system(size: 11)` -> `.system(.subheadline)`). Moved from B1 :2046-2169 to B2 :2063-2185."
+      "b2_change": "The chevron B1 ThreadTimeline.swift:2103 `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` -> B2 :2119 `.font(.chat(.caption2, weight: .semibold))`, still `.tertiary`; the card font B1 :2156 -> B2 :2172 `.font(.chat(.callout))`; the title and time fonts were respelled as text styles of the same macOS size (HydraProgressBar.swift:504 `.system(size: 13, weight: .medium)` -> `.system(.body, weight: .medium)`, :558 `.system(size: 11)` -> `.system(.subheadline)`). Moved from B1 :2046-2169 to B2 :2063-2185.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1145,7 +1147,7 @@
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:536-576"
       ],
       "notes": "The sentence is assembled from three literals: What should we build in , the project name, and ?. There is a space before the name and none before the question mark. Tooltip on the name is exactly Choose another project.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -4696,7 +4698,8 @@
         "DroppyCode/App/Views/Palette/CommandPalette.swift:169",
         "DroppyCode/Core/Models/Shortcuts.swift:183"
       ],
-      "notes": "The same words are the shortcut's own title in the shortcuts settings, whose description is \"Shows or hides the changes panel.\""
+      "notes": "The same words are the shortcut's own title in the shortcuts settings, whose description is \"Shows or hides the changes panel.\"",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -5979,7 +5982,7 @@
       ],
       "notes": "It reads the head's STORED record, not its live one: reading the live progress here would redraw the strip on every token the head spends. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005). OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged.",
       "b2_change": "Citation re-anchored: B1 HydraPanel.swift:136-165 -> B2 HydraPanel.swift:136-165. Typography was \"Name .system(size: 12.5, weight: .medium); status word .system(size: 12); elapsed time .system(size: 11) with monospaced digits.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -7136,7 +7139,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:314-326"
       ],
-      "notes": "The same mark as the team panel's, but this one ends a turn, so a helper still at it is asked about first."
+      "notes": "The same mark as the team panel's, but this one ends a turn, so a helper still at it is asked about first.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -12679,7 +12683,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/PiSession.swift:506,:249"
       ],
-      "notes": "The comparison against the literal \"Yes\" is ordinal and is the ONLY thing that makes this button mean yes; a translated label would silently answer no."
+      "notes": "The comparison against the literal \"Yes\" is ordinal and is the ONLY thing that makes this button mean yes; a translated label would silently answer no.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12700,7 +12705,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/PiSession.swift:506"
       ],
-      "notes": "Dismissing the sheet without choosing sends \"cancelled\": true instead, which is a third outcome the two buttons cannot express."
+      "notes": "Dismissing the sheet without choosing sends \"cancelled\": true instead, which is a third outcome the two buttons cannot express.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12722,7 +12728,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/PiSession.swift:504,:517-518,:547"
       ],
-      "notes": "Pi is the only provider in this area that sets a non-empty question header; Claude uses the CLI's own header or the empty string, and Codex and Copilot use the empty string or the server's."
+      "notes": "Pi is the only provider in this area that sets a non-empty question header; Claude uses the CLI's own header or the empty string, and Codex and Copilot use the empty string or the server's.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -20607,7 +20614,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:164-168"
       ],
-      "notes": "SF Symbol \"terminal\". Item id is \"terminal\"."
+      "notes": "SF Symbol \"terminal\". Item id is \"terminal\".",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -21729,7 +21737,8 @@
         "DroppyCode/UI/Markdown/LinkPopover.swift:77-87"
       ],
       "notes": "The word \"Merge\" is a literal; the label after it comes from the parsed request and is specified by the GIT and HYDRAMERGE areas.",
-      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:189-198 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:77-87."
+      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:189-198 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:77-87.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -21752,7 +21761,8 @@
       ],
       "notes": "Both words capitalised.",
       "b2_change": "Citation corrected, unchanged: LinkPopover.swift:200-202 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:88-90.",
-      "b3_note": "B3 changes the action from NSWorkspace.shared.open(url) to MarkdownLinkOpener.open(url), same line numbers (:89). See PR-THEME-145 (OWNER decision O4 pending for the Windows behaviour)."
+      "b3_note": "B3 changes the action from NSWorkspace.shared.open(url) to MarkdownLinkOpener.open(url), same line numbers (:89). See PR-THEME-145 (OWNER decision O4 pending for the Windows behaviour).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -21774,7 +21784,8 @@
         "DroppyCode/UI/Markdown/LinkPopover.swift:91-94"
       ],
       "notes": "Writes the absolute URL, not the displayed pretty title.",
-      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:203-206 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:91-94."
+      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:203-206 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:91-94.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -24471,7 +24482,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "The panel's own hasSomething predicate tests only the fraction while the body's context test also requires windowTokens; keep both as written.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String, padding and reported height unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String, padding and reported height unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "USAGE",
@@ -25409,7 +25421,8 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:34-41"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -25437,7 +25450,8 @@
         "decision": "OD-0005",
         "upstream": "`.glassEffect(.regular, in: .rect(cornerRadius: 24, style: .continuous))` (DroppyCode/App/Views/Palette/CommandPalette.swift:97), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing. This site is `.glassEffect(.regular, in: .rect(cornerRadius: 24, style: .continuous))`: untinted, with no .interactive() and no container (DroppyCode/App/Views/Palette/CommandPalette.swift:97), so none is added."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -25463,7 +25477,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:43-62 and :100-101"
       ],
-      "b2_change": "Magnifier colour B1 CommandPalette.swift:45 `.foregroundStyle(.secondary)` -> B2 :45 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Magnifier colour B1 CommandPalette.swift:45 `.foregroundStyle(.secondary)` -> B2 :45 `.foregroundStyle(Chrome.secondaryText)`; Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -25485,7 +25500,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:66-76"
       ],
-      "b2_change": "Font B1 CommandPalette.swift:70 `.font(.system(size: 13))` -> B2 :70 `.font(.system(.body))`; colour B1 :71 `.foregroundStyle(.secondary)` -> B2 :71 `.foregroundStyle(Chrome.secondaryText)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Font B1 CommandPalette.swift:70 `.font(.system(size: 13))` -> B2 :70 `.font(.system(.body))`; colour B1 :71 `.foregroundStyle(.secondary)` -> B2 :71 `.foregroundStyle(Chrome.secondaryText)`; text styles are sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`, B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -25542,7 +25558,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 `var description: String { KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode) }` and :43-50 modifierSymbols appends \"⌃\", \"⌥\", \"⇧\", \"⌘\" in that order with no separator",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",

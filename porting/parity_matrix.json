@@ -7,11 +7,11 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3754,
+      "IMPLEMENTED": 3770,
       "RETIRED": 15,
-      "SPECIFIED": 195,
+      "SPECIFIED": 180,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
-      "DISCOVERED": 6
+      "DISCOVERED": 5
     },
     "by_area": {
       "CHAT": 193,
@@ -11141,7 +11141,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the wording verbatim including the capitalised PATH, while resolving against a Windows PATH split on \";\" with PATHEXT-aware existence tests rather than an execute bit.",
       "verification_method": "unit asserting the exact message for each of the three names",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -15765,7 +15765,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the predicate and all four provider-specific suppressions. The exact membership of the API-key-based provider set is owned by the PROVIDERS area.",
       "verification_method": "contract fixture over the argv and config for each branch",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -16048,7 +16048,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering exactly; a different order changes what every lead reads first.",
       "verification_method": "contract fixture over a turn with attachments, a merge status and anti-slop pending",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -18597,7 +18597,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the three-step fallback and the hold override. OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged.",
       "verification_method": "interaction test over selection, a finishing head and a popped-out panel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -20013,7 +20013,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Suppress the transition during a window resize; that is a correctness measure, not a polish choice. OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged.",
       "verification_method": "interaction test dragging, dropping and resizing the window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -20116,7 +20116,7 @@
       "cancellation": "The confirmation popover is the cancellation point.",
       "windows_path": "Two tooltips and the confirm-before-stop gate.",
       "verification_method": "interaction test with a running and an idle helper",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25818,7 +25818,7 @@
       "cancellation": "The pending task is cancelled only by saveBeforeQuit; a later scheduleSave call while one is pending neither cancels nor restarts it.",
       "windows_path": "Direct port: the literal 400 ms floor, the literal 4 s minimum spacing, the throttle (not cancel-and-restart debounce) semantics, and the per-URL coalescing.",
       "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce exactly one write, landing 400 ms after the first of them",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52764,7 +52764,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-48 ClaudeSession #1, with R3-13 #3 folded in): pendingControl became a PendingReplies (ClaudeSession.swift:37, :306), so control() became cancellable."
     },
     {
@@ -56550,7 +56550,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe all eleven rows byte for byte including ampersands, U+00B7 separators and the 1M casing in the details, and implement the sentinel as structural equality against the eleven-row list.",
       "verification_method": "unit against a golden fixture plus the sentinel equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b3_note": "At 1.7.0 the aliased seed has eleven rows (CommandCodeAPI.swift:349-361), adding claude-opus-5-5 \"Claude Opus 5.5\" and gpt-5.6-luna \"GPT-5.6 Luna\"; the sentinel comparison uses the new list."
@@ -65497,7 +65497,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Sum totalTokens only; the optional input, output and cached counts are not added.",
       "verification_method": "unit - install a Droppy-run head document with two turns holding spends of 100 and 250 tokens and assert hydraTokens is 350; the same document on a lead leaves hydraTokens unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -90746,7 +90746,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows toast notification via Electron Notification. Keep the write-then-send order exactly, including its consequence.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -90801,7 +90801,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows 10/11 toasts need no runtime permission prompt, so the notDetermined branch has no analogue. Name this as a PLATFORM BOUNDARY: the port sends the toast directly and there is no prompt.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91588,7 +91588,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key, same 350 ms delay, then app.quit(). Note the app's own quit handling can delay termination (AppDelegate.swift:44-54 waits up to 4 minutes for a running merge), which interacts with the 25 s handoff timeout below.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -92698,7 +92698,7 @@
       "cancellation": "not cancellable",
       "windows_path": "port_impacts.md:430 X4: size the window from an off-screen measurement pass before showing it, using the max-across-pages rule. A CSS implementation can measure all eight panels hidden, take the tallest, and fix the card height. Do not let the card resize per page. ED-059: the panel's .body description is measured at 13 point in Inter (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and the .title3 button label at 15 point (:50), so the tallest page no longer depends on a system text size (porting/critiques/spec_audit_findings.md:495); the measured heights use the OD-0012 H wording of pages 1 and 8 (UI-UPDATE-046, UI-UPDATE-053).",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -97582,7 +97582,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -97661,7 +97661,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

@@ -4522,7 +4522,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:108-109"
       ],
       "notes": "Accessibility label is exactly Conversation outline. The pointer style is declared on the hit area (.pointerStyle(.link)); there is no cursor push or pop to balance.",
-      "b3_note": "1.7.0 replaces the NSCursor push/pop and its ownership flag with `.pointerStyle(.link)` on the hit area (B3 TimelineMinimap.swift:211)."
+      "b3_note": "1.7.0 replaces the NSCursor push/pop and its ownership flag with `.pointerStyle(.link)` on the hit area (B3 TimelineMinimap.swift:211).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-004",
@@ -5465,7 +5466,8 @@
         "DroppyCode/App/Views/Chat/HydraProgressBar.swift:558"
       ],
       "notes": "Tooltip is Show these steps or Hide these steps, and the empty string when nothing can open; the accessibility hint is Shows what the agent is doing, and the empty string otherwise. The rotating word comes from a fixed list of twenty-two, changing every seven seconds, seeded per thread.",
-      "b2_change": "The chevron B1 ThreadTimeline.swift:2103 `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` -> B2 :2119 `.font(.chat(.caption2, weight: .semibold))`, still `.tertiary`; the card font B1 :2156 -> B2 :2172 `.font(.chat(.callout))`; the title and time fonts were respelled as text styles of the same macOS size (HydraProgressBar.swift:504 `.system(size: 13, weight: .medium)` -> `.system(.body, weight: .medium)`, :558 `.system(size: 11)` -> `.system(.subheadline)`). Moved from B1 :2046-2169 to B2 :2063-2185."
+      "b2_change": "The chevron B1 ThreadTimeline.swift:2103 `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` -> B2 :2119 `.font(.chat(.caption2, weight: .semibold))`, still `.tertiary`; the card font B1 :2156 -> B2 :2172 `.font(.chat(.callout))`; the title and time fonts were respelled as text styles of the same macOS size (HydraProgressBar.swift:504 `.system(size: 13, weight: .medium)` -> `.system(.body, weight: .medium)`, :558 `.system(size: 11)` -> `.system(.subheadline)`). Moved from B1 :2046-2169 to B2 :2063-2185.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-044",
@@ -5511,7 +5513,7 @@
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:536-576"
       ],
       "notes": "The sentence is assembled from three literals: What should we build in , the project name, and ?. There is a space before the name and none before the question mark. Tooltip on the name is exactly Choose another project.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-046",

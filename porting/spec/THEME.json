@@ -5686,7 +5686,8 @@
         "DroppyCode/UI/Markdown/LinkPopover.swift:77-87"
       ],
       "notes": "The word \"Merge\" is a literal; the label after it comes from the parsed request and is specified by the GIT and HYDRAMERGE areas.",
-      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:189-198 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:77-87."
+      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:189-198 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:77-87.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-044",
@@ -5708,7 +5709,8 @@
       ],
       "notes": "Both words capitalised.",
       "b2_change": "Citation corrected, unchanged: LinkPopover.swift:200-202 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:88-90.",
-      "b3_note": "B3 changes the action from NSWorkspace.shared.open(url) to MarkdownLinkOpener.open(url), same line numbers (:89). See PR-THEME-145 (OWNER decision O4 pending for the Windows behaviour)."
+      "b3_note": "B3 changes the action from NSWorkspace.shared.open(url) to MarkdownLinkOpener.open(url), same line numbers (:89). See PR-THEME-145 (OWNER decision O4 pending for the Windows behaviour).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-045",
@@ -5729,7 +5731,8 @@
         "DroppyCode/UI/Markdown/LinkPopover.swift:91-94"
       ],
       "notes": "Writes the absolute URL, not the displayed pretty title.",
-      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:203-206 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:91-94."
+      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:203-206 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:91-94.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-046",

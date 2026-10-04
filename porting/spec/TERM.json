@@ -4129,7 +4129,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:164-168"
       ],
-      "notes": "SF Symbol \"terminal\". Item id is \"terminal\"."
+      "notes": "SF Symbol \"terminal\". Item id is \"terminal\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-034",

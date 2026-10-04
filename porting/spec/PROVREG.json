@@ -3577,7 +3577,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe all eleven rows byte for byte including ampersands, U+00B7 separators and the 1M casing in the details, and implement the sentinel as structural equality against the eleven-row list.",
       "verification_method": "unit against a golden fixture plus the sentinel equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b3_note": "At 1.7.0 the aliased seed has eleven rows (CommandCodeAPI.swift:349-361), adding claude-opus-5-5 \"Claude Opus 5.5\" and gpt-5.6-luna \"GPT-5.6 Luna\"; the sentinel comparison uses the new list."

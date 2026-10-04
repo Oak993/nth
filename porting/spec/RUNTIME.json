@@ -5790,7 +5790,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Sum totalTokens only; the optional input, output and cached counts are not added.",
       "verification_method": "unit - install a Droppy-run head document with two turns holding spends of 100 and 250 tokens and assert hydraTokens is 350; the same document on a lead leaves hydraTokens unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

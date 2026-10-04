@@ -1595,7 +1595,7 @@
       "cancellation": "The pending task is cancelled only by saveBeforeQuit; a later scheduleSave call while one is pending neither cancels nor restarts it.",
       "windows_path": "Direct port: the literal 400 ms floor, the literal 4 s minimum spacing, the throttle (not cancel-and-restart debounce) semantics, and the per-URL coalescing.",
       "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce exactly one write, landing 400 ms after the first of them",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

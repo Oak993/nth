@@ -3791,7 +3791,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "The panel's own hasSomething predicate tests only the fraction while the body's context test also requires windowTokens; keep both as written.",
-      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String, padding and reported height unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String, padding and reported height unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-041",
