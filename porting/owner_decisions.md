@@ -961,3 +961,13 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   5. The knob warm-up must cause neither a stutter in the composer light nor a hitch on the first switch of light style, so nothing is left to first use (LEAD RULING 2 of fix-knobcache, amended).
   6. The installer (unsigned Setup.exe, x64, local folder) is built only after the whole port and every first-release feature are done. It is never run, signed or published without the owner.
   7. The four FYIs stand.
+
+## OD-0106 Voice notes picks (D-VN): Notes A, Countdown C, CUDA A (2026-10-05)
+
+- **Asked (chat, 2026-10-05):** the D-VN variants page https://claude.ai/artifact/7kBUmes7C8Jz4WGBFrucmB (sources E:\Droppy\work\design\decisions-2026-10-04oice-notes\, built after OD-0105 item 4). It asked for the Q-V-7 A error-note wording set (A Plain, B Short, C Action, D Explained), the Q-V-6 B countdown look in the voice pill (A time in place of the words, B time after the words, C a draining line with no numbers, D "Stops in" with amber at the end) and the Q-V-9 C CUDA offer look in the hardware card (A its own row, B inside the recommendation box, C on the GPU backend line, D a sentence under the card's note). The recommendations were Notes A, Countdown B and CUDA A.
+- **Owner, verbatim:** "voice-notes: Notes A, Countdown C, CUDA A"
+- **Effect:** VT-17 builds these picks as drawn on the page.
+  - **Notes:** set A, Plain. Each of the eleven notes says what happened, then names the place that fixes it, as one underlined link with the locked "Microphone blocked" note's shape. With an empty draft it shows in the field; with text in the draft it shows in the composer's notice line.
+  - **Countdown:** look C. The pill's words stay as they are. A 2 px line inside the pill's foot, from the cross to the orb, shortens over the last 30 s before the 5-minute cap and takes the warning colour for the last 10 s. There are no digits. At the cap the text finishes as if the orb were clicked (V-7.12). Under Reduce Motion the line steps once a second.
+  - **CUDA:** look A. On NVIDIA PCs with a working probe, an "NVIDIA CUDA" row sits under the recommendation in Settings > Voice typing > Speech model, with its size (644 MB, from nuget.org and NVIDIA) and a Download capsule. Progress, cancel and the end states use the model list's state column and its 2 px bar.
+  - **Still open for VT-17 (lead):** the page's open points. These are the restart after the CUDA download, whether the download note shows beside the download pill, the 5.2 s display time for the new notes, and the screen-reader announcements. VT-17 settles them as engineering decisions without the owner, unless they change what the owner picked.
