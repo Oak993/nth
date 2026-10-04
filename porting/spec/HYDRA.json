@@ -4182,7 +4182,7 @@
       "cancellation": "The sleep is a view task, cancelled when the hold changes or the view goes away.",
       "windows_path": "2000 ms. This value also sets the auto-clear delay, which is this plus 200 ms.",
       "verification_method": "interaction test with a fake clock plus a capture comparison of the wave",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6640,7 +6640,7 @@
         "DroppyCode/App/Views/Chat/HydraPanel.swift:72-91"
       ],
       "notes": "This 2.0-second hold is also what the auto-clear delay is derived from: the head leaves the panel 2.2 seconds after finishing, so the wave has played first.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-027",

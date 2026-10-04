@@ -5017,7 +5017,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1657-1853"
       ],
       "notes": "The example text is one of many. Tooltips are exactly Show the head's steps, Show this change, Show the image, Show the output and Hide the output, and the empty string when nothing opens. The chevron is chevron.down for a popover and a rotating chevron.right for an in-place expansion.",
-      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:1802 -> B2 :1792); both chevrons went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :1814, :1818 -> B2 :1804, :1808) and the completed glyph `.secondary` -> `Chrome.secondaryText` (B1 :2098 -> B2 :2086). The plain row text is still `.secondary` (B2 :1793). Moved from B1 :1667-1863 to B2 :1657-1853."
+      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:1802 -> B2 :1792); both chevrons went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :1814, :1818 -> B2 :1804, :1808) and the completed glyph `.secondary` -> `Chrome.secondaryText` (B1 :2098 -> B2 :2086). The plain row text is still `.secondary` (B2 :1793). Moved from B1 :1667-1863 to B2 :1657-1853.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-025",
@@ -5040,7 +5041,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2141-2164"
       ],
       "notes": "Rendered inline rather than in a nested scroll view, because a nested scroller inside the timeline fights gestures and hitches.",
-      "b2_change": "B1 TimelineRows.swift:2164 `.font(.chat(.caption, design: .monospaced, zoom: zoom))` -> B2 :2151 `.font(.chat(.caption, design: .monospaced))`. Moved from B1 :2154-2177 to B2 :2141-2164."
+      "b2_change": "B1 TimelineRows.swift:2164 `.font(.chat(.caption, design: .monospaced, zoom: zoom))` -> B2 :2151 `.font(.chat(.caption, design: .monospaced))`. Moved from B1 :2154-2177 to B2 :2141-2164.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-026",
@@ -5108,7 +5110,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2127-2140"
       ],
       "notes": "Parsing is memoized per path-and-diff pair, sixty deep, so opening and closing a row is instant however large the patch.",
-      "b2_change": "B1 TimelineRows.swift:2144-2145 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.secondary)` -> B2 :2131-2132 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2140-2153 to B2 :2127-2140."
+      "b2_change": "B1 TimelineRows.swift:2144-2145 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.secondary)` -> B2 :2131-2132 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2140-2153 to B2 :2127-2140.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-029",
@@ -5134,7 +5137,8 @@
         "DroppyCode/App/Views/Chat/ChatBadge.swift:22-80"
       ],
       "notes": "Accepted and dismissed deliberately share the title Plan. The non-drafting glyph is list.bullet.clipboard drawn in the tint.",
-      "b2_change": "Fonts dropped zoom (ChatBadge.swift B1 :29, :35, :42 -> B2 :28, :34, :41); the chevron went `.foregroundStyle(.tertiary)` (B1 ChatBadge.swift:43) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :42). Moved: TimelineRows.swift B1 :2277-2351 -> B2 :2263-2337; ChatBadge.swift B1 :23-81 -> B2 :22-80."
+      "b2_change": "Fonts dropped zoom (ChatBadge.swift B1 :29, :35, :42 -> B2 :28, :34, :41); the chevron went `.foregroundStyle(.tertiary)` (B1 ChatBadge.swift:43) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :42). Moved: TimelineRows.swift B1 :2277-2351 -> B2 :2263-2337; ChatBadge.swift B1 :23-81 -> B2 :22-80.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-030",
@@ -5228,7 +5232,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2343-2382"
       ],
       "notes": "Updates rewrite the steps in place and animate with .snappy(duration: 0.2), so checking an item off animates the same list instead of adding a row.",
-      "b2_change": "Fonts dropped zoom; B1 TimelineRows.swift:2366 `.foregroundStyle(.secondary)` -> B2 :2351 `.foregroundStyle(Chrome.secondaryText)` for the header. The pending glyph (.tertiary) and the done text (.secondary) are unchanged. Moved from B1 :2358-2397 to B2 :2343-2382."
+      "b2_change": "Fonts dropped zoom; B1 TimelineRows.swift:2366 `.foregroundStyle(.secondary)` -> B2 :2351 `.foregroundStyle(Chrome.secondaryText)` for the header. The pending glyph (.tertiary) and the done text (.secondary) are unchanged. Moved from B1 :2358-2397 to B2 :2343-2382.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-034",
@@ -5582,7 +5587,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:340-387"
       ],
       "notes": "Phrasings are <name> is done for one head, <name> and <name> are done for two, and a comma-separated list with a final and for three or more, collapsed to one line and capped at 140 characters. Tooltip when enabled is exactly Show the message.",
-      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:280, :285 -> B2 :279, :284); the chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :286 -> B2 :285). Moved: B1 :242-330, :341-388 -> B2 :241-329, :340-387."
+      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:280, :285 -> B2 :279, :284); the chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :286 -> B2 :285). Moved: B1 :242-330, :341-388 -> B2 :241-329, :340-387.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-049",
@@ -5650,7 +5656,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:537-595"
       ],
       "notes": "Tooltip is exactly Show the brief. The apostrophe is U+0027 and the ellipsis is U+2026. Attachments, if any, sit above the pill.",
-      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:569, :574 -> B2 :566, :571); the chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :575 -> B2 :572). Moved from B1 :540-598 to B2 :537-595."
+      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:569, :574 -> B2 :566, :571); the chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :575 -> B2 :572). Moved from B1 :540-598 to B2 :537-595.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-052",
@@ -5702,7 +5709,8 @@
         "DroppyCode/Core/Models/Hydra.swift:509-529"
       ],
       "notes": "The seven stage strings are Gathering the team's files, Writing the commit, Writing the commit message, Pushing the branch, Opening the merge request, Merging and Bringing the checkout up to date, each shown with a trailing ellipsis. With no stage reported the words are exactly Merging…. No elapsed clock is shown beside the stage, deliberately.",
-      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:1063, :1068, :1094, :1151, :1157, :1165 -> B2 :1057, :1062, :1088, :1145, :1151, :1159); the outcome chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :1158 -> B2 :1152). Moved from B1 :931-1168 to B2 :926-1162."
+      "b2_change": "Fonts dropped zoom (B1 TimelineRows.swift:1063, :1068, :1094, :1151, :1157, :1165 -> B2 :1057, :1062, :1088, :1145, :1151, :1159); the outcome chevron went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B1 :1158 -> B2 :1152). Moved from B1 :931-1168 to B2 :926-1162.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-054",
@@ -5778,7 +5786,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1723-1755"
       ],
       "notes": "who is the roster name when the title leads with one before a colon, otherwise the literal a head. rest is a colon, a space and the task, or nothing when the title is one of subagent, agent, task or empty. Never a spinner beside Delegating Subagent.",
-      "b2_change": "B1 TimelineRows.swift:1802 `.chat(.callout, weight: .medium, zoom: zoom)` -> B2 :1792 `.chat(.callout, weight: .medium)`. Moved: B1 :1776-1803, :1733-1765 -> B2 :1766-1793, :1723-1755."
+      "b2_change": "B1 TimelineRows.swift:1802 `.chat(.callout, weight: .medium, zoom: zoom)` -> B2 :1792 `.chat(.callout, weight: .medium)`. Moved: B1 :1776-1803, :1733-1765 -> B2 :1766-1793, :1723-1755.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-057",
@@ -5801,7 +5810,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1772-1793"
       ],
       "notes": "The separator in the stored title is exactly a space, U+00B7 and a space. The rendered label is the catalog entry's name, a colon, a space and the tool name.",
-      "b2_change": "B1 TimelineRows.swift:1802 `.chat(.callout, weight: .medium, zoom: zoom)` -> B2 :1792 `.chat(.callout, weight: .medium)`; mcpParts uses `.trimmed` (B2 :2245-2246). Moved: B1 :2255-2267, :1782-1803 -> B2 :2242-2254, :1772-1793."
+      "b2_change": "B1 TimelineRows.swift:1802 `.chat(.callout, weight: .medium, zoom: zoom)` -> B2 :1792 `.chat(.callout, weight: .medium)`; mcpParts uses `.trimmed` (B2 :2245-2246). Moved: B1 :2255-2267, :1782-1803 -> B2 :2242-2254, :1772-1793.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-058",

@@ -2431,7 +2431,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read the Windows animation-effects setting; same static opacity.",
       "verification_method": "capture comparison with reduced motion on",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

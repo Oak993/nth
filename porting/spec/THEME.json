@@ -5792,7 +5792,8 @@
         "DroppyCode/UI/Markdown/StreamVeil.swift:311"
       ],
       "notes": "Offsets are grapheme clusters, not UTF-16. The shared text clock is pinned to a preferred 30 frames a second (minimum 24, maximum 60); the native paragraph's own clock is not pinned at all.",
-      "b2_change": "Dimmed base `Color.secondary` (B1 StreamVeil.swift:311) -> `Color.primary.opacity(0.7)` (B2 :311). The link accent, timings, boost, curve and scroll hold are unchanged."
+      "b2_change": "Dimmed base `Color.secondary` (B1 StreamVeil.swift:311) -> `Color.primary.opacity(0.7)` (B2 :311). The link accent, timings, boost, curve and scroll hold are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-048",
