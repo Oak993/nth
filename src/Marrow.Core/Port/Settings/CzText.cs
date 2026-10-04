@@ -1,6 +1,5 @@
 // PORT-ONLY (OD-0103): locked Customization text and numeric helpers, CZ-5..8 and CZ-12.10/11.
 using System.Globalization;
-using Marrow.Core.Models.ComposerLights;
 
 namespace Marrow.Core.Port.Settings;
 
@@ -241,7 +240,7 @@ public static class CzText
         "Default",
         "Return every Uiverse light setting to how it ships",
         "Aura = UiverseAuraOptions.Default",
-        "The composer has no light. Your Border beam and Uiverse light settings are kept for when you\nturn one back on.",
+        "The composer has no light. Your Border beam and Uiverse light settings are kept for when you turn one back on.",
     });
 
     public static IReadOnlyDictionary<string, string> StyleTitles { get; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>

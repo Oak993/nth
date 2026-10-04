@@ -17,11 +17,13 @@ for (const hex of ['#000000','#FFFFFF','#1F30C6','#A14827','#FAFCFF','#06060B','
  for (const title of ['#FFFFFF','#000000','#1C1C1E','#B95D3A']) for (const dark of [true,false])
   tone.push({hex,title,dark,text:vm.runInContext(`czTone('${hex}',${dark},'${title}')`, context)});
 const ranges = [[.5,14,.05],[.2,3,.05],[0,1,.01],[-180,180,1],[0,2.5,.05],[0,180,1],[.25,3,.05],[0,2,.05],[0,26,1],[0,20,.5],[0,60,.5],[.35,4,.01],[.5,2,.01],[0,3,.05],[3,40,.5],[0,100,1],[0,40,1],[4,64,1],[.5,5,.25],[2,8,.5]];
-const snap = ranges.flatMap(([min,max,step]) => [min-1,min,min+step/2,(min+max)/2,max,max+1].map(v => ({min,max,step,v,result:+(Math.round(Math.max(min,Math.min(max,v))/step)*step).toFixed(4)})));
+const snapExpression = source.match(/const set = \(nv\) => this\.setOpt\(group, key, (.+)\);/)[1];
+const designSnap = vm.runInContext(`(nv,min,max,step) => ${snapExpression}`, context);
+const snap = ranges.flatMap(([min,max,step]) => [min-1,min,min+step/2,(min+max)/2,max,max+1].map(v => ({min,max,step,v,result:designSnap(v,min,max,step)})));
 // Extract all literal UI text from the locked tables (CZ-5..8); placeholders are kept for runtime interpolation.
 const spec = fs.readFileSync(path.join(root,'porting/first-release/customization-SPEC.md'),'utf8');
 const tables = spec.slice(spec.indexOf('## 5. Style'),spec.indexOf('## 9. Voice orb'));
-const texts = [...new Set([...tables.matchAll(/`([^`]+)`/g)].map(m=>m[1]))];
+const texts = [...new Set([...tables.matchAll(/`([^`]+)`/g)].map(m=>m[1].replace(/\s*\n\s*/g,' ')))];
 const constants = vm.runInContext('({style:CZ_STYLE,description:CZ_STYLE_D,palettes:CZ_PAL,shape:CZ_SHAPE_D})',context);
 const paletteRel = 'porting/first-release/design-src/orb/liquid-palettes.json';
 const paletteBytes = fs.readFileSync(path.join(root,paletteRel));
@@ -39,7 +41,41 @@ for (const m of makers) for (const dark of [true,false]) for (const stop of ['de
   tone.push({maker:m.id,stop,hex,title,dark,text:vm.runInContext(`czTone('${hex}',${dark},'${title}')`,context)});
 }
 const paletteSha256 = crypto.createHash('sha256').update(paletteBytes).digest('hex');
-const output = {paletteSource:paletteRel,paletteSha256,makers,source:rel,sha256:crypto.createHash('sha256').update(source).digest('hex'),fmt,tone,snap,texts,constants};
+const border = JSON.parse(fs.readFileSync(path.join(root,'src/Marrow.Core/Models/ComposerLights/border-beam-tables.json'),'utf8'));
+const swatches = Object.entries(constants.palettes).map(([id,name]) => ({id,name,colors:[0,4,6,8].map(i=>border.G[id].border[i].color)}));
+// Execute the real row-building methods for every textual branch, while capturing their view models.
+// Rendering helpers are seams only: titles, details and branches still come from cz.js.
+context.CW = 472; context.CH = 52; context.CR = 22;
+context.BBT = border; context.PAL_NAMES = Object.keys(constants.palettes);
+const designTexts = vm.runInContext(`(() => {
+  const found = new Set();
+  const text = v => { if (typeof v === 'string' && v) found.add(v); return v; };
+  const board = Object.create(CzComponent.prototype);
+  Object.assign(board, {
+    state: {beam:{},aura:{},adv:false}, st: () => ({}),
+    beamEff: b => ({pulse:b.family==='pulse'}),
+    model: () => ({name:'{maker name}'}), accent: () => ['', '{accent name}'],
+    dx: (_,v) => text(v), row: (_,v) => {text(v.t); return v;},
+    seg: (t,options) => {text(t); options.forEach(o => text(o.t)); return {};},
+    segRow: (_,t,d) => {text(t);text(d);return {};},
+    slider: (_,__,t,d) => {text(t); if(typeof d==='function'){text(d(true));text(d(false));}else text(d);return {};},
+    toggle: (_,__,t,d) => {text(t);text(d);return {};}, cap: t => {text(t);return {};},
+    card: v => v, sec: (_,t) => text(t), advRow: d => {text(d);return {};},
+    voiceSec: () => ({}), dotsSec: () => ({}), isDefault: () => true
+  });
+  for (const family of ['rotate','pulse']) for(const size of ['md','line','sm','pulse-inner','pulse-outside'])
+    for(const color of ['colorful','mono']) for(const staticColors of [true,false]) for(const theme of ['auto','dark','light']) {
+      board.state.beam={family,size,color,staticColors,theme}; board.beamRows();
+    }
+  for(const scheme of ['original','maker','accent','custom']) for(const rim of [true,false]) for(const dots of [true,false]) {
+    board.state.aura={scheme,rim,dots}; board.auraRows();
+  }
+  for(const def of [true,false]) {board.isDefault=()=>def; board.resetRow('beam'); board.resetRow('aura');}
+  board.sections('off','B');
+  Object.values(CZ_STYLE).forEach(text); Object.values(CZ_STYLE_D).forEach(text);
+  return [...found];
+})()`, context);
+const output = {designTexts,swatches,paletteSource:paletteRel,paletteSha256,makers,source:rel,sha256:crypto.createHash('sha256').update(source).digest('hex'),fmt,tone,snap,texts,constants};
 fs.writeFileSync(path.join(__dirname,'expected.json'),JSON.stringify(output,null,2)+'\n');
 
 // Generated catalogue is source data, not a re-computation of the design's colours.

@@ -20,6 +20,11 @@ public sealed class CzTextTests
     {
         using var f = Fixture();
         Assert.Equal(f.RootElement.GetProperty("texts").EnumerateArray().Select(x => x.GetString()), CzText.TableText);
+        foreach (var text in f.RootElement.GetProperty("designTexts").EnumerateArray()) Assert.Contains(text.GetString()!, CzText.TableText);
+        foreach (var pair in f.RootElement.GetProperty("constants").GetProperty("style").EnumerateObject()) Assert.Equal(pair.Value.GetString(), CzText.StyleTitles[pair.Name]);
+        foreach (var pair in f.RootElement.GetProperty("constants").GetProperty("description").EnumerateObject()) Assert.Equal(pair.Value.GetString(), CzText.StyleDescriptions[pair.Name]);
+        foreach (var pair in f.RootElement.GetProperty("constants").GetProperty("palettes").EnumerateObject()) Assert.Equal(pair.Value.GetString(), CzText.PaletteNames[pair.Name]);
+        foreach (var pair in f.RootElement.GetProperty("constants").GetProperty("shape").EnumerateObject()) Assert.Equal(pair.Value.GetString(), CzText.ShapeDetails[pair.Name]);
         Assert.Equal("The model in use: Claude", CzText.AuraColours("maker", "Claude", "Blue"));
         Assert.Equal("Your accent: Blue", CzText.AuraColours("accent", "Claude", "Blue"));
     }

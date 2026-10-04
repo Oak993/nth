@@ -1,4 +1,214 @@
 {
+  "designTexts": [
+    "Motion",
+    "Rotate",
+    "Pulse",
+    "Shape",
+    "Large",
+    "Line",
+    "Small",
+    "Inside",
+    "Outside",
+    "Tuned for",
+    "Auto",
+    "Dark",
+    "Light",
+    "Travels around the edge",
+    "A wide beam with an inner glow",
+    "Colourful",
+    "Colours",
+    "Speed",
+    "Auto: the designed pace",
+    "Seconds for one lap",
+    "Brightness",
+    "Auto: set for the theme",
+    "Lighter or deeper colours",
+    "Intensity",
+    "How strongly the light shows",
+    "Follow the composer",
+    "Softer at rest, fuller as you type and while a turn runs",
+    "Colour shift",
+    "Turns every colour around the wheel",
+    "Saturation",
+    "Vivid or muted colours",
+    "Colour drift",
+    "Off while the colours hold still",
+    "Hold colours still",
+    "The palette stops drifting",
+    "Glow size",
+    "Softness of every glow",
+    "Edge line",
+    "The thin line on the edge",
+    "Inner glow",
+    "The wash inside the edge",
+    "Outer glow",
+    "The bloom beyond the edge",
+    "Corner",
+    "Auto: follows the composer",
+    "Rounder or squarer than the composer",
+    "Matches the app’s theme",
+    "Outside glow",
+    "Core softness",
+    "The bright glow near the edge",
+    "Bloom softness",
+    "The wide glow around it",
+    "Glow width",
+    "How far it spreads sideways",
+    "Glow height",
+    "How far it spreads up and down",
+    "Glow boost",
+    "Extra brightness in the glow",
+    "Flare",
+    "How much the streak flares as it goes",
+    "Always the dark recipe",
+    "Always the light recipe",
+    "How far the colours wander",
+    "Mono",
+    "Mono always holds still",
+    "A short streak glides along the edge",
+    "Seconds for one sweep",
+    "How far the colours wander (Line keeps it under 13°)",
+    "A slimmer beam, a tighter glow",
+    "Colour pools just inside the edge",
+    "A glow spills out past the edge",
+    "Breathes in place",
+    "Seconds for one breath",
+    "Pulse always runs through every hue",
+    "Original",
+    "Model",
+    "Accent",
+    "Custom",
+    "Orange and blue",
+    "One for each side of the glow",
+    "Your colours",
+    "Seconds for one turn",
+    "Breathing",
+    "The glow slowly swells and settles",
+    "At rest",
+    "While the composer waits",
+    "While typing",
+    "As you write a message",
+    "While a turn runs",
+    "As the agent works",
+    "Rim light",
+    "A bright line hugging the edge",
+    "Halftone",
+    "The glow seen through fine dots",
+    "Halo size",
+    "How far the glow reaches",
+    "Halo softness",
+    "How soft its outer edge is",
+    "Rim width",
+    "Thickness of the rim light",
+    "Dot spacing",
+    "Finer or coarser dots",
+    "Dot strength",
+    "How visible the dots are",
+    "Turn on Halftone to use it",
+    "Turn on Rim light to use it",
+    "The model in use: {maker name}",
+    "Your accent: {accent name}",
+    "Two colours you pick",
+    "Border beam as Marrow ships it",
+    "Defaults",
+    "The Uiverse light as Marrow ships it",
+    "Return every Border beam setting to how it ships",
+    "Return every Uiverse light setting to how it ships",
+    "Look",
+    "Pace and strength",
+    "Colour recipe, glow layers and corner",
+    "Brightness by moment",
+    "Halo, rim and dot sizes",
+    "The composer has no light. Your Border beam and Uiverse light settings are kept for when you turn one back on.",
+    "Border beam",
+    "Uiverse light",
+    "Off",
+    "A beam of colour travels the edge",
+    "A soft two-tone glow turns around it",
+    "No light around the composer"
+  ],
+  "swatches": [
+    {
+      "id": "colorful",
+      "name": "Colourful",
+      "colors": [
+        "rgb(255, 50, 100)",
+        "rgb(100, 70, 255)",
+        "rgb(255, 120, 40)",
+        "rgb(180, 40, 240)"
+      ]
+    },
+    {
+      "id": "mono",
+      "name": "Mono",
+      "colors": [
+        "rgb(180, 180, 180)",
+        "rgb(170, 170, 170)",
+        "rgb(190, 190, 190)",
+        "rgb(165, 165, 165)"
+      ]
+    },
+    {
+      "id": "ocean",
+      "name": "Ocean",
+      "colors": [
+        "rgb(100, 80, 220)",
+        "rgb(120, 80, 255)",
+        "rgb(140, 100, 240)",
+        "rgb(130, 70, 255)"
+      ]
+    },
+    {
+      "id": "sunset",
+      "name": "Sunset",
+      "colors": [
+        "rgb(255, 80, 50)",
+        "rgb(255, 100, 80)",
+        "rgb(255, 60, 60)",
+        "rgb(255, 90, 70)"
+      ]
+    },
+    {
+      "id": "forest",
+      "name": "Forest",
+      "colors": [
+        "rgb(46, 160, 90)",
+        "rgb(90, 200, 80)",
+        "rgb(120, 210, 70)",
+        "rgb(60, 195, 140)"
+      ]
+    },
+    {
+      "id": "candy",
+      "name": "Candy",
+      "colors": [
+        "rgb(240, 70, 170)",
+        "rgb(200, 80, 240)",
+        "rgb(230, 120, 220)",
+        "rgb(210, 70, 230)"
+      ]
+    },
+    {
+      "id": "ice",
+      "name": "Ice",
+      "colors": [
+        "rgb(90, 200, 240)",
+        "rgb(110, 210, 255)",
+        "rgb(150, 230, 250)",
+        "rgb(65, 180, 245)"
+      ]
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "colors": [
+        "rgb(240, 190, 60)",
+        "rgb(255, 225, 120)",
+        "rgb(245, 205, 85)",
+        "rgb(255, 215, 100)"
+      ]
+    }
+  ],
   "paletteSource": "porting/first-release/design-src/orb/liquid-palettes.json",
   "paletteSha256": "a600baefbcf22aca861392456ff4d9c05088c37627fe30e95cd5142d5c441f15",
   "makers": [
@@ -4261,7 +4471,7 @@
     "Default",
     "Return every Uiverse light setting to how it ships",
     "Aura = UiverseAuraOptions.Default",
-    "The composer has no light. Your Border beam and Uiverse light settings are kept for when you\nturn one back on."
+    "The composer has no light. Your Border beam and Uiverse light settings are kept for when you turn one back on."
   ],
   "constants": {
     "style": {
