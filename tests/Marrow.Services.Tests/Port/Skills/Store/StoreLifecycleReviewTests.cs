@@ -158,7 +158,7 @@ public sealed class StoreLifecycleReviewTests
         Directory.CreateDirectory(home);
         File.WriteAllText(Path.Combine(home, "sentinel"), "untouched");
         Directory.CreateDirectory(f.Paths.Addons);
-        Directory.CreateSymbolicLink(f.Paths.Tools, home);
+        TestLinks.Directory(f.Root, f.Paths.Tools, home);
         Assert.Throws<IOException>(() => new SkillsStore(f.Paths, [], AddonsState.Empty, f.Protection).Collect());
         Assert.Equal("untouched", File.ReadAllText(Path.Combine(home, "sentinel")));
     }

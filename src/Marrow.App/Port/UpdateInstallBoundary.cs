@@ -8,15 +8,19 @@
 // PR-UPDATE-051's windows_path, plus the staged CFBundleShortVersionString read -> Verify and ReadVersion;
 // the installer script launch -> LaunchDetachedInstaller). Because the Windows release asset format is not
 // decided (UNK-0009; PA-0014 "The update feed is the public GitLab Releases API and is platform-neutral"),
-// WindowsUpdateInstallBoundary.Stage creates the real per-update staging directory and its ACL (both
-// decided and tested) and then throws PortBlockedException at the step that would unpack an actual asset:
-// that step, and everything a real install does after it, cannot run until a Windows release exists
-// (OD-0008 C6). This is a tracked blocker, not a stand-in: every throw site says so.
+// WindowsUpdateInstallBoundary.Stage created the real per-update staging directory and its ACL (both
+// decided and tested) and then threw PortBlockedException at the step that would unpack an actual asset.
+// UE-1 (OD-0062 Velopack, OD-0100 the owner's GitHub feed) CLOSES UNK-0009: the Windows release asset is
+// Velopack's full package (MarrowCode-<version>-full.nupkg, a zip whose nuspec names the app and version),
+// downloaded and checksum-verified by Velopack's UpdateManager into its own packages folder, and applied by
+// Velopack's Update.exe. Stage, Verify and ReadVersion now work on that package (ED-319); the
+// installer-script step (LaunchDetachedInstaller) stays for the pipeline that has no engine.
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Marrow.Core.Port;
+using Marrow.Core.Port.SelfUpdate;
 using Marrow.Core.Support;
 
 namespace Marrow.App.Port;
@@ -24,7 +28,7 @@ namespace Marrow.App.Port;
 /// <summary>
 /// A tracked platform blocker (contract section 17): the caller sees exactly why a step cannot run yet.
 /// Distinct from <see cref="UpdateInstallError"/> (a source-defined failure the app shows the user); this
-/// one means the port has not been asked to solve the named unknown (for example UNK-0009).
+/// one means the port has not been asked to solve the named unknown. Nothing throws it since UE-1 closed UNK-0009.
 /// </summary>
 public sealed class PortBlockedException(string message) : Exception(message);
 
@@ -47,26 +51,14 @@ public interface IUpdateInstallBoundary
 /// <summary>The production boundary. See the file header for what UNK-0009 blocks and why.</summary>
 public sealed class WindowsUpdateInstallBoundary : IUpdateInstallBoundary
 {
-    // :299-330. The staging directory and its ACL are real and independently testable (ED-188 ruling
-    // point 3); the unpack step that would follow needs the undecided Windows artifact format (UNK-0009).
-    public async Task<string> Stage(string downloadedArtifactPath, string expectedVersion)
+    // :299-330, through Velopack (UE-1, closes UNK-0009). The downloaded artifact is Velopack's full package. It stays where
+    // Velopack put it, in its own packages folder: Velopack's Update.exe applies from there, so the :322, :325 removal of the
+    // downloaded image does not apply (removing it would remove the update). Velopack already unpacked nothing and verified the
+    // feed's checksum when the download ended; there is nothing for this port to unpack, so the staged path is the package.
+    public Task<string> Stage(string downloadedArtifactPath, string expectedVersion)
     {
         _ = expectedVersion;
-        CreateStagingDirectory();
-        try
-        {
-            await Task.CompletedTask;
-            throw new PortBlockedException(
-                "UNK-0009: no Windows release asset is published; the update artifact's format is not decided.");
-        }
-        finally
-        {
-            // :322, :325. try? FileManager.default.removeItem(at: image): the downloaded artifact is
-            // removed on both the success and the error path.
-            try { File.Delete(downloadedArtifactPath); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-        }
+        return Task.FromResult(downloadedArtifactPath);
     }
 
     /// <summary>
@@ -95,6 +87,14 @@ public sealed class WindowsUpdateInstallBoundary : IUpdateInstallBoundary
     // check and the Gatekeeper assessment into one trust gate (PR-UPDATE-051 windows_path).
     public void Verify(string stagedPath)
     {
+        // UE-1: a Velopack package (.nupkg) is not an Authenticode file; Velopack checked its checksum against the feed when the
+        // download ended, and this checks it is Marrow's package (ED-319). Anything else keeps the Authenticode gate.
+        if (stagedPath.EndsWith(PackageExtension, StringComparison.OrdinalIgnoreCase))
+        {
+            if (VelopackPackage.ReadIdentity(stagedPath) is not { } identity || identity.Id != MarrowReleaseFeed.PackageId)
+                throw new UpdateInstallError($"The downloaded app is not signed by Marrow. Not a {MarrowReleaseFeed.PackageId} package");
+            return;
+        }
         if (!WinTrust.IsTrusted(stagedPath, out var reason))
             // ENGINEERING DECISION: no owner-licensed Windows wording exists for the Authenticode failure
             // text (PR-UPDATE-049 has no `deviation` field); the product-name substitution follows
@@ -103,13 +103,11 @@ public sealed class WindowsUpdateInstallBoundary : IUpdateInstallBoundary
             throw new UpdateInstallError($"The downloaded app is not signed by Marrow. {reason}");
     }
 
-    // :332-336. Reading the equivalent version resource needs the same undecided artifact format as Stage.
-    public string? ReadVersion(string stagedPath)
-    {
-        _ = stagedPath;
-        throw new PortBlockedException(
-            "UNK-0009: no Windows release asset is published; the staged version resource format is not decided.");
-    }
+    // :332-336. UE-1: the version a Velopack package's nuspec names; null for anything that is not one.
+    public string? ReadVersion(string stagedPath) =>
+        stagedPath.EndsWith(PackageExtension, StringComparison.OrdinalIgnoreCase) ? VelopackPackage.ReadIdentity(stagedPath)?.Version : null;
+
+    private const string PackageExtension = ".nupkg";
 
     // :380-395. install.sh's own content is PR-UPDATE-056 (part 2, the file's separate work packet); this
     // launches whatever part 2 leaves at scriptPath.

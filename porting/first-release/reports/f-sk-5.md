@@ -40,7 +40,7 @@ Repeated feature command: the same Services project with `--filter 'Feature=SK-5
 
 ## Engineering decisions and W0-4 closure
 
-[ED-NEW-f-sk-5](../../engineering_decisions.md#ed-new-f-sk-5) contains nine entries: scope/integration ownership; explicit root and native platform boundaries; immutable trusted inventories and multi-pin descriptors; full versus seal checks; downloader/installer and Repair contracts; synchronized leases/GC and atomic condemnation format; ordered unlock/teardown; adversarial lifecycle fixes; final promotion/residual/empty-metadata fixes.
+[ED-321](../../engineering_decisions.md#ed-new-f-sk-5) contains nine entries: scope/integration ownership; explicit root and native platform boundaries; immutable trusted inventories and multi-pin descriptors; full versus seal checks; downloader/installer and Repair contracts; synchronized leases/GC and atomic condemnation format; ordered unlock/teardown; adversarial lifecycle fixes; final promotion/residual/empty-metadata fixes.
 
 The previously missing ORIGINALS gap is closed. Read `skills-ORIGINALS-PLAN.md` from staging commit `3d3068124` via `git show`: section 3.3, W0-2/W0-4 and their acceptance context. All adapted SK-5 requirements were already covered. No missing-original blocker remains. This feature branch was kept on its requested base; it does not merge unrelated staging work.
 

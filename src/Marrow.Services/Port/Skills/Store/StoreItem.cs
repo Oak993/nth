@@ -1,4 +1,4 @@
-// PORT-ONLY: SK-5. Immutable installed-pin descriptor. No disk manifest is a trust root (ED-NEW-f-sk-5).
+// PORT-ONLY: SK-5. Immutable installed-pin descriptor. No disk manifest is a trust root (ED-321).
 using Marrow.Core.Port.Skills.Catalogue;
 
 namespace Marrow.Services.Port.Skills.Store;

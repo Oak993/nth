@@ -135,7 +135,7 @@ public sealed class WindowsStoreProtectionTests
     [WindowsOnlyFact]
     [Trait("Feature", "SK-5")]
     [Trait("Rule", "R-TEST-9")]
-    public void Native_hidden_and_system_entries_are_never_excluded_from_verification()
+    public void Hidden_and_system_entries_are_never_excluded_from_verification()
     {
         using var f = new StoreFixture(windows: true);
         var item = f.Create();

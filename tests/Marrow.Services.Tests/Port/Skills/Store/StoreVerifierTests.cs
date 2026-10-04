@@ -120,8 +120,8 @@ public sealed class StoreVerifierTests
         using var f = new StoreFixture();
         var item = f.Create();
         f.Trees.Unlock(item.Folder);
-        if (directory) Directory.CreateSymbolicLink(Path.Combine(item.Folder, "link"), f.Root);
-        else File.CreateSymbolicLink(Path.Combine(item.Folder, "link"), Path.Combine(f.Root, "not-read"));
+        if (directory) TestLinks.Directory(Path.GetDirectoryName(f.Root)!, Path.Combine(item.Folder, "link"), f.Root);
+        else TestLinks.File(Path.Combine(item.Folder, "link"), Path.Combine(f.Root, "not-read"));
         Assert.False(new StoreVerifier(f.Protection).Verify(item.Folder, item.Manifest).IsValid);
         Assert.Throws<IOException>(() => f.Trees.Lock(item.Folder));
     }

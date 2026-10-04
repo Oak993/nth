@@ -6,12 +6,19 @@ namespace Marrow.Services.Port.Skills.Store;
 
 public sealed class StoreManifest
 {
-    public StoreManifest(IEnumerable<CatalogueFile> files)
+    public StoreManifest(IEnumerable<CatalogueFile> files) : this(files, []) { }
+
+    /// <summary>
+    /// <paramref name="directories"/> adds folders an SK-4 install legitimately created with no file inside
+    /// (InstallResult.Directories, ED-322 (4)); any other empty folder stays damage (ED-323 (3)).
+    /// </summary>
+    public StoreManifest(IEnumerable<CatalogueFile> files, IEnumerable<string> directories)
     {
+        ArgumentNullException.ThrowIfNull(directories);
         var entries = files.ToArray();
         if (entries.Length == 0) throw new ArgumentException("A trusted file inventory is required.", nameof(files));
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var directories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in entries)
         {
             RequireRelative(file.Path);
@@ -22,13 +29,21 @@ public sealed class StoreManifest
             while (slash >= 0)
             {
                 var parent = file.Path[..slash];
-                directories.Add(parent);
+                folders.Add(parent);
                 slash = parent.LastIndexOf('/');
             }
         }
-        if (paths.Overlaps(directories)) throw new ArgumentException("A file is also a directory.", nameof(files));
+        foreach (var directory in directories)
+        {
+            if (directory is null) throw new ArgumentException("A null directory.", nameof(directories));
+            RequireRelative(directory);
+            folders.Add(directory);
+            for (var cut = directory.LastIndexOf('/'); cut >= 0; cut = directory.LastIndexOf('/', cut - 1))
+                folders.Add(directory[..cut]);
+        }
+        if (paths.Overlaps(folders)) throw new ArgumentException("A file is also a directory.", nameof(files));
         Files = Array.AsReadOnly(entries);
-        Directories = directories.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+        Directories = folders.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
     }
 
     public IReadOnlyList<CatalogueFile> Files { get; }

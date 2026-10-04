@@ -6182,7 +6182,8 @@
         "DroppyCode/UI/Common/ChatFont.swift:4-10 - the comment \"The app-wide zoom scales the window, not the type.\"; static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font { let resolvedWeight = weight ?? (style == .headline ? .semibold : nil); let font = Font.system(style, design: design); return resolvedWeight.map { font.weight($0) } ?? font }"
       ],
       "notes": "Icon is SF Symbol \"exclamationmark.triangle\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one). The trailing pill padding (14) is deliberately larger than the leading (12); the comment at TimelineRows.swift:19-23 explains the whole pill family shares these insets.",
-      "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` read @Environment(\\.chatZoom); B2 TimelineRows.swift:2397 `.font(.chat(.callout))`, and Font.chat (UI/Common/ChatFont.swift:6-10) takes no zoom. NoticeRow moved from B1 :2400 to B2 :2385. Geometry and colours are unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) and the face follows OD-0009 (Inter)."
+      "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` read @Environment(\\.chatZoom); B2 TimelineRows.swift:2397 `.font(.chat(.callout))`, and Font.chat (UI/Common/ChatFont.swift:6-10) takes no zoom. NoticeRow moved from B1 :2400 to B2 :2385. Geometry and colours are unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) and the face follows OD-0009 (Inter).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-003",
@@ -6207,7 +6208,7 @@
       "notes": "Icon is SF Symbol \"exclamationmark.octagon\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one). Only .info differs in padding and background; warning and error are geometrically identical and differ only in colour and glyph.",
       "b2_change": "B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))` read @Environment(\\.chatZoom); B2 TimelineRows.swift:2397 `.font(.chat(.callout))`, and Font.chat (UI/Common/ChatFont.swift:6-10) takes no zoom. NoticeRow moved from B1 :2400 to B2 :2385. Geometry and colours are unchanged. Owner rulings applied in this refresh: the icon follows OD-0010 (Lucide) and the face follows OD-0009 (Inter).",
       "b3_note": "The row chrome itself is unchanged. Cites move: :716 -> :715 (already applied), :1379 and :1911 stay, :2208 -> :2210, :2224 -> :2227. B3 adds three new error notices, at :2277 (could not bring the CLI up to date), :2285 (up to date now, send again) and :2291 (up to date now, could not be sent again), plus one .info notice at :2263 (owned by UI-RUNTIME-001, not this record). The messages previously at :1379, :2208 and :2224 (now :1379, :2210 and :2227) are suppressed for Claude or Codex when the CLI-update path takes the error instead; see UI-RUNTIME-035/036 and UI-RUNTIME-039 through UI-RUNTIME-042. The record's old claim of exactly five error messages is retired in favour of the explicit list above (eight, plus one info-level message owned elsewhere).",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-004",

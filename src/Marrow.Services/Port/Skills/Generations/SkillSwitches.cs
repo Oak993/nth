@@ -6,7 +6,7 @@ using Marrow.Services.Port.Skills.Store;
 
 namespace Marrow.Services.Port.Skills.Generations;
 
-/// <summary>PLAN WU-14: source-qualified switches avoid the two vendors' skill-creator collision (ED-NEW-f-sk-9).</summary>
+/// <summary>PLAN WU-14: source-qualified switches avoid the two vendors' skill-creator collision (ED-324).</summary>
 public sealed class SkillSwitches
 {
     public SkillSwitches(string version, IReadOnlyDictionary<string, bool> skills, IReadOnlyDictionary<string, bool> plugins)

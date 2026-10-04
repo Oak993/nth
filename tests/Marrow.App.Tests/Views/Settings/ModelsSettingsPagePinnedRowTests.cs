@@ -131,7 +131,7 @@ public sealed class ModelsSettingsPagePinnedRowTests(HeadlessSession headless)
         Assert.Equal(new CornerRadius(10), layer.CornerRadius);
         Assert.Equal(Chrome.Overlay(0.12).Resolve(layer.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(layer.Background).Color);
         var shadow = layer.BoxShadow[0];
-        Assert.Equal(10, shadow.Blur);
+        Assert.Equal((10 - 0.5) / 0.288675, shadow.Blur, 6); // radius 10 drawn as sigma 10 (ED-327; measured by SwiftShadowHeadlessTests)
         Assert.Equal(4, shadow.OffsetY);
         Assert.Equal(0, shadow.OffsetX);
         Assert.Equal(0, shadow.Spread);

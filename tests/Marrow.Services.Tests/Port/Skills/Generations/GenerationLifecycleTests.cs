@@ -7,7 +7,7 @@ namespace Marrow.Services.Tests.Port.Skills.Generations;
 [Trait("Feature", "SK-9")]
 public sealed class GenerationLifecycleTests
 {
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-spare-claim")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-spare-claim
     public void Ready_spare_is_claimed_by_rename_and_key_depends_on_entries_not_chat_or_project()
     {
         using var f = new GenerationFixture();
@@ -28,7 +28,7 @@ public sealed class GenerationLifecycleTests
         Assert.NotEqual(key, project.Key);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-spare-repair")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-spare-repair
     public void Damaged_spare_is_rebuilt_from_verified_store_before_launch()
     {
         using var f = new GenerationFixture();
@@ -45,7 +45,7 @@ public sealed class GenerationLifecycleTests
         Assert.Contains("BODY SENTINEL", g.Invoke("pdf"), StringComparison.Ordinal);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-direct-store-GC")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-direct-store-GC
     public void Direct_store_GC_during_publication_cannot_delete_the_leased_target()
     {
         using var f = new GenerationFixture();
@@ -62,7 +62,7 @@ public sealed class GenerationLifecycleTests
         Assert.True(g.Verify());
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-1.4-skill-creator")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-1.4-skill-creator
     public void Skill_creator_uses_the_approved_source_for_each_provider()
     {
         using var f = new GenerationFixture();
@@ -78,7 +78,7 @@ public sealed class GenerationLifecycleTests
         Assert.Empty(codex.Skills);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "ONDEMAND-1-unmodified-explicit-only")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: ONDEMAND-1-unmodified-explicit-only
     public void Explicit_only_without_an_upstream_flag_is_left_out_of_file_loading_providers()
     {
         using var f = new GenerationFixture();
@@ -93,7 +93,7 @@ public sealed class GenerationLifecycleTests
         Assert.Contains("BODY SENTINEL", native.Invoke("screenshot"), StringComparison.Ordinal);
     }
 
-    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "DL-9-fail-closed-clash-seam")]
+    [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-fail-closed-clash-seam
     public void Missing_clash_snapshot_refuses_to_build()
     {
         using var f = new GenerationFixture();

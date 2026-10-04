@@ -1,0 +1,176 @@
+using System.Security.Cryptography;
+using Marrow.Core.Port.Skills.Catalogue;
+using Marrow.Core.Port.Skills.State;
+using Marrow.Services.Port.Skills.Install;
+using Marrow.Services.Port.Skills.Pipelines;
+using Marrow.Services.Port.Skills.Shims;
+using Marrow.Services.Port.Skills.Store;
+using Marrow.Services.Tests.Port.Skills.Install;
+namespace Marrow.Services.Tests.Port.Skills.Pipelines;
+internal sealed class PipelineRig : IDisposable
+{
+    private readonly InstallRig install;
+    private readonly FakeInstallProcess? process;
+    private readonly IStoreProtection protection;
+    private readonly IInstallLock sealing;
+    private readonly List<StoreItem> versions = [];
+    private readonly Dictionary<(string Id, string Pin), IReadOnlyList<string>> directories = [];
+    private readonly InstallPlan plan;
+    private readonly IReadOnlyDictionary<string, string> nextFiles;
+    private SkillsCatalogue catalogue;
+    public StorePaths Paths { get; }
+    public CatalogueItem Old { get; }
+    public CatalogueItem Next { get; }
+    public int Downloads { get; private set; }
+    public List<double?> Reports { get; } = [];
+    public IProgress<double?> Progress => new PipelineProgress(Reports);
+    public string? LastDownloadPin { get; private set; }
+    public string? FailDownload { get; set; }
+    public PipelineRig(bool nonOpen = false, bool windows = false, bool skillset = false, bool multiPin = false, bool emptyDirectory = false, bool msi = false, string? root = null, bool disclosure = false)
+    {
+        install = root is null ? new() : new(root);
+        if (windows) { protection = new WindowsStoreProtection(); sealing = new WindowsInstallLock(); }
+        else { var fake = new PipelineProtection(); protection = fake; sealing = fake; }
+        Paths = new(install.Root);
+        plan = install.Plan(InstallerKind.Zip, emptyDirectory ? InstallRig.Zip(("payload.txt", "offline fixture"), ("empty/", "")) : null);
+        if (msi)
+        {
+            // integ-sk8-sk9: a LibreOffice-like administrative image; the fake msiexec writes the image into TARGETDIR (never a real msiexec).
+            process = new FakeInstallProcess { OnRun = cmd => File.WriteAllText(Path.Combine(cmd.Arguments[3]["TARGETDIR=".Length..], "payload.txt"), "offline fixture") };
+            plan = plan with { Kind = InstallerKind.MsiAdmin, Extractor = Path.Combine(install.Root, "msiexec.exe") };
+        }
+        if (skillset)
+        {
+            var skill = disclosure ? Disclosure("OLD BODY") : "Fixture skill instructions"u8.ToArray();
+            plan = plan with { Kind = InstallerKind.Skillset, Item = plan.Item with { Kind = ItemKind.Skillset, Artifacts = [], SkillCount = 1, SkillsListed = true,
+                Files = plan.Item.Files.Append(new CatalogueFile { Path = "skill/SKILL.md", Size = skill.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(skill)) }).ToArray(),
+                Skills = [new CatalogueSkill { Folder = "skill", Name = "skill", Path = "skill", Needs = [] }] },
+                LocalFiles = new Dictionary<string, string>(plan.LocalFiles) { ["skill/SKILL.md"] = install.Input("skill", skill) },
+                Spares = [new SpareProjection("claude", "fixture", ["skill/SKILL.md"]) { Prefix = "skills" }] };
+        }
+        Old = plan.Item with { TermsClass = nonOpen ? TermsClass.Proprietary : TermsClass.Open };
+        plan = plan with { Item = Old };
+        Next = Old with { Pin = "abcdef1234567890abcdef1234567890abcdef12", TermsClass = nonOpen ? TermsClass.Proprietary : TermsClass.Open };
+        nextFiles = plan.LocalFiles;
+        if (disclosure)
+        {
+            // integ-sk8-sk9: SK-9 needs reviewed frontmatter; the new pin carries a new body so a generation shows which pin it was built from.
+            var skill = Disclosure("NEW BODY");
+            Next = Next with { Files = Next.Files.Select(f => f.Path == "skill/SKILL.md" ? f with { Size = skill.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(skill)) } : f).ToArray() };
+            nextFiles = new Dictionary<string, string>(nextFiles) { ["skill/SKILL.md"] = install.Input("NEXT-SKILL", skill) };
+        }
+        if (!skillset)
+        {
+            var archive = emptyDirectory ? InstallRig.Zip(("payload.txt", "new offline fixture"), ("empty/", "")) : InstallRig.Zip(("payload.txt", "new offline fixture"));
+            Next = Next with { Artifacts = Next.Artifacts.Select(a => a with { Size = archive.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(archive)) }).ToArray() };
+            nextFiles = new Dictionary<string, string>(nextFiles) { ["payload.zip"] = install.Input("NEXT-PAYLOAD", archive) };
+        }
+        if (nonOpen)
+        {
+            var licence = "new fixture licence"u8.ToArray();
+            Next = Next with { Files = Next.Files.Select(f => f.Path == "LICENSE" ? f with { Size = licence.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(licence)) } : f).ToArray() };
+            nextFiles = new Dictionary<string, string>(nextFiles) { ["LICENSE"] = install.Input("NEXT-LICENSE", licence) };
+        }
+        if (multiPin) Next = Next with { Pin = null, Skills = Next.Skills.Select(s => s with { Pin = "abcdef1234567890abcdef1234567890abcdef12" }).ToArray() };
+        catalogue = new() { Schema = 1, ReadOn = "2026-10-04", Items = [Next] };
+    }
+    public async Task<SkillsPipeline> Create(Action<PipelineStep>? crash = null, InstallStep? installCrash = null, InstallStep? hardInstallCrash = null)
+    {
+        Directory.CreateDirectory(Paths.Addons);
+        var result = await new ItemInstaller(sealing, process).InstallAsync(plan);
+        var old = new StoreItem(Old, result.Path, new StoreManifest(result.Manifest));
+        versions.Add(old);
+        directories[(Old.Id, old.Pin)] = result.Directories;
+        PipelineRoutes.Prepare(Paths.StateFile, Bind(Old, result));
+        var state = AddonsState.Restore([result.Record], [], [], []);
+        if (Old.TermsClass != TermsClass.Open) state = state.AcceptTerms(ItemTerms.LicenceHash(Old)!, Old.Id, new DateTimeOffset(2026, 10, 4, 11, 0, 0, TimeSpan.Zero));
+        return Build(state, crash, installCrash, hardInstallCrash);
+    }
+    private SkillsPipeline Build(AddonsState state, Action<PipelineStep>? crash = null, InstallStep? installCrash = null, InstallStep? hardInstallCrash = null) => new(Paths, catalogue, versions.GroupBy(v => (v.Catalogue.Id, v.Pin)).Select(g => g.Last()), state,
+        new ItemInstaller(sealing, process, checkpoint: (step, _) => { if (step == hardInstallCrash) Environment.Exit(71); if (step == installCrash) throw new IOException("Injected crash"); }), protection,
+        downloads: (item, record, progress, cancellation) =>
+        {
+            cancellation.ThrowIfCancellationRequested(); Downloads++; progress.Report(0.5); LastDownloadPin = item.Pin;
+            if (item.Id == FailDownload) throw new IOException("Injected failure");
+            // Repair downloads the installed pin's own files; an update gets the new pin's.
+            return Task.FromResult(plan with { Item = item, Record = record, LocalFiles = item.Pin is not null && item.Pin == Old.Pin ? plan.LocalFiles : nextFiles });
+        }, bindings: (item, result) =>
+        {
+            versions.Add(new StoreItem(item, result.Path, new StoreManifest(result.Manifest), result.Record.InstalledPin));
+            directories[(item.Id, result.Record.InstalledPin!)] = result.Directories;
+            return Bind(item, result);
+        }, checkpoint: crash, trustedDirectories: directories);
+    private static PipelineRoute Bind(CatalogueItem item, InstallResult result) => new(item.Id, UpdateCheck.CataloguePin(item)!, result.Path, result.SparePaths.ToArray(),
+        item.Kind == ItemKind.Skillset ? new(StringComparer.Ordinal) : new(StringComparer.Ordinal) { [item.Id + ".exe"] = new ShimDefinition { Target = Path.Combine(result.Path, "payload.txt") } });
+    public SkillsPipeline Restart() => Build(AddonsState.Empty);
+    public IStoreProtection Protection => protection;
+    public StoreItem Trusted(string pin) => versions.Last(v => v.Pin == pin);
+    private static byte[] Disclosure(string body) => System.Text.Encoding.UTF8.GetBytes("---\nname: skill\ndescription: Fixture description\n---\n" + body + "\n");
+    public int ProcessRuns => process?.Commands.Count ?? 0;
+    // integ-sk8-sk9: tamper one installed file under the lock, as an agent removing the deny entry would.
+    public void Damage(string folder)
+    {
+        var trees = new StoreTrees(protection);
+        trees.Unlock(folder);
+        File.WriteAllText(Path.Combine(folder, "payload.txt"), "tampered");
+        trees.Lock(folder);
+    }
+    // integ-sk8-sk9: after a worker's abrupt exit, rebuild the old pin's trusted descriptor from the same offline install made in a scratch
+    // root (same folder name, hashes and directories), then restart the pipeline over the worker's state.json.
+    public async Task<SkillsPipeline> Reattach()
+    {
+        var scratch = Path.Combine(install.Root, "scratch");
+        var result = await new ItemInstaller(sealing, process).InstallAsync(plan with { DataRoot = scratch });
+        var folder = Path.Combine(Paths.Tools, Path.GetFileName(result.Path));
+        versions.Add(new StoreItem(Old, folder, new StoreManifest(result.Manifest)));
+        directories[(Old.Id, Old.Pin!)] = result.Directories;
+        new StoreTrees(protection).Unlock(scratch);
+        foreach (var file in Directory.GetFiles(scratch, "*", SearchOption.AllDirectories)) File.SetAttributes(file, FileAttributes.Normal);
+        Directory.Delete(scratch, true);
+        return Build(AddonsState.Empty);
+    }
+    public SkillsPipeline Unbound() => new(Paths, catalogue, versions, AddonsState.Empty, new ItemInstaller(sealing), protection,
+        trustedDirectories: directories);
+    // integ-sk8-sk9: two installed tools, both with a newer catalogue pin, for UE-2's per-item group.
+    public async Task<SkillsPipeline> CreateTwo()
+    {
+        Directory.CreateDirectory(Paths.Addons);
+        var records = new List<ItemRecord>();
+        foreach (var id in new[] { "fixture", "second" })
+        {
+            var item = Old with { Id = id };
+            var result = await new ItemInstaller(sealing, process).InstallAsync(plan with { Item = item, Record = plan.Record with { Id = id } });
+            versions.Add(new StoreItem(item, result.Path, new StoreManifest(result.Manifest), result.Record.InstalledPin));
+            directories[(id, result.Record.InstalledPin!)] = result.Directories;
+            PipelineRoutes.Prepare(Paths.StateFile, Bind(item, result));
+            records.Add(result.Record);
+        }
+        catalogue = catalogue with { Items = [Next, Next with { Id = "second" }] };
+        return Build(AddonsState.Restore(records, [], [], []));
+    }
+
+    public async Task<SkillsPipeline> CreateDependencies()
+    {
+        Directory.CreateDirectory(Paths.Addons);
+        var items = new List<CatalogueItem>();
+        var records = new List<ItemRecord>();
+        foreach (var id in new[] { "T1", "P1", "P2", "P3", "P4", "P5", "A1" })
+        {
+            // All use offline ZIP installation; kind is the removal graph's classification.
+            var item = Old with { Id = id, Kind = id == "T1" ? ItemKind.Tool : id == "A1" ? ItemKind.Tool : ItemKind.Pyset, Needs = id == "T1" ? [] : ["T1"] };
+            var result = await new ItemInstaller(sealing).InstallAsync(plan with { Item = item, Record = plan.Record with { Id = id } });
+            versions.Add(new StoreItem(item, result.Path, new StoreManifest(result.Manifest), result.Record.InstalledPin));
+            directories[(item.Id, result.Record.InstalledPin!)] = result.Directories;
+            PipelineRoutes.Prepare(Paths.StateFile, Bind(item, result));
+            items.Add(item); records.Add(result.Record);
+        }
+        catalogue = catalogue with { Items = items.Select(i => i.Id == "A1" ? i with { Kind = ItemKind.Skillset } : i).ToArray() };
+        return Build(AddonsState.Restore(records, [], [], []));
+    }
+    public void Dispose()
+    {
+        var trees = new StoreTrees(protection);
+        foreach (var root in new[] { Paths.Tools, Paths.Store, Paths.Views }) trees.Unlock(root);
+        install.Dispose();
+    }
+}

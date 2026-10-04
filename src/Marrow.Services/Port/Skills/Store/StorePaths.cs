@@ -1,4 +1,4 @@
-// PORT-ONLY: SK-5, ONDEMAND 3.1 data layout; explicit root and confinement (ED-NEW-f-sk-5).
+// PORT-ONLY: SK-5, ONDEMAND 3.1 data layout; explicit root and confinement (ED-321).
 namespace Marrow.Services.Port.Skills.Store;
 
 public sealed class StorePaths

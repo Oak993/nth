@@ -7,7 +7,7 @@ namespace Marrow.Services.Tests.Port.Skills.Generations;
 [Trait("Platform", "WINDOWS-ONLY")]
 public sealed class WindowsGenerationTests
 {
-    [WindowsOnlyFact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-generation-ACL")]
+    [WindowsOnlyFact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-generation-ACL
     public void Claimed_generation_keeps_ACL_and_GC_runs_the_unlock_order()
     {
         using var f = new GenerationFixture(windows: true);
@@ -25,7 +25,7 @@ public sealed class WindowsGenerationTests
         Assert.False(Directory.Exists(path));
     }
 
-    [WindowsOnlyFact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-generation-junction")]
+    [WindowsOnlyFact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-generation-junction
     public void Junction_in_generation_is_rejected_without_reading_its_target()
     {
         using var f = new GenerationFixture(windows: true);
@@ -42,7 +42,7 @@ public sealed class WindowsGenerationTests
         Assert.Equal("untouched", File.ReadAllText(Path.Combine(outside, "sentinel")));
     }
 
-    [WindowsOnlyFact, Trait("Feature", "SK-9"), Trait("Rule", "PLAN-2.1-held-generation-resume")]
+    [WindowsOnlyFact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: PLAN-2.1-held-generation-resume
     public void Held_old_chat_moves_to_a_new_path_and_GC_retries_after_handle_closes()
     {
         using var f = new GenerationFixture(windows: true);

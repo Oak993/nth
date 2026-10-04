@@ -449,7 +449,8 @@ public sealed class ChatView : Decorator
         panel.Surface.Width = size.Width;
         panel.Surface.Height = size.Height;
         // SubagentPanel.swift:299,340-354 frames both borders explicitly; Hydra/Usage frames its root.
-        if (panel.Surface is SubagentPanel { Child: Border { Child: Border shape } scrim })
+        // :345-355 the scrim is the clipped glass's sibling underneath it (PR-HYDRA-229).
+        if (panel.Surface is SubagentPanel { Child: Grid { Children: [Border scrim, Border shape] } })
         {
             scrim.Width = shape.Width = size.Width;
             scrim.Height = shape.Height = size.Height;

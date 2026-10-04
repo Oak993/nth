@@ -3405,7 +3405,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the thirty second window and the cache being keyed on the directory string as given.",
       "verification_method": "unit asserting a second refresh within thirty seconds spawns nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3482,7 +3482,7 @@
       "cancellation": "Dismissing the sheet cancels its task.",
       "windows_path": "Direct port. Note the tooltip names the settings page with a greater-than separator.",
       "verification_method": "interaction test with and without an available engine",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3692,7 +3692,7 @@
       "cancellation": "not applicable",
       "windows_path": "Platform boundary: there is no NSPopover. The Windows equivalent is a light-dismiss flyout anchored to the same views, sized 640 by 540 device-independent pixels, whose outside click must still deliver to the control beneath. Escape closes and is swallowed. Deviation-free status: the Swift's close bookkeeping is reproduced, upstream defect 67 included (PORT_CONTRACT section 8, ED-196, DiffInspector.swift:640-658): a delayed close that a reopen started stops the new show's monitors, clears desiredVisible and drops shownRuntime, so a popover reopened onto another anchor while shown ignores Escape and an outside click until it is closed another way (the X button, the tab, the changes shortcut, its flag) and shown afresh; a press outside closes the popover first, so the usual tap on another turn's Review button is a fresh show with its monitors. Native proof on a real popup: DiffPopoverNativeTests (SendInput, 100 % display scale on the test PC).",
       "verification_method": "interaction test on each dismissal route, including an outside click landing on another turn's review button",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "67",
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
@@ -5326,7 +5326,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "Title is exactly \"Edited 1 file\" at one file, otherwise \"Edited <n> files\". The leading image is the asset \"badge-edit\" rendered as a template at 18 by 18 points. Its tooltip is \"Show the files this turn changed\". ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2737 `@Environment(\\.chatZoom) private var zoom` is gone; title `.font(.chat(.callout, weight: .medium, zoom: zoom))` (B1 :2769) -> `.font(.chat(.callout, weight: .medium))` (B2 :2750); chevron `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` / `.foregroundStyle(.tertiary)` (B1 :2774-2775) -> `.font(.chat(.caption2, weight: .semibold))` / `.foregroundStyle(Chrome.secondaryText)` (B2 :2755-2756). \"Scaled by the chat zoom\" no longer holds. The card moved from B1 :2736-2846 to B2 :2718-2827."
+      "b2_change": "B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2737 `@Environment(\\.chatZoom) private var zoom` is gone; title `.font(.chat(.callout, weight: .medium, zoom: zoom))` (B1 :2769) -> `.font(.chat(.callout, weight: .medium))` (B2 :2750); chevron `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` / `.foregroundStyle(.tertiary)` (B1 :2774-2775) -> `.font(.chat(.caption2, weight: .semibold))` / `.foregroundStyle(Chrome.secondaryText)` (B2 :2755-2756). \"Scaled by the chat zoom\" no longer holds. The card moved from B1 :2736-2846 to B2 :2718-2827.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-045",
@@ -5390,7 +5391,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "Title \"Revert up to this point?\" and body \"Files go back to how they were before this turn, and the turn leaves the conversation.\" This path always restores files; it never offers to keep them. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "body `.font(.system(size: 12))` (B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2801) -> `.font(.system(.callout))` (B2 :2782); B1 DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The popover moved from B1 :2796-2817 to B2 :2777-2798."
+      "b2_change": "body `.font(.system(size: 12))` (B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2801) -> `.font(.system(.callout))` (B2 :2782); B1 DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The popover moved from B1 :2796-2817 to B2 :2777-2798.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-048",

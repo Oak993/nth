@@ -300,7 +300,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
         Assert.Equal(scrimAlpha, color.A);
         var shadow = UsageFloatingPanel.ScrimShadow(isDark);
         Assert.Equal(shadowAlpha, shadow.Color.A);
-        Assert.Equal(28, shadow.Blur);
+        Assert.Equal((28 - 0.5) / 0.288675, shadow.Blur, 6); // radius 28 drawn as sigma 28 (ED-327; measured by SwiftShadowHeadlessTests)
         Assert.Equal(10, shadow.OffsetY);
         Assert.Equal(0, shadow.OffsetX);
     }

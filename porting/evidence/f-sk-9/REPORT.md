@@ -99,7 +99,7 @@ all trees before deletion and checks that no extant locked fixture remains.
 
 ## EDs written
 
-At the end of `porting/engineering_decisions.md`, **ED-NEW-f-sk-9**, numbered choices 1-8:
+At the end of `porting/engineering_decisions.md`, **ED-324**, numbered choices 1-8:
 plugin activation/split; explicit reviewed metadata/defaults/budgets; source-qualified switch
 and content identity; publication reservations/spares/probes; unmodified explicit-only
 fail-closed handling; read-only scans/closed seams; fixture arithmetic and verification scope;

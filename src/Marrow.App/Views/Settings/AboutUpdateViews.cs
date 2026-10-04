@@ -1306,8 +1306,8 @@ internal sealed class AboutVersionPill : Decorator
     private static string StandingHelp(Snapshot snapshot, Standing standing) => standing switch
     {
         Standing.UpToDate => $"Marrow {AppInfo.Current.Version} is the latest version",
-        Standing.Failed => snapshot.LastError ?? "The last check did not reach GitLab",
-        Standing.Unchecked => "Marrow has not asked GitLab for a release yet",
+        Standing.Failed => snapshot.LastError ?? "The last check did not reach GitHub",
+        Standing.Unchecked => "Marrow has not asked GitHub for a release yet",
         _ => string.Empty,
     };
 }
@@ -1431,7 +1431,7 @@ public sealed class AboutSoftwareUpdateSection : Decorator
 
         var button = PlainControls.Button(label, () =>
             ShellWorkspace.OpenWithDefaultApp(update.PageURL.RelativeString));
-        ToolTip.SetTip(button, "Open the release on GitLab");
+        ToolTip.SetTip(button, "Open the release on GitHub");
         AutomationProperties.SetName(button, "Release notes");
         return button;
     }
@@ -1598,7 +1598,7 @@ public sealed class AboutUpdateCheckRow : Decorator
     private static string Detail(Snapshot snapshot)
     {
         if (snapshot.IsChecking)
-            return "Asking GitLab for the latest release…";
+            return "Asking GitHub for the latest release…";
 
         var checkedText = snapshot.LastCheckedAt is { } checkedAt
             ? $"Checked {SwiftFormatters.RelativeNamed(checkedAt)}."
@@ -1607,7 +1607,7 @@ public sealed class AboutUpdateCheckRow : Decorator
             return $"{error} {checkedText}";
         if (snapshot.UpdateAvailable && snapshot.Version is { } version)
             return $"Marrow {version} is ready to install. {checkedText}";
-        return $"Marrow checks GitLab for new versions a few times a day. {checkedText}";
+        return $"Marrow checks GitHub for new versions a few times a day. {checkedText}";
     }
 }
 

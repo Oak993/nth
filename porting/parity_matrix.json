@@ -7,11 +7,10 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3906,
+      "IMPLEMENTED": 3932,
       "RETIRED": 15,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
-      "SPECIFIED": 48,
-      "DISCOVERED": 1
+      "SPECIFIED": 23
     },
     "by_area": {
       "CHAT": 193,
@@ -1858,7 +1857,7 @@
       "cancellation": "The thumbnail task is keyed on the attachment path and is cancelled when the row goes away.",
       "windows_path": "The Finder icon becomes the Windows shell icon for the file type at the same size. Keep the lazy anchor: the anchor view is mounted only once the pointer has been on the photo, because a strip scrolling past should not build views for a tap that never comes.",
       "verification_method": "capture comparison plus interaction test opening the panel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2341,7 +2340,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Chrome.danger and Chrome.warning are theme colours, not system red and orange (chrome-design-tokens section 6.1). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison across the four statuses in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2389,7 +2388,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Count lines by scanning for newline bytes; do not split the whole output into an array, because a running command's row re-renders on every flush. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over the head function plus capture comparison at 29, 30 and 31 lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2412,7 +2411,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key composition, the same limit of 60 per generation and the same two-generation rotation, so up to 120 entries are held (RecentCache.swift:43-55); port_impacts.md 312 requires the three caches be sized together.",
       "verification_method": "unit counting parses",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2463,9 +2462,14 @@
       "persistence": "None; the fold is view state, initialized from the chronological flag, which the timeline always passes as false (PR-CHAT-125), so a finished turn always opens folded.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The fold is a change of what the block shows in the same frame with no transition, because a fade over a block that can run to thousands of points is a whole-layer composite the renderer may draw as nothing. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "windows_path": "The fold animates, as the Swift does (TimelineRows.swift:2609-2616 withAnimation(.snappy(duration: 0.24)), the chevron at :2623 in the same transaction): the body's height glides on snappy(0.24) in both directions and the incoming rows fade in row by row, the outgoing branch is gone at once; no opacity lies on the whole body, because a fade over a block that can run to thousands of points is a whole-layer composite the renderer may draw as nothing (ThreadTimeline.swift:1907-1926 keeps `.transition(.identity)` on the block swap for that reason). The turn-end swap (the running block replaced by the finished block) is cut on the Mac (2-chat-use.mov 125.743 -> 125.762 s) and transitions in the port by OD-0076: the finished block takes the running block's height and eases to its own in about 0.3 s while its rows fade in over about 0.2 s and the running block's rows are gone at once; Reduce Motion shows the end state. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "deviation": {
+        "decision": "OD-0076",
+        "upstream": "ThreadTimeline.swift:1907-1926 swaps the running turn block for the finished one with `.transition(.identity)`: one frame (2-chat-use.mov 125.743 -> 125.762 s).",
+        "port": "turn-end swap transitions (OD-0076); the Mac cuts (2-chat-use.mov 125.743 -> 125.762 s): the finished block eases its height from the running block's in about 0.3 s and its rows fade in over about 0.2 s, the running rows are gone at once, Reduce Motion shows the end state."
+      },
       "verification_method": "interaction test plus capture comparison folded and expanded",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2537,7 +2541,7 @@
       "cancellation": "The task is keyed on the turn id; a cancelled task writes nothing.",
       "windows_path": "Same guard conditions, so opening a long history does not parse every old turn's diff.",
       "verification_method": "restart test with a legacy fixture thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2563,7 +2567,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The anchor is captured lazily on first hover because a folded turn is a block of a virtualized list; keep that laziness but ensure a keyboard activation also captures an anchor, or the control silently does nothing. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2612,7 +2616,7 @@
       "cancellation": "Dismissing the popover cancels.",
       "windows_path": "This revert always restores files, unlike the message menu's two-way choice. Do not merge the two confirmations. The glass and glass-prominent button styles are a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2685,7 +2689,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both renderers must exist and switch on this flag alone (port_impacts.md 250 and 306), the flag read when the popover's content is built at open and not again while it stays open (ChatBadge.swift:112-147); the visual step at the end of streaming is deliberate and must not be normalized away.",
       "verification_method": "interaction test across the drafting-to-proposed transition: a popover left open through it keeps the streaming renderer, and one opened again shows the finished-prose surface",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2732,9 +2736,9 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Chrome.warning and Chrome.danger come from the active theme spec; do not substitute system colours.",
+      "windows_path": "Chrome.warning and Chrome.danger come from the active theme spec; do not substitute system colours. The message's callout line is the text style's 17-point box (ED-290 (1)), so a one-line warning or error pill is 33 tall (2-chat-use.mov C 9.0) and an info notice its 17-point line.",
       "verification_method": "capture comparison across the three levels in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3415,7 +3419,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The disabled-with-no-tooltip case is deliberate (port_impacts.md 288). The outcome markers are the literal substrings (failed and (stopped, with the opening parenthesis. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over the summary builder plus capture comparison of the pill",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3589,7 +3593,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The seven stage strings are verbatim, including the apostrophe in team's. A count of seconds beside the stage is deliberately absent, because it read as a stall.",
       "verification_method": "interaction test across a full merge plus capture comparison per stage",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3633,7 +3637,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Trailing alignment is explicitly wrong here; the source records that it hung each narrower pill off the widest one's right edge. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison with heads of differing name lengths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -13361,7 +13365,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the thirty second window and the cache being keyed on the directory string as given.",
       "verification_method": "unit asserting a second refresh within thirty seconds spawns nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13441,7 +13445,7 @@
       "cancellation": "Dismissing the sheet cancels its task.",
       "windows_path": "Direct port. Note the tooltip names the settings page with a greater-than separator.",
       "verification_method": "interaction test with and without an available engine",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13657,10 +13661,10 @@
         "No anchor view in a window means the popover simply does not show"
       ],
       "cancellation": "not applicable",
-      "windows_path": "Platform boundary: there is no NSPopover. The Windows equivalent is a light-dismiss flyout anchored to the same views, sized 640 by 540 device-independent pixels, whose outside click must still deliver to the control beneath. Escape closes and is swallowed.",
+      "windows_path": "Platform boundary: there is no NSPopover. The Windows equivalent is a light-dismiss flyout anchored to the same views, sized 640 by 540 device-independent pixels, whose outside click must still deliver to the control beneath. Escape closes and is swallowed. Deviation-free status: the Swift's close bookkeeping is reproduced, upstream defect 67 included (PORT_CONTRACT section 8, ED-196, DiffInspector.swift:640-658): a delayed close that a reopen started stops the new show's monitors, clears desiredVisible and drops shownRuntime, so a popover reopened onto another anchor while shown ignores Escape and an outside click until it is closed another way (the X button, the tab, the changes shortcut, its flag) and shown afresh; a press outside closes the popover first, so the usual tap on another turn's Review button is a fresh show with its monitors. Native proof on a real popup: DiffPopoverNativeTests (SendInput, 100 % display scale on the test PC).",
       "verification_method": "interaction test on each dismissal route, including an outside click landing on another turn's review button",
-      "status": "SPECIFIED",
-      "upstream_defect": null,
+      "status": "IMPLEMENTED",
+      "upstream_defect": "67",
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
     },
@@ -23119,7 +23123,7 @@
       "cancellation": "n/a",
       "windows_path": "Same disappearance and the same spring values.",
       "verification_method": "interaction test on the silent paths, including a checkout mid-rebase, a repeated identical failure and a first retryable failure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -23430,7 +23434,7 @@
       "cancellation": "n/a",
       "windows_path": "Same words and no clock. The shimmer and the offset transition are the visual contract.",
       "verification_method": "capture comparison across a stage change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -23458,7 +23462,7 @@
       "cancellation": "n/a",
       "windows_path": "Seven dots, the same pinning at the last dot, and a Reduce Motion equivalent on Windows.",
       "verification_method": "capture comparison across the seven stages",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23557,7 +23561,7 @@
       "cancellation": "n/a",
       "windows_path": "The same four metrics, shared with every other timeline pill so the family lines up.",
       "verification_method": "capture comparison plus an accessibility-tree assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23581,7 +23585,7 @@
       "cancellation": "n/a",
       "windows_path": "Reproduce the measure-hidden, draw-over, clip-and-give-back structure, not just the 0.3 s duration.",
       "verification_method": "capture comparison mid-transition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32265,9 +32269,9 @@
         "a search that matches nothing leaves only the lead card, the Custom section when it is not searching, and the footer"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same order and the same literal spacings. The footer's product name is \"Marrow\" (OD-0012 F1).",
+      "windows_path": "Same order and the same literal spacings. The footer's product name is \"Marrow\" (OD-0012 F1). The page's body, callout and subheadline text draws in the text styles' line boxes, 18, 17 and 16 (ED-290 (1)), so its cards measure as 1-settings-tour.mov shows them: the lead card 94, Connected rows 58 / 74 / 58 in a 192 card, the Custom card 97 (S 183.5), a catalog card 126 at a 136 row pitch (S 186.0), 144 at 154 with a two-line title (S 187.5).",
       "verification_method": "capture comparison against a rendered page plus an interaction test on the section order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -48494,7 +48498,7 @@
       "cancellation": "The 30 second timeout.",
       "windows_path": "ANSI stripping is load-bearing. The two-or-more-space column split is applied to text the CLI printed; a Windows console that pads differently would change which rows parse, so the real output must be captured on Windows before this is called verified. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test against a captured --list-models output, plus a Windows capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -75570,7 +75574,7 @@
       "cancellation": "Cancel or clicking away closes the popover and changes nothing.",
       "windows_path": "Direct translation; the trim for the disabled state is `.whitespaces` only, which must be reproduced exactly rather than widened to whitespace-and-newlines.",
       "verification_method": "interaction test asserting the verbatim strings, the pre-fill, the focus, the disabled rule and the Return path.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -76498,12 +76502,12 @@
       "side_effects": [],
       "persistence": "Reads project.icon.",
       "failure_cases": [
-        "A symbol name the system does not have renders as a missing-image placeholder; the picker filters its own shortlist but not a hand-edited library value."
+        "A symbol name the system does not have draws nothing (SwiftUI, OD-0098: the 20 pt square stays, the mark is empty); the picker filters its own shortlist but not a hand-edited library value."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Emoji render from the Windows emoji font. By owner ruling OD-0010 a stored symbol name, and the `folder.fill` fallback, are drawn as the Lucide icons the published table porting/icons/sf-symbols-to-lucide.json maps them to (`folder.fill` as `folder`; the table maps every catalogue and shortlist name); a name with no mapping must render a defined placeholder rather than nothing.",
+      "windows_path": "Emoji render from the Windows emoji font. By owner ruling OD-0010 a stored symbol name, and the `folder.fill` fallback, are drawn as the Lucide icons the published table porting/icons/sf-symbols-to-lucide.json maps them to (`folder.fill` as `folder`; the table maps every catalogue and shortlist name); an unknown symbol name draws nothing, as SwiftUI does (OD-0098).",
       "verification_method": "capture comparison with an emoji icon, a symbol icon and no icon.",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -76513,8 +76517,7 @@
         "port": "Each name is drawn as its Lucide icon per porting/icons/sf-symbols-to-lucide.json; emoji are unchanged."
       },
       "b2_change": "Citation corrected (wrong at B1 and B2 alike; SidebarView.swift keeps the same line numbers at B2): the ProjectRow icon closure is SidebarView.swift:1107-1115, not :1100-1107. Citation only: B1 Chrome.swift:618-636 SidebarSymbol -> B2 :651-669.",
-      "resolved_unknown": "UNK-0007 resolved by OD-0010",
-      "open_question": "What the port draws for a stored `symbolName` that porting/icons/sf-symbols-to-lucide.json does not map. Such a name can only come from a hand-edited library.json, since the picker offers mapped names only. Upstream passes it to `Image(systemName:)` (ProjectIconPicker.swift:21), whose rendering of an unknown name was never observed on a Mac (UNK-0003), and no owner or engineering decision names the Windows placeholder the windows_path requires."
+      "resolved_unknown": "UNK-0007 resolved by OD-0010"
     },
     {
       "area": "SIDEBAR",
@@ -96417,7 +96420,7 @@
         "Working area narrower or shorter than the settings window: the clamp's max term goes below its min term and the max wins, so the window is pinned to the working area's right/bottom edge. Reproduce this ordering."
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -96430,7 +96433,7 @@
       "preconditions": "The Settings window exists or is about to be created.",
       "action": "showSettings(page:) is called.",
       "expected_result": "If the main window exists, is visible and is not minimized, the Settings window's origin is set to the main window's center minus half the settings size, each coordinate rounded to a whole point, then clamped into the working area of the main window's screen (falling back to the primary screen) so that neither the left/top edge falls below the working area minimum nor the right/bottom edge past its maximum. The frame is applied without an immediate display pass. If the main window is missing, hidden or minimized, the Settings window is centered on the screen instead.",
-      "windows_path": "MonitorFromWindow on the main window, then GetMonitorInfo's rcWork as the clamp rectangle. macOS visibleFrame excludes the menu bar and the Dock; the Windows analogue excludes the taskbar and any app bars. Round each coordinate to a whole logical pixel before clamping, exactly as `.rounded()` does.",
+      "windows_path": "MonitorFromWindow on the main window, then GetMonitorInfo's rcWork as the clamp rectangle. macOS visibleFrame excludes the menu bar and the Dock; the Windows analogue excludes the taskbar and any app bars. Round each coordinate to a whole logical pixel before clamping, exactly as `.rounded()` does. The 'applied without an immediate display pass' clause (setFrame(display: false), WindowManager.swift:54) is NOT_APPLICABLE on Windows, ED-284 (2): the origin is computed first and the window is shown after it, and move-before-Show is asserted by WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request. The two-monitor clause is proven by stub topology (WindowManagerSettingsScreenTests.Secondary_monitor_and_main_DPI_determine_settings_origin, .Negative_origin_monitor_uses_its_left_and_top_workarea_edges, .Reopening_requeries_the_main_windows_current_monitor, .Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion) plus the one-monitor native run (WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI), lead-accepted 2026-10-04 (ED-315 (1); OD-0098: the source is the proof). A run on a machine with two displays records TwoMonitorPlacementClauseExercised true; that is a standing non-blocking check.",
       "verification_method": "interaction test across a two-monitor layout, plus a unit test of the clamp arithmetic including the degenerate narrow-monitor case"
     },
     {

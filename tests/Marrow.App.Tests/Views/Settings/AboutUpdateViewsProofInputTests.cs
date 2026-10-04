@@ -99,8 +99,8 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-003")] // App/Views/Settings/AboutUpdateViews.swift:674-681,696 ("Hover shows the tooltip")
     [Trait("Req", "UI-UPDATE-004")] // App/Views/Settings/AboutUpdateViews.swift:674-681,697 ("Hover shows the tooltip")
     [InlineData(true, null, "Marrow 1.7.0 is the latest version")] // :695, OD-0012 F1
-    [InlineData(false, "GitLab answered with HTTP 503.", "GitLab answered with HTTP 503.")] // :696
-    [InlineData(false, null, "Marrow has not asked GitLab for a release yet")] // :697, OD-0012 F1
+    [InlineData(false, "GitHub answered with HTTP 503.", "GitHub answered with HTTP 503.")] // :696
+    [InlineData(false, null, "Marrow has not asked GitHub for a release yet")] // :697, OD-0012 F1
     public void Hovering_a_standing_pill_opens_its_tooltip_while_a_press_does_nothing(bool checkedBefore, string? error, string help) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());

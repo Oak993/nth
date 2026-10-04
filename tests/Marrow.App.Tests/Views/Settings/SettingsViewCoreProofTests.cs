@@ -352,7 +352,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         try { HeadlessSession.RunDispatcherUntil(client.GetAsync($"http://127.0.0.1:{port}/"), AppModelHarness.Bound); }
         catch (System.Net.Http.HttpRequestException) { }
         Assert.NotEmpty(requests.Requests); requests.Requests.Clear();
-        Assert.Equal("", UpdateChecker.DefaultFeed); Assert.Empty(Nodes<UpdateAvailableDot>(view));
+        Assert.Equal("https://github.com/Oak993/marrow-releases", UpdateChecker.DefaultFeed); Assert.Empty(Nodes<UpdateAvailableDot>(view)); // UE-1, OD-0100: the feed is the owner's repository; a run that is not a Velopack install has no feed to read, and says so as OD-0012 I1 does
         var check = UpdateChecker.Shared.Check(); HeadlessSession.RunDispatcherUntil(check, AppModelHarness.Bound); Sync();
         Assert.Empty(requests.Requests); Assert.Equal("No update feed is set.", UpdateChecker.Shared.LastError); Assert.Null(UpdateChecker.Shared.Update); Assert.Empty(Nodes<UpdateAvailableDot>(view)); // OD-0012 I1 empty-feed failure branch.
         typeof(UpdateChecker).GetProperty("Update")!.SetValue(UpdateChecker.Shared, new AvailableUpdate { Version = "999.0.0", Tag = "v999.0.0", DownloadURL = SwiftURL.Create("https://fixture.invalid/download")!, PageURL = SwiftURL.Create("https://fixture.invalid/release")!, Notes = "" }); Sync();

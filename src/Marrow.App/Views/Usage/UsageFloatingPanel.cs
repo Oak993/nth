@@ -229,13 +229,9 @@ public sealed class UsageFloatingPanel : Decorator
         isDark ? (byte)0 : (byte)255,
         isDark ? (byte)0 : (byte)255);
 
-    // :71 .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)
-    internal static BoxShadow ScrimShadow(bool isDark) => new()
-    {
-        Color = Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0),
-        Blur = 28,
-        OffsetY = 10,
-    };
+    // :72 .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10) (sigma 28, ED-327)
+    internal static BoxShadow ScrimShadow(bool isDark) =>
+        SwiftShadow.BoxShadow(Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), radius: 28, y: 10);
 
     private Control BuildStrip(ProviderKind provider, ProviderKind? headsProvider, Action<Size> onDrag, Action onDragEnd, Action dismiss)
     {

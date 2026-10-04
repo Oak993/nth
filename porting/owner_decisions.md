@@ -934,3 +934,93 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Asked (chat, 2026-10-04), from feature unit VT-0's findings:** 1. Can the installer add Microsoft's VC++ 2015-2022 x64 runtime (Velopack prerequisite vcredist143-x64, about 25 MB from Microsoft), which the voice natives import (MSVCP140, VCRUNTIME140, VCRUNTIME140_1, VCOMP140) and the app does not carry? 2. Is about 62 MB of voice-engine natives (CPU + Vulkan) acceptable against the 50 MB budget? 3. May the optional GPU (CUDA) download fetch NVIDIA's libraries (about 390 MB) straight from NVIDIA's own servers, Marrow never hosting them?
 - **Owner, verbatim:** "1. Yes 2. Yes 3. Yes"
 - **Effect:** (1) the installer adds Velopack's vcredist143-x64 prerequisite (V-3.2); (2) the voice natives' size budget is raised to fit the measured ~62 MB; (3) the Q-V-9 C CUDA offer downloads the Whisper.net CUDA pack from nuget.org and NVIDIA's redistributable libraries from NVIDIA's servers on the user's request, never bundled or hosted by Marrow, verified by hash, and a half-installed pack is never loaded (VT-0 probe case 15).
+
+## OD-0105 Open questions answered: loading hand-over, strikethrough, settle bounce, D-VN page, light warm-up, installer timing (2026-10-05)
+
+- **Asked (chat, 2026-10-05, plain-language multiple choice):**
+  1. "When a chat opens, the loading spinner gets replaced by the messages. On the Mac this happens instantly, in one frame. What should we do?" (UI-CHAT-001 STOP #10)
+  2. "When a checklist item is ticked, a line goes through its text. How should the line appear?" (PR-CHAT-114)
+  3. "In the sidebar, the tick mark does a small bounce when you mark a chat finished. The Mac's code gives the exact bounce, but no video shows it. Is the code enough proof?" (UI-SIDEBAR-020)
+  4. "Voice typing needs one design choice from you (D-VN). Shall I make a page showing the options, labelled A, B, C, for you to pick from?"
+  5. "The glowing light around the message box never stops moving. Warming up some graphics would cause a tiny stutter in it. My plan: skip those, so the first time you switch to a different light style it may stutter once. Is that OK?" (fix-knobcache)
+  6. "When the port is done, I'll build the installer. My plan: a normal Setup.exe for 64-bit Windows, not signed, saved to a folder on this PC. Nothing gets run, uploaded or published. OK?"
+  7. "Earlier small changes, just to check: Look cards 8 px taller (like the Mac), the Getting Ready subtitle letters slightly tighter, About saying "GitHub", and the colour code box taking 8 characters (with transparency). Are all of these fine?"
+- **Owner, verbatim (the picks):**
+  1. "Smooth fade (Recommended)"
+  2. "Fade in (Recommended)"
+  3. "Code is enough (Recommended)"
+  4. "Yes, make the page (Recommended)"
+  5. "No, find another way"
+  6. "do so after complete port and first release features are all done"
+  7. "All fine (Recommended)"
+- **Effect:**
+  1. The loading mark fades out while the rows fade and rise in, in about 0.2 s. Rows that leave together fold shut together, in about 0.3 s (OD-0076).
+  2. The checklist strikethrough fades in (PR-CHAT-114).
+  3. The settle bounce is proven by the Swift source: SidebarView.swift:1909, spring response 0.3 and damping 0.45, then Chrome.panelSlide (UI-SIDEBAR-020).
+  4. The D-VN variants page is built for the owner's pick.
+  5. The knob warm-up must cause neither a stutter in the composer light nor a hitch on the first switch of light style, so nothing is left to first use (LEAD RULING 2 of fix-knobcache, amended).
+  6. The installer (unsigned Setup.exe, x64, local folder) is built only after the whole port and every first-release feature are done. It is never run, signed or published without the owner.
+  7. The four FYIs stand.
+
+## OD-0106 Voice notes picks (D-VN): Notes A, Countdown C, CUDA A (2026-10-05)
+
+- **Asked (chat, 2026-10-05):** the D-VN variants page https://claude.ai/artifact/7kBUmes7C8Jz4WGBFrucmB (sources E:/Droppy/work/design/decisions-2026-10-04/voice-notes/, built after OD-0105 item 4). It asked for the Q-V-7 A error-note wording set (A Plain, B Short, C Action, D Explained), the Q-V-6 B countdown look in the voice pill (A time in place of the words, B time after the words, C a draining line with no numbers, D "Stops in" with amber at the end) and the Q-V-9 C CUDA offer look in the hardware card (A its own row, B inside the recommendation box, C on the GPU backend line, D a sentence under the card's note). The recommendations were Notes A, Countdown B and CUDA A.
+- **Owner, verbatim:** "voice-notes: Notes A, Countdown C, CUDA A"
+- **Effect:** VT-17 builds these picks as drawn on the page.
+  - **Notes:** set A, Plain. Each of the eleven notes says what happened, then names the place that fixes it, as one underlined link with the locked "Microphone blocked" note's shape. With an empty draft it shows in the field; with text in the draft it shows in the composer's notice line.
+  - **Countdown:** look C. The pill's words stay as they are. A 2 px line inside the pill's foot, from the cross to the orb, shortens over the last 30 s before the 5-minute cap and takes the warning colour for the last 10 s. There are no digits. At the cap the text finishes as if the orb were clicked (V-7.12). Under Reduce Motion the line steps once a second.
+  - **CUDA:** look A. On NVIDIA PCs with a working probe, an "NVIDIA CUDA" row sits under the recommendation in Settings > Voice typing > Speech model, with its size (644 MB, from nuget.org and NVIDIA) and a Download capsule. Progress, cancel and the end states use the model list's state column and its 2 px bar.
+  - **Still open for VT-17 (lead):** the page's open points. These are the restart after the CUDA download, whether the download note shows beside the download pill, the 5.2 s display time for the new notes, and the screen-reader announcements. VT-17 settles them as engineering decisions without the owner, unless they change what the owner picked.
+- **Amendment, owner, 2026-10-05 (chat, verbatim):** "और वो जो लाइन वाला जो मैंने सेलेक्ट किया है ना ड्रेनिंग लाइन ड्रेनिंग लाइन का इस तरह से करो कि जब 30 सेकंड रह गया हो ना तो वैसे तो कलरलेस रहे ठीक है ना 15 सेकंड पे वो येलो हो जाए ठीक है और येलो भी एकदम से स्टैटिक कट हो के नहीं होना चाहिए ठीक है स्मूथली येलो हो जाए और फिर जब 10 सेकंड के पास आ जाए 10 सेकंड हिट होते साथ ही फिर वो स्मूथली रेड हो जाए लाइन ठीक है ना"
+  - **In English:** "And the line I selected, the draining line: when 30 seconds are left it stays colourless; at 15 seconds it turns yellow, not by a static cut but smoothly; then as soon as it hits 10 seconds it smoothly turns red."
+  - **Effect (replaces "takes the warning colour for the last 10 s" in look C above):** from 0:30 to 0:15 the line is colourless, in the pill's own neutral label tone. At 0:15 it crossfades smoothly to yellow, and at 0:10 it crossfades smoothly to red, each over about 0.6 s on an ease curve (OD-0076, never a cut). Yellow and red are the system warning and error colours of each theme, matching the app's other warning and error marks; VT-17 records the exact tokens as an engineering decision. Under Reduce Motion the colour changes still crossfade, but faster (about 0.2 s), and the line steps once a second.
+- **Second amendment, owner, 2026-10-05 (chat, verbatim):** "बल्कि 15 सेकेंड जब रह जाए ना तो उस वक्त येलो ज़रूर कर देना लेकिन रेड करना जब 5 सेकेंड रह जाए ठीक है ना"
+  - **In English:** "Rather: when 15 seconds are left, do make it yellow then, but make it red when 5 seconds are left."
+  - **Effect (replaces the amendment's red point):** the line is colourless from 0:30 to 0:15, eases to yellow at 0:15, and eases to red at 0:05 (not 0:10). Each change is the same smooth crossfade of about 0.6 s, never a cut.
+- **Clarification, owner, 2026-10-05 (chat, verbatim):** "आई डोंट नो अब वो फेड होगा या तो कोई स्मूथ ट्रांजिशन होगा कि जिसमें कलर चेंज हो ठीक है ना लेकिन यू नो इट शुड बी प्रॉपर वे प्रीमियम तरीके से नजर आना चाहिए ठीक है"
+  - **In English:** "I don't know whether it will be a fade or some smooth transition in which the colour changes, but it should look properly premium."
+  - **Effect:** the lead chooses how the colour changes. It must read as premium, never as a cut or a muddy blend.
+  - **Lead's choice (ENGINEERING DECISION, VT-17):** the line's colour glides along a perceptual path in OKLCH, so the hue turns cleanly with even brightness and no grey or brown midpoint. Each glide runs over about 0.8 s on a gentle ease-in-out.
+  - **Arrival accent:** as each colour arrives, the line gives one soft, restrained brightening of about 0.4 s, so the change is noticed without flashing.
+  - **Reduce Motion:** the glide stays, at about 0.2 s, with no brightening.
+  - **Proof:** a frame-by-frame test samples the colour at 60 Hz through each change, and the result is compared on a variant still before it ships.
+
+## OD-0107 The two MIT liquid-glass repos give the app's glass its macOS look (recorded late, 2026-10-05)
+
+- **Owner ruling, 2026-10-02 (chat).** It was found missing from this file on 2026-10-05 and is recorded from the session summary of 2026-10-02, which reads: "Use the two MIT glass repos (rizzytoday/liquid-glass, dashersw/liquid-glass-js) to achieve the macOS glass look." Local clones are in E:/Droppy/work/glass-refs/ (liquid-glass-rizzytoday, liquid-glass-js-dashersw; both MIT).
+- **Owner, 2026-10-05 (chat, verbatim; translated):** "In the app that opens in the tests the Acrylic look is coming, but the liquid glass look from the two repos I gave you is not. Is that done in the first-release features, or done but done improperly, which is why I don't see it right? Confirm." The owner then re-sent both links: "https://github.com/rizzytoday/liquid-glass/tree/main https://github.com/dashersw/liquid-glass-js".
+- **How it fits OD-0005:** where a window shows the desktop, Windows gives only its system Acrylic. OD-0005 ("acrylic edge", no screen capture) rules out sampling the desktop, so the desktop behind a window cannot be refracted. Everywhere the app draws its own glass over its own content (panels, pills, capsules, popovers, the composer, the effort track), the repos' look applies: the refracting rim band, the displacement map, the specular edge and the colour fringe.
+- **Effect:** an audit compares, on a real window, every app-drawn glass surface against the repos' own rendering. Every surface that should carry the material and does not, or carries it weaker than the repos draw, is a defect, fixed test-first. Rim effects that need only the app's own content (specular edge, rim highlight, fringe) are also checked on the window glass over Acrylic.
+- **Amendment, owner, 2026-10-05 (chat, verbatim):** "भाई मैंने जो तुम्हें दो रेपो भेजे हैं ना उन्हीं को यूज करते हुए मेरे कजन ने भी अपनी एक और ऐप के अंदर एग्जैक्ट वही मैक ओ एस वाला लिक्विड ग्लास का लुक लेके आया है वो वो दो रेपोस को यूज करते हुए ठीक है ना तो जब मैं सुबह उठूं तो ये लिक्विड ग्लास प्रॉपरली इम्प्लीमेंट होना चाहिए जैसे वीडियोस के अंदर नज़र आ रहा है ठीक है ना और जहाँ जहाँ नज़र आ रहा है वैसी नज़र आना चाहिए ठीक है दिस शुड बी डन बाय मॉर्निंग"
+  - **In English:** "Using the two repos I sent, my cousin brought the exact macOS liquid-glass look into another app of his. So when I wake up, this liquid glass must be properly implemented, as it appears in the videos, and look that way wherever it appears. This should be done by morning."
+  - **Effect:** top priority overnight. The reference is the Mac videos: every surface that shows liquid glass there shows the same look in the port, built with the two repos' techniques (the refracting rim band and displacement map, the blur, the specular rim, the colour fringe, the tint). It is proven on a real window against frames extracted from the video, side by side. OD-0005 still holds for the desktop behind a window: no screen capture, so the desktop itself is not refracted. Everything the app draws over its own content carries the full look.
+
+## OD-0108 The GPU warm-up runs behind the Marrow boot animation (2026-10-05)
+
+- **Context:** OD-0105 item 5 ("No, find another way"). The fix-knobcache unit then drew every GPU program part in a cloaked helper window before the boot stage, which added 386-541 ms before a later launch's first shown frame.
+- **Owner, verbatim:** "भाई वो स्टटर नहीं आना चाहिए जो तुमने ऊपर वाली बात लिखी हुई है कि नॉब कैश रिवर्क फॉलोज योर फाइंड अनदर वे रूल ऑन एवरी लॉन्च आफ्टर द फर्स्ट द ऐप क्वाइटली ड्रॉज ऑल इट्स ग्राफिक्स वंस इन अ हिडन विंडो बिफोर एनीथिंग अपीयर्स भाई जब ऐप लोड हो रही होती है शुरू में तो ऑलरेडी मैरो का एक आती है एनिमेशन लोडिंग की तो उस दौरान क्यों नहीं कर रहा वो उस वक्त तो पूरी विंडो छुपी भी होती है तो जब वो ऐप की एनिमेशन आ रही है मैरो की ना स्पिन स्पिनर जो चल रहा होता है स्पिनिंग एनिमेशन फिर वो पार्टिकल्स बन के जब जाता है तो उसी वक्त सब कुछ चीज़ें हो जानी चाहिए ना लोड तो उस उस दौरान करवाओ ठीक है ना बेशक अगर एक सेकंड और भी लेट हो जाए कोई मसला नहीं है ठीक है ना लेकिन जब शुरू होते साथ ही ऐप की एनिमेशन आ रही है मैरो की आइकन आ रहा है एनिमेट होके और फिर वो पार्टिकल्स बन के विंडो में जा रहा है ठीक है ना तो उसी दौरान सब चीज़ें रेडी हो जानी चाहिए ऐप की पीछे से ताकि जब कोई बंदा यूज़र जब उसको विंडो सामने आए तो एवरी थिंग शुड बी लोडेड एंड रेडी स्मूथ विदाउट एनी स्टटर्स"
+- **In English:** "There should be no stutter. When the app starts, the Marrow loading animation already plays: the icon animates and spins, then turns into particles that fly into the window, and the whole window is hidden at that time. Do all the loading during that animation, even if it makes launch up to a second later. By the time the window comes in front of the user, everything should be loaded and ready, smooth, without any stutters."
+- **Effect:**
+  - The warm-up runs behind the boot animation, while the main window is still hidden: the icon's spin, then the particles into the window. The main window is shown only once everything is ready.
+  - The boot animation itself must not stutter.
+  - Up to about one extra second of launch is accepted.
+  - The cloaked pre-boot pass is replaced or reduced to whatever cannot be hidden in the animation.
+  - Nothing is left to first use.
+  - This applies to every launch after the first. The first run keeps the Getting ready sheet.
+
+## OD-0109 Built-in colourful wallpapers, animated too, behind the liquid glass (2026-10-05)
+
+- **Owner, verbatim:** "और हाँ ठीक है चलो अगर वो जो तुम बोल रहे हो ना कि डेस्कटॉप डायरेक्टली बिहाइंड अ विंडो स्टिल कैन नॉट बी बेंट तो कोई ना कोई वॉलपेपर्स या तो एनिमेटेड वॉलपेपर्स हम लगा सकें पीछे की तरफ जो कलरफुल हो ठीक है ना मतलब एब्स्ट्रैक्ट कलरफुल मूवमेंट्स या स्मूथ मूवमेंट्स तरह की कुछ वॉलपेपर्स हम लोग एनिमेटेड वॉलपेपर्स का डाल दें इसके अंदर ताकि वो लिक्विड ग्लास का लुक भी मेंटेन रहे और बैकग्राउंड से हमें कोई फ़र्क ना पड़े बिकॉज अवर वॉलपेपर इज़ रनिंग बिहाइंड इस तरह से कुछ भी कर सकते हैं"
+- **In English:** "If the desktop directly behind a window still can't be bent, then let us put wallpapers behind it, or animated wallpapers, colourful ones: abstract colourful movements or smooth movements. Then the liquid-glass look is kept, and the background doesn't matter, because our own wallpaper is running behind."
+- **Context:**
+  - The app already has upstream's wallpaper setting (WallpaperCard). With a wallpaper set, the window draws its own backdrop and the full drawn material refracts it (OD-0014, OD-0005), as in the eight Mac screenshots over the app's own wallpaper (OD-0003).
+  - Without one, the glass sits over the desktop as Acrylic.
+- **Effect:**
+  - The port gains built-in wallpapers: colourful and abstract, some still and some smoothly animated. The liquid glass refracts them everywhere it appears. A user's own wallpaper still works as upstream.
+  - This is a new, port-only feature, so it is designed on a variants page for the owner's pick before it is built (OD-0070, OD-0104 style).
+  - The page shows the wallpapers behind the app's real glass, each with its per-frame cost: an animated wallpaper re-renders the glass above it every frame, so smooth playback, battery and the composer light are measured.
+  - Open for the pick:
+    - which wallpapers ship;
+    - whether one is the default for new users (upstream's default is no wallpaper, OD-0014);
+    - the motion speed;
+    - Reduce Motion behaviour.
