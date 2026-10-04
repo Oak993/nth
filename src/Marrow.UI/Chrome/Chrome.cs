@@ -1722,16 +1722,25 @@ namespace Marrow.UI.Chrome
     }
 
     /// <summary>:934-945 <c>struct SoftAppearModifier: ViewModifier</c>. Used by <c>.modifier(active:identity:)</c>
-    /// transitions (:951, :996, ThreadTimeline.swift:318), so it is an IAnimatableModifier (ED-098); its only property is
-    /// a Bool, so SwiftUI gives it EmptyAnimatableData.</summary>
-    public sealed record SoftAppearModifier(bool IsVisible) : IAnimatableModifier // :938
+    /// transitions (:951, :996, ThreadTimeline.swift:318), so it is an IAnimatableModifier (ED-098). The Swift's only property
+    /// is a Bool, so the struct has EmptyAnimatableData, yet SwiftUI still animates its arrival: the body is the built-in
+    /// <c>.opacity(isVisible ? 1 : 0).offset(y: isVisible ? 0 : 4)</c>, whose own values are animatable, and the transition
+    /// carries <c>.animation(.softAppear)</c> (:951). ENGINEERING DECISION (UI-CHAT-052, unit rec-tlr): the port's modifier
+    /// applies opacity and offset itself, so it carries that one value for SwiftUI's two built-in effects: a progress from 0
+    /// (not visible) to 1 (visible), which the transition interpolates, and from which Update derives the opacity and the
+    /// 4 point rise. Before this the Bool was taken at its identity at once and every soft arrival was a cut.</summary>
+    public sealed record SoftAppearModifier(double Progress) : IAnimatableModifier // :938
     {
-        // :937 (no animatableData: EmptyAnimatableData): a Bool carries no interpolated value.
-        public ImmutableArray<double> AnimatableData => ImmutableArray<double>.Empty;
+        /// <param name="isVisible">:938 <c>let isVisible: Bool</c>.</param>
+        public SoftAppearModifier(bool isVisible) : this(isVisible ? 1.0 : 0.0) { }
 
-        // :937: nothing to restore with no animatable data (never reached: Kind.Mod skips the interpolated branch
-        // when both sides have zero-length data, SwiftAnimation.cs Gather).
-        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) => this;
+        /// <summary>:938 isVisible, as the transition's ends read it.</summary>
+        public bool IsVisible => Progress >= 1;
+
+        // The one value the transition interpolates (see the type's remark).
+        public ImmutableArray<double> AnimatableData => ImmutableArray.Create(Progress);
+
+        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) => this with { Progress = data[0] };
 
         // :940-944. PR-WIN-206: opacity and offset are plain layer properties, so no wrapper is needed.
         public Control Body(Control content) => content;
@@ -1739,8 +1748,8 @@ namespace Marrow.UI.Chrome
         // :940-944, applied per frame (ED-098)
         public void Update(Control body)
         {
-            body.Opacity = IsVisible ? 1 : 0; // :942
-            body.RenderTransform = new TranslateTransform(0, IsVisible ? 0 : 4); // :943
+            body.Opacity = Progress; // :942 isVisible ? 1 : 0, at the progress the transition has got to
+            body.RenderTransform = new TranslateTransform(0, 4 * (1 - Progress)); // :943 isVisible ? 0 : 4
         }
     }
 

@@ -157,6 +157,48 @@ public sealed class TimelineRowsFinReplyTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-019")] // TimelineRows.swift:1388-1390 rightClickPopover(actions: messageActions): a right-click or a control-click on the reply opens the reply menu at the pointer
+    public void A_right_click_and_a_control_click_on_the_reply_open_the_reply_menu_anchored_at_the_pointer() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        AvaloniaWindow window = null!;
+        h.Main.OnMain(() =>
+        {
+            // Two rows, one click each: a row whose menu is already up is not presented again by a second click.
+            var rightRow = new AssistantMessageRow(Reply(Fenced), null, h.Runtime);
+            var controlRow = new AssistantMessageRow(Reply(Fenced), null, h.Runtime);
+            window = Show(new StackPanel { Margin = new Thickness(20), Spacing = 60, Children = { rightRow, controlRow } });
+            try
+            {
+                Point Origin(Control row) => Assert.Single(Mounted<MarkdownView>(row)).TranslatePoint(default, window)!.Value;
+                foreach (var (modifiers, button, at) in new[]
+                {
+                    (RawInputModifiers.None, MouseButton.Right, new Point(Origin(rightRow).X + 11, Origin(rightRow).Y + 6)),
+                    (RawInputModifiers.Control, MouseButton.Left, new Point(Origin(controlRow).X + 29, Origin(controlRow).Y + 8)),
+                })
+                {
+                    var before = presenter.Calls.Count(call => call.Presented);
+                    window.MouseDown(at, button, modifiers);
+                    window.MouseUp(at, button, modifiers);
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    var shown = presenter.Calls.Where(call => call.Presented).ToList();
+                    Assert.True(shown.Count > before, $"{button} with {modifiers} opened no menu");
+                    var popup = shown[^1].Popup;
+                    // :15 a 1 x 1 rect at the pointer; the menu holds the reply's actions (a fenced block adds Copy last code block).
+                    Assert.Equal(new Size(1, 1), popup.PlacementRect!.Value.Size);
+                    var target = popup.PlacementTarget ?? popup.Parent as Visual;
+                    Assert.Equal(at, target!.TranslatePoint(popup.PlacementRect.Value.Position, window));
+                    Assert.Equal(["Copy message", "Copy as markdown", "Copy last code block", "Add to reply"], ItemTitles(Assert.Single(LogicalQuery.SelfAndDescendants<RowActionItems>(popup.Child!))));
+                }
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-021")] // TimelineRows.swift:1406-1410 Add to reply
     public void Add_to_reply_quotes_the_reply_into_the_draft_once_and_reads_Added_in_place() => headless.OnUiThread(() =>
     {

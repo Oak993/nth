@@ -151,6 +151,44 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Equal(60L, limit);
     }
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-102")] // TimelineRows.swift:2171-2182 RecentCache(limit: 60); Core/Support/RecentCache.swift:43-55 two generations, :22-28 a hit in the previous one is moved back into the current
+    public void The_diff_cache_holds_two_generations_of_sixty_so_up_to_120_files_the_121st_rotates_the_oldest_out_and_a_hit_in_the_older_one_is_kept_by_the_next_rotation()
+    {
+        var cache = (RecentCache<string, DiffFile>)typeof(DiffDetailCache).GetField("cache", HiddenStatic)!.GetValue(null)!;
+        int Current() => ((System.Collections.ICollection)cache.GetType().GetField("current", Hidden)!.GetValue(cache)!).Count;
+        var salt = Guid.NewGuid().ToString("N");
+        string Diff(int index) => "diff --git a/f.txt b/f.txt" + "\n" + "--- a/f.txt" + "\n" + "+++ b/f.txt" + "\n" + "@@ -1 +1 @@" + "\n" + "-old " + salt + " " + index + "\n" + "+new" + "\n";
+        string Path(int index) => "f-" + salt + "-" + index + ".txt";
+        string Key(int index) => Path(index) + "\n" + Diff(index); // :2176 path + newline + diff
+        // The cache is shared by every test, so first walk it to a rotation: the next entry is then the only one in the current generation.
+        var filler = 1000;
+        var before = Current();
+        do { before = Current(); DiffDetailCache.File(Diff(filler), Path(filler)); filler++; } while (Current() >= before);
+        Assert.Equal(1, Current());
+        var first = filler - 1;
+        // 119 more fill the current generation to sixty and roll it over once: the filler and the 119 are the previous generation (60) and the current (60): 120 held.
+        for (var index = 1; index <= 119; index++) DiffDetailCache.File(Diff(index), Path(index));
+        Assert.True(cache.Contains(Key(first)));
+        Assert.All(Enumerable.Range(1, 119), index => Assert.True(cache.Contains(Key(index)), "diff " + index + " is held among the 120"));
+        // A hit costs no parse: the same instance comes back (the ones in the current generation, so that asking does not itself rotate it).
+        var sixty = DiffDetailCache.File(Diff(60), Path(60));
+        Assert.Same(sixty, DiffDetailCache.File(Diff(60), Path(60)));
+        // The 121st distinct diff rotates the older generation out: the filler and diffs 1 to 59 go, 60 to 120 stay.
+        DiffDetailCache.File(Diff(120), Path(120));
+        Assert.False(cache.Contains(Key(first)));
+        Assert.All(Enumerable.Range(1, 59), index => Assert.False(cache.Contains(Key(index)), "diff " + index + " is out after the 121st"));
+        Assert.All(Enumerable.Range(60, 61), index => Assert.True(cache.Contains(Key(index)), "diff " + index + " is still held"));
+        // A hit in the previous generation moves the entry back into the current one (:24-26): asked for, 61 survives the next rotation while 62 does not.
+        var sixtyOne = DiffDetailCache.File(Diff(61), Path(61));
+        Assert.Same(sixtyOne, DiffDetailCache.File(Diff(61), Path(61)));
+        var count = Current();
+        var fresh = 200;
+        do { count = Current(); DiffDetailCache.File(Diff(fresh), Path(fresh)); fresh++; } while (Current() > count);
+        Assert.True(cache.Contains(Key(61)), "a diff asked for again is kept by the rotation that drops the older generation");
+        Assert.False(cache.Contains(Key(62)), "a diff nobody asked for again goes with the older generation");
+    }
+
     // ---- PR-CHAT-116: TurnEndRow.label - the three phrasings, over RelativeTime.duration fixtures (:2448-2455).
     // STOP cloud-TimelineRows-pr #15 (PR-CHAT-116): the record itself says "The exact rendered duration strings are those
     // Foundation produces on the reference runtime and are UNRESOLVED until captured there (B3_PLAN.md 6.1 E1)". The
@@ -800,7 +838,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     private static void Press(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
+    [Trait("Req", "PR-CHAT-108")] // TimelineRows.swift:2735-2827; the card's corner at 40 pt is Apple's at the largest radius that fits (OD-0102, ContinuousCornerReproofTests)
     public void The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -838,7 +876,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
+    [Trait("Req", "PR-CHAT-108")] // TimelineRows.swift:2735-2827; the card's corner at 40 pt is Apple's at the largest radius that fits (OD-0102, ContinuousCornerReproofTests)
     public void A_card_with_no_files_has_a_disabled_title_and_no_chevron() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -858,7 +896,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
+    [Trait("Req", "PR-CHAT-108")] // TimelineRows.swift:2735-2827; the card's corner at 40 pt is Apple's at the largest radius that fits (OD-0102, ContinuousCornerReproofTests)
     public void The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -903,7 +941,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
+    [Trait("Req", "PR-CHAT-108")] // TimelineRows.swift:2735-2827; the card's corner at 40 pt is Apple's at the largest radius that fits (OD-0102, ContinuousCornerReproofTests)
     public void A_muted_round_glyph_is_a_28_point_overlay_disc_whose_glyph_and_fill_come_up_under_the_pointer() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -988,7 +1026,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
+    [Trait("Req", "PR-CHAT-108")] // TimelineRows.swift:2735-2827; the card's corner at 40 pt is Apple's at the largest radius that fits (OD-0102, ContinuousCornerReproofTests)
     public void The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -1303,7 +1341,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11): freshly built cards switch with the state (:2287); the record's open-popover result conflicts with the source (setFixedContent, ChatBadge.swift:138-147)
+    [Trait("Req", "PR-CHAT-113")] // TimelineRows.swift:2287 `MarkdownView(text: plan.markdown, isStreaming: plan.state == .drafting)`: the flag is the drafting state alone, read when the detail is built
     public void A_drafting_plan_renders_with_the_streaming_markdown_and_it_switches_the_moment_the_state_leaves_drafting() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -3763,6 +3801,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-150")]
+    [Trait("Req", "PR-HYDRAMERGE-102")] // TimelineRows.swift:963-965, :1036-1039: with the outcome landed and the runtime's step cleared the head is pinned to the last dot, done under the flourish and resting after
+    [Trait("Req", "PR-HYDRAMERGE-106")] // TimelineRows.swift:1019: the accessibility label is the outcome's title once there is one
     [Trait("Req", "PR-HYDRAMERGE-104")]
     [Trait("Req", "PR-HYDRAMERGE-107")]
     public void When_the_note_lands_the_pill_morphs_to_its_title_and_link_and_a_successful_merge_flourishes_for_1100_milliseconds()
@@ -4758,7 +4798,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-108 (STOP #11): every clause but the card's corner at 40 pt (UNRESOLVED, ED-275 (2)); TimelineRows.swift:2735-2827
+    [Trait("Req", "PR-CHAT-108")] // TimelineRows.swift:2735-2827; the card's corner at 40 pt is Apple's at the largest radius that fits (OD-0102, ContinuousCornerReproofTests)
     public void The_file_cards_title_row_is_a_hit_target_across_its_width() => headless.OnUiThread(() =>
     {
         using var h = Harness();

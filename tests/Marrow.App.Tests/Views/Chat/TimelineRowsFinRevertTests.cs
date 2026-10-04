@@ -108,6 +108,60 @@ public sealed class TimelineRowsFinRevertTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-039")] // TimelineRows.swift:2785-2796 `.controlSize(.small)` on Cancel (.glass) and Revert (.glassProminent); ED-280 (2) the small accent glass, ED-257 (3) the prominent one drawn with the same capsule, always filled
+    [Trait("Req", "UI-GIT-047")] // TimelineRows.swift:2785-2796: HStack(spacing: 8) at the small control size, pushed to the trailing edge
+    public void Cancel_and_Revert_are_the_small_accent_glass_capsules_20_points_high_with_an_11_point_white_label_8_apart_at_the_trailing_edge() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        TurnFileCard card = null!;
+        AvaloniaWindow window = null!, menu = null!;
+        runtime.OnMain(() =>
+        {
+            card = new TurnFileCard(Files(2), canUndo: true, onRevert: () => { }, onReview: _ => { });
+            window = Show(new StackPanel { Margin = new Thickness(20), Children = { card } });
+            Click(window, DiscWith(card, "arrow.uturn.backward"));
+        });
+        runtime.OnMain(() =>
+        {
+            try
+            {
+                Settle(window);
+                menu = HostMenu(Assert.Single(presenter.Calls, call => call.Presented).Popup);
+                var sheet = Mounted<Control>(menu).First(control => control.Width == 300);
+                var buttons = Mounted<StackPanel>(sheet).Single(stack => stack.Orientation == Orientation.Horizontal && stack.Spacing == 8);
+                var cancel = Assert.Single(Mounted<Button>(buttons), button => Texts(button).Contains("Cancel"));
+                var go = Assert.Single(Mounted<Button>(buttons), button => Texts(button).Contains("Revert"));
+                foreach (var (name, button) in new[] { ("Cancel", cancel), ("Revert", go) })
+                {
+                    // SwiftGlass.StyleAccentGlassButton(small): the capsule surface with the material, an 11 point white label, 10.5 points either side, 20 points high.
+                    var surface = Assert.Single(Mounted<Border>(button), border => SwiftGlass.GetEffect(border) is not null);
+                    var label = Assert.Single(Mounted<TextBlock>(button));
+                    Assert.Equal(name, label.Text);
+                    Assert.Equal(SwiftGlass.GlassButtonSmallHeight, surface.Height);
+                    Assert.Equal(20, surface.Bounds.Height, 0.5);
+                    Assert.Equal(new Thickness(10.5, 0), surface.Padding);
+                    Assert.Equal(11, label.FontSize);
+                    Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(label.Foreground).Color);
+                    Assert.InRange(surface.Bounds.Width - (label.Bounds.Width + 21), -1.0, 1.0);
+                    var effect = SwiftGlass.GetEffect(surface)!;
+                    Assert.Equal(ChromeTokens.Accent, effect.TintColor); Assert.Equal(1, effect.TintOpacity); Assert.True(effect.IsInteractive); Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind);
+                    Assert.Equal(ChromeTokens.Accent.Resolve(surface.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(surface.Background).Color);
+                }
+                // :2785-2793 8 apart, Cancel then Revert, pushed to the trailing edge of the 300 point panel's 16 point padding, on one centre line.
+                Assert.Equal(8, go.TranslatePoint(default, menu)!.Value.X - (cancel.TranslatePoint(default, menu)!.Value.X + cancel.Bounds.Width), 0.5);
+                var sheetRight = sheet.TranslatePoint(new Point(sheet.Bounds.Width, 0), menu)!.Value.X;
+                Assert.Equal(sheetRight - 16, go.TranslatePoint(new Point(go.Bounds.Width, 0), menu)!.Value.X, 0.5);
+                OnOneCentreLine(menu, cancel, go);
+                Assert.True(go.IsDefault);
+            }
+            finally { if (menu is not null) Close(menu); Close(window); }
+        });
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-039")] // TimelineRows.swift:2789 Revert closes the popover and runs the revert
     [Trait("Req", "UI-GIT-047")] // TimelineRows.swift:2789-2791
     [Trait("Req", "PR-GIT-122")] // TimelineRows.swift:2789, :2695 Revert closes, then reverts with files restored

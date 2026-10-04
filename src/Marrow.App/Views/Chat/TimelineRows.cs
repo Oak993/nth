@@ -173,8 +173,15 @@ public static class TimelineRows
     // :2298-2306, :2789-2793. Same glass button recipe as RequestCards / FollowUpEditor (OD-0005).
     internal static Button GlassCommand(string title, Action action, bool prominent, bool small = false)
     {
-        // STOP #5: only .controlSize(.small) (:2796) is unwritten; deferred by ED-180 (the glass material is built after the app runs).
-        // No source size or approved small-size adapter is present in the shared button foundation.
+        if (small)
+        {
+            // :2796 `.controlSize(.small)` on Cancel (.glass) and Revert (.glassProminent): inside the popover's tint (Popovers.swift:8-12, presentedChrome) both are the small accent
+            // glass capsule ED-280 (2) measured in the reference video (20 pt high, an 11 pt white label, 10.5 pt either side), and ED-257 (3) draws `.glassProminent` with the
+            // same capsule, always filled. ENGINEERING DECISION (ED-314): the window's measurement is carried into the popover, which has the same accent tint.
+            var smallButton = PlainControls.Button(new TextBlock { Text = title }, action);
+            SwiftGlass.StyleAccentGlassButton(smallButton, small: true);
+            return smallButton;
+        }
         var label = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center };
         SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(label);
         var frame = new Border { Child = label, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0),
@@ -667,6 +674,7 @@ public sealed class HydraHeadsWorkingRow : Decorator
     private readonly ThreadRuntime runtime;
     private readonly StackPanel headsColumn = new() { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly Dictionary<long, (HydraHeadInfo Head, Control View)> shownHeads = [];
+    private bool built; // the row has applied its team once: a pill made after that joins a parent on screen
     /// <param name="heads">:395 <c>let heads: [Int]</c>.</param>
     /// <param name="runtime">:396 <c>let runtime: ThreadRuntime</c>.</param>
     // :398-418 body
@@ -709,9 +717,13 @@ public sealed class HydraHeadsWorkingRow : Decorator
                 if (prior.View is not null) SwiftTransition.Remove(column, prior.View);
                 var pill = new FinishedHeadPill(head).Transition(SwiftTransition.SettleGlide);
                 shown[head.Index] = (head, pill);
-                SwiftTransition.Insert(column, Math.Min(i, column.Children.Count), pill);
+                // :411-415 SwiftUI runs a transition only for a view that joins a parent already on screen: the pills a row has when it first appears are in place, with no
+                // arrival (ED-314 (9)); the settle glide's wrappers are still built so a later removal can glide them away.
+                if (built) SwiftTransition.Insert(column, Math.Min(i, column.Children.Count), pill);
+                else SwiftTransition.Place(column, Math.Min(i, column.Children.Count), pill);
             }
         });
+        built = true;
     }
 
     // :420-433 static func finishedHeads(in:) -> [HydraHeadInfo]: the finished heads whose report has not reached the
@@ -1377,6 +1389,7 @@ public sealed class HydraMergeRow : Decorator
     private HydraMergeOutcome? outcome;
     private string? shownStage;
     private bool? wasMerging;
+    private bool built; // the row has been built once: a pill made after that joins a parent on screen
     // :935 private static let change = Animation.smooth(duration: 0.3)
     private static Animation Change => Animation.Smooth(duration: 0.3);
 
@@ -1411,6 +1424,7 @@ public sealed class HydraMergeRow : Decorator
             if (pill is { } old)
                 Transaction.WithAnimation(Animation.Spring(Chrome.GlideSpring), () => SwiftTransition.Remove(host, old));
             pill = null; track = null; slot = null; stageSlot = null; wasMerging = null;
+            built = true; // a row first built with nothing under way: the pill that comes later joins a parent on screen
             return;
         }
         if (wasMerging == true && !merging && next is not null && next.Title.Contains("Hydra merged", StringComparison.Ordinal))
@@ -1439,10 +1453,15 @@ public sealed class HydraMergeRow : Decorator
             row.Children.Add(track); row.Children.Add(slot);
             pill = TimelineRows.Pill(row);
             pill.Transition(SwiftTransition.SettleGlide);
-            SwiftTransition.Insert(host, host.Children.Count, pill);
+            // :937-952 SwiftUI runs a transition only for a view that joins a parent already on screen: a row that first appears with the merge under way, or with its outcome
+            // already there, has its pill in place (the settle glide's soft arrival now animates, UI-CHAT-052, so the first build must not play it).
+            if (built) SwiftTransition.Insert(host, host.Children.Count, pill);
+            else SwiftTransition.Place(host, host.Children.Count, pill);
         }
         else track!.Update(step, count, mode);
+        built = true;
         AutomationProperties.SetName(pill, next?.Title ?? "Merging the team's work: " + stage);
+        AutomationProperties.SetAccessibilityView(pill, AccessibilityView.Control); // :1018 `.accessibilityElement(children: .contain)`: a named container of the tree, its track, title and Open still elements of their own (as ChromeSegmentedPicker)
         if (changed || outcomeChanged)
         {
             var still = next is null ? MergingLabel(stage) : OutcomeLabel(next);
@@ -3349,10 +3368,12 @@ public sealed class TodoListRow : Decorator
         var count = new OpacityCrossfade(TimelineRows.ChatText("", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
         header.Children.Add(count);
         column.Children.Add(header);
-        var card = TimelineRows.Pill(column, SwiftColor.Quaternary.Opacity(0.32), new Thickness(14));
+        // The pill fills the slot it is eased in (the delegation card's pattern, PR-CHAT-149): its fill, edge and corners are drawn at the size the slot has got to, larger or
+        // smaller, rather than at its contents' size and clipped by the slot, which is a cut when the card shrinks (ED-285 (12)(b)).
+        var card = TimelineRows.Pill(column, SwiftColor.Quaternary.Opacity(0.32), new Thickness(14), fillsSlot: true);
         // :2372 .animation(.snappy(duration: 0.2), value: steps) sits on the whole card, so the card's size follows its contents too: a step that
-        // arrives, a line that grows or wraps, a card that gets wider (OD-0076: a card that changes size eases to it).
-        var slot = new SizeSlot(card);
+        // arrives, a line that grows or wraps, a card that gets wider or narrower (OD-0076: a card that changes size eases to it).
+        var slot = new SizeSlot(card) { ContentFollowsSize = true };
         var rows = new List<(TimelineBaselineRow Row, OpacityCrossfade Icon, TextBlock Text, AnimatedColor IconColour, AnimatedColor TextColour, Action<bool, Animation?> Strike)>();
         // A step that has gone has faded out before it leaves the column; the card then eases to the size it has without it.
         column.Children.CollectionChanged += (_, e) => { if (e.Action == NotifyCollectionChangedAction.Remove) slot.Note(Animation.Snappy(duration: 0.2)); };
