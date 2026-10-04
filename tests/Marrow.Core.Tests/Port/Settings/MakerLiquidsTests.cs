@@ -7,7 +7,8 @@ public sealed class MakerLiquidsTests
 {
     [Fact]
     [Trait("Feature", "CZ-1")]
-    [Trait("Rule", "CZ-T29")]
+    [Trait("Spec", "CZ-T29")]
+    [Trait("Decision", "ED-251")]
     public void Thirty_makers_have_the_pinned_source_order_names_models_and_both_high_palettes()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

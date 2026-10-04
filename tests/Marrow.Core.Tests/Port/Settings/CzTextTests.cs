@@ -15,7 +15,8 @@ public sealed class CzTextTests
 
     [Fact]
     [Trait("Feature", "CZ-1")]
-    [Trait("Rule", "CZ-T6")]
+    [Trait("Spec", "CZ-T6")]
+    [Trait("Decision", "ED-251")]
     public void Every_label_detail_and_caption_is_byte_equal_to_the_locked_tables()
     {
         using var f = Fixture();
@@ -31,7 +32,8 @@ public sealed class CzTextTests
 
     [Fact]
     [Trait("Feature", "CZ-1")]
-    [Trait("Rule", "CZ-T7")]
+    [Trait("Spec", "CZ-T7")]
+    [Trait("Decision", "ED-251")]
     public void Fmt_matches_node_for_halves_negatives_zero_and_exponent_boundaries()
     {
         using var f = Fixture();
@@ -41,7 +43,8 @@ public sealed class CzTextTests
 
     [Fact]
     [Trait("Feature", "CZ-1")]
-    [Trait("Rule", "CZ-T8")]
+    [Trait("Spec", "CZ-T8")]
+    [Trait("Decision", "ED-251")]
     public void Every_slider_range_snaps_clamped_values_and_halves_like_node()
     {
         using var f = Fixture();
@@ -51,7 +54,8 @@ public sealed class CzTextTests
 
     [Fact]
     [Trait("Feature", "CZ-1")]
-    [Trait("Rule", "CZ-T30")]
+    [Trait("Spec", "CZ-T30")]
+    [Trait("Decision", "ED-251")]
     public void Tone_matches_the_actual_design_function_for_legibility_fallback_and_channel_rounding()
     {
         // All thirty makers, both themes, four stops, plus fallback/threshold boundary fixtures.
