@@ -152,16 +152,16 @@ public sealed class OrbRendererTests
     [Trait("Feature", "VT-8")]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T51")]
-    public void While_listening_a_frame_allocates_only_the_export_runtimes_audio_rule_enumerator()
+    public void While_listening_a_frame_allocates_nothing_either()
     {
-        // FINDING (VT-4's OrbExportRuntime.ApplyAudioUniforms, not this unit's file): `foreach (var rule in AudioRules)` over an IReadOnlyList boxes an enumerator, 32 bytes a
-        // Listening frame. V-T51's 0 B per frame holds for every other state; this is the one allocation left, pinned so it cannot grow.
+        // V-T51 "0 B per frame" while Listening too: VT-4's OrbExportRuntime.ApplyAudioUniforms took the bands with `foreach` over an IReadOnlyList, which boxed an
+        // enumerator (32 B a Listening frame); the Windows review (unit/integ-vt8) made it an indexed loop.
         var job = new OrbJob("siri-wave", "listen-speech", 32, "dark");
         var runtime = OrbRig.Runtime(job);
         for (var i = 0; i < 20; i++) runtime.Frame(i / 60.0, job.FrameState);
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 20; i < 220; i++) runtime.Frame(i / 60.0, job.FrameState);
-        Assert.Equal(32, (GC.GetAllocatedBytesForCurrentThread() - before) / 200);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
     [Fact]
