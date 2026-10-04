@@ -371,7 +371,7 @@ there to balance the load.
 | File | Owners, in order |
 |---|---|
 | `ComposerView.cs` | CB-0 → VT-10 → VT-11 → VT-12 → CZ-5 |
-| `SettingsView.cs` | SA-1 → SK-15 (page units edit only their own page file after SA-1) |
+| `SettingsView.cs` | SA-1 only (SA-1 adds all five pages, Plugins and Skills included, 2026-10-04; page units and SK-15 edit only their own page file and flip its IsReady) |
 | `AppSettings.cs` | SA-1 only |
 | `GpuWarmup.cs` | GR-1 only (later units register from their own files) |
 | `RootView.cs` | GR-2 → WV-1 |
