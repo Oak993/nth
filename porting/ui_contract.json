@@ -1820,24 +1820,25 @@
       "element": "Chat chrome row",
       "role": "toolbar",
       "exact_text": null,
-      "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (10) while the sidebar does not hold the window buttons, otherwise 0; horizontal padding Chrome.chromeHorizontalPadding = 14; top padding Chrome.chromeTopPadding = 12",
+      "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.chromeHorizontalPadding = 14 whoever holds the window buttons; top padding Chrome.chromeTopPadding = 12; trailing padding WindowChrome.CaptionTrailingReserve = 156 (6 from the window's right edge, three 46-point caption buttons 2 apart, 8 of clearance), so the last capsule ends clear of the caption buttons. DEVIATION OD-0044: upstream's leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (60 + 10) while the sidebar does not hold the window buttons, otherwise 0, inside .padding(.horizontal, 14) (ChatView.swift:1176-1178; Chrome.swift:20-21, :31-32), is replaced by the trailing caption reserve, because the window buttons are Windows caption buttons at the top right.",
       "typography": "Per control; the title is .system(.title3, weight: .semibold) (15 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:50)",
       "colors": "Liquid Glass, one pass for the whole row, as a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001); controls tinted with Chrome.glassTint at 0.3 (PR-WIN-180)",
       "states": [
-        "sidebar holds the window buttons: no leading inset and no Threads button",
-        "sidebar away: leading inset applied and the Threads button present",
-        "sidebar floats as the only sidebar: leading inset applied but no Threads button",
+        "sidebar holds the window buttons: no Threads button",
+        "sidebar away: the Threads button present",
+        "sidebar floats as the only sidebar: no Threads button",
         "no project: the Scripts item and its divider are absent",
-        "not a git repository: the branch menu, the Git actions item and its divider are absent"
+        "not a git repository: the branch menu, the Git actions item and its divider are absent",
+        "DEVIATION OD-0044: in every state the leading padding is 14 and the trailing reserve 156 (upstream steps 70 points clear of the traffic lights while the sidebar does not hold them)"
       ],
       "interactions": [
         "the gaps between controls drag the window",
-        "the inset change animates with Chrome.panelSlide"
+        "DEVIATION OD-0044: upstream animates its leading inset change with Chrome.panelSlide keyed on holdsTrafficLights (ChatView.swift:1180); the port's padding does not change with holdsTrafficLights, so nothing moves"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1106-1182"
       ],
-      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner. ED-063: the caption controls are app-drawn on the leading edge; the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its leading-edge controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu."
+      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0017 (which closes OD-0013): every resizable top-level window uses stretch (ED-101); the remaining one-frame DWM lag and the one-frame scaled frames during a live resize are a named deviation. OD-0044: the caption buttons are app-drawn Windows buttons (minimise, maximise or restore, close) at the window's top right. ED-063: the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its caption controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu."
     },
     {
       "area": "CHAT",
