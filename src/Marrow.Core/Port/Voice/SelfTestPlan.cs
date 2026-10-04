@@ -104,6 +104,14 @@ public static class SelfTestPlan
         && string.Equals(typing.SlowChoiceKey, currentHardwarePart, StringComparison.Ordinal);
 
     /// <summary>
+    /// The answer that counts for today's hardware part, to feed <see cref="ApplyAnswer"/>: the stored <c>liveWordsChoice</c> when it was
+    /// given for this hardware part (<see cref="AnsweredFor"/>), otherwise null (not answered here, or dismissed: R8 keeps the accurate
+    /// model). An answer kept for other hardware (R7) never decides here (R5); the round-6 re-check, VoiceCoreReview6Tests.
+    /// </summary>
+    public static LiveWordsChoice? AnswerFor(VoiceTypingSettings typing, string currentHardwarePart) =>
+        AnsweredFor(typing, currentHardwarePart) ? typing.SlowChoice : null;
+
+    /// <summary>
     /// Stores the answer to the slow-PC question with the hardware part it was given under (R5). Lead ruling R7: a question dismissed
     /// without an answer (<paramref name="answer"/> null) stores nothing, so the next self-test on the same key asks again (the default
     /// until the question's design, OD-0070, says otherwise); an earlier answer for other hardware is left as it was.
@@ -117,7 +125,8 @@ public static class SelfTestPlan
     /// (never asked then, R2) live keeps the model with text after the stop, as R2 does. Lead ruling R8 (2026-10-04, from the owner's
     /// welcome-voice pick in OD-0099, "until answered the accurate model is used"): <paramref name="answer"/> null, a question dismissed
     /// (R7) or not answered yet, keeps the model with text after the user stops, live words off; the voiceHardware entry's
-    /// <c>liveWords</c> is written from this decision, so false.
+    /// <c>liveWords</c> is written from this decision, so false. Feed <paramref name="answer"/> from <see cref="AnswerFor"/>, never from
+    /// <c>voiceTyping.liveWordsChoice</c> directly, which may hold an answer given for other hardware (R7).
     /// </summary>
     public static SelfTestDecision ApplyAnswer(string modelId, LiveWordsChoice? answer) =>
         answer == LiveWordsChoice.Live && StepDown(modelId) is { } smaller

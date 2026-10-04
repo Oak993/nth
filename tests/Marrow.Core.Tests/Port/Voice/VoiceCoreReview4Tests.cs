@@ -176,7 +176,7 @@ public sealed class VoiceCoreReview4Tests
         var dismissed = WithSlowAnswer(VoiceTypingSettings.Default, null, part);
         var asked = SelfTestPlan.Decide(model, rtf, steppedDown, RecommendationBasis.Cpu, AnsweredFor(dismissed, part));
         Assert.True(asked.AskUser);
-        var outcome = SelfTestPlan.ApplyAnswer(asked.ModelId, dismissed.SlowChoice);
+        var outcome = SelfTestPlan.ApplyAnswer(asked.ModelId, SelfTestPlan.AnswerFor(dismissed, part)); // the answer that counts here (round 6)
         Assert.Equal(new SelfTestDecision(SelfTestAction.Keep, model, LiveWords: false, AskUser: false), outcome);
         // the voiceHardware entry is written from the outcome: liveWords false
         var stored = new VoiceHardwareRecord { Key = HardwareKey.Compute(PcA), Model = outcome.ModelId, Rtf = rtf, LiveWords = outcome.LiveWords!.Value };
