@@ -46,7 +46,7 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // ComposerWorkingDots.swift:67-71, :127-148: 2 points across, 8-point pitch, at most 3 rows, one extra column, each row up fainter by 1/rowCount
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-COMPOSER-017: the field's layout; the slot, the pulse, the colour and the accessibility clauses are the tests named in this class's summary
+    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-017 (OD-0098, the Swift is the proof): the field's layout; the slot, the pulse, the colour and the accessibility clauses are the tests named in this class's summary
     public void The_field_lays_out_two_point_dots_on_an_eight_point_pitch_in_at_most_three_rows_with_one_extra_column() => headless.OnUiThread(() =>
     {
         // A pill field 200 wide and 100 tall: 26 columns (25 to cover the width and one past it) and 3 rows, though 13 would fit.
@@ -80,7 +80,7 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // ComposerWorkingDots.swift:142-148, :177-190: pulse 0.08 to 0.75 over 2.2 s, column delay 0.045, row delay 0.09, each row up fainter by 1/rowCount
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-COMPOSER-017: the pulse's delays and the row fade while it runs
+    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-017 (OD-0098, the Swift is the proof): the pulse's delays and the row fade while it runs
     public void The_running_pulse_peaks_later_by_the_column_and_row_delays_and_each_row_peaks_lower_by_one_over_the_row_count() => headless.OnUiThread(() =>
     {
         using var rt = new TestRuntime();
@@ -116,7 +116,7 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
     // rounded rectangle.
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // ComposerView.swift:664-672 and ComposerWorkingDots.swift:12-20: the bottom 40 percent, clipped to a continuous 22-point rounded rectangle
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-COMPOSER-017: the slot's geometry and the clip's shape up to ED-181's corner curve (CORNER-ONLY)
+    [Trait("Rule", "R-TEST-4")] // UI-COMPOSER-017: the slot's geometry and the clip's continuous corner (ED-181, closed: ContinuousCornerChecks); the render-thread clause is the compositor tests', and a real native window stays out of reach
     public void The_slot_gives_the_dots_the_pills_bottom_40_percent_inside_a_continuous_22_point_clip() => headless.OnUiThread(() =>
     {
         System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
@@ -144,15 +144,21 @@ public sealed class ComposerWorkingDotsFieldTests(HeadlessSession headless)
                 var clip = Assert.IsType<Border>(slot.Child);
                 Assert.True(clip.ClipToBounds);
                 Assert.Equal(new CornerRadius(22), clip.CornerRadius);
-                // The outline is the shared continuous-corner helper's (SwiftShapes, every `.continuous` site goes through it); that helper
-                // draws the circular arc until ED-181's continuous curve lands, so this is the part of the clause not yet provable.
+                // The outline is the shared continuous-corner helper's (SwiftShapes, every `.continuous` site goes through it, ED-181 closed): Apple's
+                // continuous corner where the slot's size allows it (the two run-ins of a 22 point corner need 2 x 33.6 points of height), the circular arc elsewhere.
+                ContinuousCornerChecks.Drawn(clip, expectApple: height > 2 * 22 * 1.528665);
                 var expected = SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, 400, height), 22, RoundedCornerStyle.Continuous);
-                Assert.NotNull(clip.Clip);
-                for (var x = 0.25; x < 24; x += 0.5)
-                    for (var y = 0.25; y < 24; y += 0.5)
-                        Assert.Equal(expected.FillContains(new Point(x, y)), clip.Clip!.FillContains(new Point(x, y)));
-                Assert.False(clip.Clip!.FillContains(new Point(1, 1))); // the corner is cut away
-                Assert.True(clip.Clip!.FillContains(new Point(200, height / 2.0)));
+                if (height > 2 * 22 * 1.528665)
+                {
+                    // The Apple regime (the 100 point slot): the Border is cut to the continuous outline.
+                    Assert.NotNull(clip.Clip);
+                    for (var x = 0.25; x < 24; x += 0.5)
+                        for (var y = 0.25; y < 24; y += 0.5)
+                            Assert.Equal(expected.FillContains(new Point(x, y)), clip.Clip!.FillContains(new Point(x, y)));
+                    Assert.False(clip.Clip!.FillContains(new Point(1, 1))); // the corner is cut away
+                    Assert.True(clip.Clip!.FillContains(new Point(200, height / 2.0)));
+                }
+                else Assert.Null(clip.Clip); // the circular regime (the 60 point slot, ED-275 (2)): the corner is the Border's own 22 point arc under ClipToBounds
             });
         }
         h.Main.OnMain(() => { Settle(window); window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
