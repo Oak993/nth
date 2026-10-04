@@ -1,6 +1,7 @@
 // PORT-ONLY: SK-11b / DL-12 Codex taps. Normalized events come from a committed fixture transcript synthesized from the app-server formats the port already reads (CodexSession item and approval handling); no live CLI.
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Core.Port.Skills.Detect;
 using Marrow.Services.Port.Skills.Generations;
 using Marrow.Services.Port.Skills.Providers;

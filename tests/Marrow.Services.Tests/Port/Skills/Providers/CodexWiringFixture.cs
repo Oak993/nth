@@ -37,6 +37,9 @@ internal static class CodexWiringFixture
     public static object? CallStatic(string method, params object?[] args) =>
         typeof(CodexSession).GetMethod(method, BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, args);
 
+    public static T StaticProperty<T>(string name) =>
+        (T)typeof(CodexSession).GetProperty(name, BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+
     public static JSONValue Json(string text) => JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(text))!;
 
     public static string Bytes(JSONValue value) => System.Text.Encoding.UTF8.GetString(value.Data());

@@ -35,7 +35,7 @@ public sealed class CodexChildEnvironmentTests
     {
         var root = Scratch();
         var bin = Path.Combine(root, "addons", "bin");
-        var windowsApps = Path.Combine("C:", "Users", "x", "AppData", "Local", "Microsoft", "WindowsApps");
+        var windowsApps = Path.Combine(OperatingSystem.IsWindows() ? @"C:\Users\x" : "/Users/x", "AppData", "Local", "Microsoft", "WindowsApps");
         var path = string.Join(Path.PathSeparator, "/usr/bin", windowsApps, "/bin");
         var env = Env(path);
         using var _ = CodexChildEnvironment.Root.Override(new CodexChildRoot(() => root));

@@ -21,7 +21,7 @@ public sealed class CodexSessionUnchangedTests
     [Trait("Rule", "R-TEST-10")]
     public void The_app_server_argument_vector_is_exactly_app_server()
     {
-        Assert.Equal(["app-server"], (IReadOnlyList<string>)CodexWiringFixture.CallStatic("AppServerArguments")!);
+        Assert.Equal(["app-server"], CodexWiringFixture.StaticProperty<IReadOnlyList<string>>("AppServerArguments"));
     }
 
     [Fact]
@@ -31,8 +31,8 @@ public sealed class CodexSessionUnchangedTests
     public void The_initialize_message_is_the_one_the_Mac_source_builds_with_the_Marrow_identity()
     {
         var parameters = (JSONValue)CodexWiringFixture.CallStatic("InitializeParameters")!;
-        var expected = "{\"capabilities\":{\"experimentalApi\":true},\"clientInfo\":{\"name\":\"marrow\",\"title\":\"Marrow\",\"version\":" +
-            System.Text.Json.JsonSerializer.Serialize(AppInfo.Current.Version) + "}}";
+        var expected = "{\"clientInfo\":{\"name\":\"marrow\",\"title\":\"Marrow\",\"version\":" +
+            System.Text.Json.JsonSerializer.Serialize(AppInfo.Current.Version) + "},\"capabilities\":{\"experimentalApi\":true}}";
         Assert.Equal(CodexWiringFixture.Bytes(CodexWiringFixture.Json(expected)), CodexWiringFixture.Bytes(parameters));
         Assert.Equal("marrow", parameters["clientInfo"]!["name"]!.JSONValueString);
         Assert.Equal("Marrow", parameters["clientInfo"]!["title"]!.JSONValueString);
@@ -47,6 +47,8 @@ public sealed class CodexSessionUnchangedTests
         var generation = f.Open().Start("codex", chat, [item], f.Switches((item, true)), f.Budget);
         return (f, generation, new CodexSkillWiring(generation, f.Paths));
     }
+
+    private static Dictionary<string, JSONValue> Params() => CodexWiringFixture.Property<Dictionary<string, JSONValue>>(CodexWiringFixture.Session(), "ThreadParameters");
 
     [Fact]
     [Trait("Feature", "SK-11b")]
@@ -76,8 +78,8 @@ public sealed class CodexSessionUnchangedTests
         using var _ = f;
         using var __ = chat;
         Assert.Null(chat.PreviousFolder);
-        var bare = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(resumeId: "r1"), "ResumeParameters", "r1")!;
-        var wired = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(wiring, resumeId: "r1"), "ResumeParameters", "r1")!;
+        var bare = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(resumeId: "r1"), "ResumeParameters", Params(), "r1")!;
+        var wired = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(wiring, resumeId: "r1"), "ResumeParameters", Params(), "r1")!;
         var threadStart = CodexWiringFixture.Property<Dictionary<string, JSONValue>>(CodexWiringFixture.Session(), "ThreadParameters");
         Assert.Equal(threadStart.Keys.Concat(["threadId", "excludeTurns"]).Order(), bare.Keys.Order());
         Assert.Equal("r1", bare["threadId"].JSONValueString);
@@ -102,8 +104,8 @@ public sealed class CodexSessionUnchangedTests
         using var moved = service.Start("codex", "one", [item], f.Switches((item, false)), f.Budget);
         Assert.Equal(original, moved.PreviousFolder);
         var wiring = new CodexSkillWiring(moved, f.Paths);
-        var bare = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(resumeId: "r1"), "ResumeParameters", "r1")!;
-        var withNote = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(wiring, resumeId: "r1"), "ResumeParameters", "r1")!;
+        var bare = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(resumeId: "r1"), "ResumeParameters", Params(), "r1")!;
+        var withNote = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(wiring, resumeId: "r1"), "ResumeParameters", Params(), "r1")!;
         var line = "Marrow's skills for this chat are now in " + moved.Folder + ". Paths under " + original + " earlier in this conversation no longer exist; use the same relative path under the new folder.";
         Assert.Equal(line, wiring.MovedNote);
         Assert.Equal(bare["developerInstructions"].JSONValueString + "\n\n" + line, withNote["developerInstructions"].JSONValueString);
@@ -125,27 +127,22 @@ public sealed class CodexSessionUnchangedTests
     [Trait("Feature", "SK-11b")]
     [Trait("Spec", "SK-T11")]
     [Trait("Rule", "R-TEST-9")]
-    public void The_turn_input_is_what_CodexInput_gives_today_when_there_is_no_wiring_and_for_a_non_skill_command()
+    public void Without_wiring_and_for_a_command_with_no_skill_path_the_command_is_used_as_it_is()
     {
         var skill = new SlashCommand { Name = "pdf", Detail = "d", SkillPath = "/x/list/pdf/SKILL.md" };
         var plain = new SlashCommand { Name = "review", Detail = "d", IsBuiltIn = true };
-        var bare = CodexWiringFixture.Session();
-        var viaSession = (ValueList<JSONValue>)CodexWiringFixture.Call(bare, "SkillInput", skill, "$pdf please")!;
-        Assert.Equal(skill.CodexInput("$pdf please").Select(CodexWiringFixture.Bytes), viaSession.Select(CodexWiringFixture.Bytes));
+        Assert.Same(skill, CodexWiringFixture.Call(CodexWiringFixture.Session(), "ResolveSkill", skill));
         var (f, chat, wiring) = Wired();
         using var _ = f;
         using var __ = chat;
-        var wired = CodexWiringFixture.Session(wiring);
-        Assert.Equal(plain.CodexInput("/review").Select(CodexWiringFixture.Bytes), ((ValueList<JSONValue>)CodexWiringFixture.Call(wired, "SkillInput", plain, "/review")!).Select(CodexWiringFixture.Bytes));
-        // Free text the user typed that no longer names the command is also untouched.
-        Assert.Equal(skill.CodexInput("hello").Select(CodexWiringFixture.Bytes), ((ValueList<JSONValue>)CodexWiringFixture.Call(wired, "SkillInput", skill, "hello")!).Select(CodexWiringFixture.Bytes));
+        Assert.Same(plain, CodexWiringFixture.Call(CodexWiringFixture.Session(wiring), "ResolveSkill", plain));
     }
 
     [Fact]
     [Trait("Feature", "SK-11b")]
     [Trait("Spec", "SK-T7")]
     [Trait("Rule", "R-TEST-9")]
-    public void A_skill_command_from_the_listing_is_sent_with_the_path_under_the_session_generation()
+    public void A_skill_command_from_the_listing_gets_the_path_under_the_session_generation_and_a_users_own_path_is_kept()
     {
         using var f = new GenerationFixture();
         var item = f.Add("A1", "pdf");
@@ -154,14 +151,30 @@ public sealed class CodexSessionUnchangedTests
         using var chat = service.Start("codex", "chat-a", [item], f.Switches((item, true)), f.Budget);
         var wiring = new CodexSkillWiring(chat, f.Paths, listing.Skills);
         var command = new SlashCommand { Name = "pdf", Detail = "d", SkillPath = listing.Skills[0].File };
-        var parts = (ValueList<JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(wiring), "SkillInput", command, "$pdf go")!;
-        Assert.Equal("skill", parts[1]["type"]!.JSONValueString);
-        Assert.Equal("pdf", parts[1]["name"]!.JSONValueString);
-        Assert.Equal(chat.Skills[0].File, parts[1]["path"]!.JSONValueString);
-        Assert.Equal("$pdf go", parts[0]["text"]!.JSONValueString);
+        var resolved = (SlashCommand)CodexWiringFixture.Call(CodexWiringFixture.Session(wiring), "ResolveSkill", command)!;
+        Assert.Equal(chat.Skills[0].File, resolved.SkillPath);
+        Assert.Equal(command with { SkillPath = chat.Skills[0].File }, resolved);
         var user = new SlashCommand { Name = "mine", Detail = "d", SkillPath = "/home/u/.agents/skills/mine/SKILL.md" };
-        var keep = (ValueList<JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(wiring), "SkillInput", user, "$mine go")!;
-        Assert.Equal("/home/u/.agents/skills/mine/SKILL.md", keep[1]["path"]!.JSONValueString);
+        Assert.Equal(user, CodexWiringFixture.Call(CodexWiringFixture.Session(wiring), "ResolveSkill", user));
+    }
+
+    [WindowsOnlyFact("SlashCommand.CodexInput needs the ICU shim (icu.dll) that Windows has")]
+    [Trait("Feature", "SK-11b")]
+    [Trait("Spec", "SK-T7")]
+    [Trait("Rule", "R-TEST-9")]
+    public void The_skill_part_of_the_turn_input_carries_the_rewritten_path_and_the_text_part_is_unchanged()
+    {
+        using var f = new GenerationFixture();
+        var item = f.Add("A1", "pdf");
+        var service = f.Open();
+        using var listing = service.Listing("codex", [item], f.Switches((item, true)), f.Budget);
+        using var chat = service.Start("codex", "chat-a", [item], f.Switches((item, true)), f.Budget);
+        var command = new SlashCommand { Name = "pdf", Detail = "d", SkillPath = listing.Skills[0].File };
+        var wired = (SlashCommand)CodexWiringFixture.Call(CodexWiringFixture.Session(new CodexSkillWiring(chat, f.Paths, listing.Skills)), "ResolveSkill", command)!;
+        var parts = wired.CodexInput("$pdf go");
+        Assert.Equal(command.CodexInput("$pdf go")[0], parts[0]);
+        Assert.Equal(chat.Skills[0].File, parts[1]["path"]!.JSONValueString);
+        Assert.Equal("pdf", parts[1]["name"]!.JSONValueString);
     }
 
     private static CodexSession StandIn(CodexScript script, CodexSkillWiring? wiring)
