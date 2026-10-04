@@ -54,40 +54,41 @@ public sealed class TimelineRowsBlitzAbUiTests(HeadlessSession headless)
         frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
     }
 
-    // The mean distance from the backdrop of the eight strongest pixels in the area.
+    // All the ink in the area: the summed distance of its pixels from the backdrop. Unlike a peak it does not change when a mark is drawn half a pixel to one side.
     private static double RawPeak(BlitzAbFrame frame, Rect area, Color backdrop)
     {
-        var distances = new List<int>();
+        var sum = 0.0;
         for (var x = (int)Math.Floor(area.Left); x < (int)Math.Ceiling(area.Right); x++)
             for (var y = (int)Math.Floor(area.Top); y < (int)Math.Ceiling(area.Bottom); y++)
-                distances.Add(BlitzAbFrame.Distance(frame.At(x, y), backdrop));
-        return distances.OrderByDescending(distance => distance).Take(8).Average();
+                sum += BlitzAbFrame.Distance(frame.At(x, y), backdrop);
+        return sum;
     }
 
-    // The same words in the same font drawn alone in the ink the source gives them: what the ink of a line should be however thin its strokes are.
-    private static void IsInkedLike(BlitzAbFrame frame, Rect area, Color backdrop, string text, SwiftFont font, SwiftColor ink, ThemeVariant theme, string because)
+    // The same words in the same font drawn alone in the ink the source gives them, in a window of their own: what the ink of a line should be (its mass, so a thin stroke
+    // that never reaches the colour whole, or a mark half a pixel off its grid, is judged as the same mark).
+    private static void IsInkedLike(BlitzAbFrame frame, Rect area, Color backdrop, string text, SwiftFont font, SwiftColor ink, ThemeVariant theme, string because, double? cutAt = null)
     {
         var label = new TextBlock { Text = text };
+        if (cutAt is { } width) { label.Width = width; label.MaxLines = 1; label.TextTrimming = TextTrimming.CharacterEllipsis; } // the line as it is cut at the tail inside its frame
         font.Apply(label);
         label.Foreground = ink.Brush(label);
         var reference = 0.0;
-        BlitzAbRender.Render(new Border { Padding = new Thickness(8), Child = label }, theme, backdrop, 480, 60, (window, shot) => reference = RawPeak(shot, BlitzAbRender.BoxIn(label, window), backdrop));
-        var drawn = RawPeak(frame, area, backdrop);
-        Assert.True(reference > 60, $"{because}: the reference line is barely inked ({reference})");
+        BlitzAbRender.Render(new Border { Padding = new Thickness(8), Child = label }, theme, backdrop, 480, 60, (window, shot) => reference = RawPeak(shot, BlitzAbRender.BoxIn(label, window).Inflate(1), backdrop));
+        var drawn = RawPeak(frame, area.Inflate(1), backdrop);
+        Assert.True(reference > 600, $"{because}: the reference line is barely inked ({reference})");
         Assert.InRange(drawn / reference, 0.92, 1.08);
     }
 
-    // A symbol drawn in the ink the source gives it, as strongly inked as the same symbol drawn alone in that ink in a window of its own (a thin stroke never
-    // reaches the colour whole, so the symbol is compared with itself, not with the colour).
+    // A symbol drawn in the ink the source gives it, as inked as the same symbol drawn alone in that ink in a window of its own.
     private static void SymbolInkedLike(BlitzAbFrame frame, SwiftImage actual, Rect area, Color backdrop, SwiftColor ink, ThemeVariant theme, string because)
     {
         var reference = SwiftImage.SystemName(actual.SymbolName!);
         if (SwiftImage.GetFont(actual) is { } font) reference.Font(font);
         reference.Foreground = ink.Brush(reference);
-        var peak = 0.0;
-        BlitzAbRender.Render(new Border { Padding = new Thickness(8), Child = reference }, theme, backdrop, 120, 60, (window, shot) => peak = RawPeak(shot, BlitzAbRender.BoxIn(reference, window).Inflate(2), backdrop));
-        Assert.True(peak > 40, $"{because}: the reference symbol is barely inked ({peak})");
-        Assert.InRange(RawPeak(frame, area.Inflate(2), backdrop) / peak, 0.9, 1.1);
+        var mass = 0.0;
+        BlitzAbRender.Render(new Border { Padding = new Thickness(8), Child = reference }, theme, backdrop, 120, 60, (window, shot) => mass = RawPeak(shot, BlitzAbRender.BoxIn(reference, window).Inflate(2), backdrop));
+        Assert.True(mass > 150, $"{because}: the reference symbol is barely inked ({mass})");
+        Assert.InRange(RawPeak(frame, area.Inflate(2), backdrop) / mass, 0.9, 1.1);
     }
 
     // ---- UI-CHAT-007: the sent message bubble ----
@@ -258,6 +259,7 @@ public sealed class TimelineRowsBlitzAbUiTests(HeadlessSession headless)
                 var frame = Shot();
                 Assert.Equal(1, HoverLine(row).Opacity);
                 SymbolInkedLike(frame, Assert.Single(Mounted<SwiftImage>(HoverLine(row))), PencilBox(), backdrop, ChromeTokens.Accent, theme, $"{theme}: the pencil while the editor is open");
+                BlitzAbRender.InkIsColour(frame, PencilBox(), backdrop, ChromeTokens.Accent.Resolve(theme), $"{theme}: the pencil is the accent while the editor is open", most: 1.6); // the hue: tinted, not grey
                 Assert.True(PencilInk(frame) > 12);
                 Assert.Equal(bubbleBox, BlitzAbRender.BoxIn(Bubble(row), window));
                 Assert.Equal(bubbleInk, frame.InkCount(bubbleBox, backdrop, 8));
@@ -326,7 +328,7 @@ public sealed class TimelineRowsBlitzAbUiTests(HeadlessSession headless)
                         Assert.Equal(FontWeight.SemiBold, font.FontWeight);
                         Assert.Equal("text.quote", glyph.SymbolName);
                         SymbolInkedLike(frame, glyph, glyphBox, capsule, ChromeTokens.SecondaryText, theme, $"{because}: the glyph");
-                        IsInkedLike(frame, wordsBox, capsule, excerpts[i], SwiftFont.System(SwiftFont.TextStyle.Subheadline), ChromeTokens.PrimaryText.Opacity(0.9), theme, $"{because}: the excerpt");
+                        IsInkedLike(frame, wordsBox, capsule, excerpts[i], SwiftFont.System(SwiftFont.TextStyle.Subheadline), ChromeTokens.PrimaryText.Opacity(0.9), theme, $"{because}: the excerpt", cutAt: i == 2 ? 260 : null);
                         // :96, :116 each chip at its own width flush right, 4 short of the bubble's tail edge, and 4 between chips.
                         Assert.Equal(bubble.Right - 4, box.Right, 0.5);
                         if (i > 0) Assert.Equal(4, box.Top - BlitzAbRender.BoxIn(chips[i - 1], window).Bottom, 0.5);
@@ -500,6 +502,131 @@ public sealed class TimelineRowsBlitzAbUiTests(HeadlessSession headless)
                 Close(window);
             });
             h.Main.OnMain(() => h.Runtime.Draft = h.Runtime.Draft with { Quotes = ValueList<ReplyQuote>.Empty });
+        }
+    });
+
+    // ---- UI-CHAT-022, UI-CHAT-023: the work group's summary line and its earlier-steps line ----
+
+    private static Rect Ink(BlitzAbFrame frame, Rect area, Color backdrop) =>
+        frame.Ink(area, backdrop) is { } ink ? new Rect(ink.Left, ink.Top, ink.Right - ink.Left + 1, ink.Bottom - ink.Top + 1) : throw new Xunit.Sdk.XunitException("nothing is drawn in " + area);
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-022")] // TimelineRows.swift:1463-1509, :1586-1634; OD-0098: the summary line collapsed and open in both themes, the chevron turned a quarter turn
+    public void The_work_group_summary_line_draws_its_glyph_summary_and_chevron_in_the_secondary_ink_and_the_chevron_turns_a_quarter_when_it_opens_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        foreach (var (theme, backdrop) in Themes)
+        {
+            WorkGroup group = null!;
+            AvaloniaWindow window = null!;
+            h.Main.OnMain(() =>
+            {
+                group = new WorkGroup(new ValueList<TimelineEntry>([Tool(ToolCall.Kind.Edit), Tool(ToolCall.Kind.Command)]), h.Runtime, startsCollapsed: true);
+                var host = new Border { Padding = new Thickness(24), Child = group };
+                ThreadTimeline.SetRevealTimelineEnd(host, new TimelineRevealBox { Action = () => { } });
+                window = BlitzAbRender.Open(host, theme, backdrop, 560, 260);
+            });
+            Rect collapsed = default;
+            h.Main.OnMain(() =>
+            {
+                var frame = BlitzAbRender.Capture(window);
+                var header = Assert.Single(Mounted<Button>(group));
+                var summary = TextNamed(header, "Edited files, ran commands");
+                var glyph = Assert.Single(Mounted<SwiftImage>(header), image => image.SymbolName == "pencil");
+                var chevron = Assert.Single(Mounted<SwiftImage>(header), image => image.SymbolName == "chevron.right");
+                // :1480-1495 the 16-point icon column, the summary 8 on, the chevron 8 after it, 12 of trailing padding; one centre line.
+                var g = BlitzAbRender.BoxIn(glyph, window); var s = BlitzAbRender.BoxIn(summary, window); var c = BlitzAbRender.BoxIn(chevron, window);
+                Assert.Equal(24, g.Left, 0.5); Assert.Equal(16, g.Width, 0.5);
+                Assert.Equal(g.Left + 16 + 8, s.Left, 0.5);
+                Assert.Equal(s.Right + 8, c.Left, 0.5);
+                Assert.Equal(c.Right + 12, BlitzAbRender.BoxIn(header, window).Right, 0.5);
+                Assert.Equal(s.Center.Y, g.Center.Y, 1.0); Assert.Equal(s.Center.Y, c.Center.Y, 1.0);
+                // The three marks in the secondary ink, in their own type (glyph caption, text callout, chevron caption2 semibold: 10, 12, 10).
+                SymbolInkedLike(frame, glyph, g, backdrop, ChromeTokens.SecondaryText, theme, $"{theme}: the glyph");
+                IsInkedLike(frame, s, backdrop, "Edited files, ran commands", ChatFont.Chat(SwiftFont.TextStyle.Callout), ChromeTokens.SecondaryText, theme, $"{theme}: the summary");
+                SymbolInkedLike(frame, chevron, c, backdrop, ChromeTokens.SecondaryText, theme, $"{theme}: the chevron");
+                Assert.Equal(10, SwiftImage.GetFont(glyph)!.Resolve().FontSize);
+                Assert.Equal(FontWeight.SemiBold, SwiftImage.GetFont(chevron)!.Resolve().FontWeight);
+                // Collapsed (:1490): the chevron at 0 degrees, pointing right: taller than wide, nothing below the header.
+                collapsed = Ink(frame, c.Inflate(2), backdrop);
+                Assert.True(collapsed.Height > collapsed.Width + 1, $"{theme}: the collapsed chevron is {collapsed.Width} by {collapsed.Height}");
+                Assert.Empty(Mounted<WorkSteps>(group));
+                Click(window, header);
+            });
+            Frames(h.Main, frames, 600); // :1470 .snappy(duration: 0.24): settled
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                var frame = BlitzAbRender.Capture(window);
+                var header = Mounted<Button>(group).First();
+                var chevron = Assert.Single(Mounted<SwiftImage>(header), image => image.SymbolName == "chevron.right");
+                // Open (:1490): turned 90 degrees, pointing down: the same mark on its side (wider than tall, its sides the collapsed one's swapped).
+                var open = Ink(frame, BlitzAbRender.BoxIn(chevron, window).Inflate(3), backdrop);
+                Assert.True(open.Width > open.Height + 1, $"{theme}: the open chevron is {open.Width} by {open.Height}");
+                Assert.Equal(collapsed.Height, open.Width, 1.5);
+                Assert.Equal(collapsed.Width, open.Height, 1.5);
+                // The steps hang one row gap under the header, drawn.
+                var steps = Assert.Single(Mounted<WorkSteps>(group));
+                var headerBox = BlitzAbRender.BoxIn(header, window);
+                Assert.Equal(20, BlitzAbRender.BoxIn(steps, window).Top - headerBox.Bottom, 0.5);
+                Assert.True(frame.InkCount(BlitzAbRender.BoxIn(steps, window), backdrop) > 80, $"{theme}: the steps are not drawn");
+                BlitzAbRender.Shut(window);
+            });
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-023")] // TimelineRows.swift:1522-1544; OD-0098: the earlier-steps line drawn over five steps in both themes, then gone once it is tapped
+    public void The_earlier_steps_line_draws_an_ellipsis_and_its_count_in_the_secondary_ink_over_the_two_latest_steps_and_goes_when_tapped_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        foreach (var (theme, backdrop) in Themes)
+        {
+            var showsAll = new ObservableBoolBox();
+            WorkSteps five = null!;
+            AvaloniaWindow window = null!;
+            h.Main.OnMain(() =>
+            {
+                five = new WorkSteps(new ValueList<TimelineEntry>(Enumerable.Range(1, 5).Select(i => ToolEntry(Call(ToolCall.Kind.Read, "Read file" + i)))), h.Runtime, showsAll.AsBinding());
+                var host = new Border { Padding = new Thickness(24), Child = five };
+                ThreadTimeline.SetRevealTimelineEnd(host, new TimelineRevealBox { Action = () => { } });
+                window = BlitzAbRender.Open(host, theme, backdrop, 560, 300);
+            });
+            h.Main.OnMain(() =>
+            {
+                var frame = BlitzAbRender.Capture(window);
+                var line = Assert.Single(Mounted<Button>(five), button => Texts(button).Contains("3 earlier steps"));
+                var glyph = Assert.Single(Mounted<SwiftImage>(line));
+                var words = TextNamed(line, "3 earlier steps");
+                var g = BlitzAbRender.BoxIn(glyph, window); var w = BlitzAbRender.BoxIn(words, window);
+                // :1531-1540 the ellipsis in the 16-point icon column, the words 8 on, 12 of trailing padding; both in the secondary ink.
+                Assert.Equal("ellipsis", glyph.SymbolName);
+                Assert.Equal(24, g.Left, 0.5); Assert.Equal(16, g.Width, 0.5);
+                Assert.Equal(g.Left + 16 + 8, w.Left, 0.5);
+                Assert.Equal(w.Right + 12, BlitzAbRender.BoxIn(line, window).Right, 0.5);
+                Assert.Equal(w.Center.Y, g.Center.Y, 1.0);
+                SymbolInkedLike(frame, glyph, g, backdrop, ChromeTokens.SecondaryText, theme, $"{theme}: the ellipsis");
+                IsInkedLike(frame, w, backdrop, "3 earlier steps", ChatFont.Chat(SwiftFont.TextStyle.Callout), ChromeTokens.SecondaryText, theme, $"{theme}: the count");
+                // Only the two latest steps are drawn below it, a row gap on.
+                var rows = Mounted<ToolRow>(five).ToList();
+                Assert.Equal(2, rows.Count);
+                Assert.Equal(20, BlitzAbRender.BoxIn(rows[0], window).Top - BlitzAbRender.BoxIn(line, window).Bottom, 0.5);
+                Click(window, line);
+            });
+            Frames(h.Main, frames, 600);
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                var frame = BlitzAbRender.Capture(window);
+                Assert.DoesNotContain(Texts(five), text => text.Contains("earlier", StringComparison.Ordinal)); // the line is gone and every step shows
+                Assert.Equal(5, Mounted<ToolRow>(five).Count());
+                Assert.True(frame.InkCount(BlitzAbRender.BoxIn(five, window), backdrop) > 200);
+                BlitzAbRender.Shut(window);
+            });
         }
     });
 }
