@@ -2400,16 +2400,17 @@
       "id": "PR-CHAT-102",
       "title": "Diffs shown inside an expanded tool row are parsed once per distinct diff and cached sixty deep",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2171-2182 DiffDetailCache - a RecentCache keyed on the path, a newline and the diff text, limit 60; a miss parses with DiffParser.parseHunks"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2171-2182 DiffDetailCache - a RecentCache keyed on the path, a newline and the diff text, limit 60; a miss parses with DiffParser.parseHunks",
+        "DroppyCode/Core/Support/RecentCache.swift:3-28 and :43-55 RecentCache(limit: 60) keeps two generations, current and previous; insert starts a new generation (previous = current, current emptied) when current.count >= limit, and a hit in previous is moved back into current, so up to 60 + 60 entries are held at once"
       ],
       "preconditions": "A tool row with edits is expanded.",
       "action": "The row opens and closes repeatedly.",
-      "expected_result": "Parsing runs once per distinct diff, so opening and closing a row is instant no matter how large the patch is. At most sixty parsed files are held.",
+      "expected_result": "Parsing runs once per distinct diff, so opening and closing a row is instant no matter how large the patch is. The cache is RecentCache(limit: 60) with two generations (RecentCache.swift:43-55, TimelineRows.swift:2172), so up to sixty parsed files are held in the current generation and up to sixty more in the previous one: at most 120 at once,.",
       "side_effects": [],
       "persistence": "None; process memory.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same key composition and same limit (port_impacts.md 312 requires the three caches be sized together).",
+      "windows_path": "Same key composition, the same limit of 60 per generation and the same two-generation rotation, so up to 120 entries are held (RecentCache.swift:43-55); port_impacts.md 312 requires the three caches be sized together.",
       "verification_method": "unit counting parses",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2520,7 +2521,9 @@
       "title": "A turn recorded before per-file summaries existed has its changes worked out once and stored back",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2707-2714 .task(id: turnID) - runs only when summary.changes is nil and either filesChanged is above zero or the turn has edits; awaits runtime.parsedDiff(selection: turnID), checks cancellation, builds a FileChangeSummary and both stores it locally and calls runtime.storeLegacyChanges",
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2595 the card reads summary.changes ?? legacyChanges"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2595 the card reads summary.changes ?? legacyChanges",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3797-3803 storeLegacyChanges - sets summary.changes on the turn-end entry and calls scheduleSave(); it does not increment saveRevision",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3650-3665 saveNow - `guard saveRevision != lastSavedRevision else { return }`, so a save with no revision change writes nothing; :3670-3673 unsavedSnapshot (quit) has the same guard"
       ],
       "preconditions": "An older turn is displayed whose summary has no per-file changes.",
       "action": "The block appears.",
@@ -2529,7 +2532,7 @@
         "The turn's diff is computed, which reads the repository",
         "The computed summary is stored on the thread"
       ],
-      "persistence": "Written back through runtime.storeLegacyChanges, so it survives into the thread document.",
+      "persistence": "Written back through runtime.storeLegacyChanges (ThreadRuntime.swift:3797-3803), which updates the turn-end entry in memory and calls scheduleSave() only; it does not increment saveRevision, and saveNow skips a save while saveRevision equals lastSavedRevision (:3663). The stored summary therefore reaches the thread document only when some other change increments the revision and a later save runs (the snapshot then carries the entry's updated content, :3699); on its own it is not written, and a thread reopened before that has summary.changes nil again and works the changes out again.",
       "failure_cases": [],
       "cancellation": "The task is keyed on the turn id; a cancelled task writes nothing.",
       "windows_path": "Same guard conditions, so opening a long history does not parse every old turn's diff.",
@@ -2669,17 +2672,19 @@
       "id": "PR-CHAT-113",
       "title": "A plan streaming its markdown renders with the streaming markdown renderer",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2287 MarkdownView(text: plan.markdown, isStreaming: plan.state == .drafting)"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2287 MarkdownView(text: plan.markdown, isStreaming: plan.state == .drafting)",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2265-2279 the plan card is a ChatBadge whose detail closure builds that MarkdownView; DroppyCode/App/Views/Chat/ChatBadge.swift:67-70 `coordinator.show(detail().presentedChrome())` evaluates the detail once, when isPresented turns true",
+        "DroppyCode/App/Views/Chat/ChatBadge.swift:112-147 BadgePopoverCoordinator.show measures the content once and calls popover.setFixedContent(content, size:); DroppyCode/UI/Chrome/Popovers.swift:29-40 setFixedContent installs that content in a hosting controller with sizingOptions = [] at a fixed size"
       ],
       "preconditions": "A plan is being drafted.",
       "action": "The popover is open while the markdown arrives.",
-      "expected_result": "The drafting state is passed as the streaming flag, so the plan is rendered by the per-block streaming renderer and switches to the finished-prose surface the moment the state leaves drafting.",
+      "expected_result": "The drafting state is passed as the streaming flag, so the plan is rendered by the per-block streaming renderer while it is drafting and by the finished-prose surface once the state has left drafting. The popover freezes its content when it opens (ChatBadge.swift:112-147 setFixedContent, with detail() evaluated once at :69), so the switch happens only in a popover opened again after the state left drafting; a popover already open keeps the text and the streaming flag it was opened with and does not switch.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Both renderers must exist and switch on this flag alone (port_impacts.md 250 and 306); the visual step at the end of streaming is deliberate and must not be normalized away.",
-      "verification_method": "interaction test across the drafting-to-proposed transition",
+      "windows_path": "Both renderers must exist and switch on this flag alone (port_impacts.md 250 and 306), the flag read when the popover's content is built at open and not again while it stays open (ChatBadge.swift:112-147); the visual step at the end of streaming is deliberate and must not be normalized away.",
+      "verification_method": "interaction test across the drafting-to-proposed transition: a popover left open through it keeps the streaming renderer, and one opened again shows the finished-prose surface",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -5647,7 +5652,7 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same seven providers, from the same supportsCompact predicate that decides local handling on send (PR-COMPOSER-034), so every provider offered the suggestion also handles \"/compact\" locally.",
+      "windows_path": "The source's seven providers (codex, claude, copilot, deepseek, meta, zai, pi; Provider.swift:149-154) plus OpenRouter (OD-0049, ED-234), eight in all, from the same supportsCompact predicate that decides local handling on send (PR-COMPOSER-034), so every provider offered the suggestion also handles \"/compact\" locally.",
       "verification_method": "unit test across all providers",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
