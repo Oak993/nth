@@ -411,6 +411,10 @@ public sealed class ComposerNSTextView : TextBox
         }
         if (files.Count == 0) return; // :186 super.performDragOperation(sender): the text view handles the drop itself
         OnAttach?.Invoke(files);
+        // :183 `return true`: the drag source is told the drop was taken as a copy. Without it Windows' OLE hand-over reports the
+        // effects the source offered (measured natively: 7, copy | move | link), and a move would let the source delete its files
+        // (ED-NEW-rec-settings-win (2)).
+        e.DragEffects = DragDropEffects.Copy;
         e.Handled = true;
     }
 

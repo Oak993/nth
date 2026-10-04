@@ -542,12 +542,22 @@ public sealed class RootView : Decorator
         foreach (var item in e.DataTransfer.Items)
             if (item.TryGetFile() is { } file && file.TryGetLocalPath() is { } path)
                 urls.Add(DroppedFileUrl(path));
-        if (urls.Count == 0) return;
+        if (urls.Count == 0)
+        {
+            // Nothing the drag offered can be opened any more (a path removed after DragOver accepted it): refused, and said so
+            // to the drag source (see below).
+            e.DragEffects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
         var accepted = HandleDrop(urls);
         // :79,109 return handleDrop's acceptance to the drag source. A local path can disappear after
         // DragOver accepted Copy; leaving that effect in place would report a successful rejected drop.
         e.DragEffects = accepted ? DragDropEffects.Copy : DragDropEffects.None;
-        e.Handled = accepted;
+        // The drop is consumed either way (dropDestination takes it and answers false); only a handled event carries its effect to
+        // the drag source through OLE, which otherwise reports the offered effects (measured natively: 7) for a refused drop too
+        // (ED-NEW-rec-settings-win (2)).
+        e.Handled = true;
     }
 
     // Builds the same non-"file"-scheme SwiftURL RootViewTests.cs's own DroppedUrl helper builds for HandleDropCore's
@@ -607,9 +617,7 @@ public sealed class RootView : Decorator
 
         // :106-108. The selection is read now, as it stands after the folder loop above. SOURCE FACT, verified
         // directly against the pinned reference (AppModel.swift:614/623: newThread(in:) sets
-        // selectedThreadID = thread.id), overriding this record's own windows_path prose (PR-WIN-065, "a thread
-        // created by the folder half is NOT the thread the files attach to"): that prose does not match the traced
-        // control flow. newThread(in:) selects the thread it creates BEFORE this line runs, so a mixed drop of a
+        // selectedThreadID = thread.id), as PR-WIN-065 now reads. newThread(in:) selects the thread it creates BEFORE this line runs, so a mixed drop of a
         // folder and a file, with nothing selected beforehand, DOES attach the file to the thread the folder half
         // just created (RootViewTests.cs, A_mixed_drop_with_no_prior_selection_attaches_the_file_to_the_thread_the_
         // folder_half_just_created). Only a thread already selected BEFORE the drop, unrelated to the folder half,
