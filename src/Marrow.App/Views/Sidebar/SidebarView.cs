@@ -3568,7 +3568,7 @@ internal sealed class SidebarThreadRow : Decorator
         var lift = new Border // :1841-1843
         {
             Background = Chrome.Overlay(0.12).Brush(content), // :1842
-            BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 }), // :1843
+            BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), radius: 10, y: 4), // :1843 (sigma 10, ED-327)
             Opacity = 0,
             IsHitTestVisible = false,
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1735 shape, followed by both the row's own background and this lift

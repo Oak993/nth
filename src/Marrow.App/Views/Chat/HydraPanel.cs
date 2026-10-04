@@ -97,7 +97,7 @@ public sealed class HydraPanel : Decorator
             shape.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this); // :107
             scrim.Background = new SolidColorBrush(Color.FromArgb(isDark ? (byte)77 : (byte)87, // :119 black 0.3 / white 0.34
                 isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255));
-            scrim.BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), Blur = 28, OffsetY = 10 }); // :120
+            scrim.BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), radius: 28, y: 10); // :120 (sigma 28, ED-327)
         }
         UpdateTheme();
         ActualThemeVariantChanged += (_, _) => UpdateTheme();

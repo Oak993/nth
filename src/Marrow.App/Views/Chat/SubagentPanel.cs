@@ -431,13 +431,14 @@ public sealed class SubagentPanel : Decorator
 
         shape.Child = content;
         SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :339
+        // :347-355 The scrim sits under the clipped glass, not around it, and carries the panel's one shadow: a plain filled
+        // shape, so its shadow is drawn once and kept (a shadow on the whole panel was blurred again with every streamed token).
+        // Unclipped, so the shadow reaches past the panel's edge.
         var scrim = new Border
         {
             Width = size.Width,
             Height = size.Height,
             CornerRadius = new CornerRadius(CornerRadius),
-            ClipToBounds = true,
-            Child = shape,
         };
 
         void UpdateSurface()
@@ -445,11 +446,12 @@ public sealed class SubagentPanel : Decorator
             var isDark = shape.ActualThemeVariant == ThemeVariant.Dark;
             shape.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(shape);
             scrim.Background = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(isDark ? 0.3 : 0.34).Brush(scrim);
+            scrim.BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), radius: 28, y: 10); // :354 (sigma 28, ED-327)
         }
 
         UpdateSurface();
         shape.ActualThemeVariantChanged += (_, _) => UpdateSurface();
-        Child = scrim;
+        Child = new Grid { Children = { scrim, shape } }; // :345 .clipShape(shape), then :349 .background { scrim }
     }
 }
 

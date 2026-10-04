@@ -81,12 +81,8 @@ public sealed class FloatingSidebarPanel : Decorator
             plate.Background = (isDark
                 ? new SwiftColor(0, 0, 0, 0.3)
                 : new SwiftColor(1, 1, 1, 0.34)).Brush(this); // :99
-            plate.BoxShadow = new BoxShadows(new BoxShadow
-            {
-                Color = new SwiftColor(0, 0, 0, isDark ? 1 : 0.65).Resolve(ActualThemeVariant),
-                Blur = 28,
-                OffsetY = 10
-            }); // :100
+            plate.BoxShadow = SwiftShadow.BoxShadows(new SwiftColor(0, 0, 0, isDark ? 1 : 0.65).Resolve(ActualThemeVariant),
+                radius: 28, y: 10); // :100 (sigma 28, ED-327)
         }
         UpdateTheme();
         ActualThemeVariantChanged += (_, _) => UpdateTheme();

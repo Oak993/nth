@@ -202,8 +202,7 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-017/-018/-019/-021/-022/-023/-024: per-clause gaps the parity audit listed (the face's paddings and
 //   minimum heights, the Settled accessibility value, the pin's 0.9 scale, MiniSpinner cellSize 2.4, the dot's offset,
 //   the project line's fonts and spacing, monospaced digits on the time label, the failed dot in ActivityStatus, the
-//   fold chevron's symbols, the title-width glide on hover). UI-SIDEBAR-020: the settle pop (:1909 spring 0.3/0.45) is
-//   a cut: SettleCheck is rebuilt with its 1.35 scale fixed.
+//   fold chevron's symbols, the title-width glide on hover).
 // - UI-SIDEBAR-026/-027: dismissal by click-away/Escape and the Closed -> carryOutConfirmedDeletion hookup cannot run
 //   headless (STOP #12); UI-SIDEBAR-028/-029/-030/PR-SIDEBAR-091: STOP #6 (the controls' chrome);
 //   UI-SIDEBAR-031/-032: `.controlSize(.small)`'s metrics are unverified.
@@ -216,9 +215,6 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   the glyphs that join or leave fade (UI-SIDEBAR-038, below) and the card keeps its own state under new heads.
 // - UI-SIDEBAR-037: the outcome badge's 3 pt overhang position and the hover scale easing back are unproven.
 // - UI-SIDEBAR-044: the Windows dialog's prompt/message/folder flags (OpenPanel.cs) need an IFileOpenDialog fake.
-// - UI-SIDEBAR-060: `.shadow(radius: 10)` is passed as BoxShadow.Blur 10; SwiftUI's radius-to-blur mapping has no
-//   decision (the same literal in FollowUpQueueTab.cs and ModelsSettingsPage.cs); the pointer style and the
-//   neighbours' slide are proven only through DragChanged/DragEnded, not a real press-drag.
 //
 // REVIEW PASS 1 (2026-10-03, adversarial; the tests named REVIEW_ are the reviewer's, kept as written). What it refuted and
 // what was done, each against the Swift:
@@ -333,6 +329,14 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   0.12 s return, the badge geometry, the status, the project line, tabular digits, the hover's easing of the title's room
 //   (A_detailed_rows_title_room_eases_...), the archive button, ellipsis and fold chevron places, the 7 pt continuous shapes.
 // - UI-SIDEBAR-020: the settle pop springs (response 0.3 / damping 0.45) on a kept check: A_real_rows_open_check_is_kept_and_springs_...
+// - UI-SIDEBAR-060, UI-SIDEBAR-017 (unit rec-shadow, the lead's E rulings, finding B; ED-327): SwiftUI's `.shadow(radius:
+//   10)` is a Gaussian of sigma 10 (fitted on the Mac video's radius-28 scrim); SwiftShadow.BoxShadows draws that sigma, measured
+//   (SwiftShadowHeadlessTests; The_lifted_rows_shadow_is_drawn_as_a_gaussian_of_sigma_10_scaled_with_the_row). UI-SIDEBAR-017's
+//   settling state (check popped, actions clearance retained) is proven by the source (OD-0098; the ruling's SidebarView.swift:1895-1910,
+//   in the pinned tree :1895-1898 the static trailingClearance, :1765-1767 the check's action calls settle(), :1914-1919 settle()
+//   springs isSettling on 0.3/0.45 (:1917) then settles, :1729 and :1744 keep the check and the actions clearance while settling)
+//   with the static 1.35 check and the retained clearance (A_real_dragged_row_suppresses_hover_accessories_and_finish_requests_pop_its_check,
+//   A_real_rows_open_check_is_kept_and_springs_...), and UI-SIDEBAR-020's pop closes with it.
 // - UI-SIDEBAR-026, -027: the delete question through its popup (dismissal keeps the thread; the delete waits for Closed).
 // - UI-SIDEBAR-031, -032: the small glass buttons take the measured small metrics (20 high, 11 pt, 10.5 pt either side).
 // - UI-SIDEBAR-036: the two heights on snappy 0.18, the connector on panelSlide when the head set changes (the surviving
@@ -349,9 +353,6 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   layout glide in the shared ForEach foundation (UI/Port/ViewLifetime.cs), another unit's file.
 // - UI-SIDEBAR-044: the sidebar asks for exactly the source's folder dialog (proven); the Windows dialog's drawing of the title, OK label and
 //   flags (OpenPanel.cs, IFileOpenDialog) is NATIVE-ONLY.
-// - UI-SIDEBAR-060 (part): `.shadow(color: .black.opacity(0.28), radius: 10, y: 4)` is passed as BoxShadow.Blur 10; the mapping of
-//   SwiftUI's radius to a blur has no source, frame or decision (a shared literal in FollowUpQueueTab and ModelsSettingsPage):
-//   UNRESOLVED. The lift's scale and the release are proven (The_lift_scales_to_1_02_..., On_a_real_release_...).
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -3105,6 +3106,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:1838-1849 (part 8: the "lifted while
     // dragged" and "springs in and out on response 0.25 damping 0.8" pieces of the dragged-row-lift screen-contract
     // record)
+    [Trait("Req", "UI-SIDEBAR-017")] // SidebarView.swift:1843 the face's dragged state, "black 0.28 shadow radius 10 y 4" (sigma 10, ED-327)
     public void The_lifted_rows_scale_fill_and_shadow_spring_in_and_out_on_response_0_25_damping_0_8()
     {
         headless.OnUiThread(() =>
@@ -3151,6 +3153,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             {
                 OneScale(host, content, 1.02d); // :1846
                 Assert.Equal(1d, LiftOpacity(host)); // :1842-1843 fully faded in
+                // :1843 .shadow(color: .black.opacity(0.28), radius: 10, y: 4): the shadow that springs in with the lift is
+                // SwiftUI's radius 10 as a Gaussian of sigma 10 (ED-327; drawn so, SidebarLiftShadowTests).
+                var shadows = ((Border)((Panel)host).Children[0]).BoxShadow;
+                Assert.Equal(1, shadows.Count);
+                Assert.Equal((Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), 0d, 4d), (shadows[0].Color, shadows[0].OffsetX, shadows[0].OffsetY));
+                Assert.Equal((10 - 0.5) / 0.288675, shadows[0].Blur, 6);
                 Call(view, "DragEnded");
             });
             for (var i = 0; i < 100; i++)
@@ -3195,7 +3203,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal(1, lift.BoxShadow.Count);
                 var shadow = lift.BoxShadow[0];
                 Assert.Equal(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), shadow.Color);
-                Assert.Equal(10d, shadow.Blur);
+                Assert.Equal((10 - 0.5) / 0.288675, shadow.Blur, 6); // radius 10 drawn as sigma 10 (ED-327; measured by SwiftShadowHeadlessTests)
                 Assert.Equal(0d, shadow.OffsetX);
                 Assert.Equal(4d, shadow.OffsetY);
             });

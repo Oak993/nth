@@ -21,7 +21,8 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // opacity :2042, the project line's glyph :2055) leaves it on its way: the value drawn right after the change is the value
 // drawn right before it, it keeps easing to its end, and the face under the row is the same object. Each test starts one
 // property moving in the transaction SwiftUI would use, changes one input with NO transaction, and reads the property
-// before, right after and along the rest of the way. UI-SIDEBAR-020 (the settle pop) is not touched here and stays UNRESOLVED.
+// before, right after and along the rest of the way. UI-SIDEBAR-020 (the settle pop) is not touched here (settled by the source,
+// OD-0098, with UI-SIDEBAR-017's settling state: unit rec-shadow).
 [Collection("Headless")]
 public sealed class SidebarFaceInPlaceTests(HeadlessSession headless)
 {
