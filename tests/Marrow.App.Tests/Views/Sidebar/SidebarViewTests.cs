@@ -233,8 +233,8 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-038: the head card's glyphs past twelve join and leave on SwiftUI's default .opacity transition under the
 //   chevron's snappy toggle (2-chat-use.mov 5.33-5.40 s); the port refilled the rows whole. REVIEW_The_head_cards_chevron_
 //   fades_the_glyphs_past_twelve_in_and_out_on_its_snappy_toggle and the proofs beside it. A leaving glyph fades on a layer
-//   over the card (it takes no room, so the chevron does not wait for it); the Mac's glide of the surviving glyphs to their
-//   new places is not done (above, UI-SIDEBAR-036).
+//   over the card (it takes no room, so the chevron does not wait for it); the surviving glyphs glide to their new places
+//   (UI-SIDEBAR-036, HeadCardGlideTests).
 // - PR-SIDEBAR-005: Return_with_no_result_changes_nothing started with nothing selected, so a Return that cleared the
 //   selection passed it (mutant PR005-noresult-clears); Return_with_no_result_leaves_the_current_selection_as_it_was.
 // - PR-SIDEBAR-130, UI-SIDEBAR-014 (OD-0008 A9, OD-0012 E2): the Remove project question's popup lifecycle was never run
@@ -336,19 +336,19 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-026, -027: the delete question through its popup (dismissal keeps the thread; the delete waits for Closed).
 // - UI-SIDEBAR-031, -032: the small glass buttons take the measured small metrics (20 high, 11 pt, 10.5 pt either side).
 // - UI-SIDEBAR-036: the two heights on snappy 0.18, the connector on panelSlide when the head set changes (the surviving
-//   glyphs' glide is NOT done: see below). UI-SIDEBAR-037: the hover scale eases back; each glyph row trails the 3 pt overhang
+//   glyphs, rows and the chevron glide to their new places: HeadCardGlideTests, ED-NEW-rec-sidebar 3). UI-SIDEBAR-037: the hover scale eases back; each glyph row trails the 3 pt overhang
 //   (the badge's own offset is UI-HYDRA-033's).
 // - UI-SIDEBAR-001: a press on the spacer lands on the column's WindowDragArea (a Caption to the Windows hit test); the system
-//   move loop itself is NATIVE-ONLY.
+//   move loop is proven natively (WindowManagerNativeTests.The_actual_main_sidebar_clearance_spacer_...).
 // STILL OPEN, with the reason:
 // - UI-SIDEBAR-015, -016: the entries reach the system menu in the source's order and the current choice carries a check mark
 //   (The_pair_submenu_reaches_the_system_menu_...); a Win32 menu reserves a check gutter for every row, so "no reserved check
 //   column" cannot hold, and opening the native submenu is the system's: NATIVE-ONLY / platform limit.
-// - UI-SIDEBAR-036 (part): the surviving glyphs of a card whose heads change glide to their new places on the Mac (OD-0076 asks
-//   for it); ForEach.ApplyLayout glides rows inside one panel, and the card's glyphs move between row panels: needs a cross-panel
-//   layout glide in the shared ForEach foundation (UI/Port/ViewLifetime.cs), another unit's file.
-// - UI-SIDEBAR-044: the sidebar asks for exactly the source's folder dialog (proven); the Windows dialog's drawing of the title, OK label and
-//   flags (OpenPanel.cs, IFileOpenDialog) is NATIVE-ONLY.
+// - UI-SIDEBAR-036 (part), CLOSED by the unit rec-sidebar: the surviving glyphs of a card whose heads change glide to their new
+//   places (a card-level shift in HeadCardsRow, not the shared ForEach; a glyph that changes row has another identity and fades
+//   instead, SidebarView.swift:1466-1467), HeadCardGlideTests.
+// - UI-SIDEBAR-044, CLOSED natively: the sidebar asks for exactly the source's folder dialog (proven), and the Windows dialog's title, OK
+//   label, flags and results are proven on the real dialog (OpenPanelNativeTests).
 // - UI-SIDEBAR-060 (part): `.shadow(color: .black.opacity(0.28), radius: 10, y: 4)` is passed as BoxShadow.Blur 10; the mapping of
 //   SwiftUI's radius to a blur has no source, frame or decision (a shared literal in FollowUpQueueTab and ModelsSettingsPage):
 //   UNRESOLVED. The lift's scale and the release are proven (The_lift_scales_to_1_02_..., On_a_real_release_...).
