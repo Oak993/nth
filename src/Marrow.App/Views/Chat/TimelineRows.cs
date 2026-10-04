@@ -1443,6 +1443,7 @@ public sealed class HydraMergeRow : Decorator
         }
         else track!.Update(step, count, mode);
         AutomationProperties.SetName(pill, next?.Title ?? "Merging the team's work: " + stage);
+        AutomationProperties.SetAccessibilityView(pill, AccessibilityView.Control); // :1018 `.accessibilityElement(children: .contain)`: a named container of the tree, its track, title and Open still elements of their own (as ChromeSegmentedPicker)
         if (changed || outcomeChanged)
         {
             var still = next is null ? MergingLabel(stage) : OutcomeLabel(next);

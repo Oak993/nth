@@ -239,6 +239,7 @@ public sealed class ContinuousCornerReproofTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-CHAT-053")] // TimelineRows.swift:1012-1017 .background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: pillRadius, style: .continuous))
+    [Trait("Req", "PR-HYDRAMERGE-106")] // TimelineRows.swift:1015: the pill's shape, a continuous rounded rectangle of radius 18, in both states
     public void The_merge_pill_is_a_continuous_pill_of_radius_18_in_both_states_and_no_taller_than_a_capsule() => headless.OnUiThread(() =>
     {
         using var h = Harness();
