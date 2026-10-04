@@ -139,6 +139,18 @@ public sealed class AddonsStateJsonTests
         Assert.Throws<StateFormatException>(() => AddonsState.Restore([], [], [], [new FoundOnPc("T1", "rel/python.exe")]));
     }
 
+    [Fact]
+    [Trait("Feature", "SK-7")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_null_entry_in_any_list_is_a_format_error_like_any_other_null()
+    {
+        foreach (var list in new[] { "items", "acceptedTerms", "declined", "found" })
+        {
+            var d = Doc(); d[list]!.AsArray().Add(null); Refused(d);
+        }
+        var c = Doc(); c["declined"]![0]!["itemIds"]!.AsArray().Add(null); Refused(c);
+    }
+
     [Theory]
     [Trait("Feature", "SK-7")]
     [Trait("Rule", "R-TEST-4")]
