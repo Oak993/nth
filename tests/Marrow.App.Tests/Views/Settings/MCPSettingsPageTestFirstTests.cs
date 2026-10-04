@@ -20,7 +20,11 @@ using static Marrow.App.Tests.Fixtures.MCPSettingsPageTestFirst;
 namespace Marrow.App.Tests.Views.Settings;
 
 // Test-first completion of the MCP settings page records: each test is derived from DroppyCode/App/Views/Settings/MCPSettingsPage.swift
-// (line numbers on each test). The records' reference-capture comparisons stay blocked by OD-0001 and are not repeated here.
+// (line numbers on each test). STOP cloud-verify #1 (2026-10-04, review of cloud/b3-swift-proof-leftovers): PR-MCP-199's "capture comparison against a
+// rendered page" is NOT closed by OD-0098. The reference video DOES show this page (1-settings-tour.mov S 180.5-188.2, CATALOG rows 66-67 and scene 68:
+// lead card, Connected, Custom, the catalog groups and the footer note at S 188.14), and OD-0098 keeps the comparison required wherever a frame exists.
+// STOP opencode-proofs-mcp-a #1 (MCPSettingsPageProofsMcpATests) already measured that page against a port render and found card heights that differ;
+// PR-MCP-199 stays partly proven until that comparison is done.
 [Collection("Headless")]
 public sealed class MCPSettingsPageTestFirstTests(HeadlessSession headless)
 {
@@ -72,6 +76,7 @@ public sealed class MCPSettingsPageTestFirstTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-MCP-199")] // App/Views/Settings/MCPSettingsPage.swift:35-63; UI/Chrome/Chrome.swift:59,79
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-MCP-199: the source order and spacings; the capture comparison against S 180.5-188.2 is open (STOP cloud-verify #1)
     public void Page_stacks_lead_connected_custom_categories_and_footer_with_twenty_points_between()
     {
         Flow((model, runtime) =>
