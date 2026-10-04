@@ -1321,8 +1321,10 @@ namespace Marrow.UI.Chrome
         // :711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) } under a width the row's padding fixes. A plain
         // horizontal StackPanel measures every child at infinite width, so the title would never be cut at its tail
         // (:718-719 `.lineLimit(1).truncationMode(.tail)`) and would run under the reserved accessory space; this one
-        // measures the icon at its own size and gives the title the rest of the width, less the Spacer's minimum 4 pt,
-        // so the title truncates at the same place whether or not the accessory shows (UI-SIDEBAR-008).
+        // measures the icon at its own size and gives the title the rest of the width, less the Spacer's minimum 4 pt and
+        // the stack's spacing before the Spacer (SwiftUI puts the HStack's spacing between every adjacent pair of subviews,
+        // the Spacer included: 8 + 4 = 12 pt after the title, ED-329), so the title truncates at the same place
+        // whether or not the accessory shows (UI-SIDEBAR-008).
         private sealed class TitleLine : StackPanel
         {
             private const double SpacerMinLength = 4; // :720
@@ -1333,7 +1335,7 @@ namespace Marrow.UI.Chrome
                 var icon = Children[0];
                 var title = Children[1];
                 icon.Measure(new Size(double.PositiveInfinity, availableSize.Height));
-                title.Measure(new Size(Math.Max(0, availableSize.Width - icon.DesiredSize.Width - Spacing - SpacerMinLength), availableSize.Height));
+                title.Measure(new Size(Math.Max(0, availableSize.Width - icon.DesiredSize.Width - Spacing - Spacing - SpacerMinLength), availableSize.Height));
                 return new Size(
                     icon.DesiredSize.Width + Spacing + title.DesiredSize.Width,
                     Math.Max(icon.DesiredSize.Height, title.DesiredSize.Height));

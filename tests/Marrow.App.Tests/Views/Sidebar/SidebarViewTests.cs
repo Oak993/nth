@@ -202,7 +202,8 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-017/-018/-019/-021/-022/-023/-024: per-clause gaps the parity audit listed (the face's paddings and
 //   minimum heights, the Settled accessibility value, the pin's 0.9 scale, MiniSpinner cellSize 2.4, the dot's offset,
 //   the project line's fonts and spacing, monospaced digits on the time label, the failed dot in ActivityStatus, the
-//   fold chevron's symbols, the title-width glide on hover).
+//   fold chevron's symbols, the title-width glide on hover). UI-SIDEBAR-020: the settle pop (:1909 spring 0.3/0.45) is
+//   proven by the Swift source under OD-0105 (SidebarSettleBounceTests, SidebarLeftoversTests) and the hover colour eases (SettleCheckHoverColourTests).
 // - UI-SIDEBAR-026/-027: dismissal by click-away/Escape and the Closed -> carryOutConfirmedDeletion hookup cannot run
 //   headless (STOP #12); UI-SIDEBAR-028/-029/-030/PR-SIDEBAR-091: STOP #6 (the controls' chrome);
 //   UI-SIDEBAR-031/-032: `.controlSize(.small)`'s metrics are unverified.
@@ -229,8 +230,8 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-038: the head card's glyphs past twelve join and leave on SwiftUI's default .opacity transition under the
 //   chevron's snappy toggle (2-chat-use.mov 5.33-5.40 s); the port refilled the rows whole. REVIEW_The_head_cards_chevron_
 //   fades_the_glyphs_past_twelve_in_and_out_on_its_snappy_toggle and the proofs beside it. A leaving glyph fades on a layer
-//   over the card (it takes no room, so the chevron does not wait for it); the Mac's glide of the surviving glyphs to their
-//   new places is not done (above, UI-SIDEBAR-036).
+//   over the card (it takes no room, so the chevron does not wait for it); the surviving glyphs glide to their new places
+//   (UI-SIDEBAR-036, HeadCardGlideTests).
 // - PR-SIDEBAR-005: Return_with_no_result_changes_nothing started with nothing selected, so a Return that cleared the
 //   selection passed it (mutant PR005-noresult-clears); Return_with_no_result_leaves_the_current_selection_as_it_was.
 // - PR-SIDEBAR-130, UI-SIDEBAR-014 (OD-0008 A9, OD-0012 E2): the Remove project question's popup lifecycle was never run
@@ -340,19 +341,19 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-026, -027: the delete question through its popup (dismissal keeps the thread; the delete waits for Closed).
 // - UI-SIDEBAR-031, -032: the small glass buttons take the measured small metrics (20 high, 11 pt, 10.5 pt either side).
 // - UI-SIDEBAR-036: the two heights on snappy 0.18, the connector on panelSlide when the head set changes (the surviving
-//   glyphs' glide is NOT done: see below). UI-SIDEBAR-037: the hover scale eases back; each glyph row trails the 3 pt overhang
+//   glyphs, rows and the chevron glide to their new places: HeadCardGlideTests, ED-329 3). UI-SIDEBAR-037: the hover scale eases back; each glyph row trails the 3 pt overhang
 //   (the badge's own offset is UI-HYDRA-033's).
 // - UI-SIDEBAR-001: a press on the spacer lands on the column's WindowDragArea (a Caption to the Windows hit test); the system
-//   move loop itself is NATIVE-ONLY.
+//   move loop is proven natively (WindowManagerNativeTests.The_actual_main_sidebar_clearance_spacer_...).
 // STILL OPEN, with the reason:
 // - UI-SIDEBAR-015, -016: the entries reach the system menu in the source's order and the current choice carries a check mark
 //   (The_pair_submenu_reaches_the_system_menu_...); a Win32 menu reserves a check gutter for every row, so "no reserved check
 //   column" cannot hold, and opening the native submenu is the system's: NATIVE-ONLY / platform limit.
-// - UI-SIDEBAR-036 (part): the surviving glyphs of a card whose heads change glide to their new places on the Mac (OD-0076 asks
-//   for it); ForEach.ApplyLayout glides rows inside one panel, and the card's glyphs move between row panels: needs a cross-panel
-//   layout glide in the shared ForEach foundation (UI/Port/ViewLifetime.cs), another unit's file.
-// - UI-SIDEBAR-044: the sidebar asks for exactly the source's folder dialog (proven); the Windows dialog's drawing of the title, OK label and
-//   flags (OpenPanel.cs, IFileOpenDialog) is NATIVE-ONLY.
+// - UI-SIDEBAR-036 (part), CLOSED by the unit rec-sidebar: the surviving glyphs of a card whose heads change glide to their new
+//   places (a card-level shift in HeadCardsRow, not the shared ForEach; a glyph that changes row has another identity and fades
+//   instead, SidebarView.swift:1466-1467), HeadCardGlideTests.
+// - UI-SIDEBAR-044, CLOSED natively: the sidebar asks for exactly the source's folder dialog (proven), and the Windows dialog's title, OK
+//   label, flags and results are proven on the real dialog (OpenPanelNativeTests).
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -5662,13 +5663,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     // ---- helpers for ProjectRow (part 6) ----
 
-    internal static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true)
+    internal static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true, double width = 320)
     {
         var row = (Control)Activator.CreateInstance(Private("ProjectRow"), project, count, togglesExpansion)!;
         row.VerticalAlignment = VerticalAlignment.Top; // the row's own 28pt height, not the host's full stretch
         var host = new Border { Child = row };
         AppEnvironment.SetAppModel(host, model);
-        var window = new AvaloniaWindow { Content = host, Width = 320, Height = 100 };
+        var window = new AvaloniaWindow { Content = host, Width = width, Height = 100 };
         window.Show();
         window.UpdateLayout();
         return row;
@@ -8695,9 +8696,21 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var model = Model(harness, [project], []);
         Control row = null!;
         AvaloniaWindow window = null!;
+        // Chrome.swift:711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) }: SwiftUI puts the stack's spacing between
+        // every adjacent pair of subviews, the Spacer included, so the title's room is the row less the 8 + 40 trailing, the 8
+        // + 20 + 8 before it and the 8 + 4 after it (ED-329). The title is cut at its tail at a whole character. The
+        // row is made 17 glyphs + 92 wide: the exact room is then 17 glyphs less 4, so 16 characters fit, where the room
+        // of a spacer without its spacing (8 more) would let the 17th in.
+        double glyphWidth = 0;
         harness.Main.OnMain(() =>
         {
-            row = ShownProjectRow(model, project, 0);
+            var probe = ShownProjectRow(model, project, 0);
+            var probeTitle = LogicalQuery.SelfAndDescendants<TextBlock>(probe).Single(t => t.Text == project.Name);
+            var glyph = new TextBlock { Text = "W", FontFamily = probeTitle.FontFamily, FontSize = probeTitle.FontSize, FontWeight = probeTitle.FontWeight };
+            glyph.Measure(Size.Infinity);
+            glyphWidth = glyph.DesiredSize.Width;
+            Close(probe);
+            row = ShownProjectRow(model, project, 0, width: 17 * glyphWidth + 92);
             window = WindowOf(row);
         });
         Border shape = null!;
@@ -8719,9 +8732,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
             Assert.Equal(0, ((ISolidColorBrush)shape.Background!).Color.A); // clear while not hovered
             idleRight = Frame(title, row).Right;
-            // The title never runs under the reserved 40 pt, the trailing padding or the spacer's minimum 4 pt.
-            Assert.True(idleRight <= row.Bounds.Width - 8 - 40 - 4 + 0.01, $"title ends at {idleRight}");
-            Assert.True(idleRight > 150, $"title ends at {idleRight}"); // and it is truncated there, not collapsed
+            // The title never runs under the reserved 40 pt, the trailing padding or the spacer's 8 + 4 pt; its right edge is the
+            // largest whole-character one that fits, less than one glyph short of the exact edge.
+            var exactEdge = row.Bounds.Width - 8 - 40 - 8 - 4;
+            Assert.True(idleRight <= exactEdge + 0.01, $"title ends at {idleRight}, past {exactEdge}");
+            Assert.True(idleRight > exactEdge - glyphWidth, $"title ends at {idleRight}, more than a glyph ({glyphWidth}) short of {exactEdge}");
+            Assert.InRange(idleRight, 8 + 20 + 8 + 16 * glyphWidth - 1, 8 + 20 + 8 + 16 * glyphWidth + 1); // 16 characters (layout rounds the text run to a whole pixel), not the 17 the old room let in
         });
         harness.Main.OnMain(() => window.MouseMove(row.TranslatePoint(new Point(120, 14), window)!.Value)); // hover
         harness.Main.AdvanceMilliseconds(300);
