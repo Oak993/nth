@@ -148,12 +148,14 @@ public sealed class GettingReadyStatesTests(HeadlessSession headless)
         });
         var run = new FirstRunPreparation(seams, TimeProvider.System).RunAsync(null!, rig.Sheet);
         Assert.False(run.IsCompleted); // the sheet holds the run until it has lifted
-        rig.Run(0.6);
-        Assert.Equal(GettingReadyPhase.Ready, rig.Sheet.Phase);
+        rig.Run(0.1);
+        Assert.Equal(GettingReadyPhase.Ready, rig.Sheet.Phase); // the hold
         Assert.All(rig.Sheet.Rows, row => Assert.Equal(FirstRunStepState.Done, row.State));
+        rig.Run(0.5);
         Assert.All(rig.Sheet.Rows, row => Assert.Equal(1, row.CheckOpacity));
         Assert.Equal(1, rig.Sheet.BarFraction, 6);
-        rig.Run(1.4);
+        Assert.Equal(GettingReadyFixture.Done, rig.Sheet.TitleWord);
+        rig.Run(1.2);
         Assert.True(run.IsCompletedSuccessfully);
         Assert.Equal(FirstRunOutcomeKind.Prepared, run.Result.Kind);
         Assert.Equal(GettingReadyPhase.Gone, rig.Sheet.Phase);

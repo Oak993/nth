@@ -38,7 +38,7 @@ public sealed class AppDelegate
 
     internal Func<AppModel, Task> BootstrapModel { get; set; } = model => model.Bootstrap();
 
-    /// <summary>GR-2 skeleton (red).</summary>
+    /// <summary>GR-2: the first-run preparation the Getting ready sheet shows (OD-0096). Settable only so the launch tests can script it; nothing in the app sets it.</summary>
     internal Marrow.App.Port.FirstRun.FirstRunPreparation FirstRun { get; set; } = Marrow.App.Port.FirstRun.FirstRunPreparation.Default;
 
     /// <summary>
@@ -54,11 +54,26 @@ public sealed class AppDelegate
         ToastNotifications.Center.Current.InstallDelegate(this); // :15, ED-220 (5)-(6), before any window
         var windows = WindowManager.Shared; // :16
         Model = windows.Model; // :17
+        // PORT-ONLY (OD-0096, GR-2): when the machine is not prepared (the first run, a new build, a new graphics card or driver) the main
+        // window is made with the Getting ready sheet over its RootView, so the sheet is in its first frame; armed before :22 makes the window.
+        var firstRun = Marrow.App.Port.FirstRun.GettingReadyLaunch.Arm(windows, FirstRun);
         // :18-21 the capture-run branch: not ported (ED-001; PR-LAUNCH-027 NOT_APPLICABLE_WITH_EVIDENCE).
         // :22 windows.showMain(). DEVIATION OD-0018 (PR-LAUNCH-028), ED-103: the boot sequence shows the main window once
         // the stage's particles have built its outline (Port/BootStageWindow.cs; probe P12 2026-10-01).
         var mainShown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var boot = StartBoot(windows, () => { windows.ShowMain(); mainShown.TrySetResult(); });
+        // GR-2: once the window is shown the preparation runs behind the sheet; the first-run tour (a window over the main one) waits for the
+        // sheet to lift, where it would sit over it. No sheet (the machine is prepared): nothing waits.
+        var firstRunDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        MainActor.Spawn(async () =>
+        {
+            try
+            {
+                await mainShown.Task;
+                _ = await firstRun.RunAsync(windows.MainWindow);
+            }
+            finally { firstRunDone.TrySetResult(); }
+        });
         windows.Model.OpenThreadOnLaunch(); // :23
         if (!windows.Model.Settings.HasSeenTour) // :24
         {
@@ -66,6 +81,7 @@ public sealed class AppDelegate
             {
                 // ED-103: the 700 ms are counted from the main window's appearance, so the tour never opens over the stage.
                 await mainShown.Task;
+                await firstRunDone.Task; // GR-2: not over the Getting ready sheet
                 _ = await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(700)); // try? await Task.sleep(for: .milliseconds(700))
                 PresentTour(windows.Model);
             });

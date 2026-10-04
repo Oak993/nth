@@ -87,7 +87,7 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
     {
         using var rig = new GettingReadyRig(GettingReadyRig.W1Plan().Take(steps).ToList());
         Assert.Equal(rows * GettingReadyLook.RowHeight, rig.Rect(rig.Sheet.List).Height, 3);
-        Assert.Equal(224.25 - (3 - rows) * GettingReadyLook.RowHeight, rig.Rect(rig.Sheet.Card).Height, 3);
+        Assert.InRange(rig.Rect(rig.Sheet.Card).Height, 224.25 - (3 - rows) * GettingReadyLook.RowHeight - Tolerance, 224.25 - (3 - rows) * GettingReadyLook.RowHeight + Tolerance);
     });
 
     [Fact] // GR-2.geometry

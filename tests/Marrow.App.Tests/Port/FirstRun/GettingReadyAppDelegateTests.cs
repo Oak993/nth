@@ -32,35 +32,30 @@ public sealed class GettingReadyAppDelegateTests(HeadlessSession headless)
         LaunchSurfaceRig.WithLaunch(headless, null, launch =>
         {
             var frames = new ManualFrameSource();
-            launch.Harness.Main.OnMain(() =>
-            {
-                using var scope = FrameClock.Source.Override(frames);
-                var registry = new List<GpuProgram> { GpuProgram.Draw("k1", FirstRunSteps.Knob, _ => { }), GpuProgram.Draw("strike", FirstRunSteps.Strike, _ => { }) };
-                launch.Delegate.FirstRun = new FirstRunPreparation(new FirstRunPreparation.Seams(() => false, () => registry, _ => Task.CompletedTask,
-                    (_, progress, _) =>
-                    {
-                        progress.Report(new GpuWarmupStep(0, 2, "k1", 1, false, "knob"));
-                        progress.Report(new GpuWarmupStep(1, 2, "strike", 1, false, "strike"));
-                        return Task.CompletedTask;
-                    }), TimeProvider.System);
-                launch.Manager.MainContent = () => new RootView();
-                launch.Delegate.ApplicationDidFinishLaunching();
-                var root = FindRoot(launch.Manager.MainWindow!);
-                Assert.NotNull(root.GettingReady);
-                launch.Harness.Main.AdvanceMilliseconds(700);
-                Assert.DoesNotContain("tour", launch.Events); // the sheet is up: the tour does not open over it
-                for (var index = 0; index < 120; index++)
+            using var scope = FrameClock.Source.Override(frames);
+            var registry = new List<GpuProgram> { GpuProgram.Draw("k1", FirstRunSteps.Knob, _ => { }), GpuProgram.Draw("strike", FirstRunSteps.Strike, _ => { }) };
+            launch.Delegate.FirstRun = new FirstRunPreparation(new FirstRunPreparation.Seams(() => false, () => registry, _ => Task.CompletedTask,
+                (_, progress, _) =>
                 {
-                    var by = TimeSpan.FromSeconds(1 / GettingReadyRig.Hz);
-                    launch.Harness.Main.Advance(by);
-                    frames.Advance(by);
-                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-                }
-                Assert.Null(root.GettingReady); // lifted
-                Assert.DoesNotContain("tour", launch.Events);
-                launch.Harness.Main.AdvanceMilliseconds(700);
-                Assert.Contains("tour", launch.Events); // 700 ms after the sheet has gone (AppDelegate.swift:25, counted from when the window is clear)
-            });
+                    progress.Report(new GpuWarmupStep(0, 2, "k1", 1, false, "knob"));
+                    progress.Report(new GpuWarmupStep(1, 2, "strike", 1, false, "strike"));
+                    return Task.CompletedTask;
+                }), TimeProvider.System);
+            launch.Manager.MainContent = () => new RootView();
+            launch.Harness.Main.OnMain(launch.Delegate.ApplicationDidFinishLaunching);
+            var root = FindRoot(launch.Manager.MainWindow!);
+            Assert.NotNull(root.GettingReady);
+            launch.Harness.Main.AdvanceMilliseconds(700);
+            Assert.DoesNotContain("tour", launch.Events); // the sheet is up: the tour does not open over it
+            for (var index = 0; index < 120; index++)
+            {
+                var by = TimeSpan.FromSeconds(1 / GettingReadyRig.Hz);
+                launch.Harness.Main.Advance(by);
+                frames.Advance(by);
+            }
+            Assert.Null(root.GettingReady); // lifted
+            launch.Harness.Main.AdvanceMilliseconds(700);
+            Assert.Contains("tour", launch.Events); // 700 ms after the sheet has gone (AppDelegate.swift:25, counted from when the window is clear)
         });
 
     private static RootView FindRoot(Avalonia.Controls.Window window) =>

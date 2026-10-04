@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Port.FirstRun;
 using Marrow.App.Tests.Fixtures;
@@ -111,100 +112,104 @@ public sealed class GettingReadyLaunchTests(HeadlessSession headless)
         Assert.Empty(scripted.Log);
     });
 
-    [Fact] // GR-2.launch
-    [Trait("Decision", "ED-288")]
-    public void The_run_happens_behind_the_sheet_and_the_launch_is_done_when_the_sheet_has_lifted() => headless.OnUiThread(() =>
+    // A launch driven by hand: the body runs on the main actor with the frame clock and clock the test moves; the run's own
+    // continuations (the task that completes when the sheet has lifted) are posted to the main actor and run when the body returns.
+    private static void Driven(HeadlessSession headless, GettingReadyScripted scripted, Action<GettingReadyLaunch, RootView, ManualFrameSource, ManualTimeProvider> during,
+        Action<GettingReadyLaunch, RootView> after)
     {
-        using var harness = new AppModelHarness();
-        var model = harness.MakeModel();
-        harness.Main.OnMain(() =>
+        headless.OnUiThread(() =>
         {
-            var frames = new ManualFrameSource();
-            var time = new ManualTimeProvider();
-            using var frameScope = FrameClock.Source.Override(frames);
-            using var clockScope = SwiftClock.Provider.Override(time);
-            var scripted = Preparation(prepared: false);
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
             var launch = new GettingReadyLaunch(scripted.Preparation);
-            var (window, root) = Host(model, (RootView)launch.Wrap(() => new RootView())());
+            AvaloniaWindow window = null!;
+            RootView root = null!;
             try
             {
-                var run = launch.RunAsync(window);
-                Assert.Contains("warm", scripted.Log);
-                Assert.False(run.IsCompleted);
-                Assert.False(launch.Done.IsCompleted); // the sheet is still up: the tour and the rest of the launch wait
-                Frames(frames, time, 0.6);
-                Assert.Equal(GettingReadyPhase.Ready, launch.Sheet!.Phase);
-                Assert.All(launch.Sheet.Rows, row => Assert.Equal(FirstRunStepState.Done, row.State));
-                Frames(frames, time, 1.4);
-                Assert.True(run.IsCompletedSuccessfully);
-                Assert.True(launch.Done.IsCompletedSuccessfully);
-                Assert.Null(root.GettingReady);
-                Assert.Null(root.DetailPane.Effect);
+                harness.Main.OnMain(() =>
+                {
+                    var frames = new ManualFrameSource();
+                    var time = new ManualTimeProvider();
+                    using var frameScope = FrameClock.Source.Override(frames);
+                    using var clockScope = SwiftClock.Provider.Override(time);
+                    (window, root) = Host(model, (RootView)launch.Wrap(() => new RootView())());
+                    during(launch, root, frames, time);
+                });
+                harness.Main.OnMain(() => { });
+                after(launch, root);
             }
-            finally { window.Close(); }
+            finally { harness.Main.OnMain(() => window?.Close()); }
         });
-    });
+    }
 
     [Fact] // GR-2.launch
     [Trait("Decision", "ED-288")]
-    public void A_run_that_fails_still_lifts_the_sheet_without_saying_Ready() => headless.OnUiThread(() =>
+    public void The_run_happens_behind_the_sheet_and_the_launch_is_done_when_the_sheet_has_lifted()
     {
-        using var harness = new AppModelHarness();
-        var model = harness.MakeModel();
-        harness.Main.OnMain(() =>
+        var scripted = Preparation(prepared: false);
+        Task<FirstRunOutcome> run = null!;
+        Driven(headless, scripted, (launch, root, frames, time) =>
         {
-            var frames = new ManualFrameSource();
-            var time = new ManualTimeProvider();
-            using var frameScope = FrameClock.Source.Override(frames);
-            using var clockScope = SwiftClock.Provider.Override(time);
-            var scripted = Preparation(prepared: false, warm: _ => throw new InvalidOperationException("a program did not draw"));
-            var launch = new GettingReadyLaunch(scripted.Preparation);
-            var (window, root) = Host(model, (RootView)launch.Wrap(() => new RootView())());
-            try
-            {
-                var run = launch.RunAsync(window);
-                Frames(frames, time, 0.3);
-                Assert.Equal(GettingReadyFixture.Title, launch.Sheet!.TitleWord);
-                Frames(frames, time, 1.2);
-                Assert.True(run.IsCompletedSuccessfully);
-                Assert.Equal(FirstRunOutcomeKind.Failed, run.Result.Kind);
-                Assert.True(launch.Done.IsCompletedSuccessfully);
-                Assert.Null(root.GettingReady);
-                Assert.Equal(1, root.DetailPane.Opacity);
-            }
-            finally { window.Close(); }
+            run = launch.RunAsync(TopLevel.GetTopLevel(root));
+            Assert.Contains("warm", scripted.Log);
+            Assert.False(run.IsCompleted);
+            Assert.False(launch.Done.IsCompleted); // the sheet is still up: the tour and the rest of the launch wait
+            Frames(frames, time, 0.1);
+            Assert.Equal(GettingReadyPhase.Ready, launch.Sheet!.Phase); // the hold
+            Assert.All(launch.Sheet.Rows, row => Assert.Equal(FirstRunStepState.Done, row.State));
+            Frames(frames, time, 1.4);
+            Assert.Null(root.GettingReady);
+            Assert.Null(root.DetailPane.Effect);
+        }, (launch, _) =>
+        {
+            Assert.True(run.IsCompletedSuccessfully);
+            Assert.Equal(FirstRunOutcomeKind.Prepared, run.Result.Kind);
+            Assert.True(launch.Done.IsCompletedSuccessfully);
         });
-    });
+    }
 
     [Fact] // GR-2.launch
     [Trait("Decision", "ED-288")]
-    public void A_machine_found_prepared_after_the_sheet_was_made_just_lifts_it_and_runs_nothing() => headless.OnUiThread(() =>
+    public void A_run_that_fails_still_lifts_the_sheet_without_saying_Ready()
     {
-        using var harness = new AppModelHarness();
-        var model = harness.MakeModel();
-        harness.Main.OnMain(() =>
+        var scripted = Preparation(prepared: false, warm: _ => throw new InvalidOperationException("a program did not draw"));
+        Task<FirstRunOutcome> run = null!;
+        Driven(headless, scripted, (launch, root, frames, time) =>
         {
-            var frames = new ManualFrameSource();
-            var time = new ManualTimeProvider();
-            using var frameScope = FrameClock.Source.Override(frames);
-            using var clockScope = SwiftClock.Provider.Override(time);
-            var flip = new[] { false };
-            var scripted = Preparation(prepared: false, flip: flip);
-            var launch = new GettingReadyLaunch(scripted.Preparation);
-            var (window, root) = Host(model, (RootView)launch.Wrap(() => new RootView())());
-            try
-            {
-                flip[0] = true; // another launch's idle fallback wrote the marker in between
-                var run = launch.RunAsync(window);
-                Frames(frames, time, 1.3);
-                Assert.True(run.IsCompletedSuccessfully);
-                Assert.DoesNotContain("warm", scripted.Log);
-                Assert.True(launch.Done.IsCompletedSuccessfully);
-                Assert.Null(root.GettingReady);
-            }
-            finally { window.Close(); }
+            run = launch.RunAsync(TopLevel.GetTopLevel(root));
+            Frames(frames, time, 0.3);
+            Assert.Equal(GettingReadyFixture.Title, launch.Sheet!.TitleWord);
+            Frames(frames, time, 1.2);
+            Assert.Null(root.GettingReady);
+            Assert.Equal(1, root.DetailPane.Opacity);
+        }, (launch, _) =>
+        {
+            Assert.True(run.IsCompletedSuccessfully);
+            Assert.Equal(FirstRunOutcomeKind.Failed, run.Result.Kind);
+            Assert.True(launch.Done.IsCompletedSuccessfully);
         });
-    });
+    }
+
+    [Fact] // GR-2.launch
+    [Trait("Decision", "ED-288")]
+    public void A_machine_found_prepared_after_the_sheet_was_made_just_lifts_it_and_runs_nothing()
+    {
+        var flip = new[] { false };
+        var scripted = Preparation(prepared: false, flip: flip);
+        Task<FirstRunOutcome> run = null!;
+        Driven(headless, scripted, (launch, root, frames, time) =>
+        {
+            flip[0] = true; // another launch's idle fallback wrote the marker in between
+            run = launch.RunAsync(TopLevel.GetTopLevel(root));
+            Frames(frames, time, 1.3);
+            Assert.Null(root.GettingReady);
+        }, (launch, _) =>
+        {
+            Assert.True(run.IsCompletedSuccessfully);
+            Assert.DoesNotContain("warm", scripted.Log);
+            Assert.True(launch.Done.IsCompletedSuccessfully);
+        });
+    }
 
     [Fact] // GR-2.launch
     [Trait("Decision", "ED-288")]

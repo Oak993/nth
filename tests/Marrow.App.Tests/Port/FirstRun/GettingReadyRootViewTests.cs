@@ -100,7 +100,9 @@ public sealed class GettingReadyRootViewTests(HeadlessSession headless)
         {
             Assert.True(sigma[index] <= sigma[index - 1] + 1e-9, $"the blur came back at {times[index]:0.000}");
             Assert.True(opacity[index] >= opacity[index - 1] - 1e-9, $"the pane dimmed again at {times[index]:0.000}");
-            Assert.True(sigma[index - 1] - sigma[index] <= 0.8, $"the blur jumped {sigma[index - 1] - sigma[index]:0.00} px at {times[index]:0.000}"); // the steepest 60 Hz step of the page's curve is 0.73 px
+            // the steepest 60 Hz step of the page's curve is 0.73 px; the frame that takes the effect off steps from what is left of it (under 1 px of blur)
+            var taken = sigma[index] == 0 && sigma[index - 1] > 0;
+            Assert.True(sigma[index - 1] - sigma[index] <= (taken ? 1.0 : 0.8), $"the blur jumped {sigma[index - 1] - sigma[index]:0.00} px at {times[index]:0.000}");
             Assert.True(opacity[index] - opacity[index - 1] <= 0.05, $"the pane brightened {opacity[index] - opacity[index - 1]:0.000} at {times[index]:0.000}");
         }
         Assert.True(lastBlurred <= 1.3, $"the blur was still {lastBlurred:0.00} px on the frame before it was lifted: a cut"); // below 0.5 px the effect is taken off; it is a hair's blur
@@ -134,7 +136,12 @@ public sealed class GettingReadyRootViewTests(HeadlessSession headless)
     public void Welcome_is_blurred_in_the_drawn_frame_and_sharp_again_after_the_lift() => Mounted(headless, rig =>
     {
         // a hard vertical edge in the detail pane stands in for Welcome's content: black on the left half, white on the right
-        var edge = new Grid { Children = { new Border { Background = Avalonia.Media.Brushes.Black, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, Width = 400 }, new Border { Background = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, Width = 400 } } };
+        var edge = new Grid { ColumnDefinitions = { new ColumnDefinition(1, GridUnitType.Star), new ColumnDefinition(1, GridUnitType.Star) } };
+        var black = new Border { Background = Avalonia.Media.Brushes.Black };
+        var white = new Border { Background = Avalonia.Media.Brushes.White };
+        Grid.SetColumn(white, 1);
+        edge.Children.Add(black);
+        edge.Children.Add(white);
         rig.Root.DetailPane.Child = edge;
         rig.Settle();
         var origin = rig.Root.DetailPane.TranslatePoint(new Point(0, 0), rig.Window)!.Value;

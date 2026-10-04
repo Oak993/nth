@@ -71,6 +71,7 @@ public sealed class GettingReadyRig : IDisposable
         Time.Advance(by);
         Frames.Advance(by);
         Dispatcher.UIThread.RunJobs();
+        Window.UpdateLayout(); // the layout pass the renderer makes for a frame
     }
 
     /// <summary>Frames at <see cref="Hz"/> for <paramref name="seconds"/>, <paramref name="sample"/> after each one (the time

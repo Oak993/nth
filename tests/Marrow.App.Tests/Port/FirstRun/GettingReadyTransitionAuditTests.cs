@@ -81,8 +81,9 @@ public sealed class GettingReadyTransitionAuditTests(HeadlessSession headless)
             Assert.True(hands[index] >= hands[index - 1], $"hand ran backwards at {times[index]:0.000}");
             Assert.True(lifts[index] <= lifts[index - 1] + 1e-9, $"the sheet came back down at {times[index]:0.000}");
             Assert.True(opacities[index] <= opacities[index - 1] + 1e-9, $"the sheet brightened at {times[index]:0.000}");
+            // --hi = h / .56 carries the sheet: the page's steepest 60 Hz step of it is 8.1 % of its travel (the cubic's 4.5 % of the hand-over over .56)
             Assert.True(hands[index] - hands[index - 1] <= 0.05, $"hand jumped {hands[index] - hands[index - 1]:0.000} at {times[index]:0.000}"); // the cubic's steepest 60 Hz step is 0.0455
-            Assert.True(Math.Abs(lifts[index] - lifts[index - 1]) <= 0.05 * travel, $"the sheet jumped {lifts[index] - lifts[index - 1]:0.0} px at {times[index]:0.000}");
+            Assert.True(Math.Abs(lifts[index] - lifts[index - 1]) <= 0.09 * travel, $"the sheet jumped {lifts[index] - lifts[index - 1]:0.0} px at {times[index]:0.000}");
             if (times[index] < GettingReadyLook.Hold - 1e-6) Assert.Equal(0, hands[index]); // the hold: nothing moves
         }
         Assert.Equal(1, hands[^1]);
