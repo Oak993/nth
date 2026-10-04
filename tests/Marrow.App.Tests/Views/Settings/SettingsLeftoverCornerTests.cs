@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.UI.Chrome;
@@ -57,6 +58,8 @@ public sealed class SettingsLeftoverCornerTests(HeadlessSession headless) : Sett
                 Assert.Equal(alpha, Alpha(shape.Background), 0.02); // the wash is the theme's overlay at 0.12 / 0.06 ...
                 Assert.All(read, r => Assert.InRange(r.Solid, 0.6 * Alpha(shape.Background), 1)); // ... and the points just inside Apple's curve are drawn at it
             }
+            // The reading is two-sided: the row's Apple corner fails the circular reading (so the capsule's circular arcs below cannot pass as Apple's).
+            using (var apple = RenderedCorner.Of(selected)) Assert.Contains("not the circular regime", Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => apple.AssertCorners(selected.CornerRadius, expectApple: false, Alpha(selected.Background))).Message, StringComparison.Ordinal);
             // The negative controls: a circular twin of the row's size draws the sliver, and so does the real wash with its cut removed.
             var circularTwin = Twin(new Border { Width = 192, Height = 28, Background = selected.Background }.RoundedRectangle(7, RoundedCornerStyle.Circular), new Size(192, 28));
             using var twin = RenderedCorner.Of(circularTwin); Throws(twin, circularTwin.CornerRadius, Alpha(selected.Background));
@@ -154,6 +157,44 @@ public sealed class SettingsLeftoverCornerTests(HeadlessSession headless) : Sett
             using (var e = RenderedCorner.Of(strokedShape)) Throws(e, strokedShape.CornerRadius, Alpha(ring.BorderBrush), because: "just inside Apple's curve");
             var cut = stage.Clip; Assert.NotNull(cut); stage.Clip = null;
             try { using var c = RenderedCorner.Of(stage); Throws(c, stage.CornerRadius, Alpha(stage.Background)); } finally { stage.Clip = cut; }
+        });
+    }
+
+    // ---- UI-SETTINGS-017: the Theme capsule, 28 pt high, Capsule(style: .continuous) (SettingsView.swift:1166-1185) ----------------------------
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-017")] // App/Views/Settings/SettingsView.swift:1182-1190,1195 (.frame(height: Chrome.capsuleContentHeight), .contentShape(Capsule(style: .continuous)), .chromeGlassCapsule()); UI/Chrome/Chrome.swift:126-131,164-165; ED-275 (2): 28 < 2 * 1.528665 * 14 = 42.8, so the capsule's ends are circular arcs
+    public void The_Theme_capsule_draws_the_circular_regime_on_its_pixels_its_glass_and_its_hit_shape_agree_and_the_page_no_longer_mounts_it()
+    {
+        With(ThemePickerHost.Page, (view, _, h, _) =>
+        {
+            Tick(h, 150);
+            var picker = Assert.Single(Nodes<ThemePickerButton>(view)); Assert.Equal(28, picker.Bounds.Height, 3);
+            // The material: Capsule(style: .continuous) glass (Chrome.swift:164-165, :180), on the fill behind the label.
+            var fill = Assert.Single(Nodes<Border>(picker), b => SwiftGlass.GetEffect(b) is not null);
+            var effect = SwiftGlass.GetEffect(fill)!; Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style);
+            // ED-275 (2): every corner of a 28 pt capsule is the circular arc (a capsule never reaches Apple's run-in), and the Border that fills it says so.
+            Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(fill)); Assert.Equal(new CornerRadius(14), fill.CornerRadius);
+            var outline = SwiftShapes.Outline(new Rect(picker.Bounds.Size), fill.CornerRadius, RoundedCornerStyle.Continuous);
+            Assert.All(outline.Corners, k => Assert.Equal(CornerKind.Arc, k)); Assert.False(SwiftShapes.HasContinuousCorner(picker.Bounds.Size, fill.CornerRadius, RoundedCornerStyle.Continuous));
+            Assert.False(ContinuousCornerChecks.Drawn(fill, expectApple: false)); // the circular regime: no Apple corner, and no clip on a plain Border
+            // :1185 .contentShape(Capsule(style: .continuous)): the button's hit shape is the same capsule.
+            var hit = Assert.Single(picker.GetVisualDescendants().OfType<Border>(), b => b != fill && SwiftShapes.GetCornerStyle(b) == RoundedCornerStyle.Continuous); // the button template's Border
+            Assert.Equal(new CornerRadius(14), hit.CornerRadius); Assert.False(ContinuousCornerChecks.Drawn(hit, expectApple: false));
+            // On the pixels: the fill (the source's own tint, Chrome.glassTint at 0.3, under the glass) draws the circular arc to the edge, the sliver Apple's
+            // curve would cut off is drawn.
+            var tint = Alpha(fill.Background); Assert.Equal(0.3, tint, 0.02);
+            using var drawn = RenderedCorner.Of(fill);
+            var read = drawn.AssertCorners(fill.CornerRadius, expectApple: false, tint);
+            Assert.True(read.Length >= 16, $"{read.Length} points read");
+            // The same reading with Apple's corner would fail here: the reading above asked for the circular arc, and the Apple reading is the one that throws.
+            Throws(drawn, fill.CornerRadius, tint);
+        }, nativePopup: true, height: 1500);
+        // OD-0088 (ED-250): the Appearance page the user sees holds the Look card and no capsule, so the capsule is mounted in no screen: OD-0076's width ease
+        // and label crossfade on a theme change belong to the Look card's own Theme row (its segment label, SegmentButton.SetLabel), not to this control.
+        With(() => new AppearanceSettingsPage(), (view, _, _, _) =>
+        {
+            Assert.Empty(Nodes<ThemePickerButton>(view)); Assert.Single(Nodes<Marrow.App.Port.LookCard>(view));
         });
     }
 }
