@@ -12,7 +12,6 @@ public sealed class SileroVadTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void A_frame_is_512_samples_at_16_kHz()
     {
         using var vad = new SileroVad(new ScriptedVadNative(_ => [0f]));
@@ -22,7 +21,6 @@ public sealed class SileroVadTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void The_first_frame_is_sent_alone_and_its_probability_is_the_answer()
     {
         var native = ScriptedVadNative.ByIndex(_ => 0.8f);
@@ -34,7 +32,6 @@ public sealed class SileroVadTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void Each_call_sends_the_recent_frames_in_order_and_answers_with_the_last_probability_of_the_call()
     {
         var native = ScriptedVadNative.ByIndex(i => 0.1f * (i + 1));
@@ -53,7 +50,6 @@ public sealed class SileroVadTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void The_window_defaults_to_eight_frames()
     {
         Assert.Equal(8, SileroVad.DefaultWindowFrames);
@@ -66,7 +62,6 @@ public sealed class SileroVadTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void Reset_forgets_the_window_so_the_next_session_starts_on_its_own_first_frame()
     {
         var native = ScriptedVadNative.ByIndex(_ => 0.5f);
@@ -86,7 +81,6 @@ public sealed class SileroVadTests
     [InlineData(1024)]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void A_frame_of_any_other_length_is_refused_before_the_native_call(int samples)
     {
         var native = ScriptedVadNative.ByIndex(_ => 0.5f);
@@ -98,7 +92,6 @@ public sealed class SileroVadTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void A_native_answer_with_no_probabilities_is_an_error_not_silence()
     {
         using var vad = new SileroVad(new ScriptedVadNative(_ => []));
@@ -108,7 +101,6 @@ public sealed class SileroVadTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void Disposing_frees_the_native_context_once_and_later_calls_are_refused()
     {
         var native = ScriptedVadNative.ByIndex(_ => 0.5f);
@@ -122,7 +114,6 @@ public sealed class SileroVadTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.2")]
     public void The_probabilities_are_what_the_session_feeds_to_the_speech_state_unchanged()
     {
         var script = new Queue<float>([0.1f, 0.5f, 0.34f, 0.99f]);

@@ -15,7 +15,6 @@ public sealed class GpuBackendCheckTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public void The_runtime_that_loaded_decides_the_backend()
     {
         Assert.Equal(GpuBackend.Vulkan, new GpuBackendCheck(() => Facts(RuntimeKind.Cpu, RuntimeKind.Vulkan), new ScriptedVadLoadTest(RuntimeKind.Vulkan)).Check(Amd));
@@ -25,7 +24,6 @@ public sealed class GpuBackendCheckTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public void The_processor_runtime_loading_means_no_working_GPU_backend()
     {
         Assert.Equal(GpuBackend.None, new GpuBackendCheck(() => Facts(RuntimeKind.Cpu, RuntimeKind.Vulkan), new ScriptedVadLoadTest(RuntimeKind.Cpu)).Check(Amd));
@@ -34,7 +32,6 @@ public sealed class GpuBackendCheckTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public void A_failed_or_empty_load_test_means_no_working_GPU_backend()
     {
         Assert.Equal(GpuBackend.None, new GpuBackendCheck(() => Facts(RuntimeKind.Cpu, RuntimeKind.Vulkan), new ScriptedVadLoadTest(new InvalidOperationException("Failed to load native whisper library"))).Check(Amd));
@@ -44,7 +41,6 @@ public sealed class GpuBackendCheckTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public void The_load_test_gets_the_runtime_order_and_the_library_root_with_NVIDIA_taken_from_the_adapter()
     {
         var test = new ScriptedVadLoadTest(RuntimeKind.Cuda12);
@@ -59,7 +55,6 @@ public sealed class GpuBackendCheckTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public void With_no_GPU_runtime_installed_or_no_adapter_nothing_is_loaded()
     {
         var test = new ScriptedVadLoadTest(RuntimeKind.Vulkan);

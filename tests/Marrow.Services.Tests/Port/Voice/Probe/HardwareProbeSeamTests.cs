@@ -10,10 +10,12 @@ public sealed class HardwareProbeSeamTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.5")]
     public void The_ambient_probe_default_throws_when_touched_and_reads_no_hardware()
     {
-        var error = Assert.Throws<SeamNotBoundException>(() => HardwareProbeSeams.Probe.Current.RunAsync(null, CancellationToken.None));
+        var error = Assert.Throws<SeamNotBoundException>(() =>
+        {
+            _ = HardwareProbeSeams.Probe.Current.RunAsync(null, CancellationToken.None);
+        });
         Assert.Equal(nameof(IHardwareProbe), error.Seam);
         Assert.IsType<FailClosedHardwareProbe>(HardwareProbeSeams.Probe.Current);
     }
@@ -21,7 +23,6 @@ public sealed class HardwareProbeSeamTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.5")]
     public void The_hardware_source_and_the_backend_check_defaults_throw_on_every_member()
     {
         var source = new FailClosedHardwareSource();
@@ -36,7 +37,6 @@ public sealed class HardwareProbeSeamTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.4")]
     public async Task A_test_binds_a_scripted_probe_for_its_own_flow_only()
     {
         var scripted = new ScriptedProbe(ScriptedMachines.TwoGbVramCard);
@@ -51,7 +51,6 @@ public sealed class HardwareProbeSeamTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.4")]
     public async Task The_four_scripted_machines_differ_in_the_way_the_seam_table_names()
     {
         var profiles = new List<HardwareProfile>();

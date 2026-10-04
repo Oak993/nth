@@ -9,11 +9,12 @@ public sealed class WhisperNetEngineSeamTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.5")]
     public void The_ambient_backend_default_throws_when_touched()
     {
-        var error = Assert.Throws<SeamNotBoundException>(() => EngineSeams.Backend.Current.LoadAsync(
-            new BackendLoad("/m.bin", true, [RuntimeKind.Cpu], null), CancellationToken.None));
+        var error = Assert.Throws<SeamNotBoundException>(() =>
+        {
+            _ = EngineSeams.Backend.Current.LoadAsync(new BackendLoad("/m.bin", true, [RuntimeKind.Cpu], null), CancellationToken.None);
+        });
         Assert.Equal(nameof(IWhisperBackend), error.Seam);
         Assert.IsType<FailClosedWhisperBackend>(EngineSeams.Backend.Current);
     }
@@ -21,7 +22,6 @@ public sealed class WhisperNetEngineSeamTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.5")]
     public void The_ambient_VAD_native_default_throws_when_touched()
     {
         var error = Assert.Throws<SeamNotBoundException>(() => EngineSeams.VadNative.Current.Detect(new float[512]));
@@ -32,7 +32,6 @@ public sealed class WhisperNetEngineSeamTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.5")]
     public async Task An_engine_over_the_default_backend_fails_closed_on_its_first_load()
     {
         using var engine = new WhisperNetEngine(EngineSeams.Backend.Current, () => new RuntimeFacts([RuntimeKind.Cpu], false, null), () => 4);
@@ -43,7 +42,6 @@ public sealed class WhisperNetEngineSeamTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.5")]
     public void A_test_override_binds_a_scripted_backend_for_its_own_flow_only()
     {
         var scripted = new ScriptedWhisperBackend();

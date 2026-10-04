@@ -23,7 +23,6 @@ public sealed class WhisperNativeWindowsTests
     [WindowsOnlyFact("loads the real whisper.dll P/Invoke exports")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-6.1")]
     public void The_real_SileroVad_gives_a_probability_per_frame_that_is_high_in_the_clip_speech_and_low_in_silence()
     {
         using var vad = SileroVad.Open(VadModel, FileRuntimeInventory.AppRuntimeLibrary(AppContext.BaseDirectory, RuntimeKind.Cpu), useGpu: false, threads: 2);
@@ -40,7 +39,6 @@ public sealed class WhisperNativeWindowsTests
     [WindowsOnlyFact("loads Whisper.net's native runtimes")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public void The_real_VAD_load_test_reports_a_runtime_from_the_order_it_was_given()
     {
         var result = new WhisperNetVadLoadTest(VadModel).Run([RuntimeKind.Vulkan, RuntimeKind.Cpu], null);
@@ -51,7 +49,6 @@ public sealed class WhisperNativeWindowsTests
     [WindowsOnlyFact("loads the CPU runtime of Whisper.net")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public async Task The_real_backend_refuses_a_missing_model_file_and_the_engine_stays_unloaded()
     {
         using var engine = new WhisperNetEngine(new WhisperNetBackend(), () => new RuntimeFacts([RuntimeKind.Cpu], false, null), () => 4);

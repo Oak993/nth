@@ -21,7 +21,6 @@ public sealed class WhisperNetEngineResidencyTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public void The_idle_time_is_five_minutes()
     {
         Assert.Equal(Five, WhisperNetEngine.IdleUnloadAfter);
@@ -30,7 +29,6 @@ public sealed class WhisperNetEngineResidencyTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task The_model_is_released_five_minutes_after_the_load_and_not_a_moment_before()
     {
         await Load();
@@ -44,7 +42,6 @@ public sealed class WhisperNetEngineResidencyTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task A_decode_restarts_the_five_minutes_from_its_end()
     {
         await Load();
@@ -59,7 +56,6 @@ public sealed class WhisperNetEngineResidencyTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task A_load_of_the_model_already_loaded_restarts_the_five_minutes_too()
     {
         await Load();
@@ -72,7 +68,6 @@ public sealed class WhisperNetEngineResidencyTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task A_decode_in_flight_is_never_unloaded_under_and_the_clock_starts_when_it_ends()
     {
         await Load();
@@ -92,7 +87,6 @@ public sealed class WhisperNetEngineResidencyTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task After_the_idle_release_a_decode_reloads_the_model_it_had()
     {
         await Load();
@@ -100,14 +94,15 @@ public sealed class WhisperNetEngineResidencyTests : IDisposable
         Assert.False(rig.Engine.IsLoaded);
         await Decode();
         Assert.Equal(2, rig.Backend.Loads.Count);
-        Assert.Equal(rig.Backend.Loads[0], rig.Backend.Loads[1]);
+        Assert.Equal(rig.Backend.Loads[0].ModelPath, rig.Backend.Loads[1].ModelPath);
+        Assert.Equal(rig.Backend.Loads[0].RuntimeOrder, rig.Backend.Loads[1].RuntimeOrder);
+        Assert.Equal(rig.Backend.Loads[0].UseGpu, rig.Backend.Loads[1].UseGpu);
         Assert.True(rig.Engine.IsLoaded);
     }
 
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task An_explicit_unload_cancels_the_timer_and_no_second_release_happens()
     {
         await Load();
@@ -120,7 +115,6 @@ public sealed class WhisperNetEngineResidencyTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task A_failed_load_leaves_no_timer_behind()
     {
         rig.Backend.FailLoads(new IOException("x"));

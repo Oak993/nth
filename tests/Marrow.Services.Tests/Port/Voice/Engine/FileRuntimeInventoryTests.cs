@@ -52,7 +52,6 @@ public sealed class FileRuntimeInventoryTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-3.2")]
     public void The_shipped_CPU_and_Vulkan_runtimes_are_found_in_the_app_folder_and_the_data_root_is_the_library_root()
     {
         ShipApp();
@@ -65,7 +64,6 @@ public sealed class FileRuntimeInventoryTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public void A_complete_CUDA_folder_adds_Cuda12_and_the_NVIDIA_flag_comes_from_the_caller()
     {
         ShipApp();
@@ -83,7 +81,6 @@ public sealed class FileRuntimeInventoryTests : IDisposable
     [InlineData("whisper.dll")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public void A_half_installed_CUDA_folder_is_not_offered_because_it_would_abort_the_process(string missing)
     {
         ShipApp();
@@ -95,7 +92,6 @@ public sealed class FileRuntimeInventoryTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public void A_missing_app_runtime_is_not_listed()
     {
         Touch(Path.Combine(appBase, "runtimes", "win-x64"), "whisper.dll");
@@ -105,7 +101,6 @@ public sealed class FileRuntimeInventoryTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public void The_three_NVIDIA_libraries_are_the_ones_VT_0_recorded_the_pack_does_not_carry()
     {
         using var json = JsonDocument.Parse(File.ReadAllBytes(PinsJson()));

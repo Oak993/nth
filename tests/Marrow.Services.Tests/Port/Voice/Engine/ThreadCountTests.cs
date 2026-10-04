@@ -14,7 +14,6 @@ public sealed class ThreadCountTests
     [InlineData(16, 14)]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.2")]
     public void Threads_are_physical_cores_minus_two_and_at_least_one(int cores, int threads)
     {
         Assert.Equal(threads, ThreadCount.For(cores));
@@ -25,7 +24,6 @@ public sealed class ThreadCountTests
     [InlineData(-4)]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.2")]
     public void A_core_count_below_one_still_gives_one_thread(int cores)
     {
         Assert.Equal(1, ThreadCount.For(cores));

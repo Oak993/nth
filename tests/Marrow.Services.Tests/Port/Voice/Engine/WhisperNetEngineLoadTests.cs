@@ -14,7 +14,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public async Task A_load_gives_the_backend_the_path_the_runtime_order_and_the_library_root()
     {
         await EngineRig.Guard(rig.Engine.LoadAsync(EngineRig.Turbo, new EngineLoadOptions(), CancellationToken.None));
@@ -30,7 +29,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public async Task With_the_CUDA_folder_installed_on_an_NVIDIA_GPU_the_order_starts_with_CUDA()
     {
         rig.Facts = new RuntimeFacts([RuntimeKind.Cpu, RuntimeKind.Vulkan, RuntimeKind.Cuda12], true, "/data");
@@ -44,7 +42,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public async Task The_GPU_counts_as_on_only_when_a_GPU_runtime_is_the_one_that_loaded()
     {
         rig.Backend.Reports = RuntimeKind.Cpu;
@@ -59,7 +56,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public async Task UseGpu_off_in_the_load_options_asks_for_the_processor_only()
     {
         await EngineRig.Guard(rig.Engine.LoadAsync(EngineRig.Small, new EngineLoadOptions(UseGpu: false), CancellationToken.None));
@@ -71,7 +67,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-2.2")]
     public async Task Threads_default_to_the_physical_cores_minus_two_and_the_options_can_set_them()
     {
         rig.Cores = 6;
@@ -87,7 +82,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public async Task Only_one_model_is_loaded_at_a_time_the_first_is_released_before_the_second_loads()
     {
         await EngineRig.Guard(rig.Engine.LoadAsync(EngineRig.Turbo, new EngineLoadOptions(), CancellationToken.None));
@@ -100,7 +94,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task Loading_the_model_that_is_already_loaded_shares_it_the_hover_then_the_click_load_once()
     {
         await EngineRig.Guard(rig.Engine.LoadAsync(EngineRig.Turbo, new EngineLoadOptions(), CancellationToken.None));
@@ -111,7 +104,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task Two_loads_of_the_same_model_in_flight_run_the_backend_once()
     {
         var release = rig.Backend.HoldLoads();
@@ -125,7 +117,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.1")]
     public async Task A_model_without_a_path_is_refused_before_the_backend_is_touched()
     {
         await Assert.ThrowsAsync<ArgumentException>(() => rig.Engine.LoadAsync(new SpeechModel("whisper-1", null), new EngineLoadOptions(), CancellationToken.None));
@@ -135,7 +126,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task A_failed_load_throws_to_the_caller_and_leaves_nothing_loaded()
     {
         rig.Backend.FailLoads(new InvalidOperationException("Failed to load native whisper library"));
@@ -150,7 +140,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task A_failed_load_of_a_second_model_does_not_keep_the_first()
     {
         await EngineRig.Guard(rig.Engine.LoadAsync(EngineRig.Turbo, new EngineLoadOptions(), CancellationToken.None));
@@ -163,7 +152,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.10")]
     public async Task A_cancelled_load_throws_cancellation_and_leaves_nothing_loaded()
     {
         rig.Backend.HoldLoads();
@@ -177,7 +165,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task Unload_releases_the_model_now_and_a_second_unload_does_nothing()
     {
         await EngineRig.Guard(rig.Engine.LoadAsync(EngineRig.Turbo, new EngineLoadOptions(), CancellationToken.None));
@@ -191,7 +178,6 @@ public sealed class WhisperNetEngineLoadTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-7.9")]
     public async Task Disposing_the_engine_releases_the_model()
     {
         await EngineRig.Guard(rig.Engine.LoadAsync(EngineRig.Turbo, new EngineLoadOptions(), CancellationToken.None));

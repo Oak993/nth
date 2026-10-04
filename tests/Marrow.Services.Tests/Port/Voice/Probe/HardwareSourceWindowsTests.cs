@@ -1,5 +1,6 @@
 using Marrow.Core.Port.Voice;
 using Marrow.Services.Port.Voice.Engine;
+using Marrow.Services.Tests.Port.Voice.Engine;
 using Marrow.Services.Port.Voice.Probe;
 
 namespace Marrow.Services.Tests.Port.Voice.Probe;
@@ -10,7 +11,6 @@ public sealed class HardwareSourceWindowsTests
     [WindowsOnlyFact("reads the registry, GlobalMemoryStatusEx and GetLogicalProcessorInformationEx")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public void The_real_processor_memory_and_core_reads_are_plausible()
     {
         var source = new WindowsHardwareSource();
@@ -22,7 +22,6 @@ public sealed class HardwareSourceWindowsTests
     [WindowsOnlyFact("enumerates DXGI adapters")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public void The_real_DXGI_enumeration_gives_adapters_with_names_and_sane_memory()
     {
         var source = new WindowsHardwareSource();
@@ -39,7 +38,6 @@ public sealed class HardwareSourceWindowsTests
     [WindowsOnlyFact("runs the whole probe on the real machine and loads the VAD model")]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public async Task The_real_probe_reports_its_four_rows_in_order()
     {
         var vad = Path.Combine(AppContext.BaseDirectory, "Port", "Voice", "Assets", "ggml-silero-v6.2.0.bin");

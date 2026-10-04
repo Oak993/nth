@@ -102,7 +102,6 @@ public sealed class HardwareProbeRowsTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public async Task A_working_CUDA_runtime_reads_CUDA_working()
     {
         var (rows, profile) = await Run(ScriptedMachines.OwnersDesktop with { Backend = GpuBackend.Cuda });
@@ -113,7 +112,6 @@ public sealed class HardwareProbeRowsTests
     [Fact]
     [Trait("Feature", "VT-6")]
     [Trait("Decision", "ED-267")]
-    [Trait("Spec", "V-10.1")]
     public async Task The_row_names_are_the_four_the_spec_names()
     {
         var (rows, _) = await Run(ScriptedMachines.OwnersDesktop);
