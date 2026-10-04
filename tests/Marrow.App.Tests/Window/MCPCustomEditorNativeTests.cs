@@ -81,8 +81,9 @@ public sealed class MCPCustomEditorNativeTests(WindowManagerNativeSession native
             ClickAt(CenterOf(native.OnUi(() => settings.GetVisualDescendants().OfType<Button>().First(button => ToolTip.GetTip(button) as string == "Server options" && button.IsEffectivelyVisible))));
             N.Until(() => native.OnUi(() => NewestUi() is { IsOpen: true }), "the server options menu never opened");
             Thread.Sleep(1200);
-            var edit = native.OnUi(() => NewestUi()!.Child!.GetVisualDescendants().OfType<PopoverItem>().First(item => item.GetVisualDescendants().OfType<TextBlock>().Any(label => label.Text == "Edit")));
-            ClickAt(CenterOf(edit));
+            PopoverItem? edit = null;
+            N.Until(() => (edit = native.OnUi(() => NewestUi()?.Child?.GetVisualDescendants().OfType<PopoverItem>().FirstOrDefault(item => item.GetVisualDescendants().OfType<TextBlock>().Any(label => label.Text == "Edit")))) is not null, "the server options menu has no Edit row");
+            ClickAt(CenterOf(edit!));
             N.Until(EditorOpen, "the editor never opened in edit mode");
             Thread.Sleep(1200);
             Assert.Equal("Example", native.OnUi(() => NameFieldUi().Text));
