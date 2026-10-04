@@ -186,6 +186,203 @@ public sealed class TerminalTabChipTests(HeadlessSession headless)
         Assert.Equal(sessions[0].Id, rig.App.Terminals.Selected(rig.Thread.Id)?.Id);
     });
 
+    // ---- Rendered chips: TERM-CHIP, the one capture behind PR-TERM-021/022/023/025 ----------------------------------------
+    // SOURCE FACT: reference video 2-chat-use.mov, static.terminal-panel, C 132.600-134.300, the dark (Monokai) drawer's selected
+    // chip, extracted frame work/reference-video/frames/w-2-chat-use-132.0/termL_132.15-134.95/000040.png (640 x 300, 1 px = 1 pt).
+    // Measured on that frame: panel luminance 19, capsule fill luminance 36, chip 113 px wide (x 22..134) and 27 px tall, title ink
+    // 56 px wide with peak 222, close cross ink 8 px wide with peak 166, glyph ink 9 px wide. The face and the glyph art differ
+    // by decision (OD-0009 Inter for SF, OD-0010 Lucide for SF Symbols), which is why the chip is 2 px shorter here (Inter's
+    // callout line is 15 px against SF's 16, plus rounding) and the glyph peaks differ; every other number must agree.
+    private static Func<int, int, int> Luminance(TopLevel window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        using var frame = window.CaptureRenderedFrame() ?? throw new Xunit.Sdk.XunitException("no rendered frame");
+        using var buffer = frame.Lock();
+        var bytes = new byte[buffer.RowBytes * buffer.Size.Height];
+        System.Runtime.InteropServices.Marshal.Copy(buffer.Address, bytes, 0, bytes.Length);
+        var stride = buffer.RowBytes;
+        return (x, y) => (bytes[y * stride + x * 4] + bytes[y * stride + x * 4 + 1] + bytes[y * stride + x * 4 + 2]) / 3;
+    }
+
+    // The ink of a child: the pixels in its box whose luminance differs from the capsule behind it by more than 8, its width and
+    // its strongest pixel (the brightest on a dark ground, the darkest on a light one).
+    private static (int Width, int Peak) Ink(Func<int, int, int> lum, Control child, AvaloniaWindow window, int background)
+    {
+        var box = new Rect(child.TranslatePoint(new Point(), window)!.Value, child.Bounds.Size);
+        int minX = int.MaxValue, maxX = int.MinValue, peak = background;
+        for (var y = (int)Math.Floor(box.Top); y < (int)Math.Ceiling(box.Bottom); y++)
+        for (var x = (int)Math.Floor(box.Left); x < (int)Math.Ceiling(box.Right); x++)
+        {
+            var value = lum(x, y);
+            if (Math.Abs(value - background) <= 8) continue;
+            minX = Math.Min(minX, x);
+            maxX = Math.Max(maxX, x);
+            if (Math.Abs(value - background) > Math.Abs(peak - background)) peak = value; // the strongest ink, lighter or darker than its ground
+        }
+        return maxX < minX ? (0, 0) : (maxX - minX + 1, peak);
+    }
+
+    private static int Over(Color colour, int below) => (int)Math.Round(below + (((colour.R + colour.G + colour.B) / 3.0) - below) * colour.A / 255.0);
+
+    [Fact]
+    [Trait("Req", "PR-TERM-021")] // TerminalPanel.swift:143-147,172-177; capture TERM-CHIP, frame 000040, OD-0009 face difference recorded above
+    [Trait("Req", "PR-TERM-025")] // TerminalPanel.swift:175-176 selected chip, dark; the unselected chip and the light theme: OD-0098 below
+    [Trait("Req", "PR-TERM-023")] // TerminalPanel.swift:159-165 the cross of the selected chip: size and colour
+    [Trait("Rule", "R-TEST-4")] // the rendered half of those records; their structure is asserted by the tests around it
+    public void The_selected_chip_in_the_dark_drawer_renders_like_the_reference_frame() => TerminalPanelRig.Run(headless, rig =>
+    {
+        var directory = TerminalPanelRig.Folder("chip capture");
+        rig.Step(() => rig.App.Terminals.Open(rig.Thread.Id, directory, title: "Terminal 1"));
+        var (host, _, window) = rig.Show(directory, 640, 300);
+        rig.Step(() => window.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark);
+        rig.Step(() => TerminalPanelRig.Settle(window));
+        var tab = Tabs(host).Single();
+        var origin = tab.TranslatePoint(new Point(), window)!.Value;
+        var lum = Luminance(window);
+        var row = Row(tab);
+
+        // Capsule fill: the video's 36 over its panel's 19 (the panel is white 0.08, 20 here).
+        var middle = (int)(origin.Y + tab.Bounds.Height / 2);
+        Assert.InRange(lum((int)origin.X + 5, middle), 35, 37);
+        Assert.InRange(lum((int)origin.X - 3, middle), 19, 21);
+        // Chip width: the video's 113 px (x 22..134), 114 points of layout here; height 27 there, 25 here (the face gap).
+        Assert.InRange(tab.Bounds.Width, 112, 115);
+        Assert.InRange(tab.Bounds.Height, 25, 28);
+        // Title: 56 px of ink, peak 222 (primary at 0.85 over the 36 capsule).
+        var title = Ink(lum, (Control)row.Children[1], window, 36);
+        Assert.InRange(title.Width, 54, 58);
+        Assert.InRange(title.Peak, 214, 226);
+        Assert.InRange(Over(SwiftColor.Primary.Resolve(Avalonia.Styling.ThemeVariant.Dark), 36), 218, 226); // the token composites to the same
+        // Close cross, visible on the selected chip: 8 px of ink, peak 166 in the video (secondary = primary at 0.7).
+        var cross = Ink(lum, (Control)((Button)row.Children[2]).Content!, window, 36);
+        Assert.InRange(cross.Width, 7, 9);
+        Assert.InRange(cross.Peak, 120, 175);
+        Assert.InRange(Over(Chrome.SecondaryText.Resolve(Avalonia.Styling.ThemeVariant.Dark), 36), 160, 170);
+        // The glyph: ink about 9 px wide in the video (SF Symbol), a Lucide glyph of the same box here.
+        var glyph = Ink(lum, (Control)row.Children[0], window, 36);
+        Assert.InRange(glyph.Width, 8, 11);
+    });
+
+    // OD-0098: no frame shows the unselected chip, the light theme or an exited chip; the pinned Swift is the proof
+    // (TerminalPanel.swift:175 secondary on .clear, :176 primary at 0.08, :180 opacity 0.55) against rendered pixels.
+    [Fact]
+    [Trait("Req", "PR-TERM-025")] // OD-0098; TerminalPanel.swift:175-176, both themes, selected and unselected, rendered
+    [Trait("Req", "PR-TERM-026")] // OD-0098; TerminalPanel.swift:180 the exited chip as drawn
+    [Trait("Rule", "R-TEST-4")]
+    public void Selected_unselected_and_exited_chips_render_the_source_colours_in_both_themes() => TerminalPanelRig.Run(headless, rig =>
+    {
+        var directory = TerminalPanelRig.Folder("chip colours");
+        rig.Step(() =>
+        {
+            rig.App.Terminals.Open(rig.Thread.Id, directory, title: "Terminal 1");
+            rig.App.Terminals.Open(rig.Thread.Id, directory, title: "Terminal 2");
+        });
+        var (host, _, window) = rig.Show(directory, 640, 300);
+        foreach (var theme in new[] { Avalonia.Styling.ThemeVariant.Dark, Avalonia.Styling.ThemeVariant.Light })
+        {
+            rig.Step(() => window.RequestedThemeVariant = theme);
+            rig.Step(() => TerminalPanelRig.Settle(window));
+            var tabs = Tabs(host);
+            var lum = Luminance(window);
+            var panel = (int)Math.Round((theme == Avalonia.Styling.ThemeVariant.Dark ? 0.08 : 0.985) * 255); // :107
+            var middle = (int)(tabs[0].TranslatePoint(new Point(0, tabs[0].Bounds.Height / 2), window)!.Value.Y);
+            var unselectedLeft = (int)tabs[0].TranslatePoint(new Point(5, 0), window)!.Value.X;
+            var selectedLeft = (int)tabs[1].TranslatePoint(new Point(5, 0), window)!.Value.X;
+            // :176 unselected: a fully clear capsule shows the panel; selected: primary at 0.08 over it.
+            Assert.InRange(lum(unselectedLeft, middle), panel - 1, panel + 1);
+            var fill = Over(SwiftColor.Primary.Opacity(0.08).Resolve(theme), panel);
+            Assert.InRange(lum(selectedLeft, middle), fill - 1, fill + 1);
+            // :175 the title: selected primary, unselected secondary (peak ink over its own background).
+            var selectedTitle = Ink(lum, (Control)Row(tabs[1]).Children[1], window, fill);
+            var unselectedTitle = Ink(lum, (Control)Row(tabs[0]).Children[1], window, panel);
+            var primary = Over(SwiftColor.Primary.Resolve(theme), fill);
+            var secondary = Over(SwiftColor.Secondary.Resolve(theme), panel);
+            Assert.True(Math.Abs(selectedTitle.Peak - primary) <= 8, $"{theme} selected title peak {selectedTitle.Peak}, primary composites to {primary}");
+            Assert.True(Math.Abs(unselectedTitle.Peak - secondary) <= 20, $"{theme} unselected title peak {unselectedTitle.Peak}, secondary composites to {secondary}");
+            Assert.True(theme == Avalonia.Styling.ThemeVariant.Dark ? selectedTitle.Peak > unselectedTitle.Peak : selectedTitle.Peak < unselectedTitle.Peak);
+        }
+
+        // :180 an exited selected chip is dimmed as a whole, above its 0.08 fill: the capsule and the title ink drop toward the panel.
+        rig.Step(() => window.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark);
+        var sessions = rig.App.Terminals.Sessions(rig.Thread.Id).ToArray();
+        rig.Step(() => sessions[1].Terminate());
+        rig.Step(() => TerminalPanelRig.Settle(window));
+        var dead = Tabs(host)[1];
+        var deadLum = Luminance(window);
+        var deadMiddle = (int)(dead.TranslatePoint(new Point(0, dead.Bounds.Height / 2), window)!.Value.Y);
+        var deadLeft = (int)dead.TranslatePoint(new Point(5, 0), window)!.Value.X;
+        var deadFill = Over(SwiftColor.Primary.Opacity(0.08).Resolve(Avalonia.Styling.ThemeVariant.Dark), 20);
+        var dimmedFill = (int)Math.Round(20 + (deadFill - 20) * 0.55);
+        Assert.InRange(deadLum(deadLeft, deadMiddle), dimmedFill - 1, dimmedFill + 1);
+        var deadTitle = Ink(deadLum, (Control)Row(dead).Children[1], window, dimmedFill);
+        var expectedDeadTitle = (int)Math.Round(20 + (Over(SwiftColor.Primary.Resolve(Avalonia.Styling.ThemeVariant.Dark), deadFill) - 20) * 0.55);
+        Assert.True(Math.Abs(deadTitle.Peak - expectedDeadTitle) <= 8, $"dimmed title peak {deadTitle.Peak}, expected about {expectedDeadTitle}");
+    });
+
+    // PR-TERM-022 (TerminalPanel.swift:148-158): a plain borderless glyph at caption2 bold, secondary text. .buttonStyle(.plain)
+    // paints nothing of its own on hover or press, so the rendered glyph must draw and must not change under the pointer.
+    // No frame shows an exited tab (OD-0098): the cross beside it uses the same caption2 bold style and is measured in the
+    // TERM-CHIP capture above; the Swift lines are the proof for the rest.
+    [Fact]
+    [Trait("Req", "PR-TERM-022")] // TerminalPanel.swift:148-158; ED-059 .caption2 is 10 points
+    public void The_restart_glyph_of_an_exited_tab_draws_in_secondary_caption2_bold_and_shows_no_hover_wash() => TerminalPanelRig.Run(headless, rig =>
+    {
+        var (host, window, sessions) = ShowWithTabs(rig, "chip restart pixels", 2);
+        rig.Step(() => window.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark);
+        rig.Step(() => sessions[0].Terminate()); // the unselected chip exits: no capsule fill behind its glyphs
+        rig.Step(() => TerminalPanelRig.Settle(window));
+        var tab = Tabs(host)[0];
+        var restart = TabButton(tab, "Start a new shell in this tab");
+        var icon = Assert.IsType<SwiftImage>(restart.Content);
+        Assert.Equal(10, SwiftFont.Caption2.PointSize, 3); // ED-059
+        Assert.Equal(SwiftFont.Caption2.FontWeight(SwiftFont.Weight.Bold), SwiftImage.GetFont(icon));
+        Assert.Equal(0, restart.BorderThickness.Left + restart.BorderThickness.Top + restart.BorderThickness.Right + restart.BorderThickness.Bottom);
+
+        var panel = 20; // white 0.08, TerminalPanel.swift:107
+        var dimmed = (int)Math.Round(panel + (Over(Chrome.SecondaryText.Resolve(Avalonia.Styling.ThemeVariant.Dark), panel) - panel) * 0.55);
+        var before = Luminance(window);
+        var glyph = Ink(before, icon, window, panel);
+        Assert.InRange(glyph.Width, 7, 11); // a caption2 glyph box, like the 8 px cross of the same style
+        // Drawn, and dimmed with the chip: below what the undimmed secondary would give. (Where the Lucide arrow's strokes
+        // overlap, each stroke blends its own 0.7 alpha, so the strongest pixel sits above the single-stroke value of about
+        // {dimmed}: it is bounded by the primary level at the same dimming, 20 + (220 - 20) * 0.55 = 130.)
+        Assert.True(glyph.Peak > panel + 25 && glyph.Peak <= 20 + (220 - 20) * 0.55 + 2, $"the restart glyph's strongest pixel is {glyph.Peak}; a single stroke is about {dimmed}");
+
+        // The pointer enters the tab and then rests on the button: nothing behind the glyph changes.
+        var box = new Rect(restart.TranslatePoint(new Point(), window)!.Value, restart.Bounds.Size);
+        var snapshot = new List<int>();
+        for (var y = (int)Math.Floor(box.Top) - 2; y < (int)Math.Ceiling(box.Bottom) + 2; y++)
+        for (var x = (int)Math.Floor(box.Left) - 2; x < (int)Math.Ceiling(box.Right) + 2; x++) snapshot.Add(before(x, y));
+        rig.Step(() => window.MouseMove(CentreIn(restart, window), RawInputModifiers.None));
+        rig.Step(() => TerminalPanelRig.Settle(window));
+        var after = Luminance(window);
+        var again = new List<int>();
+        for (var y = (int)Math.Floor(box.Top) - 2; y < (int)Math.Ceiling(box.Bottom) + 2; y++)
+        for (var x = (int)Math.Floor(box.Left) - 2; x < (int)Math.Ceiling(box.Right) + 2; x++) again.Add(after(x, y));
+        Assert.Equal(snapshot, again);
+    });
+
+    // PR-TERM-021's failure_case says a long title "is truncated with an ellipsis by the text engine; the chip does not grow
+    // unbounded". RECORD != SWIFT, ENGINEERING DECISION (SwiftUI layout semantics): the chips sit in
+    // ScrollView(.horizontal) (TerminalPanel.swift:21), which offers its content no width limit along the scroll axis, so
+    // Text(session.title).lineLimit(1) (:146) is laid out at its ideal width and is never truncated; the chip widens and the strip
+    // scrolls. The port's StackPanel in a ScrollViewer lays out the same way, so no width cap is added.
+    [Fact]
+    [Trait("Req", "PR-TERM-021")] // TerminalPanel.swift:21,146 (the record's own failure case differs, see above)
+    [Trait("Rule", "R-TEST-4")]
+    public void A_long_title_widens_its_chip_inside_the_scrolling_strip_and_stays_on_one_line() => TerminalPanelRig.Run(headless, rig =>
+    {
+        var directory = TerminalPanelRig.Folder("chip long title");
+        var longTitle = string.Join(' ', Enumerable.Repeat("a title far too long for the strip", 6));
+        rig.Step(() => rig.App.Terminals.Open(rig.Thread.Id, directory, title: longTitle));
+        var (host, _, _) = rig.Show(directory, 500, 300);
+        var tab = Tabs(host).Single();
+        var title = Assert.IsType<TextBlock>(Row(tab).Children[1]);
+        Assert.True(tab.Bounds.Width > 500, $"the chip is {tab.Bounds.Width} wide in a 500 wide panel");
+        Assert.Equal(title.DesiredSize.Width, title.Bounds.Width, 3); // laid out at its full width, not trimmed
+        Assert.True(title.Bounds.Height < 20); // one line
+    });
+
     [Fact]
     [Trait("Req", "UI-TERM-004")] // App/Views/Terminal/TerminalPanel.swift:144-145,175,180
     public void The_leading_glyph_is_the_terminal_symbol_in_caption_inheriting_the_chip_colour_and_dimming_and_clicks_fall_through_to_the_chip() => TerminalPanelRig.Run(headless, rig =>
