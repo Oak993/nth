@@ -10,6 +10,9 @@ namespace Marrow.App.Tests.Fixtures;
 /// </summary>
 public sealed class KeyboardLayouts(Dictionary<PhysicalKey, (string Plain, string Shifted)> keys) : IKeyboardLayoutText
 {
+    /// <summary>The keys the table names.</summary>
+    public IEnumerable<PhysicalKey> Keys => keys.Keys;
+
     public string? Typed(PhysicalKey key, bool shift) =>
         keys.TryGetValue(key, out var typed) && (shift ? typed.Shifted : typed.Plain) is { Length: > 0 } text ? text : null;
 

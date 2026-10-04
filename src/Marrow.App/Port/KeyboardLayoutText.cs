@@ -34,6 +34,15 @@ public static class KeyboardLayoutText
 /// </summary>
 internal sealed class WindowsKeyboardLayoutText : IKeyboardLayoutText
 {
+    // ENGINEERING DECISION (ED-NEW-appcommands item 7): which layout is read is a seam, so a test can read a layout it names
+    // (a handle from LoadKeyboardLayout) instead of whichever one the PC running it has active. The default is the active
+    // layout of the calling thread (GetKeyboardLayout(0)), which is all the app ever uses.
+    private readonly Func<IntPtr> layoutOf;
+
+    public WindowsKeyboardLayoutText() : this(() => GetKeyboardLayout(0)) { }
+
+    internal WindowsKeyboardLayoutText(Func<IntPtr> layoutOf) => this.layoutOf = layoutOf;
+
     private const uint MapVirtualKeyScanToVirtualKeyEx = 3; // MAPVK_VSC_TO_VK_EX
     private const uint DoNotChangeKeyboardState = 4; // ToUnicodeEx wFlags bit 2 (Windows 10 version 1607 and later)
     private const int VirtualKeyShift = 0x10;
@@ -41,7 +50,7 @@ internal sealed class WindowsKeyboardLayoutText : IKeyboardLayoutText
     public string? Typed(PhysicalKey key, bool shift)
     {
         if (!OperatingSystem.IsWindows() || MenuKeyEquivalents.ScanCodeOf(key) is not { } scan || scan >= 0xE000) return null;
-        var layout = GetKeyboardLayout(0);
+        var layout = layoutOf();
         var virtualKey = MapVirtualKeyExW((uint)scan, MapVirtualKeyScanToVirtualKeyEx, layout);
         if (virtualKey == 0) return null;
         var state = new byte[256];
