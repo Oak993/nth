@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text.Json;
 using Marrow.App.Port;
 using Marrow.Core.Port;
+using Marrow.Core.Port.SelfUpdate;
 using Marrow.Core.Support;
 
 // Source: DroppyCode/App/UpdateChecker.swift (B2 1fbf81e), :1-327.
@@ -160,9 +161,10 @@ public sealed class UpdateChecker : MainActorModel
     // :69
     public static SwiftURL ReleasesURL => ProjectURL.Appending("-/releases");
 
-    // DEVIATION OD-0012 I1: replaces upstream's fixed apiURL (:70). The feed is an internal value, empty by
-    // default, with no settings UI; while empty a check makes no network request (PR-UPDATE-005).
-    public const string DefaultFeed = "";
+    // DEVIATION OD-0012 I1: replaces upstream's fixed apiURL (:70). The feed is an internal value with no settings UI; while it is
+    // empty a check makes no network request (PR-UPDATE-005). UE-1 (OD-0100, answered 2026-10-04): the value is now the owner's public
+    // GitHub repository Oak993/marrow-releases, read through Velopack (MarrowReleaseFeed). An empty feed behaves as OD-0012 I1 says.
+    public const string DefaultFeed = MarrowReleaseFeed.Url;
 
     // :74-75
     private const double CheckIntervalSeconds = 6 * 60 * 60;
@@ -178,6 +180,7 @@ public sealed class UpdateChecker : MainActorModel
 
     private readonly AppInfo appInfo;
     private readonly string feed;
+    private readonly ISelfUpdateEngine? engine;
     private readonly string? previewVersion;
     private readonly URLSession session;
 
@@ -193,10 +196,13 @@ public sealed class UpdateChecker : MainActorModel
     // (:122) and the feed value (DEVIATION OD-0012 I1, replaces the fixed apiURL) are parameters instead of
     // captured globals, so a test can build an isolated checker. Shared passes AppInfo.Current, the process
     // arguments and DefaultFeed, exactly as :64 and :112 do for the real singleton.
-    public UpdateChecker(AppInfo appInfo, IReadOnlyList<string> arguments, string feed)
+    public UpdateChecker(AppInfo appInfo, IReadOnlyList<string> arguments, string feed, ISelfUpdateEngine? engine = null)
     {
         this.appInfo = appInfo;
         this.feed = feed;
+        // UE-1: a feed that names the GitHub repository is read through Velopack (the shared engine, or the one given); any other
+        // non-empty feed keeps the release-list JSON reader below (what a loopback feed in a test serves). Made on first use only.
+        this.engine = engine ?? (MarrowReleaseFeed.IsRepositoryUrl(feed) ? SelfUpdateEngine.Shared : null);
         session = BuildSession(appInfo);
 
         var defaults = UserDefaults.Standard.Current;
@@ -311,13 +317,28 @@ public sealed class UpdateChecker : MainActorModel
                 UserDefaults.Standard.Current.Set(Keys.LastChecked, LastCheckedAt);
                 return UpdateAvailable;
             }
+            if (engine is { IsInstalled: false })
+            {
+                // UE-1: this run is not a Velopack install (a copy, a build run from its folder): there is nothing to update in place,
+                // which is what "no update feed" says (ED-NEW-f-ue-1).
+                LastError = "No update feed is set.";
+                LastCheckedAt = SwiftDate.Now;
+                UserDefaults.Standard.Current.Set(Keys.LastChecked, LastCheckedAt);
+                return UpdateAvailable;
+            }
             try
             {
-                var releases = await FetchReleases(); // :163
-                var newest = NewestRelease(releases) ?? throw new UpdateError(new UpdateError.Case.NoRelease()); // :164-166
-                var found = newest; // :167
+                var found = engine is null ? await FindThroughReleaseList() : await FindThroughVelopack(engine); // :163-167
+                if (found is null) // UE-1: the feed's newest is the running version: nothing is offered
+                {
+                    Update = null;
+                    LastError = null;
+                    LastCheckedAt = SwiftDate.Now;
+                    Persist();
+                    return UpdateAvailable;
+                }
                 if (previewVersion is { } preview) found = found with { Version = preview }; // :168-170
-                if (found.Size is null) found = found with { Size = await DownloadSize(found.DownloadURL) }; // :171-173
+                if (found.Size is null && engine is null) found = found with { Size = await DownloadSize(found.DownloadURL) }; // :171-173
                 Update = found; // :174
                 LastError = null; // :175
                 LastCheckedAt = SwiftDate.Now; // :176
@@ -326,7 +347,7 @@ public sealed class UpdateChecker : MainActorModel
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error)) // :181
             {
-                LastError = (error as UpdateError)?.ErrorDescription ?? "Couldn't reach GitLab."; // ASCII U+0027 (byte 0x27 at :182)
+                LastError = (error as UpdateError)?.ErrorDescription ?? "Couldn't reach GitHub."; // ASCII U+0027 (byte 0x27 at :182); OD-0100: the feed is GitHub's
                 LastCheckedAt = SwiftDate.Now; // :183
                 UserDefaults.Standard.Current.Set(Keys.LastChecked, LastCheckedAt); // :184
             }
@@ -336,6 +357,32 @@ public sealed class UpdateChecker : MainActorModel
             IsChecking = false; // :161 defer
         }
         return UpdateAvailable; // :186
+    }
+
+    // :163-167, the release-list reader.
+    private async Task<AvailableUpdate?> FindThroughReleaseList()
+    {
+        var releases = await FetchReleases(); // :163
+        return NewestRelease(releases) ?? throw new UpdateError(new UpdateError.Case.NoRelease()); // :164-166
+    }
+
+    // UE-1: the same answer from Velopack's GithubSource. A newer release becomes an AvailableUpdate as the release list's newest does:
+    // the version, the notes the publisher wrote, the package size; there is no per-asset address (Velopack picks and fetches the
+    // package itself) so both addresses are the repository's latest-release page, which the About row's button opens (ED-NEW-f-ue-1).
+    private static async Task<AvailableUpdate?> FindThroughVelopack(ISelfUpdateEngine engine)
+    {
+        if (await engine.CheckAsync(CancellationToken.None) is not { } offer) return null;
+        var page = SwiftURL.Create(MarrowReleaseFeed.LatestReleasePage)!;
+        return new AvailableUpdate
+        {
+            Version = offer.Version,
+            Tag = "v" + offer.Version,
+            DownloadURL = page,
+            Size = offer.SizeBytes,
+            Notes = offer.NotesMarkdown ?? "",
+            ReleasedAt = null,
+            PageURL = page,
+        };
     }
 
     // :189-195
@@ -445,7 +492,7 @@ public sealed class UpdateError(UpdateError.Case errorCase) : SwiftError
     public override string? ErrorDescription => ErrorCase switch
     {
         Case.NoRelease => "No release with a disk image was found.", // :271
-        Case.BadResponse(var status) => "GitLab answered with HTTP " + status.ToString(CultureInfo.InvariantCulture) + ".", // :272
+        Case.BadResponse(var status) => "GitHub answered with HTTP " + status.ToString(CultureInfo.InvariantCulture) + ".", // :272
         _ => throw new UnreachableException(),
     };
 }

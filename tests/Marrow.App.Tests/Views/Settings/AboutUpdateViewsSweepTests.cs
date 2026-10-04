@@ -51,7 +51,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-002")] // App/Views/Settings/AboutUpdateViews.swift:596-624,649-660
     [Trait("Req", "UI-UPDATE-003")] // App/Views/Settings/AboutUpdateViews.swift:596-624,649-660
     [Trait("Req", "UI-UPDATE-004")] // App/Views/Settings/AboutUpdateViews.swift:596-624,649-660
-    [InlineData(false, null, "Not checked yet", "clock", "Marrow has not asked GitLab for a release yet")]
+    [InlineData(false, null, "Not checked yet", "clock", "Marrow has not asked GitHub for a release yet")]
     [InlineData(true, null, "Up to date", "checkmark.seal.fill", "Marrow 1.7.0 is the latest version")]
     [InlineData(false, "Fixture error", "Check failed", "exclamationmark.triangle.fill", "Fixture error")]
     [InlineData(true, "Fixture error", "Check failed", "exclamationmark.triangle.fill", "Fixture error")]
@@ -64,7 +64,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
             using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
             runtime.OnMain(() =>
             {
-                var checker = new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed);
+                var checker = new UpdateChecker(AppInfo.Current, [], "");
                 if (checkedBefore) Set(checker, nameof(UpdateChecker.LastCheckedAt), SwiftDate.Now);
                 Set(checker, nameof(UpdateChecker.LastError), error);
                 using var shared = UpdateChecker.OverrideShared(checker);
@@ -97,7 +97,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
             using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
             runtime.OnMain(() =>
             {
-                var checker = new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed);
+                var checker = new UpdateChecker(AppInfo.Current, [], "");
                 Set(checker, nameof(UpdateChecker.Update), Release());
                 using var shared = UpdateChecker.OverrideShared(checker);
                 using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
@@ -128,7 +128,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
             using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
             runtime.OnMain(() =>
             {
-                var checker = new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed);
+                var checker = new UpdateChecker(AppInfo.Current, [], "");
                 Set(checker, nameof(UpdateChecker.Update), Release());
                 using var shared = UpdateChecker.OverrideShared(checker);
                 var progress = UpdateInstallProgressFixtures.NewProgress();
@@ -151,10 +151,10 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:826-833
     [Trait("Req", "UI-UPDATE-021")] // App/Views/Settings/AboutUpdateViews.swift:824-844
     [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:826-833
-    [InlineData(false, null, false, "Marrow checks GitLab for new versions a few times a day. Not checked yet.")]
+    [InlineData(false, null, false, "Marrow checks GitHub for new versions a few times a day. Not checked yet.")]
     [InlineData(false, "Fixture error", false, "Fixture error Not checked yet.")]
     [InlineData(false, null, true, "Marrow 9.0.0 is ready to install. Not checked yet.")]
-    [InlineData(true, "Fixture error", true, "Asking GitLab for the latest release…")]
+    [InlineData(true, "Fixture error", true, "Asking GitHub for the latest release…")]
     public void Check_row_prioritizes_checking_then_error_then_release_and_disables_the_checking_button(bool checking, string? error, bool ready, string detail)
     {
         headless.OnUiThread(() =>
@@ -162,7 +162,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
             using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
             runtime.OnMain(() =>
             {
-                var checker = new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], UpdateChecker.DefaultFeed);
+                var checker = new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], "");
                 Set(checker, nameof(UpdateChecker.IsChecking), checking); Set(checker, nameof(UpdateChecker.LastError), error);
                 if (ready) Set(checker, nameof(UpdateChecker.Update), Release());
                 using var shared = UpdateChecker.OverrideShared(checker);
@@ -186,7 +186,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
         {
             using var runtime = new TestRuntime(); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
             using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
-            var checker = runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], UpdateChecker.DefaultFeed));
+            var checker = runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], ""));
             using var shared = UpdateChecker.OverrideShared(checker);
             var row = new AboutUpdateCheckRow();
             Avalonia.Controls.Window? window = null;
@@ -275,7 +275,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
             using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
             runtime.OnMain(() =>
             {
-                var checker = new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], UpdateChecker.DefaultFeed);
+                var checker = new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], "");
                 Set(checker, nameof(UpdateChecker.Update), Release(notes));
                 using var shared = UpdateChecker.OverrideShared(checker);
                 using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
@@ -285,7 +285,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
                 else Assert.Single(section.GetVisualDescendants().OfType<UpdateReleaseSectionCards>());
                 Assert.Contains(section.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Unsigned Windows installer");
                 Assert.Contains(section.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Update & restart installs it in place and relaunches.");
-                var link = Assert.Single(section.GetVisualDescendants().OfType<Button>(), button => Equals(ToolTip.GetTip(button), "Open the release on GitLab"));
+                var link = Assert.Single(section.GetVisualDescendants().OfType<Button>(), button => Equals(ToolTip.GetTip(button), "Open the release on GitHub"));
                 Assert.Contains(link.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Release notes");
                 Assert.Equal("Release notes", AutomationProperties.GetName(link));
                 window.Close();
@@ -307,7 +307,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
             using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var progress = UpdateInstallProgressFixtures.NewProgress();
             using var running = UpdateInstallProgress.Running.Override(progress);
-            var checker = runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], UpdateChecker.DefaultFeed));
+            var checker = runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], ""));
             using var shared = UpdateChecker.OverrideShared(checker);
             Avalonia.Controls.Window? window = null;
             runtime.OnMain(() =>

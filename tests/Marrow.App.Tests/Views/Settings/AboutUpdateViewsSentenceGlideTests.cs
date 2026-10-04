@@ -24,8 +24,8 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class AboutUpdateViewsSentenceGlideTests(HeadlessSession headless)
 {
-    private const string Rest = "Marrow checks GitLab for new versions a few times a day. Not checked yet.";
-    private const string Asking = "Asking GitLab for the latest release…";
+    private const string Rest = "Marrow checks GitHub for new versions a few times a day. Not checked yet.";
+    private const string Asking = "Asking GitHub for the latest release…";
 
     private static void Set(object target, string property, object? value) =>
         target.GetType().GetProperty(property, BindingFlags.Instance | BindingFlags.Public)!.SetValue(target, value);
