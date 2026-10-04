@@ -7,7 +7,7 @@ namespace Marrow.Services.Tests.Port.Skills.Shims;
 // tests always wrote the sidecar with ShimDefinition.Write, which emits every field, so a sidecar that leaves fields out was never read.
 public sealed class ShimDefinitionTests
 {
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task A_sidecar_with_only_a_target_reads_with_empty_overrides_and_runs_the_target_unchanged()
     {
         using var fixture = new ShimFixtures();
@@ -22,7 +22,7 @@ public sealed class ShimDefinitionTests
         Assert.Equal(0, await ShimRunner.RunAsync(definition, ["args", "one"], new RecordingShimLifetime()));
     }
 
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public void An_explicit_null_for_a_list_or_map_is_also_empty()
     {
         using var fixture = new ShimFixtures();

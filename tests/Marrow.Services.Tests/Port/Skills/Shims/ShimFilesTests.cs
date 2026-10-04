@@ -5,7 +5,7 @@ namespace Marrow.Services.Tests.Port.Skills.Shims;
 // PORT-ONLY: ONDEMAND 3.6 real executable names, including npm/npx batch entrypoints.
 public sealed class ShimFilesTests
 {
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public void Native_executable_and_sidecar_are_written_under_the_provided_name()
     {
         using var fixture = new ShimFixtures();
@@ -15,7 +15,7 @@ public sealed class ShimFilesTests
         Assert.Equal(File.ReadAllBytes(source), File.ReadAllBytes(target));
         Assert.Equal(fixture.Target, ShimDefinition.Read(Path.Combine(fixture.Bin, "python.shim")).Target);
     }
-    [WindowsShimFact, Trait("Feature", "SK-6")]
+    [WindowsShimFact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit()
     {
         using var fixture = new ShimFixtures();

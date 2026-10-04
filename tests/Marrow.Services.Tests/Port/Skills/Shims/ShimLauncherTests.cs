@@ -8,7 +8,7 @@ public sealed class ShimLauncherTests
 {
     internal static readonly string[] Arguments = ["", "two words", "a\"quote", "trailing\\", "\\\"", "مرحبا 日本語 🦴", "&|<>^%$`!;()"];
 
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Arguments_with_spaces_quotes_empty_strings_and_Unicode_are_unchanged()
     {
         using var fixture = new ShimFixtures();
@@ -22,7 +22,7 @@ public sealed class ShimLauncherTests
         await child.WaitForExitAsync();
         Assert.Equal(0, child.ExitCode);
     }
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Binary_stdin_stdout_stderr_and_nonzero_exit_are_unchanged()
     {
         using var fixture = new ShimFixtures();
@@ -41,7 +41,7 @@ public sealed class ShimLauncherTests
         Assert.Equal(new byte[] { 0, 255, 10, 13, 128 }, error.ToArray());
         Assert.Equal(37, child.ExitCode);
     }
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Python_UTF8_and_package_paths_reach_only_the_child_and_locked_target_is_unchanged()
     {
         using var fixture = new ShimFixtures();
@@ -91,7 +91,7 @@ public sealed class ShimLauncherTests
         // The original target is the user's tool in this fixture: no shim override.
         Assert.Equal(parentUtf8 ?? "<absent>", ShimFixtures.Decode(Assert.Single(await fixture.Lines(fixture.Target, "env", "PYTHONUTF8"))));
     }
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Node_PATH_is_set_only_for_the_child()
     {
         using var fixture = new ShimFixtures();
@@ -102,7 +102,7 @@ public sealed class ShimLauncherTests
         Assert.Equal(parent, Environment.GetEnvironmentVariable("NODE_PATH"));
         Assert.Equal(parent ?? "<absent>", ShimFixtures.Decode(Assert.Single(await fixture.Lines(fixture.Target, "env", "NODE_PATH"))));
     }
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Concurrent_soffice_calls_get_distinct_profiles_and_delete_them_after_exit()
     {
         using var fixture = new ShimFixtures();
@@ -115,7 +115,7 @@ public sealed class ShimLauncherTests
         Assert.False(Directory.Exists(a));
         Assert.False(Directory.Exists(b));
     }
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Soffice_profile_is_deleted_even_when_the_target_exits_with_failure()
     {
         using var fixture = new ShimFixtures();
@@ -128,7 +128,7 @@ public sealed class ShimLauncherTests
         Assert.False(Directory.Exists(profile));
         Assert.Equal("", await child.StandardError.ReadToEndAsync());
     }
-    [Fact, Trait("Feature", "SK-6")]
+    [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Child_tree_lifetime_is_armed_before_start_through_the_seam()
     {
         using var fixture = new ShimFixtures();

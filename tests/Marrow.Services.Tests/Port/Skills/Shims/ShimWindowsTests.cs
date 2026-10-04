@@ -7,13 +7,13 @@ namespace Marrow.Services.Tests.Port.Skills.Shims;
 // PORT-ONLY: SK-6 native Windows-only acceptance, never a real tool target.
 public sealed class ShimWindowsTests
 {
-    [WindowsShimFact, Trait("Feature", "SK-6")]
+    [WindowsShimFact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Cmd_invocation_preserves_arguments_streams_and_exit_code() => await Shell("cmd.exe");
 
-    [WindowsShimFact, Trait("Feature", "SK-6")]
+    [WindowsShimFact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task PowerShell_invocation_preserves_arguments_streams_and_exit_code() => await Shell("powershell.exe");
 
-    [WindowsShimFact, Trait("Feature", "SK-6")]
+    [WindowsShimFact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Git_Bash_invocation_preserves_arguments_streams_and_exit_code() => await Shell("bash.exe");
 
     private static async Task Shell(string shell)
@@ -71,7 +71,7 @@ public sealed class ShimWindowsTests
         Assert.Equal(new byte[] { 0, 255, 10, 13, 128 }, stderr.ToArray());
         Assert.Equal(37, echo.ExitCode);
     }
-    [WindowsShimFact, Trait("Feature", "SK-6")]
+    [WindowsShimFact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task A_profile_folder_that_cannot_be_deleted_never_changes_the_targets_exit_code()
     {
         // A worker the target leaves behind can hold the per-call profile open; the cleanup failing must not replace the target's exit code with a crash.
@@ -100,7 +100,7 @@ public sealed class ShimWindowsTests
         catch (ArgumentException) { }
     }
 
-    [WindowsShimFact, Trait("Feature", "SK-6")]
+    [WindowsShimFact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task A_helper_the_target_leaves_running_survives_a_normal_exit_as_it_does_without_the_shim()
     {
         // The plan asks for the child tree to die when the shim is killed, not for a target's intended background helper to die when the target finishes.
@@ -123,7 +123,7 @@ public sealed class ShimWindowsTests
             if (helper != null) { if (!helper.HasExited) helper.Kill(true); helper.Dispose(); }
         }
     }
-    [WindowsShimFact, Trait("Feature", "SK-6")]
+    [WindowsShimFact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]
     public async Task Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object()
     {
         using var fixture = new ShimFixtures();
