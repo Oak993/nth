@@ -150,26 +150,18 @@ public static class TimelineRows
     internal static SwiftImage Chevron() => SwiftImage.SystemName("chevron.right")
         .Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
 
-    /// <summary>A pill whose edge, background and corners can be laid out at a size other than its contents' (a card being eased to a new size) while the contents keep
-    /// the size they take, so their words do not re-wrap or re-trim along the way; whatever lies past the pill is clipped by the slot around it.</summary>
-    private sealed class ContentKeepingPill : Border
-    {
-        protected override Size ArrangeOverride(Size finalSize)
-        {
-            base.ArrangeOverride(new Size(Math.Max(finalSize.Width, DesiredSize.Width), Math.Max(finalSize.Height, DesiredSize.Height)));
-            return finalSize;
-        }
-    }
-
     /// <summary>PORT-ONLY. The animation of a change, or none when the system asks for reduced motion: the closures of OD-0076's second round (the work group's steps, the checklist's
     /// strike, the delegation card's size) cut under it.</summary>
     internal static Animation? UnlessReduced(Animation? animation) => Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion ? null : animation;
 
     // :313-316, :464-467, :579-582, :691-694.
-    internal static Border Pill(Control child, SwiftColor? fill = null, Thickness? padding = null, bool keepsContentSize = false)
+    /// <param name="fillsSlot">The pill takes the whole size of the slot it is eased in (a <see cref="SizeSlot"/> with ContentFollowsSize), larger or smaller
+    /// than its contents', so its edge, background and corners move along the slot's curve in both directions (:652-704, OD-0076); any other pill hugs its contents.</param>
+    internal static Border Pill(Control child, SwiftColor? fill = null, Thickness? padding = null, bool fillsSlot = false)
     {
-        var pill = keepsContentSize ? new ContentKeepingPill() : new Border();
-        pill.Child = child; pill.HorizontalAlignment = HorizontalAlignment.Left; pill.VerticalAlignment = VerticalAlignment.Top;
+        var pill = new Border { Child = child };
+        pill.HorizontalAlignment = fillsSlot ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
+        pill.VerticalAlignment = fillsSlot ? VerticalAlignment.Stretch : VerticalAlignment.Top;
         pill.Padding = padding ?? new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical);
         pill.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous);
         pill.Background = (fill ?? Chrome.Accent.Opacity(0.1)).Brush(pill);
@@ -910,6 +902,7 @@ public sealed class HydraDelegationBlock : Decorator
     private readonly OpacityCrossfade titleText; // :663-664 the title Text, `.contentTransition(.opacity)`: its words crossfade
     private readonly HStack header;
     private readonly Panel overlay = new();
+    private readonly Canvas leaving = new(); // what leaves the card under an animation, drawn fading where it was; it takes no room (a Canvas asks for none)
     private readonly Border pill;
     private readonly SizeSlot slot; // :703-704 the card's size (height and width) follows its contents along Chrome.panelSlide (OD-0076: a card that changes size eases to it)
     private StackPanel? rows;                       // :677 the heads' list, there once a brief has closed
@@ -935,8 +928,9 @@ public sealed class HydraDelegationBlock : Decorator
         titleText = new OpacityCrossfade(TimelineRows.ChatText("", weight: SwiftFont.Weight.Medium));
         header.Children.Add(titleText);
         column.Children.Add(header);
-        pill = TimelineRows.Pill(column, keepsContentSize: true);
+        pill = TimelineRows.Pill(column, fillsSlot: true);
         overlay.Children.Add(pill);
+        overlay.Children.Add(leaving);
         pill.SizeChanged += (_, e) => { if (sweep is not null) sweep.Clip = new RectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, TimelineMetrics.PillRadius); };
         slot = new SizeSlot(overlay) { ContentFollowsSize = true };
         Child = slot;
@@ -997,7 +991,7 @@ public sealed class HydraDelegationBlock : Decorator
         if (delegations.Count == 0 && rows is { } empty)
         {
             rows = null;
-            if (animated) SwiftTransition.Remove(column, empty); else column.Children.Remove(empty);
+            if (animated) Leave(column, empty); else column.Children.Remove(empty);
         }
         // The list comes in as one view with its heads and its next-brief line (:676-692): they take no transition of their own then.
         var listArrives = false;
@@ -1030,10 +1024,25 @@ public sealed class HydraDelegationBlock : Decorator
             else if (!streaming && writing is { } gone)
             {
                 writing = null;
-                if (transitions) SwiftTransition.Remove(rows, gone); else rows.Children.Remove(gone);
+                if (transitions) Leave(rows, gone); else rows.Children.Remove(gone);
             }
         }
         if (shown.Count == 0 && delegations.Count == 0) writing = null;
+    }
+
+    /// <summary>A view that leaves the card under the change's animation: SwiftUI lays the card out without it at once, so the card's frame eases to its new size
+    /// along Chrome.panelSlide (:703-704) while the view fades out where it was (its removal transition; documented SwiftUI behaviour, UNVERIFIED under OD-0001 as
+    /// ED-092 records). Left in its stack while it fades, it would hold the card at its old size and let it drop once the fade is done (OD-0076: nothing changes
+    /// by a cut), so it is drawn from the leaving layer at the place and size it had.</summary>
+    private void Leave(Panel from, Control gone)
+    {
+        var at = gone.TranslatePoint(default, overlay) ?? default;
+        var size = gone.Bounds.Size;
+        from.Children.Remove(gone);
+        Canvas.SetLeft(gone, at.X); Canvas.SetTop(gone, at.Y);
+        gone.Width = size.Width; gone.Height = size.Height; // its words keep the layout they had
+        leaving.Children.Add(gone);
+        SwiftTransition.Remove(leaving, gone);
     }
 
     // :711-741
@@ -3448,7 +3457,9 @@ internal sealed class SizeSlot : Panel
     }
 
     /// <summary>Whether the content itself is arranged at the size the slot has got to (so its own edge, background and corners move along the curve), rather than at its
-    /// natural size and clipped to the slot. The content then keeps its words at their natural size itself (see HydraDelegationBlock.NaturalColumn).</summary>
+    /// natural size and clipped to the slot. The content then stretches over what it is given, larger or smaller (the delegation card's pill,
+    /// TimelineRows.Pill with fillsSlot); its words keep their layout because the card's lines are horizontal stacks, which lay each child out at its own width
+    /// whatever width they are given (TimelineRowsReviewAb3FixTests reads a head's words mid-ease both ways).</summary>
     internal bool ContentFollowsSize { get; init; }
 
     /// <summary>The size the card is drawn at now.</summary>
