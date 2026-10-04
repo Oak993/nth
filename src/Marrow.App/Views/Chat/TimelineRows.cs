@@ -310,11 +310,7 @@ public sealed class UserMessageRow : Decorator
         // :168-178 .rightClickPopover { [message, canRevert, confirming = $menuRequests.confirmRevert] in ... }: snapshots
         // only; the revert intent goes through the binding alone. The flag is the one the row holds when the menu opens (a body run
         // again with a new `canRevert` hands the modifier a new snapshot), read from its box, not from the row.
-        var requests = menuRequests;
-        var text = message.Text;
-        var flag = revertable;
-        var confirming = new Binding<bool>(() => requests.ConfirmRevert, value => requests.ConfirmRevert = value);
-        row.RightClickPopover(() => MessageActions(text, flag.Value, confirming));
+        row.RightClickPopover(MenuBuilder(message.Text, revertable, menuRequests));
         // :179-183 the room for the hover line lives inside the row but is taken back out of its height, so the
         // controls show up in the gap to the next row. (6 = the VStack's spacing above them.)
         row.Margin = new Thickness(0, 0, 0, -(TimelineMetrics.HoverLineHeight + 6));
@@ -494,6 +490,16 @@ public sealed class UserMessageRow : Decorator
     {
         var target = runtime;
         editor.Sync(isEditing ? runtime.MessageEdit : null, dismiss: () => target.MessageEdit = null, edit => new MessageEditor(edit, target));
+    }
+
+    // :168-171 the right-click popover's builder, made from the values it needs and nothing else. It is made here, in a static method, on purpose: the lambdas of
+    // Body's own scope share one closure class with every other lambda of that scope, and that class holds `this` (Body's local functions read the row's entry and
+    // runtime), so a builder written beside them would pin the whole row (its entry, its text, its state) for as long as the menu lives, which is what the
+    // source's capture list is there to prevent (:56-62, :165-178; PR-CHAT-161). A static method cannot capture the row.
+    private static Func<IReadOnlyList<RowAction>> MenuBuilder(string text, RevertFlag flag, MessageMenuRequests requests)
+    {
+        var confirming = new Binding<bool>(() => requests.ConfirmRevert, value => requests.ConfirmRevert = value);
+        return () => MessageActions(text, flag.Value, confirming);
     }
 
     // :214-228 private static func messageActions(text:canRevert:confirmRevert:) -> [RowAction]: from value snapshots,
