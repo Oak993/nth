@@ -81,7 +81,7 @@ public sealed class EffortSliderKnobRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-252")] // EffortSlider.swift:1012-1016 (PR-COMPOSER-123): on a light fill (a white brand at maximum) the passed stops are dark
+    [Trait("Decision", "ED-252")] // EffortSlider.swift:1012-1016 (PR-COMPOSER-123): on a light fill (Silver's white gradient: at maximum, and below it since OD-0075, lead ruling R1) the passed stops are dark
     [Trait("Req", "PR-COMPOSER-123")] // EffortSlider.swift:712-796 as amended by OD-0090 (the 48 px Jewel orb)
     [Trait("Req", "PR-COMPOSER-131")] // EffortSlider.swift:1000-1018 as amended by OD-0090 (the glow is no longer drawn)
     public void On_a_light_fill_the_passed_stops_are_dark() => headless.OnUiThread(() =>
@@ -458,9 +458,9 @@ public sealed class EffortSliderKnobRecordsTests(HeadlessSession headless)
             (TrackLook.Kind.Supercharged, EffortBrand.Claude, claudeFill.Opacity(0.6), false, White(0.6), SwiftColor.White), // :1005 brand.glow; :923 spark white on colour
             (TrackLook.Kind.Supercharged, EffortBrand.Silver, Black(0.35), true, Black(0.35), SwiftColor.Black),         // :928 silver's glow black at 0.35; light; :1015 dark stops; :923 spark black
             (TrackLook.Kind.Fast, EffortBrand.Claude, fastFill.Opacity(0.7), false, White(0.6), SwiftColor.White),      // :1006 fastFill at 0.7; spark white (:1018: only supercharged and fusion use the brand's)
-            (TrackLook.Kind.Fast, EffortBrand.Silver, fastFill.Opacity(0.7), false, White(0.6), SwiftColor.White),
+            (TrackLook.Kind.Fast, EffortBrand.Silver, fastFill.Opacity(0.7), true, Black(0.35), SwiftColor.White),      // glow :1006; DEVIATION OD-0073 (ED-248), lead ruling R1: the fast look draws Silver's white fill (the source's is the amber :992), so it is a light fill with dark stops
             (TrackLook.Kind.Fusion, EffortBrand.Claude, fast.Opacity(0.75), false, White(0.6), SwiftColor.White),       // :1007 fast at 0.75; the brand's spark
-            (TrackLook.Kind.Fusion, EffortBrand.Silver, fast.Opacity(0.75), false, White(0.6), SwiftColor.Black),       // a white brand's fusion is not light (its far end is gold, :1010) but sparks dark
+            (TrackLook.Kind.Fusion, EffortBrand.Silver, fast.Opacity(0.75), false, White(0.6), SwiftColor.Black),       // lead ruling R1: the fusion look keeps the source's rule (:1010-1012 not light, a white brand's far end is gold) and sparks dark
         };
         foreach (var (kind, brand, glow, light, stop, spark) in solo)
         {

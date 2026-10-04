@@ -1190,8 +1190,8 @@ public sealed class EffortSlider : Decorator
         orbView.InvalidateVisual();
     }
 
-    // the fill's colours along its length (5 samples), as the ring refracts them: the liquid's stops, or the plain fill;
-    // made again only when the look or the theme changes
+    // the fill's colours along its length (5 samples), as the ring refracts them: the liquid's stops (every look draws
+    // the liquid since OD-0075); made again only when the look or the theme changes
     private SKColor[] FillColours()
     {
         var look = Look;
@@ -1769,8 +1769,10 @@ public sealed record TrackLook(TrackLook.Kind TrackLookKind, EffortBrand Brand, 
     // :1012 var isLightFill: Bool. PR-COMPOSER-131: the light-fill test follows the pair when there is one. :1010-1011 "Whether the
     // fill under the knob is light (a white brand at maximum, not in fusion, whose far end is gold)": the source draws a white brand's
     // fill only at .supercharged, so the kind test there is the fill's colour. DEVIATION OD-0075 (the liquid at every effort level)
-    // draws that same white fill on the plain track too, so the test follows the fill and holds for Plain as well as Supercharged.
-    public bool IsLightFill => Pair?.IsLight ?? (TrackLookKind is Kind.Plain or Kind.Supercharged && Brand.IsLight);
+    // draws that same white fill on the plain track too, and OD-0073 (ED-248) under the fast look (the source's is the amber :992), so
+    // by lead ruling R1 (ED-NEW-effortslider2 (6)) the test follows the fill drawn and holds for Plain, Fast and Supercharged. The
+    // fusion look keeps the source's rule (not light), by the same ruling.
+    public bool IsLightFill => Pair?.IsLight ?? (TrackLookKind is Kind.Plain or Kind.Fast or Kind.Supercharged && Brand.IsLight);
 
     // :1015 var stopColor: Color. PR-COMPOSER-131: the stop colour follows the pair when there is one (via IsLightFill).
     public SwiftColor StopColor => IsLightFill ? SwiftColor.Black.Opacity(0.35) : SwiftColor.White.Opacity(0.6);
