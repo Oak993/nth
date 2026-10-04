@@ -178,7 +178,6 @@ function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 10139
       `return { K, ramp, spring, follow, step(S, now, dt) { ${vLine}\n${targets}\n${dBlock}\n return act; } };`;
     const motion = new Function(body)();
     const K = motion.K;
-    const modes = ['rest', 'listening', 'processing', 'error', 'landing'];
     // a scripted run: segments of constant mode / hover / pressed / size, with the smoothed `all` band changing every frame
     const segs = [
       { mode: 'rest', n: 20, hover: false }, { mode: 'rest', n: 30, hover: true }, { mode: 'rest', n: 12, hover: true, pressed: true },
@@ -251,7 +250,7 @@ function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 10139
 
   function makeHost(w, h, rec) {
     const props = {};
-    const path = []; let cur = []; let firstStroke = null;
+    let cur = []; let firstStroke = null;
     const ctx = {
       filter: '', lineCap: '', lineJoin: '', globalCompositeOperation: '', strokeStyle: '', lineWidth: 0,
       setTransform() {}, clearRect() {}, createLinearGradient: () => ({ addColorStop() {} }),
