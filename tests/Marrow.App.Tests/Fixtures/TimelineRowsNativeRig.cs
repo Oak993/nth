@@ -80,6 +80,13 @@ internal static class TimelineRowsNativeRig
     internal static long Tap(WindowManagerNativeSession native, AvaloniaWindow window, Control control)
     {
         var handle = native.OnUi(() => window.TryGetPlatformHandle()!.Handle);
+        native.OnUi(() => // a long thread has the control off the window's edge: its scroller puts it in the middle
+        {
+            if (control.GetVisualAncestors().OfType<ScrollViewer>().FirstOrDefault() is not { } scroller) return;
+            var top = control.TranslatePoint(default, scroller)?.Y ?? 0;
+            scroller.Offset = new Vector(scroller.Offset.X, Math.Max(0, scroller.Offset.Y + top - scroller.Viewport.Height / 2));
+        });
+        Thread.Sleep(500);
         Point Middle() => native.OnUi(() => control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window) ?? throw new InvalidOperationException("the control is not under its window"));
         // The thread settles into place (it scrolls to its end as it loads): wait until the control has stood still for half a second.
         var local = Middle();
@@ -93,7 +100,7 @@ internal static class TimelineRowsNativeRig
         if (N.GetForegroundWindow() != handle) Front(native, window);
         var screen = CenterOf(native, control);
         if (N.GetForegroundWindow() != handle || N.RootAt(new NativeWindowPoint(screen.X, screen.Y)) != handle)
-            throw new InvalidOperationException("NATIVE_PRECONDITION: the control is covered or the main window is not in front.");
+            throw new InvalidOperationException($"NATIVE_PRECONDITION: the control is covered or the main window is not in front (foreground 0x{N.GetForegroundWindow():X}, window 0x{handle:X}, root at the control 0x{N.RootAt(new NativeWindowPoint(screen.X, screen.Y)):X} at {screen}, control {native.OnUi(() => control.Bounds)}, in the window at {local}).");
         N.Check(N.GetCursorPos(out var original), "GetCursorPos");
         try
         {
@@ -168,6 +175,9 @@ internal static class TimelineRowsNativeRig
             native.Register(main);
             return (main, model);
         }, TimeSpan.FromSeconds(40));
+        // WindowRectAnchor finds the window of the current event (NSApp.currentEvent), and AppCurrentEvent starts listening when it is first asked; the app has a desktop lifetime to fall back
+        // on, this session has none, so it is asked now, before the first click.
+        native.OnUi(() => _ = AppCurrentEvent.CurrentWindow);
         Thread.Sleep(600);
         native.OnUi(() => { window.Topmost = true; if (!window.IsVisible) window.Show(); });
         Front(native, window);
@@ -236,6 +246,16 @@ internal static class TimelineRowsNativeRig
             DiskWriter.Shared.WriteSynchronously(new ThreadDocument(thread) { Items = new ValueList<TimelineItem>(items), Turns = new ValueList<TurnRecord>(records) }, Storage.ThreadURL(thread));
         });
         return (thread, turns[0], turns[1]);
+    }
+
+    /// <summary>How many windows of the native UI thread are visible now (the backdrop, the main window and each popover's popup window).</summary>
+    internal static int VisibleWindows(WindowManagerNativeSession native)
+    {
+        var count = 0;
+        NativeWindowEnumerator callback = (window, _) => { if (N.IsWindowVisible(window)) count++; return true; };
+        _ = N.EnumThreadWindows(native.ThreadId, callback, 0);
+        GC.KeepAlive(callback);
+        return count;
     }
 
     /// <summary>The visible controls of a type under a window that satisfy the test, in visual order.</summary>
