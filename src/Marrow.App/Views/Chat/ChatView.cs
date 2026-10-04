@@ -2480,7 +2480,15 @@ internal sealed class ScriptsEditor : Decorator
             scripts = [.. scripts.Where(s => s.Id != script.Id)]; // :1675
             Rebuild();
         };
-        var top = new StackPanel { Orientation = Orientation.Horizontal, Children = { nameField, trash } }; // :1671
+        // :1671 HStack { TextField, Button }: the roundedBorder field is flexible and takes what the borderless button leaves of the row, 8 points between them
+        // (SwiftUI's default HStack spacing between a field and a button; its value on the Mac is not in the source: ENGINEERING DECISION ED-NEW-frames-2, UNVERIFIED), both on one centre line.
+        trash.Margin = new Thickness(8, 0, 0, 0);
+        trash.VerticalAlignment = VerticalAlignment.Center;
+        nameField.VerticalAlignment = VerticalAlignment.Center;
+        var top = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        Grid.SetColumn(trash, 1);
+        top.Children.Add(nameField);
+        top.Children.Add(trash);
 
         var commandField = new TextBox { Text = script.Command, PlaceholderText = "Command" }; // :1681-1682
         ChatDialogControls.TextEditor(commandField, style: "RoundedBorder"); // :1682, STOP #5.
@@ -2508,7 +2516,7 @@ internal sealed class ScriptsEditor : Decorator
 
         var body = new StackPanel
         {
-            HorizontalAlignment = HorizontalAlignment.Left, // :1670 .leading
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :1670 VStack(alignment: .leading) inside a card that fills the scroll area: its fields are flexible and take the card's width
             Spacing = 8, // :1670
             Children = { top, commandFrame, worktreeToggle },
             Margin = new Thickness(14), // :1695
