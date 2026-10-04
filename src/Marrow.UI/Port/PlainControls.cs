@@ -42,6 +42,8 @@ public static class PlainControls
             [!TextBlock.TextProperty] = box[!TextBox.PlaceholderTextProperty],
             [!TextBlock.ForegroundProperty] = box[!TextBox.PlaceholderForegroundProperty],
         };
+        // A text input's prompt keeps the face's own line box under any .font() above the field (ED-290 (1)).
+        prompt.SetValue(SwiftFont.LineBoxProperty, double.NaN);
         var presenter = new TextPresenter
         {
             Name = "PART_TextPresenter",
@@ -227,6 +229,8 @@ public static class PlainControls
         TextElement.SetFontWeight(control, resolved.FontWeight);
         TextElement.SetFontStyle(control, resolved.FontStyle);
         if (resolved.FontFeatures is { } features) TextElement.SetFontFeatures(control, features);
+        // ED-290 (1): the text style's line box travels with the font to every TextBlock below (SwiftFont.LineBoxProperty).
+        control.SetValue(SwiftFont.LineBoxProperty, control is TextBox ? double.NaN : font.LineBoxValue);
         return control;
     }
 

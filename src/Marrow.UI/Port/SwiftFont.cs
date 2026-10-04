@@ -2,6 +2,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using Avalonia.Media;
 using Avalonia.Media.Fonts;
 using System.Diagnostics;
@@ -85,6 +86,10 @@ public sealed record SwiftFont
     private bool IsItalic { get; init; }
     private bool HasMonospacedDigit { get; init; }
 
+    // ED-290 (1), SETTLED 2026-10-04: SwiftUI's own font for a Text with no .font anywhere in its ancestry, which is
+    // not the explicit .body text style: its line box is the face's own (see Default).
+    private bool IsImplicitDefault { get; init; }
+
     /// <summary>NSFont.familyName (ED-175 (1)): set only by <see cref="Named"/>, for TerminalFont's nerdSibling
     /// (TerminalFont.swift :106) to build the family's "nf" sibling name. Null for every design-based font,
     /// which has no family of its own on this port (ED-107).</summary>
@@ -143,6 +148,68 @@ public sealed record SwiftFont
     public static SwiftFont Footnote { get; } = System(TextStyle.Footnote);
     public static SwiftFont Caption { get; } = System(TextStyle.Caption);
     public static SwiftFont Caption2 { get; } = System(TextStyle.Caption2);
+
+    /// <summary>
+    /// SwiftUI's implicit default: the font a <c>Text</c> draws with when no <c>.font</c> is set on it or on any view
+    /// above it (TimelineRows.swift:122-128 the sent bubble; ChatView.swift:1563; CommandPalette.swift:122). It is the
+    /// body style's 13 points and weight, but with the face's own line box, not the explicit body style's 18
+    /// (ED-290 (1): 2-chat-use.mov C 102.0 s, the user bubble is 34 = 9 + 16 + 9).
+    /// </summary>
+    public static SwiftFont Default { get; } = new() { Style = TextStyle.Body, IsImplicitDefault = true };
+
+    // ---- The line box (ED-290 (1), SETTLED 2026-10-04) ----
+
+    /// <summary>
+    /// The height of one line of this font, in points, or null for the face's own line height (Avalonia's
+    /// natural box, TextBlock.LineHeight NaN). ED-290 (1), measured 2026-10-04 on 1-settings-tour.mov and
+    /// 2-chat-use.mov (porting E_lineboxes_verify): an explicitly written SwiftUI text style in the default design draws
+    /// body in an 18-point line, callout in 17 and subheadline in 16, at every weight, its glyphs at their true
+    /// size, the extra space split half above and half below the face's own box (Avalonia's TextLine does exactly
+    /// that for a LineHeight taller than the face's). A fixed size (<c>.system(size:)</c>, the NSFont factories,
+    /// <see cref="Named"/>), the monospaced design and the implicit <see cref="Default"/> keep the face's own box.
+    /// TODO (not measured, kept at the face's own box until a frame measures them): Headline, LargeTitle, Title,
+    /// Title2, Title3, Footnote, Caption, Caption2, and every text style in the monospaced design.
+    /// </summary>
+    public double? LineBox =>
+        FamilyName is null && !IsImplicitDefault && FontDesign == Design.Default && Style is { } style
+            ? style switch
+            {
+                TextStyle.Body => 18, // S 183.5, S 187.5, S 213.0, S 23.5
+                TextStyle.Callout => 17, // S 183.5, S 186.0, S 213.0, C 152.6, C 9.0
+                TextStyle.Subheadline => 16, // S 183.5, S 187.5, S 23.5, S 212.0-213.0, C 152.6
+                _ => null,
+            }
+            : null;
+
+    /// <summary>
+    /// PORT-ONLY. The line box a <c>.font()</c> hands down to the text below it, as the inherited TextElement font
+    /// properties do: <see cref="Apply(TextBlock)"/>, <see cref="Apply(TemplatedControl)"/> and
+    /// PlainControls.Font set it with the font, and every TextBlock under it (its subclasses included) takes it as
+    /// its LineHeight at style priority, so a LineHeight a control sets on itself still wins. Avalonia's own
+    /// TextBlock.LineHeight is not inherited, which is why this property exists. NaN is the face's own box.
+    /// </summary>
+    public static readonly AttachedProperty<double> LineBoxProperty =
+        AvaloniaProperty.RegisterAttached<SwiftFont, AvaloniaObject, double>("LineBox", double.NaN, inherits: true);
+
+    // The style-priority LineHeight each TextBlock holds from LineBoxProperty, released when the box changes.
+    private static readonly ConditionalWeakTable<TextBlock, IDisposable> LineBoxValues = new();
+
+    static SwiftFont() => LineBoxProperty.Changed.AddClassHandler<TextBlock>((text, _) => FollowLineBox(text));
+
+    private static void FollowLineBox(TextBlock text)
+    {
+        if (LineBoxValues.TryGetValue(text, out var previous))
+        {
+            LineBoxValues.Remove(text);
+            previous.Dispose();
+        }
+        var box = text.GetValue(LineBoxProperty);
+        if (double.IsNaN(box)) return;
+        if (text.SetValue(TextBlock.LineHeightProperty, box, BindingPriority.Style) is { } held) LineBoxValues.Add(text, held);
+    }
+
+    /// <summary>The value <see cref="LineBoxProperty"/> carries for this font: its <see cref="LineBox"/>, or NaN.</summary>
+    internal double LineBoxValue => LineBox ?? double.NaN;
 
     // ---- Modifiers (each returns a new value) ----
 
@@ -237,9 +304,11 @@ public sealed record SwiftFont
         text.FontWeight = resolved.FontWeight;
         text.FontStyle = resolved.FontStyle;
         text.FontFeatures = resolved.FontFeatures;
+        text.SetValue(LineBoxProperty, LineBoxValue);
     }
 
-    /// <summary>Sets the whole font on a TemplatedControl (Button, TextBox), replacing every font property a previous font set.</summary>
+    /// <summary>Sets the whole font on a TemplatedControl (Button, TextBox), replacing every font property a previous font set.
+    /// A text input keeps the face's own line box (its AppKit field is not measured, ED-290 (1)).</summary>
     public void Apply(TemplatedControl control)
     {
         var resolved = Resolve();
@@ -248,6 +317,7 @@ public sealed record SwiftFont
         control.FontWeight = resolved.FontWeight;
         control.FontStyle = resolved.FontStyle;
         control.FontFeatures = resolved.FontFeatures;
+        control.SetValue(LineBoxProperty, control is TextBox ? double.NaN : LineBoxValue);
     }
 
     // ED-091: a text style with no weight is regular, except headline, which macOS sets bold (platform knowledge,
