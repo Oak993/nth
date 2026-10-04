@@ -35,10 +35,10 @@ public sealed class GlassColorPickerTests(HeadlessSession headless)
     {
         var picker = Make();
         Assert.Equal(260, picker.DesiredSize.Width);
-        Assert.Equal(new Rect(12, 12, 236, 150), picker.Square.Bounds);
-        Assert.Equal(236, picker.Hue.Bounds.Width);
-        Assert.Equal(236, picker.OpacityStrip.Bounds.Width);
-        Assert.Equal(16, picker.Hue.Bounds.Height);
+        Assert.Equal(new Rect(6, 6, 248, 150), picker.Square.Bounds);
+        Assert.Equal(248, picker.Hue.Bounds.Width);
+        Assert.Equal(248, picker.OpacityStrip.Bounds.Width);
+        Assert.Equal(14, picker.Hue.Bounds.Height);
         Assert.Equal("#8E7CFFFF", picker.Value);
         Assert.Equal("8E7CFF", picker.HexBox.Text);
         Assert.Equal("100 %", picker.Percent.Text);
@@ -69,10 +69,10 @@ public sealed class GlassColorPickerTests(HeadlessSession headless)
     {
         var log = new List<(string Value, bool Commit)>();
         var picker = Make("#FF0000", log);
-        picker.Square.Point(new Point(118, 75), false);               // half saturation, half value: (127.5, 63.75, 63.75) rounds half up to 80 40 40
-        picker.Square.Point(new Point(236, 0), true);                 // the top right corner: full saturation, full value
-        picker.OpacityStrip.Point(new Point(118, 8), true);                // the middle of the strip: round(0.5 * 100) / 100
-        picker.Hue.Point(new Point(118, 8), true);                    // the middle of the hue strip: 179.95 degrees, cyan
+        picker.Square.Point(new Point(124, 75), false);               // half saturation, half value: (127.5, 63.75, 63.75) rounds half up to 80 40 40
+        picker.Square.Point(new Point(248, 0), true);                 // the top right corner: full saturation, full value
+        picker.OpacityStrip.Point(new Point(124, 7), true);                // the middle of the strip: round(0.5 * 100) / 100
+        picker.Hue.Point(new Point(124, 7), true);                    // the middle of the hue strip: 179.95 degrees, cyan
         Assert.Equal([("#804040FF", false), ("#FF0000FF", true), ("#FF000080", true), ("#00FFFF80", true)], log);
         Assert.Equal("50 %", picker.Percent.Text);
         Assert.Equal(["#00FFFF", "#FF0000", "#8E7CFF", "#38C9B4"], picker.Recent.Items);   // a release moves its colour to the front; the same colour twice stays once
@@ -85,11 +85,11 @@ public sealed class GlassColorPickerTests(HeadlessSession headless)
     {
         var log = new List<(string Value, bool Commit)>();
         var picker = Make("#FF000080", log);
-        picker.RecentRow.Point(new Point(10 + 28, 10), false);        // the second swatch (20 px round, 8 px apart)
+        picker.RecentRow.Point(new Point(12 + 26, 12), false);        // the second swatch (24 px boxes, 2 px apart)
         Assert.Equal([("#38C9B480", true)], log);
         Assert.Equal(["#38C9B4", "#8E7CFF"], picker.Recent.Items);
-        picker.RecentRow.Point(new Point(24, 10), false);             // between two swatches: nothing
-        picker.RecentRow.Point(new Point(10 + 2 * 28, 10), false);    // past the last
+        picker.RecentRow.Point(new Point(25, 12), false);             // between two swatches: nothing
+        picker.RecentRow.Point(new Point(12 + 2 * 26, 12), false);    // past the last
         Assert.Single(log);
     });
 

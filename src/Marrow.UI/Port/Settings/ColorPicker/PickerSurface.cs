@@ -11,18 +11,27 @@ namespace Marrow.UI.Port.Settings.ColorPicker;
 
 internal sealed class PickerSurface : Control
 {
-    // ENGINEERING DECISION (the design's stylesheet is not in the repository; lp-pickers.js fixes only the 16 px strip thumb, the 18 px
-    // square thumb, the 150 px square and the widths): the strips are 16 px high with a 10 px track, the swatches are 20 px round (CZ-12.6's
-    // well size) 8 px apart, the checkerboard under the opacity strip has 4 px cells.
+    // SOURCE FACT (design-src/look-picks/lp-page.css, variant B): .mg-sv is 150 px high, corner 10, an inner .5 px edge (--rim);
+    // .mg-strip is 14 px high, corner 7, the same edge; the thumbs are 18 px with a 2 px white ring and a soft shadow, a strip's
+    // thumb 2 px above its track and 1 px left of u * (w - 16) (top: -2px; margin-left: -1px); .sws is a 2 px gap of 24 px buttons,
+    // each with a 16 px dot, the chosen one ringed (.sw.on::after: inset 1 px, 1.5 px --ring); .chk is a conic checker on an 8 px cell.
     internal const double SquareHeight = 150;
-    internal const double StripHeight = 16;
-    internal const double TrackHeight = 10;
-    internal const double SwatchSize = 20;
-    internal const double SwatchGap = 8;
-    private const double SquareRadius = 6;
-    private const double CheckCell = 4;
+    internal const double SquareRadius = 10;
+    internal const double StripHeight = 14;
+    internal const double StripRadius = 7;
+    internal const double ThumbSize = 18;
+    internal const double ThumbRing = 2;
+    internal const double StripThumbTop = -2;
+    internal const double StripThumbLeft = -1;
+    internal const double SwatchBox = 24;
+    internal const double SwatchGap = 2;
+    internal const double SwatchDot = 16;
+    internal const double CheckCell = 8;
+    internal const double RimWidth = 0.5;
+    internal const double RingInset = 1;
+    internal const double RingWidth = 1.5;
 
-    /// <summary>The step of an arrow key; with Shift, ten times as much. Square: a hundredth of the saturation or value; hue: a degree; opacity: a hundredth.</summary>
+    /// <summary>The step of an arrow key (ED-NEW-f-cz-2: the design states none); with Shift, ten times as much. Square: a hundredth of the saturation or value; hue: a degree; opacity: a hundredth.</summary>
     internal const double SquareStep = 0.01, HueStep = 1, AlphaStep = 0.01, ShiftFactor = 10;
 
     private PickerColor colour;
@@ -60,7 +69,7 @@ internal sealed class PickerSurface : Control
     internal static double HeightFor(PickerSurfaceKind kind) => kind switch
     {
         PickerSurfaceKind.Square => SquareHeight,
-        PickerSurfaceKind.Recent => SwatchSize,
+        PickerSurfaceKind.Recent => SwatchBox,
         _ => StripHeight,
     };
 
@@ -119,8 +128,8 @@ internal sealed class PickerSurface : Control
                 Edit?.Invoke(colour with { A = PickerMath.AlphaAt(p.X, w) }, commit);
                 break;
             default:
-                var i = (int)Math.Floor(p.X / (SwatchSize + SwatchGap));
-                if (i >= 0 && i < recent.Count && p.X - i * (SwatchSize + SwatchGap) <= SwatchSize && p.Y >= 0 && p.Y <= SwatchSize)
+                var i = (int)Math.Floor(p.X / (SwatchBox + SwatchGap));
+                if (i >= 0 && i < recent.Count && p.X - i * (SwatchBox + SwatchGap) <= SwatchBox && p.Y >= 0 && p.Y <= SwatchBox)
                 {
                     cursor = i;
                     Edit?.Invoke(PickerMath.FromHex(recent[i], c), true);   // a recent swatch keeps the current alpha
@@ -214,8 +223,8 @@ internal sealed class PickerSurface : Control
             case PickerSurfaceKind.Recent: RenderRecent(context); break;
             default: RenderStrip(context, w); break;
         }
-        if (keyboardFocus && Kind != PickerSurfaceKind.Recent)
-            context.DrawRectangle(null, new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), 1), new Rect(0.5, 0.5, w - 1, Bounds.Height - 1), SquareRadius, SquareRadius);
+        if (keyboardFocus && Kind != PickerSurfaceKind.Recent)   // ED-NEW-f-cz-2: the design draws no keyboard focus
+            context.DrawRectangle(null, new Pen(new SolidColorBrush(PickerTheme.Ring(this)), 1), new Rect(-1.5, -1.5, w + 3, Bounds.Height + 3), Kind == PickerSurfaceKind.Square ? SquareRadius + 1.5 : StripRadius + 1.5, Kind == PickerSurfaceKind.Square ? SquareRadius + 1.5 : StripRadius + 1.5);
     }
 
     private static Color Rgb(double[] c, double a = 1) => Color.FromArgb((byte)Math.Round(a * 255), (byte)PickerMath.Clamp(PickerMath.JsRound(c[0]), 0, 255), (byte)PickerMath.Clamp(PickerMath.JsRound(c[1]), 0, 255), (byte)PickerMath.Clamp(PickerMath.JsRound(c[2]), 0, 255));
@@ -230,25 +239,30 @@ internal sealed class PickerSurface : Control
     private static readonly RelativePoint Left = new(0, 0, RelativeUnit.Relative), Right = new(1, 0, RelativeUnit.Relative),
         Top = new(0, 0, RelativeUnit.Relative), Bottom = new(0, 1, RelativeUnit.Relative);
 
+    /// <summary>The inner .5 px edge (box-shadow: inset 0 0 0 .5px var(--rim)).</summary>
+    private void Rim(DrawingContext context, Rect box, double radius) =>
+        context.DrawRectangle(null, new Pen(new SolidColorBrush(PickerTheme.Rim(this)), RimWidth), box.Deflate(RimWidth / 2), Math.Max(0, radius - RimWidth / 2), Math.Max(0, radius - RimWidth / 2));
+
     private void RenderSquare(DrawingContext context, double w)
     {
         var h = Bounds.Height;
-        var box = new RoundedRect(new Rect(0, 0, w, h), SquareRadius);
-        using (context.PushClip(box))
+        var bounds = new Rect(0, 0, w, h);
+        using (context.PushClip(new RoundedRect(bounds, SquareRadius)))
         {
-            // .hue (the pure hue), .wh (white to clear across), .bk (clear to black down)
-            context.DrawRectangle(new SolidColorBrush(Rgb(PickerMath.HsvRgb(colour.H, 1, 1))), null, new Rect(0, 0, w, h));
-            context.DrawRectangle(Gradient(Left, Right, (Colors.White, 0), (Color.FromArgb(0, 255, 255, 255), 1)), null, new Rect(0, 0, w, h));
-            context.DrawRectangle(Gradient(Top, Bottom, (Color.FromArgb(0, 0, 0, 0), 0), (Colors.Black, 1)), null, new Rect(0, 0, w, h));
+            // .hue (the pure hue), .wh (white to clear across), .bk (black to clear, from the bottom up)
+            context.DrawRectangle(new SolidColorBrush(Rgb(PickerMath.HsvRgb(colour.H, 1, 1))), null, bounds);
+            context.DrawRectangle(Gradient(Left, Right, (Colors.White, 0), (Color.FromArgb(0, 255, 255, 255), 1)), null, bounds);
+            context.DrawRectangle(Gradient(Bottom, Top, (Colors.Black, 0), (Color.FromArgb(0, 0, 0, 0), 1)), null, bounds);
         }
+        Rim(context, bounds, SquareRadius);
         var (x, y) = PickerMath.SquareThumbAt(colour.S, colour.V, w, h);
-        Thumb(context, new Point(x + PickerMath.SquareThumb / 2, y + PickerMath.SquareThumb / 2), PickerMath.SquareThumb / 2, Rgb(PickerMath.HsvRgb(colour.H, colour.S, colour.V)));
+        Thumb(context, new Rect(x, y, ThumbSize, ThumbSize), Rgb(PickerMath.HsvRgb(colour.H, colour.S, colour.V)), 0.45);
     }
 
     private void RenderStrip(DrawingContext context, double w)
     {
-        var track = new Rect(0, (StripHeight - TrackHeight) / 2, w, TrackHeight);
-        var rounded = new RoundedRect(track, TrackHeight / 2);
+        var track = new Rect(0, 0, w, StripHeight);
+        var rounded = new RoundedRect(track, StripRadius);
         Color thumb;
         double u;
         if (Kind == PickerSurfaceKind.Hue)
@@ -261,38 +275,44 @@ internal sealed class PickerSurface : Control
         }
         else
         {
+            // .chk: repeating-conic-gradient(var(--chk) 0 25%, transparent 0 50%) on an 8 px cell: the top right and bottom left quarters.
+            // --chk is not defined anywhere in the design sources; a neutral grey is used (ED-NEW-f-cz-2).
             using (context.PushClip(rounded))
             {
-                for (var row = 0; row * CheckCell < TrackHeight; row++)
+                var chk = new SolidColorBrush(Color.FromArgb(0x59, 128, 128, 128));
+                for (var row = 0; row * CheckCell < StripHeight; row++)
                     for (var col = 0; col * CheckCell < w; col++)
-                        context.DrawRectangle(new SolidColorBrush((row + col) % 2 == 0 ? Color.FromRgb(0xFF, 0xFF, 0xFF) : Color.FromRgb(0xCC, 0xCC, 0xCC)), null,
-                            new Rect(col * CheckCell, track.Y + row * CheckCell, CheckCell, Math.Min(CheckCell, TrackHeight - row * CheckCell)));
+                    {
+                        var x = col * CheckCell; var y = row * CheckCell;
+                        context.DrawRectangle(chk, null, new Rect(x + CheckCell / 2, y, CheckCell / 2, CheckCell / 2));
+                        context.DrawRectangle(chk, null, new Rect(x, y + CheckCell / 2, CheckCell / 2, CheckCell / 2));
+                    }
             }
             var rgb = PickerMath.HsvRgb(colour.H, colour.S, colour.V);
             context.DrawRectangle(Gradient(Left, Right, (Rgb(rgb, 0), 0), (Rgb(rgb, 1), 1)), null, rounded);
             u = colour.A;
             thumb = Rgb(rgb, colour.A);
         }
-        var left = PickerMath.StripThumbAt(u, w);
-        Thumb(context, new Point(left + PickerMath.StripThumb / 2, StripHeight / 2), PickerMath.StripThumb / 2, thumb);
+        Rim(context, track, StripRadius);
+        Thumb(context, new Rect(PickerMath.StripThumbAt(u, w) + StripThumbLeft, StripThumbTop, ThumbSize, ThumbSize), thumb, 0.4);
     }
 
-    private static void Thumb(DrawingContext context, Point centre, double radius, Color fill)
-    {
-        context.DrawEllipse(new SolidColorBrush(fill), new Pen(Brushes.White, 2), centre, radius - 1, radius - 1);
-        context.DrawEllipse(null, new Pen(new SolidColorBrush(Color.FromArgb(90, 0, 0, 0)), 1), centre, radius, radius);
-    }
+    /// <summary>The 18 px thumb: box-shadow 0 0 0 2px #fff, 0 1px 4px rgba(0,0,0,.4 or .45).</summary>
+    private static void Thumb(DrawingContext context, Rect box, Color fill, double shadow) =>
+        context.DrawRectangle(new SolidColorBrush(fill), null, new RoundedRect(box, ThumbSize / 2),
+            new BoxShadows(new BoxShadow { Spread = ThumbRing, Color = Colors.White }, [new BoxShadow { OffsetY = 1, Blur = 4, Color = Color.FromArgb((byte)Math.Round(shadow * 255), 0, 0, 0) }]));
 
     private void RenderRecent(DrawingContext context)
     {
         var now = PickerMath.HsvHex(colour);
         for (var i = 0; i < recent.Count; i++)
         {
-            var c = new Point(i * (SwatchSize + SwatchGap) + SwatchSize / 2, SwatchSize / 2);
-            var rgb = PickerMath.HexRgb(recent[i]);
-            context.DrawEllipse(new SolidColorBrush(Rgb(rgb)), new Pen(new SolidColorBrush(Color.FromArgb(60, 128, 128, 128)), 1), c, SwatchSize / 2 - 1, SwatchSize / 2 - 1);
-            if (recent[i] == now) context.DrawEllipse(null, new Pen(Brushes.White, 2), c, SwatchSize / 2 + 1, SwatchSize / 2 + 1);   // .sw.on
-            if (keyboardFocus && i == cursor) context.DrawEllipse(null, new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), 1), c, SwatchSize / 2 + 3, SwatchSize / 2 + 3);
+            var box = new Rect(i * (SwatchBox + SwatchGap), 0, SwatchBox, SwatchBox);
+            var c = box.Center;
+            context.DrawEllipse(new SolidColorBrush(Rgb(PickerMath.HexRgb(recent[i]))), new Pen(new SolidColorBrush(PickerTheme.Rim(this)), RimWidth), c, SwatchDot / 2 - RimWidth / 2, SwatchDot / 2 - RimWidth / 2);
+            var r = SwatchBox / 2 - RingInset - RingWidth / 2;
+            if (recent[i] == now) context.DrawEllipse(null, new Pen(new SolidColorBrush(PickerTheme.Ring(this)), RingWidth), c, r, r);   // .sw.on::after
+            if (keyboardFocus && i == cursor) context.DrawEllipse(null, new Pen(new SolidColorBrush(PickerTheme.Ring(this)), 1), c, SwatchBox / 2 + 1.5, SwatchBox / 2 + 1.5);
         }
     }
 }

@@ -47,13 +47,13 @@ public sealed class GlassColorPickerCardTests(HeadlessSession headless)
     public void The_picker_hangs_in_a_card_whose_tip_stands_off_the_edge_facing_the_well() => headless.OnUiThread(() =>
     {
         var picker = new GlassColorPicker();
-        var card = new PopoverCard { Child = picker, TipEdge = PopoverTipEdge.Top, TipOffset = 100 };
+        var card = new PopoverCard { Child = new Avalonia.Controls.Border { Padding = GlassColorPicker.CardInset, Child = picker }, TipEdge = PopoverTipEdge.Top, TipOffset = 100 };
         card.Measure(Size.Infinity);
         card.Arrange(new Rect(card.DesiredSize));
-        Assert.Equal(new Size(GlassColorPicker.PickerWidth + 2, GlassColorPicker.FullHeight + 2 + PopoverCard.TipHeight + PopoverCard.TipGap), card.DesiredSize);
+        Assert.Equal(new Size(GlassColorPicker.PickerWidth + 12, Math.Ceiling(GlassColorPicker.FullHeight) + 12 + PopoverCard.TipHeight + PopoverCard.TipGap), card.DesiredSize);   // the popover is the picker plus 12 (lp-pickers.js place())
         Assert.Equal(100, card.TipPoint.X, 1);                                              // the tip is under the well, wherever the card sits
         Assert.Equal(PopoverCard.TipGap, card.TipPoint.Y, 1);
         Assert.InRange(card.Outline.Bounds.Top, PopoverCard.TipGap, PopoverCard.TipHeight + PopoverCard.TipGap - 9.5);   // the point, a rounding short of the sharp height
-        Assert.Equal(new Rect(1, 1 + PopoverCard.TipHeight + PopoverCard.TipGap, GlassColorPicker.PickerWidth, GlassColorPicker.FullHeight), picker.Bounds);
+        Assert.Equal(new Point(6, 6 + PopoverCard.TipHeight + PopoverCard.TipGap), picker.TranslatePoint(new Point(0, 0), card));   // 6 pt in from the card's edge (the 1 pt edge and the inset)
     });
 }
