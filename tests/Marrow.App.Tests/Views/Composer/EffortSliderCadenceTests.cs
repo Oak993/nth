@@ -30,7 +30,8 @@ public sealed class EffortSliderCadenceTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-133")] // App/Views/Composer/EffortSlider.swift:1049-1071; DEVIATION OD-0051 (60, not 30, for the solo supercharged track)
+    [Trait("Req", "PR-COMPOSER-133")] // App/Views/Composer/EffortSlider.swift:1049-1071; DEVIATION OD-0051 (60, not 30, for the solo supercharged track), OD-0075 (the plain track draws the liquid as well, at 60)
+    [InlineData(TrackLook.Kind.Plain, false)]
     [InlineData(TrackLook.Kind.Supercharged, false)]
     [InlineData(TrackLook.Kind.Supercharged, true)]
     [InlineData(TrackLook.Kind.Fast, false)]

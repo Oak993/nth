@@ -318,7 +318,8 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         Assert.InRange(frames, 39, 600); // the charge's settle takes 0.65 s
         Assert.Equal(0, rig.Slider.Signal.Charge);
         Assert.Equal(0, rig.Slider.Signal.Flare);
-        Assert.Empty(rig.Slider.GetVisualDescendants().OfType<TrackEffect>()); // the bolt has faded out and gone
+        // the bolt's effect has faded out and gone; the plain liquid that came in under it (OD-0075: liquid at every effort level) stays
+        Assert.False(TrackEffect.IsFast(Assert.Single(rig.Slider.GetVisualDescendants().OfType<TrackEffect>()).Look));
     });
     [Fact]
     [Trait("Decision", "ED-252")] // ED-252: under reduce motion, turning fast mode off drops the knob's signal at once (the fading bolt is not read) and the knob lets go through shape(), staying at least as lit as the bolt still drawn (the still moment at the bolt's opacity)
@@ -335,7 +336,7 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         Assert.Equal(1, rig.Slider.Signal.Charge);
         Assert.True(Math.Abs(rig.Slider.Signal.Flare - flare) < 1e-3);
         rig.Slider.UpdateLook(false, "Title", null);
-        Assert.Same(effect, rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single()); // leaving: still drawn, fading out
+        Assert.Contains(effect, rig.Slider.GetVisualDescendants().OfType<TrackEffect>()); // leaving: still drawn, fading out (the plain liquid fades in beside it, OD-0075)
         var seen = 0;
         double first = 0;
         for (var i = 0; i < 40 && effect.GetVisualParent() is not null; i++)
@@ -363,7 +364,7 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         var strikes = Strike.StrikeAt(k, effect.StrikeSeed);
         rig.Frame(strikes - 0.1 - now); // 0.1 s before the strike: its leader (0.14 s) and charge are still to come
         rig.Slider.UpdateLook(false, "Title", null);
-        Assert.Same(effect, rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single());
+        Assert.Contains(effect, rig.Slider.GetVisualDescendants().OfType<TrackEffect>()); // still drawn, fading out (the plain liquid fades in beside it, OD-0075)
         var drawn = 0; // frames on which the tube still draws the strike's bolt (its leader and its flash), at a visible opacity
         for (var i = 0; i < 14; i++)
         {
@@ -409,11 +410,11 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         using var rig = JewelFixtures.Rig(index: 1, reduceMotion: true);
         for (var i = 0; i < 4; i++) rig.Frame();
         Assert.Equal(0, rig.Frames.Pending); // dark and still: no frames
-        Assert.Empty(rig.Slider.GetVisualDescendants().OfType<TrackEffect>());
+        Assert.False(TrackEffect.IsFast(Assert.Single(rig.Slider.GetVisualDescendants().OfType<TrackEffect>()).Look)); // the plain liquid (OD-0075), no bolt
         var requests = new KnobFrameRequests(rig.Frames, rig.Slider); // the slider's own requests counted, every request passed on
         using var counted = Marrow.UI.Port.FrameClock.Source.Override(requests);
         rig.Slider.UpdateLook(false, "Title", pair); // a pair joins, fast mode off
-        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single(e => e.Look.Pair is not null);
         Assert.False(TrackEffect.IsFast(effect.Look));
         Assert.Equal(0, effect.Opacity); // a new effect, fading in
         Assert.Equal(1, requests.Count); // the look's change asks the knob for a frame

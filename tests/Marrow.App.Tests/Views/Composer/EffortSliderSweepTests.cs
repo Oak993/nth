@@ -368,6 +368,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Theory]
     [Trait("Decision", "ED-117")] // ED-117(7): cadence expectations rest on ED-117(2)-(6), so Decision ED-117 + Oracle O-34, never Req.
     [Trait("Oracle", "O-34")] // App/Views/Composer/EffortSlider.swift:1049-1050,1070-1071; PR-133 needs a ten-second run (see STOP).
+    [InlineData(TrackLook.Kind.Plain, false, true)] // DEVIATION OD-0075: the plain track draws the liquid too, at 60 Hz
     [InlineData(TrackLook.Kind.Supercharged, false, true)] // DEVIATION OD-0051: the solo supercharged track is the liquid tube, at 60 Hz (source :1049 30 Hz)
     [InlineData(TrackLook.Kind.Supercharged, true, true)]
     [InlineData(TrackLook.Kind.Fast, false, true)]
@@ -831,8 +832,9 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal(EffortPalette.Title.Resolve(title.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(title.Foreground).Color);
             var slider = Assert.Single(window.GetVisualDescendants().OfType<EffortSlider>());
             var fill = Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
-            Assert.Equal(Chrome.Accent.Resolve(fill.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :990 plain, distinct from solid purple brand fill
-            Assert.Empty(slider.GetVisualDescendants().OfType<TrackEffect>()); // plain solo draws no effect
+            // DEVIATION OD-0075 (liquid at every effort level): the plain track is the liquid over the brand's fill (Swift :990 has the accent and :760 no effect)
+            Assert.Equal(new SwiftColor(0.55, 0.34, 0.97).Resolve(fill.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color);
+            Assert.Equal(TrackLook.Kind.Plain, Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>()).Look.TrackLookKind);
             window.Close();
         });
     }

@@ -424,7 +424,7 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         Assert.True(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)));
-        Assert.False(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Plain, EffortBrand.Claude)));
+        Assert.True(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Plain, EffortBrand.Claude))); // OD-0075: the liquid at every effort level
         Assert.True(TrackEffect.IsFast(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)));
         Assert.True(TrackEffect.IsFast(new TrackLook(TrackLook.Kind.Fusion, EffortBrand.Claude)));
         Assert.False(TrackEffect.IsFast(new TrackLook(TrackLook.Kind.Supercharged, EffortBrand.Claude)));

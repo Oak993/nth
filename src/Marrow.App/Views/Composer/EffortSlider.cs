@@ -1273,26 +1273,22 @@ public sealed class EffortSlider : Decorator
             // transition while a later transaction starts a new one (ED-092(2) smooth 0.3, settling per ED-011).
             var previous = currentEffect;
             currentEffect = null;
+            // DEVIATION OD-0075 (liquid at every effort level): every look draws an effect, the plain one too (:760 overlays one only
+            // when the kind is not plain or a pair exists)
             if (drawnLook is null)
             {
-                if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
-                {
-                    var first = NewEffect(look);
-                    first.Opacity = 1;
-                    effects.Children.Add(first);
-                    currentEffect = first;
-                }
+                var first = NewEffect(look);
+                first.Opacity = 1;
+                effects.Children.Add(first);
+                currentEffect = first;
             }
             else
             {
-                if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
-                {
-                    var fresh = NewEffect(look);
-                    fresh.Opacity = 0;
-                    effects.Children.Add(fresh);
-                    currentEffect = fresh;
-                    EffortView.Animate(fresh, Animation.Smooth(0.3), progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
-                }
+                var fresh = NewEffect(look);
+                fresh.Opacity = 0;
+                effects.Children.Add(fresh);
+                currentEffect = fresh;
+                EffortView.Animate(fresh, Animation.Smooth(0.3), progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
                 if (previous is not null)
                 {
                     outgoingEffects.Add(previous);
@@ -1506,8 +1502,9 @@ internal static class EffortView
         if (look.Pair is { } pair) return Gradient(new[] { look.Brand.FillColor }.Concat(pair.Colors), theme);
         return look.TrackLookKind switch
         {
-            TrackLook.Kind.Plain => new SolidColorBrush(Chrome.Accent.Resolve(theme)),
-            TrackLook.Kind.Supercharged => look.Brand switch // :889-909 brand.fill
+            // :990 plain = Chrome.accent. DEVIATION OD-0075 (liquid at every effort level): the plain track is the liquid too, so the
+            // fill under it is the brand's, as at the top (the accent is no longer this track's colour)
+            TrackLook.Kind.Plain or TrackLook.Kind.Supercharged => look.Brand switch // :889-909 brand.fill
             {
                 EffortBrand.Antigravity => Gradient(EffortBrand.Gemini, theme),
                 EffortBrand.Meta => Gradient([new SwiftColor(0.0, 0.39, 0.88), new SwiftColor(0.0, 0.51, 0.98)], theme), // :894-897
@@ -1865,8 +1862,9 @@ public sealed class TrackEffect : Decorator
         return (mixed, StrikeTint.Mix(f.Tint, tint, u));
     }
 
-    /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; OD-0073: so does fast mode at every effort.</summary>
-    internal static bool IsLiquid(TrackLook look) => look.Pair is not null || look.TrackLookKind != TrackLook.Kind.Plain;
+    /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; OD-0073: so does fast mode at every effort; OD-0075:
+    /// and every look, the plain one included (:1054 draws nothing for it).</summary>
+    internal static bool IsLiquid(TrackLook look) => true;
 
     /// <summary>OD-0073: fast mode (below the top, or at it) draws Strike over the liquid.</summary>
     internal static bool IsFast(TrackLook look) => look.TrackLookKind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion;
