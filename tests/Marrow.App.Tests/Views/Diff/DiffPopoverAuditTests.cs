@@ -16,7 +16,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views.Diff;
 
 // Source: DroppyCode/App/Views/Diff/DiffInspector.swift (B3 52bc792), :520-692.
-// PR-GIT-137 is partly proven: recording-presenter routing/lifetime only; native flyout rendering and pass-through remain unverified.
+// PR-GIT-137: recording-presenter routing and lifetime here, the Swift's delayed close of a reopen reproduced (upstream defect 67, contract section 8); the real popup, SendInput outside tap and
+// Escape are DiffPopoverNativeTests (native, run under native.lock).
 [Collection("Headless")]
 public sealed class DiffPopoverAuditTests(HeadlessSession headless)
 {
