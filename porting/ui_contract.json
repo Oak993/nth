@@ -2867,10 +2867,10 @@
       "screen": "Effort card",
       "element": "Effort title button",
       "role": "button",
-      "exact_text": "Low | Medium | High | Extra High | Default | Standard (the resolved effort's title) / tooltip: Choose a model",
+      "exact_text": "The resolved effort's title, Provider.effortTitle(effort) (DroppyCode/Core/Models/Provider.swift:284-290): Extra High (xhigh, extra-high) | Default (the empty effort) | otherwise the effort with its first letter upper-cased, e.g. Low | Medium | High | Max; Standard when the model has no reasoning levels / tooltip: Choose a model",
       "geometry": "HStack(spacing: 4) with a chevron.right; .padding(.horizontal, 8), .padding(.vertical, 2); hover plate RoundedRectangle(cornerRadius: 7, style: .continuous); the title block is inset 44 points on each side",
       "typography": "System .title2 medium; chevron .callout semibold (17 and 12 point at the macOS default)",
-      "colors": "titleStyle: EffortPalette.title (accent mixed 22 percent with white) when neither max nor fast; the brand's title style at max; EffortPalette.fast in fast mode; a brand-to-gold gradient when both; a lead-to-heads gradient in a pair; chevron Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
+      "colors": "titleStyle: EffortPalette.title (accent mixed 22 percent with white, in Color.mix's default perceptual space, Oklab: ED-286) when neither max nor fast; the brand's title style at max; EffortPalette.fast in fast mode; a brand-to-gold gradient when both; a lead-to-heads gradient in a pair; a gradient title's colours drift slowly along the letters at rest (OD-0094); chevron Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "hover: Chrome.overlay(0.08) plate",
         "colour changes animate over 0.3 s smooth",
@@ -2884,7 +2884,12 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:543-597 `private var titleStyle: AnyShapeStyle` (543-555) and the title button: `Text(verbatim: title).font(.system(.title2, weight: .medium)).contentTransition(.numericText())`, `Image(systemName: \"chevron.right\").font(.system(.callout, weight: .semibold)).foregroundStyle(Chrome.secondaryText)`, `.foregroundStyle(titleStyle)`, `.animation(.smooth(duration: 0.3), value: isMaxEffort)`, `.help(onTitleTap == nil ? \"\" : \"Choose a model\")`"
       ],
       "notes": "\"Standard\" is the literal title when the model has no reasoning levels; the button still renders.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:573 `.font(.system(size: 17, weight: .medium))` and :577 `.font(.system(size: 12, weight: .semibold))` -> B2 :573 `.font(.system(.title2, weight: .medium))` and :577 `.font(.system(.callout, weight: .semibold))`, 17 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:573 `.font(.system(size: 17, weight: .medium))` and :577 `.font(.system(size: 12, weight: .semibold))` -> B2 :573 `.font(.system(.title2, weight: .medium))` and :577 `.font(.system(.callout, weight: .semibold))`, 17 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059).",
+      "deviation": {
+        "decision": "OD-0094",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:543-555 titleStyle: a gradient title is a static LinearGradient (leading to trailing); its colours move along the letters only while the text changes (2-chat-use.mov, study/effort-title-2026-10-03)",
+        "port": "A gradient title's colours also drift slowly along the letters at rest (OD-0094): a mirrored, seamless 7 s loop (MorphingTextBlock.DriftPeriod, ENGINEERING DECISION ED-238), continuous with a change's own drawing, still under reduce motion, frames only while the title is shown. Single-colour titles, the geometry, typography, hover, tap and the 0.3 s smooth colour changes are the source's."
+      }
     },
     {
       "area": "COMPOSER",

@@ -7392,12 +7392,17 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Literal sRGB component values; the gradient is a plain left-to-right linear gradient across the text's bounds.",
+      "windows_path": "Literal sRGB component values (the accent's 22 percent mix toward white in Color.mix(with:by:)'s default perceptual space, Oklab: ED-286, OD-0098); the gradient is a left-to-right linear gradient across the text's bounds, whose colours drift slowly along the letters at rest (OD-0094).",
       "verification_method": "capture comparison of the four combinations",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0094",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:543-555 titleStyle: wherever the title is a gradient (a pair's lead-to-heads colours, Antigravity's Gemini sweep at maximum, the brand into gold at maximum with fast mode) it is a static LinearGradient(leading to trailing); its colours move along the letters only while the text changes (2-chat-use.mov, study/effort-title-2026-10-03)",
+        "port": "Wherever the title is drawn as a gradient its colours also drift slowly along the letters at rest (OD-0094): a mirrored, seamless loop (MorphingTextBlock.DriftPeriod = 7 s, ENGINEERING DECISION ED-238) on one phase with a change's own drawing (a change takes the drift over and hands it back without a jump), still under reduce motion, frames only while the title is shown. A single-colour title (the accent mix, fast mode's gold alone, a solid brand title) is unchanged; the colours, their order and the 0.3 s smooth changes are the source's."
+      }
     },
     {
       "area": "COMPOSER",
@@ -7803,7 +7808,7 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0075",
+        "decision": "OD-0075; OD-0073",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:985-998 TrackLook.fill: `.plain` is Chrome.accent (:990), `.supercharged` brand.fill (:991), `.fast` EffortPalette.fastFill, `.fusion` the brand-to-fastFill gradient (:992-996)",
         "port": "The plain track is the liquid too (OD-0075), so the fill under it is the brand's fill, as at maximum: Claude and DeepSeek their solid colour, Purple its solid, Meta, Silver, Antigravity and the OD-0047 brands their gradients; the accent is no longer a track colour. A pair's gradient ([lead fill] + the heads' colours) is unchanged. Fast and fusion keep the brand's fill under their Strike (OD-0073, ED-248)."
       }
