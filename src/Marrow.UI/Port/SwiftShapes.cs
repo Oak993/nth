@@ -85,6 +85,23 @@ public static class SwiftShapes
     }
 
     /// <summary>
+    /// Marks a plain `.continuous` Border whose content the source draws BEYOND the shape's sides (SwiftUI's <c>.background(shape)</c> does not clip its content: the
+    /// effort title's leaving letters carried past the chevron, EffortSlider.swift:589 <c>.buttonStyle(.plain)</c>). Such a Border keeps the slack clip of ED-275 (3),
+    /// which runs past the straight sides; every other Border is cut by the shape's exact outline, which Skia anti-aliases exactly (ED-NEW-rec-cornerclip).
+    /// </summary>
+    public static readonly AttachedProperty<bool> ContentBeyondSidesProperty =
+        AvaloniaProperty.RegisterAttached<Border, bool>("ContentBeyondSides", typeof(SwiftShapes));
+
+    public static bool GetContentBeyondSides(Border border) => border.GetValue(ContentBeyondSidesProperty);
+
+    /// <summary>Marks a `.continuous` Border as one whose content is drawn beyond its sides (see <see cref="ContentBeyondSidesProperty"/>).</summary>
+    public static T ContentBeyondSides<T>(this T border, bool value = true) where T : Border
+    {
+        border.SetValue(ContentBeyondSidesProperty, value);
+        return border;
+    }
+
+    /// <summary>
     /// <c>RoundedRectangle(cornerRadius:style:)</c> as the corners of a Border that fills its bounds: its Background is
     /// the shape's <c>.fill</c>, its border the shape's <c>.strokeBorder</c> (a Border draws its border inside its
     /// bounds, the inner stroke strokeBorder draws). A `.continuous` shape keeps its Border (its CornerRadius is the circular corner of the same radius, and
@@ -512,7 +529,8 @@ internal static class ContinuousClip
                 }
                 else if (p == Visual.BoundsProperty || p == Border.BackgroundProperty
                     || p == Border.BorderBrushProperty || p == Border.BorderThicknessProperty || p == Border.BoxShadowProperty
-                    || p == Visual.ClipToBoundsProperty || p == Decorator.ChildProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty)
+                    || p == Visual.ClipToBoundsProperty || p == Decorator.ChildProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty
+                    || p == SwiftShapes.ContentBeyondSidesProperty)
                     Update();
             };
             Update();
