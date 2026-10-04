@@ -21,6 +21,9 @@ namespace Marrow.App.Port;
 //   equivalent Shortcuts.swift:80-101 gives that code (6), and the modifiers held, Win masked out (3). AltGr reaches
 //   Avalonia as Ctrl+Alt and reads as those two here; no decision says otherwise yet: STOP App.AppCommands #7 in
 //   tests/Marrow.App.Tests/AppCommandsTests.cs.
+// - Except the four zoom items, whose literal key equivalents a menu matches by the character typed (ED-270): those are
+//   read by Typed, the character the key types on the active layout (Port/KeyboardLayoutText.cs), Ctrl and the rest of
+//   the held modifiers matched as the item states them.
 // - Its call sites replace DroppyCodeApp.swift:24, the menu bar's install, on each window of the app that can be key:
 //   WindowManager.MakeWindow (the main and Settings windows) and TourWindowController.Present (the tour window). The
 //   floating guide panels never take activation (FloatingGuidePanel.cs, ED-063), so a key pressed while one is up goes
@@ -29,8 +32,12 @@ namespace Marrow.App.Port;
 /// <summary>
 /// One item of a SwiftUI <c>Commands</c> body: <c>Button(Title) { Action() }.keyboardShortcut(Shortcut)
 /// .disabled(IsDisabled)</c>. A null <see cref="Shortcut"/> is an item with no key equivalent.
+/// <see cref="MatchesTypedCharacter"/> marks an item whose key equivalent is a literal character, which a menu matches
+/// by what the pressed key types, not by where it sits (ED-270): Zoom In "+", Zoom Out "-", Actual Size "0", the hidden
+/// Zoom In "=" (AppCommands.swift:53-62).
 /// </summary>
-public sealed record MenuCommand(string Title, KeyboardShortcut? Shortcut, bool IsDisabled, Action Action);
+public sealed record MenuCommand(string Title, KeyboardShortcut? Shortcut, bool IsDisabled, Action Action,
+    bool MatchesTypedCharacter = false);
 
 /// <summary>The port's own dispatch of menu key equivalents (OD-0008 C3).</summary>
 public static class MenuKeyEquivalents
@@ -40,11 +47,30 @@ public static class MenuKeyEquivalents
     /// that the chord was taken. A disabled command does not claim the chord: the event goes on its way, so an approval
     /// card's button receives Ctrl+Return while "Queue a chat" is off (AppCommands.swift:69-77, PR-WIN-105).
     /// </summary>
-    public static bool Perform(IReadOnlyList<MenuCommand> commands, KeyboardShortcut pressed)
+    public static bool Perform(IReadOnlyList<MenuCommand> commands, KeyboardShortcut pressed) =>
+        Perform(commands, pressed, () => pressed);
+
+    /// <summary>
+    /// The same, for a key-down read two ways (ED-270): <paramref name="positional"/> is the chord by key position
+    /// (<see cref="Shortcut"/>), matched against ordinary items, and <paramref name="typed"/> the chord by the character
+    /// typed (<see cref="Typed"/>, read only when an item that matches by character is reached), matched against the
+    /// literal-character items. One pass in body order, as a menu takes the first enabled item holding the chord.
+    /// </summary>
+    public static bool Perform(IReadOnlyList<MenuCommand> commands, KeyboardShortcut? positional, Func<KeyboardShortcut?> typed)
     {
+        var typedChord = default(KeyboardShortcut?);
+        var typedRead = false;
         foreach (var command in commands)
         {
-            if (command.Shortcut != pressed || command.IsDisabled) continue;
+            if (command.Shortcut is not { } held || command.IsDisabled) continue;
+            KeyboardShortcut? pressed;
+            if (command.MatchesTypedCharacter)
+            {
+                if (!typedRead) { typedChord = typed(); typedRead = true; }
+                pressed = typedChord;
+            }
+            else pressed = positional;
+            if (pressed != held) continue;
             command.Action();
             return true;
         }
@@ -63,37 +89,53 @@ public static class MenuKeyEquivalents
     }
 
     /// <summary>
-    /// ED-230: the "+" key equivalent (AppCommands.swift:53-54, Zoom In) as Windows types it. A key position never reads
-    /// as "+" (ED-099), so on a Mac Cmd-Shift-= and the keypad + reach it by the character they type; here Shift with the
-    /// "=" key, and the numeric keypad's +, are read as "+" with the other modifiers held (Shift is part of typing "+").
-    /// Null for any other key. The dispatch offers it only after the chord itself found no command, so a shortcut set
-    /// on Ctrl+Shift+= still wins.
+    /// ED-270 (supersedes ED-230's position reading of "+"): the key equivalent a key-down presses by the character it
+    /// types. A literal-character item (Zoom In "+", Zoom Out "-", Actual Size "0", the hidden "=" item; AppCommands.swift:53-62)
+    /// is matched by what the key types on the active layout, as a menu does, so on a German keyboard the key that types
+    /// "+" zooms in and the key at the US "-" position, which types "ß", does not. The numeric keypad's + and - type those
+    /// characters on every layout (Shift or not). Shift is dropped from the chord when it is part of typing the character
+    /// (Shift with the US "=" key types "+"; with the French "0" key, "0"), and kept when it is not (Shift with the US "0"
+    /// key types ")", which no item holds). Null for a key that types no character.
     /// </summary>
-    public static KeyboardShortcut? Plus(KeyEventArgs e)
+    public static KeyboardShortcut? Typed(KeyEventArgs e)
     {
         var modifiers = (ChordModifiers)e.KeyModifiers & KeyChord.AllowedModifiers;
         if (e.PhysicalKey == PhysicalKey.NumPadAdd || e.Key == Key.Add)
             return new KeyboardShortcut(new KeyEquivalent("+"), modifiers & ~ChordModifiers.Shift);
-        if (e.PhysicalKey == PhysicalKey.Equal && modifiers.HasFlag(ChordModifiers.Shift))
-            return new KeyboardShortcut(new KeyEquivalent("+"), modifiers & ~ChordModifiers.Shift);
-        return null;
+        if (e.PhysicalKey == PhysicalKey.NumPadSubtract || e.Key == Key.Subtract)
+            return new KeyboardShortcut(new KeyEquivalent("-"), modifiers & ~ChordModifiers.Shift);
+        var layout = KeyboardLayoutText.Current.Current;
+        var shift = modifiers.HasFlag(ChordModifiers.Shift);
+        if (layout.Typed(e.PhysicalKey, shift) is not { Length: 1 } typed) return null;
+        if (shift && layout.Typed(e.PhysicalKey, false) != typed) modifiers &= ~ChordModifiers.Shift;
+        return new KeyboardShortcut(new KeyEquivalent(typed), modifiers);
     }
 
     /// <summary>
     /// Puts the dispatch on <paramref name="window"/> until the result is disposed: every key-down the window's own
     /// handlers left unconsumed is offered to <paramref name="perform"/>, and consumed when it returns true.
     /// </summary>
-    public static IDisposable Attach(TopLevel window, Func<KeyboardShortcut, bool> perform)
+    public static IDisposable Attach(TopLevel window, Func<KeyboardShortcut, bool> perform) =>
+        Attach(window, (positional, typed) =>
+            (positional is { } position && perform(position)) || (typed() is { } character && perform(character)));
+
+    /// <summary>
+    /// The dispatch the app's windows carry (ED-270): <paramref name="perform"/> is given the key-down's chord by key
+    /// position and, read only when asked, by the character typed (<see cref="Perform(IReadOnlyList{MenuCommand}, KeyboardShortcut?, Func{KeyboardShortcut?})"/>).
+    /// </summary>
+    public static IDisposable Attach(TopLevel window, Func<KeyboardShortcut?, Func<KeyboardShortcut?>, bool> perform)
     {
         EventHandler<KeyEventArgs> onKeyDown = (_, e) =>
         {
             if (e.Handled) return;
-            // ED-230: the chord as its key position first; only if nothing takes it, the "+" it types
-            if ((Shortcut(e) is { } pressed && perform(pressed)) || (Plus(e) is { } plus && perform(plus))) e.Handled = true;
+            if (perform(Shortcut(e), () => Typed(e))) e.Handled = true;
         };
         window.AddHandler(InputElement.KeyDownEvent, onKeyDown, RoutingStrategies.Tunnel);
         return new Detachment(() => window.RemoveHandler(InputElement.KeyDownEvent, onKeyDown));
     }
+
+    /// <summary>The Set-1 scan code of a key, as ED-099 (2) reads it; null for a key outside the table.</summary>
+    internal static long? ScanCodeOf(PhysicalKey key) => ScanCode(key);
 
     // ED-099 (2): the Set-1 scan code of each key the US-position tables of Shortcuts.swift:52-69 name, which are the
     // only keys a menu key equivalent can be on (KeyNames.KeyEquivalent is nil for every other code). Any other

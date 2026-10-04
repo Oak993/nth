@@ -363,7 +363,7 @@ public sealed class WindowManager
         // (Port/MenuKeyEquivalents.cs) for as long as it lives (:98 keeps it). The command table is read afresh at each
         // key-down, as SwiftUI re-reads the Commands body, over this manager's model (:13). Views that monitor the window's
         // keys register when they attach, after this, so they still see a key-down first, as a local monitor does.
-        _ = MenuKeyEquivalents.Attach(window, shortcut => new AppCommands(Model).PerformKeyEquivalent(shortcut));
+        _ = MenuKeyEquivalents.Attach(window, (positional, typed) => new AppCommands(Model).PerformKeyDown(positional, typed));
         return window; // :109
     }
 
