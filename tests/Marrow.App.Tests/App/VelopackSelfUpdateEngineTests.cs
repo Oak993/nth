@@ -17,9 +17,7 @@ public sealed class VelopackSelfUpdateEngineTests
     private const string ListUrl = "https://api.github.com/repos/Oak993/marrow-releases/releases";
     private static readonly byte[] Package = Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("a fake full package ", 400)));
 
-    private sealed record Rig(VelopackSelfUpdateEngine Engine, FakeFeedDownloader Feed, List<VelopackAsset> Applied, string PackagesDir);
-
-    private static Rig Make(string installed, Action<FakeFeedDownloader> serve)
+    private static VelopackEngineRig Make(string installed, Action<FakeFeedDownloader> serve)
     {
         var feed = new FakeFeedDownloader();
         serve(feed);
@@ -29,11 +27,11 @@ public sealed class VelopackSelfUpdateEngineTests
         var root = Directory.CreateTempSubdirectory("ue1-root-").FullName;
         var locator = new TestVelopackLocator("MarrowCode", installed, packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "Marrow.App.exe");
         var engine = VelopackSelfUpdateEngine.ForRepository(MarrowReleaseFeed.Url, feed, locator, (_, asset) => applied.Add(asset));
-        return new Rig(engine, feed, applied, packages);
+        return new VelopackEngineRig(engine, feed, applied, packages);
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public async Task The_repository_is_read_through_githubs_release_list_and_only_that()
     {
         var rig = Make("1.7.0", f => f.ServeRelease(ListUrl, "1.8.0", Package));
@@ -43,7 +41,7 @@ public sealed class VelopackSelfUpdateEngineTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public async Task A_newer_release_is_offered_with_its_notes_and_size()
     {
         var rig = Make("1.7.0", f => f.ServeRelease(ListUrl, "1.8.0", Package, notes: "## 1.8.0\n\n- faster"));
@@ -53,7 +51,7 @@ public sealed class VelopackSelfUpdateEngineTests
     }
 
     [Theory]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     [InlineData("1.8.0")]
     [InlineData("1.9.0")]
     public async Task The_same_or_an_older_release_offers_nothing(string installed)
@@ -63,7 +61,7 @@ public sealed class VelopackSelfUpdateEngineTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public async Task A_download_reports_percent_writes_the_package_and_verifies_the_feeds_checksum()
     {
         var rig = Make("1.7.0", f => f.ServeRelease(ListUrl, "1.8.0", Package));
@@ -79,7 +77,7 @@ public sealed class VelopackSelfUpdateEngineTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public async Task A_package_that_does_not_match_the_feeds_checksum_is_refused_and_nothing_is_applied()
     {
         var rig = Make("1.7.0", f => f.ServeRelease(ListUrl, "1.8.0", Package.Concat(new byte[] { 9 }).ToArray(), checksumOf: Package));
@@ -90,7 +88,7 @@ public sealed class VelopackSelfUpdateEngineTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public async Task Restart_Marrow_hands_the_downloaded_package_to_the_updater_once_downloaded()
     {
         var rig = Make("1.7.0", f => f.ServeRelease(ListUrl, "1.8.0", Package));
@@ -104,7 +102,7 @@ public sealed class VelopackSelfUpdateEngineTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public async Task A_download_after_a_restart_looks_the_feed_up_again()
     {
         var rig = Make("1.7.0", f => f.ServeRelease(ListUrl, "1.8.0", Package));
@@ -113,7 +111,7 @@ public sealed class VelopackSelfUpdateEngineTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public async Task A_download_when_the_feed_has_nothing_newer_is_the_no_release_error()
     {
         var rig = Make("1.8.0", f => f.ServeRelease(ListUrl, "1.8.0", Package));
@@ -122,7 +120,7 @@ public sealed class VelopackSelfUpdateEngineTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public async Task A_closed_network_fails_the_check_and_the_download_without_a_partial_state()
     {
         var rig = Make("1.7.0", _ => { });                                                          // the fake network answers nothing

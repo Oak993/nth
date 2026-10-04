@@ -17,7 +17,7 @@ public sealed class UpdateCheckerVelopackTests
     private static readonly SelfUpdateOffer Newer = new("2.0.0", "## What is new\n\n- a thing", 63_600_000);
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void An_empty_feed_asks_the_engine_nothing_and_fails_with_the_no_feed_message()
     {
         using var runtime = new TestRuntime();
@@ -29,7 +29,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_run_that_is_not_a_Velopack_install_has_no_feed_to_read_and_says_so()
     {
         using var runtime = new TestRuntime();
@@ -43,7 +43,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_newer_release_becomes_the_available_update_and_is_persisted()
     {
         using var runtime = new TestRuntime();
@@ -65,7 +65,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_release_without_notes_or_size_reads_as_empty_notes_and_no_size()
     {
         using var runtime = new TestRuntime();
@@ -78,7 +78,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void When_the_feeds_newest_is_the_running_version_nothing_is_offered_and_an_old_offer_is_dropped()
     {
         using var runtime = new TestRuntime();
@@ -94,7 +94,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_failed_read_is_the_cant_reach_GitHub_line_and_no_update_is_kept_or_written()
     {
         using var runtime = new TestRuntime();
@@ -108,7 +108,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void An_error_the_checker_knows_keeps_its_own_words_with_GitHub_named()
     {
         using var runtime = new TestRuntime();
@@ -119,7 +119,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_development_build_never_checks()
     {
         using var runtime = new TestRuntime();
@@ -130,7 +130,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void The_repository_feed_reads_through_the_shared_engine_when_none_is_given()
     {
         using var runtime = new TestRuntime();
@@ -142,7 +142,7 @@ public sealed class UpdateCheckerVelopackTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_background_check_that_finds_the_release_notifies_once_for_that_version()
     {
         using var runtime = new TestRuntime();

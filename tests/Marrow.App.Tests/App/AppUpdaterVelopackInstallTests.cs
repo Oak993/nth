@@ -27,7 +27,7 @@ public sealed class AppUpdaterVelopackInstallTests
         AppInfo.Running.Override(AppInfo.FromAssembly(typeof(AppUpdaterVelopackInstallTests).Assembly, isDevelopment: false));
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void The_downloads_percent_moves_the_progress_pill_as_a_fraction()
     {
         using var runtime = new TestRuntime();
@@ -50,7 +50,7 @@ public sealed class AppUpdaterVelopackInstallTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_failed_download_shows_the_update_failed_alert_in_the_download_failure_words()
     {
         using var runtime = new TestRuntime();
@@ -70,7 +70,7 @@ public sealed class AppUpdaterVelopackInstallTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_package_whose_version_is_not_the_one_offered_fails_before_anything_is_applied()
     {
         using var runtime = new TestRuntime();
@@ -87,7 +87,7 @@ public sealed class AppUpdaterVelopackInstallTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_development_build_and_a_second_install_do_nothing()
     {
         using var runtime = new TestRuntime();
@@ -102,7 +102,7 @@ public sealed class AppUpdaterVelopackInstallTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void The_hand_off_refuses_a_folder_it_cannot_write_and_never_calls_the_updater()
     {
         using var runtime = new TestRuntime();
@@ -116,7 +116,7 @@ public sealed class AppUpdaterVelopackInstallTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void A_refused_updater_start_fails_the_install_with_an_alert_and_leaves_no_relaunch_marker()
     {
         using var runtime = new TestRuntime();

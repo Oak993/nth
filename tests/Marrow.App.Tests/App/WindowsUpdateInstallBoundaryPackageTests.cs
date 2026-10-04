@@ -18,14 +18,14 @@ public sealed class WindowsUpdateInstallBoundaryPackageTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0062")]
+    [Trait("Decision", "ED-235")]
     public void ReadVersion_gives_the_version_the_package_names()
     {
         Assert.Equal("1.8.0", new WindowsUpdateInstallBoundary().ReadVersion(Package("MarrowCode", "1.8.0")));
     }
 
     [Fact]
-    [Trait("Decision", "OD-0062")]
+    [Trait("Decision", "ED-235")]
     public void ReadVersion_of_a_file_that_is_not_a_package_is_null_so_the_install_reports_an_unknown_version()
     {
         var path = Path.Combine(Directory.CreateTempSubdirectory("aut-pkg-").FullName, "x.nupkg");
@@ -35,14 +35,14 @@ public sealed class WindowsUpdateInstallBoundaryPackageTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0062")]
+    [Trait("Decision", "ED-235")]
     public void Verify_accepts_marrows_package_without_an_Authenticode_signature()
     {
         new WindowsUpdateInstallBoundary().Verify(Package("MarrowCode", "1.8.0")); // must not throw: nothing is signed (ED-235)
     }
 
     [Fact]
-    [Trait("Decision", "OD-0062")]
+    [Trait("Decision", "ED-235")]
     public void Verify_refuses_a_package_of_another_app_and_a_file_that_is_not_a_package()
     {
         var other = Assert.Throws<UpdateInstallError>(() => new WindowsUpdateInstallBoundary().Verify(Package("SomethingElse", "1.8.0")));

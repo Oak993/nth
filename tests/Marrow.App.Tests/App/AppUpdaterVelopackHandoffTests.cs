@@ -21,7 +21,7 @@ public sealed class AppUpdaterVelopackHandoffTests
     private static string Names(IEnumerable<string> calls) => string.Join(",", calls.Select(c => c[..(c.IndexOf('(', StringComparison.Ordinal) is var i and >= 0 ? i : c.Length)]));
 
     [Fact]
-    [Trait("Decision", "OD-0100")]
+    [Trait("Decision", "ED-235")]
     public void An_install_downloads_through_the_engine_then_stages_verifies_and_asks_the_updater_to_restart()
     {
         using var scope = AppSettingsScope.Create();

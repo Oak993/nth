@@ -47,7 +47,7 @@ public sealed class WindowsUpdateInstallBoundaryTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-047")] // App/AppUpdater.swift:299-330
-    [Trait("Decision", "OD-0062")] // AMENDED by UE-1: UNK-0009 is closed. The release asset is Velopack's full package, which stays in Velopack's packages folder (its Update.exe applies from there), so :322/:325's removal of the downloaded image does not apply
+    [Trait("Decision", "ED-235")] // AMENDED by UE-1: UNK-0009 is closed. The release asset is Velopack's full package, which stays in Velopack's packages folder (its Update.exe applies from there), so :322/:325's removal of the downloaded image does not apply
     public async Task Stage_hands_back_the_velopack_package_where_it_is_and_does_not_delete_it()
     {
         var folder = Directory.CreateTempSubdirectory("aut-pkg-").FullName;
@@ -67,7 +67,7 @@ public sealed class WindowsUpdateInstallBoundaryTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-047")] // UNK-0009, resolved by OD-0008 C6 and closed by UE-1
-    [Trait("Decision", "OD-0062")]
+    [Trait("Decision", "ED-235")]
     public async Task Stage_no_longer_throws_the_UNK_0009_blocker()
     {
         var folder = Directory.CreateTempSubdirectory("aut-pkg-").FullName;

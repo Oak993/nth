@@ -68,7 +68,7 @@ public sealed class UpdateCheckerSecondTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-005")] // UpdateChecker.swift:70, DefaultFeed constant
-    [Trait("Decision", "OD-0100")] // AMENDED by UE-1: OD-0012 I1 made the constant empty; OD-0100 (2026-10-04) answers it with the owner's public GitHub repository
+    [Trait("Decision", "ED-235")] // AMENDED by UE-1: OD-0012 I1 made the constant empty; OD-0100 (2026-10-04) answers it with the owner's public GitHub repository
     public void The_default_feed_constant_is_the_owners_release_repository()
     {
         Assert.Equal("https://github.com/Oak993/marrow-releases", UpdateChecker.DefaultFeed);
