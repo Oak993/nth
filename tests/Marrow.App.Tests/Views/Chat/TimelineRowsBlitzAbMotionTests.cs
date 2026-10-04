@@ -392,6 +392,37 @@ public sealed class TimelineRowsBlitzAbMotionTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-149")] // TimelineRows.swift:681-686 the "Writing the next brief…" line comes in as a view of a stack does (opacity), under :703-704 Chrome.panelSlide
+    public void The_next_brief_line_fades_in_when_a_block_that_had_read_to_its_end_is_streaming_again_along_the_panel_slide_spring() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        HydraDelegationBlock card = null!;
+        AvaloniaWindow window = null!;
+        h.Main.OnMain(() =>
+        {
+            card = new HydraDelegationBlock(TwoClosed);
+            window = Show(card);
+            Assert.DoesNotContain(Mounted<TextBlock>(card), text => text.Text == "Writing the next brief…");
+            card.Update(OneOpen, sent: false); // the card is handed a block that is still streaming, with one head read
+        });
+        try
+        {
+            frames.Advance(TimeSpan.Zero);
+            Run(h.Main, frames, 380, elapsed =>
+            {
+                var p = Clamp(Panel(elapsed / 1000));
+                var line = Assert.Single(Mounted<TextBlock>(card), text => text.Text == "Writing the next brief…");
+                var opacity = ((Control)line.GetVisualParent()!).Opacity;
+                Assert.True(Math.Abs(opacity - p) <= 0.01, $"at {elapsed} ms the next-brief line is {opacity:F3} in, the panel slide has {p:F3}");
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window)); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-149")] // TimelineRows.swift:676 `if !delegations.isEmpty`: a block with no head to list has no list, so no row gap
     public void A_block_that_reads_no_heads_after_reading_some_leaves_no_empty_list_and_no_gap_under_its_title() => headless.OnUiThread(() =>
     {
