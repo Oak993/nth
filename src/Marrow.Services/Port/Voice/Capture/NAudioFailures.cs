@@ -15,6 +15,10 @@ public static class NAudioFailures
     /// <summary>ERROR_NOT_FOUND as an HRESULT (the enumerator's answer for an id that is not an endpoint).</summary>
     private const int NotFound = unchecked((int)0x80070490);
 
+    /// <summary>The exception a session sees: a <see cref="CaptureDeviceException"/> passes through, anything else is wrapped with the kind <see cref="Map"/> gives it.</summary>
+    public static CaptureDeviceException Wrap(Exception error) =>
+        error as CaptureDeviceException ?? new CaptureDeviceException(Map(error), "The capture device failed: " + error.Message, error);
+
     public static CaptureDeviceFailure Map(Exception error) => error switch
     {
         AudioDeviceInUseException => CaptureDeviceFailure.InUse,
