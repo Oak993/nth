@@ -42,11 +42,17 @@ internal sealed class PipelineRig : IDisposable
         plan = plan with { Item = Old };
         Next = Old with { Pin = "abcdef1234567890abcdef1234567890abcdef12", TermsClass = nonOpen ? TermsClass.Proprietary : TermsClass.Open };
         nextFiles = plan.LocalFiles;
+        if (!skillset)
+        {
+            var archive = emptyDirectory ? InstallRig.Zip(("payload.txt", "new offline fixture"), ("empty/", "")) : InstallRig.Zip(("payload.txt", "new offline fixture"));
+            Next = Next with { Artifacts = Next.Artifacts.Select(a => a with { Size = archive.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(archive)) }).ToArray() };
+            nextFiles = new Dictionary<string, string>(nextFiles) { ["payload.zip"] = install.Input("NEXT-PAYLOAD", archive) };
+        }
         if (nonOpen)
         {
             var licence = "new fixture licence"u8.ToArray();
             Next = Next with { Files = Next.Files.Select(f => f.Path == "LICENSE" ? f with { Size = licence.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(licence)) } : f).ToArray() };
-            nextFiles = new Dictionary<string, string>(plan.LocalFiles) { ["LICENSE"] = install.Input("NEXT-LICENSE", licence) };
+            nextFiles = new Dictionary<string, string>(nextFiles) { ["LICENSE"] = install.Input("NEXT-LICENSE", licence) };
         }
         if (multiPin) Next = Next with { Pin = null, Skills = Next.Skills.Select(s => s with { Pin = "abcdef1234567890abcdef1234567890abcdef12" }).ToArray() };
         catalogue = new() { Schema = 1, ReadOn = "2026-10-04", Items = [Next] };

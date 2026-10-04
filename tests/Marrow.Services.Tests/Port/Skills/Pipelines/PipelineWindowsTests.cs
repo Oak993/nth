@@ -30,6 +30,8 @@ public sealed class PipelineWindowsTests
         using var rig = new PipelineRig(nonOpen: true, windows: true);
         var pipeline = await rig.Create();
         pipeline.AcceptTerms("fixture", new DateTimeOffset(2026, 10, 4, 12, 0, 0, TimeSpan.Zero));
+        Directory.CreateDirectory(rig.Paths.Skills);
+        File.WriteAllText(rig.Paths.EnabledFile, "fixture enabled switches");
         var bin = Path.Combine(rig.Paths.Addons, "bin");
         Directory.CreateDirectory(bin);
         var file = Path.Combine(bin, "fixture.exe");
@@ -42,5 +44,6 @@ public sealed class PipelineWindowsTests
         restarted.Collect();
         Assert.False(Directory.Exists(bin));
         Assert.Equal(2, restarted.State.AcceptedTerms.Count);
+        Assert.Equal("fixture enabled switches", File.ReadAllText(rig.Paths.EnabledFile));
     }
 }

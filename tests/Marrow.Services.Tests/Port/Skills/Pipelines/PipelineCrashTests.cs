@@ -42,7 +42,11 @@ public sealed class PipelineCrashTests
             var old = Directory.GetDirectories(Path.Combine(root, "addons", "tools"), "fixture-1234567890abcdef*").Single();
             Assert.Equal("offline fixture", File.ReadAllText(Path.Combine(old, "payload.txt")));
             if (step != "AfterCommit") Assert.Equal("1234567890abcdef1234567890abcdef12345678", selected.Pin);
-            else Assert.Equal("abcdef1234567890abcdef1234567890abcdef12", selected.Pin);
+            else
+            {
+                Assert.Equal("abcdef1234567890abcdef1234567890abcdef12", selected.Pin);
+                Assert.Equal("new offline fixture", File.ReadAllText(Path.Combine(selected.Folder, "payload.txt")));
+            }
         }
         finally
         {

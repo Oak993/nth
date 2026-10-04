@@ -20,6 +20,8 @@ public sealed class PipelineAcceptanceTests
         await pipeline.UpdateAsync("fixture", rig.Progress);
         var snapshot = PipelineRoutes.Read(rig.Paths.StateFile);
         Assert.Equal(rig.Next.Pin, snapshot.Single().Pin);
+        Assert.Equal("new offline fixture", File.ReadAllText(Path.Combine(snapshot.Single().Folder, "payload.txt")));
+        Assert.Equal("offline fixture", File.ReadAllText(Path.Combine(old, "payload.txt")));
         Assert.Equal(snapshot.Single().Folder, Path.GetDirectoryName(PipelineRoutes.ResolveShim(rig.Paths.StateFile, "fixture.exe").Target));
         Assert.Equal(snapshot.Single().SparePaths, pipeline.Snapshot().Single().SparePaths);
         pipeline.Collect();
