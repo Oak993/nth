@@ -339,6 +339,7 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-118")] // App/Views/Composer/EffortSlider.swift:558,653-655 VStack(spacing: 16), padding 16 / 14 / 16 within the 330 point popover
+    [Trait("Req", "UI-COMPOSER-030")] // App/Views/Composer/EffortSlider.swift:557-558,653-655 VStack(spacing: 16), .padding(.horizontal, 16), .padding(.top, 14), .padding(.bottom, 16)
     public void The_rows_sit_16_apart_inside_a_card_padded_16_left_and_right_14_above_and_16_below() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());

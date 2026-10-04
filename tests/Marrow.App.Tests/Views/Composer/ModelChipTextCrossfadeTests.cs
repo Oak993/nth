@@ -20,7 +20,7 @@ namespace Marrow.App.Tests.Views.Composer;
 public sealed class ModelChipTextCrossfadeTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // partial: UI-COMPOSER-012 (blocked: its text says the popover hangs below the chip, the source and the video put it above; see ED-262 (6)); this test proves one part of it
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 the chip
     public void The_chips_effort_cross_fades_when_it_changes_inside_an_animation_and_swaps_outside_one() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

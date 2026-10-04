@@ -25,6 +25,8 @@ public sealed class ModelEffortPopoverPlacementTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Req", "PR-COMPOSER-109")]
+    [Trait("Req", "UI-COMPOSER-012")] // EffortSlider.swift:120-123 click opens the effort card popover, above the chip (arrowEdge .bottom); the record's "below" is amended (ED-262 (6))
+    [Trait("Req", "UI-COMPOSER-030")] // EffortSlider.swift:120-123 the card hangs above the chip, its arrow on its bottom edge; flips below only without room
     public void The_chip_popover_opens_above_the_chip_and_flips_below_only_without_room() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
