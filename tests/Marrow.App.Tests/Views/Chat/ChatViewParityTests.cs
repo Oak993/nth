@@ -30,9 +30,9 @@ namespace Marrow.App.Tests.Views.Chat;
 //   there depends on the theme's glass tint (Chrome unit, PR-WIN-196). UNRESOLVED.
 // - PR-GIT-126: CLOSED 2026-10-04 (unit rec-tlr). "status, branches and the web URL are read concurrently" (:1297-1299, three async lets) is observed through ShellObserver by
 //   ChatViewGitReadsTests (each read's first call is held at its entry until all three are in; a fresh non-forced refresh starts no process; a non-repository exactly one).
-// - PR-GIT-129: the commit instructions reaching the model call (:1625) and the sheet's dismissal cancelling its task
-//   (.task, :1605) are not observed: the provider stand-in records no stdin. Every other clause is proven
-//   (ChatViewParityDetailTests, ChatViewPart3ReviewTests, ChatViewPart4ReviewTests). UNRESOLVED.
+// - PR-GIT-129: CLOSED 2026-10-04 (unit rec-tlr). The commit instructions reaching the model call (:1625) are read from ShellObserver, which reports the standard input the prompt
+//   is written to (the stand-in needs no change), and the sheet's dismissal ending its task (.task, :1605) is observed: the stand-in process is killed and no late answer is
+//   written (ChatViewCommitSheetTests). Every other clause is proven (ChatViewParityDetailTests, ChatViewPart3ReviewTests, ChatViewPart4ReviewTests).
 // - PR-USAGE-071: the origin arithmetic is proven (ChatViewPart2ReviewTests, ChatViewReviewFixTests); its capture of a short
 //   panel in a top and a bottom corner is not done (the videos dock the floating panel top-aligned only). UNRESOLVED.
 // - UI-CHAT-006 (closed by the round 1 review, 2026-10-03): the source and the reference runtime agree. The transition is on
