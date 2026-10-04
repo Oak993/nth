@@ -19,6 +19,7 @@ public sealed class SettingsWriteCoalescer
     private readonly Dictionary<string, ContinuousInstant> lastWrite = new(StringComparer.Ordinal);
     private readonly Dictionary<string, object?> pending = new(StringComparer.Ordinal);
     private WorkItem? timer;
+    private ContinuousInstant timerDue;
 
     public SettingsWriteCoalescer(ISettingsStore store, TimeSpan? interval = null)
     {
@@ -69,9 +70,13 @@ public sealed class SettingsWriteCoalescer
 
     private void Arm(ContinuousInstant now)
     {
-        if (timer is not null) return;
-        var wait = pending.Keys.Min(key => lastWrite[key] + Interval - now);
-        timer = MainActor.AsyncAfter(wait, OnTimer);
+        // The earliest held key's interval end decides; a key whose interval ends before the armed timer re-arms it
+        // (SA-1 review: a later timer must not hold an earlier key past its interval).
+        var due = pending.Keys.Min(key => lastWrite[key] + Interval);
+        if (timer is not null && timerDue <= due) return;
+        timer?.Cancel();
+        timerDue = due;
+        timer = MainActor.AsyncAfter(due - now, OnTimer);
     }
 
     private void OnTimer()
