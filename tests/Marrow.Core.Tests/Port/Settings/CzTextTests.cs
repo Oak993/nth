@@ -49,7 +49,7 @@ public sealed class CzTextTests
     [Trait("Rule", "CZ-T30")]
     public void Tone_matches_the_actual_design_function_for_legibility_fallback_and_channel_rounding()
     {
-        // Full 30-maker matrix is blocked by the absent liquid-palettes.json; these are function boundary fixtures.
+        // All thirty makers, both themes, four stops, plus fallback/threshold boundary fixtures.
         using var f = Fixture();
         foreach (var r in f.RootElement.GetProperty("tone").EnumerateArray())
             Assert.Equal(r.GetProperty("text").GetString(), CzText.Tone(r.GetProperty("hex").GetString()!, r.GetProperty("dark").GetBoolean(), r.GetProperty("title").GetString()!));

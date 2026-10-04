@@ -23,5 +23,45 @@ const spec = fs.readFileSync(path.join(root,'porting/first-release/customization
 const tables = spec.slice(spec.indexOf('## 5. Style'),spec.indexOf('## 9. Voice orb'));
 const texts = [...new Set([...tables.matchAll(/`([^`]+)`/g)].map(m=>m[1]))];
 const constants = vm.runInContext('({style:CZ_STYLE,description:CZ_STYLE_D,palettes:CZ_PAL,shape:CZ_SHAPE_D})',context);
-const output = {source:rel,sha256:crypto.createHash('sha256').update(source).digest('hex'),fmt,tone,snap,texts,constants};
+const paletteRel = 'porting/first-release/design-src/orb/liquid-palettes.json';
+const paletteBytes = fs.readFileSync(path.join(root,paletteRel));
+const palette = JSON.parse(paletteBytes);
+const first = ['Claude','OpenAI','Gemini','DeepSeek','Grok','NVIDIA'];
+const order = first.concat(Object.keys(palette).filter(k => !first.includes(k) && !k.startsWith('_')));
+const nice = {OpenCodeGo:'OpenCode Go',CommandCode:'Command Code',NousResearch:'Nous Research',LiquidAI:'Liquid AI',Zai:'Z.ai',MiniMax:'MiniMax'};
+const makers = order.map(id => {
+  const m = {id,name:nice[id] || id,model:(palette[id]._meta.model || '').startsWith('(') ? '' : (palette[id]._meta.model || '')};
+  for (const theme of ['dark','light']) for (const stop of ['deep','mid','light','highlight','title']) m[theme+'.'+stop] = palette[id][theme].high[stop];
+  return m;
+});
+for (const m of makers) for (const dark of [true,false]) for (const stop of ['deep','mid','light','highlight']) {
+  const theme = dark ? 'dark' : 'light', hex = m[theme+'.'+stop], title = m[theme+'.title'];
+  tone.push({maker:m.id,stop,hex,title,dark,text:vm.runInContext(`czTone('${hex}',${dark},'${title}')`,context)});
+}
+const paletteSha256 = crypto.createHash('sha256').update(paletteBytes).digest('hex');
+const output = {paletteSource:paletteRel,paletteSha256,makers,source:rel,sha256:crypto.createHash('sha256').update(source).digest('hex'),fmt,tone,snap,texts,constants};
 fs.writeFileSync(path.join(__dirname,'expected.json'),JSON.stringify(output,null,2)+'\n');
+
+// Generated catalogue is source data, not a re-computation of the design's colours.
+const cs = `// PORT-ONLY CZ-1: generated from ${paletteRel} by tests/fixtures/customization/generate.cjs.
+using System.Collections.ObjectModel;
+using System.Text.Json;
+namespace Marrow.Core.Port.Settings;
+
+public static class MakerLiquids
+{
+    public const string SourceSha256 = "${paletteSha256}";
+    private const string Json = """
+${JSON.stringify(makers)}
+""";
+    public static IReadOnlyList<IReadOnlyDictionary<string, string>> All { get; } = Load();
+    public static IReadOnlyDictionary<string, string> For(string id) => All.First(m => m["id"] == id);
+    private static IReadOnlyList<IReadOnlyDictionary<string, string>> Load()
+    {
+        using var doc = JsonDocument.Parse(Json);
+        return Array.AsReadOnly(doc.RootElement.EnumerateArray().Select(row =>
+            (IReadOnlyDictionary<string, string>)new ReadOnlyDictionary<string, string>(row.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString()!, StringComparer.Ordinal))).ToArray());
+    }
+}
+`;
+if (process.argv.includes('--catalog')) fs.writeFileSync(path.join(root,'src/Marrow.Core/Port/Settings/MakerLiquids.cs'),cs);

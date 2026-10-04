@@ -1,4 +1,458 @@
 {
+  "paletteSource": "porting/first-release/design-src/orb/liquid-palettes.json",
+  "paletteSha256": "a600baefbcf22aca861392456ff4d9c05088c37627fe30e95cd5142d5c441f15",
+  "makers": [
+    {
+      "id": "Claude",
+      "name": "Claude",
+      "model": "claude-fable-5.1",
+      "dark.deep": "#A14827",
+      "dark.mid": "#B95D3A",
+      "dark.light": "#D47E58",
+      "dark.highlight": "#E7B47E",
+      "dark.title": "#DA8563",
+      "light.deep": "#A14827",
+      "light.mid": "#B95D3A",
+      "light.light": "#D47E58",
+      "light.highlight": "#E7B47E",
+      "light.title": "#DA8563"
+    },
+    {
+      "id": "OpenAI",
+      "name": "OpenAI",
+      "model": "gpt-6-astra",
+      "dark.deep": "#FFFFFF",
+      "dark.mid": "#FAFCFF",
+      "dark.light": "#E7E9F1",
+      "dark.highlight": "#F1F2F7",
+      "dark.title": "#F4F6FB",
+      "light.deep": "#FFFFFF",
+      "light.mid": "#FAFCFF",
+      "light.light": "#E7E9F1",
+      "light.highlight": "#F1F2F7",
+      "light.title": "#14161C"
+    },
+    {
+      "id": "Gemini",
+      "name": "Gemini",
+      "model": "gemini-3.1-pro",
+      "dark.deep": "#3070DB",
+      "dark.mid": "#8C65BA",
+      "dark.light": "#CE5F69",
+      "dark.highlight": "#E38896",
+      "dark.title": "#8C65BA",
+      "light.deep": "#3070DB",
+      "light.mid": "#8C65BA",
+      "light.light": "#CE5F69",
+      "light.highlight": "#E38896",
+      "light.title": "#8C65BA"
+    },
+    {
+      "id": "DeepSeek",
+      "name": "DeepSeek",
+      "model": "deepseek-v4-pro-0813",
+      "dark.deep": "#1F30C6",
+      "dark.mid": "#324CE4",
+      "dark.light": "#6279F1",
+      "dark.highlight": "#8CADF7",
+      "dark.title": "#7085E9",
+      "light.deep": "#1F30C6",
+      "light.mid": "#324CE4",
+      "light.light": "#6279F1",
+      "light.highlight": "#8CADF7",
+      "light.title": "#7085E9"
+    },
+    {
+      "id": "Grok",
+      "name": "Grok",
+      "model": "grok-4.7",
+      "dark.deep": "#000001",
+      "dark.mid": "#06060B",
+      "dark.light": "#16161D",
+      "dark.highlight": "#1F1F2A",
+      "dark.title": "#C1C3CB",
+      "light.deep": "#000001",
+      "light.mid": "#06060B",
+      "light.light": "#16161D",
+      "light.highlight": "#1F1F2A",
+      "light.title": "#C1C3CB"
+    },
+    {
+      "id": "NVIDIA",
+      "name": "NVIDIA",
+      "model": "nemotron-3-ultra-550b-a55b",
+      "dark.deep": "#456C00",
+      "dark.mid": "#5C8500",
+      "dark.light": "#7EAA0A",
+      "dark.highlight": "#B4CF0E",
+      "dark.title": "#7AA141",
+      "light.deep": "#456C00",
+      "light.mid": "#5C8500",
+      "light.light": "#7EAA0A",
+      "light.highlight": "#B4CF0E",
+      "light.title": "#7AA141"
+    },
+    {
+      "id": "Meta",
+      "name": "Meta",
+      "model": "muse-spark-1.3",
+      "dark.deep": "#0044A3",
+      "dark.mid": "#0062D1",
+      "dark.light": "#238BF1",
+      "dark.highlight": "#32BDF7",
+      "dark.title": "#4A94E3",
+      "light.deep": "#0044A3",
+      "light.mid": "#0062D1",
+      "light.light": "#238BF1",
+      "light.highlight": "#32BDF7",
+      "light.title": "#4A94E3"
+    },
+    {
+      "id": "Mistral",
+      "name": "Mistral",
+      "model": "mistral-large-2512",
+      "dark.deep": "#A20049",
+      "dark.mid": "#C5015E",
+      "dark.light": "#E55182",
+      "dark.highlight": "#F074B8",
+      "dark.title": "#E24A7D",
+      "light.deep": "#A20049",
+      "light.mid": "#C5015E",
+      "light.light": "#E55182",
+      "light.highlight": "#F074B8",
+      "light.title": "#E24A7D"
+    },
+    {
+      "id": "Qwen",
+      "name": "Qwen",
+      "model": "qwen3.8-max-prime",
+      "dark.deep": "#38009C",
+      "dark.mid": "#4C18C6",
+      "dark.light": "#6853E0",
+      "dark.highlight": "#9577ED",
+      "dark.title": "#6A54E6",
+      "light.deep": "#38009C",
+      "light.mid": "#4C18C6",
+      "light.light": "#6853E0",
+      "light.highlight": "#9577ED",
+      "light.title": "#6A54E6"
+    },
+    {
+      "id": "Kimi",
+      "name": "Kimi",
+      "model": "kimi-k3",
+      "dark.deep": "#3D5167",
+      "dark.mid": "#54687E",
+      "dark.light": "#778B9F",
+      "dark.highlight": "#AABDC8",
+      "dark.title": "#75879C",
+      "light.deep": "#3D5167",
+      "light.mid": "#54687E",
+      "light.light": "#778B9F",
+      "light.highlight": "#AABDC8",
+      "light.title": "#75879C"
+    },
+    {
+      "id": "Cursor",
+      "name": "Cursor",
+      "model": "",
+      "dark.deep": "#BA3500",
+      "dark.mid": "#DC4500",
+      "dark.light": "#F2783A",
+      "dark.highlight": "#F8AC53",
+      "dark.title": "#E67F47",
+      "light.deep": "#BA3500",
+      "light.mid": "#DC4500",
+      "light.light": "#F2783A",
+      "light.highlight": "#F8AC53",
+      "light.title": "#E67F47"
+    },
+    {
+      "id": "OpenCode",
+      "name": "OpenCode",
+      "model": "",
+      "dark.deep": "#00772D",
+      "dark.mid": "#0EA242",
+      "dark.light": "#3DD064",
+      "dark.highlight": "#57E48F",
+      "dark.title": "#4DCE72",
+      "light.deep": "#00772D",
+      "light.mid": "#0EA242",
+      "light.light": "#3DD064",
+      "light.highlight": "#57E48F",
+      "light.title": "#4DCE72"
+    },
+    {
+      "id": "OpenCodeGo",
+      "name": "OpenCode Go",
+      "model": "",
+      "dark.deep": "#006B8B",
+      "dark.mid": "#0093B9",
+      "dark.light": "#34C0DF",
+      "dark.highlight": "#4ADBED",
+      "dark.title": "#4ABED9",
+      "light.deep": "#006B8B",
+      "light.mid": "#0093B9",
+      "light.light": "#34C0DF",
+      "light.highlight": "#4ADBED",
+      "light.title": "#4ABED9"
+    },
+    {
+      "id": "Zai",
+      "name": "Z.ai",
+      "model": "glm-5.3-prime",
+      "dark.deep": "#01071E",
+      "dark.mid": "#07215B",
+      "dark.light": "#245DEB",
+      "dark.highlight": "#3485F4",
+      "dark.title": "#5F87E9",
+      "light.deep": "#01071E",
+      "light.mid": "#07215B",
+      "light.light": "#245DEB",
+      "light.highlight": "#3485F4",
+      "light.title": "#5F87E9"
+    },
+    {
+      "id": "Devin",
+      "name": "Devin",
+      "model": "",
+      "dark.deep": "#058066",
+      "dark.mid": "#2CAB8C",
+      "dark.light": "#67D1B5",
+      "dark.highlight": "#93E5D5",
+      "dark.title": "#72D1B9",
+      "light.deep": "#058066",
+      "light.mid": "#2CAB8C",
+      "light.light": "#67D1B5",
+      "light.highlight": "#93E5D5",
+      "light.title": "#72D1B9"
+    },
+    {
+      "id": "Copilot",
+      "name": "Copilot",
+      "model": "",
+      "dark.deep": "#731BDA",
+      "dark.mid": "#BF4CA3",
+      "dark.light": "#E69E6D",
+      "dark.highlight": "#F1C89C",
+      "dark.title": "#B68AEB",
+      "light.deep": "#731BDA",
+      "light.mid": "#BF4CA3",
+      "light.light": "#E69E6D",
+      "light.highlight": "#F1C89C",
+      "light.title": "#B68AEB"
+    },
+    {
+      "id": "CommandCode",
+      "name": "Command Code",
+      "model": "",
+      "dark.deep": "#170060",
+      "dark.mid": "#240087",
+      "dark.light": "#5739CB",
+      "dark.highlight": "#7D52E1",
+      "dark.title": "#997AE9",
+      "light.deep": "#170060",
+      "light.mid": "#240087",
+      "light.light": "#5739CB",
+      "light.highlight": "#7D52E1",
+      "light.title": "#997AE9"
+    },
+    {
+      "id": "Pi",
+      "name": "Pi",
+      "model": "",
+      "dark.deep": "#86001A",
+      "dark.mid": "#B10025",
+      "dark.light": "#DD4C57",
+      "dark.highlight": "#EC6D7D",
+      "dark.title": "#E76170",
+      "light.deep": "#86001A",
+      "light.mid": "#B10025",
+      "light.light": "#DD4C57",
+      "light.highlight": "#EC6D7D",
+      "light.title": "#E76170"
+    },
+    {
+      "id": "MiniMax",
+      "name": "MiniMax",
+      "model": "",
+      "dark.deep": "#CA0073",
+      "dark.mid": "#E7388C",
+      "dark.light": "#F270B0",
+      "dark.highlight": "#F8A0D2",
+      "dark.title": "#FC62A5",
+      "light.deep": "#CA0073",
+      "light.mid": "#E7388C",
+      "light.light": "#F270B0",
+      "light.highlight": "#F8A0D2",
+      "light.title": "#FC62A5"
+    },
+    {
+      "id": "Tencent",
+      "name": "Tencent",
+      "model": "",
+      "dark.deep": "#222B97",
+      "dark.mid": "#3447B1",
+      "dark.light": "#556ECD",
+      "dark.highlight": "#7A9DE3",
+      "dark.title": "#566FD0",
+      "light.deep": "#222B97",
+      "light.mid": "#3447B1",
+      "light.light": "#556ECD",
+      "light.highlight": "#7A9DE3",
+      "light.title": "#566FD0"
+    },
+    {
+      "id": "Cohere",
+      "name": "Cohere",
+      "model": "",
+      "dark.deep": "#A565B5",
+      "dark.mid": "#BF7FCF",
+      "dark.light": "#E1A7F0",
+      "dark.highlight": "#EECDF6",
+      "dark.title": "#D297E0",
+      "light.deep": "#A565B5",
+      "light.mid": "#BF7FCF",
+      "light.light": "#E1A7F0",
+      "light.highlight": "#EECDF6",
+      "light.title": "#D297E0"
+    },
+    {
+      "id": "Microsoft",
+      "name": "Microsoft",
+      "model": "",
+      "dark.deep": "#CD0037",
+      "dark.mid": "#EA104A",
+      "dark.light": "#F26174",
+      "dark.highlight": "#F88BA6",
+      "dark.title": "#FF556B",
+      "light.deep": "#CD0037",
+      "light.mid": "#EA104A",
+      "light.light": "#F26174",
+      "light.highlight": "#F88BA6",
+      "light.title": "#FF556B"
+    },
+    {
+      "id": "Perplexity",
+      "name": "Perplexity",
+      "model": "",
+      "dark.deep": "#684154",
+      "dark.mid": "#80586B",
+      "dark.light": "#A17C8D",
+      "dark.highlight": "#CAB1BE",
+      "dark.title": "#9F798A",
+      "light.deep": "#684154",
+      "light.mid": "#80586B",
+      "light.light": "#A17C8D",
+      "light.highlight": "#CAB1BE",
+      "light.title": "#9F798A"
+    },
+    {
+      "id": "NousResearch",
+      "name": "Nous Research",
+      "model": "",
+      "dark.deep": "#4B5337",
+      "dark.mid": "#626A4E",
+      "dark.light": "#848C72",
+      "dark.highlight": "#B9BEA3",
+      "dark.title": "#82896F",
+      "light.deep": "#4B5337",
+      "light.mid": "#626A4E",
+      "light.light": "#848C72",
+      "light.highlight": "#B9BEA3",
+      "light.title": "#82896F"
+    },
+    {
+      "id": "AWS",
+      "name": "AWS",
+      "model": "",
+      "dark.deep": "#52687E",
+      "dark.mid": "#6A8097",
+      "dark.light": "#90A3B8",
+      "dark.highlight": "#C0CBD7",
+      "dark.title": "#879BB0",
+      "light.deep": "#52687E",
+      "light.mid": "#6A8097",
+      "light.light": "#90A3B8",
+      "light.highlight": "#C0CBD7",
+      "light.title": "#879BB0"
+    },
+    {
+      "id": "AI21",
+      "name": "AI21",
+      "model": "",
+      "dark.deep": "#970073",
+      "dark.mid": "#B8118E",
+      "dark.light": "#D953AF",
+      "dark.highlight": "#E977D1",
+      "dark.title": "#D54DAB",
+      "light.deep": "#970073",
+      "light.mid": "#B8118E",
+      "light.light": "#D953AF",
+      "light.highlight": "#E977D1",
+      "light.title": "#D54DAB"
+    },
+    {
+      "id": "Inflection",
+      "name": "Inflection",
+      "model": "",
+      "dark.deep": "#263A50",
+      "dark.mid": "#3C5166",
+      "dark.light": "#607386",
+      "dark.highlight": "#89A5BA",
+      "dark.title": "#617589",
+      "light.deep": "#263A50",
+      "light.mid": "#3C5166",
+      "light.light": "#607386",
+      "light.highlight": "#89A5BA",
+      "light.title": "#617589"
+    },
+    {
+      "id": "LiquidAI",
+      "name": "Liquid AI",
+      "model": "",
+      "dark.deep": "#755849",
+      "dark.mid": "#8D7161",
+      "dark.light": "#AF9486",
+      "dark.highlight": "#D1C2BA",
+      "dark.title": "#A88E7F",
+      "light.deep": "#755849",
+      "light.mid": "#8D7161",
+      "light.light": "#AF9486",
+      "light.highlight": "#D1C2BA",
+      "light.title": "#A88E7F"
+    },
+    {
+      "id": "Baidu",
+      "name": "Baidu",
+      "model": "",
+      "dark.deep": "#0100A2",
+      "dark.mid": "#002BC3",
+      "dark.light": "#285CDE",
+      "dark.highlight": "#3984EC",
+      "dark.title": "#2A60E4",
+      "light.deep": "#0100A2",
+      "light.mid": "#002BC3",
+      "light.light": "#285CDE",
+      "light.highlight": "#3984EC",
+      "light.title": "#2A60E4"
+    },
+    {
+      "id": "Arcee",
+      "name": "Arcee",
+      "model": "",
+      "dark.deep": "#00A4A9",
+      "dark.mid": "#00BFC3",
+      "dark.light": "#63E4E6",
+      "dark.highlight": "#8EF0F1",
+      "dark.title": "#4FD0D3",
+      "light.deep": "#00A4A9",
+      "light.mid": "#00BFC3",
+      "light.light": "#63E4E6",
+      "light.highlight": "#8EF0F1",
+      "light.title": "#4FD0D3"
+    }
+  ],
   "source": "porting/first-release/design-src/customization/cz.js",
   "sha256": "ca85f5a461d9778f0cdd8d26bc7b5ac3684e50c2f9484451cb743c376a389097",
   "fmt": [
@@ -810,6 +1264,1926 @@
       "title": "#B95D3A",
       "dark": false,
       "text": "#d89e6d"
+    },
+    {
+      "maker": "Claude",
+      "stop": "deep",
+      "hex": "#A14827",
+      "title": "#DA8563",
+      "dark": true,
+      "text": "#A14827"
+    },
+    {
+      "maker": "Claude",
+      "stop": "mid",
+      "hex": "#B95D3A",
+      "title": "#DA8563",
+      "dark": true,
+      "text": "#B95D3A"
+    },
+    {
+      "maker": "Claude",
+      "stop": "light",
+      "hex": "#D47E58",
+      "title": "#DA8563",
+      "dark": true,
+      "text": "#D47E58"
+    },
+    {
+      "maker": "Claude",
+      "stop": "highlight",
+      "hex": "#E7B47E",
+      "title": "#DA8563",
+      "dark": true,
+      "text": "#E7B47E"
+    },
+    {
+      "maker": "Claude",
+      "stop": "deep",
+      "hex": "#A14827",
+      "title": "#DA8563",
+      "dark": false,
+      "text": "#A14827"
+    },
+    {
+      "maker": "Claude",
+      "stop": "mid",
+      "hex": "#B95D3A",
+      "title": "#DA8563",
+      "dark": false,
+      "text": "#B95D3A"
+    },
+    {
+      "maker": "Claude",
+      "stop": "light",
+      "hex": "#D47E58",
+      "title": "#DA8563",
+      "dark": false,
+      "text": "#D47E58"
+    },
+    {
+      "maker": "Claude",
+      "stop": "highlight",
+      "hex": "#E7B47E",
+      "title": "#DA8563",
+      "dark": false,
+      "text": "#e19d71"
+    },
+    {
+      "maker": "OpenAI",
+      "stop": "deep",
+      "hex": "#FFFFFF",
+      "title": "#F4F6FB",
+      "dark": true,
+      "text": "#FFFFFF"
+    },
+    {
+      "maker": "OpenAI",
+      "stop": "mid",
+      "hex": "#FAFCFF",
+      "title": "#F4F6FB",
+      "dark": true,
+      "text": "#FAFCFF"
+    },
+    {
+      "maker": "OpenAI",
+      "stop": "light",
+      "hex": "#E7E9F1",
+      "title": "#F4F6FB",
+      "dark": true,
+      "text": "#E7E9F1"
+    },
+    {
+      "maker": "OpenAI",
+      "stop": "highlight",
+      "hex": "#F1F2F7",
+      "title": "#F4F6FB",
+      "dark": true,
+      "text": "#F1F2F7"
+    },
+    {
+      "maker": "OpenAI",
+      "stop": "deep",
+      "hex": "#FFFFFF",
+      "title": "#14161C",
+      "dark": false,
+      "text": "#adadb0"
+    },
+    {
+      "maker": "OpenAI",
+      "stop": "mid",
+      "hex": "#FAFCFF",
+      "title": "#14161C",
+      "dark": false,
+      "text": "#aaacb0"
+    },
+    {
+      "maker": "OpenAI",
+      "stop": "light",
+      "hex": "#E7E9F1",
+      "title": "#14161C",
+      "dark": false,
+      "text": "#a8aab1"
+    },
+    {
+      "maker": "OpenAI",
+      "stop": "highlight",
+      "hex": "#F1F2F7",
+      "title": "#14161C",
+      "dark": false,
+      "text": "#a4a5aa"
+    },
+    {
+      "maker": "Gemini",
+      "stop": "deep",
+      "hex": "#3070DB",
+      "title": "#8C65BA",
+      "dark": true,
+      "text": "#3070DB"
+    },
+    {
+      "maker": "Gemini",
+      "stop": "mid",
+      "hex": "#8C65BA",
+      "title": "#8C65BA",
+      "dark": true,
+      "text": "#8C65BA"
+    },
+    {
+      "maker": "Gemini",
+      "stop": "light",
+      "hex": "#CE5F69",
+      "title": "#8C65BA",
+      "dark": true,
+      "text": "#CE5F69"
+    },
+    {
+      "maker": "Gemini",
+      "stop": "highlight",
+      "hex": "#E38896",
+      "title": "#8C65BA",
+      "dark": true,
+      "text": "#E38896"
+    },
+    {
+      "maker": "Gemini",
+      "stop": "deep",
+      "hex": "#3070DB",
+      "title": "#8C65BA",
+      "dark": false,
+      "text": "#3070DB"
+    },
+    {
+      "maker": "Gemini",
+      "stop": "mid",
+      "hex": "#8C65BA",
+      "title": "#8C65BA",
+      "dark": false,
+      "text": "#8C65BA"
+    },
+    {
+      "maker": "Gemini",
+      "stop": "light",
+      "hex": "#CE5F69",
+      "title": "#8C65BA",
+      "dark": false,
+      "text": "#CE5F69"
+    },
+    {
+      "maker": "Gemini",
+      "stop": "highlight",
+      "hex": "#E38896",
+      "title": "#8C65BA",
+      "dark": false,
+      "text": "#E38896"
+    },
+    {
+      "maker": "DeepSeek",
+      "stop": "deep",
+      "hex": "#1F30C6",
+      "title": "#7085E9",
+      "dark": true,
+      "text": "#4356d6"
+    },
+    {
+      "maker": "DeepSeek",
+      "stop": "mid",
+      "hex": "#324CE4",
+      "title": "#7085E9",
+      "dark": true,
+      "text": "#3852e5"
+    },
+    {
+      "maker": "DeepSeek",
+      "stop": "light",
+      "hex": "#6279F1",
+      "title": "#7085E9",
+      "dark": true,
+      "text": "#6279F1"
+    },
+    {
+      "maker": "DeepSeek",
+      "stop": "highlight",
+      "hex": "#8CADF7",
+      "title": "#7085E9",
+      "dark": true,
+      "text": "#8CADF7"
+    },
+    {
+      "maker": "DeepSeek",
+      "stop": "deep",
+      "hex": "#1F30C6",
+      "title": "#7085E9",
+      "dark": false,
+      "text": "#1F30C6"
+    },
+    {
+      "maker": "DeepSeek",
+      "stop": "mid",
+      "hex": "#324CE4",
+      "title": "#7085E9",
+      "dark": false,
+      "text": "#324CE4"
+    },
+    {
+      "maker": "DeepSeek",
+      "stop": "light",
+      "hex": "#6279F1",
+      "title": "#7085E9",
+      "dark": false,
+      "text": "#6279F1"
+    },
+    {
+      "maker": "DeepSeek",
+      "stop": "highlight",
+      "hex": "#8CADF7",
+      "title": "#7085E9",
+      "dark": false,
+      "text": "#89a9f6"
+    },
+    {
+      "maker": "Grok",
+      "stop": "deep",
+      "hex": "#000001",
+      "title": "#C1C3CB",
+      "dark": true,
+      "text": "#6a6b70"
+    },
+    {
+      "maker": "Grok",
+      "stop": "mid",
+      "hex": "#06060B",
+      "title": "#C1C3CB",
+      "dark": true,
+      "text": "#63646b"
+    },
+    {
+      "maker": "Grok",
+      "stop": "light",
+      "hex": "#16161D",
+      "title": "#C1C3CB",
+      "dark": true,
+      "text": "#63646b"
+    },
+    {
+      "maker": "Grok",
+      "stop": "highlight",
+      "hex": "#1F1F2A",
+      "title": "#C1C3CB",
+      "dark": true,
+      "text": "#60616a"
+    },
+    {
+      "maker": "Grok",
+      "stop": "deep",
+      "hex": "#000001",
+      "title": "#C1C3CB",
+      "dark": false,
+      "text": "#000001"
+    },
+    {
+      "maker": "Grok",
+      "stop": "mid",
+      "hex": "#06060B",
+      "title": "#C1C3CB",
+      "dark": false,
+      "text": "#06060B"
+    },
+    {
+      "maker": "Grok",
+      "stop": "light",
+      "hex": "#16161D",
+      "title": "#C1C3CB",
+      "dark": false,
+      "text": "#16161D"
+    },
+    {
+      "maker": "Grok",
+      "stop": "highlight",
+      "hex": "#1F1F2A",
+      "title": "#C1C3CB",
+      "dark": false,
+      "text": "#1F1F2A"
+    },
+    {
+      "maker": "NVIDIA",
+      "stop": "deep",
+      "hex": "#456C00",
+      "title": "#7AA141",
+      "dark": true,
+      "text": "#4a7107"
+    },
+    {
+      "maker": "NVIDIA",
+      "stop": "mid",
+      "hex": "#5C8500",
+      "title": "#7AA141",
+      "dark": true,
+      "text": "#5C8500"
+    },
+    {
+      "maker": "NVIDIA",
+      "stop": "light",
+      "hex": "#7EAA0A",
+      "title": "#7AA141",
+      "dark": true,
+      "text": "#7EAA0A"
+    },
+    {
+      "maker": "NVIDIA",
+      "stop": "highlight",
+      "hex": "#B4CF0E",
+      "title": "#7AA141",
+      "dark": true,
+      "text": "#B4CF0E"
+    },
+    {
+      "maker": "NVIDIA",
+      "stop": "deep",
+      "hex": "#456C00",
+      "title": "#7AA141",
+      "dark": false,
+      "text": "#456C00"
+    },
+    {
+      "maker": "NVIDIA",
+      "stop": "mid",
+      "hex": "#5C8500",
+      "title": "#7AA141",
+      "dark": false,
+      "text": "#5C8500"
+    },
+    {
+      "maker": "NVIDIA",
+      "stop": "light",
+      "hex": "#7EAA0A",
+      "title": "#7AA141",
+      "dark": false,
+      "text": "#7EAA0A"
+    },
+    {
+      "maker": "NVIDIA",
+      "stop": "highlight",
+      "hex": "#B4CF0E",
+      "title": "#7AA141",
+      "dark": false,
+      "text": "#97b827"
+    },
+    {
+      "maker": "Meta",
+      "stop": "deep",
+      "hex": "#0044A3",
+      "title": "#4A94E3",
+      "dark": true,
+      "text": "#1a60b9"
+    },
+    {
+      "maker": "Meta",
+      "stop": "mid",
+      "hex": "#0062D1",
+      "title": "#4A94E3",
+      "dark": true,
+      "text": "#0062D1"
+    },
+    {
+      "maker": "Meta",
+      "stop": "light",
+      "hex": "#238BF1",
+      "title": "#4A94E3",
+      "dark": true,
+      "text": "#238BF1"
+    },
+    {
+      "maker": "Meta",
+      "stop": "highlight",
+      "hex": "#32BDF7",
+      "title": "#4A94E3",
+      "dark": true,
+      "text": "#32BDF7"
+    },
+    {
+      "maker": "Meta",
+      "stop": "deep",
+      "hex": "#0044A3",
+      "title": "#4A94E3",
+      "dark": false,
+      "text": "#0044A3"
+    },
+    {
+      "maker": "Meta",
+      "stop": "mid",
+      "hex": "#0062D1",
+      "title": "#4A94E3",
+      "dark": false,
+      "text": "#0062D1"
+    },
+    {
+      "maker": "Meta",
+      "stop": "light",
+      "hex": "#238BF1",
+      "title": "#4A94E3",
+      "dark": false,
+      "text": "#238BF1"
+    },
+    {
+      "maker": "Meta",
+      "stop": "highlight",
+      "hex": "#32BDF7",
+      "title": "#4A94E3",
+      "dark": false,
+      "text": "#36b7f4"
+    },
+    {
+      "maker": "Mistral",
+      "stop": "deep",
+      "hex": "#A20049",
+      "title": "#E24A7D",
+      "dark": true,
+      "text": "#bc1e5e"
+    },
+    {
+      "maker": "Mistral",
+      "stop": "mid",
+      "hex": "#C5015E",
+      "title": "#E24A7D",
+      "dark": true,
+      "text": "#C5015E"
+    },
+    {
+      "maker": "Mistral",
+      "stop": "light",
+      "hex": "#E55182",
+      "title": "#E24A7D",
+      "dark": true,
+      "text": "#E55182"
+    },
+    {
+      "maker": "Mistral",
+      "stop": "highlight",
+      "hex": "#F074B8",
+      "title": "#E24A7D",
+      "dark": true,
+      "text": "#F074B8"
+    },
+    {
+      "maker": "Mistral",
+      "stop": "deep",
+      "hex": "#A20049",
+      "title": "#E24A7D",
+      "dark": false,
+      "text": "#A20049"
+    },
+    {
+      "maker": "Mistral",
+      "stop": "mid",
+      "hex": "#C5015E",
+      "title": "#E24A7D",
+      "dark": false,
+      "text": "#C5015E"
+    },
+    {
+      "maker": "Mistral",
+      "stop": "light",
+      "hex": "#E55182",
+      "title": "#E24A7D",
+      "dark": false,
+      "text": "#E55182"
+    },
+    {
+      "maker": "Mistral",
+      "stop": "highlight",
+      "hex": "#F074B8",
+      "title": "#E24A7D",
+      "dark": false,
+      "text": "#F074B8"
+    },
+    {
+      "maker": "Qwen",
+      "stop": "deep",
+      "hex": "#38009C",
+      "title": "#6A54E6",
+      "dark": true,
+      "text": "#6347db"
+    },
+    {
+      "maker": "Qwen",
+      "stop": "mid",
+      "hex": "#4C18C6",
+      "title": "#6A54E6",
+      "dark": true,
+      "text": "#6345de"
+    },
+    {
+      "maker": "Qwen",
+      "stop": "light",
+      "hex": "#6853E0",
+      "title": "#6A54E6",
+      "dark": true,
+      "text": "#6853E0"
+    },
+    {
+      "maker": "Qwen",
+      "stop": "highlight",
+      "hex": "#9577ED",
+      "title": "#6A54E6",
+      "dark": true,
+      "text": "#9577ED"
+    },
+    {
+      "maker": "Qwen",
+      "stop": "deep",
+      "hex": "#38009C",
+      "title": "#6A54E6",
+      "dark": false,
+      "text": "#38009C"
+    },
+    {
+      "maker": "Qwen",
+      "stop": "mid",
+      "hex": "#4C18C6",
+      "title": "#6A54E6",
+      "dark": false,
+      "text": "#4C18C6"
+    },
+    {
+      "maker": "Qwen",
+      "stop": "light",
+      "hex": "#6853E0",
+      "title": "#6A54E6",
+      "dark": false,
+      "text": "#6853E0"
+    },
+    {
+      "maker": "Qwen",
+      "stop": "highlight",
+      "hex": "#9577ED",
+      "title": "#6A54E6",
+      "dark": false,
+      "text": "#9577ED"
+    },
+    {
+      "maker": "Kimi",
+      "stop": "deep",
+      "hex": "#3D5167",
+      "title": "#75879C",
+      "dark": true,
+      "text": "#51647a"
+    },
+    {
+      "maker": "Kimi",
+      "stop": "mid",
+      "hex": "#54687E",
+      "title": "#75879C",
+      "dark": true,
+      "text": "#54687E"
+    },
+    {
+      "maker": "Kimi",
+      "stop": "light",
+      "hex": "#778B9F",
+      "title": "#75879C",
+      "dark": true,
+      "text": "#778B9F"
+    },
+    {
+      "maker": "Kimi",
+      "stop": "highlight",
+      "hex": "#AABDC8",
+      "title": "#75879C",
+      "dark": true,
+      "text": "#AABDC8"
+    },
+    {
+      "maker": "Kimi",
+      "stop": "deep",
+      "hex": "#3D5167",
+      "title": "#75879C",
+      "dark": false,
+      "text": "#3D5167"
+    },
+    {
+      "maker": "Kimi",
+      "stop": "mid",
+      "hex": "#54687E",
+      "title": "#75879C",
+      "dark": false,
+      "text": "#54687E"
+    },
+    {
+      "maker": "Kimi",
+      "stop": "light",
+      "hex": "#778B9F",
+      "title": "#75879C",
+      "dark": false,
+      "text": "#778B9F"
+    },
+    {
+      "maker": "Kimi",
+      "stop": "highlight",
+      "hex": "#AABDC8",
+      "title": "#75879C",
+      "dark": false,
+      "text": "#9db0bd"
+    },
+    {
+      "maker": "Cursor",
+      "stop": "deep",
+      "hex": "#BA3500",
+      "title": "#E67F47",
+      "dark": true,
+      "text": "#BA3500"
+    },
+    {
+      "maker": "Cursor",
+      "stop": "mid",
+      "hex": "#DC4500",
+      "title": "#E67F47",
+      "dark": true,
+      "text": "#DC4500"
+    },
+    {
+      "maker": "Cursor",
+      "stop": "light",
+      "hex": "#F2783A",
+      "title": "#E67F47",
+      "dark": true,
+      "text": "#F2783A"
+    },
+    {
+      "maker": "Cursor",
+      "stop": "highlight",
+      "hex": "#F8AC53",
+      "title": "#E67F47",
+      "dark": true,
+      "text": "#F8AC53"
+    },
+    {
+      "maker": "Cursor",
+      "stop": "deep",
+      "hex": "#BA3500",
+      "title": "#E67F47",
+      "dark": false,
+      "text": "#BA3500"
+    },
+    {
+      "maker": "Cursor",
+      "stop": "mid",
+      "hex": "#DC4500",
+      "title": "#E67F47",
+      "dark": false,
+      "text": "#DC4500"
+    },
+    {
+      "maker": "Cursor",
+      "stop": "light",
+      "hex": "#F2783A",
+      "title": "#E67F47",
+      "dark": false,
+      "text": "#F2783A"
+    },
+    {
+      "maker": "Cursor",
+      "stop": "highlight",
+      "hex": "#F8AC53",
+      "title": "#E67F47",
+      "dark": false,
+      "text": "#f0984e"
+    },
+    {
+      "maker": "OpenCode",
+      "stop": "deep",
+      "hex": "#00772D",
+      "title": "#4DCE72",
+      "dark": true,
+      "text": "#00772D"
+    },
+    {
+      "maker": "OpenCode",
+      "stop": "mid",
+      "hex": "#0EA242",
+      "title": "#4DCE72",
+      "dark": true,
+      "text": "#0EA242"
+    },
+    {
+      "maker": "OpenCode",
+      "stop": "light",
+      "hex": "#3DD064",
+      "title": "#4DCE72",
+      "dark": true,
+      "text": "#3DD064"
+    },
+    {
+      "maker": "OpenCode",
+      "stop": "highlight",
+      "hex": "#57E48F",
+      "title": "#4DCE72",
+      "dark": true,
+      "text": "#57E48F"
+    },
+    {
+      "maker": "OpenCode",
+      "stop": "deep",
+      "hex": "#00772D",
+      "title": "#4DCE72",
+      "dark": false,
+      "text": "#00772D"
+    },
+    {
+      "maker": "OpenCode",
+      "stop": "mid",
+      "hex": "#0EA242",
+      "title": "#4DCE72",
+      "dark": false,
+      "text": "#0EA242"
+    },
+    {
+      "maker": "OpenCode",
+      "stop": "light",
+      "hex": "#3DD064",
+      "title": "#4DCE72",
+      "dark": false,
+      "text": "#3abe5d"
+    },
+    {
+      "maker": "OpenCode",
+      "stop": "highlight",
+      "hex": "#57E48F",
+      "title": "#4DCE72",
+      "dark": false,
+      "text": "#4bbc78"
+    },
+    {
+      "maker": "OpenCodeGo",
+      "stop": "deep",
+      "hex": "#006B8B",
+      "title": "#4ABED9",
+      "dark": true,
+      "text": "#006B8B"
+    },
+    {
+      "maker": "OpenCodeGo",
+      "stop": "mid",
+      "hex": "#0093B9",
+      "title": "#4ABED9",
+      "dark": true,
+      "text": "#0093B9"
+    },
+    {
+      "maker": "OpenCodeGo",
+      "stop": "light",
+      "hex": "#34C0DF",
+      "title": "#4ABED9",
+      "dark": true,
+      "text": "#34C0DF"
+    },
+    {
+      "maker": "OpenCodeGo",
+      "stop": "highlight",
+      "hex": "#4ADBED",
+      "title": "#4ABED9",
+      "dark": true,
+      "text": "#4ADBED"
+    },
+    {
+      "maker": "OpenCodeGo",
+      "stop": "deep",
+      "hex": "#006B8B",
+      "title": "#4ABED9",
+      "dark": false,
+      "text": "#006B8B"
+    },
+    {
+      "maker": "OpenCodeGo",
+      "stop": "mid",
+      "hex": "#0093B9",
+      "title": "#4ABED9",
+      "dark": false,
+      "text": "#0093B9"
+    },
+    {
+      "maker": "OpenCodeGo",
+      "stop": "light",
+      "hex": "#34C0DF",
+      "title": "#4ABED9",
+      "dark": false,
+      "text": "#32b0cc"
+    },
+    {
+      "maker": "OpenCodeGo",
+      "stop": "highlight",
+      "hex": "#4ADBED",
+      "title": "#4ABED9",
+      "dark": false,
+      "text": "#41b5c4"
+    },
+    {
+      "maker": "Zai",
+      "stop": "deep",
+      "hex": "#01071E",
+      "title": "#5F87E9",
+      "dark": true,
+      "text": "#4361ac"
+    },
+    {
+      "maker": "Zai",
+      "stop": "mid",
+      "hex": "#07215B",
+      "title": "#5F87E9",
+      "dark": true,
+      "text": "#3c5eb0"
+    },
+    {
+      "maker": "Zai",
+      "stop": "light",
+      "hex": "#245DEB",
+      "title": "#5F87E9",
+      "dark": true,
+      "text": "#245DEB"
+    },
+    {
+      "maker": "Zai",
+      "stop": "highlight",
+      "hex": "#3485F4",
+      "title": "#5F87E9",
+      "dark": true,
+      "text": "#3485F4"
+    },
+    {
+      "maker": "Zai",
+      "stop": "deep",
+      "hex": "#01071E",
+      "title": "#5F87E9",
+      "dark": false,
+      "text": "#01071E"
+    },
+    {
+      "maker": "Zai",
+      "stop": "mid",
+      "hex": "#07215B",
+      "title": "#5F87E9",
+      "dark": false,
+      "text": "#07215B"
+    },
+    {
+      "maker": "Zai",
+      "stop": "light",
+      "hex": "#245DEB",
+      "title": "#5F87E9",
+      "dark": false,
+      "text": "#245DEB"
+    },
+    {
+      "maker": "Zai",
+      "stop": "highlight",
+      "hex": "#3485F4",
+      "title": "#5F87E9",
+      "dark": false,
+      "text": "#3485F4"
+    },
+    {
+      "maker": "Devin",
+      "stop": "deep",
+      "hex": "#058066",
+      "title": "#72D1B9",
+      "dark": true,
+      "text": "#058066"
+    },
+    {
+      "maker": "Devin",
+      "stop": "mid",
+      "hex": "#2CAB8C",
+      "title": "#72D1B9",
+      "dark": true,
+      "text": "#2CAB8C"
+    },
+    {
+      "maker": "Devin",
+      "stop": "light",
+      "hex": "#67D1B5",
+      "title": "#72D1B9",
+      "dark": true,
+      "text": "#67D1B5"
+    },
+    {
+      "maker": "Devin",
+      "stop": "highlight",
+      "hex": "#93E5D5",
+      "title": "#72D1B9",
+      "dark": true,
+      "text": "#93E5D5"
+    },
+    {
+      "maker": "Devin",
+      "stop": "deep",
+      "hex": "#058066",
+      "title": "#72D1B9",
+      "dark": false,
+      "text": "#058066"
+    },
+    {
+      "maker": "Devin",
+      "stop": "mid",
+      "hex": "#2CAB8C",
+      "title": "#72D1B9",
+      "dark": false,
+      "text": "#2CAB8C"
+    },
+    {
+      "maker": "Devin",
+      "stop": "light",
+      "hex": "#67D1B5",
+      "title": "#72D1B9",
+      "dark": false,
+      "text": "#5cb69e"
+    },
+    {
+      "maker": "Devin",
+      "stop": "highlight",
+      "hex": "#93E5D5",
+      "title": "#72D1B9",
+      "dark": false,
+      "text": "#75b3a7"
+    },
+    {
+      "maker": "Copilot",
+      "stop": "deep",
+      "hex": "#731BDA",
+      "title": "#B68AEB",
+      "dark": true,
+      "text": "#8031dd"
+    },
+    {
+      "maker": "Copilot",
+      "stop": "mid",
+      "hex": "#BF4CA3",
+      "title": "#B68AEB",
+      "dark": true,
+      "text": "#BF4CA3"
+    },
+    {
+      "maker": "Copilot",
+      "stop": "light",
+      "hex": "#E69E6D",
+      "title": "#B68AEB",
+      "dark": true,
+      "text": "#E69E6D"
+    },
+    {
+      "maker": "Copilot",
+      "stop": "highlight",
+      "hex": "#F1C89C",
+      "title": "#B68AEB",
+      "dark": true,
+      "text": "#F1C89C"
+    },
+    {
+      "maker": "Copilot",
+      "stop": "deep",
+      "hex": "#731BDA",
+      "title": "#B68AEB",
+      "dark": false,
+      "text": "#731BDA"
+    },
+    {
+      "maker": "Copilot",
+      "stop": "mid",
+      "hex": "#BF4CA3",
+      "title": "#B68AEB",
+      "dark": false,
+      "text": "#BF4CA3"
+    },
+    {
+      "maker": "Copilot",
+      "stop": "light",
+      "hex": "#E69E6D",
+      "title": "#B68AEB",
+      "dark": false,
+      "text": "#e19c7a"
+    },
+    {
+      "maker": "Copilot",
+      "stop": "highlight",
+      "hex": "#F1C89C",
+      "title": "#B68AEB",
+      "dark": false,
+      "text": "#c89dd3"
+    },
+    {
+      "maker": "CommandCode",
+      "stop": "deep",
+      "hex": "#170060",
+      "title": "#997AE9",
+      "dark": true,
+      "text": "#6c4fb9"
+    },
+    {
+      "maker": "CommandCode",
+      "stop": "mid",
+      "hex": "#240087",
+      "title": "#997AE9",
+      "dark": true,
+      "text": "#704fc7"
+    },
+    {
+      "maker": "CommandCode",
+      "stop": "light",
+      "hex": "#5739CB",
+      "title": "#997AE9",
+      "dark": true,
+      "text": "#6849d3"
+    },
+    {
+      "maker": "CommandCode",
+      "stop": "highlight",
+      "hex": "#7D52E1",
+      "title": "#997AE9",
+      "dark": true,
+      "text": "#7D52E1"
+    },
+    {
+      "maker": "CommandCode",
+      "stop": "deep",
+      "hex": "#170060",
+      "title": "#997AE9",
+      "dark": false,
+      "text": "#170060"
+    },
+    {
+      "maker": "CommandCode",
+      "stop": "mid",
+      "hex": "#240087",
+      "title": "#997AE9",
+      "dark": false,
+      "text": "#240087"
+    },
+    {
+      "maker": "CommandCode",
+      "stop": "light",
+      "hex": "#5739CB",
+      "title": "#997AE9",
+      "dark": false,
+      "text": "#5739CB"
+    },
+    {
+      "maker": "CommandCode",
+      "stop": "highlight",
+      "hex": "#7D52E1",
+      "title": "#997AE9",
+      "dark": false,
+      "text": "#7D52E1"
+    },
+    {
+      "maker": "Pi",
+      "stop": "deep",
+      "hex": "#86001A",
+      "title": "#E76170",
+      "dark": true,
+      "text": "#b73045"
+    },
+    {
+      "maker": "Pi",
+      "stop": "mid",
+      "hex": "#B10025",
+      "title": "#E76170",
+      "dark": true,
+      "text": "#bf1838"
+    },
+    {
+      "maker": "Pi",
+      "stop": "light",
+      "hex": "#DD4C57",
+      "title": "#E76170",
+      "dark": true,
+      "text": "#DD4C57"
+    },
+    {
+      "maker": "Pi",
+      "stop": "highlight",
+      "hex": "#EC6D7D",
+      "title": "#E76170",
+      "dark": true,
+      "text": "#EC6D7D"
+    },
+    {
+      "maker": "Pi",
+      "stop": "deep",
+      "hex": "#86001A",
+      "title": "#E76170",
+      "dark": false,
+      "text": "#86001A"
+    },
+    {
+      "maker": "Pi",
+      "stop": "mid",
+      "hex": "#B10025",
+      "title": "#E76170",
+      "dark": false,
+      "text": "#B10025"
+    },
+    {
+      "maker": "Pi",
+      "stop": "light",
+      "hex": "#DD4C57",
+      "title": "#E76170",
+      "dark": false,
+      "text": "#DD4C57"
+    },
+    {
+      "maker": "Pi",
+      "stop": "highlight",
+      "hex": "#EC6D7D",
+      "title": "#E76170",
+      "dark": false,
+      "text": "#EC6D7D"
+    },
+    {
+      "maker": "MiniMax",
+      "stop": "deep",
+      "hex": "#CA0073",
+      "title": "#FC62A5",
+      "dark": true,
+      "text": "#CA0073"
+    },
+    {
+      "maker": "MiniMax",
+      "stop": "mid",
+      "hex": "#E7388C",
+      "title": "#FC62A5",
+      "dark": true,
+      "text": "#E7388C"
+    },
+    {
+      "maker": "MiniMax",
+      "stop": "light",
+      "hex": "#F270B0",
+      "title": "#FC62A5",
+      "dark": true,
+      "text": "#F270B0"
+    },
+    {
+      "maker": "MiniMax",
+      "stop": "highlight",
+      "hex": "#F8A0D2",
+      "title": "#FC62A5",
+      "dark": true,
+      "text": "#F8A0D2"
+    },
+    {
+      "maker": "MiniMax",
+      "stop": "deep",
+      "hex": "#CA0073",
+      "title": "#FC62A5",
+      "dark": false,
+      "text": "#CA0073"
+    },
+    {
+      "maker": "MiniMax",
+      "stop": "mid",
+      "hex": "#E7388C",
+      "title": "#FC62A5",
+      "dark": false,
+      "text": "#E7388C"
+    },
+    {
+      "maker": "MiniMax",
+      "stop": "light",
+      "hex": "#F270B0",
+      "title": "#FC62A5",
+      "dark": false,
+      "text": "#F270B0"
+    },
+    {
+      "maker": "MiniMax",
+      "stop": "highlight",
+      "hex": "#F8A0D2",
+      "title": "#FC62A5",
+      "dark": false,
+      "text": "#fa87c0"
+    },
+    {
+      "maker": "Tencent",
+      "stop": "deep",
+      "hex": "#222B97",
+      "title": "#566FD0",
+      "dark": true,
+      "text": "#465bbf"
+    },
+    {
+      "maker": "Tencent",
+      "stop": "mid",
+      "hex": "#3447B1",
+      "title": "#566FD0",
+      "dark": true,
+      "text": "#4359bf"
+    },
+    {
+      "maker": "Tencent",
+      "stop": "light",
+      "hex": "#556ECD",
+      "title": "#566FD0",
+      "dark": true,
+      "text": "#556ECD"
+    },
+    {
+      "maker": "Tencent",
+      "stop": "highlight",
+      "hex": "#7A9DE3",
+      "title": "#566FD0",
+      "dark": true,
+      "text": "#7A9DE3"
+    },
+    {
+      "maker": "Tencent",
+      "stop": "deep",
+      "hex": "#222B97",
+      "title": "#566FD0",
+      "dark": false,
+      "text": "#222B97"
+    },
+    {
+      "maker": "Tencent",
+      "stop": "mid",
+      "hex": "#3447B1",
+      "title": "#566FD0",
+      "dark": false,
+      "text": "#3447B1"
+    },
+    {
+      "maker": "Tencent",
+      "stop": "light",
+      "hex": "#556ECD",
+      "title": "#566FD0",
+      "dark": false,
+      "text": "#556ECD"
+    },
+    {
+      "maker": "Tencent",
+      "stop": "highlight",
+      "hex": "#7A9DE3",
+      "title": "#566FD0",
+      "dark": false,
+      "text": "#7A9DE3"
+    },
+    {
+      "maker": "Cohere",
+      "stop": "deep",
+      "hex": "#A565B5",
+      "title": "#D297E0",
+      "dark": true,
+      "text": "#A565B5"
+    },
+    {
+      "maker": "Cohere",
+      "stop": "mid",
+      "hex": "#BF7FCF",
+      "title": "#D297E0",
+      "dark": true,
+      "text": "#BF7FCF"
+    },
+    {
+      "maker": "Cohere",
+      "stop": "light",
+      "hex": "#E1A7F0",
+      "title": "#D297E0",
+      "dark": true,
+      "text": "#E1A7F0"
+    },
+    {
+      "maker": "Cohere",
+      "stop": "highlight",
+      "hex": "#EECDF6",
+      "title": "#D297E0",
+      "dark": true,
+      "text": "#EECDF6"
+    },
+    {
+      "maker": "Cohere",
+      "stop": "deep",
+      "hex": "#A565B5",
+      "title": "#D297E0",
+      "dark": false,
+      "text": "#A565B5"
+    },
+    {
+      "maker": "Cohere",
+      "stop": "mid",
+      "hex": "#BF7FCF",
+      "title": "#D297E0",
+      "dark": false,
+      "text": "#BF7FCF"
+    },
+    {
+      "maker": "Cohere",
+      "stop": "light",
+      "hex": "#E1A7F0",
+      "title": "#D297E0",
+      "dark": false,
+      "text": "#d398e1"
+    },
+    {
+      "maker": "Cohere",
+      "stop": "highlight",
+      "hex": "#EECDF6",
+      "title": "#D297E0",
+      "dark": false,
+      "text": "#D297E0"
+    },
+    {
+      "maker": "Microsoft",
+      "stop": "deep",
+      "hex": "#CD0037",
+      "title": "#FF556B",
+      "dark": true,
+      "text": "#CD0037"
+    },
+    {
+      "maker": "Microsoft",
+      "stop": "mid",
+      "hex": "#EA104A",
+      "title": "#FF556B",
+      "dark": true,
+      "text": "#EA104A"
+    },
+    {
+      "maker": "Microsoft",
+      "stop": "light",
+      "hex": "#F26174",
+      "title": "#FF556B",
+      "dark": true,
+      "text": "#F26174"
+    },
+    {
+      "maker": "Microsoft",
+      "stop": "highlight",
+      "hex": "#F88BA6",
+      "title": "#FF556B",
+      "dark": true,
+      "text": "#F88BA6"
+    },
+    {
+      "maker": "Microsoft",
+      "stop": "deep",
+      "hex": "#CD0037",
+      "title": "#FF556B",
+      "dark": false,
+      "text": "#CD0037"
+    },
+    {
+      "maker": "Microsoft",
+      "stop": "mid",
+      "hex": "#EA104A",
+      "title": "#FF556B",
+      "dark": false,
+      "text": "#EA104A"
+    },
+    {
+      "maker": "Microsoft",
+      "stop": "light",
+      "hex": "#F26174",
+      "title": "#FF556B",
+      "dark": false,
+      "text": "#F26174"
+    },
+    {
+      "maker": "Microsoft",
+      "stop": "highlight",
+      "hex": "#F88BA6",
+      "title": "#FF556B",
+      "dark": false,
+      "text": "#F88BA6"
+    },
+    {
+      "maker": "Perplexity",
+      "stop": "deep",
+      "hex": "#684154",
+      "title": "#9F798A",
+      "dark": true,
+      "text": "#7e576a"
+    },
+    {
+      "maker": "Perplexity",
+      "stop": "mid",
+      "hex": "#80586B",
+      "title": "#9F798A",
+      "dark": true,
+      "text": "#80586B"
+    },
+    {
+      "maker": "Perplexity",
+      "stop": "light",
+      "hex": "#A17C8D",
+      "title": "#9F798A",
+      "dark": true,
+      "text": "#A17C8D"
+    },
+    {
+      "maker": "Perplexity",
+      "stop": "highlight",
+      "hex": "#CAB1BE",
+      "title": "#9F798A",
+      "dark": true,
+      "text": "#CAB1BE"
+    },
+    {
+      "maker": "Perplexity",
+      "stop": "deep",
+      "hex": "#684154",
+      "title": "#9F798A",
+      "dark": false,
+      "text": "#684154"
+    },
+    {
+      "maker": "Perplexity",
+      "stop": "mid",
+      "hex": "#80586B",
+      "title": "#9F798A",
+      "dark": false,
+      "text": "#80586B"
+    },
+    {
+      "maker": "Perplexity",
+      "stop": "light",
+      "hex": "#A17C8D",
+      "title": "#9F798A",
+      "dark": false,
+      "text": "#A17C8D"
+    },
+    {
+      "maker": "Perplexity",
+      "stop": "highlight",
+      "hex": "#CAB1BE",
+      "title": "#9F798A",
+      "dark": false,
+      "text": "#c1a6b4"
+    },
+    {
+      "maker": "NousResearch",
+      "stop": "deep",
+      "hex": "#4B5337",
+      "title": "#82896F",
+      "dark": true,
+      "text": "#5e664b"
+    },
+    {
+      "maker": "NousResearch",
+      "stop": "mid",
+      "hex": "#626A4E",
+      "title": "#82896F",
+      "dark": true,
+      "text": "#626A4E"
+    },
+    {
+      "maker": "NousResearch",
+      "stop": "light",
+      "hex": "#848C72",
+      "title": "#82896F",
+      "dark": true,
+      "text": "#848C72"
+    },
+    {
+      "maker": "NousResearch",
+      "stop": "highlight",
+      "hex": "#B9BEA3",
+      "title": "#82896F",
+      "dark": true,
+      "text": "#B9BEA3"
+    },
+    {
+      "maker": "NousResearch",
+      "stop": "deep",
+      "hex": "#4B5337",
+      "title": "#82896F",
+      "dark": false,
+      "text": "#4B5337"
+    },
+    {
+      "maker": "NousResearch",
+      "stop": "mid",
+      "hex": "#626A4E",
+      "title": "#82896F",
+      "dark": false,
+      "text": "#626A4E"
+    },
+    {
+      "maker": "NousResearch",
+      "stop": "light",
+      "hex": "#848C72",
+      "title": "#82896F",
+      "dark": false,
+      "text": "#848C72"
+    },
+    {
+      "maker": "NousResearch",
+      "stop": "highlight",
+      "hex": "#B9BEA3",
+      "title": "#82896F",
+      "dark": false,
+      "text": "#a9ae93"
+    },
+    {
+      "maker": "AWS",
+      "stop": "deep",
+      "hex": "#52687E",
+      "title": "#879BB0",
+      "dark": true,
+      "text": "#52687E"
+    },
+    {
+      "maker": "AWS",
+      "stop": "mid",
+      "hex": "#6A8097",
+      "title": "#879BB0",
+      "dark": true,
+      "text": "#6A8097"
+    },
+    {
+      "maker": "AWS",
+      "stop": "light",
+      "hex": "#90A3B8",
+      "title": "#879BB0",
+      "dark": true,
+      "text": "#90A3B8"
+    },
+    {
+      "maker": "AWS",
+      "stop": "highlight",
+      "hex": "#C0CBD7",
+      "title": "#879BB0",
+      "dark": true,
+      "text": "#C0CBD7"
+    },
+    {
+      "maker": "AWS",
+      "stop": "deep",
+      "hex": "#52687E",
+      "title": "#879BB0",
+      "dark": false,
+      "text": "#52687E"
+    },
+    {
+      "maker": "AWS",
+      "stop": "mid",
+      "hex": "#6A8097",
+      "title": "#879BB0",
+      "dark": false,
+      "text": "#6A8097"
+    },
+    {
+      "maker": "AWS",
+      "stop": "light",
+      "hex": "#90A3B8",
+      "title": "#879BB0",
+      "dark": false,
+      "text": "#90A3B8"
+    },
+    {
+      "maker": "AWS",
+      "stop": "highlight",
+      "hex": "#C0CBD7",
+      "title": "#879BB0",
+      "dark": false,
+      "text": "#9eaec0"
+    },
+    {
+      "maker": "AI21",
+      "stop": "deep",
+      "hex": "#970073",
+      "title": "#D54DAB",
+      "dark": true,
+      "text": "#b01f89"
+    },
+    {
+      "maker": "AI21",
+      "stop": "mid",
+      "hex": "#B8118E",
+      "title": "#D54DAB",
+      "dark": true,
+      "text": "#B8118E"
+    },
+    {
+      "maker": "AI21",
+      "stop": "light",
+      "hex": "#D953AF",
+      "title": "#D54DAB",
+      "dark": true,
+      "text": "#D953AF"
+    },
+    {
+      "maker": "AI21",
+      "stop": "highlight",
+      "hex": "#E977D1",
+      "title": "#D54DAB",
+      "dark": true,
+      "text": "#E977D1"
+    },
+    {
+      "maker": "AI21",
+      "stop": "deep",
+      "hex": "#970073",
+      "title": "#D54DAB",
+      "dark": false,
+      "text": "#970073"
+    },
+    {
+      "maker": "AI21",
+      "stop": "mid",
+      "hex": "#B8118E",
+      "title": "#D54DAB",
+      "dark": false,
+      "text": "#B8118E"
+    },
+    {
+      "maker": "AI21",
+      "stop": "light",
+      "hex": "#D953AF",
+      "title": "#D54DAB",
+      "dark": false,
+      "text": "#D953AF"
+    },
+    {
+      "maker": "AI21",
+      "stop": "highlight",
+      "hex": "#E977D1",
+      "title": "#D54DAB",
+      "dark": false,
+      "text": "#E977D1"
+    },
+    {
+      "maker": "Inflection",
+      "stop": "deep",
+      "hex": "#263A50",
+      "title": "#617589",
+      "dark": true,
+      "text": "#52667b"
+    },
+    {
+      "maker": "Inflection",
+      "stop": "mid",
+      "hex": "#3C5166",
+      "title": "#617589",
+      "dark": true,
+      "text": "#506579"
+    },
+    {
+      "maker": "Inflection",
+      "stop": "light",
+      "hex": "#607386",
+      "title": "#617589",
+      "dark": true,
+      "text": "#607386"
+    },
+    {
+      "maker": "Inflection",
+      "stop": "highlight",
+      "hex": "#89A5BA",
+      "title": "#617589",
+      "dark": true,
+      "text": "#89A5BA"
+    },
+    {
+      "maker": "Inflection",
+      "stop": "deep",
+      "hex": "#263A50",
+      "title": "#617589",
+      "dark": false,
+      "text": "#263A50"
+    },
+    {
+      "maker": "Inflection",
+      "stop": "mid",
+      "hex": "#3C5166",
+      "title": "#617589",
+      "dark": false,
+      "text": "#3C5166"
+    },
+    {
+      "maker": "Inflection",
+      "stop": "light",
+      "hex": "#607386",
+      "title": "#617589",
+      "dark": false,
+      "text": "#607386"
+    },
+    {
+      "maker": "Inflection",
+      "stop": "highlight",
+      "hex": "#89A5BA",
+      "title": "#617589",
+      "dark": false,
+      "text": "#89A5BA"
+    },
+    {
+      "maker": "LiquidAI",
+      "stop": "deep",
+      "hex": "#755849",
+      "title": "#A88E7F",
+      "dark": true,
+      "text": "#7a5d4e"
+    },
+    {
+      "maker": "LiquidAI",
+      "stop": "mid",
+      "hex": "#8D7161",
+      "title": "#A88E7F",
+      "dark": true,
+      "text": "#8D7161"
+    },
+    {
+      "maker": "LiquidAI",
+      "stop": "light",
+      "hex": "#AF9486",
+      "title": "#A88E7F",
+      "dark": true,
+      "text": "#AF9486"
+    },
+    {
+      "maker": "LiquidAI",
+      "stop": "highlight",
+      "hex": "#D1C2BA",
+      "title": "#A88E7F",
+      "dark": true,
+      "text": "#D1C2BA"
+    },
+    {
+      "maker": "LiquidAI",
+      "stop": "deep",
+      "hex": "#755849",
+      "title": "#A88E7F",
+      "dark": false,
+      "text": "#755849"
+    },
+    {
+      "maker": "LiquidAI",
+      "stop": "mid",
+      "hex": "#8D7161",
+      "title": "#A88E7F",
+      "dark": false,
+      "text": "#8D7161"
+    },
+    {
+      "maker": "LiquidAI",
+      "stop": "light",
+      "hex": "#AF9486",
+      "title": "#A88E7F",
+      "dark": false,
+      "text": "#AF9486"
+    },
+    {
+      "maker": "LiquidAI",
+      "stop": "highlight",
+      "hex": "#D1C2BA",
+      "title": "#A88E7F",
+      "dark": false,
+      "text": "#bda89d"
+    },
+    {
+      "maker": "Baidu",
+      "stop": "deep",
+      "hex": "#0100A2",
+      "title": "#2A60E4",
+      "dark": true,
+      "text": "#2656dd"
+    },
+    {
+      "maker": "Baidu",
+      "stop": "mid",
+      "hex": "#002BC3",
+      "title": "#2A60E4",
+      "dark": true,
+      "text": "#2255dd"
+    },
+    {
+      "maker": "Baidu",
+      "stop": "light",
+      "hex": "#285CDE",
+      "title": "#2A60E4",
+      "dark": true,
+      "text": "#285CDE"
+    },
+    {
+      "maker": "Baidu",
+      "stop": "highlight",
+      "hex": "#3984EC",
+      "title": "#2A60E4",
+      "dark": true,
+      "text": "#3984EC"
+    },
+    {
+      "maker": "Baidu",
+      "stop": "deep",
+      "hex": "#0100A2",
+      "title": "#2A60E4",
+      "dark": false,
+      "text": "#0100A2"
+    },
+    {
+      "maker": "Baidu",
+      "stop": "mid",
+      "hex": "#002BC3",
+      "title": "#2A60E4",
+      "dark": false,
+      "text": "#002BC3"
+    },
+    {
+      "maker": "Baidu",
+      "stop": "light",
+      "hex": "#285CDE",
+      "title": "#2A60E4",
+      "dark": false,
+      "text": "#285CDE"
+    },
+    {
+      "maker": "Baidu",
+      "stop": "highlight",
+      "hex": "#3984EC",
+      "title": "#2A60E4",
+      "dark": false,
+      "text": "#3984EC"
+    },
+    {
+      "maker": "Arcee",
+      "stop": "deep",
+      "hex": "#00A4A9",
+      "title": "#4FD0D3",
+      "dark": true,
+      "text": "#00A4A9"
+    },
+    {
+      "maker": "Arcee",
+      "stop": "mid",
+      "hex": "#00BFC3",
+      "title": "#4FD0D3",
+      "dark": true,
+      "text": "#00BFC3"
+    },
+    {
+      "maker": "Arcee",
+      "stop": "light",
+      "hex": "#63E4E6",
+      "title": "#4FD0D3",
+      "dark": true,
+      "text": "#63E4E6"
+    },
+    {
+      "maker": "Arcee",
+      "stop": "highlight",
+      "hex": "#8EF0F1",
+      "title": "#4FD0D3",
+      "dark": true,
+      "text": "#8EF0F1"
+    },
+    {
+      "maker": "Arcee",
+      "stop": "deep",
+      "hex": "#00A4A9",
+      "title": "#4FD0D3",
+      "dark": false,
+      "text": "#00A4A9"
+    },
+    {
+      "maker": "Arcee",
+      "stop": "mid",
+      "hex": "#00BFC3",
+      "title": "#4FD0D3",
+      "dark": false,
+      "text": "#00BFC3"
+    },
+    {
+      "maker": "Arcee",
+      "stop": "light",
+      "hex": "#63E4E6",
+      "title": "#4FD0D3",
+      "dark": false,
+      "text": "#55bcbe"
+    },
+    {
+      "maker": "Arcee",
+      "stop": "highlight",
+      "hex": "#8EF0F1",
+      "title": "#4FD0D3",
+      "dark": false,
+      "text": "#6cb0b2"
     }
   ],
   "snap": [
