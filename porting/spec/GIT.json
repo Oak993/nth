@@ -3690,10 +3690,10 @@
         "No anchor view in a window means the popover simply does not show"
       ],
       "cancellation": "not applicable",
-      "windows_path": "Platform boundary: there is no NSPopover. The Windows equivalent is a light-dismiss flyout anchored to the same views, sized 640 by 540 device-independent pixels, whose outside click must still deliver to the control beneath. Escape closes and is swallowed.",
+      "windows_path": "Platform boundary: there is no NSPopover. The Windows equivalent is a light-dismiss flyout anchored to the same views, sized 640 by 540 device-independent pixels, whose outside click must still deliver to the control beneath. Escape closes and is swallowed. Deviation-free status: the Swift's close bookkeeping is reproduced, upstream defect 67 included (PORT_CONTRACT section 8, ED-196, DiffInspector.swift:640-658): a delayed close that a reopen started stops the new show's monitors, clears desiredVisible and drops shownRuntime, so a popover reopened onto another anchor while shown ignores Escape and an outside click until it is closed another way (the X button, the tab, the changes shortcut, its flag) and shown afresh; a press outside closes the popover first, so the usual tap on another turn's Review button is a fresh show with its monitors. Native proof on a real popup: DiffPopoverNativeTests (SendInput, 100 % display scale on the test PC).",
       "verification_method": "interaction test on each dismissal route, including an outside click landing on another turn's review button",
       "status": "SPECIFIED",
-      "upstream_defect": null,
+      "upstream_defect": "67",
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
     },

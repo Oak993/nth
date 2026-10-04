@@ -18,21 +18,20 @@ public sealed class TimelineRowsPrSourceConflictTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")]
     public void A_sixty_limit_recent_cache_keeps_more_than_sixty_entries_across_its_two_generations()
     {
-        // STOP opencode-App.Views.Chat.TimelineRows #2 PR-CHAT-102.
-        // TimelineRows.swift:2135-2138 uses RecentCache(limit:60); Core/Support/RecentCache.swift:43-55
-        // rotates two generations, contradicting the record's "At most sixty parsed files" total limit.
+        // PR-CHAT-102 (STOP opencode #2, RETIRED 2026-10-04: the record was amended to the source, two generations of sixty, up to 120 at once; its Req proof is
+        // TimelineRowsPrRecordsTests.The_diff_cache_holds_two_generations_of_sixty_...). TimelineRows.swift:2171-2182 uses RecentCache(limit: 60);
+        // Core/Support/RecentCache.swift:43-55 rotates two generations: this test pins the cache type itself.
         var cache = new RecentCache<string, string>(60);
         for (var i = 0; i < 61; i++) cache.Insert(i.ToString(System.Globalization.CultureInfo.InvariantCulture), "diff" + i);
         Assert.All(Enumerable.Range(0, 61), i => Assert.True(cache.Contains("diff" + i)));
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")]
+    [Trait("Req", "PR-CHAT-107")] // ThreadRuntime.swift:3797-3803 storeLegacyChanges calls scheduleSave without bumping saveRevision; :3650-3665 saveNow rejects an unchanged revision: the record's persistence line
     public void An_idle_loaded_legacy_summary_is_updated_in_memory_but_the_pinned_revision_guard_drops_it_on_restart()
     {
-        // STOP opencode-App.Views.Chat.TimelineRows #3 PR-CHAT-107 (the same conflict as STOP #7 in TimelineRowsTests).
-        // ThreadRuntime.swift:3797-3802 calls scheduleSave without incrementing saveRevision;
-        // :3650-3664 saveNow rejects an unchanged revision. A ruling must resolve persistence vs pinned source.
+        // STOP opencode-App.Views.Chat.TimelineRows #3 PR-CHAT-107, RETIRED 2026-10-04: the record was amended to the source (the summary reaches the document only when
+        // another change bumps the revision, and a reopened thread works it out again), and this is its restart test with a legacy fixture thread.
         // PR-GIT-151 is no longer under this STOP (adversarial review 2026-10-03: it was left under it by mistake when STOP #11
         // was rewritten). Its record asks for the one-off parse of an older turn's diff and for the result "stored on the runtime
         // as that turn's changes"; its persistence line is only "TurnSummary.changes carries the summary for turns recorded with

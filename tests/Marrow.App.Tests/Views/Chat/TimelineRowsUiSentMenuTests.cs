@@ -40,6 +40,46 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class TimelineRowsUiSentMenuTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Req", "UI-CHAT-007")] // TimelineRows.swift:165-178 rightClickPopover, MessagePopoverMenu.swift:11-19, :56-71: a right-click or a control-click on the sent bubble opens the message menu at the pointer
+    public void A_right_click_and_a_control_click_on_the_sent_bubble_open_the_message_menu_anchored_at_the_pointer() => headless.OnUiThread(() =>
+    {
+        using var h = RuntimeHarness();
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        h.Main.OnMain(() =>
+        {
+            // Two rows, one click each: a row whose menu is already up is not presented again by a second click.
+            var rightRow = new UserMessageRow(UserEntry("hello there, a sent message"), h.Runtime, canRevert: true);
+            var controlRow = new UserMessageRow(UserEntry("and another sent message"), h.Runtime, canRevert: true);
+            var window = Show(new StackPanel { Margin = new Thickness(20), Spacing = 60, Children = { rightRow, controlRow } });
+            try
+            {
+                Point Origin(Control row) => Assert.Single(LogicalQuery.SelfAndDescendants<InlineText>(row)).TranslatePoint(default, window)!.Value;
+                foreach (var (modifiers, button, at) in new[]
+                {
+                    (RawInputModifiers.None, MouseButton.Right, new Point(Origin(rightRow).X + 9, Origin(rightRow).Y + 5)),
+                    (RawInputModifiers.Control, MouseButton.Left, new Point(Origin(controlRow).X + 31, Origin(controlRow).Y + 7)),
+                })
+                {
+                    var before = presenter.Calls.Count(call => call.Presented);
+                    window.MouseDown(at, button, modifiers);
+                    window.MouseUp(at, button, modifiers);
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    var shown = presenter.Calls.Where(call => call.Presented).ToList();
+                    Assert.True(shown.Count > before, $"{button} with {modifiers} opened no menu");
+                    var popup = shown[^1].Popup;
+                    // :15 a 1 x 1 rect at the pointer, in the row's own space; the menu holds the message actions.
+                    Assert.Equal(new Size(1, 1), popup.PlacementRect!.Value.Size);
+                    var target = popup.PlacementTarget ?? popup.Parent as Visual;
+                    Assert.Equal(at, target!.TranslatePoint(popup.PlacementRect.Value.Position, window));
+                    Assert.Equal(["Copy message", "Copy as markdown", "Edit from here"], ItemTitles(Assert.Single(LogicalQuery.SelfAndDescendants<RowActionItems>(popup.Child!))));
+                }
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-011")] // :219, :31-34
     [Trait("Req", "UI-CHAT-012")] // :220
     [Trait("Req", "UI-CHAT-013")] // :222-226

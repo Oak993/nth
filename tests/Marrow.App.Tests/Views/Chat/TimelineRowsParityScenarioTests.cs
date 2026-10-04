@@ -350,12 +350,12 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // content it was opened with (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147) while the
     // badge's own label follows the plan. Opening it again builds the detail from the plan as it now is: the drafting
     // plan rendered by the streaming renderer, the proposed one by the finished surface with its two buttons (:2287).
-    // Review round 1 (2026-10-03): this is the SOURCE's behaviour, and the record words it differently: PR-CHAT-113 expects the
-    // open popover to switch to the finished-prose surface "the moment the state leaves drafting", while the pinned source
-    // freezes the popover's content when it opens, so only a popover opened again switches. A record/source conflict (STOP #11),
-    // not a Req proof.
+    // The SOURCE's behaviour, which the amended record states (2026-10-04, 0f85fb3a1): the popover freezes its content when it opens (ChatBadge.swift:112-147
+    // setFixedContent, detail() evaluated once at :69), so the switch to the finished-prose surface happens only in a popover opened again after the state left
+    // drafting; one already open keeps the text and the streaming flag it was opened with. This is the record's verification method: a popover left open through
+    // the transition keeps the streaming renderer and its text, and one opened again shows the finished-prose surface.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11); TimelineRows.swift:2263-2316, :2287; ChatBadge.swift:20, :67-75, :138-147
+    [Trait("Req", "PR-CHAT-113")] // TimelineRows.swift:2263-2316, :2287; ChatBadge.swift:20, :67-75, :112-147; Popovers.swift:29-40
     public void A_plan_opened_while_drafting_keeps_its_popover_through_the_switch_to_proposed_and_reopens_on_the_finished_surface() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -393,7 +393,10 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 // The same popover is still up (nothing closed it), holding what it opened with; the badge reads Plan ready.
                 Assert.True(popup.IsOpen, "the open plan popover closed when the plan changed");
                 Assert.True(presenter.Calls.Last(call => ReferenceEquals(call.Popup, popup)).Presented);
-                Assert.True(Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(popup.Child!)).IsStreaming);
+                var open = Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(popup.Child!));
+                Assert.True(open.IsStreaming);
+                Assert.Equal("First paragraph.\n\nSecond paragraph.", open.Text); // the text it opened with, not the plan's new one
+                Assert.DoesNotContain("Third.", string.Join(" ", Words(popup.Child!)), StringComparison.Ordinal);
                 Assert.Contains("Plan ready", Words(card));
                 Assert.DoesNotContain("Writing a plan", Words(card));
                 // Closed and opened again: the detail is built from the proposed plan.
@@ -412,6 +415,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 Assert.True(reopened.IsOpen);
                 var markdown = Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(reopened.Child!));
                 Assert.False(markdown.IsStreaming); // :2287 the finished-prose surface once the state has left drafting
+                Assert.Equal("First paragraph.\n\nSecond paragraph.\n\nThird.", markdown.Text); // built from the plan as it is now
                 Assert.Contains("Implement plan", Words(reopened.Child!));
                 Assert.Contains("Dismiss", Words(reopened.Child!));
             });
@@ -602,6 +606,8 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // (NoLinkNetwork, R-TEST-10).
     [Fact]
     [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:119-123, :633, :1364; MarkdownView.swift:318, :1131, :1229; LinkParagraphView.swift:4-8, :312-313
+    [Trait("Req", "UI-CHAT-007")] // text selection within the sent bubble (:119-123)
+    [Trait("Req", "UI-CHAT-019")] // text selection per block of the reply (:1364)
     public void A_drag_selects_inside_the_block_it_starts_in_across_a_reply_its_code_block_and_a_bubble() => headless.OnUiThread(() =>
     {
         using var noNetwork = new NoLinkNetwork("hover-hand.com", "hover-hand-report.com"); // R-TEST-10, ED-256 (10)

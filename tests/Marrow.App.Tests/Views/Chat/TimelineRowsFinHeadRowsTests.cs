@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
@@ -205,6 +206,74 @@ public sealed class TimelineRowsFinHeadRowsTests(HeadlessSession headless)
                 }
                 finally { Close(window); }
             });
+        }
+    });
+
+    // 1 - e^(-w t) (1 + w t) with w = 2 pi / response: SwiftUI's `.smooth(duration:)`, a critically damped spring of that response (Chrome.swift:960 `.smooth(duration: 0.32)`).
+    private static double Smooth(double response, double seconds) => seconds <= 0 ? 0 : 1 - Math.Exp(-2 * Math.PI / response * seconds) * (1 + 2 * Math.PI / response * seconds);
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-052")] // TimelineRows.swift:410-411 `.transition(.settleGlide)`, Chrome.swift:949-955, :994-1000: a joining finished-head pill arrives softly, opacity 0 to 1 and a 4 point rise, on smooth(0.32)
+    public void A_finished_head_pill_that_joins_arrives_from_nothing_with_a_four_point_rise_along_the_soft_appear_curve() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        var (store, app, runtime) = TimelineRowsFinTeam.Make(
+            TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Failed), TimelineRowsFinTeam.Head(1, HydraHeadInfo.Status.Completed));
+        using (store)
+        {
+            HydraHeadsWorkingRow row = null!;
+            AvaloniaWindow window = null!;
+            store.Main.OnMain(() =>
+            {
+                row = new HydraHeadsWorkingRow(new ValueList<int>([1, 0]), runtime);
+                var host = new Border { Width = 500, Child = row };
+                Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                window = Show(new StackPanel { Children = { host } });
+                // One head is finished and on show; the other joins.
+                row.ApplyTeam(app.Children(runtime.ThreadID).Where(thread => thread.Hydra?.Index == 1).ToList());
+                Settle(window);
+            });
+            store.Main.AdvanceMilliseconds(1500);
+            frames.Advance(TimeSpan.FromMilliseconds(1500));
+            // What the pill is drawn with: its own opacity and every ancestor's up to the row, and the rise its transition and its ancestors give it.
+            FinishedHeadPill Joining() => Mounted<FinishedHeadPill>(row).Single(pill => AutomationProperties.GetName(pill) == "Hank failed");
+            (double Opacity, double Rise) Drawn()
+            {
+                var pill = Joining();
+                var opacity = 1.0; var rise = 0.0;
+                for (Visual? at = pill; at is not null && !ReferenceEquals(at, row); at = at.GetVisualParent())
+                {
+                    opacity *= at.Opacity;
+                    if (at is Visual { RenderTransform: { } transform }) rise += transform.Value.M32;
+                }
+                return (opacity, rise);
+            }
+            store.Main.OnMain(() =>
+            {
+                row.ApplyTeam(app.Children(runtime.ThreadID).ToList());
+                Settle(window);
+            });
+            frames.Advance(TimeSpan.Zero);
+            var samples = new List<(double At, double Opacity, double Rise)>();
+            try
+            {
+                for (var at = 10.0; at <= 400; at += 10)
+                {
+                    store.Main.AdvanceMilliseconds(10);
+                    frames.Advance(TimeSpan.FromMilliseconds(10));
+                    store.Main.OnMain(() => { Settle(window); var drawn = Drawn(); samples.Add((at, drawn.Opacity, drawn.Rise)); });
+                }
+                foreach (var (at, opacity, rise) in samples)
+                {
+                    var p = Smooth(0.32, at / 1000);
+                    Assert.True(Math.Abs(opacity - p) <= 0.04, $"at {at} ms the pill is {opacity:F3} in, smooth(0.32) has {p:F3}");
+                    Assert.True(Math.Abs(rise - 4 * (1 - p)) <= 0.2, $"at {at} ms the pill is {rise:F2} points low, smooth(0.32) has {4 * (1 - p):F2}");
+                }
+                Assert.Contains(samples, sample => sample.Opacity is > 0.05 and < 0.95); // it arrives over time, not at once
+            }
+            finally { store.Main.OnMain(() => Close(window)); }
         }
     });
 

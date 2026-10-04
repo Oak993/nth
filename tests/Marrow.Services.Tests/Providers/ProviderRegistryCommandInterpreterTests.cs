@@ -15,6 +15,7 @@ namespace Marrow.Services.Tests.Providers;
 public sealed class ProviderRegistryCommandInterpreterTests
 {
     [Fact]
+    [Trait("Req", "PR-PROVCLI-260")] // windows_path: a candidate whose version resource identifies the command interpreter is rejected (PA-0016)
     [Trait("Decision", "ED-127")]
     [Trait("Decision", "ED-020")]
     public void A_copy_of_the_command_interpreter_is_not_Command_Code_but_another_provider_may_use_the_same_file()

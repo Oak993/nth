@@ -151,10 +151,23 @@ public sealed class MCPSettingsPage : Decorator
     // :894-898
     internal static Control McpFieldSurface(Control view) => new Border { Child = view, Background = Chrome.Overlay(0.06).Brush(view) }.RoundedRectangle(9, RoundedCornerStyle.Continuous);
     // :97-98,111-113,158-162 and the other Text modifiers below.
-    internal static TextBlock Text(string text, double size, SwiftColor color, SwiftFont.Weight weight = SwiftFont.Weight.Regular, bool mono = false, int lines = 0)
+    // The page's Text views: MCPSettingsPage.swift writes its 13, 12 and 11 point type as the body, callout and subheadline text
+    // styles (:61, :97, :111, :131, :158-161, :258, :271-277, :310-313, :335, :367, :398, :423-427, :469-512, :693-722, :808-832,
+    // :929, :982-1029) and every other size as a fixed .system(size:) (10.5, 11.5, 14; :263, :711, :789, :837, :979, :1033, :1077),
+    // so a size of 13, 12 or 11 in the default design is that text style, with its line box (ED-290 (1)); `fixedSize` keeps the
+    // point size for a control's own label (the glass button, :328-330, has no .font).
+    internal static TextBlock Text(string text, double size, SwiftColor color, SwiftFont.Weight weight = SwiftFont.Weight.Regular, bool mono = false, int lines = 0, bool fixedSize = false)
     {
         var block = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxLines = lines };
-        SwiftFont.System(size, weight, mono ? SwiftFont.Design.Monospaced : SwiftFont.Design.Default).Apply(block); block.Foreground = color.Brush(block); return block;
+        var style = mono || fixedSize ? (SwiftFont.TextStyle?)null : size switch
+        {
+            13 => SwiftFont.TextStyle.Body,
+            12 => SwiftFont.TextStyle.Callout,
+            11 => SwiftFont.TextStyle.Subheadline,
+            _ => null,
+        };
+        (style is { } textStyle ? SwiftFont.System(textStyle, weight: weight) : SwiftFont.System(size, weight, mono ? SwiftFont.Design.Monospaced : SwiftFont.Design.Default)).Apply(block);
+        block.Foreground = color.Brush(block); return block;
     }
     // :91-93,172-176,721-725,928-932
     internal static SwiftImage Symbol(string name, double size, SwiftColor color) => SwiftImage.SystemName(name).Font(SwiftFont.System(size)).ForegroundStyle(color);
@@ -170,7 +183,7 @@ public sealed class MCPSettingsPage : Decorator
     internal const double SmallControlHeight = 20, RegularControlHeight = 22;
     internal static Control ActionButton(string title, Action action, bool prominent = false, bool regular = false)
     {
-        var label = Text(title, regular ? 13 : 11, Chrome.PrimaryText); var height = regular ? RegularControlHeight : SmallControlHeight;
+        var label = Text(title, regular ? 13 : 11, Chrome.PrimaryText, fixedSize: true); var height = regular ? RegularControlHeight : SmallControlHeight;
         label.VerticalAlignment = VerticalAlignment.Center;
         var surface = new TintedGlassPill(label, prominent) { Child = label, Background = Brushes.Transparent, Height = height, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) }.Capsule(RoundedCornerStyle.Continuous); // :328-330 keep the interactive material's full hit area while ED-180 is deferred
         surface.Apply(); return PlainControls.Button(surface, action);

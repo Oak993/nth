@@ -40,6 +40,7 @@ public sealed class TimelineRowsFinMergeRowTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-CHAT-053")] // TimelineRows.swift:926-1019, :1044-1094 the merging state
     [Trait("Req", "UI-HYDRAMERGE-002")] // TimelineRows.swift:937-952, :1012-1017, :1056-1062
+    [Trait("Req", "PR-CHAT-150")] // TimelineRows.swift:956, :1020-1027, :1056-1062: the current stage's words, shimmering (the visible words sit in the shimmer's own panel beside its masked band layer)
     public void The_merging_pill_is_a_tinted_pill_with_the_track_and_the_stage_words_with_an_ellipsis_and_no_clock() => headless.OnUiThread(() =>
     {
         using var h = Harness();

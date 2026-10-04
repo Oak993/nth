@@ -321,8 +321,9 @@ public sealed class BadgePopoverCoordinator
         closeCallbackPending = false;
         closeCallbackFired = false;
 
-        // :150-151
-        Presentation.Presenter.Current.SetPresented(popover, true);
+        // :150-151. PR-CHAT-110 review: a badge popover is open over its window like any popover, so PopoverHost hands it the keys its content owns: Return presses the default button
+        // (QuestionSheet's Send / Next, QuestionTab.swift:148,158; the merge popover's Open, HydraMergePopover.swift:214) and Escape closes it, as this class's own monitor below does.
+        Presentation.SetPresented(popover, true, anchor.View, Close);
         StartMonitors();
     }
 
@@ -333,6 +334,7 @@ public sealed class BadgePopoverCoordinator
         StopMonitors(); // :158
         isShown = false;
         closeCallbackPending = true;
+        WindowTransients.Hide(popover); // no longer open over the window, even while it shrinks away
         Presentation.Presenter.Current.SetPresented(popover, false); // :159 popover.performClose(nil)
     }
 
@@ -366,7 +368,7 @@ public sealed class BadgePopoverCoordinator
     private void StartMonitors()
     {
         if (ShownIn is not { } window) return;
-        window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true); // :171-179
+        window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel); // :171-179; a key PopoverHost already forwarded (Escape closing it) is handled and acts once (PopoverHost.Listen)
         window.AddHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true); // :182-186
 
         if (popover.Child is { } content) // :175 popover.contentViewController?.view.window

@@ -46,6 +46,7 @@ public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession head
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // UI-CHAT-022 under reduced motion: TimelineRows.swift:1469-1477 `withAnimation(.snappy(duration: 0.24))` has no reduced-motion gate (ED-264 (2))
+    [Trait("Req", "UI-CHAT-022")] // the open, under reduced motion
     public void REVIEW2_with_reduced_motion_opening_the_work_group_still_folds_its_steps_open_along_the_snappy_curve() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -82,6 +83,60 @@ public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession head
             Assert.True(after > before + 20, $"what follows the group went from {before:F1} to {after:F1}");
             // 50 ms into the snappy 0.24 s curve it is about 0.4 of its way, as with reduced motion off (TimelineRowsReviewAb3Tests).
             Assert.InRange((early - before) / (after - before), 0.2, 0.8);
+            Assert.InRange(shown, 0.05, 0.95);
+        }
+        finally { h.Main.OnMain(() => Close(window)); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-022")] // TimelineRows.swift:1475-1477 the close is `withAnimation(.snappy(duration: 0.24))` too, no reduced-motion gate (ED-264 (2)): what follows the group rises along the curve, not at once or at the end
+    public void With_reduced_motion_closing_the_work_group_still_folds_its_steps_shut_along_the_snappy_curve() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = true });
+        WorkGroup group = null!;
+        StackPanel host = null!;
+        Border below = null!;
+        AvaloniaWindow window = null!;
+        double Below() => below.TranslatePoint(default, host)!.Value.Y;
+        var closed = 0.0;
+        h.Main.OnMain(() =>
+        {
+            group = new WorkGroup(new ValueList<TimelineEntry>([Tool(ToolCall.Kind.Edit), Tool(ToolCall.Kind.Command)]), h.Runtime, startsCollapsed: true);
+            below = new Border { Height = 30, Width = 100, Background = Brushes.Gray };
+            host = new StackPanel { Children = { group, below } };
+            ThreadTimeline.SetRevealTimelineEnd(host, new TimelineRevealBox { Action = () => { } });
+            window = Show(host);
+            closed = Below();
+            Click(window, Assert.Single(Mounted<Button>(group)));
+        });
+        try
+        {
+            // Open and let it finish.
+            h.Main.OnMain(() => Settle(window));
+            frames.Advance(TimeSpan.Zero);
+            Run(h.Main, frames, window, 1000);
+            var open = 0.0;
+            h.Main.OnMain(() =>
+            {
+                open = Below();
+                Assert.True(open > closed + 20, $"what follows the group went from {closed:F1} to {open:F1}");
+                Click(window, Assert.Single(Mounted<Button>(group))); // close it
+            });
+            h.Main.OnMain(() => Settle(window));
+            frames.Advance(TimeSpan.Zero);
+            Run(h.Main, frames, window, 50);
+            var early = 0.0;
+            var shown = 0.0;
+            h.Main.OnMain(() => { early = Below(); shown = Effective(Assert.Single(Mounted<WorkSteps>(group))); });
+            Run(h.Main, frames, window, 1000);
+            var after = 0.0;
+            h.Main.OnMain(() => after = Below());
+            Assert.Equal(closed, after, 0.5);
+            // 50 ms into the snappy 0.24 s curve it is about 0.4 of its way back, as with reduced motion off (TimelineRowsReviewAb3Tests): not at once, not at the end.
+            Assert.InRange((open - early) / (open - closed), 0.2, 0.8);
             Assert.InRange(shown, 0.05, 0.95);
         }
         finally { h.Main.OnMain(() => Close(window)); }

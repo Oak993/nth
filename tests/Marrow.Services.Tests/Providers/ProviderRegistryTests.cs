@@ -239,6 +239,7 @@ public sealed class ProviderRegistryTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-094")] // ProviderRegistry.swift:219-226
+    [Trait("Req", "PR-PROVCLI-260")] // windows_path: executable identity per PA-0016, the command interpreter is rejected and Command Code reports not installed (so --list-models is never run on cmd.exe)
     [Trait("Decision", "ED-127")]
     public void a_custom_path_naming_the_windows_command_interpreter_is_rejected_for_command_code()
     {

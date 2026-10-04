@@ -424,8 +424,8 @@ public sealed class ChatViewParityDetailTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-GIT-035")] // App/Views/Chat/ChatView.swift:1579-1591
-    // STOP (round 4, traceability), still open: PR-GIT-129: the commit instructions reaching the model call (:1625) and the sheet's dismissal cancelling its task (:1605) are not observed (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
-    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1563,1579-1591,1605-1631
+    // PR-GIT-129 is closed by ChatViewCommitSheetTests (2026-10-04, unit rec-tlr); this test's own clauses are also part of it.
+    [Trait("Req", "PR-GIT-129")] // App/Views/Chat/ChatView.swift:1563,1579-1591,1605-1631
     public void Appearing_with_an_empty_message_writes_a_draft_showing_the_small_spinner_in_place_of_the_sparkles()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -480,8 +480,8 @@ public sealed class ChatViewParityDetailTests(HeadlessSession headless)
     }
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-GIT-129: the commit instructions reaching the model call (:1625) and the sheet's dismissal cancelling its task (:1605) are not observed (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
-    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1605-1613
+    // PR-GIT-129 is closed by ChatViewCommitSheetTests (2026-10-04, unit rec-tlr); this test's own clauses are also part of it.
+    [Trait("Req", "PR-GIT-129")] // App/Views/Chat/ChatView.swift:1605-1613
     public void Without_a_text_engine_appearing_loads_the_summary_and_leaves_the_message_empty()
     {
         ChatHeadlessFixtures.Run(headless, () =>

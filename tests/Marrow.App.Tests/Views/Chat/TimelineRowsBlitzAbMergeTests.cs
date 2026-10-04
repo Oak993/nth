@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -178,6 +179,68 @@ public sealed class TimelineRowsBlitzAbMergeTests(HeadlessSession headless)
                 });
             });
         }
+    });
+
+    // ---- PR-HYDRAMERGE-106: the pill is one accessibility container ----
+
+    private static IEnumerable<AutomationPeer> Below(AutomationPeer peer) => peer.GetChildren().SelectMany(child => new[] { child }.Concat(Below(child)));
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-106")] // TimelineRows.swift:1018-1019 `.accessibilityElement(children: .contain)` and `.accessibilityLabel(outcome?.title ?? "Merging the team's work: <stage>")`: one named container, its children not merged into it
+    public void The_pill_is_one_named_accessibility_container_whose_children_stay_exposed_in_the_automation_tree_while_merging_and_with_the_outcome() => headless.OnUiThread(() =>
+    {
+        using var noNetwork = new NoLinkNetwork("gitlab.com"); // R-TEST-10: the note holds a link
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        using var browser = Marrow.Services.Port.Workspace.Open.Override(_ => true);
+        HydraMergeRow row = null!;
+        AvaloniaWindow window = null!;
+        h.Main.OnMain(() =>
+        {
+            h.Runtime.IsHydraMerging = true;
+            h.Runtime.HydraMergeStep = HydraMergeStage.Pushing;
+            h.Runtime.HydraMergeStage = HydraMergeStage.Pushing.Words;
+            row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+            window = Show(new Border { Padding = new Thickness(24), Child = row });
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                // Merging: the pill is a control element of its own, named for the stage, and the track (a child with its own meaning) is below it, not folded into it.
+                var peer = ControlAutomationPeer.CreatePeerForElement(PillOf(row));
+                Assert.True(peer.IsControlElement(), "the named pill is not an element of the automation tree");
+                Assert.Equal("Merging the team's work: Pushing the branch…", peer.GetName());
+                Assert.Contains(Below(peer).OfType<ControlAutomationPeer>(), below => below.Owner is HydraMergeTrack);
+            });
+            Advance(h.Main, frames, 800);
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.IsHydraMerging = false;
+                h.Runtime.HydraMergeStep = null;
+                row.Update(new HydraMergePhase.Outcome(new UserMessage { Text = "Hydra merged the team's work.\nhttps://gitlab.com/g/p/-/merge_requests/7\nThree heads landed." }));
+            });
+            h.Main.OnMain(() => Settle(window));
+            Advance(h.Main, frames, 2500);
+            h.Main.OnMain(() =>
+            {
+                Settle(window);
+                // The outcome: named for its title; the title button, the Open link and the track are each an element below it, with their own names.
+                var peer = ControlAutomationPeer.CreatePeerForElement(PillOf(row));
+                Assert.True(peer.IsControlElement());
+                Assert.Equal("Hydra merged the team's work", peer.GetName());
+                var below = Below(peer).OfType<ControlAutomationPeer>().ToList();
+                Assert.Contains(below, element => element.Owner is HydraMergeTrack);
+                var buttons = below.Where(element => element.Owner is Button).ToList();
+                Assert.Equal(2, buttons.Count);
+                Assert.Contains(buttons, element => ((Button)element.Owner).GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Open"));
+                Assert.Contains(buttons, element => ((Button)element.Owner).GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Hydra merged the team's work"));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window)); }
     });
 
     // ---- PR-CHAT-151, PR-HYDRAMERGE-103: the track at interpolation points ----
