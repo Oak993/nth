@@ -4,6 +4,7 @@
 // Optical values are an ED proposal in glass-material.report.md, UNVERIFIED under OD-0001.
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -710,7 +711,6 @@ internal static class GlassMaterial
         private static readonly Type? events = typeof(CompositionCustomVisualHandler).Assembly.GetType("Avalonia.Rendering.Composition.ICompositionTargetDebugEvents");
         private static PropertyInfo? root, rects, combined, debugEvents;
         private static MethodInfo? addRect;
-        private static FieldInfo? left, top, right, bottom;
         private static readonly ConditionalWeakTable<object, Reach> reaches = new();
 
         public static object? Target(CompositionCustomVisualHandler handler)
@@ -752,7 +752,7 @@ internal static class GlassMaterial
                 addRect ??= tracker.GetType().GetMethod("AddRect", Members);
                 if (debugEvents is null || addRect is null || debugEvents.GetValue(target) is not null) return null;
                 var reach = (Reach)DispatchProxy.Create(events, typeof(Reach));
-                reach.Bind(tracker, addRect);
+                reach.Bind(tracker, Adder(tracker.GetType(), addRect));
                 debugEvents.SetValue(target, reach);
                 reaches.Add(target, reach);
                 return reach;
@@ -760,22 +760,35 @@ internal static class GlassMaterial
             catch (Exception e) when (Expected(e) || e is NotSupportedException or InvalidOperationException) { return null; }
         }
 
+        // Avalonia's LtrbRect (a struct with public fields and internal constructors) read from its box, and the tracker's AddRect called with one,
+        // through lambdas compiled once (a compiled lambda may reach internal members): nothing is boxed and no argument array is made per rect.
+        private static Func<object, SKRectI>? reader;
+        private static Type? readerType;
+
         public static SKRectI ToRect(object rect)
         {
-            var type = rect.GetType();
-            (left, top, right, bottom) = (left ?? type.GetField("Left"), top ?? type.GetField("Top"), right ?? type.GetField("Right"), bottom ?? type.GetField("Bottom"));
-            return new SKRectI((int)Math.Round((double)left!.GetValue(rect)!), (int)Math.Round((double)top!.GetValue(rect)!),
-                (int)Math.Round((double)right!.GetValue(rect)!), (int)Math.Round((double)bottom!.GetValue(rect)!));
+            if (readerType != rect.GetType()) (reader, readerType) = (Reader(rect.GetType()), rect.GetType());
+            return reader!(rect);
         }
 
-        public static object ToLtrb(Type type, SKRectI rect)
+        private static Func<object, SKRectI> Reader(Type ltrb)
         {
-            var boxed = Activator.CreateInstance(type)!;
-            left!.SetValue(boxed, (double)rect.Left);
-            top!.SetValue(boxed, (double)rect.Top);
-            right!.SetValue(boxed, (double)rect.Right);
-            bottom!.SetValue(boxed, (double)rect.Bottom);
-            return boxed;
+            var boxed = Expression.Parameter(typeof(object));
+            var value = Expression.Unbox(boxed, ltrb);
+            var round = typeof(Math).GetMethod(nameof(Math.Round), [typeof(double)])!;
+            Expression Side(string name) => Expression.Convert(Expression.Call(round, Expression.Field(value, name)), typeof(int));
+            var make = typeof(SKRectI).GetConstructor([typeof(int), typeof(int), typeof(int), typeof(int)])!;
+            return Expression.Lambda<Func<object, SKRectI>>(Expression.New(make, Side("Left"), Side("Top"), Side("Right"), Side("Bottom")), boxed).Compile();
+        }
+
+        public static Action<object, SKRectI> Adder(Type tracker, MethodInfo addRect)
+        {
+            var ltrb = addRect.GetParameters()[0].ParameterType;
+            var target = Expression.Parameter(typeof(object));
+            var rect = Expression.Parameter(typeof(SKRectI));
+            MemberBinding Side(string name) => Expression.Bind(ltrb.GetField(name)!, Expression.Convert(Expression.Property(rect, name), typeof(double)));
+            var value = Expression.MemberInit(Expression.New(ltrb), Side("Left"), Side("Top"), Side("Right"), Side("Bottom"));
+            return Expression.Lambda<Action<object, SKRectI>>(Expression.Call(Expression.Convert(target, tracker), addRect, value), target, rect).Compile();
         }
 
         private static bool Expected(Exception e) =>
@@ -793,14 +806,14 @@ internal static class GlassMaterial
     public class Reach : DispatchProxy
     {
         private object? tracker;
-        private MethodInfo? addRect;
+        private Action<object, SKRectI>? addRect;
         private readonly Dictionary<object, Spread> materials = new();
         private readonly List<SKRectI> queue = new();
         private readonly HashSet<object> grown = new();
         private readonly List<KeyValuePair<object, Spread>> pass = new();
         private int rendered, visited;
 
-        internal void Bind(object dirtyRects, MethodInfo add) => (tracker, addRect) = (dirtyRects, add);
+        internal void Bind(object dirtyRects, Action<object, SKRectI> add) => (tracker, addRect) = (dirtyRects, add);
         internal void Set(object material, Spread spread) => materials[material] = spread;
         internal void Remove(object material) => materials.Remove(material);
 
@@ -808,7 +821,10 @@ internal static class GlassMaterial
         {
             switch (targetMethod?.Name)
             {
-                case "RectInvalidated" when args is [{ } rect]: Grow(rect); return null;
+                case "RectInvalidated" when args is [{ } rect]:
+                    try { Grow(rect); }
+                    catch (Exception e) when (e is MemberAccessException or InvalidCastException) { tracker = null; } // the reach gives up; the frame is drawn as before
+                    return null;
                 case "get_RenderedVisuals": return rendered;
                 case "set_RenderedVisuals" when args is [int count]: rendered = count; return null;
                 case "get_VisitedVisuals": return visited;
@@ -834,7 +850,7 @@ internal static class GlassMaterial
                     var add = SKRectI.Intersect(reach, spread.Output);
                     if (add.IsEmpty || changed.Contains(add)) continue;
                     grown.Add(material);
-                    addRect.Invoke(tracker, [Frame.ToLtrb(rect.GetType(), add)]);
+                    addRect(tracker, add);
                     queue.Add(add);
                 }
             }
