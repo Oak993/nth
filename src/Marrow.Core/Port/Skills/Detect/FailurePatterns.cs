@@ -9,6 +9,9 @@ internal static partial class FailurePatterns
 
     [GeneratedRegex(@"(?<name>[^\s:]+):\s*(?:command not found|Befehl nicht gefunden)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)] private static partial Regex BashNotFound();
 
+    // cmd's English sentence. The process exit code of cmd /c is 1 here, not 9009 (recorded on Windows 11 10.0.26200; ED-NEW-f-sk-10 review addendum).
+    [GeneratedRegex(@"'(?<name>[^'\r\n]+)' is not recognized as an internal or external command")] private static partial Regex CmdNotRecognized();
+
     [GeneratedRegex(@"No module named ['""]?(?<name>[A-Za-z0-9_][A-Za-z0-9_.]*)")] private static partial Regex PythonModule();
 
     [GeneratedRegex(@"Cannot find (?:module|package) ['""](?<name>[^'""]+)['""]")] private static partial Regex NodeModule();
@@ -23,7 +26,8 @@ internal static partial class FailurePatterns
     /// <summary>
     /// The programs a failed command reports as missing: cmd's exit code 9009 or PowerShell's CommandNotFoundException identifier (then every word of the output counts as
     /// named, whatever the language, plus python3 when the Store alias names Python), or bash's "command not found" with exit code 127 (or none), then only the name in front
-    /// of that phrase. Names are normalised like a program. The detector keeps only the ones that are also tokens of the command (ED-NEW-f-sk-10).
+    /// of that phrase, or cmd's English "is not recognized as an internal or external command" with any failing exit code (cmd /c exits 1, its 9009 stays inside), then
+    /// only the quoted name. Names are normalised like a program. The detector keeps only the ones that are also tokens of the command (ED-NEW-f-sk-10).
     /// </summary>
     public static HashSet<string> NamedMissingPrograms(CommandFinished finished)
     {
@@ -39,6 +43,8 @@ internal static partial class FailurePatterns
             }
             if (finished.ExitCode == 9009 && named.Contains("python")) named.Add("python3");
         }
+        foreach (Match match in CmdNotRecognized().Matches(output))
+            named.Add(CommandTokenizer.NormalizeProgram(match.Groups["name"].Value.Trim('"')));
         if (finished.ExitCode is null or 127)
             foreach (Match match in BashNotFound().Matches(output))
                 named.Add(CommandTokenizer.NormalizeProgram(match.Groups["name"].Value));
