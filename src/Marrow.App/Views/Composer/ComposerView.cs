@@ -1468,7 +1468,7 @@ internal sealed class ContextMeter : Decorator
                 {
                     inTree = false;
                     leaving.IsHitTestVisible = false; // a view on its way out takes no click
-                    Transaction.WithAnimation(Transaction.Current ?? Chrome.PanelSlide, () => SwiftTransition.Remove(slot, leaving));
+                    Transaction.WithAnimation(RingMotion(), () => SwiftTransition.Remove(slot, leaving));
                 }
                 arrived = true;
                 return;
@@ -1503,7 +1503,7 @@ internal sealed class ContextMeter : Decorator
                 button.IsHitTestVisible = true;
                 var arriving = button;
                 if (!arrived) SwiftTransition.Place(slot, 0, arriving);
-                else Transaction.WithAnimation(Transaction.Current ?? Chrome.PanelSlide, () => SwiftTransition.Insert(slot, 0, arriving));
+                else Transaction.WithAnimation(RingMotion(), () => SwiftTransition.Insert(slot, 0, arriving));
             }
             arrived = true;
             var sentence = fraction is { } value ? ((long)(value * 100)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "% of the context window used" : "";
@@ -1549,6 +1549,9 @@ internal sealed class ContextMeter : Decorator
             return presentedContent;
         }
     }
+
+    // The ring comes and goes under the change's own transaction, else panelSlide (a frame clock that is not running cuts).
+    private static Animation? RingMotion() => FrameClock.IsBound ? Transaction.Current ?? Chrome.PanelSlide : Transaction.Current;
 
     // :720-723 A circle trimmed from zero, before its -90 degree rotation.
     private static Geometry Arc(double fraction)
@@ -1649,7 +1652,7 @@ internal sealed class SendDraftState : Decorator
         // The Mac changes the fill in one frame; the owner's OD-0076 has every change transitioned, in the Mac's motion language
         // for a hover (0.12 s ease-out), unless the change is made inside an animation of its own.
         this.Track(() => (Empty: runtime.Draft.IsEmpty, Reverting: runtime.IsReverting),
-            input => Apply(input.Empty, input.Reverting, Transaction.Current ?? Animation.EaseOut(duration: 0.12)));
+            input => Apply(input.Empty, input.Reverting, FrameClock.IsBound ? Transaction.Current ?? Animation.EaseOut(duration: 0.12) : null)); // a still frame clock (a view with no display) cuts, as AnimatedColor does
         Child = button;
     }
 
