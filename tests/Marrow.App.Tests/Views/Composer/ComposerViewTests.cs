@@ -3857,9 +3857,10 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // This uses the R-VIEW-9 recording presenter; native popup hit-testing and scrolling remain separately in STOP #5.
 //
 // STOP App.Views.Composer.ComposerView #5
-// Kind: native-only for (a), resolved for (b) and (c).
-// (a) PR-COMPOSER-053: a focus loss whose click lands inside the open panel (isClickInsideSuggestions, Popup.IsPointerOverPopup)
-// needs a real popup window; headless proves the other half (a refresh still searching is cancelled by the blur).
+// Kind: resolved for (a), (b) and (c).
+// (a) PR-COMPOSER-053: RESOLVED (unit rec-composer) on a real window: ComposerSuggestionsNativeTests.A_press_inside_the_open_panel_keeps_the_list_and_
+// a_press_on_the_transcript_clears_it (a focus loss with the real pointer over the panel's HWND keeps the list, a real press on a row keeps it and
+// picks, a real press on the transcript's text clears it and cancels its refresh); headless proves a refresh still searching is cancelled by the blur.
 // (b) PR-COMPOSER-055: resolved, Selecting_a_row_far_down_a_long_list_scrolls_it_into_view hosts each show's frame in a window.
 // (c) PR-COMPOSER-050: resolved, a retry that fails again replaces the note (A_retry_that_fails_again_...).
 //
@@ -3890,4 +3891,4 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // the surviving approval rows' movement is open, see #2. Continuous-corner rendering is ED-181, closed 2026-10-04.
 
 // B3 resolution of historical STOP #5(c): forced retry is now proven by observing the in-flight registry load after
-// clicking the actual retry row while a fetched command list is still fresh. #5(a)/(b) popup hit/scroll limits remain.
+// clicking the actual retry row while a fetched command list is still fresh. #5(a) and (b) are resolved too (see #5).
