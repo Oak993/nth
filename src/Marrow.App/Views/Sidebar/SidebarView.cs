@@ -410,21 +410,46 @@ public sealed class SidebarView : Decorator
         var badge = new SidebarIconBadge(() => new SidebarSymbol("gear", scale: 1.15)); // :169
         var overlay = new Panel { Children = { badge } };
         UpdateAvailableDot? dot = null;
+        AnimatedScalar? shown = null;
+        var wanted = false;
+        var primed = false;
+        // DEVIATION OD-0076 (leftovers pass 2026-10-04; the dot is a conditional view the Mac cuts in and out, :171-173
+        // with no animation): the dot fades in and scales up from 0.8 over Chrome.hover and leaves the same way, the
+        // clear button's motion (ED-280 (4)). UI-UPDATE-010's "disappears immediately" holds of the condition: the fade
+        // starts in the frame the version catches up. The first read, at mount, shows it as it stands. The scale turns
+        // about the circle's own centre, which :172's offset (2.5, -2.5) moves off the 7 pt box's centre (3.5, 3.5).
         overlay.Track(() => UpdateChecker.Shared.UpdateAvailable, available => // :171
         {
-            if (available && dot is null)
+            wanted = available;
+            var animation = primed ? Transaction.Current ?? Chrome.Hover : null;
+            primed = true;
+            if (available)
             {
-                dot = new UpdateAvailableDot // :172
+                if (dot is null)
                 {
-                    HorizontalAlignment = HorizontalAlignment.Right, // :170 .overlay(alignment: .topTrailing)
-                    VerticalAlignment = VerticalAlignment.Top,
-                };
-                overlay.Children.Add(dot);
+                    var created = new UpdateAvailableDot // :172
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Right, // :170 .overlay(alignment: .topTrailing)
+                        VerticalAlignment = VerticalAlignment.Top,
+                        RenderTransformOrigin = new RelativePoint(3.5 + 2.5, 3.5 - 2.5, RelativeUnit.Absolute),
+                    };
+                    dot = created;
+                    overlay.Children.Add(created);
+                    shown = new AnimatedScalar(created, animation is null ? 1 : 0, value =>
+                    {
+                        created.Opacity = value;
+                        var scale = 0.8 + 0.2 * value;
+                        created.RenderTransform = new ScaleTransform(scale, scale);
+                        if (value != 0 || wanted) return;
+                        overlay.Children.Remove(created); // faded out with nothing waiting
+                        if (ReferenceEquals(dot, created)) { dot = null; shown = null; }
+                    });
+                }
+                shown!.Set(1, animation);
             }
-            else if (!available && dot is { } shown)
+            else if (dot is not null)
             {
-                overlay.Children.Remove(shown);
-                dot = null;
+                shown!.Set(0, animation);
             }
         });
         return overlay;
@@ -1679,11 +1704,20 @@ internal sealed class ArchiveThreadPopover : Decorator
 
     // :926-929, :931-936 the untinted and accent-tinted twins of FollowUpEditor.cs's glass buttons, sized to their
     // content: OD-0005 governs the material, not this button's height.
+    // :923 `.controlSize(.small)`: the small glass text button's measured metrics (SwiftGlass.GlassButtonSmall*, ED-280 (2):
+    // 20 high, an 11 pt label, 10.5 pt either side); the same for the prominent style (ENGINEERING DECISION, OD-0098).
+    private static Border SmallGlassFrame(Control label)
+    {
+        if (label is TextBlock text) SwiftFont.System(SwiftGlass.GlassButtonSmallFontSize).Apply(text);
+        var framed = new Border { Height = SwiftGlass.GlassButtonSmallHeight, Padding = new Thickness(SwiftGlass.GlassButtonSmallPadding, 0), Child = label };
+        framed.Capsule(RoundedCornerStyle.Continuous);
+        return framed;
+    }
+
     private static Button GlassButton(Control label, Action action)
     {
         label.VerticalAlignment = VerticalAlignment.Center;
-        var framed = new Border { Padding = new Thickness(10, 4), Child = label };
-        framed.Capsule(RoundedCornerStyle.Continuous);
+        var framed = SmallGlassFrame(label);
         SwiftGlass.SetEffect(framed, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive());
         return PlainControls.Button(framed, action);
     }
@@ -1691,8 +1725,7 @@ internal sealed class ArchiveThreadPopover : Decorator
     private static Button GlassProminentButton(Control label, Action action)
     {
         label.VerticalAlignment = VerticalAlignment.Center;
-        var framed = new Border { Padding = new Thickness(10, 4), Child = label };
-        framed.Capsule(RoundedCornerStyle.Continuous);
+        var framed = SmallGlassFrame(label);
         SwiftGlass.SetEffect(framed, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Tint(Chrome.Accent, 0.3).Interactive());
         framed.Background = Chrome.Accent.Opacity(0.3).Brush(framed);
         return PlainControls.Button(framed, action);
@@ -1940,6 +1973,9 @@ internal sealed class ProjectRow : Decorator
     public ProjectRow(Project snapshot, long count, bool togglesExpansion = true)
     {
         var current = snapshot; // :1085, refreshed by the Track below
+        var shownIcon = snapshot.Icon; // the icon the badge draws now (:1108)
+        AnimatedScalar? dim = null; // :1136's opacity, eased (OD-0076)
+        var dimPrimed = false;
         var shownCount = count; // :1088, refreshed by Update
         var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         SidebarIconBadge? iconBadge = null;
@@ -2014,7 +2050,14 @@ internal sealed class ProjectRow : Decorator
         }, value =>
         {
             current = value.Item1;
-            Opacity = value.Item2 ? 1d : 0.55d; // :1135, on this ProjectRow itself (the whole body, as the source's own .opacity() wraps it), not the inner SidebarRow
+            // :1135, on this ProjectRow itself (the whole body, as the source's own .opacity() wraps it), not the inner
+            // SidebarRow. DEVIATION OD-0076 (ENGINEERING DECISION, leftovers pass 2026-10-04): the Mac snaps the dim; the
+            // port eases it on Chrome.hover, the quick state curve OD-0076 names for sites the Mac snaps. The first read
+            // shows the row as it stands.
+            var dimTarget = value.Item2 ? 1d : 0.55d;
+            dim ??= new AnimatedScalar(this, dimTarget, level => Opacity = level);
+            dim.Set(dimTarget, dimPrimed ? Transaction.Current ?? Chrome.Hover : null);
+            dimPrimed = true;
             // REVIEW FIX (part 6): SwiftUI re-reads `project.icon` (:1085, :1108) on every render, but the icon
             // slot (SidebarIconBadge, UI/Chrome/Chrome.cs) is built once, synchronously, inside SidebarRow's own
             // constructor (Chrome.cs:1079 `var iconSlot = icon();`), before this Track is ever installed; nothing
@@ -2022,7 +2065,13 @@ internal sealed class ProjectRow : Decorator
             // (the same record `current.Icon` reads), so it also re-populates the already-built badge in place,
             // the way this method's own header comment describes the whole constructor doing (surgical update,
             // not a fresh SidebarRow).
-            if (iconBadge is not null) ReplaceGlyph(iconBadge, BuildIconGlyph());
+            // DEVIATION OD-0076: a changed icon crossfades the marks (the source's `if let` swaps them by a cut, :1107-1113);
+            // a change of the record that leaves the icon as it was swaps nothing.
+            if (iconBadge is not null && !Equals(shownIcon, current.Icon))
+            {
+                shownIcon = current.Icon;
+                CrossfadeGlyph(iconBadge, BuildIconGlyph());
+            }
             row.RefreshAccessory(); // :1127 `!project.isExpanded`: the live project's expansion picks the accessory's branch
         });
         // :1091 isMenuPresented is this row's own @State, which SidebarRow's hover Track never reads; SwiftUI's body
@@ -2127,14 +2176,26 @@ internal sealed class ProjectRow : Decorator
     // centers it once, inside its own constructor, the moment the glyph factory first returns; swapping the glyph
     // afterwards (this method) must reapply that same treatment, since a freshly built ProjectIconMark or
     // SidebarSymbol does not get it a second time from SidebarIconBadge's own constructor.
-    private static void ReplaceGlyph(SidebarIconBadge badge, Control glyph)
+    // DEVIATION OD-0076 (leftovers pass 2026-10-04): the swap is a crossfade over Chrome.hover (or the transaction the
+    // change runs in): the new mark rises over the old one, which fades where it stands in the same 20 pt box and leaves
+    // once clear; each fades on its own scalar, so a swap that arrives mid-fade leaves nothing cut.
+    private static void CrossfadeGlyph(SidebarIconBadge badge, Control glyph)
     {
         glyph.SetValue(TextElement.ForegroundProperty, Chrome.PrimaryText.Opacity(0.85).Brush(glyph)); // Chrome.cs :676
         glyph.HorizontalAlignment = HorizontalAlignment.Center; // Chrome.cs :674, :677 (centered inside the Panel)
         glyph.VerticalAlignment = VerticalAlignment.Center;
         if (badge.Child is not Panel panel) return;
-        panel.Children.Clear();
+        var animation = Transaction.Current ?? Chrome.Hover;
+        var leaving = panel.Children.ToArray();
+        glyph.Opacity = 0;
         panel.Children.Add(glyph);
+        new AnimatedScalar(glyph, 0, level => glyph.Opacity = level).Set(1, animation);
+        foreach (var old in leaving)
+            new AnimatedScalar(old, old.Opacity, level =>
+            {
+                old.Opacity = level;
+                if (level == 0) panel.Children.Remove(old);
+            }).Set(0, animation);
     }
 
     // :5 @Environment(AppModel.self) private var model (this file's own convention: SidebarView.cs:337)
@@ -2273,6 +2334,11 @@ internal sealed class ProjectPairMenuItems : Decorator
                 }
                 : new TextBlock { Text = title }, // :1254 Text(title)
         };
+        // The system menu this reaches (NativeContextMenus) draws text, separators and check marks, not a Label's image, so the
+        // checkmark of the swapped label is also the row's check mark (ENGINEERING DECISION, leftovers pass 2026-10-04): one row
+        // is the current choice, as a radio row. Without it the current choice showed no mark at all on Windows.
+        menuItem.ToggleType = MenuItemToggleType.Radio;
+        menuItem.IsChecked = isSelected;
         menuItem.Click += (_, _) => action();
         return menuItem;
     }
@@ -3277,6 +3343,8 @@ internal sealed class SidebarThreadRow : Decorator
         Child = ApplyDraggedLift(overlays, () => isDragged); // :1838-1849
         var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         Control? check = null, trailing = null, fold = null;
+        ThreadRowFace? face = null; // the ONE face the row draws (:1739-1743), built once and updated in place
+        ChatThread shown = snapshot; // the thread the face is told of, for the badge it builds
         bool? selectedBefore = null, actionsBefore = null;
         this.Track(() =>
         {
@@ -3294,8 +3362,21 @@ internal sealed class SidebarThreadRow : Decorator
             var settled = thread.IsSettled;
             var detailed = projectName is not null && !settled;
             var showsFold = actions && onToggleFold is not null;
-            shape.Child = new ThreadRowFace(thread, projectName, selected,
-                TrailingClearance(settled, detailed, actions || settling, showsFold), () => new ThreadBadge(thread), projectIcon, mergeStage); // :1739-1749
+            // :1739-1749. ONE face under the row's identity (lead ruling 2026-10-04, ED-291 (1)): SwiftUI keeps
+            // the view and re-reads its inputs, so the thread, the selection, the merge stage and the clearance are handed to
+            // the face in place and every animated property (the padding on the hover's transaction, :2068) eases on from
+            // where it stands; the face is never rebuilt for them.
+            var clearance = TrailingClearance(settled, detailed, actions || settling, showsFold);
+            shown = thread;
+            if (face is null)
+            {
+                face = new ThreadRowFace(thread, projectName, selected, clearance, () => new ThreadBadge(shown), projectIcon, mergeStage);
+                shape.Child = face;
+            }
+            else
+            {
+                face.Update(thread, selected, mergeStage, clearance, Transaction.Current);
+            }
             var colors = BackgroundFill(thread.IsPinned, selected, hover);
             fill.Set(colors.Background, selectedBefore is not null && selectedBefore != selected ? Chrome.Hover : Transaction.Current); // :1750-1754
             selectedBefore = selected;
@@ -3319,8 +3400,17 @@ internal sealed class SidebarThreadRow : Decorator
                 if (crossfade) SwiftTransition.Insert(overlays, overlays.Children.Count, next);
                 else overlays.Children.Add(next);
             }
-            var nextCheck = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
-            Swap(ref check, nextCheck, (check is null) != (nextCheck is null)); // a settled row keeps its check: same branch
+            // :1763-1771. A check the row already shows for the same state is kept and told whether it pops (SwiftUI keeps
+            // the view under its identity and re-reads `isPopping`), so the pop (:1909) is the spring it rides.
+            if (ShowsCheck(settled, settles, actions, settling) && check is SettleCheck kept && kept.IsSettled == settled)
+            {
+                kept.SetPopping(settling);
+            }
+            else
+            {
+                var nextCheck = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
+                Swap(ref check, nextCheck, (check is null) != (nextCheck is null)); // a settled row keeps its check: same branch
+            }
             Swap(ref trailing, BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
                 actions ? MakeActions() : [], menuPresented), branchChanged: true); // :1772-1801 the hover always changes the branch
             var nextFold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
@@ -3331,7 +3421,7 @@ internal sealed class SidebarThreadRow : Decorator
         overlays.OnHover(hovering => // :1816 hover includes the overlaid check and accessory buttons
         {
             Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering); // :1816-1818
-            NoteHover(Model, Thread(), hovering); // :1819
+            if (hovering) NoteHover(Model, Thread(), hovering); // :1819 `if hovering { ... }`: the model is read only then, so the exit a row sends as it leaves the tree (the pointer was over it) never asks a detached row for it
             ReportFrame();
         });
         void ReportFrame()
@@ -3759,8 +3849,41 @@ internal sealed class SidebarThreadRow : Decorator
 
 /// <summary>:2006-2079 <c>private struct ThreadRowFace&lt;Badge: View&gt;: View</c>: what a thread row shows, drawn
 /// by the live row and by its ghosts.</summary>
+/// <remarks>
+/// ONE face per row, updated in place (lead ruling 2026-10-04, from SidebarView.swift:1739-1743, which keeps the face under
+/// the row's identity and re-reads its inputs). <see cref="Update"/> hands it a new thread, selection, merge stage and
+/// trailing clearance; every property the face animates (the trailing padding :2068, the title's weight :2041 and opacity
+/// :2042, the project line's glyph :2055) moves on from the value it stands at, so a change of any input that lands while
+/// one of them is on its way leaves it on its way. A change of the thread that alters the layout itself (settled or open)
+/// rebuilds the face's content inside this same object and carries the animated values across.
+/// </remarks>
 internal sealed class ThreadRowFace : Decorator
 {
+    private readonly string? projectName;
+    private readonly ProjectIcon? projectIcon;
+    private readonly Func<Control> badge;
+    private readonly Border frame;
+    private readonly AnimatedScalar clearance;
+    private readonly AnimatedScalar weight;
+    private readonly AnimatedScalar titleOpacity;
+    private ChatThread thread;
+    private bool isSelected;
+    private string? mergeStage;
+    private double leftPadding;
+    private double vertical;
+    private double clearanceTarget;
+    private double weightTarget;
+    private double titleOpacityTarget;
+    private Panel? titleHost; // the title's slot: one copy of the text at rest, a Regular and a Medium copy stacked while the weight changes
+    private TextBlock? regularTitle;
+    private TextBlock? mediumTitle;
+    private TextBlock? label;
+    private Panel? glyphHost;
+    private string? glyphSymbol;
+    private Grid? row;
+    private Control? leading;
+    private object? leadingKey;
+
     /// <param name="thread">:2007 <c>let thread: ChatThread</c>.</param>
     /// <param name="projectName">:2009 <c>let projectName: String?</c>.</param>
     /// <param name="isSelected">:2011 <c>let isSelected: Bool</c> (moved before the defaulted inputs, ED-095).</param>
@@ -3778,19 +3901,161 @@ internal sealed class ThreadRowFace : Decorator
         ProjectIcon? projectIcon = null,
         string? mergeStage = null)
     {
+        this.thread = thread;
+        this.projectName = projectName;
+        this.isSelected = isSelected;
+        this.badge = badge;
+        this.projectIcon = projectIcon;
+        this.mergeStage = mergeStage;
+        clearanceTarget = trailingClearance;
+        weightTarget = WeightClass(thread, isSelected);
+        titleOpacityTarget = TitleOpacity(thread.IsSettled, isSelected);
+        frame = new Border { HorizontalAlignment = HorizontalAlignment.Stretch }; // :2071 .frame(maxWidth: .infinity, alignment: .leading)
+        SetMetrics();
+        clearance = new AnimatedScalar(this, trailingClearance, ApplyPadding); // :2068
+        weight = new AnimatedScalar(this, weightTarget, ApplyWeight); // :2041/:2048
+        titleOpacity = new AnimatedScalar(this, titleOpacityTarget, ApplyTitleOpacity); // :2042/:2049
+        BuildContent();
+        Child = frame;
+        DetachedFromVisualTree += (_, _) => SettleGlyph(); // a crossfade the tree left does not stay half drawn
+    }
+
+    /// <summary>
+    /// The row's inputs on a later render (:1739-1743): the same face, new values. The padding (:2068), the title's weight
+    /// and opacity (:2041-2042) and the project line's glyph (:2055) take the new value along <paramref name="animation"/>,
+    /// the transaction the change was made in (:1816-1818 withAnimation(Chrome.hover) for the hover), from where each
+    /// stands now; with no animation a property whose TARGET changed is taken at once (SwiftUI replaces the running
+    /// animation), and one whose target did not change is left exactly as it is, so an unrelated change (a selection, a
+    /// title, a merge stage) never cuts an animation that is on its way. OD-0076 also asks for it ("a label whose width
+    /// changes eases its container's width").
+    /// </summary>
+    public void Update(ChatThread nextThread, bool selected, string? stage, double trailingClearance, Animation? animation)
+    {
+        var settledChanged = nextThread.IsSettled != thread.IsSettled;
+        thread = nextThread;
+        isSelected = selected;
+        mergeStage = stage;
+        if (settledChanged)
+        {
+            SetMetrics();
+            BuildContent(); // the layout changes (:2023, :2037, :2053); the animated values below keep where they stand
+        }
+        else
+        {
+            foreach (var copy in TitleCopies()) if (copy.Text != thread.Title) copy.Text = thread.Title;
+            if (label is not null) label.Text = mergeStage ?? projectName; // :2057
+            if (leading is not null && leadingKey is not null && !Equals(leadingKey, BadgeKey(thread)))
+            {
+                var next = BuildLeading(); // the badge reads the thread it was built with (:2152-2166)
+                row!.Children[row.Children.IndexOf(leading)] = next;
+                leading = next;
+                leadingKey = BadgeKey(thread);
+            }
+            if (glyphHost is not null) SetGlyph(GlyphName(thread), animation);
+        }
+        SetTrailingClearance(trailingClearance, animation);
+        var nextWeight = WeightClass(thread, isSelected);
+        if (nextWeight != weightTarget) { weightTarget = nextWeight; weight.Set(nextWeight, animation); }
+        var nextOpacity = TitleOpacity(thread.IsSettled, isSelected);
+        if (nextOpacity != titleOpacityTarget) { titleOpacityTarget = nextOpacity; titleOpacity.Set(nextOpacity, animation); }
+    }
+
+    /// <summary>
+    /// :2013 `trailingClearance` as the row hands the face on a later render (:1739-1743): the same face, a new number.
+    /// SwiftUI animates the padding in the transaction the hover is written in (:1816-1818, `withAnimation(Chrome.hover)`),
+    /// so the title's room, and where it truncates, glides; with no transaction it is taken at once. A number that is
+    /// already the target is not set again: setting it without an animation would cut the glide that is on its way.
+    /// </summary>
+    public void SetTrailingClearance(double value, Animation? animation)
+    {
+        if (value == clearanceTarget) return;
+        clearanceTarget = value;
+        clearance.Set(value, animation);
+    }
+
+    private void SetMetrics()
+    {
         var isSettled = thread.IsSettled; // :2020
         var isDetailed = projectName is not null && !isSettled; // :2021
+        leftPadding = Chrome.RowHorizontalPadding + (isSettled ? ThreadRowMetrics.SettledTitleInset : 0); // :2067
+        vertical = isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0; // :2069
+        frame.MinHeight = isSettled ? ThreadRowMetrics.SettledHeight : Chrome.RowHeight; // :2070
+    }
 
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :2022 HStack(spacing: 8)
+    private void ApplyPadding(double value) =>
+        frame.Padding = new Thickness(leftPadding, vertical, Chrome.RowHorizontalPadding + value, vertical); // :2066-2069
+
+    /// <summary>
+    /// :2041/:2048 the title's weight, 400 (.regular) to 500 (.medium), as the value of the animation. The title NEVER asks for
+    /// a weight between the two: the embedded Inter is static faces and Avalonia resolves 413 and 425..498 to SemiBold or
+    /// Bold, past the source's .medium (measured: SidebarLeftoversReviewTests). A weight change is drawn as a crossfade of two
+    /// copies of the same text stacked exactly, one Regular and one Medium; their opacities are (1 - share) and share, share
+    /// being how far the value is from 400 to 500, so they run along the curve the weight rides. At rest only the copy whose
+    /// weight it is exists. A change that arrives mid-crossfade starts from the share the scalar stands at.
+    /// </summary>
+    private void ApplyWeight(double value)
+    {
+        if (titleHost is null) return;
+        var share = Math.Clamp((value - (int)FontWeight.Normal) / ((int)FontWeight.Medium - (int)FontWeight.Normal), 0, 1);
+        ShowTitleCopy(ref regularTitle, SwiftFont.Weight.Regular, 1 - share);
+        ShowTitleCopy(ref mediumTitle, SwiftFont.Weight.Medium, share);
+    }
+
+    private void ShowTitleCopy(ref TextBlock? copy, SwiftFont.Weight weightOfCopy, double opacity)
+    {
+        if (titleHost is null) return;
+        if (opacity <= 0)
+        {
+            if (copy is not null) titleHost.Children.Remove(copy);
+            copy = null;
+            return;
+        }
+        if (copy is null)
+        {
+            copy = new TextBlock { Text = thread.Title, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2040/:2047, :2043-2044/:2050-2051
+            SwiftFont.System(thread.IsSettled ? 12 : 13, weightOfCopy).Apply(copy); // :2041/:2048
+            copy.Foreground = Chrome.PrimaryText.Opacity(titleOpacity.Value).Brush(copy); // :2042/:2049
+            titleHost.Children.Insert(weightOfCopy == SwiftFont.Weight.Regular ? 0 : titleHost.Children.Count, copy); // Medium over Regular
+        }
+        copy.Opacity = opacity;
+    }
+
+    private IEnumerable<TextBlock> TitleCopies() => new[] { regularTitle, mediumTitle }.OfType<TextBlock>();
+
+    private void ApplyTitleOpacity(double value)
+    {
+        foreach (var copy in TitleCopies()) copy.Foreground = Chrome.PrimaryText.Opacity(value).Brush(copy); // :2042/:2049
+    }
+
+    // What ThreadBadge reads off the thread (:2159-2169); the leading badge is built again only when one of them changes.
+    private static object BadgeKey(ChatThread thread) => (thread.Provider, thread.IsPinned, thread.HasUnread, thread.LastStatus);
+
+    // :2041/:2048 weight: .medium when selected or unread and not settled, else .regular (as the OpenType class).
+    private static double WeightClass(ChatThread thread, bool isSelected) =>
+        !thread.IsSettled && (isSelected || thread.HasUnread) ? (int)FontWeight.Medium : (int)FontWeight.Normal;
+
+    private static string GlyphName(ChatThread thread) => thread.WorktreePath is null ? "folder" : "arrow.triangle.branch"; // :2055
+
+    // :2022-2072 the content under the frame; the animated values (padding, weight, opacity) are not touched here.
+    private void BuildContent()
+    {
+        var isSettled = thread.IsSettled; // :2020
+        var isDetailed = projectName is not null && !isSettled; // :2021
+        titleHost = null;
+        regularTitle = null;
+        mediumTitle = null;
+        label = null;
+        glyphHost = null;
+        glyphSymbol = null;
+        leading = null;
+        leadingKey = null;
+
+        row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :2022 HStack(spacing: 8)
 
         if (!isDetailed && !isSettled) // :2023 PR-SIDEBAR-066
         {
-            var leading = projectIcon is { } compactIcon ? new ProjectIconMark(compactIcon, 12) : badge(); // :2025-2029
-            leading.Width = Chrome.IconSize; // :2031 .frame(width: Chrome.iconSize)
-            leading.HorizontalAlignment = HorizontalAlignment.Center;
-            leading.VerticalAlignment = VerticalAlignment.Center;
-            leading.Margin = new Thickness(0, 0, 8, 0); // HStack(spacing: 8)'s gap before the text column
-            Grid.SetColumn(leading, 0);
+            leading = BuildLeading();
+            if (projectIcon is null) leadingKey = BadgeKey(thread);
             row.Children.Add(leading);
         }
 
@@ -3802,25 +4067,25 @@ internal sealed class ThreadRowFace : Decorator
             {
                 Orientation = Orientation.Horizontal,
                 Spacing = 6,
-                Children = { mark, MakeTitle(thread, isSettled, isSelected) },
+                Children = { mark, MakeTitle() },
             };
             foreach (var part in titled.Children) part.VerticalAlignment = VerticalAlignment.Center;
             texts.Children.Add(titled);
         }
         else
         {
-            texts.Children.Add(MakeTitle(thread, isSettled, isSelected)); // :2047-2051
+            texts.Children.Add(MakeTitle()); // :2047-2051
         }
 
-        if (projectName is { } name && !isSettled && projectIcon is null) // :2053 PR-SIDEBAR-070
+        if (projectName is not null && !isSettled && projectIcon is null) // :2053 PR-SIDEBAR-070
         {
-            var glyph = SwiftImage.SystemName(thread.WorktreePath is null ? "folder" : "arrow.triangle.branch") // :2055
-                .Font(SwiftFont.Footnote); // :2056
-            glyph.ForegroundStyle(Chrome.SecondaryText); // :2061
-            var label = new TextBlock { Text = mergeStage ?? name, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2057-2059
+            glyphHost = new Panel();
+            glyphSymbol = GlyphName(thread);
+            glyphHost.Children.Add(MakeGlyph(glyphSymbol));
+            label = new TextBlock { Tag = "projectName", Text = mergeStage ?? projectName, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2057-2059
             SwiftFont.Callout.Apply(label); // :2058
             label.Foreground = Chrome.SecondaryText.Brush(label); // :2061
-            var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { glyph, label } }; // :2054
+            var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { glyphHost, label } }; // :2054
             foreach (var part in line.Children) part.VerticalAlignment = VerticalAlignment.Center;
             texts.Children.Add(line);
         }
@@ -3828,27 +4093,76 @@ internal sealed class ThreadRowFace : Decorator
         texts.Margin = new Thickness(0, 0, 4, 0); // :2065 Spacer(minLength: 4)
         Grid.SetColumn(texts, 1);
         row.Children.Add(texts);
+        frame.Child = row;
+        ApplyPadding(clearance.Value);
+    }
 
-        Child = new Border
-        {
-            Child = row,
-            Padding = new Thickness(
-                Chrome.RowHorizontalPadding + (isSettled ? ThreadRowMetrics.SettledTitleInset : 0), // :2067
-                isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0, // :2069
-                Chrome.RowHorizontalPadding + trailingClearance, // :2068
-                isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0),
-            MinHeight = isSettled ? ThreadRowMetrics.SettledHeight : Chrome.RowHeight, // :2070
-            HorizontalAlignment = HorizontalAlignment.Stretch, // :2071 .frame(maxWidth: .infinity, alignment: .leading)
-        };
+    // :2024-2031 the leading slot: the project's mark, else the badge.
+    private Control BuildLeading()
+    {
+        var control = projectIcon is { } compactIcon ? new ProjectIconMark(compactIcon, 12) : badge(); // :2025-2029
+        control.Width = Chrome.IconSize; // :2031 .frame(width: Chrome.iconSize)
+        control.HorizontalAlignment = HorizontalAlignment.Center;
+        control.VerticalAlignment = VerticalAlignment.Center;
+        control.Margin = new Thickness(0, 0, 8, 0); // HStack(spacing: 8)'s gap before the text column
+        Grid.SetColumn(control, 0);
+        return control;
     }
 
     // :2040-2051 the title text, shared by the detailed-with-mark layout and the plain one.
-    private static TextBlock MakeTitle(ChatThread thread, bool isSettled, bool isSelected)
+    private Panel MakeTitle()
     {
-        var title = new TextBlock { Text = thread.Title, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2040/:2047, :2043-2044/:2050-2051
-        SwiftFont.System(isSettled ? 12 : 13, !isSettled && (isSelected || thread.HasUnread) ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(title); // :2041/:2048
-        title.Foreground = Chrome.PrimaryText.Opacity(TitleOpacity(isSettled, isSelected)).Brush(title); // :2042/:2049
-        return title;
+        titleHost = new Panel();
+        ApplyWeight(weight.Value); // the copies the weight stands at: one at rest, two while it changes
+        return titleHost;
+    }
+
+    // :2055-2056, :2061 the project line's mark, a footnote-sized symbol in the secondary colour.
+    private static Control MakeGlyph(string symbol)
+    {
+        var glyph = SwiftImage.SystemName(symbol).Font(SwiftFont.Footnote); // :2055 / :2056
+        glyph.ForegroundStyle(Chrome.SecondaryText); // :2061
+        glyph.VerticalAlignment = VerticalAlignment.Center;
+        return glyph;
+    }
+
+    /// <summary>
+    /// :2055 the symbol changes with the thread's worktree. Inside an animation the new mark rises over the old one, which
+    /// fades where it stands and leaves once clear; each rides its own scalar, so a change that arrives while a mark is
+    /// half shown fades it out from there and never from full. With no animation the new mark replaces the old at once.
+    /// </summary>
+    private void SetGlyph(string symbol, Animation? animation)
+    {
+        if (glyphHost is not { } host || glyphSymbol == symbol) return;
+        glyphSymbol = symbol;
+        var leaving = host.Children.ToArray();
+        var incoming = MakeGlyph(symbol);
+        host.Children.Add(incoming);
+        if (animation is null)
+        {
+            foreach (var old in leaving) host.Children.Remove(old);
+            return;
+        }
+        incoming.Opacity = 0;
+        new AnimatedScalar(incoming, 0, level => incoming.Opacity = level).Set(1, animation);
+        foreach (var old in leaving)
+        {
+            new AnimatedScalar(old, old.Opacity, level =>
+            {
+                old.Opacity = level;
+                if (level == 0) host.Children.Remove(old);
+            }).Set(0, animation);
+        }
+    }
+
+    // A crossfade the face left the tree in the middle of ends at its target (the scalars stop on detach).
+    private void SettleGlyph()
+    {
+        if (glyphHost is not { } host || host.Children.Count < 2) return;
+        var current = host.Children[^1];
+        host.Children.Clear();
+        current.Opacity = 1;
+        host.Children.Add(current);
     }
 
     // :2075-2078 private static func titleOpacity(isSettled: Bool, isSelected: Bool) -> Double. PR-SIDEBAR-065.
@@ -3893,22 +4207,33 @@ internal sealed class ThreadGhostBadge : Decorator
 /// <summary>:2114-2141 <c>private struct SettleCheck: View</c>.</summary>
 internal sealed class SettleCheck : Decorator
 {
+    private readonly ViewState state;
+    private readonly ScaleTransform popScale; // :2132 .scaleEffect(isPopping ? 1.35 : 1), one transform every glyph shares
+    private readonly AnimatedScalar pop;
+
+    /// <summary>:2115 <c>let isSettled: Bool</c>.</summary>
+    public bool IsSettled { get; }
+
     /// <param name="isSettled">:2115 <c>let isSettled: Bool</c>.</param>
     /// <param name="isPopping">:2117 <c>let isPopping: Bool</c>.</param>
     /// <param name="action">:2118 <c>let action: () -> Void</c>.</param>
     // :2122-2140 body. PR-SIDEBAR-078.
     public SettleCheck(bool isSettled, bool isPopping, Action action)
     {
-        var state = new ViewState();
+        IsSettled = isSettled;
+        state = new ViewState { IsPopping = isPopping };
+        popScale = new ScaleTransform(isPopping ? 1.35 : 1, isPopping ? 1.35 : 1);
         var glyphHost = new Panel { Width = 20, Height = 20, Background = Brushes.Transparent }; // :2130 frame, :2131 contentShape(.rect)
+        pop = new AnimatedScalar(glyphHost, isPopping ? 1.35 : 1, scale => { popScale.ScaleX = scale; popScale.ScaleY = scale; });
         Control? currentGlyph = null;
         string? currentSymbol = null;
         var button = PlainControls.Button(glyphHost, action); // :2125, :2134 .buttonStyle(.plain)
         button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :2135-2137
-        button.Track(() => state.IsHovering, hovering =>
+        button.Track(() => (state.IsHovering, state.IsPopping), value =>
         {
-            var filled = isPopping || (isSettled && !hovering); // :2124
-            var isDone = isSettled || isPopping; // :2123
+            var (hovering, popping) = value;
+            var filled = popping || (isSettled && !hovering); // :2124
+            var isDone = isSettled || popping; // :2123
             var color = isDone || hovering
                 ? Chrome.Success.Opacity(isSettled && !hovering ? 0.8 : 1) // :2128
                 : Chrome.SecondaryText;
@@ -3920,7 +4245,7 @@ internal sealed class SettleCheck : Decorator
             glyph.ForegroundStyle(color); // :2128
             glyph.HorizontalAlignment = HorizontalAlignment.Center;
             glyph.VerticalAlignment = VerticalAlignment.Center;
-            glyph.RenderTransform = new ScaleTransform(isPopping ? 1.35 : 1, isPopping ? 1.35 : 1); // :2132
+            glyph.RenderTransform = popScale; // :2132
             glyph.IsHitTestVisible = false;
             if (previous is not null && currentSymbol is not null && currentSymbol != symbol)
             {
@@ -3946,12 +4271,27 @@ internal sealed class SettleCheck : Decorator
         Child = button;
     }
 
+    /// <summary>
+    /// `isPopping` as the row hands it on a later render (:1765-1770): the row keeps the check it has and tells it, as
+    /// SwiftUI keeps the view and re-reads its input. The scale rides the transaction the change is made in, the
+    /// settle's `.spring(response: 0.3, dampingFraction: 0.45)` (:1909); with none it is taken at once.
+    /// </summary>
+    public void SetPopping(bool popping)
+    {
+        if (state.IsPopping == popping) return;
+        pop.Set(popping ? 1.35 : 1, Transaction.Current); // :2132, before the glyph's own change redraws it
+        state.IsPopping = popping;
+    }
+
     // :2120 @State private var isHovering = false
     private sealed class ViewState : MainActorModel
     {
         private bool isHovering;
+        private bool isPopping; // :2117, the row's input, written by SetPopping
 
         public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+
+        public bool IsPopping { get => Read(isPopping); set => Set(ref isPopping, value); }
     }
 }
 
@@ -4015,7 +4355,7 @@ internal sealed class ThreadBadge : Decorator
                     Height = 7,
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0, -2.5, -2.5, 0), // :2171 .offset(x: 2.5, y: -2.5)
+                    RenderTransform = new TranslateTransform(2.5, -2.5), // :2171 .offset(x: 2.5, y: -2.5): drawn moved, takes no layout (a negative Margin would round to whole pixels)
                 };
                 dot.Fill = (thread.LastStatus == TurnStatus.Failed ? Chrome.Danger : Chrome.Accent).Brush(dot); // :2169
                 overlay.Children.Add(dot);
