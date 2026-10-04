@@ -2907,10 +2907,9 @@ public sealed class ToolStatusIcon : Decorator
     {
         Control icon = call.ToolCallStatus switch
         {
-            // :2075-2077 ProgressView().controlSize(.mini): an indeterminate progress control in the icon column; the
-            // mini control's own metrics are platform drawing with no source value (UNVERIFIED OD-0001), the
-            // AttachmentPreview.cs precedent for ProgressView.
-            ToolCall.Status.Running => new ProgressBar { IsIndeterminate = true },
+            // :2075-2077 ProgressView().controlSize(.mini): the mini spinner is 10 x 10 pt, centred in the 16 pt icon column
+            // (2-chat-use.mov 145.0-145.6 s, the usage popover's own .mini control, UsageViews.swift:22; crop 1894,1148,64x64: 10x10 px; PR-CHAT-099).
+            ToolCall.Status.Running => new ProgressBar { IsIndeterminate = true, Width = 10, Height = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             ToolCall.Status.Failed => Glyph("xmark.circle.fill", Chrome.Danger), // :2078-2080
             ToolCall.Status.Declined => Glyph("hand.raised.slash", Chrome.Warning), // :2081-2083
             ToolCall.Status.Completed => Glyph(symbol ?? ToolPresentation.Symbol(call.ToolCallKind), Chrome.SecondaryText), // :2084-2086

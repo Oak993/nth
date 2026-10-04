@@ -232,6 +232,42 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-099")] // TimelineRows.swift:2077 ProgressView().controlSize(.mini) in the 16 pt column (:2090); 2-chat-use.mov 145.0-145.6 s, crop 1894,1148,64x64: 10x10 px (the same control, UsageViews.swift:22)
+    public void The_running_icon_is_the_10_point_mini_spinner_with_eight_spokes_centred_in_the_sixteen_point_column_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            foreach (var (theme, backdrop) in Themes)
+            {
+                var icon = new ToolStatusIcon(Call(ToolCall.Kind.Command, "make", ToolCall.Status.Running));
+                var panel = new StackPanel { Margin = new Thickness(24) };
+                panel.Children.Add(icon);
+                BlitzAbRender.Render(panel, theme, backdrop, 120, 80, (window, frame) =>
+                {
+                    var column = BlitzAbRender.BoxIn(Assert.IsType<Border>(icon.Child), window);
+                    var bar = Assert.Single(Mounted<ProgressBar>(icon));
+                    var spinner = Assert.Single(Mounted<SystemSpinner>(icon));
+                    var box = BlitzAbRender.BoxIn(spinner, window);
+                    Assert.Equal(16, column.Width); // the fixed icon column (:2090)
+                    Assert.Equal(10, bar.Bounds.Width); // 2-chat-use.mov 145.0-145.6 s: 10x10 px = 10 pt
+                    Assert.Equal(10, bar.Bounds.Height);
+                    Assert.Equal(10, box.Width);
+                    Assert.Equal(10, box.Height);
+                    Assert.Equal(column.Center.X, box.Center.X, 0.5); // centred in the column
+                    Assert.Equal(column.Center.Y, box.Center.Y, 0.5);
+                    Assert.Equal(8, SystemSpinner.Spokes);
+                    // The drawn spokes span the 10 pt (the video's thresholded bounding boxes are 11x10, 10x10, 10x10, 10x10).
+                    var ink = frame.Ink(box.Inflate(2), backdrop) ?? throw new Xunit.Sdk.XunitException($"no spinner is drawn in {theme}");
+                    Assert.InRange(ink.Right - ink.Left + 1, 9, 11);
+                    Assert.InRange(ink.Bottom - ink.Top + 1, 9, 11);
+                });
+            }
+        });
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-099")] // TimelineRows.swift:2072-2091 and :1658-1660: the status changes while the row is on screen; :1784 the photo override
     public void A_row_whose_call_changes_status_swaps_its_icon_in_place_from_the_spinner_to_the_cross_the_hand_and_the_kinds_glyph() => headless.OnUiThread(() =>
     {

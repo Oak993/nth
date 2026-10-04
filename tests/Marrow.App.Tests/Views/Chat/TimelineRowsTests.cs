@@ -4686,7 +4686,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // laid out and rendered headless in both themes, popovers opened by real clicks and read through PopoverHost.Content (OD-0095), each
 // new proof mutation checked; TimelineRowsBlitzAbToolTests, -UserTests, -FileCardTests, -CardTests, -BlockTests):
 // PR-CHAT-020, -078, -080, -082, -088, -092, -094, -098, -100, -101, -104, -109, -110, -111, -112, -114, -116.
-// Records: PR-CHAT-079; PR-CHAT-099; PR-CHAT-102; PR-CHAT-108; PR-CHAT-113; PR-CHAT-115.
+// Records: PR-CHAT-079; PR-CHAT-102; PR-CHAT-108; PR-CHAT-113; PR-CHAT-115.
 // Records: PR-CHAT-143; PR-CHAT-145.
 // Proven and removed from this note on 2026-10-04 under OD-0098 (unit blitz-timelinerows-ab, TimelineRowsBlitzAbMergeTests, -HeadTests,
 // -MergeSilentTests, -DelegationTests, -ReleaseTests; every state the Swift names mounted and rendered headless in both themes, each proof
@@ -4706,8 +4706,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // - PR-CHAT-115: the error notice is in a frame (2-chat-use.mov 9.0 s, "No message found ...") and its pill measures 33 points tall
 //   there against 31 in the port (the first-baseline row of an SF symbol against a Lucide one, ED-182 / O-63), with its corner
 //   ED-275's (a two-line notice is in ED-275 (2)'s band, OD-0102); info and warning, and the light theme, are proven under OD-0098.
-// - PR-CHAT-099: the running spinner is `.controlSize(.mini)`; no source value, no kit symbol (the macOS 27 kit has the small and the
-//   regular spinner only) and no frame gives its size, and the port draws the small one: OWNER. The other states are proven.
+// - PR-CHAT-099: PROVEN 2026-10-04 (unit rec-e1): the running spinner is `.controlSize(.mini)`, 10 x 10 pt in the 16 pt column, measured on
+//   2-chat-use.mov 145.0-145.6 s (the usage popover's own mini control, UsageViews.swift:22; crop 1894,1148,64x64: 10x10 px); the port draws it at
+//   that size at TimelineRows.swift:2077's site and at the three UsageViews .mini sites (TimelineRowsBlitzAbToolTests, UsageViewsMiniSpinnerTests).
 // - PR-CHAT-102, -113: record vs source (below). PR-CHAT-145: NATIVE-ONLY (the first tap's frame time).
 // Defects found and fixed by that unit: ChatBadge's pill was set to its radius directly and so would have stayed circular when the
 // ED-181 curve lands (now through the helper, as every other pill); TodoListRow built its update inside the snappy transaction
@@ -4807,18 +4808,17 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // ED-256 (5), corrected to cover link text); a favicon that lands after its bubble is on screen is drawn in
 // front of the link: InlineText's faviconRevision is real state and LinkParagraphView.Update runs updateNSView
 // (MarkdownView.swift:1077, :1114 at B3; LinkParagraphView.swift:36-58); a tool's detail and output wrap at the row's width,
-// the detail cut at its twelfth wrapped line with an ellipsis (:2121-2125, :2150-2155; ED (7); PR-CHAT-101 stays in this
-// note for its capture at 29, 30 and 31 lines). The Req tests of PR-CHAT-077 (the favicon in front of the link, a drawn
+// the detail cut at its twelfth wrapped line with an ellipsis (:2121-2125, :2150-2155; ED (7)). The Req tests of PR-CHAT-077 (the favicon in front of the link, a drawn
 // selection), PR-HYDRAMERGE-090 (a drawn selection in the generic report, a link paragraph included) and PR-CHAT-166 (the
 // notice, the tool's detail and output: a drawn selection) now prove those clauses; the head popover's five lines wrap
-// (R-TEST-4). Owed on the native app (ED (5), (7), (8)): the selection colour in link text on screen, a favicon appearing on a
-// host's first sight, a long tool detail's twelve lines.
+// (R-TEST-4). Owed on the native app (ED (5), (8)): the selection colour in link text on screen, a favicon appearing on a
+// host's first sight (a long tool detail's twelve lines: settled under OD-0098, ED (7)).
 // Round 5 fixes (2026-10-03): a report paragraph with a link is drawn at the report's 12 points: InlineText runs its body again
 // when an environment value it reads changes after it was built, and hands its link paragraph the new values in place
 // (MarkdownView.swift:1071-1075, :1094, :1114 at B3; LinkParagraphView.swift:36-58; ED (9)); the PR-HYDRAMERGE-090 Req tests
 // assert the drawn size of every text of the report, a link paragraph included, not the attached property. A tool detail cut at
-// a hard line break ends its twelfth line in an ellipsis too (ED (7), corrected; PR-CHAT-101 stays in this note: not claimed).
+// a hard line break ends its twelfth line in an ellipsis too (ED (7), corrected; settled under OD-0098, PR-CHAT-101).
 // The PR-CHAT-166 drag test hovers the link text at both of the record's sites (a sent bubble with a bare domain, a report
 // paragraph with a link): the pointing hand over the link, the I-beam over the prose, a drag on the prose. LinkTextView's dropped
 // measurement on a new string has its test (LinkParagraphViewTests). PR-CHAT-080 still waits for the ThreadTimeline merge (above).
-// Owed on the native app (ED (7)): a detail cut at a hard line break, whose ellipsis there is UNRESOLVED on the Mac.
+// ED (7), a detail cut at a hard line break: SETTLED under OD-0098 (the documented default .tail ellipsis ends the 12th line wherever lineLimit cuts).
