@@ -106,7 +106,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         (SettingsPage Page, string Type)[] shells =
         [
             (SettingsPage.Customization, "CustomizationSettingsPage"), (SettingsPage.VoiceTyping, "VoiceTypingSettingsPage"),
-            (SettingsPage.Updates, "UpdatesSettingsPage"), (SettingsPage.Plugins, "PluginsSettingsPage"), (SettingsPage.Skills, "SkillsSettingsPage"),
+            (SettingsPage.Plugins, "PluginsSettingsPage"), (SettingsPage.Skills, "SkillsSettingsPage"), // Updates is built since UE-4 (its IsReady is true: UpdatesSettingsPageTests)
         ];
         foreach (var (page, name) in shells)
         {
@@ -121,7 +121,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.True(typeof(Control).IsAssignableFrom(type));
         }
         Assert.All(SwiftEnum<SettingsPage>.AllCases.Where(page => !NewPages.Contains(page)), page => Assert.True(page.IsReady, page.Title));
-        Assert.Equal(UpstreamRaw, SettingsSidebar.Pages("").Select(page => page.Id));
+        Assert.Equal(WithUpdates(UpstreamRaw, "updates"), SettingsSidebar.Pages("").Select(page => page.Id));
     }
 
     [Fact]
@@ -163,17 +163,17 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     [Trait("Decision", "ED-251")] // hidden pages are absent from the real sidebar and from its search
     public void Hidden_pages_are_absent_from_the_sidebar_and_from_search() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
     {
-        Assert.Equal(UpstreamTitles, SettingsViewRig.RowTitles(sidebar));
-        foreach (var query in new[] { "glow", "customization", "voice typing", "dictation", "microphone", "updates", "version", "plugins", "skills", "install" })
+        Assert.Equal(WithUpdates(UpstreamTitles, "Updates"), SettingsViewRig.RowTitles(sidebar));
+        foreach (var query in new[] { "glow", "customization", "voice typing", "dictation", "microphone", "plugins", "skills", "install" })
         {
             SettingsViewRig.Search(sidebar, query);
             var titles = SettingsViewRig.RowTitles(sidebar);
-            Assert.DoesNotContain(titles, title => title is "Customization" or "Voice typing" or "Updates" or "Plugins" or "Skills");
+            Assert.DoesNotContain(titles, title => title is "Customization" or "Voice typing" or "Plugins" or "Skills");
         }
         SettingsViewRig.Search(sidebar, "glow");
         Assert.Empty(SettingsViewRig.RowTitles(sidebar));
         SettingsViewRig.Search(sidebar, "");
-        Assert.Equal(UpstreamTitles, SettingsViewRig.RowTitles(sidebar));
+        Assert.Equal(WithUpdates(UpstreamTitles, "Updates"), SettingsViewRig.RowTitles(sidebar));
     });
 
     [Fact]
@@ -184,7 +184,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         SettingsViewRig.Sync();
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
-        foreach (var hidden in NewPages)
+        foreach (var hidden in NewPages.Where(page => page != SettingsPage.Updates))
         {
             SettingsNavigation.Shared.RequestedPage = hidden;
             SettingsViewRig.Sync();
@@ -192,6 +192,14 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
         }
     });
+
+    // Updates takes the place of the Tools page, after Providers (the order of SettingsPage); its unit has made it ready (UE-4).
+    private static IEnumerable<string> WithUpdates(IEnumerable<string> upstream, string updates)
+    {
+        var list = upstream.ToList();
+        list.Insert(list.FindIndex(item => item is "providers" or "Providers") + 1, updates);
+        return list;
+    }
 
     private static string RepoRoot()
     {
