@@ -384,10 +384,9 @@ public sealed class UpdateReleaseSectionCards : Decorator
                 PlacementTarget = button,
                 IsLightDismissEnabled = true,
             };
-            // STOP opencode-proofs-aboutupdate #5 UI-UPDATE-015 (NATIVE-ONLY): the headless platform cannot open a Popup
-            // ("Unable to create IPopupImpl"), so the real open above the card, light dismissal by an outside press and the
-            // same-card re-click (a press on the open popover's own anchor first dismisses it, then the card's Click toggles
-            // presented again) need a real window; the ED-071 headless presenter only records the requests.
+            // UI-UPDATE-015: the real open above the card, light dismissal by an outside press and a press on the open popover's own card
+            // (which closes it and does not reopen it) are proven on a real popup: AboutUpdateViewsRealPopupTests (Avalonia's overlay host,
+            // real input) and AboutUpdateViewsNativeTests (a PopupRoot window, system pointer). STOP opencode-proofs-aboutupdate #5 is closed.
             popover.Opened += (_, _) => popover.Child = section is null
                 ? new Border()
                 : new UpdateReleaseSectionPopover(section, version).PresentedChrome();
