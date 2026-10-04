@@ -2415,3 +2415,92 @@ Unit CZ-2, the glass colour picker (OD-0099 Look Picks, Q-CZ-3 B). SOURCE: `port
 9. Not done: wiring the picker into the Customization page and the wells (the page files are outside this unit).
 
 10. Accessibility (unit/integ-cz1-cz2): the square, the hue strip, the opacity strip and the recent row each carry a name (`Saturation and brightness`, `Hue`, `Opacity`, `Recent colours`; the hex field's `Hex colour` is the design's own); the two strips are sliders with a range, a small and a large change and value text (`n degrees`, `n %`), and a screen reader's set-value is a committed edit. The design names only its hex field; the rest follows CZ-15 (every control has a name; a slider has range and value text).
+
+## ED-NEW-f-sk-9
+
+ENGINEERING DECISIONS, 2026-10-04, feature SK-9 / DL-9. Authority: BUILD-PLAN 2.5 SK-9;
+ONDEMAND 1, 2.3, 4.1/4.4, DL-9; PLAN 1.4, 2.1-2.4, 2.7, WU-4/5/14/21; OD-0099 amendments.
+No ledger statuses are changed. SK-5 production code and its tests remain untouched.
+
+1. **Plugin activation.** Adopt BUILD-PLAN's proposal: downloaded plugin hooks and MCP servers
+   are off until the user switches that plugin on. An individual skill switch never activates
+   plugin commands, agents, hooks or MCP. Whole plugin contents are copied only for Claude and
+   Grok, and only for activated plugin folders. Other providers receive only selected skill
+   folders. Whole-plugin copying still omits disabled, filtered, clashing and budget-excluded
+   skill subtrees: the owner's installed-and-enabled rule takes priority. A set containing
+   multiple plugins discovers their roots from the *pinned* plugin manifest paths; folder
+   activation is source-qualified (`itemId/pluginRoot`). A deliberate item-level activation
+   can select the set, with folder switches overriding it. `PluginFolders` returns additional
+   absolute roots; SK-11 must pass each separately with its documented plugin-loading flag.
+   Vendor plugin manifests and every copied vendor byte remain unmodified. Live compatibility
+   of each vendor plugin format is SK-11/DL-20's check, not established by folder tests.
+2. **Reviewed metadata, defaults and budgets.** SK-1's current catalogue schema does not yet
+   hold descriptions, group membership, priorities, external-access defaults or provider
+   budget measurements. Services accepts explicit reviewed `GenerationSkill` metadata tied
+   to the installed pin's catalogue names/paths. Name and description must also match its
+   hash-verified frontmatter. Group membership, priority and whether a key/login/internet is
+   required are mandatory inputs, never inferred from names or from a missing dependency.
+   Q-SKILLS-1 A's six groups are on unless external access is required; A3/A4/O5 are off.
+   Missing runtime tools do not disable an otherwise enabled skill. The caller supplies
+   measured character budgets for all offered models; `ForModels` selects the minimum.
+   Unknown/zero budgets and absent reliable clash snapshots fail closed. SK-2/SK-13 supplies
+   the reviewed metadata; SK-11/DL-20 supplies live budget measurements and resolved config
+   paths. No provider context size or YAML metadata is invented.
+3. **Persistent switches and identity.** `enabled.json` contains a release version and two
+   source-qualified switch maps, for skills and plugin folders; new skills use their reviewed
+   defaults, removed entries are dropped by reconciliation, existing switches carry over.
+   Plugins default off. Equal names from different vendors do not share a switch. PLAN 1.4
+   chooses Anthropic's skill-creator for Claude/Grok, OpenAI's for other providers, and neither
+   for Codex. Remaining same-name vendor candidates are selected deterministically by
+   default-on rank, manifest priority, then source-qualified id. Content keys hash the release,
+   selected source/skill ids and installed pins, and activated plugin-folder ids and pins.
+   They do not include chat, project or selected model. `generation.json` is generated internal
+   inventory metadata, not a disk trust root; it permits an empty generation to be verified
+   by SK-5 without loosening StoreManifest's nonempty-inventory invariant. `chat-paths.json`
+   records moved chat folder names; strict provider/chat/nonce validation keeps it from
+   becoming authority to access or delete outside the managed views.
+4. **Atomic publication with the frozen SK-5 API.** Before publishing, acquire a SK-5 lease on
+   a locked, trusted one-file bootstrap at the final pathname, and another at `tmp-<nonce>`.
+   Populate tmp while its lease prevents GC; remove only the owned final bootstrap while its
+   pathname lease remains held; atomically rename the complete tmp to that pathname, lock,
+   then whole-tree verify before returning the final lease. Thus direct SkillsStore.Collect
+   also cannot remove the target in the rename-to-acquire window. Initial bootstrap creation
+   races fail closed; a bootstrap is never handed to a session. Sources are whole-tree
+   verified and leased during composition, and copied bytes are rehashed before use. A live
+   generation stays frozen until disposal; current switches apply to new/resumed chats.
+   Spares are leased, claimed by rename, repaired when damaged, replenished in background
+   work outside the coordinator gate (below-normal priority on Windows), and bounded to the
+   global key and keys of the five recent chats, plus the current composer preparation.
+   Dispose waits for pending copies outside the gate. Read-only listing probes share one
+   leased generation with reference counting; sessions get their own paths. Generation
+   invocation checks the whole tree and the returned file bytes again. SK-5 handles removal
+   and unlock ordering; platform protection defaults to real Windows protection and refuses
+   operation on Linux unless an explicit test double is injected.
+5. **Unmodified explicit-only skills.** ONDEMAND 1 supersedes the earlier vendor patches in
+   PLAN 1.2. Native/Marrow-side invocation can keep explicit-only text out of its catalogue.
+   A file-loading provider may receive an explicit-only skill only if its pinned frontmatter
+   already says `disable-model-invocation: true`; otherwise the skill is omitted and reported
+   in `LeftOut`. No patch is synthesized and no implicit invocation is silently enabled.
+   Grok, Command Code, Copilot and OpenCode still receive no explicit-only skill until the
+   plan's live checks authorize them. Codex's own review-agent is not republished.
+6. **Read-only scans and closed seams.** Every scan gets explicit home/project/repository
+   roots; there is no ambient home lookup, network, process or auth-file access. Native own
+   skills are not even enumerated until Q17's switch is on. Provider config resolution and
+   registered/plugin/runtime folders not documented enough to discover safely are supplied
+   as resolved extra roots/reported entries by SK-11. Grok's documented paths arrays are read
+   directly, with comments handled. Unsupported TOML/YAML, substitutions and reparse points
+   refuse the scan rather than masquerading as no clash. Repeated folder/report entries are
+   conservatively counted in the budget: without source/path identity, collapsing same-name
+   user skills could undercount distinct copies. The user's description is never shortened.
+7. **Test evidence and scope.** All fixtures are Marrow-authored; no vendor text, CLI or user
+   data is used. Native ACL/junction/held-handle tests are WINDOWS-ONLY with explicit Linux
+   skip reasons and the shared SK-5 unlock teardown. The initial budget fixture was corrected
+   from 1700 to 1720 *before a behavioral implementation failure*: its 1507-character user
+   entry plus 10% margin left 23 characters at 1700, too little for either 25-character entry;
+   1720 leaves 41 and tests exactly one kept/one dropped. No assertion was weakened. Per-method
+   Feature/Rule traits were made explicit and xUnit's required collection assertion form was
+   used. Provider launch wiring, Settings integration, actual install-event registry refresh,
+   and the Windows 150 ms / first-read timings belong to the following units/live run and are
+   not claimed by this cloud component's offline tests. In particular SK-5 freezes its installed
+   descriptor inventory at construction; SK-13 must refresh that inventory under its single-owner
+   lifecycle when an installation adds a new id. SK-9 never treats an unregistered id as installed.
