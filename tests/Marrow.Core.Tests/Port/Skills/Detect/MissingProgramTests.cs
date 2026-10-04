@@ -69,6 +69,9 @@ public sealed class MissingProgramTests
         Assert.Empty(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("node -v; frobnicate x", 1, PowerShellEchoRecorded, false)).Findings);
         var soffice = PowerShellEchoRecorded.Replace("frobnicate x", "soffice a.docx", StringComparison.Ordinal).Replace("frobnicate", "soffice", StringComparison.Ordinal);
         Assert.Equal(["T3"], DetectFixtures.Offered(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("node -v; soffice a.docx", 1, soffice, false))));
+        // Recorded too: a long target is shortened in the CategoryInfo, keeping its last characters, so a full path still ends in the program.
+        const string path = "& : The term 'C:\\Program Files\\LibreOffice\\program\\soffice.exe' is not recognized as the name of a cmdlet, function, \r\nscript file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is \r\ncorrect and try again.\r\nAt line:1 char:3\r\n+ & 'C:\\Program Files\\LibreOffice\\program\\soffice.exe' --headless a.doc ...\r\n+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (C:\\Program File...ram\\soffice.exe:String) [], CommandNotFoundException\r\n    + FullyQualifiedErrorId : CommandNotFoundException\r\n \r\n";
+        Assert.Equal(["T3"], DetectFixtures.Offered(DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("& 'C:\\Program Files\\LibreOffice\\program\\soffice.exe' --headless a.docx", 1, path, false))));
     }
 
     [Fact]

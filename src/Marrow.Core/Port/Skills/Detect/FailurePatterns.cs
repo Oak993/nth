@@ -12,6 +12,9 @@ internal static partial class FailurePatterns
     // cmd's English sentence. The process exit code of cmd /c is 1 here, not 9009 (recorded on Windows 11 10.0.26200; ED-NEW-f-sk-10 review addendum).
     [GeneratedRegex(@"'(?<name>[^'\r\n]+)' is not recognized as an internal or external command")] private static partial Regex CmdNotRecognized();
 
+    // "+ CategoryInfo : ObjectNotFound: (frobnicate:String) [], CommandNotFoundException" (recorded, Windows PowerShell 5.1; the category and the type are identifiers).
+    [GeneratedRegex(@"ObjectNotFound: \((?<name>[^\r\n]+?):String\) \[\], CommandNotFoundException")] private static partial Regex PowerShellCategory();
+
     [GeneratedRegex(@"No module named ['""]?(?<name>[A-Za-z0-9_][A-Za-z0-9_.]*)")] private static partial Regex PythonModule();
 
     [GeneratedRegex(@"Cannot find (?:module|package) ['""](?<name>[^'""]+)['""]")] private static partial Regex NodeModule();
@@ -34,7 +37,11 @@ internal static partial class FailurePatterns
         var named = new HashSet<string>(StringComparer.Ordinal);
         if (!Failed(finished)) return named;
         var output = finished.Output;
-        if (finished.ExitCode == 9009 || output.Contains("CommandNotFoundException", StringComparison.Ordinal))
+        // Windows PowerShell's error record names the program in its CategoryInfo and also echoes the source line, so when that line is there only its names count.
+        var categories = PowerShellCategory().Matches(output);
+        if (categories.Count > 0)
+            foreach (Match match in categories) named.Add(CommandTokenizer.NormalizeProgram(match.Groups["name"].Value.Trim('\'', '"')));
+        else if (finished.ExitCode == 9009 || output.Contains("CommandNotFoundException", StringComparison.Ordinal))
         {
             foreach (var word in WordBreak().Split(output))
             {
