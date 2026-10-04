@@ -14,7 +14,21 @@
   {
     "name": "droppy-logo",
     "intent": "original",
+    "deviation": "OD-0015",
+    "deviationNote": "The Swift lookup key stays; the shipped files are the Marrow icon (icon.svg cropped to its tile, rendered at 256 and 512 px), not the upstream Droppy Code logo PNGs. The upstream files are recorded below and are not shipped.",
     "files": [
+      {
+        "filename": "marrow-icon.png",
+        "scale": "1x",
+        "sha256": "D4279B634D5EA3B7B26CCD09423607C8F7C6371D691387A4FA4AE7BC8CF6B42D"
+      },
+      {
+        "filename": "marrow-icon@2x.png",
+        "scale": "2x",
+        "sha256": "CD7FDBE9EF2FD3655F09AF8200C60D2F6EA2A09EC6A3D8CBA8722FDBA78067E9"
+      }
+    ],
+    "upstreamFiles": [
       {
         "filename": "droppy-logo.png",
         "scale": "1x",
@@ -26,7 +40,7 @@
         "sha256": "467897A05E5B29238EE4DF44E38EB130FB7BDF93A9D0ACEC38F342AFDF1C242C"
       }
     ],
-    "contentsSha256": "9B7B5097BD58E2B64DF37D240EF98467168925737B702B653E5575E7E7497034"
+    "upstreamContentsSha256": "9B7B5097BD58E2B64DF37D240EF98467168925737B702B653E5575E7E7497034"
   },
   {
     "name": "hydra-head-01",

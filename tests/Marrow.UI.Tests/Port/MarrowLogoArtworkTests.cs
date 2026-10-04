@@ -63,7 +63,7 @@ public sealed class MarrowLogoArtworkTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "OD-0015")]
+    [Trait("Decision", "ED-215")] // OD-0015: the owner-ruled Marrow icon replaces the Droppy logo
     public void The_logo_the_views_ask_for_by_its_Swift_name_is_the_Marrow_icon_at_1x_and_2x() => headless.OnUiThread(() =>
     {
         var logo = SwiftImage.Named("droppy-logo");
@@ -76,7 +76,7 @@ public sealed class MarrowLogoArtworkTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "OD-0015")]
+    [Trait("Decision", "ED-215")] // OD-0015: the owner-ruled Marrow icon replaces the Droppy logo
     public void No_Droppy_logo_file_is_shipped_and_the_shipped_logo_files_are_not_the_Droppy_bytes() => headless.OnUiThread(() =>
     {
         foreach (var name in new[] { "droppy-logo.png", "droppy-logo@2x.png" })
