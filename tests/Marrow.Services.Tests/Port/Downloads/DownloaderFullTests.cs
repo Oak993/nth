@@ -130,6 +130,35 @@ public sealed class DownloaderFullTests
     [Fact]
     [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "SK-3")]
+    public async Task A_destination_another_handle_holds_is_a_disk_error_that_keeps_the_verified_partial_for_the_next_run()
+    {
+        // WINDOWS-ONLY in effect (Windows review): Windows will not replace a file a reader holds without delete sharing (a model being read, a
+        // scanner); elsewhere the replace succeeds at once. The verified bytes are not lost: the next run moves them with no request.
+        await using var rig = new DownloadRig();
+        rig.Server.Serve("/a.bin", Artifact);
+        var request = rig.Request("/a.bin", Artifact);
+        Directory.CreateDirectory(Path.GetDirectoryName(request.DestinationPath)!);
+        await File.WriteAllTextAsync(request.DestinationPath, "older");
+
+        DownloadOutcome held;
+        using (new FileStream(request.DestinationPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            held = await rig.Run(request);
+        var next = await rig.Run(request);
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal((DownloadFailureKind.DiskError, DownloadMessages.DiskError), (held.Failure!.Kind, held.Failure.Message));
+            Assert.Equal(1, rig.Counting.Sent); // the next run found the complete partial and verified it where it lay
+            Assert.Equal(Artifact.Length, Assert.Single(next.Files).ResumedFrom);
+        }
+        Assert.True(next.Succeeded);
+        Assert.Equal(Artifact.Bytes, await File.ReadAllBytesAsync(request.DestinationPath));
+        Assert.Empty(Directory.GetFiles(rig.PartFolder));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Feature", "SK-3")]
     public async Task The_pinned_hash_is_accepted_in_either_case()
     {
         await using var rig = new DownloadRig();
