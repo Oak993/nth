@@ -1,0 +1,4225 @@
+{
+ "chrome": "154.0.8037.93",
+ "window": {
+  "width": 960,
+  "height": 680,
+  "sidebar": 250
+ },
+ "dark": {
+  "frames": {
+   "start": {
+    "t": 0.001,
+    "h": 0,
+    "p": 0.0033,
+    "sheet": {
+     "x": 375,
+     "y": 0,
+     "w": 460,
+     "h": 224.25
+    },
+    "title": {
+     "x": 401,
+     "y": 44,
+     "w": 408,
+     "h": 26
+    },
+    "sub": {
+     "x": 401,
+     "y": 74,
+     "w": 408,
+     "h": 16.25
+    },
+    "list": {
+     "x": 401,
+     "y": 104.25,
+     "w": 408,
+     "h": 78
+    },
+    "bar": {
+     "x": 401,
+     "y": 198.25,
+     "w": 408,
+     "h": 4
+    },
+    "barFill": {
+     "x": 401,
+     "y": 198.25,
+     "w": 1.34637451171875,
+     "h": 4
+    },
+    "rows": [
+     {
+      "id": "gpu",
+      "st": "run",
+      "box": {
+       "x": 401,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 108.796875,
+       "w": 72.078125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Graphics card",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "knob",
+      "st": "wait",
+      "box": {
+       "x": 615,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 108.796875,
+       "w": 90.6875,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Effort slider knob",
+      "color": "rgba(255, 255, 255, 0.45)"
+     },
+     {
+      "id": "lights",
+      "st": "wait",
+      "box": {
+       "x": 401,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 134.796875,
+       "w": 81.453125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Composer light",
+      "color": "rgba(255, 255, 255, 0.45)"
+     },
+     {
+      "id": "liquid",
+      "st": "wait",
+      "box": {
+       "x": 615,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 134.796875,
+       "w": 62.640625,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Slider liquid",
+      "color": "rgba(255, 255, 255, 0.45)"
+     },
+     {
+      "id": "strike",
+      "st": "wait",
+      "box": {
+       "x": 401,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 160.796875,
+       "w": 105.296875,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Fast mode lightning",
+      "color": "rgba(255, 255, 255, 0.45)"
+     },
+     {
+      "id": "hw",
+      "st": "wait",
+      "box": {
+       "x": 615,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 160.796875,
+       "w": 81.09375,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Voice hardware",
+      "color": "rgba(255, 255, 255, 0.45)"
+     },
+     {
+      "id": "dl",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice model",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "test",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice speed test",
+      "color": "rgb(255, 255, 255)"
+     }
+    ],
+    "sheetStyle": {
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "opacity": "1"
+    },
+    "paneStyle": {
+     "filter": "blur(9px) saturate(0.6)",
+     "opacity": "0.45"
+    },
+    "titleText": "Getting ready",
+    "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+   },
+   "middle": {
+    "t": 0.4,
+    "h": 0,
+    "p": 0.619,
+    "sheet": {
+     "x": 375,
+     "y": 0,
+     "w": 460,
+     "h": 224.25
+    },
+    "title": {
+     "x": 401,
+     "y": 44,
+     "w": 408,
+     "h": 26
+    },
+    "sub": {
+     "x": 401,
+     "y": 74,
+     "w": 408,
+     "h": 16.25
+    },
+    "list": {
+     "x": 401,
+     "y": 104.25,
+     "w": 408,
+     "h": 78
+    },
+    "bar": {
+     "x": 401,
+     "y": 198.25,
+     "w": 408,
+     "h": 4
+    },
+    "barFill": {
+     "x": 401,
+     "y": 198.25,
+     "w": 252.552001953125,
+     "h": 4
+    },
+    "rows": [
+     {
+      "id": "gpu",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 108.796875,
+       "w": 72.078125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Graphics card",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "knob",
+      "st": "done",
+      "box": {
+       "x": 615,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 108.796875,
+       "w": 90.6875,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Effort slider knob",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "lights",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 134.796875,
+       "w": 81.453125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Composer light",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "liquid",
+      "st": "run",
+      "box": {
+       "x": 615,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 134.796875,
+       "w": 62.640625,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Slider liquid",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "strike",
+      "st": "wait",
+      "box": {
+       "x": 401,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 160.796875,
+       "w": 105.296875,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Fast mode lightning",
+      "color": "rgba(255, 255, 255, 0.45)"
+     },
+     {
+      "id": "hw",
+      "st": "wait",
+      "box": {
+       "x": 615,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 160.796875,
+       "w": 81.09375,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Voice hardware",
+      "color": "rgba(255, 255, 255, 0.45)"
+     },
+     {
+      "id": "dl",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice model",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "test",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice speed test",
+      "color": "rgb(255, 255, 255)"
+     }
+    ],
+    "sheetStyle": {
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "opacity": "1"
+    },
+    "paneStyle": {
+     "filter": "blur(9px) saturate(0.6)",
+     "opacity": "0.45"
+    },
+    "titleText": "Getting ready",
+    "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+   },
+   "workEnd": {
+    "t": 0.63,
+    "h": 0,
+    "p": 1,
+    "sheet": {
+     "x": 375,
+     "y": 0,
+     "w": 460,
+     "h": 224.25
+    },
+    "title": {
+     "x": 401,
+     "y": 44,
+     "w": 408,
+     "h": 26
+    },
+    "sub": {
+     "x": 401,
+     "y": 74,
+     "w": 408,
+     "h": 16.25
+    },
+    "list": {
+     "x": 401,
+     "y": 104.25,
+     "w": 408,
+     "h": 78
+    },
+    "bar": {
+     "x": 401,
+     "y": 198.25,
+     "w": 408,
+     "h": 4
+    },
+    "barFill": {
+     "x": 401,
+     "y": 198.25,
+     "w": 408,
+     "h": 4
+    },
+    "rows": [
+     {
+      "id": "gpu",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 108.796875,
+       "w": 72.078125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Graphics card",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "knob",
+      "st": "done",
+      "box": {
+       "x": 615,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 108.796875,
+       "w": 90.6875,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Effort slider knob",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "lights",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 134.796875,
+       "w": 81.453125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Composer light",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "liquid",
+      "st": "done",
+      "box": {
+       "x": 615,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 134.796875,
+       "w": 62.640625,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Slider liquid",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "strike",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 160.796875,
+       "w": 105.296875,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Fast mode lightning",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "hw",
+      "st": "done",
+      "box": {
+       "x": 615,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 160.796875,
+       "w": 81.09375,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Voice hardware",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "dl",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice model",
+      "color": "rgb(255, 255, 255)"
+     },
+     {
+      "id": "test",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice speed test",
+      "color": "rgb(255, 255, 255)"
+     }
+    ],
+    "sheetStyle": {
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "opacity": "1"
+    },
+    "paneStyle": {
+     "filter": "blur(9px) saturate(0.6)",
+     "opacity": "0.45"
+    },
+    "titleText": "Getting ready",
+    "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+   },
+   "hand": [
+    {
+     "t": 0.78,
+     "h": 0,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": 0,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": 44,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 74,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 104.25,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 198.25,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 198.25,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, 0)",
+      "opacity": "1"
+     },
+     "paneStyle": {
+      "filter": "blur(9px) saturate(0.6)",
+      "opacity": "0.45"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 0.8350000000000001,
+     "h": 0.0005,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -0.22698974609375,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": 43.77301025390625,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 73.77301025390625,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 104.02301025390625,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 198.02301025390625,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 198.02301025390625,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -0.227009)",
+      "opacity": "0.999464"
+     },
+     "paneStyle": {
+      "filter": "blur(8.99196px) saturate(0.600357)",
+      "opacity": "0.450491"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 0.89,
+     "h": 0.004,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -1.81610107421875,
+      "w": 460,
+      "h": 224.25006103515625
+     },
+     "title": {
+      "x": 401,
+      "y": 42.1839599609375,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 72.1839599609375,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 102.4339599609375,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 196.4339599609375,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 196.4339599609375,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -1.81607)",
+      "opacity": "0.995714"
+     },
+     "paneStyle": {
+      "filter": "blur(8.93571px) saturate(0.602857)",
+      "opacity": "0.453929"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 0.9450000000000001,
+     "h": 0.0135,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -6.12921142578125,
+      "w": 460,
+      "h": 224.24993896484375
+     },
+     "title": {
+      "x": 401,
+      "y": 37.8707275390625,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 67.8707275390625,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 98.1207275390625,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 192.1207275390625,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 192.1207275390625,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -6.12924)",
+      "opacity": "0.985536"
+     },
+     "paneStyle": {
+      "filter": "blur(8.78304px) saturate(0.609643)",
+      "opacity": "0.463259"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1,
+     "h": 0.032,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -14.528564453125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": 29.471435546875,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 59.471435546875,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 89.721435546875,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 183.721435546875,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 183.721435546875,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -14.5286)",
+      "opacity": "0.965714"
+     },
+     "paneStyle": {
+      "filter": "blur(8.48571px) saturate(0.622857)",
+      "opacity": "0.481429"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.0550000000000002,
+     "h": 0.0625,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -28.3760986328125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": 15.6239013671875,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 45.6239013671875,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 75.8739013671875,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 169.8739013671875,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 169.8739013671875,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -28.3761)",
+      "opacity": "0.933036"
+     },
+     "paneStyle": {
+      "filter": "blur(7.99554px) saturate(0.644643)",
+      "opacity": "0.511384"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.11,
+     "h": 0.108,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -49.033935546875,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -5.033935546875,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 24.966064453125,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 55.216064453125,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 149.216064453125,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 149.216064453125,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -49.0339)",
+      "opacity": "0.884286"
+     },
+     "paneStyle": {
+      "filter": "blur(7.26429px) saturate(0.677143)",
+      "opacity": "0.556071"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.165,
+     "h": 0.1715,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -77.86407470703125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -33.86407470703125,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -3.86407470703125,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 26.38592529296875,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 120.38592529296875,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 120.38592529296875,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -77.8641)",
+      "opacity": "0.81625"
+     },
+     "paneStyle": {
+      "filter": "blur(6.24375px) saturate(0.7225)",
+      "opacity": "0.618438"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.2200000000000002,
+     "h": 0.256,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -116.22857666015625,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -72.22857666015625,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -42.22857666015625,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -11.97857666015625,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 82.02142333984375,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 82.02142333984375,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -116.229)",
+      "opacity": "0.725714"
+     },
+     "paneStyle": {
+      "filter": "blur(4.88571px) saturate(0.782857)",
+      "opacity": "0.701429"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.275,
+     "h": 0.3645,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -165.489501953125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -121.489501953125,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -91.489501953125,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -61.239501953125,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 32.760498046875,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 32.760498046875,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -165.49)",
+      "opacity": "0.609464"
+     },
+     "paneStyle": {
+      "filter": "blur(3.14196px) saturate(0.860357)",
+      "opacity": "0.807991"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.33,
+     "h": 0.5,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -227.0089111328125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -183.0089111328125,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -153.0089111328125,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -122.7589111328125,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -28.7589111328125,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -28.7589111328125,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -227.009)",
+      "opacity": "0.464286"
+     },
+     "paneStyle": {
+      "filter": "blur(0.964286px) saturate(0.957143)",
+      "opacity": "0.941071"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.3850000000000002,
+     "h": 0.6355,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.44,
+     "h": 0.744,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.495,
+     "h": 0.8285,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.5500000000000003,
+     "h": 0.892,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.605,
+     "h": 0.9375,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.6600000000000001,
+     "h": 0.968,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.7150000000000003,
+     "h": 0.9865,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.77,
+     "h": 0.996,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.8250000000000002,
+     "h": 0.9995,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.8800000000000001,
+     "h": 1,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    }
+   ]
+  },
+  "css": {
+   "vars": {
+    "--glass": "rgba(255,255,255,.07)",
+    "--glassE": "rgba(255,255,255,.16)",
+    "--glassHi": "rgba(255,255,255,.18)",
+    "--gshadow": "0 18px 40px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.16)",
+    "--tx": "#FFFFFF",
+    "--tx2": "rgba(255,255,255,.7)",
+    "--tx3": "rgba(255,255,255,.45)",
+    "--acc": "#2C86E3",
+    "--good": "#30D158",
+    "--ov10": "rgba(255,255,255,.10)",
+    "--spk": "#FFFFFF"
+   },
+   "sheet": {
+    "paddingTop": "44px",
+    "paddingRight": "26px",
+    "paddingBottom": "22px",
+    "paddingLeft": "26px",
+    "borderBottomLeftRadius": "18px",
+    "borderBottomRightRadius": "18px",
+    "borderTopLeftRadius": "0px",
+    "backdropFilter": "blur(30px) saturate(1.7)",
+    "boxShadow": "rgba(255, 255, 255, 0.16) 0px 0px 0px 1px inset, rgba(255, 255, 255, 0.18) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.28) 0px 18px 40px 0px, rgba(0, 0, 0, 0.16) 0px 2px 6px 0px",
+    "backgroundColor": "rgba(255, 255, 255, 0.07)"
+   },
+   "title": {
+    "fontFamily": "\"Segoe UI Variable Display\", \"Segoe UI\", system-ui, sans-serif",
+    "fontSize": "20px",
+    "lineHeight": "26px",
+    "fontWeight": "600",
+    "letterSpacing": "-0.1px"
+   },
+   "sub": {
+    "fontSize": "12.5px",
+    "lineHeight": "16.25px",
+    "color": "rgba(255, 255, 255, 0.7)",
+    "marginTop": "4px",
+    "marginBottom": "14px"
+   },
+   "list": {
+    "gridTemplateColumns": "194px 194px",
+    "columnGap": "20px",
+    "marginBottom": "16px"
+   },
+   "row": {
+    "height": "26px",
+    "gap": "8px",
+    "transition": "none",
+    "display": "flex",
+    "alignItems": "center"
+   },
+   "rowLabel": {
+    "fontSize": "12px",
+    "fontWeight": "400",
+    "lineHeight": "15.6px"
+   },
+   "glyph": {
+    "width": "14px",
+    "height": "14px",
+    "strokeWidth": "1.3px"
+   },
+   "mark": {
+    "width": "16px",
+    "height": "16px"
+   },
+   "markChildren": [
+    {
+     "cls": "spn ",
+     "transition": "none"
+    },
+    {
+     "cls": "ck",
+     "transition": "none"
+    },
+    {
+     "cls": "wt",
+     "transition": "none"
+    }
+   ],
+   "bar": {
+    "height": "4px",
+    "borderRadius": "2px",
+    "backgroundColor": "rgba(255, 255, 255, 0.1)"
+   },
+   "barFill": {
+    "transition": "none",
+    "backgroundColor": "rgb(44, 134, 227)",
+    "transformOrigin": "0px 2px"
+   },
+   "spinnerSpoke": {
+    "width": "2px",
+    "height": "5px",
+    "left": "7px",
+    "top": "0px",
+    "transformOrigin": "1px 8px"
+   },
+   "spinner": {
+    "width": "16px",
+    "height": "16px",
+    "animationDuration": "0s",
+    "animationTimingFunction": "ease"
+   },
+   "check": {
+    "width": "16px",
+    "height": "16px"
+   }
+  },
+  "motion": {
+   "row": "color 0.3s",
+   "mark": [
+    {
+     "cls": "spn",
+     "transition": "opacity 0.25s, transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)"
+    },
+    {
+     "cls": "ck",
+     "transition": "opacity 0.25s, transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)"
+    },
+    {
+     "cls": "wt",
+     "transition": "opacity 0.25s, transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)"
+    }
+   ],
+   "barFill": "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+   "spinnerAnimation": "1s steps(8) infinite grspin",
+   "titleStack": null
+  },
+  "plan": {
+   "HAND": 1.1,
+   "HOLD": 0.15,
+   "workEnd": 0.63,
+   "handStart": 0.78
+  }
+ },
+ "words": {
+  "W1": {
+   "name": "Plain",
+   "title": "Getting ready",
+   "sub": "Marrow is preparing its graphics and voice for this PC. This happens once.",
+   "steps": [
+    "Graphics card",
+    "Effort slider knob",
+    "Composer light",
+    "Slider liquid",
+    "Fast mode lightning",
+    "Voice hardware",
+    "Voice model",
+    "Voice speed test"
+   ],
+   "run": "Preparing",
+   "done": "Ready"
+  },
+  "steps": [
+   "gpu",
+   "knob",
+   "lights",
+   "liquid",
+   "strike",
+   "hw",
+   "dl",
+   "test"
+  ],
+  "screenSteps": [
+   "gpu",
+   "knob",
+   "lights",
+   "liquid",
+   "strike",
+   "hw"
+  ]
+ },
+ "light": {
+  "frames": {
+   "start": {
+    "t": 0.001,
+    "h": 0,
+    "p": 0.0033,
+    "sheet": {
+     "x": 375,
+     "y": 0,
+     "w": 460,
+     "h": 224.25
+    },
+    "title": {
+     "x": 401,
+     "y": 44,
+     "w": 408,
+     "h": 26
+    },
+    "sub": {
+     "x": 401,
+     "y": 74,
+     "w": 408,
+     "h": 16.25
+    },
+    "list": {
+     "x": 401,
+     "y": 104.25,
+     "w": 408,
+     "h": 78
+    },
+    "bar": {
+     "x": 401,
+     "y": 198.25,
+     "w": 408,
+     "h": 4
+    },
+    "barFill": {
+     "x": 401,
+     "y": 198.25,
+     "w": 1.34637451171875,
+     "h": 4
+    },
+    "rows": [
+     {
+      "id": "gpu",
+      "st": "run",
+      "box": {
+       "x": 401,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 108.796875,
+       "w": 72.078125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Graphics card",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "knob",
+      "st": "wait",
+      "box": {
+       "x": 615,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 108.796875,
+       "w": 90.6875,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Effort slider knob",
+      "color": "rgba(0, 0, 0, 0.42)"
+     },
+     {
+      "id": "lights",
+      "st": "wait",
+      "box": {
+       "x": 401,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 134.796875,
+       "w": 81.453125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Composer light",
+      "color": "rgba(0, 0, 0, 0.42)"
+     },
+     {
+      "id": "liquid",
+      "st": "wait",
+      "box": {
+       "x": 615,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 134.796875,
+       "w": 62.640625,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Slider liquid",
+      "color": "rgba(0, 0, 0, 0.42)"
+     },
+     {
+      "id": "strike",
+      "st": "wait",
+      "box": {
+       "x": 401,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 160.796875,
+       "w": 105.296875,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Fast mode lightning",
+      "color": "rgba(0, 0, 0, 0.42)"
+     },
+     {
+      "id": "hw",
+      "st": "wait",
+      "box": {
+       "x": 615,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 160.796875,
+       "w": 81.09375,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Voice hardware",
+      "color": "rgba(0, 0, 0, 0.42)"
+     },
+     {
+      "id": "dl",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice model",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "test",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice speed test",
+      "color": "rgba(0, 0, 0, 0.9)"
+     }
+    ],
+    "sheetStyle": {
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "opacity": "1"
+    },
+    "paneStyle": {
+     "filter": "blur(9px) saturate(0.6)",
+     "opacity": "0.45"
+    },
+    "titleText": "Getting ready",
+    "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+   },
+   "middle": {
+    "t": 0.4,
+    "h": 0,
+    "p": 0.619,
+    "sheet": {
+     "x": 375,
+     "y": 0,
+     "w": 460,
+     "h": 224.25
+    },
+    "title": {
+     "x": 401,
+     "y": 44,
+     "w": 408,
+     "h": 26
+    },
+    "sub": {
+     "x": 401,
+     "y": 74,
+     "w": 408,
+     "h": 16.25
+    },
+    "list": {
+     "x": 401,
+     "y": 104.25,
+     "w": 408,
+     "h": 78
+    },
+    "bar": {
+     "x": 401,
+     "y": 198.25,
+     "w": 408,
+     "h": 4
+    },
+    "barFill": {
+     "x": 401,
+     "y": 198.25,
+     "w": 252.552001953125,
+     "h": 4
+    },
+    "rows": [
+     {
+      "id": "gpu",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 108.796875,
+       "w": 72.078125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Graphics card",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "knob",
+      "st": "done",
+      "box": {
+       "x": 615,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 108.796875,
+       "w": 90.6875,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Effort slider knob",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "lights",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 134.796875,
+       "w": 81.453125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Composer light",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "liquid",
+      "st": "run",
+      "box": {
+       "x": 615,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 134.796875,
+       "w": 62.640625,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Slider liquid",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "strike",
+      "st": "wait",
+      "box": {
+       "x": 401,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 160.796875,
+       "w": 105.296875,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Fast mode lightning",
+      "color": "rgba(0, 0, 0, 0.42)"
+     },
+     {
+      "id": "hw",
+      "st": "wait",
+      "box": {
+       "x": 615,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 160.796875,
+       "w": 81.09375,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Voice hardware",
+      "color": "rgba(0, 0, 0, 0.42)"
+     },
+     {
+      "id": "dl",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice model",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "test",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice speed test",
+      "color": "rgba(0, 0, 0, 0.9)"
+     }
+    ],
+    "sheetStyle": {
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "opacity": "1"
+    },
+    "paneStyle": {
+     "filter": "blur(9px) saturate(0.6)",
+     "opacity": "0.45"
+    },
+    "titleText": "Getting ready",
+    "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+   },
+   "workEnd": {
+    "t": 0.63,
+    "h": 0,
+    "p": 1,
+    "sheet": {
+     "x": 375,
+     "y": 0,
+     "w": 460,
+     "h": 224.25
+    },
+    "title": {
+     "x": 401,
+     "y": 44,
+     "w": 408,
+     "h": 26
+    },
+    "sub": {
+     "x": 401,
+     "y": 74,
+     "w": 408,
+     "h": 16.25
+    },
+    "list": {
+     "x": 401,
+     "y": 104.25,
+     "w": 408,
+     "h": 78
+    },
+    "bar": {
+     "x": 401,
+     "y": 198.25,
+     "w": 408,
+     "h": 4
+    },
+    "barFill": {
+     "x": 401,
+     "y": 198.25,
+     "w": 408,
+     "h": 4
+    },
+    "rows": [
+     {
+      "id": "gpu",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 108.796875,
+       "w": 72.078125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Graphics card",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "knob",
+      "st": "done",
+      "box": {
+       "x": 615,
+       "y": 104.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 110.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 108.796875,
+       "w": 90.6875,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 109.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Effort slider knob",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "lights",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 134.796875,
+       "w": 81.453125,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Composer light",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "liquid",
+      "st": "done",
+      "box": {
+       "x": 615,
+       "y": 130.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 136.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 134.796875,
+       "w": 62.640625,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 135.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Slider liquid",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "strike",
+      "st": "done",
+      "box": {
+       "x": 401,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 401,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 423,
+       "y": 160.796875,
+       "w": 105.296875,
+       "h": 16
+      },
+      "mark": {
+       "x": 579,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Fast mode lightning",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "hw",
+      "st": "done",
+      "box": {
+       "x": 615,
+       "y": 156.25,
+       "w": 194,
+       "h": 26
+      },
+      "glyph": {
+       "x": 615,
+       "y": 162.25,
+       "w": 14,
+       "h": 14
+      },
+      "text": {
+       "x": 637,
+       "y": 160.796875,
+       "w": 81.09375,
+       "h": 16
+      },
+      "mark": {
+       "x": 793,
+       "y": 161.25,
+       "w": 16,
+       "h": 16
+      },
+      "label": "Voice hardware",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "dl",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice model",
+      "color": "rgba(0, 0, 0, 0.9)"
+     },
+     {
+      "id": "test",
+      "st": "skip",
+      "box": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "glyph": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "text": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "mark": {
+       "x": -170,
+       "y": -606.359375,
+       "w": 0,
+       "h": 0
+      },
+      "label": "Voice speed test",
+      "color": "rgba(0, 0, 0, 0.9)"
+     }
+    ],
+    "sheetStyle": {
+     "transform": "matrix(1, 0, 0, 1, 0, 0)",
+     "opacity": "1"
+    },
+    "paneStyle": {
+     "filter": "blur(9px) saturate(0.6)",
+     "opacity": "0.45"
+    },
+    "titleText": "Getting ready",
+    "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+   },
+   "hand": [
+    {
+     "t": 0.78,
+     "h": 0,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": 0,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": 44,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 74,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 104.25,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 198.25,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 198.25,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, 0)",
+      "opacity": "1"
+     },
+     "paneStyle": {
+      "filter": "blur(9px) saturate(0.6)",
+      "opacity": "0.45"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 0.8350000000000001,
+     "h": 0.0005,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -0.22698974609375,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": 43.77301025390625,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 73.77301025390625,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 104.02301025390625,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 198.02301025390625,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 198.02301025390625,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -0.227009)",
+      "opacity": "0.999464"
+     },
+     "paneStyle": {
+      "filter": "blur(8.99196px) saturate(0.600357)",
+      "opacity": "0.450491"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 0.89,
+     "h": 0.004,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -1.81610107421875,
+      "w": 460,
+      "h": 224.25006103515625
+     },
+     "title": {
+      "x": 401,
+      "y": 42.1839599609375,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 72.1839599609375,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 102.4339599609375,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 196.4339599609375,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 196.4339599609375,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -1.81607)",
+      "opacity": "0.995714"
+     },
+     "paneStyle": {
+      "filter": "blur(8.93571px) saturate(0.602857)",
+      "opacity": "0.453929"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 0.9450000000000001,
+     "h": 0.0135,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -6.12921142578125,
+      "w": 460,
+      "h": 224.24993896484375
+     },
+     "title": {
+      "x": 401,
+      "y": 37.8707275390625,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 67.8707275390625,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 98.1207275390625,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 192.1207275390625,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 192.1207275390625,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -6.12924)",
+      "opacity": "0.985536"
+     },
+     "paneStyle": {
+      "filter": "blur(8.78304px) saturate(0.609643)",
+      "opacity": "0.463259"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1,
+     "h": 0.032,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -14.528564453125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": 29.471435546875,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 59.471435546875,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 89.721435546875,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 183.721435546875,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 183.721435546875,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -14.5286)",
+      "opacity": "0.965714"
+     },
+     "paneStyle": {
+      "filter": "blur(8.48571px) saturate(0.622857)",
+      "opacity": "0.481429"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.0550000000000002,
+     "h": 0.0625,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -28.3760986328125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": 15.6239013671875,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 45.6239013671875,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 75.8739013671875,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 169.8739013671875,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 169.8739013671875,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -28.3761)",
+      "opacity": "0.933036"
+     },
+     "paneStyle": {
+      "filter": "blur(7.99554px) saturate(0.644643)",
+      "opacity": "0.511384"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.11,
+     "h": 0.108,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -49.033935546875,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -5.033935546875,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": 24.966064453125,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 55.216064453125,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 149.216064453125,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 149.216064453125,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -49.0339)",
+      "opacity": "0.884286"
+     },
+     "paneStyle": {
+      "filter": "blur(7.26429px) saturate(0.677143)",
+      "opacity": "0.556071"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.165,
+     "h": 0.1715,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -77.86407470703125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -33.86407470703125,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -3.86407470703125,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": 26.38592529296875,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 120.38592529296875,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 120.38592529296875,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -77.8641)",
+      "opacity": "0.81625"
+     },
+     "paneStyle": {
+      "filter": "blur(6.24375px) saturate(0.7225)",
+      "opacity": "0.618438"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.2200000000000002,
+     "h": 0.256,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -116.22857666015625,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -72.22857666015625,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -42.22857666015625,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -11.97857666015625,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 82.02142333984375,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 82.02142333984375,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -116.229)",
+      "opacity": "0.725714"
+     },
+     "paneStyle": {
+      "filter": "blur(4.88571px) saturate(0.782857)",
+      "opacity": "0.701429"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.275,
+     "h": 0.3645,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -165.489501953125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -121.489501953125,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -91.489501953125,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -61.239501953125,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": 32.760498046875,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": 32.760498046875,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -165.49)",
+      "opacity": "0.609464"
+     },
+     "paneStyle": {
+      "filter": "blur(3.14196px) saturate(0.860357)",
+      "opacity": "0.807991"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.33,
+     "h": 0.5,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -227.0089111328125,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -183.0089111328125,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -153.0089111328125,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -122.7589111328125,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -28.7589111328125,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -28.7589111328125,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -227.009)",
+      "opacity": "0.464286"
+     },
+     "paneStyle": {
+      "filter": "blur(0.964286px) saturate(0.957143)",
+      "opacity": "0.941071"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.3850000000000002,
+     "h": 0.6355,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.44,
+     "h": 0.744,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.495,
+     "h": 0.8285,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.5500000000000003,
+     "h": 0.892,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.605,
+     "h": 0.9375,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.6600000000000001,
+     "h": 0.968,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.7150000000000003,
+     "h": 0.9865,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.77,
+     "h": 0.996,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.8250000000000002,
+     "h": 0.9995,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    },
+    {
+     "t": 1.8800000000000001,
+     "h": 1,
+     "p": 1,
+     "sheet": {
+      "x": 375,
+      "y": -254.25,
+      "w": 460,
+      "h": 224.25
+     },
+     "title": {
+      "x": 401,
+      "y": -210.25,
+      "w": 408,
+      "h": 26
+     },
+     "sub": {
+      "x": 401,
+      "y": -180.25,
+      "w": 408,
+      "h": 16.25
+     },
+     "list": {
+      "x": 401,
+      "y": -150,
+      "w": 408,
+      "h": 78
+     },
+     "bar": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "barFill": {
+      "x": 401,
+      "y": -56,
+      "w": 408,
+      "h": 4
+     },
+     "sheetStyle": {
+      "transform": "matrix(1, 0, 0, 1, 0, -254.25)",
+      "opacity": "0.4"
+     },
+     "paneStyle": {
+      "filter": "blur(0px) saturate(1)",
+      "opacity": "1"
+     },
+     "titleText": "Getting ready",
+     "subText": "Marrow is preparing its graphics and voice for this PC. This happens once."
+    }
+   ]
+  },
+  "css": {
+   "vars": {
+    "--glass": "rgba(255,255,255,.42)",
+    "--glassE": "rgba(255,255,255,.75)",
+    "--glassHi": "rgba(255,255,255,.7)",
+    "--gshadow": "0 18px 40px rgba(60,50,40,.16),0 2px 6px rgba(60,50,40,.1)",
+    "--tx": "rgba(0,0,0,.9)",
+    "--tx2": "rgba(0,0,0,.62)",
+    "--tx3": "rgba(0,0,0,.42)",
+    "--acc": "#0067C0",
+    "--good": "#28A745",
+    "--ov10": "rgba(0,0,0,.08)",
+    "--spk": "#000000"
+   },
+   "sheet": {
+    "paddingTop": "44px",
+    "paddingRight": "26px",
+    "paddingBottom": "22px",
+    "paddingLeft": "26px",
+    "borderBottomLeftRadius": "18px",
+    "borderBottomRightRadius": "18px",
+    "borderTopLeftRadius": "0px",
+    "backdropFilter": "blur(30px) saturate(1.7)",
+    "boxShadow": "rgba(255, 255, 255, 0.75) 0px 0px 0px 1px inset, rgba(255, 255, 255, 0.7) 0px 1px 0px 0px inset, rgba(60, 50, 40, 0.16) 0px 18px 40px 0px, rgba(60, 50, 40, 0.1) 0px 2px 6px 0px",
+    "backgroundColor": "rgba(255, 255, 255, 0.42)"
+   },
+   "title": {
+    "fontFamily": "\"Segoe UI Variable Display\", \"Segoe UI\", system-ui, sans-serif",
+    "fontSize": "20px",
+    "lineHeight": "26px",
+    "fontWeight": "600",
+    "letterSpacing": "-0.1px"
+   },
+   "sub": {
+    "fontSize": "12.5px",
+    "lineHeight": "16.25px",
+    "color": "rgba(0, 0, 0, 0.62)",
+    "marginTop": "4px",
+    "marginBottom": "14px"
+   },
+   "list": {
+    "gridTemplateColumns": "194px 194px",
+    "columnGap": "20px",
+    "marginBottom": "16px"
+   },
+   "row": {
+    "height": "26px",
+    "gap": "8px",
+    "transition": "none",
+    "display": "flex",
+    "alignItems": "center"
+   },
+   "rowLabel": {
+    "fontSize": "12px",
+    "fontWeight": "400",
+    "lineHeight": "15.6px"
+   },
+   "glyph": {
+    "width": "14px",
+    "height": "14px",
+    "strokeWidth": "1.3px"
+   },
+   "mark": {
+    "width": "16px",
+    "height": "16px"
+   },
+   "markChildren": [
+    {
+     "cls": "spn ",
+     "transition": "none"
+    },
+    {
+     "cls": "ck",
+     "transition": "none"
+    },
+    {
+     "cls": "wt",
+     "transition": "none"
+    }
+   ],
+   "bar": {
+    "height": "4px",
+    "borderRadius": "2px",
+    "backgroundColor": "rgba(0, 0, 0, 0.08)"
+   },
+   "barFill": {
+    "transition": "none",
+    "backgroundColor": "rgb(0, 103, 192)",
+    "transformOrigin": "0px 2px"
+   },
+   "spinnerSpoke": {
+    "width": "2px",
+    "height": "5px",
+    "left": "7px",
+    "top": "0px",
+    "transformOrigin": "1px 8px"
+   },
+   "spinner": {
+    "width": "16px",
+    "height": "16px",
+    "animationDuration": "0s",
+    "animationTimingFunction": "ease"
+   },
+   "check": {
+    "width": "16px",
+    "height": "16px"
+   }
+  },
+  "motion": {
+   "row": "color 0.3s",
+   "mark": [
+    {
+     "cls": "spn",
+     "transition": "opacity 0.25s, transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)"
+    },
+    {
+     "cls": "ck",
+     "transition": "opacity 0.25s, transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)"
+    },
+    {
+     "cls": "wt",
+     "transition": "opacity 0.25s, transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)"
+    }
+   ],
+   "barFill": "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+   "spinnerAnimation": "1s steps(8) infinite grspin",
+   "titleStack": null
+  },
+  "plan": {
+   "HAND": 1.1,
+   "HOLD": 0.15,
+   "workEnd": 0.63,
+   "handStart": 0.78
+  }
+ }
+}

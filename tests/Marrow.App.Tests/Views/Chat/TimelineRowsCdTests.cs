@@ -507,10 +507,9 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
     // :411-415 ForEach(finished, id: \.index) { FinishedHeadPill(head: head).transition(.settleGlide) } under
     // .animation(.smooth(duration: 0.3), value: finished.map(\.index)): a head that finishes while its batch still works joins the
     // column, in the order of the list, in that animation; the pills already there stay the same views. (The settle glide's
-    // leaving half is in TimelineRowsFinHeadRowsTests; its soft arrival is not claimed here: see the notes of unit
-    // blitz-timelinerows-cd, SoftAppearModifier takes its identity at once under ED-098 (2).)
+    // leaving half is in TimelineRowsFinHeadRowsTests, and so is its soft arrival: SoftAppearModifier carries a progress since 2026-10-04, unit rec-tlr.)
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-052 (a head joins in order under .smooth(duration: 0.3)): TimelineRows.swift:411-415
+    [Trait("Req", "UI-CHAT-052")] // A head joins in order under .smooth(duration: 0.3): TimelineRows.swift:411-415
     public void A_finished_head_joins_the_column_in_list_order_under_the_smooth_animation_and_the_pills_already_there_stay() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -942,15 +941,16 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
 //   UI-RUNTIME-003 (FN), UI-CHAT-036 (FB, PR-CHAT-104), UI-CHAT-037 (FC, FF, CD asset), UI-CHAT-048 (FRR, CD popovers),
 //   UI-CHAT-051 (FHR, PR-CHAT-147), UI-CHAT-053 and UI-HYDRAMERGE-002 (FMR, FMO, PR-CHAT-150), UI-CHAT-054 (FHR, PR-CHAT-149),
 //   UI-CHAT-056, UI-CHAT-057 (FT, CD MCP row, PR-CHAT-097), UI-CHAT-059 (FB, CD strays), UI-GIT-044 (the alignment test, FC).
-// UI-CHAT-052: CORNER-ONLY and one more clause, the soft ARRIVAL of the settle glide: SoftAppearModifier has no animatable data, and
-//   SwiftTransition.Gather (SwiftAnimation.cs, ED-098 (2)) gives such a modifier its identity at the start, so a pill that joins
-//   shows at once (measured: opacity 1, no offset at the first frame). The Swift body reads .opacity(isVisible ? 1 : 0).offset(y: ...)
-//   under .animation(.softAppear) (Chrome.swift:938-955), which SwiftUI animates. The fix is in Chrome / F.SwiftAnimation (every soft
-//   appear), not here. CD proves the pill joins in order under .smooth(duration: 0.3) (Rule); its leaving half is in FHR.
+// UI-CHAT-052: PROVEN 2026-10-04 (unit rec-tlr). It was CORNER-ONLY and one more clause, the soft ARRIVAL of the settle glide: SoftAppearModifier had no
+//   animatable data, and SwiftTransition.Gather (SwiftAnimation.cs, ED-098 (2)) gave such a modifier its identity at the start, so a pill that joined
+//   showed at once (opacity 1, no offset at the first frame). The Swift body reads .opacity(isVisible ? 1 : 0).offset(y: ...) under
+//   .animation(.softAppear) (Chrome.swift:938-955), which SwiftUI animates: the modifier now carries a progress (Chrome.cs SoftAppearModifier), and
+//   TimelineRowsFinHeadRowsTests.A_finished_head_pill_that_joins_arrives_... samples the arrival against smooth(0.32). CD proves the pill joins in order
+//   under .smooth(duration: 0.3); its leaving half is in FHR; the capsule corner is ContinuousCornerReproofTests.The_finished_head_pills_are_continuous_...
 //
-// BLOCKED: UI-CHAT-039 and UI-GIT-047: Button(...).controlSize(.small) on the glass buttons (:2796) has no metric in the source or in
-//   any frame; GlassCommand(small: true) draws the regular capsule (STOP #5). CD proves Return activates Revert (Rule); everything
-//   else of both records is proven (FR, CD). UNRESOLVED: the small glass button's height, padding and type size.
+// UI-CHAT-039 and UI-GIT-047: PROVEN 2026-10-04 (unit rec-tlr). Button(...).controlSize(.small) on the glass buttons (:2796) has the metric ED-280 (2) measured in the reference
+//   video (the small accent glass capsule: 20 pt, an 11 pt white label, 10.5 pt either side) and ED-257 (3) gives `.glassProminent`; GlassCommand(small: true) draws it
+//   (STOP #5, resolved), and FR reads it off the mounted buttons. CD proves Return activates Revert (Rule).
 //
 // Notes. The UI-HYDRAMERGE-005 record's exact_text lists
 //   titles that AppModel+HydraMerge writes (:290, :330, :905); the row shows whatever first line the note has, which FMO holds.

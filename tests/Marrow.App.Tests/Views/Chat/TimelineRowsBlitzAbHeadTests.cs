@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -817,24 +818,78 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
 
     // ---- PR-COMPOSER-211: the image a tool call names ----
 
-    private static void WritePng(string path, int width, int height, Func<int, int, Color> pixel)
+    private static void WritePng(string path, int width, int height, Func<int, int, Color> pixel) => TestPng.Write(path, width, height, pixel);
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-211")] // AttachmentPreview.swift:436-438 `.task(id: path) { image = await ThumbnailCache.shared.thumbnail(for: path, pointSize: 900)?.image }`: the thumbnail is asked for at 900 points
+    public void The_image_preview_asks_the_thumbnail_cache_for_the_picture_at_900_points() => headless.OnUiThread(() =>
     {
-        var bitmap = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(width, height), new Vector(96, 96), Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Opaque);
-        using (var buffer = bitmap.Lock())
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var cache = new ThumbnailCache();
+        using var cacheSeam = ThumbnailCache.Shared.Override(cache);
+        var path = Path.Combine(h.Project.Path, "ask.png");
+        WritePng(path, 240, 120, (_, _) => Color.FromRgb(200, 40, 40));
+        AvaloniaWindow window = null!;
+        ToolImagePreview preview = null!;
+        h.Main.OnMain(() =>
         {
-            var row = new byte[width * 4];
-            for (var y = 0; y < height; y++)
+            preview = new ToolImagePreview(path);
+            window = Show(new Border { Width = 480, Child = preview });
+        });
+        h.Main.Loop.RunUntil(() => Mounted<Image>(preview).Single().Opacity == 1, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            try
             {
-                for (var x = 0; x < width; x++)
-                {
-                    var c = pixel(x, y);
-                    row[x * 4] = c.B; row[x * 4 + 1] = c.G; row[x * 4 + 2] = c.R; row[x * 4 + 3] = 255;
-                }
-                System.Runtime.InteropServices.Marshal.Copy(row, 0, buffer.Address + y * buffer.RowBytes, row.Length);
+                // The cache keys a thumbnail by path, pixels (twice the points) and whether it fills a square: 900 points is 1800 pixels, not the 56-point plate's 112.
+                var held = (RecentCache<string, ThumbnailCache.Thumbnail>)typeof(ThumbnailCache).GetField("thumbnails", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(cache)!;
+                Assert.True(held.Contains(path + "#1800#false"), "the preview did not ask for the picture at 900 points");
+                Assert.False(held.Contains(path + "#1800#true"));
             }
-        }
-        using (var stream = File.Create(path)) bitmap.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
-    }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-211")] // AttachmentPreview.swift:436 `.task(id: path)`: the load is cancelled when the detail goes, and a picture that lands after that is not drawn
+    public void An_image_preview_that_leaves_before_its_picture_has_loaded_draws_nothing_when_it_lands() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var cache = new ThumbnailCache();
+        using var cacheSeam = ThumbnailCache.Shared.Override(cache);
+        var staying = Path.Combine(h.Project.Path, "stays.png");
+        var leaving = Path.Combine(h.Project.Path, "leaves.png");
+        WritePng(staying, 240, 120, (_, _) => Color.FromRgb(40, 190, 90));
+        WritePng(leaving, 240, 120, (_, _) => Color.FromRgb(48, 80, 224));
+        AvaloniaWindow window = null!;
+        ToolImagePreview stays = null!, leaves = null!;
+        StackPanel panel = null!;
+        h.Main.OnMain(() =>
+        {
+            stays = new ToolImagePreview(staying);
+            leaves = new ToolImagePreview(leaving);
+            panel = new StackPanel { Width = 480, Children = { stays, leaves } };
+            window = Show(panel);
+            // The row collapses (its detail is taken out) before either picture has come back from the decoder.
+            panel.Children.Remove(leaves);
+            Settle(window);
+        });
+        // The one that stayed draws its picture; the one that left, cancelled with its detail, is never touched (its task returns before it asks, or drops the answer).
+        h.Main.Loop.RunUntil(() => Mounted<Image>(stays).Single().Opacity == 1, AppModelHarness.Bound);
+        h.Main.RunUntilIdle();
+        h.Main.OnMain(() =>
+        {
+            try
+            {
+                Assert.Null(Mounted<Image>(leaves).Single().Source);
+                Assert.Equal(0, Mounted<Image>(leaves).Single().Opacity);
+                Assert.True(Mounted<ProgressBar>(leaves).Single().IsVisible, "the spinner of a preview that left stays as it was");
+            }
+            finally { Close(window); }
+        });
+    });
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-211")] // TimelineRows.swift:2117-2119; AttachmentPreview.swift:391-440; OD-0098: a read and a command that wrote a screenshot, loading and after the image lands, in both themes

@@ -61,12 +61,8 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // UI-CHAT-038/UI-CHAT-040/UI-GIT-046/UI-GIT-048.
 // NoticeRow info.circle :2389-2399, UI-RUNTIME-001.
 //
-// STOP opencode-App.Views.Chat.TimelineRows #3
-// Kind: external small-control mapping. GlassCommand(small:true) :2796 (C# GlassCommand :156-159)
-// still uses normal capsule metrics. UI-CHAT-039/UI-GIT-047 require .controlSize(.small).
-// Missing: an approved small-size adapter/metric ruling in the shared glass-button foundation.
-// Needed: that ruling/adapter; ED-180's material deferral supplies no small-control dimensions.
-// The glass renderer now exists on impl/b2: do not repeat an obsolete missing-renderer claim.
+// STOP opencode-App.Views.Chat.TimelineRows #3: RESOLVED 2026-10-04 (unit rec-tlr). GlassCommand(small: true) :2796 draws the small accent glass capsule of ED-280 (2) and
+// ED-257 (3) (SwiftGlass.StyleAccentGlassButton, small); TimelineRowsFinRevertTests reads its metrics off the mounted buttons. UI-CHAT-039 and UI-GIT-047 are proven.
 //
 // STOP opencode-App.Views.Chat.TimelineRows #4
 // Kind: external native link-style oracle. ToolDetailView toggle :2156-2162 (C# :2614-2618), UI-CHAT-026.

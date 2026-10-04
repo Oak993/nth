@@ -1,0 +1,4 @@
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Shims/ShimFilesTests.cs(13,22): error CS0103: The name 'ShimFiles' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/Marrow.Shim.OfflineTests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Shims/ShimFilesTests.cs(25,25): error CS0103: The name 'ShimFiles' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/Marrow.Shim.OfflineTests.csproj]

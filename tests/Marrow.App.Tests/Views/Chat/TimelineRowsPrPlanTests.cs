@@ -13,14 +13,14 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class TimelineRowsPrPlanTests(HeadlessSession headless)
 {
-    // STOP opencode-App.Views.Chat.TimelineRows #12 PR-CHAT-113: the production gap is fixed (parity pass 2026-10-03, round 1 of
-    // the adversarial review the same day); the record itself is not claimed (STOP #11 in TimelineRowsTests: record/source
-    // conflict). PlanCard keeps one ChatBadge across the plan's updates (ChatBadge.Update) and one popover identity per plan
+    // STOP opencode-App.Views.Chat.TimelineRows #12 PR-CHAT-113, RETIRED 2026-10-04: the record was amended to the source (an open popover keeps what it opened with,
+    // only a reopened one switches) and is proven by TimelineRowsParityScenarioTests.A_plan_opened_while_drafting_... (Req). The production gap was fixed in the parity
+    // pass 2026-10-03 (round 1 of the adversarial review the same day). PlanCard keeps one ChatBadge across the plan's updates (ChatBadge.Update) and one popover identity per plan
     // entry across the running turn's other rows arriving, as ChatBadge.swift:20 keeps its coordinator as @State and
     // ThreadTimeline.swift:1979-1984 keeps the card; an open plan popover outlives both, with the content it opened with
     // (:138-147), and the next opening builds the finished surface: TimelineRowsParityScenarioTests.A_plan_opened_while_drafting_...
     // and ...An_open_plan_popover_survives_the_card_being_built_again_..., and TimelineRowsParityReviewTests. The record says the
-    // open popover switches the moment the plan leaves drafting; the source freezes it, so only a reopened popover switches.
+    // open popover switched the moment the plan left drafting before its amendment; the source freezes it, so only a reopened popover switches.
     // This test stays as the drafting half, a real click opening the streaming renderer.
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.

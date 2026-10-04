@@ -3876,11 +3876,10 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // two files multi-select, whether a folder cannot be chosen, and what caption an empty SetTitle("") gives (OpenPanel.cs:74) need a
 // real window on a quiet PC (OD-0007).
 //
-// STOP App.Views.Composer.ComposerView #12
-// Kind: foundation question, outside UI-COMPOSER-004 (which is proven). The foundation's SoftAppear modifier has no animatable data, so
-// SwiftTransition applies the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): every SoftAppear site arrives at
-// full opacity at its first frame where SwiftUI animates the opacity and the 4 point offset inside the modifier's body over smooth(0.32).
-// The attachment notice plays that arrival itself (NoticeSlot.Arrive); the other sites are the foundation's to settle.
+// STOP App.Views.Composer.ComposerView #12: RESOLVED 2026-10-04 (unit rec-tlr, UI-CHAT-052). The foundation's SoftAppear modifier had no animatable data, so
+// SwiftTransition applied the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): every SoftAppear site arrived at full opacity at its first frame
+// where SwiftUI animates the opacity and the 4 point offset inside the modifier's body over smooth(0.32). SoftAppearModifier now carries a progress that the transition
+// interpolates (Chrome.cs), so the shared SoftAppear and SettleGlide arrive on that curve. The attachment notice still plays its arrival itself (NoticeSlot.Arrive).
 //
 // STOP App.Views.Composer.ComposerView #13
 // Kind: source contradiction, UI-COMPOSER-002. The record says an empty pill is 44 points high (ComposerView.swift:157-158); the

@@ -1,0 +1,193 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="8a573f89-665e-428c-889e-70598f33b194" name="@c4a4d0e820e2 2026-10-04 14:36:11" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-04T14:36:11.5483935+00:00" queuing="2026-10-04T14:36:11.5483936+00:00" start="2026-10-04T14:36:09.7880415+00:00" finish="2026-10-04T14:36:13.6805468+00:00" />
+  <TestSettings name="default" id="bc9f0057-aebf-457a-a422-0966532ccce6">
+    <Deployment runDeploymentRoot="_c4a4d0e820e2_2026-10-04_14_36_11" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="4192fc99-ea87-48e1-b464-dcab9d8ed31e" testId="c9ac901a-ef50-15c3-5630-73f2f2e32fde" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Child_tree_lifetime_is_armed_before_start_through_the_seam" computerName="c4a4d0e820e2" duration="00:00:00.0503512" startTime="2026-10-04T14:36:13.0286546+00:00" endTime="2026-10-04T14:36:13.0807317+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4192fc99-ea87-48e1-b464-dcab9d8ed31e" />
+    <UnitTestResult executionId="b106f1e5-d70b-4e7b-ab33-9285f379f52e" testId="3af37141-e242-e962-9e9d-9f217d7f40a7" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Arguments_with_spaces_quotes_empty_strings_and_Unicode_are_unchanged" computerName="c4a4d0e820e2" duration="00:00:00.3452455" startTime="2026-10-04T14:36:13.0809664+00:00" endTime="2026-10-04T14:36:13.4247269+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b106f1e5-d70b-4e7b-ab33-9285f379f52e" />
+    <UnitTestResult executionId="0af60b7b-5c8b-4552-8888-b9663c2baa02" testId="3ed54107-4612-3299-67e5-a0d40b27ad21" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Concurrent_soffice_calls_get_distinct_profiles_and_delete_them_after_exit" computerName="c4a4d0e820e2" duration="00:00:00.5241572" startTime="2026-10-04T14:36:11.1329412+00:00" endTime="2026-10-04T14:36:11.6594785+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0af60b7b-5c8b-4552-8888-b9663c2baa02" />
+    <UnitTestResult executionId="9a598846-6036-42bf-92d1-d8f97c91249b" testId="079867b4-b685-9343-be3a-f308582ffc49" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Running_fake_provider_finds_a_shim_added_after_launch_on_its_next_process" computerName="c4a4d0e820e2" duration="00:00:01.3155235" startTime="2026-10-04T14:36:11.3500011+00:00" endTime="2026-10-04T14:36:12.4863657+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9a598846-6036-42bf-92d1-d8f97c91249b" />
+    <UnitTestResult executionId="6f7e7731-3596-45fe-9d4b-52c9bcdb5285" testId="356b01ae-fe2c-4156-ee85-e95232bafb95" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.WindowsApps_match_is_case_insensitive_handles_quotes_and_trailing_slash_and_not_similar_names" computerName="c4a4d0e820e2" duration="00:00:00.0001990" startTime="2026-10-04T14:36:12.4869074+00:00" endTime="2026-10-04T14:36:12.4870973+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6f7e7731-3596-45fe-9d4b-52c9bcdb5285" />
+    <UnitTestResult executionId="4cfee635-2cd9-409f-b7aa-7063a04e4396" testId="370b7e3a-c3df-0474-04cf-9f145f985c36" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Insert_before_first_WindowsApps_preserves_every_user_entry_and_empty_entry" computerName="c4a4d0e820e2" duration="00:00:00.0014047" startTime="2026-10-04T14:36:11.1660926+00:00" endTime="2026-10-04T14:36:11.1662757+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4cfee635-2cd9-409f-b7aa-7063a04e4396" />
+    <UnitTestResult executionId="008727cb-fc90-4421-928f-2961f5521126" testId="daa05216-3137-a707-6ecf-334b14143654" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code" computerName="c4a4d0e820e2" duration="00:00:00.0010000" startTime="2026-10-04T14:36:11.1316003+00:00" endTime="2026-10-04T14:36:11.1316200+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="008727cb-fc90-4421-928f-2961f5521126">
+      <Output>
+        <ErrorInfo>
+          <Message>WINDOWS-ONLY: requires Windows shells and Job Objects.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="67297c2f-0fe6-4d06-bfaf-cf214506e536" testId="482afe27-8db2-1264-fc2c-42b3cec2acb4" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Python_UTF8_and_package_paths_reach_only_the_child_and_locked_target_is_unchanged" computerName="c4a4d0e820e2" duration="00:00:00.3365560" startTime="2026-10-04T14:36:12.5422865+00:00" endTime="2026-10-04T14:36:12.8754090+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="67297c2f-0fe6-4d06-bfaf-cf214506e536" />
+    <UnitTestResult executionId="ab6fa875-ee31-46e9-b2c5-aa66d1b2924a" testId="edd62bb0-76d2-7c4a-c1b2-c030d13aeebf" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Binary_stdin_stdout_stderr_and_nonzero_exit_are_unchanged" computerName="c4a4d0e820e2" duration="00:00:00.1843144" startTime="2026-10-04T14:36:13.4250228+00:00" endTime="2026-10-04T14:36:13.6095755+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ab6fa875-ee31-46e9-b2c5-aa66d1b2924a" />
+    <UnitTestResult executionId="7670505c-fde8-4403-8b90-09a69d1013b6" testId="b4acfed4-8a80-d557-37a4-49611a28d067" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code" computerName="c4a4d0e820e2" duration="00:00:00.0010000" startTime="2026-10-04T14:36:11.1310302+00:00" endTime="2026-10-04T14:36:11.1310883+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7670505c-fde8-4403-8b90-09a69d1013b6">
+      <Output>
+        <ErrorInfo>
+          <Message>WINDOWS-ONLY: requires Windows shells and Job Objects.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ffa18159-2546-4a4e-b7a9-4dd16988adb1" testId="31dac8b5-10ff-34cd-14c0-943550b1cc0f" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object" computerName="c4a4d0e820e2" duration="00:00:00.0010000" startTime="2026-10-04T14:36:11.1325618+00:00" endTime="2026-10-04T14:36:11.1325773+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ffa18159-2546-4a4e-b7a9-4dd16988adb1">
+      <Output>
+        <ErrorInfo>
+          <Message>WINDOWS-ONLY: requires Windows shells and Job Objects.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="248330d8-f12c-496b-99f2-1187f20111ea" testId="0c3a5bab-7681-ce0a-f298-5b49a4e9debc" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Real_python_wins_but_Marrow_shadows_the_Store_alias" computerName="c4a4d0e820e2" duration="00:00:00.0020290" startTime="2026-10-04T14:36:11.1668629+00:00" endTime="2026-10-04T14:36:11.1699347+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="248330d8-f12c-496b-99f2-1187f20111ea" />
+    <UnitTestResult executionId="aa649c55-b006-4a16-84c2-238b4fa00ab9" testId="b0d5dee2-acdc-38fa-7d9a-56e07bc87a70" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code" computerName="c4a4d0e820e2" duration="00:00:00.0010000" startTime="2026-10-04T14:36:11.1322472+00:00" endTime="2026-10-04T14:36:11.1322822+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aa649c55-b006-4a16-84c2-238b4fa00ab9">
+      <Output>
+        <ErrorInfo>
+          <Message>WINDOWS-ONLY: requires Windows shells and Job Objects.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="67df5027-9377-4952-b09f-efaa3341d7cb" testId="4a141b37-4271-8ac3-75ed-fbb17395bf5b" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Empty_bin_exists_and_only_the_child_environment_changes" computerName="c4a4d0e820e2" duration="00:00:00.0024796" startTime="2026-10-04T14:36:12.4874748+00:00" endTime="2026-10-04T14:36:12.4876414+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="67df5027-9377-4952-b09f-efaa3341d7cb" />
+    <UnitTestResult executionId="85da3430-526f-4735-867e-34211f0d4eb2" testId="5199b1b8-2cf9-d009-6aae-190f1344efd6" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit" computerName="c4a4d0e820e2" duration="00:00:00.0010000" startTime="2026-10-04T14:36:11.0323818+00:00" endTime="2026-10-04T14:36:11.0393779+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="85da3430-526f-4735-867e-34211f0d4eb2">
+      <Output>
+        <ErrorInfo>
+          <Message>WINDOWS-ONLY: requires Windows shells and Job Objects.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c5ed037e-3080-47de-98ad-f0a161d4f4fc" testId="73db33c0-482b-aa65-5933-2b318e085f56" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Soffice_profile_is_deleted_even_when_the_target_exits_with_failure" computerName="c4a4d0e820e2" duration="00:00:00.1516241" startTime="2026-10-04T14:36:12.8764489+00:00" endTime="2026-10-04T14:36:13.0283415+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c5ed037e-3080-47de-98ad-f0a161d4f4fc" />
+    <UnitTestResult executionId="7fd47cf7-4bac-4d1f-9c95-9bc97fd11e80" testId="3dca2180-dfd2-7a7b-27bb-16036179dbcd" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Node_PATH_is_set_only_for_the_child" computerName="c4a4d0e820e2" duration="00:00:00.8759480" startTime="2026-10-04T14:36:11.6611906+00:00" endTime="2026-10-04T14:36:12.5419737+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7fd47cf7-4bac-4d1f-9c95-9bc97fd11e80" />
+    <UnitTestResult executionId="1fad6462-9802-4d56-853e-6fe9921e8b8f" testId="a3ab9ed5-8cba-0f63-5017-a890f5e776cd" testName="Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Native_executable_and_sidecar_are_written_under_the_provided_name" computerName="c4a4d0e820e2" duration="00:00:00.0748875" startTime="2026-10-04T14:36:11.0574987+00:00" endTime="2026-10-04T14:36:11.1256488+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1fad6462-9802-4d56-853e-6fe9921e8b8f" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Running_fake_provider_finds_a_shim_added_after_launch_on_its_next_process" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="079867b4-b685-9343-be3a-f308582ffc49">
+      <Execution id="9a598846-6036-42bf-92d1-d8f97c91249b" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests" name="Running_fake_provider_finds_a_shim_added_after_launch_on_its_next_process" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="b0d5dee2-acdc-38fa-7d9a-56e07bc87a70">
+      <Execution id="aa649c55-b006-4a16-84c2-238b4fa00ab9" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests" name="PowerShell_invocation_preserves_arguments_streams_and_exit_code" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Empty_bin_exists_and_only_the_child_environment_changes" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="4a141b37-4271-8ac3-75ed-fbb17395bf5b">
+      <Execution id="67df5027-9377-4952-b09f-efaa3341d7cb" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests" name="Empty_bin_exists_and_only_the_child_environment_changes" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Binary_stdin_stdout_stderr_and_nonzero_exit_are_unchanged" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="edd62bb0-76d2-7c4a-c1b2-c030d13aeebf">
+      <Execution id="ab6fa875-ee31-46e9-b2c5-aa66d1b2924a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests" name="Binary_stdin_stdout_stderr_and_nonzero_exit_are_unchanged" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Concurrent_soffice_calls_get_distinct_profiles_and_delete_them_after_exit" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="3ed54107-4612-3299-67e5-a0d40b27ad21">
+      <Execution id="0af60b7b-5c8b-4552-8888-b9663c2baa02" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests" name="Concurrent_soffice_calls_get_distinct_profiles_and_delete_them_after_exit" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="daa05216-3137-a707-6ecf-334b14143654">
+      <Execution id="008727cb-fc90-4421-928f-2961f5521126" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests" name="Git_Bash_invocation_preserves_arguments_streams_and_exit_code" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="5199b1b8-2cf9-d009-6aae-190f1344efd6">
+      <Execution id="85da3430-526f-4735-867e-34211f0d4eb2" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests" name="Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Insert_before_first_WindowsApps_preserves_every_user_entry_and_empty_entry" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="370b7e3a-c3df-0474-04cf-9f145f985c36">
+      <Execution id="4cfee635-2cd9-409f-b7aa-7063a04e4396" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests" name="Insert_before_first_WindowsApps_preserves_every_user_entry_and_empty_entry" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Native_executable_and_sidecar_are_written_under_the_provided_name" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="a3ab9ed5-8cba-0f63-5017-a890f5e776cd">
+      <Execution id="1fad6462-9802-4d56-853e-6fe9921e8b8f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests" name="Native_executable_and_sidecar_are_written_under_the_provided_name" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Child_tree_lifetime_is_armed_before_start_through_the_seam" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="c9ac901a-ef50-15c3-5630-73f2f2e32fde">
+      <Execution id="4192fc99-ea87-48e1-b464-dcab9d8ed31e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests" name="Child_tree_lifetime_is_armed_before_start_through_the_seam" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.WindowsApps_match_is_case_insensitive_handles_quotes_and_trailing_slash_and_not_similar_names" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="356b01ae-fe2c-4156-ee85-e95232bafb95">
+      <Execution id="6f7e7731-3596-45fe-9d4b-52c9bcdb5285" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests" name="WindowsApps_match_is_case_insensitive_handles_quotes_and_trailing_slash_and_not_similar_names" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests.Real_python_wins_but_Marrow_shadows_the_Store_alias" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="0c3a5bab-7681-ce0a-f298-5b49a4e9debc">
+      <Execution id="248330d8-f12c-496b-99f2-1187f20111ea" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimPathTests" name="Real_python_wins_but_Marrow_shadows_the_Store_alias" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Arguments_with_spaces_quotes_empty_strings_and_Unicode_are_unchanged" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="3af37141-e242-e962-9e9d-9f217d7f40a7">
+      <Execution id="b106f1e5-d70b-4e7b-ab33-9285f379f52e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests" name="Arguments_with_spaces_quotes_empty_strings_and_Unicode_are_unchanged" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Python_UTF8_and_package_paths_reach_only_the_child_and_locked_target_is_unchanged" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="482afe27-8db2-1264-fc2c-42b3cec2acb4">
+      <Execution id="67297c2f-0fe6-4d06-bfaf-cf214506e536" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests" name="Python_UTF8_and_package_paths_reach_only_the_child_and_locked_target_is_unchanged" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="b4acfed4-8a80-d557-37a4-49611a28d067">
+      <Execution id="7670505c-fde8-4403-8b90-09a69d1013b6" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests" name="Cmd_invocation_preserves_arguments_streams_and_exit_code" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Node_PATH_is_set_only_for_the_child" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="3dca2180-dfd2-7a7b-27bb-16036179dbcd">
+      <Execution id="7fd47cf7-4bac-4d1f-9c95-9bc97fd11e80" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests" name="Node_PATH_is_set_only_for_the_child" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests.Soffice_profile_is_deleted_even_when_the_target_exits_with_failure" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="73db33c0-482b-aa65-5933-2b318e085f56">
+      <Execution id="c5ed037e-3080-47de-98ad-f0a161d4f4fc" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimLauncherTests" name="Soffice_profile_is_deleted_even_when_the_target_exits_with_failure" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object" storage="/workspace/marrow-port/tests/marrow.shim.offlinetests/bin/debug/net10.0/marrow.shim.offlinetests.dll" id="31dac8b5-10ff-34cd-14c0-943550b1cc0f">
+      <Execution id="ffa18159-2546-4a4e-b7a9-4dd16988adb1" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Shim.OfflineTests/bin/Debug/net10.0/Marrow.Shim.OfflineTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests" name="Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="c9ac901a-ef50-15c3-5630-73f2f2e32fde" executionId="4192fc99-ea87-48e1-b464-dcab9d8ed31e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3af37141-e242-e962-9e9d-9f217d7f40a7" executionId="b106f1e5-d70b-4e7b-ab33-9285f379f52e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3ed54107-4612-3299-67e5-a0d40b27ad21" executionId="0af60b7b-5c8b-4552-8888-b9663c2baa02" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="079867b4-b685-9343-be3a-f308582ffc49" executionId="9a598846-6036-42bf-92d1-d8f97c91249b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="356b01ae-fe2c-4156-ee85-e95232bafb95" executionId="6f7e7731-3596-45fe-9d4b-52c9bcdb5285" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="370b7e3a-c3df-0474-04cf-9f145f985c36" executionId="4cfee635-2cd9-409f-b7aa-7063a04e4396" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="daa05216-3137-a707-6ecf-334b14143654" executionId="008727cb-fc90-4421-928f-2961f5521126" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="482afe27-8db2-1264-fc2c-42b3cec2acb4" executionId="67297c2f-0fe6-4d06-bfaf-cf214506e536" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="edd62bb0-76d2-7c4a-c1b2-c030d13aeebf" executionId="ab6fa875-ee31-46e9-b2c5-aa66d1b2924a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b4acfed4-8a80-d557-37a4-49611a28d067" executionId="7670505c-fde8-4403-8b90-09a69d1013b6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="31dac8b5-10ff-34cd-14c0-943550b1cc0f" executionId="ffa18159-2546-4a4e-b7a9-4dd16988adb1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0c3a5bab-7681-ce0a-f298-5b49a4e9debc" executionId="248330d8-f12c-496b-99f2-1187f20111ea" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b0d5dee2-acdc-38fa-7d9a-56e07bc87a70" executionId="aa649c55-b006-4a16-84c2-238b4fa00ab9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4a141b37-4271-8ac3-75ed-fbb17395bf5b" executionId="67df5027-9377-4952-b09f-efaa3341d7cb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5199b1b8-2cf9-d009-6aae-190f1344efd6" executionId="85da3430-526f-4735-867e-34211f0d4eb2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="73db33c0-482b-aa65-5933-2b318e085f56" executionId="c5ed037e-3080-47de-98ad-f0a161d4f4fc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3dca2180-dfd2-7a7b-27bb-16036179dbcd" executionId="7fd47cf7-4bac-4d1f-9c95-9bc97fd11e80" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a3ab9ed5-8cba-0f63-5017-a890f5e776cd" executionId="1fad6462-9802-4d56-853e-6fe9921e8b8f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="18" executed="13" passed="13" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.16]   Discovering: Marrow.Shim.OfflineTests
+[xUnit.net 00:00:00.23]   Discovered:  Marrow.Shim.OfflineTests
+[xUnit.net 00:00:00.29]   Starting:    Marrow.Shim.OfflineTests
+[xUnit.net 00:00:00.39]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+[xUnit.net 00:00:00.48]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+[xUnit.net 00:00:00.48]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+[xUnit.net 00:00:00.48]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+[xUnit.net 00:00:00.48]       WINDOWS-ONLY: requires Windows shells and Job Objects.
+Test 'Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit' was skipped in the test run.
+Test 'Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code' was skipped in the test run.
+Test 'Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code' was skipped in the test run.
+Test 'Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code' was skipped in the test run.
+Test 'Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object' was skipped in the test run.
+[xUnit.net 00:00:02.96]   Finished:    Marrow.Shim.OfflineTests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="c4a4d0e820e2" outcome="Warning" timestamp="2026-10-04T14:36:11.0416484+00:00">
+        <Text>[xUnit.net 00:00:00.38]     Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="c4a4d0e820e2" outcome="Warning" timestamp="2026-10-04T14:36:11.1321214+00:00">
+        <Text>[xUnit.net 00:00:00.48]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="c4a4d0e820e2" outcome="Warning" timestamp="2026-10-04T14:36:11.1321673+00:00">
+        <Text>[xUnit.net 00:00:00.48]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="c4a4d0e820e2" outcome="Warning" timestamp="2026-10-04T14:36:11.1327717+00:00">
+        <Text>[xUnit.net 00:00:00.48]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="c4a4d0e820e2" outcome="Warning" timestamp="2026-10-04T14:36:11.1327950+00:00">
+        <Text>[xUnit.net 00:00:00.48]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object [SKIP]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

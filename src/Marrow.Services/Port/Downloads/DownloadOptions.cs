@@ -1,4 +1,4 @@
-// PORT-ONLY, owner-ruled addition (OD-0099 amendments; first-release skills downloads, SK-3): the downloader's knobs. ED-NEW-f-sk-3 (3)
+// PORT-ONLY, owner-ruled addition (OD-0099 amendments; first-release skills downloads, SK-3): the downloader's knobs. ED-304 (3)
 // to (6) say which defaults come from the plan or the voice spec and which are engineering choices.
 namespace Marrow.Services.Port.Downloads;
 

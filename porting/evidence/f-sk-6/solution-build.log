@@ -1,0 +1,31 @@
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net.Runtime. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net.Runtime.Vulkan. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package NAudio.Wasapi. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net.Runtime. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net.Runtime.Vulkan. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package NAudio.Wasapi. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/.tools/dotnet/sdk/10.0.401/Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets(266,5): error NETSDK1004: Assets file '/workspace/marrow-port/src/Marrow.Setup/obj/project.assets.json' not found. Run a NuGet package restore to generate this file. [/workspace/marrow-port/src/Marrow.Setup/Marrow.Setup.csproj]
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+
+Build FAILED.
+
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net.Runtime. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package Whisper.net.Runtime.Vulkan. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj : error NU1101: Unable to find package NAudio.Wasapi. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net.Runtime. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package Whisper.net.Runtime.Vulkan. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj : error NU1101: Unable to find package NAudio.Wasapi. No packages exist with this id in source(s): /workspace/.tools/nuget
+/workspace/.tools/dotnet/sdk/10.0.401/Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets(266,5): error NETSDK1004: Assets file '/workspace/marrow-port/src/Marrow.Setup/obj/project.assets.json' not found. Run a NuGet package restore to generate this file. [/workspace/marrow-port/src/Marrow.Setup/Marrow.Setup.csproj]
+    0 Warning(s)
+    9 Error(s)
+
+Time Elapsed 00:01:20.95

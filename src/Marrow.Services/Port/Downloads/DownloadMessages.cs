@@ -13,7 +13,7 @@ public static partial class DownloadMessages
     /// <summary>"The file didn't match its checksum." (3.9).</summary>
     public const string Mismatch = "The file didn't match its checksum.";
 
-    /// <summary>"The file could not be written to disk." (ED-NEW-f-sk-3 (7): section 3.9 has no row for a local write failure.)</summary>
+    /// <summary>"The file could not be written to disk." (ED-304 (7): section 3.9 has no row for a local write failure.)</summary>
     public const string DiskError = "The file couldn't be written to disk.";
 
     [GeneratedRegex(@"^([A-Za-z]):")]

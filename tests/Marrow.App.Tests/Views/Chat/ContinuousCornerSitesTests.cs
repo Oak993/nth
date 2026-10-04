@@ -51,6 +51,8 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
     private static readonly (string File, string Radius, int Count, string Kind)[] Sites =
     [
         ("Marrow.App/Port/ChatDialogControls.cs", "6", 1, Fit),
+        ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.BarHeight / 2", 2, Capsule), // GR-2 (ED-306): the progress bar's track and fill, 4 pt bars with r = h / 2
+        ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
         ("Marrow.App/Port/LookCard.cs", "10", 1, Circular),
         ("Marrow.App/Port/LookCard.cs", "12", 1, Circular),
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
@@ -114,6 +116,20 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Port/SwiftShapes.cs", "CapsuleCornerRadius(e.NewSize)", 1, Other),
         ("Marrow.UI/Port/SwiftShapes.cs", "cornerRadii", 1, Other),
         ("Marrow.UI/Port/SwiftShapes.cs", "cornerRadius", 1, Other),
+        ("Marrow.UI/Port/Settings/CzControls/CzAutoButton.cs", "10", 1, Capsule), // CZ-1 (ED-312): the 40 x 20 Auto capsule (cz.js .auto)
+        ("Marrow.UI/Port/Settings/CzControls/CzButton.cs", "13", 1, Capsule), // CZ-1 (ED-312): the 26 pt capsule button
+        ("Marrow.UI/Port/Settings/CzControls/CzColorWell.cs", "10", 1, Circle), // CZ-1 (ED-312): the 20 pt well dot
+        ("Marrow.UI/Port/Settings/CzControls/CzMenuButton.cs", "14", 1, Capsule), // CZ-1 (ED-312): the 28 pt menu button
+        ("Marrow.UI/Port/Settings/CzControls/CzMenuButton.cs", "12", 1, Circular), // CZ-1 (ED-312): the menu panel, a design-page layout (CSS border-radius 12)
+        ("Marrow.UI/Port/Settings/CzControls/CzMenuItem.cs", "7", 1, Circular), // CZ-1 (ED-312): a menu row, design-page layout (CSS 7)
+        ("Marrow.UI/Port/Settings/CzControls/CzOrbTiles.cs", "9", 1, Circular), // CZ-1 (ED-312): the orb tile button, design-page layout (CSS 9)
+        ("Marrow.UI/Port/Settings/CzControls/CzOrbTiles.cs", "8", 1, Circular), // CZ-1 (ED-312): the 96 x 56 orb tile, design-page layout (CSS 8)
+        ("Marrow.UI/Port/Settings/CzControls/CzSegmentedControl.cs", "small ? 11 : 12", 1, Capsule), // CZ-1 (ED-312): the 22 / 24 pt segment pill, r = h / 2
+        ("Marrow.UI/Port/Settings/CzControls/CzStyleCards.cs", "12", 2, Circular), // CZ-1 (ED-312): the style card button and its shell, design-page layout (CSS border-radius 12)
+        ("Marrow.UI/Port/Settings/CzControls/CzSwatchRow.cs", "12", 1, Circle), // CZ-1 (ED-312): the 24 pt swatch, a circle by construction
+        ("Marrow.UI/Port/Settings/CzControls/CzSlider.cs", "10", 1, Capsule), // CZ-1 (ED-312): the 40 x 20 Auto capsule
+        ("Marrow.UI/Port/Settings/GlassColorPicker.cs", "HexRadius", 1, Capsule), // CZ-2 (ED-313): the 28 pt hex pill, r 14 = h / 2 (lp-page.css .mg-hex)
+        ("Marrow.UI/Port/Settings/GlassColorPicker.cs", "DotSize / 2", 1, Circle), // CZ-2 (ED-313): the 22 pt preview dot beside the hex field, a circle by construction
         ("Marrow.UI/Port/SystemButtons.cs", "radius", 2, Fit), // H3 (ED-291): a capsule (height / 2) under presentedChrome, else the kit's Radius 6 on a 22-24 pt button: never 2r < h < 3.057r
         ("Marrow.UI/Port/SystemButtons.cs", "radius + FocusBand", 1, Fit),
         ("Marrow.UI/Port/SystemButtons.cs", "Radius", 2, Fit),

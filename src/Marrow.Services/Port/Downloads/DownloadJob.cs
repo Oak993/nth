@@ -241,7 +241,19 @@ public sealed partial class DownloadJob
             using var attemptLink = LinkedAttempt();
             try
             {
-                var result = await AttemptAsync(index, file, state, attemptLink.Token);
+                DownloadFileResult result;
+                // A file with the same pinned hash shares the partial: one transfer writes it at a time (ED-304 (15)). The turn is held per
+                // attempt, not across a pause or a retry wait.
+                var part = PartPath(file);
+                var turn = await PartFileTurns.Take(part, attemptLink.Token);
+                try
+                {
+                    result = await AttemptAsync(index, file, state, attemptLink.Token);
+                }
+                finally
+                {
+                    PartFileTurns.Give(part, turn);
+                }
                 lock (gate)
                 {
                     finished[index] = result;

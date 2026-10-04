@@ -13,7 +13,7 @@ public enum DownloadFailureKind
     /// <summary>HTTP 404 or 410: "The file is no longer at its source. A Marrow update will fix this."</summary>
     NotFound,
 
-    /// <summary>Any other non-success status (500, 503, 403 ...): the same words as Unreachable (ED-NEW-f-sk-3 (7)).</summary>
+    /// <summary>Any other non-success status (500, 503, 403 ...): the same words as Unreachable (ED-304 (7)).</summary>
     ServerError,
 
     /// <summary>Length or SHA-256 differs from the pin: "The file didn't match its checksum." The .part is deleted.</summary>
@@ -22,10 +22,10 @@ public enum DownloadFailureKind
     /// <summary>Not enough room: "Needs 1.2 GB free on C:."</summary>
     DiskFull,
 
-    /// <summary>A file could not be written (ED-NEW-f-sk-3 (7)).</summary>
+    /// <summary>A file could not be written (ED-304 (7)).</summary>
     DiskError,
 
-    /// <summary>The url was refused before any byte was fetched: off the list, not https, or an insecure or endless redirect (ED-NEW-f-sk-3 (8)).</summary>
+    /// <summary>The url was refused before any byte was fetched: off the list, not https, or an insecure or endless redirect (ED-304 (8)).</summary>
     Refused,
 }
 

@@ -35,6 +35,7 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-CHAT-037")] // TimelineRows.swift:2735-2827 the card
+    [Trait("Req", "UI-GIT-044")] // TimelineRows.swift:2718-2827 the card, its corner (Apple's at the largest radius that fits, OD-0102) and its fixed frame; the git view of it
     [Trait("Req", "UI-GIT-046")] // TimelineRows.swift:2770-2776 the revert glyph button
     [Trait("Req", "UI-GIT-048")] // TimelineRows.swift:2800-2816 the review glyph button
     public void The_file_card_is_a_hugging_quaternary_pill_with_the_title_button_a_20_point_gap_and_the_two_round_buttons() => headless.OnUiThread(() =>
@@ -172,7 +173,7 @@ public sealed class TimelineRowsFinFileCardTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-GIT-044 (STOP #10): the click; the card's corner at 40 pt is UNRESOLVED (ED-275 (2)); TimelineRows.swift:2745-2757, :2829-2858
+    [Trait("Req", "UI-GIT-044")] // TimelineRows.swift:2745-2757, :2829-2858 the click on the title: the files popover below it with twelve rows; the card's corner at 40 pt is Apple's at the largest radius that fits (OD-0102, the test above)
     public void Clicking_the_title_opens_the_files_popover_below_it_with_twelve_rows_and_a_second_click_closes_it() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

@@ -233,10 +233,10 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
     }
 
     [Fact]
-    // UI-CHAT-006, the ChatView half only. STOP (review round 2): the record's ThreadTimeline clauses (shown while the end sentinel is under
-    // 1 percent visible, the spring of response 0.38 and damping 0.78, hidden without animation when a new row arrives and the reader follows
-    // it, the 0.35 s glide to the end; ThreadTimeline.swift:402-409,673-677) are not exercised here, so this test does not carry the record.
-    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1089-1103 (UI-CHAT-006, the ChatView half)
+    // UI-CHAT-006, the ChatView half. The record's ThreadTimeline clauses (shown while the end sentinel is under 1 percent visible, the spring of response 0.38 and
+    // damping 0.78, hidden without animation when a new row arrives and the reader follows it, the 0.35 s glide to the end; ThreadTimeline.swift:402-409,673-677) are
+    // ThreadTimelineChatTests' and ThreadTimelineMountedTests' (Req UI-CHAT-006 as well, 2026-10-04); this test drives the button under panelSlide.
+    [Trait("Req", "UI-CHAT-006")] // App/Views/Chat/ChatView.swift:1089-1103 (the ChatView half)
     public void Jump_to_latest_has_the_source_action_zero_height_and_asymmetric_transitions()
     {
         ChatHeadlessFixtures.Run(headless, () =>

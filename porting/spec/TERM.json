@@ -1930,7 +1930,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same layout, placeholders and label, with a monospaced command field in the callout style of the port's type scale, 12 pt per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52) (Cascadia Mono under OD-0009, a named deviation).",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

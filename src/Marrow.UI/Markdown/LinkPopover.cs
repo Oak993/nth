@@ -124,7 +124,7 @@ public sealed class LinkPopover
         var window = TopLevel.GetTopLevel(of) as Window;
         if (window is null) return;
         monitorWindow = window;
-        window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
+        window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel); // a key PopoverHost already forwarded is handled and acts once (PopoverHost.Listen)
         escapeMonitorActive = true;
     }
 
