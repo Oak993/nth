@@ -11,7 +11,7 @@ using Marrow.UI.Port;
 namespace Marrow.App.Tests.Views.Settings;
 
 // UI-SETTINGS-012, SettingsView.swift:296-305 (the system switch, controlSize .small, accent tint). Its look and motion are the Mac's, measured in
-// the reference runtime (ED-NEW-settingsview; E:\Droppy\work\reference-video, CATALOGUE settings.switch-toggle, 1 px = 1 pt): the on switch is a
+// the reference runtime (ED-280; E:\Droppy\work\reference-video, CATALOGUE settings.switch-toggle, 1 px = 1 pt): the on switch is a
 // 44 x 20 accent track holding a white 26 x 16 knob 2 in from every edge (S 178.0); the off track is the label colour at 0.10 (S 42.5); a press
 // widens the knob to 30 and 2 taller about its own centre, into a lens 0.48 white over the accent and about 0.6 white over the off track (25 to 29-30 in 80-100 ms; frames/w-1-settings-tour-24.0/win row y 346); the commit slides the knob its 14 points in about 0.21 s, ease-out (fractions 0.13 at 22 ms,
 // 0.38 at 54, 0.62 at 94, 0.83 at 144, 0.98 at 197, 1 at 210), while the track crossfades over 0.25 s.

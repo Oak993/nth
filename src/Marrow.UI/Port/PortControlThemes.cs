@@ -168,7 +168,7 @@ public static class PortControlThemes
             Template = new FuncControlTemplate<Thumb>((_, _) => new Panel { Children = { face, ring } }),
         };
         // The held knob (1-settings-tour.mov 128-131 s): the white 18 x 14 capsule turns into the translucent 23 x 20 glass one. ENGINEERING DECISION
-        // (OD-0076, ED-NEW-settingsview): it does so over 0.08 s on the press and back over 0.07 s on the release (the reference runtime: INDEX.md, 70 to
+        // (OD-0076, ED-280): it does so over 0.08 s on the press and back over 0.07 s on the release (the reference runtime: INDEX.md, 70 to
         // 90 ms and 60 to 80 ms), one fraction driving the size, the corner, the fill and the rim; reduce motion jumps.
         var held = new AnimatedScalar(knob, 0, fraction =>
         {

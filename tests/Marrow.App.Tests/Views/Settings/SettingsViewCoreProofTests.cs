@@ -362,7 +362,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         model.Settings.ShowReasoning = false; Sync(); Assert.Equal(ToggleState.Off, ((IToggleProvider)ControlAutomationPeer.CreatePeerForElement(toggle)!).ToggleState);
         Press(toggle); Assert.True(model.Settings.ShowReasoning); Assert.True(toggle.Focus()); Assert.True(Key(toggle, Avalonia.Input.Key.Space).Handled); Assert.False(model.Settings.ShowReasoning);
         Key(toggle, Avalonia.Input.Key.Space); Assert.True(model.Settings.ShowReasoning);
-        // The switch's look is the Mac's, measured (ED-NEW-settingsview); the source tint is exact once the track has crossfaded (0.25 s), read from rendered pixels.
+        // The switch's look is the Mac's, measured (ED-280); the source tint is exact once the track has crossfaded (0.25 s), read from rendered pixels.
         Frame(h, 300); using var bitmap = new RenderTargetBitmap(new PixelSize((int)toggle.Bounds.Width, (int)toggle.Bounds.Height)); using (var dc = bitmap.CreateDrawingContext()) toggle.Render(dc);
         using var stream = new MemoryStream(); bitmap.Save(stream, new PngBitmapEncoderOptions()); using var pixels = SKBitmap.Decode(stream.ToArray());
         var accent = Chrome.Accent.Resolve(toggle.ActualThemeVariant); Assert.Contains(pixels.Pixels, p => p.Red == accent.R && p.Green == accent.G && p.Blue == accent.B && p.Alpha == accent.A);
@@ -425,13 +425,13 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     });
 
     // Resolved STOP opencode-proofs-settings-core #3 (UI-SETTINGS-016): the small .glass Edit is the accent glass pill measured in the reference runtime
-    // (ED-NEW-settingsview (2): 20 high, white 11 point label, 10.5 either side); SettingsViewBlitzBTests.Marks_edit_is_the_small_accent_glass_pill_... asserts it.
+    // (ED-280 (2): 20 high, white 11 point label, 10.5 either side); SettingsViewBlitzBTests.Marks_edit_is_the_small_accent_glass_pill_... asserts it.
 
     // Resolved STOP opencode-proofs-settings-core #5 (UI-SETTINGS-003, UI-SETTINGS-012):
     // UI-SETTINGS-003's "system focus ring is left on" is answered by the reference runtime: the main sidebar's "Search threads" field is the same
     // SidebarSearchField (SidebarView.swift:83) and the video shows no ring on focus, only a caret fading in over 0.18-0.24 s (CATALOGUE
     // composer.caret-focus-fade-in, S 5.785-5.900, C 80.115-80.333); the port draws no ring either (FocusAdorner unset, asserted above).
-    // UI-SETTINGS-012's switch is drawn at the Mac's measured size, colours and motion (ED-NEW-settingsview (5); SmallSwitchMotionTests).
+    // UI-SETTINGS-012's switch is drawn at the Mac's measured size, colours and motion (ED-280 (5); SmallSwitchMotionTests).
     // STOP opencode-proofs-settings-core #6
     // UI-SETTINGS-004 UI-SETTINGS-014 UI-SETTINGS-015: Chrome.swift:722 / ChromeVisualPicker.swift:92,95,99 request
     // continuous corners. SwiftShapes.cs MARROW_DEFERRED ED-181 still draws circular arcs; the oracle-backed

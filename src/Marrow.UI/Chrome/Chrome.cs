@@ -385,7 +385,7 @@ namespace Marrow.UI.Chrome
             else
             {
                 Draw();
-                // DEVIATION OD-0076 (ED-NEW-settingsview): `withAnimation(.snappy(duration: 0.2))` on the transparency (SettingsView.swift:546) reaches the
+                // DEVIATION OD-0076 (ED-280): `withAnimation(.snappy(duration: 0.2))` on the transparency (SettingsView.swift:546) reaches the
                 // scrim through this input; the scrim glides to its new strength in that transaction instead of cutting there.
                 if (Transaction.Current is { } animation && shown is { } start && ReferenceEquals(before, scrim) && scrim is { } layer && layer.Opacity != start)
                 {
@@ -1206,7 +1206,7 @@ namespace Marrow.UI.Chrome
 
             var button = new SelectableButton { IsRowSelected = isSelected, Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
             button.Click += (_, _) => action();
-            // The pressed look (PORT-ONLY, ED-NEW-settingsview; SOURCE FACT: the reference runtime, CATALOGUE press.row-tile-dim):
+            // The pressed look (PORT-ONLY, ED-280; SOURCE FACT: the reference runtime, CATALOGUE press.row-tile-dim):
             // a plain button dims its content to 0.8 and its wash to x0.7 while the pointer holds it down. The catalogue's own
             // ramp, 0.05 s in and 0.1 s out, ease-out (transition-audit sidebar-panels-015). Only the rows that ask for it draw it.
             var pressed = false;
@@ -1475,7 +1475,7 @@ namespace Marrow.UI.Chrome
             AutomationProperties.SetName(clear, "Clear search"); // :859
             // :854-858 Always laid out, so the field's text never shifts when the button comes; invisible and out of the
             // accessibility tree while there is nothing to clear.
-            // DEVIATION OD-0076 (ED-NEW-settingsview): the source cuts the button in and out (:856, no animation); the port
+            // DEVIATION OD-0076 (ED-280): the source cuts the button in and out (:856, no animation); the port
             // fades it and scales it from 0.8 over Chrome.hover, the way every control that appears does.
             clear.RenderTransformOrigin = RelativePoint.Center;
             var shown = new AnimatedScalar(clear, 0, value => { clear.Opacity = value; var scale = value == 0 ? 1 : 0.8 + 0.2 * value; clear.RenderTransform = new ScaleTransform(scale, scale); });

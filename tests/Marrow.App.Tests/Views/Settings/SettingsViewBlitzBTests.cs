@@ -349,7 +349,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-016: the pill's look (the small accent glass of ED-NEW-settingsview) and its dim; no reference frame shows a disabled glass button (UNVERIFIED dim), and the hover lift and press growth of the catalogue are not drawn
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-016: the pill's look (the small accent glass of ED-280) and its dim; no reference frame shows a disabled glass button (UNVERIFIED dim), and the hover lift and press growth of the catalogue are not drawn
     [Trait("Req", "UI-SETTINGS-016")] // SettingsView.swift:1125-1155
     public void Marks_edit_is_the_small_accent_glass_pill_with_a_white_11_point_label_dimmed_while_it_is_disabled()
     {

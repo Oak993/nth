@@ -14,7 +14,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Views.Settings;
 
-// OD-0076: "the system's reduce-motion setting stills every transition". The unit built these on AnimatedScalar (ED-NEW-settingsview (13)): the
+// OD-0076: "the system's reduce-motion setting stills every transition". The unit built these on AnimatedScalar (ED-280 (13)): the
 // disabled accent glass dim, the window backdrop's scrim glide, the sidebar row's press dim, the picker tile's press dim and the switch's press
 // widening and the transparency slider's held knob. (The search clear fade and the settle row dim are held by SettingsViewBlitzReviewTests.) Each test sets the Chrome platform's
 // reduce motion and the window's environment explicitly and runs no frame, so none depends on the PC's own Windows "Animation effects" switch,

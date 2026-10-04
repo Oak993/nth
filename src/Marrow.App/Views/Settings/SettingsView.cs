@@ -312,7 +312,7 @@ public sealed class SettingsSwitch : Decorator
 /// ENGINEERING DECISION: Avalonia's own ToggleSwitch needs its Fluent theme's control template
 /// (PART_MovingKnobs), which this codebase's headless test host does not register, so it throws
 /// KeyNotFoundException the moment it is measured. A small, self-drawn switch avoids any themed
-/// template. Its look is the Mac's, measured in the reference runtime (ED-NEW-settingsview; work/reference-video,
+/// template. Its look is the Mac's, measured in the reference runtime (ED-280; work/reference-video,
 /// 1 px = 1 pt): a 44 x 20 track and a white 26 x 16 pill knob 2 in from every edge (S 178.0 on, S 42.5 off); the off
 /// track is the label colour at 0.10 over the card; a press widens the knob to 30 and 2 taller (CATALOGUE
 /// settings.switch-toggle: 25 to 29-30 in 80-100 ms, +2 px tall, its centre fixed; frames/w-1-settings-tour-24.0/win row
@@ -583,7 +583,7 @@ internal sealed class BackdropOpacitySlider : Decorator
     // :522 @Binding var value: Double; :526-563 body
     public BackdropOpacitySlider(Binding<double> value)
     {
-        // ENGINEERING DECISION (ED-NEW-settingsview, UNVERIFIED against the Mac): Slider(value:in: 0...1) has no step, so the arrow keys the
+        // ENGINEERING DECISION (ED-280, UNVERIFIED against the Mac): Slider(value:in: 0...1) has no step, so the arrow keys the
         // framework gives it move a small amount; Avalonia's default SmallChange is 1, the whole of this 0 to 1 range, which would jump the
         // window from clear to solid on one key. A hundredth per arrow key, a tenth per Page key.
         var slider = new Slider { Minimum = 0, Maximum = 1, Width = 140, Value = value.Value, SmallChange = 0.01, LargeChange = 0.1 }; // :535-537
@@ -836,7 +836,7 @@ internal sealed class SourceControlSettingsPage : Decorator
     }
 }
 
-/// <summary>PORT-ONLY (ED-NEW-settingsview): a text button in SettingsView.swift's <c>.buttonStyle(.glass)</c> (Reveal, :840) or its
+/// <summary>PORT-ONLY (ED-280): a text button in SettingsView.swift's <c>.buttonStyle(.glass)</c> (Reveal, :840) or its
 /// <c>.buttonStyle(.glass).controlSize(.small)</c> (Show, :986): an accent capsule with a white label (SwiftGlass.StyleAccentGlassButton).</summary>
 internal static class SettingsGlassButtons
 {

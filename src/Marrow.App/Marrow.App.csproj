@@ -30,7 +30,7 @@
     files ship unchanged. LICENSE and TRADEMARK.md are copied byte for byte from the pinned reference (droppy-code-v1.7.0, B3).
     The notices file is upstream's own (legal/THIRD_PARTY_NOTICES.upstream.md, byte for byte) with the port's additions file
     (THIRD_PARTY_NOTICES.md at the repository root) after it, joined at build time so neither copy can drift from the shipped one
-    (ED-NEW-settingsview). Content items reach the publish folder the installer is packed from (scripts/package-windows.ps1).
+    (ED-280). Content items reach the publish folder the installer is packed from (scripts/package-windows.ps1).
   -->
   <PropertyGroup>
     <LegalRoot>$(MSBuildThisFileDirectory)../../</LegalRoot>

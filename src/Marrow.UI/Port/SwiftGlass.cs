@@ -110,7 +110,7 @@ public static class SwiftGlass
         });
     }
 
-    // `.buttonStyle(.glass)` on a text button, with the window's `.tint(Chrome.accent)` above it (ED-NEW-settingsview).
+    // `.buttonStyle(.glass)` on a text button, with the window's `.tint(Chrome.accent)` above it (ED-280).
     // SOURCE FACT (the reference runtime, work/reference-video): such a button is an accent capsule with a white label,
     // not the neutral chromeGlassCapsule (Chrome.swift:162-184, which the Permissions, Theme and search pills use):
     //   regular  Reveal, S 199.5 (frames/w-1-settings-tour-198.0/stills/win_199.5.png): 64 x 22, fill (247,46,120) beside the
@@ -153,7 +153,7 @@ public static class SwiftGlass
             }.Capsule(RoundedCornerStyle.Continuous);
             surface.Background = Chrome.Chrome.Accent.Brush(surface);
             SetEffect(surface, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Tint(Chrome.Chrome.Accent, 1).Interactive());
-            // ENGINEERING DECISION (ED-NEW-settingsview, UNVERIFIED: no reference frame shows a disabled glass button): a disabled one (.disabled, SettingsView.swift:1134)
+            // ENGINEERING DECISION (ED-280, UNVERIFIED: no reference frame shows a disabled glass button): a disabled one (.disabled, SettingsView.swift:1134)
             // is dimmed to 40 %, the dim every port control takes when disabled, easing over Chrome.hover (OD-0076).
             var dim = new AnimatedScalar(surface, source.IsEffectivelyEnabled ? 1 : 0.4, value => surface.Opacity = value);
             source.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty) dim.Set(source.IsEffectivelyEnabled ? 1 : 0.4, Chrome.Chrome.Hover); };

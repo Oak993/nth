@@ -45,7 +45,7 @@ public sealed class SettingsRestNativeDependencyTests(HeadlessSession headless) 
     public void Existing_switch_binding_preview_and_disabled_state_are_preserved_pending_native_switch_form()
     {
         // Resolved STOP opencode-SettingsView-rest #5 (UI-SETTINGS-066, UI-THEME-026/027, UI-USAGE-044): SmallSwitch is no longer an invented 28 x 16 control;
-        // it is the Mac's switch measured in the reference runtime (ED-NEW-settingsview (5): 44 x 20 track, 26 x 16 knob, press lens, slide and crossfade;
+        // it is the Mac's switch measured in the reference runtime (ED-280 (5): 44 x 20 track, 26 x 16 knob, press lens, slide and crossfade;
         // SmallSwitchMotionTests). This test keeps the binding, preview and disabled-state checks; SettingsViewBlitzBTests prove each record's rows.
         var sound = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(sound);
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
