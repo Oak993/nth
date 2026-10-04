@@ -50,7 +50,7 @@ internal static class ContinuousCornerChecks
         if (shape is Border)
         {
             path = Assert.IsAssignableFrom<Geometry>(clip);
-            Assert.Same(path, SwiftShapes.ClipGeometry(new Rect(size), radii, circularInBand));
+            Assert.Same(path, ExpectedClip((Border)shape, size, radii, circularInBand));
         }
         else path = SwiftShapes.UnevenRoundedRectangleGeometry(new Rect(size), radii, RoundedCornerStyle.Continuous, circularInBand);
         _ = fill;
@@ -66,6 +66,13 @@ internal static class ContinuousCornerChecks
         }
         return true;
     }
+
+    /// <summary>
+    /// The clip a plain Border carries (ED-NEW-cornerband (9)): the shape's own outline, which Skia anti-aliases exactly, when the Border draws nothing beyond a side (no child, or
+    /// clipped to its bounds) and every rounded corner is Apple's; else the slack clip (ED-275 (3)) that leaves what is drawn beyond a side alone.
+    /// </summary>
+    public static Geometry ExpectedClip(Border border, Size size, CornerRadius stated, bool circularInBand) =>
+        SwiftShapes.ClipGeometry(new Rect(size), stated, circularInBand, exact: (border.Child is null || border.ClipToBounds) && SwiftShapes.ExactClipFits(size, stated, circularInBand));
 
     /// <summary>
     /// PopoverItem's hover surface (Popovers.swift:318-326: <c>.padding(.horizontal, 8).frame(height: 26).background { RoundedRectangle(cornerRadius: 6,

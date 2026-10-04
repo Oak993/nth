@@ -165,7 +165,24 @@ public static class SwiftShapes
     // pushed ClipSlack outside, so the clip cuts along the continuous curves and not along any straight side (the Border's own fill, with its own
     // anti-aliased edge, stays what draws every straight side, and a child that draws beyond a side is not clipped, except within the run-ins of an
     // Apple-regime corner, where the quadrant outside the bounds is cut with the sliver: see ClipSlack).
-    internal static ShapeOutline ClipOutline(Rect rect, CornerRadius radii, bool circularInBand = false) => Build(rect, radii, RoundedCornerStyle.Continuous, ClipSlack, circularInBand);
+    // With exact: true the clip is the shape's own outline (no slack), a CONVEX path when the corners are Apple's or square: see ExactClipFits.
+    internal static ShapeOutline ClipOutline(Rect rect, CornerRadius radii, bool circularInBand = false, bool exact = false) => Build(rect, radii, RoundedCornerStyle.Continuous, exact ? 0 : ClipSlack, circularInBand);
+
+    /// <summary>
+    /// Whether a Border of this size and radii may be cut by the exact outline instead of the slack clip: every rounded corner is Apple's (a corner that is an arc is
+    /// the Border's own, and the same arc as a clip would be anti-aliased twice, ED-NEW-cornerband (8)). The outline is then convex, which is what makes Skia
+    /// anti-aliase it exactly: ANY non-convex path (the slack clip's walls, or a path with a notch of 0.001 pt in a straight side) is anti-aliased by Skia's coarser
+    /// walker, 49 of 255 off the path fill at the worst pixel of a 200 x 40 shape and 102 at 380 x 46 (ED-NEW-cornerband (9)).
+    /// </summary>
+    internal static bool ExactClipFits(Size size, CornerRadius radii, bool circularInBand = false)
+    {
+        if (!(size.Width > 0) || !(size.Height > 0)) return false;
+        var kinds = new CornerKind[4];
+        var drawn = new double[4];
+        ResolveCorners(size.Width, size.Height, [Math.Max(0, radii.TopLeft), Math.Max(0, radii.TopRight), Math.Max(0, radii.BottomRight), Math.Max(0, radii.BottomLeft)],
+            RoundedCornerStyle.Continuous, circularInBand, kinds, drawn);
+        return !kinds.Contains(CornerKind.Arc);
+    }
 
     // Whether a corner's run-in fits: the corner and its neighbour on each side it shares need E r each along that side (the top side
     // joins corners 0 and 1, the bottom side 2 and 3, the left side 0 and 3, the right side 1 and 2; corners clockwise from the top-left).
@@ -364,7 +381,7 @@ public static class SwiftShapes
     // ---- The cached geometry ---------------------------------------------------------------------------------------
 
     private readonly record struct ShapeKey(double X, double Y, double Width, double Height, double TopLeft, double TopRight,
-        double BottomRight, double BottomLeft, RoundedCornerStyle Style, bool Clip, bool CircularInBand);
+        double BottomRight, double BottomLeft, RoundedCornerStyle Style, bool Clip, bool CircularInBand, bool Exact);
 
     private const int CacheLimit = 1024;
     private static readonly Dictionary<ShapeKey, StreamGeometry> cache = [];
@@ -374,14 +391,14 @@ public static class SwiftShapes
     /// <summary>How many geometries have been built (a test hook: a colour change builds none, a resize builds one).</summary>
     internal static int GeometryBuildCount => Volatile.Read(ref geometryBuilds);
 
-    private static Geometry Geometry(Rect rect, CornerRadius radii, RoundedCornerStyle style, bool clip, bool circularInBand)
+    private static Geometry Geometry(Rect rect, CornerRadius radii, RoundedCornerStyle style, bool clip, bool circularInBand, bool exact = false)
     {
-        var key = new ShapeKey(rect.X, rect.Y, rect.Width, rect.Height, radii.TopLeft, radii.TopRight, radii.BottomRight, radii.BottomLeft, style, clip, circularInBand);
+        var key = new ShapeKey(rect.X, rect.Y, rect.Width, rect.Height, radii.TopLeft, radii.TopRight, radii.BottomRight, radii.BottomLeft, style, clip, circularInBand, exact);
         lock (cacheLock)
         {
             if (cache.TryGetValue(key, out var found)) return found;
             if (cache.Count >= CacheLimit) cache.Clear();
-            var outline = clip ? ClipOutline(rect, radii, circularInBand) : Outline(rect, radii, style, circularInBand);
+            var outline = clip ? ClipOutline(rect, radii, circularInBand, exact) : Outline(rect, radii, style, circularInBand);
             var geometry = new StreamGeometry();
             using (var context = geometry.Open())
             {
@@ -413,8 +430,11 @@ public static class SwiftShapes
         }
     }
 
-    /// <summary>The clip of a continuous shape of this size: Apple's corners cut, every other edge left to the shape's own fill.</summary>
-    internal static Geometry ClipGeometry(Rect rect, CornerRadius radii, bool circularInBand = false) => Geometry(rect, radii, RoundedCornerStyle.Continuous, clip: true, circularInBand);
+    /// <summary>
+    /// The clip of a continuous shape of this size: Apple's corners cut, every other edge left to the shape's own fill (the slack clip), or with
+    /// <paramref name="exact"/> the shape's own outline (<see cref="ExactClipFits"/>).
+    /// </summary>
+    internal static Geometry ClipGeometry(Rect rect, CornerRadius radii, bool circularInBand = false, bool exact = false) => Geometry(rect, radii, RoundedCornerStyle.Continuous, clip: true, circularInBand, exact);
 }
 
 /// <summary>
@@ -453,8 +473,18 @@ internal static class ContinuousClip
         var drawsBorder = border.BorderBrush is not null && border.BorderThickness != default;
         if (!drawsFill && !drawsBorder && !border.ClipToBounds) return null;
         var circularInBand = SwiftShapes.GetCircularInBand(border);
-        return SwiftShapes.HasContinuousCorner(size, radii, RoundedCornerStyle.Continuous, circularInBand) ? SwiftShapes.ClipGeometry(new Rect(size), radii, circularInBand) : null;
+        if (!SwiftShapes.HasContinuousCorner(size, radii, RoundedCornerStyle.Continuous, circularInBand)) return null;
+        return SwiftShapes.ClipGeometry(new Rect(size), radii, circularInBand, exact: CutsExactly(border, size, radii, circularInBand));
     }
+
+    /// <summary>
+    /// Whether the Border is cut by its exact outline rather than the slack clip (ED-NEW-cornerband (9)): the exact outline is convex, and Skia anti-aliases only a
+    /// convex path exactly (the slack clip's walls make it non-convex: 49 of 255 off the path fill at the worst pixel, 102 at 380 x 46). The slack exists for what is
+    /// drawn beyond a side (ED-275 (3)); a Border with no child draws only its own fill and border, inside its bounds, and one clipped to its bounds draws nothing
+    /// beyond a side either, so those take the exact outline. A corner that is an arc stays on the slack clip (see <see cref="SwiftShapes.ExactClipFits"/>).
+    /// </summary>
+    private static bool CutsExactly(Border border, Size size, CornerRadius radii, bool circularInBand) =>
+        (border.Child is null || border.ClipToBounds) && SwiftShapes.ExactClipFits(size, radii, circularInBand);
 
     private sealed class Tracker
     {
@@ -482,7 +512,7 @@ internal static class ContinuousClip
                 }
                 else if (p == Visual.BoundsProperty || p == Border.BackgroundProperty
                     || p == Border.BorderBrushProperty || p == Border.BorderThicknessProperty || p == Border.BoxShadowProperty
-                    || p == Visual.ClipToBoundsProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty)
+                    || p == Visual.ClipToBoundsProperty || p == Decorator.ChildProperty || p == SwiftShapes.CornerStyleProperty || p == SwiftShapes.CircularInBandProperty)
                     Update();
             };
             Update();

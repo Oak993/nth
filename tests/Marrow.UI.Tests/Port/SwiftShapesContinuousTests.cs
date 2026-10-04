@@ -327,7 +327,8 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         var clip = Assert.IsAssignableFrom<Geometry>(border.Clip);
         Assert.False(clip.FillContains(new Point(22.6, 0.40)));
         Assert.True(clip.FillContains(new Point(22.6, 0.75)));
-        Assert.True(clip.FillContains(new Point(200, -1.5))); // the straight sides are left to the Border's own fill: the clip reaches far past them (ClipSlack)
+        Assert.True(clip.FillContains(new Point(200, 0.5)));
+        Assert.False(clip.FillContains(new Point(200, -1.5))); // a Border with no child draws nothing beyond a side: its clip is the exact outline (ED-NEW-cornerband (9)); the slack clip of one with a child is the test below
         Assert.False(clip.FillContains(new Point(1, 1)));
         window.Close();
     });
@@ -395,7 +396,7 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         var site = new Border { Width = 400, Height = 300, Background = Brushes.Red }.RoundedRectangle(26, RoundedCornerStyle.Continuous);
         var (second, _) = Mount(site);
         Assert.NotNull(site.Clip);
-        Assert.Same(site.Clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 400, 300), new CornerRadius(26)));
+        Assert.Same(site.Clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 400, 300), new CornerRadius(26), exact: true)); // childless: the exact outline
         second.Close();
     });
 
@@ -445,8 +446,8 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         Settle();
         Assert.NotSame(before, one.Clip);
         Assert.Equal(1, SwiftShapes.GeometryBuildCount - builds); // exactly one new geometry for the new size
-        Assert.Equal(333 + 2 * SwiftShapes.ClipSlack, one.Clip!.Bounds.Width, 6); // and it is the new size's (the clip reaches the slack past the sides)
-        Assert.Equal(411 + 2 * SwiftShapes.ClipSlack, two.Clip!.Bounds.Width, 6);
+        Assert.Equal(333, one.Clip!.Bounds.Width, 6); // and it is the new size's (childless: the exact outline; a Border with a child reaches the slack past the sides)
+        Assert.Equal(411, two.Clip!.Bounds.Width, 6);
         window.Close();
     });
 

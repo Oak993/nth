@@ -491,7 +491,7 @@ internal sealed class DiffFileCard : Decorator
             CornerRadius = new CornerRadius(12),
             Background = SwiftColor.Quaternary.Opacity(0.3).Brush(this),
             Child = body,
-        };
+        }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :229-230 `.rect(cornerRadius: 12, style: .continuous)`; a short block is in ED-275 (2)'s band (OD-0102)
     }
 
     // :182-190

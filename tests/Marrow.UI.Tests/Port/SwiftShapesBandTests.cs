@@ -235,7 +235,7 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
         window.Show();
         Dispatcher.UIThread.RunJobs();
         // The plain Border in the band is cut to Apple's corner at 46 / (2 E); the composer's is not cut at all (a Border draws its own circular corner).
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 818, 46), new CornerRadius(22)), plain.Clip);
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 818, 46), new CornerRadius(22), exact: true), plain.Clip); // childless: the exact outline (ED-NEW-cornerband (9))
         Assert.Null(composer.Clip);
         // A shape the flag was set on after the first layout follows at once.
         plain.CircularInBand();
@@ -296,7 +296,7 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
             .RoundedRectangle(18, RoundedCornerStyle.Continuous);
         (window, var pixels) = Render(border, 220, 60);
         var clip = Assert.IsAssignableFrom<Geometry>(border.Clip);
-        Assert.Same(clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18)));
+        Assert.Same(clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true)); // childless: the exact outline (ED-NEW-cornerband (9))
         Assert.True(clip.FillContains(new Point(d + 0.4, d + 0.4)));
         Assert.False(clip.FillContains(new Point(d - 0.4, d - 0.4)));
         // Rendered: 1.5 pt in along the diagonal is red, 1.5 pt out (towards the vertex) is not.
@@ -415,15 +415,15 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
         var (shapeWindow, path) = Render(shape, 220, 60);
         Assert.Equal(new CornerRadius(18), SwiftShapes.StatedCornerRadius(border));
         Assert.Equal(default, border.CornerRadius);
-        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18)), border.Clip);
+        Assert.Same(SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true), border.Clip); // childless: the exact outline (ED-NEW-cornerband (9))
         // (14, 14): 4.5 pt from the vertex along each axis, inside Apple's corner at L (its diagonal is at 0.2915 L = 3.81) and outside the circle of 18 (5.27).
         Assert.True(plain.At(14, 14).Red >= 200, $"(14, 14) is {plain.At(14, 14).Red}: the corner is not Apple's");
         Assert.True(plain.At(12, 12).Red <= 40, $"(12, 12) is {plain.At(12, 12).Red}: outside Apple's corner");
         var worst = 0;
         for (var y = 10; y < 22; y++)
             for (var x = 10; x < 22; x++) worst = Math.Max(worst, Math.Abs(plain.At(x, y).Red - path.At(x, y).Red));
-        // The clip's own anti-aliasing differs from the path fill's by a few tens of levels at an edge pixel (49 at the worst, on the bottom run-in); the circle of 18 differs by 255.
-        Assert.True(worst < 60, $"the fill-only Border's corner differs from the path fill of the same shape by {worst} levels of 255");
+        // The exact outline is anti-aliased as the path fill is (within 1 level at 200 x 40); the circle of 18 differs by 255.
+        Assert.True(worst < 12, $"the fill-only Border's corner differs from the path fill of the same shape by {worst} levels of 255");
         window.Close();
         shapeWindow.Close();
     });
@@ -530,4 +530,108 @@ public sealed class SwiftShapesBandTests(HeadlessSession headless)
         Assert.Equal(new CornerRadius(0, 10, 0, 10), SwiftShapes.DrawnCornerRadius(new Size(380, 100), new CornerRadius(0, 10, 0, 10), false, clipOnly: true));
         Assert.Equal(new CornerRadius(18), SwiftShapes.DrawnCornerRadius(new Size(0, 0), new CornerRadius(18), false, clipOnly: true));
     }
+    // ---- the clip's anti-aliasing at any bound size (the blitz-cornerband re-review: UI-CHAT-034's REVIEW measured 49 against 40) ------------------------------
+    // MEASURED (scratch, 2026-10-04, SkiaSharp directly): the 49 is not the clip's size. Skia anti-aliases a CONVEX path with its exact walker and any other path with
+    // a coarser one; the same outline with a tiny notch in a straight side, or with the straight sides pushed 0.001 pt out, gives the same 128 and 160 where the path
+    // fill gives 177 and 192, and a slack of 4096 or of 0.001 makes no difference. So a Border that cannot draw beyond its sides is cut by the exact outline.
+
+    private static (Window Window, RenderedPixels Pixels) RenderPlain(Control border, double width, double height) => Render(border, width + 20, height + 20);
+
+    private static Border Plain(double width, double height, double radius = 18) =>
+        new Border { Width = width, Height = height, Background = Brushes.Red, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }
+            .RoundedRectangle(radius, RoundedCornerStyle.Continuous);
+
+    private static SwiftShapeBorder PathFill(double width, double height, double radius = 18) =>
+        new SwiftShapeBorder { Width = width, Height = height, Background = Brushes.Red, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }
+            .RoundedRectangle(radius, RoundedCornerStyle.Continuous);
+
+    private static int Worst(RenderedPixels a, RenderedPixels b)
+    {
+        var worst = 0;
+        for (var y = 0; y < a.Height; y++)
+            for (var x = 0; x < a.Width; x++) worst = Math.Max(worst, Math.Abs(a.At(x, y).Red - b.At(x, y).Red));
+        return worst;
+    }
+
+    [Theory]
+    [InlineData(60, 40, 18)]
+    [InlineData(200, 40, 18)]
+    [InlineData(380, 46, 18)]
+    [InlineData(380, 54, 18)]
+    [InlineData(1500, 40, 18)]
+    [InlineData(1500, 54, 18)]
+    [InlineData(300, 30, 12)]
+    [Trait("Decision", "ED-181")]
+    public void A_childless_plain_Border_in_the_band_matches_the_path_fill_at_every_bound_size_within_the_clips_own_anti_aliasing(double width, double height, double radius) => headless.OnUiThread(() =>
+    {
+        var (w0, plain) = RenderPlain(Plain(width, height, radius), width, height);
+        var (w1, path) = RenderPlain(PathFill(width, height, radius), width, height);
+        var worst = Worst(plain, path);
+        w0.Close(); w1.Close();
+        Assert.True(worst < 12, $"{width} x {height}, r {radius}: the clipped Border differs from the path fill by {worst} levels of 255");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void A_Border_that_cannot_draw_beyond_its_sides_is_cut_by_the_exact_outline_and_one_that_can_keeps_the_slack() => headless.OnUiThread(() =>
+    {
+        // No child: nothing but its own fill, which is inside its bounds. The exact outline (convex: Skia's exact anti-aliasing) is the clip.
+        var bare = Plain(200, 40);
+        var window = new Window { Width = 240, Height = 80, Content = new Panel { Children = { bare } } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var exact = Assert.IsAssignableFrom<Geometry>(bare.Clip);
+        Assert.Equal(200, exact.Bounds.Width, 6);
+        Assert.Equal(40, exact.Bounds.Height, 6);
+        Assert.False(exact.FillContains(new Point(100, 45)), "the exact outline reaches past the bottom side");
+        Assert.Same(exact, SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18), exact: true));
+
+        // A child that is not clipped to the bounds can draw beyond a side (ED-275 (3)): the slack clip, which is not convex.
+        var child = new Border { Child = new Border { Width = 10, Height = 10 } };
+        child.Child = new Border { Width = 10, Height = 10 };
+        child.Width = 200; child.Height = 40;
+        child.Background = Brushes.Red;
+        child.RoundedRectangle(18, RoundedCornerStyle.Continuous);
+        window.Content = child;
+        Dispatcher.UIThread.RunJobs();
+        var slack = Assert.IsAssignableFrom<Geometry>(child.Clip);
+        Assert.Equal(200 + 2 * SwiftShapes.ClipSlack, slack.Bounds.Width, 6);
+        Assert.True(slack.FillContains(new Point(100, 45)));
+        Assert.Same(slack, SwiftShapes.ClipGeometry(new Rect(0, 0, 200, 40), new CornerRadius(18)));
+
+        // ... unless it is clipped to its bounds, where nothing beyond a side survives anyway.
+        child.ClipToBounds = true;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(exact, child.Clip);
+
+        // The tracker follows the child as it comes and goes.
+        child.ClipToBounds = false;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(slack, child.Clip);
+        child.Child = null;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(exact, child.Clip);
+        child.Child = new Border { Width = 10, Height = 10 };
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(slack, child.Clip);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void A_corner_that_is_an_arc_keeps_the_slack_clip_so_the_Borders_own_arc_is_not_anti_aliased_twice() => headless.OnUiThread(() =>
+    {
+        // 100 x 100 with radii 10, 10, 10, 60: the top-right corner is Apple's, the other three do not fit beside the 60 and are circular arcs.
+        var mixed = new Border { Width = 100, Height = 100, Background = Brushes.Red, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }
+            .UnevenRoundedRectangle(new CornerRadius(10, 10, 10, 60), RoundedCornerStyle.Continuous);
+        var window = new Window { Width = 140, Height = 140, Content = new Panel { Children = { mixed } } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var outline = SwiftShapes.Outline(new Rect(0, 0, 100, 100), new CornerRadius(10, 10, 10, 60), RoundedCornerStyle.Continuous);
+        Assert.Contains(CornerKind.Arc, outline.Corners);
+        Assert.Contains(CornerKind.Continuous, outline.Corners);
+        var clip = Assert.IsAssignableFrom<Geometry>(mixed.Clip);
+        Assert.Equal(100 + 2 * SwiftShapes.ClipSlack, clip.Bounds.Width, 6);
+        window.Close();
+    });
 }
