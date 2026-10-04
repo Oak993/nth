@@ -184,7 +184,7 @@ public sealed class LookCard : Decorator
     internal Color PillFill => Mix(Colors.White, Color.FromArgb(41, 255, 255, 255)); // #FFFFFF / rgba(255,255,255,.16)
     internal Color Rim => Mix(SwiftColor.Primary.Opacity(0.22)); // the theme swatch's rim (AppTheme.swift:152)
     internal Color RingColor => Mix(Color.FromArgb(199, 0, 0, 0), Color.FromArgb(235, 255, 255, 255)); // rgba(0,0,0,.78) / rgba(255,255,255,.92)
-    internal Color Divider => Mix(Chrome.Overlay(0.14)); // ChromeRowDivider's hairline
+    internal Color Divider => Mix(Chrome.Overlay(0.12)); // ChromeRowDivider's hairline (UI-PROVREG-009: measured 0.10 alpha, Overlay(0.12))
     internal Color PopFill => Mix(Colors.White, Color.FromRgb(0x1E, 0x1E, 0x1E)); // PopoverHost's panel (ED-238)
     internal Color PopEdge => Mix(Color.FromArgb(20, 0, 0, 0), Color.FromArgb(51, 255, 255, 255)); // rgba(0,0,0,.08) / rgba(255,255,255,.2)
     internal Color RowHover => Mix(Chrome.Overlay(0.1)); // PopoverItem's hover (Popovers.swift)

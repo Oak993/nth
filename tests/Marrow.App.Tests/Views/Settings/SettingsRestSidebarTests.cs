@@ -40,8 +40,9 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
             {
                 var row = Nodes<SidebarRow>(view)[index]; Check(row, index, false); var button = Assert.Single(Nodes<Button>(row)); var shape = Assert.IsType<Border>(button.Content);
                 Hover(w, button); Tick(h, 50); Ink(shape, shape.Background, Chrome.Overlay(0.06 * Animation.EaseOut(0.1).Progress(0.05))); Tick(h, 50); Ink(shape, shape.Background, Chrome.Overlay(0.06));
-                // Chrome.swift:729 the wash comes to the clicked row on Chrome.hover (easeOut 0.1 s): read the row once its 0.1 s are over.
-                Click(w, button); Tick(h, 110); row = Nodes<SidebarRow>(view)[index]; Check(row, index, true);
+                // Chrome.swift:729 the wash comes to the clicked row on Chrome.hover (easeOut 0.1 s), and the press look lets go over 0.1 s
+                // (ED-280): read the row once both are over (UI-SETTINGS-004).
+                Click(w, button); Tick(h, 150); row = Nodes<SidebarRow>(view)[index]; Check(row, index, true);
                 // Selecting rebuilds the page; current selection must survive moving the pointer away.
                 w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 100); Check(row, index, true);
             }

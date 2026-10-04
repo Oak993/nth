@@ -155,40 +155,35 @@ public static class PortControlThemes
     private static readonly FuncControlTemplate<Slider> SliderTemplate = new((slider, scope) =>
     {
         // At rest a white 18 x 14 capsule; while dragged (1-settings-tour.mov 128-131 s) it grows to about 23 x 20 and
-        // turns into translucent glass with the fill showing through (the size change is instant here: the source's
-        // curve is UNVERIFIED). The shadow and the glass alphas/border below are UNVERIFIED (estimated from the frames).
+        // turns into translucent glass with the fill showing through (over 0.08 s, back over 0.07 s: the held fraction below). The shadow and the glass alphas/border below are UNVERIFIED (estimated from the frames).
         // Keyboard focus (:focus-visible, so a click does not show it) rings the knob as the Windows focus visual does
         // (2 pt, primary text; UNVERIFIED, recalled, as SystemButtons' ring). Disabled, the whole slider dims to 40 % as the
         // other port controls do (UNVERIFIED for NSSlider).
         var face = new Border { CornerRadius = new CornerRadius(7), Background = Brushes.White, BoxShadow = BoxShadows.Parse("0 0.5 2 0 #40000000") };
         var ring = new Border { Margin = new Thickness(-3), CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(2), IsVisible = false, IsHitTestVisible = false };
         ring.BorderBrush = Marrow.UI.Chrome.Chrome.PrimaryText.Brush(ring);
-        var dragging = false;
         var knob = new Thumb
         {
             Name = "PART_Thumb",
             Template = new FuncControlTemplate<Thumb>((_, _) => new Panel { Children = { face, ring } }),
         };
-        void Size()
+        // The held knob (1-settings-tour.mov 128-131 s): the white 18 x 14 capsule turns into the translucent 23 x 20 glass one. ENGINEERING DECISION
+        // (OD-0076, ED-280): it does so over 0.08 s on the press and back over 0.07 s on the release (the reference runtime: INDEX.md, 70 to
+        // 90 ms and 60 to 80 ms), one fraction driving the size, the corner, the fill and the rim; reduce motion jumps.
+        var held = new AnimatedScalar(knob, 0, fraction =>
         {
-            var (along, across) = dragging ? (23.0, 20.0) : (18.0, 14.0);
             var vertical = slider.Orientation == Avalonia.Layout.Orientation.Vertical;
+            var along = 18 + 5 * fraction; var across = 14 + 6 * fraction;
             knob.Width = vertical ? across : along;
             knob.Height = vertical ? along : across;
-        }
-        Size();
-        knob.DragStarted += (_, _) =>
-        {
-            dragging = true; Size(); face.CornerRadius = new CornerRadius(10);
-            face.Background = new SolidColorBrush(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF));
-            face.BorderBrush = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
-            face.BorderThickness = new Thickness(1);
-        };
-        knob.DragCompleted += (_, _) =>
-        {
-            dragging = false; Size(); face.CornerRadius = new CornerRadius(7);
-            face.Background = Brushes.White; face.BorderBrush = null; face.BorderThickness = default;
-        };
+            face.CornerRadius = new CornerRadius(7 + 3 * fraction);
+            face.Background = fraction == 0 ? Brushes.White : new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 - (255 - 0x30) * fraction), 0xFF, 0xFF, 0xFF));
+            face.BorderBrush = fraction == 0 ? null : new SolidColorBrush(Color.FromArgb((byte)Math.Round(0x55 * fraction), 0xFF, 0xFF, 0xFF));
+            face.BorderThickness = fraction == 0 ? default : new Thickness(1);
+        });
+        Animation? Ramp(double seconds) => Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion ? null : Animation.EaseOut(seconds);
+        knob.DragStarted += (_, _) => { held.Set(1, Ramp(0.08)); };
+        knob.DragCompleted += (_, _) => { held.Set(0, Ramp(0.07)); };
         var decrease = SliderSide(slider, "PART_DecreaseButton", bar => Marrow.UI.Chrome.Chrome.Accent.Brush(bar)).RegisterInNameScope(scope);
         var increase = SliderSide(slider, "PART_IncreaseButton", bar => Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(bar)).RegisterInNameScope(scope);
         var track = new Track
@@ -212,7 +207,7 @@ public static class PortControlThemes
         slider.PropertyChanged += (_, e) =>
         {
             if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty || e.Property == Avalonia.Input.InputElement.IsFocusedProperty) Paint();
-            if (e.Property == Slider.OrientationProperty) Size();
+            if (e.Property == Slider.OrientationProperty) held.Set(held.Value, null);
         };
         slider.Classes.CollectionChanged += (_, _) => Paint();
         Paint();

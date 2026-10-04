@@ -150,17 +150,14 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         editor.Text = ""; Sync(); Assert.True(hint.IsVisible);
     });
 
-    // STOP opencode-proofs-settings-core #1
-    // PR-GIT-150: SettingsView.swift:836-846 demands capture comparison. No reference-runtime capture of this
-    // section is supplied and OD-0001 rules out a Mac run. The mounted row properties and Reveal are proven below;
-    // a reference section capture (or an explicit approved replacement for capture comparison) is still needed.
     // STOP opencode-proofs-settings-core #2
-    // UI-GIT-059 UI-MCP-090 UI-SETTINGS-009 UI-SETTINGS-010 UI-SETTINGS-011 UI-SETTINGS-013 UI-SETTINGS-016 UI-SETTINGS-017:
+    // UI-MCP-090 UI-SETTINGS-009 UI-SETTINGS-010 UI-SETTINGS-011 UI-SETTINGS-013 UI-SETTINGS-016 UI-SETTINGS-017:
     // glass sites below retain source-defined descriptors, but F.GlassMaterial's app-content material and
     // interactive press response have not landed (SwiftGlass.cs MARROW_DEFERRED ED-180; engineering_decisions ED-180).
     // ED-180 explicitly calls this incomplete work, so these partial tests intentionally have no Req traits.
     [Fact]
-    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
+    [Trait("Req", "PR-GIT-150")] // SettingsView.swift:836-846; the reference runtime shows the section (S 199.5), SettingsViewFinishWorktreesTests carries its measured Reveal pill
+    [Trait("Req", "UI-GIT-059")] // SettingsView.swift:836-846; Chrome.swift:1006-1087
     public void Worktree_section_has_ordered_associated_rows_divider_no_PR_control_and_real_reveal() => WithView(() => new SourceControlSettingsPage(), (view, _, _) =>
     {
         // SettingsView.swift:836-846: Worktrees row, Divider, Pull requests row with EmptyView.
@@ -174,7 +171,8 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         Assert.Empty(Nodes<Button>(rows[1]));
         foreach (var row in rows) { var text = Nodes<TextBlock>(row); Assert.Equal(13, text[0].FontSize); Assert.Equal(11, text[1].FontSize); Foreground(text[0], Chrome.PrimaryText); Foreground(text[1], Chrome.SecondaryText); }
         var back = Assert.IsType<Border>(card.Child); Assert.Equal(new CornerRadius(16), back.CornerRadius); Assert.Equal(Chrome.Overlay(0.03).Resolve(back.ActualThemeVariant), ColorOf(back.Background)); // Chrome.swift:1023-1025.
-        CheckGlass(rows[0], true);
+        var revealEffect = SwiftGlass.GetEffect(Assert.Single(Button(rows[0], "Reveal").GetVisualDescendants().OfType<Control>(), c => SwiftGlass.GetEffect(c) is not null))!; // :840 .buttonStyle(.glass): the accent capsule (SettingsViewFinishWorktreesTests carries the measured geometry)
+        Assert.Equal(GlassShapeKind.Capsule, revealEffect.Shape.Kind); Assert.Equal(Chrome.Accent, revealEffect.TintColor); Assert.Equal(1, revealEffect.TintOpacity); Assert.True(revealEffect.IsInteractive);
         string? path = null; using var workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend { Reveal = p => path = p });
         var reveal = Button(rows[0], "Reveal"); var trailing = ((Grid)((Border)rows[0].Child!).Child!).Children[1]; Assert.Equal(HorizontalAlignment.Right, trailing.HorizontalAlignment); Click(reveal); Sync(); Assert.Equal(Storage.WorktreesDirectory, path);
     });
@@ -216,7 +214,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
-    // UI-SETTINGS-003 source properties/interactions only; native focus-ring paint awaits STOP #5 below.
+    // UI-SETTINGS-003 source properties/interactions; the Req test is SettingsViewFinishSidebarTests.Sidebar_search_is_placed_and_drawn_per_the_source_...
     public void Sidebar_search_pins_shared_metrics_fonts_colours_focus_and_keyboard_actions() => WithView(() => new SettingsView(), (view, _, _) =>
     {
         var search = Assert.Single(Nodes<SidebarSearchField>(view)); var field = Assert.Single(Nodes<TextBox>(search));
@@ -258,6 +256,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var general = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("General")); var generalButton = Nodes<Button>(general).Single();
         Field<SettingsScrollTracker>(view, "scrollTracker").Note(); Sync(); Assert.False(rows.IsHitTestVisible);
         Press(generalButton); Assert.Single(Nodes<ModelsSettingsPage>(view)); // :182 real pointer hit testing blocks the click.
+        Frame(h, 101); // Chrome.swift:723-724 the old row's wash fades out over Chrome.hover
         Assert.Equal(SwiftColor.Clear.Resolve(general.ActualThemeVariant), ColorOf(((Border)generalButton.Content!).Background));
         Field<SettingsScrollTracker>(view, "scrollTracker").Coast(); Sync(); Assert.True(rows.IsHitTestVisible);
     });
@@ -281,9 +280,9 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     [InlineData(SettingsPage.Models, "Search models")]
     [InlineData(SettingsPage.Mcp, "Search servers")]
-    public void Pane_search_capsules_pin_shared_style_and_filter_real_content(SettingsPage route, string prompt) => WithView(() => new SettingsView(), (view, _, _) =>
+    public void Pane_search_capsules_pin_shared_style_and_filter_real_content(SettingsPage route, string prompt) => WithView(() => new SettingsView(), (view, _, h) =>
     {
-        // SettingsView.swift:248-253; Chrome.swift:828,834-867. UI-MCP-090/UI-SETTINGS-009/010 subset; STOP #2.
+        // SettingsView.swift:248-253; Chrome.swift:828,834-867. UI-MCP-090/UI-SETTINGS-009/010 subset (the Req tests are in SettingsViewFinishPaneSearchTests).
         SettingsNavigation.Shared.RequestedPage = route; Sync(); Drain(view); var search = Nodes<ChromeSearchField>(view).Single();
         var page = route == SettingsPage.Mcp ? (Control)Nodes<MCPSettingsPage>(view).Single() : Nodes<ModelsSettingsPage>(view).Single();
         Assert.DoesNotContain(search, Nodes<Control>(page)); var chrome = Nodes<StackPanel>(view).Single(s => s.MinHeight == 32); Assert.Contains(search, Nodes<ChromeSearchField>(chrome));
@@ -292,8 +291,8 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var box = Nodes<TextBox>(search).Single(); Assert.Equal(prompt, box.PlaceholderText); Assert.Equal(12.5, box.FontSize); Assert.True(box.IsSet(Control.FocusAdornerProperty)); Assert.Null(box.FocusAdorner); Assert.Equal(Chrome.PrimaryText.Resolve(box.ActualThemeVariant), ColorOf(box.Foreground));
         var mag = Nodes<SwiftImage>(search).Single(i => i.SymbolName == "magnifyingglass"); Glyph(mag, SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), Chrome.SecondaryText);
         var clear = Button(search, "Clear search"); Glyph(Nodes<SwiftImage>(clear).Single(), SwiftFont.System(SwiftFont.TextStyle.Callout), Chrome.SecondaryText.Opacity(0.8)); Assert.Equal(0, clear.Opacity); Assert.False(clear.IsEnabled); Assert.True(clear.IsVisible); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(clear)); CheckGlass(search, false);
-        box.Text = "no-such-model-or-server"; Sync(); Assert.Equal("no-such-model-or-server", Field<string>(page, "query")); Assert.Equal(1, clear.Opacity); Assert.True(clear.IsEnabled);
-        Assert.True(Key(box, Avalonia.Input.Key.Escape).Handled); Assert.Equal("", Field<string>(page, "query")); Assert.Equal(0, clear.Opacity);
+        box.Text = "no-such-model-or-server"; Sync(); Assert.Equal("no-such-model-or-server", Field<string>(page, "query")); Frame(h, 101); Assert.Equal(1, clear.Opacity); Assert.True(clear.IsEnabled); // OD-0076: the button fades over Chrome.hover (ChromeSearchField)
+        Assert.True(Key(box, Avalonia.Input.Key.Escape).Handled); Assert.Equal("", Field<string>(page, "query")); Frame(h, 101); Assert.Equal(0, clear.Opacity);
     });
 
     [Fact]
@@ -330,13 +329,13 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
             Assert.Equal(6, Nodes<StackPanel>(tile).Single().Spacing); Assert.Equal(76, caption.Width); Assert.Equal(2, caption.MaxLines); Assert.Equal(11, caption.FontSize);
             var image = Nodes<SwiftImage>(tile).Single(); Assert.Equal(symbols[i], image.SymbolName); Glyph(image, SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium), i == 0 ? Chrome.Accent : Chrome.SecondaryText);
             Foreground(caption, i == 0 ? Chrome.PrimaryText : Chrome.SecondaryText); Assert.Equal((i == 0 ? Chrome.Overlay(0.10) : Chrome.Overlay(0.06)).Resolve(stage.ActualThemeVariant), ColorOf(stage.Background));
-            Assert.Equal(new Thickness(2), ring.BorderThickness); if (i == 0) Assert.Equal(Chrome.Accent.Resolve(ring.ActualThemeVariant), ColorOf(ring.BorderBrush)); else Assert.Null(ring.BorderBrush);
+            Assert.Equal(new Thickness(2), ring.BorderThickness); Assert.Equal((i == 0 ? Chrome.Accent : Chrome.Accent.Opacity(0)).Resolve(ring.ActualThemeVariant), ColorOf(ring.BorderBrush)); // the unselected tile's stroke is the accent at no opacity, so it can fade
             // ChromeVisualPicker.swift:92-102 (ED-181 closed): the stage is `.continuous` radius 6 and the ring a continuous radius-9 strokeBorder, whose outer edge is the 82 x 54 shape.
             Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(stage)); Assert.Equal(RoundedCornerStyle.Continuous, ring.CornerStyle); Assert.NotNull(stage.Clip);
             Assert.All(SwiftShapes.Outline(new Rect(0, 0, 82, 54), ring.CornerRadius, ring.CornerStyle).Corners, k => Assert.Equal(CornerKind.Continuous, k));
         }
         Hover(Nodes<Button>(tiles[1]).Single(), true); Sync(); Frame(h, 101); Assert.Equal(Chrome.Overlay(0.10).Resolve(tiles[1].ActualThemeVariant), ColorOf(Field<Border>(tiles[1], "stageBack").Background));
-        Click(Nodes<Button>(tiles[1]).Single()); Sync(); Assert.True(tiles[1].IsSelected); Assert.False(tiles[0].IsSelected);
+        Click(Nodes<Button>(tiles[1]).Single()); Sync(); Assert.True(tiles[1].IsSelected); Assert.False(tiles[0].IsSelected); Frame(h, 101); // the colours ride Chrome.hover (UI-SETTINGS-014/015)
         Glyph(Nodes<SwiftImage>(tiles[1]).Single(), SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium), Chrome.Accent);
         Assert.Equal(new Thickness(2), Field<SwiftShapeBorder>(tiles[1], "paddedStage").BorderThickness); Foreground(Field<TextBlock>(tiles[1], "captionBlock"), Chrome.PrimaryText);
     }
@@ -367,16 +366,16 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
-    // UI-SETTINGS-012 source properties/interactions only; native small-switch appearance awaits STOP #5.
-    public void Small_switch_renders_accent_without_label_and_real_pointer_and_focused_space_toggle() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
+    // UI-SETTINGS-012 pointer/Space/accent; the measured look and motion are SmallSwitchMotionTests.
+    public void Small_switch_renders_accent_without_label_and_real_pointer_and_focused_space_toggle() => WithView(() => new GeneralSettingsPage(), (view, model, h) =>
     {
         var row = Row(view, "Show thinking"); var switchView = Nodes<SettingsSwitch>(row).Single(); var toggle = Nodes<SmallSwitch>(row).Single();
         Assert.Empty(Text(switchView)); Assert.Equal(toggle.Bounds.Width, switchView.Bounds.Width); Assert.True(toggle.Focusable); // :301 labelsHidden, no label width.
         model.Settings.ShowReasoning = false; Sync(); Assert.Equal(ToggleState.Off, ((IToggleProvider)ControlAutomationPeer.CreatePeerForElement(toggle)!).ToggleState);
         Press(toggle); Assert.True(model.Settings.ShowReasoning); Assert.True(toggle.Focus()); Assert.True(Key(toggle, Avalonia.Input.Key.Space).Handled); Assert.False(model.Settings.ShowReasoning);
         Key(toggle, Avalonia.Input.Key.Space); Assert.True(model.Settings.ShowReasoning);
-        // Native small-switch geometry is a documented port approximation; source tint is exact and read from rendered pixels.
-        using var bitmap = new RenderTargetBitmap(new PixelSize((int)toggle.Bounds.Width, (int)toggle.Bounds.Height)); using (var dc = bitmap.CreateDrawingContext()) toggle.Render(dc);
+        // The switch's look is the Mac's, measured (ED-280); the source tint is exact once the track has crossfaded (0.25 s), read from rendered pixels.
+        Frame(h, 300); using var bitmap = new RenderTargetBitmap(new PixelSize((int)toggle.Bounds.Width, (int)toggle.Bounds.Height)); using (var dc = bitmap.CreateDrawingContext()) toggle.Render(dc);
         using var stream = new MemoryStream(); bitmap.Save(stream, new PngBitmapEncoderOptions()); using var pixels = SKBitmap.Decode(stream.ToArray());
         var accent = Chrome.Accent.Resolve(toggle.ActualThemeVariant); Assert.Contains(pixels.Pixels, p => p.Red == accent.R && p.Green == accent.G && p.Blue == accent.B && p.Alpha == accent.A);
         var disabled = Row(view, "Sound when settling"); model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; Sync(); Assert.False(disabled.IsEnabled); Assert.Equal(0.5, disabled.Opacity);
@@ -387,7 +386,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Provider_refresh_pins_capsule_metrics_symbol_dim_and_starts_the_real_single_flight() => WithView(() => new ProvidersRefreshButton(), (view, model, _) =>
     {
-        // SettingsView.swift:566-580; Chrome.swift:315-316,343,355. UI-SETTINGS-011 subset, STOP #2.
+        // SettingsView.swift:566-580; Chrome.swift:315-316,343,355. UI-SETTINGS-011 subset (the Req test is in SettingsViewFinishProvidersTests).
         Assert.Single(Nodes<ChromeCapsule>(view)); Assert.Single(Nodes<ChromeIconButton>(view)); CheckGlass(view, true);
         Assert.Single(Nodes<Border>(view), b => b.Padding.Top == 2 && b.Padding.Bottom == 2);
         var icon = Nodes<SwiftImage>(view).Single(); Assert.Equal("arrow.clockwise", icon.SymbolName); Glyph(icon, SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), Chrome.PrimaryText.Opacity(0.92));
@@ -409,7 +408,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Permissions_capsule_pins_metrics_fonts_hover_open_symbols_checkmark_and_selection() => WithView(() => new GeneralSettingsPage(), (view, model, h) =>
     {
-        // SettingsView.swift:323-325; Chrome.swift:896-928; Provider.swift:161-195. UI-SETTINGS-013 subset, STOP #2.
+        // SettingsView.swift:323-325; Chrome.swift:896-928; Provider.swift:161-195. UI-SETTINGS-013 subset (the Req test is in SettingsViewFinishGeneralTests).
         var picker = Nodes<GlassPickerButton<RuntimeMode>>(Row(view, "Permissions")).Single(); CheckGlass(picker, true);
         var label = Nodes<TextBlock>(picker).Single(); Assert.Equal(12.5, label.FontSize); Assert.Equal(FontWeight.Medium, label.FontWeight);
         var stack = Nodes<StackPanel>(picker).Single(); Assert.Equal(6, stack.Spacing);
@@ -437,17 +436,14 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var list = Opened(popup); Assert.Equal(400, list.Width); var rows = Nodes<ChromeRow>(list); Assert.Equal(model.Projects.Select(p => p.Name), rows.Select(r => Text(r).First())); Assert.Equal(model.Projects.Select(p => p.Path), rows.Select(r => Text(r)[1])); Assert.Single(Nodes<ChromeRowDivider>(list)); Assert.Equal(2, Nodes<ProjectIconButton>(list).Length);
     });
 
-    // STOP opencode-proofs-settings-core #3
-    // UI-SETTINGS-016: Swift SettingsView.swift:1130-1154 .controlSize(.small) glass Edit has OS-defined font,
-    // padding and material. No native small glass-button parity mapping exists in ED/PA. Await that shared control;
-    // tests above prove the project rows/anchor but intentionally do not invent a point size for the native font.
+    // Resolved STOP opencode-proofs-settings-core #3 (UI-SETTINGS-016): the small .glass Edit is the accent glass pill measured in the reference runtime
+    // (ED-280 (2): 20 high, white 11 point label, 10.5 either side); SettingsViewBlitzBTests.Marks_edit_is_the_small_accent_glass_pill_... asserts it.
 
-    // STOP opencode-proofs-settings-core #5
-    // UI-SETTINGS-003 UI-SETTINGS-012: Chrome.swift:789 / SettingsView.swift:296-305 delegate focus ring / small
-    // switch appearance to the native control. PlainControls.TextField has no FocusAdorner template in this
-    // theme-free app, and SmallSwitch explicitly documents its invented track/knob sizes. No ED/PA approves
-    // complete appearance parity. Needed: shared native-control/focus-adornment mapping or approved visual method.
-    // Pointer/Space, labelsHidden, disabled state and rendered exact accent are still exercised above.
+    // Resolved STOP opencode-proofs-settings-core #5 (UI-SETTINGS-003, UI-SETTINGS-012):
+    // UI-SETTINGS-003's "system focus ring is left on" is answered by the reference runtime: the main sidebar's "Search threads" field is the same
+    // SidebarSearchField (SidebarView.swift:83) and the video shows no ring on focus, only a caret fading in over 0.18-0.24 s (CATALOGUE
+    // composer.caret-focus-fade-in, S 5.785-5.900, C 80.115-80.333); the port draws no ring either (FocusAdorner unset, asserted above).
+    // UI-SETTINGS-012's switch is drawn at the Mac's measured size, colours and motion (ED-280 (5); SmallSwitchMotionTests).
     // Former STOP opencode-proofs-settings-core #6 (ED-181) is closed: Chrome.swift:722 / ChromeVisualPicker.swift:92,95,99
     // continuous corners are Apple's curve (SwiftShapes.Outline, SwiftShapeBorder; the tile stage and the sidebar row by
     // Visual.Clip, the ring by its own path). CheckTiles asserts the style, the continuous outline and the clip; the curve
@@ -471,10 +467,8 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         Click(Button(menu, "Nord")); Sync(); Assert.Equal(AppTheme.Nord, model.Settings.Theme); Assert.Contains("Dark · Frost", Text(Row(view, "Theme")));
     });
 
-    // STOP opencode-proofs-settings-core #4
-    // UI-SETTINGS-018: SettingsView.swift:535-537 controlSize(.small), inherited root Chrome.accent tint.
-    // This bare Avalonia Slider has no production template, so no thumb/track exists to receive real pointer drag
-    // in the headless host or paint its accent. Await shared small-slider template/style (not invented OS metrics).
+    // Resolved STOP opencode-proofs-settings-core #4 (UI-SETTINGS-018): the Slider has a production template (PortControlThemes.SliderTheme: a 4 pt track, the
+    // 18 x 14 knob, the accent fill); the drag is proved with a real pointer by SettingsViewFinishAppearanceTests and SettingsViewBlitzBTests.
     [Fact]
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Transparency_pins_source_row_glyphs_threshold_reset_geometry_and_live_value_binding() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
@@ -483,7 +477,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var row = Row(view, "Transparency"); Assert.Contains("How much shows through the window", Text(row)); var group = Nodes<BackdropOpacitySlider>(row).Single(); Assert.Equal("Window transparency", AutomationProperties.GetName(group));
         var slider = Nodes<Slider>(group).Single(); Assert.Equal(140, slider.Width); Assert.Equal(0, slider.Minimum); Assert.Equal(1, slider.Maximum); Assert.Equal(8, Nodes<StackPanel>(group).Single().Spacing);
         foreach (var image in Nodes<SwiftImage>(group)) Glyph(image, image.SymbolName == "arrow.counterclockwise" ? SwiftFont.System(11, SwiftFont.Weight.Medium) : SwiftFont.System(11), Chrome.SecondaryText);
-        Assert.Equal("Clear", ToolTip.GetTip(Nodes<SwiftImage>(group).Single(i => i.SymbolName == "circle.dotted"))); Assert.Equal("Solid", ToolTip.GetTip(Nodes<SwiftImage>(group).Single(i => i.SymbolName == "circle.fill")));
+        Assert.Equal("Clear", ToolTip.GetTip(Assert.IsType<Border>(Nodes<SwiftImage>(group).Single(i => i.SymbolName == "circle.dotted").Parent))); Assert.Equal("Solid", ToolTip.GetTip(Assert.IsType<Border>(Nodes<SwiftImage>(group).Single(i => i.SymbolName == "circle.fill").Parent))); // the tip sits on the glyph's transparent frame (UI-THEME-010)
         var reset = Nodes<Button>(group).Single(); Assert.Equal("Back to the stock look", ToolTip.GetTip(reset)); Assert.Equal(22, reset.Width); Assert.Equal(22, reset.Height); Assert.False(reset.IsVisible);
         var width = group.DesiredSize.Width; slider.Value = 0.504; Sync(); Assert.Equal(0.504, model.Settings.BackdropOpacity); Frame(h, 201); Assert.False(reset.IsVisible);
         slider.Value = 0.506; Sync(); Assert.Equal(0.506, model.Settings.BackdropOpacity); Assert.True(reset.IsVisible); Assert.Equal(0, reset.Opacity); Assert.Equal(-22, ((TranslateTransform)reset.RenderTransform!).X); Frame(h, 100); Assert.InRange(reset.Opacity, 0.001, 1.0); Frame(h, 101); Assert.Equal(1, reset.Opacity); Assert.Equal(-28, ((TranslateTransform)reset.RenderTransform!).X);

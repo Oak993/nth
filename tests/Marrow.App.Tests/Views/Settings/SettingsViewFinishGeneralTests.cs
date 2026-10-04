@@ -57,8 +57,8 @@ public sealed class SettingsViewFinishGeneralTests(HeadlessSession headless) : S
             foreach (var other in rows.Where(r => r.Title != "Sound when settling")) { var live = Row(view, other.Title); Assert.True(live.IsEnabled); Assert.Equal(1, live.Opacity, 6); }
             s.ThreadFinishAction = ThreadFinishAction.Settle; Drain(w); Assert.True(settle.IsEnabled); Assert.Equal(1, settle.Opacity, 6); Click(w, gated); Assert.Equal(!was, s.SettleSound);
             // :296-305 the system switch takes the window's tint, Chrome.accent (the theme's accent, or the system accent): the on track is drawn in it and an off track is not.
-            try { var thinking = Assert.Single(Nodes<SmallSwitch>(Row(view, "Show thinking"))); s.ShowReasoning = true; Drain(w); var system = Chrome.Accent.Resolve(thinking.ActualThemeVariant);
-            Assert.True(Count(thinking, system) > 0); s.ShowReasoning = false; Drain(w); Assert.Equal(0, Count(thinking, system)); s.ShowReasoning = true; s.Theme = AppTheme.Nord; Drain(w);
+            try { var thinking = Assert.Single(Nodes<SmallSwitch>(Row(view, "Show thinking"))); s.ShowReasoning = true; Drain(w); Tick(h, 300); var system = Chrome.Accent.Resolve(thinking.ActualThemeVariant); // the track crossfades over 0.25 s (ED-280), so the colours are read once it has settled
+            Assert.True(Count(thinking, system) > 0); s.ShowReasoning = false; Drain(w); Tick(h, 300); Assert.Equal(0, Count(thinking, system)); s.ShowReasoning = true; s.Theme = AppTheme.Nord; Drain(w); Tick(h, 300);
             var nord = Chrome.Accent.Resolve(thinking.ActualThemeVariant); Assert.Equal(SwiftColor.Hex("88C0D0").Resolve(thinking.ActualThemeVariant), nord); Assert.True(Count(thinking, nord) > 0); Assert.Equal(0, Count(thinking, system)); } finally { s.Theme = AppTheme.System; }
         });
     }
@@ -131,8 +131,8 @@ public sealed class SettingsViewFinishGeneralTests(HeadlessSession headless) : S
                 // :76-84 the caption .subheadline, centred, at most two lines, primary when chosen and secondary otherwise; :88-89 the symbol .title2 medium, accent when chosen.
                 Font(caption, 11); Assert.Equal(TextAlignment.Center, caption.TextAlignment); Assert.Equal(2, caption.MaxLines); Assert.Equal(names[i], caption.Text); Ink(caption, caption.Foreground, on ? Chrome.PrimaryText : Chrome.SecondaryText);
                 var image = Assert.Single(Nodes<SwiftImage>(tile)); Assert.Equal(symbols[i], image.SymbolName); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium), SwiftImage.GetFont(image)); Ink(image, image.Foreground, on ? Chrome.Accent : Chrome.SecondaryText);
-                // :93 fill overlay 0.10 hovering or chosen, else 0.06; :101 the ring is accent when chosen and clear (nothing drawn) otherwise; :72-73 the label and the selected trait.
-                Ink(stage, stage.Background, Chrome.Overlay(on || i == hovered ? 0.10 : 0.06)); if (on) Ink(ring, ring.BorderBrush, Chrome.Accent); else Assert.Null(ring.BorderBrush);
+                // :93 fill overlay 0.10 hovering or chosen, else 0.06; :101 the ring is accent when chosen and clear (the accent at no opacity: nothing drawn) otherwise; :72-73 the label and the selected trait.
+                Ink(stage, stage.Background, Chrome.Overlay(on || i == hovered ? 0.10 : 0.06)); Ink(ring, ring.BorderBrush, on ? Chrome.Accent : Chrome.Accent.Opacity(0)); // the unselected stroke is the accent at no opacity, so that it can fade in
                 Assert.Equal(on, ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(tile)!).IsSelected); Assert.Equal(on, tile.IsSelected);
             }
         }
@@ -169,6 +169,40 @@ public sealed class SettingsViewFinishGeneralTests(HeadlessSession headless) : S
     }
 
     [Fact]
+    [Trait("Req", "UI-SETTINGS-014")] // App/Views/Settings/SettingsView.swift:327-331; UI/Chrome/ChromeVisualPicker.swift:36-48,69-70,80,89,93,97 (selection and hover inside withAnimation(Chrome.hover)); the reference runtime (settings.choice-tile-selection S 21.628, 27.282, 27.878, 45.343; hover.choice-tile-fill; press.row-tile-dim S 21.543)
+    [Trait("Req", "UI-SETTINGS-015")] // App/Views/Settings/SettingsView.swift:344-348; the same tile
+    public void Tiles_crossfade_ring_symbol_caption_and_fill_over_chrome_hover_on_selection_and_hover_and_dim_while_pressed()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            foreach (var title in new[] { "Workspace", "Working line" })
+            {
+                var row = Row(view, title); var tiles = Nodes<ChromeVisualTile>(row); Assert.Equal(2, tiles.Length); Click(w, Assert.Single(Nodes<Button>(tiles[0]))); w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 150); // the first tile chosen, the pointer away, everything settled
+                var parts = tiles.Select(t => (Stage: Assert.Single(Nodes<Border>(t), b => b.Width == 76 && b.Height == 48), Ring: Assert.Single(Nodes<Border>(t), b => b.BorderThickness == new Thickness(2)), Caption: Assert.Single(Nodes<TextBlock>(t)), Symbol: Assert.Single(Nodes<SwiftImage>(t)), Content: Assert.Single(Nodes<StackPanel>(t)))).ToArray();
+                Color Of(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color; Color Resolved(SwiftColor c) => c.Resolve(tiles[0].ActualThemeVariant);
+                var stageTo = Resolved(Chrome.Overlay(0.10)); var stageFrom = Resolved(Chrome.Overlay(0.06)); var accent = Resolved(Chrome.Accent); var none = Resolved(Chrome.Accent.Opacity(0)); var primary = Resolved(Chrome.PrimaryText); var secondary = Resolved(Chrome.SecondaryText);
+                Assert.Equal(accent, Of(parts[0].Ring.BorderBrush)); Assert.Equal(none, Of(parts[1].Ring.BorderBrush));
+
+                // :40-41 a click selects inside withAnimation(Chrome.hover): both tiles move on the one clock, part-way after 40 ms and settled after the 0.1 s.
+                Click(w, Assert.Single(Nodes<Button>(tiles[1]))); Tick(h, 40);
+                Assert.NotEqual(none, Of(parts[1].Ring.BorderBrush)); Assert.NotEqual(accent, Of(parts[1].Ring.BorderBrush)); Assert.NotEqual(accent, Of(parts[0].Ring.BorderBrush)); Assert.NotEqual(none, Of(parts[0].Ring.BorderBrush));
+                Assert.NotEqual(secondary, Of(parts[1].Symbol.Foreground)); Assert.NotEqual(accent, Of(parts[1].Symbol.Foreground)); Assert.NotEqual(secondary, Of(parts[1].Caption.Foreground)); Assert.NotEqual(primary, Of(parts[1].Caption.Foreground));
+                Assert.NotEqual(accent, Of(parts[0].Symbol.Foreground)); Assert.NotEqual(primary, Of(parts[0].Caption.Foreground)); Assert.NotEqual(stageFrom, Of(parts[1].Stage.Background)); Assert.NotEqual(stageTo, Of(parts[1].Stage.Background));
+                Tick(h, 101);
+                Assert.Equal(none, Of(parts[0].Ring.BorderBrush)); Assert.Equal(accent, Of(parts[1].Ring.BorderBrush)); Assert.Equal(secondary, Of(parts[0].Symbol.Foreground)); Assert.Equal(accent, Of(parts[1].Symbol.Foreground));
+                Assert.Equal(secondary, Of(parts[0].Caption.Foreground)); Assert.Equal(primary, Of(parts[1].Caption.Foreground)); Assert.Equal(stageTo, Of(parts[1].Stage.Background));
+
+                // :69-70 hover lightens the unselected tile's fill over the same curve, and the pointer leaving takes it back.
+                Hover(w, Assert.Single(Nodes<Button>(tiles[0]))); Tick(h, 40); Assert.NotEqual(stageFrom, Of(parts[0].Stage.Background)); Assert.NotEqual(stageTo, Of(parts[0].Stage.Background)); Tick(h, 101); Assert.Equal(stageTo, Of(parts[0].Stage.Background));
+                // press.row-tile-dim: held down, the tile's content is at 0.8 and its fill at x0.7 of its hovered level; letting go restores both and selects the tile.
+                var at = tiles[0].TranslatePoint(new Point(20, 20), w)!.Value; w.MouseMove(at); w.MouseDown(at, MouseButton.Left); Drain(w); Tick(h, 51);
+                Assert.Equal(0.8, parts[0].Content.Opacity, 3); Assert.Equal(1, parts[1].Content.Opacity); Assert.Equal(Resolved(Chrome.Overlay(0.10).Opacity(0.7)), Of(parts[0].Stage.Background));
+                w.MouseUp(at, MouseButton.Left); Drain(w); Tick(h, 151); Assert.Equal(1, parts[0].Content.Opacity, 3); Assert.Equal(accent, Of(parts[0].Ring.BorderBrush)); Assert.Equal(stageTo, Of(parts[0].Stage.Background)); w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 150);
+            }
+        });
+    }
+
+    [Fact]
     [Trait("Req", "UI-SETTINGS-016")] // App/Views/Settings/SettingsView.swift:384-390,1125-1155
     public void Marks_edit_button_is_disabled_without_projects_and_opens_a_400_wide_popover_below_it_of_one_row_per_project()
     {
@@ -177,7 +211,7 @@ public sealed class SettingsViewFinishGeneralTests(HeadlessSession headless) : S
             var row = Row(view, "Marks"); CheckRow(row, "Marks", "An emoji or symbol for each project, drawn before the thread's name in the activity list and on the project's own row");
             var marks = Assert.Single(Nodes<ProjectMarksRow>(row)); var edit = Assert.Single(Nodes<Button>(marks)); Assert.Equal("Edit", Text(edit).Single());
             // :1134-1135 disabled while there are no projects; the verbatim help text. Glass style (:1132): regular interactive capsule.
-            Assert.False(edit.IsEnabled); Assert.Equal("Choose a mark for each project", ToolTip.GetTip(edit)); var effect = Glass(marks); Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive);
+            Assert.False(edit.IsEnabled); Assert.Equal("Choose a mark for each project", ToolTip.GetTip(edit)); var effect = SwiftGlass.GetEffect(Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(edit).OfType<Control>(), c => SwiftGlass.GetEffect(c) is not null))!; Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); /* the small accent glass pill (ED-280) */ Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive);
             var popup = Assert.Single(Nodes<Popup>(marks)); Click(w, edit); Assert.False(popup.IsOpen);
             var one = model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("One").Replace('\\', '/')))!; var two = model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("Two").Replace('\\', '/')))!; Drain(w); Assert.True(edit.IsEnabled);
             Assert.Equal(2, model.Projects.Count); Click(w, edit); Assert.True(popup.IsOpen); Assert.Equal(PlacementMode.Bottom, popup.Placement); Assert.Same(edit, popup.PlacementTarget);

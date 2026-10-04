@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
@@ -35,7 +36,12 @@ public sealed class SettingsViewFinishWorktreesTests(HeadlessSession headless) :
             var folder = System.IO.Path.Combine(h.Home, ".marrow", "worktrees"); Assert.Equal(folder, Storage.WorktreesDirectory); CheckRow(rows[0], "Worktrees", folder);
             var reveal = Assert.Single(Nodes<Button>(rows[0])); Assert.Equal(new[] { "Reveal" }, Text(reveal)); Assert.Equal(TopLeft(rows[0], card).X + rows[0].Bounds.Width - 10, TopLeft(reveal, card).X + reveal.Bounds.Width, 3); // 10pt rowControlTrailingPadding
             // :840 .buttonStyle(.glass): a regular continuous capsule of glass that answers presses.
-            var effect = Glass(rows[0]); Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive);
+            var effect = SwiftGlass.GetEffect(Assert.Single(reveal.GetVisualDescendants().OfType<Control>(), c => SwiftGlass.GetEffect(c) is not null))!; Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive);
+            // SOURCE FACT (the reference runtime, S 199.5, frames/w-1-settings-tour-198.0/stills/win_199.5.png): that glass is the system `.glass` style under the window's accent
+            // tint, not Chrome's neutral chromeGlassCapsule: an accent capsule 22pt high with a white 13pt label and 13pt either side of it (64 x 22 in the capture).
+            Assert.Equal(Chrome.Accent, effect.TintColor); Assert.Equal(1, effect.TintOpacity); Assert.Equal(22, reveal.Bounds.Height, 3);
+            var label = Assert.Single(reveal.GetVisualDescendants().OfType<TextBlock>()); Assert.Equal(13, label.FontSize); Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(label.Foreground).Color); Assert.Equal(label.Bounds.Width + 2 * 13, reveal.Bounds.Width, 3);
+            var surface = Assert.Single(reveal.GetVisualDescendants().OfType<Border>(), b => b.Height == 22); Ink(surface, surface.Background, Chrome.Accent); Assert.Equal(new CornerRadius(11), surface.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(surface));
             // Row 2: "Pull requests" with exactly the sentence that names gh and glab (and, as upstream, not tea), and no control at all (:844 EmptyView).
             var sentence = "Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH."; CheckRow(rows[1], "Pull requests", sentence); Assert.DoesNotContain("tea", Text(rows[1])[1], StringComparison.OrdinalIgnoreCase);
             None<Button>(rows[1], "in the pull requests row"); None<TextBox>(rows[1], "in the pull requests row"); None<SmallSwitch>(rows[1], "in the pull requests row"); var accessory = Assert.IsType<Border>(Assert.IsType<Grid>(Assert.IsType<Border>(rows[1].Child).Child).Children[1]); Assert.Null(accessory.Child);

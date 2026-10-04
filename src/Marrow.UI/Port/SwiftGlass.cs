@@ -109,4 +109,55 @@ public static class SwiftGlass
             return surface;
         });
     }
+
+    // `.buttonStyle(.glass)` on a text button, with the window's `.tint(Chrome.accent)` above it (ED-280).
+    // SOURCE FACT (the reference runtime, work/reference-video): such a button is an accent capsule with a white label,
+    // not the neutral chromeGlassCapsule (Chrome.swift:162-184, which the Permissions, Theme and search pills use):
+    //   regular  Reveal, S 199.5 (frames/w-1-settings-tour-198.0/stills/win_199.5.png): 64 x 22, fill (247,46,120) beside the
+    //            accent (246,32,102), label (255,248,255) 13 high-ish (38 wide, 10 tall), 13 either side of the label;
+    //   small    Show, S 213.0 (stills/scene-1-settings-tour-213.00.png), `.controlSize(.small)`: 48 x 20, label 27 wide, 8 tall
+    //            (11 point), 10.5 either side.
+    // The press and hover looks are the interactive glass's (GlassMaterial); the lit hover and the 4 % press growth the
+    // catalogue lists (hover.accent-pill-instant, press.accent-pill) are not drawn here.
+    public const double GlassButtonRegularHeight = 22;
+    public const double GlassButtonRegularPadding = 13;
+    public const double GlassButtonRegularFontSize = 13;
+    public const double GlassButtonSmallHeight = 20;
+    public const double GlassButtonSmallPadding = 10.5;
+    public const double GlassButtonSmallFontSize = 11;
+
+    /// <summary><c>.buttonStyle(.glass)</c>, with <c>.controlSize(.small)</c> when <paramref name="small"/>.</summary>
+    public static void StyleAccentGlassButton(Button button, bool small = false)
+    {
+        button.Padding = default;
+        var height = small ? GlassButtonSmallHeight : GlassButtonRegularHeight;
+        var padding = small ? GlassButtonSmallPadding : GlassButtonRegularPadding;
+        var fontSize = small ? GlassButtonSmallFontSize : GlassButtonRegularFontSize;
+        button.Template = new FuncControlTemplate<Button>((source, scope) =>
+        {
+            var label = new ContentPresenter
+            {
+                Name = "PART_ContentPresenter",
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Foreground = Brushes.White,
+                FontFamily = SwiftFont.System(fontSize).Resolve().FontFamily,
+                FontSize = fontSize,
+                [!ContentPresenter.ContentProperty] = source[!ContentControl.ContentProperty],
+            }.RegisterInNameScope(scope);
+            var surface = new Border
+            {
+                Child = label,
+                Height = height,
+                Padding = new Thickness(padding, 0),
+            }.Capsule(RoundedCornerStyle.Continuous);
+            surface.Background = Chrome.Chrome.Accent.Brush(surface);
+            SetEffect(surface, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Tint(Chrome.Chrome.Accent, 1).Interactive());
+            // ENGINEERING DECISION (ED-280, UNVERIFIED: no reference frame shows a disabled glass button): a disabled one (.disabled, SettingsView.swift:1134)
+            // is dimmed to 40 %, the dim every port control takes when disabled, easing over Chrome.hover (OD-0076).
+            var dim = new AnimatedScalar(surface, source.IsEffectivelyEnabled ? 1 : 0.4, value => surface.Opacity = value);
+            source.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty) dim.Set(source.IsEffectivelyEnabled ? 1 : 0.4, Chrome.Chrome.Hover); };
+            return surface;
+        });
+    }
 }

@@ -334,6 +334,7 @@ namespace Marrow.UI.Chrome
         private Image? picture;
         private SwiftShapeBorder? scrim;
         private Panel? wallpaperOverlay;
+        private AnimatedScalar? scrimGlide;
 
         /// <param name="opacity">:205 <c>let opacity: Double</c>.</param>
         /// <param name="wallpaper">:207 <c>var wallpaper: NSImage? = nil</c>.</param>
@@ -376,12 +377,21 @@ namespace Marrow.UI.Chrome
         public void Update(double opacity, IImage? wallpaper)
         {
             var hadWallpaper = this.wallpaper is not null;
+            var before = scrim; var shown = scrim?.Opacity;
             this.opacity = opacity;
             this.wallpaper = wallpaper;
             if (hadWallpaper != wallpaper is not null)
                 Transaction.WithAnimation(Animation.EaseInOut(duration: 0.3), Draw); // :262 .animation(_, value: wallpaper != nil)
             else
+            {
                 Draw();
+                // DEVIATION OD-0076 (ED-280): `withAnimation(.snappy(duration: 0.2))` on the transparency (SettingsView.swift:546) reaches the
+                // scrim through this input; the scrim glides to its new strength in that transaction instead of cutting there.
+                if (Transaction.Current is { } animation && shown is { } start && ReferenceEquals(before, scrim) && scrim is { } layer && layer.Opacity != start)
+                {
+                    var end = layer.Opacity; scrimGlide!.Set(start, null); scrimGlide.Set(end, animation);
+                }
+            }
         }
 
         // :220-224 `opacity >= 0.98`: from here up the window is a solid fill, not glass under a scrim (Draw, and the corner wedge's fill).
@@ -433,7 +443,7 @@ namespace Marrow.UI.Chrome
                 picture.Source = image; // :234
                 picture.Opacity = opacity; // :238
             }
-            if (scrim is not null) scrim.Opacity = Scrim(opacity, isDark); // :258
+            if (scrim is not null) { scrimGlide ??= new AnimatedScalar(this, 0, value => { if (scrim is { } layer) layer.Opacity = value; }); scrimGlide.Set(Scrim(opacity, isDark), null); } // :258 (a running glide stops here)
             if (wallpaperOverlay is { } overlay)
             {
                 // :241-247 `.overlay { if !isSolid { ... } }`
@@ -1178,7 +1188,8 @@ namespace Marrow.UI.Chrome
             Func<bool, Control> accessory,
             bool isSelected = false,
             bool isEmphasized = false,
-            double accessoryWidth = 0)
+            double accessoryWidth = 0,
+            bool pressLook = false)
         {
             selected = isSelected;
             var state = new ViewState();
@@ -1216,19 +1227,37 @@ namespace Marrow.UI.Chrome
 
             var button = new SelectableButton(() => selected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
             button.Click += (_, _) => action();
+            // The pressed look (PORT-ONLY, ED-280; SOURCE FACT: the reference runtime, CATALOGUE press.row-tile-dim):
+            // a plain button dims its content to 0.8 and its wash to x0.7 while the pointer holds it down. The catalogue's own
+            // ramp, 0.05 s in and 0.1 s out, ease-out (transition-audit sidebar-panels-015). Only the rows that ask for it draw it.
+            var pressed = false;
+            var dim = new AnimatedScalar(button, 0, value => row.Opacity = 1 - 0.2 * value);
+            void Restyle(Animation? animation) => fill.Set(FillFor(selected, state.IsHovering).Opacity(pressed ? 0.7 : 1), animation);
+            if (pressLook)
+            {
+                button.PropertyChanged += (_, change) =>
+                {
+                    if (change.Property != Button.IsPressedProperty || button.IsPressed == pressed) return;
+                    pressed = button.IsPressed;
+                    var ramp = pressed ? Animation.EaseOut(0.05) : Animation.EaseOut(0.1);
+                    dim.Set(pressed ? 1 : 0, ramp);
+                    Restyle(ramp);
+                };
+            }
             button.Track(() => state.IsHovering, hovering =>
             {
-                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(selected, hovering), Transaction.Current)); // :729
+                Transaction.WithAnimation(Chrome.Hover, () => Restyle(Transaction.Current)); // :729
             });
             // :729 `.background { shape.fill(fill).animation(Chrome.hover, value: isSelected) }`: a new isSelected eases the
             // fill on Chrome.hover whatever transaction carried it (the modifier's own curve for a change of its value), from
             // where the fill is drawn now. The title's weight and opacity (:717-718) and the trait (:738) have no animation
             // of their own and take the new value under the change's transaction; every caller that changes a row's
             // selection (SettingsView.swift:149, `page = item` and its other writes) carries none, so they change at once.
+            // A row held down keeps its pressed wash (x0.7, ED-280) through the change.
             applySelection = () =>
             {
                 ApplyText();
-                fill.Set(FillFor(selected, state.IsHovering), Chrome.Hover);
+                Restyle(Chrome.Hover);
             };
             var overlay = new Panel { Children = { button } };
             // :731-737 `.overlay(alignment: .trailing) { accessory }` comes BEFORE `.onHover`, so the hover region is the
@@ -1508,9 +1537,14 @@ namespace Marrow.UI.Chrome
             AutomationProperties.SetName(clear, "Clear search"); // :859
             // :854-858 Always laid out, so the field's text never shifts when the button comes; invisible and out of the
             // accessibility tree while there is nothing to clear.
+            // DEVIATION OD-0076 (ED-280): the source cuts the button in and out (:856, no animation); the port
+            // fades it and scales it from 0.8 over Chrome.hover, the way every control that appears does.
+            clear.RenderTransformOrigin = RelativePoint.Center;
+            var shown = new AnimatedScalar(clear, 0, value => { clear.Opacity = value; var scale = value == 0 ? 1 : 0.8 + 0.2 * value; clear.RenderTransform = new ScaleTransform(scale, scale); });
+            var primed = false;
             clear.Track(() => query.Value.Length == 0, isEmpty =>
             {
-                clear.Opacity = isEmpty ? 0 : 1; // :856
+                shown.Set(isEmpty ? 0 : 1, primed ? Transaction.Current ?? Chrome.Hover : null); primed = true; // :856
                 clear.IsEnabled = !isEmpty; // :857
                 if (isEmpty) AutomationProperties.SetAccessibilityView(clear, AccessibilityView.Raw); // :858
                 else clear.ClearValue(AutomationProperties.AccessibilityViewProperty);
@@ -1901,11 +1935,13 @@ namespace Marrow.UI.Chrome
         public ChromeRowDivider()
         {
             var line = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Height = 1 };
-            // :1084 `Divider()`: SwiftUI's own separator, drawn in the system divider colour. B2 gives it no
-            // literal (the framework paints it), so it takes the same translucent hairline opacity Chrome uses
-            // for its other system-style rules (WindowBackdrop's edge, :270), UNVERIFIED under OD-0001.
-            // STOP opencode-proofs-settings-prov #1 UI-PROVREG-009: Divider system color has no pinned RGBA or approved specific mapping; need a ruling or macOS measurement.
-            line.BorderBrush = Chrome.Overlay(0.14).Brush(line);
+            // :1084 `Divider()`: SwiftUI's own separator, drawn in the system divider colour, which the framework paints
+            // (B2 gives it no literal). SOURCE FACT (the reference runtime, work/reference-video): measured on
+            // the Mac as a 1 px line of 0.10 opacity (the pixel's own alpha): dark card S 199.5 (frames/w-1-settings-tour-198.0/stills/win_199.5.png,
+            // y402: (22,66,72) over (43,86,92), white at 0.09-0.11) and light card S 141.5 (frames/gap-R2-05, black at 0.10);
+            // CATALOGUE static.settings-light-theme says the same (row separators 10 % light, 9-10 % dark). The label colour is 0.85 opaque,
+            // so Overlay(0.12) is the line at 0.102 (alpha 26).
+            var ink = new AnimatedColor(line); ink.Set(Chrome.Overlay(0.12), null); line.BorderBrush = ink.Brush; // a colour that follows an appearance turnover (ED-254)
             Child = line;
             Margin = new Thickness(16, 0, 0, 0); // :1085 .padding(.leading, 16)
         }
