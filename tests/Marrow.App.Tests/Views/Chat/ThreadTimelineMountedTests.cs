@@ -497,7 +497,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-006 (the button is shown only while the end marker is out of sight); ThreadTimeline.swift:402-409 (the marker is 1 point tall: a whole point is in view or none of it, at whole-point offsets, so the 0.01 threshold itself is not told apart from others here)
+    [Trait("Req", "UI-CHAT-006")] // The button is shown only while the end marker is out of sight; ThreadTimeline.swift:402-409 (the marker is 1 point tall: a whole point is in view or none of it, at whole-point offsets, so the 0.01 threshold itself cannot be told apart from others on it: acceptable under OD-0098, the marker being a whole point)
     public void The_button_is_shown_exactly_while_the_one_point_end_marker_is_out_of_sight() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.SetEntries(Turns(8, sentences: 8).ToList()); mount.Settle();

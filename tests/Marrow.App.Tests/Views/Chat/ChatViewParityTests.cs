@@ -39,7 +39,8 @@ namespace Marrow.App.Tests.Views.Chat;
 //   the zero-height frame (:1094-1101), so the circle scales about that frame's centre, 26 points below its own, and rises by more
 //   than the offset's 10; the ring's 28 of 32 px in 2-chat-use.mov C 10.285 is that scale (0.6 at the start) seen 14 px low. Proven in
 //   ChatViewParityReviewTests (both directions, position against the spring's own progress) and ChatViewFollowupTests. The
-//   ThreadTimeline-side clauses (the 0.38/0.78 spring, the unanimated hide on a new row, the 0.35 s glide) are that unit's.
+//   ThreadTimeline-side clauses (the 0.38/0.78 spring, the unanimated hide on a new row, the 0.35 s glide) are ThreadTimelineChatTests' (the glide
+//   against the closed form of smooth(0.35), 2026-10-04) and ThreadTimelineMountedTests'; every one of these tests is Req UI-CHAT-006 now.
 [Collection("Headless")]
 public sealed class ChatViewParityTests(HeadlessSession headless)
 {
