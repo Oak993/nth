@@ -22,8 +22,9 @@ using static Marrow.App.Tests.Fixtures.TimelineRowsFinChecks;
 namespace Marrow.App.Tests.Views.Chat;
 
 // The three closures of the second review round (TimelineRowsReviewAb2Tests: the work group's steps fold open, a checked step's strike comes in, the delegation card's
-// width eases) each move along the source's animation; with the system asking for reduced motion each reaches its end state on the first frame after the change.
-// The same changes under motion are read part way by the REVIEW2 tests, so these say only that reduced motion removes the motion and nothing else.
+// width eases) each move along the source's animation. With the system asking for reduced motion the first two reach their end state on the first frame after the
+// change; the delegation card's size follows Chrome.panelSlide, which the Mac itself turns into `.easeOut(duration: 0.18)` under reduced motion (Chrome.swift:100-104),
+// so it eases along that curve (the integ-tlrab review, ED-285 fourth-round closure (3)).
 [Collection("Headless")]
 public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession headless)
 {
@@ -130,9 +131,25 @@ public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession head
         finally { h.Main.OnMain(() => Close(window)); }
     });
 
+    // SwiftUI's `.easeOut(duration:)`: the cubic Bezier (0, 0) (0.58, 1), its progress at a fraction of the duration (solved for the curve's parameter by bisection).
+    private static double EaseOut(double fraction)
+    {
+        if (fraction <= 0) return 0;
+        if (fraction >= 1) return 1;
+        double low = 0, high = 1;
+        for (var i = 0; i < 60; i++)
+        {
+            var mid = (low + high) / 2;
+            var x = 3 * mid * mid * (1 - mid) * 0.58 + mid * mid * mid;
+            if (x < fraction) low = mid; else high = mid;
+        }
+        var s = (low + high) / 2;
+        return 3 * s * s * (1 - s) + s * s * s;
+    }
+
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // PR-CHAT-149 under reduced motion: the card is its new width on the first frame
-    public void REVIEW2_with_reduced_motion_the_delegation_card_is_its_new_width_on_the_first_frame() => headless.OnUiThread(() =>
+    [Trait("Rule", "R-TEST-4")] // PR-CHAT-149 under reduced motion: Chrome.swift:100-104 panelSlide is `.easeOut(duration: 0.18)`, and :703-704 animates the card's frame with it
+    public void REVIEW2_with_reduced_motion_the_delegation_card_eases_to_its_new_width_along_panel_slides_0_18_second_ease_out() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         var frames = new ManualFrameSource();
@@ -153,14 +170,21 @@ public sealed class TimelineRowsReviewAb2ReducedMotionTests(HeadlessSession head
         {
             h.Main.OnMain(() => Settle(window));
             frames.Advance(TimeSpan.Zero);
-            Run(h.Main, frames, window, 10);
-            var first = 0.0;
-            h.Main.OnMain(() => first = Pill().Bounds.Width);
-            Run(h.Main, frames, window, 1000);
-            var after = 0.0;
-            h.Main.OnMain(() => after = Pill().Bounds.Width);
+            var widths = new List<(double At, double Width)>();
+            for (var at = 10; at <= 300; at += 10)
+            {
+                Run(h.Main, frames, window, 10);
+                h.Main.OnMain(() => widths.Add((at, Pill().Bounds.Width)));
+            }
+            var after = widths[^1].Width;
             Assert.True(after > before + 60, $"the card went from {before:F1} to {after:F1} wide");
-            Assert.Equal(after, first, 0.5);
+            foreach (var (at, width) in widths)
+            {
+                var expected = before + (after - before) * EaseOut(at / 180.0);
+                Assert.True(Math.Abs(width - expected) <= 0.06 * (after - before),
+                    $"at {at} ms the card is {width:F1} wide; panelSlide's reduced-motion .easeOut(duration: 0.18) has {expected:F1} (from {before:F1} to {after:F1})");
+            }
+            Assert.True(widths[0].Width < after - 0.5 * (after - before), $"the card is {widths[0].Width:F1} wide 10 ms in: its size cut");
         }
         finally { h.Main.OnMain(() => Close(window)); }
     });

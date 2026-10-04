@@ -151,7 +151,7 @@ public static class TimelineRows
         .Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
 
     /// <summary>PORT-ONLY. The animation of a change, or none when the system asks for reduced motion: the closures of OD-0076's second round (the work group's steps, the checklist's
-    /// strike, the delegation card's size) cut under it.</summary>
+    /// strike) cut under it. The delegation card's size is not one: it follows Chrome.panelSlide, whose reduced-motion form is the Mac's own (Chrome.swift:100-104).</summary>
     internal static Animation? UnlessReduced(Animation? animation) => Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion ? null : animation;
 
     // :313-316, :464-467, :579-582, :691-694.
@@ -902,6 +902,8 @@ public sealed class HydraDelegationBlock : Decorator
     private readonly OpacityCrossfade titleText; // :663-664 the title Text, `.contentTransition(.opacity)`: its words crossfade
     private readonly HStack header;
     private readonly Panel overlay = new();
+    // The card as drawn: its slot and, over it and outside the slot's clip (nothing clips the card in SwiftUI), what leaves the card and the sent wave.
+    private readonly Panel frame = new();
     private readonly Canvas leaving = new(); // what leaves the card under an animation, drawn fading where it was; it takes no room (a Canvas asks for none)
     private readonly Border pill;
     private readonly SizeSlot slot; // :703-704 the card's size (height and width) follows its contents along Chrome.panelSlide (OD-0076: a card that changes size eases to it)
@@ -930,10 +932,11 @@ public sealed class HydraDelegationBlock : Decorator
         column.Children.Add(header);
         pill = TimelineRows.Pill(column, fillsSlot: true);
         overlay.Children.Add(pill);
-        overlay.Children.Add(leaving);
         pill.SizeChanged += (_, e) => { if (sweep is not null) sweep.Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); }; // :698 .clipShape(RoundedRectangle(cornerRadius: pillRadius, style: .continuous)), through the one helper of ED-181
         slot = new SizeSlot(overlay) { ContentFollowsSize = true };
-        Child = slot;
+        frame.Children.Add(slot);
+        frame.Children.Add(leaving);
+        Child = frame;
         Apply(json, sent, animated: false);
         this.Transition(SwiftTransition.Opacity);
     }
@@ -947,7 +950,9 @@ public sealed class HydraDelegationBlock : Decorator
         Json = json; Sent = sent;
         Transaction.WithAnimation(Chrome.PanelSlide, () =>
         {
-            slot.Note(TimelineRows.UnlessReduced(Transaction.Current)); // the layout pass that follows reads the animation the change was made under; reduce motion cuts (OD-0076)
+            // the layout pass that follows reads the animation the change was made under: Chrome.panelSlide, which under reduced motion is the Mac's own
+            // `.easeOut(duration: 0.18)` (Chrome.swift:100-104), so the card's frame eases along it then too (ED-264: the Mac's own animation, not stilled)
+            slot.Note(Transaction.Current);
             Apply(json, sent, animated: true);
         });
     }
@@ -977,7 +982,7 @@ public sealed class HydraDelegationBlock : Decorator
         {
             sweep = new DotFieldSweep { Tint = Chrome.AccentNSColor, Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(pill.Bounds.Size), TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous) }; // :698, as above
             sweep.Transition(SwiftTransition.Opacity); // :700 .transition(.opacity)
-            if (animated) SwiftTransition.Insert(overlay, overlay.Children.Count, sweep); else overlay.Children.Add(sweep);
+            if (animated) SwiftTransition.Insert(frame, frame.Children.Count, sweep); else frame.Children.Add(sweep);
         }
         // :677-692 one row per head, the new ones in with the opacity transition; a block that is not a continuation of what was shown starts the list over.
         var continues = delegations.Count >= shown.Count && shown.Select((item, index) => Equals(item, delegations[index])).All(same => same);
@@ -1033,16 +1038,31 @@ public sealed class HydraDelegationBlock : Decorator
     /// <summary>A view that leaves the card under the change's animation: SwiftUI lays the card out without it at once, so the card's frame eases to its new size
     /// along Chrome.panelSlide (:703-704) while the view fades out where it was (its removal transition; documented SwiftUI behaviour, UNVERIFIED under OD-0001 as
     /// ED-092 records). Left in its stack while it fades, it would hold the card at its old size and let it drop once the fade is done (OD-0076: nothing changes
-    /// by a cut), so it is drawn from the leaving layer at the place and size it had.</summary>
+    /// by a cut), so it is drawn from the leaving layer at the place and size it had. There it still takes the opacity its old parents give it (a removed view is
+    /// drawn inside its parent: a list still fading in goes on fading in under it), it leaves from where its own arrival has got to if that is still running
+    /// (RemoveContinuing, ED-278 (10)), and nothing clips it (the layer is outside the slot's clip).</summary>
     private void Leave(Panel from, Control gone)
     {
-        var at = gone.TranslatePoint(default, overlay) ?? default;
+        var at = gone.TranslatePoint(default, leaving) ?? default;
         var size = gone.Bounds.Size;
+        var parents = Avalonia.VisualTree.VisualExtensions.GetSelfAndVisualAncestors(from).TakeWhile(visual => !ReferenceEquals(visual, frame)).ToList();
         from.Children.Remove(gone);
-        Canvas.SetLeft(gone, at.X); Canvas.SetTop(gone, at.Y);
         gone.Width = size.Width; gone.Height = size.Height; // its words keep the layout they had
-        leaving.Children.Add(gone);
-        SwiftTransition.Remove(leaving, gone);
+        var holder = new Panel();
+        Canvas.SetLeft(holder, at.X); Canvas.SetTop(holder, at.Y);
+        void Follow() => holder.Opacity = parents.Aggregate(1.0, (product, parent) => product * parent.Opacity);
+        void Changed(object? sender, AvaloniaPropertyChangedEventArgs e) { if (e.Property == Visual.OpacityProperty) Follow(); }
+        Follow();
+        foreach (var parent in parents) parent.PropertyChanged += Changed;
+        holder.Children.Add(gone);
+        leaving.Children.Add(holder);
+        holder.Children.CollectionChanged += (_, _) =>
+        {
+            if (holder.Children.Count != 0) return;
+            foreach (var parent in parents) parent.PropertyChanged -= Changed;
+            leaving.Children.Remove(holder);
+        };
+        SwiftTransition.RemoveContinuing(holder, gone);
     }
 
     // :711-741
