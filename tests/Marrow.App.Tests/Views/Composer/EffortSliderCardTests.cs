@@ -127,8 +127,8 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
             switch (maximum, fast)
             {
                 case (false, false): // Chrome.accent mixed 22 percent toward white (:841)
-                    var accent = EffortView_Resolved(Chrome.Accent, theme);
-                    AssertSolid(accent.Mix(SwiftColor.White, 0.22).Resolve(theme), title.Foreground, "neither");
+                    // the default colour space of Color.mix(with:by:) is perceptual (ED-NEW-effortslider2): an independent Oklab mix
+                    AssertSolid(OklabReference.MixWhite(Chrome.Accent.Resolve(theme), 0.22), title.Foreground, "neither");
                     break;
                 case (false, true): AssertSolid(gold, title.Foreground, "fast mode alone is gold"); break;
                 case (true, false): AssertSolid(claude, title.Foreground, "maximum alone is the brand's title colour"); break;
@@ -181,14 +181,14 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
         try
         {
             var theme = Title(card).ActualThemeVariant;
-            // the heads' provider is DeepSeek: its fill and title colours (:911-920, :877) lightened 18 percent toward white (:964)
-            var deepseekFill = new SwiftColor(0.24, 0.36, 0.98);
-            var deepseekTitle = new SwiftColor(0.49, 0.58, 1.0);
+            // the heads' provider is DeepSeek: its fill and title colours (:911-920, :877) lightened 18 percent toward white (:964), in the
+            // default (perceptual, Oklab) colour space: the values of an independent Oklab implementation (oklab.py), not the port's
+
             var expected = new List<Color>
             {
                 new SwiftColor(0.93, 0.58, 0.44).Resolve(theme),                                  // the lead's title colour
-                deepseekFill.Mix(SwiftColor.White, 0.18).Resolve(theme),                          // pair.brand.titleColors
-                deepseekTitle.Mix(SwiftColor.White, 0.18).Resolve(theme),
+                Color.FromRgb(90, 126, 254),                                                     // pair.brand.titleColors: (0.24, 0.36, 0.98) toward white by 0.18
+                Color.FromRgb(147, 168, 255),                                                    // (0.49, 0.58, 1.0) toward white by 0.18
             };
             if (fast) expected.Add(new SwiftColor(1.0, 0.84, 0.36).Resolve(theme));
             AssertGradient(expected.ToArray(), Title(card).Foreground, "a pair's title");

@@ -7769,7 +7769,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:729-738 the four looks, with :760-767 overlaying an effect only when the kind is not plain or a pair exists (a plain look with no pair draws nothing over its fill), and :798-799 animating a look change over smooth(0.3)",
+        "port": "The 2x2 mapping of (maximum effort, fast mode) onto plain, supercharged, fast and fusion is unchanged, but every kind draws the liquid effect, the plain one too (OD-0075, \"liquid at every effort level\", settling OD-0072; EffortSlider.IsLiquid is true for every look): plain is the maker's liquid, supercharged the same liquid, fast and fusion the liquid with Strike over it (OD-0073). The fill under the liquid is the brand's in every solo kind (PR-COMPOSER-128), so a solo look change moves the effect, not the fill: the effect crossfades over smooth(0.3) (PR-COMPOSER-132) and the fill follows over smooth(0.3) wherever it does change (a pair joining or leaving). The per-model and per-effort shade of OD-0063 belongs to the colour engine (unbuilt): until it is built every effort wears the maker's palette (ED-NEW-effortslider2)."
+      }
     },
     {
       "area": "COMPOSER",
@@ -7792,7 +7797,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:985-998 TrackLook.fill: `.plain` is Chrome.accent (:990), `.supercharged` brand.fill (:991), `.fast` EffortPalette.fastFill, `.fusion` the brand-to-fastFill gradient (:992-996)",
+        "port": "The plain track is the liquid too (OD-0075), so the fill under it is the brand's fill, as at maximum: Claude and DeepSeek their solid colour, Purple its solid, Meta, Silver, Antigravity and the OD-0047 brands their gradients; the accent is no longer a track colour. A pair's gradient ([lead fill] + the heads' colours) is unchanged. Fast and fusion keep the brand's fill under their Strike (OD-0073, ED-248)."
+      }
     },
     {
       "area": "COMPOSER",
@@ -7893,7 +7903,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:760-767 overlays the effect only when the kind is not plain or a pair exists, so a plain look with no pair has no effect view at all (the record's failure case: \"A plain look with no pair draws no effect at all\")",
+        "port": "Every solo look has an effect (OD-0075): there is no look without one, so the failure case does not apply. The identity rule is unchanged: a look change without a pair replaces the effect (the old one fades out over smooth(0.3) keeping its own clock, the new one fades in from time 0, plain included), a look change that keeps the kind (one non-maximum effort to another) keeps the same effect, and with a pair the identity ignores the kind, so the effect keeps its instance and its clock."
+      }
     },
     {
       "area": "COMPOSER",
@@ -7917,7 +7932,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0051; OD-0075",
+        "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050 `TimelineView(.animation(minimumInterval: 1.0 / (kind == .supercharged && pair == nil ? 30 : 60)`: a supercharged track without a pair ticks at 30",
+        "port": "Every effect ticks at 60: the solo supercharged track is the liquid tube (OD-0051) and, since OD-0075, so is the plain track (liquid at every effort level), so the 30 Hz case does not exist. The pauses (reduced motion, a window that is not in front), the 8 point guard (:1053), the hit-test and accessibility rules (:1070-1071) are the source's."
+      }
     },
     {
       "area": "COMPOSER",

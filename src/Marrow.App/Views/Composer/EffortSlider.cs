@@ -1523,10 +1523,11 @@ internal static class EffortView
 /// <summary>:839-847 <c>enum EffortPalette</c>.</summary>
 public static class EffortPalette
 {
-    // :841 static var title: Color { Chrome.accent.mix(with: .white, by: 0.22) }
+    // :841 static var title: Color { Chrome.accent.mix(with: .white, by: 0.22) }: no colour space is named, so SwiftUI's default,
+    // perceptual (Oklab), mixes it (ENGINEERING DECISION, ED-NEW-effortslider2, OD-0098)
     public static SwiftColor Title => SwiftColor.Dynamic(
-        EffortView.Resolved(Chrome.Accent, ThemeVariant.Light).Mix(SwiftColor.White, 0.22),
-        EffortView.Resolved(Chrome.Accent, ThemeVariant.Dark).Mix(SwiftColor.White, 0.22));
+        EffortView.Resolved(Chrome.Accent, ThemeVariant.Light).MixPerceptual(SwiftColor.White, 0.22),
+        EffortView.Resolved(Chrome.Accent, ThemeVariant.Dark).MixPerceptual(SwiftColor.White, 0.22));
 
     public static SwiftColor Supercharged { get; } = new(red: 0.74, green: 0.55, blue: 1.0);      // :842
     public static SwiftColor SuperchargedFill { get; } = new(red: 0.55, green: 0.34, blue: 0.97); // :843
@@ -1713,8 +1714,8 @@ public sealed record EffortPairBrand
         }
     }
 
-    // :964 var titleColors: [Color]
-    public ValueList<SwiftColor> TitleColors => new(Colors.Select(color => color.Mix(SwiftColor.White, 0.18)));
+    // :964 var titleColors: [Color] { colors.map { $0.mix(with: .white, by: 0.18) } }: the default (perceptual) colour space again
+    public ValueList<SwiftColor> TitleColors => new(Colors.Select(color => color.MixPerceptual(SwiftColor.White, 0.18)));
 
     // :942 `struct EffortPairBrand: Hashable`: equal when the colours are equal, whichever instance built them. SwiftColor here is a class, so the
     // record's own member-wise comparison would tell two brands made from the same pair apart, and a card that stays while the thread

@@ -778,9 +778,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var theme = Avalonia.Styling.ThemeVariant.Light;
             switch (kind)
             {
-                case TrackLook.Kind.Plain:
-                    Assert.Equal(Chrome.Accent.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :990
-                    break;
+                case TrackLook.Kind.Plain: // Swift :990 is Chrome.accent; DEVIATION OD-0075 (liquid at every effort level): the brand's fill under the liquid
                 case TrackLook.Kind.Supercharged:
                     Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :991
                     break;
@@ -791,8 +789,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
                     break;
             }
             var effects = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();
-            if (kind == TrackLook.Kind.Plain) Assert.Empty(effects);
-            else Assert.Single(effects);
+            Assert.Equal(kind, Assert.Single(effects).Look.TrackLookKind); // every look draws the liquid effect (OD-0075; Swift :760 draws none for plain)
             window.Close();
         });
     }
