@@ -126,7 +126,7 @@ public sealed class AboutUpdateViewsHapticTests(HeadlessSession headless)
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0")); using var probe = new AboutUpdateHttpProbe();
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
-        var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed)); using var shared = UpdateChecker.OverrideShared(checker);
+        var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], "")); using var shared = UpdateChecker.OverrideShared(checker);
         Avalonia.Controls.Window window = null!;
         runtime.OnMain(() => window = Show(new AboutSoftwareUpdateSection()));
         runtime.RunUntilIdle();

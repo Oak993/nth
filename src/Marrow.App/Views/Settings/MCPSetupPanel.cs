@@ -423,11 +423,12 @@ public sealed class MCPSetupPanelView : FloatingGuidePanelView
     private static Control GlassProminentButton(string title, Action action) =>
         WelcomeView.GlassProminentButton(ButtonLabel(title), Chrome.CapsuleContentHeight, action);
 
-    // A glass button's label: the body text style in primary text.
+    // A glass button's label (MCPSetupPanel.swift:83-88, :98-102: Button(title) with no .font): SwiftUI's implicit
+    // default in primary text, the body size in the face's own line box (ED-290 (1)).
     private static TextBlock ButtonLabel(string title)
     {
         var label = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center };
-        SwiftFont.Body.Apply(label);
+        SwiftFont.Default.Apply(label);
         label.Foreground = Chrome.PrimaryText.Brush(label);
         return label;
     }

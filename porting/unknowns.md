@@ -169,6 +169,12 @@ carries that dependency in `porting/parity_matrix.json`.
   Contract section 17: missing endpoints, certificates or publishing access remain explicit blockers.
 - **Resolution path (owner):** publish a Windows asset to that GitLab project, or supply a separate
   feed location for Windows releases. Neither is invented here.
+- **2026-10-04 (UE-1; OD-0062, OD-0100; Windows review, unit/integ-ue1):** the asset and the feed are decided: the Windows
+  release asset is Velopack's full package (`MarrowCode-<version>-full.nupkg`) on the owner's public GitHub repository
+  Oak993/marrow-releases, read by Velopack's GithubSource. Check, download with percent, the package check and the hand-off
+  to Update.exe are implemented and verified on a loopback fake GitHub (`VelopackLoopbackFeedTests`). STILL OPEN: the
+  repository holds no release yet, so the live path (a real check, download, Update.exe swap and restart of an installed
+  Marrow) is unverified until the owner publishes one; it stays reported as BLOCKED, never as passing.
 
 ## UNK-0008 App icon artwork and the in-repo Droppy marks under the Marrow name
 

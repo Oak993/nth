@@ -359,9 +359,10 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
     [Trait("Req", "UI-MCP-006")] // App/Views/Settings/MCPSettingsPage.swift:38-47; UI/Chrome/Chrome.swift:1038-1051
     [Trait("Req", "UI-MCP-008")] // App/Views/Settings/MCPSettingsPage.swift:152-203
     [Trait("Rule", "R-TEST-2")] // PR-MCP-199 and UI-MCP-007 structural subset; blockers are recorded below
-    // STOP opencode-proofs-mcp-a #1 (PR-MCP-199): the reference video 1-settings-tour.mov DOES show this page (S 180.5-187.5). Measured against a headless render
-    // (E:/Droppy/work/scratch/mcpsettingspage/port-page.png): the grid cards are 255 wide with 10 between them, the Connected card 520 wide with its divider
-    // inset 16, all equal to the stills; the card heights differ (video 125.5 vs port 118.5 for a two-line-summary card, Connected card 188 vs 171). Open.
+    // STOP opencode-proofs-mcp-a #1 (PR-MCP-199): CLOSED 2026-10-04 (unit rec-linebox). The reference video 1-settings-tour.mov shows this page (S 180.5-187.5):
+    // the grid cards are 255 wide with 10 between them, the Connected card 520 wide with its divider inset 16, all equal to the stills; the card heights that
+    // differed (118.5 and 171 in the port) followed from the text-style line boxes (ED-290 (1)) and now match the frames (MCPSettingsPageFrameTests: a catalog
+    // card 126, the Connected card 192; the video's 125.5 / 188 here were rough reads of the same cards).
     // STOP opencode-proofs-mcp-a #4: UI-MCP-007 needs lazy row creation on scroll, not only ChromeCard.Lazy data.
     // ChromeCard currently builds an eager subtree (Chrome.cs:1565-1587); no docs/b3 ruling approves that substitution.
     public void Page_sections_rows_and_grids_follow_source_order_geometry_colours_and_live_presence()

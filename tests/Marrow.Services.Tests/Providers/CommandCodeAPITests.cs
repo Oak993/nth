@@ -782,6 +782,78 @@ public sealed class CommandCodeAPITests
         Assert.Equal(["--list-models", "--no-auto-update"], call.Arguments);
     }
 
+    // The listing as the Swift doc comment (CommandCodeAPI.swift:171-174) and the grammar of :197-221 describe it: section headers, then
+    // `<id>  <description>` rows, two tagged. OD-0098 (PR-PROVCLI-260): no frame or capture of a Command Code listing exists, so the
+    // grammar the Swift states is the proof, and what a Windows console adds to that text (CRLF, colour codes, padding, a byte-order
+    // mark, a leading blank line) must leave the parsed options as they are.
+    private static ValueList<ModelOption> ListingOptions() => new(
+    [
+        new ModelOption("claude-sonnet-5", "Claude Sonnet 5", detail: "Anthropic" + Dot + "best combo of speed & intelligence", efforts: Full, isDefault: true),
+        new ModelOption("claude-opus-5", "Claude Opus 5", detail: "Anthropic" + Dot + "most intelligent Opus for agents and coding", efforts: Full),
+        new ModelOption("deepseek/deepseek-v4-flash", "Deepseek V4 Flash", detail: "Open Source" + Dot + "fast hybrid-attention reasoning", efforts: HighMax),
+        new ModelOption("moonshotai/kimi-k3", "Kimi K3", detail: "Open Source" + Dot + "long-horizon coding", efforts: LowHighMax),
+    ]);
+
+    private static async Task<ValueList<ModelOption>> ListFrom(string stdout, string label)
+    {
+        var script = new CommandCodeScript(label);
+        script.SetStdout(stdout);
+        var home = CommandCodeScratch.NewHome();
+        return await CommandCodeAPI.ListModels(script.Executable,
+            Env(home, (script.EnvironmentEntry.Key, script.EnvironmentEntry.Value))).WaitAsync(Guard);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-260")] // CommandCodeAPI.swift:197 text.components(separatedBy: .newlines): a CRLF listing parses to the same options; OD-0098
+    public async Task ListModels_reads_the_same_options_from_a_listing_with_CRLF_line_endings()
+    {
+        var lf = await ListFrom(Listing, "list-lf");
+        var crlf = await ListFrom(Listing.Replace("\n", "\r\n", StringComparison.Ordinal), "list-crlf");
+
+        Assert.Equal(ListingOptions(), lf);
+        Assert.Equal(lf, crlf);
+        Assert.Single(crlf, option => option.IsDefault); // one default only (:225-232)
+        Assert.Equal(["Anthropic", "Anthropic", "Open Source", "Open Source"], crlf.Select(option => option.Detail!.Split(Dot)[0]));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-260")] // CommandCodeAPI.swift:185 TextCleanup.stripANSI(result.output): colour codes around ids and headers leave the options as they are; OD-0098
+    public async Task ListModels_reads_the_same_options_from_a_listing_with_ANSI_colour_codes_around_ids_and_headers()
+    {
+        var colored = string.Join("\n",
+            "Available models:",
+            "",
+            Esc + "[1m" + Esc + "[34mAnthropic" + Esc + "[0m",
+            "  " + Esc + "[36mclaude-sonnet-5" + Esc + "[0m              best combo of speed & intelligence " + Esc + "[2m(recommended)" + Esc + "[0m",
+            "  " + Esc + "[36mclaude-opus-5" + Esc + "[0m                most intelligent Opus for agents and coding",
+            Esc + "[1m" + Esc + "[34mOpen Source" + Esc + "[0m",
+            "  " + Esc + "[36mdeepseek/deepseek-v4-flash" + Esc + "[0m   fast hybrid-attention reasoning " + Esc + "[2m(default)" + Esc + "[0m",
+            "  " + Esc + "[36mmoonshotai/kimi-k3" + Esc + "[0m           long-horizon coding",
+            "Pass the full id with --model to pick one.",
+            "cmd --model <id>",
+            "Usage: cmd [options]",
+            "Docs: https://commandcode.ai/docs") + "\n";
+
+        Assert.Equal(ListingOptions(), await ListFrom(colored, "list-ansi"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-260")] // CommandCodeAPI.swift:198 trimmingCharacters(in: .whitespaces), :202 the two-space column split: console padding and a leading UTF-8 byte-order mark leave the options as they are; OD-0098
+    public async Task ListModels_reads_the_same_options_from_a_listing_with_console_trailing_spaces_and_a_leading_byte_order_mark()
+    {
+        // A Windows console pads every line to its width with spaces, and a UTF-8 file or pipe can start with U+FEFF.
+        var padded = "﻿" + string.Join("\r\n", Listing.Split('\n').Select(line => line + new string(' ', 120 - line.Length))) + "\r\n";
+
+        Assert.Equal(ListingOptions(), await ListFrom(padded, "list-padded"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-260")] // CommandCodeAPI.swift:199 guard !line.isEmpty: leading blank lines are skipped; OD-0098
+    public async Task ListModels_reads_the_same_options_from_a_listing_with_a_leading_blank_line()
+    {
+        Assert.Equal(ListingOptions(), await ListFrom("\n\r\n" + Listing, "list-blank"));
+    }
+
     [Fact]
     [Trait("Req", "PR-PROVCLI-260")] // Services/Providers/CommandCodeAPI.swift:188-190
     public async Task ListModels_with_no_rows_throws_failed_with_the_last_lines_of_stderr_then_stdout()

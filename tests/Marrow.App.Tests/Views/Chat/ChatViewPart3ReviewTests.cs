@@ -228,7 +228,7 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     [InlineData("Push", "Push failed")]
     [InlineData("OpenPullRequest", "Could not open a pull request")]
     [Trait("Req", "UI-GIT-060")] // App/Views/Chat/ChatView.swift:1392,1404,1499,1521
-    // STOP (round 4, traceability), still open: PR-GIT-129: the commit instructions reaching the model call (:1625) and the sheet's dismissal cancelling its task (:1605) are not observed (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
+    // PR-GIT-129 is closed by ChatViewCommitSheetTests (2026-10-04, unit rec-tlr); this test's own clauses are part of it.
     [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1388-1396
     [Trait("Req", "PR-GIT-130")] // App/Views/Chat/ChatView.swift:1398-1408
     [Trait("Req", "PR-GIT-131")] // App/Views/Chat/ChatView.swift:1495-1527

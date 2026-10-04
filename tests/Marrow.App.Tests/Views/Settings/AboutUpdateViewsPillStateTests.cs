@@ -46,7 +46,7 @@ public sealed class AboutUpdateViewsPillStateTests(HeadlessSession headless)
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
         var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], ""));
         Set(checker, nameof(UpdateChecker.Update), AboutUpdateViewsProofLifecycleTests.Release());
-        Set(checker, nameof(UpdateChecker.LastError), "GitLab answered with HTTP 503.");
+        Set(checker, nameof(UpdateChecker.LastError), "GitHub answered with HTTP 503.");
         Set(checker, nameof(UpdateChecker.LastCheckedAt), SwiftDate.Now.AddHours(-2));
         Assert.True(checker.UpdateAvailable);
         using var shared = UpdateChecker.OverrideShared(checker);
@@ -62,7 +62,7 @@ public sealed class AboutUpdateViewsPillStateTests(HeadlessSession headless)
         Assert.Equal(AutomationControlType.Button, peer.GetAutomationControlType()); Assert.IsAssignableFrom<IInvokeProvider>(peer); // :682 isButton
         var texts = row.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToArray();
         var stamp = "Checked " + SwiftFormatters.RelativeNamed(checker.LastCheckedAt!.Value) + ".";
-        Assert.Contains("GitLab answered with HTTP 503. " + stamp, texts); // :839 the error first
+        Assert.Contains("GitHub answered with HTTP 503. " + stamp, texts); // :839 the error first
         Assert.DoesNotContain(texts, t => t!.Contains("ready to install", StringComparison.Ordinal)); // :840 never reached
         window.Close();
     });

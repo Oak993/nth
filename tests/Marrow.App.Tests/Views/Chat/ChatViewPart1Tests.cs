@@ -69,8 +69,8 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     // ---- GitStatusModel: PR-GIT-126, PR-GIT-127 (WINDOWS-ONLY: real git via the app's own process launcher) ----
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-GIT-126: the concurrent read of status, branches and the web URL (:1297-1299) is not observed (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
-    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1289-1307
+    // PR-GIT-126 is closed by ChatViewGitReadsTests (2026-10-04, unit rec-tlr); this test's own clauses are also part of it.
+    [Trait("Req", "PR-GIT-126")] // App/Views/Chat/ChatView.swift:1289-1307
     public async Task Refresh_applies_the_cached_snapshot_at_once_and_skips_git_when_not_forced_and_fresh()
     {
         using var runtime = new TestRuntime();
@@ -88,8 +88,8 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     }
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-GIT-126: the concurrent read of status, branches and the web URL (:1297-1299) is not observed (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
-    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1294-1303
+    // PR-GIT-126 is closed by ChatViewGitReadsTests (2026-10-04, unit rec-tlr); this test's own clauses are also part of it.
+    [Trait("Req", "PR-GIT-126")] // App/Views/Chat/ChatView.swift:1294-1303
     public async Task Refresh_of_a_non_repository_reads_only_isRepository_and_leaves_the_rest_empty()
     {
         using var runtime = new TestRuntime();

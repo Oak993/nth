@@ -120,8 +120,8 @@ public sealed class AboutUpdateViewsReviewTests(HeadlessSession headless)
 
     // REVIEW (second round, 2026-10-04). OD-0076: "a card ... that changes size eases to the new size ... with no single-frame jump". At the settings
     // window's default size (SettingsView.cs:170 Width = 780, :122; the 212 pt sidebar, :178; the page stack's 24 pt each side, :249) the card is
-    // 520 pt wide and the resting sentence "Marrow checks GitLab for new versions a few times a day. Not checked yet." takes more lines than
-    // "Asking GitLab for the latest release…". The row's sentence swap replaces the words at the middle of the fade, so the card's height must
+    // 520 pt wide and the resting sentence "Marrow checks GitHub for new versions a few times a day. Not checked yet." takes more lines than
+    // "Asking GitHub for the latest release…". The row's sentence swap replaces the words at the middle of the fade, so the card's height must
     // ease, not step by a whole line in one frame (the unit's ED-261 T1 leaves this "NOT eased (UNVERIFIED, rare)").
     [Fact]
     [Trait("Req", "PR-SETTINGS-240")] // REVIEW: the detail swap while a check starts; OD-0076 card size change

@@ -541,6 +541,47 @@ public sealed class TimelineRowsBlitzAbCardTests(HeadlessSession headless)
         });
     });
 
+    // 2-chat-use.mov C 9.0 (paired rows, so a reading is good to a point): the two error pills "No message found with message.uuid of: ..."
+    // in the 820-point column are tinted over rows 276-308 and 420/422-454, 33 +-1 tall: one callout line of 17 (ED-290 (1), the explicit
+    // .font(.chat(.callout)) on the row, TimelineRows.swift:2397) between pillVertical 8 above and below (:26, :2398-2400). The glyph, smaller
+    // than the line in a first-baseline row (:2390), adds nothing. An info notice has no insets, so it is the 17-point line alone.
+    [Fact]
+    [Trait("Req", "PR-CHAT-115")] // TimelineRows.swift:2388-2403; ED-290 (1); 2-chat-use.mov C 9.0
+    public void At_C_9_0_a_one_line_error_or_warning_notice_is_33_tall_and_an_info_notice_its_17_point_callout_line() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            const string message = "No message found with message.uuid of: 17366422-8494-489a-ab37-d976b3a0fb0b"; // C 9.0
+            var (theme, backdrop) = Themes[0];
+            var levels = new[] { Notice.Level.Error, Notice.Level.Warning, Notice.Level.Info };
+            var rows = levels.Select(level => new NoticeRow(NoticeEntry(level, message))).ToList();
+            var panel = new StackPanel { Spacing = 24, Width = 820 };
+            foreach (var row in rows) panel.Children.Add(row);
+            BlitzAbRender.Render(new Border { Padding = new Thickness(24), Child = panel }, theme, backdrop, 868, 200, (window, frame) =>
+            {
+                for (var i = 0; i < levels.Length; i++)
+                {
+                    var pill = Mounted<Border>(rows[i]).First(border => border.Child is TimelineBaselineRow);
+                    var text = TextNamed(rows[i], message);
+                    Assert.Single(text.TextLayout.TextLines); // one line, as at C 9.0
+                    var box = BlitzAbRender.BoxIn(pill, window);
+                    if (levels[i] == Notice.Level.Info)
+                    {
+                        Assert.Equal(17, box.Height, 0.5); // the bare callout line
+                        continue;
+                    }
+                    Assert.InRange(box.Height, 32, 34);
+                    // The tint as the frame shows it: the rows of the pill's flat middle that differ from the backdrop.
+                    var x = (int)(box.Right - 60);
+                    var tinted = Enumerable.Range((int)box.Top - 4, (int)box.Height + 8).Count(y => BlitzAbFrame.Distance(frame.At(x, y), backdrop) > 3);
+                    Assert.InRange(tinted, 32, 34);
+                }
+            });
+        });
+    });
+
     // ---- PR-CHAT-116: the turn-end line ----
 
     [Theory]

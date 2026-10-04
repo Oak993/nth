@@ -106,10 +106,10 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-004")] // App/Views/Settings/AboutUpdateViews.swift:587-621,693-703
     [Trait("Req", "PR-UPDATE-072")] // App/Views/Settings/AboutUpdateViews.swift:587-621: standing order error, then never checked, then up to date; labels, symbols, tints
     [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:638-682: the ready face (symbol, text, blue, 0.2 wash, tooltip, accessibility)
-    [InlineData(false, null, false, "Not checked yet", "clock", "Marrow has not asked GitLab for a release yet")]
+    [InlineData(false, null, false, "Not checked yet", "clock", "Marrow has not asked GitHub for a release yet")]
     [InlineData(true, null, false, "Up to date", "checkmark.seal.fill", "Marrow 1.7.0 is the latest version")]
-    [InlineData(false, "GitLab answered with HTTP 503.", false, "Check failed", "exclamationmark.triangle.fill", "GitLab answered with HTTP 503.")]
-    [InlineData(true, "GitLab answered with HTTP 503.", false, "Check failed", "exclamationmark.triangle.fill", "GitLab answered with HTTP 503.")]
+    [InlineData(false, "GitHub answered with HTTP 503.", false, "Check failed", "exclamationmark.triangle.fill", "GitHub answered with HTTP 503.")]
+    [InlineData(true, "GitHub answered with HTTP 503.", false, "Check failed", "exclamationmark.triangle.fill", "GitHub answered with HTTP 503.")]
     [InlineData(true, null, true, "Update & restart", "arrow.down.circle.fill", "Installs Marrow 9.0.0 and relaunches")]
     public void Pill_faces_have_exact_metrics_tints_glass_help_and_only_ready_has_the_button_role(bool checkedBefore, string? error, bool ready, string text, string symbol, string help) => headless.OnUiThread(() =>
     {
@@ -180,7 +180,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
         Assert.False(button.IsHitTestVisible); Assert.False(button.Focusable); Assert.Contains(built.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Not checked yet");
         var standingType = typeof(AboutVersionPill).GetNestedType("Standing", BindingFlags.NonPublic)!;
         var help = typeof(AboutVersionPill).GetMethod("StandingHelp", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [snapshot, Enum.Parse(standingType, "Failed")]);
-        Assert.Equal("The last check did not reach GitLab", help); window.Close();
+        Assert.Equal("The last check did not reach GitHub", help); window.Close();
     });
 
     [Fact]

@@ -71,7 +71,7 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
         if (checkedBefore) Set(checker, nameof(UpdateChecker.LastCheckedAt), SwiftDate.Now.AddHours(-2));
         using var shared = UpdateChecker.OverrideShared(checker); var view = new AboutUpdateCheckRow(); var window = Show(view);
         var suffix = checkedBefore ? "Checked 2 hours ago." : "Not checked yet."; // :837 named relative date, ED-096 under en_US fixture
-        var expected = checking ? "Asking GitLab for the latest release…" : error is not null ? error + " " + suffix : ready ? "Marrow 9.0.0 is ready to install. " + suffix : "Marrow checks GitLab for new versions a few times a day. " + suffix;
+        var expected = checking ? "Asking GitHub for the latest release…" : error is not null ? error + " " + suffix : ready ? "Marrow 9.0.0 is ready to install. " + suffix : "Marrow checks GitHub for new versions a few times a day. " + suffix;
         Row(Assert.IsType<ChromeRow>(view.Child), "Software update", expected);
         var button = Assert.Single(view.GetVisualDescendants().OfType<Button>()); Assert.Equal(!checking, button.IsEnabled);
         Assert.Equal(checking ? "Checking…" : "Check now", Assert.Single(button.GetVisualDescendants().OfType<TextBlock>()).Text);
@@ -100,7 +100,7 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
         var card = Assert.Single(page.GetVisualDescendants().OfType<ChromeCard>()); var fill = Assert.IsType<Border>(card.Child);
         Assert.Equal(new CornerRadius(16), fill.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(fill));
         Assert.Equal(Chrome.PrimaryText.Opacity(0.03).Resolve(fill.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color);
-        var button = Assert.Single(row.GetVisualDescendants().OfType<Button>()); Assert.True(button.IsEnabled); Assert.Equal("Open the release on GitLab", ToolTip.GetTip(button));
+        var button = Assert.Single(row.GetVisualDescendants().OfType<Button>()); Assert.True(button.IsEnabled); Assert.Equal("Open the release on GitHub", ToolTip.GetTip(button));
         var label = Assert.IsType<StackPanel>(button.Content); Assert.Equal(4, label.Spacing);
         var text = Assert.IsType<TextBlock>(label.Children[0]); Assert.Equal("Release notes", text.Text); Assert.Equal(12, text.FontSize); Assert.Equal(FontWeight.Medium, text.FontWeight);
         var arrow = Assert.IsType<SwiftImage>(label.Children[1]); Assert.Equal("arrow.up.right", arrow.SymbolName);

@@ -254,8 +254,9 @@ public sealed class ParagraphTextPresenter : Control
             var x = first ? style.FirstLineHeadIndent : style.HeadIndent;
             var available = double.IsInfinity(width) ? double.PositiveInfinity : Math.Max(0, width - x);
             source.PrepareLine(index, x, defaults);
+            // ED-290 (1): a text style's line box, passed explicitly (this control draws no TextBlock); an NSFont has none.
             var properties = new GenericTextParagraphProperties(FlowDirection.LeftToRight, TextAlignment.Left, first, false,
-                defaults, TextWrapping.Wrap, 0, 0, 0);
+                defaults, TextWrapping.Wrap, styleRun?.Font?.LineBox ?? 0, 0, 0);
             var line = TextFormatter.Current.FormatLine(source, index, available, properties, previous);
             if (line is null) break;
             lines.Add(new LineBox(line, x, y, index, Math.Min(end, index + line.Length), start, end));

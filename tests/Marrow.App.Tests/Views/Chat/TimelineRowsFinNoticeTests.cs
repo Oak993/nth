@@ -78,7 +78,9 @@ public sealed class TimelineRowsFinNoticeTests(HeadlessSession headless)
                 foreach (var (words, symbol, status) in expected)
                 {
                     var text = TextNamed(row, words);
-                    var glyph = Mounted<SwiftImage>(row).First(image => image.SymbolName == symbol && Top(image, window) <= Top(text, window) + 1 && Top(image, window) >= Top(text, window) - 3);
+                    // The step's own glyph: the one of its symbol beside the text's first line (the callout's 17-point box puts the baseline, and so the glyph,
+                    // half its extra leading, 1.2 pt, lower in the box than Inter's own box did; ED-290 (1)).
+                    var glyph = Mounted<SwiftImage>(row).First(image => image.SymbolName == symbol && Top(image, window) <= Top(text, window) + 3 && Top(image, window) >= Top(text, window) - 3);
                     Face(text, 12, FontWeight.Normal, ".chat(.callout)");
                     Assert.Equal(12, SwiftImage.GetFont(glyph)!.Resolve().FontSize);
                     Assert.Equal(8, Left(text, window) - (Left(glyph, window) + glyph.Bounds.Width), 0.5);
@@ -113,13 +115,13 @@ public sealed class TimelineRowsFinNoticeTests(HeadlessSession headless)
     [InlineData(Notice.Level.Error)]
     [Trait("Req", "UI-CHAT-034")] // TimelineRows.swift:2385-2431 the notice row
     [Trait("Req", "UI-RUNTIME-001")] // TimelineRows.swift:2385-2404, :2406-2430 the info-level notice
-    // Partial proof UI-RUNTIME-002 and UI-RUNTIME-003 (STOP #10, TimelineRowsTests): every clause but one is proven here, from the Swift source (OD-0098). The one
-    // that was not: the corner of a notice two lines tall. 2-chat-use.mov shows one (C 10.6-12.0, the "API Error: 402 ..." banner, about 48 pt), but its end has no
-    // extractable edge (the red tint at 0.1 over a blurred wallpaper, compression blocks of 4 luma; the same failure as the one-line notice, SPEC.md 2.3), and neither
-    // the Swift source nor Apple's documentation says what a `.continuous` rounded rect of radius 18 draws when 36 < height < 55 (ED-275 (2)). OD-0102 (owner,
-    // 2026-10-04, "corner-band: A") settles it: Apple's corner at the largest radius that fits, asserted on the mounted two-line warning and error notices in
-    // ContinuousCornerReproofTests.A_warning_or_error_notice_two_lines_tall_is_cut_to_Apples_corner_at_the_largest_radius_that_fits.
-    [Trait("Rule", "R-TEST-4")]
+    [Trait("Req", "UI-RUNTIME-002")] // the Warning case: TimelineRows.swift:2385-2431, padding 12/14/8, radius 18, full width, callout 12, Chrome.warning glyph and 0.1 fill, .primary text, selectable, first-baseline row
+    [Trait("Req", "UI-RUNTIME-003")] // the Error case: the same geometry with Chrome.danger and exclamationmark.octagon
+    // Every clause of UI-RUNTIME-002 (the Warning case) and UI-RUNTIME-003 (the Error case) is proven here from the Swift source (OD-0098). The corner of a notice two lines
+    // tall, the one clause that was open (2-chat-use.mov shows one, C 10.6-12.0, the "API Error: 402 ..." banner, about 48 pt, but its end has no extractable edge: the red
+    // tint at 0.1 over a blurred wallpaper, compression blocks of 4 luma, SPEC.md 2.3), is Apple's corner at the largest radius that fits under OD-0102 (owner, 2026-10-04,
+    // "corner-band: A"): ContinuousCornerReproofTests.A_warning_or_error_notice_two_lines_tall_is_cut_to_Apples_corner_at_the_largest_radius_that_fits reads it off the
+    // mounted two-line warning and error notices, and REVIEW_the_four_band_elements_render_... compares their rendered corners with the path fill at all four corners.
     [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:2394 a notice's message enables text selection
     public void A_notice_is_a_first_baseline_row_whose_pill_glyph_and_colours_follow_its_level(Notice.Level level) => headless.OnUiThread(() =>
     {
