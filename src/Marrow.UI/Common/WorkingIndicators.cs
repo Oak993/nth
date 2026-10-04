@@ -188,8 +188,13 @@ internal sealed class SpinnerLayerView : Control
 
     private void OnThemeChanged() // :252-254 @objc private func themeDidChange()
     {
-        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) { ApplyTints(); return; }
-        Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (TopLevel.GetTopLevel(this) is not null) ApplyTints(); });
+        // The spinner's own dispatcher, and only while it is the UI dispatcher of the thread that posts: ThemeManager is set from any
+        // actor, and a thread with no running Avalonia application makes a Dispatcher.UIThread of its own that answers CheckAccess() with
+        // true, so asking UIThread retinted a spinner from a foreign thread (where it threw, or read a system accent no app was there to
+        // give). Any other thread posts to the spinner's dispatcher, which retints it if it is still in a window.
+        var own = Dispatcher;
+        if (own.CheckAccess() && ReferenceEquals(own, Avalonia.Threading.Dispatcher.UIThread)) { ApplyTints(); return; }
+        own.Post(() => { if (TopLevel.GetTopLevel(this) is not null) ApplyTints(); });
     }
 
     /// <summary>:295-317 <c>installAnimations()</c>: starts or stops the shared-clock repaint depending on reduce motion.</summary>
