@@ -102,7 +102,7 @@ public sealed class LevelFollowersTests
     [Fact]
     [Trait("Feature", "VT-2")]
     [Trait("Spec", "V-T20")]
-    [Trait("Decision", "ED-267")] // ED-NEW-f-vt-2 (6): only the band values are zeroed; the voice value is the plain follow (voice-composer.js:722)
+    [Trait("Decision", "ED-267")] // ED-301 (6): only the band values are zeroed; the voice value is the plain follow (voice-composer.js:722)
     public void The_voice_value_is_the_plain_follow_of_the_smoothed_all()
     {
         var f = new LevelFollowers();
@@ -137,7 +137,7 @@ public sealed class LevelFollowersTests
     [Fact]
     [Trait("Feature", "VT-2")]
     [Trait("Spec", "V-T20")]
-    [Trait("Decision", "ED-267")] // ED-NEW-f-vt-2 (7): a bad frame time or reading cannot poison the state
+    [Trait("Decision", "ED-267")] // ED-301 (7): a bad frame time or reading cannot poison the state
     public void A_negative_or_non_finite_dt_or_reading_changes_nothing_bad()
     {
         var f = new LevelFollowers();

@@ -123,7 +123,7 @@ public sealed class OrbMotion
                 damping = OrbMotionK.ProcDamp;
                 break;
             case OrbMotionMode.Blocked:
-                // ED-NEW-f-vt-4 item 3: the table's "0.15 if hovered" is read from the pointer, not from the Rest/Landing hover state
+                // ED-302 item 3: the table's "0.15 if hovered" is read from the pointer, not from the Rest/Landing hover state
                 speed = OrbMotionK.ErrSpeed;
                 desat = 1;
                 glow = hovered ? OrbMotionK.BlockedHoverGlow : 0;

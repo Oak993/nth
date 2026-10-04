@@ -60,7 +60,7 @@ public static class OrbMotionK
     public const double ListenLift = 1.0;
     public const double ProcLift = 0.8;
 
-    /// <summary>The glow of a hovered Blocked orb (V-11.4 table; ED-NEW-f-vt-4 item 3).</summary>
+    /// <summary>The glow of a hovered Blocked orb (V-11.4 table; ED-302 item 3).</summary>
     public const double BlockedHoverGlow = 0.15;
 
     /// <summary>The slot size spring (V-11.4): response 0.34, damping 0.86.</summary>

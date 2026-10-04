@@ -9,7 +9,7 @@ namespace Marrow.Core.Tests.Port.Voice;
 public sealed class LevelAnalyserTests
 {
     // The spec says "equal to Web Audio's" (V-T18) and gives no number, so the test asks for equal: every byte, and the four values to 1e-12.
-    // (ED-NEW-f-vt-2 (5): the first run on x64 .NET 10 matched all 252,928 fixture bytes exactly, so no slack is allowed. Chrome keeps float32
+    // (ED-301 (5): the first run on x64 .NET 10 matched all 252,928 fixture bytes exactly, so no slack is allowed. Chrome keeps float32
     // FFT results and the port computes in double; had a byte sat on a floor() edge the test would show it, and the tolerance would then be
     // one byte, never more.)
     private const double ValueTolerance = 1e-12;
