@@ -28,8 +28,8 @@ namespace Marrow.App.Tests.Views.Chat;
 //   (ChatViewFollowupTests); the capture at travel 0/20/44 in both themes is not done. 2-chat-use.mov shows only the dark
 //   theme at full progress (CATALOGUE timeline.top-edge-scrim, frames/gap-R2-02/scrim_profile.json), and the port's veil
 //   there depends on the theme's glass tint (Chrome unit, PR-WIN-196). UNRESOLVED.
-// - PR-GIT-126: "status, branches and the web URL are read concurrently" (:1297-1299, three async lets) is not observed by
-//   any test; every other clause is (ChatViewPart1Tests, ChatViewPart4ReviewTests). UNRESOLVED.
+// - PR-GIT-126: CLOSED 2026-10-04 (unit rec-tlr). "status, branches and the web URL are read concurrently" (:1297-1299, three async lets) is observed through ShellObserver by
+//   ChatViewGitReadsTests (each read's first call is held at its entry until all three are in; a fresh non-forced refresh starts no process; a non-repository exactly one).
 // - PR-GIT-129: the commit instructions reaching the model call (:1625) and the sheet's dismissal cancelling its task
 //   (.task, :1605) are not observed: the provider stand-in records no stdin. Every other clause is proven
 //   (ChatViewParityDetailTests, ChatViewPart3ReviewTests, ChatViewPart4ReviewTests). UNRESOLVED.
