@@ -4572,16 +4572,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 }
 
-// STOP App.Views.Chat.TimelineRows #5 (part 5, 2026-09-27)
-// ED-180 defers glass material but does not supply the missing small-control metrics.
-// Kind: platform gap
-// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2796 `.controlSize(.small)` on the confirmation buttons.
-// Records: UI-CHAT-039; UI-GIT-047.
-// Missing: an approved SwiftUI small-control-size adapter for the glass button recipe. No pixel size is in Swift,
-// and the existing recipe exposes only the normal capsule metrics. Needed: a foundation mapping/ED for small size.
-// Only that modifier is unwritten; exact title/body, width, padding, glass styles, default Revert and close-first
-// actions are implemented and tested. Generic .green is allowed by ED-092 (1), with the existing AppTheme
-// FrameworkGreen mapping precedent; its visual appearance remains UNVERIFIED under OD-0001.
+// STOP App.Views.Chat.TimelineRows #5: RESOLVED 2026-10-04 (unit rec-tlr). UI-CHAT-039 and UI-GIT-047's `.controlSize(.small)` (TimelineRows.swift:2796) is the small accent glass
+// capsule ED-280 (2) measured in the reference video (20 pt high, an 11 pt white label, 10.5 pt either side) and ED-257 (3) draws for `.glassProminent`: GlassCommand(small: true)
+// styles its button with SwiftGlass.StyleAccentGlassButton(button, small: true), and TimelineRowsFinRevertTests.Cancel_and_Revert_are_the_small_accent_glass_capsules_... reads
+// every number off the mounted buttons (the window measurement carried into the popover is ENGINEERING DECISION, ED-NEW-rec-tlr).
 //
 // STOP App.Views.Chat.TimelineRows #6: RESOLVED 2026-10-03 (parity pass). PR-CHAT-166's real pointer drags across a reply's
 // prose run, its code block and a bubble are in TimelineRowsParityScenarioTests; the drag exposed that VeiledText (the code
@@ -4590,22 +4584,18 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // (2026-10-03): those selectable texts, the notice's message and a tool's detail and output also carry the I-beam the reference
 // video shows over selectable timeline text (2-chat-use.mov 14.74 s), and a selection in a bubble or a code block is drawn.
 //
-// STOP App.Views.Chat.TimelineRows #7 (review fixes, 2026-09-27; checked again 2026-10-03)
-// Kind: source conflict, needs a lead ruling (with STOP opencode #3 in TimelineRowsPrSourceConflictTests).
-// Swift: App/Views/Chat/TimelineRows.swift:2707-2714; App/Runtime/ThreadRuntime.swift:3797-3803, :3650-3664.
-// Records: PR-CHAT-107.
-// The record says the worked-out summary "survives into the thread document" and asks for a restart test. In the pinned
-// source storeLegacyChanges only calls scheduleSave, which saveNow drops because saveRevision was not bumped, so after a
-// restart the turn is parsed again; the port reproduces the source (TimelineRowsPrSourceConflictTests proves it). The
-// in-memory store, the document snapshot and the guards are proven in TimelineRowsFinLegacyChangesTests.
+// STOP App.Views.Chat.TimelineRows #7: RESOLVED 2026-10-04 (unit rec-tlr). PR-CHAT-107's record was amended to the pinned source (storeLegacyChanges only schedules a save, which
+// saveNow drops while saveRevision is unchanged, so the summary reaches the document only when another change bumps the revision and a reopened thread works it out again).
+// The restart is TimelineRowsPrSourceConflictTests.An_idle_loaded_legacy_summary_... (Req), the in-memory store, the snapshot and the guards are
+// TimelineRowsFinLegacyChangesTests', and a task cancelled before its diff is parsed stores nothing (A_block_that_leaves_before_its_diff_is_parsed_...).
 //
 // STOP App.Views.Chat.TimelineRows #8: RESOLVED 2026-10-04 (unit blitz-timelinerows-ab). PR-HYDRAMERGE-089's silent paths are driven for real
 // in TimelineRowsBlitzAbMergeSilentTests: the real coordinator on temporary repositories with a real merge pill mounted from before the
 // merge (mid-merge and mid-rebase checkouts, a lead taking up work again, a lead no longer ready after a landing, the same failure again,
 // a first retryable failure, a checkout that is no repository, work that is gone): the pill is drawn while the merge runs and gone, with
-// no note in its place, when it lets go (mutation checked). The one path not driven mounted is an .alreadyOnMain run that posts no
-// settlement note: a run that never suspends lowers the flag in the turn it raised it, so the row never gets a turn to draw the pill
-// (ED-285 (10)); the coordinator side of it is PR-CHAT-189's test.
+// no note in its place, when it lets go (mutation checked). The one path not driven mounted then was an .alreadyOnMain run that posts no
+// settlement note (ED-285 (10) took it for a run that never suspends); unit rec-tlr drives it too: the all-.alreadyOnMain pass awaits git, so the pill is drawn and goes, with a
+// file left unmerged and so no settlement note and no record (TimelineRowsBlitzAbMergeSilentTests); the coordinator side of it is also PR-CHAT-189's test.
 //
 // STOP App.Views.Chat.TimelineRows #9: RESOLVED. PR-HYDRAMERGE-105's real clicks on title, track and Open, with the tooltips,
 // are in TimelineRowsPrMergeTests.Real_pointer_clicks_on_title_track_and_Open_route_to_their_separate_destinations.
@@ -4618,6 +4608,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // asserted on the mounted control, with mutation checks): UI-CHAT-020 (TimelineRowsFinReplyTests), UI-GIT-050 (TimelineRowsFinUserRowTests),
 // UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests, the shimmer).
 // Back in this note on 2026-10-04 (adversarial review of the continuous-corners unit): UI-GIT-044, UI-RUNTIME-002 and UI-RUNTIME-003, and PR-CHAT-108 in STOP #11 below.
+// CLOSED 2026-10-04 (unit rec-tlr, after the cornerband unit's merge, ED-297): UI-CHAT-034, -036, -037, -054, -059, UI-GIT-044, UI-RUNTIME-002, -003 and PR-CHAT-108 carry Req tests
+// on the corner (ContinuousCornerReproofTests, the band tests and REVIEW_the_four_band_elements_render_..., which now reads all four corners of the mounted elements);
+// UI-CHAT-006, -007, -019, -022, -039, -052, UI-GIT-047 and PR-CHAT-079, -102, -107, -113, -143, -150, PR-COMPOSER-211, PR-HYDRAMERGE-089, -101, -102, -106, -107 are closed as
+// their test names say; the lists below keep their history and are no longer a list of what is open.
 // UPDATE 2026-10-04 (unit blitz-cornerband): OD-0102 (owner, "corner-band: A") settles ED-275 (2)'s band: Apple's corner at the largest radius that fits. The Edited-files
 // card and the two-line notice are asserted on the mounted elements (ContinuousCornerReproofTests; TimelineRowsFinFileCardTests, TimelineRowsPrRecordsTests), so the
 // reason below no longer stands for these four; the lead's ledger decides their status (they were not this unit's records, and their other clauses are as listed).
@@ -4702,6 +4696,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // 4-point dot); PR-HYDRAMERGE-108's first-open latency is shown by the cache's state, not by a clock; PR-CHAT-161's file-card review closure
 // is not GC-proved.
 // What is left of this unit's records after OD-0098 (2026-10-04, unit blitz-timelinerows-ab; everything else of them is proven):
+// - CLOSED 2026-10-04 (unit rec-tlr): PR-CHAT-079 (ContinuousCornerReproofTests.The_attachment_plate_is_cut_to_Apples_...), -108 and -143 (below) are proven on their corner;
+//   what follows is the history of when they were CORNER-ONLY.
 // - CORNER-ONLY: PR-CHAT-079 (the attachment plate), -108 (the Edited card; its 40-point height is the frame's, measured on
 //   2-chat-use.mov 9.0 s), -143 (the report pill): in a frame, in a .continuous shape that ED-181 now draws (closed 2026-10-04, ED-275), the
 //   corner still to be re-proven on each. PR-CHAT-108 (back 2026-10-04): every clause is asserted, the hover on the 0.1 s ease-out curve
@@ -4712,12 +4708,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 //   ED-275's (a two-line notice is in ED-275 (2)'s band, OD-0102); info and warning, and the light theme, are proven under OD-0098.
 // - PR-CHAT-099: the running spinner is `.controlSize(.mini)`; no source value, no kit symbol (the macOS 27 kit has the small and the
 //   regular spinner only) and no frame gives its size, and the port draws the small one: OWNER. The other states are proven.
-// - PR-CHAT-102, -113: record vs source (below). PR-CHAT-145: NATIVE-ONLY (the first tap's frame time).
+// - PR-CHAT-102, -113: record vs source (below), CLOSED 2026-10-04 (unit rec-tlr): both records were amended to the source and have Req tests (the diff cache's two generations;
+//   the open plan popover that keeps what it opened with). PR-CHAT-145: NATIVE-ONLY (the first tap's frame time).
 // Defects found and fixed by that unit: ChatBadge's pill was set to its radius directly and so would have stayed circular when the
 // ED-181 curve lands (now through the helper, as every other pill); TodoListRow built its update inside the snappy transaction
 // but changed every colour and row at once (now tweened and faded, :2372).
-// PR-CHAT-102: record vs source (STOP opencode #2): RecentCache(limit: 60) keeps two generations, so more than sixty
-// parsed files can be held; the record's "at most sixty" needs correcting before a counting test can claim it.
+// PR-CHAT-102: record vs source (STOP opencode #2), RETIRED 2026-10-04: RecentCache(limit: 60) keeps two generations, so up to 120 parsed files are held; the record says so now
+// and TimelineRowsPrRecordsTests.The_diff_cache_holds_two_generations_of_sixty_... counts it.
 // PR-CHAT-145: the first-tap frame time must be measured on a quiet PC (native gate); the warm-off-main mechanism is tested, a
 // timing under the shared build load is not evidence. (PR-HYDRAMERGE-108's first-open latency is shown by the cache's state: proven.)
 // PR-CHAT-149: PROVEN 2026-10-04 (TimelineRowsBlitzAbDelegationTests; the streamed fixture of TimelineRowsParityScenarioTests): the card's five states
@@ -4738,7 +4735,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // only a count or `sent` change takes panelSlide, other changes of a streamed block ease under OD-0076 and cut under reduced motion (PR-CHAT-149); the card is
 // one accessibility element labelled by its children in order (:706, UI-CHAT-054's role); the work group's fold (UI-CHAT-022) and the strike (PR-CHAT-114) run
 // under reduced motion as the Mac's do (ED-264 (2)).
-// PR-CHAT-113: record vs source. The record's action is "the popover is open while the markdown arrives" and its result
+// PR-CHAT-113: record vs source, RETIRED 2026-10-04 (the record was amended to the behaviour below; TimelineRowsParityScenarioTests.A_plan_opened_while_drafting_... is its Req test).
+// The record's action was "the popover is open while the markdown arrives" and its result
 // that the plan "switches to the finished-prose surface the moment the state leaves drafting". The pinned source freezes
 // the popover's content when it opens (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147: the hosted
 // view is built once, from the plan as it was), so an open popover never switches; only one opened again builds the
