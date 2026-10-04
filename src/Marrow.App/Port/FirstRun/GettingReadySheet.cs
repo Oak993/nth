@@ -32,7 +32,9 @@ namespace Marrow.App.Port.FirstRun;
 //      blur and the dimming carry the look. UNVERIFIED against the page's frames; tracked in porting/STATE.md.
 //  (5) Reduce motion stills every transition here (the sheet is an addition beyond the Mac: the lead's rule of 2026-10-04, ED-084): each
 //      goes to its end at once; the 0.15 s hold stays (the page keeps it), the spinner turns on (ED-231).
-//  (6) Input: Welcome behind is not pressable until the sheet has gone; the sheet is bounded by the work (GR-1's step bound), never held.
+//  (6) The line under the title is the page's one line in Segoe UI Variable; in the app's own font (Inter, wider) it runs to a second line in
+//      the sheet's 408 px, and the sheet grows by one line (16.25 px) rather than cut the sentence: everything under it moves down with it.
+//  (7) Input: Welcome behind is not pressable until the sheet has gone; the sheet is bounded by the work (GR-1's step bound), never held.
 
 /// <summary>The numbers of look I, as measured (see the file note).</summary>
 public static class GettingReadyLook
@@ -334,7 +336,7 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         ready = Word(GettingReadyLook.Done);
         titleBox.Children.Add(title);
         titleBox.Children.Add(ready);
-        line = new TextBlock { Text = GettingReadyLook.Line, LineHeight = GettingReadyLook.SubLine, TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, GettingReadyLook.SubTop, 0, GettingReadyLook.SubBottom) };
+        line = new TextBlock { Text = GettingReadyLook.Line, LineHeight = GettingReadyLook.SubLine, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, GettingReadyLook.SubTop, 0, GettingReadyLook.SubBottom) };
         SwiftFont.System(GettingReadyLook.SubSize, SwiftFont.Weight.Regular).Apply(line);
         line.Foreground = Chrome.SecondaryText.Brush(line);
         list.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));

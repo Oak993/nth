@@ -15,8 +15,14 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
 {
     private const double Tolerance = 0.75;
 
-    private static Rect Fixture(JsonElement box, double dx = 0) => new(GettingReadyFixture.Number(box, "x") - GettingReadyFixture.Sidebar + dx,
-        GettingReadyFixture.Number(box, "y"), GettingReadyFixture.Number(box, "w"), GettingReadyFixture.Number(box, "h"));
+    private static Rect Fixture(JsonElement box, double dy = 0) => new(GettingReadyFixture.Number(box, "x") - GettingReadyFixture.Sidebar,
+        GettingReadyFixture.Number(box, "y") + dy, GettingReadyFixture.Number(box, "w"), GettingReadyFixture.Number(box, "h"));
+
+    /// <summary>The page sets the line under the title in one line of Segoe UI Variable. The app's own font is wider and the sentence runs
+    /// to a second line in the 408 px (ED-NEW-f-gr-2): the sheet is that many line heights taller and all below the line moves down.</summary>
+    private static double Extra(GettingReadyRig rig) => (Math.Round(rig.Rect(rig.Sheet.LineText).Height / GettingReadyLook.SubLine) - 1) * GettingReadyLook.SubLine;
+
+    private static Rect Taller(Rect rect, double extra) => new(rect.X, rect.Y, rect.Width, rect.Height + extra);
 
     private static void Near(Rect expected, Rect actual, string what)
     {
@@ -31,11 +37,15 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
     {
         using var rig = new GettingReadyRig();
         var frame = GettingReadyFixture.Frame("workEnd");
-        Near(Fixture(frame.GetProperty("sheet")), rig.Rect(rig.Sheet.Card), "the sheet");
+        var extra = Extra(rig);
+        Assert.InRange(extra, 0, GettingReadyLook.SubLine); // one line or two
+        var sheet = Fixture(frame.GetProperty("sheet"));
+        Near(Taller(sheet, extra), rig.Rect(rig.Sheet.Card), "the sheet");
         Near(Fixture(frame.GetProperty("title")), rig.Rect(rig.Sheet.TitleBox), "the title");
-        Near(Fixture(frame.GetProperty("sub")), rig.Rect(rig.Sheet.LineText), "the line");
-        Near(Fixture(frame.GetProperty("list")), rig.Rect(rig.Sheet.List), "the list");
-        Near(Fixture(frame.GetProperty("bar")), rig.Rect(rig.Sheet.BarTrack), "the bar's track");
+        var line = Fixture(frame.GetProperty("sub"));
+        Near(Taller(line, extra), rig.Rect(rig.Sheet.LineText), "the line");
+        Near(Fixture(frame.GetProperty("list"), extra), rig.Rect(rig.Sheet.List), "the list");
+        Near(Fixture(frame.GetProperty("bar"), extra), rig.Rect(rig.Sheet.BarTrack), "the bar's track");
         Assert.Equal(0, rig.Rect(rig.Sheet.Card).Top, 3); // it hangs from the top edge
         Assert.Equal((GettingReadyRig.PaneWidth - GettingReadyLook.SheetWidth) / 2, rig.Rect(rig.Sheet.Card).Left, 3); // centred on the detail pane
     });
@@ -49,16 +59,17 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
             .Where(row => row.GetProperty("st").GetString() != "skip").ToList();
         Assert.Equal(6, fixtureRows.Count);
         Assert.Equal(fixtureRows.Count, rig.Sheet.Rows.Count);
+        var extra = Extra(rig);
         for (var index = 0; index < fixtureRows.Count; index++)
         {
             var expected = fixtureRows[index];
             var row = rig.Sheet.Rows[index];
             Assert.Equal(expected.GetProperty("id").GetString(), row.Id);
             Assert.Equal(expected.GetProperty("label").GetString(), row.Label);
-            Near(Fixture(expected.GetProperty("box")), rig.Rect(row.Box), $"row {row.Id}");
-            Near(Fixture(expected.GetProperty("glyph")), rig.Rect(row.Glyph), $"glyph of {row.Id}");
-            Near(Fixture(expected.GetProperty("mark")), rig.Rect(row.Mark), $"mark of {row.Id}");
-            var text = Fixture(expected.GetProperty("text"));
+            Near(Fixture(expected.GetProperty("box"), extra), rig.Rect(row.Box), $"row {row.Id}");
+            Near(Fixture(expected.GetProperty("glyph"), extra), rig.Rect(row.Glyph), $"glyph of {row.Id}");
+            Near(Fixture(expected.GetProperty("mark"), extra), rig.Rect(row.Mark), $"mark of {row.Id}");
+            var text = Fixture(expected.GetProperty("text"), extra);
             var actual = rig.Rect(row.Text);
             Assert.True(Math.Abs(text.X - actual.X) <= Tolerance, $"label of {row.Id}: left {actual.X}, fixture {text.X}");
             Assert.True(Math.Abs((text.Y + text.Height / 2) - (actual.Y + actual.Height / 2)) <= 1.25, $"label of {row.Id}: middle {actual.Y + actual.Height / 2}, fixture {text.Y + text.Height / 2}");
@@ -72,8 +83,10 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
         using var rig = new GettingReadyRig(GettingReadyRig.W1Plan().Take(5).ToList());
         var frame = GettingReadyFixture.Frame("workEnd");
         Assert.Equal(5, rig.Sheet.Rows.Count);
-        Near(Fixture(frame.GetProperty("sheet")), rig.Rect(rig.Sheet.Card), "the sheet");
-        var fifth = Fixture(frame.GetProperty("rows")[4].GetProperty("box"));
+        var extra = Extra(rig);
+        var sheet = Fixture(frame.GetProperty("sheet"));
+        Near(Taller(sheet, extra), rig.Rect(rig.Sheet.Card), "the sheet");
+        var fifth = Fixture(frame.GetProperty("rows")[4].GetProperty("box"), extra);
         Near(fifth, rig.Rect(rig.Sheet.Rows[4].Box), "the fifth row, alone in its row, in the left column");
     });
 
@@ -87,7 +100,7 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
     {
         using var rig = new GettingReadyRig(GettingReadyRig.W1Plan().Take(steps).ToList());
         Assert.Equal(rows * GettingReadyLook.RowHeight, rig.Rect(rig.Sheet.List).Height, 3);
-        Assert.InRange(rig.Rect(rig.Sheet.Card).Height, 224.25 - (3 - rows) * GettingReadyLook.RowHeight - Tolerance, 224.25 - (3 - rows) * GettingReadyLook.RowHeight + Tolerance);
+        Assert.InRange(rig.Rect(rig.Sheet.Card).Height - Extra(rig), 224.25 - (3 - rows) * GettingReadyLook.RowHeight - Tolerance, 224.25 - (3 - rows) * GettingReadyLook.RowHeight + Tolerance);
     });
 
     [Fact] // GR-2.geometry

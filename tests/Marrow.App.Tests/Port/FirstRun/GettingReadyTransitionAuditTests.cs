@@ -48,8 +48,11 @@ public sealed class GettingReadyTransitionAuditTests(HeadlessSession headless)
             var hand = GettingReadyFixture.Number(frame, "h");
             var label = $"hand-over {index}/20 (t = {instant:0.000})";
             Assert.True(Math.Abs(rig.Sheet.Hand - hand) <= 0.002, $"{label}: hand {rig.Sheet.Hand:0.0000}, fixture {hand:0.0000}");
-            var lift = GettingReadyFixture.TranslateY(frame.GetProperty("sheetStyle").GetProperty("transform").GetString()!);
-            Assert.True(Math.Abs(Lift(rig) - lift) <= 0.75, $"{label}: lift {Lift(rig):0.00}, fixture {lift:0.00}");
+            // the fixture's sheet is 224.25 high, the app's a line taller where its font runs the sentence to two lines: the same share of its own
+            // height and 30 px (--hi) is the same lift
+            var share = -GettingReadyFixture.TranslateY(frame.GetProperty("sheetStyle").GetProperty("transform").GetString()!) / (224.25 + GettingReadyLook.LiftExtra);
+            var lift = -share * (height + GettingReadyLook.LiftExtra);
+            Assert.True(Math.Abs(Lift(rig) - lift) <= 0.75, $"{label}: lift {Lift(rig):0.00}, fixture's share {share:0.0000} of the sheet gives {lift:0.00}");
             var opacity = double.Parse(frame.GetProperty("sheetStyle").GetProperty("opacity").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
             Assert.True(Math.Abs(rig.Sheet.Opacity - opacity) <= 0.005, $"{label}: sheet opacity {rig.Sheet.Opacity:0.000}, fixture {opacity:0.000}");
         }
