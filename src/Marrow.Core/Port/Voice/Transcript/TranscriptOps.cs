@@ -80,19 +80,21 @@ public static class TranscriptOps
     /// <summary>
     /// The final pass's schedule (V-7.6): the operations that turn <paramref name="shown"/> into <paramref name="finalWords"/> (all of
     /// them tentative until Landing inks them), the first <see cref="FinalStart"/> after the result and each later one after the one
-    /// before by its own kind's spacing; Confirm operations are not part of it.
+    /// before by the earlier one's kind's spacing; the schedule ends one such spacing after the last operation (<see cref="FinalStart"/>
+    /// when there is none), as the design's planFinal does (voice-composer.js:320-322: <c>at += e.kind === 'add' ? 0.07 : 0.12;
+    /// return at - now;</c>). Confirm operations are not part of it.
     /// </summary>
     public static FinalPlan PlanFinal(IReadOnlyList<TranscriptWord> shown, IReadOnlyList<TranscriptWord> finalWords)
     {
         var scheduled = new List<ScheduledOp>();
-        var at = TimeSpan.Zero;
+        var at = FinalStart;
         foreach (var op in Diff(shown, finalWords))
         {
             if (op.Kind == WordOpKind.Confirm) continue; // Landing inks the words (V-8.7)
-            at = scheduled.Count == 0 ? FinalStart : at + (op.Kind == WordOpKind.Add ? FinalAddSpacing : FinalReviseSpacing);
             scheduled.Add(new ScheduledOp(at, op));
+            at += op.Kind == WordOpKind.Add ? FinalAddSpacing : FinalReviseSpacing;
         }
-        return new FinalPlan(scheduled, scheduled.Count == 0 ? TimeSpan.Zero : at);
+        return new FinalPlan(scheduled, at);
     }
 
     /// <summary>The withdraw on cancel (V-8.6): Remove for every word, last first, <see cref="WithdrawSpacing"/> apart from 0.</summary>

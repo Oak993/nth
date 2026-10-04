@@ -285,7 +285,8 @@ public sealed class VoiceSessionTests
         rig.Advance(0.2); // the final decode takes 0.2 s: the result arrives now
         var final = Assert.Single(rig.Updates, u => u.Kind == TranscriptUpdateKind.Final);
         Assert.Equal("switch the theme please.", string.Join(" ", final.Words.Select(w => w.Text)));
-        var scheduleEnd = final.Ops.Count == 0 ? TimeSpan.Zero : final.Ops.Max(o => o.At);
+        // the design's planFinal: the slot after the last operation (each operation followed by its kind's spacing)
+        var scheduleEnd = final.Ops.Aggregate(TranscriptOps.FinalStart, (t, o) => t + (o.Op.Kind == WordOpKind.Add ? TranscriptOps.FinalAddSpacing : TranscriptOps.FinalReviseSpacing));
         var expected = TimeSpan.FromTicks(Math.Max(TranscriptOps.FinalMinimum.Ticks, (TimeSpan.FromSeconds(0.2) + scheduleEnd + TranscriptOps.FinalTail).Ticks));
         var remaining = expected - TimeSpan.FromSeconds(0.2);
         rig.Runtime.Advance(remaining - TimeSpan.FromMilliseconds(1));
