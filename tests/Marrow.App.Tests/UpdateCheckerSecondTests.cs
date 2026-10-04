@@ -56,7 +56,7 @@ public sealed class UpdateCheckerSecondTests
     public void An_empty_feed_makes_no_request_and_fails_with_the_exact_no_feed_message()
     {
         using var runtime = new TestRuntime();
-        var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], UpdateChecker.DefaultFeed));
+        var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], ""));
         var available = runtime.OnMain(() => checker.Check().GetAwaiter().GetResult()); // no real await on this path
         Assert.False(available);
         Assert.Equal("No update feed is set.", runtime.OnMain(() => checker.LastError));
@@ -68,9 +68,10 @@ public sealed class UpdateCheckerSecondTests
 
     [Fact]
     [Trait("Req", "PR-UPDATE-005")] // UpdateChecker.swift:70, DefaultFeed constant
-    public void The_default_feed_constant_is_empty()
+    [Trait("Decision", "ED-235")] // AMENDED by UE-1: OD-0012 I1 made the constant empty; OD-0100 (2026-10-04) answers it with the owner's public GitHub repository
+    public void The_default_feed_constant_is_the_owners_release_repository()
     {
-        Assert.Equal("", UpdateChecker.DefaultFeed);
+        Assert.Equal("https://github.com/Oak993/marrow-releases", UpdateChecker.DefaultFeed);
     }
 
     // ---- PR-UPDATE-006: session configuration and headers ----
@@ -97,7 +98,7 @@ public sealed class UpdateCheckerSecondTests
     public void A_development_build_never_starts_the_background_schedule()
     {
         using var runtime = new TestRuntime();
-        var checker = runtime.OnMain(() => new UpdateChecker(Running(isDevelopment: true), [], UpdateChecker.DefaultFeed));
+        var checker = runtime.OnMain(() => new UpdateChecker(Running(isDevelopment: true), [], ""));
         runtime.OnMain(checker.StartBackgroundChecks);
         runtime.Advance(TimeSpan.FromHours(1));
         Assert.Null(runtime.OnMain(() => checker.LastCheckedAt)); // no launch check ever ran
@@ -159,7 +160,7 @@ public sealed class UpdateCheckerSecondTests
         runtime.Defaults.Set("updateChecker_release", AvailableUpdate.EncodeToBytes(stored));
         var when = new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero);
         runtime.Defaults.Set("updateChecker_lastChecked", when);
-        var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], UpdateChecker.DefaultFeed));
+        var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], ""));
         Assert.Equal("9.9.9", runtime.OnMain(() => checker.Update)!.Version);
         Assert.Equal(when, runtime.OnMain(() => checker.LastCheckedAt));
     }
@@ -170,7 +171,7 @@ public sealed class UpdateCheckerSecondTests
     {
         using var runtime = new TestRuntime();
         runtime.Defaults.Set("updateChecker_release", new byte[] { 1, 2, 3 });
-        var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], UpdateChecker.DefaultFeed));
+        var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], ""));
         Assert.Null(runtime.OnMain(() => checker.Update));
         Assert.Null(runtime.OnMain(() => checker.LastError));
     }
@@ -259,7 +260,7 @@ public sealed class UpdateCheckerSecondTests
         using var server = new LoopbackFeedServer(_ => CannedResponse.Plain(status, "Status"));
         var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], server.Url("/releases")));
         runtime.Loop.Run(() => checker.Check());
-        Assert.Equal("GitLab answered with HTTP " + status + ".", runtime.OnMain(() => checker.LastError));
+        Assert.Equal("GitHub answered with HTTP " + status + ".", runtime.OnMain(() => checker.LastError));
     }
 
     [Fact]
@@ -273,7 +274,7 @@ public sealed class UpdateCheckerSecondTests
         listener.Stop(); // nothing listens here now
         var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], "http://127.0.0.1:" + port + "/releases"));
         runtime.Loop.Run(() => checker.Check());
-        Assert.Equal("Couldn't reach GitLab.", runtime.OnMain(() => checker.LastError)); // ASCII U+0027: UpdateChecker.swift:182 byte 0x27
+        Assert.Equal("Couldn't reach GitHub.", runtime.OnMain(() => checker.LastError)); // ASCII U+0027: UpdateChecker.swift:182 byte 0x27
     }
 
     // ---- PR-UPDATE-021 / PR-UPDATE-022 / PR-UPDATE-023: the notification ----

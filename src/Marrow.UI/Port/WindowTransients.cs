@@ -39,6 +39,14 @@ public static class WindowTransients
     /// <summary>Whether <paramref name="key"/> is open over a window.</summary>
     public static bool IsShown(object key) => Open.Exists(entry => ReferenceEquals(entry.Key, key));
 
+    /// <summary>The newest transient open over <paramref name="window"/>, or null.</summary>
+    public static object? Newest(TopLevel window)
+    {
+        for (var i = Open.Count - 1; i >= 0; i--)
+            if (Open[i].Owner.TryGetTarget(out var owner) && ReferenceEquals(WindowOf(owner), window)) return Open[i].Key;
+        return null;
+    }
+
     /// <summary>Closes the newest transient open over <paramref name="window"/>; false when there is none.</summary>
     public static bool DismissNewest(TopLevel window)
     {

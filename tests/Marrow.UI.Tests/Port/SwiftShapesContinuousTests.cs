@@ -405,11 +405,12 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
     public void A_child_that_draws_beyond_a_side_of_a_continuous_Border_is_not_clipped_only_the_corner_slivers_are() => headless.OnUiThread(() =>
     {
         // SwiftUI's `.background(shape)` does not clip its content (the effort title's letters leaving past the chevron are drawn,
-        // EffortTitleMorphTests); a Border cut to Apple's corner must not either, except in the four corners.
+        // EffortTitleMorphTests); a Border cut to Apple's corner whose site marks its content as drawn beyond its sides must not either, except in the four
+        // corners (ED-317: an unmarked Border with content is cut by the exact outline, SwiftShapesContentClipTests).
         var overflow = new Border { Width = 260, Height = 40, Background = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
         var corner = new Border { Width = 60, Height = 60, Background = Brushes.Blue, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
         var border = new Border { Width = 200, Height = 140, Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(20), Child = new Panel { Children = { overflow, corner } } }
-            .RoundedRectangle(26, RoundedCornerStyle.Continuous);
+            .RoundedRectangle(26, RoundedCornerStyle.Continuous).ContentBeyondSides();
         var window = new Window { Width = 300, Height = 200, Background = Brushes.Black, Content = new Panel { Children = { border } } };
         window.Show();
         Settle();
@@ -446,7 +447,7 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         Settle();
         Assert.NotSame(before, one.Clip);
         Assert.Equal(1, SwiftShapes.GeometryBuildCount - builds); // exactly one new geometry for the new size
-        Assert.Equal(333, one.Clip!.Bounds.Width, 6); // and it is the new size's (childless: the exact outline; a Border with a child reaches the slack past the sides)
+        Assert.Equal(333, one.Clip!.Bounds.Width, 6); // and it is the new size's (the exact outline; only a Border marked ContentBeyondSides with a child reaches the slack past the sides)
         Assert.Equal(411, two.Clip!.Bounds.Width, 6);
         window.Close();
     });

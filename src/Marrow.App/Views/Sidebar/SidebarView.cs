@@ -1742,7 +1742,7 @@ internal sealed class ArchiveThreadPopover : Decorator
         Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (archiveButton is { IsEffectivelyVisible: true } button && !button.IsFocused) button.Focus(); }, Avalonia.Threading.DispatcherPriority.Loaded);
         if (TopLevel.GetTopLevel(anchor) is not Avalonia.Controls.Window window) return;
         monitorWindow = window;
-        window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true); // :946-955
+        window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel); // :946-955; a key PopoverHost already forwarded (Return pressing the default Archive, Escape dismissing) is handled and acts once (PopoverHost.Listen)
     }
 
     // :958-961 onDisappear: tear the handler down.

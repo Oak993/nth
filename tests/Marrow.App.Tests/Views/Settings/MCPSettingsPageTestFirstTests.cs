@@ -20,19 +20,13 @@ using static Marrow.App.Tests.Fixtures.MCPSettingsPageTestFirst;
 namespace Marrow.App.Tests.Views.Settings;
 
 // Test-first completion of the MCP settings page records: each test is derived from DroppyCode/App/Views/Settings/MCPSettingsPage.swift
-// (line numbers on each test). STOP cloud-verify #1 (2026-10-04, review of cloud/b3-swift-proof-leftovers): PR-MCP-199's "capture comparison against a
-// rendered page" is NOT closed by OD-0098. The reference video DOES show this page (1-settings-tour.mov S 180.5-188.2, CATALOG rows 66-67 and scene 68:
-// lead card, Connected, Custom, the catalog groups and the footer note at S 188.14), and OD-0098 keeps the comparison required wherever a frame exists.
-// STOP opencode-proofs-mcp-a #1 (MCPSettingsPageProofsMcpATests) already measured that page against a port render and found card heights that differ;
-// PR-MCP-199 stays partly proven until that comparison is done.
-// STOP blitz-frames (2026-10-04, withdrawn after review): the comparison was made on the stills (1-settings-tour.mov S 180.50, 184.00, 185.50; 1 px = 1 pt) and the page is
-// NOT shown to match. MEASURED (SOURCE FACT for what is on screen): wrapped callout lines 17 apart, subheadline lines 16, a 13 pt semibold title two lines 36; the lead
-// card 94, a Connected row 58 (GitHub 74) with a 1 pt divider, the Connected card 192, the Custom card 97, a catalog card 126 (144 with a two-line title), catalog row pitch
-// 136; the port (Inter at 11/12/13 on its own line boxes 13.3/14.5/15.7) draws them 90, 171, 118. A line-height table of 16/17/18 closes the heights, but the same stills put
-// the text-style glyphs LARGER than the port's (callout x-height 7.0 px and cap 9.2 px, about 13 pt against 12; the fixed 10.5 pt monospaced line is true to size), so
-// the cause on the Mac is UNRESOLVED (taller line boxes, or larger text-style glyphs such as a text-size setting of the recorder's Mac, or an ink-measure bias of
-// about half a pixel): a table applied to every TextBlock at 11/12/13 on one page's evidence was therefore withdrawn (SwiftFont is back at the face's own line height; the
-// card heights above remain the open comparison). Under OD-0098 the frame wins where it exists, so this record stays open until the cause is settled.
+// (line numbers on each test). STOP cloud-verify #1 and STOP blitz-frames (2026-10-04): CLOSED 2026-10-04 (unit rec-linebox). PR-MCP-199's capture
+// comparison against 1-settings-tour.mov (the page is on screen at S 180.5-188.2) is MCPSettingsPageFrameTests: the lead card 94, the Connected
+// rows 58 / 74 / 58 in a 192 card and the Custom card 97 (S 183.5), a catalog card 126 at a 136 row pitch (S 186.0) and a two-line-title card 144 at
+// 154 (S 187.5), all matched to the pixel. The cause the earlier STOP left UNRESOLVED is settled by ED-290 (1) (measured 2026-10-04 on both videos and
+// six screens): the explicit text styles draw in 18 / 17 / 16 line boxes (body, callout, subheadline) with their glyphs at their true size (the
+// larger-glyph reading was an ink-measure bias), keyed by the TEXT STYLE, not by the point size (fixed .system(size:) fonts keep the face's box);
+// the page's own 13 / 12 / 11 type is now drawn as those styles, as MCPSettingsPage.swift writes it.
 [Collection("Headless")]
 public sealed class MCPSettingsPageTestFirstTests(HeadlessSession headless)
 {
@@ -84,7 +78,7 @@ public sealed class MCPSettingsPageTestFirstTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-MCP-199")] // App/Views/Settings/MCPSettingsPage.swift:35-63; UI/Chrome/Chrome.swift:59,79
-    [Trait("Rule", "R-TEST-4")] // partial proof of PR-MCP-199: the source order and spacings; the capture comparison against S 180.5-188.2 is open (STOP cloud-verify #1)
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-MCP-199: the source order and spacings; the capture comparison against S 183.5-187.5 is MCPSettingsPageFrameTests (STOP cloud-verify #1 closed 2026-10-04)
     public void Page_stacks_lead_connected_custom_categories_and_footer_with_twenty_points_between()
     {
         Flow((model, runtime) =>

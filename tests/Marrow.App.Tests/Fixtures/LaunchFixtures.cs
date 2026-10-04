@@ -34,7 +34,7 @@ public sealed class LaunchHarness : IDisposable
         prepare?.Invoke(Harness); // library and settings on disk and in the store before the model reads them
         Manager = Harness.Main.OnMain(() => new WindowManager());
         scopes.Add(WindowManager.OverrideShared(Manager));
-        Checker = Harness.Main.OnMain(() => new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed));
+        Checker = Harness.Main.OnMain(() => new UpdateChecker(AppInfo.Current, [], ""));
         scopes.Add(UpdateChecker.OverrideShared(Checker));
         Progress = UpdateInstallProgressFixtures.NewProgress();
         scopes.Add(UpdateInstallProgress.Running.Override(Progress));

@@ -64,7 +64,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0")); using var probe = new AboutUpdateHttpProbe();
-        var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], UpdateChecker.DefaultFeed)); using var shared = UpdateChecker.OverrideShared(checker);
+        var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], "")); using var shared = UpdateChecker.OverrideShared(checker);
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
         var row = new AboutUpdateCheckRow(); var pill = new AboutVersionPill(); Avalonia.Controls.Window window = null!;
         runtime.OnMain(() => { window = Show(new StackPanel { Children = { pill, row } }); Click(Assert.Single(row.GetVisualDescendants().OfType<Button>()), window); });

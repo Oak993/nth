@@ -979,7 +979,13 @@ public sealed class DiffPopoverCoordinator
             Width = Width,
             Height = Height,
         };
-        popover.Closed += (_, _) => PopoverDidClose();
+        popover.Closed += (_, _) =>
+        {
+            // The popup really closed (its dismissal ran to its end, or its window went): the mirror of NSPopover.isShown follows it, so a
+            // close that the Swift's stale-session rule lets skip the rest (CompletePopoverClose) cannot leave a closed popup marked shown.
+            if (!popover.IsOpen) isShown = false;
+            PopoverDidClose();
+        };
     }
 
     // :542-545
@@ -1116,21 +1122,26 @@ public sealed class DiffPopoverCoordinator
         if (notifiedCloseSession != pendingSession) PopoverDidClose();
     }
 
+    // :640-658. UPSTREAM DEFECT 67, REPRODUCED (PORT_CONTRACT section 8, ED-196, PR-GIT-137): a close that a reopen started reaches
+    // here after the new show, and the Swift does not check the session before it stops the monitors, clears desiredVisible and
+    // drops shownRuntime; only the flag and content clear is gated on session == pendingSession. So the reopened popover keeps its flag
+    // and content but ignores outside clicks and Escape until it is closed another way (the X button, the tab, the changes shortcut,
+    // the thread going away: all of which this method does not touch) and shown afresh.
     private void CompletePopoverClose(long closedSession)
     {
-        // A delayed close must not clear the newer inspector, visibility state, or its new monitor pair.
-        if (session != closedSession) return;
+        _ = closedSession; // the Swift Task captures nothing: it reads the live session (:645)
         StopMonitors(); // :643
-        isShown = false;
-        desiredVisible = false;
+        desiredVisible = false; // :644
         if (session == pendingSession)
         {
+            // Only the close that posted this may clear the flag and drop the content (:645-654).
+            isShown = false; // the popup really closed: no newer show took it over
             if (shownRuntime is { IsDiffVisible: true } shown)
                 shown.IsDiffVisible = false;
             popover.Child = null;
         }
 
-        shownRuntime = null;
+        shownRuntime = null; // :656
     }
 
     // :662-666. The popup's content TopLevel is the Swift content window. Every other left/right press

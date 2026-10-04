@@ -180,8 +180,8 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     }
 
     [Fact]
-    // STOP (round 4, traceability), still open: PR-GIT-126: the concurrent read of status, branches and the web URL (:1297-1299) is not observed (STOP App.Views.Chat.ChatView #6). This test proves its own clauses only, so it carries no Req trait for the open record.
-    [Trait("Rule", "R-TEST-4")] // App/Views/Chat/ChatView.swift:1284-1307
+    // PR-GIT-126 is closed by ChatViewGitReadsTests (2026-10-04, unit rec-tlr); this test's own clauses are also part of it.
+    [Trait("Req", "PR-GIT-126")] // App/Views/Chat/ChatView.swift:1284-1307
     public void Git_snapshots_are_shared_and_are_fresh_only_while_their_age_is_less_than_thirty_seconds()
     {
         ChatHeadlessFixtures.Run(headless, () =>

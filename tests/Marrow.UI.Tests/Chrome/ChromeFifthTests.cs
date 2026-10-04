@@ -252,6 +252,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         SwiftTransition.Insert(panel, 0, child);
         window.UpdateLayout();
         Assert.Contains(child, panel.Children);
+        clocks.Frame(0.4); // the soft arrival (smooth 0.32 s) is over before the child leaves: a removal that cuts it short carries its opacity (SwiftTransitionInterruptionTests)
 
         SwiftTransition.Remove(panel, child); // outside withAnimation: the transition's own spring animates it
         clocks.Frame(0.1); // spring progress 0.30155107726937647, below the 0.45 smoothstep edge
@@ -281,6 +282,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         var child = new LayoutProbe(new Size(20, 20)).Transition(SwiftTransition.SettleGlide);
         SwiftTransition.Insert(panel, 0, child);
         window.UpdateLayout();
+        clocks.Frame(0.4); // the soft arrival (smooth 0.32 s) is over before the child leaves
 
         SwiftTransition.Remove(panel, child);
         clocks.Frame(0.1); // spring progress 0.30155107726937647; under reduce motion fade == progress, no movement

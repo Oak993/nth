@@ -299,6 +299,110 @@ public sealed class TimelineRowsBlitzAbMotionTests(HeadlessSession headless)
         finally { h.Main.OnMain(() => Close(window)); }
     });
 
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-114")] // TimelineRows.swift:2364 the card's `.background(.quaternary.opacity(0.32), in: .rect(...))` and :2372 .animation(.snappy(duration: 0.2), value: steps) on the whole card: its edge follows the animation when it shrinks too (OD-0076)
+    public void A_card_that_shrinks_draws_its_edge_down_along_the_snappy_0_2_second_curve_with_the_slot_rather_than_cutting_to_the_new_size_while_the_slot_clips() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        TimelineEntry entry = null!;
+        TodoListRow row = null!;
+        AvaloniaWindow window = null!;
+        SizeSlot slot = null!;
+        Border Card() => Mounted<Border>(row).First(border => border.Padding == new Thickness(14));
+        Size before = default;
+        h.Main.OnMain(() =>
+        {
+            entry = new TimelineEntry(new TimelineItem(null, Steps(("One", TodoStep.Status.Active), ("Two, a step a good deal longer than the others will be", TodoStep.Status.Pending))));
+            row = new TodoListRow(entry);
+            window = Show(new Border { Child = row, Width = 600 });
+            slot = Assert.Single(Mounted<SizeSlot>(row));
+            before = slot.Presented;
+            Assert.Equal(before.Width, Card().Bounds.Width, 0.5);
+            // The long step is cut short: the card is narrower (the same two lines, so the width alone moves).
+            entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Active), ("Two", TodoStep.Status.Pending)) };
+        });
+        try
+        {
+            h.Main.OnMain(() => { });
+            h.Main.OnMain(() => Settle(window));
+            frames.Advance(TimeSpan.Zero);
+            Size after = default;
+            var steps = new List<(double At, Size Slot, Size Drawn)>();
+            Run(h.Main, frames, 230, elapsed =>
+            {
+                h.Main.OnMain(() => Settle(window));
+                h.Main.OnMain(() => { });
+                steps.Add((elapsed, slot.Presented, Card().Bounds.Size));
+            });
+            h.Main.OnMain(() => { Settle(window); after = slot.Presented; });
+            Assert.True(before.Width > after.Width + 60, $"the card went from {before} to {after}");
+            foreach (var (at, presented, drawn) in steps)
+            {
+                var expected = before.Width + (after.Width - before.Width) * Snappy(0.2, at / 1000);
+                // The slot follows the curve, and the card's own edge, its fill and its corners are drawn at the size the slot has got to (not at the new size, clipped).
+                Assert.True(Math.Abs(presented.Width - expected) <= 1.5, $"at {at} ms the slot is {presented.Width:F1} wide, the snappy 0.2 s curve has {expected:F1}");
+                Assert.True(Math.Abs(drawn.Width - presented.Width) <= 1.01, $"at {at} ms the card is drawn {drawn.Width:F1} wide in a slot {presented.Width:F1} wide, from {before.Width:F1} to {after.Width:F1}: the edge cut");
+                Assert.True(Math.Abs(drawn.Height - presented.Height) <= 1.01, $"at {at} ms the card is drawn {drawn.Height:F1} tall in a slot {presented.Height:F1} tall");
+            }
+        }
+        finally { h.Main.OnMain(() => Close(window)); }
+    });
+
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-114")] // TimelineRows.swift:2372 .animation(.snappy(duration: 0.2), value: steps): the card eases out to a longer step with its words laid out at their own width, never re-wrapped on the way
+    public void A_card_that_grows_to_a_longer_step_eases_its_edge_out_with_the_words_on_one_line_the_whole_way() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        TimelineEntry entry = null!;
+        TodoListRow row = null!;
+        AvaloniaWindow window = null!;
+        SizeSlot slot = null!;
+        Border Card() => Mounted<Border>(row).First(border => border.Padding == new Thickness(14));
+        const string longStep = "Two, a step a good deal longer than the others will be";
+        Size before = default;
+        h.Main.OnMain(() =>
+        {
+            entry = new TimelineEntry(new TimelineItem(null, Steps(("One", TodoStep.Status.Active), ("Two", TodoStep.Status.Pending))));
+            row = new TodoListRow(entry);
+            window = Show(new Border { Child = row, Width = 600 });
+            slot = Assert.Single(Mounted<SizeSlot>(row));
+            before = slot.Presented;
+            entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Active), (longStep, TodoStep.Status.Pending)) };
+        });
+        try
+        {
+            h.Main.OnMain(() => { });
+            h.Main.OnMain(() => Settle(window));
+            frames.Advance(TimeSpan.Zero);
+            var steps = new List<(double At, Size Slot, Size Drawn, int Lines)>();
+            Run(h.Main, frames, 230, elapsed =>
+            {
+                h.Main.OnMain(() => Settle(window));
+                h.Main.OnMain(() => { });
+                steps.Add((elapsed, slot.Presented, Card().Bounds.Size, TextNamed(row, longStep).TextLayout.TextLines.Count));
+            });
+            var after = slot.Presented;
+            Assert.True(after.Width > before.Width + 60, $"the card went from {before} to {after}");
+            foreach (var (at, presented, drawn, lines) in steps)
+            {
+                var expected = before.Width + (after.Width - before.Width) * Snappy(0.2, at / 1000);
+                Assert.True(Math.Abs(presented.Width - expected) <= 1.5, $"at {at} ms the slot is {presented.Width:F1} wide, the snappy 0.2 s curve has {expected:F1}");
+                Assert.True(Math.Abs(drawn.Width - presented.Width) <= 1.01, $"at {at} ms the card is drawn {drawn.Width:F1} wide in a slot {presented.Width:F1} wide");
+                Assert.True(Math.Abs(drawn.Height - presented.Height) <= 1.01, $"at {at} ms the card is drawn {drawn.Height:F1} tall in a slot {presented.Height:F1} tall: the step re-wrapped on the way");
+                Assert.True(lines == 1, $"at {at} ms the step reads on {lines} lines in a card {drawn.Width:F1} wide");
+            }
+        }
+        finally { h.Main.OnMain(() => Close(window)); }
+    });
+
     // ---- PR-CHAT-149: the delegation card's changes arrive by animation ----
 
     private const string Hank = "{\"task\": \"Tidy the popover\", \"prompt\": \"Tidy it.\", \"name\": \"Hank\"}";

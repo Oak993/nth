@@ -1123,6 +1123,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-036")] // App/Views/Chat/TimelineRows.swift:428-432
+    [Trait("Req", "PR-CHAT-152")] // TimelineRows.swift:420-433 (:429 `guard info.isFinished`): a head still at work in the same batch is never in the list the pills are drawn from, only the finished one beside it
     public void A_finished_head_counts_when_its_batch_still_has_a_head_at_work_whatever_its_time()
     {
         using var runtime = new TestRuntime(); // ChatThread.init reads the defaults store
@@ -3446,7 +3447,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
             var card = LogicalQuery.SelfAndDescendants<Border>(row).First(border => border.Padding == new Thickness(14));
             Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), card.CornerRadius);
             Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), card), BrushColor(card.Background));
-            Assert.Equal(HorizontalAlignment.Left, card.HorizontalAlignment);
+            // The card is lead-aligned and hugs its steps: since PR-CHAT-114's shrink fix it fills the slot it is eased in, and the slot is what hugs and leads.
+            var slot = Assert.IsType<SizeSlot>(card.Parent);
+            Assert.Equal(HorizontalAlignment.Left, slot.HorizontalAlignment);
+            Assert.Equal(slot.Bounds.Width, card.Bounds.Width, 0.5);
             Assert.Equal(96, row.Padding.Right);
             Assert.Equal(7, Assert.IsType<StackPanel>(card.Child).Spacing);
             Close(window);
@@ -4568,16 +4572,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 }
 
-// STOP App.Views.Chat.TimelineRows #5 (part 5, 2026-09-27)
-// ED-180 defers glass material but does not supply the missing small-control metrics.
-// Kind: platform gap
-// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2796 `.controlSize(.small)` on the confirmation buttons.
-// Records: UI-CHAT-039; UI-GIT-047.
-// Missing: an approved SwiftUI small-control-size adapter for the glass button recipe. No pixel size is in Swift,
-// and the existing recipe exposes only the normal capsule metrics. Needed: a foundation mapping/ED for small size.
-// Only that modifier is unwritten; exact title/body, width, padding, glass styles, default Revert and close-first
-// actions are implemented and tested. Generic .green is allowed by ED-092 (1), with the existing AppTheme
-// FrameworkGreen mapping precedent; its visual appearance remains UNVERIFIED under OD-0001.
+// STOP App.Views.Chat.TimelineRows #5: RESOLVED 2026-10-04 (unit rec-tlr). UI-CHAT-039 and UI-GIT-047's `.controlSize(.small)` (TimelineRows.swift:2796) is the small accent glass
+// capsule ED-280 (2) measured in the reference video (20 pt high, an 11 pt white label, 10.5 pt either side) and ED-257 (3) draws for `.glassProminent`: GlassCommand(small: true)
+// styles its button with SwiftGlass.StyleAccentGlassButton(button, small: true), and TimelineRowsFinRevertTests.Cancel_and_Revert_are_the_small_accent_glass_capsules_... reads
+// every number off the mounted buttons (the window measurement carried into the popover is ENGINEERING DECISION, ED-314).
 //
 // STOP App.Views.Chat.TimelineRows #6: RESOLVED 2026-10-03 (parity pass). PR-CHAT-166's real pointer drags across a reply's
 // prose run, its code block and a bubble are in TimelineRowsParityScenarioTests; the drag exposed that VeiledText (the code
@@ -4586,22 +4584,18 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // (2026-10-03): those selectable texts, the notice's message and a tool's detail and output also carry the I-beam the reference
 // video shows over selectable timeline text (2-chat-use.mov 14.74 s), and a selection in a bubble or a code block is drawn.
 //
-// STOP App.Views.Chat.TimelineRows #7 (review fixes, 2026-09-27; checked again 2026-10-03)
-// Kind: source conflict, needs a lead ruling (with STOP opencode #3 in TimelineRowsPrSourceConflictTests).
-// Swift: App/Views/Chat/TimelineRows.swift:2707-2714; App/Runtime/ThreadRuntime.swift:3797-3803, :3650-3664.
-// Records: PR-CHAT-107.
-// The record says the worked-out summary "survives into the thread document" and asks for a restart test. In the pinned
-// source storeLegacyChanges only calls scheduleSave, which saveNow drops because saveRevision was not bumped, so after a
-// restart the turn is parsed again; the port reproduces the source (TimelineRowsPrSourceConflictTests proves it). The
-// in-memory store, the document snapshot and the guards are proven in TimelineRowsFinLegacyChangesTests.
+// STOP App.Views.Chat.TimelineRows #7: RESOLVED 2026-10-04 (unit rec-tlr). PR-CHAT-107's record was amended to the pinned source (storeLegacyChanges only schedules a save, which
+// saveNow drops while saveRevision is unchanged, so the summary reaches the document only when another change bumps the revision and a reopened thread works it out again).
+// The restart is TimelineRowsPrSourceConflictTests.An_idle_loaded_legacy_summary_... (Req), the in-memory store, the snapshot and the guards are
+// TimelineRowsFinLegacyChangesTests', and a task cancelled before its diff is parsed stores nothing (A_block_that_leaves_before_its_diff_is_parsed_...).
 //
 // STOP App.Views.Chat.TimelineRows #8: RESOLVED 2026-10-04 (unit blitz-timelinerows-ab). PR-HYDRAMERGE-089's silent paths are driven for real
 // in TimelineRowsBlitzAbMergeSilentTests: the real coordinator on temporary repositories with a real merge pill mounted from before the
 // merge (mid-merge and mid-rebase checkouts, a lead taking up work again, a lead no longer ready after a landing, the same failure again,
 // a first retryable failure, a checkout that is no repository, work that is gone): the pill is drawn while the merge runs and gone, with
-// no note in its place, when it lets go (mutation checked). The one path not driven mounted is an .alreadyOnMain run that posts no
-// settlement note: a run that never suspends lowers the flag in the turn it raised it, so the row never gets a turn to draw the pill
-// (ED-285 (10)); the coordinator side of it is PR-CHAT-189's test.
+// no note in its place, when it lets go (mutation checked). The one path not driven mounted then was an .alreadyOnMain run that posts no
+// settlement note (ED-285 (10) took it for a run that never suspends); unit rec-tlr drives it too: the all-.alreadyOnMain pass awaits git, so the pill is drawn and goes, with a
+// file left unmerged and so no settlement note and no record (TimelineRowsBlitzAbMergeSilentTests); the coordinator side of it is also PR-CHAT-189's test.
 //
 // STOP App.Views.Chat.TimelineRows #9: RESOLVED. PR-HYDRAMERGE-105's real clicks on title, track and Open, with the tooltips,
 // are in TimelineRowsPrMergeTests.Real_pointer_clicks_on_title_track_and_Open_route_to_their_separate_destinations.
@@ -4614,6 +4608,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // asserted on the mounted control, with mutation checks): UI-CHAT-020 (TimelineRowsFinReplyTests), UI-GIT-050 (TimelineRowsFinUserRowTests),
 // UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests, the shimmer).
 // Back in this note on 2026-10-04 (adversarial review of the continuous-corners unit): UI-GIT-044, UI-RUNTIME-002 and UI-RUNTIME-003, and PR-CHAT-108 in STOP #11 below.
+// CLOSED 2026-10-04 (unit rec-tlr, after the cornerband unit's merge, ED-297): UI-CHAT-034, -036, -037, -054, -059, UI-GIT-044, UI-RUNTIME-002, -003 and PR-CHAT-108 carry Req tests
+// on the corner (ContinuousCornerReproofTests, the band tests and REVIEW_the_four_band_elements_render_..., which now reads all four corners of the mounted elements);
+// UI-CHAT-006, -007, -019, -022, -039, -052, UI-GIT-047 and PR-CHAT-079, -102, -107, -113, -143, -150, PR-COMPOSER-211, PR-HYDRAMERGE-089, -101, -102, -106, -107 are closed as
+// their test names say; the lists below keep their history and are no longer a list of what is open.
 // UPDATE 2026-10-04 (unit blitz-cornerband): OD-0102 (owner, "corner-band: A") settles ED-275 (2)'s band: Apple's corner at the largest radius that fits. The Edited-files
 // card and the two-line notice are asserted on the mounted elements (ContinuousCornerReproofTests; TimelineRowsFinFileCardTests, TimelineRowsPrRecordsTests), so the
 // reason below no longer stands for these four; the lead's ledger decides their status (they were not this unit's records, and their other clauses are as listed).
@@ -4652,8 +4650,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Reference runtime (2026-10-03): the owner's video of Droppy Code 1.7.0 (work/reference-video/2-chat-use.mov, catalogue
 // static.user-bubble, static.attachment-plate, static.timeline-rows, static.thread-timeline) shows, in the dark Monokai
 // theme only: the sent bubble at several lengths (UI-CHAT-007: geometry, tint, hug and type now compared in
-// TimelineRowsCaptureTests and selection by a real drag; its "editing" state is in no frame, so that clause stays
-// UNRESOLVED), the hover pencil (UI-CHAT-010, one-frame cut; the port fades it under OD-0076), the attachment plate,
+// TimelineRowsCaptureTests and selection by a real drag; its "editing" state is in no frame, and is proven under OD-0098 from the Swift:
+// TimelineRowsBlitzAbUiTests, below), the hover pencil (UI-CHAT-010, one-frame cut; the port fades it under OD-0076), the attachment plate,
 // the folded-turn header and rule (UI-CHAT-036; the expanded state is in no frame), the error notice pill (UI-CHAT-034,
 // UI-RUNTIME-003; info and warning levels and the light theme are in no frame), the Edited-files card (UI-CHAT-037,
 // UI-GIT-044), the heads' report and note pills (UI-CHAT-048) and a sent-head badge (UI-CHAT-056). Every one of those
@@ -4686,7 +4684,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // laid out and rendered headless in both themes, popovers opened by real clicks and read through PopoverHost.Content (OD-0095), each
 // new proof mutation checked; TimelineRowsBlitzAbToolTests, -UserTests, -FileCardTests, -CardTests, -BlockTests):
 // PR-CHAT-020, -078, -080, -082, -088, -092, -094, -098, -100, -101, -104, -109, -110, -111, -112, -114, -116.
-// Records: PR-CHAT-079; PR-CHAT-099; PR-CHAT-102; PR-CHAT-108; PR-CHAT-113; PR-CHAT-115.
+// Records: PR-CHAT-079; PR-CHAT-102; PR-CHAT-108; PR-CHAT-113; PR-CHAT-115.
 // Records: PR-CHAT-143; PR-CHAT-145.
 // Proven and removed from this note on 2026-10-04 under OD-0098 (unit blitz-timelinerows-ab, TimelineRowsBlitzAbMergeTests, -HeadTests,
 // -MergeSilentTests, -DelegationTests, -ReleaseTests; every state the Swift names mounted and rendered headless in both themes, each proof
@@ -4698,22 +4696,27 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // 4-point dot); PR-HYDRAMERGE-108's first-open latency is shown by the cache's state, not by a clock; PR-CHAT-161's file-card review closure
 // is not GC-proved.
 // What is left of this unit's records after OD-0098 (2026-10-04, unit blitz-timelinerows-ab; everything else of them is proven):
+// - CLOSED 2026-10-04 (unit rec-tlr): PR-CHAT-079 (ContinuousCornerReproofTests.The_attachment_plate_is_cut_to_Apples_...), -108 and -143 (below) are proven on their corner;
+//   what follows is the history of when they were CORNER-ONLY.
 // - CORNER-ONLY: PR-CHAT-079 (the attachment plate), -108 (the Edited card; its 40-point height is the frame's, measured on
 //   2-chat-use.mov 9.0 s), -143 (the report pill): in a frame, in a .continuous shape that ED-181 now draws (closed 2026-10-04, ED-275), the
 //   corner still to be re-proven on each. PR-CHAT-108 (back 2026-10-04): every clause is asserted, the hover on the 0.1 s ease-out curve
 //   included, except the Edited card's corner: 40 pt tall, radius 18, in the band ED-275 (2) calls UNRESOLVED (OD-0102 rules it: Apple's
 //   corner at the largest radius that fits; built 2026-10-04 by unit blitz-cornerband); see the note in STOP #10 above.
 // - PR-CHAT-115: the error notice is in a frame (2-chat-use.mov 9.0 s, "No message found ...") and its pill measures 33 points tall
-//   there against 31 in the port (the first-baseline row of an SF symbol against a Lucide one, ED-182 / O-63), with its corner
-//   ED-275's (a two-line notice is in ED-275 (2)'s band, OD-0102); info and warning, and the light theme, are proven under OD-0098.
-// - PR-CHAT-099: the running spinner is `.controlSize(.mini)`; no source value, no kit symbol (the macOS 27 kit has the small and the
-//   regular spinner only) and no frame gives its size, and the port draws the small one: OWNER. The other states are proven.
-// - PR-CHAT-102, -113: record vs source (below). PR-CHAT-145: NATIVE-ONLY (the first tap's frame time).
+//   there; the port draws it 33 since the callout line box of 17 (ED-290 (1), SETTLED 2026-10-04; TimelineRowsBlitzAbCardTests, the C 9.0
+//   test), with its corner ED-275's (a two-line notice, 50 pt, is in ED-275 (2)'s band, OD-0102); info and warning, and the light theme,
+//   are proven under OD-0098.
+// - PR-CHAT-099: PROVEN 2026-10-04 (unit rec-e1): the running spinner is `.controlSize(.mini)`, 10 x 10 pt in the 16 pt column, measured on
+//   2-chat-use.mov 145.0-145.6 s (the usage popover's own mini control, UsageViews.swift:22; crop 1894,1148,64x64: 10x10 px); the port draws it at
+//   that size at TimelineRows.swift:2077's site and at the three UsageViews .mini sites (TimelineRowsBlitzAbToolTests, UsageViewsMiniSpinnerTests).
+// - PR-CHAT-102, -113: record vs source (below), CLOSED 2026-10-04 (unit rec-tlr): both records were amended to the source and have Req tests (the diff cache's two generations;
+//   the open plan popover that keeps what it opened with). PR-CHAT-145: NATIVE-ONLY (the first tap's frame time).
 // Defects found and fixed by that unit: ChatBadge's pill was set to its radius directly and so would have stayed circular when the
 // ED-181 curve lands (now through the helper, as every other pill); TodoListRow built its update inside the snappy transaction
 // but changed every colour and row at once (now tweened and faded, :2372).
-// PR-CHAT-102: record vs source (STOP opencode #2): RecentCache(limit: 60) keeps two generations, so more than sixty
-// parsed files can be held; the record's "at most sixty" needs correcting before a counting test can claim it.
+// PR-CHAT-102: record vs source (STOP opencode #2), RETIRED 2026-10-04: RecentCache(limit: 60) keeps two generations, so up to 120 parsed files are held; the record says so now
+// and TimelineRowsPrRecordsTests.The_diff_cache_holds_two_generations_of_sixty_... counts it.
 // PR-CHAT-145: the first-tap frame time must be measured on a quiet PC (native gate); the warm-off-main mechanism is tested, a
 // timing under the shared build load is not evidence. (PR-HYDRAMERGE-108's first-open latency is shown by the cache's state: proven.)
 // PR-CHAT-149: PROVEN 2026-10-04 (TimelineRowsBlitzAbDelegationTests; the streamed fixture of TimelineRowsParityScenarioTests): the card's five states
@@ -4734,7 +4737,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // only a count or `sent` change takes panelSlide, other changes of a streamed block ease under OD-0076 and cut under reduced motion (PR-CHAT-149); the card is
 // one accessibility element labelled by its children in order (:706, UI-CHAT-054's role); the work group's fold (UI-CHAT-022) and the strike (PR-CHAT-114) run
 // under reduced motion as the Mac's do (ED-264 (2)).
-// PR-CHAT-113: record vs source. The record's action is "the popover is open while the markdown arrives" and its result
+// PR-CHAT-113: record vs source, RETIRED 2026-10-04 (the record was amended to the behaviour below; TimelineRowsParityScenarioTests.A_plan_opened_while_drafting_... is its Req test).
+// The record's action was "the popover is open while the markdown arrives" and its result
 // that the plan "switches to the finished-prose surface the moment the state leaves drafting". The pinned source freezes
 // the popover's content when it opens (BadgePopoverCoordinator.show -> setFixedContent, ChatBadge.swift:138-147: the hosted
 // view is built once, from the plan as it was), so an open popover never switches; only one opened again builds the
@@ -4807,18 +4811,17 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // ED-256 (5), corrected to cover link text); a favicon that lands after its bubble is on screen is drawn in
 // front of the link: InlineText's faviconRevision is real state and LinkParagraphView.Update runs updateNSView
 // (MarkdownView.swift:1077, :1114 at B3; LinkParagraphView.swift:36-58); a tool's detail and output wrap at the row's width,
-// the detail cut at its twelfth wrapped line with an ellipsis (:2121-2125, :2150-2155; ED (7); PR-CHAT-101 stays in this
-// note for its capture at 29, 30 and 31 lines). The Req tests of PR-CHAT-077 (the favicon in front of the link, a drawn
+// the detail cut at its twelfth wrapped line with an ellipsis (:2121-2125, :2150-2155; ED (7)). The Req tests of PR-CHAT-077 (the favicon in front of the link, a drawn
 // selection), PR-HYDRAMERGE-090 (a drawn selection in the generic report, a link paragraph included) and PR-CHAT-166 (the
 // notice, the tool's detail and output: a drawn selection) now prove those clauses; the head popover's five lines wrap
-// (R-TEST-4). Owed on the native app (ED (5), (7), (8)): the selection colour in link text on screen, a favicon appearing on a
-// host's first sight, a long tool detail's twelve lines.
+// (R-TEST-4). Owed on the native app (ED (5), (8)): the selection colour in link text on screen, a favicon appearing on a
+// host's first sight (a long tool detail's twelve lines: settled under OD-0098, ED (7)).
 // Round 5 fixes (2026-10-03): a report paragraph with a link is drawn at the report's 12 points: InlineText runs its body again
 // when an environment value it reads changes after it was built, and hands its link paragraph the new values in place
 // (MarkdownView.swift:1071-1075, :1094, :1114 at B3; LinkParagraphView.swift:36-58; ED (9)); the PR-HYDRAMERGE-090 Req tests
 // assert the drawn size of every text of the report, a link paragraph included, not the attached property. A tool detail cut at
-// a hard line break ends its twelfth line in an ellipsis too (ED (7), corrected; PR-CHAT-101 stays in this note: not claimed).
+// a hard line break ends its twelfth line in an ellipsis too (ED (7), corrected; settled under OD-0098, PR-CHAT-101).
 // The PR-CHAT-166 drag test hovers the link text at both of the record's sites (a sent bubble with a bare domain, a report
 // paragraph with a link): the pointing hand over the link, the I-beam over the prose, a drag on the prose. LinkTextView's dropped
 // measurement on a new string has its test (LinkParagraphViewTests). PR-CHAT-080 still waits for the ThreadTimeline merge (above).
-// Owed on the native app (ED (7)): a detail cut at a hard line break, whose ellipsis there is UNRESOLVED on the Mac.
+// ED (7), a detail cut at a hard line break: SETTLED under OD-0098 (the documented default .tail ellipsis ends the 12th line wherever lineLimit cuts).

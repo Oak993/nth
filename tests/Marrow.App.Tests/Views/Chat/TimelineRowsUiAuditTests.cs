@@ -23,7 +23,7 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // The foundation's oracle-backed continuous corner landed (SwiftShapes.Outline, SwiftShapeBorder, ContinuousClip; the curve is
 // SwiftShapesContinuousTests and SwiftShapesOracleTests in Marrow.UI.Tests). Every site below draws it where its size allows
 // (2 * 1.528665 * r <= min(w, h)) and the circular arc where not. The video backs the arc for capsules and for a radius from half the height up
-// (a one-line notice, 33 pt); for a shape in the band h / 3.057 < r < h / 2 (the Edited card, 40 pt, r 18; a two-line notice, about 48 pt, r 18) what
+// (a one-line notice, 33 pt); for a shape in the band h / 3.057 < r < h / 2 (the Edited card, 40 pt, r 18; a two-line notice, 50 pt with the callout line box of 17 (ED-290 (1)), r 18) what
 // Apple draws is UNRESOLVED (ED-275 (2), corrected 2026-10-04 after the adversarial review: no frame has a measurable edge there).
 // ContinuousCornerChecks.Drawn asserts the regime on the mounted control, in the tests that name the record: UI-CHAT-008
 // (TimelineRowsFinUserRowTests), UI-CHAT-020/UI-CHAT-021 (TimelineRowsFinReplyTests), UI-HYDRAMERGE-002 (TimelineRowsFinMergeRowTests),
@@ -61,12 +61,8 @@ public sealed class TimelineRowsUiAuditTests(HeadlessSession headless)
 // UI-CHAT-038/UI-CHAT-040/UI-GIT-046/UI-GIT-048.
 // NoticeRow info.circle :2389-2399, UI-RUNTIME-001.
 //
-// STOP opencode-App.Views.Chat.TimelineRows #3
-// Kind: external small-control mapping. GlassCommand(small:true) :2796 (C# GlassCommand :156-159)
-// still uses normal capsule metrics. UI-CHAT-039/UI-GIT-047 require .controlSize(.small).
-// Missing: an approved small-size adapter/metric ruling in the shared glass-button foundation.
-// Needed: that ruling/adapter; ED-180's material deferral supplies no small-control dimensions.
-// The glass renderer now exists on impl/b2: do not repeat an obsolete missing-renderer claim.
+// STOP opencode-App.Views.Chat.TimelineRows #3: RESOLVED 2026-10-04 (unit rec-tlr). GlassCommand(small: true) :2796 draws the small accent glass capsule of ED-280 (2) and
+// ED-257 (3) (SwiftGlass.StyleAccentGlassButton, small); TimelineRowsFinRevertTests reads its metrics off the mounted buttons. UI-CHAT-039 and UI-GIT-047 are proven.
 //
 // STOP opencode-App.Views.Chat.TimelineRows #4
 // Kind: external native link-style oracle. ToolDetailView toggle :2156-2162 (C# :2614-2618), UI-CHAT-026.

@@ -371,7 +371,7 @@ file sealed class CommandPaletteRow : Decorator
         this.onActivate = onActivate;
         this.onHover = onHover;
 
-        SwiftFont.Body.Apply(titleBlock); // default body role, no explicit .font at :122
+        SwiftFont.Default.Apply(titleBlock); // SwiftUI's implicit default, no explicit .font at :122 (ED-290 (1): the face's own line box)
         SwiftFont.Caption.Apply(subtitleBlock); // :126
         subtitleBlock.Foreground = Marrow.UI.Chrome.Chrome.SecondaryText.Brush(subtitleBlock); // :127
         SwiftFont.Caption.Apply(chordBlock); // :135

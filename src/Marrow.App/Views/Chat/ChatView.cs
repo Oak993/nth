@@ -2219,7 +2219,7 @@ internal sealed class CommitSheet : Decorator
         messagePlaceholder = new TextBlock { Text = "Commit message", IsHitTestVisible = false,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(13, 8) }; // :1562-1567.
         messagePlaceholder.Foreground = Chrome.SecondaryText.Brush(messagePlaceholder);
-        SwiftFont.Body.Apply(messagePlaceholder); // :1563 no font of its own: the default body style, the editor's 13 pt (ED-059).
+        SwiftFont.Default.Apply(messagePlaceholder); // :1563 no font of its own: SwiftUI's implicit default, the editor's 13 pt (ED-059) in the face's own line box (ED-290 (1)).
         messageFrame = new Border // :1557-1571
         {
             Child = new Panel { Children = { messageField, messagePlaceholder } },
@@ -2384,7 +2384,7 @@ internal sealed class ScriptsEditor : Decorator
             field.Command.Text = script.Command;
             field.Worktree.IsChecked = script.RunOnWorktreeCreate;
         }); // :1668 ForEach($scripts), identity survives array changes and appearance.
-        this.Font(SwiftFont.Body); // SwiftUI's inherited default body style, ED-059.
+        this.Font(SwiftFont.Default); // SwiftUI's implicit default (no .font above :1660), ED-059's 13 pt in the face's own line box (ED-290 (1)).
 
         var heading = new TextBlock { Text = "Project scripts" }; // :1661
         SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1662

@@ -172,8 +172,10 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // delete-note-sbs.png (152.6 s), slide_fit.py/.txt (154.43-154.79 s). What the captures settle and what stays open:
 // - Geometry beside the video: row pitch, 28 pt rows, 24 pt stub, 20 pt icon slot, 46 pt title inset, the footer rows,
 //   the head card's 9 columns at 248 pt, the delete note's line breaks and the panelSlide slide all match. Every text
-//   line box is about 2 pt shorter than the Mac's (SF Pro vs Inter, OD-0009/ED-059: e.g. the callout note's line pitch
-//   14.3 vs 16.5, so each 12 pt header sits 2-3 pt higher): UNRESOLVED, a font-metric question, not a sidebar one.
+//   line box was about 2 pt shorter than the Mac's (the callout note's line pitch 14.3 against the video's): RESOLVED
+//   2026-10-04 by ED-290 (1): the Mac draws the explicit text styles in 18 / 17 / 16 line boxes (body, callout,
+//   subheadline), measured on the same delete note at 2-chat-use.mov 152.6 s (callout baselines 134, 151, 168: 17, 17;
+//   the 16.5 here was a rough read), and SwiftFont now draws them so.
 // - SF Symbols draw narrower than their Lucide stand-ins (OD-0010): the stub's 8 pt chevron box is 10 pt wide where
 //   the Mac's glyph is about 5.5 pt, so "4 heads" sits 2.5 pt further right; the Settled header's 10 pt chevron the
 //   same (+3 pt). UNRESOLVED, a symbol-width question for the icon table, not a sidebar one.
@@ -183,8 +185,10 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   video shows the dot (the feed is empty by OD-0012 I1), so PR-SIDEBAR-013's capture clause is UNRESOLVED.
 // - PR-SIDEBAR-055: proven on a mounted release (On_a_real_release_the_row_and_everything_riding_it_spring_home...);
 //   its capture clause is UNRESOLVED: no reorder drag appears in either video.
-// - PR-SIDEBAR-127: the unmapped-symbol placeholder has no decision (the record's open_question); no project layout
-//   appears in the videos (capture UNRESOLVED); the glyph swap is a cut (OD-0076).
+// - PR-SIDEBAR-127: SETTLED under OD-0098 (unit rec-e1): a symbol name the table does not map draws an empty mark in the 20 pt
+//   square, as SwiftUI draws nothing for an unknown Image(systemName:) (SwiftImage.IsEmpty); no placeholder
+//   (A_stored_symbol_name_the_table_does_not_map_draws_an_empty_mark_..., Every_symbol_name_the_picker_offers_resolves_...);
+//   the glyph swap crossfades (OD-0076).
 // - PR-SIDEBAR-129, UI-SIDEBAR-008: the 0.55 dim is a cut (the Mac snaps; OD-0076 asks for a transition in the Mac's
 //   motion language, which no decision has fixed for this site); PR-SIDEBAR-129's capture is UNRESOLVED (no inactive
 //   project in the videos). UI-SIDEBAR-008's accessory (count <-> buttons) crossfades on the hover's Chrome.hover since
@@ -203,9 +207,9 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-026/-027: dismissal by click-away/Escape and the Closed -> carryOutConfirmedDeletion hookup cannot run
 //   headless (STOP #12); UI-SIDEBAR-028/-029/-030/PR-SIDEBAR-091: STOP #6 (the controls' chrome);
 //   UI-SIDEBAR-031/-032: `.controlSize(.small)`'s metrics are unverified.
-// - UI-SIDEBAR-035: "click anywhere, including the connector stub" is UNRESOLVED: :1583 strokes a bare shape with no
-//   content shape, so whether SwiftUI hit-tests the stub's empty column is not settled by the source; the port's
-//   column is hit only on its dots.
+// - UI-SIDEBAR-035: SETTLED under OD-0098 (unit rec-e1): :1583 strokes a bare shape with no content shape and :1608's
+//   contentShape sits on the text half only, so the label half or a drawn dot of the connector unfolds the helpers and
+//   the undrawn gaps of the column do not (A_press_on_one_of_the_stub_connectors_drawn_dots_unfolds_...).
 // - UI-SIDEBAR-036: the snappy curve between the card's two heights, and panelSlide on the connector and card heights
 //   when the head set changes (:1541), are unproven; the surviving glyphs of a card whose heads change or reorder jump
 //   to their new places where the Mac glides them (OD-0076 asks for the glide; not done in this pass). What is proven:
@@ -337,14 +341,9 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-001: a press on the spacer lands on the column's WindowDragArea (a Caption to the Windows hit test); the system
 //   move loop itself is NATIVE-ONLY.
 // STILL OPEN, with the reason:
-// - PR-SIDEBAR-127: the unmapped-symbol placeholder (the record's open_question): SwiftImage draws nothing for a name the table
-//   does not map (SwiftImage.IsEmpty), no decision names the placeholder. Everything else of the record is proven, and the glyph swap
-//   now crossfades (A_picked_icon_replaces_the_marks_by_a_crossfade_...). OWNER/ENGINEERING RULING NEEDED; SwiftImage is shared.
 // - UI-SIDEBAR-015, -016: the entries reach the system menu in the source's order and the current choice carries a check mark
 //   (The_pair_submenu_reaches_the_system_menu_...); a Win32 menu reserves a check gutter for every row, so "no reserved check
 //   column" cannot hold, and opening the native submenu is the system's: NATIVE-ONLY / platform limit.
-// - UI-SIDEBAR-035: whether SwiftUI hit-tests the stub's connector column (:1583 strokes a bare shape; :1608 `.contentShape(shape)` sits
-//   on the text half only) is not settled by the source or by a frame: UNRESOLVED. The port's column is hit on its dots.
 // - UI-SIDEBAR-036 (part): the surviving glyphs of a card whose heads change glide to their new places on the Mac (OD-0076 asks
 //   for it); ForEach.ApplyLayout glides rows inside one panel, and the card's glyphs move between row panels: needs a cross-panel
 //   layout glide in the shared ForEach foundation (UI/Port/ViewLifetime.cs), another unit's file.
@@ -1189,7 +1188,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
-            var none = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], UpdateChecker.DefaultFeed));
+            var none = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], ""));
             harness.Defaults.Set("updateChecker_release", AvailableUpdate.EncodeToBytes(new AvailableUpdate
             {
                 Version = "2.0.0",
@@ -1198,7 +1197,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Notes = "",
                 PageURL = SwiftURL.Create("https://example.com/releases/v2.0.0")!,
             }));
-            var waiting = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], UpdateChecker.DefaultFeed));
+            var waiting = harness.Main.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], ""));
             harness.Main.OnMain(() =>
             {
                 Assert.False(none.UpdateAvailable);
@@ -5232,7 +5231,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-115")] // App/Views/Sidebar/SidebarView.swift:1583, :1606-1609
-    public void Clicking_the_folded_stub_anywhere_including_the_connector_unfolds_the_helpers() => headless.OnUiThread(() =>
+    public void Clicking_the_folded_stub_on_its_label_half_unfolds_the_helpers() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
         var project = NewProject(harness, "Alpha");
@@ -5247,6 +5246,55 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var button = LogicalQuery.SelfAndDescendants<Button>(row).Single(); // :1583 the whole HStack is one Button
             Click(button);
             Assert.True(unfolded);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-035")] // SidebarView.swift:1583-1608 the stub's connector is a bare stroked shape (no contentShape; :1608 sits on the text half) and :1636-1658 the sibling HelperConnector adds .contentShape(.rect); OD-0098: a plain button's hit area is its label's drawn content, a stroke hit-tests on its path
+    public void A_press_on_one_of_the_stub_connectors_drawn_dots_unfolds_the_helpers_and_a_press_in_a_gap_of_the_connector_column_does_not() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helperA = NewThread(project, "Helper A", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helperA]);
+        harness.Main.OnMain(() =>
+        {
+            var unfolded = 0;
+            var row = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helperA }, (Action)(() => unfolded++))!;
+            var host = new Border();
+            AppEnvironment.SetAppModel(host, model);
+            host.Child = row;
+            var window = new AvaloniaWindow { Content = host, Width = 400, Height = 100 };
+            window.Show();
+            window.UpdateLayout();
+            try
+            {
+                var connector = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(row).Single(); // the 28 x 24 column at the row's leading edge
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick(); // the pointer's hit test reads the rendered scene
+                Dispatcher.UIThread.RunJobs();
+                void Press(double x, double y)
+                {
+                    var point = At(connector, x, y, window);
+                    window.MouseDown(point, MouseButton.Left);
+                    window.MouseUp(point, MouseButton.Left);
+                }
+                // The stem is the line x = 18 down the 28 x 24 column, dashed [0.1, 3.6] with round caps, 1 pt wide: a dot every 3.7 pt
+                // from y = 0.05 (:1641-1642, :1666-1669). The gaps lie halfway between two dots, and anywhere off the line.
+                Press(18, 0.05 + 3.7); // a dot
+                Assert.Equal(1, unfolded);
+                Press(18, 0.05 + 3.7 * 2); // another dot
+                Assert.Equal(2, unfolded);
+                Press(18, 0.05 + 3.7 + 1.85); // halfway between two dots: the undrawn gap
+                Assert.Equal(2, unfolded);
+                Press(8, 6); // the column left of the stem
+                Assert.Equal(2, unfolded);
+                Press(18, 0.05 + 3.7 * 3 + 1.85); // a gap again, on the last stem stretch above the tick
+                Assert.Equal(2, unfolded);
+            }
+            finally { window.Close(); }
         });
     });
 
@@ -8580,6 +8628,51 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Close(emojiRow);
         });
     });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-127")] // SwiftUI draws no glyph for an Image(systemName:) whose name is not a symbol (ProjectIconPicker.swift:21): OD-0098, the framework's documented behaviour; the 20 pt square is SidebarView.swift:1106-1114
+    public void A_stored_symbol_name_the_table_does_not_map_draws_an_empty_mark_inside_the_20pt_square_and_leaves_the_row_height_and_title_inset_unchanged() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var known = NewProject(harness, "Known") with { Icon = new ProjectIcon.Symbol("star.fill") };
+        var unknown = NewProject(harness, "Unknown") with { Icon = new ProjectIcon.Symbol("not.a.real.symbol") }; // a hand-edited library value
+        var model = Model(harness, [known, unknown], []);
+        harness.Main.OnMain(() =>
+        {
+            var knownRow = ShownProjectRow(model, known, 0);
+            var knownMark = LogicalQuery.SelfAndDescendants<SwiftImage>(knownRow).Single(i => i.SymbolName == "star.fill");
+            Assert.False(knownMark.IsEmpty); // control: a mapped name draws a glyph
+            var knownTitle = LogicalQuery.SelfAndDescendants<TextBlock>(knownRow).Single(t => t.Text == "Known");
+            var knownHeight = knownRow.Bounds.Height;
+            var knownInset = knownTitle.TranslatePoint(default, knownRow)!.Value.X;
+            Close(knownRow);
+
+            var row = ShownProjectRow(model, unknown, 0);
+            var square = Assert.IsType<Panel>(LogicalQuery.SelfAndDescendants<SidebarIconBadge>(row).Single().Child);
+            Assert.Equal(20d, square.Width); // the mark's square is reserved all the same
+            Assert.Equal(20d, square.Height);
+            var mark = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(i => i.SymbolName == "not.a.real.symbol");
+            Assert.True(mark.IsEmpty); // draws nothing: no placeholder glyph, as SwiftUI does (OD-0098)
+            Assert.Equal(0d, mark.DesiredSize.Width);
+            Assert.Equal(0d, mark.DesiredSize.Height);
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(row), i => i.SymbolName == "folder.fill");
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "Unknown");
+            Assert.Equal(knownHeight, row.Bounds.Height); // the row's height is unchanged
+            Assert.Equal(knownInset, title.TranslatePoint(default, row)!.Value.X); // and so is the title's inset
+            Close(row);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-127")] // porting/icons/sf-symbols-to-lucide.json meta unmapped: 0; ProjectIconPicker.swift:80-109 offers only the shortlist and ProjectSymbolCatalogue.swift names
+    public void Every_symbol_name_the_picker_offers_resolves_in_the_table_so_only_a_hand_edited_name_can_draw_an_empty_mark()
+    {
+        var unmapped = ProjectSymbolCatalogue.All.Where(name => SymbolCatalogue.Mapping(name) is null).ToArray();
+        Assert.Empty(unmapped);
+        Assert.NotEmpty(ProjectSymbolCatalogue.All);
+        Assert.NotNull(SymbolCatalogue.Mapping("folder.fill")); // the no-icon mark
+        Assert.Null(SymbolCatalogue.Mapping("not.a.real.symbol")); // control: a name outside the table is unmapped
+    }
 
     // ---- UI-SIDEBAR-008: the project row ----
 

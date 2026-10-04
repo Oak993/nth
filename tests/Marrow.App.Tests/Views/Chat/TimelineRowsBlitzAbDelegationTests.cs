@@ -152,7 +152,7 @@ public sealed class TimelineRowsBlitzAbDelegationTests(HeadlessSession headless)
                         {
                             Assert.All(glyphs, glyph => Assert.Equal(16, BlitzAbRender.BoxIn(glyph, window).Width, 0.5));
                             Assert.Equal(box.Left + 12, BlitzAbRender.BoxIn(glyphs[0], window).Left, 0.5); // each glyph in the mark's column
-                            Assert.Equal(6, BlitzAbRender.BoxIn(glyphs[0], window).Top - BlitzAbRender.BoxIn(marks[0], window).Bottom, 0.75); // :658 the card's spacing 6
+                            Assert.Equal(6 + (17 - 16) / 2.0, BlitzAbRender.BoxIn(glyphs[0], window).Top - BlitzAbRender.BoxIn(marks[0], window).Bottom, 0.75); // :658 the card's spacing 6 under the header line, the callout's 17 (ED-290 (1)), in which the 16-point mark is centred (:659-663)
                         }
                         if (glyphs.Count > 1) Assert.Equal(5, BlitzAbRender.BoxIn(glyphs[1], window).Top - BlitzAbRender.BoxIn(glyphs[0], window).Bottom, 0.75); // :677 the heads' spacing 5
                         // :720-732 a brief for another project: an arrow and the project's name at caption2 medium in the secondary ink, 2 more points in.

@@ -165,7 +165,7 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
     // RequestCards.cs:111 and CommandPalette.cs:346; ED-256 (7)). The output has no line limit: all of its
     // wrapped lines show.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101, UI-CHAT-027 and UI-CHAT-025 (long lines wrap; the detail stops at twelve wrapped lines): TimelineRows.swift:2120-2126, :2149-2155
+    [Trait("Req", "PR-CHAT-101")] // Long lines wrap; the detail stops at twelve wrapped lines: TimelineRows.swift:2120-2126, :2149-2155 (OD-0098: the documented default .tail ellipsis at the cut)
     public void A_long_detail_wraps_to_at_most_twelve_lines_ending_in_an_ellipsis_and_a_long_output_line_wraps_inside_its_plate() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -203,7 +203,7 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
     // row, which wraps: its twelfth wrapped line is cut inside the line, Avalonia's own collapse of a split line (the code of (7) is
     // not on that path); the twelfth line that fills the row at a hard line break, the code's own cut, is the next test's.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-256 (7): TimelineRows.swift:2120-2126
+    [Trait("Req", "PR-CHAT-101")] // The detail capped at twelve lines, ED-256 (7): TimelineRows.swift:2125 (OD-0098: the documented default .tail ellipsis at the cut)
     public void A_detail_cut_at_a_hard_line_break_ends_its_twelfth_line_in_an_ellipsis_and_one_of_exactly_twelve_lines_is_not_cut() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -252,7 +252,7 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
     // character comes from a one-line detail of the same face; n of them are the most that fit 500 points. Controls: with no line
     // after it that line is the twelfth of exactly twelve, kept whole in 500 points, and one more character would not fit.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-256 (7): TimelineRows.swift:2120-2126
+    [Trait("Req", "PR-CHAT-101")] // The detail capped at twelve lines: TimelineRows.swift:2125 `.lineLimit(12)` with no truncationMode; OD-0098: SwiftUI's documented default .tail ends the last visible line with the ellipsis wherever the cut falls (wrapped line or hard line break), ED-256 (7)
     public void A_twelfth_line_that_fills_the_row_and_ends_at_a_hard_line_break_is_cut_short_to_fit_its_ellipsis() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

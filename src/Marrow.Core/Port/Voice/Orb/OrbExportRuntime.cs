@@ -40,8 +40,10 @@ public static class OrbExportRuntime
         var style = styleValue is >= int.MinValue and <= int.MaxValue ? (int)styleValue : int.MinValue;
         var strength = AudioFlowStrength(style);
         if (strength == 0) return;
-        foreach (var rule in AudioRules)
+        // an indexed loop: foreach over the IReadOnlyList would box an enumerator every Listening frame (V-T51: 0 B per frame)
+        for (var i = 0; i < AudioRules.Count; i++)
         {
+            var rule = AudioRules[i];
             var input = bands[rule.Band];
             var level = (double.IsFinite(input) ? Math.Max(0, Math.Min(1, input)) : 0) * strength;
             if (level == 0) continue;

@@ -94,6 +94,7 @@ public static class PortControlThemes
             LineHeight = 13,
             [!ContentPresenter.ContentProperty] = tip[!ContentControl.ContentProperty],
         }.RegisterInNameScope(scope);
+        presenter.SetValue(SwiftFont.LineBoxProperty, double.NaN); // its fixed 13-point line, never a text style's box from the owner (ED-290 (1))
         var card = new Border { Name = "PART_Tag", Padding = new Thickness(6, 3), Margin = new Thickness(8, 8, 8, 10), Child = presenter };
         card.Background = TipFill.Brush(card);
         presenter.Foreground = TipText.Brush(presenter);
