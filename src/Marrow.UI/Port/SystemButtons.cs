@@ -104,6 +104,20 @@ public static class SystemButtons
                 var text = label as TextBlock;
                 var primary = text is null ? null : (prominent ? SwiftColor.White : LabelPrimary).Brush(text);
                 var tertiary = text is null || prominent ? null : LabelTertiary.Brush(text);
+                // `.buttonBorderShape(.capsule)` restated on a presented tree (Popovers.swift:10, `presentedChrome()`): the button
+                // takes the environment's border shape. ENGINEERING DECISION (the framework's documented behaviour for
+                // bordered and prominent styles, OD-0098): a capsule's radius is half the button's height, for the bezel, the
+                // press wash and the focus ring alike; the kit's radius 6 stands outside such a tree.
+                void Shape()
+                {
+                    var capsule = Marrow.UI.Chrome.Popovers.GetIsCapsuleButtonBorderShape(owner) && bezel.Bounds.Height > 0;
+                    var radius = capsule ? bezel.Bounds.Height / 2 : Radius;
+                    bezel.CornerRadius = new CornerRadius(radius);
+                    press.CornerRadius = new CornerRadius(radius);
+                    ring.CornerRadius = new CornerRadius(radius + FocusBand);
+                }
+                bezel.PropertyChanged += (_, e) => { if (e.Property == Visual.BoundsProperty) Shape(); };
+                owner.PropertyChanged += (_, e) => { if (e.Property == Marrow.UI.Chrome.Popovers.IsCapsuleButtonBorderShapeProperty) Shape(); };
                 void Paint()
                 {
                     // Effective, so a button disabled by its parent shows its disabled look too; an Opacity the site sets on

@@ -870,4 +870,197 @@ public sealed partial class SidebarViewTests
             Assert.True(arrival.Right <= 240 - (8 + 18) + 0.5, $"arrival ink ends at {arrival.Right}"); // clearance 18
         });
     });
+
+    // ======== The rename popover (PR-SIDEBAR-091, UI-SIDEBAR-028, -029, -030) ========
+
+    private static Control ShownRenameContent(SidebarView view, Guid threadID)
+    {
+        var content = (Control)Call(view, "BuildRenamePopoverContent", threadID)!; // :248-249 the popover's content, presentedChrome() on it
+        content.HorizontalAlignment = HorizontalAlignment.Left; content.VerticalAlignment = VerticalAlignment.Top;
+        var window = new AvaloniaWindow { Content = new Border { Child = content, Width = 360, Height = 200, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        return content;
+    }
+
+    private static Border Bezel(Button button) => button.GetVisualDescendants().OfType<Border>().First(b => b.Name == "PART_Bezel");
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-091")] // SidebarView.swift:1002-1022 VStack(alignment: .leading, spacing: 10) { heading; field; HStack { Spacer(); Cancel; Rename } }.padding(14).frame(width: 300)
+    [Trait("Req", "UI-SIDEBAR-028")] // frame width 300; padding 14; spacing 10; the button row right-aligned; heading .system(.body, weight: .semibold) (13 pt)
+    [Trait("Req", "UI-SIDEBAR-029")] // the field fills the popover's inner width
+    public void The_rename_popovers_column_is_300_wide_padded_14_spaced_10_with_the_field_filling_the_width_and_the_buttons_at_the_right() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Old title", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            SetProp(Field(view, "state")!, "RenameText", "Old title");
+            var content = ShownRenameContent(view, thread.Id);
+            try
+            {
+                var frame = LogicalQuery.SelfAndDescendants<Border>(content).First(b => b.Width == 300);
+                Assert.Equal(new Thickness(14), frame.Padding);
+                var heading = LogicalQuery.SelfAndDescendants<TextBlock>(content).Single(x => x.Text == "Rename thread");
+                Assert.Equal(13d, heading.FontSize); // .body, ED-059
+                Assert.Equal(FontWeight.SemiBold, heading.FontWeight);
+                var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(content));
+                var cancel = LogicalQuery.SelfAndDescendants<Button>(content).Single(b => TextOf(b) == "Cancel");
+                var rename = LogicalQuery.SelfAndDescendants<Button>(content).Single(b => TextOf(b) == "Rename");
+                var headingFrame = Frame(heading, content); var fieldFrame = Frame(field, content);
+                var cancelFrame = Frame(cancel, content); var renameFrame = Frame(rename, content);
+                Assert.Equal(14d, headingFrame.Left, 1); // leading-aligned inside the padding
+                Assert.Equal(10d, fieldFrame.Top - headingFrame.Bottom, 1); // spacing 10
+                Assert.Equal(14d, fieldFrame.Left, 1);
+                Assert.Equal(300d - 28, fieldFrame.Width, 1); // fills the inner width
+                Assert.Equal(10d, Math.Min(cancelFrame.Top, renameFrame.Top) - fieldFrame.Bottom, 1); // spacing 10 again
+                Assert.Equal(300d - 14, renameFrame.Right, 1); // the Spacer pushes the pair to the trailing edge
+                Assert.True(cancelFrame.Right <= renameFrame.Left, "Cancel before Rename");
+                Assert.Equal(24d, cancel.Bounds.Height, 1); // .controlSize(.regular): the kit's 24 pt push button (SystemButtons)
+                Assert.Equal(24d, rename.Bounds.Height, 1);
+            }
+            finally { Close(content); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-091")] // SidebarView.swift:1023 `.onAppear { isFocused = true }`
+    [Trait("Req", "UI-SIDEBAR-029")] // "focused on appearance"
+    public void The_title_field_holds_the_focus_as_the_popover_appears() => headless.OnUiThread(() =>
+    {
+        var popover = ShownRename("Focus me", _ => { }, () => { });
+        try
+        {
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popover));
+            Assert.True(field.IsFocused);
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    [Theory]
+    [Trait("Req", "PR-SIDEBAR-091")] // SidebarView.swift:1017 `.disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)`: the set is spaces and tabs (Zs and U+0009), not newlines
+    [Trait("Req", "UI-SIDEBAR-030")]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    [InlineData("\t", false)] // a tab is in .whitespaces
+    [InlineData("\u00A0", false)] // a no-break space (Zs) too
+    [InlineData("\n", true)] // a newline is not: the disabled test is narrower than the model's .whitespacesAndNewlines (UI-SIDEBAR-028 note)
+    [InlineData("\r\n", true)]
+    [InlineData(" a ", true)]
+    public void Rename_is_disabled_only_while_the_text_trimmed_of_spaces_and_tabs_is_empty(string text, bool enabled) => headless.OnUiThread(() =>
+    {
+        var popover = ShownRename("Seed", _ => { }, () => { });
+        try
+        {
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popover));
+            var rename = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Rename");
+            field.Text = text;
+            Assert.Equal(enabled, rename.IsEnabled);
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-091")] // failure_cases: "Return in the field still calls onRename" with blank text, which the model then rejects (PR-SIDEBAR-092); SidebarView.swift:1009 .onSubmit { onRename(text) }
+    public void Return_with_a_blank_title_still_calls_onRename_though_the_button_is_disabled() => headless.OnUiThread(() =>
+    {
+        var renamed = new List<string>();
+        var popover = ShownRename("Old", renamed.Add, () => { });
+        try
+        {
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popover));
+            field.Text = "   ";
+            Assert.False(LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Rename").IsEnabled);
+            field.Focus();
+            WindowOf(popover).KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(["   "], renamed);
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-029")] // SidebarView.swift:183-188 (the context menu posts a snapshot, used as it is), :882-887 and :354-358 (the ellipsis path reads the live thread): the live-versus-snapshot asymmetry
+    public void The_ellipsis_path_pre_fills_the_live_title_and_the_context_menu_path_the_posted_snapshot() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presenter = Presentation.Presenter.Override(new RecordingPresenter()); // headless cannot open a real Popup (Port/ViewLifetime.cs); only the state is read
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Snapshot title", 0);
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                view = Attached(model);
+                model.Rename(thread.Id, "Live title"); // the title changed since the row's snapshot
+            });
+            harness.Main.OnMain(() =>
+            {
+                Call(view, "RequestRename", thread); // the ellipsis popover's path with the stale snapshot
+                Assert.Equal("Live title", Get(Field(view, "state")!, "RenameText"));
+                SetProp(Field(view, "state")!, "Renaming", null);
+                var requests = (SidebarMenuRequestsHandle)new(Field(view, "menuRequests")!);
+                requests.Post(thread); // the AppKit context menu's path posts the snapshot as it was
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal("Snapshot title", Get(Field(view, "state")!, "RenameText"));
+                Assert.Equal(thread.Id, ((ChatThread)Get(Field(view, "state")!, "Renaming")!).Id);
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    private readonly struct SidebarMenuRequestsHandle(object requests)
+    {
+        public void Post(ChatThread thread) => requests.GetType().GetProperty("Rename")!.SetValue(requests, thread);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-030")] // SidebarView.swift:249 `.presentedChrome()` -> Popovers.swift:10 `.buttonBorderShape(.capsule)`: Cancel (.bordered) and Rename (.borderedProminent) are capsules, "not the stock rounded rectangle"
+    [Trait("Req", "PR-SIDEBAR-091")]
+    // ENGINEERING DECISION (OD-0098, the framework's documented behaviour): a bordered or prominent button takes the
+    // border shape of the environment: a capsule's radius is half the button's height (12 at the kit's 24 pt), the same
+    // shape for the press wash and the focus ring. Outside a presented tree the kit's radius 6 stands (the stock look).
+    public void Under_presentedChrome_the_rename_buttons_are_capsules_and_outside_it_the_stock_rounded_rectangle() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Old title", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            SetProp(Field(view, "state")!, "RenameText", "Old title");
+            var content = ShownRenameContent(view, thread.Id);
+            try
+            {
+                foreach (var button in LogicalQuery.SelfAndDescendants<Button>(content))
+                {
+                    var bezel = Bezel(button);
+                    Assert.Equal(24d, bezel.Bounds.Height, 1);
+                    Assert.Equal(12d, bezel.CornerRadius.TopLeft, 3); // half the height
+                    Assert.Equal(new CornerRadius(12), bezel.CornerRadius);
+                    var press = button.GetVisualDescendants().OfType<Border>().First(b => b.Name == "PART_Press");
+                    Assert.Equal(new CornerRadius(12), press.CornerRadius);
+                }
+            }
+            finally { Close(content); }
+            var stock = ShownRename("Seed", _ => { }, () => { }); // no presentedChrome on this tree
+            try
+            {
+                foreach (var button in LogicalQuery.SelfAndDescendants<Button>(stock))
+                    Assert.Equal(new CornerRadius(SystemButtons.Radius), Bezel(button).CornerRadius);
+            }
+            finally { WindowOf(stock).Close(); }
+        });
+    });
 }
