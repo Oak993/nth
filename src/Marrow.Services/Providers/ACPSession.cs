@@ -3,6 +3,10 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
+using Marrow.Core.Port.Skills.Detect;
+using Marrow.Services.Port.Skills.Providers;
+using Marrow.Services.Port.Skills.Shims;
+using Marrow.Services.Store;
 
 // Source: DroppyCode/Services/Providers/ACPSession.swift (B3 52bc792), :1-921. Part 1 of 8: the launch gate,
 // launchArguments, and start() through the initialize reply (PR-PROVACP-001..024). Part 2 of 8: openSession,
@@ -43,6 +47,9 @@ public sealed class ACPSession : ProviderSession
     private static readonly ACPLaunchGate LaunchGate = new(TimeSpan.FromSeconds(1.5)); // :26
 
     public Action<ProviderEvent>? OnEvent { get; set; } // :28
+    // DEVIATION ED-NEW-f-sk-11c: DL-12 observations; no new ACP protocol fields.
+    public Action<ToolEvent>? OnSkillsEvent { get; set; }
+    private readonly ACPSkillEvents skillEvents = new();
 
     private readonly SessionConfiguration configuration; // :30
     private JSONRPCConnection? connection; // :31
@@ -126,7 +133,7 @@ public sealed class ACPSession : ProviderSession
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :109
         await LaunchGate.Wait(); // :110
-        var process = new StdioProcess(executable.Path, LaunchArguments, WorkingDirectory, configuration.Environment); // :111-116
+        var process = new StdioProcess(executable.Path, LaunchArguments, WorkingDirectory, ShimPath.ForChild(configuration.Environment, Storage.Root)); // :111-116
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :117
         connection.OnNotification = (method, parameters) => HandleNotification(method, parameters); // :118
         connection.OnRequest = (id, method, parameters) => HandleRequest(id, method, parameters); // :119
@@ -274,6 +281,7 @@ public sealed class ACPSession : ProviderSession
 
     public void Stop() // :221-224
     {
+        skillEvents.Clear();
         isStopping = true;
         connection?.Close();
     }
@@ -648,6 +656,7 @@ public sealed class ACPSession : ProviderSession
     {
         if (!promptActive) return; // :605
         promptActive = false; // :606
+        skillEvents.Clear();
         todoToolCallIDs.Clear(); // :607
         foreach (var (key, id) in pendingPermissions) // :608
         {
@@ -703,8 +712,10 @@ public sealed class ACPSession : ProviderSession
                     if (steps.Count > 0) OnEvent?.Invoke(new ProviderEvent.Todos(steps)); // :510
                     return; // :511
                 }
+                skillEvents.Observe(update);
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, MakeToolCall(update))); // :513
                 var initial = MakeToolUpdate(update); // :514
+                if (skillEvents.Finished(update, initial) is { } finished) OnSkillsEvent?.Invoke(finished);
                 if (initial.Output is not null || initial.Status is not null) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, initial)); // :515
                 break;
             }
@@ -718,7 +729,9 @@ public sealed class ACPSession : ProviderSession
                     if (steps.Count > 0) OnEvent?.Invoke(new ProviderEvent.Todos(steps)); // :521
                     return; // :522
                 }
-                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, MakeToolUpdate(update))); // :524
+                var result = MakeToolUpdate(update);
+                if (skillEvents.Finished(update, result) is { } finished) OnSkillsEvent?.Invoke(finished);
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, result)); // :524
                 break;
             }
             case "plan": // :525
@@ -787,6 +800,7 @@ public sealed class ACPSession : ProviderSession
             })
             .OfType<ApprovalRequest.Option>());
         pendingPermissions[id.Key] = id; // :576
+        if (skillEvents.Held(toolCall) is { } held) OnSkillsEvent?.Invoke(held);
         var kind = call.ToolCallKind switch // :577-581
         {
             ToolCall.Kind.Command => ApprovalRequest.Kind.Command,
@@ -815,6 +829,7 @@ public sealed class ACPSession : ProviderSession
     // :625-631. Part 4 of 8 (PR-PROVACP-074).
     private void HandleClose(string tail)
     {
+        skillEvents.Clear();
         if (promptActive) // :626
             FinishPrompt(null, new ProviderError(new ProviderError.Case.Failed(TextCleanup.LastLines(tail) ?? "The agent exited."))); // :627
         if (isStopping) return; // :629

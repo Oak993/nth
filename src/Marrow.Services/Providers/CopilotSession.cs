@@ -4,6 +4,10 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Store;
+using Marrow.Core.Port.Skills.Detect;
+using Marrow.Services.Port.Skills.Generations;
+using Marrow.Services.Port.Skills.Providers;
+using Marrow.Services.Port.Skills.Shims;
 
 // Source: DroppyCode/Services/Providers/CopilotSession.swift (B2 1fbf81e), :1-1072. The whole file: the
 // lifecycle, the session parameters, modes and selection, send, slash commands, interrupt, compact and rewind,
@@ -16,6 +20,10 @@ namespace Marrow.Services.Providers;
 public sealed partial class CopilotSession : ProviderSession
 {
     public Action<ProviderEvent>? OnEvent { get; set; } // :29
+    // DEVIATION ED-NEW-f-sk-11c: DL-12 observations, independent of timeline events and RPC decisions.
+    public Action<ToolEvent>? OnSkillsEvent { get; set; }
+    private readonly CopilotSkillEvents skillEvents = new();
+    private readonly Generation? skillGeneration;
 
     // :31-38. R-ENUM-2: an associated-value enum -> abstract record with nested sealed records.
     private abstract record PendingRequest
@@ -70,8 +78,12 @@ public sealed partial class CopilotSession : ProviderSession
         ["allow-all", "yolo", "permissions", "model", "models", "plan", "session", "sessions", "cwd", "cd"], SwiftStringComparer.Instance); // :71-73
 
     // :75-80
-    public CopilotSession(SessionConfiguration configuration)
+    public CopilotSession(SessionConfiguration configuration) : this(configuration, null) { }
+
+    // PORT-ONLY: receives the SK-9 lease from app wiring; caller keeps it until the provider stops.
+    public CopilotSession(SessionConfiguration configuration, Generation? generation)
     {
+        skillGeneration = generation;
         this.configuration = configuration;
         runtimeMode = configuration.RuntimeMode;
         model = configuration.Model;
@@ -106,10 +118,8 @@ public sealed partial class CopilotSession : ProviderSession
         this.connection = connection; // :102
 
         var id = configuration.ResumeID ?? SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid())); // :104
-        var parameters = SessionParameters(); // :105
-        parameters["sessionId"] = id; // :106
-        // Resume fails for an id the CLI no longer has; the thread then starts a fresh session. :107-108
-        _ = await connection.Request(configuration.ResumeID is null ? "session.create" : "session.resume", ObjectOf(parameters));
+        // DEVIATION ED-NEW-f-sk-11c: same create/resume payload, plus WU-8's optional root and single retry.
+        _ = await OpenSkillsSession(id, connection.Request);
         sessionID = id; // :109
         // A resumed session comes back in interactive mode with manual permissions (verified live), so the thread's
         // modes are applied either way. :110-112
@@ -158,7 +168,17 @@ public sealed partial class CopilotSession : ProviderSession
         parameters["systemMessage"] = JSONValue.FromDictionaryLiteral(
             ("mode", "append"),
             ("content", string.Join("\n\n", new[] { hydraPolicy, AntiSlopPolicy.Instructions(configuration.AntiSlopEnabled) }.OfType<string>())));
+        CopilotSkillWiring.AddDirectories(parameters, skillGeneration, configuration.Executable?.Path);
         return parameters; // :157
+    }
+
+    // PORT-ONLY: explicit offline request seam for WU-8; production uses the existing connection.
+    private Task<JSONValue> OpenSkillsSession(string id, Func<string, JSONValue, Task<JSONValue>> request)
+    {
+        var parameters = SessionParameters();
+        parameters["sessionId"] = id;
+        return CopilotSkillWiring.Open(configuration.ResumeID is null ? "session.create" : "session.resume",
+            parameters, configuration.Executable?.Path, request);
     }
 
     // :160-177
@@ -377,6 +397,7 @@ public sealed partial class CopilotSession : ProviderSession
     public void Stop()
     {
         isStopping = true; // :313
+        skillEvents.Clear();
         if (connection is not { } conn || conn.IsClosed) return; // :314
         // A shutdown lets the CLI flush the session's event log; the close after it is the backstop. :315
         MainActor.Spawn(async () => // :316-319
@@ -599,27 +620,30 @@ public sealed partial class CopilotSession : ProviderSession
         IReadOnlyDictionary<string, string> environment,
         Action<JSONRPCConnection> configure)
     {
-        var arguments = new List<string> { "--headless", "--stdio", "--no-auto-update", "--log-level", "error" }; // :480
-        // Connected servers from Settings are the only MCP servers the session sees; the user's own are switched
-        // off for this session by name, their file untouched. :481-483
-        arguments.AddRange(MCPSessionOverrides.CopilotArguments());
-        var process = new StdioProcess( // :484-490
-            executable.Path,
-            arguments,
-            directory,
-            environment,
-            StdioFramer.Framing.ContentLength);
+        var arguments = LaunchArguments();
+        var childEnvironment = ShimPath.ForChild(environment, Storage.Root); // DL-6; the sole environment change.
+        var process = new StdioProcess(
+            executable.Path, arguments, directory, childEnvironment, StdioFramer.Framing.ContentLength);
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :491
         configure(connection); // :492
         connection.Start(); // :493
-        // DEVIATION OD-0012 F1: upstream pings with the message "droppy-code" (:494).
-        var pong = await connection.Request("ping", JSONValue.FromDictionaryLiteral(("message", "marrow"))); // :494
-        if (pong["protocolVersion"]?.JSONValueInt is null) // :495-498
+        var pong = await connection.Request("ping", JSONValue.FromDictionaryLiteral(("message", "marrow"))); // :494; OD-0012 F1
+        if (pong["protocolVersion"]?.JSONValueInt is null)
         {
             connection.Close();
             throw new ProviderError(new ProviderError.Case.Failed("This `copilot` does not speak the SDK protocol. Update it with `copilot update`."));
         }
-        return connection; // :499
+        return connection;
+    }
+
+    // :480-483, extracted unchanged for the DL-11 byte-identity test.
+    private static List<string> LaunchArguments()
+    {
+        var arguments = new List<string> { "--headless", "--stdio", "--no-auto-update", "--log-level", "error" }; // :480
+        // Connected servers from Settings are the only MCP servers the session sees; the user's own are switched
+        // off for this session by name, their file untouched. :481-483
+        arguments.AddRange(MCPSessionOverrides.CopilotArguments());
+        return arguments;
     }
 
     // MARK: - Notifications
@@ -845,6 +869,7 @@ public sealed partial class CopilotSession : ProviderSession
     {
         if (toolNames.ContainsKey(id)) return; // :661
         toolNames[id] = name; // :662
+        if (skillEvents.Started(id, name, arguments, server) is { } used) OnSkillsEvent?.Invoke(used);
         if (SwiftString.Equal(name, "update_todo")) // :663-666
         {
             sink(new ProviderEvent.Todos(Todos(arguments["todos"]?.JSONValueString ?? "")));
@@ -868,6 +893,7 @@ public sealed partial class CopilotSession : ProviderSession
     private void HandleToolResult(JSONValue data, Action<ProviderEvent> sink)
     {
         if (data["toolCallId"]?.JSONValueString is not { } id) return; // :681
+        if (skillEvents.Finished(id, data, declinedTools.Contains(id)) is { } finished) OnSkillsEvent?.Invoke(finished);
         var name = toolNames.TryGetValue(id, out var recorded) ? recorded : ""; // :682
         if (HiddenTools.Contains(name)) return; // :683
         var succeeded = data["success"]?.JSONValueBool ?? true; // :684
@@ -891,6 +917,7 @@ public sealed partial class CopilotSession : ProviderSession
         turnActive = false; // :697
         // Every call of the turn has had its result; the names, declines, briefs and shown reasoning were for those.
         // :698-703
+        skillEvents.Clear();
         toolNames.Clear();
         declinedTools.Clear();
         taskBriefs.Clear();
@@ -1000,6 +1027,7 @@ public sealed partial class CopilotSession : ProviderSession
             return;
         }
         pendingRequests[requestID] = new PendingRequest.Permission(request, toolCallID); // :784
+        if (skillEvents.Held(request) is { } held) OnSkillsEvent?.Invoke(held);
         // A write prompt carries the CLI's own patch, which beats the row's reconstruction. :785-790
         if (Is(request["kind"]?.JSONValueString, "write") && toolCallID is { } callID && request["diff"]?.JSONValueString is { Length: > 0 } diff)
         {
@@ -1216,6 +1244,7 @@ public sealed partial class CopilotSession : ProviderSession
     // :931-938
     private void HandleClose(string tail)
     {
+        skillEvents.Clear();
         var resolved = pendingRequests.Keys.ToList(); // :932
         pendingRequests.Clear(); // :933
         foreach (var key in resolved) OnEvent?.Invoke(new ProviderEvent.RequestResolved(key)); // :934
