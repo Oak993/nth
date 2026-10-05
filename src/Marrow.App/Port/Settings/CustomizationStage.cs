@@ -48,7 +48,8 @@ internal sealed class CustomizationStage : Decorator
     /// <param name="settings">The composer light's settings as the app holds them; read inside a tracked read.</param>
     /// <param name="backdropOpacity">The app's backdrop opacity, the stage's own backdrop wearing it; read inside a tracked read.</param>
     /// <param name="session">The preview's maker and state (CZ-4.5.3, CZ-4.6).</param>
-    internal CustomizationStage(Func<ComposerLightSettings> settings, Func<double> backdropOpacity, PreviewSession session)
+    /// <param name="workingDots">CZ-5: the working dots' setting as the app holds it, read inside a tracked read; null leaves the dots in the accent.</param>
+    internal CustomizationStage(Func<ComposerLightSettings> settings, Func<double> backdropOpacity, PreviewSession session, Func<WorkingDotsSettings>? workingDots = null)
     {
         this.settings = settings;
         this.session = session;
@@ -87,6 +88,7 @@ internal sealed class CustomizationStage : Decorator
         AttachedToVisualTree += (_, _) => { session.Changed -= OnSession; session.Changed += OnSession; };
         this.Track(settings, value => { Preview.Settings = value; Caption.SetText(Describe()); });
         this.Track(backdropOpacity, opacity => backdrop.Update(opacity, null));
+        if (workingDots is not null) this.Track(workingDots, value => Preview.WorkingDots = value);
     }
 
     private string Describe() => PreviewCaption.Text(settings(), PreviewMakers.For(session.Maker).Name);

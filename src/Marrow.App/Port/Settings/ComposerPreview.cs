@@ -16,6 +16,7 @@ using Avalonia.Media.TextFormatting;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Settings;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -47,6 +48,7 @@ internal sealed class ComposerPreview : Grid
     private readonly PreviewSendButton send = new();
     private readonly Action<TimeSpan> typingFrame;
     private ComposerLightSettings settings = ComposerLightSettings.Default;
+    private WorkingDotsSettings workingDots = WorkingDotsSettings.Default;
     private bool typing;
     private int typedCount;
     private ContinuousInstant typingStart;
@@ -78,6 +80,15 @@ internal sealed class ComposerPreview : Grid
         get => settings;
         set { settings = value; Light.Settings = value; }
     }
+
+    /// <summary>CZ-5 (CZ-10.4): the working dots' setting, the app's, handed in by the page; the dots wear its colour for the preview maker.</summary>
+    internal WorkingDotsSettings WorkingDots
+    {
+        get => workingDots;
+        set { workingDots = value; UpdateDots(); }
+    }
+
+    private void UpdateDots() => dots.Tint = WorkingDotsColor.Of(workingDots, session.Maker);
 
     internal ComposerPreview(PreviewSession session)
     {
@@ -175,6 +186,7 @@ internal sealed class ComposerPreview : Grid
             if (!first) Chip.Show(session.Maker);
             shownMaker = session.Maker;
             UpdatePalette();
+            UpdateDots();
         }
         var state = session.State;
         if (first || state != shownState)

@@ -68,7 +68,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         var style = settings.ComposerLight.Style;
 
         // the pinned block (CZ-3.4): the stage and its foot; bound to the app's settings by the two functions it reads inside tracked reads
-        Stage = new CustomizationStage(() => settings.ComposerLight, () => settings.BackdropOpacity, session) { Margin = new Thickness(0, 0, 0, CustomizationStage.GapBelow) };
+        Stage = new CustomizationStage(() => settings.ComposerLight, () => settings.BackdropOpacity, session, () => settings.WorkingDots) { Margin = new Thickness(0, 0, 0, CustomizationStage.GapBelow) };
 
         // Style (CZ-5)
         StyleCards = new CzStyleCards(StyleId(style));
