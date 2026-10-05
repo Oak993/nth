@@ -1,0 +1,477 @@
+<title>Voice Composer</title>
+<meta name="description" content="The Marrow composer with its voice orb (OD-0091): Siri Wave by default, Voice Membrane in Customization, the attachment button on the left, and the voice glow on the composer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: a review sheet. Header, the control bar, the live stage (the real composer in a chat window, scaled to fit),
+   the state rail under it, then two cards (Settings > Customization as it would read, and the orb at its sizes) and
+   the notes. Warm graphite neutrals taken from the composer's own window; the one accent is Siri Wave's violet. */
+:root{
+  --bg:#ECE8E4; --bg2:#E3DED9; --ink:#1D1B1A; --sub:rgba(29,27,26,.64); --faint:rgba(29,27,26,.44);
+  --card:rgba(255,255,255,.62); --edge:rgba(29,27,26,.10); --chip:rgba(29,27,26,.06); --chipOn:#FFFFFF; --chipOnInk:#1D1B1A; --chipOnRim:rgba(29,27,26,.12);
+  --accent:#6A4FE0; --accentSoft:rgba(106,79,224,.12); --warn:#B7791F; --good:#2E8A55;
+  --ui:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Geist Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --app:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --ez:cubic-bezier(.32,.72,0,1);
+  /* the composer's window, from the Composer Lights board */
+  --wink:#1C1C1E; --wink2:rgba(28,28,30,.42); --wink3:rgba(28,28,30,.6); --turn:rgba(0,0,0,.035); --codebg:rgba(0,0,0,.065);
+  --disc:rgba(0,0,0,.13); --discOn:rgba(0,0,0,.82); --discarrow:#FFFFFF; --stopbg:rgb(44,44,46); --winedge:rgba(0,0,0,.12);
+  --ringtrk:rgba(28,28,30,.14); --ringarc:rgba(28,28,30,.55); --dotc:rgba(28,28,30,.22); --plusg:#23964A; --minr:#D2433E;
+  --hoverfill:rgba(28,28,30,.07); --pressfill:rgba(28,28,30,.12); --winshadow:0 18px 44px rgba(70,50,35,.18); --appacc:#0067C0;
+  --wl:1;
+  --pgBg:rgba(250,249,251,.56); --pgRim:rgba(255,255,255,.75); --pgEdge:rgba(40,30,60,.14); --pgHi:rgba(255,255,255,.85); --pgShade:rgba(60,40,30,.10); --pgDrop:0 8px 22px -10px rgba(70,50,35,.32); --pgLab:#55565B; --pgLabHi:#16161A; --pgX:#4A4B50; --pgXHover:#16161A; --pgXBg:rgba(255,255,255,.55); --pgXRim:rgba(40,30,60,.12);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121110; --bg2:#1A1817; --ink:#EEEAE6; --sub:rgba(238,234,230,.64); --faint:rgba(238,234,230,.42);
+    --card:rgba(255,255,255,.045); --edge:rgba(255,255,255,.10); --chip:rgba(255,255,255,.06); --chipOn:rgba(255,255,255,.14); --chipOnInk:#F4F1EE; --chipOnRim:rgba(255,255,255,.18);
+    --accent:#A894FF; --accentSoft:rgba(168,148,255,.14); --warn:#E0A84A; --good:#5BC489;
+    --wink:#ECECEC; --wink2:rgba(236,236,236,.45); --wink3:rgba(236,236,236,.62); --turn:rgba(255,255,255,.05); --codebg:rgba(255,255,255,.075);
+    --disc:rgba(255,255,255,.13); --discOn:rgba(255,255,255,.9); --discarrow:#FFFFFF; --stopbg:rgb(105,105,105); --winedge:rgba(255,255,255,.1);
+    --ringtrk:rgba(236,236,236,.16); --ringarc:rgba(236,236,236,.62); --dotc:rgba(236,236,236,.26); --plusg:#3BC45A; --minr:#F0524D;
+    --hoverfill:rgba(236,236,236,.07); --pressfill:rgba(236,236,236,.12); --winshadow:0 18px 48px rgba(0,0,0,.34); --appacc:#489CF9;
+    --wl:0;
+    --pgBg:rgba(18,18,22,.50); --pgRim:rgba(255,255,255,.16); --pgEdge:rgba(0,0,0,.35); --pgHi:rgba(255,255,255,.22); --pgShade:rgba(0,0,0,.22); --pgDrop:0 10px 24px -10px rgba(0,0,0,.6); --pgLab:#8D8E94; --pgLabHi:#F7F7F8; --pgX:#B4B5BA; --pgXHover:#F7F7F8; --pgXBg:rgba(255,255,255,.09); --pgXRim:rgba(255,255,255,.16);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121110; --bg2:#1A1817; --ink:#EEEAE6; --sub:rgba(238,234,230,.64); --faint:rgba(238,234,230,.42);
+  --card:rgba(255,255,255,.045); --edge:rgba(255,255,255,.10); --chip:rgba(255,255,255,.06); --chipOn:rgba(255,255,255,.14); --chipOnInk:#F4F1EE; --chipOnRim:rgba(255,255,255,.18);
+  --accent:#A894FF; --accentSoft:rgba(168,148,255,.14); --warn:#E0A84A; --good:#5BC489;
+  --wink:#ECECEC; --wink2:rgba(236,236,236,.45); --wink3:rgba(236,236,236,.62); --turn:rgba(255,255,255,.05); --codebg:rgba(255,255,255,.075);
+  --disc:rgba(255,255,255,.13); --discOn:rgba(255,255,255,.9); --discarrow:#FFFFFF; --stopbg:rgb(105,105,105); --winedge:rgba(255,255,255,.1);
+  --ringtrk:rgba(236,236,236,.16); --ringarc:rgba(236,236,236,.62); --dotc:rgba(236,236,236,.26); --plusg:#3BC45A; --minr:#F0524D;
+  --hoverfill:rgba(236,236,236,.07); --pressfill:rgba(236,236,236,.12); --winshadow:0 18px 48px rgba(0,0,0,.34); --appacc:#489CF9;
+  --wl:0;
+  --pgBg:rgba(18,18,22,.50); --pgRim:rgba(255,255,255,.16); --pgEdge:rgba(0,0,0,.35); --pgHi:rgba(255,255,255,.22); --pgShade:rgba(0,0,0,.22); --pgDrop:0 10px 24px -10px rgba(0,0,0,.6); --pgLab:#8D8E94; --pgLabHi:#F7F7F8; --pgX:#B4B5BA; --pgXHover:#F7F7F8; --pgXBg:rgba(255,255,255,.09); --pgXRim:rgba(255,255,255,.16);
+  color-scheme:dark;
+}
+@property --wl{syntax:'<number>';inherits:true;initial-value:0}
+html{transition:--wl .5s ease}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;transition:background-color .45s ease,color .45s ease;overflow-x:hidden}
+*{box-sizing:border-box}
+.page{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:28px 56px;display:flex;flex-direction:column;gap:22px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.hdr{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px}
+.hdr h1{margin:0;font-size:30px;line-height:1.1;font-weight:600;letter-spacing:-.02em;text-wrap:balance}
+.hdr p{margin:8px 0 0;max-width:68ch;color:var(--sub);font-size:14px}
+.refs{font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--faint);text-align:right}
+
+/* controls */
+.bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.grp{display:flex;align-items:center;gap:8px;min-width:0}
+.glab{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.seg{position:relative;display:inline-flex;padding:2px;border-radius:999px;background:var(--chip);box-shadow:inset 0 0 0 1px var(--edge)}
+@media (max-width:480px){.seg{max-width:100%;overflow-x:auto;scrollbar-width:none}.seg::-webkit-scrollbar{display:none}}
+.seg .pill{position:absolute;top:2px;bottom:2px;left:2px;width:0;border-radius:999px;background:var(--chipOn);box-shadow:inset 0 0 0 .5px var(--chipOnRim),0 1px 3px rgba(0,0,0,.12);transition:left .32s var(--ez),width .32s var(--ez)}
+.seg button{position:relative;appearance:none;border:0;background:none;height:28px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:500;color:var(--sub);cursor:pointer;white-space:nowrap;transition:color .2s ease}
+.seg button.on{color:var(--chipOnInk)}
+.seg button em{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.7;margin-right:5px}
+.btn{appearance:none;border:0;height:32px;padding:0 14px;border-radius:999px;background:var(--chip);box-shadow:inset 0 0 0 1px var(--edge);font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color .15s ease,transform .12s ease}
+.btn:hover{background:var(--accentSoft)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:none}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.btn svg{width:12px;height:12px}
+.file{position:relative;overflow:hidden}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+
+/* stage */
+.stagewrap{position:relative;width:100%}
+.stage{position:relative;width:940px;transform-origin:0 0}
+.win{position:relative;width:940px;height:330px;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--winedge),var(--winshadow);font-family:var(--app);color:var(--wink);isolation:isolate}
+.wbg::before,.wbg::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background-size:940px 330px}
+.wbg::before{background-image:linear-gradient(100deg,#50463F 0%,#523F36 52%,#41362F 100%);opacity:calc(1 - var(--wl))}
+.wbg::after{background-image:linear-gradient(100deg,#DFD4CC 0%,#E1CEC4 52%,#D0C4BC 100%);opacity:var(--wl)}
+.chat{position:absolute;inset:0 0 auto 0;height:300px;z-index:1}
+.turn{position:absolute;left:60px;width:820px;top:-14px;bottom:-40px;border-radius:14px;background:var(--turn)}
+.ans{position:absolute;left:14px;right:14px;top:30px;font-size:14px;line-height:21px;color:var(--wink)}
+.ans h3{margin:0 0 8px;font-size:17px;line-height:24px;font-weight:600}
+.ans h4{margin:10px 0 6px;font-size:15px;line-height:21px;font-weight:600}
+.ans p{margin:0}.ans ul{margin:0;padding-left:18px}.ans li{margin:0 0 4px}
+.ans code{font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;font-size:12.5px}
+.files{position:absolute;left:0;right:0;bottom:76px;height:20px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;line-height:20px;color:var(--wink);z-index:2}
+.files svg path{fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round}
+.files .g{color:var(--plusg)}.files .r{color:var(--minr)}
+
+/* the composer (820 x 52, corner 22, as the port draws it) */
+.cmp{position:absolute;left:60px;bottom:12px;width:820px;height:52px;border-radius:22px;z-index:3}
+.plate{position:absolute;inset:0;border-radius:22px;overflow:hidden}
+.plate.wbg::before,.plate.wbg::after{background-position:-60px -266px}
+.lightbox{position:absolute;inset:0;border-radius:22px;z-index:1;pointer-events:none}
+.bbs{position:absolute;inset:0;border-radius:var(--bb-r);overflow:hidden;opacity:0}
+.bbs i{position:absolute;inset:0;display:block;box-sizing:content-box;pointer-events:none}
+/* the voice glow sits under the composer's text and controls (the package overlays its host's content; here the text
+   and the orb stay crisp above it). An id rule, so the package's own [data-voice-beam] rule cannot make it static. */
+#vglow{position:absolute;inset:0;border-radius:22px;z-index:3;pointer-events:none}
+.cc{position:absolute;inset:0;z-index:4;font-size:15px;line-height:20px}
+.field{position:absolute;top:16px;height:20px;left:48px;right:240px;white-space:nowrap;overflow:hidden;transition:left .34s var(--ez),right .42s var(--ez)}
+.v-out .field{left:14px}
+.field>.lay{position:absolute;left:0;top:0;right:0;height:20px;opacity:0;transform:translateY(3px);transition:opacity .2s ease,transform .3s var(--ez);pointer-events:none;display:flex;align-items:center;gap:10px}
+.field>.lay.on{opacity:1;transform:none;transition:opacity .26s ease .05s,transform .38s var(--ez) .05s}
+.hint{color:var(--wink2)}
+.lis{color:var(--wink2);gap:9px}
+.lis .dot{width:6px;height:6px;border-radius:50%;background:var(--minr);opacity:.85;animation:rec 1.6s ease-in-out infinite}
+@keyframes rec{0%,100%{opacity:.85}50%{opacity:.35}}
+.field>.lay.txt{display:block;line-height:20px;color:var(--wink);overflow:visible}
+.tin{display:inline-block;white-space:nowrap;transition:transform .36s var(--ez)}
+.txt .w{display:inline-block;position:relative;vertical-align:top;white-space:pre;opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .4s var(--ez),color .45s ease,width .3s var(--ez)}
+.txt .w.in{opacity:1;transform:none}
+.txt .w.tent{color:var(--wink3)}
+.txt .w.out{opacity:0;transform:translateY(5px);transition:opacity .26s ease,transform .3s var(--ez),color .45s ease,width .3s var(--ez)}
+.txt .w .t{display:inline-block;white-space:pre;transition:opacity .22s ease,transform .3s var(--ez)}
+.txt .w .t.old{position:absolute;left:0;top:0;opacity:0;transform:translateY(-6px)}
+.txt .w .t.new{opacity:0;transform:translateY(6px)}
+.txt.sent .w{opacity:0;transform:translateY(-7px);transition:opacity .22s ease,transform .3s var(--ez)}
+.caret{display:inline-block;width:1.5px;height:17px;margin-left:1px;vertical-align:-3px;background:var(--wink);border-radius:1px;animation:blink 1.06s ease-in-out infinite}
+@keyframes blink{0%,45%{opacity:1}55%,95%{opacity:0}100%{opacity:1}}
+.note{color:var(--wink3);font-size:14px}
+.note svg{flex-shrink:0;width:15px;height:15px;color:var(--warn)}
+.note svg path,.note svg circle{fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.note .lnk{color:var(--wink);text-decoration:underline;text-decoration-color:var(--wink2);text-underline-offset:2px}
+
+/* attachment: inside on the left (A, B), or outside in the gutter (C) */
+.attach{position:absolute;left:8px;top:12px;width:34px;height:28px;border-radius:14px;border:0;background:transparent;color:var(--wink3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color .12s ease-out,opacity .28s ease,transform .34s var(--ez);z-index:4}
+.attach:hover{background:var(--hoverfill)}.attach:active{background:var(--pressfill)}
+.attach svg{width:16px;height:16px}
+.attach svg path{fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.v-out .attach.in{opacity:0;transform:scale(.6);pointer-events:none}
+.attach.out{left:14px;top:auto;bottom:20px;width:36px;height:36px;border-radius:18px;background:transparent;opacity:0;transform:scale(.6);pointer-events:none;z-index:3}
+.attach.out::before{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--turn);box-shadow:inset 0 0 0 1px var(--winedge)}
+.v-out .attach.out{opacity:1;transform:none;pointer-events:auto}
+.attach.out:hover::before{background:var(--hoverfill)}
+
+/* tools on the right: the voice orb (where the attachment was), the model chip, the context ring, send */
+.tools{position:absolute;right:72px;top:0;bottom:0;display:flex;align-items:center;gap:14px;z-index:2}
+.orbmove{position:absolute;inset:0;will-change:transform}
+.v-pill .xbtn{display:none}
+/* the status pill: the source's Scene pill (styles.css: #111214, a 1 px white 14 % hairline, fully round, the
+   2.35 s text sweep), at the composer's scale; one dark look in both themes, as the orb's own stage */
+/* the status pill in Marrow glass (the port's GlassMaterial: a frosted body over a blurred, saturated backdrop,
+   blur 15 % of the smaller side, frost 18 % toward the theme's ground; a 1.5 px rim lit from the top left, a soft
+   inner shade bottom right; the knob's pink / blue dispersion fringe at its hairline). Over the composer it shows
+   the composer's plate and the voice glow beneath, softened; the tint sits a touch darker than the composer's glass
+   (lighter in light), so the label keeps its contrast. */
+.vpill{position:absolute;left:0;top:6px;width:40px;height:40px;z-index:1;border-radius:999px;
+  background:var(--pgBg);-webkit-backdrop-filter:blur(6px) saturate(1.7);backdrop-filter:blur(6px) saturate(1.7);
+  box-shadow:inset 0 0 0 .5px var(--pgRim),inset 0 0 0 1px var(--pgEdge),inset .7px 0 .8px -.1px rgba(255,96,150,.38),inset -.7px 0 .8px -.1px rgba(96,176,255,.4),inset 0 -2px 4px var(--pgShade),var(--pgDrop);
+  opacity:0;pointer-events:none;overflow:hidden;transition:left .42s var(--ez),width .42s var(--ez),opacity .18s ease .24s}
+/* the soft top highlight (the knob's .kw::after), and the refracting ends: a brighter lens band inside each rounded
+   end where the glass is thickest, as the material's rim band (cheap: two gradients, no second sample) */
+.vpill::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(70% 55% at 50% 0%,var(--pgHi) 0%,transparent 70%) 0 0/100% 100% no-repeat,
+    radial-gradient(14px 70% at 0% 50%,rgba(255,255,255,.10),transparent 100%),
+    radial-gradient(14px 70% at 100% 50%,rgba(255,255,255,.10),transparent 100%);opacity:.55}
+.vpill.open{opacity:1;pointer-events:auto;transition:left .42s var(--ez),width .42s var(--ez),opacity .14s ease}
+.vpill.float{box-shadow:inset 0 0 0 .5px var(--pgRim),inset 0 0 0 1px var(--pgEdge),inset .7px 0 .8px -.1px rgba(255,96,150,.38),inset -.7px 0 .8px -.1px rgba(96,176,255,.4),inset 0 -2px 4px var(--pgShade),0 14px 30px -12px rgba(0,0,0,.55)}
+/* the cross in a small glass disc of its own */
+.vpill .px{position:absolute;left:8px;top:50%;width:24px;height:24px;margin-top:-12px;border:0;padding:0;border-radius:12px;
+  background:radial-gradient(80% 60% at 50% 0%,var(--pgHi),transparent 75%),var(--pgXBg);
+  box-shadow:inset 0 0 0 .5px var(--pgXRim),inset .5px 0 .6px -.1px rgba(255,96,150,.3),inset -.5px 0 .6px -.1px rgba(96,176,255,.32),0 1px 2px rgba(0,0,0,.12);
+  color:var(--pgX);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transform:scale(.6);z-index:1;
+  transition:opacity .16s ease,transform .3s var(--ez),color .12s ease-out,filter .12s ease-out}
+.vpill.open .px{opacity:1;transform:none;transition:opacity .22s ease .16s,transform .38s var(--ez) .12s,color .12s ease-out,filter .12s ease-out}
+.vpill .px:hover{color:var(--pgXHover);filter:brightness(1.12)}
+.vpill .px:active{transform:scale(.92)}
+.vpill .px:focus-visible{outline:none;box-shadow:0 0 0 2px var(--accent)}
+.vpill .px svg{width:11px;height:11px}
+.vpill .px svg path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.plab{position:absolute;left:40px;top:0;bottom:0;right:0;pointer-events:none;z-index:1}
+.vpill.float .px{left:auto;right:8px}
+.vpill.float .plab{left:52px}
+.pl{position:absolute;left:0;top:50%;transform:translate(-4px,-50%);white-space:nowrap;font-family:var(--app);font-size:var(--fs,13.5px);font-weight:600;line-height:1.1;opacity:0;transition:opacity .2s ease,transform .32s var(--ez);
+  background-image:linear-gradient(105deg,var(--pgLab) 0%,var(--pgLab) 38%,var(--pgLabHi) 49%,var(--pgLab) 60%,var(--pgLab) 100%);background-position:135% 0;background-size:260% 100%;color:transparent;-webkit-background-clip:text;background-clip:text;animation:pill-sweep 2.35s ease-in-out infinite}
+.vpill.open .pl.on{opacity:1;transform:translate(0,-50%);transition:opacity .26s ease .14s,transform .4s var(--ez) .1s}
+.vpill:not(.open) .pl{animation-play-state:paused}
+@keyframes pill-sweep{0%,12%{background-position:135% 0}70%,100%{background-position:-55% 0}}
+.orbslot{position:relative;flex-shrink:0;width:26px;height:26px}
+.orbcv{position:absolute;left:50%;top:50%;width:72px;height:72px;margin:-36px 0 0 -36px;pointer-events:none}
+.orbcv{z-index:2}
+.orbbtn{position:absolute;inset:-4px;border-radius:50%;border:0;background:transparent;cursor:pointer;padding:0;z-index:3}
+/* the cancel cross: tucked behind the orb at rest, it slides out to the orb's left while listening (OD-0091) */
+.xbtn{position:absolute;top:50%;right:50%;width:24px;height:24px;margin-top:-12px;border:0;padding:0;border-radius:12px;background:var(--hoverfill);box-shadow:inset 0 0 0 1px var(--winedge);color:var(--wink3);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1;opacity:0;transform:translateX(0) scale(.55);pointer-events:none;transition:transform .42s var(--ez),opacity .2s ease,background-color .12s ease-out,color .12s ease-out}
+.xbtn svg{width:12px;height:12px}
+.xbtn svg path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.cmp.live .xbtn{opacity:1;transform:translateX(var(--xo,-22px)) scale(1);pointer-events:auto;transition:transform .42s var(--ez),opacity .24s ease .04s,background-color .12s ease-out,color .12s ease-out}
+.xbtn:hover{background:var(--pressfill);color:var(--wink)}
+.xbtn:focus-visible{outline:none;box-shadow:0 0 0 2px var(--accent)}
+.orbbtn:focus-visible{outline:none;box-shadow:0 0 0 2px var(--accent)}
+.chip{appearance:none;border:0;background:none;padding:0;margin:0;font:inherit;height:20px;display:flex;align-items:center;gap:6px;font-size:14px;color:var(--wink);cursor:default}
+.chip .mkw{position:relative;width:15px;height:15px;flex-shrink:0}
+.chip .mk,.chip .mdot{position:absolute;transition:opacity .35s ease,transform .45s var(--ez),background-color .6s ease}
+.chip .mk{left:0;top:0;width:15px;height:15px}
+.chip .mk path{stroke:#D97757;stroke-width:1.7;stroke-linecap:round}
+.chip .mdot{left:3px;top:3px;width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.25)}
+.chip .off{opacity:0;transform:scale(.5)}
+.chip .mn{position:relative;display:block;height:20px;transition:width .32s var(--ez)}
+.chip .mn span{position:absolute;left:0;top:0;white-space:nowrap;transition:opacity .2s ease}
+.chip .mn span.off{opacity:0;transform:none}
+.chip .ef{color:var(--wink3)}
+.chip .cv{width:8px;height:6px;margin-left:2px;color:var(--wink3)}
+.chip .cv path{fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.ring{position:absolute;left:756px;top:17px;width:18px;height:18px}
+.ring .t{fill:none;stroke:var(--ringtrk);stroke-width:2}
+.ring .a{fill:none;stroke:var(--ringarc);stroke-width:2;stroke-linecap:round;transition:stroke-dasharray .6s ease}
+.send{position:absolute;left:784px;top:12px;width:28px;height:28px;border-radius:50%;border:0;padding:0;background:none;cursor:pointer}
+.send .d1,.send .d2{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:opacity .28s ease,transform .32s var(--ez),background-color .25s ease}
+.send .d1{background:var(--disc)}
+.send .d1 path{fill:none;stroke:var(--discarrow);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:stroke .25s ease}
+.send .d2{background:var(--stopbg);opacity:0;transform:scale(.7)}
+.send .d2 i{width:10px;height:10px;border-radius:2px;background:#fff}
+.cmp.typing .send .d1{background:color-mix(in srgb,var(--disc),var(--wink) 12%)}
+.send:active .d1{transform:scale(.92)}
+.cmp.running .send .d1{opacity:0;transform:scale(.7)}
+.cmp.running .send .d2{opacity:1;transform:none}
+/* The working dots, as ComposerWorkingDots.swift (the playground's .wdots): 2 px dots on an 8 px pitch in the app's
+   accent, filling the bottom 40 % of the pill in up to 3 rows (each higher row a third fainter), clipped to the 22 px
+   corners; one opacity pulse per dot (.08 -> .75 at 35 %, ease-out, -> .08, ease-in, 2.2 s) spread into a wave by
+   0.045 s per column and 0.09 s per row; faded in and out over 0.4 s with the running turn. */
+.wdots{position:absolute;left:0;right:0;bottom:0;height:40%;opacity:0;pointer-events:none;transition:opacity .4s ease-in-out,visibility 0s linear .4s;clip-path:inset(-31.2px 0 0 0 round 22px);z-index:2}
+.cmp.running .wdots{opacity:1;visibility:visible;transition:opacity .4s ease-in-out,visibility 0s}
+.wdots{visibility:hidden}
+/* the 312 dots tick only while they are shown (they froze at the fade-out's start; a hidden field costs nothing) */
+.wdots>b>i{animation-play-state:paused}
+.cmp.running .wdots>b>i{animation-play-state:running}
+.wdots>b{position:absolute;left:0;right:0;bottom:0;height:100%}
+.wdots>b>i{position:absolute;width:2px;height:2px;border-radius:50%;background:var(--appacc);opacity:.08;animation:wdot 2.2s infinite}
+@keyframes wdot{0%{opacity:.08;animation-timing-function:cubic-bezier(0,0,.58,1)}35%{opacity:.75;animation-timing-function:cubic-bezier(.42,0,1,1)}100%{opacity:.08}}
+
+/* the simulated-voice indicator, on the stage */
+.src{position:absolute;right:14px;top:12px;z-index:6;display:flex;align-items:center;gap:8px;height:26px;padding:0 10px 0 9px;border-radius:13px;background:rgba(20,18,17,.55);color:#F2EEEA;font-family:var(--ui);font-size:11.5px;font-weight:500;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+:root[data-theme="light"] .src{background:rgba(255,255,255,.66);color:#1D1B1A}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .src{background:rgba(255,255,255,.66);color:#1D1B1A}}
+.src .meter{display:flex;align-items:flex-end;gap:2px;height:12px}
+.src .meter i{display:block;width:3px;height:12px;border-radius:1.5px;background:currentColor;opacity:.85;transform-origin:50% 100%;transform:scaleY(.12)}
+.src .lv{font-family:var(--mono);font-size:10.5px;opacity:.7;min-width:28px;font-variant-numeric:tabular-nums}
+
+/* state rail */
+.rail{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.st{appearance:none;border:0;text-align:left;padding:10px 11px 11px;border-radius:12px;background:var(--card);box-shadow:inset 0 0 0 1px var(--edge);cursor:pointer;display:flex;flex-direction:column;gap:3px;min-width:0;transition:box-shadow .25s ease,background-color .25s ease,transform .12s ease}
+.st:active{transform:scale(.98)}
+.st b{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.st b i{width:6px;height:6px;border-radius:50%;background:var(--faint);transition:background-color .25s ease,box-shadow .25s ease}
+.st span{font-size:11.5px;line-height:1.35;color:var(--sub)}
+.st code{font-family:var(--mono);font-size:10.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st.on{box-shadow:inset 0 0 0 1.5px var(--accent);background:var(--accentSoft)}
+.st.on b i{background:var(--accent);box-shadow:0 0 0 3px var(--accentSoft)}
+.read{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--mono);font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+.read b{font-weight:500;color:var(--ink)}
+
+/* cards */
+.cards{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px}
+.card{border-radius:16px;background:var(--card);box-shadow:inset 0 0 0 1px var(--edge);padding:16px 18px 18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card h2{margin:0;font-size:15px;font-weight:600;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card h2 span{font-size:12px;font-weight:400;color:var(--faint)}
+.crumb{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.srow{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid var(--edge)}
+.srow:first-of-type{border-top:0;padding-top:0}
+.srow .lab{display:flex;justify-content:space-between;gap:12px;font-size:13px;font-weight:500}
+.srow .lab span{font-weight:400;font-size:12px;color:var(--faint)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{appearance:none;border:0;padding:12px;border-radius:12px;background:var(--chip);box-shadow:inset 0 0 0 1px var(--edge);display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;min-width:0;transition:box-shadow .25s ease,background-color .25s ease}
+.tile.on{box-shadow:inset 0 0 0 1.5px var(--accent);background:var(--accentSoft)}
+.tile canvas{flex-shrink:0;width:44px;height:44px}
+.tile b{display:block;font-size:13px;font-weight:600}
+.tile small{display:block;font-size:11.5px;line-height:1.35;color:var(--sub)}
+.tile .def{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.02em}
+.mini{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;font-size:13px;color:var(--sub)}
+.radios{display:flex;flex-direction:column;gap:2px}
+.radio{appearance:none;border:0;background:none;display:flex;align-items:center;gap:10px;padding:6px 8px;margin:0 -8px;border-radius:8px;text-align:left;font-size:13px;cursor:pointer;transition:background-color .15s ease}
+.radio:hover{background:var(--chip)}
+.radio i{position:relative;flex-shrink:0;width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--faint);transition:box-shadow .2s ease}
+.radio i::after{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--accent);transform:scale(0);transition:transform .25s var(--ez)}
+.radio.on i{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.radio.on i::after{transform:scale(1)}
+.radio span{color:var(--faint);font-size:12px}
+.rv{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--accent);margin-left:6px}
+.mini b{font-weight:500;color:var(--ink)}
+.sizes{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:8px 6px;align-items:center;justify-items:center}
+.sizes .rh{justify-self:start;font-size:12px;color:var(--sub);white-space:nowrap}
+.sizes .ch{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.sizes .cell{display:flex;align-items:center;justify-content:center;width:100%;height:68px;border-radius:10px;background:var(--bg2)}
+.cardnote{font-size:12px;line-height:1.5;color:var(--sub);margin:0}
+
+/* notes */
+.notes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.notes section{min-width:0}
+.notes h3{margin:0 0 8px;font-size:13px;font-weight:600;letter-spacing:.01em}
+.notes p,.notes li{font-size:13px;line-height:1.55;color:var(--sub);max-width:68ch}
+.notes p{margin:0 0 8px}.notes ul{margin:0;padding-left:18px}.notes li{margin:0 0 6px}
+.notes b{color:var(--ink);font-weight:500}
+.tblw{overflow-x:auto;grid-column:1 / -1}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-top:1px solid var(--edge)}
+th{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);border-top:0}
+td{color:var(--sub)}
+td:first-child{color:var(--ink);font-weight:500;white-space:nowrap}
+td code{font-family:var(--mono);font-size:11.5px;color:var(--ink)}
+.foot{font-size:12px;color:var(--faint);line-height:1.6}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (max-width:860px){
+  .rail{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .cards,.notes{grid-template-columns:minmax(0,1fr)}
+  .refs{text-align:left}
+}
+@media (max-width:520px){
+  .page{padding-inline:16px}
+  .hdr h1{font-size:25px}
+  .rail{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rail .st:last-child{grid-column:1 / -1}
+  .tiles{grid-template-columns:1fr}
+  .bar{gap:10px}
+}
+@media (prefers-reduced-motion: reduce){
+  .lis .dot,.caret{animation:none}
+  .pl{animation:none;background-image:none;color:var(--pgLabHi)}
+  .wdots>b>i{animation:none;opacity:.28}
+}
+</style>
+
+<div class="page">
+  <header class="hdr">
+    <div>
+      <h1>Voice Composer</h1>
+      <p>The composer with its voice orb. Hover the orb, click it and speak (here a simulated voice speaks for you): the orb opens sideways into a small pill that says Listening or Transcribing, your words are written into the composer as you speak, and the pill's cross cancels. Click the orb again to finish; the text stays for you to send. Siri Wave ships by default; Voice Membrane is the other choice in Settings &gt; Customization. While you speak the composer glows from its bottom edge with your voice.</p>
+    </div>
+    <div class="refs">OD-0091 (and its two amendments), OD-0086, OD-0089, OD-0076<br>Liquid Orb Editor, voice-glow 0.2.1, border-beam 1.4.1 (MIT)</div>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Preview controls">
+    <div class="grp"><span class="glab">Variant</span><div class="seg" id="segVariant"></div></div>
+    <div class="grp"><span class="glab">Orb</span><div class="seg" id="segOrb"></div></div>
+    <div class="grp"><span class="glab">Size</span><div class="seg" id="segSize"></div></div>
+    <div class="grp"><span class="glab">Attachment</span><div class="seg" id="segAttach"></div></div>
+    <div class="grp"><span class="glab">Theme</span><div class="seg" id="segTheme"></div></div>
+    <div class="grp"><span class="glab">Microphone</span><div class="seg" id="segMic"></div></div>
+    <div class="grp">
+      <label class="btn file" id="fileBtn"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v6M3.4 5 6 7.6 8.6 5M2 10.5h8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="fileLab">Use an audio file</span><input id="fileIn" type="file" accept="audio/*" aria-label="Load an audio file to drive the voice level"></label>
+      <button class="btn primary" id="playFlow" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span id="playLab">Play the whole flow</span></button>
+    </div>
+  </div>
+
+  <div class="stagewrap" id="stagewrap">
+    <div class="stage" id="stage">
+      <div class="win wbg" id="win">
+        <div class="chat"><div class="turn">
+          <div class="ans">
+            <h3>Dark mode toggle</h3>
+            <p>I added a <b>Theme</b> switch to the settings page. It reuses the existing <code>Switch</code> row, so it picks up the same spacing and focus ring as the other options.</p>
+            <h4>What changed</h4>
+            <ul><li><code>ThemeToggle.tsx</code> renders the row and reads the saved value through <code>useLocalStorage</code>.</li><li><code>settings.test.tsx</code> covers the toggle, including a reload that keeps the choice.</li></ul>
+          </div>
+        </div></div>
+        <div class="files"><svg width="11" height="12" viewBox="0 0 11 12" aria-hidden="true"><path d="M5.5 1.5 V7 M2.7 4.2 H8.3 M2.2 10.3 H8.8"></path></svg><span>2 files</span><span class="g">+14</span><span class="r">&#8722;0</span></div>
+        <div class="src" id="src" aria-live="off"><span id="srcLab">Simulated voice</span><span class="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="lv" id="srcLv">0.00</span></div>
+        <button class="attach out" type="button" aria-label="Attach files" title="Attach files"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.6 4.6 5.7 9.5a1.55 1.55 0 0 0 2.2 2.2l5-5a3 3 0 0 0-4.25-4.25l-5 5a4.4 4.4 0 0 0 6.2 6.2l4.2-4.2"></path></svg></button>
+        <div class="cmp" id="cmp">
+          <div class="plate wbg"></div>
+          <div class="lightbox" id="lightbox"></div>
+          <div class="wdots" id="wdots" aria-hidden="true"></div>
+          <div class="cc">
+            <button class="attach in" type="button" aria-label="Attach files" title="Attach files"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.6 4.6 5.7 9.5a1.55 1.55 0 0 0 2.2 2.2l5-5a3 3 0 0 0-4.25-4.25l-5 5a4.4 4.4 0 0 0 6.2 6.2l4.2-4.2"></path></svg></button>
+            <div class="field" id="field">
+              <div class="lay hint on" id="layHint">Ask Claude for anything; big jobs go out to a team of heads</div>
+              <div class="lay lis" id="layListen"><i class="dot"></i><span>Listening</span></div>
+              <div class="lay txt" id="layText"></div>
+              <div class="lay note" id="layNote"></div>
+            </div>
+            <div class="vpill" id="vpill"><button class="px" id="pX" type="button" tabindex="-1" aria-label="Cancel voice input" title="Cancel (Esc)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.2 3.2 8.8 8.8M8.8 3.2 3.2 8.8"></path></svg></button><span class="plab" aria-live="polite"><span class="pl on" data-k="listening">Listening&#8230;</span><span class="pl" data-k="transcribing">Transcribing&#8230;</span><span class="pl" data-k="finishing">Finishing&#8230;</span></span></div>
+            <div class="tools" id="tools">
+              <div class="orbslot" id="orbslot">
+                <button class="xbtn" id="xBtn" type="button" tabindex="-1" aria-label="Cancel voice input" title="Cancel (Esc)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.2 3.2 8.8 8.8M8.8 3.2 3.2 8.8"></path></svg></button>
+                <div class="orbmove" id="orbmove">
+                  <canvas class="orbcv" id="orbA"></canvas>
+                  <canvas class="orbcv" id="orbB"></canvas>
+                  <button class="orbbtn" id="orbBtn" type="button" aria-label="Start voice input" aria-pressed="false" title="Voice input"></button>
+                </div>
+              </div>
+              <button class="chip" type="button" tabindex="-1" aria-label="Model and effort"><span class="mkw"><svg class="mk" viewBox="0 0 16 16" aria-hidden="true" id="mk"></svg><i class="mdot off" id="mdot"></i></span><span class="mn" id="mn"><span id="mnA">Opus</span><span id="mnB" class="off"></span></span><span class="ef">High</span><svg class="cv" viewBox="0 0 8 6" aria-hidden="true"><path d="M1.2 1.5 4 4.3 6.8 1.5"></path></svg></button>
+            </div>
+            <div class="ring"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle class="t" cx="9" cy="9" r="7"></circle><circle class="a" id="ringA" cx="9" cy="9" r="7" style="stroke-dasharray:31 44" transform="rotate(-90 9 9)"></circle></svg></div>
+            <button class="send" id="send" type="button" aria-label="Send"><span class="d1"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 10.2V1.9M2.6 5.3 6 1.9l3.4 3.4"></path></svg></span><span class="d2"><i></i></span></button>
+          </div>
+          <div class="vglow" id="vglow"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rail" id="rail"></div>
+  <div class="read" id="read" aria-live="off"></div>
+  <div class="sr" id="live" aria-live="polite"></div>
+
+  <div class="cards">
+    <section class="card" aria-labelledby="custH">
+      <div class="crumb">Settings &gt; Customization</div>
+      <h2 id="custH">Voice input <span>beside Composer light, with the same live preview</span></h2>
+      <div class="srow">
+        <div class="lab">Voice orb <span>the button in the composer</span></div>
+        <div class="tiles" id="tiles" role="radiogroup" aria-label="Voice orb"></div>
+      </div>
+      <div class="srow">
+        <div class="lab">After voice input <span>OD-0091, amendment</span></div>
+        <div class="radios" id="after" role="radiogroup" aria-label="After voice input"></div>
+      </div>
+      <div class="srow">
+        <div class="mini"><span>Composer light</span><b>Border beam</b></div>
+        <div class="mini"><span>While you speak <em class="rv">review choice</em></span><div class="seg" id="segLight"></div></div>
+        <p class="cardnote">Gives way: the beam fades out as listening starts (0.5 s) and returns when the text is done (0.6 s), so one light is on the composer at a time. Stays on: the beam keeps running under the voice glow, in its typing response; the shipped Border beam (Responds off) looks the same while typing.</p>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="sizeH">
+      <h2 id="sizeH">The orb at its sizes <span>CSS px; the source reads down to about 40</span></h2>
+      <div class="seg" id="segSizeState" style="align-self:flex-start"></div>
+      <div class="sizes" id="sizes"></div>
+      <p class="cardnote">The orbs are the source's own, unchanged; only their size is set, through the source's own radius, and the limb's softness through its own Edge Softness, so the edge stays about one and a half device pixels at any size. They are drawn at twice their pixels below 128 and filtered down.</p>
+    </section>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h3>How listening shows</h3>
+      <p><b>B, pill in the composer (the default):</b> the orb stays where it is and opens to its left into a capsule of Marrow glass: frosted over a blurred, saturated view of the composer and its voice glow, a hairline rim lit from the top with the knob's faint pink and blue fringe, a brighter lens at each rounded end, and the source's 2.35 s shine across the label (light theme: a bright frosted pill with a dark label). The label reads Listening&#8230; in silence and Transcribing&#8230; while you speak; it goes back to Listening only after 0.6 s of quiet, so pauses between words never flicker it. Finishing&#8230; covers the final pass. The cross sits inside the pill at its far end: it belongs to the voice control, stays clear of the send button, and is still to the orb's left as the amendment asks. The text field gives the pill room, its end eased, and the line scrolls to keep the newest word in view.</p>
+      <p><b>C, floating pill:</b> the orb lifts out of its slot into a capsule 8 px above the composer, which opens to the right over the toolbar so it stays clear of the chat content above (the files strip is centred). The text field keeps its full width. <b>A, cross:</b> no pill; a cross slides out from behind the orb.</p>
+      <p>Closing (the second click, the cross, Esc) folds the pill back into the orb: the label fades first, then the capsule narrows onto the orb and fades as it arrives.</p>
+    </section>
+    <section>
+      <h3>Where the attachment goes</h3>
+      <p><b>Inside (default):</b> at the pill's leading edge, the same chip button (34 by 28, capsule, hover fill as the Mac's <code>.chip</code>), inset 8 px like the send button on the other end, centred on the controls' line. The text starts 6 px after it. It sits on the bottom line with the other controls, so it stays put when the text grows upward (ComposerView :143).</p>
+      <p><b>Outside:</b> a round glass button in the 60 px gutter, centred on the same line, so the text keeps its 14 px inset. Where the pill fills the column, the pill gives the button 44 px.</p>
+    </section>
+    <section>
+      <h3>How the voice drives the orb and the words</h3>
+      <p>The level (0 to 1) goes through the source's own smoothing (attack 0.07 s, release 0.24 s, orb-audio.ts), then the source's audio rules: warp +0.85 x mid, contour +0.075 x low, rim highlight +0.16 x high, exposure up to x1.12, times the preset's strength (Siri 0.8, Membrane 1.0).</p>
+      <p>Speed is the owner's rule: at the resting speed in a pause, rising with the voice through a second follower (attack 0.12 s, release 0.45 s, so it never jitters) up to 3.2 times rest, and 4.6 times rest while transcribing, the fastest of all. The phase is integrated, so no change of speed ever jumps the wave.</p>
+      <p>Words arrive 0.3 to 0.7 s after they are spoken, in order. The newest is lighter until the next one confirms it; a word heard wrong at first ("team", "tool") is revised in place, its width easing. The second click starts a short final pass: words spoken but not yet written come in, the full stop settles.</p>
+    </section>
+    <div class="tblw">
+      <table>
+        <thead><tr><th>State</th><th>Trigger</th><th>Orb</th><th>Composer</th><th>Timing</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+    <section>
+      <h3>Voice glow on the composer</h3>
+      <p>voice-glow 0.2.1 by Jakub Antalik (MIT), ported as the beam was: the package's own stylesheet generator and frame driver run unchanged (the stylesheet is byte for byte the package's), only its React wrapper is replaced by a plain mount. It is fitted to the 820 by 52 pill with the package's own props: scale 0.7, and the lobes, their spacing and the range widened 2.4 times, so the glow spans the composer and the transcribing sweep runs into both bottom corners.</p>
+    </section>
+    <section>
+      <h3>Open questions for the owner</h3>
+      <ul>
+        <li>Locked as the default (OD-0091): B, the glass pill in the composer, with Siri Wave at 32 px and the attachment inside. The other choices stay as user settings in Customization: listening style Pill, Cross or Floating; orb Siri Wave or Voice Membrane; size 32 or 26; attachment inside or outside.</li>
+        <li>The pill's words: Listening&#8230;, Transcribing&#8230;, Finishing&#8230;. Alternatives: Hearing you&#8230; for Listening, Writing&#8230; for Transcribing.</li>
+        <li>Live words need streaming recognition. Whisper transcribes in windows of audio, so the app re-transcribes a sliding window and revises the newest words, as shown; the engine and its delay are to be researched before building.</li>
+        <li>While you speak, should the Border beam give way (shown) or stay on under the voice glow? Switch it in the Customization card.</li>
+        <li>The voice glow's fit: wide (as shown) or the package's own narrow centre.</li>
+      </ul>
+    </section>
+  </div>
+  <p class="foot">Orbs: Siri Wave and Voice Membrane are Liquid Orb Editor's own Copy-code export (LerSent001, MIT), run in WebGL2 instead of WebGPU; side by side with the export they match to within 1/255 per channel. Composer light: border-beam 1.4.1 by Jakub Antalik (MIT), the Composer Lights playground's port. Voice glow: voice-glow 0.2.1 by Jakub Antalik (MIT). No microphone is used on this page; the level comes from a built-in speech envelope or from an audio file you load, decoded on your device.</p>
+</div>
+<script type="module" src="voice-composer.js"></script>

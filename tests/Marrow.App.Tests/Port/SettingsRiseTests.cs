@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App.Port;
+using Marrow.App.Port.Settings;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Tests.Window;
 using Marrow.App.Views.Settings;
@@ -206,7 +207,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
     // colour at every step, and the end.
     [Fact]
     [Trait("Decision", "ED-249")]
-    [Trait("Decision", "OD-0075")]
+    [Trait("Decision", "ED-338")]
     public void The_windows_corners_fade_in_with_the_glass_not_as_a_hard_square_corner() => WithManager((_, manager) =>
     {
         using var rig = new SettingsRiseRig();

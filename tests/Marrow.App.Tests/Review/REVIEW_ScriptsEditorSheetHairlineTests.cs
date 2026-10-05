@@ -18,7 +18,7 @@ namespace Marrow.App.Tests.Review;
 public sealed class REVIEW_ScriptsEditorSheetHairlineTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "OD-0075")]
+    [Trait("Decision", "ED-338")]
     [Trait("Decision", "ED-236")] // ED-338: the hairline of a backdrop clipped to its own shape follows that shape
     public void REVIEW_a_backdrop_inside_a_26_point_rounded_clip_still_has_its_hairline_on_the_curve() => headless.OnUiThread(() =>
     {

@@ -1,5 +1,5 @@
 // VT-11 fixture (voice-SPEC V-T76, V-14.8; V-7.5, V-7.6): the voice design's own simulated speaker and live words, recorded by RUNNING the design's arithmetic, never the port:
-//   E:/Droppy/work/voice/design/voice-composer.js   SCRIPT, rng, SYN (lines 42-83), STREAM (221-240) and planFinal (304-324), copied here without a line of arithmetic changed;
+//   porting/first-release/design-src/voice-composer/voice-composer.js (a copy of E:/Droppy/work/voice/design/voice-composer.js)   SCRIPT, rng, SYN (lines 42-83), STREAM (221-240) and planFinal (304-324), copied here without a line of arithmetic changed;
 //   only what they read from the page (S.source, sess) is replaced by plain objects.
 // The live stream is what the dictation layer is fed in the design: `add` events (each also confirms the word before it: the design's applyEvent removes `.tent` from the previous word)
 // and `rev` events (a revision of the word's text). The final pass is what planFinal gives for a second click at `tl` seconds into listening, with the design's own `at` times.

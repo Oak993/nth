@@ -106,7 +106,7 @@ public sealed class VoiceSession : IAudioCaptureSink
 
     /// <summary>
     /// The raw level and bands of the audio being listened to (V-5.3), published from the processing thread at 60 Hz of the signal (VT-11, for the orb and the glow, which smooth them
-    /// with <see cref="LevelFollowers"/> on the UI thread, V-5.5). Readable from any thread; zero outside Listening.
+    /// with <see cref="LevelFollowers"/> on the UI thread, V-5.5). The values come from the processing thread, but this property reads the session's state, which is UI-thread only: read it on the UI thread (the meter's own <c>Latest</c> is the any-thread part); zero outside Listening.
     /// </summary>
     public LevelBands AudioLevel => state == VoiceSessionState.Listening ? meter.Latest : LevelBands.Zero;
 
