@@ -11,6 +11,6 @@ internal static class CapsuleMotion
     {
         if (EnvironmentValues.GetAccessibilityReduceMotion(owner)) return true;
         try { return ChromeTokens.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion; }
-        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException) { return false; }
+        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException) { return true; } // nothing to ask: hold still
     }
 }
