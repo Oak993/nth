@@ -13,6 +13,9 @@ public class CzButton : Decorator, ICustomHitTest
 {
     private readonly CzNumber scale;
     private readonly CzNumber dimOpacity;
+    private readonly CzColor fill;
+    private bool filled;
+    private bool shownDark;
     public CornerRadius CornerRadius { get; set; }
     public IBrush? Background { get; set; }
     private bool down;
@@ -34,13 +37,25 @@ public class CzButton : Decorator, ICustomHitTest
         RenderTransformOrigin = new RelativePoint(.5, .5, RelativeUnit.Relative);
         scale = new CzNumber(Motion, 1, v => RenderTransform = new ScaleTransform(v, v));
         dimOpacity = new CzNumber(Motion, 1, v => Opacity = v);
+        fill = new CzColor(Motion, Colors.Transparent, color => { if (ChromeFill) { Background = CzTheme.Brush(color); InvalidateVisual(); } });
         Refresh(); PropertyChanged += (_, e) => { if (e.Property.Name == "ActualThemeVariant") Refresh(); };
     }
     protected virtual void Refresh()
     {
-        if (ChromeFill) Background = CzTheme.Brush(CzTheme.Token(this, IsPointerOver ? "caph" : "cap"));
+        if (ChromeFill) EaseFill(CzTheme.Token(this, IsPointerOver ? "caph" : "cap"));
         if (Child is TextBlock text) text.Foreground = CzTheme.Text(this);
         InvalidateVisual();
+    }
+    // CZ-14.1, OD-0076, DESIGN gen.py:298 `.czbtn { transition: background-color .12s ease }`: a hover or press eases the fill over 0.12 s; in a tree that turns over (AppearanceTurn, the Settings window) a theme change
+    // eases it with the window's 0.32 s turnover; the first fill, Reduce Motion and an unmarked tree take the colour at once
+    private void EaseFill(Color target)
+    {
+        var dark = CzTheme.Dark(this);
+        var themeChange = filled && dark != shownDark;
+        shownDark = dark;
+        if (!filled) { filled = true; fill.Jump(target); }
+        else if (themeChange) { if (AppearanceTurn.Eases(this)) fill.To(target, AppearanceTurn.Curve); else fill.Jump(target); }
+        else fill.To(target, CzMotion.Ease(.12));
     }
     public void Activate() { if (IsEffectivelyEnabled) Invoked?.Invoke(); }
     public bool HitTest(Point point) => new Rect(Bounds.Size).Contains(point);

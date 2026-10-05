@@ -2,6 +2,7 @@ using Avalonia;
 using System.Globalization;
 using Avalonia.Automation;
 using Marrow.App.Port.Settings;
+using Marrow.App.Port.Voice;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
@@ -31,7 +32,7 @@ public sealed class CustomizationSpeechSectionTests(HeadlessSession headless)
         foreach (var row in section.Rows.Slots.Select(s => s.Row).OfType<CzRow>())
         {
             var button = Assert.IsType<CzCapsuleButton>(row.Control);
-            Assert.Equal("Change", AutomationProperties.GetName(button));
+            Assert.Equal(row.Title.Text, AutomationProperties.GetName(button)); // CZ-15 (review CZ-8 finding 2): the name is the row's title; the visible label stays Change
         }
     });
 
@@ -52,7 +53,9 @@ public sealed class CustomizationSpeechSectionTests(HeadlessSession headless)
     [Fact]
     public void CZ_T81_Language_follows_an_explicit_pick_and_CZ_T98_the_language_default_when_none_is_picked() => headless.OnUiThread(() =>
     {
-        using var context = new VoiceRowsContext(); // Windows' display language: fi-FI, not in the list
+        using var context = new VoiceRowsContext();
+        var windows = "fi-FI"; // Windows' display language, not in the list
+        using var system = WindowsDisplayLanguage.Source.Override(() => windows);
         using var rig = new CustomizationPageRig(reduceMotion: true);
         var row = Row(rig, "Language");
         Assert.Equal(AutoWords, row.Detail.Text); // nothing picked, language default A
@@ -60,15 +63,13 @@ public sealed class CustomizationSpeechSectionTests(HeadlessSession headless)
         Assert.Equal("Auto-detect, named in the pill while you speak", row.Detail.Text);
         rig.Do(() => rig.App.Settings.VoiceOrb = rig.App.Settings.VoiceOrb with { LangMode = VoiceLangMode.Windows });
         Assert.Equal(AutoWords, row.Detail.Text); // C with a display language outside the list is A's text
-        var previous = CultureInfo.CurrentUICulture;
-        try
         {
-            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("hi-IN");
+            windows = "hi-IN";
             rig.Do(() => rig.App.Settings.VoiceOrb = rig.App.Settings.VoiceOrb with { LangMode = VoiceLangMode.Auto });
             rig.Do(() => rig.App.Settings.VoiceOrb = rig.App.Settings.VoiceOrb with { LangMode = VoiceLangMode.Windows });
             Assert.Equal("Hindi (from Windows)", row.Detail.Text);
         }
-        finally { CultureInfo.CurrentUICulture = previous; }
+        windows = "fi-FI";
         rig.Do(() => rig.App.Settings.VoiceOrb = rig.App.Settings.VoiceOrb with { LangMode = VoiceLangMode.Ask });
         Assert.Equal("Asked on first use", row.Detail.Text);
         // an explicit pick on the Voice typing page comes first, whatever the default says
