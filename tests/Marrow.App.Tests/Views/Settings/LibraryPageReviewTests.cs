@@ -62,16 +62,13 @@ public sealed class LibraryPageReviewTests(HeadlessSession headless)
             Assert.Equal(1, ((Control)incoming.Parent!).Opacity);
             var detail = harness.Page.Details["S1"];
             var needs = Assert.IsType<Marrow.App.Views.Settings.CrossfadeSlot>(typeof(DetailView).GetField("needs", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(detail));
-            var row = harness.Controller.Rows[0];
-            detail.Apply(row with { Needs = [new NeedLine("original", "Original need", null)] }, false);
-            harness.Step(300);
             var old = needs.Live!;
             detail.Apply(harness.Controller.Rows[0] with { Needs = [new NeedLine("changed", "Changed need", null)] }, false);
             Assert.NotSame(old, needs.Live);
             Assert.Equal(1, old.Opacity); Assert.Equal(0, needs.Live!.Opacity);
             harness.Step(300);
             Assert.Null(old.GetVisualParent()); Assert.Equal(1, needs.Live!.Opacity);
-        }, motion: true);
+        }, motion: true, catalogue: LibraryFixtures.WithPythonNeed(LibraryFixtures.Catalogue()));
 
     [Fact, Trait("Decision", "ED-261")]
     public void Changed_dialog_facts_and_progress_keep_outgoing_text_and_fade_in_new_text() =>
@@ -109,6 +106,12 @@ public sealed class LibraryPageReviewTests(HeadlessSession headless)
             Assert.False(harness.Find<Button>("dialog-continue").IsEnabled);
             harness.Wait(harness.Controller.Continue());
             Assert.Equal(RunPhase.Confirm, harness.Controller.Dialog.Phase);
+            var dialog = harness.Page.Sheet!.Dialog;
+            dialog.Apply(dialog.View with { Phase = RunPhase.Partial, Failed = 1 }); harness.Settle();
+            Assert.False(harness.Find<Button>("dialog-retry").IsEnabled);
+            harness.Wait(harness.Controller.RetryFailed());
+            Assert.Equal(RunPhase.Confirm, harness.Controller.Dialog.Phase);
+            Assert.Contains(LibraryWords.SizeEstimateNote, harness.Words());
         }, install: new FailClosedFirstInstall());
 
     [Fact, Trait("Decision", "ED-261")]

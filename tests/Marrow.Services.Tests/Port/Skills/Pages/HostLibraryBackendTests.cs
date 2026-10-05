@@ -50,6 +50,9 @@ public sealed class HostLibraryBackendTests
             var before = Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToList();
             var backend = Backend(host, rig);
             var error = await Assert.ThrowsAsync<FirstInstallUnavailableException>(() => backend.Installs.InstallAsync(rig.Item, new Progress<double?>(), CancellationToken.None));
+            Assert.False(backend.CanFetch);
+            Assert.False(Backend(host, rig, new FailClosedFirstInstall()).CanFetch);
+            Assert.True(Backend(host, rig, new ScriptedInstall()).CanFetch);
             Assert.Equal("Downloading isn\u2019t available in this build yet.", error.Message);
             Assert.Equal(before, Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToList());
         }
