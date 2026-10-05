@@ -8,7 +8,7 @@ namespace Marrow.App.Port.Voice;
 /// (live words with a smaller model, or text after you stop with the accurate model). The Welcome section and the orb's card both draw it. <see cref="State"/> changes only through the calls below and
 /// <see cref="Changed"/> follows every change. When Welcome is gone (<see cref="CloseWelcome"/>) a question still open is asked at the next orb click (<see cref="AsksAtOrb"/>): the orb wiring is VT-12's.
 /// </summary>
-public sealed class VoiceSpeedQuestion(VoicePreparation preparation, IVoicePreparationSettings settings)
+public sealed class VoiceSpeedQuestion(VoicePreparation preparation)
 {
     private readonly Lock gate = new();
     private VoiceQuestionState state = VoiceQuestionState.Ask;

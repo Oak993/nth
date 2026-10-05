@@ -15,7 +15,7 @@ public sealed class VoiceQuestionRig
     {
         Prep = new VoicePrepRig(machine, seconds);
         Prep.Preparation.ProbeAsync(null, CancellationToken.None).GetAwaiter().GetResult(); // Getting ready's hardware step has read the PC before Welcome asks (always allowed: nothing is fetched)
-        Question = new VoiceSpeedQuestion(Prep.Preparation, Prep.Settings);
+        Question = new VoiceSpeedQuestion(Prep.Preparation);
         States.Add(Question.State);
         Question.Changed += () => States.Add(Question.State);
     }
