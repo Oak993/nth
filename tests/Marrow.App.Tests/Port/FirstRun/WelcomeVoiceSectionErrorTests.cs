@@ -22,14 +22,15 @@ public sealed class WelcomeVoiceSectionErrorTests(HeadlessSession headless)
     [Trait("Decision", "ED-289")]
     public void A_failed_yes_draws_the_ask_words_and_none_of_the_error_sentences(ModelDownloadStatus outcome)
     {
+        // The probe awaits pool work. Complete it before entering either UI synchronization context.
+        var rig = VoiceQuestionRig.Pc();
+        rig.Prep.Models.Outcome = outcome;
         headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             harness.Main.OnMain(() =>
             {
-                var rig = VoiceQuestionRig.Pc();
-                rig.Prep.Models.Outcome = outcome;
                 var view = new WelcomeView(rig.Question);
                 var host = RootViewRig.Show(model, view, 900);
                 try

@@ -196,6 +196,62 @@ public sealed class WelcomeVoiceSectionTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "ED-289")]
+    public void The_picked_V2_fades_and_height_curve_are_drawn_on_every_frame()
+    {
+        var rig = VoiceQuestionRig.Slow();
+        OnWelcome(rig, (host, _) =>
+        {
+            Finish(Task.Run(() => rig.Question.YesAsync(null, CancellationToken.None)));
+            Settle(host);
+            var oldLayer = Layer(host, rig.Said(VoiceQuestionState.Slow)!);
+            var card = Assert.IsType<Border>(oldLayer.Parent!.Parent);
+            var fromHeight = card.Bounds.Height;
+            var manual = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var frames = FrameClock.Source.Override(manual);
+            using var clock = SwiftClock.Provider.Override(time);
+            using var motion = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = false });
+            Assert.True(rig.Question.AnswerAsync(LiveWordsChoice.Live, CancellationToken.None).IsCompleted);
+            Settle(host);
+            var nextLayer = Layer(host, rig.Said(VoiceQuestionState.SlowLive)!);
+            var toHeight = nextLayer.DesiredSize.Height;
+            // wv_lib.py:338-339: ease, outgoing .2 s, incoming .3 s after .1 s.
+            // wv-page.js:81-90: .36-.62 s height, rounded to two decimals.
+            // wv_lib.py:322,337: cubic-bezier(.42,0,.2,1).
+            var duration = Math.Round(Math.Clamp(.3 + Math.Abs(toHeight - fromHeight) / 700, .36, .62), 2, MidpointRounding.AwayFromZero);
+            var step = TimeSpan.FromSeconds(1.0 / 60);
+            for (var frame = 1; frame <= 40; frame++)
+            {
+                time.Advance(step);
+                manual.Advance(step);
+                Settle(host);
+                var seconds = time.Elapsed.TotalSeconds;
+                Assert.Equal(CssBezier(Math.Clamp((seconds - .1) / .3, 0, 1), .25, .1, .25, 1), nextLayer.Opacity, 5);
+                Assert.Equal(1 - CssBezier(Math.Clamp(seconds / .2, 0, 1), .25, .1, .25, 1), oldLayer.Opacity, 5);
+                var progress = CssBezier(Math.Clamp(seconds / duration, 0, 1), .42, 0, .2, 1);
+                Assert.InRange(Math.Abs(card.Bounds.Height - (fromHeight + (toHeight - fromHeight) * progress)), 0, 1.1);
+            }
+            Assert.Single(RootViewRig.All<WelcomeVoiceSection>(host).Single().Layers);
+        });
+    }
+
+    // Independent CSS oracle; it does not call the app's animation helper.
+    private static double CssBezier(double x, double x1, double y1, double x2, double y2)
+    {
+        if (x <= 0 || x >= 1) return x;
+        static double At(double t, double a, double b) => 3 * (1 - t) * (1 - t) * t * a + 3 * (1 - t) * t * t * b + t * t * t;
+        var lo = 0.0;
+        var hi = 1.0;
+        for (var pass = 0; pass < 60; pass++)
+        {
+            var t = (lo + hi) / 2;
+            if (At(t, x1, x2) < x) lo = t; else hi = t;
+        }
+        return At((lo + hi) / 2, y1, y2);
+    }
+
+    [Fact]
     [Trait("Feature", "WV-1")]
     [Trait("Decision", "ED-289")]
     public void Under_reduce_motion_a_state_is_taken_at_once()

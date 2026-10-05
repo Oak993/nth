@@ -15,14 +15,13 @@ namespace Marrow.App.Port.FirstRun;
 
 /// <summary>
 /// The "Voice typing" section above Activity in WelcomeView (variant A: Welcome's own section-and-row pattern, a <see cref="ChromeSection"/> over a <see cref="ChromeCard"/>), drawing a <see cref="VoiceSpeedQuestion"/>.
-/// OD-0076: nothing cuts. A new state's words are laid over the old (a crossfade, 0.25 s ease) while the card's height moves from the old content's to the new one's (0.35 s, the Getting ready
-/// sheet's own curve); the old layer is taken out when it is clear. Under reduce motion a state is taken at once (AnimatedScalar). ENGINEERING DECISION (ED-NEW-cloud-wv-1): the timings are GR-2's,
-/// the page's V2 has none of its own in the repository.
+/// OD-0076: nothing cuts. The picked V2 page defines outgoing opacity .2 s ease, incoming .3 s ease after .1 s
+/// (wv_lib.py:338-339), and height cubic-bezier(.42,0,.2,1) (322,337) with .36-.62 s duration by distance
+/// (wv-page.js:81-90). The old layer leaves when clear. Reduce motion takes the state at once (AnimatedScalar).
 /// </summary>
 public sealed class WelcomeVoiceSection : Decorator
 {
-    private const double FadeSeconds = 0.25;
-    private const double HeightSeconds = 0.35;
+    private const double FadeOutSeconds = 0.2, FadeInSeconds = 0.3, FadeInDelay = 0.1;
 
     private readonly VoiceSpeedQuestion question;
     private readonly Grid layers = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -106,12 +105,12 @@ public sealed class WelcomeVoiceSection : Decorator
                 layer.Opacity = value;
                 if (value <= 0) layers.Children.Remove(layer);
             });
-            fadeOut.Set(0, GettingReadyLook.Fade(FadeSeconds));
+            fadeOut.Set(0, GettingReadyLook.Fade(FadeOutSeconds));
         }
         if (next is not null)
         {
             var fadeIn = new AnimatedScalar(next, 0, value => next.Opacity = value);
-            fadeIn.Set(1, GettingReadyLook.Fade(FadeSeconds));
+            fadeIn.Set(1, GettingReadyLook.Fade(FadeInSeconds).Delay(FadeInDelay));
         }
         var target = 0.0;
         if (next is not null && width > 0)
@@ -121,7 +120,8 @@ public sealed class WelcomeVoiceSection : Decorator
         }
         if (oldHeight <= 0 || width <= 0 || Math.Abs(oldHeight - target) < 0.5) return;
         height = new AnimatedScalar(host, oldHeight, value => host.Height = Math.Abs(value - target) < 0.001 ? double.NaN : value);
-        height.Set(target, GettingReadyLook.Settle(HeightSeconds));
+        var seconds = Math.Round(Math.Clamp(0.3 + Math.Abs(target - oldHeight) / 700, 0.36, 0.62), 2, MidpointRounding.AwayFromZero);
+        height.Set(target, Animation.TimingCurve(0.42, 0, 0.2, 1, seconds));
     }
 
     private Control? Body(VoiceQuestionState state)
