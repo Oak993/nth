@@ -197,6 +197,18 @@ public sealed class SkillsPipeline : IGenerationStore
         Marrow.Core.Port.FileOps.WriteAtomic(OrphanFile, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(orphans.ToArray(), PipelineOrphanJsonContext.Default.PipelineOrphanArray));
         orphansUnreadable = false;
     }
+    /// <summary>
+    /// SK-14 (ONDEMAND 5.4 and 5.5): writes the per-chat declined offers of <paramref name="declined"/> to state.json, before the provider is answered. Only that list is taken: the items, the accepted terms and
+    /// the found tools stay as the pipeline holds them, so an offer can never change an installed record.
+    /// </summary>
+    public void SetDeclined(AddonsState declined)
+    {
+        ArgumentNullException.ThrowIfNull(declined);
+        operation.Wait();
+        try { lock (gate) Commit(AddonsState.Restore(state.Items, state.AcceptedTerms, declined.Declined, state.Found)); }
+        finally { operation.Release(); }
+    }
+
     public string? LatestPin(string id) => catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item ? UpdateCheck.CataloguePin(item) : null;
     public IReadOnlyList<PipelineRoute> Snapshot()
     {

@@ -27,7 +27,7 @@ public sealed class SkillsHost : IDisposable
     private bool disposed;
     private Task? collection;
 
-    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, TermsStep terms, SkillsDownloads fetches,
+    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, TermsStep terms, SkillsDownloads fetches, SkillsCatalogue catalogue,
         Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? downloads, IReadOnlyList<string> unrestored)
     {
         this.key = key;
@@ -36,11 +36,15 @@ public sealed class SkillsHost : IDisposable
         Generations = generations;
         Terms = terms;
         Downloads = fetches;
+        Catalogue = catalogue;
         GuardedDownloads = downloads;
         Unrestored = unrestored;
     }
 
     public StorePaths Paths { get; }
+
+    /// <summary>SK-14: the catalogue the host was opened with: the in-chat offers read it.</summary>
+    public SkillsCatalogue Catalogue { get; }
 
     /// <summary>The root's one owner.</summary>
     public SkillsPipeline Pipeline { get; }
@@ -107,7 +111,7 @@ public sealed class SkillsHost : IDisposable
             options.Deletion, guarded, options.Bindings, trustedDirectories: trust.Directories);
         var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource);
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        return new SkillsHost(paths.Root, paths, pipeline, generations, terms, new SkillsDownloads(pipeline, options.Catalogue), guarded, trust.Unrestored);
+        return new SkillsHost(paths.Root, paths, pipeline, generations, terms, new SkillsDownloads(pipeline, options.Catalogue), options.Catalogue, guarded, trust.Unrestored);
     }
 
     /// <summary>
