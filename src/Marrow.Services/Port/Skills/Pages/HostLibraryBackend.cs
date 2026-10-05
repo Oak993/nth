@@ -33,7 +33,7 @@ public sealed class HostLibraryBackend(SkillsHost host, SkillsCatalogue catalogu
     /// <summary>The first install: through the host's shared downloads when its download and binding seams are bound (SK-16), otherwise the seam that fails closed.</summary>
     public IFirstInstall Installs { get; } = installs ?? (host.Downloads.Available ? new SkillsFirstInstall(host.Downloads) : new FailClosedFirstInstall());
 
-    public bool FetchingAvailable => Installs.IsAvailable;
+    public bool FetchingAvailable => CanFetch;
 
     public FetchView? Fetching(string itemId) => host.Downloads.Running(itemId);
 
@@ -41,7 +41,7 @@ public sealed class HostLibraryBackend(SkillsHost host, SkillsCatalogue catalogu
 
     public void CancelFetching(string itemId) => host.Downloads.Stop(itemId);
 
-    public bool CanFetch => Installs is not FailClosedFirstInstall;
+    public bool CanFetch => Installs.IsAvailable;
 
     public ISwitchReader Switches => new SwitchTruth(Current());
 

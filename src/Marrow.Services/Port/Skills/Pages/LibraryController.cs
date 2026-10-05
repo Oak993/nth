@@ -60,7 +60,7 @@ public sealed class LibraryController : IDisposable
     public LibrarySection Section => section;
 
     /// <summary>SK-16: whether the first-install seam can fetch at all (the seam that fails closed says no); the page keeps its Download controls and an unavailable item fails with the one unavailable message.</summary>
-    public bool FetchingAvailable => backend.FetchingAvailable;
+    public bool FetchingAvailable => backend.CanFetch;
 
     private void Notify()
     {

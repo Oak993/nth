@@ -101,13 +101,12 @@ public sealed class HostLibraryBackendFetchTests
     }
 
     [Fact]
-    public async Task With_the_seams_unbound_a_press_fails_the_row_with_the_one_unavailable_message_and_nothing_is_fetched()
+    public async Task With_the_seams_unbound_a_press_changes_nothing_on_the_page_and_fetches_nothing()
     {
         using var rig = new FetchRig(bound: false);
         using var controller = new LibraryController(LibrarySection.Skills, new HostLibraryBackend(rig.Host, rig.Catalogue));
         await controller.Download("S1").WaitAsync(Guard);
-        var row = controller.Rows.Single(r => r.Id == "S1");
-        Assert.Equal((ItemState.Failed, LibraryWords.DownloadsUnavailable), (row.State, row.Failure));
+        Assert.Equal(ItemState.Available, controller.Rows.Single(r => r.Id == "S1").State); // review: no row is queued or written into a failure while unbound
         Assert.Empty(rig.Downloaded);
     }
 

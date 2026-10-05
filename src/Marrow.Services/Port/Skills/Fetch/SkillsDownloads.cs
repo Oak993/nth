@@ -82,17 +82,26 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
     /// Downloads and installs the item (and the needs it lacks) once, or joins the download already running for it. The task ends with the installed folder, with the failure, or cancelled when
     /// <paramref name="cancellation"/> is. An item that is here is not downloaded again.
     /// </summary>
-    public Task<string> Install(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation)
+    public Task<string> Install(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation) => Install(item, progress, cancellation, null);
+
+    /// <summary>
+    /// As <see cref="Install(CatalogueItem, IProgress{double?}, CancellationToken)"/>, and <paramref name="part"/> is told the own progress (0 to 1) of each item of the chain (a need and the item), so a card of several items
+    /// can count a dependency they share once.
+    /// </summary>
+    public Task<string> Install(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation, Action<string, double>? part)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(progress);
         cancellation.ThrowIfCancellationRequested();
         if (pipeline.InstalledFolder(item.Id) is { } here) return Task.FromResult(here);
         if (!CanFetch(item)) return Task.FromException<string>(new FirstInstallUnavailableException());
-        return Join(item, progress, cancellation);
+        return Join(item, progress, cancellation, part);
     }
 
-    private async Task<string> Join(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation)
+    /// <summary>The items a download of this one would fetch: the needs not installed (dependencies first) and the item; none when it is installed.</summary>
+    public IReadOnlyList<CatalogueItem> Pending(CatalogueItem item) => pipeline.InstalledFolder(item.Id) is null ? Chain(item) : [];
+
+    private async Task<string> Join(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation, Action<string, double>? part = null)
     {
         FetchFlight flight;
         var start = false;
@@ -105,7 +114,7 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
             }
             flight.Askers++;
         }
-        using var listening = flight.Listen(progress);
+        using var listening = flight.Listen(progress, part);
         var left = 0;
         void Leave()
         {
@@ -153,8 +162,8 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
                     flight.Report(value is null ? null : (offset + value.Value * weight) / total);
                     Notify();
                 });
-                if (chain[step] == item) path = await pipeline.InstallAsync(item.Id, scaled, token).ConfigureAwait(false);
-                else await Join(chain[step], scaled, token).ConfigureAwait(false);
+                if (chain[step] == item) path = await pipeline.InstallAsync(item.Id, new Scaled(value => { if (value is { } own) flight.ReportPart(item.Id, own); scaled.Report(value); }), token).ConfigureAwait(false);
+                else await Join(chain[step], scaled, token, flight.ReportPart).ConfigureAwait(false);
                 before += weight;
             }
         }

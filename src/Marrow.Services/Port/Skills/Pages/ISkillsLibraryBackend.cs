@@ -33,9 +33,6 @@ public interface ISkillsLibraryBackend
 
     IFirstInstall Installs { get; }
 
-    /// <summary>SK-16: whether the first-install seam can fetch at all (the one that fails closed says no). A scripted backend keeps what its install says.</summary>
-    bool FetchingAvailable => Installs.IsAvailable;
-
     /// <summary>SK-16 (DL-19): a download running for the item that this page did not start (an in-chat offer's), or null: the row shows it and a press joins it.</summary>
     FetchView? Fetching(string itemId) => null;
 
