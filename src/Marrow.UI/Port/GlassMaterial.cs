@@ -565,7 +565,7 @@ internal static class GlassMaterial
 
     private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>
     {
-        var source = new StringBuilder(ShaderHeader).Append("\nuniform float stage;\nuniform float interior;\n");
+        var source = new StringBuilder(ShaderHeader).Append("\nuniform float stage;\nuniform float interior;\nuniform float4 window;\n");
         for (var i = 0; i < n; i++) source.Append(CultureInfo.InvariantCulture, $$"""
 
             uniform float4 transform{{i}};
@@ -639,9 +639,11 @@ internal static class GlassMaterial
             float lens = (1.0 + exp(-LG_LOGISTIC * optics.z / optics.y)) / (1.0 + exp(LG_LOGISTIC * (dd - optics.z) / optics.y));
             lens = max(lens - LG_BENDFLOOR, 0.0) / (1.0 - LG_BENDFLOOR);
             float disp = optics.x * lens + optics.w * max(exp(-0.8 * dd) - LG_RINGFLOOR, 0.0) / (1.0 - LG_RINGFLOOR);
-            half4 r = backdrop.eval(xy - n * disp);
-            half4 g = backdrop.eval(xy - n * (disp * LG_GREEN));
-            half4 b = backdrop.eval(xy - n * (disp * LG_BLUE));
+            // The reads stay inside the window's surface (`window`, half a device pixel in): past it the backdrop holds nothing, so a piece that fills its
+            // window read transparent at its edge and its outer ring came out translucent over an opaque backdrop (REVIEW_GlassWindowEdgeTests).
+            half4 r = backdrop.eval(clamp(xy - n * disp, window.xy, window.zw));
+            half4 g = backdrop.eval(clamp(xy - n * (disp * LG_GREEN), window.xy, window.zw));
+            half4 b = backdrop.eval(clamp(xy - n * (disp * LG_BLUE), window.xy, window.zw));
             // Each read is lifted on its own, so the fringe is the bend's (not amplified by the saturation); deep inside the three are one.
             half4 col = filmed(half3(lift(r, film.w).r, lift(g, film.w).g, lift(b, film.w).b), g.a, at, extent, film);
             if (tinted) col = over(col, half3(tint.rgb), half(tint.a));
@@ -727,6 +729,9 @@ internal static class GlassMaterial
         private IntPtr surface, context, blurredContext; // blurredContext: the GPU context the blur's own surface was made on
         private SKSizeI size, keptSize, blurredSize;
         private bool valid;
+
+        /// <summary>The window surface's size at the last Take (device pixels).</summary>
+        public SKSizeI Whole => size;
 
         public static void DisposeReleased()
         {
@@ -1114,15 +1119,9 @@ internal static class GlassMaterial
         if (under is { } taken)
         {
             using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
+            using var blurPaint = new SKPaint { ImageFilter = blur };
             using var pixels = taken.Surface.Snapshot(); // released before the next frame writes to the kept surface, so Skia copies nothing
-            // The kept pixels are extended past the window's edge by their own edge pixels (Clamp) over the whole blurred surface, so a read the
-            // bend takes past the window (up to Optics.MaxBend + MaxRing, 50 pt, beyond the blur's 3 sigma) finds the window's edge, not nothing:
-            // a piece that fills its window keeps its outer ring as opaque as what lies under it (REVIEW_GlassWindowEdgeTests). Where the edge
-            // pixels are themselves transparent (the Acrylic), the extension is transparent too.
-            using var extended = pixels.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
-                SKMatrix.CreateTranslation(taken.Area.Left - crop.Left, taken.Area.Top - crop.Top));
-            using var blurPaint = new SKPaint { Shader = extended, ImageFilter = blur };
-            blurredCanvas.DrawRect(new SKRect(0, 0, crop.Width, crop.Height), blurPaint);
+            blurredCanvas.DrawImage(pixels, taken.Area.Left - crop.Left, taken.Area.Top - crop.Top, blurPaint);
         }
         blurredCanvas.Restore();
         using var image = surface.Snapshot();
@@ -1134,7 +1133,13 @@ internal static class GlassMaterial
             new SKSamplingOptions(SKFilterMode.Linear), shaderTransform);
         var effect = Effect(state.Regions.Length);
         if (drawnCounts.TryAdd(state.Regions.Length, true)) ShapeCountDrawn?.Invoke(state.Regions.Length);
-        var uniforms = new SKRuntimeEffectUniforms(effect) { ["merge"] = (float)(2 * state.Spacing), ["stage"] = 0f, ["interior"] = 0f };
+        // The window's surface in the shader's coordinates, half a device pixel in (the bend's reads are clamped to it).
+        var surfaceRect = kept.Whole.Width > 0 && kept.Whole.Height > 0 ? new SKRect(0.5f, 0.5f, kept.Whole.Width - 0.5f, kept.Whole.Height - 0.5f) : new SKRect(-1e6f, -1e6f, 1e6f, 1e6f);
+        var windowLocal = transform.TryInvert(out var toLocal) ? toLocal.MapRect(surfaceRect) : surfaceRect;
+        var uniforms = new SKRuntimeEffectUniforms(effect)
+        {
+            ["merge"] = (float)(2 * state.Spacing), ["stage"] = 0f, ["interior"] = 0f, ["window"] = new[] { windowLocal.Left, windowLocal.Top, windowLocal.Right, windowLocal.Bottom },
+        };
         for (var i = 0; i < state.Regions.Length; i++)
         {
             var r = state.Regions[i];
