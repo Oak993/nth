@@ -80,7 +80,7 @@ public sealed partial class CopilotSession : ProviderSession
     // :75-80
     public CopilotSession(SessionConfiguration configuration) : this(configuration, null) { }
 
-    // PORT-ONLY: receives the SK-9 lease from app wiring; caller keeps it until the provider stops.
+    // PORT-ONLY: receives the SK-9 lease from app wiring; caller keeps it until the connection closes.
     public CopilotSession(SessionConfiguration configuration, Generation? generation)
     {
         skillGeneration = generation;
@@ -622,23 +622,28 @@ public sealed partial class CopilotSession : ProviderSession
     {
         var arguments = LaunchArguments();
         var childEnvironment = ChildEnvironment(environment); // DL-6; the sole environment change.
-        var process = new StdioProcess(
-            executable.Path, arguments, directory, childEnvironment, StdioFramer.Framing.ContentLength);
+        var process = new StdioProcess( // :484-490
+            executable.Path,
+            arguments,
+            directory,
+            childEnvironment,
+            StdioFramer.Framing.ContentLength);
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :491
         configure(connection); // :492
         connection.Start(); // :493
-        var pong = await connection.Request("ping", JSONValue.FromDictionaryLiteral(("message", "marrow"))); // :494; OD-0012 F1
-        if (pong["protocolVersion"]?.JSONValueInt is null)
+        // DEVIATION OD-0012 F1: upstream pings with the message "droppy-code" (:494).
+        var pong = await connection.Request("ping", JSONValue.FromDictionaryLiteral(("message", "marrow"))); // :494
+        if (pong["protocolVersion"]?.JSONValueInt is null) // :495-498
         {
             connection.Close();
             throw new ProviderError(new ProviderError.Case.Failed("This `copilot` does not speak the SDK protocol. Update it with `copilot update`."));
         }
-        return connection;
+        return connection; // :499
     }
 
     // PORT-ONLY: DL-6 child-only PATH insertion; shared by all Copilot connections (sessions and probes).
     private static Dictionary<string, string> ChildEnvironment(IReadOnlyDictionary<string, string> environment) =>
-        ShimPath.ForChild(environment, Storage.Root);
+        ShimPath.ForChild(environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
 
     // :480-483, extracted unchanged for the DL-11 byte-identity test.
     private static List<string> LaunchArguments()

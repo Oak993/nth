@@ -130,7 +130,7 @@ public sealed class ACPSession : ProviderSession
     };
 
     // PORT-ONLY: DL-6 applies to every ACP child, including the catalog probe's session.
-    private Dictionary<string, string> ChildEnvironment => ShimPath.ForChild(configuration.Environment, Storage.Root);
+    private Dictionary<string, string> ChildEnvironment => ShimPath.ForChild(configuration.Environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
 
     public async Task<string> Start() // :108-152
     {
