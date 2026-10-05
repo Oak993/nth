@@ -130,6 +130,8 @@ public sealed class KeyRotationRig : IAsyncDisposable
     public IEnumerable<string> Notices() =>
         Events.OfType<ProviderEvent.Notice>().Select(n => n.Value.Message);
 
+    public TestRuntime Runtime => runtime;
+
     public async ValueTask DisposeAsync()
     {
         await server.DisposeAsync();

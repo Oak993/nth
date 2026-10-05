@@ -616,3 +616,9 @@ Status: NOT READY for complete touched-slice acceptance. Next: resolve or execut
 Staging 5c3cf1b4d joined with all insert-only ledger contributions byte-preserved, OD-0119/checklist included. Fresh account recovery works after its last thread moved away; guarded exited-CLI recovery refuses a missing original conversation ID before launch. Alone-twice reds and scoped Windows evidence: Core 245/245, Services 119/119, App 166/166, zero skips/build warnings/errors.
 
 **Incomplete:** T11 step 1 API pool/cap/spend/credit/pin composition and verified provider restricted priming/restoration. Settings step 2 stays with the separate helper/Fledge; its cloud delivery is NOT READY. No passing-step push, native/DONE/parity/package/release claim.
+
+## T11 pin/API-consent checkpoint, Codex, 2026-10-06
+
+Persisted account pins, pin/unpin routing, cached API key binding and request-local retained retry consent have scoped test-first Windows evidence: Core 263/263, Services 89/89, App 145/145, zero skips/build warnings/errors. Awaited 402/429 consent keeps the same request and cancels on Stop. Read-only review R14-R17 repaired.
+
+**Incomplete:** actual App API pool/cap/spend/credit/pin composition (new LiveApiKeyPool draft tests not run yet), verified CLI restricted priming/restoration and other step-1 joins. Settings step 2 belongs exclusively to the helper on cloud/ma-settings; Fledge is retired. Settings needs READY and Windows checks before merge. Handshake uses multiAccountHandshake, default OFF; first-time consent is required. Sign-in uses ProviderRegistry.SignIn(Guid); removing a private account never touches the original CLI sign-in. No fabricated usage readings or implicit default persistence; no passing-step push or native/DONE/release claim. T11 NOT READY.

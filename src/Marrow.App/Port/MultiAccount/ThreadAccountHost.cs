@@ -21,7 +21,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     private PillResume? Relay => app.Thread(runtime.ThreadID)?.PillRelay is { } saved ? PillRelayResolver.Resolve(pills.Pills, saved) : null;
     public Pill? Pill => Relay?.Pill;
     public int? StepIndex => Relay?.StepIndex;
-    public bool Pinned => false;
+    public bool Pinned => app.Thread(runtime.ThreadID)?.ProviderAccountPinID is not null;
     public Func<bool>? CanCommit { get; set; }
     public bool AtSafePoint => runtime.IsAccountSwitchSafe;
     public bool ReplyInFlight => runtime.HandshakeReplyInterrupted;
@@ -115,7 +115,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
 
     private void CheckSource(SwitchTarget target)
     {
-        if (!AtSafePoint || CanCommit?.Invoke() == false || ActiveAccountId != preparedFrom || runtime.HandshakeStamp.Epoch != preparedEpoch
+        if (!AtSafePoint || Pinned || CanCommit?.Invoke() == false || ActiveAccountId != preparedFrom || runtime.HandshakeStamp.Epoch != preparedEpoch
             || app.Settings.Accounts.Choose(incomingProvider(target), Guid.Parse(target.Account.Id)) is null)
             throw new InvalidOperationException("The prepared switch is no longer safe or available.");
     }

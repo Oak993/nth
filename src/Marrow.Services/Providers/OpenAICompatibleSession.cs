@@ -669,7 +669,7 @@ public class OpenAICompatibleSession : ProviderSession
             didLoadMCPTools = true;
         }
         var payload = RequestPayload(model, effort, withTools); // :511
-        UseRotationKey(); // PORT-ONLY (MA-6)
+        await UseRotationKeyAsync(); // PORT-ONLY (MA-6)
         var attempt = 0; // :516
         while (true) // :517
         {
@@ -685,7 +685,7 @@ public class OpenAICompatibleSession : ProviderSession
                 roundTask = null; // :528
                 SwiftTask.CheckCancellation(); // :529
                 if (interrupted || isStopping) throw new CancellationError(); // :530
-                if (ContinueOnNextKey(round)) continue; // PORT-ONLY (MA-6): the same request, on the next allowed key
+                if (await ContinueOnNextKeyAsync(round)) continue; // PORT-ONLY (MA-6): the same request, on the next allowed key
                 return round; // :531
             }
             catch (StreamAttemptFailure failure) // :532
@@ -721,10 +721,14 @@ public class OpenAICompatibleSession : ProviderSession
     }
 
     // PORT-ONLY (OD-0114, MA-6). A new request takes the rotation's current key; with none left the turn ends with the pool's all-keys-out message.
-    private void UseRotationKey()
+    private async Task UseRotationKeyAsync()
     {
         if (KeyRotation is not { } rotation) return;
-        if (rotation.Current() is { } choice)
+        var selected = rotation is IAsyncApiKeyRotation live
+            ? await live.CurrentAsync(SwiftTask.CancellationToken) : rotation.Current();
+        SwiftTask.CheckCancellation();
+        if (interrupted || isStopping) throw new CancellationError();
+        if (selected is { } choice)
         {
             rotatedKey = choice.Secret;
             if (rotation.ContinuedOn is { } name) OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = $"Continued on {name}" }));
@@ -737,10 +741,15 @@ public class OpenAICompatibleSession : ProviderSession
 
     // PORT-ONLY (OD-0114, MA-6). A 402 (out of credits) or 429 (rate limited) with another allowed key left: nothing was shown yet (the answer was a refusal, not a stream),
     // so the same payload goes out again on that key and the reply carries on in the same turn. Returns false to hand the round back as before.
-    private bool ContinueOnNextKey(StreamRound round)
+    private async Task<bool> ContinueOnNextKeyAsync(StreamRound round)
     {
         if (KeyRotation is not { } rotation || round.StatusCode is not (402 or 429)) return false;
-        if (rotation.OnFailure(round.StatusCode, round.RetryAfter) is not { } next)
+        var selected = rotation is IAsyncApiKeyRotation live
+            ? await live.OnFailureAsync(round.StatusCode, round.RetryAfter, SwiftTask.CancellationToken)
+            : rotation.OnFailure(round.StatusCode, round.RetryAfter);
+        SwiftTask.CheckCancellation();
+        if (interrupted || isStopping) throw new CancellationError();
+        if (selected is not { } next)
         {
             OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = rotation.StopReason ?? $"All {OpenAICompatibleSessionConfig.Title} API keys are out." }));
             return false;

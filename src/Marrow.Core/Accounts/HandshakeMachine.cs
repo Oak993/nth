@@ -94,6 +94,7 @@ public sealed class HandshakeMachine(
     private Pending? pending;
     private DateTimeOffset? waitUntil;
     private bool waitForAny;
+    private bool waitForPin;
 
     public HandshakePhase Phase => phase;
     private HandshakeOptions CurrentOptions => optionsSource?.Invoke() ?? options;
@@ -194,7 +195,7 @@ public sealed class HandshakeMachine(
         if (failedFor == active) return;
 
         if (exhausted) await HardLimitAsync(active, usage.ResetsAt, ct);
-        else if (CurrentOptions.Enabled && usage.PercentUsed >= threshold) await NearLimitAsync(active, ct);
+        else if (!host.Pinned && CurrentOptions.Enabled && usage.PercentUsed >= threshold) await NearLimitAsync(active, ct);
         else if (!host.Pinned && chooser.EarlierBack(active, host.Pill, host.StepIndex) is { } back && !declined.Contains(back.Account.Id))
             await EarlierAsync(back, ct);
     }
@@ -248,6 +249,13 @@ public sealed class HandshakeMachine(
         outgoing = accountId;
         reason = why;
         resetsAt ??= limits.Usage(accountId)?.ResetsAt;
+
+        if (host.Pinned)
+        {
+            await EnterWaitAsync(resetsAt, forAny: false);
+            waitForPin = true;
+            return;
+        }
 
         // A repeated native limit signal is still the same operation, but cannot renew a revoked grant.
         if (standby is not null && (!PolicyStillCurrent() || target is null
@@ -345,6 +353,13 @@ public sealed class HandshakeMachine(
             reason = HandshakeReason.ResetReached;
             ClearAnswers();
             SetPhase(HandshakePhase.Idle);
+            return;
+        }
+        if (waitForPin && !host.Pinned)
+        {
+            waitForPin = false;
+            SetPhase(HandshakePhase.Idle);
+            await HardLimitAsync(active, waitUntil ?? usage?.ResetsAt, ct);
             return;
         }
         if (usage is null || !waitForAny) return;
@@ -445,10 +460,10 @@ public sealed class HandshakeMachine(
             || (limits.Usage(target.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) ?? false)
             || host.ActiveAccountId != outgoing || !PolicyStillCurrent()
             || reason == HandshakeReason.NearLimit && !CurrentOptions.Enabled
-            || reason == HandshakeReason.EarlierAccountBack && host.Pinned)
+            || host.Pinned)
         {
+            failedFor = host.Pinned ? null : outgoing;
             Emit(HandshakeEventKind.Degraded, phase, phase, null, detail: "The prepared account is no longer available.");
-            failedFor = outgoing;
             await ResetPipelineAsync();
             SetPhase(HandshakePhase.Idle);
             return;
@@ -457,14 +472,14 @@ public sealed class HandshakeMachine(
         try
         {
             if (host is IAccountSwitchCommitGuard guarded)
-                guarded.CanCommit = () => PolicyStillCurrent() && host.ActiveAccountId == outgoing
+                guarded.CanCommit = () => !host.Pinned && PolicyStillCurrent() && host.ActiveAccountId == outgoing
                     && (reason != HandshakeReason.NearLimit || CurrentOptions.Enabled);
             await host.SwitchAsync(standby!, target!, resume, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            failedFor = host.Pinned ? null : outgoing;
             Emit(HandshakeEventKind.Degraded, phase, phase, null, detail: $"The switch failed: {ex.Message}");
-            failedFor = outgoing;
             await ResetPipelineAsync();
             SetPhase(HandshakePhase.Idle);
             return;
@@ -532,6 +547,7 @@ public sealed class HandshakeMachine(
         synced = false;
         resume = false;
         waitUntil = null;
+        waitForPin = false;
         ClearAnswers();
         policyAtPreparation.Clear();
     }
