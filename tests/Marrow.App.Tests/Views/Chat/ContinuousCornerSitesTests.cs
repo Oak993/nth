@@ -92,7 +92,6 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Settings/AboutUpdateViews.cs", "1.5", 1, Tiny),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "8", 1, Fit),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "9", 1, Circle),
-        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "9", 1, Circle),
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "10", 1, Fit),
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "Chrome.CardCornerRadius", 1, Fit),

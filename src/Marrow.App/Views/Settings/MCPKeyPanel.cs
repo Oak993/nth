@@ -118,8 +118,7 @@ public sealed class MCPKeyPanelView : FloatingGuidePanelView
             Width = 380,
             Padding = new Thickness(18),
             Child = stack,
-            ClipToBounds = true,
-            CornerRadius = new CornerRadius(Chrome.WindowCornerRadius),
+            ClipToBounds = true, // PORT-ONLY (OD-0075, ED-NEW-corner-seam): the window's rectangle, not the 26 pt shape, as MCPSetupPanel's clip (FloatingGuidePanelView)
         };
 
         // :52-58
