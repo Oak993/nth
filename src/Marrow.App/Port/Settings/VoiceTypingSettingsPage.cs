@@ -45,6 +45,7 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
         this.Track(() => AppEnvironment.GetAppModel(this), model => Build(model.Settings));
         AttachedToVisualTree += (_, _) => { WatchDevices(); WatchSpeech(); };
         DetachedFromVisualTree += (_, _) => { StopWatching(); StopWatchingSpeech(); };
+        WindowsDisplayLanguage.Watch(this, Refresh); // the Language row names the display language under language default C
     }
 
     /// <inheritdoc />

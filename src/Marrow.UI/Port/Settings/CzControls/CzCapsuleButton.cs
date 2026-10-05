@@ -17,10 +17,10 @@ public sealed class CzCapsuleButton : CzButton
         line.Children.Add(new CzChevron(pointingRight: true) { VerticalAlignment = VerticalAlignment.Center });
         Child = line;
     }
-    protected override void Refresh()
+    protected override void ApplyInk(IBrush brush)
     {
-        base.Refresh();
-        if (Child is StackPanel row) foreach (var label in row.Children.OfType<TextBlock>()) label.Foreground = CzTheme.Text(this);
+        base.ApplyInk(brush);
+        if (Child is StackPanel row) foreach (var label in row.Children.OfType<TextBlock>()) label.Foreground = brush;
     }
     /// <param name="animate">False for the first placement, before the button is shown: it starts at its look (a page does not fade its Reset in as it opens).</param>
     public void SetAtDefaults(bool atDefaults, bool animate = true)

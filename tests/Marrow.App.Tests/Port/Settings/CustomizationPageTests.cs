@@ -97,9 +97,9 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
             ["Look", "Pace and strength", null, null, "Look", "Motion", "Brightness by moment", null, null, null, "Voice orb", "Working dots"],
             sections.Select(s => s.Title));
         Assert.Equal(sections, page.Beam!.Sections.Concat(page.Aura!.Sections).Append(page.Off!).Append(page.Voice!.Section).Append(page.Dots!.Section)); // CZ-5 adds the Working dots section at the end of the sticky container
-        // the points left to the units that come after (CZ-6, CZ-7, the Speech section): the sticky container and the rest after it exist and are empty of anything but the page's own parts
+        // the rest after the sticky container holds the Speech section alone (CZ-8)
         Assert.NotNull(page.Rest);
-        Assert.Empty(page.Rest.Children);
+        Assert.Same(page.Speech!.Section, Assert.Single(page.Rest.Children));
         // the stage sits 2 above the Style heading (CZ-3.4)
         Assert.Equal(2, page.Stage.Margin.Bottom);
         Assert.True(page.Stage.Bounds.Bottom + 2 <= kids[1].Bounds.Top + 0.5);
