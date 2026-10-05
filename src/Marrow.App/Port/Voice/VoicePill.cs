@@ -372,9 +372,12 @@ internal sealed class VoicePill : Panel
         var h = PillHeight;
         var width = Math.Max(widthValue.Value, h);
         var centre = style == VoiceListeningStyle.Float ? new Point(h / 2, h / 2) : new Point(width - h / 2, h / 2);
-        var mask = VoicePillRim.OrbMask(centre, orbDiameter, h);
-        body.OpacityMask = mask;
-        rim.OpacityMask = mask;
+        var mask = VoicePillRim.OrbMask(centre, orbDiameter, h, width, style);
+        // The design masks `.vpill`, not each paint separately. Clip and mask the finished group in the pill's own coordinates;
+        // the shared material's custom visual has larger sampling bounds than the border it paints.
+        OpacityMask = mask;
+        body.OpacityMask = null;
+        rim.OpacityMask = null;
     }
 
     // after the values moved: draw what they hold
