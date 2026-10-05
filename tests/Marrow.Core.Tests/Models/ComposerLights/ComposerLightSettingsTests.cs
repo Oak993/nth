@@ -81,7 +81,7 @@ public sealed class ComposerLightSettingsTests
             Duration = 3.333, Radius = 40, Brightness = 0.1, HueShift = -2.5, Strength = 0.555, Saturation = 9, GlowSize = 0.1, HueRange = 200,
             StrokeX = 2.6, InnerX = 1.024, BloomX = -1, CoreBlur = 0.74, BloomBlur = 61, GlowX = 0.2, GlowY = 4.004, Boost = 0.1, Spike = 1.026,
         }).Clamped();
-        Assert.Equal(3.34, b.Duration!.Value, 9); Assert.Equal(32, b.Radius); Assert.Equal(0.2, b.Brightness!.Value, 9); Assert.Equal(-2, b.HueShift);
+        Assert.Equal(3.33, b.Duration!.Value, 9); /* CZ-13.2: the speed steps 0.01 (it was 0.02: 3.34) */ Assert.Equal(32, b.Radius); Assert.Equal(0.2, b.Brightness!.Value, 9); Assert.Equal(-2, b.HueShift);
         Assert.Equal(0.56, b.Strength, 9); Assert.Equal(2.5, b.Saturation!.Value, 9); Assert.Equal(0.25, b.GlowSize, 9); Assert.Equal(180, b.HueRange);
         Assert.Equal(2, b.StrokeX, 9); Assert.Equal(1, b.InnerX, 9); Assert.Equal(0, b.BloomX, 9); Assert.Equal(0.5, b.CoreBlur!.Value, 9);
         Assert.Equal(60, b.BloomBlur!.Value, 9); Assert.Equal(0.35, b.GlowX!.Value, 9); Assert.Equal(4, b.GlowY!.Value, 9); Assert.Equal(0.5, b.Boost, 9);
