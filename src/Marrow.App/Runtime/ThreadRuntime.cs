@@ -230,7 +230,7 @@ public enum RuntimePhase
 }
 
 // :165-3661 and the rehearsal extension :3696-3758. @MainActor @Observable -> MainActorModel (R-OBS-6).
-public sealed class ThreadRuntime : MainActorModel
+public sealed partial class ThreadRuntime : MainActorModel
 {
     // :354-357
     private sealed record HydraBatch
