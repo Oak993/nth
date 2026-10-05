@@ -3,24 +3,117 @@ using Marrow.Core.Port.Voice;
 
 namespace Marrow.App.Port.Voice;
 
-/// <summary>The question and its states; the Welcome section and the orb's card draw it.</summary>
+/// <summary>
+/// The question (OD-0098: Welcome asks whether the user wants voice typing; yes starts <see cref="VoicePreparation.PrepareAsync"/>, no downloads nothing) and, after a slow speed test, the Q-V-1 C question
+/// (live words with a smaller model, or text after you stop with the accurate model). The Welcome section and the orb's card both draw it. <see cref="State"/> changes only through the calls below and
+/// <see cref="Changed"/> follows every change. When Welcome is gone (<see cref="CloseWelcome"/>) a question still open is asked at the next orb click (<see cref="AsksAtOrb"/>): the orb wiring is VT-12's.
+/// </summary>
 public sealed class VoiceSpeedQuestion(VoicePreparation preparation, IVoicePreparationSettings settings)
 {
-    public VoiceQuestionState State => throw new NotImplementedException();
+    private readonly Lock gate = new();
+    private VoiceQuestionState state = VoiceQuestionState.Ask;
+    private bool welcomeGone;
+    private string? error;
 
-    public bool WelcomeGone => throw new NotImplementedException();
+    /// <summary>Where the question is.</summary>
+    public VoiceQuestionState State
+    {
+        get { lock (gate) return state; }
+    }
 
-    public bool AsksAtOrb => throw new NotImplementedException();
+    /// <summary>True once Welcome has gone (<see cref="CloseWelcome"/>).</summary>
+    public bool WelcomeGone
+    {
+        get { lock (gate) return welcomeGone; }
+    }
 
-    public string? Error => throw new NotImplementedException();
+    /// <summary>True when the slow question is still open and Welcome is gone: the next orb click shows it (ED: in the orb's PopoverCard).</summary>
+    public bool AsksAtOrb
+    {
+        get { lock (gate) return welcomeGone && state == VoiceQuestionState.Slow; }
+    }
 
+    /// <summary>Why the last run failed (a diagnostic, not UI words); null otherwise.</summary>
+    public string? Error
+    {
+        get { lock (gate) return error; }
+    }
+
+    /// <summary>Raised after every change of state.</summary>
     public event Action? Changed;
 
-    public Task YesAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken) => throw new NotImplementedException();
+    /// <summary>
+    /// The user's yes (only from Ask): consent, then download, verify and speed test. Ready when it ends well, Slow when the processor is too slow for live words and the question is still to be asked,
+    /// back to Ask (with <see cref="Error"/>) when it fails (ED-NEW-cloud-wv-1).
+    /// </summary>
+    public async Task YesAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
+    {
+        if (!Move(VoiceQuestionState.Ask, VoiceQuestionState.Yes)) return;
+        preparation.GrantConsent();
+        VoicePreparationResult result;
+        try
+        {
+            result = await preparation.PrepareAsync(progress, cancellationToken);
+        }
+        catch
+        {
+            Settle(VoiceQuestionState.Ask, null);
+            throw;
+        }
+        if (result.Status != VoicePreparationStatus.Prepared) Settle(VoiceQuestionState.Ask, result.Error ?? "The voice model was not prepared.");
+        else Settle(result.AskSlowQuestion ? VoiceQuestionState.Slow : VoiceQuestionState.Ready, null);
+    }
 
-    public void No() => throw new NotImplementedException();
+    /// <summary>The user's no (only from Ask): nothing is downloaded and nothing is stored.</summary>
+    public void No() => Move(VoiceQuestionState.Ask, VoiceQuestionState.No);
 
-    public Task AnswerAsync(LiveWordsChoice choice, CancellationToken cancellationToken) => throw new NotImplementedException();
+    /// <summary>The answer to the slow question (only from Slow): stored in the setting (R5 to R8) and applied. A model that cannot be installed leaves the question open with <see cref="Error"/>.</summary>
+    public async Task AnswerAsync(LiveWordsChoice choice, CancellationToken cancellationToken)
+    {
+        if (State != VoiceQuestionState.Slow) return;
+        var record = await preparation.AnswerSlowQuestionAsync(choice, cancellationToken);
+        if (record is null)
+        {
+            lock (gate) error = "The answer could not be applied.";
+            return;
+        }
+        Settle(choice == LiveWordsChoice.Live ? VoiceQuestionState.SlowLive : VoiceQuestionState.SlowAcc, null);
+    }
 
-    public void CloseWelcome() => throw new NotImplementedException();
+    /// <summary>
+    /// Welcome has gone. Ask, No, Ready and the answers become Gone; a download still running (Yes) and an open slow question (Slow) stay as they are for the next orb click.
+    /// </summary>
+    public void CloseWelcome()
+    {
+        lock (gate)
+        {
+            if (welcomeGone) return;
+            welcomeGone = true;
+            if (state is VoiceQuestionState.Yes or VoiceQuestionState.Slow) return;
+            state = VoiceQuestionState.Gone;
+        }
+        Changed?.Invoke();
+    }
+
+    private bool Move(VoiceQuestionState from, VoiceQuestionState to)
+    {
+        lock (gate)
+        {
+            if (state != from) return false;
+            state = to;
+            error = null;
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    private void Settle(VoiceQuestionState to, string? reason)
+    {
+        lock (gate)
+        {
+            error = reason;
+            state = welcomeGone && to is VoiceQuestionState.Ready or VoiceQuestionState.Ask ? VoiceQuestionState.Gone : to; // an answer given at the orb stays to be shown there
+        }
+        Changed?.Invoke();
+    }
 }

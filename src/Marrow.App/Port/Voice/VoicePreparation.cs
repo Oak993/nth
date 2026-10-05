@@ -61,10 +61,40 @@ public sealed class VoicePreparation
     }
 
     /// <summary>The hardware part of today's key (the key the slow-PC answer is stored under, R5) from the last probe; null before any.</summary>
-    public string? HardwarePart => throw new NotImplementedException();
+    public string? HardwarePart
+    {
+        get
+        {
+            lock (gate) return profile is null ? null : HardwareKey.ComputeHardwarePart(profile);
+        }
+    }
 
     /// <summary>The slow-PC answer (Q-V-1 C, R5 to R8): stores it with its hardware part, applies it to the kept model (live: the next smaller rung, installed, live words on) and rewrites the stored record. Null: nothing stored.</summary>
-    public Task<VoiceHardwareRecord?> AnswerSlowQuestionAsync(LiveWordsChoice choice, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public async Task<VoiceHardwareRecord?> AnswerSlowQuestionAsync(LiveWordsChoice choice, CancellationToken cancellationToken)
+    {
+        var part = HardwarePart;
+        var record = settings.Record;
+        if (part is null || record is null || !consent) return null;
+        var decision = SelfTestPlan.ApplyAnswer(record.Model, choice);
+        var changed = !string.Equals(decision.ModelId, record.Model, StringComparison.Ordinal);
+        if (changed)
+        {
+            try
+            {
+                await EnsureInstalledAsync(decision.ModelId, cancellationToken);
+            }
+            catch (PreparationFailure)
+            {
+                return null; // the answer is not stored: the question stays open
+            }
+        }
+        var updated = record with { Model = decision.ModelId, LiveWords = decision.LiveWords ?? false };
+        var typing = SelfTestPlan.WithSlowAnswer(settings.Typing, choice, part);
+        if (changed && string.Equals(typing.Model, record.Model, StringComparison.Ordinal)) typing = typing with { Model = decision.ModelId };
+        settings.Typing = typing;
+        settings.Record = updated;
+        return updated;
+    }
 
     /// <summary>True once the user said yes (Welcome) or clicked the orb.</summary>
     public bool HasConsent => consent;
