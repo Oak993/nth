@@ -32,7 +32,7 @@ public sealed class AppSettingsComposerLightTests
         scope.OnMain(() =>
         {
             var settings = new AppSettings { ComposerLight = chosen };
-            Assert.Equal(7.32, settings.ComposerLight.Beam.Duration!.Value, 9);       // the slider's .02 step
+            Assert.Equal(7.31, settings.ComposerLight.Beam.Duration!.Value, 9);       // the stored slider steps .01 (CZ-13.2; it was .02: 7.32)
             Assert.Contains(("set", "composerLight"), scope.Defaults.Writes);
             Assert.Equal(Encoding.UTF8.GetString(chosen.Clamped().ToJson()), Encoding.UTF8.GetString((byte[])scope.Defaults.Object("composerLight")!));
         });
