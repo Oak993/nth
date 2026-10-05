@@ -1,0 +1,6 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+WARNING: Overwriting results file: /tmp/marrow-ma4-results/ma4-app.trx
+Results File: /tmp/marrow-ma4-results/ma4-app.trx
+
+Passed!  - Failed:     0, Passed:    25, Skipped:     0, Total:    25, Duration: 718 ms - Marrow.App.Tests.dll (net10.0)
