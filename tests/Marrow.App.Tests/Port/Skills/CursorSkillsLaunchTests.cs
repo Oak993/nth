@@ -13,6 +13,17 @@ namespace Marrow.App.Tests.Port.Skills;
 [Trait("Decision", "ED-326"), Trait("Rule", "R-TEST-4")]
 public sealed class CursorSkillsLaunchTests
 {
+    [Fact]
+    public void The_MCP_relay_entry_precedes_all_desktop_and_data_startup_without_running_the_app()
+    {
+        var calls = MethodCalls.Of(typeof(Marrow.App.Program).GetMethod(nameof(Marrow.App.Program.Main))!);
+        var names = calls.Select(c => c.Name).ToArray();
+        var relay = Array.IndexOf(names, "RunClient");
+        Assert.True(relay >= 0);
+        Assert.True(relay < Array.IndexOf(names, "RunVelopackHook"));
+        Assert.True(relay < Array.IndexOf(names, "TryAcquireSingleInstanceLock"));
+        Assert.True(relay < Array.IndexOf(names, "SetProcessDefault"));
+    }
     [Theory]
     [InlineData(null)]
     [InlineData("prior-cursor-chat")]

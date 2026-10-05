@@ -10,6 +10,9 @@ namespace Marrow.Services.Port.Skills.Providers;
 public static class AntigravitySkillsComposer
 {
     public static Generation Prepare(SkillsHost host, string chat, string directory, string home, GenerationBudget budget)
+        => PrepareForProvider(host, "agy", chat, directory, home, budget);
+
+    internal static Generation PrepareForProvider(SkillsHost host, string provider, string chat, string directory, string home, GenerationBudget budget)
     {
         var items = new List<GenerationItem>();
         var held = new List<StoreLease>();
@@ -41,8 +44,8 @@ public static class AntigravitySkillsComposer
             var switches = SkillSwitches.Load(host.Paths.EnabledFile);
             if (string.IsNullOrWhiteSpace(switches.Version))
                 switches = new(host.Pipeline.CatalogueVersion, switches.Skills, switches.Plugins);
-            var existing = new SkillClashScanner(home, directory, RepositoryRoot(directory)).Scan("agy");
-            return host.Generations.Start("agy", chat, items, switches, budget, existing);
+            var existing = new SkillClashScanner(home, directory, RepositoryRoot(directory)).Scan(provider);
+            return host.Generations.Start(provider, chat, items, switches, budget, existing);
         }
         finally { foreach (var lease in held) lease.Dispose(); }
     }

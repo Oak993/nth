@@ -2013,10 +2013,13 @@ public sealed class ThreadRuntime : MainActorModel
         async Task<ProviderSession> MakeSession(string? resumeID)
         {
             var launchEpoch = sessionEpoch;
-            if (thread.Provider == ProviderKind.Antigravity) await pendingSkillRelease;
-            var skills = thread.Provider == ProviderKind.Antigravity
-                ? await Marrow.App.Port.Skills.AntigravitySkills.Prepare.Current(ThreadID.ToString("N"), directory)
-                : null;
+            if (thread.Provider is ProviderKind.Antigravity or ProviderKind.Cursor) await pendingSkillRelease;
+            var skills = thread.Provider switch
+            {
+                ProviderKind.Antigravity => await Marrow.App.Port.Skills.AntigravitySkills.Prepare.Current(ThreadID.ToString("N"), directory),
+                ProviderKind.Cursor => await Marrow.App.Port.Skills.CursorSkills.Prepare.Current(ThreadID.ToString("N"), directory),
+                _ => null,
+            };
             try
             {
                 if (SwiftTask.IsCancelled || sessionEpoch != launchEpoch) throw new CancellationError();
@@ -2036,6 +2039,7 @@ public sealed class ThreadRuntime : MainActorModel
                     Hydra = hydra,
                     AntiSlopEnabled = signature.AntiSlopEnabled,
                     SkillGeneration = skills,
+                    SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe") : null,
                 };
 
                 ProviderSession created = CliSessionFactory.Current.Current(configuration);
@@ -2049,7 +2053,7 @@ public sealed class ThreadRuntime : MainActorModel
         async Task<string> StartCliSession(ProviderSession candidate)
         {
             try { return await candidate.Start(); }
-            catch (Exception error) when (thread.Provider == ProviderKind.Antigravity
+            catch (Exception error) when (thread.Provider is ProviderKind.Antigravity or ProviderKind.Cursor
                 && error is IOException or UnauthorizedAccessException)
             {
                 throw new ProviderError(new ProviderError.Case.Failed(error.Message));

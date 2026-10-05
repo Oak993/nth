@@ -1,6 +1,9 @@
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json.Nodes;
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Services.Port.Skills.Generations;
 using Marrow.Services.Tests.Fixtures;
 
@@ -10,15 +13,65 @@ namespace Marrow.Services.Tests.Port.Skills.Providers;
 public sealed class CursorSkillsMcpTests
 {
     [Fact]
-    public void The_MCP_contract_exposes_read_only_discovery_and_pinned_skill_reads()
+    public async Task The_stdio_relay_forwards_the_real_MCP_contract_and_exits_when_the_parent_closes()
+    {
+        using var f = new Generations.GenerationFixture();
+        var item = f.Add("O3", "pdf");
+        using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
+        var type = typeof(Generation).Assembly.GetType("Marrow.Services.Port.Skills.Providers.SkillsMcpBridge")!;
+        using var bridge = (IDisposable)Activator.CreateInstance(type, g, "C:/fake/Marrow.App.exe")!;
+        var pipeName = (string)type.GetProperty("PipeName")!.GetValue(bridge)!;
+        var relayName = "MarrowTestRelay-" + Guid.NewGuid().ToString("N");
+        using var peer = new NamedPipeServerStream(relayName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        using var streams = new NamedPipeClientStream(".", relayName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        var connected = peer.WaitForConnectionAsync();
+        await streams.ConnectAsync(5000); await connected;
+        var run = (Task<int>)type.GetMethod("RunClient")!.Invoke(null, [new[] { "--marrow-skills-mcp", pipeName }, streams, streams])!;
+        using var writer = new StreamWriter(peer, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
+        using var reader = new StreamReader(peer, Encoding.UTF8, leaveOpen: true);
+        await writer.WriteLineAsync("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read_skill\",\"arguments\":{\"name\":\"pdf\"}}}");
+        Assert.Contains("BODY SENTINEL", (await reader.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(5)))!, StringComparison.Ordinal);
+        bridge.Dispose();
+        Assert.Equal(0, await run.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.True(g.Verify());
+    }
+    [Fact]
+    public void Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once()
+    {
+        using var f = new Generations.GenerationFixture();
+        var item = f.Add("O3", "pdf");
+        using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
+        var type = typeof(Generation).Assembly.GetType("Marrow.Services.Port.Skills.Providers.SkillsMcpBridge");
+        Assert.NotNull(type);
+        using var bridge = (IDisposable)Activator.CreateInstance(type, g, "C:/fake/Marrow.App.exe")!;
+        var config = (JSONValue)type.GetProperty("Configuration")!.GetValue(bridge)!;
+        var name = config["name"]!.JSONValueString!;
+        var permission = type.GetMethod("AutomaticOption");
+        Assert.NotNull(permission);
+        var options = new ValueList<JSONValue>([JSONValue.Parse("{\"optionId\":\"once\",\"kind\":\"allow_once\"}")!]);
+        foreach (var tool in new[] { "list_skills", "read_skill" })
+        {
+            var call = JSONValue.FromDictionaryLiteral(("title", name + "-" + tool + ": " + tool), ("kind", "other"));
+            Assert.Equal("once", permission.Invoke(bridge, [call, options]));
+            Assert.Null(permission.Invoke(bridge, [call, ValueList<JSONValue>.Empty]));
+        }
+        foreach (var title in new[] { "user-server-read_skill: read_skill", name + "-execute: execute", name + "-read_skill: read_skill EXTRA" })
+            Assert.Null(permission.Invoke(bridge, [JSONValue.FromDictionaryLiteral(("title", title), ("kind", "other")), options]));
+        bridge.Dispose();
+        Assert.Null(permission.Invoke(bridge, [JSONValue.FromDictionaryLiteral(("title", name + "-read_skill: read_skill"), ("kind", "other")), options]));
+    }
+    [Theory]
+    [InlineData("2025-06-18")]
+    [InlineData("2025-11-25")]
+    public void The_MCP_contract_exposes_read_only_discovery_and_pinned_skill_reads(string version)
     {
         using var f = new Generations.GenerationFixture();
         var pdf = f.Add("O3", "pdf");
         var explicitOnly = f.Add("O1", "screenshot");
         using var g = f.Open().Start("cursor", "chat", [pdf, explicitOnly], f.Switches((pdf, true), (explicitOnly, true)), f.Budget);
         using var mcp = new SkillsMcpReflection(g);
-        var initialized = mcp.Call("initialize", new { protocolVersion = "2025-06-18" })["result"]!;
-        Assert.Equal("2025-06-18", initialized["protocolVersion"]!.GetValue<string>());
+        var initialized = mcp.Call("initialize", new { protocolVersion = version })["result"]!;
+        Assert.Equal(version, initialized["protocolVersion"]!.GetValue<string>());
         Assert.Contains("list_skills", initialized["instructions"]!.GetValue<string>(), StringComparison.Ordinal);
         var tools = mcp.Call("tools/list")["result"]!["tools"]!.AsArray();
         Assert.Equal(new[] { "list_skills", "read_skill" }, tools.Select(t => t!["name"]!.GetValue<string>()));

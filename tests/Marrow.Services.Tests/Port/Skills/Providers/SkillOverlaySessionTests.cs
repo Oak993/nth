@@ -55,7 +55,7 @@ public sealed class SkillOverlaySessionTests
     }
 
     [Fact]
-    public void Cursor_failed_ACP_live_check_keeps_automatic_loading_off_and_argv_unchanged()
+    public void Cursor_MCP_attachment_preserves_the_original_CLI_arguments()
     {
         using var storage = new StorageScratchFolder(); // ACP's MCP setup reads Storage.Locations, even with no configured servers.
         using var f = new GenerationFixture();

@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Reflection;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.MCP;
@@ -11,8 +12,36 @@ using Marrow.Testing;
 namespace Marrow.Services.Tests.Port.Skills.Providers;
 
 [Trait("Feature", "SK-17"), Trait("Rule", "R-TEST-4")]
+[Collection(PlanLimitsProcessCollection.Name)]
 public sealed class CursorSkillsAcpTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(bool stop)
+    {
+        using var storage = new StorageScratchFolder();
+        using var f = new Generations.GenerationFixture();
+        var item = f.Add("O3", "pdf");
+        using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
+        using var runtime = new TestRuntime();
+        var script = AcpStandIns.CopyFor("sk17-cursor-launch-wait");
+        var gate = typeof(ACPSession).GetField("LaunchGate", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+        gate.GetType().GetField("nextSlot", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(gate, SwiftDate.Now.AddSeconds(5));
+        var session = new ACPSession(SkillOverlaySessionTests.Config(ProviderKind.Cursor, script.ExecutablePath, f.Paths.Root, g));
+        try
+        {
+            var start = runtime.OnMain(() => session.Start());
+            runtime.Loop.RunUntil(() => runtime.Time.ActiveTimers > 0, TimeSpan.FromSeconds(10));
+            if (stop) { runtime.OnMain(session.Stop); g.Dispose(); }
+            else { f.Trees.Unlock(g.Folder); File.AppendAllText(Assert.Single(g.Skills).File, "damage"); }
+            runtime.Advance(TimeSpan.FromSeconds(5));
+            if (stop) Assert.Throws<CancellationError>(() => runtime.Loop.Run(() => start, TimeSpan.FromSeconds(10)));
+            else Assert.Throws<IOException>(() => runtime.Loop.Run(() => start, TimeSpan.FromSeconds(10)));
+            Assert.Equal(0, script.Launches);
+        }
+        finally { session.Stop(); AcpStandIns.ResetLaunchGate(); }
+    }
     [Theory]
     [InlineData(null, "session/new")]
     [InlineData("saved", "session/load")]

@@ -1,5 +1,7 @@
 # SK-17 shared launch integration follow-up
 
+Current status: Antigravity automatic integration remains complete. The later owner-authorized Cursor MCP route also passed and is implemented; [SK-17-cursor-automatic.md](SK-17-cursor-automatic.md) supersedes the Cursor explicit-only statements and counts in this historical report.
+
 Lead instruction, 2026-10-05: accept the live decision (Antigravity automatic skills; Cursor only when named), finish the shared launch integration, and leave task-queue/marking work to the lead. Worktree `E:\Droppy\wt\cx\sk-17-live`, branch `codex/sk-17-live`, baseline `18bb508c7fe0f17a3682f8a52380d5db54846188`. The original live evidence and configuration restoration are retained in [SK-17-live-test.md](SK-17-live-test.md).
 
 ## Final behavior

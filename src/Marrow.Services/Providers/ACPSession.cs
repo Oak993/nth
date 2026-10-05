@@ -38,7 +38,7 @@ internal sealed class ACPLaunchGate : Actor
 
 // :23-896. Drives Agent Client Protocol agents: Cursor, OpenCode Zen, OpenCode Go, Grok and Devin.
 // R-ISO-1: @MainActor -> plain class, no per-call MainActor check; every member is only ever called on main.
-public sealed class ACPSession : ProviderSession
+public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSessionLifetime
 {
     private static readonly ACPLaunchGate LaunchGate = new(TimeSpan.FromSeconds(1.5)); // :26
 
@@ -46,6 +46,8 @@ public sealed class ACPSession : ProviderSession
 
     private readonly SessionConfiguration configuration; // :30
     private JSONRPCConnection? connection; // :31
+    private StdioProcess? readersProcess; // SK-17: hold the runtime generation until the actual ACP child exits.
+    private Port.Skills.Providers.SkillsMcpBridge? skillsMcp;
     private bool canLoadSessions; // :34
     private bool supportsHTTPMCP; // :35
     private ValueList<string> authMethods = ValueList<string>.Empty; // :33
@@ -84,6 +86,7 @@ public sealed class ACPSession : ProviderSession
     }
 
     public bool IsRunning => connection is { } c && !c.IsClosed; // :71-74
+    public Task SkillReadersExited => readersProcess is { IsRunning: true } child ? child.WaitForExit() : Task.CompletedTask;
 
     private string WorkingDirectory => configuration.WorkingDirectory.Path; // :76
 
@@ -125,20 +128,35 @@ public sealed class ACPSession : ProviderSession
     public async Task<string> Start() // :108-152
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :109
-        await LaunchGate.Wait(); // :110
-        var process = new StdioProcess(executable.Path, LaunchArguments, WorkingDirectory, configuration.Environment); // :111-116
-        var connection = new JSONRPCConnection(process, sendsVersion: true); // :117
-        connection.OnNotification = (method, parameters) => HandleNotification(method, parameters); // :118
-        connection.OnRequest = (id, method, parameters) => HandleRequest(id, method, parameters); // :119
-        connection.OnClose = tail => HandleClose(tail); // :120
-        this.connection = connection; // :121
-        connection.Start(); // :122
+        if (configuration.Provider == ProviderKind.Cursor && configuration.SkillGeneration is { } skills)
+        {
+            skillsMcp = new(skills, configuration.SkillMcpExecutable ?? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe"));
+        }
+        try
+        {
+            await LaunchGate.Wait(); // :110
+            // SK-17: the gate suspends. Stop or damage during that wait must not launch a late reader.
+            if (configuration.Provider == ProviderKind.Cursor && configuration.SkillGeneration is { } current)
+            {
+                if (isStopping || SwiftTask.IsCancelled) throw new CancellationError();
+                Port.Skills.Providers.SessionSkillOverlay.RequireFolder(current, "cursor");
+            }
+            var process = new StdioProcess(executable.Path, LaunchArguments, WorkingDirectory, configuration.Environment); // :111-116
+            readersProcess = process;
+            var connection = new JSONRPCConnection(process, sendsVersion: true); // :117
+            connection.OnNotification = (method, parameters) => HandleNotification(method, parameters); // :118
+            connection.OnRequest = (id, method, parameters) => HandleRequest(id, method, parameters); // :119
+            connection.OnClose = tail => HandleClose(tail); // :120
+            this.connection = connection; // :121
+            connection.Start(); // :122
 
-        var initialized = await connection.Request("initialize", InitializeParams); // :124-128
-        ApplyInitializeReply(initialized); // :129-132
+            var initialized = await connection.Request("initialize", InitializeParams); // :124-128
+            ApplyInitializeReply(initialized); // :129-132
 
-        var session = await OpenSessionWithAuthRetry(connection); // :134-140
-        return await SelectOpenedSession(session); // :141-151
+            var session = await OpenSessionWithAuthRetry(connection); // :134-140
+            return await SelectOpenedSession(session); // :141-151
+        }
+        catch { skillsMcp?.Dispose(); throw; }
     }
 
     // :134-140 factored verbatim so a scripted transport can verify the single auth retry.
@@ -275,6 +293,7 @@ public sealed class ACPSession : ProviderSession
     public void Stop() // :221-224
     {
         isStopping = true;
+        skillsMcp?.Dispose();
         connection?.Close();
     }
 
@@ -357,7 +376,9 @@ public sealed class ACPSession : ProviderSession
         var baseParams = new Dictionary<string, JSONValue>
         {
             ["cwd"] = WorkingDirectory, // :254
-            ["mcpServers"] = MCPProviderConfig.AcpServers(supportsHTTPMCP), // :254
+            ["mcpServers"] = skillsMcp is { } bridge
+                ? new JSONValue.Array(new ValueList<JSONValue>((MCPProviderConfig.AcpServers(supportsHTTPMCP).JSONValueArray ?? []).Append(bridge.Configuration)))
+                : MCPProviderConfig.AcpServers(supportsHTTPMCP), // :254 + SK-17 live-proven per-session server
         };
         if (configuration.ResumeID is { } resumeID && canLoadSessions) // :255
         {
@@ -767,7 +788,7 @@ public sealed class ACPSession : ProviderSession
         var options = parameters["options"]?.JSONValueArray ?? []; // :560
         var toolCall = parameters["toolCall"] ?? new JSONValue.Null(); // :561
         var call = MakeToolCall(toolCall); // :562
-        if (AutomaticOption(call.ToolCallKind, options) is { } optionID) // :563
+        if ((skillsMcp?.AutomaticOption(toolCall, options) ?? AutomaticOption(call.ToolCallKind, options)) is { } optionID) // :563 + SK-17 owned read-only tools
         {
             connection?.Respond(id, JSONValue.FromDictionaryLiteral( // :564-565
                 ("outcome", JSONValue.FromDictionaryLiteral(("outcome", "selected"), ("optionId", optionID)))));
@@ -815,6 +836,7 @@ public sealed class ACPSession : ProviderSession
     // :625-631. Part 4 of 8 (PR-PROVACP-074).
     private void HandleClose(string tail)
     {
+        skillsMcp?.Dispose();
         if (promptActive) // :626
             FinishPrompt(null, new ProviderError(new ProviderError.Case.Failed(TextCleanup.LastLines(tail) ?? "The agent exited."))); // :627
         if (isStopping) return; // :629

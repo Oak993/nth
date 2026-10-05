@@ -33,7 +33,7 @@ public sealed class SkillOverlayLayoutTests
     }
 
     [Fact]
-    public void Cursor_failed_live_routes_keep_the_generation_available_for_named_use_only()
+    public void Cursor_MCP_generation_is_flat_and_remains_available_for_named_use()
     {
         using var f = new GenerationFixture();
         var item = f.Add("O3", "pdf");
