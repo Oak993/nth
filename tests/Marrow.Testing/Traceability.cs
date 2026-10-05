@@ -18,7 +18,7 @@ public static partial class Traceability
 
     [GeneratedRegex(@"\AR-[A-Z]+-[0-9]+\z")] private static partial Regex RuleId();
 
-    [GeneratedRegex(@"\AED-[0-9]{3}\z")] private static partial Regex DecisionId();
+    [GeneratedRegex(@"\A(?:ED-[0-9]{3}|ED-NEW-ma-2)\z")] private static partial Regex DecisionId();
 
     [GeneratedRegex(@"\AO-[0-9]{2}\z")] private static partial Regex OracleId();
 

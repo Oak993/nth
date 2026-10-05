@@ -2932,15 +2932,22 @@ public sealed class ThreadRuntime : MainActorModel
     }
 
     // ThreadRuntime.swift:2070-2077.
-    public void Observe(ProviderSession provider)
+    public UsageAccountKey? UsageAccount { get; private set; }
+
+    public void Observe(ProviderSession provider) => Observe(provider,
+        Thread is { } thread ? UsageAccountKey.Default(thread.Provider) : null);
+
+    // DEVIATION OD-0114 / ED-NEW-ma-2: immutable source identity survives later account changes.
+    public void Observe(ProviderSession provider, UsageAccountKey? account)
     {
+        UsageAccount = account;
         sessionEpoch++;
         var epoch = sessionEpoch;
         var weakSelf = new WeakReference<ThreadRuntime>(this);
         provider.OnEvent = @event =>
         {
             if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
-                runtime.Handle(@event);
+                runtime.Handle(@event is ProviderEvent.UsageLimit limit ? limit with { Account = account } : @event);
         };
     }
 
@@ -3882,7 +3889,8 @@ public sealed class ThreadRuntime : MainActorModel
                 AppendNotice(value.Value.NoticeLevel, value.Value.Message);
                 break;
             case ProviderEvent.UsageLimit value:
-                App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt);
+                if (value.Account is { } limitedAccount) App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt, limitedAccount);
+                else App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt);
                 break;
             case ProviderEvent.ModeChanged value:
                 App?.UpdateThread(ThreadID, thread => thread with { InteractionMode = value.Value });
