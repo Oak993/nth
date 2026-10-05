@@ -20,6 +20,7 @@ public sealed class ApiKeyPool
     private readonly IApiKeySpend spend;
     private readonly TimeProvider clock;
     private readonly ApiKeyPoolOptions settings;
+    private readonly IKeyMovePolicy? moves;
     private readonly Lock gate = new();
     private readonly Dictionary<string, (DateTimeOffset Until, OutKind Kind)> outs = [];
     private readonly Dictionary<string, int> uses = [];
@@ -27,8 +28,9 @@ public sealed class ApiKeyPool
     private readonly Dictionary<Guid, Rotation> rotations = [];
     private readonly HashSet<(string Key, int Month)> capped = [];
 
-    public ApiKeyPool(string service, IApiKeyStore store, IApiKeyCredits credits, IApiKeySpend spend, TimeProvider clock, ApiKeyPoolOptions? options = null)
+    public ApiKeyPool(string service, IApiKeyStore store, IApiKeyCredits credits, IApiKeySpend spend, TimeProvider clock, ApiKeyPoolOptions? options = null, IKeyMovePolicy? moves = null)
     {
+        this.moves = moves;
         this.service = service;
         this.store = store;
         this.credits = credits;
@@ -93,7 +95,7 @@ public sealed class ApiKeyPool
     {
         if (!entry.Allowed || string.IsNullOrWhiteSpace(store.Secret(entry.Id))) return false;
         if (IsOut(entry.Id, now)) return false;
-        return !(entry.MonthlyCapUsd is { } cap && spend.MonthSpend(entry.Id, now) >= cap);
+        return !(entry.MonthlyCapUsd is { } cap && spend.SpendSince(entry.Id, MonthStart(now)) >= cap);
     }
 
     private bool IsOut(string keyId, DateTimeOffset now)
@@ -115,7 +117,7 @@ public sealed class ApiKeyPool
             if (!entry.Allowed || string.IsNullOrWhiteSpace(store.Secret(entry.Id))) continue;
             DateTimeOffset? back = null;
             if (outs.TryGetValue(entry.Id, out var state) && state.Until > now) back = state.Until;
-            if (entry.MonthlyCapUsd is { } cap && spend.MonthSpend(entry.Id, now) >= cap)
+            if (entry.MonthlyCapUsd is { } cap && spend.SpendSince(entry.Id, MonthStart(now)) >= cap)
             {
                 var next = new DateTimeOffset(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(1);
                 back = back is { } b && b > next ? b : next;
@@ -124,6 +126,8 @@ public sealed class ApiKeyPool
         }
         return earliest;
     }
+
+    private DateTimeOffset MonthStart(DateTimeOffset now) => new(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, TimeSpan.Zero);
 
     private ApiKeyEvent Event(ApiKeyEventKind kind, Guid thread, KeyChoice? from, KeyChoice? to, int? status, DateTimeOffset? returns, string message) =>
         new(kind, service, thread, from?.Id, from?.Nickname, to?.Id, to?.Nickname, status, clock.GetUtcNow(), returns, message);
@@ -134,6 +138,10 @@ public sealed class ApiKeyPool
     {
         private readonly HashSet<string> tried = [];
         private KeyChoice? current;
+
+        public string? StopReason => null;
+
+        public void AllowMoveOnce() { }
 
         public KeyChoice? Current()
         {
@@ -197,7 +205,7 @@ public sealed class ApiKeyPool
                 var now = pool.clock.GetUtcNow();
                 pool.spend.Add(key.Id, usd, now);
                 var entry = pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == key.Id);
-                if (entry?.MonthlyCapUsd is { } cap && pool.spend.MonthSpend(key.Id, now) >= cap
+                if (entry?.MonthlyCapUsd is { } cap && pool.spend.SpendSince(key.Id, pool.MonthStart(now)) >= cap
                     && pool.capped.Add((key.Id, now.UtcDateTime.Year * 12 + now.UtcDateTime.Month)))
                 {
                     raised = pool.Event(ApiKeyEventKind.CapReached, threadId, key, null, null, null, $"{key.Nickname} reached its monthly cap.");

@@ -113,8 +113,8 @@ public sealed class OpenAICompatibleSessionKeyRotationTests
         await using var rig = new KeyRotationRig(["402", KeyRotationRig.Ok]);
         rig.Session.KeySpendEstimator = usage => usage.Total * 0.001;
         Assert.Null(await rig.RunTurn());
-        Assert.Equal(0.1, rig.Spend.MonthSpend("b", rig.Clock.GetUtcNow()), 6);
-        Assert.Equal(0, rig.Spend.MonthSpend("a", rig.Clock.GetUtcNow()));
+        Assert.Equal(0.1, rig.Spend.SpendSince("b", DateTimeOffset.MinValue), 6);
+        Assert.Equal(0, rig.Spend.SpendSince("a", DateTimeOffset.MinValue));
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed class OpenAICompatibleSessionKeyRotationTests
     {
         await using var rig = new KeyRotationRig([KeyRotationRig.Ok]);
         Assert.Null(await rig.RunTurn());
-        Assert.Equal(0, rig.Spend.MonthSpend("a", rig.Clock.GetUtcNow()));
+        Assert.Equal(0, rig.Spend.SpendSince("a", DateTimeOffset.MinValue));
     }
 
     [Fact]
@@ -139,5 +139,40 @@ public sealed class OpenAICompatibleSessionKeyRotationTests
         await rig.RunTurn();
         Assert.Equal(["Bearer sk-c"], rig.Requests.Select(r => r.Bearer).ToList());
         Assert.DoesNotContain(rig.Notices(), n => n.StartsWith("Continued", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    [Trait("Feature", "MA-6")]
+    [Trait("Spec", "MA-T153")]
+    [Trait("Rule", "R-TEST-4")]
+    public async Task By_default_a_402_does_not_retry_on_another_key_and_the_notice_asks_then_a_yes_lets_the_next_send_go_out_on_it()
+    {
+        await using var rig = new KeyRotationRig(["402", KeyRotationRig.Ok], autoMove: false);
+        Assert.Null(await rig.RunTurn());
+        Assert.Equal(["Bearer sk-a"], rig.Requests.Select(r => r.Bearer).ToList());
+        var notice = Assert.Single(rig.Notices());
+        Assert.Contains("Key A", notice, StringComparison.Ordinal);
+        Assert.Contains("Key B", notice, StringComparison.Ordinal);
+
+        rig.Session.KeyRotation!.AllowMoveOnce();
+        await rig.SendAgain();
+        Assert.Equal(["Bearer sk-a", "Bearer sk-b"], rig.Requests.Select(r => r.Bearer).ToList());
+        Assert.Contains("Continued on Key B", rig.Notices());
+    }
+
+    [Fact]
+    [Trait("Feature", "MA-6")]
+    [Trait("Spec", "MA-T154")]
+    [Trait("Rule", "R-TEST-4")]
+    public async Task A_pinned_key_at_its_cap_sends_nothing_and_the_notice_offers_to_unpin_or_raise_the_cap()
+    {
+        await using var rig = new KeyRotationRig([KeyRotationRig.Ok]);
+        rig.Store.Update("c", k => k with { MonthlyCapUsd = 1 });
+        rig.Spend.Add("c", 1, rig.Clock.GetUtcNow());
+        rig.Pool.Pin(KeyRotationRig.Thread, "c");
+        await rig.RunTurn();
+        Assert.Empty(rig.Requests);
+        Assert.Contains("Key C reached its monthly cap. Unpin this thread or raise the cap.", rig.Notices());
+        Assert.Contains(rig.Events, e => e is ProviderEvent.TurnCompleted { Status: Marrow.Core.Models.TurnStatus.Failed });
     }
 }

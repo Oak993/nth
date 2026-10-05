@@ -16,7 +16,7 @@ public sealed class ApiKeyPoolCapAndPinTests
         var rotation = rig.Rotation();
         rotation.Current();
         rotation.RecordSpend(6);
-        Assert.Equal(6, rig.Spend.MonthSpend("a", rig.Clock.GetUtcNow()));
+        Assert.Equal(6, rig.Spend.SpendSince("a", DateTimeOffset.MinValue));
         Assert.Equal("a", rig.Pick(rotation));
         rotation.RecordSpend(4);
         Assert.Equal("b", rig.Pick(rotation));
@@ -120,5 +120,46 @@ public sealed class ApiKeyPoolCapAndPinTests
         Assert.Null(rig.Rotation().Current());
         rig.Pool.Pin(ApiKeyRig.Thread, "nope");
         Assert.Null(rig.Rotation().Current());
+    }
+
+    [Fact]
+    [Trait("Feature", "MA-6")]
+    [Trait("Spec", "MA-T151")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_pinned_key_at_its_cap_stops_the_thread_before_sending_and_offers_to_unpin_or_raise_the_cap()
+    {
+        var rig = new ApiKeyRig();
+        rig.Store.Update("c", k => k with { MonthlyCapUsd = 3 });
+        rig.Spend.Add("c", 3, rig.Clock.GetUtcNow());
+        rig.Pool.Pin(ApiKeyRig.Thread, "c");
+        var rotation = rig.Rotation();
+        Assert.Null(rotation.Current());
+        Assert.Equal("Key C reached its monthly cap. Unpin this thread or raise the cap.", rotation.StopReason);
+        var e = Assert.Single(rig.Events);
+        Assert.Equal((ApiKeyEventKind.PinnedKeyCapped, "c"), (e.Kind, e.FromKeyId));
+        Assert.Equal("a", rig.Pick(rig.Rotation(ApiKeyRig.Other)));
+
+        rig.Store.Update("c", k => k with { MonthlyCapUsd = 10 });
+        Assert.Equal("c", rotation.Current()!.Id);
+        Assert.Null(rotation.StopReason);
+        rig.Store.Update("c", k => k with { MonthlyCapUsd = 3 });
+        rig.Pool.Pin(ApiKeyRig.Thread, null);
+        Assert.Equal("a", rig.Pick(rotation));
+    }
+
+    [Fact]
+    [Trait("Feature", "MA-6")]
+    [Trait("Spec", "MA-T152")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_pinned_key_that_is_out_or_off_says_so_and_offers_to_unpin()
+    {
+        var rig = new ApiKeyRig();
+        rig.Pool.Pin(ApiKeyRig.Thread, "c");
+        var rotation = rig.Rotation();
+        rotation.Current();
+        rotation.OnFailure(402, null);
+        Assert.Null(rotation.Current());
+        Assert.Equal("Key C is out. Unpin this thread to use another key.", rotation.StopReason);
+        Assert.Equal(2, rig.Events.Count(e => e.Kind == ApiKeyEventKind.PinnedKeyOut));
     }
 }

@@ -33,15 +33,17 @@ public sealed class KeyRotationRig : IAsyncDisposable
     public ApiKeyPool Pool { get; }
     public OpenAICompatibleSession Session { get; }
     public ManualTimeProvider Clock { get; } = new();
+    public InMemoryKeyMovePolicy Moves { get; } = new();
 
     /// <param name="answers">One entry per request the server will see: a status ("402", "429", "429:7" for a Retry-After of 7, "500") or <see cref="Ok"/>.</param>
-    public KeyRotationRig(IEnumerable<string> answers, bool rotate = true)
+    public KeyRotationRig(IEnumerable<string> answers, bool rotate = true, bool autoMove = true)
     {
         script = new Queue<string>(answers);
         Directory.CreateDirectory(directory);
         storage = Storage.Locations.Override(StorageLocations.Create(directory, directory));
         foreach (var id in new[] { "a", "b", "c" }) Store.Add(new ApiKeyEntry(id, "deepseek", $"Key {id.ToUpperInvariant()}"), $"sk-{id}");
-        Pool = new ApiKeyPool("deepseek", Store, Credits, Spend, Clock);
+        Moves.Default = autoMove ? KeyMoveSetting.Allow : KeyMoveSetting.Unset; // OD-0116
+        Pool = new ApiKeyPool("deepseek", Store, Credits, Spend, Clock, moves: Moves);
 
         var config = new OpenAICompatibleSession.Config
         {
@@ -106,6 +108,20 @@ public sealed class KeyRotationRig : IAsyncDisposable
         runtime.Loop.RunUntil(() => send.IsCompleted);
         try { await send; return null; }
         catch (Exception error) { return error; }
+    }
+
+    /// <summary>Another turn on the session that is already started (the user answered a card and sent again).</summary>
+    public async Task SendAgain()
+    {
+        var send = Session.Send(new TurnInput
+        {
+            Text = "again",
+            Images = ValueList<Attachment>.Empty,
+            RuntimeMode = RuntimeMode.FullAccess,
+            InteractionMode = InteractionMode.Build,
+        });
+        runtime.Loop.RunUntil(() => send.IsCompleted);
+        await send;
     }
 
     public IEnumerable<string> Notices() =>

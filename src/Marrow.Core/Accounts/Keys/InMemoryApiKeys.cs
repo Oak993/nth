@@ -52,8 +52,20 @@ public sealed class InMemoryApiKeySpend : IApiKeySpend
 {
     private readonly List<(string Key, double Usd, DateTimeOffset At)> entries = [];
 
-    public double MonthSpend(string keyId, DateTimeOffset now) =>
-        entries.Where(e => e.Key == keyId && e.At.UtcDateTime.Year == now.UtcDateTime.Year && e.At.UtcDateTime.Month == now.UtcDateTime.Month).Sum(e => e.Usd);
+    public double SpendSince(string keyId, DateTimeOffset since) =>
+        entries.Where(e => e.Key == keyId && e.At >= since).Sum(e => e.Usd);
 
     public void Add(string keyId, double usd, DateTimeOffset at) => entries.Add((keyId, usd, at));
+}
+
+public sealed class InMemoryKeyMovePolicy : IKeyMovePolicy
+{
+    private readonly Dictionary<Guid, KeyMoveSetting> threads = [];
+
+    /// <summary>The all-threads value.</summary>
+    public KeyMoveSetting Default { get; set; }
+
+    public void Set(Guid threadId, KeyMoveSetting setting) => threads[threadId] = setting;
+
+    public KeyMoveSetting Setting(Guid threadId) => threads.TryGetValue(threadId, out var v) ? v : Default;
 }

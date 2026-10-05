@@ -37,10 +37,11 @@ public interface IApiKeyCredits
     double? CreditsLeft(string keyId);
 }
 
-/// <summary>Spend tracking behind the monthly cap. A month is a UTC calendar month (ENGINEERING DECISION).</summary>
+/// <summary>Spend tracking behind the monthly cap. The month is the user's LOCAL calendar month (lead decision, 2026-10-05); the pool passes its start.</summary>
 public interface IApiKeySpend
 {
-    double MonthSpend(string keyId, DateTimeOffset now);
+    /// <summary>Money spent on the key at or after <paramref name="since"/>.</summary>
+    double SpendSince(string keyId, DateTimeOffset since);
 
     void Add(string keyId, double usd, DateTimeOffset at);
 }
@@ -58,6 +59,15 @@ public enum ApiKeyEventKind
 
     /// <summary>A key reached its monthly cap.</summary>
     CapReached,
+
+    /// <summary>A thread pinned to a key found it at its monthly cap: it stops before sending and offers to unpin or raise the cap.</summary>
+    PinnedKeyCapped,
+
+    /// <summary>OD-0116: moving to another key is not allowed yet; the first time it would happen the user is asked.</summary>
+    MoveNeedsAnswer,
+
+    /// <summary>The user chose that this thread never moves to another key by itself.</summary>
+    MoveDeclined,
 }
 
 /// <summary>What the UI binds to for keys. The text is the unit's wording.</summary>
@@ -77,15 +87,35 @@ public sealed record ApiKeyEvent(
 /// <summary>One thread's view of a service's pool: what the session calls around each request.</summary>
 public interface IApiKeyRotation
 {
+    /// <summary>Why <see cref="Current"/> or <see cref="OnFailure"/> last left the thread without a key to send on (the notice text), or null.</summary>
+    string? StopReason { get; }
+
+    /// <summary>"Yes, just this time": the next forced move for this thread is allowed once. A remembered answer lives in <see cref="IKeyMovePolicy"/>.</summary>
+    void AllowMoveOnce();
+
     /// <summary>The key the next request goes out on (the pin, else the order), or null when none can take it.</summary>
     KeyChoice? Current();
 
     /// <summary>
     /// The request on <see cref="Current"/> came back with <paramref name="status"/>. A 402 (out of credits) or 429 (rate limited) marks that key out and
-    /// returns the next allowed key for the SAME request; anything else, a pinned thread, or no key left returns null.
+    /// returns the next allowed key for the SAME request, but only when moving is allowed (OD-0116); anything else, a pinned thread, moving not allowed, or no key left returns null.
     /// </summary>
     KeyChoice? OnFailure(int status, TimeSpan? retryAfter);
 
     /// <summary>Money spent on the request that just finished, against <see cref="Current"/>'s monthly cap.</summary>
     void RecordSpend(double usd);
+}
+
+/// <summary>OD-0116: the user's answer to "may Marrow move this thread to another key by itself?". Unset is the default and means off, and ask the first time.</summary>
+public enum KeyMoveSetting
+{
+    Unset,
+    Allow,
+    Deny,
+}
+
+/// <summary>Where the answer is kept: thread, then Settings (the join maps this onto MA-5's remember scopes).</summary>
+public interface IKeyMovePolicy
+{
+    KeyMoveSetting Setting(Guid threadId);
 }
