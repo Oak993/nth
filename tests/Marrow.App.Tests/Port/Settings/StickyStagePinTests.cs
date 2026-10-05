@@ -88,8 +88,8 @@ public sealed class StickyStagePinTests(HeadlessSession headless)
         p.Rig.ScrollTo(hc - 280 + 100);
         var speechTop = p.ViewportTop(p.Speech);
         Assert.Null(p.Rig.Get(() => p.Speech.Clip));
-        var hit = p.Rig.Get(() => p.Rig.Scroll!.InputHitTest(new Point(260, speechTop + 10)));
-        Assert.Same(p.Speech, hit);
+        var hit = p.HitAt(new Point(260, speechTop + 10));
+        Assert.True(ReferenceEquals(p.Speech, hit), $"hit {hit?.GetType().Name} at 260,{speechTop + 10}; speech top {speechTop}, stage top {p.ViewportTop(stage)}");
     });
 
     [Fact]
@@ -102,15 +102,15 @@ public sealed class StickyStagePinTests(HeadlessSession headless)
         var top = p.ViewportTop(p.WorkingDots);
         Assert.Equal(80, top, 1);
         // the part of the probe under the block is not hit; the part below it is
-        Assert.NotSame(p.WorkingDots, p.Rig.Get(() => p.Rig.Scroll!.InputHitTest(new Point(260, 200))));
-        Assert.Same(p.WorkingDots, p.Rig.Get(() => p.Rig.Scroll!.InputHitTest(new Point(260, 330))));
+        Assert.NotSame(p.WorkingDots, p.HitAt(new Point(260, 200)));
+        Assert.Same(p.WorkingDots, p.HitAt(new Point(260, 330)));
         // the clip is a rectangle from the block's bottom edge downward, in the probe's own coordinates (280 - 80 = 200 down)
         var clip = p.Rig.Get(() => p.WorkingDots.Clip)!;
         Assert.Equal(200, p.Rig.Get(() => clip.Bounds.Top), 1);
         Assert.True(p.Rig.Get(() => clip.Bounds.Bottom) >= 300);
-        // it follows the offset: 40 further on, the edge is 40 nearer the probe's top
+        // it follows the offset: 40 further on the probe has gone 40 up the viewer and the block has not, so the edge is 40 further down the probe
         p.Rig.ScrollTo(hc - 340);
-        Assert.Equal(160, p.Rig.Get(() => p.WorkingDots.Clip!.Bounds.Top), 1);
+        Assert.Equal(240, p.Rig.Get(() => p.WorkingDots.Clip!.Bounds.Top), 1);
         // a section wholly under the block is clipped away wholly
         p.Rig.ScrollTo(hc - 280);
         Assert.True(p.Rig.Get(() => p.WorkingDots.Clip!.Bounds.Top) >= p.WorkingDots.Bounds.Height);

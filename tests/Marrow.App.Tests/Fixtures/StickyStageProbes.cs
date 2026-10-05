@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Input;
 using Marrow.App.Port.Settings;
 
 namespace Marrow.App.Tests.Fixtures;
@@ -37,6 +38,18 @@ internal sealed class StickyStageProbes : IDisposable
 
     /// <summary><see cref="ViewportTop"/> for a caller already on the main loop.</summary>
     internal double Top(Avalonia.Visual visual) => visual.TranslatePoint(default, Rig.Scroll!)!.Value.Y;
+
+    /// <summary>What a click at <paramref name="point"/> in the viewer would reach, after the compositor has taken the layout and the clips of this moment (a hit test reads the composition's visuals).</summary>
+    internal Avalonia.Input.IInputElement? HitAt(Point point) => Rig.Get(() =>
+    {
+        // two ticks: the first hands this moment's layout to the compositor, the second lets its hit test see it
+        for (var tick = 0; tick < 2; tick++)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        }
+        return Rig.Scroll!.InputHitTest(point);
+    });
 
     public void Dispose() => Rig.Dispose();
 }

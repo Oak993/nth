@@ -13,6 +13,9 @@ public sealed class StickyStageCompactionTests(HeadlessSession headless)
 {
     private const double Frame = 1000.0 / 60;
 
+    // the clock moves in whole ticks of 100 ns, so a frame of 1000 / 60 ms is this many seconds to the clock
+    private static readonly double FrameSeconds = TimeSpan.FromMilliseconds(Frame).TotalSeconds;
+
     // what the page shows of the stage now: the applied compaction and the three things it drives, read off the controls
     private static (double Col, double SurfaceHeight, double Opacity, double Lift, double BlockBottom) Shown(StickyStageProbes p)
     {
@@ -61,7 +64,7 @@ public sealed class StickyStageCompactionTests(HeadlessSession headless)
         for (var frame = 1; frame <= 60; frame++)
         {
             p.Rig.Advance(Frame);
-            expected = StickyStage.Frame(expected, 300, 1.0 / 60, false);
+            expected = StickyStage.Frame(expected, 300, FrameSeconds, false);
             var shown = Shown(p);
             Assert.Equal(expected.Value, shown.Col, 6);
             Assert.Equal(212 - shown.Col, shown.SurfaceHeight, 6);
@@ -73,7 +76,7 @@ public sealed class StickyStageCompactionTests(HeadlessSession headless)
         }
         Assert.Equal(92, last);
         // the first frame is the exponential from rest (the design's own first frame) and no later frame is bigger: it only slows
-        Assert.Equal(92 * (1 - Math.Exp(-1.0 / 60 / 0.06)), samples[1], 6);
+        Assert.Equal(92 * (1 - Math.Exp(-FrameSeconds / 0.06)), samples[1], 6);
         var steps = samples.Zip(samples.Skip(1), (a, b) => b - a).ToArray();
         Assert.True(steps.Max() <= steps[0] + 1e-9);
         // it is the exponential with tau 0.06 s, not a fixed-length ramp: 56.6 % of the way after 3 frames (0.05 s), 67.1 % after 4, and not yet at the end after 7 (0.117 s, about two tau)
