@@ -36,7 +36,7 @@ public sealed class ClaudeSkillsTests
         throw new FileNotFoundException(name);
     }
 
-    [Theory, InlineData(false), InlineData(true), Trait("Rule", "DL-11")]
+    [Theory, InlineData(false), InlineData(true), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T11")]
     public void Empty_install_matches_frozen_existing_provider_argv_environment_and_RPC_bytes(bool configured)
     {
         using var runtime = new TestRuntime();
@@ -71,7 +71,7 @@ public sealed class ClaudeSkillsTests
         for (var i = 0; i < recordings[0].Sent.Count; i++) Assert.Equal(recordings[0].Sent[i], recordings[1].Sent[i]);
     }
 
-    [Fact, Trait("Rule", "DL-11")]
+    [Fact, Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T11")]
     public void Empty_handshake_matches_existing_provider_without_an_extra_help_or_RPC_call()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder();
@@ -85,7 +85,7 @@ public sealed class ClaudeSkillsTests
         Assert.Equal(EncodeEnvironment(ShimPath.ForChild(calls[0].Environment, Marrow.Services.Store.Storage.Root)), EncodeEnvironment(calls[1].Environment));
     }
 
-    [Fact, Trait("Rule", "WU-6")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Start_passes_generation_and_each_installed_plugin_as_single_arguments_and_keeps_user_command_first()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -106,7 +106,7 @@ public sealed class ClaudeSkillsTests
         s.Stop(); Drain(runtime, gen); Assert.False(gen.Verify());
     }
 
-    [Fact, Trait("Rule", "WU-6")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Missing_plugin_flag_never_acquires_a_generation_and_keeps_existing_argv()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help("");
@@ -116,7 +116,7 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5)); Assert.Empty(PluginArgs(call!.Arguments)); s.Stop();
     }
 
-    [Fact, Trait("Rule", "DL-12")]
+    [Fact, Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Fixture_tool_use_result_and_can_use_tool_emit_only_correlated_normalized_events()
     {
         var events = new List<ToolEvent>(); var s = new ClaudeSession(Config()) { OnSkillEvent = events.Add };
@@ -127,15 +127,16 @@ public sealed class ClaudeSkillsTests
             new CommandFinished("node render.js", null, false, "done") }, events);
     }
 
-    [Fact, Trait("Rule", "DL-12")]
+    [Fact, Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Taps_leave_existing_provider_events_and_permission_responses_unchanged()
     {
+        using var runtime = new TestRuntime(); // the test clock: ToolCall.StartedAt is the wall clock otherwise, and the two sessions would stamp different instants
         var a = new List<ProviderEvent>(); var b = new List<ProviderEvent>();
         var old = new LegacyClaudeSession(Config()) { OnEvent = a.Add }; var current = new ClaudeSession(Config()) { OnEvent = b.Add, OnSkillEvent = _ => { } };
         foreach (var line in File.ReadLines(Fixture("claude-tools.jsonl"))) { var m = JSONValue.Parse(line)!; old.Handle(m); current.Handle(m); }
         Assert.Equal(a, b);
     }
-    [Fact, Trait("Rule", "WU-6")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Handshake_passes_verified_listing_and_plugin_folders_and_releases_its_lease()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -152,7 +153,7 @@ public sealed class ClaudeSkillsTests
         Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
     }
 
-    [Fact, Trait("Rule", "WU-6-resume")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Resume_after_GC_and_coordinator_restart_keeps_argv_root_and_transcript_skill_directory_verified()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -178,7 +179,7 @@ public sealed class ClaudeSkillsTests
         resumed.Stop(); Drain(runtime, next);
     }
 
-    [Fact, Trait("Rule", "WU-6-held-folder")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Held_old_generation_uses_new_root_and_exact_plan_moved_line_in_existing_prompt()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -196,7 +197,7 @@ public sealed class ClaudeSkillsTests
         resumed.Stop(); Drain(runtime, next); f.Deletion.Held.Clear();
     }
 
-    [Fact, Trait("Rule", "WU-6-integrity")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Tampered_generation_fails_before_any_provider_process_and_releases_lease()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -209,7 +210,7 @@ public sealed class ClaudeSkillsTests
         Assert.False(gen.Verify());
     }
 
-    [Fact, Trait("Rule", "DL-12")]
+    [Fact, Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Edge_fixture_isolates_head_commands_and_ignores_unknown_malformed_noncommand_and_prose_events()
     {
         var events = new List<ToolEvent>(); var s = new ClaudeSession(Config()) { OnSkillEvent = events.Add };
@@ -219,9 +220,10 @@ public sealed class ClaudeSkillsTests
             new CommandFinished("soffice --headless", null, true, "CommandNotFoundException"), new SkillUsed("pdf"), new CommandHeld("soffice --headless") }, events);
     }
 
-    [Fact, Trait("Rule", "DL-12-observer")]
+    [Fact, Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Observer_failure_is_reported_without_changing_approval_or_provider_events()
     {
+        using var runtime = new TestRuntime(); // the test clock: ToolCall.StartedAt is the wall clock otherwise, and the two sessions would stamp different instants
         var actual = new List<ProviderEvent>(); var expected = new List<ProviderEvent>();
         var failure = new InvalidOperationException("Fixture observer failure");
         var old = new LegacyClaudeSession(Config()) { OnEvent = expected.Add };
@@ -230,7 +232,7 @@ public sealed class ClaudeSkillsTests
         Assert.Equal(expected, actual); Assert.Same(failure, current.LastSkillEventFailure);
     }
 
-    [Theory, InlineData("allow"), InlineData("deny"), Trait("Rule", "DL-11-permissions")]
+    [Theory, InlineData("allow"), InlineData("deny"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T11")]
     public void Tap_keeps_real_permission_response_RPC_bytes_identical(string answer)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -243,7 +245,7 @@ public sealed class ClaudeSkillsTests
         Assert.Equal(calls[0].Sent.Last(), calls[1].Sent.Last()); old.Stop(); current.Stop(); Drain(runtime);
     }
 
-    [Fact, Trait("Rule", "WU-6-lease")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Session_generation_survives_stdout_EOF_and_Stop_until_child_exit()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -259,7 +261,7 @@ public sealed class ClaudeSkillsTests
         call.CompleteExit(); Drain(runtime, gen); Assert.False(gen.Verify());
     }
 
-    [Fact, Trait("Rule", "WU-6-lease")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Handshake_listing_remains_leased_until_the_terminated_child_actually_exits()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -275,7 +277,7 @@ public sealed class ClaudeSkillsTests
         Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
     }
 
-    [Theory, InlineData(false), InlineData(true), Trait("Rule", "WU-6-help-failure")]
+    [Theory, InlineData(false), InlineData(true), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Failed_help_even_with_flag_text_never_adds_plugin_arguments(bool throws)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder();
@@ -287,7 +289,7 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5)); Assert.Empty(PluginArgs(call!.Arguments)); s.Stop(); Drain(runtime);
     }
 
-    [Fact, Trait("Rule", "PLAN-2.1-per-turn")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Changed_generation_warns_once_before_turn_and_remains_leased_until_exit()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -307,7 +309,7 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.RunUntil(() => released, TimeSpan.FromSeconds(5)); service.Collect();
     }
 
-    [Fact, Trait("Rule", "DL-12-held-request")]
+    [Fact, Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Held_observer_runs_after_the_existing_permission_request_is_registered()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -321,7 +323,7 @@ public sealed class ClaudeSkillsTests
         s.Stop(); Drain(runtime);
     }
 
-    [Theory, InlineData(false), InlineData(true), Trait("Rule", "WU-6-fail-closed")]
+    [Theory, InlineData(false), InlineData(true), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Failed_launch_or_initialization_releases_generation_and_never_uses_a_live_CLI(bool rejectInitialize)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -339,7 +341,7 @@ public sealed class ClaudeSkillsTests
         Drain(runtime, gen); Assert.False(call!.IsRunning); Assert.False(gen.Verify());
     }
 
-    [Fact, Trait("Rule", "WU-6-probe-integrity")]
+    [Fact, Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Tampered_listing_is_refused_before_provider_spawn_and_probe_lease_is_released()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
