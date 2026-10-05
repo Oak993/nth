@@ -83,9 +83,11 @@ public sealed class VoiceSessionLevelTests
         Assert.True(rig.Session.AudioLevel.All > 0);
 
         rig.Session.Activate(); // the second click
+        rig.Settle();
         Assert.Equal(VoiceSessionState.Processing, rig.Session.State);
         Assert.Equal(LevelBands.Zero, rig.Session.AudioLevel);
         rig.Advance(5);
+        Assert.True(rig.Session.State == VoiceSessionState.Rest, "state after the final pass: " + rig.Session.State);
         Assert.Equal(LevelBands.Zero, rig.Session.AudioLevel);
 
         rig.QuietRoom();
@@ -93,7 +95,7 @@ public sealed class VoiceSessionLevelTests
         rig.Settle();
         Assert.Equal(VoiceSessionState.Listening, rig.Session.State);
         rig.Advance(0.5);
-        Assert.Equal(LevelBands.Zero, rig.Session.AudioLevel);
+        Assert.True(rig.Session.AudioLevel == LevelBands.Zero, "a new session started on " + rig.Session.AudioLevel);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 // PORT-ONLY, owner-ruled addition (OD-0091, OD-0092, OD-0097, OD-0099; first-release voice typing, VT-3): the state machine of one
 // composer's voice input (voice-SPEC V-15).
+using Marrow.Core.Port.Voice.Dsp;
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Core.Port.Voice.Transcript;
 
@@ -29,6 +30,7 @@ public sealed class VoiceSession : IAudioCaptureSink
     private readonly VoiceSeamSet seams;
     private readonly VoiceSessionHub hub;
     private readonly SpeechLabel label = new();
+    private readonly AudioLevelMeter meter = new();
 
     private VoiceSessionState state = VoiceSessionState.Rest;
     private VoiceSessionSettings? active;
@@ -101,6 +103,12 @@ public sealed class VoiceSession : IAudioCaptureSink
 
     /// <summary>The VAD's speech state now (V-6.2): on at p &gt;= 0.5, off after 100 ms below 0.35.</summary>
     public bool InSpeech => state == VoiceSessionState.Listening && inSpeech;
+
+    /// <summary>
+    /// The raw level and bands of the audio being listened to (V-5.3), published from the processing thread at 60 Hz of the signal (VT-11, for the orb and the glow, which smooth them
+    /// with <see cref="LevelFollowers"/> on the UI thread, V-5.5). Readable from any thread; zero outside Listening.
+    /// </summary>
+    public LevelBands AudioLevel => state == VoiceSessionState.Listening ? meter.Latest : LevelBands.Zero;
 
     /// <summary>Q-V-6 B: true from 270 s of listening until the cap at 300 s.</summary>
     public bool CapCountdownActive => state == VoiceSessionState.Listening && countdownActive;
@@ -222,6 +230,9 @@ public sealed class VoiceSession : IAudioCaptureSink
         }
     }
 
+    /// <summary>The capture's processing-thread tap (V-2.2): the block goes to the level meter, off the UI thread, allocating nothing.</summary>
+    public void OnAudioBlock(CaptureFormat captureFormat, ReadOnlySpan<float> interleavedSamples) => meter.Feed(captureFormat, interleavedSamples);
+
     /// <summary>Capture delivers interleaved float samples in the started format (main executor).</summary>
     public void OnAudio(ReadOnlySpan<float> interleavedSamples)
     {
@@ -317,6 +328,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         zeroChecked = false;
         countdownActive = false;
         seams.Vad.Reset();
+        meter.Reset(); // the last session's level is not this one's; no capture is feeding it now
         try
         {
             format = seams.Capture.Start(this);

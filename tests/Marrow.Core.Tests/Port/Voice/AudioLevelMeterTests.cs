@@ -51,9 +51,12 @@ public sealed class AudioLevelMeterTests
         var meter = new AudioLevelMeter();
         var reference = new Reference(rate);
         long frame = 0;
-        for (var n = 0; n < 60; n++)
+        var loudest = 0.0;
+        // 0.3 s of near silence (the noise floor learns it), 0.6 s of a tone, then a quiet tone: 1.5 s in blocks of the given size
+        for (var n = 0; n < (int)Math.Ceiling(1.5 * rate / block); n++)
         {
-            var amplitude = n < 30 ? 0.4 : 0.02;
+            var seconds = (double)frame / rate;
+            var amplitude = seconds < 0.3 ? 0.0001 : seconds < 0.9 ? 0.4 : 0.02;
             var samples = Tone(rate, channels, frame, block, amplitude);
             meter.Feed(new CaptureFormat(rate, channels), samples);
             for (var f = 0; f < block; f++)
@@ -64,7 +67,9 @@ public sealed class AudioLevelMeterTests
             }
             frame += block;
             Assert.Equal(reference.Last, meter.Latest);
+            loudest = Math.Max(loudest, meter.Latest.All);
         }
+        Assert.True(loudest > 0.3, "the tone was heard: " + loudest); // not a comparison of two zeros
     }
 
     [Fact]
@@ -74,11 +79,12 @@ public sealed class AudioLevelMeterTests
     {
         var stereo = new AudioLevelMeter();
         var mono = new AudioLevelMeter();
-        var interleaved = new float[2 * 4800];
-        var single = new float[4800];
-        for (var f = 0; f < 4800; f++)
+        var interleaved = new float[2 * 24000];
+        var single = new float[24000];
+        for (var f = 0; f < 24000; f++)
         {
-            var v = (float)(0.6 * Math.Sin(2 * Math.PI * 300 * f / 48000.0));
+            var quiet = f < 4800; // the first 0.1 s is the room: the noise floor learns it, so the tone after it reads
+            var v = (float)((quiet ? 0.0001 : 0.6) * Math.Sin(2 * Math.PI * 300 * f / 48000.0));
             interleaved[2 * f] = v;
             interleaved[2 * f + 1] = 0;
             single[f] = v / 2;
@@ -108,16 +114,22 @@ public sealed class AudioLevelMeterTests
     public void Reset_and_a_changed_format_start_from_silence()
     {
         var meter = new AudioLevelMeter();
-        meter.Feed(new CaptureFormat(48000, 1), Tone(48000, 1, 0, 4800, 0.5));
+        void Speak()
+        {
+            meter.Feed(new CaptureFormat(48000, 1), Tone(48000, 1, 0, 4800, 0.0001)); // the room
+            meter.Feed(new CaptureFormat(48000, 1), Tone(48000, 1, 4800, 9600, 0.5)); // the voice
+        }
+        Speak();
         Assert.True(meter.Latest.All > 0);
         meter.Reset();
         Assert.Equal(LevelBands.Zero, meter.Latest);
-        meter.Feed(new CaptureFormat(48000, 1), Tone(48000, 1, 0, 4800, 0.5));
+        Speak();
         var first = meter.Latest;
+        Assert.True(first.All > 0);
         meter.Feed(new CaptureFormat(16000, 1), new float[1600]);
         Assert.Equal(0, meter.Latest.All); // the old analyser and its signal are gone
         meter.Reset();
-        meter.Feed(new CaptureFormat(48000, 1), Tone(48000, 1, 0, 4800, 0.5));
+        Speak();
         Assert.Equal(first, meter.Latest); // the same audio after a reset reads the same as the first time
     }
 
