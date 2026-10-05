@@ -62,6 +62,96 @@ public sealed class SkillsPipeline : IGenerationStore
 
     public AddonsState State { get { lock (gate) return state; } }
 
+    /// <summary>SK-16: raised after a first install, update, repair, remove or reset has finished (never inside the pipeline's locks), so a surface that lists the installed items can read them again.</summary>
+    public event Action? Changed;
+
+    /// <summary>SK-16: true when both the download seam and the binding seam are bound, so a first install can be tried at all (an item may still be refused: unpinned, terms owed).</summary>
+    public bool FetchingBound => downloads is not null && bindings is not null;
+
+    /// <summary>SK-16: the folder an installed item is routed to now, or null when it is not installed (a damaged copy and a removal in progress are not installed here).</summary>
+    public string? InstalledFolder(string id)
+    {
+        lock (gate)
+        {
+            var record = state.Get(id);
+            return record.InstalledPin is { } pin && record.State is ItemState.Installed or ItemState.UpdateAvailable && versions.TryGetValue((id, pin), out var item) ? item.Folder : null;
+        }
+    }
+
+    private void Raise()
+    {
+        try { Changed?.Invoke(); }
+        catch (Exception) { /* an observer cannot undo what was committed */ }
+    }
+
+    /// <summary>
+    /// SK-16 (DL-19, ED-326 (6)(a)): the first install of a catalogue item, SK-3's download seam then SK-4's installer then the binding seam, committed to state.json as Installed. Returns the folder it is
+    /// installed in. Refuses, before any byte is requested and with nothing written, an item that is not in the catalogue, is installed already (update or repair it), has no complete pin, owes terms
+    /// not accepted, needs an item that is not installed, or whose seams are not bound. A cancel or a failure leaves the item not installed (the download keeps what it fetched for a later try).
+    /// Nothing about a download in flight is written to state.json: a restart finds the item not installed and fetches only when it is asked to.
+    /// </summary>
+    public async Task<string> InstallAsync(string id, IProgress<double?> progress, CancellationToken cancellation = default)
+    {
+        await operation.WaitAsync(cancellation).ConfigureAwait(false);
+        InstallResult? prepared = null;
+        var committed = false;
+        string folder;
+        try
+        {
+            CatalogueItem item; ItemRecord checking; string selectedPin;
+            lock (gate)
+            {
+                item = catalogue.Items.FirstOrDefault(i => i.Id == id) ?? throw new InvalidOperationException("The item is not in the catalogue.");
+                if (state.Get(id).InstalledPin is not null) throw new InvalidOperationException("Install requires an item that is not installed; update or repair it instead.");
+                if (item.PinState != PinState.Pinned || CatalogueGate.Missing(item).Count != 0) throw new InvalidOperationException("Install requires a complete pin.");
+                if (ItemTerms.Required(item, state)) throw new PipelineTermsRequiredException(id);
+                if (downloads is null || bindings is null) throw new InvalidOperationException("Pipeline seams are not bound.");
+                if (MissingNeeds(id) is { Count: > 0 } missing) throw new InvalidOperationException("Install requires " + string.Join(", ", missing) + " first.");
+                selectedPin = UpdateCheck.CataloguePin(item) ?? throw new InvalidDataException("Missing target pin.");
+                CollectCore(); // Recover unreferenced completed installs and tmp trees before the try.
+                checking = state.Transition(id, ItemState.Downloading, selectedPin).Transition(id, ItemState.Checking).Get(id);
+            }
+            var plan = await downloads(item, checking, progress, cancellation).ConfigureAwait(false);
+            if (plan.Item != item || plan.Record != checking || Path.GetFullPath(plan.DataRoot) != paths.Root)
+                throw new InvalidDataException("Download plan disagrees with the install.");
+            checkpoint?.Invoke(PipelineStep.Downloaded);
+            var installPin = item.Pin ?? Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(selectedPin)));
+            var result = await installer.InstallAsync(plan with { Item = item with { Pin = installPin }, Record = checking with { TargetPin = installPin } }, cancellation).ConfigureAwait(false);
+            result = result with { Record = result.Record with { InstalledPin = selectedPin } };
+            prepared = result;
+            checkpoint?.Invoke(PipelineStep.Installed);
+            var trusted = new StoreItem(item, result.Path, new StoreManifest(result.Manifest), selectedPin);
+            if (!inventoryVerifier.Verify(trusted, result.Directories)) throw new IOException("The file didn't match its checksum.");
+            var route = bindings(item, result);
+            if (route.Id != id || route.Pin != selectedPin || route.Folder != result.Path || !route.SparePaths.SequenceEqual(result.SparePaths))
+                throw new InvalidDataException("Bindings disagree with the verified install.");
+            PipelineRoutes.Prepare(paths.StateFile, route);
+            checkpoint?.Invoke(PipelineStep.RoutesPrepared);
+            cancellation.ThrowIfCancellationRequested();
+            lock (gate)
+            {
+                var next = AddonsState.Restore(state.Items.Where(r => r.Id != id).Append(result.Record), state.AcceptedTerms, state.Declined, state.Found);
+                PipelineRoutes.Read(paths.StateFile, next);
+                checkpoint?.Invoke(PipelineStep.BeforeCommit);
+                versions[(id, trusted.Pin)] = trusted;
+                directories[(id, trusted.Pin)] = result.Directories.ToArray();
+                try { Commit(next); committed = true; } catch { versions.Remove((id, trusted.Pin)); directories.Remove((id, trusted.Pin)); throw; }
+            }
+            folder = result.Path;
+            result.Reservation?.Dispose();
+            try { progress.Report(1); } catch (Exception) { }
+        }
+        catch
+        {
+            if (!committed && prepared is not null)
+                foreach (var path in prepared.SparePaths.Prepend(prepared.Path)) TryDelete(path);
+            throw;
+        }
+        finally { operation.Release(); }
+        Raise();
+        return folder;
+    }
+
     /// <summary>SK-13 review fix: the ids of installed items whose trust could not be rebuilt at open; their trees are retained until the item is removed or Reset runs.</summary>
     public IReadOnlyList<string> Orphans { get { lock (gate) return orphans.Select(o => o.Id).ToArray(); } }
 
@@ -192,6 +282,12 @@ public sealed class SkillsPipeline : IGenerationStore
 
     public async Task UpdateAsync(string id, IProgress<double?> progress, CancellationToken cancellation = default)
     {
+        await UpdateCoreAsync(id, progress, cancellation).ConfigureAwait(false);
+        Raise();
+    }
+
+    private async Task UpdateCoreAsync(string id, IProgress<double?> progress, CancellationToken cancellation)
+    {
         await operation.WaitAsync(cancellation).ConfigureAwait(false);
         InstallResult? prepared = null;
         var committed = false;
@@ -262,6 +358,13 @@ public sealed class SkillsPipeline : IGenerationStore
     /// </summary>
     public async Task<bool> RepairAsync(string id, IProgress<double?> progress, CancellationToken cancellation = default)
     {
+        var repaired = await RepairCoreAsync(id, progress, cancellation).ConfigureAwait(false);
+        if (repaired) Raise();
+        return repaired;
+    }
+
+    private async Task<bool> RepairCoreAsync(string id, IProgress<double?> progress, CancellationToken cancellation)
+    {
         await operation.WaitAsync(cancellation).ConfigureAwait(false);
         var published = false;
         var committed = false;
@@ -326,6 +429,12 @@ public sealed class SkillsPipeline : IGenerationStore
 
     public async Task RemoveAsync(string id, CancellationToken cancellation = default)
     {
+        await RemoveCoreAsync(id, cancellation).ConfigureAwait(false);
+        Raise();
+    }
+
+    private async Task RemoveCoreAsync(string id, CancellationToken cancellation)
+    {
         await operation.WaitAsync(cancellation).ConfigureAwait(false);
         try
         {
@@ -341,6 +450,12 @@ public sealed class SkillsPipeline : IGenerationStore
     }
 
     public async Task ResetAsync(CancellationToken cancellation = default)
+    {
+        await ResetCoreAsync(cancellation).ConfigureAwait(false);
+        Raise();
+    }
+
+    private async Task ResetCoreAsync(CancellationToken cancellation)
     {
         await operation.WaitAsync(cancellation).ConfigureAwait(false);
         try
