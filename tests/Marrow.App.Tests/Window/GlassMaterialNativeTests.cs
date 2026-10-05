@@ -31,7 +31,7 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
     private const double Sharp = 42.5;
     private const double Blurred = 6;
 
-    // The scene settles: the first frames of a fresh process build the material's GPU programs, which took up to about 4 s on this PC (ED-NEW-rec-composer):
+    // The scene settles: the first frames of a fresh process build the material's GPU programs, which took up to about 4 s on this PC (ED-333):
     // the line is read until it is frosted, for at most 8 s, and how long that took is written out.
     private static ScreenGrab Settled(Func<ScreenGrab> line, string what)
     {

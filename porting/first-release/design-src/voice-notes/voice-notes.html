@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Notes Picks</title>
+<style>
+/* Decision kit: the shared look of the 2026-10-03 decision pages (getting-ready, bubble-rim, text-smoothing,
+   voice-options, system-controls). A review sheet in Marrow's glass language: a soft wall, frosted cards with a
+   hairline rim and an inner highlight, Windows 11's default accent. Every colour is a token; every change of theme,
+   option or pick is transitioned (OD-0076). */
+:root{
+  --wall:radial-gradient(1100px 720px at 8% -4%,#bcd3ea 0%,transparent 62%),radial-gradient(900px 760px at 96% 18%,#ead7c4 0%,transparent 58%),radial-gradient(1200px 900px at 44% 104%,#c3e0db 0%,transparent 62%),#e9edf2;
+  --bg:#e9edf2;
+  --ink:#15171c; --fg:#15171c; --sub:rgba(21,23,28,.66); --faint:rgba(21,23,28,.46);
+  --card:rgba(255,255,255,.58); --card2:rgba(255,255,255,.42); --edge:rgba(255,255,255,.86); --hair:rgba(20,30,45,.10);
+  --chip:rgba(24,34,48,.07); --chipH:rgba(24,34,48,.11); --chipOn:#ffffff; --chipOnInk:#15171c; --chipOnRim:rgba(20,30,45,.12);
+  --accent:#005FB8; --accentInk:#ffffff; --accentSoft:rgba(0,95,184,.12); --accentRing:rgba(0,95,184,.55);
+  --good:#0F7B3F; --goodSoft:rgba(15,123,63,.12); --warn:#9A5B00;
+  --shadow:0 18px 44px rgba(30,45,70,.14),0 2px 6px rgba(30,45,70,.08);
+  --shadowSm:0 6px 16px rgba(30,45,70,.10);
+  --hi:inset 0 1px 0 rgba(255,255,255,.75);
+  --ui:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Geist Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --app:"Segoe UI Variable Text","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+  --appD:"Segoe UI Variable Display","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+  --ez:cubic-bezier(.32,.72,0,1); --io:cubic-bezier(.4,0,.2,1);
+  --tc:.45s;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --wall:radial-gradient(1100px 720px at 8% -4%,#22435c 0%,transparent 62%),radial-gradient(900px 760px at 96% 18%,#4d3826 0%,transparent 58%),radial-gradient(1200px 900px at 44% 104%,#123f40 0%,transparent 62%),#0f151c;
+    --bg:#0f151c;
+    --ink:#eef1f6; --fg:#eef1f6; --sub:rgba(238,241,246,.66); --faint:rgba(238,241,246,.44);
+    --card:rgba(255,255,255,.06); --card2:rgba(255,255,255,.04); --edge:rgba(255,255,255,.14); --hair:rgba(255,255,255,.09);
+    --chip:rgba(255,255,255,.07); --chipH:rgba(255,255,255,.11); --chipOn:rgba(255,255,255,.16); --chipOnInk:#f6f8fb; --chipOnRim:rgba(255,255,255,.2);
+    --accent:#60CDFF; --accentInk:#03192a; --accentSoft:rgba(96,205,255,.14); --accentRing:rgba(96,205,255,.6);
+    --good:#6CCB5F; --goodSoft:rgba(108,203,95,.14); --warn:#F2B04A;
+    --shadow:0 18px 48px rgba(0,0,0,.36),0 2px 6px rgba(0,0,0,.22);
+    --shadowSm:0 6px 18px rgba(0,0,0,.28);
+    --hi:inset 0 1px 0 rgba(255,255,255,.10);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --wall:radial-gradient(1100px 720px at 8% -4%,#22435c 0%,transparent 62%),radial-gradient(900px 760px at 96% 18%,#4d3826 0%,transparent 58%),radial-gradient(1200px 900px at 44% 104%,#123f40 0%,transparent 62%),#0f151c;
+  --bg:#0f151c;
+  --ink:#eef1f6; --fg:#eef1f6; --sub:rgba(238,241,246,.66); --faint:rgba(238,241,246,.44);
+  --card:rgba(255,255,255,.06); --card2:rgba(255,255,255,.04); --edge:rgba(255,255,255,.14); --hair:rgba(255,255,255,.09);
+  --chip:rgba(255,255,255,.07); --chipH:rgba(255,255,255,.11); --chipOn:rgba(255,255,255,.16); --chipOnInk:#f6f8fb; --chipOnRim:rgba(255,255,255,.2);
+  --accent:#60CDFF; --accentInk:#03192a; --accentSoft:rgba(96,205,255,.14); --accentRing:rgba(96,205,255,.6);
+  --good:#6CCB5F; --goodSoft:rgba(108,203,95,.14); --warn:#F2B04A;
+  --shadow:0 18px 48px rgba(0,0,0,.36),0 2px 6px rgba(0,0,0,.22);
+  --shadowSm:0 6px 18px rgba(0,0,0,.28);
+  --hi:inset 0 1px 0 rgba(255,255,255,.10);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);background-image:var(--wall);background-attachment:fixed;font:14px/1.5 var(--ui);
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background-color var(--tc) ease,color var(--tc) ease}
+/* a theme change crossfades as one picture where the browser can (View Transitions), 0.45 s */
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:var(--io)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dk-page{max-width:1180px;margin:0 auto;padding:26px 16px 120px;display:flex;flex-direction:column;gap:20px}
+@media (min-width:700px){.dk-page{padding-inline:24px}}
+
+/* header */
+.dk-hdr{display:flex;flex-direction:column;gap:8px}
+.dk-hdr h1{margin:0;font-size:28px;line-height:1.12;font-weight:600;letter-spacing:-.02em;text-wrap:balance}
+.dk-hdr p{margin:0;max-width:78ch;color:var(--sub);font-size:14px;text-wrap:pretty}
+.dk-tags{display:flex;flex-wrap:wrap;gap:6px}
+.dk-tag{font:500 11px/1 var(--mono);padding:5px 8px;border-radius:999px;background:var(--chip);color:var(--sub);white-space:nowrap}
+
+/* glass */
+.dk-glass{background:var(--card);border-radius:18px;box-shadow:inset 0 0 0 1px var(--edge),var(--hi),var(--shadow);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+  transition:background-color var(--tc) ease,box-shadow var(--tc) ease}
+
+/* toolbar */
+.dk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 12px;border-radius:20px}
+.dk-grp{display:flex;align-items:center;gap:8px;min-width:0}
+.dk-glab{font-size:12px;font-weight:500;color:var(--sub);white-space:nowrap}
+.dk-sp{flex:1 1 0;min-width:0}
+
+/* segmented control with a sliding thumb */
+.dk-seg{position:relative;display:inline-flex;align-items:stretch;padding:3px;border-radius:999px;background:var(--chip);min-width:0;max-width:100%;flex-wrap:nowrap;
+  transition:background-color var(--tc) ease}
+.dk-seg>.th{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:999px;background:var(--chipOn);box-shadow:inset 0 0 0 1px var(--chipOnRim),0 1px 3px rgba(0,0,0,.12);
+  transition:transform .32s var(--ez),width .32s var(--ez),background-color var(--tc) ease;pointer-events:none}
+.dk-seg>.th.nt{transition:none}
+.dk-seg>button{position:relative;z-index:1;appearance:none;border:0;background:none;margin:0;padding:5px 12px;border-radius:999px;cursor:pointer;
+  font-size:12.5px;font-weight:500;color:var(--sub);white-space:nowrap;transition:color .2s ease}
+.dk-seg>button:hover{color:var(--ink)}
+.dk-seg>button[aria-pressed="true"]{color:var(--chipOnInk)}
+.dk-seg.wrap{flex-wrap:wrap;border-radius:16px}
+
+/* buttons */
+.dk-btn{appearance:none;border:0;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  font-size:13px;font-weight:500;background:var(--chip);color:var(--ink);box-shadow:inset 0 0 0 1px var(--hair);
+  transition:background-color .15s ease,transform .15s ease,box-shadow var(--tc) ease,color var(--tc) ease}
+.dk-btn:hover{background:var(--chipH)}
+.dk-btn:active{transform:scale(.97)}
+.dk-btn.pri{background:var(--accent);color:var(--accentInk);box-shadow:none}
+.dk-btn.pri:hover{filter:brightness(1.06)}
+.dk-btn svg{width:12px;height:12px;flex:none}
+
+/* a question */
+.dk-q{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:20px}
+.dk-qh{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.dk-qn{font:600 12px/1 var(--mono);padding:5px 8px;border-radius:8px;background:var(--accentSoft);color:var(--accent);white-space:nowrap}
+.dk-qh h2{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;line-height:1.25;text-wrap:balance}
+.dk-rec{font-size:12px;font-weight:500;color:var(--good);background:var(--goodSoft);padding:3px 9px;border-radius:999px;white-space:nowrap}
+.dk-qd{margin:0;color:var(--sub);font-size:13.5px;max-width:86ch;text-wrap:pretty}
+
+/* options */
+.dk-opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.dk-opt{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px 12px 10px;border-radius:14px;background:var(--card2);cursor:pointer;min-width:0;
+  box-shadow:inset 0 0 0 1px var(--hair);transition:background-color .2s ease,box-shadow .25s ease,transform .2s var(--ez)}
+.dk-opt:hover{background:var(--chip)}
+.dk-opt[aria-current="true"]{box-shadow:inset 0 0 0 2px var(--accentRing);background:var(--accentSoft)}
+.dk-opt .oh{display:flex;align-items:center;gap:8px;min-width:0}
+.dk-opt .ol{font:600 12px/1 var(--mono);min-width:24px;height:22px;padding:0 6px;display:inline-grid;place-items:center;border-radius:7px;background:var(--chip);color:var(--ink);flex:none;
+  transition:background-color .25s ease,color .25s ease}
+.dk-opt[aria-current="true"] .ol{background:var(--accent);color:var(--accentInk)}
+.dk-opt .ot{font-size:13.5px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dk-opt .od{font-size:12.5px;line-height:1.42;color:var(--sub);text-wrap:pretty}
+.dk-opt .rc{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--good);background:var(--goodSoft);padding:2px 7px;border-radius:999px;white-space:nowrap;flex:none}
+.dk-opt .pk{align-self:flex-start;margin-top:2px}
+
+/* the pick button: a capsule that fills with the accent and shows a check once picked */
+.dk-pick{appearance:none;border:0;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px 0 9px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  font-size:12px;font-weight:600;color:var(--accent);background:transparent;box-shadow:inset 0 0 0 1px var(--accentRing);
+  transition:background-color .25s ease,color .25s ease,box-shadow .25s ease,transform .15s ease}
+.dk-pick:hover{background:var(--accentSoft)}
+.dk-pick:active{transform:scale(.96)}
+.dk-pick .ck{width:12px;height:12px;display:inline-grid;place-items:center;overflow:hidden}
+.dk-pick .ck svg{width:12px;height:12px;transform:scale(0);opacity:0;transition:transform .3s var(--ez),opacity .2s ease}
+.dk-pick .ck::before{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;transition:opacity .2s ease,transform .3s var(--ez)}
+.dk-pick .ck{position:relative}
+.dk-pick[aria-pressed="true"]{background:var(--accent);color:var(--accentInk);box-shadow:inset 0 0 0 1px transparent}
+.dk-pick[aria-pressed="true"] .ck svg{transform:scale(1);opacity:1}
+.dk-pick[aria-pressed="true"] .ck::before{opacity:0;transform:scale(0)}
+.dk-pick .lb{display:inline-grid}
+.dk-pick .lb>span{grid-area:1/1;transition:opacity .2s ease}
+.dk-pick .lb>span.b{opacity:0}
+.dk-pick[aria-pressed="true"] .lb>span.a{opacity:0}
+.dk-pick[aria-pressed="true"] .lb>span.b{opacity:1}
+
+/* the picks bar: pinned to the bottom, says what to tell the lead */
+.dk-picks{position:fixed;left:50%;bottom:14px;z-index:50;transform:translateX(-50%);width:min(1120px,calc(100vw - 24px));display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  padding:9px 10px 9px 16px;border-radius:20px}
+.dk-picks .pl{font-size:12px;color:var(--sub);white-space:nowrap}
+.dk-picks .pv{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1 1 300px}
+.dk-picks .pv span{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:var(--chip);font-size:12px;white-space:nowrap;
+  transition:background-color .3s ease,color .3s ease}
+.dk-picks .pv span b{font:600 11.5px/1 var(--mono)}
+.dk-picks .pv span.on{background:var(--accentSoft);color:var(--ink)}
+.dk-picks .pv span.on b{color:var(--accent)}
+.dk-picks .note{font-size:11px;color:var(--faint);white-space:nowrap}
+@media (max-width:640px){.dk-picks .note{display:none}}
+
+/* notes, small print */
+.dk-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.dk-note{padding:14px 16px;border-radius:16px;font-size:12.5px;line-height:1.5;color:var(--sub)}
+.dk-note h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--ink)}
+.dk-note p{margin:0 0 6px}
+.dk-note p:last-child{margin:0}
+.dk-note b{color:var(--ink);font-weight:600}
+.dk-note code,.dk-mono{font-family:var(--mono);font-size:11.5px}
+.dk-foot{font-size:11.5px;color:var(--faint);max-width:100ch}
+
+/* crossfading stacks: children share one grid cell */
+.dk-stack{display:grid}
+.dk-stack>*{grid-area:1/1;transition:opacity .3s ease}
+.dk-hidden{opacity:0;pointer-events:none}
+
+.dk-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01s!important;animation-duration:.01s!important}}
+
+/* Voice Notes Picks (D-VN): the page (after look-picks) and three stages. The page's colours are the kit's tokens
+   (:root light, dark twice). The mocks are drawn in BOTH themes at once, side by side, so each frame carries its own
+   theme's tokens: .th-d and .th-l, taken from the locked voice composer design (voice-composer.html :root and its dark
+   block: the window, the composer, the glass pill) and the Settings window of the Voice typing page design (gen.py
+   D3_DARK / D3_LIGHT, WIN_BG_D / WIN_BG_L). Every change is transitioned (OD-0076). */
+:root{--warnTx:#9A5B00;--tbc:#9A5B00;--tbcSoft:rgba(154,91,0,.12)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--warnTx:#F2B04A;--tbc:#F2B04A;--tbcSoft:rgba(242,176,74,.14);color-scheme:dark}}
+:root[data-theme="dark"]{--warnTx:#F2B04A;--tbc:#F2B04A;--tbcSoft:rgba(242,176,74,.14);color-scheme:dark}
+
+.dk-page{max-width:1180px;gap:18px;padding-bottom:170px}
+.dk-hdr .links{display:flex;flex-wrap:wrap;gap:6px}
+.dk-hdr .links a{font:500 12px/1 var(--mono);padding:7px 10px;border-radius:999px;background:var(--chip);color:var(--ink);text-decoration:none;transition:background-color .25s ease}
+.dk-hdr .links a:hover{background:var(--chipH)}
+.dk-hdr .links a b{color:var(--faint);font-weight:600;transition:color .25s ease}
+.dk-hdr .links a.on b{color:var(--accent)}
+.tb{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 12px;border-radius:20px}
+.tb .dk-sp{flex:1 1 0;min-width:0}
+.dk-q{scroll-margin-top:12px;padding:18px;gap:14px;min-width:0}
+.dk-qh{flex-wrap:nowrap;align-items:flex-start}
+.dk-qn{flex:none;margin-top:2px}
+.dk-qh h2{font-size:18px;min-width:0;overflow-wrap:anywhere}
+.swift{margin:0;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;font-size:12.5px;color:var(--sub);max-width:110ch}
+.swift .sl{font:500 11px/1.4 var(--mono);color:var(--faint);white-space:nowrap}
+.swift .st{min-width:0;flex:1 1 300px;overflow-wrap:anywhere;text-wrap:pretty}
+.ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
+.ctl .dk-grp{flex-wrap:wrap;max-width:100%}
+.ctl .dk-seg>button{padding:5px 11px}
+.dk-opts{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.dk-opt{gap:8px;justify-content:flex-start}
+.dk-opt .oh{align-items:flex-start;flex-wrap:wrap}
+.dk-opt .ot{flex:1 1 120px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.3;padding-top:2px}
+.dk-opt .rc{margin-left:0;margin-top:1px}
+.dk-opt .od{overflow-wrap:anywhere}
+.dk-opt .why{font-size:12px;line-height:1.42;color:var(--good);text-wrap:pretty}
+.dk-opt .why b{font-weight:600}
+.dk-opt .pk{margin-top:auto}
+.dk-notes{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
+.dk-note{background:var(--card2);box-shadow:inset 0 0 0 1px var(--hair)}
+.dk-note b{font-family:var(--mono);font-size:11px}
+.ol{font:600 12px/1 var(--mono);min-width:22px;height:20px;padding:0 6px;display:inline-grid;place-items:center;border-radius:6px;background:var(--chip);color:var(--ink);flex:none}
+.dk-picks{width:min(1120px,calc(100vw - 24px));padding:9px 10px 9px 16px;gap:8px 12px}
+.dk-picks .cnt{font-size:12px;color:var(--sub);white-space:nowrap}
+.dk-picks .cnt b{color:var(--ink);font-weight:600}
+.dk-picks .pline{flex:1 1 320px;min-width:0;font:500 12px/1.3 var(--mono);color:var(--ink);background:var(--chip);padding:7px 10px;border-radius:12px;overflow-wrap:anywhere;user-select:all;transition:background-color .3s ease}
+.stagecard{padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.stagecard h2{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em}
+.stagecard .sub{margin:0;color:var(--sub);font-size:13px;max-width:100ch}
+.tbcw{color:var(--tbc);font-weight:600}
+.lh{margin:4px 0 -4px;font-size:13.5px;font-weight:600}
+@media (max-width:640px){
+  .dk-picks .pline{order:3;flex-basis:100%}
+  .dk-picks .dk-btn{order:2;margin-left:auto}
+  .dk-picks{padding:9px 10px 9px 12px}
+  .dk-q,.stagecard{padding:14px}
+  .dk-page{padding-bottom:200px}
+}
+
+/* ---------------- the word list: every note in every set ---------------- */
+.wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px}
+.wcase{border-radius:14px;background:var(--card2);box-shadow:inset 0 0 0 1px var(--hair);padding:11px 12px 8px;min-width:0;transition:box-shadow .25s ease,background-color .25s ease}
+.wcase.cur{box-shadow:inset 0 0 0 2px var(--accentRing);background:var(--accentSoft)}
+.wcase .wh{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.wcase .wh b{font-size:13px;font-weight:600}
+.wcase .wh span{font-size:11.5px;line-height:1.4;color:var(--faint);text-wrap:pretty}
+.wcase ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.wcase li{display:flex;gap:8px;align-items:flex-start;padding:5px 6px;margin:0 -6px;border-radius:9px;cursor:pointer;transition:background-color .2s ease}
+.wcase li:hover{background:var(--chip)}
+.wcase li.cur{background:var(--chipH)}
+.wcase li .ol{min-width:20px;height:18px;font-size:11px;margin-top:1px;transition:background-color .25s ease,color .25s ease}
+.wcase li.cur .ol{background:var(--accent);color:var(--accentInk)}
+.wcase li .ol.lk{font-size:10px;padding:0 5px}
+.wcase .nt{display:flex;flex-direction:column;gap:1px;min-width:0}
+.wcase .nx{font-size:12.5px;line-height:1.42;color:var(--ink);overflow-wrap:anywhere}
+.wcase .nx u{text-decoration-color:var(--faint);text-underline-offset:2px}
+.wcase .dst{font-size:11px;line-height:1.35;color:var(--faint);overflow-wrap:anywhere}
+.wcase .dst.tbc{color:var(--tbc);font-weight:500}
+.dtab{overflow-x:auto;max-width:100%;border-radius:12px;box-shadow:inset 0 0 0 1px var(--hair)}
+.dtab table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
+.dtab th,.dtab td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--hair);vertical-align:top}
+.dtab th{font-size:11.5px;font-weight:600;color:var(--sub)}
+.dtab td:first-child{font-weight:500}
+.dtab td:nth-child(2){color:var(--sub)}
+.dtab td:nth-child(3){font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+.dtab tr.tbc td:first-child{color:var(--tbc)}
+.dtab tr:last-child td{border-bottom:0}
+
+/* ---------------- stages: dark and light side by side, each frame fitted to its cell ---------------- */
+.stage{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:12px;min-width:0}
+.stage.one{grid-template-columns:minmax(0,1fr)}
+.frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px;min-width:0}
+.cell{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cap{display:flex;align-items:baseline;gap:8px;font-size:11.5px;color:var(--sub);min-width:0}
+.cap b{font:600 11px/1 var(--mono);color:var(--ink)}
+.cap span{min-width:0;overflow-wrap:anywhere}
+.fit{position:relative;width:100%;overflow:hidden;border-radius:12px;height:calc(var(--h) * var(--k,1) * 1px);transition:height .34s cubic-bezier(.32,.72,0,1)}
+.fit>.in{position:absolute;left:0;top:0;width:calc(var(--w) * 1px);height:calc(var(--h) * 1px);transform:scale(var(--k,1));transform-origin:0 0}
+.fit.auto>.in{height:auto}
+.xg.all{display:inline-grid}
+.xg.all>span{display:inline-flex;align-items:baseline}
+
+/* the per-frame theme tokens */
+.th-l{--wink:#1C1C1E;--wink2:rgba(28,28,30,.42);--wink3:rgba(28,28,30,.6);--turn:rgba(0,0,0,.035);--winedge:rgba(0,0,0,.12);
+  --disc:rgba(0,0,0,.13);--discarrow:#FFFFFF;--ringtrk:rgba(28,28,30,.14);--ringarc:rgba(28,28,30,.55);--hoverfill:rgba(28,28,30,.07);
+  --vwarn:#B7791F;--nwarn:#FF9500;--winshadow:0 10px 28px rgba(70,50,35,.16);
+  --winbg:linear-gradient(100deg,#DFD4CC 0%,#E1CEC4 52%,#D0C4BC 100%);--plate:rgba(255,255,255,.26);
+  --pgBg:rgba(250,249,251,.56);--pgRim:rgba(255,255,255,.75);--pgEdge:rgba(40,30,60,.14);--pgHi:rgba(255,255,255,.85);--pgShade:rgba(60,40,30,.10);--pgDrop:0 8px 22px -10px rgba(70,50,35,.32);
+  --pgLab:#55565B;--pgLabHi:#16161A;--pgX:#4A4B50;--pgXBg:rgba(255,255,255,.55);--pgXRim:rgba(40,30,60,.12);
+  --sbg:linear-gradient(176deg,#d6d5d5 0%,#d8d3d0 48%,#ded2ca 82%,#d6c9c1 100%);--head:rgba(0,0,0,.8);--tx:#1C1C1E;--tx2:rgba(28,28,30,.68);
+  --cardfill:rgba(0,0,0,.03);--div:rgba(0,0,0,.1);--cap:rgba(255,255,255,.55);--caph:rgba(255,255,255,.82);--tile:rgba(0,0,0,.05);--trk:rgba(0,0,0,.1);--pac:#0067C0;--pacInk:#FFFFFF;
+  color-scheme:light}
+.th-d{--wink:#ECECEC;--wink2:rgba(236,236,236,.45);--wink3:rgba(236,236,236,.62);--turn:rgba(255,255,255,.05);--winedge:rgba(255,255,255,.1);
+  --disc:rgba(255,255,255,.13);--discarrow:#FFFFFF;--ringtrk:rgba(236,236,236,.16);--ringarc:rgba(236,236,236,.62);--hoverfill:rgba(236,236,236,.07);
+  --vwarn:#E0A84A;--nwarn:#FF9500;--winshadow:0 10px 28px rgba(0,0,0,.34);
+  --winbg:linear-gradient(100deg,#50463F 0%,#523F36 52%,#41362F 100%);--plate:rgba(255,255,255,.04);
+  --pgBg:rgba(18,18,22,.50);--pgRim:rgba(255,255,255,.16);--pgEdge:rgba(0,0,0,.35);--pgHi:rgba(255,255,255,.22);--pgShade:rgba(0,0,0,.22);--pgDrop:0 10px 24px -10px rgba(0,0,0,.6);
+  --pgLab:#8D8E94;--pgLabHi:#F7F7F8;--pgX:#B4B5BA;--pgXBg:rgba(255,255,255,.09);--pgXRim:rgba(255,255,255,.16);
+  --sbg:linear-gradient(176deg,#484646 0%,#4b4644 48%,#51453d 82%,#4a3e36 100%);--head:rgba(255,255,255,.84);--tx:#ECECEC;--tx2:rgba(236,236,236,.7);
+  --cardfill:rgba(255,255,255,.03);--div:rgba(255,255,255,.12);--cap:rgba(0,0,0,.2);--caph:rgba(0,0,0,.3);--tile:rgba(255,255,255,.07);--trk:rgba(255,255,255,.1);--pac:#4CC2FF;--pacInk:#06121C;
+  color-scheme:dark}
+
+/* ---------------- the chat window and the composer (voice-composer.html, 820 x 52, corner 22) ---------------- */
+.vwin{position:relative;height:100%;border-radius:10px;overflow:hidden;background:var(--winbg);box-shadow:inset 0 0 0 1px var(--winedge);
+  font-family:var(--app);color:var(--wink);-webkit-font-smoothing:antialiased;isolation:isolate}
+.vwin .rep{position:absolute;left:44px;right:44px;top:16px;font-size:14px;line-height:21px;color:var(--wink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vwin .rep b{font-weight:600}
+.cmp{position:absolute;left:30px;right:30px;bottom:14px;height:52px;border-radius:22px;transition:height .3s cubic-bezier(.32,.72,0,1)}
+.cmp.tall{height:70px}
+.cmp .plate{position:absolute;inset:0;border-radius:inherit;background:var(--plate);box-shadow:inset 0 0 0 1px var(--winedge)}
+.cmp .att{position:absolute;left:8px;bottom:12px;width:34px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--wink3)}
+.cmp .att svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.cmp .fld{position:absolute;left:48px;bottom:16px;height:20px;right:240px;white-space:nowrap;overflow:hidden;font-size:15px;line-height:20px;transition:right .42s cubic-bezier(.32,.72,0,1)}
+.cmp .lay{position:absolute;left:0;top:0;right:0;height:20px;display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(3px);transition:opacity .2s ease,transform .3s cubic-bezier(.32,.72,0,1);pointer-events:none}
+.cmp .lay.on{opacity:1;transform:none;transition:opacity .26s ease .05s,transform .38s cubic-bezier(.32,.72,0,1) .05s}
+.cmp .hint{color:var(--wink2)}
+.cmp .note{color:var(--wink3);font-size:14px}
+.cmp .note>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cmp .note svg{flex-shrink:0;width:15px;height:15px;color:var(--vwarn)}
+.cmp .note svg path,.cmp .note svg circle{fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.cmp .lnk{color:var(--wink);text-decoration:underline;text-decoration-color:var(--wink2);text-underline-offset:2px}
+.cmp .typed{display:block;color:var(--wink);text-align:right;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 36px);mask-image:linear-gradient(90deg,transparent 0,#000 36px)}
+.cmp .typed i{font-style:normal;color:var(--wink3)}
+/* text in the draft: the composer's notice line above it (ComposerView.cs: subheadline, the warning colour, one line, 6 px) */
+.cmp .col{position:absolute;left:48px;right:240px;top:12px;opacity:0;transition:opacity .2s ease}
+.cmp.tall .col{opacity:1;transition:opacity .3s ease .12s}
+.cmp .ntc{position:relative;height:15px;margin-bottom:6px}
+.cmp .ntc>div{position:absolute;inset:0;font-size:11.5px;line-height:15px;color:var(--nwarn);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .12s ease-out}
+.cmp .ntc>div.on{opacity:1;transition:opacity .32s ease .05s}
+.cmp .ntc u{text-decoration-color:color-mix(in srgb,var(--nwarn) 60%,transparent);text-underline-offset:2px}
+.cmp .dtx{font-size:15px;line-height:20px;color:var(--wink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp.tall .fld{opacity:0;transition:opacity .15s ease,right .42s cubic-bezier(.32,.72,0,1)}
+.cmp .fld{transition:opacity .25s ease .1s,right .42s cubic-bezier(.32,.72,0,1)}
+/* the tools on the right: the orb, the model chip, the context ring, send */
+.cmp .tools{position:absolute;right:72px;bottom:0;height:52px;display:flex;align-items:center;gap:14px;z-index:2}
+.cmp .oslot{position:relative;flex:none;width:32px;height:32px}
+.cmp .chip{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--wink);white-space:nowrap}
+.cmp .chip .mk{width:15px;height:15px}
+.cmp .chip .mk path{stroke:#D97757;stroke-width:1.7;stroke-linecap:round}
+.cmp .chip .ef{color:var(--wink3)}
+.cmp .chip .cv{width:8px;height:6px;color:var(--wink3);margin-left:2px}
+.cmp .chip .cv path{fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.cmp .ring{position:absolute;right:46px;bottom:17px;width:18px;height:18px}
+.cmp .ring .t{fill:none;stroke:var(--ringtrk);stroke-width:2}
+.cmp .ring .a{fill:none;stroke:var(--ringarc);stroke-width:2;stroke-linecap:round}
+.cmp .send{position:absolute;right:8px;bottom:12px;width:28px;height:28px;border-radius:50%;background:var(--disc);display:flex;align-items:center;justify-content:center}
+.cmp .send path{fill:none;stroke:var(--discarrow);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* the orb, drawn as a still (the live one is the exact Liquid Orb export, V-11; as on the welcome-voice page) */
+.vorb{position:absolute;left:0;top:0;z-index:3;display:block;width:32px;height:32px;border-radius:50%;overflow:hidden;
+  background:radial-gradient(circle at 50% 50%,#1a1240 0%,#140f33 46%,#3a2386 78%,#a688ff 93%,#e2d6ff 100%);box-shadow:0 0 11px rgba(140,110,255,.5),inset 0 0 0 .5px rgba(255,255,255,.25);
+  transition:transform .45s cubic-bezier(.34,1.4,.5,1)}
+.vorb::before{content:"";position:absolute;left:4%;right:4%;top:28%;height:44%;border-radius:50%;
+  background:radial-gradient(50% 50% at 50% 50%,#fff 0%,rgba(140,225,255,.95) 26%,rgba(255,95,190,.75) 52%,rgba(150,110,255,.35) 72%,transparent 82%);filter:blur(.6px);animation:vnorb 4.6s ease-in-out infinite}
+.vorb::after{content:"";position:absolute;left:20%;right:20%;top:44%;height:12%;border-radius:50%;background:#fff;filter:blur(.4px);opacity:.95;animation:vnorb 4.6s ease-in-out infinite}
+@keyframes vnorb{50%{transform:scaleX(.82) translateY(4%)}}
+.live .vorb{transform:scale(1.16)}
+.live.fin .vorb{transform:scale(1.1)}
+.live.fin .vorb::before,.live.fin .vorb::after{animation-duration:1.2s}
+
+/* the glass pill (V-12.2 to V-12.4): inline, H 40, its right end at the orb's centre + 20, opening to the left */
+.vpill{position:absolute;right:-4px;top:50%;height:40px;margin-top:-20px;width:40px;z-index:1;border-radius:999px;overflow:hidden;
+  background:var(--pgBg);-webkit-backdrop-filter:blur(6px) saturate(1.7);backdrop-filter:blur(6px) saturate(1.7);
+  box-shadow:inset 0 0 0 .5px var(--pgRim),inset 0 0 0 1px var(--pgEdge),inset .7px 0 .8px -.1px rgba(255,96,150,.38),inset -.7px 0 .8px -.1px rgba(96,176,255,.4),inset 0 -2px 4px var(--pgShade),var(--pgDrop);
+  opacity:0;transition:width .42s cubic-bezier(.32,.72,0,1),opacity .18s ease .24s}
+.vpill::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(70% 55% at 50% 0%,var(--pgHi) 0%,transparent 70%) 0 0/100% 100% no-repeat,radial-gradient(14px 70% at 0% 50%,rgba(255,255,255,.10),transparent 100%),radial-gradient(14px 70% at 100% 50%,rgba(255,255,255,.10),transparent 100%);opacity:.55}
+.live .vpill{opacity:1;transition:width .42s cubic-bezier(.32,.72,0,1),opacity .14s ease}
+.vpill .px{position:absolute;left:8px;top:50%;width:24px;height:24px;margin-top:-12px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(80% 60% at 50% 0%,var(--pgHi),transparent 75%),var(--pgXBg);
+  box-shadow:inset 0 0 0 .5px var(--pgXRim),inset .5px 0 .6px -.1px rgba(255,96,150,.3),inset -.5px 0 .6px -.1px rgba(96,176,255,.32),0 1px 2px rgba(0,0,0,.12);color:var(--pgX)}
+.vpill .px svg{width:11px;height:11px}
+.vpill .px path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.vpill .plab{position:absolute;left:40px;top:0;bottom:0;display:flex;align-items:center;white-space:nowrap;font-family:var(--app);font-size:13.5px;font-weight:600;line-height:20px;
+  background-image:linear-gradient(105deg,var(--pgLab) 0%,var(--pgLab) 38%,var(--pgLabHi) 49%,var(--pgLab) 60%,var(--pgLab) 100%);background-position:135% 0;background-size:260% 100%;
+  color:transparent;-webkit-background-clip:text;background-clip:text;animation:vnsweep 2.35s ease-in-out infinite}
+@keyframes vnsweep{0%,12%{background-position:135% 0}70%,100%{background-position:-55% 0}}
+.vpill .plab .lt{font-weight:400}
+.vpill .plab .amb{-webkit-text-fill-color:var(--vwarn);color:var(--vwarn);transition:-webkit-text-fill-color .4s ease}
+/* crossfading runs: the leaving words fade fast and sink, the new ones rise in (V-12.9 relabel; OD-0076) */
+.xg{display:inline-grid;vertical-align:top}
+.xg>span{grid-area:1/1;white-space:pre;transition:opacity .2s ease,transform .32s cubic-bezier(.32,.72,0,1)}
+.xg>span.out{opacity:0;transform:translateY(-4px);transition:opacity .14s ease,transform .3s cubic-bezier(.32,.72,0,1)}
+.xg>span.pre{opacity:0;transform:translateY(4px)}
+.xg.num{font-variant-numeric:tabular-nums}
+.xg{position:relative}
+.xg>span.gone{position:absolute;left:0;top:0}
+.xg.ease{transition:width .42s cubic-bezier(.32,.72,0,1)}
+.xg.all>span.gone{position:absolute;left:0;top:0}
+/* look C: the draining line inside the pill's foot, from the cross to the orb */
+.vpill .drn{position:absolute;left:36px;right:42px;bottom:5px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--pgLab) 55%,transparent);opacity:0;
+  transform-origin:0 50%;transform:scaleX(var(--f,1));transition:transform 1s linear,opacity .3s ease,background-color .4s ease}
+.vpill .drn.on{opacity:1}
+.vpill .drn.amb{background:var(--vwarn)}
+.live.fin .vpill .drn{opacity:0}
+.still .vpill .drn{transition:opacity .3s ease,background-color .4s ease}
+
+/* ---------------- the Settings pane: Voice typing > Speech model, the hardware card (gen.py, voice.js) ---------------- */
+.spane{position:relative;padding:20px 24px 22px;border-radius:10px;background:var(--sbg);box-shadow:inset 0 0 0 1px var(--winedge);font-family:var(--app);color:var(--tx);-webkit-font-smoothing:antialiased}
+.spane .sh{font-size:14px;line-height:18px;font-weight:600;color:var(--head);margin-bottom:10px}
+.spane .card{border-radius:12px;background:var(--cardfill)}
+.spane .row{display:flex;align-items:center;gap:20px;padding:9px 11px 9px 16px;min-height:36px}
+.spane .rt{flex:1;min-width:0;display:flex;flex-direction:column}
+.spane .rt b{font-weight:400;font-size:14px;line-height:20px}
+.spane .dt{font-size:12px;line-height:16px;color:var(--tx2)}
+.spane .dv{height:1px;margin-left:16px;background:var(--div)}
+.spane .czbtn{appearance:none;border:0;font:inherit;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 12px;border-radius:13px;background:var(--cap);color:var(--tx);font-size:12px;font-weight:500;white-space:nowrap;flex-shrink:0;cursor:default;transition:background-color .12s ease,transform .12s ease}
+.spane .czbtn.pri{background:var(--pac);color:var(--pacInk);background-image:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 60%);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 2px rgba(0,0,0,.2)}
+.spane .czbtn.sm{height:22px;padding:0 9px;font-size:11.5px;border-radius:11px}
+.spane .czbtn.press{transform:scale(.94);filter:brightness(1.15)}
+.spane .hwlist{display:flex;flex-direction:column;gap:2px;padding:0 16px 10px}
+.spane .hwi{display:grid;grid-template-columns:16px 104px minmax(0,1fr);align-items:center;column-gap:8px;min-height:24px;font-size:12.5px;line-height:16px}
+.spane .hwk{color:var(--tx2)}
+.spane .hwv{color:var(--tx);min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.spane .ck{width:12px;height:12px;color:var(--tx2)}
+.spane .ck path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.spane .hwrec{margin:0 12px 12px;padding:10px 12px 12px;border-radius:10px;background:var(--tile);display:flex;flex-direction:column;gap:10px}
+.spane .hwrt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.spane .hwrt b{font-weight:600;font-size:13px;line-height:18px}
+.spane .hwstate{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);flex-wrap:wrap}
+.spane .hwnote{padding:0 16px 12px;font-size:11.5px;line-height:16px;color:var(--tx2)}
+.spane .acc{color:var(--pac)}
+.spane .lk{appearance:none;border:0;background:none;padding:0;font:inherit;color:var(--pac);font-weight:500;cursor:default}
+.spane .mst{display:flex;align-items:center;justify-content:flex-end;gap:6px;width:96px;flex-shrink:0;font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums}
+.spane .mx{width:20px;height:20px;border-radius:10px;display:grid;place-items:center;color:var(--tx2);background:var(--cap)}
+.spane .mx svg{width:9px;height:9px}
+.spane .mx path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.spane .mbar{height:2px;margin:0 16px;border-radius:1px;background:var(--trk);overflow:hidden;opacity:0;transition:opacity .3s ease}
+.spane .mbar.on{opacity:1}
+.spane .mbar i{display:block;height:100%;width:var(--p,0%);background:var(--pac);transition:width .18s linear}
+.spane .sp{display:inline-block;width:11px;height:11px;border-radius:50%;border:1.6px solid color-mix(in srgb,currentColor 25%,transparent);border-top-color:currentColor;animation:vnspin .8s linear infinite;flex:none}
+@keyframes vnspin{to{transform:rotate(360deg)}}
+.spane .cudal{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px}
+.spane .cudal .dt{flex:1 1 220px;min-width:0}
+/* a re-render crossfades: the old picture fades out on top while the new one fades in and the frame eases its height */
+.swap{position:relative}
+.swap>.old{position:absolute;left:0;top:0;right:0;opacity:0;transition:opacity .2s ease;pointer-events:none}
+.swap>.new{animation:vnin .34s ease both}
+@keyframes vnin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.vpill .plab,.vorb::before,.vorb::after,.spane .sp{animation:none}}
+
+</style>
+</head>
+<body>
+
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<div class="dk-page">
+  <header class="dk-hdr">
+    <div class="dk-tags"><span class="dk-tag">D-VN</span><span class="dk-tag">OD-0105: make the page</span><span class="dk-tag">OD-0099: Q-V-7 A, Q-V-6 B, Q-V-9 C</span><span class="dk-tag">OD-0104</span><span class="dk-tag">dark and light</span></div>
+    <h1>Voice notes: the error words, the countdown and the CUDA offer</h1>
+    <p>Three things voice typing still needs from you, drawn in the composer&#8217;s own note and pill and in the Voice typing page&#8217;s hardware card, each in dark and light. Pick one letter per question, or take the recommended ones. The bar at the bottom writes one line; paste it to the lead. This page sends nothing.</p>
+    <nav class="links" aria-label="Questions"><a href="#Notes">Notes <b>?</b></a><a href="#Countdown">Countdown <b>?</b></a><a href="#CUDA">CUDA <b>?</b></a></nav>
+  </header>
+  <div class="tb dk-glass" role="toolbar" aria-label="Actions">
+    <button class="dk-btn pri" id="all" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Take all recommended</button>
+    <button class="dk-btn" id="clear" type="button">Clear picks</button>
+    <span class="dk-sp"></span>
+    <div class="dk-grp"><span class="dk-glab">Page theme</span><div id="segT"></div></div>
+  </div>
+
+  <section class="dk-q dk-glass" id="Notes" data-q="Notes" data-rec="A" aria-labelledby="Notes-h">
+    <div class="dk-qh"><span class="dk-qn">Q-V-7 A</span><h2 id="Notes-h">The error notes: which words?</h2></div>
+    <p class="swift"><span class="sl">Already picked</span><span class="st">Each note says what happened, plus one link to the place that fixes it (OD-0099). Where and how a note shows is the locked one&#8217;s (V-14.6): with an empty draft it replaces the placeholder, with its warning mark; with text in the draft it shows in the composer&#8217;s notice line above your text, so your words are never hidden.</span></p>
+    <p class="dk-qd">Four word sets for the eleven notes. Choose a set, a note and the draft below to see it in the composer; the full list of every note in every set is under the cards. The links are underlined and each one says where it goes.</p>
+    <div class="ctl"><div class="dk-grp"><span class="dk-glab">Word set</span><div id="segNS"></div></div><div class="dk-grp"><span class="dk-glab">Note</span><div id="segNC"></div></div><div class="dk-grp"><span class="dk-glab">Draft</span><div id="segND"></div></div></div>
+    <div class="stage" id="stN"></div>
+    <div class="dk-opts" role="group" aria-label="Options for Notes"><div class="dk-opt" data-o="A" aria-current="false"><div class="oh"><span class="ol">A</span><span class="ot">Plain words</span><span class="rc">Recommended</span></div><span class="od">The locked note&#x2019;s shape: what happened, then the place, named the way Windows names Privacy &amp; security &gt; Microphone.</span><span class="why"><b>Why:</b> It has the locked Microphone blocked note&#x2019;s shape, so all twelve notes read as one family, and every one fits on one line in the composer.</span><button type="button" class="dk-pick pk" data-pick-q="Notes" data-pick-v="A" aria-pressed="false" aria-label="Pick A for Notes"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick A</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="B" aria-current="false"><div class="oh"><span class="ol">B</span><span class="ot">Short words</span></div><span class="od">Fewest words. The link is only the place&#x2019;s name, so every note stays well inside one line.</span><button type="button" class="dk-pick pk" data-pick-q="Notes" data-pick-v="B" aria-pressed="false" aria-label="Pick B for Notes"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick B</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="C" aria-current="false"><div class="oh"><span class="ol">C</span><span class="ot">Action words</span></div><span class="od">The link says what to do there. It still only opens the place; nothing changes until you change it.</span><button type="button" class="dk-pick pk" data-pick-q="Notes" data-pick-v="C" aria-pressed="false" aria-label="Pick C for Notes"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick C</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="D" aria-current="false"><div class="oh"><span class="ol">D</span><span class="ot">Explained words</span></div><span class="od">Adds what it means for you. Longer: most notes no longer fit one line in the composer and are cut short.</span><button type="button" class="dk-pick pk" data-pick-q="Notes" data-pick-v="D" aria-pressed="false" aria-label="Pick D for Notes"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick D</span><span class="b">Picked</span></span></button></div></div>
+    <h3 class="lh">Every note in every set</h3>
+    <div class="wlist" id="wlist"><div class="wcase" data-case="blocked"><div class="wh"><b>Microphone blocked</b><span>Locked already (V-4.5, V-14.6): Windows denies the microphone. Shown for comparison; not part of the pick.</span></div><ul><li data-set="L"><span class="ol lk">Locked</span><span class="nt"><span class="nx">Microphone blocked. Allow Marrow in <u>Privacy &amp; security &gt; Microphone</u></span><span class="dst">Opens: Windows Settings &gt; Privacy &amp; security &gt; Microphone</span></span></li></ul></div><div class="wcase" data-case="nomic"><div class="wh"><b>No microphone</b><span>The click finds no input device (V-17.6).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">No microphone found. Set one up in <u>System &gt; Sound</u></span><span class="dst">Opens: Windows Settings &gt; System &gt; Sound</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">No microphone found. <u>Sound settings</u></span><span class="dst">Opens: Windows Settings &gt; System &gt; Sound</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">No microphone found. <u>Open Sound settings</u></span><span class="dst">Opens: Windows Settings &gt; System &gt; Sound</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">No microphone found, so nothing was recorded. Set one up in <u>System &gt; Sound</u></span><span class="dst">Opens: Windows Settings &gt; System &gt; Sound</span></span></li></ul></div><div class="wcase" data-case="unplug"><div class="wh"><b>Microphone unplugged</b><span>The device goes away mid-session: the final pass runs on what was heard, then the note shows (V-4.4).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">Microphone disconnected. Choose another in <u>Voice typing &gt; Microphone</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Microphone</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">Microphone disconnected. <u>Microphone</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Microphone</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">The microphone was disconnected; your words so far are kept. <u>Choose a microphone</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Microphone</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">Microphone disconnected. The words so far are in the composer. Choose another in <u>Voice typing &gt; Microphone</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Microphone</span></span></li></ul></div><div class="wcase" data-case="busy"><div class="wh"><b>Microphone busy</b><span>Another app holds the device for itself (V-4.4, AUDCLNT_E_DEVICE_IN_USE).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">Microphone in use by another app. Choose another in <u>Voice typing &gt; Microphone</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Microphone</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">Microphone in use by another app. <u>Microphone</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Microphone</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">Another app is using the microphone. <u>Choose a microphone</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Microphone</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">Another app has the microphone, so Marrow can&#x2019;t listen. Choose another in <u>Voice typing &gt; Microphone</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Microphone</span></span></li></ul></div><div class="wcase" data-case="dl"><div class="wh"><b>Model still downloading</b><span>The click comes before the speech model has downloaded (V-17.6).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">Speech model still downloading. See it in <u>Voice typing &gt; Speech model</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Speech model</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">Speech model still downloading. <u>Speech model</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Speech model</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">The speech model is still downloading. <u>Show the download</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Speech model</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">Voice typing is ready as soon as the speech model finishes downloading. See it in <u>Voice typing &gt; Speech model</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Speech model</span></span></li></ul></div><div class="wcase" data-case="load"><div class="wh"><b>Model failed to load</b><span>The model file does not load (V-7.9).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">Speech model didn&#x2019;t load. Choose a model in <u>Voice typing &gt; Speech model</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Speech model</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">Speech model didn&#x2019;t load. <u>Speech model</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Speech model</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">The speech model couldn&#x2019;t be loaded. <u>Choose a model</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Speech model</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">The speech model couldn&#x2019;t be loaded, so nothing was written. Choose a model in <u>Voice typing &gt; Speech model</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Speech model</span></span></li></ul></div><div class="wcase" data-case="avx"><div class="wh"><b>No AVX2</b><span>The processor lacks AVX2, which the processor runtime needs (V-3.1). Q-V-12 (ED): not supported on this PC; the cloud engine still works.</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">This processor can&#x2019;t run the speech model. Use OpenAI in <u>Voice typing &gt; Engine</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">This processor can&#x2019;t run the speech model. <u>Engine</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">This processor can&#x2019;t run the speech model. <u>Set up OpenAI cloud</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">Voice typing on this PC needs a newer processor; OpenAI cloud still works. Set it up in <u>Voice typing &gt; Engine</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li></ul></div><div class="wcase" data-case="engine"><div class="wh"><b>Engine failure</b><span>A pass fails inside the engine (V-17.6).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">Voice typing stopped on an error. Check it in <u>Settings &gt; Voice typing</u></span><span class="dst">Opens: Settings &gt; Voice typing</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">Voice typing stopped on an error. <u>Voice typing</u></span><span class="dst">Opens: Settings &gt; Voice typing</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">Voice typing stopped on an error. <u>Check my hardware</u></span><span class="dst">Opens: Check my hardware, in Settings &gt; Voice typing &gt; Speech model</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">Voice typing stopped on an error. Try again, or check <u>Settings &gt; Voice typing</u></span><span class="dst">Opens: Settings &gt; Voice typing</span></span></li></ul></div><div class="wcase" data-case="nokey"><div class="wh"><b>Cloud: no key</b><span>OpenAI cloud is the engine and no key is stored (V-17.6).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">No OpenAI key yet. Add one in <u>Voice typing &gt; OpenAI key</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; OpenAI key</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">No OpenAI key yet. <u>OpenAI key</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; OpenAI key</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">Cloud voice typing needs your OpenAI key. <u>Add your key</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; OpenAI key</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">Cloud voice typing uses your own OpenAI key, and none is saved yet. Add it in <u>Voice typing &gt; OpenAI key</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; OpenAI key</span></span></li></ul></div><div class="wcase" data-case="refused"><div class="wh"><b>Cloud: key refused</b><span>OpenAI answers 401 (V-17.6, V-T112).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">OpenAI refused the key. Replace it in <u>Voice typing &gt; OpenAI key</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; OpenAI key</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">OpenAI refused the key. <u>OpenAI key</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; OpenAI key</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">OpenAI didn&#x2019;t accept the key. <u>Replace the key</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; OpenAI key</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">OpenAI refused the key, so nothing was written. Replace it in <u>Voice typing &gt; OpenAI key</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; OpenAI key</span></span></li></ul></div><div class="wcase" data-case="quota"><div class="wh"><b>Cloud: out of quota</b><span>OpenAI answers 429, out of quota or over its rate limit (V-17.6).</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">This key reached its OpenAI limit. Switch to this PC in <u>Voice typing &gt; Engine</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">This key reached its OpenAI limit. <u>Engine</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">This key reached its OpenAI limit. <u>Use this PC instead</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">OpenAI turned this down: the key is out of credit or over its rate limit. See <u>OpenAI billing</u></span><span class="dst tbc">Opens: OpenAI&#x2019;s billing page (destination to confirm)</span></span></li></ul></div><div class="wcase" data-case="nonet"><div class="wh"><b>No network</b><span>The request to OpenAI cannot go out (V-17.6). Only the cloud engine needs the network while you speak.</span></div><ul><li data-set="A"><span class="ol">A</span><span class="nt"><span class="nx">Can&#x2019;t reach OpenAI: no internet. Switch to this PC in <u>Voice typing &gt; Engine</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="B"><span class="ol">B</span><span class="nt"><span class="nx">Can&#x2019;t reach OpenAI: no internet. <u>Engine</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="C"><span class="ol">C</span><span class="nt"><span class="nx">Can&#x2019;t reach OpenAI without internet. <u>Use this PC instead</u></span><span class="dst">Opens: Settings &gt; Voice typing &gt; Engine</span></span></li><li data-set="D"><span class="ol">D</span><span class="nt"><span class="nx">Cloud voice typing needs the internet, and there&#x2019;s none right now. Check <u>Network settings</u></span><span class="dst tbc">Opens: Windows network settings (destination to confirm)</span></span></li></ul></div></div>
+    <div class="dk-notes">
+      <div class="dk-note"><h3>How long a note stays</h3><p>The locked note stays 5.2 s, then the placeholder (or your text) comes back (V-14.6). The others have no time yet; the lead proposes the same 5.2 s (<b>ED</b>). The spoken version of each note (V-14.5 has one for the blocked note) is written in VT-17 from the picked words.</p></div>
+      <div class="dk-note"><h3>To confirm: the download note</h3><p>An orb click during the first download already shows the download in the pill (&#8220;Getting voice ready&#8221;, the welcome-voice pick, VT-15). So &#8220;Model still downloading&#8221; is for when that pill is not shown. Whether both show is for the lead to settle in VT-17 (<b>UN</b>).</p></div>
+      <div class="dk-note"><h3>Drawn faithfully, and not</h3><p>The composer, its field note and the warning mark are the locked voice design&#8217;s (voice-composer.html); the notice line is the port&#8217;s (ComposerView.cs: subheadline, the warning colour, one line, cut at the end). Giving the notice line a link is new (<b>ED</b>). The composer light and the voice glow are left out; the orb is a still.</p></div>
+    </div>
+  </section>
+
+  <section class="dk-q dk-glass" id="Countdown" data-q="Countdown" data-rec="B" aria-labelledby="Countdown-h">
+    <div class="dk-qh"><span class="dk-qn">Q-V-6 B</span><h2 id="Countdown-h">The countdown in the pill: which look?</h2></div>
+    <p class="swift"><span class="sl">Already picked</span><span class="st">The pill counts down the last 30 s before the 5-minute cap, then finishes the text as if you had clicked the orb (OD-0099, V-7.12). The countdown starts at 4:30 of listening.</span></p>
+    <p class="dk-qd">The pill is the locked glass pill in the composer (OD-0091, V-12.2 to V-12.4): the cross at its far end, the words with their sweep, the orb at its right. Play runs the last 33 seconds; the frames below are the same look at 0:30, 0:10, 0:00 and finishing.</p>
+    <div class="ctl"><button class="dk-btn pri" id="playC" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span id="playCL">Play</span></button><div class="dk-grp"><span class="dk-glab">Look</span><div id="segCL"></div></div><div class="dk-grp"><span class="dk-glab">Speed</span><div id="segCS"></div></div></div>
+    <div class="stage" id="stC"></div>
+    <div class="frames" id="frC"></div>
+    <div class="dk-opts" role="group" aria-label="Options for Countdown"><div class="dk-opt" data-o="A" aria-current="false"><div class="oh"><span class="ol">A</span><span class="ot">Time left, in place of the words</span></div><span class="od">From 0:30 the label reads &#x201c;0:30 left&#x201d; and counts each second; at the cap it turns to Finishing&#x2026;. Listening and Transcribing are not shown in those 30 s.</span><button type="button" class="dk-pick pk" data-pick-q="Countdown" data-pick-v="A" aria-pressed="false" aria-label="Pick A for Countdown"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick A</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="B" aria-current="false"><div class="oh"><span class="ol">B</span><span class="ot">Time after the words</span><span class="rc">Recommended</span></div><span class="od">The label keeps Listening&#x2026; or Transcribing&#x2026; and adds the time after an en space in the lighter weight, the way the pill already names the language (V-12.10, no dot). The pill widens once, by the time&#x2019;s width.</span><span class="why"><b>Why:</b> It reuses the pattern the pill already has for the language name, so it adds no new kind of thing, and you still see whether Marrow is listening or writing.</span><button type="button" class="dk-pick pk" data-pick-q="Countdown" data-pick-v="B" aria-pressed="false" aria-label="Pick B for Countdown"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick B</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="C" aria-current="false"><div class="oh"><span class="ol">C</span><span class="ot">A draining line, no numbers</span></div><span class="od">The words stay as they are. A 2 px line inside the pill&#x2019;s foot, from the cross to the orb, shortens over the 30 s and takes the warning colour for the last 10. No digits.</span><button type="button" class="dk-pick pk" data-pick-q="Countdown" data-pick-v="C" aria-pressed="false" aria-label="Pick C for Countdown"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick C</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="D" aria-current="false"><div class="oh"><span class="ol">D</span><span class="ot">&#x201c;Stops in&#x201d;, amber at the end</span></div><span class="od">The label says what will happen: &#x201c;Stops in 0:30&#x201d;. The digits turn the warning colour for the last 10 s. Listening and Transcribing are not shown in those 30 s.</span><button type="button" class="dk-pick pk" data-pick-q="Countdown" data-pick-v="D" aria-pressed="false" aria-label="Pick D for Countdown"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick D</span><span class="b">Picked</span></span></button></div></div>
+    <div class="dk-notes">
+      <div class="dk-note"><h3>What is fixed in all four</h3><p>The pill&#8217;s width is the label&#8217;s measured width plus 88 px (V-12.2) and eases over 0.42 s when the words change; the figures are tabular, so the pill keeps still while they count. At 0:00 the label crossfades to Finishing&#8230; as at a second click (V-15). Under Reduce Motion the figures change without moving and the line steps once a second.</p></div>
+      <div class="dk-note"><h3>With the language in the pill</h3><p>When the language is named in the pill (language default B, V-12.10), B reads &#8220;Transcribing&#8230; English 0:30&#8221;: the name, then the time, each after an en space in the lighter weight. A and D replace the words, so the name goes for those 30 s; C keeps it.</p></div>
+      <div class="dk-note"><h3>Not on this page</h3><p>Whether a screen reader hears the countdown (for example once at 0:30 and once at 0:10) is not designed; the lead proposes one polite announcement at each of those two moments (<b>ED</b>). The cross-beside-the-orb style has no pill, so it has no countdown in any look.</p></div>
+    </div>
+  </section>
+
+  <section class="dk-q dk-glass" id="CUDA" data-q="CUDA" data-rec="A" aria-labelledby="CUDA-h">
+    <div class="dk-qh"><span class="dk-qn">Q-V-9 C</span><h2 id="CUDA-h">The CUDA offer in the hardware card: which look?</h2></div>
+    <p class="swift"><span class="sl">Already picked</span><span class="st">The installer ships the Vulkan and processor runtimes only. On NVIDIA PCs the hardware check offers the CUDA runtime as a separate download (OD-0099). It is fetched only when you ask: the Whisper.net CUDA 12 pack from nuget.org and NVIDIA&#8217;s own libraries from NVIDIA&#8217;s servers, never hosted by Marrow, checked by hash, and a half-installed pack is never loaded (OD-0104).</span></p>
+    <p class="dk-qd">The card is Settings &gt; Voice typing &gt; Speech model as drawn (V-16.3.2) on your desktop&#8217;s probe. Choose a state, or press Play to download it. Not NVIDIA shows a PC where nothing is offered.</p>
+    <div class="ctl"><button class="dk-btn pri" id="playU" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span>Play</span></button><div class="dk-grp"><span class="dk-glab">Look</span><div id="segUL"></div></div><div class="dk-grp"><span class="dk-glab">State</span><div id="segUS"></div></div></div>
+    <div class="stage" id="stU"></div>
+    <div class="dk-opts" role="group" aria-label="Options for CUDA"><div class="dk-opt" data-o="A" aria-current="false"><div class="oh"><span class="ol">A</span><span class="ot">Its own row in the card</span><span class="rc">Recommended</span></div><span class="od">A row under the recommendation: &#x201c;NVIDIA CUDA&#x201d;, a detail with the size and where it comes from, and a Download capsule. Progress, cancel and the end states use the model list&#x2019;s own state column and 2 px bar (V-16.3.3).</span><span class="why"><b>Why:</b> It is the page&#x2019;s own row (title, detail, capsule) and the model list&#x2019;s progress column, so it needs no new control and has room for the size and both sources (OD-0104).</span><button type="button" class="dk-pick pk" data-pick-q="CUDA" data-pick-v="A" aria-pressed="false" aria-label="Pick A for CUDA"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick A</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="B" aria-current="false"><div class="oh"><span class="ol">B</span><span class="ot">Inside the recommendation box</span></div><span class="od">One line under the reason, &#x201c;Your RTX 4080 can also run it on NVIDIA CUDA, a separate 644 MB download&#x201d;, and a Download CUDA capsule beside the state line.</span><button type="button" class="dk-pick pk" data-pick-q="CUDA" data-pick-v="B" aria-pressed="false" aria-label="Pick B for CUDA"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick B</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="C" aria-current="false"><div class="oh"><span class="ol">C</span><span class="ot">On the GPU backend line</span></div><span class="od">The probe row that says &#x201c;Vulkan, working&#x201d; gets a small capsule at its end: &#x201c;Get CUDA, 644 MB&#x201d;. The quietest; the size and source are only in its tooltip and the next state.</span><button type="button" class="dk-pick pk" data-pick-q="CUDA" data-pick-v="C" aria-pressed="false" aria-label="Pick C for CUDA"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick C</span><span class="b">Picked</span></span></button></div><div class="dk-opt" data-o="D" aria-current="false"><div class="oh"><span class="ol">D</span><span class="ot">A sentence under the card&#x2019;s note</span></div><span class="od">A short paragraph at the foot of the card, in the note&#x2019;s own small type, ending with a Download CUDA link.</span><button type="button" class="dk-pick pk" data-pick-q="CUDA" data-pick-v="D" aria-pressed="false" aria-label="Pick D for CUDA"><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb"><span class="a">Pick D</span><span class="b">Picked</span></span></button></div></div>
+    <div class="dk-notes">
+      <div class="dk-note"><h3>The size: 644 MB</h3><p>The sum of the three pinned files in voice-pins.json: the Whisper.net CUDA 12 pack 1.9.1 (250,058,371 bytes, nuget.org), NVIDIA&#8217;s cuBLAS 12.4.2.65 (391,101,865 bytes) and CUDA runtime 12.4.99 (2,474,121 bytes), shown the way the model list shows sizes (V-9.2). The space it takes on disk is not measured yet (the pack&#8217;s own five files are 566 MB).</p></div>
+      <div class="dk-note"><h3>To confirm: when it starts working</h3><p>Whisper.net loads its native runtime once per process (VT-6 item 5), and the hardware check itself loads one. So after the download CUDA may only be used from Marrow&#8217;s next start; the Installed state here says &#8220;Restart Marrow to use it&#8221; on that reading (<b>UN</b>, checked on the real PC, BUILD-PLAN section 4 item D). After that the GPU backend row reads &#8220;CUDA, working&#8221; (V-10.1).</p></div>
+      <div class="dk-note"><h3>No speed claim</h3><p>Vulkan has not been timed against CUDA on your RTX 4080 yet (section 4 item D decides how strongly the offer is worded), so no look promises it is faster. The reason line and the model are the design&#8217;s examples (V-10.2, V-10.4). Shown only on an NVIDIA graphics card with a working probe (VT-17).</p></div>
+    </div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="Where each link goes">
+    <h2>Where each link goes</h2>
+    <p class="sub">Every place a note&#8217;s link opens, and where the plan names it. Two places in set D are not in the plan; they are marked <span class="tbcw">(destination to confirm)</span>.</p>
+    <div class="dtab"><table><thead><tr><th>Where the link goes</th><th>Named in</th><th>Sets</th></tr></thead><tbody><tr class=""><td>Windows Settings &gt; Privacy &amp; security &gt; Microphone</td><td>V-14.6, locked (ms-settings:privacy-microphone)</td><td>locked</td></tr><tr class=""><td>Windows Settings &gt; System &gt; Sound</td><td>voice SPEC section 23, Q-V-7: &#x201c;open Sound settings&#x201d;</td><td>A, B, C, D</td></tr><tr class=""><td>Settings &gt; Voice typing &gt; Microphone</td><td>Q-V-19 B (OD-0099), BUILD-PLAN VT-13</td><td>A, B, C, D</td></tr><tr class=""><td>Settings &gt; Voice typing &gt; Speech model</td><td>V-16.3.2, V-16.3.3; the welcome-voice path (OD-0098)</td><td>A, B, C, D</td></tr><tr class=""><td>Settings &gt; Voice typing &gt; Engine</td><td>V-16.3.1 (On this PC | OpenAI cloud)</td><td>A, B, C, D</td></tr><tr class=""><td>Settings &gt; Voice typing &gt; OpenAI key</td><td>V-16.3.1, Q-V-16 (the Providers key field)</td><td>A, B, C, D</td></tr><tr class=""><td>Check my hardware, in Settings &gt; Voice typing &gt; Speech model</td><td>V-10.6, V-16.3.2</td><td>C</td></tr><tr class=""><td>Settings &gt; Voice typing</td><td>V-16.3; voice SPEC Q-V-7: &#x201c;open Voice typing&#x201d;</td><td>A, B, D</td></tr><tr class="tbc"><td>OpenAI&#x2019;s billing page (destination to confirm)</td><td>not in the plan</td><td>D</td></tr><tr class="tbc"><td>Windows network settings (destination to confirm)</td><td>not in the plan</td><td>D</td></tr></tbody></table></div>
+  </section>
+  <p class="dk-foot">Your picks stay in this browser only, if it allows storing them. Sources: BUILD-PLAN (rows Q-V-6, Q-V-7, Q-V-9, D-VN, VT-17), the voice SPEC, OD-0099, OD-0104 and OD-0105, the locked voice composer design, the Voice typing page design, the port&#8217;s composer and the CUDA pins. Every change on this page is transitioned (OD-0076). The orb is drawn as a still; the live one is the Liquid Orb export (V-11).</p>
+</div>
+<div class="dk-picks dk-glass" id="bar" role="region" aria-label="Your picks"><span class="cnt" id="cnt" aria-live="polite"></span><code class="pline" id="line" aria-label="The line to paste to the lead"></code><button class="dk-btn" id="copy" type="button">Copy</button></div>
+<script type="application/json" id="vndata">{"dest": {"privacy": {"t": "Windows Settings > Privacy & security > Microphone", "src": "V-14.6, locked (ms-settings:privacy-microphone)"}, "sound": {"t": "Windows Settings > System > Sound", "src": "voice SPEC section 23, Q-V-7: \u201copen Sound settings\u201d"}, "mic": {"t": "Settings > Voice typing > Microphone", "src": "Q-V-19 B (OD-0099), BUILD-PLAN VT-13"}, "model": {"t": "Settings > Voice typing > Speech model", "src": "V-16.3.2, V-16.3.3; the welcome-voice path (OD-0098)"}, "engine": {"t": "Settings > Voice typing > Engine", "src": "V-16.3.1 (On this PC | OpenAI cloud)"}, "key": {"t": "Settings > Voice typing > OpenAI key", "src": "V-16.3.1, Q-V-16 (the Providers key field)"}, "hw": {"t": "Check my hardware, in Settings > Voice typing > Speech model", "src": "V-10.6, V-16.3.2"}, "page": {"t": "Settings > Voice typing", "src": "V-16.3; voice SPEC Q-V-7: \u201copen Voice typing\u201d"}, "billing": {"t": "OpenAI\u2019s billing page (destination to confirm)", "src": "not in the plan", "tbc": true}, "network": {"t": "Windows network settings (destination to confirm)", "src": "not in the plan", "tbc": true}}, "cases": [{"id": "blocked", "t": "Microphone blocked"}, {"id": "nomic", "t": "No microphone"}, {"id": "unplug", "t": "Microphone unplugged"}, {"id": "busy", "t": "Microphone busy"}, {"id": "dl", "t": "Model still downloading"}, {"id": "load", "t": "Model failed to load"}, {"id": "avx", "t": "No AVX2"}, {"id": "engine", "t": "Engine failure"}, {"id": "nokey", "t": "Cloud: no key"}, {"id": "refused", "t": "Cloud: key refused"}, {"id": "quota", "t": "Cloud: out of quota"}, {"id": "nonet", "t": "No network"}], "locked": ["Microphone blocked. Allow Marrow in ", "Privacy & security > Microphone", "privacy"], "sets": {"A": {"name": "Plain", "notes": {"nomic": ["No microphone found. Set one up in ", "System > Sound", "sound"], "unplug": ["Microphone disconnected. Choose another in ", "Voice typing > Microphone", "mic"], "busy": ["Microphone in use by another app. Choose another in ", "Voice typing > Microphone", "mic"], "dl": ["Speech model still downloading. See it in ", "Voice typing > Speech model", "model"], "load": ["Speech model didn\u2019t load. Choose a model in ", "Voice typing > Speech model", "model"], "avx": ["This processor can\u2019t run the speech model. Use OpenAI in ", "Voice typing > Engine", "engine"], "engine": ["Voice typing stopped on an error. Check it in ", "Settings > Voice typing", "page"], "nokey": ["No OpenAI key yet. Add one in ", "Voice typing > OpenAI key", "key"], "refused": ["OpenAI refused the key. Replace it in ", "Voice typing > OpenAI key", "key"], "quota": ["This key reached its OpenAI limit. Switch to this PC in ", "Voice typing > Engine", "engine"], "nonet": ["Can\u2019t reach OpenAI: no internet. Switch to this PC in ", "Voice typing > Engine", "engine"]}}, "B": {"name": "Short", "notes": {"nomic": ["No microphone found. ", "Sound settings", "sound"], "unplug": ["Microphone disconnected. ", "Microphone", "mic"], "busy": ["Microphone in use by another app. ", "Microphone", "mic"], "dl": ["Speech model still downloading. ", "Speech model", "model"], "load": ["Speech model didn\u2019t load. ", "Speech model", "model"], "avx": ["This processor can\u2019t run the speech model. ", "Engine", "engine"], "engine": ["Voice typing stopped on an error. ", "Voice typing", "page"], "nokey": ["No OpenAI key yet. ", "OpenAI key", "key"], "refused": ["OpenAI refused the key. ", "OpenAI key", "key"], "quota": ["This key reached its OpenAI limit. ", "Engine", "engine"], "nonet": ["Can\u2019t reach OpenAI: no internet. ", "Engine", "engine"]}}, "C": {"name": "Action", "notes": {"nomic": ["No microphone found. ", "Open Sound settings", "sound"], "unplug": ["The microphone was disconnected; your words so far are kept. ", "Choose a microphone", "mic"], "busy": ["Another app is using the microphone. ", "Choose a microphone", "mic"], "dl": ["The speech model is still downloading. ", "Show the download", "model"], "load": ["The speech model couldn\u2019t be loaded. ", "Choose a model", "model"], "avx": ["This processor can\u2019t run the speech model. ", "Set up OpenAI cloud", "engine"], "engine": ["Voice typing stopped on an error. ", "Check my hardware", "hw"], "nokey": ["Cloud voice typing needs your OpenAI key. ", "Add your key", "key"], "refused": ["OpenAI didn\u2019t accept the key. ", "Replace the key", "key"], "quota": ["This key reached its OpenAI limit. ", "Use this PC instead", "engine"], "nonet": ["Can\u2019t reach OpenAI without internet. ", "Use this PC instead", "engine"]}}, "D": {"name": "Explained", "notes": {"nomic": ["No microphone found, so nothing was recorded. Set one up in ", "System > Sound", "sound"], "unplug": ["Microphone disconnected. The words so far are in the composer. Choose another in ", "Voice typing > Microphone", "mic"], "busy": ["Another app has the microphone, so Marrow can\u2019t listen. Choose another in ", "Voice typing > Microphone", "mic"], "dl": ["Voice typing is ready as soon as the speech model finishes downloading. See it in ", "Voice typing > Speech model", "model"], "load": ["The speech model couldn\u2019t be loaded, so nothing was written. Choose a model in ", "Voice typing > Speech model", "model"], "avx": ["Voice typing on this PC needs a newer processor; OpenAI cloud still works. Set it up in ", "Voice typing > Engine", "engine"], "engine": ["Voice typing stopped on an error. Try again, or check ", "Settings > Voice typing", "page"], "nokey": ["Cloud voice typing uses your own OpenAI key, and none is saved yet. Add it in ", "Voice typing > OpenAI key", "key"], "refused": ["OpenAI refused the key, so nothing was written. Replace it in ", "Voice typing > OpenAI key", "key"], "quota": ["OpenAI turned this down: the key is out of credit or over its rate limit. See ", "OpenAI billing", "billing"], "nonet": ["Cloud voice typing needs the internet, and there\u2019s none right now. Check ", "Network settings", "network"]}}}, "count": [{"v": "A", "t": "Time left, in place of the words"}, {"v": "B", "t": "Time after the words"}, {"v": "C", "t": "A draining line, no numbers"}, {"v": "D", "t": "\u201cStops in\u201d, amber at the end"}], "cuda": [{"v": "A", "t": "Its own row in the card"}, {"v": "B", "t": "Inside the recommendation box"}, {"v": "C", "t": "On the GPU backend line"}, {"v": "D", "t": "A sentence under the card\u2019s note"}], "rec": {"Notes": "A", "Countdown": "B", "CUDA": "A"}}</script>
+
+<script>
+// Decision kit: theme (Auto | Light | Dark), segmented controls with a sliding thumb, and the picks bar.
+// Classic script, no eval; storage is a per-viewer convenience only and every access is guarded.
+(function () {
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('dk.' + k); return v == null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('dk.' + k, v); } catch (e) { /* storage blocked: the page works without it */ } },
+  };
+  const mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  const listeners = [];
+  let mode = store.get('theme', 'auto');
+  const isDark = () => (mode === 'dark' ? true : mode === 'light' ? false : !!(mq && mq.matches));
+  function applyTheme(m, animate) {
+    const run = () => {
+      mode = m;
+      const r = document.documentElement;
+      if (m === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', m);
+      listeners.forEach((f) => f(isDark()));
+    };
+    // the whole picture crossfades where the browser can; otherwise every token eases on its own (CSS transitions)
+    if (animate && document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(run);
+    else run();
+  }
+  if (mq && mq.addEventListener) mq.addEventListener('change', () => { if (mode === 'auto') listeners.forEach((f) => f(isDark())); });
+
+  // a segmented control: options [{v, t}], the thumb slides to the pressed one
+  function seg(el, options, value, onChange, opts) {
+    opts = opts || {};
+    el.classList.add('dk-seg');
+    if (opts.wrap) el.classList.add('wrap');
+    el.innerHTML = '';
+    const th = document.createElement('span'); th.className = 'th nt'; el.appendChild(th);
+    const btns = options.map((o) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = o.t; b.dataset.v = o.v;
+      if (o.title) b.title = o.title;
+      b.addEventListener('click', () => { set(o.v, true); onChange(o.v); });
+      el.appendChild(b); return b;
+    });
+    let cur = value;
+    function place(anim) {
+      const b = btns.find((x) => x.dataset.v === String(cur));
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      if (!b) { th.style.opacity = '0'; return; }
+      th.style.opacity = '1';
+      if (!anim) th.classList.add('nt');
+      th.style.width = b.offsetWidth + 'px';
+      th.style.height = b.offsetHeight + 'px';
+      th.style.top = b.offsetTop + 'px';
+      th.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+      if (!anim) { void th.offsetWidth; th.classList.remove('nt'); }
+    }
+    function set(v, anim) { cur = v; place(anim); }
+    place(false);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => place(false));
+    if (window.ResizeObserver) new ResizeObserver(() => place(false)).observe(el);
+    return { set: (v) => set(v, true), get: () => cur };
+  }
+
+  // the picks bar: one chip per question; the page sends nothing anywhere
+  function picks(page, questions) {
+    const bar = document.createElement('div');
+    bar.className = 'dk-picks dk-glass';
+    bar.innerHTML = '<span class="pl">Your picks</span><span class="pv"></span><span class="note">Tell the lead these letters; this page sends nothing.</span><button class="dk-btn" type="button">Copy</button>';
+    document.body.appendChild(bar);
+    const pv = bar.querySelector('.pv');
+    const state = {};
+    questions.forEach((q) => { state[q.id] = store.get(page + '.pick.' + q.id, ''); });
+    function render() {
+      pv.innerHTML = '';
+      questions.forEach((q) => {
+        const s = document.createElement('span');
+        const v = state[q.id];
+        s.className = v ? 'on' : '';
+        s.innerHTML = '';
+        s.appendChild(document.createTextNode(q.label + ' '));
+        const b = document.createElement('b'); b.textContent = v || '?'; s.appendChild(b);
+        pv.appendChild(s);
+      });
+      document.querySelectorAll('[data-pick-q]').forEach((btn) => {
+        const on = state[btn.dataset.pickQ] === btn.dataset.pickV;
+        btn.setAttribute('aria-pressed', String(on));
+      });
+    }
+    function text() { return page + ': ' + questions.map((q) => q.label + ' ' + (state[q.id] || '?')).join(', '); }
+    bar.querySelector('button').addEventListener('click', async () => {
+      const t = text();
+      try { await navigator.clipboard.writeText(t); bar.querySelector('button').textContent = 'Copied'; }
+      catch (e) { bar.querySelector('button').textContent = 'Select the text'; const r = document.createRange(); r.selectNodeContents(pv); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+      setTimeout(() => { bar.querySelector('button').textContent = 'Copy'; }, 1600);
+    });
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-pick-q]');
+      if (!btn) return;
+      const q = btn.dataset.pickQ, v = typeof btn.__pickValue === 'function' ? btn.__pickValue() : btn.dataset.pickV;
+      state[q] = state[q] === v ? '' : v;
+      store.set(page + '.pick.' + q, state[q]);
+      render();
+    });
+    render();
+    return { render, set(q, v) { state[q] = v; store.set(page + '.pick.' + q, v); render(); }, get: (q) => state[q] };
+  }
+  const PICK_SVG = '<svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function pickButton(q, v, label) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'dk-pick'; b.dataset.pickQ = q; b.dataset.pickV = v; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<span class="ck">' + PICK_SVG + '</span><span class="lb"><span class="a"></span><span class="b"></span></span>';
+    b.querySelector('.lb .a').textContent = label || 'Pick';
+    b.querySelector('.lb .b').textContent = 'Picked';
+    return b;
+  }
+  window.Kit = { store, seg, picks, pickButton, isDark, onTheme: (f) => listeners.push(f), theme: (m) => { store.set('theme', m); applyTheme(m, true); }, themeMode: () => mode };
+  applyTheme(mode, false);
+})();
+
+</script>
+<script>
+// Voice Notes Picks (D-VN): picks (one per question, kept per viewer when the browser allows), the picks line, the page
+// theme, and the three stages. Each mock is drawn twice, dark and light side by side; every change crossfades or eases
+// (OD-0076). Nothing is sent anywhere.
+(function () {
+  const K = window.Kit, S = K.store, PAGE = 'voice-notes';
+  const D = JSON.parse(document.getElementById('vndata').textContent);
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const THEMES = [['d', 'Dark'], ['l', 'Light']];
+  const reduce = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // ------------------------------------------------------------------ picks and the line
+  const cards = $$('.dk-q[data-q]');
+  const ids = cards.map((c) => c.dataset.q);
+  const rec = {}; cards.forEach((c) => { rec[c.dataset.q] = c.dataset.rec; });
+  const state = {};
+  cards.forEach((c) => {
+    let v = S.get(PAGE + '.pick.' + c.dataset.q, '');
+    if (!$('[data-pick-v="' + v + '"]', c)) v = '';
+    state[c.dataset.q] = v;
+  });
+  const cnt = $('#cnt'), line = $('#line'), copy = $('#copy');
+  function lineText() {
+    const picked = ids.filter((i) => state[i]);
+    return PAGE + ': ' + (picked.length ? picked.map((i) => i + ' ' + state[i]).join(', ') : 'nothing picked yet');
+  }
+  function render() {
+    cards.forEach((c) => {
+      const v = state[c.dataset.q];
+      $$('.dk-opt', c).forEach((o) => {
+        const on = o.dataset.o === v;
+        o.setAttribute('aria-current', String(on));
+        $('.dk-pick', o).setAttribute('aria-pressed', String(on));
+      });
+    });
+    const n = ids.filter((i) => state[i]).length;
+    const off = ids.filter((i) => state[i] && state[i] !== rec[i]).length;
+    cnt.innerHTML = '<b>' + n + ' of ' + ids.length + '</b> picked' + (n && off ? ' \u00b7 ' + off + ' differ from the recommendation' : '');
+    line.textContent = lineText();
+    $$('.links a').forEach((a) => { const q = a.getAttribute('href').slice(1); $('b', a).textContent = state[q] || '?'; a.classList.toggle('on', !!state[q]); });
+  }
+  function set(q, v) { state[q] = v; S.set(PAGE + '.pick.' + q, v); }
+  const show = {};
+  document.addEventListener('click', (e) => {
+    const opt = e.target.closest('.dk-opt');
+    if (!opt) return;
+    const sec = opt.closest('.dk-q'), q = sec.dataset.q, v = opt.dataset.o;
+    if (e.target.closest('.dk-pick')) { set(q, state[q] === v ? '' : v); render(); }
+    if (show[q]) show[q](v);
+  });
+  $('#all').addEventListener('click', () => { ids.forEach((i) => set(i, rec[i])); render(); });
+  $('#clear').addEventListener('click', () => { ids.forEach((i) => set(i, '')); render(); });
+  copy.addEventListener('click', async () => {
+    const t = lineText();
+    try { await navigator.clipboard.writeText(t); copy.textContent = 'Copied'; }
+    catch (e) { copy.textContent = 'Select the text'; try { const r = document.createRange(); r.selectNodeContents(line); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e2) { /* nothing to select with */ } }
+    setTimeout(() => { copy.textContent = 'Copy'; }, 1600);
+  });
+  K.seg($('#segT'), [{ v: 'auto', t: 'Auto' }, { v: 'light', t: 'Light' }, { v: 'dark', t: 'Dark' }], K.themeMode(), (v) => K.theme(v));
+  render();
+
+  // ------------------------------------------------------------------ fitting a fixed-size mock to its cell
+  const fits = [];
+  function fitOne(f) {
+    const w = +f.dataset.w, h = +f.dataset.h;
+    const k = Math.min(1, (f.clientWidth || w) / w);
+    f.style.setProperty('--w', w); f.style.setProperty('--h', h); f.style.setProperty('--k', k.toFixed(4));
+  }
+  function fit(w, h, inner, cls) {
+    const f = document.createElement('div');
+    f.className = 'fit' + (cls ? ' ' + cls : ''); f.dataset.w = w; f.dataset.h = h;
+    f.innerHTML = '<div class="in">' + inner + '</div>';
+    fits.push(f);
+    return f;
+  }
+  const ro = window.ResizeObserver ? new ResizeObserver((es) => es.forEach((e) => fitOne(e.target))) : null;
+  function place(f) { fitOne(f); if (ro) ro.observe(f); }
+  window.addEventListener('resize', () => fits.forEach(fitOne));
+  function cell(caption, f) {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.innerHTML = '<div class="cap">' + caption + '</div>';
+    c.appendChild(f);
+    return c;
+  }
+
+  // ------------------------------------------------------------------ the composer pieces (voice-composer.html)
+  const NOTE_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg>';
+  const CLIP = '<span class="att" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M10.6 4.6 5.7 9.5a1.55 1.55 0 0 0 2.2 2.2l5-5a3 3 0 0 0-4.25-4.25l-5 5a4.4 4.4 0 0 0 6.2 6.2l4.2-4.2"></path></svg></span>';
+  const MARK = '<svg class="mk" viewBox="0 0 16 16" aria-hidden="true">' + Array.from({ length: 12 }, (_, i) => { const a = i * Math.PI / 6 + 0.13; return '<path d="M' + (8 + 2 * Math.cos(a)).toFixed(2) + ' ' + (8 + 2 * Math.sin(a)).toFixed(2) + ' L' + (8 + 6.6 * Math.cos(a)).toFixed(2) + ' ' + (8 + 6.6 * Math.sin(a)).toFixed(2) + '"></path>'; }).join('') + '</svg>';
+  const CHIP = '<span class="chip">' + MARK + '<span>Opus</span><span class="ef">High</span><svg class="cv" viewBox="0 0 8 6" aria-hidden="true"><path d="M1.2 1.5 4 4.3 6.8 1.5"></path></svg></span>';
+  const RING = '<span class="ring" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18"><circle class="t" cx="9" cy="9" r="7"></circle><circle class="a" cx="9" cy="9" r="7" style="stroke-dasharray:31 44" transform="rotate(-90 9 9)"></circle></svg></span>';
+  const SEND = '<span class="send" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 10.2V1.9M2.6 5.3 6 1.9l3.4 3.4"></path></svg></span>';
+  const X = '<span class="px" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M3.2 3.2 8.8 8.8M8.8 3.2 3.2 8.8"></path></svg></span>';
+  const PILL = '<span class="vpill"><span class="drn"></span>' + X + '<span class="plab"></span></span>';
+  const DRAFT = 'Add a shortcut for the theme switch and list it in Settings';
+  const TYPED = 'so the release notes list every change, and the installer keeps the old settings when it <i>upgrades</i>';
+
+  function noteHTML(n, inline) {
+    const [before, link] = n;
+    const t = esc(before) + (inline ? '<u>' + esc(link) + '</u>' : '<span class="lnk">' + esc(link) + '</span>');
+    return inline ? t : NOTE_ICON + '<span>' + t + '</span>';
+  }
+
+  // ================================================================== Q1: the error notes
+  (function () {
+    const st = { set: 'A', cas: 'nomic', draft: 'empty' };
+    const host = $('#stN');
+    host.classList.add('one');
+    const wins = THEMES.map(([th, name]) => {
+      const inner = '<div class="vwin th-' + th + '"><div class="rep"><b>Done.</b> The theme switch now answers to Ctrl+Shift+L, and Settings lists it under Keyboard.</div>'
+        + '<div class="cmp"><div class="plate"></div>' + CLIP
+        + '<div class="fld"><div class="lay hint">Ask Claude for anything; big jobs go out to a team of heads</div><div class="lay note n0"></div><div class="lay note n1"></div></div>'
+        + '<div class="col"><div class="ntc"><div class="t0"></div><div class="t1"></div></div><div class="dtx">' + esc(DRAFT) + '</div></div>'
+        + '<div class="tools"><span class="oslot"><span class="vorb"></span></span>' + CHIP + '</div>' + RING + SEND + '</div></div>';
+      const f = fit(880, 128, inner);
+      host.appendChild(cell('<b>' + name + '</b><span id="capN' + th + '"></span>', f));
+      place(f);
+      return { th, f, flip: 0 };
+    });
+    function current() {
+      if (st.cas === 'blocked') return D.locked;
+      return D.sets[st.set].notes[st.cas];
+    }
+    function paint() {
+      const n = current();
+      const dest = D.dest[n[2]];
+      wins.forEach((w) => {
+        const cmp = $('.cmp', w.f);
+        cmp.classList.toggle('tall', st.draft === 'text');
+        w.flip = 1 - w.flip;
+        const on = $('.n' + w.flip, w.f), off = $('.n' + (1 - w.flip), w.f);
+        on.innerHTML = noteHTML(n, false);
+        off.classList.remove('on'); $('.hint', w.f).classList.remove('on');
+        void on.offsetWidth; on.classList.add('on');
+        const t1 = $('.t' + w.flip, w.f), t0 = $('.t' + (1 - w.flip), w.f);
+        t1.innerHTML = noteHTML(n, true);
+        t0.classList.remove('on'); void t1.offsetWidth; t1.classList.add('on');
+        const cap = $('#capN' + w.th);
+        cap.textContent = (st.cas === 'blocked' ? 'Locked note' : 'Set ' + st.set) + ' \u00b7 opens ' + dest.t;
+      });
+      $$('#wlist .wcase').forEach((c) => {
+        const here = c.dataset.case === st.cas;
+        c.classList.toggle('cur', here);
+        $$('li', c).forEach((li) => li.classList.toggle('cur', here && (li.dataset.set === st.set || li.dataset.set === 'L')));
+      });
+    }
+    const segS = K.seg($('#segNS'), Object.keys(D.sets).map((k) => ({ v: k, t: k + ' ' + D.sets[k].name })), st.set, (v) => { st.set = v; paint(); });
+    const segC = K.seg($('#segNC'), D.cases.map((c) => ({ v: c.id, t: c.t })), st.cas, (v) => { st.cas = v; paint(); }, { wrap: true });
+    K.seg($('#segND'), [{ v: 'empty', t: 'Empty' }, { v: 'text', t: 'Has text' }], st.draft, (v) => { st.draft = v; paint(); });
+    show.Notes = (v) => { st.set = v; segS.set(v); paint(); };
+    $('#wlist').addEventListener('click', (e) => {
+      const li = e.target.closest('li'); if (!li) return;
+      const c = li.closest('.wcase').dataset.case;
+      st.cas = c; segC.set(c);
+      if (li.dataset.set !== 'L') { st.set = li.dataset.set; segS.set(li.dataset.set); }
+      paint();
+      host.scrollIntoView({ behavior: reduce() ? 'auto' : 'smooth', block: 'nearest' });
+    });
+    paint();
+  })();
+
+  // ================================================================== Q2: the countdown in the pill
+  (function () {
+    const st = { look: 'B', speed: '1' };
+    const mm = (s) => '0:' + String(Math.max(0, s)).padStart(2, '0');
+    // which state words show (V-6.3's hysteresis is the voice's; here a fixed script for the run)
+    const words = (left) => (left === 'fin' ? 'Finishing\u2026' : (left > 27 || (left <= 12 && left > 6) ? 'Transcribing\u2026' : 'Listening\u2026'));
+    // the label's parts for a look at a time: [{t, cls, num}] (num: tabular, crossfades as figures)
+    function parts(look, left, w) {
+      if (left === 'fin' || left === null || left > 30) return [{ t: w || words(left), k: 'w' }];
+      if (look === 'A') return [{ t: mm(left), k: 'n', num: true }, { t: ' left', k: 's' }];
+      if (look === 'B') return [{ t: w || words(left), k: 'w' }, { t: '\u2002', k: 'g', cls: 'lt' }, { t: mm(left), k: 'n', num: true, cls: 'lt' }];
+      if (look === 'C') return [{ t: w || words(left), k: 'w' }];
+      return [{ t: 'Stops in ', k: 's' }, { t: mm(left), k: 'n', num: true, cls: left <= 10 ? 'amb' : '' }];
+    }
+    const cv = document.createElement('canvas').getContext('2d');
+    const FONT = '"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif';
+    function width(ps) {
+      let w = 0;
+      ps.forEach((p) => {
+        cv.font = (p.cls === 'lt' ? '400' : '600') + ' 13.5px ' + FONT;
+        // the figures are tabular in the label, so they are measured as zeros: the width holds while they count
+        w += cv.measureText(p.num ? p.t.replace(/[0-9]/g, '0') : p.t).width;
+      });
+      return Math.ceil(w);
+    }
+    const runs = (ps) => ps.map((p) => '<span class="xg' + (p.num ? ' num' : '') + (p.cls ? ' ' + p.cls : '') + '" data-k="' + p.k + '"><span>' + esc(p.t) + '</span></span>').join('');
+    // writes the label: a new arrangement of parts crossfades as a whole (V-12.9 relabel); within one arrangement each
+    // part is a crossfading run, so only the run that changes moves (the figures)
+    function label(pill, ps, still) {
+      const lab = $('.plab', pill);
+      const keys = ps.map((p) => p.k).join('|');
+      let all = $('.xg.all', lab);
+      if (!all) { lab.innerHTML = '<span class="xg all"></span>'; all = $('.xg.all', lab); }
+      let ver = all.lastElementChild;
+      if (!ver || ver.dataset.keys !== keys) {
+        const n = document.createElement('span');
+        n.dataset.keys = keys; n.innerHTML = runs(ps);
+        if (still || reduce() || !ver) { all.innerHTML = ''; all.appendChild(n); return; }
+        n.className = 'pre';
+        $$(':scope>span', all).forEach((o) => { o.classList.add('out', 'gone'); setTimeout(() => o.remove(), 340); });
+        all.appendChild(n); void n.offsetWidth; n.classList.remove('pre');
+        return;
+      }
+      ps.forEach((p) => {
+        const g = $('[data-k="' + p.k + '"]', ver);
+        g.className = 'xg' + (p.num ? ' num' : '') + (p.cls ? ' ' + p.cls : '');
+        const cur = g.lastElementChild;
+        if (cur && cur.textContent === p.t) return;
+        if (still || reduce()) { g.style.width = ''; g.innerHTML = '<span>' + esc(p.t) + '</span>'; return; }
+        // the leaving words step out of the flow and the run eases from the old width to the new one, so what follows
+        // (the time, in B) slides with the pill instead of jumping when the old words are removed
+        const from = g.offsetWidth;
+        const n = document.createElement('span'); n.className = 'pre'; n.textContent = p.t;
+        $$(':scope>span', g).forEach((o) => { o.classList.add('out', 'gone'); setTimeout(() => o.remove(), 340); });
+        g.appendChild(n);
+        g.style.width = ''; const to = n.offsetWidth;
+        if (!p.num && from !== to) {
+          g.style.width = from + 'px'; void g.offsetWidth;
+          g.classList.add('ease'); g.style.width = to + 'px';
+          clearTimeout(g._t); g._t = setTimeout(() => { g.classList.remove('ease'); g.style.width = ''; }, 460);
+        }
+        void n.offsetWidth; n.classList.remove('pre');
+      });
+    }
+    function setPill(win, look, left, phase, still) {
+      const cmp = $('.cmp', win), pill = $('.vpill', win), live = phase !== 'rest';
+      cmp.classList.toggle('live', live);
+      cmp.classList.toggle('fin', phase === 'fin');
+      const ps = parts(look, phase === 'fin' ? 'fin' : left);
+      if (live) label(pill, ps, still);
+      const W = live ? width(ps) + 88 : 40;
+      pill.style.width = W + 'px';
+      const drn = $('.drn', pill);
+      const counting = phase === 'listen' && left !== null && left <= 30;
+      drn.classList.toggle('on', look === 'C' && counting);
+      drn.classList.toggle('amb', look === 'C' && counting && left <= 10);
+      drn.style.setProperty('--f', look === 'C' && counting ? (left / 30).toFixed(4) : '1');
+      // the text field ends 10 px before the pill's left end (V-12.6)
+      const tools = $('.tools', win), slot = $('.oslot', win);
+      const orbX = tools.offsetLeft + slot.offsetLeft + 16;
+      const fld = $('.fld', win);
+      fld.style.right = (cmp.offsetWidth - (live ? orbX + 20 - W - 10 : orbX - 16 - 12)) + 'px';
+    }
+    function composer(th, w, h) {
+      return '<div class="vwin th-' + th + '"><div class="cmp"><div class="plate"></div>' + CLIP
+        + '<div class="fld"><div class="lay on"><span class="typed">' + TYPED + '</span></div></div>'
+        + '<div class="tools"><span class="oslot">' + PILL + '<span class="vorb"></span></span>' + CHIP + '</div>' + RING + SEND + '</div></div>';
+    }
+    // the live pair
+    const host = $('#stC');
+    host.classList.add('one');
+    const lives = THEMES.map(([th, name]) => {
+      const f = fit(880, 80, composer(th));
+      host.appendChild(cell('<b>' + name + '</b><span class="lt" id="capC' + th + '">At rest</span>', f));
+      place(f);
+      return f;
+    });
+    // the frames: 0:30, 0:10, 0:00, finishing, in each theme
+    const FR = [[30, 'listen', '0:30'], [10, 'listen', '0:10'], [0, 'listen', '0:00, the cap'], [null, 'fin', 'Finishing\u2026']];
+    const fr = $('#frC');
+    const frames = [];
+    THEMES.forEach(([th, name]) => FR.forEach(([left, phase, t]) => {
+      const f = fit(520, 80, composer(th).replace('class="cmp"', 'class="cmp" style="left:-200px"'), 'still');
+      fr.appendChild(cell('<b>' + name + '</b><span>' + esc(t) + '</span>', f));
+      place(f);
+      frames.push({ f, left, phase });
+    }));
+    function paintFrames() {
+      frames.forEach((x) => setPill(x.f, st.look, x.left, x.phase, false));
+    }
+    // the run: 0:33 of listening left (4:27), the countdown from 0:30, the cap, Finishing..., the pill folds
+    let timer = null, left = 33, phase = 'rest';
+    const playL = $('#playCL');
+    function paintLive(still) {
+      lives.forEach((f, i) => {
+        setPill(f, st.look, left, phase, still);
+        const c = $('#capC' + THEMES[i][0]);
+        c.textContent = phase === 'rest' ? 'At rest: press Play' : phase === 'fin' ? 'At 5:00 the text finishes as if the orb were clicked' : 'Listening, ' + (left > 30 ? (300 - left) + ' s in' : mm(left) + ' left of 5:00');
+      });
+    }
+    function stop() { if (timer) clearTimeout(timer); timer = null; playL.textContent = 'Play'; }
+    function step() {
+      const sp = +st.speed, tick = 1000 / sp;
+      if (phase === 'listen' && left > 0) { left -= 1; paintLive(); timer = setTimeout(step, left === 0 ? 420 / sp : tick); return; }
+      if (phase === 'listen') { phase = 'fin'; paintLive(); timer = setTimeout(step, 2200 / sp); return; }
+      if (phase === 'fin') { phase = 'rest'; left = 33; paintLive(); stop(); }
+    }
+    $('#playC').addEventListener('click', () => {
+      if (timer) { stop(); phase = 'rest'; left = 33; paintLive(); return; }
+      phase = 'listen'; left = 33; paintLive(); playL.textContent = 'Stop';
+      timer = setTimeout(step, 1000 / +st.speed);
+    });
+    const segL = K.seg($('#segCL'), D.count.map((c) => ({ v: c.v, t: c.v + ' ' + c.t })), st.look, (v) => { st.look = v; paintLive(); paintFrames(); }, { wrap: true });
+    K.seg($('#segCS'), [{ v: '1', t: '1x' }, { v: '3', t: '3x' }], st.speed, (v) => { st.speed = v; });
+    show.Countdown = (v) => { st.look = v; segL.set(v); paintLive(); paintFrames(); };
+    const start = () => { paintLive(true); paintFrames(); };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else start();
+    start();
+  })();
+
+  // ================================================================== Q3: the CUDA offer in the hardware card
+  (function () {
+    const st = { look: 'A', state: 'offer', pct: 42 };
+    const CK = '<svg class="ck" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 6.3 5 8.6l4.4-5"></path></svg>';
+    const MX = '<span class="mx" title="Cancel the download"><svg viewBox="0 0 10 10"><path d="M2.5 2.5 7.5 7.5M7.5 2.5 2.5 7.5"></path></svg></span>';
+    const PC = {
+      desk: { hw: [['Processor', 'AMD Ryzen 7 9800X3D, 8 cores'], ['Memory', '31 GB'], ['Graphics', 'NVIDIA GeForce RTX 4080, 16 GB'], ['GPU backend', 'Vulkan, working']],
+        rec: 'Large v3 Turbo, balanced 874 MB', why: 'Your RTX 4080 runs it on the graphics card: text about 1 to 2 seconds after you stop speaking.' },
+      laptop: { hw: [['Processor', 'Intel Core i5-1235U, 10 cores'], ['Memory', '16 GB'], ['Graphics', 'Intel Iris Xe, shared memory'], ['GPU backend', 'None working, runs on the processor']],
+        rec: 'Small, compact 190 MB', why: 'On the processor alone Small answers in about 3 to 6 seconds; Large v3 Turbo would take 15 seconds or more.' },
+    };
+    const SIZE = '644 MB';
+    function card(look, s, pct) {
+      const nv = s !== 'none', P = PC[nv ? 'desk' : 'laptop'];
+      const p = Math.round(pct);
+      const rows = P.hw.map(([k, v], i) => {
+        let extra = '';
+        if (nv && look === 'C' && i === 3) {
+          extra = s === 'offer' ? '<button class="czbtn sm" data-a="dl" title="NVIDIA CUDA, ' + SIZE + ' from nuget.org and NVIDIA">Get CUDA, ' + SIZE + '</button>'
+            : s === 'dl' ? '<span class="dt">CUDA <span class="pct">' + p + '%</span></span>' + MX
+              : s === 'done' ? '<span class="dt">CUDA installed, restart Marrow to use it</span>'
+                : '<span class="dt">CUDA didn\u2019t download</span><button class="czbtn sm" data-a="dl">Try again</button>';
+        }
+        return '<div class="hwi"><span>' + CK + '</span><span class="hwk">' + k + '</span><span class="hwv"><span>' + esc(v) + '</span>' + extra + '</span></div>';
+      }).join('');
+      let inBox = '', after = '', foot = '';
+      if (nv && look === 'B') {
+        const t = s === 'offer' ? 'Your RTX 4080 can also run it on NVIDIA CUDA, a separate ' + SIZE + ' download.'
+          : s === 'dl' ? 'Downloading NVIDIA CUDA: <span class="pct">' + p + '%</span>'
+            : s === 'done' ? 'NVIDIA CUDA is installed. Restart Marrow to use it.'
+              : 'NVIDIA CUDA didn\u2019t download. Nothing was installed.';
+        const b = s === 'offer' ? '<button class="czbtn" data-a="dl">Download CUDA</button>' : s === 'dl' ? MX : s === 'fail' ? '<button class="czbtn" data-a="dl">Try again</button>' : '';
+        inBox = '<div class="cudal"><span class="dt">' + t + '</span>' + b + '</div>' + (s === 'dl' ? '<div class="mbar on" style="margin:0;--p:' + p + '%"><i></i></div>' : '');
+      }
+      if (nv && look === 'A') {
+        const d = s === 'offer' ? 'Optional, for NVIDIA cards. ' + SIZE + ' from nuget.org and NVIDIA'
+          : s === 'dl' ? 'Downloading from nuget.org and NVIDIA'
+            : s === 'done' ? 'Installed. Restart Marrow to use it'
+              : 'The download didn\u2019t finish. Nothing was installed';
+        const m = s === 'offer' || s === 'fail' ? '<button class="czbtn" data-a="dl">Download</button>'
+          : s === 'dl' ? '<span class="pct">' + p + '%</span>' + MX : CK + '<span>Installed</span>';
+        after = '<div class="dv"></div><div class="row"><div class="rt"><b>NVIDIA CUDA</b><span class="dt">' + d + '</span></div><span class="mst">' + m + '</span></div>'
+          + '<div class="mbar' + (s === 'dl' ? ' on' : '') + '" style="--p:' + (s === 'dl' ? p : 0) + '%;margin-bottom:10px"><i></i></div>';
+      }
+      if (nv && look === 'D') {
+        const t = s === 'offer' ? 'NVIDIA cards can also run voice typing on CUDA, NVIDIA\u2019s own runtime: a separate ' + SIZE + ' download from nuget.org and NVIDIA. <button class="lk" data-a="dl">Download CUDA</button>'
+          : s === 'dl' ? 'Downloading NVIDIA CUDA, <span class="pct">' + p + '%</span>. <button class="lk">Cancel</button>'
+            : s === 'done' ? 'NVIDIA CUDA is installed. Restart Marrow to use it.'
+              : 'NVIDIA CUDA didn\u2019t download, and nothing was installed. <button class="lk" data-a="dl">Try again</button>';
+        foot = '<div class="hwnote">' + t + '</div>';
+      }
+      return '<div class="sh">Speech model</div><div class="card">'
+        + '<div class="row"><div class="rt"><b>Recommended for this PC</b><span class="dt">Checked by itself when voice typing was set up</span></div><button class="czbtn">Check again</button></div>'
+        + '<div class="hwlist">' + rows + '</div>'
+        + '<div class="hwrec"><div class="hwrt"><b>' + esc(P.rec) + '</b><span class="dt">' + esc(P.why) + '</span></div>' + inBox + '<div class="hwstate">' + CK + '<span>In use</span></div></div>'
+        + after
+        + '<div class="hwnote">The first time voice typing is set up, this check runs by itself and installs the model it recommends. Run it again any time.</div>' + foot
+        + '</div>';
+    }
+    const host = $('#stU');
+    const panes = THEMES.map(([th, name]) => {
+      const f = fit(569, 420, '<div class="spane th-' + th + '"><div class="swap"><div class="new"></div></div></div>', 'auto');
+      host.appendChild(cell('<b>' + name + '</b><span>Settings &gt; Voice typing &gt; Speech model</span>', f));
+      place(f);
+      return f;
+    });
+    function paint() {
+      panes.forEach((f) => {
+        const sw = $('.swap', f);
+        $$('.old', sw).forEach((o) => o.remove());
+        const cur = $('.new', sw);
+        if (cur) { cur.className = 'old'; setTimeout(() => cur.remove(), 260); }
+        const n = document.createElement('div'); n.className = 'new';
+        n.innerHTML = card(st.look, st.state, st.pct);
+        sw.appendChild(n);
+        const h = $('.spane', f).offsetHeight;
+        f.dataset.h = h; fitOne(f);
+      });
+    }
+    // the percentage moves in place while downloading, so only the figures and the bar change
+    function paintPct() {
+      panes.forEach((f) => {
+        const n = $('.new', f); if (!n) return;
+        $$('.pct', n).forEach((e) => { e.textContent = Math.round(st.pct) + '%'; });
+        $$('.mbar', n).forEach((e) => e.style.setProperty('--p', Math.round(st.pct) + '%'));
+      });
+    }
+    const segL = K.seg($('#segUL'), D.cuda.map((c) => ({ v: c.v, t: c.v + ' ' + c.t })), st.look, (v) => { st.look = v; paint(); }, { wrap: true });
+    const segS = K.seg($('#segUS'), [{ v: 'offer', t: 'Offer' }, { v: 'dl', t: 'Downloading' }, { v: 'done', t: 'Installed' }, { v: 'fail', t: 'Failed' }, { v: 'none', t: 'Not NVIDIA' }], st.state, (v) => { stopRun(); st.state = v; st.pct = 42; paint(); }, { wrap: true });
+    show.CUDA = (v) => { st.look = v; segL.set(v); paint(); };
+    let run = null, waits = [];
+    function stopRun() { if (run) clearInterval(run); run = null; waits.forEach(clearTimeout); waits = []; }
+    $('#playU').addEventListener('click', () => {
+      stopRun();
+      st.state = 'offer'; st.pct = 0; segS.set('offer'); paint();
+      waits.push(setTimeout(() => { $$('.new [data-a="dl"]', host).forEach((b) => b.classList.add('press')); }, 900));
+      waits.push(setTimeout(() => {
+        st.state = 'dl'; segS.set('dl'); paint();
+        const t0 = performance.now();
+        run = setInterval(() => {
+          st.pct = Math.min(100, (performance.now() - t0) / 60);
+          paintPct();
+          if (st.pct >= 100) { stopRun(); st.state = 'done'; segS.set('done'); paint(); }
+        }, 100);
+      }, 1200));
+    });
+    paint();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => panes.forEach((f) => { f.dataset.h = $('.spane', f).offsetHeight; fitOne(f); }));
+  })();
+})();
+
+</script>
+</body>
+</html>

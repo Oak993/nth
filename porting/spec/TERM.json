@@ -1879,7 +1879,7 @@
       "cancellation": "The sheet is dismissed by Cancel (PR-TERM-080); nothing is written on dismissal.",
       "windows_path": "Same fixed size and strings, with the title2 semibold and callout styles of the port's type scale (17 pt and 12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:49 and :52). OD-0012 F1 rewrites the product name inside the explanation, which reads exactly \"Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.\"; the file name droppy-code.json stays as is (OD-0008 B13, excepted by F1). The sheet's glass (WindowBackdrop at the user's backdropOpacity) is painted by the app under a sheet, over the app's own window rather than the desktop (ChatView.swift:1459-1461), so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) it is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
       "verification_method": "capture comparison plus a byte comparison of the two strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

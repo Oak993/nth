@@ -1,4 +1,4 @@
-// PORT-ONLY (PR-COMPOSER-003, ED-NEW-rec-composer): SwiftUI animates the frames of the views that stay when a layout changes inside an animated
+// PORT-ONLY (PR-COMPOSER-003, ED-333): SwiftUI animates the frames of the views that stay when a layout changes inside an animated
 // transaction, wherever the change moves them: in a stack pinned to the bottom of its window, the views above a new one rise in the window although
 // their place in the stack is the same. ED-218's ForEach glide follows a row's place in its parent, and a leaving row keeps its place until its
 // removal is over. This glides a panel's children in window coordinates instead: Capture reads where each one is drawn in its top level (with any

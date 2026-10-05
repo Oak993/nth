@@ -2048,11 +2048,11 @@ internal sealed class ScriptsMenu : Decorator
         PresentScriptsEditor(model, projectID, null));
 
     // :1456-1463. `.presentationBackground { WindowBackdrop(opacity:) }`: glass over the app's own window (OD-0005 (b)), so the sheet is drawn
-    // in its window and its backdrop's glass is the app's material (ED-NEW-rec-composer).
+    // in its window and its backdrop's glass is the app's material (ED-333).
     private static void PresentScriptsEditor(AppModel model, Guid projectID, Control? anchor) => ChatSheetPresentation.Show(anchor, dismiss =>
     {
         var editor = new ScriptsEditor(model, projectID, dismiss).PresentedChrome();
-        var backdrop = new WindowBackdrop(model.Settings.BackdropOpacity, overAppContent: true);
+        var backdrop = new WindowBackdrop(model.Settings.BackdropOpacity, overAppContent: true, roundedHairline: true); // clipped to its own 26 pt shape just below: its hairline follows that curve (ED-338)
         backdrop.Track(() => model.Settings.BackdropOpacity, opacity => backdrop.Update(opacity, null));
         return new Border { Child = new Panel { Children = { backdrop, editor } }, ClipToBounds = true }
             .RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);

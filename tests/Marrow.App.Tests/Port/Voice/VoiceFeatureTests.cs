@@ -2,22 +2,26 @@ using Marrow.App.Port.Voice;
 
 namespace Marrow.App.Tests.Port.Voice;
 
-// VT-10, V-T87 (V-2.6): the flag is off until phase V7 switches voice typing on; a test turns it on for its own flow.
-public sealed class VoiceFeatureTests
+// VT-15, V-T104 first half (V-2.6): the switch that turns the feature on. The orb in every composer (V-14.3) is VT-12's and is not tested here.
+[Collection("VoiceFeature")]
+public sealed class VoiceFeatureTests : IDisposable
 {
-    [Fact] // V-T87
-    [Trait("Rule", "R-TEST-10")]
-    public void The_feature_is_off_by_default()
+    public VoiceFeatureTests() => VoiceFeature.Reset();
+
+    public void Dispose() => VoiceFeature.Reset();
+
+    [Fact]
+    [Trait("Feature", "VT-15")]
+    [Trait("Spec", "V-T104")]
+    [Trait("Decision", "ED-289")]
+    public void The_feature_is_off_until_the_switch_is_thrown_and_stays_on()
     {
         Assert.False(VoiceFeature.Enabled);
-    }
-
-    [Fact] // V-T87
-    [Trait("Rule", "R-TEST-10")]
-    public void An_override_turns_it_on_for_its_own_flow_only()
-    {
-        using (VoiceFeature.Switch.Override(new VoiceFeatureSwitch(true)))
-            Assert.True(VoiceFeature.Enabled);
+        VoiceFeature.SwitchOn();
+        Assert.True(VoiceFeature.Enabled);
+        VoiceFeature.SwitchOn();
+        Assert.True(VoiceFeature.Enabled);
+        VoiceFeature.Reset();
         Assert.False(VoiceFeature.Enabled);
     }
 }

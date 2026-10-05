@@ -3875,7 +3875,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // PromptEditor.swift:117-124). The options reach the runner (multiple true, directories false, "Attach") and cancel and accept are seam-tested
 // (B3_file_chooser_..., B3_attach_default_dialog_..., B3_accepting_the_chooser_...); on a real window the real common dialog is driven from both
 // sites by OpenPanelNativeTests: OK reads "Attach", two files multi-select and both reach the draft, a folder's name and OK open it and nothing
-// is chosen, Cancel leaves the draft. The caption an empty SetTitle("") gives (OpenPanel.cs:74) is the system's "Open" (recorded, ED-NEW-rec-composer).
+// is chosen, Cancel leaves the draft. The caption an empty SetTitle("") gives (OpenPanel.cs:74) is the system's "Open" (recorded, ED-333).
 //
 // STOP App.Views.Composer.ComposerView #12: RESOLVED 2026-10-04 (unit rec-tlr, UI-CHAT-052). The foundation's SoftAppear modifier had no animatable data, so
 // SwiftTransition applied the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): every SoftAppear site arrived at full opacity at its first frame

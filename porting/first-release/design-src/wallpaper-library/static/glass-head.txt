@@ -1,0 +1,53 @@
+/*
+ * Static wallpaper library: the WebGL2 engine. One Viewer = the large view: pass 1 draws the wallpaper once into a
+ * texture (again only when its palette, theme or option changes); pass 2 draws it to the screen and, wherever a glass
+ * shape of the mock Marrow window sits, refracts that texture through the shape the way the two reference repos do
+ * (OD-0107). One shared Renderer draws every thumbnail and times the single 2560 x 1600 render of each wallpaper.
+ *
+ * The glass shader below reuses, and adapts to one fragment shader, the techniques of two MIT-licensed repositories.
+ * Their notices follow in full, as the licences require.
+ *
+ * ---------------------------------------------------------------------------------------------------------------
+ * rizzytoday/liquid-glass  (core/liquid-glass.ts): displacement map + three channel passes
+ *   Used here: buildDisplacementMap() ported to the GPU (red gradient right to left, blue gradient top to bottom,
+ *   'difference' blend, a blurred neutral centre at 93% so only the rim bends), and the feDisplacementMap semantics
+ *   (P'(x,y) = P(x + scale*(R-.5), y + scale*(B-.5))) run once per colour channel with the scales [0, 10, 20] added to
+ *   the base scale -180, which is the colour fringe.
+ *
+ *   MIT License
+ *   Copyright (c) 2026 Riz Roze
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ *   documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ *   the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ *   to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *   The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ *   the Software.
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ *   THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ *   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ *
+ * dashersw/liquid-glass-js  (container.js, the fragment shader): shape-aware rim refraction, blur, tint, mask
+ *   Used here: the rounded-rectangle / pill distance functions, the edge / rim exponential falloffs with the repo's
+ *   default intensities and distances (edge 0.01 at 0.15, rim 0.05 at 0.8), the corner boost, the ripple along the rim,
+ *   the Gaussian-style blur, the top-to-bottom tint gradient (white to 0.7 grey) and the anti-aliased shape mask.
+ *   The repo samples a page snapshot; here the texture is the app's own wallpaper, which is what the Windows port has.
+ *
+ *   MIT License
+ *   Copyright (c) 2025 Armagan Amcalar
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ *   documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ *   the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ *   to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *   The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ *   the Software.
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ *   THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ *   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ * ---------------------------------------------------------------------------------------------------------------
+ * Added here, not from either repo: the specular rim (a thin, two-sided highlight from the top left), the drop shadow,
+ * the accent tint, the OKLab wallpapers, the dither, and the eased dark / light / glass / Reduce Motion mixes.
+ */

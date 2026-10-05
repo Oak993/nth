@@ -1,4 +1,4 @@
-// PORT-ONLY (ED-NEW-rec-composer): a sheet drawn in its own window, over the window's content, for a sheet whose background is glass over
+// PORT-ONLY (ED-333): a sheet drawn in its own window, over the window's content, for a sheet whose background is glass over
 // the app (ChatView.swift:1456-1463, `.presentationBackground { WindowBackdrop(opacity:) }`). The port's glass material reads what its own
 // top level drew under it (F.GlassMaterial), so the scripts sheet's glass can frost the chat under it only from inside the main window; a
 // Popup is a top level of its own (a PopupRoot window), whose surface holds nothing under the sheet. The layer covers the window's content,

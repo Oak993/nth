@@ -33,12 +33,12 @@ public enum AuraScheme { Original, Maker, Accent, Custom }
 /// <summary>One slider of the playground: its range and step (slider(group, key, t, sub, min, max, step, ...)).</summary>
 public readonly record struct LightSlider(double Min, double Max, double Step)
 {
-    /// <summary>slider()'s set: <c>Math.round(clamp(v, min, max) / step) * step</c> (JavaScript rounds a half up).</summary>
+    /// <summary>slider()'s set: <c>Math.round(clamp(v, min, max) / step) * step</c> (JavaScript rounds a half up), then to 4 places as the page's slider does (cz.js:456 <c>+(...).toFixed(4)</c>), so 0.01 * 1395 is 13.95 and not 13.950000000000001 (CZ-13.2).</summary>
     public double Snap(double value)
     {
         if (double.IsNaN(value)) value = Min;
         var clamped = Math.Clamp(value, Min, Max);
-        return Math.Floor(clamped / Step + 0.5) * Step;
+        return Math.Round(Math.Floor(clamped / Step + 0.5) * Step, 4, MidpointRounding.AwayFromZero);
     }
 }
 
@@ -77,7 +77,8 @@ public sealed record BorderBeamOptions
     public bool Fitted { get; init; } = true;
 
     // beamRows(): each slider's range and step
-    public static readonly LightSlider DurationSlider = new(0.5, 14, 0.02);
+    // CZ-13.2: the Customization page's Speed steps 0.05 (cz.js:530); 0.05 is not a multiple of 0.02, so 0.55 would have moved to 0.56. Step 0.01 keeps every 0.02 and every 0.05 value where it is.
+    public static readonly LightSlider DurationSlider = new(0.5, 14, 0.01);
     public static readonly LightSlider RadiusSlider = new(0, 32, 1);
     public static readonly LightSlider BrightnessSlider = new(0.2, 3, 0.05);
     public static readonly LightSlider HueShiftSlider = new(-180, 180, 1);

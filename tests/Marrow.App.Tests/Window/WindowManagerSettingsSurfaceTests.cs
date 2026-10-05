@@ -41,7 +41,7 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")]
     [Trait("Req", "PR-WIN-010")]
-    public void Actual_Settings_content_has_26_point_clip_and_full_window_backdrop()
+    public void Actual_Settings_content_is_clipped_to_the_window_rectangle_and_the_backdrop_fills_the_whole_window()
     {
         // ui_contract.json:15428-15430; SettingsView.swift:118-122 as quoted there.
         WithManager((_, manager) =>
@@ -51,28 +51,18 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
             var view = View(manager);
             Assert.Equal(new Avalonia.Size(780, 580), window.ClientSize);
             Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
-            // OD-0075: the frame is the first layer; under it (ZIndex -1) the wedge between the window's rectangle and the 26 pt shape (WindowManagerCornerWedgeTests).
-            var frame = Assert.IsType<SwiftShapeBorder>(Assert.IsType<Panel>(view.Child).Children[0]);
-            Assert.Equal(new CornerRadius(26), frame.CornerRadius); // Literal oracle; I01 changes production 26 to 25.
-            // SettingsView.swift:118-122 `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))` (ED-181 closed): the frame
-            // clips its content to Apple's continuous path of the 780 x 580 window, not to a circular arc. The probes are the build
-            // spec's (SPEC.md 5.1-3): at 22.6 pt along the top the circle is 0.22 pt below the edge, Apple's curve 0.585 pt.
-            Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(frame));
-            Assert.Equal(RoundedCornerStyle.Continuous, frame.CornerStyle);
+            // OD-0075 and the owner's intent of 2026-10-05 (ED-338): the source's `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))`
+            // (SettingsView.swift:118-122, ED-181) is the window's RECTANGLE here, which DWM rounds, so the backdrop and the detail sheet reach the window's edge
+            // (WindowManagerCornerWedgeTests proves the corner pixels). Nothing in this window is drawn in the 26 pt shape any more.
+            var frame = Assert.IsType<SwiftShapeBorder>(view.Child);
+            Assert.Equal(default, frame.CornerRadius);
             Assert.True(frame.ClipToBounds);
-            var outline = SwiftShapes.Outline(new Rect(0, 0, 780, 580), frame.CornerRadius, frame.CornerStyle);
-            Assert.All(outline.Corners, k => Assert.Equal(CornerKind.Continuous, k)); // 2 * 1.528665 * 26 = 79.5 <= 580
-            var clip = Assert.IsAssignableFrom<Avalonia.Media.Geometry>(frame.Clip);
-            Assert.Same(clip, SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, 780, 580), 26, RoundedCornerStyle.Continuous)); // the cached shared path
-            foreach (var (x, y) in new[] { (22.6, 0.40), (757.4, 0.40), (22.6, 579.6), (757.4, 579.6), (0.40, 22.6), (779.6, 22.6), (0.40, 557.4), (779.6, 557.4) })
-                Assert.False(clip.FillContains(new Point(x, y)), $"({x}, {y}) is inside the circle but outside Apple's curve");
-            foreach (var (x, y) in new[] { (22.6, 0.75), (757.4, 0.75), (22.6, 579.25), (757.4, 579.25) })
-                Assert.True(clip.FillContains(new Point(x, y)), $"({x}, {y}) is inside Apple's curve");
-            Assert.False(clip.FillContains(new Point(1, 1))); // the corner itself is cut away
+            Assert.Equal(new Avalonia.Size(780, 580), frame.Bounds.Size);
             var layers = Assert.IsType<Panel>(frame.Child);
             var backdrop = Assert.IsType<WindowBackdrop>(layers.Children[0]);
             Assert.Equal(new Avalonia.Size(780, 580), backdrop.Bounds.Size);
             Assert.Equal(new Point(0, 0), backdrop.TranslatePoint(new Point(0, 0), view));
+            Assert.All(Nodes<SwiftShapeBorder>(backdrop), layer => Assert.Equal(default, layer.CornerRadius)); // every layer of the backdrop, the hairline included
             Assert.False(Assert.Single(Nodes<WindowChromeProbe>(view)).IsHitTestVisible);
             Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(window.Background).Color);
         });

@@ -284,6 +284,11 @@ public sealed class MarkdownView : Decorator
     // tree.
     private static RecentCache<string, ValueList<MarkdownBlock>> blockCache = new(800); // PR-THEME-123
 
+    // PORT-ONLY (no Swift twin; the Ambient seam of ED-065). Told, on the thread that is about to parse, each text the markdown parser is asked to parse for the block
+    // cache: the cold parse of Blocks(for:) (the caller's thread) and parseWarm's (:237-255, a worker). Nothing acts on it; a test reads it to prove where and when a
+    // report's markdown is parsed (PR-CHAT-145: off the main thread, as the pill appears, one text per head, none twice). The default does nothing.
+    public static Ambient<Action<string>> ParseObserver { get; } = new(static _ => { });
+
     // :111 @MainActor private static var streamingParses: [(text: String, parse: MarkdownParser.Parse)] = [].
     private static readonly List<(string Text, MarkdownParser.Parse Parse)> streamingParses = []; // PR-THEME-123
 
@@ -331,6 +336,7 @@ public sealed class MarkdownView : Decorator
         }
         else
         {
+            ParseObserver.Current(text);
             parsed = MarkdownParser.MarkdownParserParse(text);
         }
         blockCache.Insert(parsed, text);
@@ -463,13 +469,17 @@ public sealed class MarkdownView : Decorator
     // -> [(String, [MarkdownBlock], [(String, AttributedString)])]. R-ISO-2: @concurrent -> Task.Run at the
     // boundary. PR-THEME-124.
     private static Task<List<(string Text, ValueList<MarkdownBlock> Blocks, List<(string Source, AttributedText Pretty)> Inline)>> ParseWarm(
-        IReadOnlyList<string> texts) => Task.Run(() =>
+        IReadOnlyList<string> texts) => ParseWarm(texts, ParseObserver.Current); // the observer is read here, on the caller's flow, and told from the worker
+
+    private static Task<List<(string Text, ValueList<MarkdownBlock> Blocks, List<(string Source, AttributedText Pretty)> Inline)>> ParseWarm(
+        IReadOnlyList<string> texts, Action<string> observer) => Task.Run(() =>
     {
         var parsed = new List<(string, ValueList<MarkdownBlock>, List<(string, AttributedText)>)>();
         var seenInline = new ValueSet<string>([], SwiftStringComparer.Instance);
         foreach (var text in texts)
         {
             SwiftTask.CheckCancellation();
+            observer(text);
             var blocks = MarkdownParser.MarkdownParserParse(text);
             var sources = InlineSources(blocks, new ValueSet<string>([], SwiftStringComparer.Instance));
             var inline = new List<(string, AttributedText)>();

@@ -51,27 +51,28 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
         }
     }
 
-    // The scrim over the grey: black in the dark theme, white in the light one (Chrome.swift:256-257), as a fraction of 255.
-    private static double Over(double alpha, bool dark) => (Grey.R * (1 - alpha) + (dark ? 0 : 255) * alpha) / 255.0;
-
-    private static readonly (int X, int Y)[] Corners =
-    [
-        (0, 0), (1, 1), (5, 5), (Width - 1, 0), (Width - 2, 1), (Width - 6, 5),
-        (0, Height - 1), (1, Height - 2), (5, Height - 6), (Width - 1, Height - 1), (Width - 2, Height - 2), (Width - 6, Height - 6),
-    ];
-
-    private static void AssertCorners(AvaloniaWindow window, double expected, string when)
+    // Vertical stripes 8 px wide, pale then deep: a backdrop that is busy across the window and the same down every column, so a wedge pixel and the
+    // body pixel under it in the same column see the same backdrop.
+    internal static IBrush Stripes() => new LinearGradientBrush
     {
-        var levels = FramePixels.Levels(window, Corners);
-        for (var index = 0; index < levels.Length; index++)
-            Assert.True(Math.Abs(levels[index] - expected) <= 0.012, $"{when}: corner pixel {Corners[index]} is {levels[index]:0.###}, the scrim over the grey is {expected:0.###}");
-    }
+        StartPoint = new RelativePoint(0, 0, RelativeUnit.Absolute),
+        EndPoint = new RelativePoint(8, 0, RelativeUnit.Absolute),
+        SpreadMethod = GradientSpreadMethod.Repeat,
+        GradientStops = [new GradientStop(Color.FromRgb(240, 200, 40), 0), new GradientStop(Color.FromRgb(240, 200, 40), 0.5), new GradientStop(Color.FromRgb(30, 60, 220), 0.5), new GradientStop(Color.FromRgb(30, 60, 220), 1)],
+    };
+
+    // Each wedge pixel along the top and bottom rows and on the diagonal, with the body pixel under it in the shape (OD-0075, ED-338).
+    internal static CornerSeam.Pair[] Pairs() =>
+        CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 1)
+            .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
     [Trait("Decision", "ED-236")] // App/Views/RootView.swift:64-68; UI/Chrome/Chrome.swift:8, :211-215; App/Window/WindowManager.swift:62-69 the main window's surface; OD-0075
-    public void The_main_windows_four_corners_outside_the_26_point_curve_wear_its_scrim(bool dark)
+    public void The_main_windows_four_corners_outside_the_26_point_curve_are_the_body_just_inside_it(bool dark, bool busy)
     {
         headless.OnUiThread(() =>
         {
@@ -83,10 +84,8 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
                 var (window, _) = Mount(model, dark ? ThemeVariant.Dark : ThemeVariant.Light);
                 try
                 {
-                    AssertCorners(window, Over(WindowBackdrop.Scrim(0.5, dark), dark), "at the default glass");
-                    // The shape's own edges are not covered: the window is not a square of scrim.
-                    var middle = FramePixels.Levels(window, (Width / 2, 0), (0, Height / 2));
-                    Assert.All(middle, level => Assert.NotEqual(Over(WindowBackdrop.Scrim(0.5, dark), dark), level, 0.01));
+                    if (busy) { window.Background = Stripes(); Settle(window); }
+                    CornerSeam.AssertSeamless(window, Pairs(), $"{(dark ? "dark" : "light")}, {(busy ? "striped" : "grey")} backdrop", busy ? null : (Grey.R, Grey.G, Grey.B));
                 }
                 finally { window.Close(); }
             });
@@ -95,7 +94,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-236")] // UI/Chrome/Chrome.swift:211-224; OD-0075
-    public void The_corner_scrim_follows_the_backdrop_opacity_the_theme_and_the_solid_window()
+    public void The_corners_are_the_body_at_every_backdrop_opacity_in_both_themes_and_the_solid_window()
     {
         headless.OnUiThread(() =>
         {
@@ -103,10 +102,10 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
             var model = harness.MakeModel();
             AvaloniaWindow window = null!;
             // The model's changes reach the view on the next turn of the main actor: each step is its own turn.
-            void Step(Action change, double expected, string when)
+            void Step(Action change, string when)
             {
                 harness.Main.OnMain(change);
-                harness.Main.OnMain(() => { Settle(window); AssertCorners(window, expected, when); });
+                harness.Main.OnMain(() => { Settle(window); CornerSeam.AssertSeamless(window, Pairs(), when); });
             }
             harness.Main.OnMain(() =>
             {
@@ -115,44 +114,13 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
             });
             try
             {
-                harness.Main.OnMain(() => AssertCorners(window, Over(WindowBackdrop.Scrim(0.25, true), true), "at 0.25 dark"));
-                Step(() => model.Settings.BackdropOpacity = 0.75, Over(WindowBackdrop.Scrim(0.75, true), true), "at 0.75 dark");
-                Step(() => window.RequestedThemeVariant = ThemeVariant.Light, Over(WindowBackdrop.Scrim(0.75, false), false), "at 0.75 light");
-                Step(() => model.Settings.BackdropOpacity = 1, 1.0, "solid light: the window is white, corners too");
-                Step(() => window.RequestedThemeVariant = ThemeVariant.Dark, 0.0, "solid dark: the window is black, corners too");
+                harness.Main.OnMain(() => CornerSeam.AssertSeamless(window, Pairs(), "at 0.25 dark"));
+                Step(() => model.Settings.BackdropOpacity = 0.75, "at 0.75 dark");
+                Step(() => window.RequestedThemeVariant = ThemeVariant.Light, "at 0.75 light");
+                Step(() => model.Settings.BackdropOpacity = 1, "solid light: the window is white, corners too");
+                Step(() => window.RequestedThemeVariant = ThemeVariant.Dark, "solid dark: the window is black, corners too");
             }
             finally { harness.Main.OnMain(window.Close); }
-        });
-    }
-
-    [Fact]
-    [Trait("Decision", "ED-236")] // App/Views/RootView.swift:66-68 (the glass and its edge stop at the window's own curve)
-    public void The_wedge_sits_beneath_the_windows_clip_so_the_glass_still_stops_at_the_curve_and_takes_no_pointer()
-    {
-        headless.OnUiThread(() =>
-        {
-            using var harness = new AppModelHarness();
-            var model = harness.MakeModel();
-            harness.Main.OnMain(() =>
-            {
-                var (window, root) = Mount(model, ThemeVariant.Dark);
-                try
-                {
-                    var wedge = root.CornerWedge;
-                    var clip = root.WindowClip;
-                    var layers = Assert.IsAssignableFrom<Panel>(clip.GetVisualParent());
-                    Assert.Same(layers, wedge.GetVisualParent());
-                    Assert.True(wedge.ZIndex < clip.ZIndex, "the wedge is painted first, under the window's clipped content");
-                    Assert.Equal(4, layers.Children.IndexOf(wedge)); // the source's four layers (clipped body, genie, row glide, palette) keep their places
-                    Assert.False(wedge.IsHitTestVisible);
-                    Assert.Equal(clip.Bounds.Size, wedge.Bounds.Size); // the same rectangle the clip's shape is cut from
-                    Assert.Equal(new Point(0, 0), wedge.TranslatePoint(new Point(0, 0), clip));
-                    // The clip's geometry and the wedge's are one shape and its complement (UI.Tests proves the complement itself).
-                    Assert.NotNull(clip.Clip);
-                    Assert.Equal(clip.Clip.Bounds, WindowCornerWedge.WedgeGeometry(wedge.Bounds.Size).Bounds);
-                }
-                finally { window.Close(); }
-            });
         });
     }
 }
