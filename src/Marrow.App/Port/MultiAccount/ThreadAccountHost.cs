@@ -31,6 +31,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         var epoch = runtime.HandshakeStamp.Epoch;
         var generation = ++preparationGeneration;
         var candidate = create(runtime.CreateHandshakeConfiguration(target), Guid.Parse(target.Account.Id));
+        app.ApiKeys.BindPrivate(candidate.Session, Guid.Parse(target.Account.Id));
         var standby = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct);
         if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
         {
@@ -50,6 +51,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         var target = new SwitchTarget(new(account.Id.ToString("D"), account.Service.Id, account.CustomName ?? app.Settings.Accounts.DefaultName(account.Id)));
         var configuration = runtime.CreateHandshakeConfiguration(target) with { Model = source.Model, Effort = source.Effort, FastMode = source.FastMode };
         var candidate = create(configuration, account.Id);
+        app.ApiKeys.BindPrivate(candidate.Session, account.Id);
         await using var privateSession = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct);
         return await privateSession.TextTurnAsync("[Marrow Handshake] Write a short briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use only this recorded context:\n" + summary.Text, ct);
     }

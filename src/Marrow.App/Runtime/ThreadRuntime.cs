@@ -2079,6 +2079,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 CheckStart();
                 if (!ReferenceEquals(session, candidate) || SwiftTask.IsCancelled)
                     throw new CancellationError();
+                BindLiveApiKeys(candidate, account.Id);
                 started = true;
                 app.UpdateThread(ThreadID, current => current with { ProviderSessionID = sessionID, ProviderAccountID = launchThread.ProviderAccountID });
                 return candidate;
@@ -3030,7 +3031,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             && App?.Settings.Accounts.Accounts.FirstOrDefault(account => account.Id == id)?.UsesLegacyCredentials != true
             ? new UsageAccountKey(thread.Provider, id.ToString("D")) : UsageAccountKey.Default(thread.Provider);
 
-    // DEVIATION OD-0114 / ED-NEW-ma-2: immutable source identity survives later account changes.
+    // OD-0114: freeze the source at emission. Live API selection advances UsageAccount before its request; epoch guards reject retired sessions.
     public void Observe(ProviderSession provider, UsageAccountKey? account)
     {
         UsageAccount = account;
@@ -3055,7 +3056,9 @@ public sealed partial class ThreadRuntime : MainActorModel
         provider.OnEvent = observedSessionEvent = @event =>
         {
             if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
-                runtime.Handle(@event is ProviderEvent.UsageLimit limit ? limit with { Account = account } : @event);
+                runtime.Handle(@event is ProviderEvent.UsageLimit limit
+                    ? limit with { Account = provider is OpenAICompatibleSession { KeyRotation: AppApiKeyRotation } ? runtime.UsageAccount : account }
+                    : @event);
         };
     }
 

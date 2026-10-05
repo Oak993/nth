@@ -84,7 +84,15 @@ public class OpenAICompatibleSession : ProviderSession
 
     public Config OpenAICompatibleSessionConfig { get; } // :34 Swift: config (R-NAME-3)
     public Action<ProviderEvent>? OnEvent { get; set; }  // :35
-    public SessionConfiguration Configuration { get; }   // :37
+    public SessionConfiguration Configuration { get; private set; }   // :37
+
+    // OD-0114: retain this request's payload; tool children use the selected account's environment.
+    public void RebindApiAccount(Guid id, ValueMap<string, string> environment)
+    {
+        MainActor.AssumeIsolated();
+        if (!Configuration.Provider.IsAPIKeyBased) throw new InvalidOperationException("This session has no API account.");
+        Configuration = Configuration with { AccountId = id, Environment = environment, ApiKey = null };
+    }
 
     // PORT-ONLY (SK-11f, ED-366 1): Marrow's own skill tools (the catalogue block, use_skill, request_tool). Null, the default, leaves every byte
     // this session sends exactly as the Mac's.
@@ -505,6 +513,7 @@ public class OpenAICompatibleSession : ProviderSession
         foreach (var continuation in pendingApprovals.Values) continuation.Resume(false); // :479
         pendingApprovals.Clear(); // :480
         sessionID = null;    // :481
+        if (KeyRotation is IDisposable rotation) rotation.Dispose();
     }
 
     // :488-502. TokenLedger (Services/Store/TokenLedger.cs) has since landed in the tree, so both

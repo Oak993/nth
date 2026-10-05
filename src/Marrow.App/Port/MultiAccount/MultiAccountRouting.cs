@@ -35,10 +35,11 @@ public sealed class MultiAccountRouting
         limits = new(app.Settings.Accounts, scheduler, rates, clock);
         app.Settings.Accounts.Changed += SettingsChanged;
         app.Settings.AccountDecisions.Changed += SettingsChanged;
+        app.ApiKeys.Changed += (_, value) => Changed?.Invoke(this, value);
     }
 
     public event EventHandler<HandshakeEvent>? Changed;
-    public HandshakeEvent? State(Guid thread) => routes.GetValueOrDefault(thread)?.State;
+    public HandshakeEvent? State(Guid thread) => app.ApiKeys.State(thread) ?? routes.GetValueOrDefault(thread)?.State;
     public AccountPlanLimitsSnapshot? Snapshot(Guid account) => limits.Snapshot(account);
     internal bool CanUseAccount(Guid account) => limits.Usage(account.ToString("D"))?.IsExhaustedAt(clock.GetUtcNow()) != true;
 
@@ -120,6 +121,7 @@ public sealed class MultiAccountRouting
     public async Task AnswerAsync(Guid thread, IReadOnlyList<Choice> choices, RememberScope scope)
     {
         MainActor.AssumeIsolated();
+        if (app.ApiKeys.TryAnswer(thread, choices, scope)) return;
         var route = routes.GetValueOrDefault(thread) ?? throw new InvalidOperationException("No account card is waiting for this conversation.");
         // Preserve this caller's rejection without making it the predecessor of other cards or cleanup.
         var enableHandshake = route.State?.Request is { FirstTime: true } request && request.Kinds.Contains(DecisionKind.OnLimit)
@@ -136,6 +138,7 @@ public sealed class MultiAccountRouting
     public void Detach(Guid thread)
     {
         MainActor.AssumeIsolated();
+        app.ApiKeys.Cancel(thread);
         runtimes.Remove(thread);
         rates.Forget(thread);
         if (routes.Remove(thread, out var route))
@@ -199,6 +202,7 @@ public sealed class MultiAccountRouting
 
     private async Task TickAsync(Guid thread)
     {
+        if (app.ApiKeys.AwaitingChoice(thread)) return;
         if (!routes.TryGetValue(thread, out var route)) return;
         if (!route.Runtime.TryHandshakeAccountId(out var active)) { Detach(thread); return; }
         if (!Eligible(route.Runtime) && route.Machine.Phase == HandshakePhase.Idle && !route.ResumeWaiting) return;

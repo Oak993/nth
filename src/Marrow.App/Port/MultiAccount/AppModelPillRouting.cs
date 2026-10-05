@@ -9,6 +9,8 @@ namespace Marrow.App;
 public sealed partial class AppModel
 {
     private MultiAccountRouting? accountRouting;
+    private AppApiKeyRouting? apiKeys;
+    internal AppApiKeyRouting ApiKeys => apiKeys ??= new(this);
     public MultiAccountRouting AccountRouting => accountRouting ??= new(this);
     internal void DetachAccountRouting(Guid thread) => accountRouting?.Detach(thread);
     internal void TickAccountRouting(Guid thread) => accountRouting?.AtSafePoint(thread);

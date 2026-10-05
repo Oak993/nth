@@ -22,7 +22,7 @@ public sealed class ApiKeyPool
     private readonly ApiKeyPoolOptions settings;
     private readonly IKeyMovePolicy? moves;
     private readonly Lock gate = new();
-    private readonly Dictionary<string, (DateTimeOffset Until, OutKind Kind)> outs = [];
+    private readonly Dictionary<string, (DateTimeOffset Until, OutKind Kind, DateTimeOffset At)> outs = [];
     private readonly Dictionary<string, int> uses = [];
     private readonly Dictionary<Guid, string> pins = [];
     private readonly Dictionary<Guid, Rotation> rotations = [];
@@ -63,6 +63,15 @@ public sealed class ApiKeyPool
         {
             if (keyId is null) pins.Remove(threadId);
             else pins[threadId] = keyId;
+        }
+    }
+
+    public void Release(Guid threadId)
+    {
+        lock (gate)
+        {
+            pins.Remove(threadId);
+            if (rotations.Remove(threadId, out var rotation)) rotation.Retire();
         }
     }
 
@@ -107,9 +116,13 @@ public sealed class ApiKeyPool
 
     private bool IsOut(string keyId, DateTimeOffset now)
     {
+        if (credits is IApiKeyCreditObservations { } reported && (reported.IsUsable(keyId) == false
+            || reported.CreditsLeft(keyId) is { } empty && double.IsFinite(empty) && empty == 0)) return true;
         if (!outs.TryGetValue(keyId, out var state)) return false;
-        // An out-of-credits key is back as soon as the service reports credits again.
-        if (state.Kind == OutKind.Credits && credits.CreditsLeft(keyId) is > 0) { outs.Remove(keyId); return false; }
+        // A positive report older than the actual 402 is not recovery. Legacy in-memory credit stores retain their undated seam.
+        if (state.Kind == OutKind.Credits && credits.CreditsLeft(keyId) is { } positive && double.IsFinite(positive) && positive > 0
+            && (credits is not IApiKeyCreditObservations dated || dated.ObservedAt(keyId) is { } at && at > state.At))
+        { outs.Remove(keyId); return false; }
         if (state.Until > now) return true;
         outs.Remove(keyId);
         return false;
@@ -186,6 +199,8 @@ public sealed class ApiKeyPool
                 StopReason = null;
                 ContinuedOn = null;
                 choice = Pick(raised);
+                // A completed request cannot carry unused consent into the next request.
+                moveOnce = false;
                 current = choice;
                 if (choice is not null) anchor = choice;
             }
@@ -205,7 +220,7 @@ public sealed class ApiKeyPool
                 var (until, kind) = status == 402
                     ? (now + pool.settings.CreditsRecheck, OutKind.Credits)
                     : (now + (retryAfter ?? pool.settings.RateLimitCooldown), OutKind.RateLimit);
-                pool.outs[failed.Id] = (until, kind);
+                pool.outs[failed.Id] = (until, kind, now);
                 tried.Add(failed.Id);
                 rejectedStatus = status;
                 current = null;

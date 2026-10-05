@@ -84,6 +84,7 @@ public sealed partial class ThreadRuntime
         sessionSignature = MakeSessionSignature(destination, directory, app.Settings.AntiSlopEnabled, hydra)
             with { LocalServerId = local?.Server.Id, LocalCatalogRevision = local is null ? null : app.Providers.Local.Revision };
         Observe(candidate);
+        BindLiveApiKeys(candidate, accountId);
         if (limited is not null) ResumeHandshakeReply(candidate, configuration, limited);
         else
         {
