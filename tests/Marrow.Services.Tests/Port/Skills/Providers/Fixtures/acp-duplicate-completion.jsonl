@@ -1,0 +1,3 @@
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call","toolCallId":"c1","kind":"execute","rawInput":{"command":"python render.py"}}}}
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call_update","toolCallId":"c1","kind":"execute","rawInput":{"command":"python render.py"},"status":"completed","rawOutput":{"stdout":"fixture output","metadata":{"exit":9009}}}}}
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call_update","toolCallId":"c1","kind":"execute","rawInput":{"command":"python render.py"},"status":"completed","rawOutput":{"stdout":"fixture output","metadata":{"exit":9009}}}}}

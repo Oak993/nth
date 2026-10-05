@@ -1,0 +1,5 @@
+{"method":"session.event","params":{"sessionId":"s-1","event":{"type":"tool.execution_start","data":{"toolCallId":"c1","toolName":"powershell","arguments":{"command":"python render.py"}}}}}
+{"method":"session.event","params":{"sessionId":"s-1","event":{"type":"permission.requested","data":{"requestId":"p1","permissionRequest":{"kind":"shell","toolCallId":"c1","fullCommandText":"python render.py"}}}}}
+{"method":"session.event","params":{"sessionId":"s-1","event":{"type":"tool.execution_complete","data":{"toolCallId":"c1","success":false,"error":{"message":"ModuleNotFoundError: No module named 'docx'"}}}}}
+{"method":"session.event","params":{"sessionId":"s-1","event":{"type":"tool.execution_start","data":{"toolCallId":"s1","toolName":"skill","arguments":{"skill":"documents"}}}}}
+{"method":"session.event","params":{"sessionId":"s-1","event":{"type":"tool.execution_start","data":{"toolCallId":"s1","toolName":"skill","arguments":{"skill":"documents"}}}}}

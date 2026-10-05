@@ -1,5 +1,6 @@
 // PORT-ONLY: SK-13 / ED-326 (6)(a). There is no Swift twin. The start-up composition of the skills and tools machinery.
 using Marrow.Core.Port;
+using Marrow.Services.Port.Skills.Fetch;
 using Marrow.Services.Port.Skills.Host;
 
 namespace Marrow.App.Port.Skills;
@@ -7,7 +8,7 @@ namespace Marrow.App.Port.Skills;
 /// <summary>
 /// Program.Main calls <see cref="Bind"/> once, with the data root, right after the storage bindings: it opens THE host of that root (one pipeline per root, SK-9's generations bound to it) and
 /// publishes it on <see cref="SkillsSeams.Host"/>. A host that cannot be opened (a state.json that does not parse, an unreadable catalogue) must not stop the app from starting: the failure is
-/// logged, the seam stays unbound, and the skills pages and the providers' wiring see no host. Nothing here downloads, installs or runs a process; the production options bind none of those seams.
+/// logged, the seam stays unbound, and the skills pages and the providers' wiring see no host. SK-16: the production options bind the download, binding and licence-text seams (<see cref="SkillsProductionSeams.WithDownloads"/>), so fetching is available; nothing downloads, installs or runs a process here, an item is fetched only when it is asked for.
 /// </summary>
 internal static class SkillsStartup
 {
@@ -18,7 +19,7 @@ internal static class SkillsStartup
     {
         try
         {
-            var host = SkillsHost.Open(dataRoot, (options ?? (() => SkillsHostOptions.Production()))());
+            var host = SkillsHost.Open(dataRoot, (options ?? (() => SkillsHostOptions.Production().WithDownloads(dataRoot)))());
             (publish ?? SkillsSeams.Host.SetProcessDefault)(host);
             return host;
         }

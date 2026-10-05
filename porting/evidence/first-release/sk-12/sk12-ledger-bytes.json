@@ -1,0 +1,82 @@
+{
+  "porting/STATE.md": {
+    "base_lines_preserved_in_order_byte_exact": true,
+    "base_crlf": 419,
+    "current_crlf": 419,
+    "merges": [
+      {
+        "ref": "origin/codex/f-sk-11a",
+        "sha": "ae91304bdf66892e98810550eb81d50e5de781bc",
+        "added_lines": 0,
+        "missing_byte_exact_lines": []
+      },
+      {
+        "ref": "origin/codex/f-sk-11c",
+        "sha": "c6c3c75848b6ca10209ec9b4f937797f90be642b",
+        "added_lines": 0,
+        "missing_byte_exact_lines": []
+      },
+      {
+        "ref": "origin/cloud/f-sk-11b",
+        "sha": "f5f2038b54bef921e8e73507a7d80e43106eac8e",
+        "added_lines": 0,
+        "missing_byte_exact_lines": []
+      },
+      {
+        "ref": "origin/cloud/f-sk-11e",
+        "sha": "088cf86c138d702b2723bff07bb77921cd5cb9af",
+        "added_lines": 0,
+        "missing_byte_exact_lines": []
+      },
+      {
+        "ref": "origin/cloud/f-sk-11f",
+        "sha": "21040879513aaebeb4bc5f28123a32f1d3b1a47c",
+        "added_lines": 0,
+        "missing_byte_exact_lines": []
+      }
+    ],
+    "final_sha256": "494bf9ccdbe51bccfc8f36514adc1625b79befaaa0bea9a3ff3caf9eac7f997e",
+    "final_crlf": 419,
+    "final_lf_only": 90
+  },
+  "porting/engineering_decisions.md": {
+    "base_lines_preserved_in_order_byte_exact": true,
+    "base_crlf": 0,
+    "current_crlf": 0,
+    "merges": [
+      {
+        "ref": "origin/codex/f-sk-11a",
+        "sha": "ae91304bdf66892e98810550eb81d50e5de781bc",
+        "added_lines": 92,
+        "missing_byte_exact_lines": []
+      },
+      {
+        "ref": "origin/codex/f-sk-11c",
+        "sha": "c6c3c75848b6ca10209ec9b4f937797f90be642b",
+        "added_lines": 15,
+        "missing_byte_exact_lines": []
+      },
+      {
+        "ref": "origin/cloud/f-sk-11b",
+        "sha": "f5f2038b54bef921e8e73507a7d80e43106eac8e",
+        "added_lines": 125,
+        "missing_byte_exact_lines": []
+      },
+      {
+        "ref": "origin/cloud/f-sk-11e",
+        "sha": "088cf86c138d702b2723bff07bb77921cd5cb9af",
+        "added_lines": 114,
+        "missing_byte_exact_lines": []
+      },
+      {
+        "ref": "origin/cloud/f-sk-11f",
+        "sha": "21040879513aaebeb4bc5f28123a32f1d3b1a47c",
+        "added_lines": 182,
+        "missing_byte_exact_lines": []
+      }
+    ],
+    "final_sha256": "b62814f96c5cfe8c7c0fdbd374e0c894961a769529d2bc625b6be96fdb5b543d",
+    "final_crlf": 0,
+    "final_lf_only": 3177
+  }
+}

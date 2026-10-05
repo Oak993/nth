@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -20,6 +19,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
 using Marrow.Core.Port;
+using Marrow.Core.Port.SelfUpdate;
 using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
@@ -190,7 +190,6 @@ public sealed record UpdateReleaseNotesDigest
     public Section? UpdateReleaseNotesDigestSection(ReleaseNoteCategory @for) =>
         Sections.FirstOrDefault(section => section.Category == @for);
 
-    private static readonly HashSet<char> BulletMarkers = ['-', '\u2010', '\u2013', '\u2014', '\u2212', '*', '•'];
     private static string? lastRaw;
     private static UpdateReleaseNotesDigest? lastDigest;
 
@@ -209,40 +208,12 @@ public sealed record UpdateReleaseNotesDigest
 
     private static UpdateReleaseNotesDigest ParseNotes(string raw)
     {
-        var collected = new Dictionary<ReleaseNoteCategory, List<string>>();
-        ReleaseNoteCategory? current = null;
-
-        foreach (var sourceLine in raw.Split('\n'))
-        {
-            var line = sourceLine.Trim();
-            if (line.Length == 0 || line == "---" || line.StartsWith("<", StringComparison.Ordinal))
-                continue;
-
-            if (BulletBody(line) is { } bullet)
-            {
-                if (current is { } category)
-                {
-                    var clean = StripInlineMarkdown(bullet);
-                    if (clean.Length > 0)
-                    {
-                        if (!collected.TryGetValue(category, out var items))
-                            collected[category] = items = [];
-                        items.Add(clean);
-                    }
-                }
-                continue;
-            }
-
-            if (CategoryForHeader(line) is { } recognized)
-                current = recognized;
-            else if (IsHeader(line))
-                current = null;
-        }
+        var collected = ReleaseNotesParser.Parse(raw);
 
         var sections = new List<Section>();
         foreach (var category in ReleaseNoteCategoryExtensions.AllCases)
         {
-            if (!collected.TryGetValue(category, out var parsed) || parsed.Count == 0)
+            if (!collected.TryGetValue((ReleaseNotesCategory)category, out var parsed) || parsed.Count == 0)
                 continue;
 
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -276,51 +247,6 @@ public sealed record UpdateReleaseNotesDigest
         return new UpdateReleaseNotesDigest { Sections = new ValueList<Section>(sections) };
     }
 
-    private static string? BulletBody(string line)
-    {
-        if (line.Length < 2 || !BulletMarkers.Contains(line[0]) || line[1] is not (' ' or '\t'))
-            return null;
-        var body = line[1..].Trim();
-        return body.Length == 0 ? null : body;
-    }
-
-    private static bool IsHeader(string line)
-    {
-        if (line.StartsWith("#", StringComparison.Ordinal))
-        {
-            var index = 0;
-            while (index < line.Length && line[index] == '#')
-                index++;
-            return index == line.Length || line[index] is ' ' or '\t';
-        }
-
-        return line.StartsWith("**", StringComparison.Ordinal) &&
-               line.EndsWith("**", StringComparison.Ordinal) &&
-               line.Length > 4;
-    }
-
-    private static ReleaseNoteCategory? CategoryForHeader(string line)
-    {
-        var text = line;
-        var index = 0;
-        while (index < text.Length && text[index] == '#')
-            index++;
-        text = text[index..].Trim();
-        if (text.StartsWith("**", StringComparison.Ordinal))
-            text = text[2..];
-        if (text.EndsWith("**", StringComparison.Ordinal))
-            text = text[..^2];
-        text = text.Trim(' ', '\t', ':');
-
-        return text.ToLowerInvariant() switch
-        {
-            "new features" or "new" => ReleaseNoteCategory.NewFeatures,
-            "bug fixes" or "fixes" or "bugs" => ReleaseNoteCategory.BugFixes,
-            "refinements" or "improvements" => ReleaseNoteCategory.Refinements,
-            _ => null,
-        };
-    }
-
     private static long? RollupCountIn(string bullet)
     {
         var words = bullet.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -346,13 +272,6 @@ public sealed record UpdateReleaseNotesDigest
         return value[start..end];
     }
 
-    private static string StripInlineMarkdown(string text)
-    {
-        var result = Regex.Replace(text, @"\[([^\]]+)\]\([^)]*\)", "$1", RegexOptions.CultureInvariant);
-        result = Regex.Replace(result, @"\*\*([^*]+)\*\*", "$1", RegexOptions.CultureInvariant);
-        result = Regex.Replace(result, @"`([^`]+)`", "$1", RegexOptions.CultureInvariant);
-        return result.Trim();
-    }
 }
 
 public sealed class UpdateReleaseSectionCards : Decorator
@@ -1346,7 +1265,11 @@ public sealed class AboutSoftwareUpdateSection : Decorator
         };
     }
 
-    private Snapshot ReadSnapshot() => new(checker.UpdateAvailable, checker.Update);
+    private Snapshot ReadSnapshot()
+    {
+        var offered = checker.UpdateAvailable;
+        return new Snapshot(offered, offered ? checker.Update : checker.InstalledRelease);
+    }
 
     private void ApplySnapshot(Snapshot snapshot)
     {
@@ -1369,12 +1292,12 @@ public sealed class AboutSoftwareUpdateSection : Decorator
             Spacing = Chrome.SectionSpacing,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        if (snapshot.UpdateAvailable && snapshot.Update is { } update)
-            stack.Children.Add(ReleaseBody(update));
+        if (snapshot.Update is { } update)
+            stack.Children.Add(ReleaseBody(update, snapshot.UpdateAvailable));
         return stack;
     }
 
-    private Control ReleaseBody(AvailableUpdate update)
+    private Control ReleaseBody(AvailableUpdate update, bool offered)
     {
         var content = new StackPanel
         {
@@ -1383,31 +1306,20 @@ public sealed class AboutSoftwareUpdateSection : Decorator
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
-        if (!digest.IsEmpty)
-        {
-            content.Children.Add(new UpdateReleaseSectionCards(digest, update.Version));
-        }
-        else if (!string.IsNullOrEmpty(update.Notes))
-        {
-            var markdown = new MarkdownView(update.Notes);
-            MarkdownView.SetMarkdownPointSize(markdown, 12.5);
-            markdown.Margin = new Thickness(16, 16, 16, 16);
-            markdown.HorizontalAlignment = HorizontalAlignment.Stretch;
-            var scroll = new ScrollViewer
-            {
-                Content = markdown,
-                Template = AboutUpdateScroll.Template,
-                MaxHeight = 240,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            };
-            content.Children.Add(new ChromeCard(() => scroll));
-        }
+        if (!offered)
+            content.Children.Add(new TextBlock { Text = $"What's new in Marrow {update.Version}", TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout));
 
-        var releaseLink = BuildReleaseLink(update);
-        var detail = ReleaseDetail(update);
-        content.Children.Add(new ChromeCard(() =>
-            new ChromeRow("Unsigned Windows installer", () => releaseLink, detail)));
+        if (UpdateReleaseNotesContent.Create(digest, update.Version, update.Notes) is { } notes)
+            content.Children.Add(notes);
+
+        // Installed notes remain readable without offering to install the running version again.
+        if (offered)
+        {
+            var releaseLink = BuildReleaseLink(update);
+            var detail = ReleaseDetail(update);
+            content.Children.Add(new ChromeCard(() =>
+                new ChromeRow("Unsigned Windows installer", () => releaseLink, detail)));
+        }
         return content;
     }
 

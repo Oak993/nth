@@ -2,9 +2,12 @@
 // Typing, Running a turn: session state, bound to PreviewSession). Under it, in the page's column: the pinned block (CZ-3's CustomizationStage: the heading, the preview composer on its stage and the model switch), the Style cards, and
 // the sections of the picked style (Border beam, Uiverse light or Off), each folding open and shut as the style changes. Every setting is the app's composer light (AppSettings.ComposerLight): a change reaches every composer at once.
 // The pinned block is sticky (CZ-6, StickyStageController): it stays at the top of the Settings scroll viewer while the sections of `Sticky` scroll under it, folds its stage as the page scrolls, and lets go when `Sticky` ends.
-// NOT HERE (other units, hooks marked below): the live voice preview (CZ-7b) and the Speech section, which belongs in `Rest`, after the point where the pinned block lets go.
+// The Speech section (CZ-8) is in `Rest`, after the point where the pinned block lets go.
+// NOT HERE: the live voice preview (CZ-7b).
 using Avalonia;
 using Avalonia.Controls;
+using Marrow.App.Port.Voice;
+using Marrow.App.Views.Settings;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port.Settings;
 using Marrow.UI.Chrome;
@@ -28,7 +31,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
     /// <summary>CZ-3.3: the sticky container's children: the pinned block, Style, the style's sections. CZ-6 makes the pinned block sticky inside it, and it ends where the block lets go. HOOK: CZ-5 and CZ-7 add the Voice orb and Working dots sections at its end (the controller picks up every child: each is clipped under the block).</summary>
     internal StackPanel Sticky { get; } = new() { Orientation = Avalonia.Layout.Orientation.Vertical };
 
-    /// <summary>CZ-3.3: what follows the sticky container, where the pinned block lets go. HOOK: the Speech section (CZ-11).</summary>
+    /// <summary>CZ-3.3: what follows the sticky container, where the pinned block lets go. The Speech section (CZ-8, CZ-11).</summary>
     internal StackPanel Rest { get; } = new() { Orientation = Avalonia.Layout.Orientation.Vertical };
 
     internal CustomizationStage? Stage { get; private set; }
@@ -41,6 +44,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
     internal CzSection? Off { get; private set; }
     internal VoiceOrbSections? Voice { get; private set; }
     internal WorkingDotsSections? Dots { get; private set; }
+    internal SpeechSections? Speech { get; private set; }
     internal CzAdvancedState Advanced { get; } = new();
     internal PreviewSession? Session => session;
 
@@ -104,6 +108,10 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
 
         // CZ-3.5: the block is sticky in the scroll viewer the page sits in (found on attach)
         Stickiness = new StickyStageController(this, Sticky, Stage);
+        // Speech (CZ-8, CZ-11): the first section after the sticky container, where the pinned block lets go (CZ-3.5.3)
+        Speech = new SpeechSections(settings, () => SettingsNavigation.Shared.RequestedPage = SettingsPage.VoiceTyping);
+        Rest.Children.Add(Speech.Section);
+        WindowsDisplayLanguage.Watch(this, Speech.Apply); // the Language row names the display language under language default C
 
         // the chrome row's Preview state control is the session's pick (CZ-3.2, CZ-4.6); the session can move it too (touching Working dots)
         PreviewStatePick.SelectionChanged += id => { if (!echoing) session.Pick(StateOf(id)); };
@@ -134,6 +142,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Aura.Apply();
         Dots?.Apply();
         Voice?.Apply();
+        Speech?.Apply();
         foreach (var section in Beam.Sections) section.Open = light.Style == ComposerLightStyle.Beam;
         foreach (var section in Aura.Sections) section.Open = light.Style == ComposerLightStyle.Aura;
         Off.Open = light.Style == ComposerLightStyle.Off;

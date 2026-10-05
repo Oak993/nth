@@ -1,0 +1,111 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:03.23]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft [13 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/tmp/sk12-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/tmp/sk12-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/tmp/sk12-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/tmp/sk12-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.App.Runtime.ComposerDraft.<>c.<get_IsEmpty>b__19_0(String character) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 173
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.App.Runtime.ComposerDraft.get_IsEmpty() in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 172
+   at Marrow.App.Runtime.ThreadRuntime.<set_Draft>b__183_0(ComposerDraft _) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 570
+   at Marrow.Core.Port.ObservableModel.Set[T](T& field, T value, Action`1 didSet, String property) in /workspace/marrow-port/src/Marrow.Core/Port/Observation.cs:line 46
+   at Marrow.App.Runtime.ThreadRuntime.set_Draft(ComposerDraft value) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 570
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.<>c__DisplayClass5_0.<R3_sends_S1_immediately_and_preserves_composer_draft>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 42
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.Main(Action action) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 34
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 42
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:03.37]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again [FAIL]
+[xUnit.net 00:00:03.39]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done [FAIL]
+[xUnit.net 00:00:03.44]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(status: Completed) [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again [12 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Unable to load shared library 'icu.dll' or one of "···
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 86
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done [10 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: Continuing
+Actual:   Failed
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 106
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(status: Completed) [40 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/tmp/sk12-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/tmp/sk12-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/tmp/sk12-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/tmp/sk12-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.Core.Models.FollowUpPrompt.<>c.<get_IsEmpty>b__23_0(String character) in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.Core.Models.FollowUpPrompt.get_IsEmpty() in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at Marrow.App.Runtime.ThreadRuntime.DrainFollowUps(TurnStatus status) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 1471
+   at Marrow.App.Runtime.ThreadRuntime.FinishTurn(TurnStatus status, Nullable`1 requestedTurnID) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 2361
+   at Marrow.App.Runtime.ThreadRuntime.<>c__DisplayClass458_1.<<Handle>b__12>d.MoveNext() in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 3960
+--- End of stack trace from previous location ---
+   at Marrow.Core.Port.TaskHandle.Run(CancellationToken token, Func`1 body, TaskCompletionSource source, Boolean throwing) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 197
+   at System.Threading.Tasks.Task.<>c.<ThrowAsync>b__124_0(Object state)
+   at Marrow.Testing.ManualMainLoop.LoopContext.<>c__DisplayClass2_0.<Post>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 120
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass13_0.<RunUntil>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 70
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntil(Func`1 condition, Nullable`1 timeout) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 66
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.End(TurnStatus status) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 54
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(TurnStatus status) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 35
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+Results File: /tmp/sk12-results/sk12-green.trx
+
+Failed!  - Failed:     4, Passed:    17, Skipped:     0, Total:    21, Duration: 2 s - Marrow.App.Tests.dll (net10.0)

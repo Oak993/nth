@@ -31,6 +31,8 @@ public sealed class CzMotion
     private void Tick(TimeSpan _)
     {
         waiting = false;
+        // OD-0076: Reduce Motion turned on while a transition runs stills it at the next frame
+        if (Still) { Settle(); return; }
         foreach (var number in moving.ToArray()) if (number.Step()) moving.Remove(number);
         if (moving.Count == 0) return;
         waiting = true; source!.RequestFrame(frame);
