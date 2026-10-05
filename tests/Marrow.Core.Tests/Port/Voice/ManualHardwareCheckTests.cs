@@ -2,7 +2,7 @@ using Marrow.Core.Port.Voice;
 
 namespace Marrow.Core.Tests.Port.Voice;
 
-// VT-14 (voice-SPEC V-10.6, V-16.3.2, V-16.4, V-10.4; OD-0099 Q-V-4 A): the record a "Check my hardware" leaves, and the reason line under the recommendation.
+// VT-14 (voice-SPEC V-10.6, V-16.3.2, V-16.4, V-10.4; OD-0099 Q-V-4 A): what a "Check my hardware" leaves behind, and the reason line under the recommendation.
 public sealed class ManualHardwareCheckTests
 {
     private const long Gb = 1L << 30;
@@ -19,7 +19,7 @@ public sealed class ManualHardwareCheckTests
     [Fact]
     [Trait("Feature", "VT-14")]
     [Trait("Spec", "V-T93")]
-    [Trait("Decision", "ED-267")] // V-16.4: the record of a manual check
+    [Trait("Decision", "ED-267")] // V-16.4: what a manual check stores
     public void A_manual_check_records_the_hardware_the_candidate_and_when()
     {
         var record = ManualHardwareCheck.Record(Desktop, Rec(Desktop), null, "large-v3-turbo-q5_0", Now, "1.7.0+21", "1.9.1");
