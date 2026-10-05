@@ -9,7 +9,7 @@ const rel = 'porting/first-release/design-src/customization/cz.js';
 const source = fs.readFileSync(path.join(root, rel), 'utf8');
 const gen = fs.readFileSync(path.join(root, 'porting/first-release/design-src/customization/gen.py'), 'utf8');
 const voicecmp = fs.readFileSync(path.join(root, 'porting/first-release/design-src/customization/voicecmp.js'), 'utf8');
-const playground = 'E:/Droppy/work/design/composer-lights/playground/src/';
+const playground = path.join(root, 'porting/first-release/design-src/composer-lights') + '/'; // read-only copies of the playground's logic.js and gen.py
 const logic = fs.readFileSync(playground + 'logic.js', 'utf8');
 const pgGen = fs.readFileSync(playground + 'gen.py', 'utf8');
 
