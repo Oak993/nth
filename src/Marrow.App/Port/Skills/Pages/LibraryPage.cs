@@ -191,7 +191,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
             var content = new DownloadAllDialog(model, dismiss, section == LibrarySection.Plugins);
             sheet = new DialogSheet(content);
             return sheet;
-        }, OnSheetClosed, inWindow: true);
+        }, OnSheetClosed, inWindow: true, still: LibraryUi.Still(this));
         sheet?.Dialog.Apply(dialog);
     }
 
