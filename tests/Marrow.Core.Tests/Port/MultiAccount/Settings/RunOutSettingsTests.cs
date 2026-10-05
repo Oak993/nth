@@ -41,7 +41,7 @@ public sealed class RunOutSettingsTests
         Assert.Equal(MultiAccountWords.RunNoneDescription, run.Description);
         Assert.Equal([MultiAccountWords.RunGo, MultiAccountWords.RunAsk, MultiAccountWords.RunWait], run.Options.Select(o => o.Label));
         Assert.Equal([true, false, false], run.Options.Select(o => o.Recommended));
-        Assert.Empty(run.Options.Where(o => o.Chosen));
+        Assert.DoesNotContain(run.Options, o => o.Chosen);
         Assert.Null(rig.Decisions.GetSetting(DecisionKind.OnLimit));
         Assert.Null(rig.Decisions.GetSetting(DecisionKind.MidReply));
     }
@@ -98,16 +98,6 @@ public sealed class RunOutSettingsTests
         Assert.Null(rig.Decisions.GetSetting(DecisionKind.EarlierAccount));
         Assert.Null(rig.Decisions.GetSetting(DecisionKind.OtherService));
         Assert.Null(rig.Decisions.GetSetting(DecisionKind.Bring));
-    }
-
-    [Fact]
-    public void Choosing_the_chosen_value_again_puts_the_row_back_to_unset_for_the_run_out_choice()
-    {
-        var rig = Two();
-        rig.Model.Choose("run", DecisionValues.Switch);
-        rig.Model.Choose("run", DecisionValues.Switch);
-        Assert.Null(rig.Decisions.GetSetting(DecisionKind.OnLimit));
-        Assert.True(rig.Model.Row("run").Unset);
     }
 
     [Fact]

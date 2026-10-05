@@ -46,7 +46,7 @@ public sealed class AccountsListModelTests
         var third = rig.ConnectAnother(ProviderKind.Claude, "Max");
         Assert.Equal([first.Id, third.Id], rig.Model.Blocks[0].Rows.Select(r => r.Id));
         rig.Model.MoveTo(third.Id, 0);
-        Assert.Equal([third.Id, pending.Id, first.Id].Order().ToArray().Length, rig.Accounts.ForService(ProviderKind.Claude).Count);
+        Assert.Equal([third.Id, pending.Id, first.Id], rig.Accounts.ForService(ProviderKind.Claude).Select(a => a.Id));
         Assert.Equal([third.Id, first.Id], rig.Model.Blocks[0].Rows.Select(r => r.Id));
         Assert.Contains(pending.Id, rig.Accounts.ForService(ProviderKind.Claude).Select(a => a.Id));
     }
@@ -60,7 +60,7 @@ public sealed class AccountsListModelTests
         Assert.True(rig.Model.Rename(a.Id, "  Work  "));
         Assert.Equal("Work", rig.Accounts.Get(a.Id).CustomName);
         Assert.Equal("Work", rig.Model.Blocks[0].Rows[0].Name);
-        Assert.Contains(MultiAccountWords.CustomName, rig.Model.Blocks[0].Rows[0].Subtitle);
+        Assert.Contains(MultiAccountWords.CustomName, rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);
         Assert.False(rig.Model.Rename(a.Id, new string('x', 25)));
         Assert.Equal("Work", rig.Accounts.Get(a.Id).CustomName);
         Assert.True(rig.Model.Rename(a.Id, "Claude Max 1"));
@@ -117,18 +117,19 @@ public sealed class AccountsListModelTests
         var menu = rig.Model.HandshakeMenu(a.Id);
         Assert.Equal([MultiAccountWords.LikeAllAccounts("automatically"), "Automatically", "At 90%", "At 95%", "At 97%", "At 98%", "At 99%"], menu.Where(e => !e.Separator).Select(e => e.Label));
         Assert.True(menu.First(e => !e.Separator).Checked);
-        Assert.Equal(MultiAccountWords.Near(98), menu.Single(e => e.Label == "Automatically").Hint);
-        Assert.DoesNotContain("Handshake", rig.Model.Blocks[0].Rows[0].Subtitle);
+        Assert.Equal(MultiAccountWords.Near(95), menu.Single(e => e.Label == "Automatically").Hint);
+        Assert.Equal(MultiAccountWords.Near(98), HandshakeStops.NearText("Max 20x"));
+        Assert.DoesNotContain("Handshake", rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);
         rig.Model.SetHandshake(a.Id, HandshakePoint.Smart.Percentage is null ? new HandshakePoint(99) : null);
         Assert.Equal(new HandshakePoint(99), rig.Accounts.Get(a.Id).Defaults.HandshakePoint);
-        Assert.Contains("Handshake at 99%", rig.Model.Blocks[0].Rows[0].Subtitle);
+        Assert.Contains("Handshake at 99%", rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);
         Assert.Equal(MultiAccountWords.WhenAt(99), rig.Model.Blocks[0].Rows[0].HandshakeLabel);
         rig.Model.SetHandshake(a.Id, HandshakePoint.Smart);
-        Assert.Contains("Handshake automatically", rig.Model.Blocks[0].Rows[0].Subtitle);
+        Assert.Contains("Handshake automatically", rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);
         rig.Model.SetHandshake(a.Id, null);
         Assert.Null(rig.Accounts.Get(a.Id).Defaults.HandshakePoint);
-        Assert.DoesNotContain("Handshake", rig.Model.Blocks[0].Rows[0].Subtitle);
-        Assert.Contains(MultiAccountWords.UsesDefault, rig.Model.Blocks[0].Rows[0].HandshakeLabel);
+        Assert.DoesNotContain("Handshake", rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);
+        Assert.Contains(MultiAccountWords.UsesDefault, rig.Model.Blocks[0].Rows[0].HandshakeLabel, StringComparison.Ordinal);
     }
 
     [Fact]

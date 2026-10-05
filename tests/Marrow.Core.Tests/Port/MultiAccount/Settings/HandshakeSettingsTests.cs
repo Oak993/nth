@@ -64,7 +64,7 @@ public sealed class HandshakeSettingsTests
         var rig = Two();
         rig.Accounts.GeneralHandshakePoint = new HandshakePoint(85);
         Assert.Equal("At 85%", rig.Model.Row("hsWhen").ValueLabel);
-        Assert.Empty(rig.Model.Row("hsWhen").Options.Where(o => o.Chosen));
+        Assert.DoesNotContain(rig.Model.Row("hsWhen").Options, o => o.Chosen);
     }
 
     [Fact]
