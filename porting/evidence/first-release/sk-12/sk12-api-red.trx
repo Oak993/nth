@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="140c8095-ba67-48b3-9e87-1058829cc96f" name="@2aa35d38bc5c 2026-10-05 04:02:27" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T04:02:27.2193569+00:00" queuing="2026-10-05T04:02:27.2193569+00:00" start="2026-10-05T04:02:23.4554535+00:00" finish="2026-10-05T04:02:27.2260435+00:00" />
+  <TestSettings name="default" id="fa948048-a46b-484f-868d-4cb21a29dbb1">
+    <Deployment runDeploymentRoot="_2aa35d38bc5c_2026-10-05_04_02_27" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="1cdd80b5-7f9c-4045-a58d-b68b4eb80a43" testId="2ee5af79-0546-a125-6537-da2360189b6b" testName="Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Api_request_tool_receives_exact_installed_at_result_without_a_new_turn" computerName="2aa35d38bc5c" duration="00:00:00.4757665" startTime="2026-10-05T04:02:26.6184950+00:00" endTime="2026-10-05T04:02:27.0849492+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1cdd80b5-7f9c-4045-a58d-b68b4eb80a43">
+      <Output>
+        <ErrorInfo>
+          <Message>System.NotImplementedException : The method or operation is not implemented.</Message>
+          <StackTrace>   at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.&lt;&gt;c__DisplayClass17_0.&lt;.ctor&gt;b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.&lt;&gt;c__DisplayClass15_0`1.&lt;OnMain&gt;b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.&lt;&gt;c.&lt;TryRunOne&gt;b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.&lt;&gt;c__DisplayClass12_0.&lt;RunUntilIdle&gt;b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Api_request_tool_receives_exact_installed_at_result_without_a_new_turn() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 149
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Api_request_tool_receives_exact_installed_at_result_without_a_new_turn" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2ee5af79-0546-a125-6537-da2360189b6b">
+      <Execution id="1cdd80b5-7f9c-4045-a58d-b68b4eb80a43" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests" name="Api_request_tool_receives_exact_installed_at_result_without_a_new_turn" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="2ee5af79-0546-a125-6537-da2360189b6b" executionId="1cdd80b5-7f9c-4045-a58d-b68b4eb80a43" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.41]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:02.23]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:02.26]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:02.80]       System.NotImplementedException : The method or operation is not implemented.
+[xUnit.net 00:00:02.80]       Stack Trace:
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs(12,0): at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download)
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs(31,0): at Marrow.App.Tests.Fixtures.SkillsOfferRig.&lt;&gt;c__DisplayClass17_0.&lt;.ctor&gt;b__1()
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs(43,0): at Marrow.Testing.TestRuntime.&lt;&gt;c__DisplayClass15_0`1.&lt;OnMain&gt;b__0()
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs(99,0): at Marrow.Testing.ManualMainLoop.&lt;&gt;c.&lt;TryRunOne&gt;b__16_0(Object w)
+[xUnit.net 00:00:02.81]            at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+[xUnit.net 00:00:02.81]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.81]            at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs(99,0): at Marrow.Testing.ManualMainLoop.TryRunOne()
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs(42,0): at Marrow.Testing.ManualMainLoop.&lt;&gt;c__DisplayClass12_0.&lt;RunUntilIdle&gt;b__0()
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs(110,0): at Marrow.Testing.ManualMainLoop.Pump(Action body)
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs(42,0): at Marrow.Testing.ManualMainLoop.RunUntilIdle()
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs(44,0): at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body)
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs(31,0): at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor()
+[xUnit.net 00:00:02.81]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs(149,0): at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Api_request_tool_receives_exact_installed_at_result_without_a_new_turn()
+[xUnit.net 00:00:02.81]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.81]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.82]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:02:27.0942766+00:00">
+        <Text>[xUnit.net 00:00:02.80]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Api_request_tool_receives_exact_installed_at_result_without_a_new_turn [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

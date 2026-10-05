@@ -9,5 +9,7 @@ public sealed class FirstInstallUnavailableException() : InvalidOperationExcepti
 /// <summary>Until SK-16 wires the pipeline's first install (ED-326 (6)(a)) every item fails closed: no connection is made and no file is written.</summary>
 public sealed class FailClosedFirstInstall : IFirstInstall
 {
+    public bool IsAvailable => false;
+
     public Task InstallAsync(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation) => Task.FromException(new FirstInstallUnavailableException());
 }

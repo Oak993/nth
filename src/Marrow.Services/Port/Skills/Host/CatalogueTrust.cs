@@ -40,13 +40,16 @@ public static class CatalogueTrust
         foreach (var record in state.Items.Where(r => r.InstalledPin is not null && r.State != ItemState.Removing))
         {
             var item = catalogue.Items.FirstOrDefault(i => i.Id == record.Id);
-            if (item is null || item.Kind is not (ItemKind.Skillset or ItemKind.Plugin) || UpdateCheck.CataloguePin(item) != record.InstalledPin) { unrestored.Add(record.Id); continue; }
+            if (item is null || item.Kind is not (ItemKind.Skillset or ItemKind.Plugin)) { unrestored.Add(record.Id); continue; }
+            // SK-16 review: at the pin the catalogue holds now the inventory is the catalogue's files; at an earlier pin (the app was updated) it is the catalogue entry that install was verified against, kept in addons\manifests.
+            var frozen = UpdateCheck.CataloguePin(item) == record.InstalledPin ? item : PipelineManifests.Read(paths.StateFile, record.Id, record.InstalledPin!);
+            if (frozen is null) { unrestored.Add(record.Id); continue; }
             try
             {
                 // The route is read as for an installed record, whatever state the record is in (a damaged item keeps its descriptor so Repair can run).
                 var installed = AddonsState.Restore([new ItemRecord(record.Id, ItemState.Installed, record.InstalledPin, null, null)], [], [], []);
                 var route = PipelineRoutes.Read(paths.StateFile, installed).Single();
-                var store = new StoreItem(item, route.Folder, new StoreManifest(item.Files), record.InstalledPin);
+                var store = new StoreItem(frozen, route.Folder, new StoreManifest(frozen.Files), record.InstalledPin);
                 versions.Add(store);
                 directories[(record.Id, record.InstalledPin!)] = store.Manifest.Directories.ToArray();
             }

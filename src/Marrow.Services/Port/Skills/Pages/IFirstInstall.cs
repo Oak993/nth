@@ -10,5 +10,8 @@ namespace Marrow.Services.Port.Skills.Pages;
 /// </summary>
 public interface IFirstInstall
 {
+    /// <summary>SK-16: whether fetching is available at all. The seam that fails closed says false; the bound one says true while the pipeline's download and binding seams are bound. Scripted installs keep the default.</summary>
+    bool IsAvailable => true;
+
     Task InstallAsync(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation);
 }

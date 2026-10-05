@@ -1,0 +1,61 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.64]     Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path [FAIL]
+[xUnit.net 00:00:01.66]     Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer [FAIL]
+[xUnit.net 00:00:01.66]     Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume [FAIL]
+[xUnit.net 00:00:01.66]     Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path [117 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.IO.IOException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 48
+--- End of stack trace from previous location ---
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs:line 10
+   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.<>c__DisplayClass3_0.<Failed_routing_publication_never_returns_an_installed_path>b__1() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 48
+  Failed Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer [2 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.IO.InvalidDataException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 18
+--- End of stack trace from previous location ---
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs:line 10
+   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.<>c__DisplayClass0_0.<Unpinned_item_cannot_reach_a_download_plan_or_installer>b__3() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 18
+  Failed Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume [19 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs:line 10
+   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 36
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer [3 ms]
+  Error Message:
+   Assert.ThrowsAny() Failure: Exception type was not compatible
+Expected: typeof(System.OperationCanceledException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 28
+--- End of stack trace from previous location ---
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs:line 10
+   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.<>c__DisplayClass1_0.<Cancelled_offer_cannot_reach_a_download_plan_or_installer>b__3() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 28
+Results File: /tmp/sk12-results/offer-download-red-all.trx
+
+Failed!  - Failed:     4, Passed:     0, Skipped:     0, Total:     4, Duration: 157 ms - Marrow.Services.Tests.dll (net10.0)

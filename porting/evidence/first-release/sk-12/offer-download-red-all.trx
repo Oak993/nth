@@ -1,0 +1,152 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c10576b7-9249-45c7-9ee6-73284f76befa" name="@2aa35d38bc5c 2026-10-05 04:12:57" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T04:12:57.4413810+00:00" queuing="2026-10-05T04:12:57.4413811+00:00" start="2026-10-05T04:12:54.6943023+00:00" finish="2026-10-05T04:12:57.4489130+00:00" />
+  <TestSettings name="default" id="75616d57-2ed7-4fc1-aef3-5f1f99070ebc">
+    <Deployment runDeploymentRoot="_2aa35d38bc5c_2026-10-05_04_12_57" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="a9541312-2d9c-4148-b6c6-b51877965732" testId="f461de7b-bde3-d635-7c22-8a805d46c9e8" testName="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer" computerName="2aa35d38bc5c" duration="00:00:00.0037498" startTime="2026-10-05T04:12:57.3595501+00:00" endTime="2026-10-05T04:12:57.3596012+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a9541312-2d9c-4148-b6c6-b51877965732">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.ThrowsAny() Failure: Exception type was not compatible
+Expected: typeof(System.OperationCanceledException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.</Message>
+          <StackTrace>   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 28
+--- End of stack trace from previous location ---
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs:line 10
+   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.&lt;&gt;c__DisplayClass1_0.&lt;Cancelled_offer_cannot_reach_a_download_plan_or_installer&gt;b__3() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 28</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="055d88c7-8a7e-4d5b-994f-7d049e9d09c7" testId="feff7a6e-8d19-15bb-6836-fff7724f9b68" testName="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer" computerName="2aa35d38bc5c" duration="00:00:00.0020945" startTime="2026-10-05T04:12:57.3569451+00:00" endTime="2026-10-05T04:12:57.3570570+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="055d88c7-8a7e-4d5b-994f-7d049e9d09c7">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.IO.InvalidDataException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.</Message>
+          <StackTrace>   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 18
+--- End of stack trace from previous location ---
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs:line 10
+   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.&lt;&gt;c__DisplayClass0_0.&lt;Unpinned_item_cannot_reach_a_download_plan_or_installer&gt;b__3() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 18</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="67105b0f-0498-4e98-87a4-a2811c798e11" testId="970a0654-ee08-acee-40f7-ee7889188909" testName="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path" computerName="2aa35d38bc5c" duration="00:00:00.1175769" startTime="2026-10-05T04:12:57.2496978+00:00" endTime="2026-10-05T04:12:57.3194997+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="67105b0f-0498-4e98-87a4-a2811c798e11">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(System.IO.IOException)
+Actual:   typeof(System.NotImplementedException)
+---- System.NotImplementedException : The method or operation is not implemented.</Message>
+          <StackTrace>   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 48
+--- End of stack trace from previous location ---
+----- Inner Stack Trace -----
+   at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs:line 10
+   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.&lt;&gt;c__DisplayClass3_0.&lt;Failed_routing_publication_never_returns_an_installed_path&gt;b__1() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 48</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="02eea660-fd01-4063-b9a0-f9af641afea9" testId="ab489829-126e-697c-f9da-9b533704f127" testName="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume" computerName="2aa35d38bc5c" duration="00:00:00.0198755" startTime="2026-10-05T04:12:57.3587924+00:00" endTime="2026-10-05T04:12:57.3588559+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="02eea660-fd01-4063-b9a0-f9af641afea9">
+      <Output>
+        <ErrorInfo>
+          <Message>System.NotImplementedException : The method or operation is not implemented.</Message>
+          <StackTrace>   at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation) in /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs:line 10
+   at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs:line 36
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="f461de7b-bde3-d635-7c22-8a805d46c9e8">
+      <Execution id="a9541312-2d9c-4148-b6c6-b51877965732" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests" name="Cancelled_offer_cannot_reach_a_download_plan_or_installer" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="970a0654-ee08-acee-40f7-ee7889188909">
+      <Execution id="67105b0f-0498-4e98-87a4-a2811c798e11" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests" name="Failed_routing_publication_never_returns_an_installed_path" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="feff7a6e-8d19-15bb-6836-fff7724f9b68">
+      <Execution id="055d88c7-8a7e-4d5b-994f-7d049e9d09c7" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests" name="Unpinned_item_cannot_reach_a_download_plan_or_installer" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="ab489829-126e-697c-f9da-9b533704f127">
+      <Execution id="02eea660-fd01-4063-b9a0-f9af641afea9" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests" name="Checked_download_is_installed_and_published_before_the_offer_can_resume" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f461de7b-bde3-d635-7c22-8a805d46c9e8" executionId="a9541312-2d9c-4148-b6c6-b51877965732" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="feff7a6e-8d19-15bb-6836-fff7724f9b68" executionId="055d88c7-8a7e-4d5b-994f-7d049e9d09c7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="970a0654-ee08-acee-40f7-ee7889188909" executionId="67105b0f-0498-4e98-87a4-a2811c798e11" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ab489829-126e-697c-f9da-9b533704f127" executionId="02eea660-fd01-4063-b9a0-f9af641afea9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="4" executed="4" passed="0" failed="4" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.28]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:01.43]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:01.46]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:01.65]       Assert.Throws() Failure: Exception type was not an exact match
+[xUnit.net 00:00:01.65]       Expected: typeof(System.IO.IOException)
+[xUnit.net 00:00:01.65]       Actual:   typeof(System.NotImplementedException)
+[xUnit.net 00:00:01.65]       ---- System.NotImplementedException : The method or operation is not implemented.
+[xUnit.net 00:00:01.65]       Stack Trace:
+[xUnit.net 00:00:01.65]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs(48,0): at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path()
+[xUnit.net 00:00:01.65]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.65]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:01.65]         /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs(10,0): at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation)
+[xUnit.net 00:00:01.65]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs(48,0): at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.&lt;&gt;c__DisplayClass3_0.&lt;Failed_routing_publication_never_returns_an_installed_path&gt;b__1()
+[xUnit.net 00:00:01.66]       Assert.Throws() Failure: Exception type was not an exact match
+[xUnit.net 00:00:01.66]       Expected: typeof(System.IO.InvalidDataException)
+[xUnit.net 00:00:01.66]       Actual:   typeof(System.NotImplementedException)
+[xUnit.net 00:00:01.66]       ---- System.NotImplementedException : The method or operation is not implemented.
+[xUnit.net 00:00:01.66]       Stack Trace:
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs(18,0): at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer()
+[xUnit.net 00:00:01.66]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.66]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs(10,0): at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation)
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs(18,0): at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.&lt;&gt;c__DisplayClass0_0.&lt;Unpinned_item_cannot_reach_a_download_plan_or_installer&gt;b__3()
+[xUnit.net 00:00:01.66]       System.NotImplementedException : The method or operation is not implemented.
+[xUnit.net 00:00:01.66]       Stack Trace:
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs(10,0): at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation)
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs(36,0): at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume()
+[xUnit.net 00:00:01.66]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.66]       Assert.ThrowsAny() Failure: Exception type was not compatible
+[xUnit.net 00:00:01.66]       Expected: typeof(System.OperationCanceledException)
+[xUnit.net 00:00:01.66]       Actual:   typeof(System.NotImplementedException)
+[xUnit.net 00:00:01.66]       ---- System.NotImplementedException : The method or operation is not implemented.
+[xUnit.net 00:00:01.66]       Stack Trace:
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs(28,0): at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer()
+[xUnit.net 00:00:01.66]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.66]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/src/Marrow.Services/Port/Skills/Offers/SkillsOfferDownload.cs(10,0): at Marrow.Services.Port.Skills.Offers.SkillsOfferDownload.Install(IReadOnlyList`1 items, Action`1 progress, CancellationToken cancellation)
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Offers/SkillsOfferDownloadTests.cs(28,0): at Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.&lt;&gt;c__DisplayClass1_0.&lt;Cancelled_offer_cannot_reach_a_download_plan_or_installer&gt;b__3()
+[xUnit.net 00:00:01.67]   Finished:    Marrow.Services.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:12:57.3422453+00:00">
+        <Text>[xUnit.net 00:00:01.64]     Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:12:57.3574793+00:00">
+        <Text>[xUnit.net 00:00:01.66]     Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:12:57.3624886+00:00">
+        <Text>[xUnit.net 00:00:01.66]     Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:12:57.3625121+00:00">
+        <Text>[xUnit.net 00:00:01.66]     Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

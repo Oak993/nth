@@ -1,0 +1,4 @@
+data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call-2","function":{"name":"use_skill","arguments":"{\"name\":\"pdf\",\"file\":\"references/example.txt\"}"}}]}}]}
+
+data: [DONE]
+

@@ -109,6 +109,15 @@ public sealed class CodexScript
         return count;
     }
 
+    /// <summary>The whole environment launch <paramref name="launch"/> (0-based) started with, as NAME to value (SK-11b, DL-11).</summary>
+    public IReadOnlyDictionary<string, string> LaunchEnvironment(int launch)
+    {
+        var path = Path.Combine(ControlDirectory, "env-" + launch + ".txt");
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (!File.Exists(path) && DateTime.UtcNow < deadline) Thread.Sleep(10);
+        return File.ReadAllText(path).Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Split('=', 2)).ToDictionary(parts => parts[0], parts => parts[1], StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>The runs recorded so far, in order.</summary>
     public IReadOnlyList<CodexCall> Calls()
     {

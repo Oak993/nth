@@ -127,8 +127,8 @@ internal sealed class ActionArea : Decorator
                 Add(LibraryButtons.Glyph("trash", LibraryWords.Remove, "action-trash", () => controller.AskRemove(id)));
                 break;
         }
-        if (!controller.CanFetch && what is "download" or "failed")
-            return new StackPanel { Spacing = 6, Children = { line, LibraryUi.Text(LibraryWords.DownloadsUnavailable, 11.5, secondary: true, trim: true) } };
+        // The reason beside the disabled button, in the same line, so the action's controls stay the line's own children.
+        if (!controller.CanFetch && what is "download" or "failed") Add(LibraryUi.Text(LibraryWords.DownloadsUnavailable, 11.5, secondary: true, trim: true));
         return line;
     }
 }
