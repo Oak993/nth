@@ -13,7 +13,7 @@ namespace Marrow.Services.Tests.Port.Skills.Providers;
 
 public sealed class ByteIdentityTests
 {
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-11")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void Empty_Copilot_session_parameters_are_byte_identical_to_the_existing_provider_code()
     {
         using var runtime = new TestRuntime();
@@ -29,7 +29,7 @@ public sealed class ByteIdentityTests
         }
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-11")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void Empty_ACP_argv_and_initialize_are_byte_identical_to_the_existing_provider_code()
     {
         using var runtime = new TestRuntime();
@@ -44,7 +44,7 @@ public sealed class ByteIdentityTests
         }
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-11")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void Copilot_argv_is_byte_identical_and_PATH_is_the_only_child_environment_change()
     {
         using var runtime = new TestRuntime();
@@ -75,7 +75,7 @@ public sealed class ByteIdentityTests
         }
     }
 
-    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11c"), Trait("Rule", "DL-11")]
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void Empty_Copilot_create_and_resume_RPC_bytes_equal_the_existing_code(bool resume)
     {
         using var runtime = new TestRuntime();
@@ -89,7 +89,7 @@ public sealed class ByteIdentityTests
         for (var i = 0; i < before.Count; i++) Assert.Equal(before[i], after[i]);
     }
 
-    [Theory, InlineData(false, false), InlineData(true, false), InlineData(true, true), Trait("Feature", "SK-11c"), Trait("Rule", "DL-11")]
+    [Theory, InlineData(false, false), InlineData(true, false), InlineData(true, true), Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void Empty_ACP_new_load_and_failed_load_RPC_bytes_equal_the_existing_code(bool resume, bool failedLoad)
     {
         using var runtime = new TestRuntime();
@@ -114,6 +114,35 @@ public sealed class ByteIdentityTests
             _ = runtime.Loop.Run(() => (Task<JSONValue>)open.Invoke(session, [(Func<string, JSONValue, Task<JSONValue>>)((method, parameters) => Reply(after, method, parameters))])!, TimeSpan.FromSeconds(10));
             Assert.Equal(before.Count, after.Count);
             for (var i = 0; i < before.Count; i++) Assert.Equal(before[i], after[i]);
+        }
+    }
+
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-9")]
+    public void An_unbound_storage_seam_uses_only_the_explicit_throwaway_test_root_for_child_shims()
+    {
+        using var runtime = new TestRuntime();
+        var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!;
+        Assert.True(Path.IsPathFullyQualified(root));
+        var environment = new Dictionary<string, string> { ["PATH"] = "user-python" };
+        var method = typeof(CopilotSession).GetMethod("ChildEnvironment", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var child = (IReadOnlyDictionary<string, string>)method.Invoke(null, [environment])!;
+        var expected = string.Join(Path.PathSeparator, "user-python", Path.Combine(root, "addons", "bin"));
+        Assert.Equal(expected, child["PATH"]);
+        var config = CopilotSessionHarness.Config() with { Environment = new ValueMap<string, string>(environment) };
+        Assert.Equal(expected, Property<IReadOnlyDictionary<string, string>>(new ACPSession(config), "ChildEnvironment")["PATH"]);
+    }
+
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-9")]
+    public void An_unbound_storage_seam_cannot_fall_back_to_a_real_data_folder_or_an_unusable_test_root()
+    {
+        using var runtime = new TestRuntime();
+        var resolver = typeof(CopilotSession).Assembly.GetType("Marrow.Services.Port.Skills.Providers.SkillsProviderDataRoot");
+        Assert.NotNull(resolver);
+        var method = resolver.GetMethod("Resolve")!;
+        foreach (var root in new string?[] { null, "relative", Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, "not-created-" + Guid.NewGuid().ToString("N")) })
+        {
+            var error = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, [Storage.Locations.Current, root]));
+            Assert.IsType<SwiftTrapException>(error.InnerException);
         }
     }
 

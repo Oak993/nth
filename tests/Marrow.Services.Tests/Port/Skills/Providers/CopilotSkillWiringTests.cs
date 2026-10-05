@@ -10,7 +10,7 @@ using Marrow.Testing;
 namespace Marrow.Services.Tests.Port.Skills.Providers;
 public sealed class CopilotSkillWiringTests
 {
-    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void Create_and_resume_send_the_verified_generation_root_without_loading_instruction_text(bool resume)
     {
         using var runtime = new TestRuntime();
@@ -28,7 +28,7 @@ public sealed class CopilotSkillWiringTests
         Assert.DoesNotContain("disabledSkills", call.Params.JSONValueObject!.Keys);
     }
 
-    [Theory, InlineData(false, -32602L, "Invalid params"), InlineData(true, -32602L, "Invalid params"), InlineData(false, -32000L, "Unsupported skillDirectories"), InlineData(true, -32000L, "Unsupported skillDirectories"), Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    [Theory, InlineData(false, -32602L, "Invalid params"), InlineData(true, -32602L, "Invalid params"), InlineData(false, -32000L, "Unsupported skillDirectories"), InlineData(true, -32000L, "Unsupported skillDirectories"), Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void Rejected_key_retries_once_and_is_omitted_on_the_next_session_for_the_same_executable(bool resume, long code, string message)
     {
         using var runtime = new TestRuntime();
@@ -59,7 +59,7 @@ public sealed class CopilotSkillWiringTests
         Assert.NotNull(Assert.Single(calls).Params["skillDirectories"]);
     }
 
-    [Theory, InlineData(-32000L, "authentication failed"), InlineData(-32603L, "internal error"), Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    [Theory, InlineData(-32000L, "authentication failed"), InlineData(-32603L, "internal error"), Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void Unrelated_errors_are_never_retried(long code, string message)
     {
         using var runtime = new TestRuntime();
@@ -73,7 +73,7 @@ public sealed class CopilotSkillWiringTests
         Assert.Equal(1, count);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void An_invalid_params_error_without_any_installed_skills_is_not_retried()
     {
         using var runtime = new TestRuntime();
@@ -82,7 +82,7 @@ public sealed class CopilotSkillWiringTests
         Assert.Equal(1, count);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void A_damaged_generation_is_not_sent_to_the_provider()
     {
         using var runtime = new TestRuntime();
@@ -96,7 +96,7 @@ public sealed class CopilotSkillWiringTests
         Assert.Null(sent!["skillDirectories"]);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void A_failed_retry_is_propagated_without_a_third_request_and_the_executable_is_still_remembered()
     {
         using var runtime = new TestRuntime();
@@ -117,7 +117,7 @@ public sealed class CopilotSkillWiringTests
         Assert.Null(next!["skillDirectories"]);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void A_changed_modified_time_retries_the_key_even_with_the_same_path_and_size()
     {
         using var runtime = new TestRuntime();
@@ -134,7 +134,7 @@ public sealed class CopilotSkillWiringTests
         Assert.NotNull(sent!["skillDirectories"]);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void A_missing_executable_identity_fails_closed_without_a_capability_probe_or_added_key()
     {
         using var runtime = new TestRuntime();
@@ -149,7 +149,7 @@ public sealed class CopilotSkillWiringTests
         Assert.Null(sent!["skillDirectories"]);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-11")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-4")]
     public void A_generation_with_all_skills_off_has_the_existing_provider_parameters_byte_for_byte()
     {
         using var runtime = new TestRuntime();

@@ -10,7 +10,7 @@ using Marrow.Testing;
 namespace Marrow.Services.Tests.Port.Skills.Providers;
 public sealed class PermissionTapTests
 {
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-12")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-8")]
     public void Copilot_fixture_emits_held_failed_and_skill_events_without_changing_timeline_events()
     {
         using var runtime = new TestRuntime();
@@ -24,7 +24,7 @@ public sealed class PermissionTapTests
         Assert.Single(timeline.OfType<ProviderEvent.ToolUpdated>());
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-12")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-8")]
     public void ACP_fixture_correlates_sparse_completion_with_the_original_command()
     {
         using var runtime = new TestRuntime();
@@ -39,7 +39,7 @@ public sealed class PermissionTapTests
         Assert.Single(timeline.OfType<ProviderEvent.ToolStarted>());
     }
 
-    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11c"), Trait("Rule", "DL-12")]
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-8")]
     public void Automatically_approved_commands_never_emit_held_events(bool acp)
     {
         using var runtime = new TestRuntime();
@@ -51,7 +51,7 @@ public sealed class PermissionTapTests
         Assert.Empty(skills);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-12")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-8")]
     public void Prose_unknown_results_and_replayed_ACP_updates_are_not_signals()
     {
         using var runtime = new TestRuntime();
@@ -65,7 +65,7 @@ public sealed class PermissionTapTests
         Assert.Empty(skills);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-12")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-8")]
     public void A_repeated_full_ACP_completion_emits_one_finished_event_with_the_existing_metadata_exit()
     {
         using var runtime = new TestRuntime();
@@ -76,7 +76,7 @@ public sealed class PermissionTapTests
         Assert.Equal(new CommandFinished("python render.py", 9009, true, "fixture output"), Assert.Single(skills));
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-12")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-8")]
     public void Hook_resolved_Copilot_permissions_and_declined_tool_results_are_not_missing_tool_signals()
     {
         using var runtime = new TestRuntime();
@@ -96,7 +96,7 @@ public sealed class PermissionTapTests
         Assert.Single(skills);
     }
 
-    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-12")]
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "R-TEST-8")]
     public void Closing_or_stopping_a_provider_discards_command_correlation()
     {
         using var runtime = new TestRuntime();
