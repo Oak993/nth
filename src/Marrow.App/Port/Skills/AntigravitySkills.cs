@@ -28,7 +28,7 @@ internal static class AntigravitySkills
         {
             try { return AntigravitySkillsComposer.Prepare(host, chat, directory, home, Budget); }
             catch (Exception error) when (SwiftTry.IsThrownError(error)
-                && error is IOException or UnauthorizedAccessException or JsonException or DecoderFallbackException or ArgumentException)
+                && error is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or DecoderFallbackException or ArgumentException)
             {
                 throw new ProviderError(new ProviderError.Case.Failed(error.Message));
             }
