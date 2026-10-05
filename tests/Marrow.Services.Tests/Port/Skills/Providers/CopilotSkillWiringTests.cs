@@ -96,6 +96,73 @@ public sealed class CopilotSkillWiringTests
         Assert.Null(sent!["skillDirectories"]);
     }
 
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    public void A_failed_retry_is_propagated_without_a_third_request_and_the_executable_is_still_remembered()
+    {
+        using var runtime = new TestRuntime();
+        using var fixture = new GenerationFixture();
+        var item = fixture.Add("O3", "documents");
+        var generations = fixture.Open();
+        using var generation = generations.Start("copilot", "c1", [item], fixture.Switches((item, true)), fixture.Budget);
+        var count = 0;
+        var final = new RPCError(-32602, "Invalid params again");
+        Assert.Same(final, Assert.Throws<RPCError>(() => runtime.Loop.Run(() => Open(Make(fixture, generation, false), "s-1", (_, _) =>
+        {
+            count++;
+            return Task.FromException<JSONValue>(count == 1 ? new RPCError(-32602, "Invalid params") : final);
+        }), TimeSpan.FromSeconds(10))));
+        Assert.Equal(2, count);
+        JSONValue? next = null;
+        _ = runtime.Loop.Run(() => Open(Make(fixture, generation, true), "s-2", (_, parameters) => { next = parameters; return Task.FromResult(JSONValue.Parse("{}")!); }), TimeSpan.FromSeconds(10));
+        Assert.Null(next!["skillDirectories"]);
+    }
+
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    public void A_changed_modified_time_retries_the_key_even_with_the_same_path_and_size()
+    {
+        using var runtime = new TestRuntime();
+        using var fixture = new GenerationFixture();
+        var item = fixture.Add("O3", "documents");
+        var generations = fixture.Open();
+        using var generation = generations.Start("copilot", "c1", [item], fixture.Switches((item, true)), fixture.Budget);
+        var count = 0;
+        _ = runtime.Loop.Run(() => Open(Make(fixture, generation, false), "s-1", (_, _) => ++count == 1 ? Task.FromException<JSONValue>(new RPCError(-32602, "Invalid params")) : Task.FromResult(JSONValue.Parse("{}")!)), TimeSpan.FromSeconds(10));
+        var executable = Path.Combine(fixture.Paths.Root, "fake copilot.exe");
+        File.SetLastWriteTimeUtc(executable, File.GetLastWriteTimeUtc(executable).AddDays(-1));
+        JSONValue? sent = null;
+        _ = runtime.Loop.Run(() => Open(Make(fixture, generation, true), "s-2", (_, parameters) => { sent = parameters; return Task.FromResult(JSONValue.Parse("{}")!); }), TimeSpan.FromSeconds(10));
+        Assert.NotNull(sent!["skillDirectories"]);
+    }
+
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "WU-8")]
+    public void A_missing_executable_identity_fails_closed_without_a_capability_probe_or_added_key()
+    {
+        using var runtime = new TestRuntime();
+        using var fixture = new GenerationFixture();
+        var item = fixture.Add("O3", "documents");
+        var generations = fixture.Open();
+        using var generation = generations.Start("copilot", "c1", [item], fixture.Switches((item, true)), fixture.Budget);
+        var session = Make(fixture, generation, false);
+        File.Delete(Path.Combine(fixture.Paths.Root, "fake copilot.exe"));
+        JSONValue? sent = null;
+        _ = runtime.Loop.Run(() => Open(session, "s-1", (_, parameters) => { sent = parameters; return Task.FromResult(JSONValue.Parse("{}")!); }), TimeSpan.FromSeconds(10));
+        Assert.Null(sent!["skillDirectories"]);
+    }
+
+    [Fact, Trait("Feature", "SK-11c"), Trait("Rule", "DL-11")]
+    public void A_generation_with_all_skills_off_has_the_existing_provider_parameters_byte_for_byte()
+    {
+        using var runtime = new TestRuntime();
+        using var fixture = new GenerationFixture();
+        var item = fixture.Add("O3", "documents");
+        var generations = fixture.Open();
+        using var generation = generations.Start("copilot", "c1", [item], fixture.Switches((item, false)), fixture.Budget);
+        var session = Make(fixture, generation, false);
+        var without = (Dictionary<string, JSONValue>)CopilotSessionHarness.Invoke(new CopilotSession(CopilotSessionHarness.Config()), "SessionParameters")!;
+        var with = (Dictionary<string, JSONValue>)CopilotSessionHarness.Invoke(session, "SessionParameters")!;
+        Assert.Equal(new JSONValue.Object(new ValueMap<string, JSONValue>(without, SwiftStringComparer.Instance)).Data(), new JSONValue.Object(new ValueMap<string, JSONValue>(with, SwiftStringComparer.Instance)).Data());
+    }
+
     private static CopilotSession Make(GenerationFixture fixture, Generation generation, bool resume)
     {
         var path = Path.Combine(fixture.Paths.Root, "fake copilot.exe");

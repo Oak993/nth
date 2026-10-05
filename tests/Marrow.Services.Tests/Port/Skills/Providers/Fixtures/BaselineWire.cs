@@ -111,4 +111,43 @@ public sealed class BaselineWire(SessionConfiguration configuration)
         arguments.AddRange(MCPSessionOverrides.CopilotArguments());
         return arguments;
     }
+    public bool canLoadSessions;
+    public bool supportsHTTPMCP;
+    private bool isReplaying;
+    private string? sessionID;
+    public (bool Replaying, string? Id) State => (isReplaying, sessionID);
+    public async Task<JSONValue> OpenACP(Func<string, JSONValue, Task<JSONValue>> request)
+    {
+        // :252-253. The connected servers ride into every new session through ACP's own field, HTTP ones
+        // directly where the agent says it speaks HTTP MCP, else through mcp-remote.
+        var baseParams = new Dictionary<string, JSONValue>
+        {
+            ["cwd"] = WorkingDirectory, // :254
+            ["mcpServers"] = MCPProviderConfig.AcpServers(supportsHTTPMCP), // :254
+        };
+        if (configuration.ResumeID is { } resumeID && canLoadSessions) // :255
+        {
+            var parameters = new Dictionary<string, JSONValue>(baseParams) { ["sessionId"] = resumeID }; // :256-257
+            isReplaying = true; // :258
+            var result = await SwiftTry.OptionalAsync<JSONValue>(async () =>
+                await request("session/load", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters)))); // :259
+            isReplaying = false; // :260
+            if (result is { } r) // :261
+            {
+                sessionID = resumeID; // :262
+                return r; // :263
+            }
+        }
+        var newResult = await request("session/new", new JSONValue.Object(new ValueMap<string, JSONValue>(baseParams))); // :266
+        sessionID = newResult["sessionId"]?.JSONValueString; // :267
+        return newResult; // :268
+    }
+
+    public Task<JSONValue> OpenCopilot(string id, Func<string, JSONValue, Task<JSONValue>> request)
+    {
+        var parameters = CopilotParameters();
+        parameters["sessionId"] = id;
+        return request(configuration.ResumeID is null ? "session.create" : "session.resume",
+            new JSONValue.Object(new ValueMap<string, JSONValue>(parameters, SwiftStringComparer.Instance)));
+    }
 }
