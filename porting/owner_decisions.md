@@ -1101,3 +1101,9 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - The account popover as shown; link up A (tap the link beside an account); one-message opinions B (an "Ask others" button); usage panel B (the current account, the others one tap away); first-time card layout A.
   - Every switch is the port's own SmallSwitch (SettingsView.cs, ED-280), never the page's generic toggle.
   - It ships in the first release (OD-0114).
+
+## OD-0116 Automatic account switching is off by default and asked the first time (2026-10-05)
+
+- **Context:** the feasibility study (codex/ma-0) and the Handshake engine (cloud/ma-5) note that provider terms forbid bypassing protective measures or circumventing rate limits; the lead asked whether "Keep me going" starts on or off.
+- **Owner, verbatim:** "Switched off by default, app asks user the first time."
+- **Effect:** automatic switching ("Keep me going", the Handshake into another account) is off by default for every service. The first time an account runs out, the first-time card asks the user (OD-0115 layout A, with the Remember line); nothing switches automatically until the user chooses it. Pills a user creates are that user's explicit choice.
