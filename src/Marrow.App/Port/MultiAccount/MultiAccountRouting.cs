@@ -25,6 +25,7 @@ public sealed class MultiAccountRouting
     private readonly Dictionary<Task, Task> polls = [];
     private readonly Dictionary<Task, Task> operations = [];
     private long pollingEpoch;
+    private int reportObservers;
 
     public MultiAccountRouting(AppModel app)
     {
@@ -58,7 +59,47 @@ public sealed class MultiAccountRouting
     }
 
     public event EventHandler<HandshakeEvent>? Changed;
-    internal void RefreshReports() => Queue(RefreshAsync);
+    internal void RefreshReports()
+    {
+        var epoch = pollingEpoch;
+        Queue(() => epoch == pollingEpoch ? RefreshAsync() : Task.CompletedTask);
+    }
+
+    public IDisposable ObserveReports()
+    {
+        MainActor.AssumeIsolated();
+        reportObservers++;
+        RefreshReports();
+        StartBeatTimer();
+        return new AccountReportObservation(ReleaseReportObservation);
+    }
+
+    private void ReleaseReportObservation()
+    {
+        MainActor.AssumeIsolated();
+        reportObservers--;
+        if (reportObservers == 0 && runtimes.Count == 0) PauseReports();
+        else UpdateReportUse();
+    }
+
+    private void UpdateReportUse()
+    {
+        var active = runtimes.Values.Select(runtime => ResolveAccount(runtime.UsageAccount, runtime)).Where(id => id is not null).ToHashSet();
+        foreach (var pair in connected)
+        {
+            var account = app.Settings.Accounts.Accounts.FirstOrDefault(row => row.Id == pair.Key);
+            scheduler.SetInUse(pair.Value.Key, account is { Enabled: true } && (reportObservers > 0 || active.Contains(pair.Key)));
+        }
+    }
+
+    private void PauseReports()
+    {
+        pollingEpoch++;
+        timer?.Dispose();
+        timer = null;
+        foreach (var row in connected.Values) scheduler.Pause(row.Key);
+        connected.Clear();
+    }
     public HandshakeEvent? State(Guid thread) => app.ApiKeys.State(thread) ?? routes.GetValueOrDefault(thread)?.State;
     public AccountPlanLimitsSnapshot? Snapshot(Guid account) => limits.Snapshot(account);
     internal bool CanUseAccount(Guid account) => limits.Usage(account.ToString("D"))?.IsExhaustedAt(clock.GetUtcNow()) != true && app.ApiKeys.CanUseAccount(account);
@@ -183,14 +224,8 @@ public sealed class MultiAccountRouting
             route.ResetTimer?.Dispose();
             TrackOperation(DisposeRouteAsync(route));
         }
-        if (runtimes.Count == 0)
-        {
-            pollingEpoch++;
-            timer?.Dispose();
-            timer = null;
-            foreach (var row in connected.Values) scheduler.Pause(row.Key);
-            connected.Clear();
-        }
+        if (runtimes.Count == 0 && reportObservers == 0) PauseReports();
+        else UpdateReportUse();
     }
 
     private void StartBeatTimer()
@@ -218,7 +253,7 @@ public sealed class MultiAccountRouting
     private async Task RefreshAsync()
     {
         var available = app.Settings.Accounts.Accounts.Where(app.IsAccountConnected).ToArray();
-        var active = routes.Values.Select(route => ResolveAccount(route.Runtime.UsageAccount, route.Runtime)).Where(id => id is not null).ToHashSet();
+        var active = runtimes.Values.Select(runtime => ResolveAccount(runtime.UsageAccount, runtime)).Where(id => id is not null).ToHashSet();
         foreach (var id in connected.Keys.Except(available.Select(row => row.Id)).ToArray())
         {
             // Metadata may already be removed, so use the captured service/key instead of looking it up again.
@@ -238,7 +273,7 @@ public sealed class MultiAccountRouting
                 connected[account.Id] = (key, account.Plan);
                 TrackPoll(scheduler.PlanChangedAsync(key));
             }
-            scheduler.SetInUse(key, account.Enabled && active.Contains(account.Id));
+            scheduler.SetInUse(key, account.Enabled && (reportObservers > 0 || active.Contains(account.Id)));
             scheduler.SetHandshakePercent(key, app.Settings.Accounts.EffectiveHandshakePoint(account.Id).Percentage);
         }
         TrackPoll(scheduler.RefreshDueAsync());

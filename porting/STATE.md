@@ -646,3 +646,9 @@ Real 402/429 waits/resume and other-service consent, destination payload default
 Destination Hydra, system policy and the live runtime signature now move together before observers run, retaining the real API session on the next message. Windows App223/223 Services237/237, zero skips/build warnings/errors. Exact configuration/reuse tests failed alone twice; refused retry payload tests remain green. Core267 and wider Services321 are prior scoped validations, not additional fresh counts.
 
 **Incomplete:** verified CLI restricted text-only priming/restoration, private cost measurement, incoming light-model AI-summary fallback, between-tool safe pause and remaining manual/view/report joins. Step1 NOT READY and unpushed; Settings/capsule are helper-owned/unmerged. No native/DONE/release claim.
+
+## T11 visible account report demand checkpoint, Codex, 2026-10-06
+
+The shared report scheduler now accepts overlapping visible-view leases without a chat runtime. Last-owner release pauses accounts and invalidates queued/late callbacks; reopening retains cached data and provider throttle. Focused Windows8/8 and App account/traceability126/126, zero skips/build warnings/errors. Existing Core/Services results remain prior evidence.
+
+**Incomplete:** verified CLI restricted priming/restoration (documented Claude subscription/managed-hook gap); private cost measurement, optional incoming light-model summary, between-tool safe pause and manual account selection. Report leases still need binding when helper Settings/capsule merge. Step1 NOT READY, no push; helper Settings/capsule scopes remain unmerged. No native/DONE/release claim.
