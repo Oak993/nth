@@ -66,13 +66,14 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
         var screen = subject.Main.Screens.Primary ?? throw new InvalidOperationException("No native screen is available.");
         var window = new AvaloniaWindow
         {
-            Width = 700, Height = 360, ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual,
+            Width = 700, Height = 360, ShowInTaskbar = false, Topmost = true, WindowStartupLocation = WindowStartupLocation.Manual,
             Position = new PixelPoint(screen.WorkingArea.X + 120, screen.WorkingArea.Y + 80), Content = host,
         };
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
         native.Register(window);
         window.Show();
         window.Activate();
+        shown = window;
         return window;
     }
 
@@ -87,9 +88,21 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
         RecentDownloads.DirectoryProvider.SetProcessDefault(() => downloads);
     });
 
+    private AvaloniaWindow? shown;
+
+    // The test window in front and active before a press (another program on the desktop may hold the foreground), so the system's
+    // pointer press lands on its button.
+    private void Front()
+    {
+        if (shown is not { } window) return;
+        native.OnUi(() => WindowManagerNativeForeground.Acquire(window.TryGetPlatformHandle()!.Handle, native.ThreadId));
+        N.Until(() => native.OnUi(() => window.IsActive), "the test window is not the active window");
+    }
+
     // Opens the dialog with the press, then: the label and caption; a folder opened, not chosen; Cancel; again, and two files.
     private (string OkLabel, string Caption) Exercise(Func<PixelPoint> open, Func<int> attached, (string Folder, string Inner, string[] Files) folders, string site)
     {
+        Front();
         Click(open());
         var dialog = AwaitDialog(site);
         var label = CommonFileDialogDriver.OkLabel(dialog);
@@ -111,6 +124,7 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
         Thread.Sleep(600);
         Assert.Equal(0, attached()); // Cancel leaves the draft as it was
 
+        Front();
         Click(open());
         dialog = AwaitDialog(site + ", again");
         CommonFileDialogDriver.TypeFileName(dialog, folders.Folder);
@@ -188,6 +202,7 @@ public sealed class OpenPanelNativeTests(WindowManagerNativeSession native)
             PixelPoint Open()
             {
                 // the add button opens the recent downloads popover; its Choose Files… row opens the panel
+                Front();
                 Click(native.OnUi(() => add.PointToScreen(new Point(add.Bounds.Width / 2, add.Bounds.Height / 2))));
                 Control? choose = null;
                 N.Until(() => (choose = native.OnUi(() => FindChoose(editor))) is not null, "the Choose Files… row never appeared", 5000);
