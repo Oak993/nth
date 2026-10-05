@@ -20,26 +20,28 @@ public sealed class HandshakeSettingsTests
     }
 
     [Fact]
-    public void The_handshake_is_on_by_default_and_the_switch_row_says_so()
+    public void The_handshake_is_off_by_default_and_the_switch_row_says_so()
     {
         var rig = Two();
         var row = rig.Model.Row("hs");
-        Assert.Equal((SettingKind.Switch, true, MultiAccountWords.UseHandshake, MultiAccountWords.UseHandshakeOn), (row.Kind, row.On, row.Title, row.Description));
-        Assert.True(rig.Handshake.Enabled);
+        Assert.Equal((SettingKind.Switch, false, MultiAccountWords.UseHandshake, MultiAccountWords.UseHandshakeOff), (row.Kind, row.On, row.Title, row.Description));
+        Assert.False(rig.Handshake.Enabled);
+        Assert.False(rig.Model.Row("hsWhen").Visible);
+        Assert.Null(rig.Decisions.GetSetting(Marrow.Core.Accounts.DecisionKind.OnLimit));
     }
 
     [Fact]
-    public void Switching_it_off_is_kept_hides_when_to_start_and_changes_the_sentence()
+    public void Switching_it_on_is_kept_shows_when_to_start_and_changes_the_sentence()
     {
         var rig = Two();
-        Assert.True(rig.Model.Row("hsWhen").Visible);
-        rig.Model.SetSwitch("hs", false);
-        Assert.False(rig.Handshake.Enabled);
-        Assert.Equal(MultiAccountWords.UseHandshakeOff, rig.Model.Row("hs").Description);
-        Assert.False(rig.Model.Row("hsWhen").Visible);
-        Assert.False(new HandshakeSwitch(rig.Settings).Enabled);
         rig.Model.SetSwitch("hs", true);
+        Assert.True(rig.Handshake.Enabled);
+        Assert.Equal(MultiAccountWords.UseHandshakeOn, rig.Model.Row("hs").Description);
         Assert.True(rig.Model.Row("hsWhen").Visible);
+        Assert.True(new HandshakeSwitch(rig.Settings).Enabled);
+        rig.Model.SetSwitch("hs", false);
+        Assert.False(rig.Model.Row("hsWhen").Visible);
+        Assert.Equal(MultiAccountWords.UseHandshakeOff, rig.Model.Row("hs").Description);
     }
 
     [Fact]
@@ -82,12 +84,12 @@ public sealed class HandshakeSettingsTests
     }
 
     [Fact]
-    public void The_switch_defaults_on_and_is_stored_under_its_own_key()
+    public void The_switch_defaults_off_and_is_stored_under_its_own_key()
     {
         var settings = new InMemorySettingsStore();
-        Assert.True(new HandshakeSwitch(settings).Enabled);
-        new HandshakeSwitch(settings).Enabled = false;
-        Assert.Equal([HandshakeSwitch.SettingsKey], settings.Writes);
         Assert.False(new HandshakeSwitch(settings).Enabled);
+        new HandshakeSwitch(settings).Enabled = true;
+        Assert.Equal([HandshakeSwitch.SettingsKey], settings.Writes);
+        Assert.True(new HandshakeSwitch(settings).Enabled);
     }
 }

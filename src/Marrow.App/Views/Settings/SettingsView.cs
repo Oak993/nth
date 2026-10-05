@@ -55,6 +55,7 @@ public enum SettingsPage
     [RawValue("plugins")] Plugins, // PORT-ONLY OD-0099 Sections C
     [RawValue("skills")] Skills, // PORT-ONLY OD-0099 Sections C
     [RawValue("models")] Models, // :11
+    [RawValue("pills")] Pills, // PORT-ONLY OD-0114, OD-0117 (T11 step 2): directly below Models, always listed
     [RawValue("sourceControl")] SourceControl, // :12
     [RawValue("shortcuts")] Shortcuts, // :13
     [RawValue("archive")] Archive, // :14
@@ -74,7 +75,7 @@ public static class SettingsPageExtensions
         {
             SettingsPage.General => "General", SettingsPage.Hydra => "Hydra", SettingsPage.Appearance => "Appearance",
             SettingsPage.Customization => "Customization", SettingsPage.VoiceTyping => "Voice typing", SettingsPage.Updates => "Updates",
-            SettingsPage.Plugins => "Plugins", SettingsPage.Skills => "Skills",
+            SettingsPage.Plugins => "Plugins", SettingsPage.Skills => "Skills", SettingsPage.Pills => "Pills",
             SettingsPage.Providers => "Providers", SettingsPage.Mcp => "MCP", SettingsPage.Models => "Models",
             SettingsPage.SourceControl => "Source control", SettingsPage.Shortcuts => "Shortcuts", SettingsPage.Archive => "Archive", SettingsPage.About => "About",
         };
@@ -88,7 +89,7 @@ public static class SettingsPageExtensions
             SettingsPage.Shortcuts => "command", SettingsPage.Archive => "archivebox", SettingsPage.About => "info.circle",
             // PORT-ONLY (CZ-2.1, CZ-2.1.1): names the symbol catalogue resolves (the last four through its port-added list)
             SettingsPage.Customization => "sparkles", SettingsPage.VoiceTyping => "waveform", SettingsPage.Updates => "arrow.triangle.2.circlepath",
-            SettingsPage.Plugins => "powerplug", SettingsPage.Skills => "wand.and.sparkles",
+            SettingsPage.Plugins => "powerplug", SettingsPage.Skills => "wand.and.sparkles", SettingsPage.Pills => "pill.fill",
         };
 
         // :51-64 var tint: Color
@@ -99,7 +100,7 @@ public static class SettingsPageExtensions
             SettingsPage.SourceControl => new(0.345, 0.337, 0.839), SettingsPage.Shortcuts => new(0.32, 0.48, 0.93),
             SettingsPage.Archive => Chrome.Orange, SettingsPage.About => new(0.204, 0.780, 0.349),
             // PORT-ONLY (CZ-2.1.2): the port sidebar never draws a Tint (SidebarIconBadge draws in the label colour); these arms are unused.
-            SettingsPage.Customization or SettingsPage.VoiceTyping or SettingsPage.Updates or SettingsPage.Plugins or SettingsPage.Skills => Chrome.Gray,
+            SettingsPage.Customization or SettingsPage.VoiceTyping or SettingsPage.Updates or SettingsPage.Plugins or SettingsPage.Skills or SettingsPage.Pills => Chrome.Gray,
         };
 
         // :66-79 var keywords: [String]
@@ -120,6 +121,8 @@ public static class SettingsPageExtensions
             SettingsPage.Updates => new[] { "updates", "update", "version", "latest", "upgrade", "check now", "restart" },
             SettingsPage.Plugins => new[] { "plugins", "plugin", "download", "install", "add" },
             SettingsPage.Skills => new[] { "skills", "skill", "download", "install", "add", "slash" },
+            // PORT-ONLY T11 step 2: ENGINEERING DECISION, the page's own name and what a person would type to find it (the owner's page names no words).
+            SettingsPage.Pills => new[] { "pills", "pill", "accounts", "chain", "sequence", "handshake", "fallback", "switch" },
         });
 
         // PORT-ONLY (first-release SA-1, OD-0103; the pattern of voice-SPEC V-2.6): whether the page unit has built it. A page that is not
@@ -127,7 +130,7 @@ public static class SettingsPageExtensions
         public bool IsReady => page switch
         {
             SettingsPage.Customization => CustomizationSettingsPage.IsReady, SettingsPage.VoiceTyping => VoiceTypingSettingsPage.IsReady,
-            SettingsPage.Updates => UpdatesSettingsPage.IsReady, SettingsPage.Plugins => PluginsSettingsPage.IsReady, SettingsPage.Skills => SkillsSettingsPage.IsReady,
+            SettingsPage.Updates => UpdatesSettingsPage.IsReady, SettingsPage.Plugins => PluginsSettingsPage.IsReady, SettingsPage.Skills => SkillsSettingsPage.IsReady, SettingsPage.Pills => PillsSettingsPage.IsReady,
             _ => true,
         };
     }
@@ -334,7 +337,7 @@ public sealed class SettingsView : Decorator
         SettingsPage.Mcp => new MCPSettingsPage(mcpSearch), SettingsPage.Models => new ModelsSettingsPage(modelSearch), SettingsPage.Hydra => new HydraSettingsPage(),
         SettingsPage.SourceControl => new SourceControlSettingsPage(), SettingsPage.Shortcuts => new ShortcutsSettingsPage(), SettingsPage.Archive => new ArchiveSettingsPage(), SettingsPage.About => new AboutSettingsPage(),
         SettingsPage.Customization => new CustomizationSettingsPage(), SettingsPage.VoiceTyping => new VoiceTypingSettingsPage(), SettingsPage.Updates => new UpdatesSettingsPage(),
-        SettingsPage.Plugins => new PluginsSettingsPage(), SettingsPage.Skills => new SkillsSettingsPage(),
+        SettingsPage.Plugins => new PluginsSettingsPage(), SettingsPage.Skills => new SkillsSettingsPage(), SettingsPage.Pills => new PillsSettingsPage(),
     };
 
     // :270-272 the pages that carry controls in the chrome row; a port-added page says so itself (ISettingsPageChrome).

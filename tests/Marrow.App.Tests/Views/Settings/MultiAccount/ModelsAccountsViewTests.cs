@@ -63,7 +63,7 @@ public sealed class ModelsAccountsViewTests(HeadlessSession headless)
         Assert.True(view.RunOpen);
         Assert.True(view.HandshakeOpen);
         var words = h.Words();
-        foreach (var expected in new[] { MultiAccountWords.RunHeading, MultiAccountWords.RunFoot, MultiAccountWords.RunTitle, MultiAccountWords.RunNone, MultiAccountWords.HandshakeHeading, MultiAccountWords.HandshakeFoot, MultiAccountWords.UseHandshake, MultiAccountWords.WhenToStart, MultiAccountWords.AddAnother })
+        foreach (var expected in new[] { MultiAccountWords.RunHeading, MultiAccountWords.RunFoot, MultiAccountWords.RunTitle, MultiAccountWords.RunNone, MultiAccountWords.HandshakeHeading, MultiAccountWords.HandshakeFoot, MultiAccountWords.UseHandshake, MultiAccountWords.UseHandshakeOff, MultiAccountWords.AddAnother })
             Assert.Contains(expected, words);
     });
 
@@ -247,20 +247,23 @@ public sealed class ModelsAccountsViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "MA-8")]
     [Trait("Rule", "R-TEST-4")]
-    public void The_handshake_switch_and_when_to_start_follow_the_model() => Run(Two(), (h, view) =>
+    public void The_handshake_starts_off_and_its_switch_opens_when_to_start() => Run(Two(), (h, view) =>
     {
         var rows = view.HandshakeRows.Rows;
-        Assert.True(rows["hsWhen"].Slot.Open);
-        rows["hs"].View.Toggle(false);
-        h.Settle();
         Assert.False(h.Rig.Handshake.Enabled);
         Assert.False(rows["hsWhen"].Slot.Open);
         Assert.Contains(MultiAccountWords.UseHandshakeOff, h.Words());
         rows["hs"].View.Toggle(true);
+        h.Settle();
+        Assert.True(h.Rig.Handshake.Enabled);
+        Assert.True(rows["hsWhen"].Slot.Open);
+        Assert.Contains(MultiAccountWords.UseHandshakeOn, h.Words());
         rows["hsWhen"].View.Choose("97");
         h.Settle();
-        Assert.True(rows["hsWhen"].Slot.Open);
         Assert.Equal("At 97%", rows["hsWhen"].View.ValueShown);
+        rows["hs"].View.Toggle(false);
+        h.Settle();
+        Assert.False(rows["hsWhen"].Slot.Open);
     });
 
     [Fact]

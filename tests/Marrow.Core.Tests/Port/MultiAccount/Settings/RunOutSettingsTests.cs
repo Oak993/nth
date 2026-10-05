@@ -41,7 +41,7 @@ public sealed class RunOutSettingsTests
         Assert.Equal(MultiAccountWords.RunNone, run.ValueLabel);
         Assert.Equal(MultiAccountWords.RunNoneDescription, run.Description);
         Assert.Equal([MultiAccountWords.RunGo, MultiAccountWords.RunAsk, MultiAccountWords.RunWait], run.Options.Select(o => o.Label));
-        Assert.Equal([true, false, false], run.Options.Select(o => o.Recommended));
+        Assert.DoesNotContain(run.Options, o => o.Recommended); // OD-0116: switching is off by default, so Keep me going is not recommended
         Assert.DoesNotContain(run.Options, o => o.Chosen);
         Assert.Null(rig.Decisions.GetSetting(DecisionKind.OnLimit));
         Assert.Null(rig.Decisions.GetSetting(DecisionKind.MidReply));

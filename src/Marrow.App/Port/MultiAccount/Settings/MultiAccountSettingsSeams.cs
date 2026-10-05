@@ -45,8 +45,11 @@ internal static class MultiAccountSettingsSeams
         return Built.GetValue(model, MultiAccountContexts.For);
     }
 
-    /// <summary>The context of the pages. The default reads the running AppModel.</summary>
-    public static Ambient<MultiAccountOffer> Context { get; } = new(new MultiAccountOffer(Default));
+    /// <summary>The context of the pages. Unbound (no context: the sections stay empty) until <see cref="Bind"/>, so a test of another page never builds the app's accounts; a test of these pages overrides it.</summary>
+    public static Ambient<MultiAccountOffer> Context { get; } = new(new MultiAccountOffer(_ => null));
+
+    /// <summary>Program.Main calls this once at start-up: the pages then read the running AppModel (the pattern of SkillsStartup.Bind).</summary>
+    public static void Bind() => Context.SetProcessDefault(new MultiAccountOffer(Default));
 
     public static MultiAccountContext? For(Control control) => Context.Current.Resolve(control);
 }

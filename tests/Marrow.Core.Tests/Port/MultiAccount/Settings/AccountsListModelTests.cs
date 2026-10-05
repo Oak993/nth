@@ -197,4 +197,16 @@ public sealed class AccountsListModelTests
         rig.Decisions.SetSetting(Marrow.Core.Accounts.DecisionKind.Bring, Marrow.Core.Accounts.DecisionValues.Full);
         Assert.Equal(3, changes);
     }
+
+    [Fact]
+    public void A_local_model_has_no_limit_and_no_add_another_account()
+    {
+        var rig = new AccountsRig();
+        rig.Connect(ProviderKind.Local);
+        rig.ConnectAnother(ProviderKind.Local);
+        var block = Assert.Single(rig.Model.Blocks);
+        Assert.False(block.CanAdd);
+        Assert.All(block.Rows, r => Assert.Equal(MultiAccountWords.NoLimit, r.UsageText));
+        Assert.DoesNotContain(rig.Model.BlockMenu(ProviderKind.Local), e => e.Key == "add");
+    }
 }

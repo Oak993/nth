@@ -56,7 +56,7 @@ public sealed class AccountsSettingsModel
         var rows = several ? list.Select((a, i) => Row(a, i + 1)).ToArray() : [];
         var first = Row(list[0], 1);
         return new ServiceBlockView(service, ServiceNames.Title(service), several ? MultiAccountWords.Several(list.Count) : MultiAccountWords.One(list[0].Plan),
-            several, AccountCapabilities.SupportsMultipleAccounts(service), rows, several ? null : first.WeekFraction, several ? "" : first.UsageText);
+            several, AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local, rows, several ? null : first.WeekFraction, several ? "" : first.UsageText);
     }
 
     private AccountRowView Row(Account account, int number)
@@ -76,7 +76,7 @@ public sealed class AccountsSettingsModel
             if (account.CustomName is not null) subtitle += " · " + MultiAccountWords.CustomName;
             if (out5 && (line?.FiveHourReset ?? line?.WeekReset) is { } until) subtitle += " · " + MultiAccountWords.OutUntil(ResetText(until));
         }
-        var usageText = line is null ? "" : line.NoLimit ? MultiAccountWords.NoLimit
+        var usageText = account.Service == ProviderKind.Local || line is { NoLimit: true } ? MultiAccountWords.NoLimit : line is null ? ""
             : week is { } w && line.WeekReset is { } reset ? MultiAccountWords.WeekText((int)Math.Round(w * 100, MidpointRounding.AwayFromZero), ResetText(reset)) : "";
         var label = point is not null ? PointLabel(point) : DefaultLabel() + " · " + MultiAccountWords.UsesDefault;
         return new AccountRowView(account.Id, number, name, plan, subtitle, account.Enabled, label, point is null, week, usageText, week >= 0.8, line?.NoFiveHour ?? false);
@@ -162,7 +162,7 @@ public sealed class AccountsSettingsModel
     public IReadOnlyList<MenuEntry> BlockMenu(ProviderKind service)
     {
         var list = Connected(service);
-        var canAdd = AccountCapabilities.SupportsMultipleAccounts(service);
+        var canAdd = AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local;
         if (list.Count < 2)
         {
             var one = new List<MenuEntry> { new("usage", MultiAccountWords.UsageDetails), new("signout", MultiAccountWords.SignOut, Disabled: true), MenuEntry.Line };
@@ -218,7 +218,7 @@ public sealed class AccountsSettingsModel
         {
             case "run":
                 return Menu(key, MultiAccountWords.RunTitle, decisions.GetSetting(DecisionKind.OnLimit), null, MultiAccountWords.RunNone,
-                    [(DecisionValues.Switch, MultiAccountWords.RunGo, true), (DecisionValues.Ask, MultiAccountWords.RunAsk, false), (DecisionValues.Wait, MultiAccountWords.RunWait, false)],
+                    [(DecisionValues.Switch, MultiAccountWords.RunGo, false), (DecisionValues.Ask, MultiAccountWords.RunAsk, false), (DecisionValues.Wait, MultiAccountWords.RunWait, false)],
                     v => v switch { DecisionValues.Switch => MultiAccountWords.RunGoDescription, DecisionValues.Ask => MultiAccountWords.RunAskDescription, DecisionValues.Wait => MultiAccountWords.RunWaitDescription, _ => MultiAccountWords.RunNoneDescription },
                     true, false);
             case "mid":

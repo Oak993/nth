@@ -169,7 +169,12 @@ internal sealed class AccountRowControl : Decorator
         AutomationProperties.SetAutomationId(box, "account-rename-" + id.ToString("N"));
         var count = LibraryUi.Text(MultiAccountWords.Count(box.Text!.Length), 11, secondary: true);
         count.VerticalAlignment = VerticalAlignment.Center;
-        box.TextChanged += (_, _) => count.Text = MultiAccountWords.Count(box.Text?.Length ?? 0);
+        box.TextChanged += (_, _) =>
+        {
+            var used = box.Text?.Length ?? 0;
+            count.Text = MultiAccountWords.Count(used);
+            count.Foreground = (used >= 24 ? ChromeTokens.Danger : ChromeTokens.SecondaryText).Brush(count); // the page turns the counter hot at 24
+        };
         var done = false;
         void Finish(bool commit)
         {

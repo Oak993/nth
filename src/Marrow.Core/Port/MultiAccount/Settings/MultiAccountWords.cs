@@ -78,7 +78,7 @@ public static class MultiAccountWords
     public const string HandshakeHeading = "Handshake";
     public const string HandshakeFoot = "Each account can have its own moment: open its ⋯ menu and choose Handshake at.";
     public const string UseHandshake = "Use the Handshake";
-    public const string UseHandshakeOn = "Shortly before an account runs out, it briefs the next one, so the work carries on without a gap. On by default.";
+    public const string UseHandshakeOn = "Shortly before an account runs out, it briefs the next one, so the work carries on without a gap.";
     public const string UseHandshakeOff = "Off. The next account starts from Marrow’s summary alone.";
     public const string WhenToStart = "When to start";
     public const string WhenSmart = "Automatically";
@@ -110,7 +110,7 @@ public static class MultiAccountWords
 
     // ---- Pills when fewer than two accounts or services are connected (OD-0117; ENGINEERING DECISION wording)
     public const string DisabledWhat = "A pill is a chain of accounts and models that Marrow moves through when one runs out.";
-    public const string DisabledNeed = "Connect a second account or service to use pills.";
+    public const string DisabledNeed = "Pills turn on once a second account or service is connected.";
     public const string DisabledButton = "Models";
 
     // ---- the pill editor
