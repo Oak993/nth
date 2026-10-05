@@ -112,8 +112,8 @@ public sealed class FloatingGuidePanelCornerTests(HeadlessSession headless)
                     Assert.All(inside, level => Assert.True(Math.Abs(level - Grey.R / 255.0) > 0.02, $"the backdrop inside the shape, within 18 pt of an edge, is drawn ({level:0.###})"));
                     // OD-0075, ED-NEW-corner-seam: the wedge outside the 26 pt curve is the body just inside it, over a flat or a striped backdrop.
                     if (busy) { window.Background = Marrow.App.Tests.Views.RootViewCornerWedgeTests.Stripes(); Settle(window); }
-                    var pairs = CornerSeam.Pairs(width, height, Chrome.WindowCornerRadius, [1, 2, 3, 4, 5, 6, 8, 10], edgeInset: 0)
-                        .Concat(CornerSeam.Pairs(width, height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
+                    var pairs = CornerSeam.Pairs(width, height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 1)
+                        .Concat(CornerSeam.Pairs(width, height, Chrome.WindowCornerRadius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
                     CornerSeam.AssertSeamless(window, pairs, $"the {panel} guide panel, {(dark ? "dark" : "light")}, {(busy ? "striped" : "grey")} backdrop", busy ? null : (Grey.R, Grey.G, Grey.B));
                 });
             }

@@ -131,7 +131,7 @@ public sealed class TourWindowControllerReviewTests(HeadlessSession headless)
             var scrim=Assert.IsType<Border>(view.Children[0]);
             Assert.True(scrim.BoxShadow.Count>0);
             Assert.True(scrim.BoxShadow[0].Blur>0 && scrim.BoxShadow[0].Color.A>0);
-            Assert.Equal(new CornerRadius(20),scrim.CornerRadius); // TourView.swift:63
+            Assert.Equal(default(CornerRadius),scrim.CornerRadius); // TourView.swift:63 is the 20 pt shape; the port's window is its rectangle, which DWM rounds (OD-0075, ED-NEW-corner-seam)
             var calls=0;
             var seam=typeof(TourWindowController).GetProperty("MoveDragForTesting",BindingFlags.NonPublic|BindingFlags.Instance);
             Assert.NotNull(seam);

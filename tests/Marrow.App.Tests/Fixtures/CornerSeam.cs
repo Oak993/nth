@@ -27,9 +27,10 @@ public static class CornerSeam
     /// The pairs for a window of <paramref name="width"/> x <paramref name="height"/> pixels whose shape is a continuous rounded rectangle of
     /// <paramref name="radius"/> pixels: at each of the four corners, each x in <paramref name="columns"/> counted from the corner's vertical edge
     /// whose pixel is outside the shape by at least <paramref name="clearance"/> pixels takes its wedge pixel on the window's edge row
-    /// <paramref name="edgeInset"/> in, and its body pixel in the same column the first row that is inside the shape by <paramref name="clearance"/>.
+    /// <paramref name="edgeInset"/> in, and its body pixel in the same column the first row that is inside the shape by <paramref name="clearance"/>. The columns start at 2 and the
+    /// edge inset at 1: the backdrop's hairline is the window's inner stroke, and it covers the outermost pixel of every edge.
     /// </summary>
-    public static Pair[] Pairs(int width, int height, double radius, IEnumerable<int> columns, int edgeInset, double clearance = 2.5)
+    public static Pair[] Pairs(int width, int height, double radius, IEnumerable<int> columns, int edgeInset, double clearance = 2.5, double osRadius = 0, int block = 1)
     {
         var shape = SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, width, height), radius, RoundedCornerStyle.Continuous);
         // a sample beyond the window's rectangle is the rectangle's edge, not the shape's: it is clamped to the outermost pixel's centre
@@ -40,10 +41,23 @@ public static class CornerSeam
                 if (Inside(x + 0.5 + dx, y + 0.5 + dy) != inside) return false;
             return true;
         }
+        // A real window is rounded by the OS (DWM, 8 px) and the OS draws its own border on that curve: a wedge pixel is read only where its whole block is inside the rounding,
+        // a pixel clear of the OS border (osRadius 0: the headless window, which has none).
+        bool InsideOsRounding(int x, int y)
+        {
+            if (osRadius <= 0) return true;
+            var half = block / 2.0;
+            foreach (var (dx, dy) in new[] { (-half, -half), (half, -half), (-half, half), (half, half) })
+            {
+                var sx = x + 0.5 + dx; var sy = y + 0.5 + dy;
+                if (sx < osRadius && sy < osRadius && Math.Sqrt((osRadius - sx) * (osRadius - sx) + (osRadius - sy) * (osRadius - sy)) > osRadius - 1.5) return false;
+            }
+            return true;
+        }
         var pairs = new List<Pair>();
         foreach (var x in columns)
         {
-            if (!Clear(x, edgeInset, inside: false)) continue;
+            if (!Clear(x, edgeInset, inside: false) || !InsideOsRounding(x, edgeInset)) continue;
             var y = edgeInset;
             while (y < height / 2 && !Clear(x, y, inside: true)) y++;
             if (y >= height / 2) throw new InvalidOperationException($"no body pixel in column {x}");
@@ -96,11 +110,11 @@ public static class CornerSeam
     /// <paramref name="radiusPoints"/> points of <paramref name="scale"/> pixels each. Each pair is in screen pixels. A pixel is read as the mean of
     /// the <paramref name="block"/> x <paramref name="block"/> block around it, so a pair keeps <paramref name="clearance"/> pixels clear of the shape's edge.
     /// </summary>
-    public static Pair[] OnScreen(int left, int top, int right, int bottom, double radiusPoints, double scale, int[] columns, int[] edgeInsets, double clearance)
+    public static Pair[] OnScreen(int left, int top, int right, int bottom, double radiusPoints, double scale, int[] columns, int[] edgeInsets, double clearance, int block = 3)
     {
         var width = right - left;
         var height = bottom - top;
-        var pairs = edgeInsets.SelectMany(inset => Pairs(width, height, radiusPoints * scale, columns, edgeInset: inset, clearance: clearance)).ToArray();
+        var pairs = edgeInsets.SelectMany(inset => Pairs(width, height, radiusPoints * scale, columns, edgeInset: inset, clearance: clearance, osRadius: 8 * scale, block: block)).ToArray();
         return pairs.Select(pair => new Pair(pair.Corner, (left + pair.Wedge.X, top + pair.Wedge.Y), (left + pair.Body.X, top + pair.Body.Y))).ToArray();
     }
 
@@ -144,13 +158,13 @@ public static class CornerSeam
     /// further premises. Every one of the four corners must have been measured. With <paramref name="problems"/> a corner whose pairs differ
     /// adds one line (its widest difference) to the list instead of failing at once, so one run reports every theme and backdrop.
     /// </summary>
-    public static ((double R, double G, double B) Wedge, (double R, double G, double B) Body)[] AssertOnScreen(Pair[] pairs, string when, int block = 3, List<string>? problems = null)
+    public static ((double R, double G, double B) Wedge, (double R, double G, double B) Body)[] AssertOnScreen(Pair[] pairs, string when, int block = 3, List<string>? problems = null, string[]? corners = null)
     {
-        foreach (var corner in new[] { "top left", "top right", "bottom left", "bottom right" })
+        foreach (var corner in corners ?? ["top left", "top right", "bottom left", "bottom right"])
             Assert.True(pairs.Any(pair => pair.Corner == corner), $"{when}: no pair measures the {corner} corner");
         var seen = new List<((double, double, double), (double, double, double))>();
         var widest = new Dictionary<string, (double Gap, string Line)>();
-        foreach (var pair in pairs)
+        foreach (var pair in pairs.Where(pair => corners is null || corners.Contains(pair.Corner)))
         {
             var wedge = ScreenMean(pair.Wedge.X, pair.Wedge.Y, block);
             var body = ScreenMean(pair.Body.X, pair.Body.Y, block);

@@ -321,7 +321,19 @@ namespace Marrow.UI.Chrome
         }
     }
 
-    /// <summary>:201-273. One shaped surface for the whole window: glass or a solid fill, a legibility tint and a hairline.</summary>
+    /// <summary>
+    /// :201-273. One shaped surface for the whole window: glass or a solid fill, a legibility tint and a hairline.
+    /// <para>
+    /// PORT-ONLY (OD-0075, owner 2026-10-02: "Window corner: the wedge is filled with the window's scrim"; the owner's intent of 2026-10-05: Windows rounds a
+    /// window's corner less than the app's glass shape, so the glass is EXTENDED to the window's edge and reads as one glass surface out to the OS edge;
+    /// ED-NEW-corner-seam). The source draws every layer in the window's own shape (:218 <c>RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style:
+    /// .continuous)</c>), and a Windows window is the system's Acrylic in a rectangle that DWM rounds by 8 px at most. So the layers that FILL (the scrim, the solid
+    /// fill, the tint, the wallpaper and its glass) fill the rectangle of the backdrop, and the window (RootView, SettingsView, the guide panels) clips them with
+    /// its own rectangle, which DWM then rounds: the corner outside the 26 pt curve is the same stack of layers as the body inside it, not a second paint that
+    /// has to match. The HAIRLINE (:266-271) is the glass's edge, and the glass now ends at the window's edge: it is the rectangle's inner stroke, which DWM's
+    /// rounding cuts at the corner. (At 26 pt it ran as an arc through the extended glass, reading as a second edge a few pixels inside the window's.)
+    /// </para>
+    /// </summary>
     public sealed class WindowBackdrop : Decorator
     {
         private enum Base { Wallpaper, Solid, Glass }
@@ -343,11 +355,11 @@ namespace Marrow.UI.Chrome
         {
             this.opacity = opacity;
             this.wallpaper = wallpaper;
-            var tint = Shape();
+            var tint = Fill();
             tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-254)
             // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
             // which is how an Avalonia Border draws its border.
-            var hairline = Shape();
+            var hairline = Fill();
             hairline.BorderThickness = new Thickness(1);
             hairline.BorderBrush = Chrome.Overlay(0.14).Brush(hairline);
             Child = new Panel { Children = { group, tint, hairline } };
@@ -406,15 +418,16 @@ namespace Marrow.UI.Chrome
             return t <= 0.5 ? stock * (t / 0.5) : stock + (1 - stock) * ((t - 0.5) / 0.5); // :214
         }
 
-        // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous), the size of the backdrop.
-        private static SwiftShapeBorder Shape() => new SwiftShapeBorder().RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+        // PORT-ONLY (OD-0075, ED-NEW-corner-seam): every layer of the backdrop is the window's rectangle, out to the window's edge; see the class summary.
+        // :218 `RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous)` is the rectangle the OS then rounds.
+        private static SwiftShapeBorder Fill() => new();
 
         // `shape.fill(.clear).glassEffect(in: shape)` (:243-245, :252-254): the default glass, no tint, no .interactive()
         // and no container, drawn over the app-owned backdrop (OD-0005, ADR-0002 Glass (b)).
         private static SwiftShapeBorder GlassLayer()
         {
-            var layer = Shape();
-            SwiftGlass.SetEffect(layer, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous)));
+            var layer = Fill();
+            SwiftGlass.SetEffect(layer, GlassEffect.Regular(GlassShape.RoundedRectangle(0, RoundedCornerStyle.Continuous))); // the rectangle: see Fill
             return layer;
         }
 
@@ -458,7 +471,7 @@ namespace Marrow.UI.Chrome
             picture = new Image { Stretch = Stretch.UniformToFill }; // :235, :237 .resizable().aspectRatio(contentMode: .fill)
             RenderOptions.SetBitmapInterpolationMode(picture, BitmapInterpolationMode.HighQuality); // :236 .interpolation(.high)
             scrim = null;
-            var clip = Shape(); // :232 shape.fill(.clear)
+            var clip = Fill(); // :232 shape.fill(.clear)
             clip.ClipToBounds = true; // :240 .clipShape(shape)
             clip.Child = picture; // :233 .overlay
             // :241-247 `.overlay { if !isSolid { shape.fill(.clear).glassEffect(in: shape) } }`: over the picture the app
@@ -474,7 +487,7 @@ namespace Marrow.UI.Chrome
             picture = null;
             scrim = null;
             wallpaperOverlay = null;
-            var solid = Shape();
+            var solid = Fill();
             solid.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(solid);
             return solid;
         }
@@ -487,7 +500,7 @@ namespace Marrow.UI.Chrome
             // :252-254 `shape.fill(.clear).glassEffect(in: shape)`: with no wallpaper the window shows the desktop, and
             // there the glass is the window's own Acrylic (OD-0005, ADR-0002 Glass (a), OD-0014), so the app paints
             // the source scrim over native Acrylic, with no desktop sampling or app frost on the window base.
-            scrim = Shape();
+            scrim = Fill();
             scrim.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(scrim); // :256-257
             var desktopGlass = GlassLayer();
             SwiftGlass.SetUsesDesktopBackdrop(desktopGlass, true); // OD-0014 keeps upstream's clear default.

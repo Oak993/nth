@@ -56,8 +56,12 @@ public sealed class TourWindowCornerTests(HeadlessSession headless)
             Settle(window);
             var width = (int)window.ClientSize.Width;
             var height = (int)window.ClientSize.Height;
-            var pairs = CornerSeam.Pairs(width, height, CardRadius, [1, 2, 3, 4, 5, 6, 8], edgeInset: 0)
-                .Concat(CornerSeam.Pairs(width, height, CardRadius, [2, 3, 4, 5, 6], edgeInset: 3)).ToArray();
+            // The card's material shades a strip along each edge (about 10 px wide) and lights a rim along the bottom (about 3 px), so a wedge pixel is compared with the pixel in its
+            // column deep in the card, and only where it is clear of the bottom rim and of the 45 degree line where the two meet: more rows up than columns in. The top corners are
+            // the page's artwork, a picture that differs from row to row.
+            var pairs = CornerSeam.Pairs(width, height, CardRadius, [2, 3], edgeInset: 6, clearance: 1)
+                .Concat(CornerSeam.Pairs(width, height, CardRadius, [2, 3], edgeInset: 8, clearance: 1))
+                .Where(pair => pair.Corner.StartsWith("bottom", StringComparison.Ordinal)).ToArray();
             CornerSeam.AssertSeamless(window, pairs, $"the tour window, {(dark ? "dark" : "light")}, {(striped ? "striped" : "solid")} backdrop", striped ? null : (Backdrop.R, Backdrop.G, Backdrop.B));
         }
         finally

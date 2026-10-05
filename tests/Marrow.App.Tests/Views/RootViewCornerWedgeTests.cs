@@ -63,8 +63,8 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
 
     // Each wedge pixel along the top and bottom rows and on the diagonal, with the body pixel under it in the shape (OD-0075, ED-NEW-corner-seam).
     internal static CornerSeam.Pair[] Pairs() =>
-        CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [1, 2, 3, 4, 5, 6, 8, 10], edgeInset: 0)
-            .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
+        CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 1)
+            .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
 
     [Theory]
     [InlineData(true, false)]

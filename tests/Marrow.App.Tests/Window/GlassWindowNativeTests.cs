@@ -27,8 +27,10 @@ namespace Marrow.App.Tests.Window.Native;
 // The pixels are the composed screen (BitBlt with CAPTUREBLT), so what is measured is what the user sees. The window
 // geometry that is not under test (the stripes' place, the sampled blocks) is derived from the working area.
 //
-// NOT ASSERTED, recorded in ED-236: the corners of a window outside the 26 pt shape its content draws show the Acrylic
-// without the scrim (the window is rectangular, DWM rounds it by 8 px); and a user-opened Settings window shows the same
+// The corners of a window outside the 26 pt shape its content would draw (the window is rectangular, DWM rounds it by 8 px) are
+// asserted for the Settings window and the tour window (and, in MainWindowCornerWedgeNativeTests, the main window): each is the
+// colour of the body just inside the shape, over stripes and over bands of four colours, in both themes (OD-0075, the owner's
+// intent of 2026-10-05, ED-NEW-corner-seam). NOT ASSERTED, recorded in ED-236: a user-opened Settings window shows the same
 // 200 ms gap on its first show (OD-0041 names only the launch's boot sequence).
 [Collection("WindowManagerNative")]
 public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
@@ -311,10 +313,10 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
                 var handle = native.OnUi(() => settings.TryGetPlatformHandle()!.Handle);
                 var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
                 Assert.InRange(Marrow.UI.Chrome.WindowBackdrop.Scrim(opacity, dark), 0.05, 0.95); // glass under a scrim, not a solid window
-                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, Marrow.UI.Chrome.Chrome.WindowCornerRadius, scale, [3, 4, 5], [4, 5], clearance: 2);
+                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, Marrow.UI.Chrome.Chrome.WindowCornerRadius, scale, [3, 4, 5, 6], [3, 4, 5], clearance: 1, block: 1);
                 var name = $"{theme}, {(busy ? "banded" : "striped")} backdrop";
-                CornerSeam.WaitSettled(pairs, 3);
-                var colours = CornerSeam.AssertOnScreen(pairs, name, problems: problems);
+                CornerSeam.WaitSettled(pairs, 1);
+                var colours = CornerSeam.AssertOnScreen(pairs, name, block: 1, problems: problems);
             }
         }
         Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
@@ -351,9 +353,11 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
                 Thread.Sleep(1000);
                 var handle = native.OnUi(() => tour.TryGetPlatformHandle()!.Handle);
                 var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
-                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, 20, scale, [3, 4, 5], [3, 4], clearance: 0.6);
+                // The card's material shades a strip along each edge (about 10 px wide) and lights a rim along the bottom (about 3 px), so a wedge pixel is compared with the pixel in its column
+                // deep in the card, and only where it is clear of the bottom rim and of the 45 degree line where the two meet: more rows up than columns in.
+                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, 20, scale, [2, 3], [6, 7, 8, 9], clearance: 0.6, block: 1);
                 CornerSeam.WaitSettled(pairs, 1);
-                CornerSeam.AssertOnScreen(pairs, $"tour, {(dark ? "dark" : "light")}, {(busy ? "banded" : "striped")} backdrop", block: 1, problems: problems);
+                CornerSeam.AssertOnScreen(pairs, $"tour, {(dark ? "dark" : "light")}, {(busy ? "banded" : "striped")} backdrop", block: 1, problems: problems, corners: ["bottom left", "bottom right"]); // the top corners are the page's artwork, a picture that differs from row to row
             }
         }
         native.OnUi(() => TourWindowController.Shared.Close());

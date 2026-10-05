@@ -26,8 +26,8 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
     private static readonly Color Grey = Color.FromRgb(128, 128, 128);
 
     private static CornerSeam.Pair[] Pairs() =>
-        CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [1, 2, 3, 4, 5, 6, 8, 10], edgeInset: 0)
-            .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
+        CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 1)
+            .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
 
     // The window's chrome has made it clear (the system's Acrylic is behind it): the known grey stands in for that blur.
     private static Avalonia.Controls.Window OpenOnGrey(WindowManager manager, bool dark)

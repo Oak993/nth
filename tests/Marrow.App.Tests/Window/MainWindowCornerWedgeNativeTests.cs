@@ -117,12 +117,14 @@ public sealed class MainWindowCornerWedgeNativeTests(WindowManagerNativeSession 
         {
             WaitFor(() =>
             {
-            var shown = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(main.TryGetPlatformHandle()!.Handle)).VisibleBounds!;
-            var body = CornerSeam.OnScreen(shown.Left, shown.Top, shown.Right, shown.Bottom, Chrome.WindowCornerRadius, scale, [4], [4], clearance: 2)[0].Body;
-            var (r, g, b) = CornerSeam.ScreenMean(body.X, body.Y);
-            lastSeen = $"the window is {shown.Left},{shown.Top} to {shown.Right},{shown.Bottom}; the screen at its first corner body shows ({r:F0}, {g:F0}, {b:F0})";
-            return shown.Right - shown.Left > 880 * scale && Math.Abs(r - Bright.R) + Math.Abs(g - Bright.G) + Math.Abs(b - Bright.B) > 40;
-        }, "the main window's glass never showed over the backdrop", 10000);
+                // raise the window above the backdrop again each time: another window can take the top of the topmost band while it settles
+                native.OnUi(() => { main.Topmost = false; main.Topmost = true; WindowManagerNativeForeground.Acquire(main.TryGetPlatformHandle()!.Handle, native.ThreadId); });
+                Thread.Sleep(250);
+                var shown = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(main.TryGetPlatformHandle()!.Handle)).VisibleBounds!;
+                var (r, g, b) = CornerSeam.ScreenMean(shown.Left + 24, shown.Top + 24);
+                lastSeen = $"the window is {shown.Left},{shown.Top} to {shown.Right},{shown.Bottom}; the screen inside its top left shows ({r:F0}, {g:F0}, {b:F0})";
+                return shown.Right - shown.Left > 880 * scale && Math.Abs(r - Bright.R) + Math.Abs(g - Bright.G) + Math.Abs(b - Bright.B) > 40;
+            }, "the main window's glass never showed over the backdrop", 10000);
         }
         catch (TimeoutException timeout) { throw new TimeoutException(timeout.Message + ": " + lastSeen); }
         var problems = new List<string>();
@@ -137,10 +139,10 @@ public sealed class MainWindowCornerWedgeNativeTests(WindowManagerNativeSession 
                 var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
                 Assert.InRange(WindowBackdrop.Scrim(opacity, dark), 0.05, 0.95); // glass under a scrim, not a solid window
                 // each wedge pixel (inside DWM's 8 px rounding, outside the 26 pt shape) against the body pixel in its column just inside the shape
-                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, Chrome.WindowCornerRadius, scale, [3, 4, 5], [4, 5], clearance: 2);
+                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, Chrome.WindowCornerRadius, scale, [3, 4, 5, 6], [3, 4, 5], clearance: 1, block: 1);
                 var name = $"{theme}, {(busy ? "banded" : "solid")} backdrop";
-                CornerSeam.WaitSettled(pairs, 3);
-                var colours = CornerSeam.AssertOnScreen(pairs, name, problems: problems);
+                CornerSeam.WaitSettled(pairs, 1);
+                var colours = CornerSeam.AssertOnScreen(pairs, name, block: 1, problems: problems);
                 if (!busy)
                     // the instrument sees the glass and not the bare backdrop: the corner is plainly not the backdrop, in the wedge or the body
                     for (var index = 0; index < pairs.Length; index++)
