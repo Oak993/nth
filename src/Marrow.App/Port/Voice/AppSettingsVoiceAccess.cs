@@ -9,17 +9,17 @@ public sealed class AppSettingsVoiceAccess(AppSettings settings) : IVoicePrepara
 {
     public VoiceHardwareRecord? Record
     {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
+        get => settings.VoiceHardware;
+        set => settings.VoiceHardware = value;
     }
 
     public VoiceTypingSettings Typing
     {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
+        get => settings.VoiceTyping;
+        set => settings.VoiceTyping = value;
     }
 
-    public VoiceOrbSettings Orb => throw new NotImplementedException();
+    public VoiceOrbSettings Orb => settings.VoiceOrb;
 
-    public string? UiLanguage => throw new NotImplementedException();
+    public string? UiLanguage => CultureInfo.CurrentUICulture.Name;
 }
