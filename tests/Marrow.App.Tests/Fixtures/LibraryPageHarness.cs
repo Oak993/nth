@@ -21,6 +21,7 @@ namespace Marrow.App.Tests.Fixtures;
 internal sealed class LibraryPageHarness : IDisposable
 {
     private readonly List<IDisposable> scopes = [];
+    private readonly bool runOut;
 
     private LibraryPageHarness(HeadlessSession headless, LibrarySection section, SkillsCatalogue catalogue, IFirstInstall? install, bool motion, bool reduceMotion)
     {
@@ -32,11 +33,10 @@ internal sealed class LibraryPageHarness : IDisposable
         Time = new ManualTimeProvider();
         scopes.Add(SwiftClock.Provider.Override(Time));
         scopes.Add(ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = false })); // the machine's own setting never decides a test
-        if (motion)
-        {
-            Frames = new ManualFrameSource();
-            scopes.Add(FrameClock.Source.Override(Frames));
-        }
+        // frames are always bound (the in-window sheet closes on them); a test that does not take the frames by hand has every transition run out in Settle
+        runOut = !motion;
+        Frames = new ManualFrameSource();
+        scopes.Add(FrameClock.Source.Override(Frames));
         scopes.Add(SkillsPageSeams.Controllers.Override(new LibraryControllers(_ => Controller)));
         Page = section == LibrarySection.Plugins ? new PluginsSettingsPage() : new SkillsSettingsPage();
         var margin = new Border { Padding = new Thickness(24), Child = Page };
@@ -65,7 +65,7 @@ internal sealed class LibraryPageHarness : IDisposable
 
     public ManualTimeProvider Time { get; }
 
-    public ManualFrameSource? Frames { get; }
+    public ManualFrameSource Frames { get; }
 
     public static void Run(HeadlessSession headless, LibrarySection section, Action<LibraryPageHarness> check, bool motion = false, bool reduceMotion = false, SkillsCatalogue? catalogue = null, IFirstInstall? install = null)
     {
@@ -86,6 +86,10 @@ internal sealed class LibraryPageHarness : IDisposable
         {
             Window.UpdateLayout();
             Dispatcher.UIThread.RunJobs();
+            if (!runOut) continue;
+            var second = TimeSpan.FromSeconds(1);
+            Time.Advance(second);
+            Frames.Advance(second);
         }
     }
 
@@ -106,6 +110,7 @@ internal sealed class LibraryPageHarness : IDisposable
             Thread.Sleep(5);
             Settle();
         }
+        Settle();
     }
 
     /// <summary>Moves the manual clock and delivers one frame, the way a display would.</summary>
@@ -113,7 +118,7 @@ internal sealed class LibraryPageHarness : IDisposable
     {
         var by = TimeSpan.FromMilliseconds(milliseconds);
         Time.Advance(by);
-        Frames!.Advance(by);
+        Frames.Advance(by);
         Window.UpdateLayout();
     }
 
