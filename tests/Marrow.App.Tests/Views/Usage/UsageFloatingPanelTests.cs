@@ -16,6 +16,7 @@ using Marrow.Core.Models;
 using Marrow.Services.Providers;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -288,10 +289,11 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     }
 
     [Theory]
-    [InlineData(false, (byte)87, (byte)166)] // light: scrim white 0.34 (87/255), shadow black 0.65 (166/255)
-    [InlineData(true, (byte)77, (byte)255)]  // dark: scrim black 0.3 (77/255), shadow black 1.0
+    [InlineData(false, (byte)87, (byte)166, (byte)57)] // light: scrim white 0.34 (87/255), shadow black 0.65 (166/255), drawn 0.65 x 0.34
+    [InlineData(true, (byte)77, (byte)255, (byte)77)]  // dark: scrim black 0.3 (77/255), shadow black 1.0, drawn 1.0 x 0.3
     [Trait("Req", "PR-USAGE-063")] // App/Views/Usage/UsageFloatingPanel.swift:68-73
-    public void Scrim_and_shadow_use_the_source_opacities_per_theme(bool isDark, byte scrimAlpha, byte shadowAlpha)
+    [Trait("Decision", "ED-NEW-glass-g3")]
+    public void Scrim_and_shadow_use_the_source_opacities_per_theme(bool isDark, byte scrimAlpha, byte shadowAlpha, byte drawnAlpha)
     {
         // The pure color/shadow math the constructor (and its theme-change handler) calls, verified directly.
         // The end-to-end wiring — that these actually reach the rendered Border for a themed window, including
@@ -300,9 +302,11 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
         Assert.Equal(scrimAlpha, color.A);
         var shadow = UsageFloatingPanel.ScrimShadow(isDark);
         Assert.Equal(shadowAlpha, shadow.Color.A);
-        Assert.Equal((28 - 0.5) / 0.288675, shadow.Blur, 6); // radius 28 drawn as sigma 28 (ED-327; measured by SwiftShadowHeadlessTests)
-        Assert.Equal(10, shadow.OffsetY);
-        Assert.Equal(0, shadow.OffsetX);
+        // ED-NEW-glass-g3 (was a BoxShadow of Blur (28 - 0.5) / 0.288675, the colour's full alpha, outside the box only): the Swift's radius,
+        // drawn as a Gaussian of sigma 28 by SwiftShadow.Caster, which casts the colour at the scrim fill's alpha, under the fill.
+        Assert.Equal(28, shadow.Radius);
+        Assert.Equal(10, shadow.Y);
+        Assert.Equal(drawnAlpha, SwiftShadow.Cast(shadow.Color, color.A / 255.0).A);
     }
 
     // :56 `let isDark = colorScheme == .dark` inside `body`, and :69's own re-read of the same environment value
@@ -325,13 +329,18 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
             Show(panel, harness, theme: isDark ? ThemeVariant.Dark : ThemeVariant.Light);
 
-            // The scrim border is the one that carries the panel's single box shadow (:68-73); the glass-tint
-            // layer (:53-63) carries none.
-            var scrimBorder = Assert.Single(LogicalQuery.SelfAndDescendants<Border>(panel), b => b.BoxShadow.Count > 0);
+            // The scrim border is the one that casts the panel's single shadow (:68-73), drawn under it by its caster (ED-NEW-glass-g3); no
+            // Border carries a box shadow (the glass-tint layer, :53-63, casts none).
+            var caster = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftShadow.Caster>(panel));
+            var scrimBorder = caster.Source;
             var brush = Assert.IsType<SolidColorBrush>(scrimBorder.Background);
             Assert.Equal(UsageFloatingPanel.ScrimColor(isDark), brush.Color);
-            Assert.Equal(1, scrimBorder.BoxShadow.Count);
-            Assert.Equal(UsageFloatingPanel.ScrimShadow(isDark).Color, scrimBorder.BoxShadow[0].Color);
+            Assert.Equal(UsageFloatingPanel.ScrimShadow(isDark).Color, caster.Color);
+            Assert.Equal((28d, 0d, 10d), (caster.Radius, caster.X, caster.Y));
+            Assert.Equal(SwiftShadow.Cast(UsageFloatingPanel.ScrimShadow(isDark).Color, brush.Color.A / 255.0), caster.DrawnColor);
+            var host = Assert.IsType<Grid>(scrimBorder.Parent);
+            Assert.Equal(host.Children.IndexOf(scrimBorder) - 1, host.Children.IndexOf(caster)); // under the scrim
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Border>(panel), b => b.BoxShadow.Count > 0);
         });
     }
 
@@ -354,14 +363,16 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
                 onContentHeight: _ => { }, onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
             var (_, window) = Show(panel, harness, theme: ThemeVariant.Light);
 
-            var scrimBorder = Assert.Single(LogicalQuery.SelfAndDescendants<Border>(panel), b => b.BoxShadow.Count > 0);
+            var caster = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftShadow.Caster>(panel));
+            var scrimBorder = caster.Source;
             Assert.Equal(UsageFloatingPanel.ScrimColor(false), Assert.IsType<SolidColorBrush>(scrimBorder.Background).Color);
+            Assert.Equal(UsageFloatingPanel.ScrimShadow(false).Color, caster.Color);
 
             window.RequestedThemeVariant = ThemeVariant.Dark;
 
             Assert.Equal(UsageFloatingPanel.ScrimColor(true), Assert.IsType<SolidColorBrush>(scrimBorder.Background).Color);
-            Assert.Equal(1, scrimBorder.BoxShadow.Count);
-            Assert.Equal(UsageFloatingPanel.ScrimShadow(true).Color, scrimBorder.BoxShadow[0].Color);
+            Assert.Equal(UsageFloatingPanel.ScrimShadow(true).Color, caster.Color);
+            Assert.Equal(Color.FromArgb(77, 0, 0, 0), caster.DrawnColor); // black 1.0 cast by the 0.3 fill
         });
     }
 

@@ -73,18 +73,29 @@ public sealed class GlassMacCalibration(HeadlessSession headless)
                 }
                 return [Circle(20), Circle(104)];
             });
-            Render(folder, "card18", () =>
+            // ED-NEW-glass-g3: the head card over frames 18 and 31's backdrops (frame 01 there, levelled on a ring past the shadow's reach; the card at
+            // 60, 60 in a 520 x 347 crop, so the shadow's reach above and beside is in it), and the
+            // card as g1 drew it (the scrim's BoxShadow at the colour's full alpha, outside the box only) over frame 18's, for the before and after.
+            foreach (var (card, before) in new[] { ("card18", false), ("card31", false), ("card18-before", true) })
             {
-                var scrim = Placed(20, 20, 400, 267);
-                scrim.Background = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
-                scrim.CornerRadius = new CornerRadius(22);
-                scrim.BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb(255, 0, 0, 0), radius: 28, y: 10);
-                var card = Placed(20, 20, 400, 267);
-                card.CornerRadius = new CornerRadius(22);
-                SwiftGlass.SetEffect(card, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
-                card.Background = SwiftChrome.GlassTint.Opacity(0.22).Brush(card);
-                return [scrim, card];
-            });
+                Render(folder, card, () =>
+                {
+                    var scrim = Placed(60, 60, 400, 267);
+                    scrim.Background = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
+                    scrim.CornerRadius = new CornerRadius(22);
+                    var glass = Placed(60, 60, 400, 267);
+                    glass.CornerRadius = new CornerRadius(22);
+                    SwiftGlass.SetEffect(glass, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
+                    glass.Background = SwiftChrome.GlassTint.Opacity(0.22).Brush(glass);
+                    if (before)
+                    {
+                        scrim.BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb(255, 0, 0, 0), radius: 28, y: 10);
+                        return [scrim, glass];
+                    }
+                    // The scrim's shadow is its own coverage at the fill's alpha, under it (SwiftShadow.Caster, as HydraPanel draws it).
+                    return [new SwiftShadow.Caster(scrim, Color.FromArgb(255, 0, 0, 0), radius: 28, y: 10), scrim, glass];
+                });
+            }
         }
         finally { ThemeManager.Current = previous; }
     });

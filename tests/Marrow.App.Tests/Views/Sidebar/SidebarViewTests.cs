@@ -363,6 +363,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     // ---- reflection over the file's private declarations ----
 
+    // ED-NEW-glass-g3: the lift host holds the lift's shadow caster (drawn first, under the lift), the lift and the row's content.
+    internal static SwiftShadow.Caster LiftShadowOf(Control host) => Assert.Single(((Panel)host).Children.OfType<SwiftShadow.Caster>());
+    internal static Border LiftOf(Control host) => LiftShadowOf(host).Source;
+
     internal static Type Private(string name) => AppAssembly.GetType("Marrow.App.Views.Sidebar." + name, throwOnError: true)!;
 
     internal static object? Call(object target, string method, params object?[] args) =>
@@ -3130,14 +3134,15 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 window.Show();
             });
             static double ScaleOf(Control control) => control.RenderTransform is ScaleTransform scale ? scale.ScaleX : 1;
-            static double LiftOpacity(Control host) => ((Panel)host).Children[0].Opacity;
+            static double LiftOpacity(Control host) => LiftOf(host).Opacity;
             // :1838-1846 .background { lift }.scaleEffect(isDragged ? 1.02 : 1): the scale applies to the row WITH its
             // lifted fill and shadow, so it sits on the host that holds both, and neither carries a scale of its own.
             static void OneScale(Control host, Control content, double expected)
             {
                 Assert.Equal(expected, ScaleOf(host), 3);
                 Assert.Equal(1d, ScaleOf(content));
-                Assert.Equal(1d, ScaleOf(((Panel)host).Children[0]));
+                Assert.Equal(1d, ScaleOf(LiftOf(host)));
+                Assert.Equal(1d, ScaleOf(LiftShadowOf(host)));
             }
             harness.Main.OnMain(() =>
             {
@@ -3156,10 +3161,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal(1d, LiftOpacity(host)); // :1842-1843 fully faded in
                 // :1843 .shadow(color: .black.opacity(0.28), radius: 10, y: 4): the shadow that springs in with the lift is
                 // SwiftUI's radius 10 as a Gaussian of sigma 10 (ED-327; drawn so, SidebarLiftShadowTests).
-                var shadows = ((Border)((Panel)host).Children[0]).BoxShadow;
-                Assert.Equal(1, shadows.Count);
-                Assert.Equal((Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), 0d, 4d), (shadows[0].Color, shadows[0].OffsetX, shadows[0].OffsetY));
-                Assert.Equal((10 - 0.5) / 0.288675, shadows[0].Blur, 6);
+                // ED-NEW-glass-g3 (was the lift's BoxShadow of Blur (10 - 0.5) / 0.288675 at the colour's full 0.28): its caster, radius 10,
+                // y 4, black 0.28 cast at the fill's alpha (26 of 255), so drawn at 7, fading in with the fill.
+                var shadow = LiftShadowOf(host);
+                Assert.Equal((Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), 10d, 0d, 4d), (shadow.Color, shadow.Radius, shadow.X, shadow.Y));
+                Assert.Equal(Color.FromArgb(7, 0, 0, 0), shadow.DrawnColor);
+                Assert.Equal(default, LiftOf(host).BoxShadow);
                 Call(view, "DragEnded");
             });
             for (var i = 0; i < 100; i++)
@@ -3191,7 +3198,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 var view = Detached(model);
                 var content = new Border { Height = 20 };
                 var host = (Control)CallStatic(Private("SidebarThreadRow"), "ApplyDraggedLift", content, (Func<bool>)(() => false))!;
-                var lift = (Border)((Panel)host).Children[0];
+                var lift = LiftOf(host);
                 // :1735 let shape = RoundedRectangle(cornerRadius: Chrome.rowCornerRadius, style: .continuous), the
                 // same shape the row's own background/contentShape use (SidebarThreadRow.body, not yet ported) and
                 // the lift's fill and shadow follow at :1838-1843. Chrome.RowCornerRadius is 7 (Chrome.cs:104).
@@ -3200,13 +3207,15 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 // :1842 .fill(Chrome.overlay(0.12)): an opaque backing fill, so a row sliding underneath the lifted
                 // one during a swap never shows through it.
                 Assert.Equal(Chrome.Overlay(0.12).Resolve(lift.ActualThemeVariant), ((ISolidColorBrush)lift.Background!).Color);
-                // :1843 .shadow(color: .black.opacity(0.28), radius: 10, y: 4).
-                Assert.Equal(1, lift.BoxShadow.Count);
-                var shadow = lift.BoxShadow[0];
+                // :1843 .shadow(color: .black.opacity(0.28), radius: 10, y: 4): ED-NEW-glass-g3 (was the lift's own BoxShadow): the lift's caster,
+                // the fill's own shape (the lift's corners) casting black 0.28 at the fill's alpha, under it; radius 10 (sigma 10, ED-327).
+                var shadow = LiftShadowOf(host);
+                Assert.Same(lift, shadow.Source);
                 Assert.Equal(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), shadow.Color);
-                Assert.Equal((10 - 0.5) / 0.288675, shadow.Blur, 6); // radius 10 drawn as sigma 10 (ED-327; measured by SwiftShadowHeadlessTests)
-                Assert.Equal(0d, shadow.OffsetX);
-                Assert.Equal(4d, shadow.OffsetY);
+                Assert.Equal((10d, 0d, 4d), (shadow.Radius, shadow.X, shadow.Y));
+                Assert.Equal(0, ((Panel)host).Children.IndexOf(shadow));
+                Assert.Equal(1, ((Panel)host).Children.IndexOf(lift));
+                Assert.Equal(default, lift.BoxShadow);
             });
         });
     }
@@ -7858,7 +7867,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             {
                 var overlays = ((Decorator)row).Child!; // the lift host: :1846 scales the row together with its lift (:1838-1843)
                 Assert.Equal(1.02, ((ScaleTransform)overlays.RenderTransform!).ScaleX, 3); // :1846
-                var lift = Assert.IsType<Border>(Assert.IsType<Panel>(row is Decorator d ? d.Child : null).Children[0]);
+                var lift = LiftOf(Assert.IsType<Panel>(row is Decorator d ? d.Child : null));
                 Assert.Equal(1, lift.Opacity);
                 model.UpdateThread(parent.Id, t => t.WithFoldsHelpers(true));
             });
@@ -7878,7 +7887,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 AssertRider(row, 0);
                 AssertRider(LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("HelperStubRow")), 0);
                 Assert.Equal(1, ((ScaleTransform)((Decorator)row).Child!.RenderTransform!).ScaleX, 3);
-                Assert.Equal(0, Assert.IsType<Border>(Assert.IsType<Panel>(((Decorator)row).Child).Children[0]).Opacity);
+                Assert.Equal(0, LiftOf(Assert.IsType<Panel>(((Decorator)row).Child)).Opacity);
                 window.MouseMove(new Point(-20, -20));
                 window.MouseMove(row.TranslatePoint(new Point(12, 12), window)!.Value); // re-enter the newly released row's live instance
             });

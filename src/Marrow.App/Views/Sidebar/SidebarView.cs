@@ -3635,13 +3635,15 @@ internal sealed class SidebarThreadRow : Decorator
         var lift = new Border // :1841-1843
         {
             Background = Chrome.Overlay(0.12).Brush(content), // :1842
-            BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), radius: 10, y: 4), // :1843 (sigma 10, ED-327)
             Opacity = 0,
             IsHitTestVisible = false,
         }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1735 shape, followed by both the row's own background and this lift
         // :1838-1846 `.background { lift }.scaleEffect(isDragged ? 1.02 : 1)`: the scale is applied after the
         // background, so it grows the row together with its lifted fill and shadow (UI-SIDEBAR-060).
-        var host = new Panel { Children = { lift, content }, RenderTransform = scale };
+        // :1843 `.shadow(color: .black.opacity(0.28), radius: 10, y: 4)` on the filled shape: its own coverage, cast at the fill's alpha
+        // (0.102: 0.029 drawn) and under it, through it (SwiftShadow.Caster, ED-NEW-glass-g3; sigma 10, ED-327). It fades with the fill.
+        var shadow = new SwiftShadow.Caster(lift, Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), radius: 10, y: 4);
+        var host = new Panel { Children = { shadow, lift, content }, RenderTransform = scale };
         var spring = Animation.Spring(response: 0.25, dampingFraction: 0.8); // :1847, a fixed animation (R-VIEW-4):
         // .animation(_, value:) ignores whatever ambient transaction changed isDragged.
         var current = 0d;

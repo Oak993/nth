@@ -491,8 +491,82 @@ namespace Marrow.UI.Chrome
             scrim.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(scrim); // :256-257
             var desktopGlass = GlassLayer();
             SwiftGlass.SetUsesDesktopBackdrop(desktopGlass, true); // OD-0014 keeps upstream's clear default.
+            // ED-NEW-glass-g3 (OD-0107: rim effects that need no screen capture): the glass's own edge, which the Acrylic does not draw, is the glass
+            // layer's own content, so it lies under the scrim (:255 `.overlay`), as the Mac's glassEffect edge does.
+            desktopGlass.Child = new WindowRim();
             return new Panel { Children = { desktopGlass, scrim } }; // :255 .overlay
         }
+    }
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-glass-g3, OD-0107 and its amendment): the edge the Mac's window glass draws (<c>shape.fill(.clear).glassEffect(in: shape)</c>,
+    /// Chrome.swift:252-254) where the port's window glass is the system's Acrylic, which draws none (OD-0005: no screen capture). Only the
+    /// app's own light, no sampling: a specular rim on the shape's first point and a light inner edge falling over the next three, brightest
+    /// along the top. Measured on Mac frame 01 (the main window at rest, the transparency at its least, so no scrim; 1 px = 1 pt), the step over
+    /// the window's body: the first point +44 at the top, +41 at the bottom, +40 and +32 at the sides, of which the hairline over it
+    /// (Chrome.overlay(0.14), :266-271) draws about +22; the next points +8, +3, +2 at the top, +4 at the bottom, +2 at the sides.
+    /// </summary>
+    public sealed class WindowRim : Control
+    {
+        /// <summary>
+        /// White over the glass, per point inside the edge (0 the first, the specular rim; 1 to 3 the light inner edge), along the top, the sides
+        /// and the bottom: the frame-01 steps as alpha (a step s over a body b is s / (255 - b): first points 0.235, 0.21, 0.21; then 0.042, 0.016,
+        /// 0.009 at the top, 0.023 at the bottom, 0.008 at the sides), less the hairline's 0.119 over them, through the tint's 0.88 over them.
+        /// </summary>
+        internal static readonly (double Top, double Side, double Bottom)[] Rings =
+        [
+            (0.150, 0.110, 0.117),
+            (0.048, 0.010, 0.026),
+            (0.018, 0.004, 0.009),
+            (0.010, 0.0, 0.0045),
+        ];
+
+        public WindowRim() => IsHitTestVisible = false;
+
+        /// <summary>
+        /// How much of the window's top the system covers: on Windows a window that extends its client area into the frame (WindowChrome,
+        /// ExtendClientAreaToDecorationsHint) keeps the system's 1 px frame line over the client's first row while it is not maximised; at the
+        /// sides and the bottom that line lies outside the client. Measured on the real main window (GlassPanelAndRimNativeTests): the first row
+        /// reads 0 with and without this edge, and the hairline under it does not show. The Mac's own dark outline lies outside its rim on every
+        /// side, so along the top the rim starts on the first row the system leaves (ENGINEERING DECISION).
+        /// </summary>
+        internal double TopCover() =>
+            OperatingSystem.IsWindows() && TopLevel.GetTopLevel(this) is Window { ExtendClientAreaToDecorationsHint: true, WindowState: WindowState.Normal } window
+                ? 1 / window.RenderScaling
+                : 0;
+
+        public override void Render(DrawingContext context)
+        {
+            var size = Bounds.Size;
+            if (size.Width <= 8 || size.Height <= 8) return;
+            var cover = TopCover();
+            for (var i = 0; i < Rings.Length; i++)
+            {
+                var (top, side, bottom) = Rings[i];
+                if (top <= 0 && side <= 0 && bottom <= 0) continue;
+                var inset = i + 0.5; // a 1 pt line centred on the point
+                var rect = new Rect(size).Deflate(new Thickness(inset, inset + cover, inset, inset));
+                var radius = Math.Max(0, Chrome.WindowCornerRadius - inset);
+                // The light follows the edge's facing: the top's value along the top and through the top corners' turn, the sides' between them,
+                // the bottom's along the bottom (a vertical gradient that turns over the corners' height).
+                var turn = Math.Clamp(radius / rect.Height, 0, 0.5);
+                var brush = new LinearGradientBrush
+                {
+                    StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                    EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+                    GradientStops =
+                    {
+                        new GradientStop(Color.FromArgb(Alpha(top), 255, 255, 255), 0),
+                        new GradientStop(Color.FromArgb(Alpha(side), 255, 255, 255), turn),
+                        new GradientStop(Color.FromArgb(Alpha(side), 255, 255, 255), 1 - turn),
+                        new GradientStop(Color.FromArgb(Alpha(bottom), 255, 255, 255), 1),
+                    },
+                };
+                context.DrawGeometry(null, new Pen(brush, 1), SwiftShapes.RoundedRectangleGeometry(rect, radius, RoundedCornerStyle.Continuous));
+            }
+        }
+
+        private static byte Alpha(double a) => (byte)Math.Round(255 * Math.Clamp(a, 0, 1));
     }
 
     // :275-280 struct ChromeQuietButtonStyle: ButtonStyle

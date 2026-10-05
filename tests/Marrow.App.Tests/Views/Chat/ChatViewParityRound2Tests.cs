@@ -280,10 +280,12 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
             var panel = Assert.Single(LogicalQuery.SelfAndDescendants<SubagentPanel>(view));
             // SubagentPanel.swift:345-355 the clipped glass and the shadow-bearing scrim under it are siblings (PR-HYDRA-229).
             var surface = Assert.IsType<Grid>(panel.Child);
-            Assert.Equal(2, surface.Children.Count);
-            var scrim = Assert.IsType<Border>(surface.Children[0]);
-            var shape = Assert.IsType<Border>(surface.Children[1]);
-            Assert.Equal(1, scrim.BoxShadow.Count);
+            // ED-NEW-glass-g3: the scrim's shadow is its SwiftShadow.Caster, drawn first, under it.
+            Assert.Equal(3, surface.Children.Count);
+            var caster = Assert.IsType<Marrow.UI.Port.SwiftShadow.Caster>(surface.Children[0]);
+            var scrim = Assert.IsType<Border>(surface.Children[1]);
+            var shape = Assert.IsType<Border>(surface.Children[2]);
+            Assert.Same(scrim, caster.Source);
             void Matches()
             {
                 Assert.Equal(panel.Bounds.Width, scrim.Bounds.Width, 0.5);
