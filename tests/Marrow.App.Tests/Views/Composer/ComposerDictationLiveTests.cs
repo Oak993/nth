@@ -144,6 +144,7 @@ public sealed class ComposerDictationLiveTests(HeadlessSession headless)
                 Assert.True(box.Text == "keep OLD tail", $"the editor still holds the draft the session began with, selection and all: '{box.Text}' (the draft is '{draft}', the layer '{layer.Text}')");
                 Assert.Equal((5, 8), (Math.Min(box.SelectionStart, box.SelectionEnd), Math.Max(box.SelectionStart, box.SelectionEnd)));
             });
+            rig.Elapse(window, 1.6); // on to three seconds of listening: the whole sentence has been said before the second click
             rig.Main.OnMain(() => Click(Slot(view).HitTarget));
             for (var frame = 0; frame < 600 && !rig.Main.OnMain(() => layer.HandedOver); frame++) rig.Elapse(window, Frame);
             rig.Main.OnMain(() =>
@@ -288,6 +289,42 @@ public sealed class ComposerDictationLiveTests(HeadlessSession headless)
             // taller text has to land before the view can go that far)
             var fits = Enumerable.Range(0, 4).Where(slip => offsets.Select((offset, i) => Math.Abs(offset - final * CssCurves.At(CssCurves.Ez, (i + 1 - slip) * Frame, 0.36))).All(error => error < 1.5)).ToList();
             Assert.True(fits.Count > 0, "the scroll follows ez over .36 s: " + string.Join(", ", offsets.Take(30).Select(o => o.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))));
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // OD-0076 and the design's reduced motion: under Reduce Motion every transition of the words lands at once and the caret stands still
+    [Trait("Decision", "ED-292")]
+    public void Under_reduce_motion_the_words_land_at_once()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var motion = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = true });
+            using var rig = Seen();
+            var (_, window, layer, _) = Opened(rig, "");
+            rig.Main.OnMain(() => layer.Begin(new DraftSelection("", 0, 0)));
+            rig.Main.OnMain(() => layer.Apply(Live(WordOp.Add(0, "team", true))));
+            rig.Elapse(window, Frame);
+            rig.Main.OnMain(() =>
+            {
+                var look = layer.Words.Look(layer.Words.Words[0], SwiftClock.Now);
+                Assert.Equal(1, look.Opacity);
+                Assert.Equal(0, look.Rise);
+            });
+            rig.Main.OnMain(() => layer.Apply(Live(WordOp.Revise(0, "theme"), WordOp.Confirm(0))));
+            rig.Elapse(window, Frame);
+            rig.Main.OnMain(() =>
+            {
+                var look = layer.Words.Look(layer.Words.Words[0], SwiftClock.Now);
+                Assert.Empty(look.Old);
+                Assert.Equal(1, look.TextOpacity);
+                Assert.Equal(0, look.TextRise);
+                Assert.Equal(0, look.Tentative);
+                Assert.False(layer.Words.IsMoving(SwiftClock.Now));
+            });
+            rig.Main.OnMain(() => layer.Apply(Live(WordOp.Remove(0))));
+            rig.Elapse(window, Frame);
+            rig.Main.OnMain(() => Assert.Empty(layer.Words.Words)); // gone at once
             rig.Close(window);
         });
     }

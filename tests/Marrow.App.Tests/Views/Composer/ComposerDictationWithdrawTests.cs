@@ -67,7 +67,7 @@ public sealed class ComposerDictationWithdrawTests(HeadlessSession headless)
             for (var frame = 1; frame <= 40; frame++)
             {
                 rig.Elapse(window, Frame);
-                var t = frame * Frame;
+                var t = rig.Main.OnMain(() => (SwiftClock.Now - start).TotalSeconds); // the clock's own time: a frame is a whole number of 100 ns ticks
                 rig.Main.OnMain(() =>
                 {
                     var now = SwiftClock.Now;
@@ -87,7 +87,6 @@ public sealed class ComposerDictationWithdrawTests(HeadlessSession headless)
                 sawText.Add(rig.Main.OnMain(() => rig.Runtime.Draft.Text));
             }
             Assert.True(rig.Main.OnMain(() => layer.HandedOver));
-            Assert.NotEqual(default, start);
             // the draft shortened word by word, from the end, to what it was before the session
             Assert.Equal("keep ", sawText[^1]);
             Assert.True(sawText.Select(text => text.Length).Distinct().Count() > 2, "the draft shrank a word at a time");
@@ -153,6 +152,35 @@ public sealed class ComposerDictationWithdrawTests(HeadlessSession headless)
             rig.Elapse(window, 2.0);
             Assert.True(DictationProbe.Same(before, DictationProbe.Frame(window), region),
                 $"the text area differs from before the session by {DictationProbe.Difference(before, DictationProbe.Frame(window), region):F4}");
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-15 (an error ends the session with no landing and no withdraw): what was drawn leaves as a cancel's words do and the draft is what it was
+    [Trait("Decision", "ED-292")]
+    public void An_engine_failure_makes_the_drawn_words_leave_and_returns_the_draft()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window, layer, box) = Opened(rig, "keep ");
+            rig.Main.OnMain(() => Click(Slot(view).HitTarget));
+            for (var frame = 0; frame < 400 && rig.Main.OnMain(() => layer.Words.Count) < 2; frame++) rig.Elapse(window, Frame);
+            Assert.True(rig.Main.OnMain(() => layer.Words.Count) >= 2, "words were drawn");
+            rig.Engine.FailNextDecode(new InvalidOperationException("the engine fell over"));
+            for (var frame = 0; frame < 300 && view.Voice!.Session.State == VoiceSessionState.Listening; frame++) rig.Elapse(window, Frame);
+            Assert.Equal(VoiceSessionState.Rest, view.Voice!.Session.State);
+            for (var frame = 0; frame < 120 && !rig.Main.OnMain(() => layer.HandedOver); frame++) rig.Elapse(window, Frame);
+            rig.Elapse(window, 0.1);
+            rig.Main.OnMain(() =>
+            {
+                Assert.True(layer.HandedOver);
+                Assert.Equal("keep ", rig.Runtime.Draft.Text);
+                Assert.Equal("keep ", box.Text);
+                Assert.False(box.TextHidden);
+                Assert.False(box.IsReadOnly);
+            });
             rig.Close(window);
         });
     }

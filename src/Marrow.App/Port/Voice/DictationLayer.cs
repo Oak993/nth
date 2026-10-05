@@ -51,6 +51,7 @@ internal sealed class DictationLayer : Control
     private bool scrolling;
     private bool hadWords;
     private bool followPending;
+    private double layoutWidth;
 
     public DictationLayer(ComposerNSTextView editor, ScrollViewer? scroll)
     {
@@ -239,6 +240,8 @@ internal sealed class DictationLayer : Control
             changed = true;
         }
         if (words.Settle(now)) changed = true;
+        // the editor's width changed (the window, or the field's scroll bar coming or going): the words wrap anew and glide to their new places
+        if (IsActive && !changed && Math.Abs(LayoutWidth() - layoutWidth) > 0.5) changed = true;
         if (followPending && !changed) FollowTheEnd();
         if (changed) Relayout(at);
 
@@ -400,7 +403,8 @@ internal sealed class DictationLayer : Control
         var logical = words.Logical.Select(word => new TranscriptWord(word.Text, word.Tentative)).ToList();
         var nextDraft = logical.Count == words.Words.Count ? placement.Text : insertion.Place(logical).Text;
         target?.Dispose();
-        target = MakeLayout(placement.Text, Math.Max(1, LayoutWidth()), null);
+        layoutWidth = LayoutWidth();
+        target = MakeLayout(placement.Text, Math.Max(1, layoutWidth), null);
         var still = Still;
         wordRects = new Rect[all.Count];
         for (var i = 0; i < all.Count; i++)
