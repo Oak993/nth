@@ -156,7 +156,7 @@ public static class CzText
         "How far it spreads sideways",
         "Glow height",
         "glowY",
-        "clamp(52 / 140, 0.35, 4)",
+        "clamp(46 / 140, 0.35, 4)",
         "How far it spreads up and down",
         "Glow boost",
         "boost",
