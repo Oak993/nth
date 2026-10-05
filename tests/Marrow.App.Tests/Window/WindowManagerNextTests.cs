@@ -260,8 +260,8 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
     // separately exercises actual factory HWND registration, physical input and retained resize hooks.
     // STOP UI-SETTINGS-001: these headless views do not prove the native Settings caption/sidebar or the Acrylic pixels; those are
     // native tests now: WindowManagerNativeTests (the sidebar is the caption region of the real HWND), GlassWindowNativeTests (Acrylic
-    // under the scrim, and the corner wedge of OD-0075 on the real Settings window). The continuous-corner geometry is asserted (ED-181
-    // closed 2026-10-04): the frame clips to Apple's path of the 780 x 580 window (WindowManagerSettingsSurfaceTests); the corner
+    // under the scrim, and the corners of OD-0075 on the real Settings window). The continuous-corner geometry is asserted (ED-181
+    // closed 2026-10-04): the backdrop's hairline is Apple's path of the 780 x 580 window (WindowManagerSettingsSurfaceTests); the corner
     // pixels of the production HWND stay native.
     // ED-225 now binds WindowManager.swift:43, :68, :82; WindowManagerCenteringTests covers the three sites.
     // Apple's exact vertical bias remains UNVERIFIED OD-0001, rather than blocking the Windows binding.
