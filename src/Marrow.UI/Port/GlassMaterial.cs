@@ -669,9 +669,9 @@ internal static class GlassMaterial
                                       -sceneDistance(xy + float2(0.0, 1.0)) + sceneDistance(xy - float2(0.0, 1.0)));
                 n = normalize(normal + float2(0.000001));
                 // ED-NEW-glass-g3's law (item 4): the edge's light (rim, inner light, contact line) and its bend follow how light the backdrop is
-                // 12 pt in from the edge: the Mac's large dark card (27 under its scrim and shadow) has none, the composer pill (57) and the title
+                // 24 pt in from the edge (0.6 of a smaller piece's smaller side), past where the card's scrim shadow thins: the Mac's large dark card (27 under its scrim and shadow) has none, the composer pill (57) and the title
                 // capsules (52) have it whole. A transparent backdrop (the Acrylic) counts as a mid grey.
-                half4 deepRead = backdrop.eval(clamp(xy + n * 12.0, window.xy, window.zw));
+                half4 deepRead = backdrop.eval(clamp(xy + n * min(24.0, 0.6 * min(extent.x, extent.y)), window.xy, window.zw));
                 half4 deepColour = unpremultiply(deepRead);
                 float level = float(dot(deepColour.rgb, half3(0.2126, 0.7152, 0.0722)) * deepRead.a + (1.0 - deepRead.a) * 0.25);
                 lit = smoothstep(LG_LITFROM, LG_LITTO, level);
