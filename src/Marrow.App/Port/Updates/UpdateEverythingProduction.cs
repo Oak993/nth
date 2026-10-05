@@ -37,19 +37,44 @@ internal static class UpdateEverythingProduction
     }
 
     /// <summary>PORT-ONLY (SK-16): a test leaves nothing behind for the next one.</summary>
-    internal static void Forget() => build = null;
+    internal static void Forget()
+    {
+        build = null;
+        if (waitingOn is not null) waitingOn.Changed -= WhenIdle;
+        waitingOn = null;
+    }
 
     /// <summary>
     /// PORT-ONLY (SK-16): gives the service its items again, as <see cref="Configure"/> built them, after the set of items changed (the skills pipeline installed or removed one). On the main actor. Does
-    /// nothing before the launch has configured the service, and leaves a service that is running an update alone (the run keeps its rows; the next change reads the new set).
+    /// nothing before the launch has configured the service. ENGINEERING DECISION (review): a service that is running an update keeps its rows for the run; the change is remembered and given as soon as the
+    /// service is idle again (its next change of rows that leaves it not busy), so the rows are never left on an old set.
     /// </summary>
-    internal static void Refresh() => MainActor.Post(() =>
+    internal static void Refresh() => MainActor.Post(Reconcile);
+
+    private static UpdateEverythingService? waitingOn;
+
+    private static void Reconcile()
     {
         if (build is not { } rebuild) return;
         var service = UpdateEverythingService.Shared;
-        if (service.IsBusy) return;
+        if (service.IsBusy)
+        {
+            if (ReferenceEquals(waitingOn, service)) return;
+            if (waitingOn is not null) waitingOn.Changed -= WhenIdle;
+            waitingOn = service;
+            service.Changed += WhenIdle;
+            return;
+        }
         var (items, restart) = rebuild();
         service.Configure(items, restart);
+    }
+
+    private static void WhenIdle() => MainActor.Post(() =>
+    {
+        if (waitingOn is not { } service || service.IsBusy) return;
+        service.Changed -= WhenIdle;
+        waitingOn = null;
+        Reconcile();
     });
 
     /// <summary>

@@ -126,6 +126,7 @@ public sealed class SkillsPipeline : IGenerationStore
             if (route.Id != id || route.Pin != selectedPin || route.Folder != result.Path || !route.SparePaths.SequenceEqual(result.SparePaths))
                 throw new InvalidDataException("Bindings disagree with the verified install.");
             PipelineRoutes.Prepare(paths.StateFile, route);
+            PipelineManifests.Prepare(paths.StateFile, selectedPin, item);
             checkpoint?.Invoke(PipelineStep.RoutesPrepared);
             cancellation.ThrowIfCancellationRequested();
             lock (gate)
@@ -326,6 +327,7 @@ public sealed class SkillsPipeline : IGenerationStore
             if (route.Id != id || route.Pin != selectedPin || route.Folder != result.Path || !route.SparePaths.SequenceEqual(result.SparePaths))
                 throw new InvalidDataException("Bindings disagree with the verified install.");
             PipelineRoutes.Prepare(paths.StateFile, route);
+            PipelineManifests.Prepare(paths.StateFile, selectedPin, item);
             checkpoint?.Invoke(PipelineStep.RoutesPrepared);
             cancellation.ThrowIfCancellationRequested();
             lock (gate)
