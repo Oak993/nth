@@ -29,6 +29,7 @@ public static class AuroraLoaderWarmup
 
     private static void Draw(GpuWarmContext context, AuroraLoaderKind kind)
     {
+        AuroraLoaderPainter.PrepareRendering();
         var width = kind == AuroraLoaderKind.AuroraSheen ? 180 : kind == AuroraLoaderKind.CurtainFold ? 48 : 40;
         var height = kind == AuroraLoaderKind.AuroraSheen ? 88 : width;
         var info = new SKImageInfo((int)Math.Ceiling(width * context.Scaling), (int)Math.Ceiling(height * context.Scaling), SKColorType.Rgba8888, SKAlphaType.Premul);

@@ -28,7 +28,7 @@ out = Path(__file__).parent / "png"
 out.mkdir(exist_ok=True)
 entries = []
 for theme in ["dark", "light"]:
-    background = "#000" if theme == "dark" else "#fff"
+    background = "transparent"  # Preserve RGBA for the lead's premultiplied acceptance metric.
     frames = []
     for kind in [2, 4, 5]:
         for scale in [1, 1.25, 1.5, 2]:
@@ -63,7 +63,7 @@ frames.forEach((f,i)=>{{
     args = [str(chrome), "--headless", "--no-first-run", "--no-default-browser-check", "--disable-background-networking",
             "--disable-component-update", "--disable-sync", "--disable-default-apps", "--disable-extensions",
             "--host-resolver-rules=MAP * ~NOTFOUND", "--disable-features=MediaRouter,OptimizationHints,Translate",
-            "--hide-scrollbars", "--force-device-scale-factor=1", "--window-size=1600,1800", "--virtual-time-budget=500",
+            "--hide-scrollbars", "--default-background-color=00000000", "--force-device-scale-factor=1", "--window-size=1600,1800", "--virtual-time-budget=500",
             "--run-all-compositor-stages-before-draw", f"--user-data-dir={profile}", f"--screenshot={shot}", path.as_uri()]
     completed = subprocess.run(args, capture_output=True, timeout=60)
     if completed.returncode != 0 or not shot.exists():
@@ -76,7 +76,7 @@ frames.forEach((f,i)=>{{
             width, height = round(f["width"] * f["scale"]), round(f["height"] * f["scale"])
             name = f'{f["kind"]}-{theme}-{f["scale"]}-{f["time"]}.png'
             target = out / name
-            mosaic.crop((x, y, x + width, y + height)).convert("RGB").save(target)
+            mosaic.crop((x, y, x + width, y + height)).convert("RGBA").save(target)
             entries.append({**f, "file": name, "sha256": hashlib.sha256(target.read_bytes()).hexdigest()})
 manifest = {"source_sha256": hashlib.sha256(raw).hexdigest(), "browser": str(chrome),
             "browser_version": os.environ.get("MARROW_CHROME_VERSION"), "tool_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),

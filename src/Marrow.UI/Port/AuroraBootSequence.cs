@@ -3,7 +3,7 @@ using Avalonia;
 namespace Marrow.UI.Port;
 
 // PORT-ONLY: OD-0113 Boot B. Locked loading-aurora.html:576-665 is the authority.
-// Geometry is independent of the blocked Aurora C# painter; no substitute icon is drawn here.
+// Geometry is independent of the integrated Aurora painter and uses the actual visible window frame.
 public sealed class AuroraBootSequence(Rect window, bool reduceMotion)
 {
     public const double MarkSize = 440;

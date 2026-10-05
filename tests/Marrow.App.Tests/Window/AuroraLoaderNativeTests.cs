@@ -55,7 +55,9 @@ public sealed class AuroraLoaderNativeTests(WindowManagerNativeSession native)
                     File.WriteAllLines(Path.Combine(directory, $"{kind}-{(dark ? "dark" : "light")}.csv"), lines);
                     // First 30 samples are warm-up/JIT, kept in raw evidence. The drawing itself owns zero allocations.
                     Assert.All(Enumerable.Range(30, capture.Count - 30), i => Assert.Equal(0, capture.AllocatedBytes(i)));
+                    Assert.All(Enumerable.Range(30, capture.Count - 30), i => Assert.Equal(0, capture.HandlerAllocatedBytes(i)));
                     Assert.True(capture.Count >= 180);
+                    Assert.InRange(Enumerable.Range(30, capture.Count - 30).Average(capture.IntervalMilliseconds), 14, 20); // requested 60 fps capture, not the monitor's 240 Hz cadence
                 }
                 finally { native.OnUi(window.Close); }
             }

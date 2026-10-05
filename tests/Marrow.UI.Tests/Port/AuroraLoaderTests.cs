@@ -85,17 +85,37 @@ public sealed class AuroraLoaderTests
     }
 
     [Theory]
-    [InlineData(AuroraLoaderKind.CurtainFold, 48, 48)]
-    [InlineData(AuroraLoaderKind.FlowArc, 40, 40)]
-    [InlineData(AuroraLoaderKind.AuroraSheen, 180, 88)]
+    [InlineData(AuroraLoaderKind.CurtainFold, 48, 48, 1)]
+    [InlineData(AuroraLoaderKind.CurtainFold, 48, 48, 1.25)]
+    [InlineData(AuroraLoaderKind.CurtainFold, 48, 48, 1.5)]
+    [InlineData(AuroraLoaderKind.CurtainFold, 48, 48, 2)]
+    [InlineData(AuroraLoaderKind.FlowArc, 40, 40, 1)]
+    [InlineData(AuroraLoaderKind.FlowArc, 40, 40, 1.25)]
+    [InlineData(AuroraLoaderKind.FlowArc, 40, 40, 1.5)]
+    [InlineData(AuroraLoaderKind.FlowArc, 40, 40, 2)]
+    [InlineData(AuroraLoaderKind.AuroraSheen, 180, 88, 1)]
+    [InlineData(AuroraLoaderKind.AuroraSheen, 180, 88, 1.25)]
+    [InlineData(AuroraLoaderKind.AuroraSheen, 180, 88, 1.5)]
+    [InlineData(AuroraLoaderKind.AuroraSheen, 180, 88, 2)]
     [Trait("Decision", "ED-097")]
-    public void Drawing_allocates_no_managed_bytes_after_warm_up(AuroraLoaderKind kind, int width, int height)
+    public void Drawing_allocates_no_managed_bytes_after_warm_up(AuroraLoaderKind kind, int width, int height, double scale)
     {
         using var painter = new AuroraLoaderPainter();
-        using var surface = SKSurface.Create(new SKImageInfo(width, height));
-        for (var i = 0; i < 180; i++) painter.Draw(surface.Canvas, kind, width, height, i / 60.0, true, false);
+        using var surface = SKSurface.Create(new SKImageInfo((int)(width * scale), (int)(height * scale)));
+        // SKSurface.Canvas performs a global wrapper lookup which can allocate a lock waiter under contention.
+        // The compositor already owns its canvas; this test supplies the same stable canvas to the painter.
+        var canvas = surface.Canvas;
+        canvas.Scale((float)scale);
+        for (var i = 0; i < 180; i++) painter.Draw(canvas, kind, width, height, i / 60.0, true, false);
+        var frameBytes = new long[144];
         var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 144; i++) painter.Draw(surface.Canvas, kind, width, height, i / 60.0, true, false);
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        for (var i = 0; i < 144; i++)
+        {
+            var start = GC.GetAllocatedBytesForCurrentThread();
+            painter.Draw(canvas, kind, width, height, i / 60.0, true, false);
+            frameBytes[i] = GC.GetAllocatedBytesForCurrentThread() - start;
+        }
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated == 0, $"Allocated {allocated} bytes: {string.Join(", ", frameBytes.Select((bytes, i) => (bytes, i)).Where(x => x.bytes != 0))}");
     }
 }

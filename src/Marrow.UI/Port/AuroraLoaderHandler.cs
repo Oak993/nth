@@ -47,7 +47,17 @@ internal sealed class AuroraLoaderHandler : CompositionCustomVisualHandler
         var handlerBytes = s.Telemetry is null ? 0 : GC.GetAllocatedBytesForCurrentThread();
         long painterBytes = 0;
         var painted = false;
-        if (alpha > 0 && context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is { } feature)
+        if (alpha > 0 && AuroraSkiaLease.TryBorrow(context, out var direct))
+        {
+            using (direct)
+            {
+                var bytes = s.Telemetry is null ? 0 : GC.GetAllocatedBytesForCurrentThread();
+                painter.Draw(direct.Canvas, s.Kind, s.Size.Width, s.Size.Height, elapsed, s.Dark, s.ReduceMotion, alpha * direct.Opacity);
+                if (s.Telemetry is not null) painterBytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
+                painted = true;
+            }
+        }
+        else if (alpha > 0 && context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is { } feature)
         {
             using var lease = feature.Lease();
             var bytes = s.Telemetry is null ? 0 : GC.GetAllocatedBytesForCurrentThread();

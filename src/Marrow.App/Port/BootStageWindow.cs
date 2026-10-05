@@ -1,27 +1,5 @@
-// PORT-ONLY. OD-0018 / ED-103: every launch opens with the boot sequence instead of a plain show of the main window
-// (AppDelegate.swift:22). The particle stage is a transparent, borderless, click-through, taskbar-less window over the
-// work area of the monitor the main window will open on; the mark is centred on the main window's frame as it is
-// restored; when the outline has landed the main window is shown, its root content following the share of particles
-// landed (opacity from 45 % to 100 % of them, scale .985 to 1), and the stage closes 0.35 s after the last particle lands.
-// The drawing and the timeline are F.LoadingMark's (BootStage, BootSequence, ED-102, ED-154); this file is the launch
-// side ED-154 (4) gives it: the stage window and the hand-over.
-//
-// Probe P12 (ED-103 (7), 2026-10-01, E:\Droppy\work\probes\p12): on Windows 11 an Avalonia window with
-// WindowDecorations.None, TransparencyLevelHint Transparent and WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW |
-// WS_EX_NOACTIVATE draws the stage over the desktop (ActualTransparencyLevel Transparent) and every point under it
-// hit-tests to the window below (WindowFromPoint never returned the stage); with the app ready at 2.0 s the main window
-// was shown at 5.26 s and the stage closed at 5.84 s, as ED-103 (5) gives.
-//
-// ED-236 (OD-0041, probes P13 and P14): the main window carries an Acrylic backdrop (WindowChrome.Configure), whose tint
-// shows ~80-120 ms after Show and whose blur ~230 ms later. So the main window is shown early and cloaked (WindowCloak,
-// DWMWA_CLOAK) as the disintegration begins (reduce motion: 0.5 s before it is due), under the stage, its root content
-// kept at the stage's opacity; at ED-103 (5)'s hand-over it is uncloaked and then shown/activated as before. Where it
-// cannot be cloaked (no DWM window, DWM refuses) nothing is shown early and the hand-over is the plain Show.
-//
-// ENGINEERING DECISIONs (no product effect beyond ED-103's own): the content areas the window particles land on are the
-// main window's title bar (top 38 DIP), its sidebar (left 260 DIP), its composer (bottom 96 DIP of the rest) and its
-// conversation (the remainder), from the main window's own layout constants at launch (UNVERIFIED sizes);
-// "the app is ready" is the end of AppModel.bootstrap() (AppDelegate.swift:27).
+// PORT-ONLY: OD-0113 Boot B supersedes ED-103/154 Comet startup. The locked Aurora page drives
+// one growing frame, content/glass fade, and ED-236 cloaked preparation.
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -40,7 +18,8 @@ public sealed class BootStageWindow
 
     private readonly AvaloniaWindow main;
     private readonly AvaloniaWindow stageWindow;
-    private readonly BootStage stage;
+    private readonly AuroraBootStage stage;
+    private readonly AuroraBootPresentation presentation;
     private readonly Action showMain;
     private readonly Func<AvaloniaWindow, bool, bool> cloak;
     private readonly bool reduceMotion;
@@ -49,14 +28,12 @@ public sealed class BootStageWindow
     private bool cloaked;
     private bool following;
 
-    /// <summary>ED-236: reduce motion shows the cloaked main window this long before the hand-over (2.5 s).</summary>
-    internal const double ReduceMotionWarmLead = 0.5;
-
     /// <summary>The stage control (for tests).</summary>
-    internal BootStage Stage => stage;
+    internal AuroraBootStage Stage => stage;
 
-    /// <summary>The outline and content areas the particles fly to, in stage coordinates (for tests).</summary>
-    internal BootWindowLayout OutlineLayout { get; }
+    /// <summary>The exact visible frame and content areas, in stage coordinates (for tests).</summary>
+    internal BootWindowLayout OutlineLayout => Layout(stage.WindowFrame);
+    internal bool WholeWindowOpacitySupported => presentation.OpacitySupported;
 
     /// <summary>The stage window (for tests).</summary>
     internal AvaloniaWindow Window => stageWindow;
@@ -77,8 +54,8 @@ public sealed class BootStageWindow
         // level with its top; the outline the boot hands over to is the visible window, so its left edge moves right by the strip.
         var strip = WindowInvisibleBorder.Pixels.Current(main, scale);
         var frame = new Rect((main.Position.X + strip - area.X) / scale, (main.Position.Y - area.Y) / scale, main.Width, main.Height);
-        OutlineLayout = Layout(frame);
-        stage = new BootStage(new BootSequence(OutlineLayout, reduceMotion));
+        presentation = new AuroraBootPresentation(main);
+        stage = new AuroraBootStage(frame, reduceMotion);
         stageWindow = new AvaloniaWindow
         {
             WindowDecorations = WindowDecorations.None,
@@ -104,6 +81,7 @@ public sealed class BootStageWindow
         stage.FrameChanged += OnFrame;
         stage.MainWindowShown += (_, _) => ShowMain();
         stage.Closed += (_, _) => Finish();
+        stageWindow.Closed += (_, _) => FinishWithoutClosing();
     }
 
     /// <summary>The main window cloaked early (ED-236); false until then, and for good where it cannot be cloaked (tests).</summary>
@@ -119,10 +97,10 @@ public sealed class BootStageWindow
         return boot;
     }
 
-    /// <summary>ED-103 (3): the app is ready; the mark comes to its final rest at the end of the current turn.</summary>
+    /// <summary>OD-0113: bootstrap and preparation are ready; B can begin its grow after its launch.</summary>
     public void Ready() => stage.Ready();
 
-    /// <summary>The layout the window particles fly to, in stage coordinates (see the file note).</summary>
+    /// <summary>The final window layout, in stage coordinates.</summary>
     internal static BootWindowLayout Layout(Rect frame)
     {
         const double titleBar = 38, sidebar = 260, composer = 96;
@@ -130,7 +108,7 @@ public sealed class BootStageWindow
         var side = new Rect(body.X, body.Y, Math.Min(sidebar, body.Width), body.Height);
         var chat = new Rect(side.Right, body.Y, Math.Max(0, body.Right - side.Right), Math.Max(0, body.Height - composer));
         var input = new Rect(side.Right, chat.Bottom, chat.Width, Math.Min(composer, body.Height));
-        return new BootWindowLayout(frame, 14, [new Rect(frame.X, frame.Y, frame.Width, titleBar), side, chat, input]);
+        return new BootWindowLayout(frame, 8, [new Rect(frame.X, frame.Y, frame.Width, titleBar), side, chat, input]);
     }
 
     // ED-236: the early, cloaked show. The window is cloaked before it is shown, and shown without activation (the launch
@@ -145,19 +123,27 @@ public sealed class BootStageWindow
         {
             if (!cloak(main, true)) return;
             cloaked = true;
-            Follow();
+            content = main.Content as Control;
+            if (content is not null) content.Opacity = 0;
             main.Show();
+            UpdateVisibleFrame();
+            Follow();
+            Apply(stage.Frame);
         }
         finally { main.ShowActivated = activated; }
     }
 
-    // ED-236: the disintegration is the earliest the hand-over can be (the outline lands at least 0.8 s into it, ED-103 (4));
-    // reduce motion has a fixed hand-over at 2.5 s.
-    private bool WarmDue() => reduceMotion
-        ? stage.Elapsed >= 2.5 - ReduceMotionWarmLead
-        : stage.Frame.Phase == BootPhase.Disintegrating;
+    private bool WarmDue() => true; // ED-236: cloak on the first stage frame, while bootstrap/preparation run.
 
-    // ED-103 (5): from now on the root content follows the stage.
+    private void UpdateVisibleFrame()
+    {
+        if (presentation.VisibleFrame() is not { } visible) return;
+        var origin = stageWindow.Position;
+        stage.SetWindowFrame(new Rect((visible.X - origin.X) / stageWindow.RenderScaling, (visible.Y - origin.Y) / stageWindow.RenderScaling,
+            visible.Width / stageWindow.RenderScaling, visible.Height / stageWindow.RenderScaling));
+    }
+
+    // OD-0113: content and the native glass share the stage's growing rectangle.
     private void Follow()
     {
         content = main.Content as Control;
@@ -169,13 +155,16 @@ public sealed class BootStageWindow
     private void ShowMain()
     {
         warmTried = true; // the hand-over is here: no early show after it
-        Follow();
+        if (!following && main.Content is Control hiddenContent) hiddenContent.Opacity = 0;
         if (cloaked)
         {
             cloaked = false;
             cloak(main, false); // the content is already at this frame's opacity (Follow), so the first frame shown is the hand-over's
         }
+        presentation.Behind(stageWindow);
         showMain();
+        if (!following) { UpdateVisibleFrame(); Follow(); }
+        Apply(stage.Frame);
         MainWindowShown?.Invoke(this, EventArgs.Empty);
     }
 
@@ -185,18 +174,22 @@ public sealed class BootStageWindow
         if (following) Apply(stage.Frame);
     }
 
-    // ED-103 (5): the root content's opacity follows the share of all particles landed, its scale .985 to 1.
-    private void Apply(BootFrame frame)
+    // OD-0113: glass and content fade inside the one growing frame; the content itself stays at scale 1.
+    private void Apply(AuroraBootFrame frame)
     {
         if (content is null) return;
-        content.Opacity = frame.ContentOpacity;
-        content.RenderTransformOrigin = RelativePoint.Center;
-        content.RenderTransform = new ScaleTransform(frame.ContentScale, frame.ContentScale);
+        var complete = reduceMotion ? frame.ContentOpacity >= 1 : frame.Progress >= 1;
+        presentation.Apply(complete ? null : frame.ContentClip, frame.CornerRadius, frame.ContentOpacity);
+        // Native alpha fades glass and pixels together; fallback/headless fades the root. Never multiply the fade twice.
+        content.Opacity = presentation.OpacitySupported ? 1 : frame.ContentOpacity;
+        content.RenderTransform = null;
+        content.Clip = complete ? null : new RectangleGeometry(frame.ContentClip, frame.CornerRadius, frame.CornerRadius);
     }
 
     private void Finish()
     {
         stage.FrameChanged -= OnFrame;
+        presentation.Restore();
         if (cloaked)
         {
             cloaked = false; // the hand-over never came (a stage closed before it): do not leave the window hidden
@@ -206,8 +199,16 @@ public sealed class BootStageWindow
         {
             content.Opacity = 1;
             content.RenderTransform = null;
+            content.Clip = null;
         }
         stageWindow.Close();
+    }
+
+    private void FinishWithoutClosing()
+    {
+        stage.FrameChanged -= OnFrame; presentation.Restore();
+        if (cloaked) { cloaked = false; cloak(main, false); }
+        if (content is not null) { content.Opacity = 1; content.RenderTransform = null; content.Clip = null; }
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
