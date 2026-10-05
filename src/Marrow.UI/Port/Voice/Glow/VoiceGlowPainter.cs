@@ -1,7 +1,8 @@
 // PORT-ONLY, owner-ruled addition (OD-0097, second amendment; first-release voice typing, VT-9, voice-SPEC V-13.2, V-13.3): draws one frame of the voice glow, layer by layer as
 // the stylesheet of voice-glow.js stacks them (Ya, lines 244-576): the inner light (::before, z 1) and its warp mirror, the stroke ring (::after, z 2), the bloom (z 3) and its
 // warp mirror, the band canvas (Sn, z 4) and the epicentre (z 4), all inside the composer's rounded shape. The soft layers are rastered at half size and scaled back up (the
-// stylesheet's `data-voice-halfres`, --vb-z 0.5); the 1 px stroke and the band stay full size. Pure SkiaSharp (no Avalonia): the handler lends the canvas.
+// stylesheet's `data-voice-halfres`, --vb-z 0.5); the 1 px stroke and the band stay full size. The band is drawn as the canvas strokes it, or on a GPU in one analytic pass
+// (VoiceGlowBandMode). Pure SkiaSharp (no Avalonia): the handler lends the canvas.
 using Marrow.Core.Port.Voice.Glow;
 using SkiaSharp;
 
@@ -37,7 +38,6 @@ internal sealed class VoiceGlowPainter : IDisposable
     private readonly SKPath belowZ = new();
     private readonly SKPath bandLine = new();
     private readonly SKSamplingOptions linear = new(SKFilterMode.Linear, SKMipmapMode.None);
-    private readonly SKSamplingOptions nearest = new(SKFilterMode.Nearest, SKMipmapMode.None);
     private SKSurface? surface;
     private readonly Dictionary<float, SKImageFilter> blurs = new();
     private int surfaceW, surfaceH;
