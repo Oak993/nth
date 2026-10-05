@@ -16,7 +16,7 @@ public static class SkillsNotices
     public const string ReadControl = "I have read these terms";
 
     /// <summary>
-    /// The row's words for an item whose terms class is not open: "Under Anthropic's terms", "Under OpenAI's terms" (2.5). ENGINEERING DECISION (ED-NEW-f-sk-13): one
+    /// The row's words for an item whose terms class is not open: "Under Anthropic's terms", "Under OpenAI's terms" (2.5). ENGINEERING DECISION (ED-339): one
     /// pattern over the catalogue's vendor field, so the two printed strings are exact and any other vendor reads the same way.
     /// </summary>
     public static string UnderTerms(string vendor)

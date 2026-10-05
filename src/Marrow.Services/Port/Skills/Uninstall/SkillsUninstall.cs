@@ -7,7 +7,7 @@ namespace Marrow.Services.Port.Skills.Uninstall;
 /// The body of Velopack's before-uninstall hook (<c>OnBeforeUninstallFastCallback</c>; its limit is 30 seconds). It unlocks everything under <c>addons\</c> and <c>skills\</c> first
 /// (the PLAN 2.1 deny entry and read-only files, entry by entry, so one entry that will not unlock does not stop the rest), and only then deletes <c>addons\</c> whole and everything
 /// in <c>skills\</c> but <c>enabled.json</c> (the store, the views, the condemned list, the reset marker and the generation records). A folder a running process holds is left
-/// unlocked, so a plain delete removes it once the handle closes. It never touches a provider's home or any other Marrow data file. ENGINEERING DECISIONS (ED-NEW-f-sk-13):
+/// unlocked, so a plain delete removes it once the handle closes. It never touches a provider's home or any other Marrow data file. ENGINEERING DECISIONS (ED-339):
 /// (1) the budget is 20 seconds, so the hook ends well inside Velopack's 30; after it no new delete starts, and everything is unlocked by then; (2) a failed delete falls back to the
 /// folder's children one by one, so a single held file costs only its own ancestors; (3) <c>skills\</c> children other than <c>enabled.json</c> go too, because each describes a
 /// tree this hook deletes; the switches in <c>enabled.json</c> stay, as the plan says.

@@ -7,7 +7,7 @@ using Marrow.Services.Port.Skills.Store;
 namespace Marrow.Services.Port.Skills.Host;
 
 /// <summary>
-/// ENGINEERING DECISION (ED-NEW-f-sk-13): the one trust root the app has after a restart is the embedded catalogue (ED-321 (3), ED-325). A skill set or plugin installed at the pin the
+/// ENGINEERING DECISION (ED-339): the one trust root the app has after a restart is the embedded catalogue (ED-321 (3), ED-325). A skill set or plugin installed at the pin the
 /// catalogue holds now gets a descriptor whose inventory is exactly the catalogue's files; its folder is the one its immutable route sidecar names (the pipeline cross-checks it).
 /// Everything else has none and is listed in <see cref="TrustedInstalls.Unrestored"/>: a tool or package set (its installed-tree hashes are derived from the archives at install time
 /// and are not persisted anywhere trusted), and a set installed at an older pin (the catalogue that pinned it is gone). Persisting those descriptors is SK-16's (UNRESOLVED here).

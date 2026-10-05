@@ -58,6 +58,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/Settings/PreviewMenuItem.cs", "7", 1, Circular), // CZ-3 (ED-335): a model menu row, design-page layout (CSS .pitem border-radius 7)
         ("Marrow.App/Port/Settings/PreviewStepper.cs", "11", 1, Circle), // CZ-3 (ED-335): the 22 x 22 stepper, a circle by construction
         ("Marrow.App/Port/Settings/PreviewSwitchChip.cs", "14", 1, Capsule), // CZ-3 (ED-335): the 28 pt chip of the preview model switch, r = h / 2
+        ("Marrow.App/Port/Settings/UpdatesMainButton.cs", "ButtonHeight / 2", 1, Capsule), // UE-4 (ED-343): the Updates page's 30 pt glass capsule; CzButton draws its focus ring from this radius, r = h / 2
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Fit),
@@ -92,9 +93,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Settings/AboutUpdateViews.cs", "1.5", 1, Tiny),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "8", 1, Fit),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "9", 1, Circle),
-        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "9", 1, Circle),
-        ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "10", 1, Fit),
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "Chrome.CardCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/TokenActivitySection.cs", "999", 1, Capsule),
@@ -102,7 +101,6 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs", "22", 2, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "16, 16, 0, 0", 1, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Capsule),
-        ("Marrow.App/Views/Tour/TourView.cs", "CardCornerRadius", 4, Fit),
         ("Marrow.App/Views/Usage/UsageFloatingPanel.cs", "cornerRadius", 2, Fit), // :84, :92 the panel and its scrim, r 22 (HydraPanel.CornerRadius), tall panels
         ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
         ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Circle),
@@ -131,6 +129,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Port/Settings/CzControls/CzStyleCards.cs", "12", 2, Circular), // CZ-1 (ED-312): the style card button and its shell, design-page layout (CSS border-radius 12)
         ("Marrow.UI/Port/Settings/CzControls/CzSwatchRow.cs", "12", 1, Circle), // CZ-1 (ED-312): the 24 pt swatch, a circle by construction
         ("Marrow.UI/Port/Settings/CzControls/CzSlider.cs", "10", 1, Capsule), // CZ-1 (ED-312): the 40 x 20 Auto capsule
+        ("Marrow.UI/Port/Settings/Voice/VoiceGlyphButton.cs", "10", 1, Circle), // VT-14 (ED-342 (13)): the 20 pt round cancel and trash buttons of a model row, a circle by construction
         ("Marrow.UI/Port/Settings/GlassColorPicker.cs", "HexRadius", 1, Capsule), // CZ-2 (ED-313): the 28 pt hex pill, r 14 = h / 2 (lp-page.css .mg-hex)
         ("Marrow.UI/Port/Settings/GlassColorPicker.cs", "DotSize / 2", 1, Circle), // CZ-2 (ED-313): the 22 pt preview dot beside the hex field, a circle by construction
         ("Marrow.UI/Port/SystemButtons.cs", "radius", 2, Fit), // H3 (ED-291): a capsule (height / 2) under presentedChrome, else the kit's Radius 6 on a 22-24 pt button: never 2r < h < 3.057r

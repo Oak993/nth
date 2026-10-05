@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
-using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
@@ -26,21 +25,9 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
     private const int Width = 780, Height = 580;
     private static readonly Color Grey = Color.FromRgb(128, 128, 128);
 
-    private static readonly (int X, int Y)[] Corners =
-    [
-        (0, 0), (1, 1), (5, 5), (Width - 1, 0), (Width - 2, 1), (Width - 6, 5),
-        (0, Height - 1), (1, Height - 2), (5, Height - 6), (Width - 1, Height - 1), (Width - 2, Height - 2), (Width - 6, Height - 6),
-    ];
-
-    // The scrim over the grey: black in the dark theme, white in the light one (Chrome.swift:256-257), as a fraction of 255.
-    private static double Over(double alpha, bool dark) => (Grey.R * (1 - alpha) + (dark ? 0 : 255) * alpha) / 255.0;
-
-    private static void AssertCorners(Avalonia.Controls.Window window, double expected, string when)
-    {
-        var levels = FramePixels.Levels(window, Corners);
-        for (var index = 0; index < levels.Length; index++)
-            Assert.True(Math.Abs(levels[index] - expected) <= 0.012, $"{when}: corner pixel {Corners[index]} is {levels[index]:0.###}, the scrim over the grey is {expected:0.###}");
-    }
+    private static CornerSeam.Pair[] Pairs() =>
+        CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 1)
+            .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
 
     // The window's chrome has made it clear (the system's Acrylic is behind it): the known grey stands in for that blur.
     private static Avalonia.Controls.Window OpenOnGrey(WindowManager manager, bool dark)
@@ -55,59 +42,52 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
     [Trait("Decision", "ED-236")] // App/Views/Settings/SettingsView.swift:118-122; OD-0075
-    public void The_settings_windows_four_corners_outside_the_26_point_curve_wear_its_scrim(bool dark) => WithManager((_, manager) =>
+    public void The_settings_windows_four_corners_outside_the_26_point_curve_are_the_body_just_inside_it(bool dark, bool busy) => WithManager((_, manager) =>
     {
         manager.Model.Settings.BackdropOpacity = 0.5;
         var window = OpenOnGrey(manager, dark);
         Assert.Equal(new Avalonia.Size(Width, Height), window.ClientSize);
-        AssertCorners(window, Over(WindowBackdrop.Scrim(0.5, dark), dark), "at the default glass");
+        if (busy) { window.Background = Marrow.App.Tests.Views.RootViewCornerWedgeTests.Stripes(); Drain(window); }
+        CornerSeam.AssertSeamless(window, Pairs(), $"{(dark ? "dark" : "light")}, {(busy ? "striped" : "grey")} backdrop", busy ? null : (Grey.R, Grey.G, Grey.B));
     });
 
     [Fact]
     [Trait("Decision", "ED-236")] // UI/Chrome/Chrome.swift:211-224; OD-0075
-    public void The_settings_corner_scrim_follows_the_backdrop_opacity_the_theme_and_the_solid_window() => WithManager((_, manager) =>
+    public void The_settings_corners_are_the_body_at_every_backdrop_opacity_in_both_themes_and_the_solid_window() => WithManager((_, manager) =>
     {
         manager.Model.Settings.BackdropOpacity = 0.25;
         var window = OpenOnGrey(manager, dark: true);
-        AssertCorners(window, Over(WindowBackdrop.Scrim(0.25, true), true), "at 0.25 dark");
+        CornerSeam.AssertSeamless(window, Pairs(), "at 0.25 dark");
         manager.Model.Settings.BackdropOpacity = 0.75; Drain(window);
-        AssertCorners(window, Over(WindowBackdrop.Scrim(0.75, true), true), "at 0.75 dark");
-        // OD-0088, OD-0076 (ED-254): the Settings window turns over on a change of appearance, the corners with the scrim they wear, so the
-        // new appearance is read once the 0.32 s turnover has run (on a frame clock and a clock the test steps).
+        CornerSeam.AssertSeamless(window, Pairs(), "at 0.75 dark");
+        // OD-0088, OD-0076 (ED-254): the Settings window turns over on a change of appearance, so the new appearance is read once the 0.32 s
+        // turnover has run (on a frame clock and a clock the test steps).
         using var rig = new SettingsRiseRig();
         void TurnOver() { for (var frame = 0; frame < 40; frame++) { rig.Frame(1.0 / 60); Drain(window); } }
         window.RequestedThemeVariant = ThemeVariant.Light; Drain(window); TurnOver();
-        AssertCorners(window, Over(WindowBackdrop.Scrim(0.75, false), false), "at 0.75 light");
+        CornerSeam.AssertSeamless(window, Pairs(), "at 0.75 light");
         manager.Model.Settings.BackdropOpacity = 1; Drain(window);
-        AssertCorners(window, 1.0, "solid light: the window is white, corners too");
+        CornerSeam.AssertSeamless(window, Pairs(), "solid light: the window is white, corners too");
         window.RequestedThemeVariant = ThemeVariant.Dark; Drain(window); TurnOver();
-        AssertCorners(window, 0.0, "solid dark: the window is black, corners too");
+        CornerSeam.AssertSeamless(window, Pairs(), "solid dark: the window is black, corners too");
     });
 
     [Fact]
     [Trait("Decision", "ED-236")] // App/Views/Settings/SettingsView.swift:118-122; OD-0074 (Rise fades the glass in)
-    public void The_wedge_sits_under_the_clipped_frame_takes_no_pointer_and_fades_in_with_the_glass_of_the_Rise_open() => WithManager((_, manager) =>
+    public void The_corners_fade_in_with_the_glass_of_the_Rise_open_because_they_are_the_glass() => WithManager((_, manager) =>
     {
         manager.ShowSettings(SettingsPage.Archive);
         var window = Settings(manager);
         Drain(window);
         var view = View(manager);
-        var wedge = view.RiseWedge;
-        var layers = Assert.IsAssignableFrom<Panel>(view.Child);
-        var frame = Assert.IsType<SwiftShapeBorder>(layers.Children[0]); // ED-275 (3a): the Settings frame is the exact continuous shape (SettingsView.swift:119-120)
-        Assert.Same(wedge, layers.Children[1]);
-        Assert.True(wedge.ZIndex < frame.ZIndex, "painted first, under the frame whose 26 pt clip the glass and its edge stop at");
-        Assert.Equal(new CornerRadius(26), frame.CornerRadius);
-        Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(frame)); // the shape the wedge is the complement of
-        Assert.True(frame.ClipToBounds);
-        Assert.False(wedge.IsHitTestVisible);
-        Assert.Equal(new Avalonia.Size(Width, Height), wedge.Bounds.Size);
-        Assert.Equal(new Point(0, 0), wedge.TranslatePoint(new Point(0, 0), view));
-        // Rise (OD-0074) fades the glass in over the first 80 ms: the corners belong to the glass, or they would show their scrim before it.
-        Assert.Contains(wedge, SettingsRiseLayout.Gather(view).Glass);
+        // Rise (OD-0074) fades the glass in over the first 80 ms: the backdrop is the glass out to the window's rectangle, so there is no separate
+        // corner layer to show its scrim before it.
         Assert.Contains(view.RiseBackdrop, SettingsRiseLayout.Gather(view).Glass);
+        Assert.Equal(new Avalonia.Size(Width, Height), view.RiseBackdrop.Bounds.Size);
     });
 }

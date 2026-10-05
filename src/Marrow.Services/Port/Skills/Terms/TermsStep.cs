@@ -10,7 +10,7 @@ namespace Marrow.Services.Port.Skills.Terms;
 /// <summary>
 /// Shows the licence text before the download, with a separate "I have read these terms" control, and stores the acceptance with the date and the licence file's hash (a later
 /// pin with changed terms has a new hash, so it asks again: <see cref="ItemTerms"/>). The state is read through <c>state</c> and written through <c>accept</c> (the pipeline's
-/// <c>AcceptTerms</c>, so state.json stays the one record). ENGINEERING DECISION (ED-NEW-f-sk-13): the licence text comes from the item's own pinned licence file through
+/// <c>AcceptTerms</c>, so state.json stays the one record). ENGINEERING DECISION (ED-339): the licence text comes from the item's own pinned licence file through
 /// <see cref="ILicenceText"/> and is checked against the catalogue's size and SHA-256, so what the user reads is the file whose hash is stored; none of the item's other
 /// files is fetched before the terms are accepted (<see cref="TermsGate"/>).
 /// </summary>
