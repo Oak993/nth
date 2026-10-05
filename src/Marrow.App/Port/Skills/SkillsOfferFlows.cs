@@ -17,6 +17,6 @@ public static class SkillsOfferFlows
     {
         ArgumentNullException.ThrowIfNull(runtime);
         ArgumentNullException.ThrowIfNull(host);
-        return new SkillsOfferFlow(runtime, host.Catalogue, () => host.Pipeline.State, host.Pipeline.SetDeclined, host.OfferDownloads);
+        return new SkillsOfferFlow(runtime, host.Catalogue, () => host.Pipeline.State, host.Pipeline.SetDeclined, host.OfferDownloads, host.OfferTerms);
     }
 }

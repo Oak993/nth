@@ -21,7 +21,8 @@ public static class OfferCardProjector
         if (card is null) return null;
         var items = card.Items.Select(id => catalogue.Items.Single(i => i.Id == id)).ToList();
         var hosts = items.Select(i => i.SourceUrl is { } url && Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : null).OfType<string>().Distinct(StringComparer.Ordinal).ToList();
-        var owed = stage == OfferStage.Asked && items.Any(i => ItemTerms.Required(i, state));
+        var owedItems = stage == OfferStage.Asked ? items.Where(i => ItemTerms.Required(i, state)).Select(i => i.Id).ToList() : [];
+        var owed = owedItems.Count > 0;
         var running = stage is OfferStage.Downloading or OfferStage.Checking && progress is not null;
         int? percent = running && progress!.BytesTotal is > 0 and { } total ? (int)Math.Min(100, progress.BytesDone * 100 / total) : null;
         var primary = stage switch
@@ -33,6 +34,6 @@ public static class OfferCardProjector
         return new OfferCardView(stage, items.Select(i => i.Title).ToList(), card.ApproxSizeMb, hosts, percent, running ? progress!.BytesDone : null, running ? progress!.BytesTotal : null,
             primary, primary is not null && !owed && canFetch, stage == OfferStage.Downloading, stage is OfferStage.Asked or OfferStage.Failed,
             stage switch { OfferStage.Checking => LibraryWords.Checking, OfferStage.Failed => LibraryWords.DidNotDownload, _ => null },
-            stage == OfferStage.Failed ? failure : null, owed, primary is not null && !canFetch ? LibraryWords.DownloadsUnavailable : null);
+            stage == OfferStage.Failed ? failure : null, owed, primary is not null && !canFetch ? LibraryWords.DownloadsUnavailable : null, owedItems);
     }
 }

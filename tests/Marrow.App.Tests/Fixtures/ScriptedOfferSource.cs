@@ -24,6 +24,30 @@ public sealed class ScriptedOfferSource : MainActorModel, IOfferCardSource
 
     public bool CanFetch { get => Read(canFetch); set => Set(ref canFetch, value); }
 
+    private int termsRevision;
+
+    public int TermsRevision { get => Read(termsRevision); private set => Set(ref termsRevision, value); }
+
+    /// <summary>The terms an item owes (the test sets them), the licence text the step would give (or the failure), and what the card does when the user accepts.</summary>
+    public Dictionary<string, Marrow.Services.Port.Skills.Terms.TermsOffer> Terms { get; } = [];
+
+    public Func<string, Task<string>> Licence { get; set; } = id => Task.FromResult("Marrow-made licence text of " + id);
+
+    public Action<string>? OnAcceptTerms { get; set; }
+
+    public List<string> Accepted { get; } = [];
+
+    public Marrow.Services.Port.Skills.Terms.TermsOffer? TermsFor(string itemId) => Terms.GetValueOrDefault(itemId);
+
+    public Task<string> LicenceText(string itemId) => Licence(itemId);
+
+    public void AcceptTerms(string itemId)
+    {
+        Accepted.Add(itemId);
+        OnAcceptTerms?.Invoke(itemId);
+        TermsRevision++;
+    }
+
     public int Accepts { get; private set; }
 
     public int Cancels { get; private set; }

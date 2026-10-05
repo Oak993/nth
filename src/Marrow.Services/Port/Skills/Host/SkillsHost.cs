@@ -63,6 +63,9 @@ public sealed class SkillsHost : IDisposable
     /// <summary>SK-16: the in-chat offers' download seam over the same <see cref="Downloads"/>: an offer joins a download Settings has running, and the reverse.</summary>
     public ISkillsOfferDownload OfferDownloads => new SkillsOfferInstalls(Downloads);
 
+    /// <summary>SK-14: the in-chat offers' terms step: the same one the Settings pages use, so an acceptance is one record.</summary>
+    public ISkillsOfferTerms OfferTerms => new HostOfferTerms(Terms);
+
     /// <summary>
     /// The download seam with the terms checked first (<see cref="TermsGate"/>): the one entry a first install goes through so no byte of a non-open item is requested before its terms are
     /// accepted. Null while no download seam is bound. The pipeline's own update and repair use this same guarded seam.

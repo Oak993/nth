@@ -8,6 +8,7 @@ using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.State;
+using Marrow.Core.Port.Skills.Terms;
 using Marrow.Services.Port.Skills.Offers;
 using Marrow.UI.Port;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
@@ -57,7 +58,7 @@ public sealed class OfferCardControl : Border
         Background = ChromeTokens.Overlay(0.06).Brush(this);
         this.RoundedRectangle(10, RoundedCornerStyle.Continuous);
         KeyDown += OnKeyDown;
-        this.Track(() => (source.Stage, source.Card, source.Progress, source.Failure, source.CanFetch), _ => Refresh());
+        this.Track(() => (source.Stage, source.Card, source.Progress, source.Failure, source.CanFetch, source.TermsRevision), _ => Refresh());
         Refresh();
     }
 
@@ -105,7 +106,7 @@ public sealed class OfferCardControl : Border
             host.IsVisible = view.Hosts.Count > 0;
         }
         // What is on show changes with the state and, within asked and failed, with the button's words (a need that joined changes the combined size) and the note: each is a transitioned swap.
-        var key = next + "|" + (view?.PrimaryLabel ?? "") + "|" + (view?.Note ?? "");
+        var key = next + "|" + (view?.PrimaryLabel ?? "") + "|" + (view?.Note ?? "") + "|" + string.Join(",", view?.OwedItems ?? []);
         if (key != contentKey)
         {
             var first = contentKey is null;
@@ -139,6 +140,13 @@ public sealed class OfferCardControl : Border
         frames.RequestFrame(tick);
     }
 
+    private TermsBox TermsFor(string itemId)
+    {
+        var item = catalogue.Items.Single(i => i.Id == itemId);
+        var offer = source.TermsFor(itemId);
+        return new TermsBox(offer?.Label ?? SkillsNotices.UnderTerms(item.Vendor), offer?.LicenceName ?? item.LicenceName, true, () => source.LicenceText(itemId), () => source.AcceptTerms(itemId));
+    }
+
     private static double Fraction(OfferCardView view) => view.BytesTotal is > 0 and { } total ? Math.Clamp((double)(view.BytesDone ?? 0) / total, 0, 1) : 0;
 
     private Control Build(string what)
@@ -151,6 +159,13 @@ public sealed class OfferCardControl : Border
                 primary = LibraryButtons.Make(view!.PrimaryLabel!, () => _ = source.Accept(), ButtonLook.Primary, "offer-primary");
                 Add(primary);
                 if (view.Note is { } askedNote) Add(LibraryUi.Text(askedNote, 11.5, secondary: true, trim: true));
+                if (view.OwedItems is { Count: > 0 } owed)
+                {
+                    // ONDEMAND 5.4: the terms step stays inside asked. Each item that owes terms shows the Settings page's own box; the Download waits for the acceptances.
+                    var boxes = new StackPanel { Spacing = 8, Children = { line } };
+                    foreach (var owedId in owed) boxes.Children.Add(TermsFor(owedId));
+                    return boxes;
+                }
                 break;
             case "downloading":
                 bar = new LibraryBar { Width = 200 };

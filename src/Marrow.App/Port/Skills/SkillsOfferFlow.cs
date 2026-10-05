@@ -16,6 +16,8 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferC
     private readonly Func<AddonsState> read;
     private readonly Action<AddonsState> write;
     private readonly ISkillsOfferDownload download;
+    private readonly ISkillsOfferTerms? terms;
+    private int termsRevision;
     private readonly HashSet<string> offered = new(StringComparer.Ordinal);
     private readonly HashSet<string> modelRequested = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (ApprovalRequest Request, long Epoch, string Item)> held = new(StringComparer.Ordinal);
@@ -30,9 +32,9 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferC
     private string? failure;
     private string Chat => runtime.ThreadID.ToString();
 
-    public SkillsOfferFlow(ThreadRuntime runtime, SkillsCatalogue catalogue, Func<AddonsState> read, Action<AddonsState> write, ISkillsOfferDownload download)
+    public SkillsOfferFlow(ThreadRuntime runtime, SkillsCatalogue catalogue, Func<AddonsState> read, Action<AddonsState> write, ISkillsOfferDownload download, ISkillsOfferTerms? terms = null)
     {
-        this.runtime = runtime; this.catalogue = catalogue; this.read = read; this.write = write; this.download = download;
+        this.runtime = runtime; this.catalogue = catalogue; this.read = read; this.write = write; this.download = download; this.terms = terms;
         runtime.AttachSkillsOffers(this);
     }
     public OfferStage Stage { get => Read(stage); private set => Set(ref stage, value); }
@@ -93,6 +95,19 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferC
 
     /// <summary>SK-14 review: every item of the card can be fetched (the download seam says so); the card keeps its Download off otherwise. Accept itself is unchanged: an item that cannot be fetched still fails with the one unavailable message.</summary>
     public bool CanFetch => Card is { } current && current.Items.All(id => catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item && download.CanFetch(item));
+
+    public int TermsRevision { get => Read(termsRevision); private set => Set(ref termsRevision, value); }
+
+    public Marrow.Services.Port.Skills.Terms.TermsOffer? TermsFor(string itemId) => terms?.Offer(itemId);
+
+    public Task<string> LicenceText(string itemId) => (terms ?? throw new InvalidOperationException("No terms step is bound.")).LicenceTextAsync(itemId, CancellationToken.None);
+
+    /// <summary>Stores the acceptance through the terms step and lets the card read its state again; the download stays the user's yes (ONDEMAND 5.4).</summary>
+    public void AcceptTerms(string itemId)
+    {
+        (terms ?? throw new InvalidOperationException("No terms step is bound.")).Accept(itemId);
+        TermsRevision++;
+    }
 
     public Task Accept() => Begin(attaching: false);
 

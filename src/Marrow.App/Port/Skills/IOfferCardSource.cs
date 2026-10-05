@@ -17,6 +17,17 @@ public interface IOfferCardSource
 
     string? Failure { get; }
 
+    /// <summary>Grows when the terms step's answer may have changed (an acceptance): the card reads its state again.</summary>
+    int TermsRevision { get; }
+
+    /// <summary>The terms the item owes now, or null (none, or no terms step is bound).</summary>
+    Marrow.Services.Port.Skills.Terms.TermsOffer? TermsFor(string itemId);
+
+    Task<string> LicenceText(string itemId);
+
+    /// <summary>The separate "I have read these terms" control was used: the acceptance is stored.</summary>
+    void AcceptTerms(string itemId);
+
     /// <summary>Yes (and Retry): downloads what the card names.</summary>
     Task Accept();
 

@@ -19,17 +19,18 @@ internal sealed class OfferCardHarness : IDisposable
     private readonly List<IDisposable> scopes = [];
     private readonly bool runOut;
 
-    private OfferCardHarness(ScriptedOfferSource source, AddonsState state, bool motion, bool reduceMotion, double width)
+    private OfferCardHarness(ScriptedOfferSource source, AddonsState initial, bool motion, bool reduceMotion, double width, SkillsCatalogue? catalogue)
     {
         Source = source;
-        Catalogue = SkillsCatalogueLoader.LoadEmbedded();
+        State = initial;
+        Catalogue = catalogue ?? SkillsCatalogueLoader.LoadEmbedded();
         Time = new ManualTimeProvider();
         scopes.Add(SwiftClock.Provider.Override(Time));
         scopes.Add(ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = false }));
         runOut = !motion;
         Frames = new ManualFrameSource();
         scopes.Add(FrameClock.Source.Override(Frames));
-        Card = new OfferCardControl(source, Catalogue, () => state);
+        Card = new OfferCardControl(source, Catalogue, () => State);
         Composer = new TextBox { Text = "a draft the card must never cover", Width = width };
         Column = new StackPanel { Width = width, Spacing = 8, Children = { Card, Composer } };
         Window = new Avalonia.Controls.Window { Content = new Panel { Children = { new Border { Padding = new Thickness(24), Child = Column } } }, Width = width + 48, Height = 480 };
@@ -37,6 +38,9 @@ internal sealed class OfferCardHarness : IDisposable
         Window.Show();
         Settle();
     }
+
+    /// <summary>The pipeline's state the card reads: a test changes it the way an acceptance would.</summary>
+    public AddonsState State { get; set; }
 
     public ScriptedOfferSource Source { get; }
 
@@ -57,13 +61,13 @@ internal sealed class OfferCardHarness : IDisposable
     /// <summary>The offer for the LibreOffice tool (T3), asked.</summary>
     public static ScriptedOfferSource Asked(params string[] items) => new() { Card = new OfferCard(items.Length == 0 ? ["T3"] : items.TakeLast(1).ToArray(), items.Length == 0 ? ["T3"] : items, null) };
 
-    public static void Run(HeadlessSession headless, ScriptedOfferSource source, Action<OfferCardHarness> check, bool motion = false, bool reduceMotion = false, AddonsState? state = null, double width = 420)
+    public static void Run(HeadlessSession headless, ScriptedOfferSource source, Action<OfferCardHarness> check, bool motion = false, bool reduceMotion = false, AddonsState? state = null, double width = 420, SkillsCatalogue? catalogue = null)
     {
         void Body()
         {
             var catalogueSize = SkillsCatalogueLoader.LoadEmbedded();
             if (source.Card is { } card) source.Card = card with { ApproxSizeMb = card.Items.Sum(id => catalogueSize.Items.Single(i => i.Id == id).ApproxSizeMb) };
-            using var harness = new OfferCardHarness(source, state ?? AddonsState.Empty, motion, reduceMotion, width);
+            using var harness = new OfferCardHarness(source, state ?? AddonsState.Empty, motion, reduceMotion, width, catalogue);
             check(harness);
             harness.Settle();
         }
