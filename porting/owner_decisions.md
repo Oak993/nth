@@ -1090,3 +1090,14 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Context:** the owner's multiple-accounts feature (several accounts per service, the Handshake, Pills, link up, one-message opinions, local models, per-account enable/disable), designed with the owner on 2026-10-05. Everything agreed is in `E:\Droppy\work\design\ideas\multi-account.md`; the design page is https://claude.ai/artifact/JuyXgrnFdKLar65QWgeL7X. The feasibility study (branch codex/ma-0, `porting/first-release/multi-account-FEASIBILITY.md`) found it technically feasible for file-based CLIs (Copilot CLI and Antigravity keep sign-ins in Windows Credential Manager and stay single-account), and quoted provider terms against bypassing protective measures and circumventing rate limits; the lead raised this risk with the owner before this decision.
 - **Owner, verbatim:** "once we finalize the multi account page, that too needs to get pushed in this release"
 - **Effect:** multiple accounts join the first-release scope (OD-0103) as a new feature family. Its interface is built only after the owner finalizes the design page, and its picks are then recorded verbatim; design-independent foundations (accounts store, per-account isolation and limits, the local provider) may start at once. The installer still comes last (OD-0105).
+
+## OD-0115 Multiple accounts: the design picks (2026-10-05)
+
+- **Page:** https://claude.ai/artifact/JuyXgrnFdKLar65QWgeL7X (version 8; copy: `porting/first-release/design-src/multi-account/`). Every agreed rule: `porting/first-release/multi-account-NOTES.md`.
+- **Owner, verbatim:** "multi-account: handshake=A, composer=A, popover=ok, link=A, opinions=B, usage=B, card-layout=A" and "Just fix that generic toggle and ship it with the current release."
+- **Effect:**
+  - Handshake animation A (neural filaments), from and to the shared capsule, in the usage light.
+  - Composer account control A (the glass capsule), styles from Customization, default Merged capsule.
+  - The account popover as shown; link up A (tap the link beside an account); one-message opinions B (an "Ask others" button); usage panel B (the current account, the others one tap away); first-time card layout A.
+  - Every switch is the port's own SmallSwitch (SettingsView.cs, ED-280), never the page's generic toggle.
+  - It ships in the first release (OD-0114).
