@@ -218,6 +218,7 @@ public sealed class SettingsView : Decorator
         // scrim. Painted first (ZIndex -1), under the clipped frame, so the glass and its hairline still stop at the curve.
         cornerWedge.ZIndex = -1;
         Child = new Panel { Children = { frame, cornerWedge } };
+        this.Track(() => Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.Current.Selection, value => backdrop.UpdateLibrary(value));
         this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => { backdrop.Update(value, null); cornerWedge.Update(value); });
         this.Track(() => SettingsNavigation.Shared.RequestedPage, requested => // :123-127
         {
