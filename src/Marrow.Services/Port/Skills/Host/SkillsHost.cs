@@ -23,6 +23,7 @@ public sealed class SkillsHost : IDisposable
     private static readonly Dictionary<string, SkillsHost> OpenHosts = new(StorePaths.Comparer);
     private readonly string key;
     private bool disposed;
+    private Task? collection;
 
     private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, TermsStep terms,
         Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? downloads, IReadOnlyList<string> unrestored)
@@ -81,10 +82,12 @@ public sealed class SkillsHost : IDisposable
         var trust = (options.Trust ?? CatalogueTrust.Restore)(paths, options.Catalogue, state);
         if (trust.Unrestored.Count > 0)
         {
-            // The pipeline refuses an installed record without a trusted descriptor, and a record is never trusted without one: it is dropped, loudly, and its tree is left for the user's next removal or reset.
+            // The pipeline refuses an installed record without a trusted descriptor, and a record is never trusted without one: it is dropped, loudly. Its trees are NOT: they are marked as orphans
+            // (addons/orphans.json) before the record goes, and every GC of every launch retains them until the item is removed or Reset runs.
+            SkillsPipeline.MarkOrphans(paths, state.Items.Where(r => trust.Unrestored.Contains(r.Id)).Select(r => new PipelineOrphan(r.Id, CatalogueTrust.OrphanFolders(paths, r))));
             var kept = AddonsState.Restore(state.Items.Where(r => !trust.Unrestored.Contains(r.Id)), state.AcceptedTerms, state.Declined, state.Found);
             AddonsStateStore.Save(paths.StateFile, kept);
-            Log.Error("skills: no trusted descriptor for installed " + string.Join(", ", trust.Unrestored) + "; dropped from state.json, trees left in place");
+            Log.Error("skills: no trusted descriptor for installed " + string.Join(", ", trust.Unrestored) + "; dropped from state.json, trees retained as orphans");
         }
         SkillsPipeline? pipeline = null;
         var guarded = options.Downloads is null ? null : TermsGate.Guard(() => pipeline!.State, options.Downloads);
@@ -92,16 +95,27 @@ public sealed class SkillsHost : IDisposable
             options.Deletion, guarded, options.Bindings, trustedDirectories: trust.Directories);
         var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource);
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        if (trust.Unrestored.Count == 0)
-        {
-            // Crash residue (tmp- trees, ended chats, spares) and a reset that a held handle cut short are the GC's (ED-326 (6)(d)). Skipped while a tree is left whose trust is gone: nothing is deleted behind the user's back.
-            try { pipeline.Collect(); }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
-            {
-                Log.Error("skills: the startup collection failed: " + error.Message);
-            }
-        }
         return new SkillsHost(paths.Root, paths, pipeline, generations, terms, guarded, trust.Unrestored);
+    }
+
+    /// <summary>
+    /// The startup GC (crash residue: tmp- trees, ended chats, spares; a reset a held handle cut short: ED-326 (6)(d)), run once on the pool, never on the launch path. The caller starts it after
+    /// the main window shows. Orphans (<see cref="SkillsPipeline.Orphans"/>) are retained by it on every launch. A failure is logged, never thrown. The same task is returned on a second call.
+    /// </summary>
+    public Task CollectInBackground()
+    {
+        lock (Gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            return collection ??= Task.Run(() =>
+            {
+                try { Pipeline.Collect(); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or ObjectDisposedException)
+                {
+                    Log.Error("skills: the startup collection failed: " + error.Message);
+                }
+            });
+        }
     }
 
     /// <summary>Reset skills and tools (ONDEMAND-PLAN.md 3.8): removes everything under <c>addons\</c> and <c>skills\store</c> and the views, keeps <c>enabled.json</c> and the accepted terms.</summary>
@@ -115,6 +129,8 @@ public sealed class SkillsHost : IDisposable
             disposed = true;
             OpenHosts.Remove(key);
         }
+        try { collection?.Wait(TimeSpan.FromSeconds(10)); }
+        catch (AggregateException) { /* logged inside the task */ }
         Generations.Dispose();
     }
 

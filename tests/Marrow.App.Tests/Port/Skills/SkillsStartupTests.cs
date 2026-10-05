@@ -81,4 +81,36 @@ public sealed class SkillsStartupTests
     {
         Assert.Throws<Marrow.Core.Port.SwiftTrapException>(() => SkillsSeams.Host.Current);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-326")]
+    public void Launch_always_fails_soft_whatever_non_fatal_exception_opening_throws()
+    {
+        var root = FreshRoot();
+        try
+        {
+            using var sink = Marrow.Core.Port.Logger.Sink.Override((_, _) => { });
+            Assert.Null(SkillsStartup.Bind(root, options: () => throw new OverflowException("checked arithmetic")));
+            Assert.Null(SkillsStartup.Bind(root, options: () => throw new NullReferenceException("a seam")));
+            Assert.Null(SkillsHost.Find(root));
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-326")]
+    public void The_startup_collection_is_started_from_the_Startup_handler_and_never_from_Main_itself()
+    {
+        var program = typeof(Program);
+        var main = MethodCalls.Of(program.GetMethod(nameof(Program.Main), BindingFlags.Public | BindingFlags.Static)!).Select(c => c.DeclaringType!.Name + "." + c.Name).ToList();
+        Assert.DoesNotContain("SkillsHost.CollectInBackground", main);
+        Assert.DoesNotContain(main, n => n.StartsWith("SkillsHost.Collect", StringComparison.Ordinal));
+        // the Startup lambda (runs once the lifetime starts, after the single-instance lock and the window set-up) is a compiler-made method of Program or its closure class
+        var bodies = program.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public).Append(program)
+            .SelectMany(type => type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly))
+            .Where(m => m.GetMethodBody() is not null)
+            .Select(m => MethodCalls.Of(m).Select(c => c.DeclaringType!.Name + "." + c.Name).ToList()).ToList();
+        var startup = Assert.Single(bodies, calls => calls.Contains("SkillsHost.CollectInBackground"));
+        Assert.True(startup.IndexOf("AppShell.FinishLaunching") < startup.IndexOf("SkillsHost.CollectInBackground"), "after the main window is set up: " + string.Join(", ", startup));
+    }
 }

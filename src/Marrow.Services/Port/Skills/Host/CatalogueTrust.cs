@@ -14,6 +14,24 @@ namespace Marrow.Services.Port.Skills.Host;
 /// </summary>
 public static class CatalogueTrust
 {
+    /// <summary>
+    /// The folder and spares the immutable route sidecar names for an installed record (a record whose descriptor could not be rebuilt); empty when the sidecar is missing or does not
+    /// validate, which the pipeline reads as "folders unknown, retain every tool and store tree".
+    /// </summary>
+    public static string[] OrphanFolders(StorePaths paths, ItemRecord record)
+    {
+        try
+        {
+            var installed = AddonsState.Restore([new ItemRecord(record.Id, ItemState.Installed, record.InstalledPin, null, null)], [], [], []);
+            var route = PipelineRoutes.Read(paths.StateFile, installed).Single();
+            return route.SparePaths.Prepend(route.Folder).ToArray();
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidDataException or IOException or KeyNotFoundException or InvalidOperationException or System.Text.Json.JsonException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
     public static TrustedInstalls Restore(StorePaths paths, SkillsCatalogue catalogue, AddonsState state)
     {
         var versions = new List<StoreItem>();

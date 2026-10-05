@@ -101,7 +101,7 @@ public static class Program
         Storage.Locations.SetProcessDefault(StorageLocations.CreateProduction());
         StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
         // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
-        SkillsStartup.Bind(SkillsDataRoot.Resolve());
+        var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
@@ -130,6 +130,7 @@ public static class Program
         lifetime.Startup += (_, _) =>
         {
             shell.FinishLaunching();
+            skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
             DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
             reopen.Listen(() => shell.Reopen(lifetime.Windows));
         };
