@@ -12,7 +12,16 @@ public sealed class PipelineDownloadSource(Downloader downloader,
     public async Task<InstallPlan> DownloadAsync(CatalogueItem item, ItemRecord record, IProgress<double?> progress, CancellationToken cancellation)
     {
         cancellation.ThrowIfCancellationRequested();
+        var prepared = Prepare(item, record);
+        var plans = await DownloadSetAsync([prepared], value => progress.Report(value.BytesTotal == 0 ? null : (double)value.BytesDone / value.BytesTotal), cancellation).ConfigureAwait(false);
+        return plans[0];
+    }
+
+    // SK-12 prepares the whole dependency-ordered card first, so SK-3 reports its actual combined bytes and percentage.
+    internal (InstallPlan Plan, IReadOnlyList<DownloadRequest> Files) Prepare(CatalogueItem item, ItemRecord record)
+    {
         var plan = plans(item, record);
+        if (plan.Item != item || plan.Record != record) throw new InvalidDataException("Download plan does not match its item and record.");
         var files = requests(plan);
         if (files.Count == 0) throw new InvalidDataException("An update requires pinned download inputs.");
         foreach (var file in files)
@@ -28,11 +37,22 @@ public sealed class PipelineDownloadSource(Downloader downloader,
             else if (pinned is null || pinned.Size != file.Size || !pinned.Sha256.Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("Download does not match its pinned file.");
         }
-        var job = downloader.StartSet(files, value => progress.Report(value.BytesTotal == 0 ? null : (double)value.BytesDone / value.BytesTotal));
+        return (plan, files);
+    }
+
+    internal async Task<IReadOnlyList<InstallPlan>> DownloadSetAsync(IReadOnlyList<(InstallPlan Plan, IReadOnlyList<DownloadRequest> Files)> prepared, Action<DownloadProgress> progress, CancellationToken cancellation)
+    {
+        cancellation.ThrowIfCancellationRequested();
+        var files = prepared.SelectMany(p => p.Files).ToArray();
+        // Internal callers supply the pinned plans prepared by this source.
+        foreach (var input in prepared)
+            if (input.Files.Any(f => !input.Plan.LocalFiles.Values.Any(p => Path.GetFullPath(p) == Path.GetFullPath(f.DestinationPath))))
+                throw new InvalidDataException("Download does not match its pinned file.");
+        var job = downloader.StartSet(files, progress);
         using var registration = cancellation.Register(job.Cancel);
         var outcome = await job.Completion.ConfigureAwait(false);
         if (outcome.Status == DownloadStatus.Cancelled) throw new OperationCanceledException(cancellation);
         if (!outcome.Succeeded) throw new IOException(outcome.Failure?.Message ?? throw new InvalidDataException("Download failed without a reason."));
-        return plan.WithDownloads(outcome);
+        return prepared.Select(p => p.Plan.WithDownloads(outcome)).ToArray();
     }
 }

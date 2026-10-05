@@ -1,0 +1,7 @@
+{"method":"session/request_permission","params":{"toolCall":{"toolCallId":"g1","kind":"execute","title":"pandoc a.md -o a.docx","rawInput":{"command":"pandoc a.md -o a.docx"}},"options":[{"optionId":"once","kind":"allow_once","name":"Allow"},{"optionId":"no","kind":"reject_once","name":"Reject"}]}}
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call","toolCallId":"g1","kind":"execute","title":"pandoc a.md -o a.docx","rawInput":{"command":"pandoc a.md -o a.docx"},"status":"pending"}}}
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call_update","toolCallId":"g1","status":"failed","rawOutput":{"stderr":"pandoc: command not found","exitCode":127}}}}
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call","toolCallId":"g2","kind":"read","title":"Read a.md","rawInput":{"path":"a.md"},"status":"pending"}}}
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call_update","toolCallId":"g2","status":"completed","content":[{"type":"content","content":{"type":"text","text":"hi"}}]}}}
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call","toolCallId":"g3","kind":"execute","title":"git status","rawInput":{"command":"git status"},"status":"in_progress"}}}
+{"method":"session/update","params":{"update":{"sessionUpdate":"tool_call_update","toolCallId":"g3","status":"completed","content":[{"type":"content","content":{"type":"text","text":"clean"}}],"rawOutput":{"exitCode":0}}}}
