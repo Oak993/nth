@@ -112,6 +112,36 @@ public static class PlainControls
         return button;
     }
 
+    /// <summary>Restores the app's existing SystemButtons focus band on a custom plain button, without changing its resting content or layout.</summary>
+    public static Button KeyboardFocus(this Button button, double? cornerRadius = null)
+    {
+        button.Template = new FuncControlTemplate<Button>((owner, scope) =>
+        {
+            var content = new ContentPresenter
+            {
+                Name = "PART_ContentPresenter",
+                [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty],
+            }.RegisterInNameScope(scope);
+            var ring = new Border
+            {
+                Margin = new Thickness(-SystemButtons.FocusBand),
+                BorderThickness = new Thickness(SystemButtons.FocusBand),
+                IsVisible = false,
+                IsHitTestVisible = false,
+            };
+            if (cornerRadius is { } radius) ring.RoundedRectangle(radius + SystemButtons.FocusBand, RoundedCornerStyle.Continuous);
+            else ring.Capsule(RoundedCornerStyle.Circular);
+            ring.BorderBrush = Marrow.UI.Chrome.Chrome.Accent.Opacity(0.25).Brush(ring);
+            Avalonia.Automation.AutomationProperties.SetAccessibilityView(ring, Avalonia.Automation.AccessibilityView.Raw);
+            void Focus() => ring.IsVisible = owner.IsEffectivelyEnabled && owner.Classes.Contains(":focus-visible");
+            owner.Classes.CollectionChanged += (_, _) => Focus();
+            owner.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty) Focus(); };
+            Focus();
+            return new Panel { Children = { content, ring } };
+        });
+        return button;
+    }
+
     /// <summary>
     /// <c>TextField(prompt, text: $text).textFieldStyle(.plain)</c>: the field reads the binding whenever what it read
     /// changes and writes it on every edit (R-VIEW-7). The prompt is drawn in the placeholder text colour.

@@ -469,7 +469,7 @@ public sealed class UpdateReleaseSectionCards : Decorator
         {
             if (section is not null)
                 state.Presented = state.Presented == category ? null : category;
-        });
+        }).KeyboardFocus(14);
         button.HorizontalAlignment = HorizontalAlignment.Stretch;
         button.VerticalAlignment = VerticalAlignment.Stretch;
         button.IsEnabled = section is not null;

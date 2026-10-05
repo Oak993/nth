@@ -209,7 +209,8 @@ public sealed class WallpaperCard : Decorator
         }
         content.Track(() => state.IsTargeted, targeted => AnimateScale(targeted ? 1.02 : 1)); // :89-90
 
-        var button = PlainControls.Button(content, Choose); // :26, :93 buttonStyle(.plain)
+        var button = PlainControls.Button(content, Choose).KeyboardFocus(12); // :26, :93 buttonStyle(.plain)
+        button.Track(() => store.HasWallpaper, has => AutomationProperties.SetName(button, has ? null : "Drop a picture here, or choose one")); // :71 the empty preview's native label; the installed photo keeps its upstream semantics
 
         // :95-99 dropDestination(for: URL.self, ...)
         DragDrop.SetAllowDrop(button, true);
@@ -371,6 +372,7 @@ public sealed class WallpaperCard : Decorator
                 removeButton = null;
             }
             changeLabel.Text = has ? "Change…" : "Choose…"; // :118
+            AutomationProperties.SetName(changeButton, changeLabel.Text);
             var installing = store.IsInstalling;
             changeButton.IsEnabled = !installing; // :121
             if (removeButton is not null) removeButton.IsEnabled = !installing; // :116
@@ -504,7 +506,9 @@ public sealed class WallpaperCard : Decorator
             VerticalAlignment = VerticalAlignment.Center,
         };
         var glass = padded.ChromeGlassCapsule();
-        return PlainControls.Button(glass, action);
+        var button = PlainControls.Button(glass, action).KeyboardFocus();
+        AutomationProperties.SetName(button, label.Text);
+        return button;
     }
 
     // :168-189 choose(): the panel runs async against the key window so the sheet never blocks (:169).
