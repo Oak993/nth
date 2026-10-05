@@ -180,6 +180,6 @@ public sealed class CustomizationDotsRowsTests(HeadlessSession headless)
         Assert.Same(page.Dots!.Section, sections[^1]);
         Assert.Equal("Working dots", sections[^1].Title);
         Assert.Equal(1, sections[^1].Fraction);
-        Assert.Empty(page.Rest.Children);
+        Assert.Same(page.Speech!.Section, Assert.Single(page.Rest.Children)); // CZ-8: the Speech section follows, outside the sticky container
     });
 }
