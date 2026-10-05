@@ -1117,3 +1117,12 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 
 - **Owner, verbatim:** "Also, can we have an option to import skills from other apps and llms on the pc in skills settings?" then "It goes in this release"
 - **Effect:** a new first-release unit SK-18 in Settings › Skills: an "Import skills" action scans the places other AI tools on this PC keep skills (Claude Code's skills and plugins folders, Codex's skills, Antigravity's, Cursor's rules, and any folder the user picks), lists what it found grouped by app (name, one-line description, source), and imports the ticked ones either as a Copy (Marrow's own) or a Link (kept in sync with the original). Nothing in the other apps is moved or changed; duplicates offer keep both / replace / skip; imported skills carry a quiet "from <app>" tag and can be removed; they then work wherever Marrow gives skills. Design follows the existing Skills pages (SK-15) and goes to the owner only if a new layout is needed.
+
+## OD-0119 Multi-account checklist conflicts settled (2026-10-05)
+
+- **Owner, verbatim (Hindi, as spoken):** "हैंडशेक स्विच ऑन बाय डिफॉल्ट हाँ तो ऑफ करके डिफॉल्ट में रखो ना और ऐप पहली बार पूछेगी तो फिर ऑन होगा" · "द बिल्डर मस्ट पिक वन स्मार्टली जो सही लग रहा है वो पिक कर लो" · "मैंने और स्टाइल्स मांगे थे तो वो अपडेट हो गया बारह स्टाइल्स हैं अब".
+- **Effect:**
+  - Pills visibility: OD-0117 stands (the section is always in Settings; disabled below two connected accounts, with a note saying it turns on once two are connected and what the feature does). The page's 2+ gate is outdated.
+  - Switching and the Handshake into another account: off by default; on only after the user agrees when the app asks the first time (OD-0116). The page's `hs: true` default is outdated.
+  - Per-account Handshake point: the builder picks. Lead pick: the account's ⋯ menu "Handshake at…", plus a small quiet note on that account's row only when its point differs from the default (NOTES:56, matches the page's Settings footer).
+  - Pill-in-composer styles: the page's twelve styles are current; the NOTES list of four is outdated.
