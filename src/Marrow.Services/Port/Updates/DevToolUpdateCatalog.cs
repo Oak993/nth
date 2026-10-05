@@ -43,7 +43,7 @@ public static class DevToolUpdateCatalog
         }
         OfficeInstallation? installedOffice;
         try { installedOffice = await office(cancellation); }
-        catch (Exception error) when (inventoryFailure is not null && error is InvalidOperationException or IOException or UnauthorizedAccessException)
+        catch (Exception error) when (inventoryFailure is not null && error is InvalidOperationException or IOException or InvalidDataException or UnauthorizedAccessException)
         {
             inventoryFailure("Office", error); installedOffice = null;
         }
@@ -65,7 +65,7 @@ public static class DevToolUpdateCatalog
         async Task<IReadOnlyList<WingetPackage>> Packages(string title, IReadOnlyList<string> query)
         {
             try { return WingetUpdater.ParseList(await run(WingetUpdater.ListCommand(query), cancellation)); }
-            catch (Exception error) when (inventoryFailure is not null && error is InvalidOperationException or IOException or UnauthorizedAccessException)
+            catch (Exception error) when (inventoryFailure is not null && error is InvalidOperationException or IOException or InvalidDataException or UnauthorizedAccessException)
             {
                 // Explicit production recovery: report an incomplete inventory, then inspect independent local binaries.
                 // The default seam remains strict; a failure never becomes an unexplained empty table.
@@ -86,7 +86,7 @@ public static class DevToolUpdateCatalog
         {
             cancellation.ThrowIfCancellationRequested();
             try { return await run(command, cancellation); }
-            catch (Exception error) when (inventoryFailure is not null && error is InvalidOperationException or IOException or UnauthorizedAccessException)
+            catch (Exception error) when (inventoryFailure is not null && error is InvalidOperationException or IOException or InvalidDataException or UnauthorizedAccessException)
             {
                 inventoryFailure(title, error); return new(null, "", error.Message);
             }

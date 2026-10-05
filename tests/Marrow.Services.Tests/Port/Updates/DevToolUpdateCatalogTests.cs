@@ -152,6 +152,49 @@ public sealed class DevToolUpdateCatalogTests
     }
 
     [Fact]
+    public async Task A_malformed_winget_table_is_not_an_empty_installed_inventory()
+    {
+        // The strict default seam: with no recovery handler a malformed table propagates, exactly like an unreadable source.
+        var replay = new TrialHReplay(); replay.Add(TrialHFixtures.Command("04-git-list"), new DevToolCommandResult(0, "truncated", ""));
+        await Assert.ThrowsAsync<InvalidDataException>(() => DevToolUpdateCatalog.Discover(replay.Run, _ => Task.FromResult<OfficeInstallation?>(null)));
+        replay.Complete();
+    }
+
+    [Theory]
+    [InlineData("truncated")]
+    [InlineData("Name Id Version Available Source\r\n-----\r\nGit Git.Git 2.54.0 2.55.0.5 winget\r\nGit Git.Git 2.54.0 2.55.0.5 winget\r\n")]
+    public async Task A_malformed_winget_table_degrades_only_its_own_tool_rows(string malformed)
+    {
+        // The explicit recovery path treats a malformed table like an unreadable source: report it, probe the tool's own binary, keep every other row.
+        var replay = new TrialHReplay();
+        replay.Add(TrialHFixtures.Command("04-git-list"), new DevToolCommandResult(0, malformed, ""));
+        replay.Add("03-git-before");
+        replay.Add("12-gh-list"); replay.Add("11-gh-before");
+        replay.Add("16-node-list"); replay.Add("24-python-list"); replay.Add("23-python-launcher");
+        List<(string Tool, Exception Error)> failures = [];
+        var items = await DevToolUpdateCatalog.Discover(replay.Run, _ => Task.FromResult<OfficeInstallation?>(TrialHFixtures.Office("34-office-before")), inventoryFailure: (tool, error) => failures.Add((tool, error)));
+        var failure = Assert.Single(failures); Assert.Equal("Git", failure.Tool); Assert.IsType<InvalidDataException>(failure.Error);
+        Assert.Equal(["dev:unmatched:git", "dev:OpenJS.NodeJS.22", "dev:Python.Python.3.13", "dev:Python.Python.3.14", "dev:office"], items.Select(i => i.Id));
+        Assert.Equal("2.54.0.windows.1", await items[0].InstalledVersion(default));
+        Assert.DoesNotContain(replay.Calls, c => c.Arguments.Contains("upgrade", StringComparer.Ordinal)); replay.Complete();
+    }
+
+    [Fact]
+    public async Task A_malformed_Python_table_keeps_the_earlier_tool_rows_and_falls_back_to_the_registered_runtimes()
+    {
+        var replay = new TrialHReplay(); replay.Add("04-git-list"); replay.Add("12-gh-list"); replay.Add("11-gh-before"); replay.Add("16-node-list");
+        replay.Add(TrialHFixtures.Command("24-python-list"), new DevToolCommandResult(0, "truncated", ""));
+        replay.Add("23-python-launcher");
+        replay.Add("26-python314-direct-before", new DevToolCommand("C:\\Python314\\python.exe", ["--version"]));
+        replay.Add("30-python313-before", new DevToolCommand("%USERPROFILE%\\AppData\\Local\\Programs\\Python\\Python313\\python.exe", ["--version"]));
+        List<(string Tool, Exception Error)> failures = [];
+        var items = await DevToolUpdateCatalog.Discover(replay.Run, _ => Task.FromResult<OfficeInstallation?>(TrialHFixtures.Office("34-office-before")), inventoryFailure: (tool, error) => failures.Add((tool, error)));
+        var failure = Assert.Single(failures); Assert.Equal("Python", failure.Tool); Assert.IsType<InvalidDataException>(failure.Error);
+        Assert.Equal(["dev:Git.Git", "dev:OpenJS.NodeJS.22", "dev:unmatched:python:3.14", "dev:unmatched:python:3.13", "dev:office"], items.Select(i => i.Id));
+        Assert.DoesNotContain(replay.Calls, c => c.Arguments.Contains("upgrade", StringComparer.Ordinal)); replay.Complete();
+    }
+
+    [Fact]
     public async Task A_rejected_registered_Python_probe_does_not_drop_already_detected_Git_or_independent_Office()
     {
         var replay = new TrialHReplay(); replay.Add("04-git-list"); replay.Add("12-gh-list"); replay.Add("11-gh-before"); replay.Add("16-node-list");
@@ -164,5 +207,57 @@ public sealed class DevToolUpdateCatalogTests
         var items = await DevToolUpdateCatalog.Discover(Run, _ => Task.FromResult<OfficeInstallation?>(TrialHFixtures.Office("34-office-before")), inventoryFailure: (tool, _) => failures.Add(tool));
         Assert.Equal(["Git", "Node.js", "Office"], items.Select(i => i.Title));
         Assert.Equal(["Python"], failures); Assert.DoesNotContain(replay.Calls, c => c.Arguments.Contains("upgrade", StringComparer.Ordinal)); replay.Complete();
+    }
+
+    [Theory]
+    [InlineData("probe", false)]
+    [InlineData("probe", true)]
+    [InlineData("Office", false)]
+    [InlineData("Office", true)]
+    public async Task Invalid_data_from_a_probe_or_Office_recovers_only_with_an_explicit_handler(string stage, bool recover)
+    {
+        var replay = new TrialHReplay(); var error = new InvalidDataException("invalid local inventory");
+        if (stage == "probe") replay.Add("12-gh-list", TrialHFixtures.Command("04-git-list")); else replay.Add("04-git-list");
+        if (recover || stage == "Office")
+        {
+            replay.Add("12-gh-list"); replay.Add("11-gh-before"); replay.Add("16-node-list"); replay.Add("24-python-list"); replay.Add("23-python-launcher");
+        }
+        var failures = new List<(string Tool, Exception Error)>();
+        Task<DevToolCommandResult> Run(DevToolCommand command, CancellationToken cancellation) => command.Executable == "git"
+            ? Task.FromException<DevToolCommandResult>(error) : replay.Run(command, cancellation);
+        Task<OfficeInstallation?> Office(CancellationToken _) => stage == "Office"
+            ? Task.FromException<OfficeInstallation?>(error) : Task.FromResult<OfficeInstallation?>(TrialHFixtures.Office("34-office-before"));
+        var pending = DevToolUpdateCatalog.Discover(Run, Office, inventoryFailure: recover ? (tool, failure) => failures.Add((tool, failure)) : null);
+        if (!recover) Assert.Same(error, await Assert.ThrowsAsync<InvalidDataException>(() => pending));
+        else
+        {
+            var items = await pending; var failure = Assert.Single(failures);
+            Assert.Equal(stage == "probe" ? "Git" : "Office", failure.Tool); Assert.Same(error, failure.Error);
+            Assert.Equal(stage == "probe" ? new[] { "Node.js", "Python 3.13", "Python 3.14", "Office" } : ["Git", "Node.js", "Python 3.13", "Python 3.14"], items.Select(i => i.Title));
+        }
+        Assert.DoesNotContain(replay.Calls, c => c.Arguments.Contains("upgrade", StringComparer.Ordinal)); replay.Complete();
+    }
+
+    [Theory]
+    [InlineData("package")]
+    [InlineData("probe")]
+    [InlineData("Office")]
+    public async Task Production_inventory_recovery_does_not_swallow_cancellation(string stage)
+    {
+        var replay = new TrialHReplay(); using var cancel = new CancellationTokenSource();
+        if (stage == "probe") replay.Add("12-gh-list", TrialHFixtures.Command("04-git-list"));
+        if (stage == "Office")
+        {
+            replay.Add("04-git-list"); replay.Add("12-gh-list"); replay.Add("11-gh-before"); replay.Add("16-node-list"); replay.Add("24-python-list"); replay.Add("23-python-launcher");
+        }
+        var failures = new List<string>();
+        Task<DevToolCommandResult> Run(DevToolCommand command, CancellationToken cancellation)
+        {
+            if (stage == "package" || stage == "probe" && command.Executable == "git") { cancel.Cancel(); return Task.FromCanceled<DevToolCommandResult>(cancel.Token); }
+            return replay.Run(command, cancellation);
+        }
+        Task<OfficeInstallation?> Office(CancellationToken _) { cancel.Cancel(); return Task.FromCanceled<OfficeInstallation?>(cancel.Token); }
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => DevToolUpdateCatalog.Discover(Run, Office, cancel.Token, (tool, _) => failures.Add(tool)));
+        Assert.Empty(failures); replay.Complete();
     }
 }

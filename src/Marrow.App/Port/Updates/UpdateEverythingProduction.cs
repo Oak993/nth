@@ -10,7 +10,7 @@ internal static class UpdateEverythingProduction
 {
     private static readonly Logger Log = new("updates", "inventory");
     /// <summary>An Ambient so launch tests can supply items without reaching any production process or registry reader.</summary>
-    private static readonly Ambient<Func<AppModel, Task<(IReadOnlyList<IUpdateItem> Items, Action Restart)>>> Source = new(() => Real);
+    private static readonly Ambient<Func<AppModel, Task<(IReadOnlyList<IUpdateItem> Items, Action Restart)>>> Source = new(() => model => Real(model));
 
     internal static IDisposable OverrideSource(Func<AppModel, (IReadOnlyList<IUpdateItem> Items, Action Restart)> source) => Source.Override(model => Task.FromResult(source(model)));
 
@@ -29,7 +29,7 @@ internal static class UpdateEverythingProduction
         MainActor.Spawn(async () =>
         {
             try { await pending; }
-            catch (Exception error) when (error is InvalidOperationException or IOException or UnauthorizedAccessException)
+            catch (Exception error) when (error is InvalidOperationException or IOException or InvalidDataException or UnauthorizedAccessException)
             {
                 Log.Error("Update inventory could not be configured: " + error.GetType().Name);
             }
@@ -39,15 +39,19 @@ internal static class UpdateEverythingProduction
     /// <summary>UE-4/ED-343: the owning skills units add their SkillsAndTools items here.</summary>
     internal static Func<IEnumerable<IUpdateItem>> ExtraItems { get; set; } = () => [];
 
-    private static async Task<(IReadOnlyList<IUpdateItem> Items, Action Restart)> Real(AppModel model)
+    /// <summary>The production inventory. The process/registry seams default to the real boundary; a test supplies recorded or fake answers, so no real tool ever runs.</summary>
+    internal static async Task<(IReadOnlyList<IUpdateItem> Items, Action Restart)> Real(AppModel model,
+        Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, Func<CancellationToken, Task<OfficeInstallation?>>? office = null)
     {
+        run ??= new WindowsDevToolProcess(WindowsGitInstallerLog.Read).Run;
+        office ??= WindowsOfficeInstallation.Read;
         var marrow = new MarrowUpdateItem(UpdateChecker.Shared, SelfUpdateEngine.Shared, (package, version) => AppUpdater.Shared.ApplyDownloaded(package, version));
         var items = ProviderCliUpdateItem.For(ProviderRegistry.UpdatableProviders, model.Providers, new FetchedVersionListing(HttpVersionFetch.Get)).Concat(ExtraItems()).Append(marrow).ToList();
         try
         {
-            items.AddRange(await DevToolUpdateCatalog.Discover(new WindowsDevToolProcess(WindowsGitInstallerLog.Read).Run, WindowsOfficeInstallation.Read, inventoryFailure: (tool, error) => Log.Error("Developer-tool inventory is incomplete for " + tool + ": " + error.GetType().Name)));
+            items.AddRange(await DevToolUpdateCatalog.Discover(run, office, inventoryFailure: (tool, error) => Log.Error("Developer-tool inventory is incomplete for " + tool + ": " + error.GetType().Name)));
         }
-        catch (Exception error) when (error is InvalidOperationException or IOException or UnauthorizedAccessException)
+        catch (Exception error) when (error is InvalidOperationException or IOException or InvalidDataException or UnauthorizedAccessException)
         {
             // A failed developer inventory must not remove the app's existing provider/self-update items.
             Log.Error("Developer-tool inventory is unavailable: " + error.GetType().Name);
