@@ -542,6 +542,27 @@ internal static class GlassMaterial
         """.Replace("EXTENT", ContinuousCorner.Extent.ToString("R", CultureInfo.InvariantCulture), StringComparison.Ordinal));
     private static readonly ConcurrentDictionary<int, Lazy<SKRuntimeEffect>> effects = new();
 
+    // OD-0108 (ED-NEW-fix-knobcache, on unit/fix-knobcache: GlassWarmup, GpuWarmup's "glass"): the programs the material draws with, for the GPU
+    // warm-up, made by the material's own builders, so a change to the shader is warmed as it is drawn. The same API as that unit's, for its merge.
+    // ED-NEW-glass-g1: one program per shape count (a container merges its pieces in one smoothUnion program), 1 to WarmShapes; the inside of a lone
+    // piece is the same program (its `interior` uniform), and so are both draws of a pixel (the `stage` uniform: DstOut, then Plus), so there are no
+    // separate inside programs to warm any more. A warm-up that mirrors the draws must draw each program twice, with BlendMode.DstOut and with
+    // BlendMode.Plus, and the blur as a Clamp image shader under the blur filter (Draw).
+    internal const int WarmShapes = 8;
+
+    internal static IReadOnlyList<SKRuntimeEffect> WarmupPrograms() => [.. Enumerable.Range(1, WarmShapes).Select(Effect)];
+
+    /// <summary>The program for <paramref name="count"/> shapes (the warm-up's), made as a draw makes it.</summary>
+    internal static SKRuntimeEffect WarmupProgram(int count) => Effect(count);
+
+    /// <summary>Raised the first time a draw asks for the program of a shape count in this process (render thread; the warm-up records it).</summary>
+    internal static event Action<int>? ShapeCountDrawn;
+    private static readonly ConcurrentDictionary<int, bool> drawnCounts = new();
+
+    /// <summary>The backdrop blur's sigma (device px) for a piece whose smaller side is <paramref name="smaller"/> pt, at <paramref name="scale"/>:
+    /// 12 pt on a panel, 15 % of the smaller side on a small lens (Draw).</summary>
+    internal static float BlurSigma(double smaller, float scale) => (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
+
     private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>
     {
         var source = new StringBuilder(ShaderHeader).Append("\nuniform float stage;\nuniform float interior;\n");
@@ -1079,7 +1100,7 @@ internal static class GlassMaterial
         var smaller = state.Regions.Max(r => Math.Min(r.Size.Width, r.Size.Height));
         // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
         // it is not washed out by what lies around it (the effort knob over its fill and glow; see the shader note).
-        var radius = (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
+        var radius = BlurSigma(smaller, scale);
         var reach = state.Regions.Max(r => Optics.For(r.Size).Reach * Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)));
         var spread = SpreadOf(state, output, scale, radius);
         if (reads.IsEmpty) return spread;
@@ -1112,6 +1133,7 @@ internal static class GlassMaterial
         using var backdrop = image.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
             new SKSamplingOptions(SKFilterMode.Linear), shaderTransform);
         var effect = Effect(state.Regions.Length);
+        if (drawnCounts.TryAdd(state.Regions.Length, true)) ShapeCountDrawn?.Invoke(state.Regions.Length);
         var uniforms = new SKRuntimeEffectUniforms(effect) { ["merge"] = (float)(2 * state.Spacing), ["stage"] = 0f, ["interior"] = 0f };
         for (var i = 0; i < state.Regions.Length; i++)
         {

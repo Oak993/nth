@@ -225,4 +225,21 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
             // Outward: the edge reads the backdrop beyond it, and deep inside nothing bends.
             Assert.True(read.R < at && read.G < at && read.B < at);
         });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-glass-g1")]
+    [Trait("Req", "PR-WIN-180")] // OD-0108: the warm-up builds every program the material draws with, by the material's own builder
+    public void The_warm_up_programs_cover_every_shape_count_with_both_stages_and_the_inside() => headless.OnUiThread(() =>
+    {
+        var programs = GlassMaterial.WarmupPrograms();
+        Assert.Equal(GlassMaterial.WarmShapes, programs.Count);
+        for (var count = 1; count <= GlassMaterial.WarmShapes; count++)
+        {
+            var program = programs[count - 1];
+            Assert.Same(GlassMaterial.WarmupProgram(count), program); // the cached program a draw of that many pieces uses
+            Assert.Contains("stage", program.Uniforms); // DstOut and Plus are one program
+            Assert.Contains("interior", program.Uniforms); // and so is a lone piece's inside
+            Assert.Contains($"optics{count - 1}", program.Uniforms);
+        }
+    });
 }
