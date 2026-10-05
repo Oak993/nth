@@ -50,6 +50,17 @@ public sealed class OfferCardTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-326")]
+    public void Downloading_draws_the_bar_150_wide_as_the_design_pages_offer_state_rule_does() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    {
+        // design-src/skills-downloads/rounds/skills-downloads-v3-KBarrEq1.html:342 `.mw .ofs .bar{width:150px}` (the only offer-card geometry the pages still carry; also in v4 and the final page's CSS ancestors)
+        h.Source.Stage = OfferStage.Downloading;
+        h.Source.Progress = new OfferProgress(OfferStage.Downloading, 250, 1000);
+        h.Settle();
+        Assert.Equal(150, h.Card.Bar!.Width);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-326")]
     public void Downloading_shows_the_bar_and_the_percent_that_only_move_forward_and_a_cancel() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
     {
         h.Source.Stage = OfferStage.Downloading;

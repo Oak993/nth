@@ -168,7 +168,7 @@ public sealed class OfferCardControl : Border
                 }
                 break;
             case "downloading":
-                bar = new LibraryBar { Width = 200 };
+                bar = new LibraryBar { Width = 150 }; // rounds/skills-downloads-v3-KBarrEq1.html:342 `.mw .ofs .bar{width:150px}`
                 percent = LibraryUi.Text("0%", 12.5, secondary: true);
                 percent.MinWidth = 34;
                 cancel = LibraryButtons.Glyph("xmark", Marrow.Core.Port.Skills.Pages.LibraryWords.Cancel, "offer-cancel", source.Cancel);
