@@ -514,10 +514,16 @@ namespace Marrow.UI.Chrome
     /// <summary>
     /// PORT-ONLY (ED-NEW-glass-g3, OD-0107 and its amendment): the edge the Mac's window glass draws (<c>shape.fill(.clear).glassEffect(in: shape)</c>,
     /// Chrome.swift:252-254) where the port's window glass is the system's Acrylic, which draws none (OD-0005: no screen capture). Only the
-    /// app's own light, no sampling: a specular rim on the shape's first point and a light inner edge falling over the next three, brightest
+    /// app's own light, no sampling: a specular rim on the window's first point and a light inner edge falling over the next three, brightest
     /// along the top. Measured on Mac frame 01 (the main window at rest, the transparency at its least, so no scrim; 1 px = 1 pt), the step over
     /// the window's body: the first point +44 at the top, +41 at the bottom, +40 and +32 at the sides, of which the hairline over it
     /// (Chrome.overlay(0.14), :266-271) draws about +22; the next points +8, +3, +2 at the top, +4 at the bottom, +2 at the sides.
+    /// <para>
+    /// The edge is the window's real one (ED-NEW-corner-seam): the glass fills the window's rectangle and DWM rounds it, so the rim is the rectangle's
+    /// inner rings, as the hairline is, and DWM's rounding cuts them at the corner, where it draws its own border on its curve. The light inner edge
+    /// (the rings past the first) runs along the straight edges and fades out over <see cref="Fade"/> before the 26 pt corners (ENGINEERING DECISION):
+    /// within a corner the window shows the body out to its edge (OD-0075, CornerSeam's proof); the Mac draws it round its 26 pt corner.
+    /// </para>
     /// </summary>
     public sealed class WindowRim : Control
     {
@@ -534,6 +540,18 @@ namespace Marrow.UI.Chrome
             (0.010, 0.0, 0.0045),
         ];
 
+        /// <summary>The hairline's white (Chrome.overlay(0.14): the label colour's 0.85 at 0.14) and the tint's share left over the rim (1 - 0.12).</summary>
+        internal const double Hairline = 0.85 * 0.14, UnderTint = 0.88;
+
+        /// <summary>
+        /// The first point along the top where the system covers the window's first row (<see cref="TopCover"/>): the rim there also carries the hairline's
+        /// light the system hides, so the first row it leaves reads as the Mac's first point (0.235).
+        /// </summary>
+        internal static double CoveredTop => (1 - (1 - UnderTint * Rings[0].Top) * (1 - Hairline)) / UnderTint;
+
+        /// <summary>How far the light inner edge fades out before the 26 pt corner, in points.</summary>
+        internal const double Fade = 12;
+
         public WindowRim() => IsHitTestVisible = false;
 
         /// <summary>
@@ -544,42 +562,62 @@ namespace Marrow.UI.Chrome
         /// side, so along the top the rim starts on the first row the system leaves (ENGINEERING DECISION).
         /// </summary>
         internal double TopCover() =>
-            OperatingSystem.IsWindows() && TopLevel.GetTopLevel(this) is Window { ExtendClientAreaToDecorationsHint: true, WindowState: WindowState.Normal } window
+            OperatingSystem.IsWindows() && TopLevel.GetTopLevel(this) is Window { ExtendClientAreaToDecorationsHint: true, WindowState: WindowState.Normal } window &&
+            window.TryGetPlatformHandle() is { HandleDescriptor: "HWND" } // a real Win32 window, which has the frame line (a headless one has none)
                 ? 1 / window.RenderScaling
                 : 0;
 
+        private static Color White(double a) => Color.FromArgb((byte)Math.Round(255 * Math.Clamp(a, 0, 1)), 255, 255, 255);
+
+        // A 1 pt line from `from` to `to`, `alpha` along it; with `fade` it fades in over Fade from each end (the light inner edge).
+        private static void Line(DrawingContext context, Point from, Point to, double alpha, bool fade)
+        {
+            if (alpha <= 0) return;
+            var length = Math.Sqrt((to.X - from.X) * (to.X - from.X) + (to.Y - from.Y) * (to.Y - from.Y));
+            if (length <= 0) return;
+            IBrush brush = new SolidColorBrush(White(alpha));
+            if (fade)
+            {
+                var f = Math.Clamp(Fade / length, 0, 0.5);
+                brush = new LinearGradientBrush
+                {
+                    StartPoint = new RelativePoint(from, RelativeUnit.Absolute),
+                    EndPoint = new RelativePoint(to, RelativeUnit.Absolute),
+                    GradientStops =
+                    {
+                        new GradientStop(White(0), 0), new GradientStop(White(alpha), f), new GradientStop(White(alpha), 1 - f), new GradientStop(White(0), 1),
+                    },
+                };
+            }
+            context.DrawLine(new Pen(brush, 1, lineCap: PenLineCap.Flat), from, to);
+        }
+
         public override void Render(DrawingContext context)
         {
-            var size = Bounds.Size;
-            if (size.Width <= 8 || size.Height <= 8) return;
+            var (w, h) = (Bounds.Width, Bounds.Height);
+            if (w <= 8 || h <= 8) return;
             var cover = TopCover();
+            var corner = Chrome.WindowCornerRadius;
             for (var i = 0; i < Rings.Length; i++)
             {
                 var (top, side, bottom) = Rings[i];
-                if (top <= 0 && side <= 0 && bottom <= 0) continue;
-                var inset = i + 0.5; // a 1 pt line centred on the point
-                var rect = new Rect(size).Deflate(new Thickness(inset, inset + cover, inset, inset));
-                var radius = Math.Max(0, Chrome.WindowCornerRadius - inset);
-                // The light follows the edge's facing: the top's value along the top and through the top corners' turn, the sides' between them,
-                // the bottom's along the bottom (a vertical gradient that turns over the corners' height).
-                var turn = Math.Clamp(radius / rect.Height, 0, 0.5);
-                var brush = new LinearGradientBrush
+                var d = i + 0.5; // a 1 pt line centred on the point
+                if (i == 0)
                 {
-                    StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-                    EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-                    GradientStops =
-                    {
-                        new GradientStop(Color.FromArgb(Alpha(top), 255, 255, 255), 0),
-                        new GradientStop(Color.FromArgb(Alpha(side), 255, 255, 255), turn),
-                        new GradientStop(Color.FromArgb(Alpha(side), 255, 255, 255), 1 - turn),
-                        new GradientStop(Color.FromArgb(Alpha(bottom), 255, 255, 255), 1),
-                    },
-                };
-                context.DrawGeometry(null, new Pen(brush, 1), SwiftShapes.RoundedRectangleGeometry(rect, radius, RoundedCornerStyle.Continuous));
+                    // The specular rim: the rectangle's first ring, out to the corners (DWM's rounding cuts it there).
+                    Line(context, new Point(0, cover + d), new Point(w, cover + d), cover > 0 ? CoveredTop : top, fade: false);
+                    Line(context, new Point(0, h - d), new Point(w, h - d), bottom, fade: false);
+                    Line(context, new Point(d, cover + 1), new Point(d, h - 1), side, fade: false);
+                    Line(context, new Point(w - d, cover + 1), new Point(w - d, h - 1), side, fade: false);
+                    continue;
+                }
+                // The light inner edge, along the straight edges between the 26 pt corners.
+                Line(context, new Point(corner, cover + d), new Point(w - corner, cover + d), top, fade: true);
+                Line(context, new Point(corner, h - d), new Point(w - corner, h - d), bottom, fade: true);
+                Line(context, new Point(d, corner), new Point(d, h - corner), side, fade: true);
+                Line(context, new Point(w - d, corner), new Point(w - d, h - corner), side, fade: true);
             }
         }
-
-        private static byte Alpha(double a) => (byte)Math.Round(255 * Math.Clamp(a, 0, 1));
     }
 
     // :275-280 struct ChromeQuietButtonStyle: ButtonStyle

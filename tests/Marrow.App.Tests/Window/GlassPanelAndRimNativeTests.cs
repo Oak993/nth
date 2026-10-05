@@ -21,7 +21,7 @@ namespace Marrow.App.Tests.Window.Native;
 //     the black 0.3 scrim that casts black 1.0 at radius 28, y 10) in an opaque window over a backdrop. With E:\Droppy\work\scratch\glass-g3\calib\
 //     card18_backdrop.png present (frame 01 where frame 18's card is, levelled; prep.py), that is the backdrop, else a flat 56 grey. The window is
 //     grabbed without the card, with it, and with the card as the port drew it before (the scrim's BoxShadow at the colour's full alpha, outside the
-//     box only): the shadow is 1 - with / without, the Mac video's method (video_shadow.py), and is held to the video's to 0.02.
+//     box only): the shadow is 1 - with / without, the Mac video's method (video_shadow.py), and is held to the video's to 0.025.
 //   - Part C: the real main window (WindowManager's, over the system Acrylic) holding the real WindowBackdrop at transparency 0 (frame 01's), over a
 //     window that shows frame 01's own wallpaper when it is present: the edge it draws, with WindowRim and without it.
 // The PNGs go to E:\Droppy\work\scratch\glass-g3\native; compare.py puts each under its Mac frame.
@@ -133,13 +133,15 @@ public sealed class GlassPanelAndRimNativeTests(WindowManagerNativeSession nativ
             {
                 var (port, old) = (Shadow(with, true, d), Shadow(before, true, d));
                 lines.Add($"above {d}: Mac {mac:F3}, port {port:F3}, before {old:F3}");
-                if (Math.Abs(port - mac) > 0.02) failures.Add(lines[^1]);
+                // 0.025 on the real window, where the GPU draws the nominal sigma 28 (SwiftShadowNativeTests) and the video's own fit above the card
+                // reads sigma 24 to 28 (finding B): at 20 pt above that range alone is 0.011 (headless, whose raster draws 27.2, holds 0.02).
+                if (Math.Abs(port - mac) > 0.025) failures.Add(lines[^1]);
             }
             foreach (var (d, mac) in beside)
             {
                 var (port, old) = (Shadow(with, false, d), Shadow(before, false, d));
                 lines.Add($"beside {d}: Mac {mac:F3}, port {port:F3}, before {old:F3}");
-                if (Math.Abs(port - mac) > 0.02) failures.Add(lines[^1]);
+                if (Math.Abs(port - mac) > 0.025) failures.Add(lines[^1]);
             }
             // Through the scrim: the shadow under it darkens the glass's backdrop, so the card's body is darker than the card drawn before.
             double Body(ScreenGrab g)
@@ -177,7 +179,6 @@ public sealed class GlassPanelAndRimNativeTests(WindowManagerNativeSession nativ
             foreach (var child in content.Children) child.IsVisible = false; // the fixture's caption zones
             var backdrop = new WindowBackdrop(0) { ZIndex = -1 };
             content.Children.Add(backdrop);
-            main.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
             main.Topmost = true;
             var screen = main.Screens.Primary ?? throw new InvalidOperationException("No native screen is available.");
             var behind = new AvaloniaWindow
@@ -202,16 +203,11 @@ public sealed class GlassPanelAndRimNativeTests(WindowManagerNativeSession nativ
             grab.SavePng(Path.Combine(Evidence, name));
             return grab;
         }
-        var with = Grab("window-port.png");
-        native.OnUi(() => { foreach (var rim in backdrop.GetVisualDescendants().OfType<WindowRim>()) rim.IsVisible = false; });
-        var before = Grab("window-before.png");
-
         // The system's frame line over the client's first row (WindowRim.TopCover): it reads black with the rim and without it.
         double Row(ScreenGrab g, int y) => Enumerable.Range(8 + w / 3, w / 3).Average(x => g.Luma(x, y));
-        var covered = Row(before, 8) < 12 && Row(with, 8) < 12 ? 1 : 0;
         // White's alpha over the body at the n-th physical pixel inside an edge (8 px of margin around the client area; along the top from the
         // first row the system leaves), the body 10 pt in.
-        double Edge(ScreenGrab g, string side, int n)
+        double Edge(ScreenGrab g, string side, int n, int covered)
         {
             double At(int i)
             {
@@ -226,17 +222,35 @@ public sealed class GlassPanelAndRimNativeTests(WindowManagerNativeSession nativ
             return (At(n) - body) / (255 - body);
         }
         var lines = new List<string>();
-        foreach (var side in new[] { "top", "bottom", "left", "right" })
-            lines.Add($"{side}: port {Edge(with, side, 0):F3} {Edge(with, side, 1):F3} {Edge(with, side, 2):F3}; before {Edge(before, side, 0):F3} {Edge(before, side, 1):F3}");
-        lines.Add($"the client's first row under the system's frame line: {covered} px (luma {Row(with, 8):F1} with the rim, {Row(before, 8):F1} without)");
-        lines.Add("Mac frame 01: top 0.235 0.042 0.016; bottom 0.21 0.023; left 0.21 0.008; right 0.158 (cut by the frame)");
+        var failures = new List<string>();
+        foreach (var theme in new[] { Avalonia.Styling.ThemeVariant.Dark, Avalonia.Styling.ThemeVariant.Light })
+        {
+            var tag = theme == Avalonia.Styling.ThemeVariant.Dark ? "dark" : "light";
+            native.OnUi(() =>
+            {
+                subject.Main.RequestedThemeVariant = theme;
+                foreach (var rim in backdrop.GetVisualDescendants().OfType<WindowRim>()) rim.IsVisible = true;
+            });
+            var with = Grab($"window-port-{tag}.png");
+            native.OnUi(() => { foreach (var rim in backdrop.GetVisualDescendants().OfType<WindowRim>()) rim.IsVisible = false; });
+            var before = Grab($"window-before-{tag}.png");
+            var covered = Row(before, 8) < 12 && Row(with, 8) < 12 ? 1 : 0;
+            foreach (var side in new[] { "top", "bottom", "left", "right" })
+                lines.Add($"{tag} {side}: port {Edge(with, side, 0, covered):F3} {Edge(with, side, 1, covered):F3} {Edge(with, side, 2, covered):F3}; before {Edge(before, side, 0, covered):F3} {Edge(before, side, 1, covered):F3}");
+            lines.Add($"{tag}: the client's first row under the system's frame line: {covered} px (luma {Row(with, 8):F1} with the rim, {Row(before, 8):F1} without)");
+            if (tag == "dark")
+            {
+                // Mac frame 01 is the dark appearance.
+                foreach (var (side, mac) in new[] { ("top", 0.235), ("bottom", 0.21), ("left", 0.21) })
+                    if (Math.Abs(Edge(with, side, 0, covered) - mac) > 0.05) failures.Add($"dark {side} first pixel {Edge(with, side, 0, covered):F3}, Mac {mac:F3}");
+                if (Math.Abs(Edge(with, "top", 1, covered) - 0.042) > 0.02) failures.Add($"dark top second pixel {Edge(with, "top", 1, covered):F3}, Mac 0.042");
+            }
+            if (!(Edge(with, "top", 0, covered) > Edge(before, "top", 0, covered) + 0.06))
+                failures.Add($"{tag}: the rim is not on the screen: {Edge(with, "top", 0, covered):F3} with it, {Edge(before, "top", 0, covered):F3} without");
+        }
+        lines.Add("Mac frame 01 (dark): top 0.235 0.042 0.016; bottom 0.21 0.023; left 0.21 0.008; right 0.158 (cut by the frame)");
         File.WriteAllText(Path.Combine(Evidence, "window-rim.txt"), string.Join(Environment.NewLine, lines) + Environment.NewLine);
         output.WriteLine(string.Join("; ", lines));
-        var failures = new List<string>();
-        foreach (var (side, mac) in new[] { ("top", 0.235), ("bottom", 0.21), ("left", 0.21) })
-            if (Math.Abs(Edge(with, side, 0) - mac) > 0.05) failures.Add($"{side} first pixel {Edge(with, side, 0):F3}, Mac {mac:F3}");
-        if (Math.Abs(Edge(with, "top", 1) - 0.042) > 0.02) failures.Add($"top second pixel {Edge(with, "top", 1):F3}, Mac 0.042");
-        if (!(Edge(with, "top", 0) > Edge(before, "top", 0) + 0.06)) failures.Add($"the rim is not on the screen: {Edge(with, "top", 0):F3} with it, {Edge(before, "top", 0):F3} without");
         Assert.True(failures.Count == 0, string.Join("; ", failures) + " | " + string.Join("; ", lines));
         GC.KeepAlive(behind);
     }, factType: typeof(GlassPanelAndRimNativeTests));
