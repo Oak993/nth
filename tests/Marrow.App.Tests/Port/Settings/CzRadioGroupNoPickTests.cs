@@ -5,7 +5,7 @@ using Marrow.UI.Port.Settings;
 namespace Marrow.App.Tests.Port.Settings;
 
 // customization-SPEC CZ-10.1: the Working dots swatches are two radio groups (Classic, Signature) of which at most one holds the pick; the other holds none. CZ-1's group
-// required one; a group may now be built with none (ED-NEW-cloud-cz-5): no button is picked, the first is the tab stop, an arrow key picks, and the pick can be taken away again.
+// required one; a group may now be built with none (ED-345): no button is picked, the first is the tab stop, an arrow key picks, and the pick can be taken away again.
 [Collection("Headless")]
 public sealed class CzRadioGroupNoPickTests(HeadlessSession headless)
 {

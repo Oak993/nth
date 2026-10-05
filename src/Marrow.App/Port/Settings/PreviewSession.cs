@@ -47,7 +47,7 @@ internal sealed class PreviewSession
 
     /// <summary>
     /// CZ-5 (CZ-10.2): raised when a Working dots control is touched, so the voice demo in the preview stops. The demo is CZ-7b's: nothing listens until it exists, and its stage
-    /// subscribes here (ED-NEW-cloud-cz-5).
+    /// subscribes here (ED-345).
     /// </summary>
     internal event Action? VoiceDemoCancelRequested;
 
