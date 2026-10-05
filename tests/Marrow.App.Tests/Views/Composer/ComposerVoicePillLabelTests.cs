@@ -121,7 +121,7 @@ public sealed class ComposerVoicePillLabelTests(HeadlessSession headless)
                 var f = t % 2.35 / 2.35; // 0%,12% 135%; 70%,100% -55%; ease-in-out between
                 return f <= 0.12 ? 1.35 : f >= 0.70 ? -0.55 : 1.35 - 1.9 * FrameCurves.Bezier(FrameCurves.EaseInOut, (f - 0.12) / 0.58);
             }
-            for (var k = 0; k < seen.Count; k++) Assert.Equal(Expected(k * FrameTime), seen[k], 5e-3);
+            for (var k = 0; k < seen.Count; k++) Assert.True(Math.Abs(Expected(k * FrameTime) - seen[k]) < 5e-3, $"frame {k}: sweep {seen[k]:F4}, the keyframes {Expected(k * FrameTime):F4}");
             Assert.Contains(seen, position => position < 0.5 && position > 0); // it moved through the text
             rig.Main.OnMain(() => pill.Open = false);
             Run(rig, window, 0.1);
@@ -146,7 +146,7 @@ public sealed class ComposerVoicePillLabelTests(HeadlessSession headless)
             rig.Elapse(window, FrameTime);
             rig.Main.OnMain(() =>
             {
-                Assert.Equal(OpenWidth(40, Listening, 13.5), pill.ShownWidth, 0.01);
+                Assert.True(Math.Abs(OpenWidth(40, Listening, 13.5) - pill.ShownWidth) < 0.01, $"width {pill.ShownWidth} of {OpenWidth(40, Listening, 13.5)}");
                 Assert.Equal(1, pill.ShownOpacity);
                 Assert.Equal(1, pill.LabelOpacity(VoiceLabelState.Listening));
                 Assert.Equal(1, pill.CrossOpacity);

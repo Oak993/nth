@@ -99,7 +99,7 @@ public sealed class ComposerVoiceCrossTests(HeadlessSession headless)
                 Assert.False(cross.IsTabStop);
                 Assert.False(cross.IsHitTestVisible);
                 Assert.Equal(0, cross.Opacity);
-                Assert.Equal(centre.X, Frame(cross, view).Right, 0.6); // tucked: its right edge at the slot's centre
+                Assert.Equal(Slot(view).Diameter / 2, Canvas.GetLeft(cross) + cross.Width, 0.6); // tucked: its box's right edge at the slot's centre (drawn at scale 0.55)
             });
             rig.Main.OnMain(() => Click(Slot(view).HitTarget));
             var seen = Frames(rig, window, 40, () => (Slide: Slot(view).CrossSlide, Opacity: Slot(view).CrossOpacity, Right: Frame(Slot(view).Cross, view).Right));
