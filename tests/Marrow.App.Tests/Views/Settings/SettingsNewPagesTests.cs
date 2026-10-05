@@ -110,7 +110,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         (SettingsPage Page, string Type, bool Ready)[] shells =
         [
             (SettingsPage.Customization, "CustomizationSettingsPage", true), (SettingsPage.VoiceTyping, "VoiceTypingSettingsPage", true),
-            (SettingsPage.Updates, "UpdatesSettingsPage", false), (SettingsPage.Plugins, "PluginsSettingsPage", false), (SettingsPage.Skills, "SkillsSettingsPage", false),
+            (SettingsPage.Updates, "UpdatesSettingsPage", true), (SettingsPage.Plugins, "PluginsSettingsPage", false), (SettingsPage.Skills, "SkillsSettingsPage", false), // Updates is built since UE-4 (IsReady is true: UpdatesSettingsPageTests)
         ];
         foreach (var (page, name, ready) in shells)
         {
@@ -169,11 +169,11 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     public void Hidden_pages_are_absent_from_the_sidebar_and_from_search() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
     {
         Assert.Equal(ReadyTitles, SettingsViewRig.RowTitles(sidebar));
-        foreach (var query in new[] { "updates", "version", "plugins", "skills", "install" })
+        foreach (var query in new[] { "plugins", "skills", "install" })
         {
             SettingsViewRig.Search(sidebar, query);
             var titles = SettingsViewRig.RowTitles(sidebar);
-            Assert.DoesNotContain(titles, title => title is "Updates" or "Plugins" or "Skills");
+            Assert.DoesNotContain(titles, title => title is "Plugins" or "Skills");
         }
         foreach (var query in new[] { "voice typing", "dictation", "microphone" }) // VT-13: the ready page is found by its title and its keywords
         {
