@@ -102,13 +102,13 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-MCP-078")] // MCPSetupPanel.swift:76-86 .clipShape(RoundedRectangle(cornerRadius: Chrome.windowCornerRadius)), WindowDragArea then WindowBackdrop(opacity: 0.5) behind
-    public void The_panel_is_clipped_to_the_window_radius_over_a_half_opacity_backdrop_and_a_drag_area()
+    public void The_panel_is_clipped_to_the_windows_rectangle_over_a_half_opacity_backdrop_and_a_drag_area()
     {
         Run(NeedsSetup(), session =>
         {
             var border = Assert.IsType<Border>(session.View.Child);
             Assert.True(border.ClipToBounds);
-            Assert.Equal(new CornerRadius(26), border.CornerRadius);
+            Assert.Equal(default, border.CornerRadius); // MCPSetupPanel.swift:130 clips to the 26 pt shape; the port clips to the window's rectangle, which DWM rounds (OD-0075, ED-NEW-corner-seam)
 
             var layers = Assert.IsType<Grid>(border.Child);
             // Chrome.swift:211-214 scrim(for: 0.5): the stock scrim at the midpoint, 0.18 in light and 0.26 in dark.

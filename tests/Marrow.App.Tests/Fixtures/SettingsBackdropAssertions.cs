@@ -16,7 +16,7 @@ public static class SettingsBackdropAssertions
         var material = Assert.IsType<Panel>(Assert.Single(group.Children));
         Assert.Equal(2, material.Children.Count);
         var glass = Assert.IsType<SwiftShapeBorder>(material.Children[0]);
-        Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(26, RoundedCornerStyle.Continuous)), SwiftGlass.GetEffect(glass));
+        Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(0, RoundedCornerStyle.Continuous)), SwiftGlass.GetEffect(glass)); // the rectangle: the glass fills the window out to its edge (ED-NEW-corner-seam)
         var scrim = Assert.IsType<SwiftShapeBorder>(material.Children[1]);
         Assert.Equal(expected, scrim.Opacity, 8);
     }

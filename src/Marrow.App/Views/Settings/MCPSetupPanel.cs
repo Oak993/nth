@@ -142,8 +142,7 @@ public sealed class MCPSetupPanelView : FloatingGuidePanelView
             Width = 400,
             Padding = new Thickness(18),
             Background = Brushes.Transparent,
-            ClipToBounds = true,
-            CornerRadius = new CornerRadius(Chrome.WindowCornerRadius),
+            ClipToBounds = true, // PORT-ONLY (OD-0075, ED-NEW-corner-seam): the window's rectangle, not the 26 pt shape: the backdrop reaches the window's edge (FloatingGuidePanelView)
             Child = layers,
         };
     }

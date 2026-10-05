@@ -949,11 +949,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-004")] // App/Views/Settings/SettingsView.swift:110-122
-    public void Window_content_is_780_by_580_with_a_212_sidebar_and_26_corner() => WithSettings((view, _, _) =>
+    public void Window_content_is_780_by_580_with_a_212_sidebar_and_a_frame_that_is_the_windows_rectangle() => WithSettings((view, _, _) =>
     {
         Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
         Assert.Equal(212, Field<Control>(view, "sidebar").Width);
-        Assert.Equal(26, Field<SwiftShapeBorder>(view, "frame").CornerRadius.TopLeft);
+        Assert.Equal(0, Field<SwiftShapeBorder>(view, "frame").CornerRadius.TopLeft); // SettingsView.swift:119-120 is a 26 pt shape; the port's frame is the window's rectangle, which DWM rounds (OD-0075, ED-NEW-corner-seam)
         Assert.Equal(new Thickness(0), Field<Control>(view, "detail").Margin);
         Assert.Single(Nodes<WindowBackdrop>(view));
     });
