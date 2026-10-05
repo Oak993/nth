@@ -13,7 +13,7 @@ public class CzButton : Decorator, ICustomHitTest
 {
     private readonly CzNumber scale;
     private readonly CzNumber dimOpacity;
-    private readonly CzColor fill;
+    private readonly CzColor fill, ink;
     private bool filled;
     private bool shownDark;
     public CornerRadius CornerRadius { get; set; }
@@ -38,25 +38,35 @@ public class CzButton : Decorator, ICustomHitTest
         scale = new CzNumber(Motion, 1, v => RenderTransform = new ScaleTransform(v, v));
         dimOpacity = new CzNumber(Motion, 1, v => Opacity = v);
         fill = new CzColor(Motion, Colors.Transparent, color => { if (ChromeFill) { Background = CzTheme.Brush(color); InvalidateVisual(); } });
+        ink = new CzColor(Motion, Colors.Transparent, color => { if (ChromeFill) { ApplyInk(CzTheme.Brush(color)); InvalidateVisual(); } });
         Refresh(); PropertyChanged += (_, e) => { if (e.Property.Name == "ActualThemeVariant") Refresh(); };
     }
     protected virtual void Refresh()
     {
-        if (ChromeFill) EaseFill(CzTheme.Token(this, IsPointerOver ? "caph" : "cap"));
-        if (Child is TextBlock text) text.Foreground = CzTheme.Text(this);
+        var dark = CzTheme.Dark(this);
+        var themeChange = filled && dark != shownDark;
+        shownDark = dark;
+        if (ChromeFill)
+        {
+            Ease(fill, CzTheme.Token(this, IsPointerOver ? "caph" : "cap"), themeChange, CzMotion.Ease(.12));
+            Ease(ink, ((SolidColorBrush)CzTheme.Text(this)).Color, themeChange, CzMotion.Ease(.12));
+        }
+        else if (Child is TextBlock text) text.Foreground = CzTheme.Text(this);
+        filled = true;
         InvalidateVisual();
     }
     // CZ-14.1, OD-0076, DESIGN gen.py:298 `.czbtn { transition: background-color .12s ease }`: a hover or press eases the fill over 0.12 s; in a tree that turns over (AppearanceTurn, the Settings window) a theme change
     // eases it with the window's 0.32 s turnover; the first fill, Reduce Motion and an unmarked tree take the colour at once
-    private void EaseFill(Color target)
+    // The label takes the same turnover (OD-0076: nothing cuts); a button that fills itself with the tokens is the one whose label this paints
+    private void Ease(CzColor color, Color target, bool themeChange, Animation hover)
     {
-        var dark = CzTheme.Dark(this);
-        var themeChange = filled && dark != shownDark;
-        shownDark = dark;
-        if (!filled) { filled = true; fill.Jump(target); }
-        else if (themeChange) { if (AppearanceTurn.Eases(this)) fill.To(target, AppearanceTurn.Curve); else fill.Jump(target); }
-        else fill.To(target, CzMotion.Ease(.12));
+        if (!filled) color.Jump(target);
+        else if (themeChange) { if (AppearanceTurn.Eases(this)) color.To(target, AppearanceTurn.Curve); else color.Jump(target); }
+        else color.To(target, hover);
     }
+
+    /// <summary>Paints the label with the eased ink (a theme change eases it); the capsule's label is a line of its own.</summary>
+    protected virtual void ApplyInk(IBrush brush) { if (Child is TextBlock text) text.Foreground = brush; }
     public void Activate() { if (IsEffectivelyEnabled) Invoked?.Invoke(); }
     public bool HitTest(Point point) => new Rect(Bounds.Size).Contains(point);
     protected override void OnPointerEntered(PointerEventArgs e) { base.OnPointerEntered(e); Refresh(); }

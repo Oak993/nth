@@ -5,6 +5,7 @@
 // the point where the pinned block lets go.
 using Avalonia;
 using Avalonia.Controls;
+using Marrow.App.Port.Voice;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port.Settings;
@@ -104,6 +105,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         // Speech (CZ-8, CZ-11): the first section after the sticky container, where the pinned block lets go (CZ-3.5.3)
         Speech = new SpeechSections(settings, () => SettingsNavigation.Shared.RequestedPage = SettingsPage.VoiceTyping);
         Rest.Children.Add(Speech.Section);
+        WindowsDisplayLanguage.Watch(this, Speech.Apply); // the Language row names the display language under language default C
 
         // the chrome row's Preview state control is the session's pick (CZ-3.2, CZ-4.6); the session can move it too (touching Working dots)
         PreviewStatePick.SelectionChanged += id => { if (!echoing) session.Pick(StateOf(id)); };

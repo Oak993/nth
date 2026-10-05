@@ -1,6 +1,8 @@
 // PORT-ONLY, owner-ruled addition (OD-0097; first-release voice typing, VT-13): Windows' display language for the language default C (voice-SPEC V-7.14 rule 3, V-16.3.1).
 using System.Globalization;
 using System.Runtime.InteropServices;
+using Avalonia;
+using Avalonia.Controls;
 using Marrow.Core.Port;
 
 namespace Marrow.App.Port.Voice;
@@ -13,6 +15,39 @@ internal static class WindowsDisplayLanguage
 {
     /// <summary>The reader; the default asks Windows.</summary>
     public static Ambient<Func<string?>> Source { get; } = new((Func<string?>)ReadSystem);
+
+    /// <summary>
+    /// Raised by <see cref="Notify"/> when Windows' display language may have changed (on the UI thread). VOICE ENGINEERING DECISION (CZ-8): the Windows hook that calls it is not built; the reader and every page already follow it.
+    /// </summary>
+    public static event Action? Changed;
+
+    /// <summary>Tells the pages that show the display language to read it again.</summary>
+    public static void Notify() => Changed?.Invoke();
+
+    /// <summary>The change source: how a page listens for <see cref="Notify"/>; the default listens to <see cref="Changed"/>. A test replaces it for its own flow.</summary>
+    public static Ambient<Func<Action, IDisposable>> Changes { get; } = new((Func<Action, IDisposable>)Listen);
+
+    private static IDisposable Listen(Action callback)
+    {
+        Changed += callback;
+        return new Unlisten(() => Changed -= callback);
+    }
+
+    /// <summary>Calls <paramref name="refresh"/> when the display language changes, while <paramref name="page"/> is in a window.</summary>
+    public static void Watch(Control page, Action refresh)
+    {
+        IDisposable? listening = null;
+        void Start() => listening ??= Changes.Current(refresh);
+        void Stop() { listening?.Dispose(); listening = null; }
+        page.AttachedToVisualTree += (_, _) => Start();
+        page.DetachedFromVisualTree += (_, _) => Stop();
+        if (TopLevel.GetTopLevel(page) is not null) Start();
+    }
+
+    private sealed class Unlisten(Action stop) : IDisposable
+    {
+        public void Dispose() => stop();
+    }
 
     /// <summary>The display language now, or null when the reader fails.</summary>
     public static string? Current()
