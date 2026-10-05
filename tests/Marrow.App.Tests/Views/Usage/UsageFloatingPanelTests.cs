@@ -292,7 +292,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     [InlineData(false, (byte)87, (byte)166, (byte)57)] // light: scrim white 0.34 (87/255), shadow black 0.65 (166/255), drawn 0.65 x 0.34
     [InlineData(true, (byte)77, (byte)255, (byte)77)]  // dark: scrim black 0.3 (77/255), shadow black 1.0, drawn 1.0 x 0.3
     [Trait("Req", "PR-USAGE-063")] // App/Views/Usage/UsageFloatingPanel.swift:68-73
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     public void Scrim_and_shadow_use_the_source_opacities_per_theme(bool isDark, byte scrimAlpha, byte shadowAlpha, byte drawnAlpha)
     {
         // The pure color/shadow math the constructor (and its theme-change handler) calls, verified directly.

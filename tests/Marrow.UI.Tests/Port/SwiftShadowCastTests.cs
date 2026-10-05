@@ -52,7 +52,7 @@ public sealed class SwiftShadowCastTests(HeadlessSession headless)
     private static double Beside(Func<int, int, double> dark, int d) => Enumerable.Range((int)Top + 60, 120).Average(y => dark((int)(Left + Width) + d - 1, y));
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     [Trait("Rule", "R-VIEW-11")]
     [Trait("Req", "PR-HYDRA-229")] // HydraPanel.swift:116-120 the scrim's shape.fill(black.opacity(0.3)).shadow(color: .black, radius: 28, y: 10)
     public void A_filled_shapes_shadow_is_cast_at_the_fills_alpha_and_drawn_under_it_through_the_fill() => headless.OnUiThread(() =>
@@ -82,7 +82,7 @@ public sealed class SwiftShadowCastTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     [Trait("Rule", "R-VIEW-11")]
     [Trait("Req", "UI-SIDEBAR-060")] // the lead's E rulings, finding B, item 3: the panel's shadow profile against the video at 2 / 14 / 30 / 46 pt
     public void The_head_cards_shadow_above_and_beside_its_edge_is_the_mac_videos_to_two_hundredths() => headless.OnUiThread(() =>
@@ -106,7 +106,7 @@ public sealed class SwiftShadowCastTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     [Trait("Rule", "R-VIEW-11")]
     public void A_cast_shadow_of_radius_r_is_a_gaussian_of_sigma_r_within_5_percent() => headless.OnUiThread(() =>
     {

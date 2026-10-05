@@ -29,10 +29,9 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
     private const double Sharp = 42.5;  // StripeContrast of the bare stripes
     private const double Blurred = 3;   // below this the stripes are gone
 
-    private sealed record Scene(AvaloniaWindow Window, Popup Popup, Control Anchor, double Scale);
 
     // The backdrop window with its anchor, and a popover on it, not yet presented.
-    private Scene Build(ThemeVariant appearance, PixelRect work)
+    private PopoverGlassNativeScene Build(ThemeVariant appearance, PixelRect work)
     {
         var scale = 1.0;
         var columns = new Grid { ColumnDefinitions = new ColumnDefinitions("450*,150*,300*") };
@@ -65,7 +64,7 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
             PlacementTarget = anchor, Placement = PlacementMode.Top, IsLightDismissEnabled = false,
             Child = new Border { Width = 600 / scale, Height = 220 / scale },
         };
-        return new Scene(window, popup, anchor, scale);
+        return new PopoverGlassNativeScene(window, popup, anchor, scale);
     }
 
     private PixelRect Work() => native.OnUi(() =>
@@ -78,12 +77,12 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
         return screen.WorkingArea;
     });
 
-    private void Present(Scene scene) => native.OnUi(() => Presentation.SetPresented(scene.Popup, true, scene.Anchor, () => Presentation.SetPresented(scene.Popup, false, scene.Anchor, () => { })));
+    private void Present(PopoverGlassNativeScene scene) => native.OnUi(() => Presentation.SetPresented(scene.Popup, true, scene.Anchor, () => Presentation.SetPresented(scene.Popup, false, scene.Anchor, () => { })));
 
-    private void Dismiss(Scene scene) => native.OnUi(() => { scene.Popup.IsOpen = false; scene.Window.Close(); });
+    private void Dismiss(PopoverGlassNativeScene scene) => native.OnUi(() => { scene.Popup.IsOpen = false; scene.Window.Close(); });
 
     // The card's body (without its tip and its shadow room) and its tip's point, in screen pixels.
-    private (PixelRect Body, PixelPoint Tip) Where(Scene scene) => native.OnUi(() =>
+    private (PixelRect Body, PixelPoint Tip) Where(PopoverGlassNativeScene scene) => native.OnUi(() =>
     {
         var card = Assert.IsType<PopoverCard>(scene.Popup.Child);
         var topLeft = card.PointToScreen(new Point(0, 0));
@@ -103,12 +102,12 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")] // OD-0107, OD-0005
+    [Trait("Req", "PR-WIN-180")] // OD-0107, OD-0005
     public void A_real_dark_popover_shows_the_blurred_backdrop_through_round_cornered_glass_with_its_tip_a_hairline_and_a_rim() =>
         Shows("Dark", nameof(A_real_dark_popover_shows_the_blurred_backdrop_through_round_cornered_glass_with_its_tip_a_hairline_and_a_rim));
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")] // OD-0107, OD-0005
+    [Trait("Req", "PR-WIN-180")] // OD-0107, OD-0005
     public void A_real_light_popover_shows_the_blurred_backdrop_through_round_cornered_glass_with_its_tip_a_hairline_and_a_rim() =>
         Shows("Light", nameof(A_real_light_popover_shows_the_blurred_backdrop_through_round_cornered_glass_with_its_tip_a_hairline_and_a_rim));
 
@@ -182,7 +181,7 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
     }, fact, typeof(PopoverGlassNativeTests));
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")] // requirement 6: the glass is there before the grow-in ends
+    [Trait("Req", "PR-WIN-180")] // requirement 6: the glass is there before the grow-in ends
     public void The_glass_reaches_the_screen_before_the_popover_has_grown_in() => native.Run(subject =>
     {
         native.OnUi(() => { subject.Settings.Hide(); subject.Main.Hide(); });

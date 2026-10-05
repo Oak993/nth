@@ -46,7 +46,7 @@ public sealed class GlassMacCalibration(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
+    [Trait("Req", "PR-WIN-180")]
     public void Renders_the_port_glass_over_the_Mac_frames_backdrops() => headless.OnUiThread(() =>
     {
         if (Environment.GetEnvironmentVariable("MARROW_GLASS_CALIBRATION") is not { Length: > 0 } folder) return;

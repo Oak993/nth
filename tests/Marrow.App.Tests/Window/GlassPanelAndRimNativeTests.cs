@@ -24,11 +24,11 @@ namespace Marrow.App.Tests.Window.Native;
 //     box only): the shadow is 1 - with / without, the Mac video's method (video_shadow.py), and is held to the video's to 0.025.
 //   - Part C: the real main window (WindowManager's, over the system Acrylic) holding the real WindowBackdrop at transparency 0 (frame 01's), over a
 //     window that shows frame 01's own wallpaper when it is present: the edge it draws, with WindowRim and without it.
-// The PNGs go to E:\Droppy\work\scratch\glass-g3\native; compare.py puts each under its Mac frame.
+// The PNGs go to E:\Droppy\work\scratch\codex-glass-stack\native; compare.py puts each under its Mac frame.
 [Collection("WindowManagerNative")]
 public sealed class GlassPanelAndRimNativeTests(WindowManagerNativeSession native, Xunit.Abstractions.ITestOutputHelper output)
 {
-    private const string Evidence = @"E:\Droppy\work\scratch\glass-g3\native";
+    private const string Evidence = @"E:\Droppy\work\scratch\codex-glass-stack\native";
     private const string Calibration = @"E:\Droppy\work\scratch\glass-g3\calib";
     private const double CardX = 60, CardY = 60, CardW = 400, CardH = 267, ShotW = 520, ShotH = 347;
 
@@ -66,7 +66,7 @@ public sealed class GlassPanelAndRimNativeTests(WindowManagerNativeSession nativ
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     [Trait("Req", "PR-HYDRA-229")] // HydraPanel.swift:116-120; SubagentPanel.swift:351-354; the lead's E rulings, finding B, item 3
     public void On_a_real_window_the_head_cards_shadow_is_the_mac_videos_and_shows_through_its_scrim() => native.Run(subject =>
     {
@@ -164,7 +164,7 @@ public sealed class GlassPanelAndRimNativeTests(WindowManagerNativeSession nativ
     }, factType: typeof(GlassPanelAndRimNativeTests));
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     [Trait("Req", "PR-WIN-180")] // Chrome.swift:251-259 the window glass; OD-0107 (rim effects with no screen capture over the Acrylic), OD-0005
     public void On_the_real_main_window_over_the_acrylic_the_window_glass_draws_the_mac_frames_rim() => native.Run(subject =>
     {

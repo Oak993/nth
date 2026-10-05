@@ -122,7 +122,7 @@ public sealed class ModelsSettingsPagePinnedRowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-187")] // ModelsSettingsPage.swift:253-262 RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Chrome.overlay(0.12)).shadow(color: .black.opacity(0.28), radius: 10, y: 4); .scaleEffect(1.02)
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     public void The_lifted_row_has_a_radius_10_fill_of_12_percent_a_black_shadow_and_a_scale_of_1_02() => headless.OnUiThread(() =>
     {
         using var rig = new ModelsSettingsSectionRig([], Pins("alpha", "bravo", "charlie"));

@@ -63,7 +63,7 @@ public sealed class WindowRimTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     [Trait("Req", "PR-WIN-180")] // Chrome.swift:251-259 the window glass under its scrim; OD-0107, OD-0005
     public void The_window_glass_over_the_acrylic_draws_the_mac_frames_specular_rim_and_light_inner_edge() => headless.OnUiThread(() =>
     {
@@ -86,7 +86,7 @@ public sealed class WindowRimTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     [Trait("Req", "PR-WIN-180")] // Chrome.swift:249-259 only the glass base carries the glass's edge; :255 the scrim is over it
     public void The_rim_is_the_glass_layers_under_the_scrim_and_only_where_the_window_is_glass() => headless.OnUiThread(() =>
     {

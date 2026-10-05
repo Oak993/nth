@@ -51,7 +51,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Decision", "ED-NEW-glass-g2")] // OD-0107, OD-0005
+    [Trait("Req", "PR-WIN-180")] // OD-0107, OD-0005
     [InlineData("Dark")]
     [InlineData("Light")]
     public void A_presented_popover_card_paints_a_translucent_tint_not_an_opaque_panel(string name) => headless.OnUiThread(() =>
@@ -95,7 +95,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")]
+    [Trait("Req", "PR-WIN-180")]
     public void The_tint_hairline_and_rim_are_the_measured_values()
     {
         // Fitted to the reference frames (PopoverCard's file note): the glass lighter than what is round it (Dark +20, Light
@@ -127,7 +127,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Decision", "ED-NEW-glass-g2")] // requirement: text readable over any backdrop
+    [Trait("Req", "PR-WIN-180")] // requirement: text readable over any backdrop
     [InlineData(0.0)]
     [InlineData(58.0)]   // the Mac frame's backdrop under the effort popover
     [InlineData(128.0)]
@@ -151,7 +151,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Decision", "ED-NEW-glass-g2")]
+    [Trait("Req", "PR-WIN-180")]
     [InlineData("Dark")]
     [InlineData("Light")]
     public void Where_no_glass_can_be_had_the_card_paints_the_opaque_panel_under_its_tint(string name) => headless.OnUiThread(() =>
@@ -171,7 +171,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Decision", "ED-NEW-glass-g2")]
+    [Trait("Req", "PR-WIN-180")]
     [InlineData("Dark")]
     [InlineData("Light")]
     public void The_glass_has_round_corners_a_dark_hairline_and_a_light_rim_inside_it(string name) => headless.OnUiThread(() =>
@@ -196,7 +196,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Decision", "ED-NEW-glass-g2")]
+    [Trait("Req", "PR-WIN-180")]
     [InlineData("Dark")]
     [InlineData("Light")]
     public void The_shadow_lies_outside_the_glass_only(string name) => headless.OnUiThread(() =>
@@ -221,7 +221,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")]
+    [Trait("Req", "PR-WIN-180")]
     public void The_content_is_clipped_to_the_round_corners() => headless.OnUiThread(() =>
     {
         var card = Dressed(ThemeVariant.Dark, new Border { Width = 200, Height = 100, Background = Brushes.Red });
@@ -233,7 +233,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")] // OD-0095's tip, now beside a round corner
+    [Trait("Req", "PR-WIN-180")] // OD-0095's tip, now beside a round corner
     public void The_tip_stays_on_the_straight_part_of_the_edge_past_the_round_corner()
     {
         var card = new Rect(100, 100, 300, 120);
@@ -244,7 +244,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")]
+    [Trait("Req", "PR-WIN-180")]
     public void The_window_glass_follows_the_cards_outline_its_grow_in_and_its_fade() => headless.OnUiThread(() =>
     {
         // Where the window's glass goes is read off the card as it is drawn: its place, the grow-in's scale about the tip and

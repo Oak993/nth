@@ -19,11 +19,11 @@ namespace Marrow.App.Tests.Window.Native;
 //     under 2 ms a frame, the GPU's work included (GlassMaterial.FrameCostForTests waits for the GPU before and after the draw);
 //   - over the window's transparent pixels it shows the Acrylic through it, lifted, never the near-black veil it was (#1E1E20 at 18 % over an
 //     opaque clear), with its rim.
-// The pixels are the composed screen (BitBlt with CAPTUREBLT): what the user sees. The PNGs go to E:\Droppy\work\scratch\glass-g1\native.
+// The pixels are the composed screen (BitBlt with CAPTUREBLT): what the user sees. The PNGs go to E:\Droppy\work\scratch\codex-glass-stack\native.
 [Collection("WindowManagerNative")]
 public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
 {
-    private const string Evidence = @"E:\Droppy\work\scratch\glass-g1\native";
+    private const string Evidence = @"E:\Droppy\work\scratch\codex-glass-stack\native";
 
     private static void Themeless(AvaloniaWindow window) =>
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
@@ -245,7 +245,7 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
         foreach (var pixel in colours.Take(11)) Assert.InRange(Math.Abs(pixel.G - body), 0, 3);
         var origin = native.OnUi(() => window.PointToScreen(default));
         var scale = native.OnUi(() => window.RenderScaling);
-        var folder = @"E:\Droppy\work\scratch\glass-g1\compare\t2-after";
+        var folder = @"E:\Droppy\work\scratch\codex-glass-stack\compare";
         Directory.CreateDirectory(folder);
         ScreenGrab.Of(origin.X, origin.Y, (int)Math.Round(520 * scale), (int)Math.Round(387 * scale))
             .SavePng(Path.Combine(folder, "dark-card-native.png"));
@@ -258,10 +258,7 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
     [Trait("Req", "PR-WIN-180")] // HydraPanel.swift:99-121; OD-0107, Mac frame 18; ED-NEW-glass-g3 (4)
     public void The_card_material_on_a_real_window_matches_the_Mac_body_and_band_over_the_remade_backdrop() => native.Run(subject =>
     {
-        // The packet's calibration input: frame 01 levelled to frame 18 on a ring 40-100 pt away, outside the Mac shadow.
-        const string input = @"E:\Droppy\work\scratch\glass-g1\calib\card18g3_backdrop.png";
-        if (!File.Exists(input)) throw new InvalidOperationException("NATIVE_PRECONDITION: the packet's remade calibration backdrop is missing: " + input);
-        using var bitmap = new Avalonia.Media.Imaging.Bitmap(input);
+        Avalonia.Media.Imaging.Bitmap? bitmap = null;
         var previous = native.OnUi(() => Marrow.UI.Theme.ThemeManager.Current);
         AvaloniaWindow? window = null;
         try
@@ -271,26 +268,15 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
                 Marrow.UI.Theme.ThemeManager.Current = Marrow.UI.Theme.AppTheme.Monokai;
                 subject.Main.Hide();
                 subject.Settings.Hide();
-                static Border Placed(double x, double y) => new()
-                {
-                    Width = 400, Height = 267, Margin = new Thickness(x, y, 0, 0), CornerRadius = new CornerRadius(22),
-                    HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
-                };
-                // The same cast scrim as GlassMacCalibration's g3 render. The site shadow's production change belongs to glass-g3.
-                var cast = Placed(60, 70);
-                cast.Background = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
-                cast.Effect = new BlurEffect { Radius = 28 / 0.57735 };
-                var scrim = Placed(60, 60);
-                scrim.Background = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
-                var card = Placed(60, 60);
-                card.Background = Marrow.UI.Chrome.Chrome.GlassTint.Opacity(0.22).Brush(card);
-                SwiftGlass.SetEffect(card, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
+                var model = subject.Manager.Model;
+                // No selected head or project: this surface needs only an idle, isolated runtime, not NewThread's project picker.
+                var scene = HydraCardCalibrationSite.Create(model, model.Runtime(Guid.NewGuid()));
+                bitmap = scene.Bitmap;
                 var window = new AvaloniaWindow
                 {
                     WindowDecorations = WindowDecorations.None, ShowInTaskbar = false, Topmost = true, CanResize = false,
                     Width = 520, Height = 347, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark,
-                    Content = new Panel { Children = { new Image { Source = bitmap, Stretch = Stretch.None,
-                        HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }, cast, scrim, card } },
+                    Content = scene.Host,
                 };
                 Themeless(window);
                 native.Register(window);
@@ -298,7 +284,19 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
                 return window;
             });
             var (origin, scale) = native.OnUi(() => (window.PointToScreen(default), window.RenderScaling));
+            var handle = native.OnUi(() => window.TryGetPlatformHandle()!.Handle);
+            bool OwnsSamples() => new[] { new Point(26,26), new Point(490,26), new Point(270,61), new Point(439,61),
+                new Point(90,120), new Point(260,170), new Point(270,266), new Point(80,80), new Point(490,320) }
+                .All(p => WindowManagerNativeMethods.RootAt(new NativeWindowPoint(origin.X+(int)Math.Round(p.X*scale),origin.Y+(int)Math.Round(p.Y*scale))) == handle);
             ScreenGrab Grab() => ScreenGrab.Of(origin.X, origin.Y, (int)Math.Round(520 * scale), (int)Math.Round(347 * scale));
+            using var reference = SkiaSharp.SKBitmap.Decode(HydraCardCalibrationSite.Backdrop);
+            Assert.NotNull(reference);
+            bool BackdropIsDrawn(ScreenGrab candidate) => new[] { new PixelPoint(26,26), new PixelPoint(490,26) }.All(p =>
+            {
+                var expected = reference.GetPixel(p.X,p.Y);
+                var seen = candidate.At((int)Math.Round(p.X*scale),(int)Math.Round(p.Y*scale));
+                return Math.Sqrt(Math.Pow(expected.Red-seen.R,2)+Math.Pow(expected.Green-seen.G,2)+Math.Pow(expected.Blue-seen.B,2)) < 8;
+            });
             double Mean(ScreenGrab grab, int fromY, int toY)
             {
                 var values = new List<double>();
@@ -306,22 +304,45 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
                     for (var x = (int)Math.Round(270 * scale); x < (int)Math.Round(440 * scale); x++) values.Add(grab.Luma(x, y));
                 return values.Average();
             }
+            // Wait for the known image outside the card, independent of all material targets: a foreign window's
+            // text can accidentally average into the body's range while this window has not presented its scene yet.
             var deadline = DateTime.UtcNow.AddSeconds(8);
             var grab = Grab();
-            while (Math.Abs(Mean(grab, 106, 156) - 43.36) > 2.5 && DateTime.UtcNow < deadline) { Thread.Sleep(50); grab = Grab(); }
+            while ((!OwnsSamples() || !BackdropIsDrawn(grab)) && DateTime.UtcNow < deadline) { Thread.Sleep(50); grab = Grab(); }
+            Assert.True(OwnsSamples(), "NATIVE_PRECONDITION: another window covers the calibration samples");
+            Assert.True(BackdropIsDrawn(grab), "NATIVE_PRECONDITION: the calibration window has not presented its known backdrop");
             var upper = Mean(grab, 106, 156);
             var lower = Mean(grab, 246, 286);
             var band = Mean(grab, 61, 62);
-            var folder = @"E:\Droppy\work\scratch\glass-g1\compare";
+            // Screen pixels through the clear band/body join must remain continuous, as in Mac frame 18.
+            double Step(bool vertical)
+            {
+                var values = new List<double>();
+                var x0 = (int)Math.Round((vertical ? 105 : 90) * scale);
+                var x1 = (int)Math.Round((vertical ? 380 : 115) * scale);
+                var y0 = (int)Math.Round((vertical ? 90 : 105) * scale);
+                var y1 = (int)Math.Round((vertical ? 115 : 290) * scale);
+                for (var y = y0; y < y1; y++)
+                    for (var x = x0; x < x1; x++) values.Add(Math.Abs(grab.Luma(x + (vertical ? 0 : 1), y + (vertical ? 1 : 0)) - grab.Luma(x,y)));
+                return values.Max();
+            }
+            var topStep = Step(true); var sideStep = Step(false);
+            var cornerStep = Enumerable.Range(18,18).Select(d => Math.Abs(
+                grab.Luma((int)Math.Round((60+d-1)*scale),(int)Math.Round((60+d+1)*scale)) -
+                grab.Luma((int)Math.Round((60+d+1)*scale),(int)Math.Round((60+d-1)*scale)))).Max();
+            var folder = HydraCardCalibrationSite.Evidence;
             Directory.CreateDirectory(folder);
-            grab.SavePng(Path.Combine(folder, "t2-card18g3-native.png"));
-            File.WriteAllText(Path.Combine(folder, "t2-card18g3-native.txt"), $"scale {scale}; upper {upper:F3}; lower {lower:F3}; band {band:F3}{Environment.NewLine}");
+            grab.SavePng(Path.Combine(folder, "hydra18-native-real-site.png"));
+            File.WriteAllText(Path.Combine(folder, "hydra18-native-real-site.txt"), $"scale {scale}; upper {upper:F3}; lower {lower:F3}; band {band:F3}; top step {topStep:F3}; side step {sideStep:F3}; corner step {cornerStep:F3}{Environment.NewLine}");
             Assert.InRange(upper, 43.36 - 2.5, 43.36 + 2.5);
             Assert.InRange(lower, 42.70 - 2.5, 42.70 + 2.5);
             Assert.InRange(band, 43.99 - 3, 43.99 + 3);
             Assert.InRange(Math.Abs(upper - lower), 0, 2);
+            Assert.InRange(topStep, 0, 3);
+            Assert.InRange(sideStep, 0, 3);
+            Assert.InRange(cornerStep, 0, 4);
             GC.KeepAlive(window);
         }
-        finally { native.OnUi(() => { window?.Close(); Marrow.UI.Theme.ThemeManager.Current = previous; }); }
+        finally { native.OnUi(() => { window?.Close(); Marrow.UI.Theme.ThemeManager.Current = previous; }); bitmap?.Dispose(); }
     }, factType: typeof(GlassMaterialNativeTests));
 }

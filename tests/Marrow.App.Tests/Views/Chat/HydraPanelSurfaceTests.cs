@@ -74,7 +74,7 @@ public sealed class HydraPanelSurfaceTests(HeadlessSession headless)
     [Theory]
     [MemberData(nameof(Cases))]
     [Trait("Req", "PR-HYDRA-229")] // HydraPanel.swift:116-120 shape.fill((isDark ? Color.black : Color.white).opacity(isDark ? 0.3 : 0.34)).shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     public void A_separate_scrim_under_the_glass_carries_the_one_shadow(bool dark, bool poppedOut)
     {
         var theme = dark ? ThemeVariant.Dark : ThemeVariant.Light;

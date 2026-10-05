@@ -9,7 +9,7 @@ namespace Marrow.App.Tests.Port;
 public sealed class PopoverGlassApiPinTests
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")]
+    [Trait("Rule", "R-TEST-4")]
     public void Every_Avalonia_Win32_internal_the_popover_glass_reads_is_there_in_the_pinned_version()
     {
         var win32 = Assembly.Load("Avalonia.Win32");

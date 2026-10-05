@@ -63,7 +63,7 @@ public sealed class GalleryNativeTests(WindowManagerNativeSession native)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g2")]
+    [Trait("Decision", "ED-236")]
     public void Gallery_popover_glass_sites()
     {
         if (!GalleryRun.Enabled) return;

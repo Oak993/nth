@@ -90,7 +90,7 @@ public sealed class SubagentPanelSurfaceTests(HeadlessSession headless)
     [InlineData(true)]
     [InlineData(false)]
     [Trait("Req", "PR-HYDRA-229")] // SubagentPanel.swift:347-355 shape.fill((isDark ? Color.black : Color.white).opacity(isDark ? 0.3 : 0.34)).shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     public void A_separate_unclipped_scrim_under_the_clipped_glass_carries_the_one_shadow(bool dark) => Run((panel, size, _) =>
     {
         var caster = Caster(panel);
@@ -132,7 +132,7 @@ public sealed class SubagentPanelSurfaceTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-HYDRA-229")] // SubagentPanel.swift:354 the shadow is drawn: it darkens the window below the panel's bottom edge (y: 10), fading with distance
-    [Trait("Decision", "ED-NEW-glass-g3")]
+    // ED-NEW-glass-g3 (numbered by the lead); the existing Req trait below/above names the source.
     public void The_panels_shadow_is_drawn_past_its_bottom_edge_and_fades_with_distance() => Run((panel, size, window) =>
     {
         var bottom = panel.TranslatePoint(new Point(size.Width / 2, size.Height), window)!.Value;

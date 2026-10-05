@@ -544,10 +544,11 @@ internal static class GlassMaterial
     private sealed class Released { public static readonly Released Message = new(); }
 
     // How far past its shape the material reads the pixels under it: the blur's 3 sigma (36), the refraction's largest displacement (Optics.MaxBend plus
-    // Optics.MaxRing, the red channel's at the edge: 50; ED-NEW-glass-g1, it was 28.6) and the antialiased edge (Draw).
+    // Optics.MaxRing, the red channel's at the edge: 50; the unlit band reads 72 inward) and the antialiased edge (Draw).
     // It is also the material's render bounds: whenever the material appears, moves or changes, Avalonia redraws all it reads, so the backdrop it keeps is
     // taken whole there (Backdrop; GlassMaterialPartialRedrawTests, the label beside a piece that appears).
-    private const double SampledMargin = 3 * 12 + Optics.MaxBend + Optics.MaxRing + 2;
+    private const double UnlitBandSigmas = 6, MaxReadDisplacement = UnlitBandSigmas * 12;
+    private const double SampledMargin = 3 * 12 + MaxReadDisplacement + 2;
 
     private static Rect UnionBounds(State s)
     {
@@ -677,6 +678,14 @@ internal static class GlassMaterial
                 // Small surfaces retain the rim on a dark backdrop too; the panel law takes over between 60 and 120 pt
                 // on the smaller side (OD-0107, T2's small-surface ruling; GlassMaterialPanelLawTests).
                 lit = mix(1.0, smoothstep(LG_LITFROM, LG_LITTO, level), law.w);
+                if (lit < 1.0) {
+                    // The deep inward band needs a direction that varies smoothly through a rounded corner's medial axis.
+                    // Average its distance gradient over one blur sigma; the lit lens keeps its one-pixel edge normal.
+                    float span = clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
+                    float2 broad = float2(-sceneDistance(xy + float2(span, 0.0)) + sceneDistance(xy - float2(span, 0.0)),
+                                          -sceneDistance(xy + float2(0.0, span)) + sceneDistance(xy - float2(0.0, span)));
+                    n = mix(n, normalize(broad + float2(0.000001)), 1.0 - lit);
+                }
             }
             // The contact line just outside the edge, dark where the edge faces sideways (the Mac frames' 1 px dark line at a capsule's
             // ends), and dashersw/liquid-glass-js's soft shadow in miniature.
@@ -700,10 +709,12 @@ internal static class GlassMaterial
             float disp = (optics.x * lens + optics.w * max(exp(-0.8 * dd) - LG_RINGFLOOR, 0.0) / (1.0 - LG_RINGFLOOR)) * lit;
             // The reads stay inside the window's surface (`window`, half a device pixel in): past it the backdrop holds nothing, so a piece that fills its
             // window read transparent at its edge and its outer ring came out translucent over an opaque backdrop (REVIEW_GlassWindowEdgeTests).
-            // An unlit (dark, large) piece reads its band from as deep as its blur reaches past the edge (3 of its sigma, Draw's BlurSigma), so the
-            // brighter backdrop outside it does not bleed in: the Mac card's body is flat to its edge (44 to 47 over its first 10 pt; ED-NEW-glass-g3 (4)).
-            float reach = 3.0 * clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
-            disp -= (1.0 - lit) * max(reach - dd, 0.0);
+            // An unlit (dark, large) piece reads its band 6 blur sigmas in. Three removed the outside backdrop's bleed, but still read the
+            // thin part of g3's real radius-28 cast shadow (native Mac calibration: band 48.10 against 43.99 +/- 3). Six reaches the body's
+            // darker coverage while the small, lit surfaces keep their refraction (ED-NEW-glass-stack; Draw's BlurSigma).
+            float reach = LG_BANDSIGMAS * clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
+            // Meet the unbent fast body with zero displacement and zero slope; an abrupt end leaves a rectangular seam.
+            disp -= (1.0 - lit) * max(reach - dd, 0.0) * (1.0 - smoothstep(0.0, deep, dd));
             half4 r = backdrop.eval(clamp(xy - n * disp, window.xy, window.zw));
             half4 g = backdrop.eval(clamp(xy - n * (disp * LG_GREEN), window.xy, window.zw));
             half4 b = backdrop.eval(clamp(xy - n * (disp * LG_BLUE), window.xy, window.zw));
@@ -779,6 +790,7 @@ internal static class GlassMaterial
             .Replace("LG_GLOW", F(Optics.Glow), StringComparison.Ordinal)
             .Replace("LG_FILMBEGIN", F(FilmBegin), StringComparison.Ordinal)
             .Replace("LG_FILMEND", F(FilmEnd), StringComparison.Ordinal)
+            .Replace("LG_BANDSIGMAS", F(UnlitBandSigmas), StringComparison.Ordinal)
             .Replace("LG_LITFROM", F(LitFrom), StringComparison.Ordinal)
             .Replace("LG_LITTO", F(LitTo), StringComparison.Ordinal)
             .Replace("LG_SHADEDARK", F(Optics.ShadeDark), StringComparison.Ordinal);
@@ -1184,7 +1196,7 @@ internal static class GlassMaterial
         if (scale <= 0) return null;
         var sampled = transform.MapRect(local);
         var output = SKRectI.Ceiling(sampled);
-        sampled.Inflate((float)SampledMargin * scale, (float)SampledMargin * scale); // 3 sigma (36), the largest displacement (50), antialias margin.
+        sampled.Inflate((float)SampledMargin * scale, (float)SampledMargin * scale); // 3 sigma (36), the largest read displacement (72), antialias margin.
         var crop = SKRectI.Ceiling(sampled);
         // Immutable app-owned pixels: no screen capture or visual-tree replay.
         var under = kept.Take(lease, crop, dirty);
@@ -1197,7 +1209,9 @@ internal static class GlassMaterial
         // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
         // it is not washed out by what lies around it (the effort knob over its fill and glow; see the shader note).
         var radius = BlurSigma(smaller, scale);
-        var reach = state.Regions.Max(r => Optics.For(r.Size).Reach * Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)));
+        var reach = state.Regions.Max(r => Math.Max(Optics.For(r.Size).Reach,
+            Math.Min(r.Size.Width, r.Size.Height) > LawShadedTo ? UnlitBandSigmas * BlurSigma(Math.Min(r.Size.Width, r.Size.Height), 1) : 0)
+            * Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)));
         var spread = SpreadOf(state, output, scale, radius);
         if (reads.IsEmpty) return spread;
         var shift = (int)Math.Ceiling(reach * scale) + 2;
@@ -1306,7 +1320,7 @@ internal static class GlassMaterial
     {
         var margin = (int)Math.Ceiling(SampledMargin * scale);
         var blur = (int)Math.Ceiling(3 * radius) + 2; // the blur's 3 sigma (radius is the sigma) and the linear filter's pixel
-        var bend = (int)Math.Ceiling((Optics.MaxBend + Optics.MaxRing) * scale) + 2; // the refraction's largest displacement, the red channel's at the edge
+        var bend = (int)Math.Ceiling(MaxReadDisplacement * scale) + 2; // the larger of the 50 pt lit bend and the 72 pt unlit band read
         var inner = SKRectI.Empty;
         if (state.Regions is [{ Transform: { M12: 0, M21: 0 } } only])
         {
