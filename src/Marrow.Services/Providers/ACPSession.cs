@@ -49,6 +49,12 @@ public sealed class ACPSession : ProviderSession
     public Action<ProviderEvent>? OnEvent { get; set; } // :28
     // DEVIATION ED-363: DL-12 observations; no new ACP protocol fields.
     public Action<ToolEvent>? OnSkillsEvent { get; set; }
+    public Exception? LastSkillEventFailure { get; private set; }
+    private void EmitSkillEvent(ToolEvent value)
+    {
+        try { OnSkillsEvent?.Invoke(value); }
+        catch (Exception error) { LastSkillEventFailure = error; } // DL-12: an observer cannot interrupt the existing timeline or permission protocol.
+    }
     private readonly ACPSkillEvents skillEvents = new();
 
     private readonly SessionConfiguration configuration; // :30
@@ -149,11 +155,16 @@ public sealed class ACPSession : ProviderSession
     // PORT-ONLY: DL-6 applies to every ACP child, including the catalog probe's session.
     private Dictionary<string, string> ChildEnvironment => ShimPath.ForChild(configuration.Environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
 
+    // PORT-ONLY: SK-11c's DL-6 rule (addonsin on PATH of every ACP child) and SK-11e's Grok launch (the same rule from the generation's data root) both
+    // insert the folder, so a Grok session with a launch takes SK-11e's environment and every other child takes SK-11c's: the folder goes on PATH exactly once.
+    private IReadOnlyDictionary<string, string> LaunchEnvironment =>
+        SkillLaunch is not null && configuration.Provider == ProviderKind.Grok ? EffectiveEnvironment : ChildEnvironment;
+
     public async Task<string> Start() // :108-152
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :109
         await LaunchGate.Wait(); // :110
-        var process = new StdioProcess(executable.Path, EffectiveLaunchArguments, WorkingDirectory, ShimPath.ForChild(EffectiveEnvironment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")))); // :111-116 (+ PORT-ONLY SK-11e)
+        var process = new StdioProcess(executable.Path, EffectiveLaunchArguments, WorkingDirectory, LaunchEnvironment); // :111-116 (+ PORT-ONLY SK-11e argv, SK-11c DL-6 PATH)
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :117
         connection.OnNotification = (method, parameters) => HandleNotification(method, parameters); // :118
         connection.OnRequest = (id, method, parameters) => HandleRequest(id, method, parameters); // :119
@@ -736,11 +747,11 @@ public sealed class ACPSession : ProviderSession
                     if (steps.Count > 0) OnEvent?.Invoke(new ProviderEvent.Todos(steps)); // :510
                     return; // :511
                 }
-                skillEvents.Observe(update);
                 Tap.ToolCall(update); // PORT-ONLY: SK-11e / DL-12
+                skillEvents.Observe(update); // PORT-ONLY: SK-11c / DL-12
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, MakeToolCall(update))); // :513
                 var initial = MakeToolUpdate(update); // :514
-                if (skillEvents.Finished(update, initial) is { } finished) OnSkillsEvent?.Invoke(finished);
+                if (skillEvents.Finished(update, initial) is { } finished) EmitSkillEvent(finished);
                 if (initial.Output is not null || initial.Status is not null) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, initial)); // :515
                 break;
             }
@@ -754,9 +765,9 @@ public sealed class ACPSession : ProviderSession
                     if (steps.Count > 0) OnEvent?.Invoke(new ProviderEvent.Todos(steps)); // :521
                     return; // :522
                 }
-                Tap.ToolCallUpdate(update);
+                Tap.ToolCallUpdate(update); // PORT-ONLY: SK-11e / DL-12
                 var result = MakeToolUpdate(update);
-                if (skillEvents.Finished(update, result) is { } finished) OnSkillsEvent?.Invoke(finished);
+                if (skillEvents.Finished(update, result) is { } finished) EmitSkillEvent(finished); // PORT-ONLY: SK-11c / DL-12
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, result)); // :524
                 break;
             }
@@ -835,7 +846,7 @@ public sealed class ACPSession : ProviderSession
         };
         OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest( // :582-589
             id.Key, kind, call.Title, mapped, call.Detail, null, toolCall["toolCallId"]?.JSONValueString)));
-        if (skillEvents.Held(toolCall) is { } held) OnSkillsEvent?.Invoke(held);
+        if (skillEvents.Held(toolCall) is { } held) EmitSkillEvent(held);
     }
 
     // :592-602. Part 4 of 8 (PR-PROVACP-095).

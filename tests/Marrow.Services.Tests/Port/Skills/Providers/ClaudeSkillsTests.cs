@@ -37,7 +37,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: DL-11 (SK-11a).
-    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T11")]
     public void Empty_install_matches_frozen_existing_provider_argv_environment_and_RPC_bytes(bool configured)
     {
         using var runtime = new TestRuntime();
@@ -73,7 +73,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: DL-11 (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T11")]
     public void Empty_handshake_matches_existing_provider_without_an_extra_help_or_RPC_call()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder();
@@ -88,7 +88,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6 (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Start_passes_generation_and_each_installed_plugin_as_single_arguments_and_keeps_user_command_first()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -110,7 +110,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6 (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Missing_plugin_flag_never_acquires_a_generation_and_keeps_existing_argv()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help("");
@@ -121,7 +121,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: DL-12 (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Fixture_tool_use_result_and_can_use_tool_emit_only_correlated_normalized_events()
     {
         var events = new List<ToolEvent>(); var s = new ClaudeSession(Config()) { OnSkillEvent = events.Add };
@@ -133,16 +133,17 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: DL-12 (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Taps_leave_existing_provider_events_and_permission_responses_unchanged()
     {
+        using var runtime = new TestRuntime(); // the test clock: ToolCall.StartedAt is the wall clock otherwise, and the two sessions would stamp different instants
         var a = new List<ProviderEvent>(); var b = new List<ProviderEvent>();
         var old = new LegacyClaudeSession(Config()) { OnEvent = a.Add }; var current = new ClaudeSession(Config()) { OnEvent = b.Add, OnSkillEvent = _ => { } };
         foreach (var line in File.ReadLines(Fixture("claude-tools.jsonl"))) { var m = JSONValue.Parse(line)!; old.Handle(m); current.Handle(m); }
         Assert.Equal(a, b);
     }
     // Specification citation: WU-6 (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Handshake_passes_verified_listing_and_plugin_folders_and_releases_its_lease()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -160,7 +161,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6-resume (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Resume_after_GC_and_coordinator_restart_keeps_argv_root_and_transcript_skill_directory_verified()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -187,7 +188,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6-held-folder (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Held_old_generation_uses_new_root_and_exact_plan_moved_line_in_existing_prompt()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -206,7 +207,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6-integrity (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Tampered_generation_fails_before_any_provider_process_and_releases_lease()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -220,7 +221,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: DL-12 (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Edge_fixture_isolates_head_commands_and_ignores_unknown_malformed_noncommand_and_prose_events()
     {
         var events = new List<ToolEvent>(); var s = new ClaudeSession(Config()) { OnSkillEvent = events.Add };
@@ -231,9 +232,10 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: DL-12-observer (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Observer_failure_is_reported_without_changing_approval_or_provider_events()
     {
+        using var runtime = new TestRuntime(); // the test clock: ToolCall.StartedAt is the wall clock otherwise, and the two sessions would stamp different instants
         var actual = new List<ProviderEvent>(); var expected = new List<ProviderEvent>();
         var failure = new InvalidOperationException("Fixture observer failure");
         var old = new LegacyClaudeSession(Config()) { OnEvent = expected.Add };
@@ -243,7 +245,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: DL-11-permissions (SK-11a).
-    [Theory, InlineData("allow"), InlineData("deny"), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Theory, InlineData("allow"), InlineData("deny"), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T11")]
     public void Tap_keeps_real_permission_response_RPC_bytes_identical(string answer)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -257,7 +259,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6-lease (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Session_generation_survives_stdout_EOF_and_Stop_until_child_exit()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -274,7 +276,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6-lease (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Handshake_listing_remains_leased_until_the_terminated_child_actually_exits()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -286,12 +288,12 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.Enqueue(() => task = ClaudeSession.Handshake(c.Executable!, c.WorkingDirectory, c.Environment, () => probe));
         runtime.Loop.RunUntil(() => call?.TerminateRequested == true, TimeSpan.FromSeconds(5));
         Assert.False(task!.IsCompleted); Assert.Equal(path, probe.Folder); service.Collect(); Assert.True(Directory.Exists(path));
-        call!.CompleteExit(); runtime.Loop.RunUntil(() => task.IsCompleted, TimeSpan.FromSeconds(5)); runtime.Loop.Run(() => task, TimeSpan.FromSeconds(5));
+        call!.CompleteExit(); runtime.Loop.RunUntil(() => task.IsCompleted, TimeSpan.FromSeconds(5)); runtime.Loop.Run(() => task, TimeSpan.FromSeconds(5)); Assert.True(task.IsCompletedSuccessfully);
         Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
     }
 
     // Specification citation: WU-6-help-failure (SK-11a).
-    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Failed_help_even_with_flag_text_never_adds_plugin_arguments(bool throws)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder();
@@ -304,7 +306,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: PLAN-2.1-per-turn (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Changed_generation_warns_once_before_turn_and_remains_leased_until_exit()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -325,7 +327,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: DL-12-held-request (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-4"), Trait("Spec", "SK-T12")]
     public void Held_observer_runs_after_the_existing_permission_request_is_registered()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -340,7 +342,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6-fail-closed (SK-11a).
-    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Failed_launch_or_initialization_releases_generation_and_never_uses_a_live_CLI(bool rejectInitialize)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -359,7 +361,7 @@ public sealed class ClaudeSkillsTests
     }
 
     // Specification citation: WU-6-probe-integrity (SK-11a).
-    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10"), Trait("Rule", "R-TEST-9"), Trait("Spec", "SK-T6")]
     public void Tampered_listing_is_refused_before_provider_spawn_and_probe_lease_is_released()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();

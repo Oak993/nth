@@ -7,7 +7,7 @@ namespace Marrow.Services.Port.Skills.Providers;
 
 public sealed partial class CommandCodeSkillFlagProbe(Func<string, CancellationToken, Task<string?>> runHelp)
 {
-    private readonly ConcurrentDictionary<(string Path, long Size, long Modified), Task<bool>> cache = new();
+    private readonly ConcurrentDictionary<(string Path, long Size, long Modified), Lazy<Task<bool>>> cache = new();
     private readonly ConcurrentDictionary<(string Path, long Size, long Modified), bool> done = new();
 
     [GeneratedRegex(@"(?<![\w-])--skill(?![\w-])")]
@@ -28,7 +28,8 @@ public sealed partial class CommandCodeSkillFlagProbe(Func<string, CancellationT
     {
         if (Identity(executable) is not { } id) return false;
         var key = (id.Item1, id.Item2, id.Item3);
-        var task = cache.GetOrAdd(key, _ => Run(executable, key, cancel));
+        var task = cache.GetOrAdd(key, _ => new Lazy<Task<bool>>(
+            () => Run(executable, key, cancel), LazyThreadSafetyMode.ExecutionAndPublication)).Value;
         return await task.ConfigureAwait(false);
     }
 

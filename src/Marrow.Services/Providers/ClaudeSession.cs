@@ -159,7 +159,7 @@ public sealed class ClaudeSession : ProviderSession
         var found = new[] { "--system-prompt-snapshot", "--forward-subagent-text" }
             .Where(option => help.Contains(option, StringComparison.Ordinal));
         var options = new HashSet<string>(found, SwiftStringComparer.Instance);
-        if (result.Succeeded && help.Contains("--plugin-dir", StringComparison.Ordinal)) options.Add("--plugin-dir");
+        if (result.Succeeded && System.Text.RegularExpressions.Regex.IsMatch(help, @"(?<![\w-])--plugin-dir(?![\w-])", System.Text.RegularExpressions.RegexOptions.CultureInvariant)) options.Add("--plugin-dir");
         knownOptions[executable.Path] = options;
         return options;
     }
@@ -213,7 +213,7 @@ public sealed class ClaudeSession : ProviderSession
             arguments.Add(mcpConfig);
             arguments.Add("--strict-mcp-config");
         }
-        var environment = new ValueMap<string, string>(ShimPath.ForChild(configuration.Environment, Storage.Root), SwiftStringComparer.Instance); // DEVIATION OD-0099 DL-6: only PATH changes.
+        var environment = new ValueMap<string, string>(ProviderChildEnvironment.Apply(configuration.Environment), SwiftStringComparer.Instance); // DEVIATION OD-0099 DL-6: only PATH changes; an unbound Storage (a test) leaves the environment as it came.
         var options = await KnownOptions(executable, environment); // :98
         if (options.Contains("--plugin-dir") && acquireSkills is not null)
         {
@@ -331,7 +331,7 @@ public sealed class ClaudeSession : ProviderSession
         Func<ClaudeSkillProbe?>? acquireSkills = null)
     {
         using var skills = acquireSkills is null ? null : await Task.Run(acquireSkills);
-        environment = ShimPath.ForChild(environment, Storage.Root);
+        environment = ProviderChildEnvironment.Apply(environment); // DL-6; fails closed with no bound Storage
         List<string> arguments = ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence", "--setting-sources", "user,project,local"];
         if (skills?.HasContent == true && (await KnownOptions(executable, environment)).Contains("--plugin-dir"))
         {

@@ -128,7 +128,7 @@ public sealed class PiSession : ProviderSession
         arguments = WithSkills(arguments);
 
         // :103-111. ED-128: environment dictionaries are case-insensitive.
-        var environment = new Dictionary<string, string>(ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch), StringComparer.OrdinalIgnoreCase); // PORT-ONLY: SK-11e (DL-6 PATH; identity without a launch)
+        var environment = new Dictionary<string, string>(ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch), StringComparer.OrdinalIgnoreCase); // PORT-ONLY: SK-11e (DL-6 PATH from launch or bound root)
         environment["DROPPY_CODE_PI_GATE"] = gateURL;
         environment["PI_SKIP_VERSION_CHECK"] = "1";
         if (SwiftTry.Optional(() => localApplicationData is { } bridgeAppData

@@ -177,13 +177,14 @@ public sealed class CodexSessionUnchangedTests
         Assert.Equal("pdf", parts[1]["name"]!.JSONValueString);
     }
 
-    private static CodexSession StandIn(CodexScript script, CodexSkillWiring? wiring)
+    // The thread/start parameters carry the working directory, so two sessions that are compared must share one (a script's own folder differs per script).
+    private static CodexSession StandIn(CodexScript script, CodexSkillWiring? wiring, string? workingDirectory = null)
     {
         var configuration = new SessionConfiguration
         {
             Provider = ProviderKind.Codex,
             Executable = CodexWiringFixture.Url(script.ExecutablePath),
-            WorkingDirectory = CodexWiringFixture.Url(Path.GetDirectoryName(script.ExecutablePath)!),
+            WorkingDirectory = CodexWiringFixture.Url(workingDirectory ?? Path.GetDirectoryName(script.ExecutablePath)!),
             Environment = new ValueMap<string, string>([script.EnvironmentEntry]),
             RuntimeMode = RuntimeMode.Supervised,
             InteractionMode = InteractionMode.Build,
@@ -285,7 +286,7 @@ public sealed class CodexSessionUnchangedTests
         script.SetResponse("skills/list", "{\"data\":[]}");
         script.SetResponse("skills/extraRoots/set", "{}");
         script.SetResponse("thread/start", "{\"thread\":{\"id\":\"t1\"}}");
-        Drive(runtime, StandIn(script, new CodexSkillWiring(chat, f.Paths)).Start());
+        Drive(runtime, StandIn(script, new CodexSkillWiring(chat, f.Paths), Path.GetDirectoryName(bare.ExecutablePath)).Start());
 
         Assert.Equal(["app-server"], Assert.Single(script.Calls()).Arguments);
         Assert.Equal(5, script.MessageCount(0));

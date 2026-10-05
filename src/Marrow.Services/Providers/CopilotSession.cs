@@ -22,6 +22,12 @@ public sealed partial class CopilotSession : ProviderSession
     public Action<ProviderEvent>? OnEvent { get; set; } // :29
     // DEVIATION ED-363: DL-12 observations, independent of timeline events and RPC decisions.
     public Action<ToolEvent>? OnSkillsEvent { get; set; }
+    public Exception? LastSkillEventFailure { get; private set; }
+    private void EmitSkillEvent(ToolEvent value)
+    {
+        try { OnSkillsEvent?.Invoke(value); }
+        catch (Exception error) { LastSkillEventFailure = error; } // DL-12: an observer cannot interrupt the existing timeline or permission protocol.
+    }
     private readonly CopilotSkillEvents skillEvents = new();
     private readonly Generation? skillGeneration;
 
@@ -878,7 +884,7 @@ public sealed partial class CopilotSession : ProviderSession
     {
         if (toolNames.ContainsKey(id)) return; // :661
         toolNames[id] = name; // :662
-        if (skillEvents.Started(id, name, arguments, server) is { } used) OnSkillsEvent?.Invoke(used);
+        if (skillEvents.Started(id, name, arguments, server) is { } used) EmitSkillEvent(used);
         if (SwiftString.Equal(name, "update_todo")) // :663-666
         {
             sink(new ProviderEvent.Todos(Todos(arguments["todos"]?.JSONValueString ?? "")));
@@ -902,7 +908,7 @@ public sealed partial class CopilotSession : ProviderSession
     private void HandleToolResult(JSONValue data, Action<ProviderEvent> sink)
     {
         if (data["toolCallId"]?.JSONValueString is not { } id) return; // :681
-        if (skillEvents.Finished(id, data, declinedTools.Contains(id)) is { } finished) OnSkillsEvent?.Invoke(finished);
+        if (skillEvents.Finished(id, data, declinedTools.Contains(id)) is { } finished) EmitSkillEvent(finished);
         var name = toolNames.TryGetValue(id, out var recorded) ? recorded : ""; // :682
         if (HiddenTools.Contains(name)) return; // :683
         var succeeded = data["success"]?.JSONValueBool ?? true; // :684
@@ -1060,7 +1066,7 @@ public sealed partial class CopilotSession : ProviderSession
             approval = approval with { Reason = judged };
         }
         OnEvent?.Invoke(new ProviderEvent.Approval(approval)); // :803
-        if (skillEvents.Held(request) is { } held) OnSkillsEvent?.Invoke(held);
+        if (skillEvents.Held(request) is { } held) EmitSkillEvent(held);
     }
 
     /// <summary>What the thread's mode approves without asking. Full access approves it all (the CLI normally does
