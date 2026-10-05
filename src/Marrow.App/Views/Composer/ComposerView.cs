@@ -111,8 +111,6 @@ public sealed class ComposerArea : Decorator
 
         // :24 VStack(spacing: 12): the approval cards, then the group.
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 };
-        // PORT-ONLY (SK-14, ED-NEW-cloud-sk-14): a chat that has a skills offer flow draws its card after the approval cards and above the group; hidden, it takes no room.
-        if (runtime.SkillsOffers is { } offers) stack.Children.Add(new Marrow.App.Port.Skills.OfferCardControl(offers, offers.Catalogue, offers.State));
         stack.Children.Add(layers);
         approvalStack = stack;
         var departures = new Canvas { IsHitTestVisible = false }; // over the stack: where a resolved card fades, out of the layout

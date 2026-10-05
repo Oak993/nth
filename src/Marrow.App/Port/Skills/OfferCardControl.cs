@@ -19,10 +19,10 @@ namespace Marrow.App.Port.Skills;
 /// The offer card, a panel in the reply's own layout (never an overlay, so it cannot cover the composer's text). It reads <see cref="IOfferCardSource"/> by observation and draws
 /// <see cref="OfferCardProjector"/>'s view: the item titles and their source host, then one action line per state in the words and controls the locked design draws for the same states on the Settings page
 /// (Download with its size, the bar with its percent and a cancel, Checking…, Didn't download with its reason and Retry). ENGINEERING DECISIONS (ED-NEW-cloud-sk-14): (1) the layout, spacing and tint are the
-/// Settings page's (the Offer A card's own geometry is not in the repository's design sources); (2) every change of state crossfades on the frame clock and lands at once under Reduce Motion (OD-0076, the
-/// pages' own helpers); (3) done, continuing and declined draw nothing, because the design has no word for them: the card is collapsed; (4) the decline control is not drawn, because its label is not in the
-/// design sources (the offer's Decline is still reachable by whoever mounts the card); (5) Return acts only when the card itself has the focus and its primary action is on, so Return in the composer is the
-/// composer's. NOT MOUNTED in the chat's timeline: where the card sits in a reply is part of the missing design.
+/// Settings page's (the Offer A card's own geometry is not in the repository's design sources); (2) every change of state crossfades on the frame clock and lands in a short fade under Reduce Motion (OD-0076, the
+/// pages' own helpers); (3) done, continuing and declined collapse the card (after their fade); their one caption line is <see cref="OfferCaptionControl"/>'s, drawn right after the card; (4) the asked sentence, the why-needed line and the
+/// decline control are LEAD-PROPOSED WORDING (OfferWords, ED-NEW-cloud-sk-14 item 16); (5) Return acts only when the card itself has the focus and its primary action is on, so Return in the composer is the
+/// composer's. Mounted inline in the reply: at the end of the timeline's rows (Offer A, OD-0099).
 /// </summary>
 public sealed class OfferCardControl : Border
 {
@@ -40,6 +40,9 @@ public sealed class OfferCardControl : Border
     private TextBlock? failure;
     private Button? primary;
     private Button? cancel;
+    private Button? decline;
+    private TextBlock? sentence;
+    private TextBlock? why;
 
     public OfferCardControl(IOfferCardSource source, SkillsCatalogue catalogue, Func<AddonsState> state)
     {
@@ -58,7 +61,7 @@ public sealed class OfferCardControl : Border
         Background = ChromeTokens.Overlay(0.06).Brush(this);
         this.RoundedRectangle(10, RoundedCornerStyle.Continuous);
         KeyDown += OnKeyDown;
-        this.Track(() => (source.Stage, source.Card, source.Progress, source.Failure, source.CanFetch, source.TermsRevision), _ => Refresh());
+        this.Track(() => (source.Stage, source.Card, source.Progress, source.Failure, source.CanFetch, source.TermsRevision, source.Why), _ => Refresh());
         Refresh();
     }
 
@@ -81,6 +84,12 @@ public sealed class OfferCardControl : Border
 
     internal TextBlock? FailureText => failure;
 
+    internal TextBlock? SentenceText => sentence;
+
+    internal TextBlock? WhyText => why;
+
+    internal Button? DeclineButton => decline;
+
     /// <summary>
     /// The curve of a change of state: the pages' fade, and under Reduce Motion the same opacity fade shortened to the locked page's reduced-motion rule (0.01 s: <c>transition-duration:.01s</c>), because movement is
     /// stilled to fades and not removed (ONDEMAND 5.6). Null only when no frame source is bound (nothing could animate).
@@ -89,7 +98,7 @@ public sealed class OfferCardControl : Border
 
     private void Refresh()
     {
-        view = OfferCardProjector.Project(catalogue, state(), source.Card, source.Stage, source.Progress, source.Failure, source.CanFetch);
+        view = OfferCardProjector.Project(catalogue, state(), source.Card, source.Stage, source.Progress, source.Failure, source.CanFetch, source.Why);
         var next = view?.Phase switch
         {
             OfferStage.Asked => "asked",
@@ -106,13 +115,13 @@ public sealed class OfferCardControl : Border
             host.IsVisible = view.Hosts.Count > 0;
         }
         // What is on show changes with the state and, within asked and failed, with the button's words (a need that joined changes the combined size) and the note: each is a transitioned swap.
-        var key = next + "|" + (view?.PrimaryLabel ?? "") + "|" + (view?.Note ?? "") + "|" + string.Join(",", view?.OwedItems ?? []);
+        var key = next + "|" + (view?.PrimaryLabel ?? "") + "|" + (view?.Note ?? "") + "|" + (view?.Sentence ?? "") + "|" + (view?.Why ?? "") + "|" + string.Join(",", view?.OwedItems ?? []);
         if (key != contentKey)
         {
             var first = contentKey is null;
             contentKey = key;
             kind = next;
-            bar = null; percent = null; failure = null; primary = null; cancel = null;
+            bar = null; percent = null; failure = null; primary = null; cancel = null; decline = null; sentence = null; why = null;
             slot.Show(Build(next), first ? null : Fade());
             if (next == "none") HideWhenSettled();
         }
@@ -158,15 +167,19 @@ public sealed class OfferCardControl : Border
             case "asked":
                 primary = LibraryButtons.Make(view!.PrimaryLabel!, () => _ = source.Accept(), ButtonLook.Primary, "offer-primary");
                 Add(primary);
+                AddDecline(Add);
                 if (view.Note is { } askedNote) Add(LibraryUi.Text(askedNote, 11.5, secondary: true, trim: true));
+                var asked = new StackPanel { Spacing = 6 };
+                AddWords(asked);
+                asked.Children.Add(line);
                 if (view.OwedItems is { Count: > 0 } owed)
                 {
                     // ONDEMAND 5.4: the terms step stays inside asked. Each item that owes terms shows the Settings page's own box; the Download waits for the acceptances.
-                    var boxes = new StackPanel { Spacing = 8, Children = { line } };
+                    var boxes = new StackPanel { Spacing = 8, Children = { asked } };
                     foreach (var owedId in owed) boxes.Children.Add(TermsFor(owedId));
                     return boxes;
                 }
-                break;
+                return asked;
             case "downloading":
                 bar = new LibraryBar { Width = 150 }; // rounds/skills-downloads-v3-KBarrEq1.html:342 `.mw .ofs .bar{width:150px}`
                 percent = LibraryUi.Text("0%", 12.5, secondary: true);
@@ -185,6 +198,7 @@ public sealed class OfferCardControl : Border
                 Add(LibraryUi.Text(view!.Status!, 12.5));
                 primary = LibraryButtons.Make(view.PrimaryLabel!, () => _ = source.Accept(), ButtonLook.Accent, "offer-retry");
                 Add(primary);
+                AddDecline(Add);
                 if (view.Note is { } failedNote) Add(LibraryUi.Text(failedNote, 11.5, secondary: true, trim: true));
                 failure = LibraryUi.Text(view.Failure ?? "", 11.5, secondary: true, wrap: true);
                 return new StackPanel { Spacing = 4, Children = { line, failure } };
@@ -192,6 +206,23 @@ public sealed class OfferCardControl : Border
                 return new Border { Height = 0 };
         }
         return line;
+    }
+
+    /// <summary>LEAD-PROPOSED WORDING (OfferWords, ED-NEW-cloud-sk-14 item 16): the asked sentence, then the why-needed line when there is one.</summary>
+    private void AddWords(StackPanel into)
+    {
+        sentence = LibraryUi.Text(view!.Sentence ?? "", 12.5, weight: SwiftFont.Weight.Medium, wrap: true);
+        into.Children.Add(sentence);
+        if (view.Why is not { } reason) return;
+        why = LibraryUi.Text(reason, 11.5, secondary: true, wrap: true);
+        into.Children.Add(why);
+    }
+
+    private void AddDecline(Action<Control> add)
+    {
+        if (view!.DeclineLabel is not { } label) return;
+        decline = LibraryButtons.Make(label, source.Decline, ButtonLook.Plain, "offer-decline");
+        add(decline);
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)

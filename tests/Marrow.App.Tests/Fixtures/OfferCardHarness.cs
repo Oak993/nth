@@ -31,8 +31,9 @@ internal sealed class OfferCardHarness : IDisposable
         Frames = new ManualFrameSource();
         scopes.Add(FrameClock.Source.Override(Frames));
         Card = new OfferCardControl(source, Catalogue, () => State);
+        Caption = new OfferCaptionControl(source, Catalogue, Card);
         Composer = new TextBox { Text = "a draft the card must never cover", Width = width };
-        Column = new StackPanel { Width = width, Spacing = 8, Children = { Card, Composer } };
+        Column = new StackPanel { Width = width, Spacing = 8, Children = { Card, Caption, Composer } };
         Window = new Avalonia.Controls.Window { Content = new Panel { Children = { new Border { Padding = new Thickness(24), Child = Column } } }, Width = width + 48, Height = 480 };
         if (reduceMotion) EnvironmentValues.SetAccessibilityReduceMotion(Window, true);
         Window.Show();
@@ -47,6 +48,8 @@ internal sealed class OfferCardHarness : IDisposable
     public SkillsCatalogue Catalogue { get; }
 
     public OfferCardControl Card { get; }
+
+    public OfferCaptionControl Caption { get; }
 
     public TextBox Composer { get; }
 

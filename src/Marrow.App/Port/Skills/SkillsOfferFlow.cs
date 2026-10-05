@@ -4,6 +4,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.Detect;
+using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Offers;
 using Marrow.Services.Port.Skills.Providers;
@@ -30,6 +31,7 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferC
     private OfferCard? card;
     private OfferProgress? progress;
     private string? failure;
+    private string? why;
     private string Chat => runtime.ThreadID.ToString();
 
     public SkillsOfferFlow(ThreadRuntime runtime, SkillsCatalogue catalogue, Func<AddonsState> read, Action<AddonsState> write, ISkillsOfferDownload download, ISkillsOfferTerms? terms = null)
@@ -43,8 +45,17 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferC
     public OfferCard? Card { get => Read(card); private set => Set(ref card, value); }
     public OfferProgress? Progress { get => Read(progress); private set => Set(ref progress, value); }
     public string? Failure { get => Read(failure); private set => Set(ref failure, value); }
+    public string? Why { get => Read(why); private set => Set(ref why, value); }
     public bool Available => read().Items.Any(i => i.InstalledPin is not null && i.State is ItemState.Installed or ItemState.UpdateAvailable);
     private CatalogueItem? Item(string name) => catalogue.Items.FirstOrDefault(i => i.Id == name) ?? ProvidesIndex.Build(catalogue).Resolve(ProvideKind.Exe, name);
+    private static string? WhyOf(ToolEvent value) => value switch
+    {
+        CommandHeld held => OfferWords.WhyCommand(held.CommandLine),
+        CommandFinished finished => OfferWords.WhyCommand(finished.CommandLine),
+        SkillUsed skill => OfferWords.WhySkill(skill.Skill),
+        ToolRequested request => OfferWords.WhyModel(request.Reason),
+        _ => null,
+    };
     public bool InCatalogue(string name) => Item(name) is not null;
 
     // Both provider orders occur: an approval can precede the normalized held event, or follow it.
@@ -74,6 +85,7 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferC
         {
             fresh = true;
             Card = next;
+            Why = WhyOf(value);
             Stage = OfferStage.Asked;
             Failure = null;
             Progress = null;

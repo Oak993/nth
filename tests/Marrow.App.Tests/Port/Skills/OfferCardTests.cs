@@ -5,6 +5,7 @@ using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port.Skills.Detect;
 using Marrow.Core.Port.Skills.Pages;
+using Avalonia.Threading;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Offers;
 using Marrow.Testing;
@@ -37,16 +38,86 @@ public sealed class OfferCardTests(HeadlessSession headless)
         Assert.Equal(LibraryWords.Download(item.ApproxSizeMb), Marrow.App.Port.Skills.Pages.LibraryButtons.Words(h.Card.Primary!));
         Assert.True(h.Card.Primary!.IsEffectivelyEnabled);
         Assert.Null(h.Card.CancelButton);
-        Assert.Single(h.Card.GetVisualDescendants().OfType<Button>()); // the decline control's words are not in the design sources: none is drawn
+        Assert.Equal([LibraryWords.Download(item.ApproxSizeMb), OfferWords.DeclineLabel], h.Card.GetVisualDescendants().OfType<Button>().Select(b => Marrow.App.Port.Skills.Pages.LibraryButtons.Words(b)).ToArray()); // SK-14 lead decision: the decline control exists, labelled as the plan names it
     });
 
     [Fact]
     [Trait("Decision", "ED-326")]
-    public void Pressing_the_download_asks_the_offer_once() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    public void Asked_says_what_is_missing_why_it_is_needed_and_has_a_decline_labelled_as_the_plan_names_it() => OfferCardHarness.Run(headless, new ScriptedOfferSource { Card = new OfferCard(["T3"], ["T3"], null), Why = "`soffice --headless` can't run without it." }, h =>
     {
-        Press(h.Card.Primary!);
-        Assert.Equal(1, h.Source.Accepts);
+        var item = h.Catalogue.Items.Single(i => i.Id == "T3");
+        Assert.Equal(OfferWords.Asked([item.Title]), h.Card.SentenceText!.Text);
+        Assert.Equal("`soffice --headless` can't run without it.", h.Card.WhyText!.Text);
+        Assert.Equal(OfferWords.DeclineLabel, Marrow.App.Port.Skills.Pages.LibraryButtons.Words(h.Card.DeclineButton!));
+        Press(h.Card.DeclineButton!);
+        Assert.Equal(1, h.Source.Declines);
     });
+
+    [Fact]
+    [Trait("Decision", "ED-326")]
+    public void Without_a_reason_there_is_no_why_line() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    {
+        Assert.NotNull(h.Card.SentenceText);
+        Assert.Null(h.Card.WhyText);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-326")]
+    public void A_failed_download_can_still_be_declined_and_a_running_one_cannot() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    {
+        h.Source.Stage = OfferStage.Downloading; h.Source.Progress = new OfferProgress(OfferStage.Downloading, 5, 10); h.Settle();
+        Assert.Null(h.Card.DeclineButton);
+        h.Source.Stage = OfferStage.Failed; h.Source.Failure = "Couldn't reach libreoffice.org."; h.Settle();
+        Assert.Equal(OfferWords.DeclineLabel, Marrow.App.Port.Skills.Pages.LibraryButtons.Words(h.Card.DeclineButton!));
+    });
+
+    [Theory]
+    [Trait("Decision", "ED-326")]
+    [InlineData(OfferStage.Done)]
+    [InlineData(OfferStage.Continuing)]
+    [InlineData(OfferStage.Declined)]
+    public void Done_continuing_and_declined_leave_one_caption_line_after_the_card_collapses(OfferStage stage) => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    {
+        var item = h.Catalogue.Items.Single(i => i.Id == "T3");
+        Assert.False(h.Caption.IsVisible);
+        h.Source.Stage = stage; h.Settle();
+        var expected = stage switch { OfferStage.Done => OfferWords.Done([item.Title]), OfferStage.Continuing => OfferWords.Continuing([item.Title]), _ => OfferWords.Declined([item.Title], [item.Kind]) };
+        Assert.Equal(expected, h.Caption.Text);
+        Assert.True(h.Caption.IsVisible);
+        Assert.Equal("none", h.Card.Kind);
+        Assert.Empty(h.Caption.GetVisualDescendants().OfType<Button>());
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-326")]
+    public void The_caption_goes_when_a_new_offer_is_asked_and_never_shows_while_one_is_open() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    {
+        Assert.False(h.Caption.IsVisible);
+        h.Source.Stage = OfferStage.Declined; h.Settle();
+        Assert.True(h.Caption.IsVisible);
+        h.Source.Stage = OfferStage.Asked; h.Settle();
+        Assert.False(h.Caption.IsVisible);
+        Assert.Equal("asked", h.Card.Kind);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-326")]
+    public void The_caption_comes_in_after_the_card_has_gone_and_fades_in_on_the_frame_clock() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    {
+        h.Source.Stage = OfferStage.Done;
+        h.Window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
+        Assert.False(h.Caption.IsVisible); // the composer below does not move while the card fades
+        var steps = 0;
+        while (!h.Caption.IsVisible && steps++ < 60) h.Step(20);
+        Assert.True(h.Caption.IsVisible);
+        Assert.False(h.Card.IsVisible);
+        var text = h.Caption.GetVisualDescendants().OfType<TextBlock>().Single(t => !string.IsNullOrEmpty(t.Text));
+        double Opacity() => text.GetVisualAncestors().Prepend(text).TakeWhile(v => !ReferenceEquals(v, h.Caption.GetVisualParent())).Select(v => v.Opacity).Aggregate(1.0, (a, b) => a * b);
+        h.Step(20);
+        Assert.InRange(Opacity(), 0.001, 0.999);
+        h.Step(600);
+        Assert.Equal(1, Opacity(), 3);
+    }, motion: true);
 
     [Fact]
     [Trait("Decision", "ED-326")]

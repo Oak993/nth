@@ -22,6 +22,10 @@ public sealed class ScriptedOfferSource : MainActorModel, IOfferCardSource
 
     public string? Failure { get => Read(failure); set => Set(ref failure, value); }
 
+    private string? why;
+
+    public string? Why { get => Read(why); set => Set(ref why, value); }
+
     public bool CanFetch { get => Read(canFetch); set => Set(ref canFetch, value); }
 
     private int termsRevision;

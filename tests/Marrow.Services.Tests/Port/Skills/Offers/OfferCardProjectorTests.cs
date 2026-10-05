@@ -96,6 +96,31 @@ public sealed class OfferCardProjectorTests
     }
 
     [Fact]
+    public void Asked_and_failed_carry_the_asked_sentence_the_why_line_and_the_decline_label_and_nothing_else_does()
+    {
+        var item = Catalogue.Items.Single(i => i.Id == "T3");
+        OfferCardView With(OfferStage stage) => OfferCardProjector.Project(Catalogue, AddonsState.Empty, Card("T3"), stage, stage is OfferStage.Downloading or OfferStage.Checking ? new OfferProgress(stage, 1, 2) : null, "x", why: "`soffice` can't run without it.")!;
+        foreach (var stage in new[] { OfferStage.Asked, OfferStage.Failed })
+        {
+            var view = With(stage);
+            Assert.Equal((OfferWords.Asked([item.Title]), "`soffice` can't run without it.", OfferWords.DeclineLabel), (view.Sentence, view.Why, view.DeclineLabel));
+        }
+        foreach (var stage in new[] { OfferStage.Downloading, OfferStage.Checking })
+            Assert.Equal((null, null, null), (With(stage).Sentence, With(stage).Why, With(stage).DeclineLabel));
+    }
+
+    [Fact]
+    public void Done_continuing_and_declined_carry_their_caption_and_the_other_states_none()
+    {
+        var item = Catalogue.Items.Single(i => i.Id == "T3");
+        Assert.Equal(OfferWords.Done([item.Title]), Show(OfferStage.Done).Caption);
+        Assert.Equal(OfferWords.Continuing([item.Title]), Show(OfferStage.Continuing).Caption);
+        Assert.Equal(OfferWords.Declined([item.Title], [item.Kind]), Show(OfferStage.Declined).Caption);
+        foreach (var stage in new[] { OfferStage.Asked, OfferStage.Downloading, OfferStage.Checking, OfferStage.Failed })
+            Assert.Null(Show(stage, stage is OfferStage.Downloading or OfferStage.Checking ? new OfferProgress(stage, 1, 2) : null, "x").Caption);
+    }
+
+    [Fact]
     public void An_item_whose_terms_are_owed_keeps_the_card_asked_with_the_download_off()
     {
         var owed = Catalogue.Items.First(i => i.TermsClass != TermsClass.Open && ItemTerms.Required(i, AddonsState.Empty));

@@ -17,6 +17,9 @@ public interface IOfferCardSource
 
     string? Failure { get; }
 
+    /// <summary>The why-needed line (LEAD-PROPOSED WORDING, OfferWords): the step the item blocks, or null when there is none to say.</summary>
+    string? Why { get; }
+
     /// <summary>Grows when the terms step's answer may have changed (an acceptance): the card reads its state again.</summary>
     int TermsRevision { get; }
 

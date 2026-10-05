@@ -14,7 +14,7 @@ namespace Marrow.Services.Port.Skills.Offers;
 /// </summary>
 public static class OfferCardProjector
 {
-    public static OfferCardView? Project(SkillsCatalogue catalogue, AddonsState state, OfferCard? card, OfferStage stage, OfferProgress? progress, string? failure, bool canFetch = true)
+    public static OfferCardView? Project(SkillsCatalogue catalogue, AddonsState state, OfferCard? card, OfferStage stage, OfferProgress? progress, string? failure, bool canFetch = true, string? why = null)
     {
         ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentNullException.ThrowIfNull(state);
@@ -31,9 +31,19 @@ public static class OfferCardProjector
             OfferStage.Failed => LibraryWords.Retry,
             _ => null,
         };
-        return new OfferCardView(stage, items.Select(i => i.Title).ToList(), card.ApproxSizeMb, hosts, percent, running ? progress!.BytesDone : null, running ? progress!.BytesTotal : null,
+        var titles = items.Select(i => i.Title).ToList();
+        var asking = stage is OfferStage.Asked or OfferStage.Failed;
+        return new OfferCardView(stage, titles, card.ApproxSizeMb, hosts, percent, running ? progress!.BytesDone : null, running ? progress!.BytesTotal : null,
             primary, primary is not null && !owed && canFetch, stage == OfferStage.Downloading, stage is OfferStage.Asked or OfferStage.Failed,
             stage switch { OfferStage.Checking => LibraryWords.Checking, OfferStage.Failed => LibraryWords.DidNotDownload, _ => null },
-            stage == OfferStage.Failed ? failure : null, owed, primary is not null && !canFetch ? LibraryWords.DownloadsUnavailable : null, owedItems);
+            stage == OfferStage.Failed ? failure : null, owed, primary is not null && !canFetch ? LibraryWords.DownloadsUnavailable : null, owedItems,
+            asking ? OfferWords.Asked(titles) : null, asking ? why : null, asking ? OfferWords.DeclineLabel : null,
+            stage switch
+            {
+                OfferStage.Done => OfferWords.Done(titles),
+                OfferStage.Continuing => OfferWords.Continuing(titles),
+                OfferStage.Declined => OfferWords.Declined(titles, items.Select(i => i.Kind).ToList()),
+                _ => null,
+            });
     }
 }
