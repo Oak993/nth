@@ -111,6 +111,9 @@ public static class LibraryWords
     public const string Close = "Close";
     public static string RetryCount(int failed) => "Retry " + failed;
 
+    /// <summary>The right side of a waiting line in the included list: "Waiting · 18 MB" (the design).</summary>
+    public static string WaitingWith(double? sizeMb) => sizeMb is { } mb ? "Waiting " + (char)0x00B7 + " " + SizeText.Short(mb) : Waiting;
+
     public const string AlreadyHere = "Already here";
     public const string Downloaded = "Downloaded";
 
