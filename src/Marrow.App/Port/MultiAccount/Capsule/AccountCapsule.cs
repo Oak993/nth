@@ -44,6 +44,7 @@ internal sealed class AccountCapsule : Panel
     private Action<TimeSpan>? frame;
     private ContinuousInstant? origin;
     private double phase;
+    private bool onScreen = true;
 
     public AccountCapsule(string style)
     {
@@ -82,6 +83,14 @@ internal sealed class AccountCapsule : Panel
         ActualThemeVariantChanged += (_, _) => Recolour();
         AttachedToVisualTree += (_, _) => { state.Dark = Dark; Recolour(); EnsureLoop(); };
         DetachedFromVisualTree += (_, _) => StopLoop();
+        // a capsule that is scrolled out of view does not loop (a frame request nobody sees is a wake-up for nothing)
+        EffectiveViewportChanged += (_, e) =>
+        {
+            var seen = e.EffectiveViewport.Intersects(new Rect(Bounds.Size)) || Bounds.Width <= 0;
+            if (seen == onScreen) return;
+            onScreen = seen;
+            EnsureLoop();
+        };
         PropertyChanged += (_, e) =>
         {
             if (e.Property == EnvironmentValues.AccessibilityReduceMotionProperty) { UpdateGlow(false); EnsureLoop(); Repaint(); }
@@ -109,6 +118,7 @@ internal sealed class AccountCapsule : Panel
     public double ArcNow => state.Arc;
     public double FillNow => state.Fill;
     public double Phase => phase;
+    public bool IsLooping => frame is not null;
     public bool HasGlow => glow is not null;
     public double GlowOpacityNow => glowOpacity.Value;
     public double GlowBlurNow => glowBlur.Value;
@@ -241,7 +251,7 @@ internal sealed class AccountCapsule : Panel
 
     private void EnsureLoop()
     {
-        var need = NeedsLoop && !ReduceMotion && FrameClock.IsBound && VisualRoot is not null;
+        var need = NeedsLoop && onScreen && !ReduceMotion && FrameClock.IsBound && VisualRoot is not null;
         if (!need) { StopLoop(); if (ReduceMotion) { phase = 0; state.Phase = 0; } return; }
         if (frame is not null) return;
         origin = SwiftClock.Now;

@@ -102,6 +102,9 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Sticky.Children.Add(Dots.Section);
         Sticky.Children.Add(Aura.Picker);
 
+        // PORT-ONLY (multi-account step 3a, OD-0115, OD-0119): "Pill in the composer" follows the sticky sections, where the pinned block has let go
+        Rest.Children.Add(new Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection(settings.CapsuleStyle));
+
         // CZ-3.5: the block is sticky in the scroll viewer the page sits in (found on attach)
         Stickiness = new StickyStageController(this, Sticky, Stage);
 
