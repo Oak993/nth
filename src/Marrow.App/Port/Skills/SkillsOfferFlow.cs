@@ -91,6 +91,9 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferC
             _ = MainActor.Spawn(() => Begin(attaching: true));
     }
 
+    /// <summary>SK-14 review: every item of the card can be fetched (the download seam says so); the card keeps its Download off otherwise. Accept itself is unchanged: an item that cannot be fetched still fails with the one unavailable message.</summary>
+    public bool CanFetch => Card is { } current && current.Items.All(id => catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item && download.CanFetch(item));
+
     public Task Accept() => Begin(attaching: false);
 
     private async Task Begin(bool attaching)

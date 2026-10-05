@@ -32,6 +32,7 @@ public sealed class OfferCardControl : Border
     private readonly TextBlock title = LibraryUi.Text("", 13, weight: SwiftFont.Weight.Semibold, trim: true);
     private readonly TextBlock host = LibraryUi.Text("", 11.5, secondary: true, trim: true);
     private string? kind;
+    private string? contentKey;
     private OfferCardView? view;
     private LibraryBar? bar;
     private TextBlock? percent;
@@ -56,7 +57,7 @@ public sealed class OfferCardControl : Border
         Background = ChromeTokens.Overlay(0.06).Brush(this);
         this.RoundedRectangle(10, RoundedCornerStyle.Continuous);
         KeyDown += OnKeyDown;
-        this.Track(() => (source.Stage, source.Card, source.Progress, source.Failure), _ => Refresh());
+        this.Track(() => (source.Stage, source.Card, source.Progress, source.Failure, source.CanFetch), _ => Refresh());
         Refresh();
     }
 
@@ -79,9 +80,15 @@ public sealed class OfferCardControl : Border
 
     internal TextBlock? FailureText => failure;
 
+    /// <summary>
+    /// The curve of a change of state: the pages' fade, and under Reduce Motion the same opacity fade shortened to the locked page's reduced-motion rule (0.01 s: <c>transition-duration:.01s</c>), because movement is
+    /// stilled to fades and not removed (ONDEMAND 5.6). Null only when no frame source is bound (nothing could animate).
+    /// </summary>
+    private Animation? Fade() => !FrameClock.IsBound ? null : LibraryUi.Still(this) ? Animation.EaseOut(duration: 0.01) : LibraryUi.Fade;
+
     private void Refresh()
     {
-        view = OfferCardProjector.Project(catalogue, state(), source.Card, source.Stage, source.Progress, source.Failure);
+        view = OfferCardProjector.Project(catalogue, state(), source.Card, source.Stage, source.Progress, source.Failure, source.CanFetch);
         var next = view?.Phase switch
         {
             OfferStage.Asked => "asked",
@@ -90,19 +97,23 @@ public sealed class OfferCardControl : Border
             OfferStage.Failed => "failed",
             _ => "none",
         };
-        IsVisible = next != "none";
+        if (next != "none") IsVisible = true;
         if (view is not null)
         {
             title.Text = string.Join(", ", view.Titles);
             host.Text = string.Join(", ", view.Hosts);
             host.IsVisible = view.Hosts.Count > 0;
         }
-        if (kind != next)
+        // What is on show changes with the state and, within asked and failed, with the button's words (a need that joined changes the combined size) and the note: each is a transitioned swap.
+        var key = next + "|" + (view?.PrimaryLabel ?? "") + "|" + (view?.Note ?? "");
+        if (key != contentKey)
         {
-            var first = kind is null;
+            var first = contentKey is null;
+            contentKey = key;
             kind = next;
             bar = null; percent = null; failure = null; primary = null; cancel = null;
-            slot.Show(Build(next), first ? null : LibraryUi.Ease(this, LibraryUi.Fade));
+            slot.Show(Build(next), first ? null : Fade());
+            if (next == "none") HideWhenSettled();
         }
         if (view is not null)
         {
@@ -111,6 +122,21 @@ public sealed class OfferCardControl : Border
             if (failure is not null) failure.Text = view.Failure ?? "";
             if (primary is not null) primary.IsEnabled = view.PrimaryEnabled;
         }
+    }
+
+    /// <summary>A card that has nothing left to say fades and glides to no height first, and only then leaves the layout (the composer below it moves with the glide, never in one frame).</summary>
+    private void HideWhenSettled()
+    {
+        if (!FrameClock.IsBound || !slot.Settling) { IsVisible = false; return; }
+        var frames = FrameClock.Source.Current;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            if (kind != "none") return; // a new offer came back while it faded
+            if (slot.Settling) { frames.RequestFrame(tick!); return; }
+            IsVisible = false;
+        };
+        frames.RequestFrame(tick);
     }
 
     private static double Fraction(OfferCardView view) => view.BytesTotal is > 0 and { } total ? Math.Clamp((double)(view.BytesDone ?? 0) / total, 0, 1) : 0;
@@ -124,6 +150,7 @@ public sealed class OfferCardControl : Border
             case "asked":
                 primary = LibraryButtons.Make(view!.PrimaryLabel!, () => _ = source.Accept(), ButtonLook.Primary, "offer-primary");
                 Add(primary);
+                if (view.Note is { } askedNote) Add(LibraryUi.Text(askedNote, 11.5, secondary: true, trim: true));
                 break;
             case "downloading":
                 bar = new LibraryBar { Width = 200 };
@@ -143,6 +170,7 @@ public sealed class OfferCardControl : Border
                 Add(LibraryUi.Text(view!.Status!, 12.5));
                 primary = LibraryButtons.Make(view.PrimaryLabel!, () => _ = source.Accept(), ButtonLook.Accent, "offer-retry");
                 Add(primary);
+                if (view.Note is { } failedNote) Add(LibraryUi.Text(failedNote, 11.5, secondary: true, trim: true));
                 failure = LibraryUi.Text(view.Failure ?? "", 11.5, secondary: true, wrap: true);
                 return new StackPanel { Spacing = 4, Children = { line, failure } };
             default:

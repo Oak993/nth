@@ -442,6 +442,7 @@ public sealed class LibraryController : IDisposable
         CatalogueItem item;
         lock (gate)
         {
+            if (!backend.CanFetch) return Task.CompletedTask; // unbound: nothing is placed and nothing is asked of the install
             if (backend.State.Get(id).State != ItemState.Failed && !(overlay.TryGetValue(id, out var mine) && mine.State == ItemState.Failed)) return Task.CompletedTask;
             item = backend.Catalogue.Items.First(i => i.Id == id);
         }

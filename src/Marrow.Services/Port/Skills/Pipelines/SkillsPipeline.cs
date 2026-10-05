@@ -204,9 +204,9 @@ public sealed class SkillsPipeline : IGenerationStore
     public void SetDeclined(AddonsState declined)
     {
         ArgumentNullException.ThrowIfNull(declined);
-        operation.Wait();
-        try { lock (gate) Commit(AddonsState.Restore(state.Items, state.AcceptedTerms, declined.Declined, state.Found)); }
-        finally { operation.Release(); }
+        // Not under the operation lock: that is held for a whole download or install, and a decline answers a provider on the main actor. Every commit builds the next state from the state it finds under
+        // the gate, so this one cannot be lost to, or lose, an install's: each keeps the other's lists.
+        lock (gate) Commit(AddonsState.Restore(state.Items, state.AcceptedTerms, declined.Declined, state.Found));
     }
 
     public string? LatestPin(string id) => catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item ? UpdateCheck.CataloguePin(item) : null;

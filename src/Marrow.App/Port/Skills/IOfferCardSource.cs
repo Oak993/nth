@@ -12,6 +12,9 @@ public interface IOfferCardSource
 
     OfferProgress? Progress { get; }
 
+    /// <summary>Whether what the card names can be fetched at all; false keeps the card's Download and Retry off.</summary>
+    bool CanFetch { get; }
+
     string? Failure { get; }
 
     /// <summary>Yes (and Retry): downloads what the card names.</summary>

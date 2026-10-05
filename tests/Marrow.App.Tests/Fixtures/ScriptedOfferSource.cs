@@ -12,6 +12,7 @@ public sealed class ScriptedOfferSource : MainActorModel, IOfferCardSource
     private OfferCard? card;
     private OfferProgress? progress;
     private string? failure;
+    private bool canFetch = true;
 
     public OfferStage Stage { get => Read(stage); set => Set(ref stage, value); }
 
@@ -20,6 +21,8 @@ public sealed class ScriptedOfferSource : MainActorModel, IOfferCardSource
     public OfferProgress? Progress { get => Read(progress); set => Set(ref progress, value); }
 
     public string? Failure { get => Read(failure); set => Set(ref failure, value); }
+
+    public bool CanFetch { get => Read(canFetch); set => Set(ref canFetch, value); }
 
     public int Accepts { get; private set; }
 

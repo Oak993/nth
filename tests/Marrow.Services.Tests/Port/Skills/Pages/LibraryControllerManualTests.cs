@@ -50,4 +50,14 @@ public sealed class LibraryControllerManualTests
         rig.Page.OpenManualFolder();
         Assert.Equal(["page " + fallback.Page.AbsoluteUri, "folder"], rig.Backend.Calls);
     }
+
+    [Fact]
+    public async Task Check_again_with_nothing_to_fetch_with_places_nothing_and_asks_nothing_of_the_install()
+    {
+        using var rig = new LibraryRig(install: new Marrow.Services.Port.Skills.Pages.FailClosedFirstInstall());
+        rig.Backend.State = AddonsState.Restore([new ItemRecord("S1", ItemState.Failed, null, LibraryFixtures.Pin, "x")], [], [], []);
+        await LibraryRig.Within(rig.Page.CheckAgain("S1"));
+        Assert.DoesNotContain("place S1", rig.Backend.Calls);
+        Assert.Empty(rig.Install.Calls);
+    }
 }

@@ -7,4 +7,4 @@ namespace Marrow.Services.Port.Skills.Offers;
 /// the line saying why the item is needed, the decline control, the done, continuing and declined captions) the view has none: it is not invented here (ED-NEW-cloud-sk-14).
 /// </summary>
 public sealed record OfferCardView(OfferStage Phase, IReadOnlyList<string> Titles, double? SizeMb, IReadOnlyList<string> Hosts, int? Percent, long? BytesDone, long? BytesTotal,
-    string? PrimaryLabel, bool PrimaryEnabled, bool CanCancel, bool CanDecline, string? Status, string? Failure, bool TermsOwed);
+    string? PrimaryLabel, bool PrimaryEnabled, bool CanCancel, bool CanDecline, string? Status, string? Failure, bool TermsOwed, string? Note = null);

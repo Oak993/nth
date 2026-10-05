@@ -13,6 +13,8 @@ namespace Marrow.Services.Port.Skills.Fetch;
 /// </summary>
 public sealed class SkillsOfferInstalls(SkillsDownloads downloads) : ISkillsOfferDownload
 {
+    public bool CanFetch(CatalogueItem item) => downloads.CanFetch(item);
+
     public Task<IReadOnlyDictionary<string, string>> Install(IReadOnlyList<CatalogueItem> items, Action<OfferProgress> progress, CancellationToken cancellation) => Run(items, progress, cancellation);
 
     public Task<IReadOnlyDictionary<string, string>> Attach(IReadOnlyList<CatalogueItem> items, Action<OfferProgress> progress, CancellationToken cancellation)

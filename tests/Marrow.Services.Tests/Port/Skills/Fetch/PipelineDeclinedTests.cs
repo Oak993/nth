@@ -40,4 +40,19 @@ public sealed class PipelineDeclinedTests
         using var rig = new FetchRig();
         Assert.Same(rig.Catalogue, rig.Host.Catalogue);
     }
+
+    [Fact]
+    public async Task A_decline_written_during_a_download_is_kept_when_the_download_commits()
+    {
+        using var rig = new FetchRig();
+        rig.Hold["S1"] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var running = rig.Host.Downloads.Install(rig.Item("S1"), new PipelineProgress([]), CancellationToken.None);
+        await rig.Entered("S1");
+        rig.Host.Pipeline.SetDeclined(rig.Host.Pipeline.State.Decline("chat-2", "S3"));
+        rig.Hold["S1"].SetResult();
+        await running.WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Equal(ItemState.Installed, rig.Host.Pipeline.State.Get("S1").State);
+        Assert.Equal("chat-2", Assert.Single(rig.Host.Pipeline.State.Declined).ChatId);
+        Assert.Equal("chat-2", Assert.Single(rig.Reopen().Pipeline.State.Declined).ChatId);
+    }
 }

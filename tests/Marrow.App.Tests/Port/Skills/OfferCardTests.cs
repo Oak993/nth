@@ -191,16 +191,31 @@ public sealed class OfferCardTests(HeadlessSession headless)
     }, motion: true);
 
     [Fact]
-    [Trait("Decision", "ED-261")] // OD-0076 with Reduce Motion: the transition lands at once
-    public void With_Reduce_Motion_a_change_of_state_lands_at_once() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    [Trait("Decision", "ED-261")] // OD-0076 with Reduce Motion: movement is stilled to a short fade (ONDEMAND 5.6; the locked page's reduced-motion rule is .01 s), so the change lands within a frame or two
+    public void With_Reduce_Motion_a_change_of_state_lands_within_a_short_fade() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
     {
         h.Source.Stage = OfferStage.Downloading; h.Source.Progress = new OfferProgress(OfferStage.Downloading, 1, 10);
         h.Window.UpdateLayout();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         Assert.Equal("downloading", h.Card.Kind);
+        h.Step(20);
         Assert.Equal(1, FadeOf(h.Card.Bar!), 6);
         Assert.Null(h.Card.Primary);
     }, motion: true, reduceMotion: true);
 
     private static double FadeOf(Control control) => control.GetVisualAncestors().Prepend(control).Select(c => c.Opacity).Aggregate(1.0, (a, b) => a * b);
+
+    [Fact]
+    [Trait("Decision", "ED-326")]
+    public void When_the_offer_cannot_fetch_the_download_and_retry_are_off_and_the_unavailable_message_shows() => OfferCardHarness.Run(headless, OfferCardHarness.Asked(), h =>
+    {
+        h.Source.CanFetch = false;
+        h.Settle();
+        Assert.False(h.Card.Primary!.IsEffectivelyEnabled);
+        Assert.Contains(LibraryWords.DownloadsUnavailable, Words(h.Card));
+        h.Source.Stage = OfferStage.Failed; h.Source.Failure = "x"; h.Settle();
+        Assert.False(h.Card.Primary!.IsEffectivelyEnabled);
+        Press(h.Card.Primary!);
+        Assert.Equal(0, h.Source.Accepts);
+    });
 }

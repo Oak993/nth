@@ -32,7 +32,7 @@ public static class ManualFallbacks
                     var commit = item.Pin[..Math.Min(7, item.Pin.Length)];
                     return Make("the repository at commit " + commit + ", as a .zip", Strip(repo.Host) + "/" + path + "/tree/" + commit, false);
                 }
-                var pins = item.Skills.Select(s => s.Pin).Where(p => !string.IsNullOrEmpty(p)).Select(p => p![..Math.Min(7, p.Length)]).Distinct(StringComparer.Ordinal).ToList();
+                var pins = item.Skills.Select(s => s.Pin).OfType<string>().Where(p => p.Length > 0).Select(p => p[..Math.Min(7, p.Length)]).Distinct(StringComparer.Ordinal).ToList();
                 if (pins.Count == 0 || item.Skills.Any(s => string.IsNullOrEmpty(s.Pin))) return null;
                 var count = pins.Count < Words.Length ? Words[pins.Count] : pins.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 return Make("the " + count + " skill folders at their pinned commits (" + string.Join(", ", pins) + ")", Strip(repo.Host) + "/" + path, false);

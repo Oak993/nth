@@ -14,7 +14,7 @@ namespace Marrow.Services.Port.Skills.Offers;
 /// </summary>
 public static class OfferCardProjector
 {
-    public static OfferCardView? Project(SkillsCatalogue catalogue, AddonsState state, OfferCard? card, OfferStage stage, OfferProgress? progress, string? failure)
+    public static OfferCardView? Project(SkillsCatalogue catalogue, AddonsState state, OfferCard? card, OfferStage stage, OfferProgress? progress, string? failure, bool canFetch = true)
     {
         ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentNullException.ThrowIfNull(state);
@@ -31,8 +31,8 @@ public static class OfferCardProjector
             _ => null,
         };
         return new OfferCardView(stage, items.Select(i => i.Title).ToList(), card.ApproxSizeMb, hosts, percent, running ? progress!.BytesDone : null, running ? progress!.BytesTotal : null,
-            primary, primary is not null && !owed, stage == OfferStage.Downloading, stage is OfferStage.Asked or OfferStage.Failed,
+            primary, primary is not null && !owed && canFetch, stage == OfferStage.Downloading, stage is OfferStage.Asked or OfferStage.Failed,
             stage switch { OfferStage.Checking => LibraryWords.Checking, OfferStage.Failed => LibraryWords.DidNotDownload, _ => null },
-            stage == OfferStage.Failed ? failure : null, owed);
+            stage == OfferStage.Failed ? failure : null, owed, primary is not null && !canFetch ? LibraryWords.DownloadsUnavailable : null);
     }
 }

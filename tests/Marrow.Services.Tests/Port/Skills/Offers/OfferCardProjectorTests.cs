@@ -112,4 +112,22 @@ public sealed class OfferCardProjectorTests
         Assert.Null(view.SizeMb);
         Assert.Equal(LibraryWords.Download(null), view.PrimaryLabel);
     }
+
+    [Theory]
+    [InlineData(OfferStage.Asked)]
+    [InlineData(OfferStage.Failed)]
+    public void When_nothing_can_be_fetched_the_primary_action_is_off_and_the_one_unavailable_message_says_why(OfferStage stage)
+    {
+        var view = OfferCardProjector.Project(Catalogue, AddonsState.Empty, Card("T3"), stage, null, "x", canFetch: false)!;
+        Assert.False(view.PrimaryEnabled);
+        Assert.NotNull(view.PrimaryLabel);
+        Assert.Equal(LibraryWords.DownloadsUnavailable, view.Note);
+    }
+
+    [Fact]
+    public void While_it_downloads_the_availability_adds_no_note()
+    {
+        var view = OfferCardProjector.Project(Catalogue, AddonsState.Empty, Card("T3"), OfferStage.Downloading, new OfferProgress(OfferStage.Downloading, 1, 2), null, canFetch: false)!;
+        Assert.Null(view.Note);
+    }
 }

@@ -116,8 +116,8 @@ internal sealed class DetailView : Decorator
     {
         action.Apply(row, removeAsked);
         if (row.Failure is { } message) failureText.SetText(message);
-        failure.Open = row.State == ItemState.Failed;
         manual.Apply(row);
+        failure.Open = row.State == ItemState.Failed || manual.Checking; // Checking… of the manual files stays in view (the design keeps the fold open while it checks)
         removeWhy.Open = removeAsked;
         termsBox?.Apply(row);
         switches.Apply(row);
