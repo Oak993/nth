@@ -118,7 +118,7 @@ public sealed class UpdatePill : Decorator
             Margin = new Thickness(10, 0, 14, 0),
             Children = { lead, labelSlot },
         };
-        button = PlainControls.Button(row, () => state.Presented = !state.Presented);
+        button = PlainControls.Button(row, () => state.Presented = !state.Presented).KeyboardFocus();
         face = (Panel)button.ChromeGlassCapsule();
         face.HorizontalAlignment = HorizontalAlignment.Left;
         face.VerticalAlignment = VerticalAlignment.Top;
