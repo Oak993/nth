@@ -490,7 +490,17 @@ public sealed partial class AppModel : MainActorModel
 
     // AppModel.swift:425-430. Swift: runtime(for:).
     public ThreadRuntime Runtime(Guid id) =>
-        runtimes.TryGetValue(id, out var runtime) ? runtime : runtimes[id] = new ThreadRuntime(id, this); // AppModel.swift:425-430
+        runtimes.TryGetValue(id, out var runtime) ? runtime : runtimes[id] = WithSkillsOffers(new ThreadRuntime(id, this)); // AppModel.swift:425-430
+
+    // PORT-ONLY (SK-14, ED-384): once the app's skills host is bound, a chat gets its offer flow; with none bound (tests, a host that could not open) the chat has none and the provider is never held.
+    private static ThreadRuntime WithSkillsOffers(ThreadRuntime runtime)
+    {
+        Marrow.Services.Port.Skills.Host.SkillsHost host;
+        try { host = Marrow.Services.Port.Skills.Host.SkillsSeams.Host.Current; }
+        catch (SwiftTrapException) { return runtime; }
+        Marrow.App.Port.Skills.SkillsOfferFlows.Create(runtime, host);
+        return runtime;
+    }
 
     // AppModel.swift:432-434. Swift: existingRuntime(for:).
     public ThreadRuntime? ExistingRuntime(Guid id) =>

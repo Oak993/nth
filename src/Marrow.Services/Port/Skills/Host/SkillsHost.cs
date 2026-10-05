@@ -38,11 +38,15 @@ public sealed class SkillsHost : IDisposable
         Imported = imported;
         Terms = terms;
         Downloads = fetches;
+        Catalogue = catalogue;
         GuardedDownloads = downloads;
         Unrestored = unrestored;
     }
 
     public StorePaths Paths { get; }
+
+    /// <summary>SK-14: the catalogue the host was opened with: the in-chat offers read it.</summary>
+    public SkillsCatalogue Catalogue { get; }
 
     /// <summary>The root's one owner.</summary>
     public SkillsPipeline Pipeline { get; }
@@ -63,6 +67,9 @@ public sealed class SkillsHost : IDisposable
 
     /// <summary>SK-16: the in-chat offers' download seam over the same <see cref="Downloads"/>: an offer joins a download Settings has running, and the reverse.</summary>
     public ISkillsOfferDownload OfferDownloads => new SkillsOfferInstalls(Downloads);
+
+    /// <summary>SK-14: the in-chat offers' terms step: the same one the Settings pages use, so an acceptance is one record.</summary>
+    public ISkillsOfferTerms OfferTerms => new HostOfferTerms(Terms);
 
     /// <summary>
     /// The download seam with the terms checked first (<see cref="TermsGate"/>): the one entry a first install goes through so no byte of a non-open item is requested before its terms are

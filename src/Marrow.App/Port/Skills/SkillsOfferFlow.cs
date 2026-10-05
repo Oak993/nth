@@ -4,18 +4,21 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.Detect;
+using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Offers;
 using Marrow.Services.Port.Skills.Providers;
 namespace Marrow.App.Port.Skills;
 
-public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer
+public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferCardSource
 {
     private readonly ThreadRuntime runtime;
     private readonly SkillsCatalogue catalogue;
     private readonly Func<AddonsState> read;
     private readonly Action<AddonsState> write;
     private readonly ISkillsOfferDownload download;
+    private readonly ISkillsOfferTerms? terms;
+    private int termsRevision;
     private readonly HashSet<string> offered = new(StringComparer.Ordinal);
     private readonly HashSet<string> modelRequested = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (ApprovalRequest Request, long Epoch, string Item)> held = new(StringComparer.Ordinal);
@@ -28,19 +31,31 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer
     private OfferCard? card;
     private OfferProgress? progress;
     private string? failure;
+    private string? why;
     private string Chat => runtime.ThreadID.ToString();
 
-    public SkillsOfferFlow(ThreadRuntime runtime, SkillsCatalogue catalogue, Func<AddonsState> read, Action<AddonsState> write, ISkillsOfferDownload download)
+    public SkillsOfferFlow(ThreadRuntime runtime, SkillsCatalogue catalogue, Func<AddonsState> read, Action<AddonsState> write, ISkillsOfferDownload download, ISkillsOfferTerms? terms = null)
     {
-        this.runtime = runtime; this.catalogue = catalogue; this.read = read; this.write = write; this.download = download;
+        this.runtime = runtime; this.catalogue = catalogue; this.read = read; this.write = write; this.download = download; this.terms = terms;
         runtime.AttachSkillsOffers(this);
     }
+    internal SkillsCatalogue Catalogue => catalogue;
+    internal Func<AddonsState> State => read;
     public OfferStage Stage { get => Read(stage); private set => Set(ref stage, value); }
     public OfferCard? Card { get => Read(card); private set => Set(ref card, value); }
     public OfferProgress? Progress { get => Read(progress); private set => Set(ref progress, value); }
     public string? Failure { get => Read(failure); private set => Set(ref failure, value); }
+    public string? Why { get => Read(why); private set => Set(ref why, value); }
     public bool Available => read().Items.Any(i => i.InstalledPin is not null && i.State is ItemState.Installed or ItemState.UpdateAvailable);
     private CatalogueItem? Item(string name) => catalogue.Items.FirstOrDefault(i => i.Id == name) ?? ProvidesIndex.Build(catalogue).Resolve(ProvideKind.Exe, name);
+    private static string? WhyOf(ToolEvent value) => value switch
+    {
+        CommandHeld held => OfferWords.WhyCommand(held.CommandLine),
+        CommandFinished finished => OfferWords.WhyCommand(finished.CommandLine),
+        SkillUsed skill => OfferWords.WhySkill(skill.Skill),
+        ToolRequested request => OfferWords.WhyModel(request.Reason),
+        _ => null,
+    };
     public bool InCatalogue(string name) => Item(name) is not null;
 
     // Both provider orders occur: an approval can precede the normalized held event, or follow it.
@@ -70,6 +85,7 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer
         {
             fresh = true;
             Card = next;
+            Why = WhyOf(value);
             Stage = OfferStage.Asked;
             Failure = null;
             Progress = null;
@@ -89,6 +105,22 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer
         }
         if (fresh && detection.Card is null && detection.AttachTo.Count != 0)
             _ = MainActor.Spawn(() => Begin(attaching: true));
+    }
+
+    /// <summary>SK-14 review: every item of the card can be fetched (the download seam says so); the card keeps its Download off otherwise. Accept itself is unchanged: an item that cannot be fetched still fails with the one unavailable message.</summary>
+    public bool CanFetch => Card is { } current && current.Items.All(id => catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item && download.CanFetch(item));
+
+    public int TermsRevision { get => Read(termsRevision); private set => Set(ref termsRevision, value); }
+
+    public Marrow.Services.Port.Skills.Terms.TermsOffer? TermsFor(string itemId) => terms?.Offer(itemId);
+
+    public Task<string> LicenceText(string itemId) => (terms ?? throw new InvalidOperationException("No terms step is bound.")).LicenceTextAsync(itemId, CancellationToken.None);
+
+    /// <summary>Stores the acceptance through the terms step and lets the card read its state again; the download stays the user's yes (ONDEMAND 5.4).</summary>
+    public void AcceptTerms(string itemId)
+    {
+        (terms ?? throw new InvalidOperationException("No terms step is bound.")).Accept(itemId);
+        TermsRevision++;
     }
 
     public Task Accept() => Begin(attaching: false);

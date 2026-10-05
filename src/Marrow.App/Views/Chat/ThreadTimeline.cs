@@ -243,7 +243,13 @@ public sealed class ThreadTimeline : Decorator
                 // the pill comes and goes in front of them, made again only when what it says changed (its count).
                 var body = drawnBody ??= new StackPanel(); var hidden = WindowStartIndex(blocks);
                 var sentinel = drawnSentinel as Border ?? new Border { Height = 1, Background = Brushes.Transparent }; // :402-409
-                if (body.Children.Count == 0) { body.Children.Add(rows); body.Children.Add(sentinel); }
+                if (body.Children.Count == 0)
+                {
+                    body.Children.Add(rows);
+                    // PORT-ONLY (SK-14, ED-384 item 16): Offer A is an inline card in the reply, so a chat with a skills offer flow draws its card, and the caption line it leaves, after the rows and before the end sentinel; both take no room while there is nothing to say.
+                    Marrow.App.Port.Skills.SkillsOfferRows.Append(body, runtime, TimelineMetrics.RowSpacing);
+                    body.Children.Add(sentinel);
+                }
                 Button? earlier = hidden == 0 ? null : drawnEarlier is Button shown && earlierHidden == hidden ? shown : EarlierPill(hidden, () => { LoadEarlier(drawnBlocks); Draw(); });
                 if (!ReferenceEquals(body.Children[0], rows) && !ReferenceEquals(body.Children[0], earlier)) body.Children.RemoveAt(0);
                 if (earlier is not null && !ReferenceEquals(body.Children[0], earlier)) body.Children.Insert(0, earlier);
