@@ -75,7 +75,7 @@ public sealed class DownloadAllPlan
     /// <summary>The line in the tinted box: the large-download warning, the plain size, or that nothing is left to fetch.</summary>
     public string Statement => IsEmpty ? LibraryWords.EverythingHere : Large ? LibraryWords.LargeWarning(DownloadMb, DiskMb) : LibraryWords.Plain(DownloadMb);
 
-    public string? RoomNote => EnoughRoom || Free is null ? null : LibraryWords.NeedsRoom(SizeText.Free(NeedBytes), Free.Label);
+    public string? RoomNote => EnoughRoom || Free is null ? null : LibraryWords.NeedsRoom(SizeText.Required(NeedBytes), Free.Label);
 
     public string IncludedHeading => LibraryWords.Included(Lines.Count, Lines.Count(l => l.Kind == PlanLineKind.AlreadyHere), Lines.Count(l => l.Kind == PlanLineKind.NeedsTerms),
         Lines.Count(l => l.Kind == PlanLineKind.NoSize));
