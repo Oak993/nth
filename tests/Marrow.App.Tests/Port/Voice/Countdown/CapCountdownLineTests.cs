@@ -9,7 +9,7 @@ namespace Marrow.App.Tests.Port.Voice.Countdown;
 public sealed class CapCountdownLineTests
 {
     [Fact]
-    [Trait("Req", "Q-V-6 B")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-6 B
     public void There_is_no_line_before_270_seconds_or_outside_a_session()
     {
         using var rig = new CountdownRig();
@@ -23,8 +23,7 @@ public sealed class CapCountdownLineTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-6 B")]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-6 B; Oracle OD-0106
     public void From_270_seconds_the_line_is_full_and_drains_with_the_sessions_clock()
     {
         using var rig = new CountdownRig();
@@ -48,7 +47,7 @@ public sealed class CapCountdownLineTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void The_lines_palette_and_Reduce_Motion_are_read_at_each_frame()
     {
         using var rig = new CountdownRig();
@@ -67,8 +66,7 @@ public sealed class CapCountdownLineTests
     }
 
     [Fact]
-    [Trait("Req", "V-7.12")]
-    [Trait("Req", "Q-V-6 B")]
+    [Trait("Rule", "R-TEST-4")] // Req V-7.12; Req Q-V-6 B
     public void At_the_cap_the_text_finishes_as_if_the_orb_were_clicked_and_the_line_is_gone()
     {
         using var capped = new CountdownRig();
@@ -94,7 +92,7 @@ public sealed class CapCountdownLineTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_screen_reader_hears_the_countdown_once_at_30_seconds_and_once_at_10()
     {
         using var rig = new CountdownRig();
@@ -113,7 +111,7 @@ public sealed class CapCountdownLineTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_session_that_ends_before_the_10_second_moment_makes_no_late_announcement()
     {
         using var rig = new CountdownRig();
@@ -127,7 +125,7 @@ public sealed class CapCountdownLineTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_second_session_counts_down_afresh()
     {
         using var rig = new CountdownRig();
@@ -143,7 +141,7 @@ public sealed class CapCountdownLineTests
     }
 
     [Fact]
-    [Trait("Rule", "dispose")]
+    [Trait("Rule", "R-TEST-4")] // dispose
     public void A_disposed_line_announces_nothing_more()
     {
         using var rig = new CountdownRig();

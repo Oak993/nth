@@ -18,8 +18,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-4.5")]
-    [Trait("Req", "V-14.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-4.5; Req V-14.6
     public void A_denied_microphone_shows_the_locked_note()
     {
         using var rig = new VoiceNoteRig();
@@ -33,7 +32,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-7 A")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-7 A
     public void No_capture_endpoint_shows_the_no_microphone_note()
     {
         using var rig = new VoiceNoteRig();
@@ -45,7 +44,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-4.4")]
+    [Trait("Rule", "R-TEST-4")] // Req V-4.4
     public void A_capture_that_cannot_open_because_another_app_holds_it_shows_the_busy_note()
     {
         using var rig = new VoiceNoteRig();
@@ -57,7 +56,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-4.4")]
+    [Trait("Rule", "R-TEST-4")] // Req V-4.4
     public void Another_app_taking_the_microphone_mid_session_shows_the_busy_note()
     {
         using var rig = new VoiceNoteRig();
@@ -74,7 +73,7 @@ public sealed class VoiceNoteSeamTests
     [Theory]
     [InlineData(CaptureDeviceFailure.NotFound)]
     [InlineData(CaptureDeviceFailure.Removed)]
-    [Trait("Req", "V-4.4")]
+    [Trait("Rule", "R-TEST-4")] // Req V-4.4
     public void A_capture_endpoint_that_is_gone_when_it_opens_shows_the_unplugged_note(CaptureDeviceFailure failure)
     {
         using var rig = new VoiceNoteRig();
@@ -86,8 +85,8 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-4.4")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req V-4.4
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_capture_that_fails_for_another_reason_shows_the_engine_note()
     {
         using var rig = new VoiceNoteRig();
@@ -99,7 +98,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-4.4")]
+    [Trait("Rule", "R-TEST-4")] // Req V-4.4
     public void A_device_removed_mid_session_finishes_the_text_first_and_then_shows_the_unplugged_note()
     {
         using var rig = new VoiceNoteRig();
@@ -121,8 +120,8 @@ public sealed class VoiceNoteSeamTests
     [Theory]
     [InlineData(CaptureDeviceEventKind.DefaultDeviceChanged)]
     [InlineData(CaptureDeviceEventKind.FormatChanged)]
-    [Trait("Req", "V-4.4")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req V-4.4
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_changed_default_device_or_format_stops_the_session_with_no_unplugged_note(CaptureDeviceEventKind kind)
     {
         using var rig = new VoiceNoteRig();
@@ -139,7 +138,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
     public void No_model_while_it_is_downloading_shows_the_still_downloading_note()
     {
         using var rig = new VoiceNoteRig { Model = null, ModelDownloading = true };
@@ -150,8 +149,8 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void The_still_downloading_note_stays_away_while_the_pill_itself_shows_the_download()
     {
         using var rig = new VoiceNoteRig { Model = null, ModelDownloading = true, PillShowsDownload = true };
@@ -163,7 +162,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
     public void No_model_and_no_download_shows_the_failed_to_load_note()
     {
         using var rig = new VoiceNoteRig { Model = null };
@@ -174,7 +173,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
     public void An_engine_that_fails_to_load_shows_the_failed_to_load_note()
     {
         using var rig = new VoiceNoteRig();
@@ -187,7 +186,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
     public void A_load_that_fails_on_a_processor_without_AVX2_shows_the_no_AVX2_note()
     {
         using var rig = new VoiceNoteRig();
@@ -201,8 +200,8 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_processor_that_cannot_be_asked_is_not_blamed()
     {
         using var rig = new VoiceNoteRig(new FailClosedProcessorFeatures());
@@ -215,7 +214,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
     public void A_decode_that_throws_shows_the_engine_note()
     {
         using var rig = new VoiceNoteRig();
@@ -235,7 +234,7 @@ public sealed class VoiceNoteSeamTests
     [InlineData(CloudNote.QuotaOrRate, VoiceNoteCase.CloudOutOfQuota)]
     [InlineData(CloudNote.NetworkFailure, VoiceNoteCase.CloudNoNetwork)]
     [InlineData(CloudNote.EngineFailure, VoiceNoteCase.EngineFailure)]
-    [Trait("Req", "V-18.4")]
+    [Trait("Rule", "R-TEST-4")] // Req V-18.4
     public void Each_cloud_failure_at_load_maps_to_its_note(CloudNote cloud, VoiceNoteCase expected)
     {
         using var rig = new VoiceNoteRig();
@@ -253,7 +252,7 @@ public sealed class VoiceNoteSeamTests
     [InlineData(CloudNote.QuotaOrRate, VoiceNoteCase.CloudOutOfQuota)]
     [InlineData(CloudNote.NetworkFailure, VoiceNoteCase.CloudNoNetwork)]
     [InlineData(CloudNote.EngineFailure, VoiceNoteCase.EngineFailure)]
-    [Trait("Req", "V-18.4")]
+    [Trait("Rule", "R-TEST-4")] // Req V-18.4
     public void Each_cloud_failure_at_the_final_pass_maps_to_its_note(CloudNote cloud, VoiceNoteCase expected)
     {
         using var rig = new VoiceNoteRig();
@@ -268,7 +267,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-14.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-14.6
     public void Cancelled_and_no_speech_are_not_this_units_notes()
     {
         using var rig = new VoiceNoteRig();
@@ -283,7 +282,7 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void An_empty_draft_shows_the_note_in_the_field_and_a_draft_with_text_in_the_notice_line()
     {
         using var empty = new VoiceNoteRig { Draft = "" };
@@ -298,8 +297,8 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-14.6")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req V-14.6
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void Typing_while_a_note_shows_moves_it_to_the_notice_line_and_clearing_the_draft_moves_it_back()
     {
         using var rig = new VoiceNoteRig { Draft = "" };
@@ -319,8 +318,8 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-14.6")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req V-14.6
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_note_stays_5_2_seconds_and_is_then_gone()
     {
         using var rig = new VoiceNoteRig();
@@ -337,8 +336,8 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-14.6")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req V-14.6
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_newer_note_replaces_the_older_one_and_restarts_the_5_2_seconds()
     {
         using var rig = new VoiceNoteRig();
@@ -357,8 +356,8 @@ public sealed class VoiceNoteSeamTests
     }
 
     [Fact]
-    [Trait("Req", "V-14.5")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req V-14.5
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void A_presentation_carries_the_notes_length_and_announcement()
     {
         using var rig = new VoiceNoteRig();

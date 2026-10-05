@@ -37,8 +37,7 @@ public sealed class VoiceNotesPageTests
 
     [Theory]
     [MemberData(nameof(Cases))]
-    [Trait("Oracle", "D-VN set A")]
-    [Trait("Req", "Q-V-7 A")]
+    [Trait("Rule", "R-TEST-4")] // Oracle D-VN set A; Req Q-V-7 A
     public void Each_note_of_set_A_is_the_pages_words_byte_for_byte_with_the_pages_link(VoiceNoteCase noteCase, string id)
     {
         var page = VoiceNotesPage.SetA(id);
@@ -52,8 +51,7 @@ public sealed class VoiceNotesPageTests
     }
 
     [Fact]
-    [Trait("Oracle", "D-VN set A")]
-    [Trait("Req", "Q-V-7 A")]
+    [Trait("Rule", "R-TEST-4")] // Oracle D-VN set A; Req Q-V-7 A
     public void There_are_exactly_the_pages_eleven_notes_in_its_order_and_none_is_the_locked_one()
     {
         Assert.Equal(Eleven.Select(e => e.Case), VoiceNotes.All.Select(n => n.Case));
@@ -62,8 +60,7 @@ public sealed class VoiceNotesPageTests
     }
 
     [Fact]
-    [Trait("Oracle", "D-VN locked")]
-    [Trait("Req", "V-14.6")]
+    [Trait("Rule", "R-TEST-4")] // Oracle D-VN locked; Req V-14.6
     public void The_locked_note_is_the_pages_and_opens_the_microphone_privacy_page()
     {
         var page = VoiceNotesPage.Locked;
@@ -78,8 +75,7 @@ public sealed class VoiceNotesPageTests
 
     [Theory]
     [MemberData(nameof(Cases))]
-    [Trait("Rule", "one link per note")]
-    [Trait("Req", "Q-V-7 A")]
+    [Trait("Rule", "R-TEST-4")] // one link per note; Req Q-V-7 A
     public void Each_note_says_what_happened_then_ends_in_one_link_that_names_a_place(VoiceNoteCase noteCase, string id)
     {
         _ = id;
@@ -93,8 +89,7 @@ public sealed class VoiceNotesPageTests
     }
 
     [Fact]
-    [Trait("Oracle", "D-VN set A")]
-    [Trait("Req", "Q-V-7 A")]
+    [Trait("Rule", "R-TEST-4")] // Oracle D-VN set A; Req Q-V-7 A
     public void An_unknown_case_is_refused()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => VoiceNotes.For((VoiceNoteCase)99));

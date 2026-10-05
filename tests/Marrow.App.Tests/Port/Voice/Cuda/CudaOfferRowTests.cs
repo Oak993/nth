@@ -10,8 +10,7 @@ namespace Marrow.App.Tests.Port.Voice.Cuda;
 public sealed class CudaOfferRowTests
 {
     [Fact]
-    [Trait("Oracle", "D-VN look A")]
-    [Trait("Req", "Q-V-9 C")]
+    [Trait("Rule", "R-TEST-4")] // Oracle D-VN look A; Req Q-V-9 C
     public void The_rows_strings_are_the_ones_the_page_draws_in_look_A()
     {
         var js = VoiceNotesPage.Script();
@@ -29,7 +28,7 @@ public sealed class CudaOfferRowTests
     }
 
     [Fact]
-    [Trait("Oracle", "D-VN look A")]
+    [Trait("Rule", "R-TEST-4")] // Oracle D-VN look A
     public void The_downloading_row_shows_the_percentage_the_cancel_x_and_the_bar()
     {
         var row = CudaOfferStates.Downloading("644 MB", 0.424);
@@ -44,8 +43,8 @@ public sealed class CudaOfferRowTests
     }
 
     [Fact]
-    [Trait("Oracle", "D-VN look A")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Oracle D-VN look A
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void The_installed_row_says_to_restart_and_the_failed_row_offers_the_download_again()
     {
         var installed = CudaOfferStates.Installed("644 MB");
@@ -58,8 +57,7 @@ public sealed class CudaOfferRowTests
     }
 
     [Fact]
-    [Trait("Oracle", "D-VN look A")]
-    [Trait("Req", "V-9.2")]
+    [Trait("Rule", "R-TEST-4")] // Oracle D-VN look A; Req V-9.2
     public void The_size_is_the_three_pinned_files_added_and_shown_as_the_model_list_shows_sizes()
     {
         var total = CudaRuntimePack.Cuda12.Bytes + CudaCompanionPins.Bytes;
@@ -70,7 +68,7 @@ public sealed class CudaOfferRowTests
     }
 
     [Fact]
-    [Trait("Rule", "pin")]
+    [Trait("Rule", "R-TEST-4")] // pin
     public void The_companion_sizes_are_voice_pins_jsons()
     {
         using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(PinsJson()));

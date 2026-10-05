@@ -34,8 +34,7 @@ public sealed class CapCountdownTests
     [InlineData(7.5, 0.25)]
     [InlineData(3.0, 0.1)]
     [InlineData(0.3, 0.01)]
-    [Trait("Req", "Q-V-6 B")]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-6 B; Oracle OD-0106
     public void The_line_is_the_time_left_over_30_seconds_of_its_length(double remaining, double fraction)
     {
         var frame = At(remaining);
@@ -49,8 +48,7 @@ public sealed class CapCountdownTests
     [InlineData(45.0)]
     [InlineData(0.0)]
     [InlineData(-1.0)]
-    [Trait("Req", "Q-V-6 B")]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-6 B; Oracle OD-0106
     public void Outside_the_last_30_seconds_there_is_no_line(double remaining)
     {
         var frame = At(remaining);
@@ -60,8 +58,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-6 B")]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-6 B; Oracle OD-0106
     public void The_line_only_ever_shortens_over_the_run_at_60_Hz()
     {
         var last = 2.0;
@@ -75,7 +72,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void Under_Reduce_Motion_the_line_steps_once_a_second()
     {
         var seen = new SortedSet<double>();
@@ -89,7 +86,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void From_0_30_to_0_15_the_line_is_the_neutral_label_tone_with_no_brightening()
     {
         foreach (var r in Frames(30, 15))
@@ -102,7 +99,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void The_glide_to_yellow_starts_at_0_15_and_follows_the_curve_at_every_60_Hz_frame()
     {
         foreach (var r in Frames(15.5, 13.5))
@@ -117,7 +114,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void The_glide_to_red_starts_at_0_05_and_follows_the_curve_at_every_60_Hz_frame()
     {
         foreach (var r in Frames(5.5, 3.5))
@@ -132,7 +129,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void The_whole_run_matches_the_curves_in_both_themes_and_under_Reduce_Motion()
     {
         foreach (var palette in new[] { CountdownPalette.Dark, CountdownPalette.Light })
@@ -147,7 +144,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void Each_colour_arrives_exactly_at_the_end_of_its_glide_and_holds()
     {
         // 0.8 s after 0:15 it is yellow (the brightening starts there), and the brightening is over 0.4 s later
@@ -160,7 +157,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void The_arrival_brightening_is_soft_0_4_seconds_and_peaks_in_the_middle()
     {
         var peak = At(15 - 0.8 - 0.2);
@@ -184,7 +181,7 @@ public sealed class CapCountdownTests
     private static double Lightness(CountdownColour c) => OklchReference.FromSrgb(c.R, c.G, c.B).L;
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void Under_Reduce_Motion_the_glide_stays_at_0_2_seconds_with_no_brightening()
     {
         AssertColour(Dark.Warning, At(15 - 0.2, reduce: true).Colour);
@@ -196,7 +193,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void The_colour_is_never_cut_no_frame_steps_more_than_6_percent_of_a_channel()
     {
         foreach (var palette in new[] { CountdownPalette.Dark, CountdownPalette.Light })
@@ -216,7 +213,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void The_glide_to_yellow_goes_straight_to_yellows_hue_with_chroma_and_lightness_never_dipping_below_the_ends()
     {
         var neutral = OklchReference.FromSrgb(Dark.Neutral.R, Dark.Neutral.G, Dark.Neutral.B);
@@ -236,7 +233,7 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
     public void The_glide_to_red_turns_the_hue_one_way_and_keeps_its_chroma_with_no_brown_dip()
     {
         var warning = OklchReference.FromSrgb(Dark.Warning.R, Dark.Warning.G, Dark.Warning.B);
@@ -254,8 +251,8 @@ public sealed class CapCountdownTests
     }
 
     [Fact]
-    [Trait("Oracle", "OD-0106")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Oracle OD-0106
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public void The_theme_palettes_are_the_pills_label_tone_the_voice_designs_warning_and_the_apps_error_red()
     {
         static CountdownColour Hex(int rgb, double a = 1) => new(((rgb >> 16) & 0xFF) / 255.0, ((rgb >> 8) & 0xFF) / 255.0, (rgb & 0xFF) / 255.0, a);

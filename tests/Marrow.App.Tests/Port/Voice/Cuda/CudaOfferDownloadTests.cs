@@ -18,8 +18,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
-    [Trait("Oracle", "OD-0106")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C; Oracle OD-0106
     public async Task A_download_fetches_the_pack_installs_the_libraries_and_ends_Installed()
     {
         await using var rig = await Shown();
@@ -38,8 +37,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
-    [Trait("Rule", "progress")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C; progress
     public async Task Progress_runs_from_0_to_1_in_order_and_counts_the_libraries_as_their_share_of_the_size()
     {
         var companions = new ScriptedCudaCompanions(bytes: 3_000, steps: [0.5, 1.0]);
@@ -58,8 +56,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
-    [Trait("Rule", "progress")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C; progress
     public async Task While_the_pack_is_on_its_way_the_row_shows_the_bytes_received_so_far()
     {
         var rig = new CudaOfferRig();
@@ -82,7 +79,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C
     public async Task Cancel_stops_the_download_keeps_the_partial_installs_nothing_and_returns_to_the_offer()
     {
         var rig = new CudaOfferRig();
@@ -104,7 +101,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C
     public async Task A_second_press_while_downloading_is_the_same_download()
     {
         var rig = new CudaOfferRig();
@@ -122,7 +119,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C
     public async Task A_server_error_ends_Failed_and_Download_tries_again_to_success()
     {
         var rig = new CudaOfferRig();
@@ -145,8 +142,8 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public async Task A_pack_whose_hash_does_not_match_ends_Failed_and_nothing_is_unpacked()
     {
         await using var rig = await Shown(wrongSha512: true);
@@ -159,8 +156,8 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
-    [Trait("Decision", "ED-NEW-cloud-vt-17")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C
+    [Trait("Decision", "ED-267")] // ED-NEW-cloud-vt-17, numbered by the lead at merge
     public async Task Libraries_that_fail_end_Failed_and_the_next_try_does_not_fetch_the_pack_again()
     {
         var companions = new ScriptedCudaCompanions { Outcome = CudaCompanionOutcome.Failed };
@@ -178,7 +175,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C
     public async Task Cancelling_while_the_libraries_install_returns_to_the_offer()
     {
         var companions = new ScriptedCudaCompanions { Hold = new TaskCompletionSource() };
@@ -194,7 +191,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Rule", "no real network")]
+    [Trait("Rule", "R-TEST-10")] // no real network
     public async Task Every_request_the_download_made_went_to_the_loopback_fake()
     {
         await using var rig = await Shown();
@@ -206,7 +203,7 @@ public sealed class CudaOfferDownloadTests
     }
 
     [Fact]
-    [Trait("Req", "Q-V-9 C")]
+    [Trait("Rule", "R-TEST-4")] // Req Q-V-9 C
     public async Task Starting_while_hidden_does_nothing()
     {
         await using var rig = new CudaOfferRig(Marrow.Services.Port.Voice.Probe.ScriptedMachines.CpuOnlyLaptop);

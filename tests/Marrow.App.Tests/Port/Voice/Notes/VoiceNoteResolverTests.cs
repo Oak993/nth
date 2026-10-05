@@ -11,7 +11,7 @@ public sealed class VoiceNoteResolverTests
     [Theory]
     [InlineData(VoiceNoteKind.Cancelled)]
     [InlineData(VoiceNoteKind.NoSpeech)]
-    [Trait("Req", "V-14.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-14.6
     public void The_designed_notes_of_V_14_6_are_not_resolved_here(VoiceNoteKind kind)
     {
         Assert.Null(VoiceNoteResolver.Resolve(new VoiceNoteFacts(kind)));
@@ -23,14 +23,14 @@ public sealed class VoiceNoteResolverTests
     [InlineData(VoiceNoteKind.EngineFailed, VoiceNoteCase.EngineFailure)]
     [InlineData(VoiceNoteKind.ModelLoadFailed, VoiceNoteCase.ModelFailedToLoad)]
     [InlineData(VoiceNoteKind.CaptureFailed, VoiceNoteCase.EngineFailure)]
-    [Trait("Req", "V-17.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
     public void A_kind_with_no_other_fact_gives_its_plain_note(VoiceNoteKind kind, VoiceNoteCase expected)
     {
         Assert.Equal(expected, VoiceNoteResolver.Resolve(new VoiceNoteFacts(kind)));
     }
 
     [Fact]
-    [Trait("Req", "V-18.4")]
+    [Trait("Rule", "R-TEST-4")] // Req V-18.4
     public void A_cloud_cause_wins_over_a_download_under_way_or_a_processor_without_AVX2()
     {
         var facts = new VoiceNoteFacts(VoiceNoteKind.ModelLoadFailed, new OpenAiTranscriptionException(CloudNote.KeyRefused, 401), ModelDownloading: true, ProcessorLacksAvx2: true);
@@ -39,7 +39,7 @@ public sealed class VoiceNoteResolverTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
     public void A_download_under_way_is_named_before_the_processor()
     {
         var facts = new VoiceNoteFacts(VoiceNoteKind.ModelLoadFailed, ModelDownloading: true, ProcessorLacksAvx2: true);
@@ -48,7 +48,7 @@ public sealed class VoiceNoteResolverTests
     }
 
     [Fact]
-    [Trait("Req", "V-17.6")]
+    [Trait("Rule", "R-TEST-4")] // Req V-17.6
     public void A_missing_AVX2_matters_only_for_a_load_that_failed()
     {
         Assert.Equal(VoiceNoteCase.NoAvx2, VoiceNoteResolver.Resolve(new VoiceNoteFacts(VoiceNoteKind.ModelLoadFailed, ProcessorLacksAvx2: true)));
@@ -56,7 +56,7 @@ public sealed class VoiceNoteResolverTests
     }
 
     [Fact]
-    [Trait("Req", "V-4.4")]
+    [Trait("Rule", "R-TEST-4")] // Req V-4.4
     public void The_in_use_device_event_names_the_busy_microphone_even_when_no_exception_came()
     {
         Assert.Equal(VoiceNoteCase.MicrophoneBusy, VoiceNoteResolver.Resolve(new VoiceNoteFacts(VoiceNoteKind.CaptureFailed, DeviceEvent: CaptureDeviceEventKind.InUse)));
