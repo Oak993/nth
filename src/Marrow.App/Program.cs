@@ -108,6 +108,7 @@ public static class Program
             Args = args,
             ShutdownMode = ShutdownMode.OnExplicitShutdown,
         };
+        AuroraLoaderWarmup.Register(); // OD-0113 / OD-0108: before the first preparation plan or GPU warm-up
         MarrowApplication.BuildAvaloniaApp().SetupWithLifetime(lifetime);
         // ED-065, R-ISO-1: the main actor is Avalonia's UI thread, bound before any window and before the hang
         // watchdog's first ping (HangWatchdog.swift:52) posts to it.

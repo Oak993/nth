@@ -512,3 +512,10 @@ against the leaders. No stack chosen yet. No Windows code written yet.
 Machine constraint found: .NET 10 RUNTIME only (no SDK), no MSVC, no cmake, no Rust. Node 24,
 Python 3.14 and winget are present. Toolchain will be installed only for the chosen stack, after
 the decision record, rather than speculatively.
+
+
+## Incomplete: T10 boot-loaders (2026-10-05)
+
+NOT READY on codex/boot-loaders. Aurora loaders and standalone Boot B geometry are under validation. Locked Chrome pixel comparisons and complete-frame zero allocations remain open. The Aurora painter dependency is NOT READY at 20e15c8ffdd838665ed120f66ea2bc49928a8361; Comet startup remains active. Boot B startup integration, hidden-window warm-up, ED-236 hand-over, native boot proof and boot frame-time capture are not delivered. See ED-NEW-boot-loaders and E:\Droppy\work\scratch\handoff\codex-T10-boot-loaders.md. No task or requirement is marked DONE by this unit.
+
+Final dependency recheck (2026-10-05): origin/codex/aurora-render advanced to d42ac5433d81c94db28adfdac76b492982dd3049, whose commit still explicitly says NOT READY. This supersedes the earlier 20e15c8ff dependency snapshot above; no renderer merge was performed. Native loader CSVs use the actual compositor cadence, not a forced 60 Hz schedule; fixed-60-fps capture and all boot capture remain open. Full App suite attempts aborted; their partial counts must not be treated as a green gate.

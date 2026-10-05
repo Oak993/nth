@@ -26,7 +26,7 @@ internal static class WindowManagerNativeChildProtocol
         var type = factType ?? typeof(WindowManagerNativeTests);
         if (type != typeof(WindowManagerNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
             type != typeof(EffortSliderNativeFrameTests) && type != typeof(GlassWindowNativeTests) &&
-            type != typeof(WindowManagerNativeCentringTests) && type != typeof(WindowManagerNativeChromeTests) &&
+            type != typeof(WindowManagerNativeCentringTests) && type != typeof(WindowManagerNativeChromeTests) && type != typeof(AuroraLoaderNativeTests) &&
             type != typeof(GalleryNativeTests) && type != typeof(TimelineRowsNativePopoverTests) && type != typeof(TimelineRowsNativeReportTests) && type != typeof(TimelineRowsNativeReviewKeysTests) && type != typeof(TimelineRowsNativeReviewBadgeKeysTests) && type != typeof(DiffPopoverNativeTests) && type != typeof(VoiceOrbNativeTests) && type != typeof(OpenPanelNativeTests) && type != typeof(ComposerAttachPanelNativeTests) && type != typeof(SwiftShadowNativeTests) && type != typeof(RootViewDropNativeTests) && type != typeof(LinkPopoverNativeTests) && type != typeof(AboutUpdateViewsNativeTests) && type != typeof(MCPCustomEditorNativeTests) && type != typeof(ComposerWorkingDotsNativeTests) && type != typeof(GlassMaterialNativeTests) && type != typeof(ComposerSuggestionsNativeTests) && type != typeof(ThreadTimelineLiveResizeNativeTests) && type != typeof(VoiceGlowNativeTests) && type != typeof(MainWindowCornerWedgeNativeTests))
             throw new InvalidOperationException("Native child selection is not an allowed test type.");
         var method = type.GetMethod(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);

@@ -304,8 +304,11 @@ public sealed class DiffInspectorChromeTests(HeadlessSession headless)
         Assert.Equal(Avalonia.Layout.VerticalAlignment.Stretch, state.VerticalAlignment);
         var label = Assert.IsType<TextBlock>(Text(state, "Reading the diff…"));
         Assert.Equal(Avalonia.Layout.HorizontalAlignment.Center, label.HorizontalAlignment);
-        var mark = Assert.Single(Descendants<LoadingMark>(state));
-        Assert.Equal((64.0, 64.0), (mark.Width, mark.Height));
+        // OD-0113 supersedes OD-0016: loader 5 is the stretchable 88 DIP glass placeholder.
+        var mark = Assert.Single(Descendants<AuroraLoader>(state));
+        Assert.Equal(AuroraLoaderKind.AuroraSheen, mark.Kind);
+        Assert.Equal(88, mark.Height);
+        Assert.Equal(Avalonia.Layout.HorizontalAlignment.Stretch, mark.HorizontalAlignment);
         Assert.Null(Text(state, "No changes yet"));
 
         pending.SetResult(ValueList<DiffFile>.Empty);
@@ -328,7 +331,7 @@ public sealed class DiffInspectorChromeTests(HeadlessSession headless)
         rig.Store.Main.Loop.RunUntilIdle();
 
         Assert.Null(Text(inspector, "Reading the diff…"));
-        Assert.Empty(Descendants<LoadingMark>(inspector));
+        Assert.Empty(Descendants<AuroraLoader>(inspector));
         Assert.NotEmpty(Descendants<DiffFileCard>(inspector)); // the previous list stays until the new one arrives
         pending.SetResult(ValueList<DiffFile>.Empty);
         rig.PumpUntil(() => Text(Root(inspector), "No changes yet") is not null);

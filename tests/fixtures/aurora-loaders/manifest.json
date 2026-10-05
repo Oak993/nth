@@ -1,0 +1,735 @@
+{
+  "source_sha256": "5c6f285a8e5fbc75cdbfbcabd52b45e03623718d96e61467ce914c0b49c6e31a",
+  "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "browser_version": "154.0.8037.93",
+  "tool_sha256": "f794eb22713aee47681c34103e64337fa48ada43fdeb8c32a9fbf9b8ca1df820",
+  "viewport": [
+    1600,
+    1800
+  ],
+  "dpr": 1,
+  "canvas_dpr": "per frame scale",
+  "offline": true,
+  "frames": [
+    {
+      "kind": 2,
+      "scale": 1,
+      "time": 0.6,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1-0.6.png",
+      "sha256": "808ed63faf2f14c330b2fc4aa026cd7ff1648fc81ef8bf170ae434f4699b965d"
+    },
+    {
+      "kind": 2,
+      "scale": 1,
+      "time": 0.84,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1-0.84.png",
+      "sha256": "b37ba8a35ce33d0ca122568ac88c5178a00162d1def8cdb86391f1ff342bbedc"
+    },
+    {
+      "kind": 2,
+      "scale": 1,
+      "time": 1.2,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1-1.2.png",
+      "sha256": "c1098ee62e44e22b73c5aaaed3aa9a8b3560897199bc484ce4e88d4bc36fba8d"
+    },
+    {
+      "kind": 2,
+      "scale": 1.25,
+      "time": 0.6,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1.25-0.6.png",
+      "sha256": "ed0b7c03b0dfc37232e6b2632f89b7d2de0a61460af567e12f1dcb0e517a2d9b"
+    },
+    {
+      "kind": 2,
+      "scale": 1.25,
+      "time": 0.84,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1.25-0.84.png",
+      "sha256": "477d12d1904378f10c1b6e4069c5d5ffe42613140e4c9cb6ca0a361edb458181"
+    },
+    {
+      "kind": 2,
+      "scale": 1.25,
+      "time": 1.2,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1.25-1.2.png",
+      "sha256": "de00ca4fba716d6ecfcc4cd0a912d583cfe2635b473c06c08892a2a59c733fb2"
+    },
+    {
+      "kind": 2,
+      "scale": 1.5,
+      "time": 0.6,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1.5-0.6.png",
+      "sha256": "228194826ddde522151049e11a1ec8c1e5e1a41ee83f5285fd47dd9dc20ef409"
+    },
+    {
+      "kind": 2,
+      "scale": 1.5,
+      "time": 0.84,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1.5-0.84.png",
+      "sha256": "761520fedb6ebfa0c3c023ec866acb0331fce414a547d214130f82d48af5bea9"
+    },
+    {
+      "kind": 2,
+      "scale": 1.5,
+      "time": 1.2,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-1.5-1.2.png",
+      "sha256": "f706d9ce7fd53dd75bd13e025550df6d07a0113d249cb0a14e7929da7a9fda4c"
+    },
+    {
+      "kind": 2,
+      "scale": 2,
+      "time": 0.6,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-2-0.6.png",
+      "sha256": "4d7ddcd0cd471466ca4d35f50e5adf17c5239155f4822cb9673e648f5fab4d30"
+    },
+    {
+      "kind": 2,
+      "scale": 2,
+      "time": 0.84,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-2-0.84.png",
+      "sha256": "45af3aca8a4aabb9732319382951ac3226cb68a916c46921b35f756f38216f0c"
+    },
+    {
+      "kind": 2,
+      "scale": 2,
+      "time": 1.2,
+      "width": 48,
+      "height": 48,
+      "theme": "dark",
+      "file": "2-dark-2-1.2.png",
+      "sha256": "8f32a5f269d1b0753556d0f242c1309a77e2b92e2766677c986cc85699637ea8"
+    },
+    {
+      "kind": 4,
+      "scale": 1,
+      "time": 0.6,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1-0.6.png",
+      "sha256": "082115310c84676708838e749c73e671ebe9ffe165f50771639ffb0e3056bf4d"
+    },
+    {
+      "kind": 4,
+      "scale": 1,
+      "time": 0.84,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1-0.84.png",
+      "sha256": "df7a50b80192473c0ab36fddb591b74e7e26f81ac84f76f8ebb9e7c3a75b577c"
+    },
+    {
+      "kind": 4,
+      "scale": 1,
+      "time": 1.2,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1-1.2.png",
+      "sha256": "ffaa39c15ee40bd66bec744d5563a9fb2ef0bc16742710a305ce0affb5484c09"
+    },
+    {
+      "kind": 4,
+      "scale": 1.25,
+      "time": 0.6,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1.25-0.6.png",
+      "sha256": "9708f3c714657028884d04ebd37511135905ceb8f330fece33e18a5a42275bb0"
+    },
+    {
+      "kind": 4,
+      "scale": 1.25,
+      "time": 0.84,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1.25-0.84.png",
+      "sha256": "2bd43ed97edd665d579854ef9f092dd519d0fed2e3971eb67e926239c2022e45"
+    },
+    {
+      "kind": 4,
+      "scale": 1.25,
+      "time": 1.2,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1.25-1.2.png",
+      "sha256": "38548e8ef3bb056dd62508e01cca9745863f4a473ed8344894cae932a1e5b16f"
+    },
+    {
+      "kind": 4,
+      "scale": 1.5,
+      "time": 0.6,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1.5-0.6.png",
+      "sha256": "59fc4a8f190a3cdf8b8832a82664fe130c6304af0cceb34908d323f2d8cc9e36"
+    },
+    {
+      "kind": 4,
+      "scale": 1.5,
+      "time": 0.84,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1.5-0.84.png",
+      "sha256": "ec763f87bc26de8d06e2f195ff5469ee134bdc0d8214fb95c27db4591863ff59"
+    },
+    {
+      "kind": 4,
+      "scale": 1.5,
+      "time": 1.2,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-1.5-1.2.png",
+      "sha256": "164a278c6eedd6704801b9b95c7a4b306f380d621c56151bc2d75bb40f6f7182"
+    },
+    {
+      "kind": 4,
+      "scale": 2,
+      "time": 0.6,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-2-0.6.png",
+      "sha256": "70eab62800a779f3714ea43115740d35251d15b1b9b67175024bb9ea2215b496"
+    },
+    {
+      "kind": 4,
+      "scale": 2,
+      "time": 0.84,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-2-0.84.png",
+      "sha256": "8eb5edd24aee2840cf0e951efe3c6f898ba8b3e6212e6b7d9a379d616cc637eb"
+    },
+    {
+      "kind": 4,
+      "scale": 2,
+      "time": 1.2,
+      "width": 40,
+      "height": 40,
+      "theme": "dark",
+      "file": "4-dark-2-1.2.png",
+      "sha256": "b6f9594ba7e40e2dbc5ae79ff999ef2a96c2849c3fc7da818630ccd7dd61415e"
+    },
+    {
+      "kind": 5,
+      "scale": 1,
+      "time": 0.6,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1-0.6.png",
+      "sha256": "7a1105ec2ae07505dc000e592788bc212e6ff7f7d6a106aa7dea8bd4fa33261b"
+    },
+    {
+      "kind": 5,
+      "scale": 1,
+      "time": 0.84,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1-0.84.png",
+      "sha256": "1ffe884a89414a71a8f0ee8fd37aafbdb628c174e56f8b6c0a2dda5563370fa2"
+    },
+    {
+      "kind": 5,
+      "scale": 1,
+      "time": 1.2,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1-1.2.png",
+      "sha256": "3ea5773a5e224072ea65f0c779692f226aa03da1040d521dc441b3c06aafb82d"
+    },
+    {
+      "kind": 5,
+      "scale": 1.25,
+      "time": 0.6,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1.25-0.6.png",
+      "sha256": "482b3fb9159bd0e2104a93623c7121c9ab46df5ddde3db5fed271e26f7b78e7f"
+    },
+    {
+      "kind": 5,
+      "scale": 1.25,
+      "time": 0.84,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1.25-0.84.png",
+      "sha256": "a489a491b8cf7dad7340038b122e41b26a750f58032187f315bd4a12a04db1db"
+    },
+    {
+      "kind": 5,
+      "scale": 1.25,
+      "time": 1.2,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1.25-1.2.png",
+      "sha256": "12fa7ade6071ae191d65f8027e133a969a872ad9ff95c5b6bd160e0649a2326f"
+    },
+    {
+      "kind": 5,
+      "scale": 1.5,
+      "time": 0.6,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1.5-0.6.png",
+      "sha256": "a195e3b334eb9a7edfb4d6913b8f8a7aeb3f5b008292e3f66e65e16581a019b3"
+    },
+    {
+      "kind": 5,
+      "scale": 1.5,
+      "time": 0.84,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1.5-0.84.png",
+      "sha256": "14cbbd104548d159ab4816800b5e261ab14e2e435b6081534d7cc84708ab1809"
+    },
+    {
+      "kind": 5,
+      "scale": 1.5,
+      "time": 1.2,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-1.5-1.2.png",
+      "sha256": "6770f39b4b03c040788dc27167d52f9a2d0b78ff474c91a6e9ff5250efbdfbbe"
+    },
+    {
+      "kind": 5,
+      "scale": 2,
+      "time": 0.6,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-2-0.6.png",
+      "sha256": "819a54195b86fd7b2fa27e418e7473c6c7bb98088a7b7676d6b9aaa2ce27c251"
+    },
+    {
+      "kind": 5,
+      "scale": 2,
+      "time": 0.84,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-2-0.84.png",
+      "sha256": "bb3c3cd2e5546b48094e9e4615c060249dbf23362ceb92b59d9b307e3306f775"
+    },
+    {
+      "kind": 5,
+      "scale": 2,
+      "time": 1.2,
+      "width": 180,
+      "height": 88,
+      "theme": "dark",
+      "file": "5-dark-2-1.2.png",
+      "sha256": "1df9a791a375e914d9e213a5c52df3c9feaa08ba702b39853714c4fcecee2f69"
+    },
+    {
+      "kind": 2,
+      "scale": 1,
+      "time": 0.6,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1-0.6.png",
+      "sha256": "a50da172f86c1d878e2e1ad60a01f48f6592d00ab9d63fb294bbfa0913a67cd0"
+    },
+    {
+      "kind": 2,
+      "scale": 1,
+      "time": 0.84,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1-0.84.png",
+      "sha256": "c754133053a93725ff0e089a340ca2de8576868d9d0addf400c1a22404297b39"
+    },
+    {
+      "kind": 2,
+      "scale": 1,
+      "time": 1.2,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1-1.2.png",
+      "sha256": "35ff4e6dd9b5292897285a2faf22338d9265c4efbba90b6dd71b0283784cbf3f"
+    },
+    {
+      "kind": 2,
+      "scale": 1.25,
+      "time": 0.6,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1.25-0.6.png",
+      "sha256": "1faa90ae541e2253a2de809765932434fab41709eb1adce9d7c6062d7139ed81"
+    },
+    {
+      "kind": 2,
+      "scale": 1.25,
+      "time": 0.84,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1.25-0.84.png",
+      "sha256": "d6b093ed9b0bb6de0e5cb7685838af3b4b302f05a039d7b3ac44b9f6c2aeb33b"
+    },
+    {
+      "kind": 2,
+      "scale": 1.25,
+      "time": 1.2,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1.25-1.2.png",
+      "sha256": "35c56e69ae43df145d1c68e8e33235ec77f614b79ba01e782fa9d19835c63194"
+    },
+    {
+      "kind": 2,
+      "scale": 1.5,
+      "time": 0.6,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1.5-0.6.png",
+      "sha256": "da5b3849d6f2ba96ed74b6dbfa268d62b24719d00ad9282f5bc25c9fd3393d11"
+    },
+    {
+      "kind": 2,
+      "scale": 1.5,
+      "time": 0.84,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1.5-0.84.png",
+      "sha256": "d9d9abffbc002ad9009b0caced5f4325c817633c15a5f9da29765cdc9f5d45ae"
+    },
+    {
+      "kind": 2,
+      "scale": 1.5,
+      "time": 1.2,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-1.5-1.2.png",
+      "sha256": "9cf4ab2bdebff6fde6384c8e05bf5e16ca3b9757f91fc225747cd7cb166dbbbc"
+    },
+    {
+      "kind": 2,
+      "scale": 2,
+      "time": 0.6,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-2-0.6.png",
+      "sha256": "8f56b20748ce2b44a7eb43680c3a0c9ba8959b2aa122763071e709cd24b483e4"
+    },
+    {
+      "kind": 2,
+      "scale": 2,
+      "time": 0.84,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-2-0.84.png",
+      "sha256": "4c3e55a0a5580cf9dc62f24a8dbc886e9c0e6d796c0af1a0efdef987da2740da"
+    },
+    {
+      "kind": 2,
+      "scale": 2,
+      "time": 1.2,
+      "width": 48,
+      "height": 48,
+      "theme": "light",
+      "file": "2-light-2-1.2.png",
+      "sha256": "209dcd69990e7aad20d5d77708d60b2cd2eb19de8c55972144d15f726788158d"
+    },
+    {
+      "kind": 4,
+      "scale": 1,
+      "time": 0.6,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1-0.6.png",
+      "sha256": "f6fd48d53c859c3de758025846a5262bb0f1859ea5e204747912a333bb94af8a"
+    },
+    {
+      "kind": 4,
+      "scale": 1,
+      "time": 0.84,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1-0.84.png",
+      "sha256": "e21936fc6dda09d8c840d49ad8b0286654b533e3f1be3ff4dd75780b0924feb0"
+    },
+    {
+      "kind": 4,
+      "scale": 1,
+      "time": 1.2,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1-1.2.png",
+      "sha256": "6cdc75488472588b14cd6c56a44a673dedf216acc34251bd8c622fb994e0a6f6"
+    },
+    {
+      "kind": 4,
+      "scale": 1.25,
+      "time": 0.6,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1.25-0.6.png",
+      "sha256": "9669295ce77bd1d1b723ca9bc89e0309918d93a3f927d263259a6502a3a63303"
+    },
+    {
+      "kind": 4,
+      "scale": 1.25,
+      "time": 0.84,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1.25-0.84.png",
+      "sha256": "d7032dfdf4c708e3d6c44eb681f6274761eabee9776de7a2a3c94715a1ed1ffb"
+    },
+    {
+      "kind": 4,
+      "scale": 1.25,
+      "time": 1.2,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1.25-1.2.png",
+      "sha256": "37b6da229545c111644336104c7837532bd65366ad024ce326225a74c387facc"
+    },
+    {
+      "kind": 4,
+      "scale": 1.5,
+      "time": 0.6,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1.5-0.6.png",
+      "sha256": "b01ae289d6d168de92915ff75f67e444d5bffea792143af636ef681f3913d571"
+    },
+    {
+      "kind": 4,
+      "scale": 1.5,
+      "time": 0.84,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1.5-0.84.png",
+      "sha256": "5d30a009507c23c1300e67bd8dfadc090549dddd09d61d87730394522a42e7cf"
+    },
+    {
+      "kind": 4,
+      "scale": 1.5,
+      "time": 1.2,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-1.5-1.2.png",
+      "sha256": "8b9acdc7f2e340489f78e9ec533b9144fa22e7599cbaf0b12f85b9eb2fab6512"
+    },
+    {
+      "kind": 4,
+      "scale": 2,
+      "time": 0.6,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-2-0.6.png",
+      "sha256": "9b5694abaac8f15807819fcac86a2cfe9ff5b1b4603ffe0479b37e35b64f5db1"
+    },
+    {
+      "kind": 4,
+      "scale": 2,
+      "time": 0.84,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-2-0.84.png",
+      "sha256": "9fa43201c31189a51b55889f9fba0fc3af76be856f429ecc013458dbb0d6e539"
+    },
+    {
+      "kind": 4,
+      "scale": 2,
+      "time": 1.2,
+      "width": 40,
+      "height": 40,
+      "theme": "light",
+      "file": "4-light-2-1.2.png",
+      "sha256": "5d63d3ee136c407b472d47436b7acc34f1b7ac1c988b55652011b3a05129827c"
+    },
+    {
+      "kind": 5,
+      "scale": 1,
+      "time": 0.6,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1-0.6.png",
+      "sha256": "2470b9e9461b479939c98a32d5f0353a28bd7967999bb7eb8104367b3b620708"
+    },
+    {
+      "kind": 5,
+      "scale": 1,
+      "time": 0.84,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1-0.84.png",
+      "sha256": "74cdabc89ec6aba355b293d7e8f2750ad17b213f52b722739b7023fe6744034f"
+    },
+    {
+      "kind": 5,
+      "scale": 1,
+      "time": 1.2,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1-1.2.png",
+      "sha256": "b656df09bc599cbfd66f457509ccf76c0ad0a23160ca46f080bda88fb019c605"
+    },
+    {
+      "kind": 5,
+      "scale": 1.25,
+      "time": 0.6,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1.25-0.6.png",
+      "sha256": "7ffba349bb9453e08a8fbd2c990168f71c1f32ed9bc75a4e2298bbca2b303cb2"
+    },
+    {
+      "kind": 5,
+      "scale": 1.25,
+      "time": 0.84,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1.25-0.84.png",
+      "sha256": "dbafb9b77592ad3ecd6dd889dfe2b812d0bc00927ba7c845d1cedc212521a20b"
+    },
+    {
+      "kind": 5,
+      "scale": 1.25,
+      "time": 1.2,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1.25-1.2.png",
+      "sha256": "3ab4eb99db73bc9463d586f594c024e4ab38bd114ef7615a6433414e7b553579"
+    },
+    {
+      "kind": 5,
+      "scale": 1.5,
+      "time": 0.6,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1.5-0.6.png",
+      "sha256": "65f9501e4d5eca6bce337ae0328c65bc8c8ef45e8b4c8f1536a456ff1600d9c1"
+    },
+    {
+      "kind": 5,
+      "scale": 1.5,
+      "time": 0.84,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1.5-0.84.png",
+      "sha256": "a415c01ea6b31580dea335084c154499026d3ff2a69cc452ac4e28dc70d21b76"
+    },
+    {
+      "kind": 5,
+      "scale": 1.5,
+      "time": 1.2,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-1.5-1.2.png",
+      "sha256": "4a05396091616c988b48006356c0ed38f9cb02d8a83cf9cbed51a6d7c6e340f1"
+    },
+    {
+      "kind": 5,
+      "scale": 2,
+      "time": 0.6,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-2-0.6.png",
+      "sha256": "36e6bcbbc0f5a5c592156048c4acb663e9e5475908a9609fbe4d4062fc80a4a8"
+    },
+    {
+      "kind": 5,
+      "scale": 2,
+      "time": 0.84,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-2-0.84.png",
+      "sha256": "26415f3e7d0748e7e3dc38fab7ced79050e1338aa498737d5bc16b4042b1284c"
+    },
+    {
+      "kind": 5,
+      "scale": 2,
+      "time": 1.2,
+      "width": 180,
+      "height": 88,
+      "theme": "light",
+      "file": "5-light-2-1.2.png",
+      "sha256": "34786c9c7295d5957388100895fe97c1617b11bb00d68b1dfab9bc4ea5bb532b"
+    }
+  ]
+}
