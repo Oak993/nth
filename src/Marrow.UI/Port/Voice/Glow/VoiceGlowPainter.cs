@@ -48,6 +48,12 @@ internal sealed class VoiceGlowPainter : IDisposable
     private double ringW = double.NaN, ringH, ringRadius, ringPadding;
     private bool disposed;
 
+    /// <summary>Which layers <see cref="Draw"/> draws (all of them; a test or a timing run may draw some).</summary>
+    public VoiceGlowLayers Layers { get; set; } = VoiceGlowLayers.All;
+
+    /// <summary>How the band canvas is drawn (<see cref="VoiceGlowBandMode.Auto"/>: in one analytic pass on a GPU, as the canvas strokes it otherwise).</summary>
+    public VoiceGlowBandMode BandMode { get; set; } = VoiceGlowBandMode.Auto;
+
     /// <summary>How many offscreen surfaces have been made (tests: one per size and context).</summary>
     public int SurfaceCreations { get; private set; }
 
@@ -75,15 +81,15 @@ internal sealed class VoiceGlowPainter : IDisposable
 
         var glow = frame.Glow;
         // 1. the inner light (::before) and its mirror
-        DrawSoft(canvas, gpu, look, frame, width, height, dpr, z, css, Layer.Inner, Clamp01(opacity * glow * recipe.InnerOpacity * strength), split);
+        if ((Layers & VoiceGlowLayers.Inner) != 0) DrawSoft(canvas, gpu, look, frame, width, height, dpr, z, css, Layer.Inner, Clamp01(opacity * glow * recipe.InnerOpacity * strength), split);
         // 2. the stroke ring (::after)
-        DrawStroke(canvas, look, frame, width, height, css, Clamp01(opacity * glow * recipe.StrokeOpacity * strength));
+        if ((Layers & VoiceGlowLayers.Stroke) != 0) DrawStroke(canvas, look, frame, width, height, css, Clamp01(opacity * glow * recipe.StrokeOpacity * strength));
         // 3. the bloom and its mirror
-        DrawSoft(canvas, gpu, look, frame, width, height, dpr, z, css, Layer.Bloom, Clamp01(opacity * glow * recipe.BloomOpacity * strength), split);
+        if ((Layers & VoiceGlowLayers.Bloom) != 0) DrawSoft(canvas, gpu, look, frame, width, height, dpr, z, css, Layer.Bloom, Clamp01(opacity * glow * recipe.BloomOpacity * strength), split);
         // 4. the band canvas
-        if (layerSet) DrawBand(canvas, look, frame, dpr, css, Clamp01(opacity * strength));
+        if (layerSet && (Layers & VoiceGlowLayers.Band) != 0) DrawBand(canvas, gpu, look, frame, dpr, css, Clamp01(opacity * strength));
         // 5. the epicentre
-        if (recipe.Core is { } core) DrawCore(canvas, gpu, look, frame, width, height, dpr, z, core, Clamp01(opacity * Math.Min(1, glow * core.OpacityScale)));
+        if ((Layers & VoiceGlowLayers.Core) != 0 && recipe.Core is { } core) DrawCore(canvas, gpu, look, frame, width, height, dpr, z, core, Clamp01(opacity * Math.Min(1, glow * core.OpacityScale)));
         canvas.Restore();
     }
 
@@ -445,11 +451,26 @@ internal sealed class VoiceGlowPainter : IDisposable
     }
 
     // ---- the band canvas (Sn)
-    private void DrawBand(SKCanvas canvas, VoiceGlowLook look, VoiceGlowFrame f, double dpr, SKColorFilter css, double opacity)
+
+    // one stroke of the band: which offset it is drawn at (0 none, 1 above, 2 mid, 3 below), its line width, the blur sigma of its draw, its alpha at the gradient's plateau and its colour
+    private struct BandStroke
+    {
+        public int Offset;
+        public float Width, Sigma, Alpha;
+        public GlowRgb Color;
+    }
+
+    private readonly BandStroke[] plan = new BandStroke[17];
+    private readonly float[] offsetX = new float[4];
+    private readonly float[] offsetY = new float[4];
+    private readonly GlowBandUniforms bandUniforms = new();
+
+    // the strokes Sn draws, in its order: the wide soft halo, then for each colour (above, mid, below, core) four widths; 0 when the band is too faint to draw
+    private int BuildBandPlan(VoiceGlowLook look, VoiceGlowFrame f)
     {
         var t = look.Config;
         var h = Math.Min(1, 0.6 * t.BandStrength * f.BendA);
-        if (h < 5e-3 || t.BandWidth <= 0 || opacity <= 0) return;
+        if (h < 5e-3 || t.BandWidth <= 0) return 0;
         var dark = t.Theme == VoiceGlowTheme.Dark;
         var o = t.BandWidth * (1 + 0.35 * f.Level);
         var l = t.BandAberration * (0.35 + 0.65 * f.Level);
@@ -458,42 +479,112 @@ internal sealed class VoiceGlowPainter : IDisposable
         var d = (dark ? 0.42 : 0.4) * h;
         var lineWidth = 14 * o;
         var blur = 3.5 * t.BandWidth / 2;
-        var n = VoiceGlowFrame.BandPointCount;
-        var x0 = (float)f.BandX[0];
-        var x1 = (float)f.BandX[n - 1];
+        offsetX[0] = 0; offsetY[0] = 0;
+        offsetX[1] = (float)shift; offsetY[1] = (float)-lift;
+        offsetX[2] = (float)(shift * 0.35); offsetY[2] = (float)(-lift * 0.35);
+        offsetX[3] = (float)-shift; offsetY[3] = (float)lift;
+        var n = 0;
+        void Add(int offset, double width, double sigma, double alpha, GlowRgb color) =>
+            plan[n++] = new BandStroke { Offset = offset, Width = (float)width, Sigma = (float)sigma, Alpha = (float)VoiceGlowCss.Fixed(alpha, 3), Color = color };
+        Add(0, lineWidth * 2.2, blur * 3, d * 0.3, look.BandCore);
+        for (var c = 0; c < 4; c++)
+        {
+            var (offset, alpha, color) = c switch
+            {
+                0 => (1, 1.0, look.BandAbove),
+                1 => (2, 0.55, look.BandMid),
+                2 => (3, 1.0, look.BandBelow),
+                _ => (0, 0.9, look.BandCore),
+            };
+            Add(offset, Math.Max(0.6, lineWidth * 1), blur, d * alpha * 0.16, color);
+            Add(offset, Math.Max(0.6, lineWidth * 0.72), blur, d * alpha * 0.2, color);
+            Add(offset, Math.Max(0.6, lineWidth * 0.46), blur, d * alpha * 0.26, color);
+            Add(offset, Math.Max(0.6, lineWidth * 0.22), blur, d * alpha * 0.34, color);
+        }
+        return n;
+    }
 
+    private void DrawBand(SKCanvas canvas, GRContext? gpu, VoiceGlowLook look, VoiceGlowFrame f, double dpr, SKColorFilter css, double opacity)
+    {
+        if (opacity <= 0) return;
+        var count = BuildBandPlan(look, f);
+        if (count == 0) return;
         paint.ColorFilter = css;
         paint.Color = SKColors.White.WithAlpha((byte)Math.Clamp((int)VoiceGlowCss.Round(opacity * 255), 0, 255));
         canvas.SaveLayer(paint);
         paint.ColorFilter = null;
         paint.Color = SKColors.White;
-
-        // the wide soft halo under the line, then the 16 strokes of four colours and four widths, each blurred on its own
-        ParseRgb(t.BandColors.Core, out var core);
-        StrokeLine(canvas, f, x0, x1, t.BandTail > 0, core, d * 0.3, lineWidth * 2.2, 0, 0, blur * 3);
-        ReadOnlySpan<(double K, double W)> ladder = [(1, 0.16), (0.72, 0.2), (0.46, 0.26), (0.22, 0.34)];
-        for (var c = 0; c < 4; c++)
-        {
-            string text;
-            double a, ox, oy;
-            switch (c)
-            {
-                case 0: text = t.BandColors.Above; a = 1; ox = shift; oy = -lift; break;
-                case 1: text = t.BandColors.Mid; a = 0.55; ox = shift * 0.35; oy = -lift * 0.35; break;
-                case 2: text = t.BandColors.Below; a = 1; ox = -shift; oy = lift; break;
-                default: text = t.BandColors.Core; a = 0.9; ox = 0; oy = 0; break;
-            }
-            ParseRgb(text, out var rgb);
-            foreach (var (k, w) in ladder) StrokeLine(canvas, f, x0, x1, t.BandTail > 0, rgb, d * a * w, Math.Max(0.6, lineWidth * k), ox, oy, blur);
-        }
+        if (BandMode == VoiceGlowBandMode.Analytic || (BandMode == VoiceGlowBandMode.Auto && gpu is not null)) DrawBandAnalytic(canvas, look, f, count);
+        else DrawBandStrokes(canvas, look, f, count);
         canvas.Restore();
     }
 
-    private static void ParseRgb(string text, out GlowRgb rgb)
+    // Sn as the canvas does it: each stroke of the polyline, shifted, with the canvas gradient I(rgb, alpha) and a blur of its own (ctx.filter = blur(...))
+    private void DrawBandStrokes(SKCanvas canvas, VoiceGlowLook look, VoiceGlowFrame f, int count)
     {
-        var parts = text.Split(',');
-        rgb = new GlowRgb(byte.Parse(parts[0].Trim(), System.Globalization.CultureInfo.InvariantCulture), byte.Parse(parts[1].Trim(), System.Globalization.CultureInfo.InvariantCulture),
-            byte.Parse(parts[2].Trim(), System.Globalization.CultureInfo.InvariantCulture));
+        var n = VoiceGlowFrame.BandPointCount;
+        float x0 = (float)f.BandX[0], x1 = (float)f.BandX[n - 1];
+        var tail = look.Config.BandTail > 0;
+        for (var i = 0; i < count; i++)
+        {
+            var s = plan[i];
+            StrokeLine(canvas, f, x0, x1, tail, s.Color, s.Alpha, s.Width, offsetX[s.Offset], offsetY[s.Offset], s.Sigma);
+        }
+    }
+
+    // Sn in one pass: for each pixel the distance to the polyline at each of the four offsets, then every stroke's blurred coverage (a Gaussian edge on each side of its line
+    // width) composited in the canvas's order, in floating point. The same picture as the strokes without a layer, a blur and a gradient for each of the seventeen.
+    private void DrawBandAnalytic(SKCanvas canvas, VoiceGlowLook look, VoiceGlowFrame f, int count)
+    {
+        var n = VoiceGlowFrame.BandPointCount;
+        float x0 = (float)f.BandX[0], x1 = (float)f.BandX[n - 1];
+        var b = bandUniforms;
+        var reach = 0f;
+        for (var i = 0; i < count; i++)
+        {
+            var s = plan[i];
+            b.Strokes[i * 4] = s.Offset;
+            b.Strokes[i * 4 + 1] = s.Width / 2;
+            b.Strokes[i * 4 + 2] = s.Sigma;
+            b.Strokes[i * 4 + 3] = s.Alpha;
+            b.Colors[i * 4] = s.Color.R / 255f;
+            b.Colors[i * 4 + 1] = s.Color.G / 255f;
+            b.Colors[i * 4 + 2] = s.Color.B / 255f;
+            reach = Math.Max(reach, s.Width / 2 + 4 * s.Sigma + Math.Max(Math.Abs(offsetX[s.Offset]), Math.Abs(offsetY[s.Offset])));
+        }
+        float top = float.MaxValue, bottom = float.MinValue;
+        for (var i = 0; i < n; i++)
+        {
+            b.Ys[i] = (float)f.BandY[i];
+            top = Math.Min(top, b.Ys[i]);
+            bottom = Math.Max(bottom, b.Ys[i]);
+        }
+        for (var i = n; i < b.Ys.Length; i++) b.Ys[i] = b.Ys[n - 1];
+        for (var k = 0; k < 4; k++)
+        {
+            b.Offsets[k * 4] = offsetX[k];
+            b.Offsets[k * 4 + 1] = offsetY[k];
+        }
+        b.Geo[0] = x0;
+        b.Geo[1] = (x1 - x0) / (n - 1);
+        b.Geo[2] = reach;
+        b.Ramp[0] = x0;
+        b.Ramp[1] = x1;
+        b.Ramp[2] = look.Config.BandTail > 0 ? 0.015f : 0.18f;
+        var u = b.Uniforms;
+        u["ys"] = b.Ys;
+        u["geo"] = b.Geo;
+        u["offs"] = b.Offsets;
+        u["strokes"] = b.Strokes;
+        u["colors"] = b.Colors;
+        u["ramp"] = b.Ramp;
+        u["count"] = (float)count;
+        using var shader = VoiceGlowShaders.Band.ToShader(u);
+        paint.Shader = shader;
+        paint.IsAntialias = false;
+        canvas.DrawRect(new SKRect(x0, top - reach, x1, bottom + reach), paint);
+        paint.Shader = null;
+        paint.IsAntialias = true;
     }
 
     private readonly SKColorF[] gradientColors = new SKColorF[4];
@@ -503,7 +594,7 @@ internal sealed class VoiceGlowPainter : IDisposable
     private void StrokeLine(SKCanvas canvas, VoiceGlowFrame f, float x0, float x1, bool tail, GlowRgb rgb, double alpha, double lineWidth, double ox, double oy, double blur)
     {
         var vf = tail ? 0.015f : 0.18f;
-        var a = (float)(VoiceGlowCss.Fixed(alpha, 3));
+        var a = (float)alpha;
         gradientColors[0] = new SKColorF(rgb.R / 255f, rgb.G / 255f, rgb.B / 255f, 0);
         gradientColors[1] = new SKColorF(rgb.R / 255f, rgb.G / 255f, rgb.B / 255f, a);
         gradientColors[2] = gradientColors[1];
@@ -546,6 +637,7 @@ internal sealed class VoiceGlowPainter : IDisposable
         ellipseUniforms.Dispose();
         layerUniforms.Dispose();
         layerChildren.Dispose();
+        bandUniforms.Dispose();
         paint.Dispose();
         stroke.Dispose();
         above.Dispose();

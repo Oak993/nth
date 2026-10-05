@@ -109,12 +109,70 @@ half4 main(float2 p) {
 }
 """;
 
+    /// <summary>
+    /// The band canvas (<c>Sn</c>) in one pass. The canvas strokes the polyline seventeen times (a wide soft halo, then four widths in each of four colours, each stroke shifted
+    /// by its colour's offset), blurring every stroke on its own, with a gradient that fades the line out at both ends; here, for each pixel, the distance to the polyline at each
+    /// of the four offsets (the polyline is a function of x at an even step, so a segment matters only near the pixel's x), then each stroke's coverage after its blur
+    /// (a stroke of line width w blurred by a Gaussian of sigma s covers a pixel d from its line by Phi((w / 2 - d) / s) - Phi((-w / 2 - d) / s), exact for a straight line and good
+    /// where the line bends slowly against s), composited in the canvas's order. <c>ys</c> are the 57 y values; <c>geo</c> is (first x, step, reach); <c>strokes</c> is
+    /// (offset index, half width, sigma, alpha); <c>ramp</c> is (first x, last x, fade fraction).
+    /// </summary>
+    public const string BandSource = """
+uniform float4 ys[15];
+uniform float4 geo;
+uniform float4 offs[4];
+uniform float4 strokes[17];
+uniform float4 colors[17];
+uniform float4 ramp;
+uniform float count;
+
+float Phi(float x) { return 1.0 / (1.0 + exp(-1.5957691 * (x + 0.044715 * x * x * x))); }
+float cover(float d, float hw, float sg) { float inv = 1.0 / sg; return Phi((hw - d) * inv) - Phi((-hw - d) * inv); }
+float segDist(float2 q, float2 a, float2 b) {
+  float2 pa = q - a;
+  float2 ba = b - a;
+  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  return length(pa - ba * h);
+}
+
+half4 main(float2 p) {
+  float t = (p.x - ramp.x) / (ramp.y - ramp.x);
+  float ga = t <= 0.0 || t >= 1.0 ? 0.0 : (t < ramp.z ? t / ramp.z : (t > 1.0 - ramp.z ? (1.0 - t) / ramp.z : 1.0));
+  if (ga <= 0.0) { return half4(0.0); }
+  float4 d = float4(1.0e9);
+  for (int i = 0; i < 56; i++) {
+    float xa = geo.x + geo.y * float(i);
+    float ya = ys[i / 4][i - (i / 4) * 4];
+    float yb = ys[(i + 1) / 4][(i + 1) - ((i + 1) / 4) * 4];
+    float2 a = float2(xa, ya);
+    float2 b = float2(xa + geo.y, yb);
+    for (int k = 0; k < 4; k++) {
+      float2 q = p - offs[k].xy;
+      if (q.x < xa - geo.z || q.x > xa + geo.y + geo.z) { continue; }
+      d[k] = min(d[k], segDist(q, a, b));
+    }
+  }
+  float4 acc = float4(0.0);
+  for (int s = 0; s < 17; s++) {
+    if (float(s) >= count) { break; }
+    float4 st = strokes[s];
+    int k = int(st.x);
+    float dd = k == 0 ? d.x : (k == 1 ? d.y : (k == 2 ? d.z : d.w));
+    if (dd > st.y + 4.0 * st.z) { continue; }
+    float a = st.w * ga * cover(dd, st.y, st.z);
+    acc = float4(colors[s].rgb * a, a) + acc * (1.0 - a);
+  }
+  return half4(acc);
+}
+""";
+
     private static Lazy<SKRuntimeEffect> Compile(string source, string what) => new(() =>
         SKRuntimeEffect.CreateShader(source, out var error) ?? throw new InvalidOperationException("The voice glow's " + what + " shader did not compile: " + error));
 
     private static readonly Lazy<SKRuntimeEffect> lobes = Compile(LobesSource, "lobes");
     private static readonly Lazy<SKRuntimeEffect> ellipse = Compile(EllipseSource, "ellipse");
     private static readonly Lazy<SKRuntimeEffect> layer = Compile(LayerSource, "layer");
+    private static readonly Lazy<SKRuntimeEffect> band = Compile(BandSource, "band");
 
     /// <summary>The lobes program (compiled on first use; GpuWarmup compiles it ahead).</summary>
     public static SKRuntimeEffect Lobes => lobes.Value;
@@ -122,4 +180,7 @@ half4 main(float2 p) {
     public static SKRuntimeEffect Ellipse => ellipse.Value;
 
     public static SKRuntimeEffect Layer => layer.Value;
+
+    /// <summary>The band program.</summary>
+    public static SKRuntimeEffect Band => band.Value;
 }

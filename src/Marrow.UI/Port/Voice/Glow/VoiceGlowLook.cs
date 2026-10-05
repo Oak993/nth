@@ -14,6 +14,26 @@ internal sealed class VoiceGlowLook
         // mountVoiceGlow: the filter's feTurbulence baseFrequency = (0.012 * Nt).toFixed(4) (0.05 * Nt).toFixed(4), Nt = distortionDetail / scale
         NoiseFrequencyX = VoiceGlowCss.Fixed(0.012 * resolved.Detail, 4);
         NoiseFrequencyY = VoiceGlowCss.Fixed(0.05 * resolved.Detail, 4);
+        BandCore = ParseBand(resolved.Config.BandColors.Core);
+        BandAbove = ParseBand(resolved.Config.BandColors.Above);
+        BandMid = ParseBand(resolved.Config.BandColors.Mid);
+        BandBelow = ParseBand(resolved.Config.BandColors.Below);
+    }
+
+    /// <summary>The band's four colours (the config carries them as <c>"r, g, b"</c> text, <c>Ne</c>).</summary>
+    public GlowRgb BandCore { get; }
+
+    public GlowRgb BandAbove { get; }
+
+    public GlowRgb BandMid { get; }
+
+    public GlowRgb BandBelow { get; }
+
+    private static GlowRgb ParseBand(string text)
+    {
+        var parts = text.Split(',');
+        return new GlowRgb(byte.Parse(parts[0].Trim(), System.Globalization.CultureInfo.InvariantCulture), byte.Parse(parts[1].Trim(), System.Globalization.CultureInfo.InvariantCulture),
+            byte.Parse(parts[2].Trim(), System.Globalization.CultureInfo.InvariantCulture));
     }
 
     public VoiceGlowResolved Resolved { get; }
