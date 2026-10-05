@@ -254,6 +254,32 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-251")] // CZ-T8, CZ-6.3, CZ-6.4: every Border beam slider has the design's range, step, direction and Auto (the table of CZ-6), and the glow height's Auto is 0.35 at the preview's 46 high
+    public void Every_border_beam_slider_has_the_designs_range_step_direction_and_auto() => headless.OnUiThread(() =>
+    {
+        using var rig = new CustomizationPageRig(reduceMotion: true);
+        rig.Do(() => rig.Page.Advanced.Open = true);
+        var b = rig.Page.Beam!;
+        (CzSliderRow Row, double Min, double Max, double Step, bool Inverted, bool Auto)[] table =
+        [
+            (b.Speed, 0.5, 14, 0.05, true, true), (b.Brightness, 0.2, 3, 0.05, false, true), (b.Intensity, 0, 1, 0.01, false, false),
+            (b.ColourShift, -180, 180, 1, false, false), (b.Saturation, 0, 2.5, 0.05, false, true), (b.ColourDrift, 0, 180, 1, false, false),
+            (b.GlowSize, 0.25, 3, 0.05, false, false), (b.EdgeLine, 0, 2, 0.05, false, false), (b.InnerGlow, 0, 2, 0.05, false, false), (b.OuterGlow, 0, 2, 0.05, false, false),
+            (b.Corner, 0, 26, 1, false, true), (b.CoreSoftness, 0, 20, 0.5, false, true), (b.BloomSoftness, 0, 60, 0.5, false, true),
+            (b.GlowWidth, 0.35, 4, 0.01, false, true), (b.GlowHeight, 0.35, 4, 0.01, false, true), (b.GlowBoost, 0.5, 2, 0.01, false, false), (b.Flare, 0, 3, 0.05, false, false),
+        ];
+        foreach (var (row, min, max, step, inverted, auto) in table)
+        {
+            var name = row.Row.Title.Text;
+            Assert.True((min, max, step, inverted) == (row.Slider.Minimum, row.Slider.Maximum, row.Slider.Step, row.Slider.Inverted), $"{name}: range {row.Slider.Minimum}..{row.Slider.Maximum} step {row.Slider.Step}");
+            Assert.True(auto == row.Slider.AutoValue.HasValue, $"{name}: Auto");
+        }
+        Assert.Equal(17, table.Length);
+        Assert.Equal(0.35, b.GlowHeight.Slider.AutoValue); // clamp(46 / 140, 0.35, 4): the design's 52 gave 0.371
+        Assert.Equal(1.349, b.GlowWidth.Slider.AutoValue); // clamp(472 / 350, 0.35, 4)
+    });
+
+    [Fact]
     [Trait("Decision", "ED-251")] // CZ-T8, CZ-12.2.4, CZ-13.2: the page's Speed steps 0.05 and the values on that step (0.55, 3.7, 13.95) are stored as they are
     public void The_speed_slider_stores_the_values_it_shows() => headless.OnUiThread(() =>
     {

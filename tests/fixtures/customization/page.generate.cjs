@@ -12,7 +12,7 @@ const hex2 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const mixHex = (a, b, t) => { const x = hex2(a), y = hex2(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
 const fmt = (v, n) => (Math.round(v * 10 ** n) / 10 ** n).toString();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const context = vm.createContext({ window: {}, Component: class {}, BEAM_DEFAULTS: {}, AURA_DEFAULTS: {}, hex2, mixHex, fmt, clamp, CW: 472, CH: 52, CR: 22, BBT: border });
+const context = vm.createContext({ window: {}, Component: class {}, BEAM_DEFAULTS: {}, AURA_DEFAULTS: {}, hex2, mixHex, fmt, clamp, CW: 472, CH: 46, CR: 22, BBT: border });
 vm.runInContext(source, context, { filename: rel });
 context.PAL_NAMES = Object.keys(vm.runInContext('CZ_PAL', context));
 

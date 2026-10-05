@@ -386,14 +386,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -823,14 +823,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -1260,14 +1260,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -1697,14 +1697,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -2134,14 +2134,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -2571,14 +2571,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -3008,14 +3008,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -3445,14 +3445,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -3882,14 +3882,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -4319,14 +4319,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -4756,14 +4756,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -5193,14 +5193,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -5630,14 +5630,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -6067,14 +6067,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -6504,14 +6504,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -6941,14 +6941,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -7378,14 +7378,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": false,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -7815,14 +7815,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": false,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -8252,14 +8252,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": false,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -8689,14 +8689,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": false,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -9126,14 +9126,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -9563,14 +9563,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -10000,14 +10000,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -10437,14 +10437,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -10874,14 +10874,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -11311,14 +11311,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",
@@ -11748,14 +11748,14 @@
      "kind": "Slider",
      "t": "Glow height",
      "d": "How far it spreads up and down",
-     "vt": "0.37×",
+     "vt": "0.35×",
      "dim": false,
      "fold": true,
      "auOn": "true",
      "hasAuto": true,
      "min": 0.35,
      "max": 4,
-     "v": "0.371"
+     "v": "0.35"
     },
     "boost": {
      "kind": "Slider",

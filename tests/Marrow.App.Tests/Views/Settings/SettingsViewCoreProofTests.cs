@@ -238,7 +238,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     // UI-SETTINGS-004 source properties/interactions only; continuous curve awaits STOP #6 below.
     public void Sidebar_rows_pin_selected_hover_and_frozen_geometry_fonts_colours_and_click() => WithView(() => new SettingsView(), (view, _, h) =>
     {
-        var rows = Field<StackPanel>(view, "rows"); Assert.Equal(1, rows.Spacing); Assert.Equal(11, Nodes<SidebarRow>(rows).Length); // CZ-4: Customization is listed
+        var rows = Field<StackPanel>(view, "rows"); Assert.Equal(1, rows.Spacing); Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, Nodes<SidebarRow>(rows).Length); // CZ-4: Customization is listed
         foreach (var row in Nodes<SidebarRow>(rows))
         {
             var button = Nodes<Button>(row).Single(); var shape = Assert.IsType<Border>(button.Content); var label = Nodes<TextBlock>(row).Single(); bool selected = label.Text == "General";

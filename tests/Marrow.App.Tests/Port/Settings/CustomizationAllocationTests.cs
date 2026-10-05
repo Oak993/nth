@@ -91,10 +91,10 @@ public sealed class CustomizationAllocationTests(HeadlessSession headless)
         var painter = new CzStyleGlyphPainter();
         long differing = 0, total = 0;
         double sum = 0;
-        foreach (var angle in new[] { 0.0, 33.3, 90, 147.5, 180, 270, 359 })
+        foreach (var (angle, opacity) in new[] { (0.0, 1f), (33.3, 1f), (90.0, 1f), (147.5, 1f), (180.0, 1f), (270.0, 1f), (359.0, 1f), (33.3, 0.5f), (200.0, 0.3f) }) // the card is drawn under a parent's opacity too
         {
-            var expected = Pixels(c => GlyphReference.Draw(c, Width, style, angle, dark, 1));
-            var actual = Pixels(c => painter.Draw(c, Width, style, angle, dark, 1));
+            var expected = Pixels(c => GlyphReference.Draw(c, Width, style, angle, dark, opacity));
+            var actual = Pixels(c => painter.Draw(c, Width, style, angle, dark, opacity));
             for (var i = 0; i < expected.Length; i++)
             {
                 var delta = Math.Abs(expected[i] - actual[i]);
