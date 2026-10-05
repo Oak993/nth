@@ -7,67 +7,12 @@ namespace Marrow.Services.Tests.Port.Skills.Import;
 // SK-18 (OD-0118 addendum): Marrow finds the apps that keep skills by itself, without a picked folder, when the page opens and when those folders change. It only reports; it never imports.
 public sealed class ImportDetectorTests
 {
-    private sealed class FakeWatch : IFolderWatch
-    {
-        public List<IReadOnlyList<WatchTarget>> Started { get; } = [];
-        public int Disposed { get; private set; }
-        public Action? Changed { get; private set; }
-
-        public IDisposable Watch(IReadOnlyList<WatchTarget> targets, Action changed)
-        {
-            Started.Add(targets);
-            Changed = changed;
-            return new Gone(this);
-        }
-
-        private sealed class Gone(FakeWatch owner) : IDisposable
-        {
-            public void Dispose() => owner.Disposed++;
-        }
-    }
-
-    private sealed class Rig : IDisposable
-    {
-        public Rig(string? state = null)
-        {
-            Home = new ForeignHome();
-            Time = new ManualTimeProvider();
-            Library = new ImportedSkillsLibrary(Home.SkillsRoot, Time);
-            Watch = new FakeWatch();
-            State = state ?? Path.Combine(Home.Root, "marrow-data", "skills", "imported", "dismissed.json");
-            Detector = Make();
-        }
-
-        public ForeignHome Home { get; }
-        public ManualTimeProvider Time { get; }
-        public ImportedSkillsLibrary Library { get; }
-        public FakeWatch Watch { get; }
-        public string State { get; }
-        public ImportDetector Detector { get; private set; }
-        public int Scans { get; private set; }
-
-        public ImportDetector Make() => Detector = new ImportDetector(() => { Scans++; return new ForeignSkillScanner(Home.Home).Scan(); }, Library, Home.Home, Watch, State, Time);
-
-        public void Fill()
-        {
-            Home.Skill(".claude/skills", "alpha", "alpha", "Alpha skill.");
-            Home.Skill(".claude/skills", "beta", "beta", "Beta skill.");
-            Home.Skill(".codex/skills", "gamma", "gamma", "Gamma skill.");
-        }
-
-        public void Dispose()
-        {
-            Detector.Dispose();
-            Home.Dispose();
-        }
-    }
-
     [Fact]
     [Trait("Feature", "SK-18")]
     [Trait("Rule", "R-TEST-4")]
     public void Refresh_finds_the_skills_of_installed_apps_on_its_own_with_no_picked_folder()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         Assert.False(rig.Detector.Current.Visible);
         rig.Fill();
         rig.Detector.Refresh();
@@ -82,7 +27,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void Nothing_found_means_nothing_to_say()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Detector.Refresh();
         Assert.False(rig.Detector.Current.Visible);
         Assert.Equal(0, rig.Detector.Current.Count);
@@ -93,7 +38,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void Nothing_is_ever_imported_or_written_in_the_other_apps_by_detecting()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Fill();
         var before = ForeignHome.Fingerprint(rig.Home.Home);
         rig.Detector.Refresh();
@@ -109,7 +54,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void Only_what_is_not_yet_imported_counts_and_the_line_goes_when_everything_is_in()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Fill();
         rig.Detector.Refresh();
         var skills = new ForeignSkillScanner(rig.Home.Home).Scan().Skills;
@@ -127,7 +72,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void Dismiss_hides_the_line_keeps_it_hidden_after_a_restart_and_a_new_skill_brings_it_back()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Fill();
         rig.Detector.Refresh();
         rig.Detector.Dismiss();
@@ -148,7 +93,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void An_unreadable_dismissed_file_is_ignored_and_a_missing_state_folder_is_made_on_dismiss()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Fill();
         Directory.CreateDirectory(Path.GetDirectoryName(rig.State)!);
         File.WriteAllText(rig.State, "{ not json");
@@ -166,7 +111,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void Changed_is_raised_when_what_was_found_changes_and_not_when_it_is_the_same()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         var raised = 0;
         rig.Detector.Changed += () => raised++;
         rig.Detector.Refresh();
@@ -201,7 +146,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public async Task RefreshAsync_scans_off_the_calling_thread_and_reports_the_same()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Fill();
         await rig.Detector.RefreshAsync();
         Assert.Equal(3, rig.Detector.Current.Count);
@@ -212,7 +157,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void A_change_in_the_watched_folders_scans_again_once_after_things_settle()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Detector.Start();
         Assert.True(rig.Detector.Watching);
         Assert.Single(rig.Watch.Started);
@@ -235,7 +180,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void After_a_change_the_watch_is_made_again_so_a_folder_that_has_just_appeared_is_watched()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Detector.Start();
         rig.Fill();
         rig.Watch.Changed!();
@@ -250,7 +195,7 @@ public sealed class ImportDetectorTests
     [Trait("Rule", "R-TEST-4")]
     public void Stop_ends_the_watch_and_later_changes_do_nothing()
     {
-        using var rig = new Rig();
+        using var rig = new DetectorRig();
         rig.Detector.Start();
         var changed = rig.Watch.Changed!;
         rig.Detector.Stop();

@@ -16,62 +16,6 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class ImportSkillsTests(HeadlessSession headless)
 {
-    private sealed class CountingWatch : IFolderWatch
-    {
-        private int started, ended;
-        public int Started => Volatile.Read(ref started);
-        public int Ended => Volatile.Read(ref ended);
-        public Action? Changed { get; private set; }
-
-        public IDisposable Watch(IReadOnlyList<WatchTarget> targets, Action changed)
-        {
-            Interlocked.Increment(ref started);
-            Changed = changed;
-            return new End(this);
-        }
-
-        private sealed class End(CountingWatch owner) : IDisposable
-        {
-            public void Dispose() => Interlocked.Increment(ref owner.ended);
-        }
-    }
-
-    private sealed class Rig : IDisposable
-    {
-        public Rig(Func<Task<string?>>? pick = null, bool detect = false)
-        {
-            Home = new ForeignHome();
-            Time = new ManualTimeProvider();
-            Library = new ImportedSkillsLibrary(Home.SkillsRoot, Time);
-            Watch = new CountingWatch();
-            if (detect) Detector = new ImportDetector(() => new ForeignSkillScanner(Home.Home).Scan(), Library, Home.Home, Watch, null, Time);
-            Controller = new ImportController(folders => new ForeignSkillScanner(Home.Home, folders).Scan(), Library, () => Model!.PickFolder?.Invoke() ?? Task.FromResult<string?>(null));
-            Model = new ImportModel(Controller, Detector) { PickFolder = pick };
-        }
-
-        public ForeignHome Home { get; }
-        public ManualTimeProvider Time { get; }
-        public CountingWatch Watch { get; }
-        public ImportDetector? Detector { get; }
-        public ImportedSkillsLibrary Library { get; }
-        public ImportController Controller { get; }
-        public ImportModel? Model { get; }
-
-        public void Fill()
-        {
-            Home.Skill(".claude/skills", "alpha", "alpha", "Alpha skill.");
-            Home.Skill(".claude/skills", "beta", "beta", "Beta skill.");
-            Home.Skill(".codex/skills", "gamma", "gamma", "Gamma skill.");
-            Home.Raw(".cursor/rules/delta.mdc", "---\ndescription: Delta rule\n---\nbody\n");
-        }
-
-        public void Dispose()
-        {
-            Detector?.Dispose();
-            Home.Dispose();
-        }
-    }
-
     private static void OpenSheet(LibraryPageHarness h)
     {
         Assert.True(h.Press("import-skills"));
@@ -84,7 +28,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
     public void Only_the_Skills_page_gets_the_action_and_only_when_imports_are_available() => LibraryPageHarness.Run(headless, LibrarySection.Skills, without =>
     {
         Assert.Null(without.TryFind("import-skills"));
-        using var rig = new Rig();
+        using var rig = new ImportRig();
         LibraryPageHarness.Run(headless, LibrarySection.Plugins, plugins => Assert.Null(plugins.TryFind("import-skills")), imports: rig.Model);
         LibraryPageHarness.Run(headless, LibrarySection.Skills, skills =>
         {
@@ -121,9 +65,9 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
         Assert.Equal(ImportWords.Title, h.Words(sheet)[0]);
     });
 
-    private void RunWithFiles(Action<LibraryPageHarness, Rig> check, bool motion = false, bool reduceMotion = false, Func<Task<string?>>? pick = null)
+    private void RunWithFiles(Action<LibraryPageHarness, ImportRig> check, bool motion = false, bool reduceMotion = false, Func<Task<string?>>? pick = null)
     {
-        using var rig = new Rig(pick);
+        using var rig = new ImportRig(pick);
         rig.Fill();
         LibraryPageHarness.Run(headless, LibrarySection.Skills, h => check(h, rig), motion, reduceMotion, imports: rig.Model);
     }
@@ -191,7 +135,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")]
     public void A_duplicate_is_asked_in_the_sheet_with_keep_both_replace_and_skip_and_one_answer_for_the_rest()
     {
-        using var rig = new Rig();
+        using var rig = new ImportRig();
         foreach (var n in new[] { "a", "b" })
         {
             rig.Home.Skill(".claude/skills", n, n, "Claude " + n);
@@ -268,7 +212,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")]
     public void Choose_a_folder_adds_that_folder_to_the_list_through_the_system_chooser()
     {
-        using var rig = new Rig();
+        using var rig = new ImportRig();
         var picked = Path.Combine(rig.Home.Root, "mine");
         Directory.CreateDirectory(Path.Combine(picked, "own-skill"));
         File.WriteAllText(Path.Combine(picked, "own-skill", "SKILL.md"), ForeignHome.SkillText("own-skill", "My own."));
@@ -326,9 +270,9 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
         Assert.Equal(1, tick.Drawn, 6);
     }, motion: true, reduceMotion: true);
 
-    private void RunDetecting(Action<LibraryPageHarness, Rig> check, bool fill = true)
+    private void RunDetecting(Action<LibraryPageHarness, ImportRig> check, bool fill = true)
     {
-        using var rig = new Rig(detect: true);
+        using var rig = new ImportRig(detect: true);
         if (fill) rig.Fill();
         LibraryPageHarness.Run(headless, LibrarySection.Skills, h => check(h, rig), imports: rig.Model);
     }
@@ -377,7 +321,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")]
     public void Dismiss_takes_the_line_away_and_it_stays_away_when_the_page_is_built_again()
     {
-        using var rig = new Rig(detect: true);
+        using var rig = new ImportRig(detect: true);
         rig.Fill();
         LibraryPageHarness.Run(headless, LibrarySection.Skills, h =>
         {
@@ -413,7 +357,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
     public void The_page_listens_to_the_folders_while_it_shows_and_a_change_updates_the_line() => RunDetecting((h, rig) =>
     {
         h.Until(() => LineOpen(h));
-        Assert.Equal(1, rig.Watch.Started);
+        Assert.Equal(1, rig.Watch.Started.Count);
         rig.Home.Skill(".claude/skills", "epsilon", "epsilon", "Epsilon skill.");
         rig.Watch.Changed!();
         rig.Time.Advance(TimeSpan.FromSeconds(3));
@@ -425,10 +369,10 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")]
     public void Leaving_the_page_ends_the_listening()
     {
-        using var rig = new Rig(detect: true);
+        using var rig = new ImportRig(detect: true);
         rig.Fill();
-        LibraryPageHarness.Run(headless, LibrarySection.Skills, h => h.Until(() => rig.Watch.Started == 1), imports: rig.Model);
+        LibraryPageHarness.Run(headless, LibrarySection.Skills, h => h.Until(() => rig.Watch.Started.Count == 1), imports: rig.Model);
         Assert.False(rig.Detector!.Watching);
-        Assert.Equal(1, rig.Watch.Ended);
+        Assert.Equal(1, rig.Watch.Disposed);
     }
 }
