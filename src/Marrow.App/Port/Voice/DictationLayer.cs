@@ -632,12 +632,22 @@ internal sealed class DictationLayer : Control
         var selection = SwiftColor.SelectedTextBackgroundColor.Resolve(editor.ActualThemeVariant);
         var spans = new List<ValueSpan<TextRunProperties>>();
         if (from > 0) spans.Add(new ValueSpan<TextRunProperties>(0, from, Properties(face, size, Brushes.Transparent)));
-        spans.Add(new ValueSpan<TextRunProperties>(from, to - from, new GenericTextRunProperties(face, size, null, new ImmutableSolidColorBrush(Alpha(ink, 1)),
-            new ImmutableSolidColorBrush(selection))));
+        spans.Add(new ValueSpan<TextRunProperties>(from, to - from, Properties(face, size, new ImmutableSolidColorBrush(Alpha(ink, 1)))));
         if (to < original.Text.Length) spans.Add(new ValueSpan<TextRunProperties>(to, original.Text.Length - to, Properties(face, size, Brushes.Transparent)));
         using var layout = new TextLayout(original.Text, face, size, Brushes.Transparent, editor.TextAlignment, TextWrapping.Wrap, null, null, editor.FlowDirection, Math.Max(1, LayoutWidth()),
             double.PositiveInfinity, double.NaN, 0, 0, null, spans);
-        using (context.PushOpacity(fade)) layout.Draw(context, origin);
+        using (context.PushOpacity(fade))
+        {
+            // Match TextPresenter.Render in Avalonia 12.1.2: the editor fills each selection rectangle after PixelRect.FromRect(rect, 1), before drawing the glyphs.
+            // A run background keeps fractional edges instead, so the ghost's last frame differed at the right and bottom edges when the editor took over.
+            var brush = new ImmutableSolidColorBrush(selection);
+            foreach (var rect in layout.HitTestTextRange(from, to - from))
+            {
+                var snapped = PixelRect.FromRect(rect, 1).ToRect(1);
+                context.FillRectangle(brush, new Rect(origin + snapped.TopLeft, snapped.Size));
+            }
+            layout.Draw(context, origin);
+        }
     }
 
     // The caret after the last word, in the layer's own coordinates: 1.5 x 17, a pixel past the word's end (its left end for a right-to-left word), centred on the word's line, riding

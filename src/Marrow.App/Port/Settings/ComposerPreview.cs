@@ -2,7 +2,7 @@
 // composer's own visual parts, so it never starts a thread, a provider or a microphone and looks as a real ComposerArea of the same width does (CZ-T45):
 //   - the glass plate (ComposerSurface, the pill's shape and material) and the working dots (ComposerWorkingDots under the plate's clip);
 //   - the placeholder, drawn by the composer's own text view (ComposerNSTextView), read-only and out of the focus chain;
-//   - the control row at the plate's right end: the attach button, the model chip, the context ring and the send button, the real controls' sizes and spacing;
+//   - the attachment button at the plate's left and the trailing model chip, context ring and send button, the real controls' sizes and spacing (VT-10, OD-0091);
 //   - the composer light (ComposerLightView) behind the plate, given the settings, the phase, the maker's palette, the plate's rectangle and the stage's bottom edge.
 // It is driven by a PreviewSession: Rest, Typing (the playground's string typed one character every 0.055 s) and Running (the stop square, the dots, the spinning ring).
 // ENGINEERING DECISION: its height is the real composer's (46, frame-measured in PR-COMPOSER-090) and not the playground's mock 52; CZ-4.3 asks for a composer that looks exactly
@@ -97,17 +97,24 @@ internal sealed class ComposerPreview : Grid
         var textCell = new Grid { Children = { Hint, Typed, Caret } };
         var text = new Border { Child = textCell, ClipToBounds = true, MinHeight = 20, Margin = new Thickness(0, 4, 0, 4), VerticalAlignment = VerticalAlignment.Bottom };
 
-        // the control row (ComposerControls: attach, model chip, ring, send, two apart)
+        // VT-10, voice-SPEC V-14.1 and CZ-4.3: the inert attachment is a left overlay, as in ComposerArea.MakeAttachButtons.
         var paperclip = SwiftImage.SystemName("paperclip").Font(Chrome.IconFont);
+        paperclip.HorizontalAlignment = HorizontalAlignment.Center;
+        paperclip.VerticalAlignment = VerticalAlignment.Center;
         Attach = PlainControls.Button(paperclip, () => { }); // inert: the preview attaches nothing
         Attach.Chip(false);
+        Attach.Width = 34;
+        Attach.Height = 28;
+        Attach.HorizontalAlignment = HorizontalAlignment.Left;
+        Attach.VerticalAlignment = VerticalAlignment.Bottom;
+        Attach.Margin = new Thickness(8, 0, 0, 8);
         Attach.Focusable = false;
         Attach.IsHitTestVisible = false;
         ToolTip.SetTip(Attach, "Attach files");
         AutomationProperties.SetName(Attach, "Attach files");
         Chip = new PreviewComposerChip(session.Maker, () => session.Step(1));
+        // ComposerControls with voice off: model chip, ring, send, two apart.
         Controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Bottom };
-        Controls.Children.Add(Attach);
         Controls.Children.Add(Chip);
         Controls.Children.Add(Ring);
         Controls.Children.Add(send);
@@ -117,7 +124,8 @@ internal sealed class ComposerPreview : Grid
         row.Children.Add(text);
         Grid.SetColumn(Controls, 1);
         row.Children.Add(Controls);
-        var layers = new Grid { Children = { dots, new Border { Child = row, Padding = new Thickness(14, 8, 8, 8) } } };
+        // ComposerArea.ApplyAttachPlace: the inside button adds 34 to the original 14 px text inset.
+        var layers = new Grid { Children = { dots, new Border { Child = row, Padding = new Thickness(48, 8, 8, 8) }, Attach } };
         Pill = (Border)new ComposerSurface().Body(layers);
         Pill.Width = ComposerWidth;
         Pill.HorizontalAlignment = HorizontalAlignment.Left;

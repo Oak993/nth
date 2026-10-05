@@ -197,12 +197,14 @@ public sealed class ComposerDictationWithdrawTests(HeadlessSession headless)
             using var rig = Seen();
             rig.Speak(VoiceComposerRig.SwitchTheme());
             var (view, window, layer, box) = Opened(rig, "keep OLD tail");
+            var unselectedBefore = DictationProbe.Frame(window);
             rig.Main.OnMain(() =>
             {
                 box.SelectionStart = 5;
                 box.SelectionEnd = 8;
             });
             rig.Elapse(window, 0.05);
+            var selectedBefore = DictationProbe.Frame(window);
             rig.Main.OnMain(() => Click(Slot(view).HitTarget));
             rig.Elapse(window, 2.5);
             var width = rig.Main.OnMain(() => layer.Bounds.Width);
@@ -213,6 +215,9 @@ public sealed class ComposerDictationWithdrawTests(HeadlessSession headless)
             var old = layout.HitTestTextRange(5, 3).Single();
             var origin = rig.Main.OnMain(() => box.TranslatePoint(new Point(box.Padding.Left, box.Padding.Top), window)!.Value);
             var oldPixels = new PixelRect((int)(origin.X + old.X) + 5, area.Y, (int)Math.Ceiling(old.Width) - 5, area.Height);
+            // The top of the selection is background only, above the glyph ink. Its expected pixels come from the editor before dictation, independently of the layer.
+            var highlightPixels = new PixelRect(oldPixels.X, (int)Math.Floor(origin.Y + old.Y), oldPixels.Width, 2);
+            Assert.True(DictationProbe.Difference(selectedBefore, unselectedBefore, highlightPixels) > 1, "the reference contains the original selection highlight");
 
             Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
             var frames = new List<(double T, (int Stride, byte[] Bytes, PixelSize Size) Frame)>();
@@ -241,14 +246,19 @@ public sealed class ComposerDictationWithdrawTests(HeadlessSession headless)
             Assert.True(rig.Main.OnMain(() => layer.HandedOver));
             // the old text's ink on each frame after the last word has gone follows the ease curve of the fade back in (the first frame has none: it has just begun)
             var first = frames[0].Frame;
-            var total = DictationProbe.Difference(frames[^1].Frame, first, oldPixels);
+            var total = DictationProbe.Difference(selectedBefore, first, oldPixels);
             Assert.True(total > 3, "the old text comes back: " + total);
+            var highlightTotal = DictationProbe.Difference(selectedBefore, first, highlightPixels);
+            Assert.True(highlightTotal > 1, "the selection highlight comes back");
             foreach (var (t, frame) in frames.Where(f => f.T > 0 && f.T <= 0.22))
             {
                 var ink = DictationProbe.Difference(frame, first, oldPixels);
                 var expected = CssCurves.At(CssCurves.Ease, t, 0.22);
                 Assert.True(Math.Abs(ink / total - expected) < 0.06, $"the old text {t:F3} s after the words went: {ink / total:F3} of its ink, the .22 s ease says {expected:F3}");
+                var highlight = DictationProbe.Difference(frame, first, highlightPixels);
+                Assert.True(Math.Abs(highlight / highlightTotal - expected) < 0.06, $"the selection highlight at {t:F3} s: {highlight / highlightTotal:F3}, the .22 s ease says {expected:F3}");
             }
+            Assert.True(DictationProbe.Same(selectedBefore, frames[^1].Frame, oldPixels), $"the old text and its selection match the editor's original selected image before the hand-over (difference {DictationProbe.Difference(selectedBefore, frames[^1].Frame, oldPixels):F4})");
             // and nothing shows whole at once: no frame to frame difference, the hand-over included, is larger than the fades' own peak
             var peak = diffs.Max();
             Assert.True(handOverJump <= peak + 1e-9, $"the hand-over frame differs from the one before by {handOverJump:F2}, the fades' peak is {peak:F2}");
