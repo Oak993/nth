@@ -14,7 +14,7 @@ namespace Marrow.Services.Tests.Port.Skills.Providers;
 public sealed class SkillOverlaySessionTests
 {
     private static SwiftURL Url(string path) => SwiftURL.Create("marrow-native-path:" + path.Replace('\\', '/'))!;
-    private static SessionConfiguration Config(ProviderKind provider, string executable, string directory, Generation? skills, string? resume = null,
+    internal static SessionConfiguration Config(ProviderKind provider, string executable, string directory, Generation? skills, string? resume = null,
         ValueMap<string, string>? environment = null)
     {
         var config = new SessionConfiguration

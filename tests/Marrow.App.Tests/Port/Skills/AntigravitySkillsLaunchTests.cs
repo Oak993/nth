@@ -184,9 +184,9 @@ public sealed class AntigravitySkillsLaunchTests
     [Theory]
     [InlineData(null)]
     [InlineData("prior-cursor-chat")]
-    public void Cursor_new_and_resumed_launches_never_receive_an_automatic_generation(string? resume)
+    public void Devin_new_and_resumed_launches_never_receive_an_automatic_generation(string? resume)
     {
-        using var rig = new Sk17LaunchRig(ProviderKind.Cursor, resume);
+        using var rig = new Sk17LaunchRig(ProviderKind.Devin, resume);
         var session = Assert.IsType<Sk17FakeSession>(rig.Ensure());
         Assert.Null(session.Configuration.SkillGeneration);
         Assert.Empty(rig.Leases);

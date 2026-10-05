@@ -18,7 +18,7 @@ public sealed class Sk17LaunchRig : IDisposable
         var assembly = typeof(ThreadRuntime).Assembly;
         var factoryType = assembly.GetType("Marrow.App.Runtime.CliSessionFactory");
         Assert.NotNull(factoryType);
-        var skillsType = assembly.GetType("Marrow.App.Port.Skills.AntigravitySkills");
+        var skillsType = assembly.GetType(provider == ProviderKind.Cursor ? "Marrow.App.Port.Skills.CursorSkills" : "Marrow.App.Port.Skills.AntigravitySkills");
         Assert.NotNull(skillsType);
         RuntimeRig = new(provider, configure: t => t with { ProviderSessionID = resume }, install: false);
         Files = new();
@@ -37,7 +37,7 @@ public sealed class Sk17LaunchRig : IDisposable
         scopes.Add(prepare.Override(async (chat, directory) =>
         {
             PreparedDirectories.Add(directory);
-            var generation = generations.Start("agy", chat, [item], Files.Switches((item, true)), Files.Budget);
+            var generation = generations.Start(provider == ProviderKind.Cursor ? "cursor" : "agy", chat, [item], Files.Switches((item, true)), Files.Budget);
             Leases.Add(generation);
             if (PreparationGate is { } gate) await gate.Task;
             return generation;
