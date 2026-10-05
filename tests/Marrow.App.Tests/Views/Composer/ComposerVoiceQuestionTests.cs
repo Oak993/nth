@@ -233,10 +233,10 @@ public sealed class ComposerVoiceQuestionTests(HeadlessSession headless)
             Assert.All(seen.Take(12), s => Assert.True(s.Opacity > 0.99, "still showing for the first 0.22 s")); // 0.22 s = 13 frames
             Assert.True(seen[1].Picked > 0, "the answer lights first");
             Assert.True(seen[^1].Opacity < 1e-6 && !seen[^1].Open, "closed");
-            // the close: opacity .18 s ease and the motion back over .24 s ez, starting 0.22 s after the answer (up to two frames either way)
-            var fits = Enumerable.Range(11, 5).Where(start => seen.Select((s, i) =>
-                Math.Abs(s.Opacity - (1 - CssCurves.At(CssCurves.Ease, (i - start) * FrameTime, 0.18))) + Math.Abs(s.Progress - (1 - CssCurves.At(CssCurves.Ez, (i - start) * FrameTime, 0.24)))).Skip(start - 2).All(e => e < 3e-3)).ToList();
-            Assert.True(fits.Count > 0, "the close follows its curves from about 0.22 s: " + string.Join(", ", seen.Skip(10).Take(14).Select(s => s.Opacity.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))));
+            // the close: opacity .18 s ease and the motion back over .24 s ez, begun by the timer 0.22 s after the answer (the manual clock fires it at its due time; a frame either way is allowed)
+            var fits = new[] { 0.22, 0.22 - FrameTime, 0.22 + FrameTime }.Where(start => seen.Select((s, i) =>
+                Math.Abs(s.Opacity - (1 - CssCurves.At(CssCurves.Ease, i * FrameTime - start, 0.18))) + Math.Abs(s.Progress - (1 - CssCurves.At(CssCurves.Ez, i * FrameTime - start, 0.24)))).All(e => e < 3e-3)).ToList();
+            Assert.True(fits.Count > 0, "the close follows its curves from 0.22 s: " + string.Join(", ", seen.Skip(10).Take(14).Select(s => s.Opacity.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))));
             rig.Close(window);
         });
     }

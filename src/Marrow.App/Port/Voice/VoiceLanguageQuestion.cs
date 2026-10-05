@@ -166,7 +166,8 @@ internal sealed class VoiceLanguageQuestion : Panel
         opacityValue.To(1, LookCurve.Ease(0.18));
         progress.To(1, LookCurve.Ez(0.24));
         InvalidateMeasure();
-        buttons[0].Focus();
+        Apply(); // visible now, so the keyboard can land on English
+        if (!buttons[0].Focus()) Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (open && !buttons.Any(b => b.IsFocused)) buttons[0].Focus(); });
     }
 
     /// <summary>Closes the card now (Esc, a click outside, the orb again, the session left Asking): the close motion, nothing stored.</summary>

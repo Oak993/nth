@@ -58,7 +58,7 @@ public sealed class ComposerVoiceCleanLabelTests(HeadlessSession headless)
         });
     }
 
-    private static (int Width, int Height, bool[] Ink) Render(VoiceComposerRig rig, string words, string? name, double sweep, bool dark)
+    private static (int Width, int Height, bool[] Ink, int[] Strength) Render(VoiceComposerRig rig, string words, string? name, double sweep, bool dark)
     {
         var label = rig.Main.OnMain(() => new VoicePillLabel { Words = words, LanguageName = name, Sweep = sweep, Opacity = 1, Margin = new Thickness(8) });
         var host = rig.Main.OnMain(() => new Border { Child = label, Width = 260, Height = 40, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top });
@@ -68,15 +68,17 @@ public sealed class ComposerVoiceCleanLabelTests(HeadlessSession headless)
         var frame = rig.Main.OnMain(() => DictationProbe.Frame(window));
         var background = (frame.Bytes[(70 * frame.Stride) + 4 * 280], frame.Bytes[(70 * frame.Stride) + 4 * 280 + 1], frame.Bytes[(70 * frame.Stride) + 4 * 280 + 2]);
         var ink = new bool[frame.Size.Width * frame.Size.Height];
+        var strength = new int[frame.Size.Width * frame.Size.Height];
         for (var y = 0; y < Math.Min(60, frame.Size.Height); y++)
         for (var x = 0; x < Math.Min(270, frame.Size.Width); x++)
         {
             var at = y * frame.Stride + x * 4;
             var most = Math.Max(Math.Abs(frame.Bytes[at] - background.Item1), Math.Max(Math.Abs(frame.Bytes[at + 1] - background.Item2), Math.Abs(frame.Bytes[at + 2] - background.Item3)));
             ink[y * frame.Size.Width + x] = most > 24;
+            strength[y * frame.Size.Width + x] = most;
         }
         rig.Close(window);
-        return (frame.Size.Width, frame.Size.Height, ink);
+        return (frame.Size.Width, frame.Size.Height, ink, strength);
     }
 
     [Theory] // V-T131: the ink with the sweep lit matches the ink with it off within 1 px, descenders included, and nothing is painted where no text is
@@ -111,7 +113,7 @@ public sealed class ComposerVoiceCleanLabelTests(HeadlessSession headless)
                 for (var x = 0; x < w; x++)
                 {
                     if (lit.Ink[y * w + x]) Assert.True(Near(off.Ink, x, y), $"ink painted at ({x}, {y}) with the sweep at {position} where the text has none");
-                    if (off.Ink[y * w + x]) Assert.True(Near(lit.Ink, x, y), $"ink lost at ({x}, {y}) with the sweep at {position}: the sweep's clip cut a glyph");
+                    if (off.Ink[y * w + x]) Assert.True(Near(lit.Ink, x, y), $"ink lost at ({x}, {y}) with the sweep at {position}: the sweep's clip cut a glyph (off {off.Strength[y * w + x]}, lit {lit.Strength[y * w + x]})");
                 }
             }
         });
