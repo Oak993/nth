@@ -235,18 +235,19 @@ public sealed class FollowUpQueueTabDragTests(HeadlessSession headless)
             // At rest: no capsule, no shadow, no scale.
             Assert.Null(((Border)held.Child!).Background);
             Assert.Equal(default, ((Border)held.Child!).BoxShadow);
+            Assert.Null(held.LiftShadow);
 
             var start = Press(run, held);
             Drag(run, start, 10); // lifted, not yet over a neighbour's middle
             var lifted = (Border)held.Child!;
             Assert.Equal(Effective(Chrome.Overlay(0.12).Brush(run.Tab)), Effective(lifted.Background));
             Assert.True(lifted.CornerRadius.TopLeft >= 16, "a capsule");
-            Assert.Equal(1, lifted.BoxShadow.Count);
-            var shadow = lifted.BoxShadow[0];
-            Assert.Equal((10 - 0.5) / 0.288675, shadow.Blur, 6); // radius 10 drawn as sigma 10 (ED-327; measured by SwiftShadowHeadlessTests)
-            Assert.Equal(4, shadow.OffsetY);
-            Assert.Equal(0, shadow.OffsetX);
-            Assert.Equal(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), shadow.Color);
+            // ED-358 (was the capsule's BoxShadow of Blur (10 - 0.5) / 0.288675 at the colour's full 0.28, outside the box only): the
+            // row draws the capsule's own coverage under it, radius 10 (sigma 10, ED-327), y 4, black 0.28 times the fill's alpha (26 of 255): 7.
+            Assert.Equal(default, lifted.BoxShadow);
+            Assert.Equal((10d, 4d), (FollowUpRow.LiftShadowRadius, FollowUpRow.LiftShadowY));
+            Assert.Equal(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), held.LiftShadow);
+            Assert.Equal(Color.FromArgb(7, 0, 0, 0), held.DrawnLiftShadow);
             Assert.Equal(1, held.ZIndex);
             Assert.Equal(1.01, Surface(run, held).Width / heldHome.Width, 0.0005); // grows to 1.01
             Assert.Equal(heldHome.Center.X, Surface(run, held).Center.X, 0.5); // no indent yet
@@ -262,6 +263,7 @@ public sealed class FollowUpQueueTabDragTests(HeadlessSession headless)
             Assert.Equal(Effective(Chrome.Accent.Opacity(0.18).Brush(run.Tab)), Effective(lit.Background));
             Assert.True(lit.CornerRadius.TopLeft >= 16, "a capsule");
             Assert.Equal(default, lit.BoxShadow);
+            Assert.Null(target.LiftShadow); // the pair target's capsule casts none (:466-472)
             Assert.Equal(1.008, Surface(run, target).Width / targetHome.Width, 0.0005);
             Assert.Equal(targetHome.Center, Surface(run, target).Center);
             var frame = target.GetVisualDescendants().OfType<Border>().Single(border => border.IsVisible && border.BorderBrush is not null);
@@ -280,6 +282,8 @@ public sealed class FollowUpQueueTabDragTests(HeadlessSession headless)
             {
                 Assert.Null(((Border)row.Child!).Background);
                 Assert.Equal(default, ((Border)row.Child!).BoxShadow);
+                Assert.Null(row.LiftShadow); // ED-358: the row draws the held capsule's shadow itself, and only while held
+                Assert.Equal(default, row.DrawnLiftShadow);
                 Assert.Equal(0, row.ZIndex);
             }
             Assert.Equal(1.0, Surface(run, run.Rows[0]).Width / heldHome.Width, 0.0005);
@@ -318,6 +322,8 @@ public sealed class FollowUpQueueTabDragTests(HeadlessSession headless)
             {
                 Assert.Null(((Border)row.Child!).Background);
                 Assert.Equal(default, ((Border)row.Child!).BoxShadow);
+                Assert.Null(row.LiftShadow); // ED-358: the row draws the held capsule's shadow itself, and only while held
+                Assert.Equal(default, row.DrawnLiftShadow);
             }
             Release(run, start, 10);
             Assert.Equal(["r2", "r3"], Texts(run.Runtime));

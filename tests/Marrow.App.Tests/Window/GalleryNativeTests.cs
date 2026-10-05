@@ -64,6 +64,14 @@ public sealed class GalleryNativeTests(WindowManagerNativeSession native)
 
     [Fact]
     [Trait("Decision", "ED-236")]
+    public void Gallery_popover_glass_sites()
+    {
+        if (!GalleryRun.Enabled) return;
+        Capture(GalleryPopoverScenes.Sites, nameof(Gallery_popover_glass_sites));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-236")]
     public void Gallery_composer_model_picker_popover()
     {
         if (!GalleryRun.Enabled) return;

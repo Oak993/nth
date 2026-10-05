@@ -109,17 +109,16 @@ public sealed class FloatingSidebarPanelRig : IDisposable
     public Border Surface => Assert.Single(All<Border>(), border =>
         border.CornerRadius == new CornerRadius(22) && border.ClipToBounds && Marrow.UI.Port.SwiftGlass.GetEffect(border) is not null);
 
-    /// <summary>The backing plate behind the surface, the one that casts the shadow.</summary>
-    public Border Plate => Assert.Single(All<Border>(), border => border.CornerRadius == new CornerRadius(22) && border.BoxShadow.Count > 0);
+    /// <summary>The backing plate behind the surface, the one that casts the shadow (its caster's source, ED-358).</summary>
+    public Border Plate => Shadow.Source;
 
-    /// <summary>The one shadow the backing plate casts.</summary>
-    public BoxShadow Shadow
+    /// <summary>The one shadow the backing plate casts: its SwiftShadow.Caster, drawn under it (no Border carries a box shadow).</summary>
+    public Marrow.UI.Port.SwiftShadow.Caster Shadow
     {
         get
         {
-            var shadows = Plate.BoxShadow;
-            Assert.Equal(1, shadows.Count);
-            return shadows[0];
+            Assert.DoesNotContain(All<Border>(), border => border.BoxShadow.Count > 0);
+            return Assert.Single(All<Marrow.UI.Port.SwiftShadow.Caster>());
         }
     }
 

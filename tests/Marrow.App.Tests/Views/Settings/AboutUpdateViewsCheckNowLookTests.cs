@@ -108,7 +108,7 @@ public sealed class AboutUpdateViewsCheckNowLookTests(HeadlessSession headless)
         Assert.Equal("Checking…", label.Text);
         Assert.Equal(Chrome.PrimaryText.Opacity(0.3).Resolve(label.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(label.Foreground).Color); // video label (123,133,136) over (75,84,85): about 0.3 of white
         var effect = Assert.Single(row.GetVisualDescendants().OfType<Control>().Select(SwiftGlass.GetEffect).OfType<GlassEffect>());
-        Assert.False(effect.IsInteractive); Assert.Equal(0.11, effect.TintOpacity); // the video's grey fill is white at about 11 % over the backdrop
+        Assert.False(effect.IsInteractive); Assert.Equal(0.0, effect.TintOpacity); // ED-356: the video's grey fill (white at about 11 % over the old dark veil) is the material's own film now; the pixels are SmallAccentGlassButtonTests'
         Assert.Equal(Chrome.PrimaryText.Resolve(label.ActualThemeVariant), effect.TintColor!.Resolve(label.ActualThemeVariant));
         Assert.Equal("Checking…", AutomationProperties.GetName(button));
         window.Close();

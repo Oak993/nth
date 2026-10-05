@@ -440,18 +440,20 @@ public sealed class SubagentPanel : Decorator
             Height = size.Height,
             CornerRadius = new CornerRadius(CornerRadius),
         };
+        // :354 the shadow is the filled scrim's own coverage, cast at its fill's alpha and drawn under it, through it (ED-358).
+        var shadow = new SwiftShadow.Caster(scrim, Colors.Black, radius: 28, y: 10);
 
         void UpdateSurface()
         {
             var isDark = shape.ActualThemeVariant == ThemeVariant.Dark;
             shape.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(shape);
             scrim.Background = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(isDark ? 0.3 : 0.34).Brush(scrim);
-            scrim.BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), radius: 28, y: 10); // :354 (sigma 28, ED-327)
+            shadow.Set(Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), radius: 28, y: 10); // :354 (sigma 28, ED-327), cast by the 0.3 / 0.34 fill
         }
 
         UpdateSurface();
         shape.ActualThemeVariantChanged += (_, _) => UpdateSurface();
-        Child = new Grid { Children = { scrim, shape } }; // :345 .clipShape(shape), then :349 .background { scrim }
+        Child = new Grid { Children = { shadow, scrim, shape } }; // :345 .clipShape(shape), then :349 .background { scrim } (its shadow under it)
     }
 }
 

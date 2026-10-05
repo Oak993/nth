@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Styling;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Sidebar;
@@ -34,6 +35,15 @@ public sealed class RowGlideFlightTests(HeadlessSession headless)
     private static Rect Frame(double p) => new(Lerp(From.X, To.X, p), Lerp(From.Y, To.Y, p), Lerp(From.Width, To.Width, p), Lerp(From.Height, To.Height, p));
 
     private static double Lift(double p) => Math.Min(Smoothstep(0, 0.12, p), 1 - Smoothstep(0.7, 1, p));
+
+    // ED-358: the lift's shadow (:208, black 0.28 x lift, radius 10, y 4) is the filled shape's own coverage cast at the fill's alpha (the
+    // label colour's 0.85 x fill) and drawn under the fill, through it: its darkness along the ghost's middle column (the ghost's width covers the
+    // blur) at row y, for a ghost of fill `fill` in `frame`.
+    private static double Cast(double p, double fill, Rect frame, double y)
+    {
+        var alpha = SwiftShadow.Cast(Color.FromArgb((byte)Math.Round(0.28 * Lift(p) * 255), 0, 0, 0), Math.Round(0.85 * fill * 255) / 255).A / 255.0;
+        return alpha * GaussianEdge.Coverage(y + 0.5, frame.Y + 4, frame.Bottom + 4, 10, 1);
+    }
 
     private static bool IsGreen((int R, int G, int B) c) => c.G > c.R + 20 && c.G > c.B + 20;
 
@@ -233,7 +243,9 @@ public sealed class RowGlideFlightTests(HeadlessSession headless)
             time += step;
             var p = Progress(time);
             var frame = Frame(p);
-            AssertNear(255 * (1 - 0.85 * 0.12 * Lift(p)), rig.Snapshot().At((int)(frame.X + 120), (int)(frame.Y + 14)).R, 3);
+            // the fill over its own shadow (ED-358: the shadow is drawn under the fill, so it shows through it)
+            var y = (int)(frame.Y + 14);
+            AssertNear(255 * (1 - Cast(p, 0.12 * Lift(p), frame, y)) * (1 - 0.85 * 0.12 * Lift(p)), rig.Snapshot().At((int)(frame.X + 120), y).R, 3);
         }
     });
 
@@ -253,8 +265,14 @@ public sealed class RowGlideFlightTests(HeadlessSession headless)
         var lifted = rig.Snapshot();
         var below = lifted.At((int)(frame.X + 120), (int)(frame.Bottom + 3)).R;
         var above = lifted.At((int)(frame.X + 120), (int)(frame.Y - 4)).R;
-        Assert.True(below < 235, "the shadow shows below the row");
-        Assert.True(below + 8 < above, "and falls more below the row than above it (y offset 4)");
+        // ED-358: cast at the fill's alpha (0.28 x lift x 0.85 x 0.12 x lift; the colour's full 0.28 x lift drew 20 levels and more below
+        // the row): a few levels, more below the row than above it (y offset 4).
+        var p1 = Progress(0.1);
+        var (belowDesign, aboveDesign) = (255 * (1 - Cast(p1, 0.12 * Lift(p1), frame, (int)(frame.Bottom + 3))), 255 * (1 - Cast(p1, 0.12 * Lift(p1), frame, (int)(frame.Y - 4))));
+        Assert.True(belowDesign < 253.5, $"the instrument: the design casts {255 - belowDesign:F1} levels below the row");
+        AssertNear(belowDesign, below, 1.5);
+        AssertNear(aboveDesign, above, 1.5);
+        Assert.True(below < above, "the shadow falls more below the row than above it (y offset 4)");
         AssertNear(255, lifted.At((int)(frame.X + 120), (int)(frame.Bottom + 40)).R, 1);
 
         rig.Step(0.35); // landed
@@ -273,8 +291,10 @@ public sealed class RowGlideFlightTests(HeadlessSession headless)
         rig.Step(0.1); // p is 0.30: the ghost spans y 130 to 158, x 10 to 250
         var shot = rig.Snapshot();
 
-        AssertNear(255 * (1 - 0.85 * 0.3), shot.At(100, 140).R, 3); // inside the list: drawn
-        AssertNear(255 * (1 - 0.85 * 0.3), shot.At(130, 140).R, 3);
+        // inside the list: drawn, the fill over its own shadow (ED-358: drawn under the fill, through it)
+        var under = 255 * (1 - Cast(0.3, 0.3, new Rect(10, 130, 240, 28), 140)) * (1 - 0.85 * 0.3);
+        AssertNear(under, shot.At(100, 140).R, 3);
+        AssertNear(under, shot.At(130, 140).R, 3);
         AssertColour((255, 255, 255), shot.At(100, 153), 1); // inside the ghost but below the list's bottom edge: clipped away
         AssertColour((255, 255, 255), shot.At(100, 156), 1); // and so is its shadow
         AssertColour((255, 255, 255), shot.At(210, 140), 1); // right of the list's edge
