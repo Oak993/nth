@@ -32,6 +32,10 @@ internal static class WorkingDotsColor
         _ => Chrome.Accent,
     };
 
+    /// <summary>CZ-10.4: the colour the composer of a thread wears: the app's workingDots setting and the thread's provider brand, read inside a tracked read so a change of either reaches the composer.</summary>
+    internal static SwiftColor For(AppModel model, Guid threadID) =>
+        Of(model.Settings.WorkingDots, MakerOf(EffortBrand.Create(model.Thread(threadID)?.Provider)));
+
     /// <summary>CZ-10.4 <c>Resolve(settings, maker, theme)</c>: <see cref="Of"/> drawn in the appearance.</summary>
     internal static Color Resolve(WorkingDotsSettings settings, string? maker, ThemeVariant theme) => Of(settings, maker).Resolve(theme);
 
