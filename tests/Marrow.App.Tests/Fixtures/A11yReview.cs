@@ -1,5 +1,3 @@
-using System.Linq.Expressions;
-using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -10,11 +8,9 @@ using Avalonia.VisualTree;
 
 namespace Marrow.App.Tests.Fixtures;
 
-// Review support only. Reflection keeps the review branch buildable on the requested baseline;
-// staged-only tests require the fetched feature branches and fail explicitly if their fixture is absent.
+// Headless support for the staging accessibility regressions. Pending-surface helpers stay on the review branch.
 internal static class A11yReview
 {
-    private const BindingFlags Members = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
     // Headless Linux cannot resolve Windows system-family names or $Default. Map them to
     // the same bundled release fonts that WithSwiftFonts already registers. Production is untouched.
@@ -30,28 +26,6 @@ internal static class A11yReview
     });
 
     public static IEnumerable<Control> Tree(Control root) => root.GetVisualDescendants().OfType<Control>().Prepend(root);
-
-    public static object Get(object owner, string name) => owner.GetType().GetProperty(name, Members)!.GetValue(owner)!;
-
-    public static object? Call(object owner, string name, params object?[] args) =>
-        owner.GetType().GetMethods(Members).Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(owner, args);
-
-    public static Type PendingFixture(string name) => typeof(HeadlessSession).Assembly.GetType("Marrow.App.Tests.Fixtures." + name)
-        ?? throw new InvalidOperationException($"Review prerequisite: {name} requires its pending feature branch. See review-a11y-1.md; this is not a reproduced accessibility assertion.");
-
-    public static void Skills(HeadlessSession headless, Action<object> check)
-    {
-        var run = PendingFixture("LibraryPageHarness").GetMethod("Run", Members)!;
-        var parameters = run.GetParameters();
-        var rig = Expression.Parameter(parameters[2].ParameterType.GenericTypeArguments[0]);
-        var callback = Expression.Lambda(parameters[2].ParameterType,
-            Expression.Invoke(Expression.Constant(check), Expression.Convert(rig, typeof(object))), rig).Compile();
-        var args = parameters.Select(p => p.HasDefaultValue ? p.DefaultValue : null).ToArray();
-        args[0] = headless;
-        args[1] = Enum.Parse(parameters[1].ParameterType, "Skills");
-        args[2] = callback;
-        run.Invoke(null, args);
-    }
 
     public static byte[] Pixels(Avalonia.Controls.Window window)
     {
@@ -74,8 +48,6 @@ internal static class A11yReview
         var after = Pixels(window);
         Assert.False(before.SequenceEqual(after), "Keyboard focus changed no rendered pixel: the control has no visible focus indicator.");
     }
-
-    public static Control Id(Control root, string id) => Tree(root).Single(c => AutomationProperties.GetAutomationId(c) == id);
 
     public static void HasLiveText(Control root, string expected)
     {

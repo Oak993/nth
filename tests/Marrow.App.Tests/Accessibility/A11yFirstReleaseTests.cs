@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -27,6 +28,11 @@ public sealed class A11yFirstReleaseTests(HeadlessSession headless)
         rig.Do(() =>
         {
             var toggle = A11yReview.Tree(rig.Page).OfType<SmallSwitch>().First(c => c.IsEffectivelyEnabled && c.IsEffectivelyVisible);
+            // The unscrolled rig's first switch starts at y=944, below its 900 px viewport. Capture the actual
+            // switch and its ring (production Settings uses a ScrollViewer), without changing the focus assertion.
+            rig.Window.Height = Math.Max(rig.Window.Height, toggle.TranslatePoint(default, rig.Window)!.Value.Y + toggle.Bounds.Height + 20);
+            rig.Window.UpdateLayout();
+            Assert.True(new Avalonia.Rect(rig.Window.Bounds.Size).Contains(new Avalonia.Rect(toggle.TranslatePoint(default, rig.Window)!.Value, toggle.Bounds.Size)));
             A11yReview.VisibleFocus(rig.Window, toggle);
         });
     });
