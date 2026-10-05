@@ -110,7 +110,7 @@ public sealed class SkillsHostCompositionTests
     }
 
     [Fact]
-    public async Task Opening_collects_the_residue_of_an_install_that_stopped()
+    public async Task The_startup_collection_removes_the_residue_of_an_install_that_stopped()
     {
         using var rig = new PipelineRig(skillset: true, disclosure: true, root: SkillsHostRig.FreshRoot());
         await rig.Create();
@@ -118,12 +118,14 @@ public sealed class SkillsHostCompositionTests
         Directory.CreateDirectory(residue);
         File.WriteAllText(Path.Combine(residue, "half.txt"), "an install that stopped");
         using var host = SkillsHost.Open(rig.Paths.Root, SkillsHostRig.Options(rig, rig.Old));
+        Assert.True(Directory.Exists(residue), "Open must not collect: the GC is off the launch path");
+        await host.CollectInBackground();
         Assert.False(Directory.Exists(residue));
         Assert.Equal(ItemState.Installed, host.Pipeline.State.Get("fixture").State);
     }
 
     [Fact]
-    public async Task Opening_finishes_a_reset_that_was_cut_short()
+    public async Task The_startup_collection_finishes_a_reset_that_was_cut_short()
     {
         using var rig = new PipelineRig(skillset: true, disclosure: true, root: SkillsHostRig.FreshRoot());
         await rig.Create();
@@ -135,6 +137,7 @@ public sealed class SkillsHostCompositionTests
         File.WriteAllText(Path.Combine(bin, "python.exe"), "a shim a held handle kept");
         File.WriteAllText(Path.Combine(rig.Paths.Skills, "reset-pending"), "");
         using var reopened = SkillsHost.Open(rig.Paths.Root, SkillsHostRig.Options(rig, rig.Old));
+        await reopened.CollectInBackground();
         Assert.False(Directory.Exists(bin));
         Assert.False(File.Exists(Path.Combine(rig.Paths.Skills, "reset-pending")));
     }

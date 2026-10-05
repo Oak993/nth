@@ -8,6 +8,7 @@ namespace Marrow.Services.Tests.Port.Skills.Host;
 [Trait("Feature", "SK-13")]
 [Trait("Spec", "ED-326")]
 [Trait("Rule", "R-TEST-9")]
+[Trait("Review", "SK-13")]
 [Collection("Dev data root env")]
 public sealed class REVIEW_SkillsHostGcTests
 {
@@ -23,6 +24,7 @@ public sealed class REVIEW_SkillsHostGcTests
             Assert.True(Directory.Exists(folder));
         }
         using var second = SkillsHost.Open(rig.Paths.Root, SkillsHostRig.Options(rig, rig.Old));
+        await second.CollectInBackground(); // the startup GC no longer runs inside Open (it runs in the background after the window shows)
         Assert.True(Directory.Exists(folder), "the second launch's GC deleted the tree the first launch promised to leave in place");
     }
 }

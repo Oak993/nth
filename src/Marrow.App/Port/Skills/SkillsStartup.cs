@@ -22,8 +22,7 @@ internal static class SkillsStartup
             (publish ?? SkillsSeams.Host.SetProcessDefault)(host);
             return host;
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or ArgumentException or System.Text.Json.JsonException
-            or Marrow.Core.Port.Skills.State.StateFormatException or Marrow.Core.Port.Skills.Catalogue.CatalogueFormatException)
+        catch (Exception error) when (error is not (OutOfMemoryException or StackOverflowException or AccessViolationException or AppDomainUnloadedException))
         {
             Log.Error("skills: the host could not be opened, so the skills and tools features are off for this run: " + error.Message);
             return null;
