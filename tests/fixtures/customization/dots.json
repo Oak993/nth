@@ -1,0 +1,6487 @@
+{
+ "source": "porting/first-release/design-src/customization/cz.js",
+ "colours": [
+  {
+   "mode": "model",
+   "maker": "Claude",
+   "dark": true,
+   "hex": "#b95d3a"
+  },
+  {
+   "mode": "model",
+   "maker": "OpenAI",
+   "dark": true,
+   "hex": "#fafcff"
+  },
+  {
+   "mode": "model",
+   "maker": "Gemini",
+   "dark": true,
+   "hex": "#8c65ba"
+  },
+  {
+   "mode": "model",
+   "maker": "DeepSeek",
+   "dark": true,
+   "hex": "#3852e5"
+  },
+  {
+   "mode": "model",
+   "maker": "Grok",
+   "dark": true,
+   "hex": "#63646b"
+  },
+  {
+   "mode": "model",
+   "maker": "NVIDIA",
+   "dark": true,
+   "hex": "#5c8500"
+  },
+  {
+   "mode": "model",
+   "maker": "Meta",
+   "dark": true,
+   "hex": "#0062d1"
+  },
+  {
+   "mode": "model",
+   "maker": "Mistral",
+   "dark": true,
+   "hex": "#c5015e"
+  },
+  {
+   "mode": "model",
+   "maker": "Qwen",
+   "dark": true,
+   "hex": "#6345de"
+  },
+  {
+   "mode": "model",
+   "maker": "Kimi",
+   "dark": true,
+   "hex": "#54687e"
+  },
+  {
+   "mode": "model",
+   "maker": "Cursor",
+   "dark": true,
+   "hex": "#dc4500"
+  },
+  {
+   "mode": "model",
+   "maker": "OpenCode",
+   "dark": true,
+   "hex": "#0ea242"
+  },
+  {
+   "mode": "model",
+   "maker": "OpenCodeGo",
+   "dark": true,
+   "hex": "#0093b9"
+  },
+  {
+   "mode": "model",
+   "maker": "Zai",
+   "dark": true,
+   "hex": "#3c5eb0"
+  },
+  {
+   "mode": "model",
+   "maker": "Devin",
+   "dark": true,
+   "hex": "#2cab8c"
+  },
+  {
+   "mode": "model",
+   "maker": "Copilot",
+   "dark": true,
+   "hex": "#bf4ca3"
+  },
+  {
+   "mode": "model",
+   "maker": "CommandCode",
+   "dark": true,
+   "hex": "#704fc7"
+  },
+  {
+   "mode": "model",
+   "maker": "Pi",
+   "dark": true,
+   "hex": "#bf1838"
+  },
+  {
+   "mode": "model",
+   "maker": "MiniMax",
+   "dark": true,
+   "hex": "#e7388c"
+  },
+  {
+   "mode": "model",
+   "maker": "Tencent",
+   "dark": true,
+   "hex": "#4359bf"
+  },
+  {
+   "mode": "model",
+   "maker": "Cohere",
+   "dark": true,
+   "hex": "#bf7fcf"
+  },
+  {
+   "mode": "model",
+   "maker": "Microsoft",
+   "dark": true,
+   "hex": "#ea104a"
+  },
+  {
+   "mode": "model",
+   "maker": "Perplexity",
+   "dark": true,
+   "hex": "#80586b"
+  },
+  {
+   "mode": "model",
+   "maker": "NousResearch",
+   "dark": true,
+   "hex": "#626a4e"
+  },
+  {
+   "mode": "model",
+   "maker": "AWS",
+   "dark": true,
+   "hex": "#6a8097"
+  },
+  {
+   "mode": "model",
+   "maker": "AI21",
+   "dark": true,
+   "hex": "#b8118e"
+  },
+  {
+   "mode": "model",
+   "maker": "Inflection",
+   "dark": true,
+   "hex": "#506579"
+  },
+  {
+   "mode": "model",
+   "maker": "LiquidAI",
+   "dark": true,
+   "hex": "#8d7161"
+  },
+  {
+   "mode": "model",
+   "maker": "Baidu",
+   "dark": true,
+   "hex": "#2255dd"
+  },
+  {
+   "mode": "model",
+   "maker": "Arcee",
+   "dark": true,
+   "hex": "#00bfc3"
+  },
+  {
+   "mode": "custom",
+   "custom": "windows",
+   "dark": true,
+   "hex": "#4b9ffc"
+  },
+  {
+   "mode": "custom",
+   "custom": "blue",
+   "dark": true,
+   "hex": "#4f9dff"
+  },
+  {
+   "mode": "custom",
+   "custom": "purple",
+   "dark": true,
+   "hex": "#d47cd5"
+  },
+  {
+   "mode": "custom",
+   "custom": "pink",
+   "dark": true,
+   "hex": "#ff63a9"
+  },
+  {
+   "mode": "custom",
+   "custom": "red",
+   "dark": true,
+   "hex": "#ff6c6b"
+  },
+  {
+   "mode": "custom",
+   "custom": "orange",
+   "dark": true,
+   "hex": "#f7821b"
+  },
+  {
+   "mode": "custom",
+   "custom": "yellow",
+   "dark": true,
+   "hex": "#ffc600"
+  },
+  {
+   "mode": "custom",
+   "custom": "green",
+   "dark": true,
+   "hex": "#62ba46"
+  },
+  {
+   "mode": "custom",
+   "custom": "teal",
+   "dark": true,
+   "hex": "#40c8e0"
+  },
+  {
+   "mode": "custom",
+   "custom": "graphite",
+   "dark": true,
+   "hex": "#9c9c9c"
+  },
+  {
+   "mode": "custom",
+   "custom": "ocean",
+   "dark": true,
+   "hex": "#00a9d4"
+  },
+  {
+   "mode": "custom",
+   "custom": "denim",
+   "dark": true,
+   "hex": "#979ab6"
+  },
+  {
+   "mode": "custom",
+   "custom": "indigo",
+   "dark": true,
+   "hex": "#948fff"
+  },
+  {
+   "mode": "custom",
+   "custom": "lilac",
+   "dark": true,
+   "hex": "#ad92bd"
+  },
+  {
+   "mode": "custom",
+   "custom": "orchid",
+   "dark": true,
+   "hex": "#e298c6"
+  },
+  {
+   "mode": "custom",
+   "custom": "rose",
+   "dark": true,
+   "hex": "#d9969b"
+  },
+  {
+   "mode": "custom",
+   "custom": "coral",
+   "dark": true,
+   "hex": "#ff9b7e"
+  },
+  {
+   "mode": "custom",
+   "custom": "bronze",
+   "dark": true,
+   "hex": "#c89152"
+  },
+  {
+   "mode": "custom",
+   "custom": "sage",
+   "dark": true,
+   "hex": "#86a481"
+  },
+  {
+   "mode": "custom",
+   "custom": "alpine",
+   "dark": true,
+   "hex": "#53ac8f"
+  },
+  {
+   "mode": "custom",
+   "custom": "mint",
+   "dark": true,
+   "hex": "#59d6b9"
+  },
+  {
+   "mode": "custom",
+   "custom": "slate",
+   "dark": true,
+   "hex": "#aabcd4"
+  },
+  {
+   "mode": "model",
+   "maker": "Claude",
+   "dark": false,
+   "hex": "#b95d3a"
+  },
+  {
+   "mode": "model",
+   "maker": "OpenAI",
+   "dark": false,
+   "hex": "#aaacb0"
+  },
+  {
+   "mode": "model",
+   "maker": "Gemini",
+   "dark": false,
+   "hex": "#8c65ba"
+  },
+  {
+   "mode": "model",
+   "maker": "DeepSeek",
+   "dark": false,
+   "hex": "#324ce4"
+  },
+  {
+   "mode": "model",
+   "maker": "Grok",
+   "dark": false,
+   "hex": "#06060b"
+  },
+  {
+   "mode": "model",
+   "maker": "NVIDIA",
+   "dark": false,
+   "hex": "#5c8500"
+  },
+  {
+   "mode": "model",
+   "maker": "Meta",
+   "dark": false,
+   "hex": "#0062d1"
+  },
+  {
+   "mode": "model",
+   "maker": "Mistral",
+   "dark": false,
+   "hex": "#c5015e"
+  },
+  {
+   "mode": "model",
+   "maker": "Qwen",
+   "dark": false,
+   "hex": "#4c18c6"
+  },
+  {
+   "mode": "model",
+   "maker": "Kimi",
+   "dark": false,
+   "hex": "#54687e"
+  },
+  {
+   "mode": "model",
+   "maker": "Cursor",
+   "dark": false,
+   "hex": "#dc4500"
+  },
+  {
+   "mode": "model",
+   "maker": "OpenCode",
+   "dark": false,
+   "hex": "#0ea242"
+  },
+  {
+   "mode": "model",
+   "maker": "OpenCodeGo",
+   "dark": false,
+   "hex": "#0093b9"
+  },
+  {
+   "mode": "model",
+   "maker": "Zai",
+   "dark": false,
+   "hex": "#07215b"
+  },
+  {
+   "mode": "model",
+   "maker": "Devin",
+   "dark": false,
+   "hex": "#2cab8c"
+  },
+  {
+   "mode": "model",
+   "maker": "Copilot",
+   "dark": false,
+   "hex": "#bf4ca3"
+  },
+  {
+   "mode": "model",
+   "maker": "CommandCode",
+   "dark": false,
+   "hex": "#240087"
+  },
+  {
+   "mode": "model",
+   "maker": "Pi",
+   "dark": false,
+   "hex": "#b10025"
+  },
+  {
+   "mode": "model",
+   "maker": "MiniMax",
+   "dark": false,
+   "hex": "#e7388c"
+  },
+  {
+   "mode": "model",
+   "maker": "Tencent",
+   "dark": false,
+   "hex": "#3447b1"
+  },
+  {
+   "mode": "model",
+   "maker": "Cohere",
+   "dark": false,
+   "hex": "#bf7fcf"
+  },
+  {
+   "mode": "model",
+   "maker": "Microsoft",
+   "dark": false,
+   "hex": "#ea104a"
+  },
+  {
+   "mode": "model",
+   "maker": "Perplexity",
+   "dark": false,
+   "hex": "#80586b"
+  },
+  {
+   "mode": "model",
+   "maker": "NousResearch",
+   "dark": false,
+   "hex": "#626a4e"
+  },
+  {
+   "mode": "model",
+   "maker": "AWS",
+   "dark": false,
+   "hex": "#6a8097"
+  },
+  {
+   "mode": "model",
+   "maker": "AI21",
+   "dark": false,
+   "hex": "#b8118e"
+  },
+  {
+   "mode": "model",
+   "maker": "Inflection",
+   "dark": false,
+   "hex": "#3c5166"
+  },
+  {
+   "mode": "model",
+   "maker": "LiquidAI",
+   "dark": false,
+   "hex": "#8d7161"
+  },
+  {
+   "mode": "model",
+   "maker": "Baidu",
+   "dark": false,
+   "hex": "#002bc3"
+  },
+  {
+   "mode": "model",
+   "maker": "Arcee",
+   "dark": false,
+   "hex": "#00bfc3"
+  },
+  {
+   "mode": "custom",
+   "custom": "windows",
+   "dark": false,
+   "hex": "#0067c0"
+  },
+  {
+   "mode": "custom",
+   "custom": "blue",
+   "dark": false,
+   "hex": "#006de6"
+  },
+  {
+   "mode": "custom",
+   "custom": "purple",
+   "dark": false,
+   "hex": "#953d96"
+  },
+  {
+   "mode": "custom",
+   "custom": "pink",
+   "dark": false,
+   "hex": "#d2277f"
+  },
+  {
+   "mode": "custom",
+   "custom": "red",
+   "dark": false,
+   "hex": "#d72e37"
+  },
+  {
+   "mode": "custom",
+   "custom": "orange",
+   "dark": false,
+   "hex": "#b35900"
+  },
+  {
+   "mode": "custom",
+   "custom": "yellow",
+   "dark": false,
+   "hex": "#9a6800"
+  },
+  {
+   "mode": "custom",
+   "custom": "green",
+   "dark": false,
+   "hex": "#2e8300"
+  },
+  {
+   "mode": "custom",
+   "custom": "teal",
+   "dark": false,
+   "hex": "#007d91"
+  },
+  {
+   "mode": "custom",
+   "custom": "graphite",
+   "dark": false,
+   "hex": "#727272"
+  },
+  {
+   "mode": "custom",
+   "custom": "ocean",
+   "dark": false,
+   "hex": "#2a6686"
+  },
+  {
+   "mode": "custom",
+   "custom": "denim",
+   "dark": false,
+   "hex": "#3c447e"
+  },
+  {
+   "mode": "custom",
+   "custom": "indigo",
+   "dark": false,
+   "hex": "#5341bd"
+  },
+  {
+   "mode": "custom",
+   "custom": "lilac",
+   "dark": false,
+   "hex": "#82679b"
+  },
+  {
+   "mode": "custom",
+   "custom": "orchid",
+   "dark": false,
+   "hex": "#733e67"
+  },
+  {
+   "mode": "custom",
+   "custom": "rose",
+   "dark": false,
+   "hex": "#a85966"
+  },
+  {
+   "mode": "custom",
+   "custom": "coral",
+   "dark": false,
+   "hex": "#9c5345"
+  },
+  {
+   "mode": "custom",
+   "custom": "bronze",
+   "dark": false,
+   "hex": "#7f4a00"
+  },
+  {
+   "mode": "custom",
+   "custom": "sage",
+   "dark": false,
+   "hex": "#647852"
+  },
+  {
+   "mode": "custom",
+   "custom": "alpine",
+   "dark": false,
+   "hex": "#005136"
+  },
+  {
+   "mode": "custom",
+   "custom": "mint",
+   "dark": false,
+   "hex": "#007c6d"
+  },
+  {
+   "mode": "custom",
+   "custom": "slate",
+   "dark": false,
+   "hex": "#5c687d"
+  }
+ ],
+ "cases": [
+  {
+   "wd": "accent",
+   "wdc": "blue",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "windows",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "teal",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "slate",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "blue",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "windows",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "teal",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "slate",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "blue",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "windows",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "teal",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "slate",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "blue",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "windows",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "teal",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "accent",
+   "wdc": "slate",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Your accent colour, as the rest of Marrow",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "true"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "blue",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: Claude",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "windows",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: Claude",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "teal",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: Claude",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "slate",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: Claude",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "blue",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: OpenAI",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "windows",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: OpenAI",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "teal",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: OpenAI",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "slate",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: OpenAI",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "blue",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: NVIDIA",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "windows",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: NVIDIA",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "teal",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: NVIDIA",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "slate",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: NVIDIA",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "blue",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: OpenCode Go",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "windows",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: OpenCode Go",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "teal",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: OpenCode Go",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "model",
+   "wdc": "slate",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "The colour of the model in use: OpenCode Go",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "true"
+     },
+     {
+      "t": "Custom",
+      "on": "false"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": true,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "blue",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Blue",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "windows",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Windows accent",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "teal",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Teal",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "slate",
+   "maker": "Claude",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Slate",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "blue",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Blue",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "windows",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Windows accent",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "teal",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Teal",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "slate",
+   "maker": "OpenAI",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Slate",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "blue",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Blue",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "windows",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Windows accent",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "teal",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Teal",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "slate",
+   "maker": "NVIDIA",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Slate",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "blue",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Blue",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "true"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "windows",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Windows accent",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "true"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "teal",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Teal",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "true"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "false"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  },
+  {
+   "wd": "custom",
+   "wdc": "slate",
+   "maker": "OpenCodeGo",
+   "title": "Working dots",
+   "segment": {
+    "t": "Dot colour",
+    "d": "Slate",
+    "label": "Dot colour",
+    "opts": [
+     {
+      "t": "Accent",
+      "on": "false"
+     },
+     {
+      "t": "Model colour",
+      "on": "false"
+     },
+     {
+      "t": "Custom",
+      "on": "true"
+     }
+    ]
+   },
+   "swatches": {
+    "t": "Custom dot colour",
+    "fold": false,
+    "classic": [
+     {
+      "name": "Windows accent",
+      "on": "false"
+     },
+     {
+      "name": "Blue",
+      "on": "false"
+     },
+     {
+      "name": "Purple",
+      "on": "false"
+     },
+     {
+      "name": "Pink",
+      "on": "false"
+     },
+     {
+      "name": "Red",
+      "on": "false"
+     },
+     {
+      "name": "Orange",
+      "on": "false"
+     },
+     {
+      "name": "Yellow",
+      "on": "false"
+     },
+     {
+      "name": "Green",
+      "on": "false"
+     },
+     {
+      "name": "Teal",
+      "on": "false"
+     },
+     {
+      "name": "Graphite",
+      "on": "false"
+     }
+    ],
+    "signature": [
+     {
+      "name": "Ocean",
+      "on": "false"
+     },
+     {
+      "name": "Denim",
+      "on": "false"
+     },
+     {
+      "name": "Indigo",
+      "on": "false"
+     },
+     {
+      "name": "Lilac",
+      "on": "false"
+     },
+     {
+      "name": "Orchid",
+      "on": "false"
+     },
+     {
+      "name": "Rose",
+      "on": "false"
+     },
+     {
+      "name": "Coral",
+      "on": "false"
+     },
+     {
+      "name": "Bronze",
+      "on": "false"
+     },
+     {
+      "name": "Sage",
+      "on": "false"
+     },
+     {
+      "name": "Alpine",
+      "on": "false"
+     },
+     {
+      "name": "Mint",
+      "on": "false"
+     },
+     {
+      "name": "Slate",
+      "on": "true"
+     }
+    ]
+   },
+   "note": "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn."
+  }
+ ]
+}
