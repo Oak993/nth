@@ -538,7 +538,7 @@ public sealed class ComposerViewBlitzListTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-053")] // App/Views/Composer/ComposerView.swift:228-237; App/Views/Composer/ComposerTextView.swift:130-134
-    [Trait("Rule", "R-TEST-4")] // A click landing inside the open panel (IsPointerOverPopup) needs a real popup window: NATIVE-ONLY. Focus leaving for another control: Focus_leaving_for_a_control_outside_the_panel_...
+    [Trait("Rule", "R-TEST-4")] // A click landing inside the open panel (IsPointerOverPopup) needs a real popup window: ComposerSuggestionsNativeTests. Focus leaving for another control: Focus_leaving_for_a_control_outside_the_panel_...
     public void Losing_focus_while_a_refresh_is_still_searching_cancels_it_so_it_cannot_put_the_list_back()
     {
         headless.OnUiThread(() =>

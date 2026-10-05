@@ -329,6 +329,7 @@ namespace Marrow.UI.Chrome
         private readonly Panel group = new(); // :225 Group
         private double opacity;
         private IImage? wallpaper;
+        private readonly bool overAppContent;
         private Base? drawn;
         private Control? baseView;
         private Image? picture;
@@ -338,11 +339,15 @@ namespace Marrow.UI.Chrome
 
         /// <param name="opacity">:205 <c>let opacity: Double</c>.</param>
         /// <param name="wallpaper">:207 <c>var wallpaper: NSImage? = nil</c>.</param>
+        /// <param name="overAppContent">PORT-ONLY (OD-0005 (b), ED-NEW-rec-composer): the backdrop lies over the app's own window, not the desktop
+        /// (the scripts sheet's <c>.presentationBackground</c>, ChatView.swift:1459-1463), so its glass is the app's material, which frosts what
+        /// the window drew under it, instead of the window's Acrylic.</param>
         // :217-272 body
-        public WindowBackdrop(double opacity, IImage? wallpaper = null)
+        public WindowBackdrop(double opacity, IImage? wallpaper = null, bool overAppContent = false)
         {
             this.opacity = opacity;
             this.wallpaper = wallpaper;
+            this.overAppContent = overAppContent;
             var tint = Shape();
             tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-254)
             // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
@@ -486,12 +491,14 @@ namespace Marrow.UI.Chrome
             wallpaperOverlay = null;
             // :252-254 `shape.fill(.clear).glassEffect(in: shape)`: with no wallpaper the window shows the desktop, and
             // there the glass is the window's own Acrylic (OD-0005, ADR-0002 Glass (a), OD-0014), so the app paints
-            // the source scrim over native Acrylic, with no desktop sampling or app frost on the window base.
+            // the source scrim over native Acrylic, with no desktop sampling or app frost on the window base. A backdrop over
+            // the app's own content (the scripts sheet's) has the app's window under it, where OD-0005 (b) calls for the
+            // app-drawn material: its glass layer is the material's.
             scrim = Shape();
             scrim.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(scrim); // :256-257
-            var desktopGlass = GlassLayer();
-            SwiftGlass.SetUsesDesktopBackdrop(desktopGlass, true); // OD-0014 keeps upstream's clear default.
-            return new Panel { Children = { desktopGlass, scrim } }; // :255 .overlay
+            var glass = GlassLayer();
+            if (!overAppContent) SwiftGlass.SetUsesDesktopBackdrop(glass, true); // OD-0014 keeps upstream's clear default.
+            return new Panel { Children = { glass, scrim } }; // :255 .overlay
         }
     }
 

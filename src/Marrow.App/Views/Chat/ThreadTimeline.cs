@@ -68,8 +68,6 @@ public sealed class ThreadTimeline : Decorator
     private ThreadRuntime? ownerRuntime;
     private Action? redraw;
     private Action<string?, string?, bool, double, bool>? updateInputs;
-    private Action<TimeSpan>? scrollFrame;
-    private IFrameSource? scrollFrames;
     private TaskHandle? initialHistoryTask; // :594-607
     private bool initialHistoryStarted;
     // :363,436-441. Own the scroll presenter, as SidebarView does, rather than depending on a themed template.
@@ -123,8 +121,8 @@ public sealed class ThreadTimeline : Decorator
             AppEnvironment.GetAppModel(this).SelectedThreadID = headID; return true;
         });
         // :134-144 `if runtime.isLoadingHistory { Color.clear } else if blocks.isEmpty && !runtime.isRunning { NewThreadPrompt } else { timeline }`: the branch on show is one child of
-        // this host. A swap between the prompt and the timeline crossfades (OD-0076: the Mac swaps them in one frame; ED-255 (3)); the loading mark's are cuts, as the
-        // Mac's (a thread opens in one frame, CATALOGUE.md C 164.452-164.640; ThreadTimelineTests STOP #10).
+        // this host. A swap between the prompt and the timeline crossfades (OD-0076: the Mac swaps them in one frame; ED-255 (3)). The loading mark hands over in about
+        // 0.2 s, where the Mac opens a thread in one frame (CATALOGUE.md C 164.452-164.640): it fades out while what the thread shows fades and rises in (OD-0105 (1)).
         branches = new BranchHost(() => EnvironmentValues.GetAccessibilityReduceMotion(this)); Child = branches;
         void Draw()
         {
@@ -193,8 +191,10 @@ public sealed class ThreadTimeline : Decorator
                     laidOutRows[block.Id] = row;
                     wanted.Add((row, made && !hadIdentity && !comesWhole)); // a view made again for an id that stood takes its place: no arrival
                 }
-                // Rows whose blocks left the window or the thread leave at once (:339 removal: .identity, whatever a row's own transition says).
-                foreach (var gone in rowViews.Keys.Except(laidOutRows.Keys).ToArray()) { stale.Add(rowViews[gone].Row); rowViews.Remove(gone); }
+                // Rows whose blocks left the window or the thread: :339 removes them as .identity, whatever a row's own transition says (the Mac cuts). OD-0105 (1), OD-0076:
+                // the rows that leave in one pass fold shut together in 0.3 s (RowFold), on screen; under Reduce Motion, or with the timeline not on show, they go at once.
+                var folds = new List<Control>(); var foldsShut = !comesWhole && TimelineOnShow && !EnvironmentValues.GetAccessibilityReduceMotion(this);
+                foreach (var gone in rowViews.Keys.Except(laidOutRows.Keys).ToArray()) { (foldsShut ? folds : stale).Add(rowViews[gone].Row); rowViews.Remove(gone); }
                 // :338 `.onDisappear { tracking.setVisible(block.id, false) }`: only for a row that leaves; the rows that stay report themselves as they cross the viewport's edge.
                 foreach (var gone in shownBefore) if (!laidOutRows.ContainsKey(gone)) tracking.SetVisible(gone, false);
                 foreach (var request in runtime.Questions)
@@ -211,9 +211,20 @@ public sealed class ThreadTimeline : Decorator
                     // :396 .transition(.softAppear): an answered question's badge leaves with a quick fade where it stood (one answered while the timeline had gone is not in the one that comes back).
                     (comesWhole ? stale : leaving).Add(questionViews[gone].Row); questionViews.Remove(gone);
                 }
+                // A row whose place a new row takes in this pass (the running turn's line handed to the turn that began) is replaced, not folded: it goes at once, as
+                // before, and the new one arrives with its own transition; only rows that leave with nothing in their place fold shut.
+                var oldOrder = rows.Children.Where(view => !leavingViews.Contains(view)).ToList();
+                var arrivingAt = wanted.Select((entry, index) => (entry, index)).Where(pair => !rows.Children.Contains(SwiftTransition.Container(pair.entry.View))).Select(pair => pair.index).ToHashSet();
+                foreach (var row in folds)
+                {
+                    var container = SwiftTransition.Container(row);
+                    if (arrivingAt.Contains(oldOrder.IndexOf(container))) rows.Children.Remove(container);
+                    else FoldShut(rows, container);
+                }
                 foreach (var row in stale) rows.Children.Remove(SwiftTransition.Container(row));
                 foreach (var row in leaving) SwiftTransition.Remove(rows, row);
                 leavingViews.RemoveWhere(view => !rows.Children.Contains(view)); foreach (var row in leaving) if (rows.Children.Contains(SwiftTransition.Container(row))) leavingViews.Add(SwiftTransition.Container(row));
+
                 for (var index = 0; index < wanted.Count; index++)
                 {
                     var (view, arrives) = wanted[index]; var container = SwiftTransition.Container(view); var slot = SlotOf(rows, index); var at = rows.Children.IndexOf(container);
@@ -250,6 +261,7 @@ public sealed class ThreadTimeline : Decorator
                     tracking.HoldEnd(1.5);
                     scroll = new ScrollViewer { Template = TimelineScrollTemplate, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
                     currentScroll = scroll; initialAnchorApplied = false;
+                    SoftScroll.SetIsEnabled(scroll, true); // OD-0071 (ED-246, ED-NEW-rec-composer): eased wheel steps, momentum, a soft settle at the ends
                     scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); if (drawnColumn is { } current) current.MinHeight = viewportHeight; paneWidth = scroll.Bounds.Width; RefreshLayoutWidth(); }; // :446-450
                     var oldMetrics = new ScrollMetrics();
                     scroll.ScrollChanged += (_, change) =>
@@ -275,6 +287,9 @@ public sealed class ThreadTimeline : Decorator
                     // :335-338,380-382,404-409 onScrollVisibilityChange reports whenever a view crosses its threshold, whatever moved it: a scroll, a row
                     // arriving, the pane resizing. A layout pass is the port's moment for all of them (a short thread growing past its window never scrolls).
                     scroll.LayoutUpdated += (_, _) => ReportVisibility(scroll);
+                    // :463-485 .onScrollPhaseChange. ED-246: the shared soft scrolling reports the phases a touchpad stroke,
+                    // its coast and a programmatic animation go through; a wheel reports none, as on the Mac (:466-467).
+                    scroll.AddHandler(SoftScroll.PhaseChangedEvent, (_, change) => NotePhase(change.Phase));
                     scrollOverlay = new Grid { Children = { scroll } };
                 }
                 var oldOffset = scroll.Offset;
@@ -326,7 +341,7 @@ public sealed class ThreadTimeline : Decorator
             inputs = (runtime, scrollChrome, scrollState, nextProject, nextDirectory, nextRewind, nextHeight, nextMinimap);
             Draw();
         };
-        DetachedFromVisualTree += (_, _) => { initialHistoryTask?.Cancel(); initialHistoryTask = null; initialHistoryStarted = false; tracking.EndActivity(); if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; };
+        DetachedFromVisualTree += (_, _) => { initialHistoryTask?.Cancel(); initialHistoryTask = null; initialHistoryStarted = false; tracking.EndActivity(); };
         this.Track(() => scrollState.JumpRequest, _ => { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; EndWithAnimation(scrollState.JumpRequest == 0 ? null : Animation.Smooth(0.35)); });
         this.Track(() => runtime.IsRunning, running => { if (seenRunning is { } previous && previous != running) NoteTurnChange(running, runtime.AutoStartedTurnToken); seenRunning = running; });
         this.Track(() => scrollState.AreaGrowthRequest, _ => { if (scrollState.AreaGrowthRequest != 0) ComposerGrew(AppEnvironment.GetWindowLiveResize(this).IsActive); });
@@ -341,7 +356,7 @@ public sealed class ThreadTimeline : Decorator
         this.Track(() => tracking.CheckRequest, request => { if (seenCheck is { } previous && previous != request) { tracking.ReportActivity(runtime.ThreadID); RepairLayout(); } seenCheck = request; });
         // :59-67 layoutWidth is read by the body, which runs again when the reshape starts or ends, when the pane's width moves (onGeometryChange,
         // :450) and while the sidebar slides: the stepped width follows all of them, and the exact width lands when the drag ends (:454-457).
-        this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { RefreshLayoutWidth(); if (!active) SettleAfterResize(); else if (scrollFrame is not null) { scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; } });
+        this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { RefreshLayoutWidth(); if (!active) SettleAfterResize(); else if (currentScroll is { } resizing) SoftScroll.StopAnimation(resizing); });
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsSliding, sliding => { if (sliding) paneWidthAtSlideStart = paneWidth; RefreshLayoutWidth(); }); // :458-462
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.SlideDelta, _ => RefreshLayoutWidth());
     }
@@ -371,6 +386,25 @@ public sealed class ThreadTimeline : Decorator
     }
 
     // Where the live-th view that is not on its way out belongs in the stack (the badges fading out stand in it still, and are no part of its order).
+    // OD-0105 (1): "rows that leave together fold shut together, in about 0.3 s". ENGINEERING DECISION: the height closes from the row's own to nothing and the row
+    // fades with it, on the ease-out of the timeline's other swaps at that length; the rows of one pass start in the same frame, so they move as one. A folding row
+    // stands in the stack in nobody's order (leavingViews), takes no input and is taken out once shut.
+    internal static Animation RowFold => Animation.EaseOut(duration: 0.3);
+    private void FoldShut(StackPanel rows, Control container)
+    {
+        if (!rows.Children.Contains(container)) return;
+        var height = container.Bounds.Height;
+        if (height <= 0) { rows.Children.Remove(container); return; }
+        container.IsHitTestVisible = false; container.ClipToBounds = true; container.Height = height; container.VerticalAlignment = VerticalAlignment.Top;
+        leavingViews.Add(container);
+        var fold = new AnimatedDouble(open =>
+        {
+            container.Height = height * open; container.Opacity = open;
+            if (open <= 0) { rows.Children.Remove(container); leavingViews.Remove(container); }
+        });
+        fold.Set(1, null); fold.Set(0, RowFold);
+    }
+
     private int SlotOf(StackPanel rows, int live)
     {
         var seen = 0;
@@ -526,12 +560,18 @@ public sealed class ThreadTimeline : Decorator
     /// ENGINEERING DECISION (OD-0076, ED-255 (3)): the branches of the body (:134-144) as the layers of one host. The branch on show is <see cref="On"/>; a swap between the
     /// prompt and the timeline (the Mac swaps them in one frame, the first message sent and a turn that ends with nothing said alike) fades the branch that leaves out where it stood while the one that
     /// comes in fades in (the prompt's own appear, NewThreadPrompt.swift:50-53, is its fade-in), over 0.3 s on the ease-out of that appear, on the frame clock. A swap turned back part way goes on from
-    /// the opacity each layer has. The system's reduce-motion setting stills it, and a swap that involves the loading mark is a cut (a thread opens in one frame; ThreadTimelineTests STOP #10).
+    /// the opacity each layer has. The system's reduce-motion setting stills it. OD-0105 (1), the owner's pick for the loading mark's hand-over (the Mac opens a thread in one frame):
+    /// the mark fades out while the branch that comes in fades and rises in, together, over 0.2 s on the same ease-out (HandOver); the rise is the 4 points of the
+    /// rows' soft appear (Chrome.swift:938-955). The prompt comes in with its own appear and the mark fades out under it. A swap to the loading mark stays a cut (the mark draws
+    /// nothing for its first 400 ms, ED-097; the ruling names the hand-over from it).
     /// A layer that is leaving takes no input and is taken out of the tree when it is gone.
     /// </summary>
     private sealed class BranchHost : Panel
     {
         private static Animation Fade => Animation.EaseOut(duration: 0.3);
+        // OD-0105 (1): "in about 0.2 s"; ENGINEERING DECISION: the ease-out of the other branch swaps, at that length.
+        internal static Animation HandOver => Animation.EaseOut(duration: 0.2);
+        internal const double HandOverRise = 4; // Chrome.swift:938-955 softAppear's offset(y: 4)
         private readonly Func<bool> stilled;
         private readonly Dictionary<Control, AnimatedDouble> fades = [];
         private readonly HashSet<Control> leaving = [];
@@ -549,12 +589,31 @@ public sealed class ThreadTimeline : Decorator
         {
             if (ReferenceEquals(On, next)) return;
             var previous = On; On = next;
-            if (previous is null || previous is LoadingMark || next is LoadingMark || stilled()) { Cut(next); return; }
+            if (previous is null || next is LoadingMark || stilled()) { Cut(next); return; }
+            if (previous is LoadingMark) { HandOverFrom(previous, next, fadesIn); return; }
             var back = Children.Contains(next); // a layer that was leaving, turned back
             Leave(previous);
             if (!back) { next.Opacity = fadesIn ? 0 : 1; Children.Add(next); }
             leaving.Remove(next); next.IsHitTestVisible = true;
             if (fadesIn || back) Animate(next, 1);
+        }
+
+        // OD-0105 (1): the mark fades out while `next` fades and rises in (a branch with its own appear, the prompt, comes in with it), together on one curve.
+        private void HandOverFrom(Control mark, Control next, bool fadesIn)
+        {
+            foreach (var layer in Children.ToArray()) if (!ReferenceEquals(layer, next) && !ReferenceEquals(layer, mark)) Drop(layer);
+            Leave(mark, HandOver);
+            Stop(next); leaving.Remove(next); next.IsHitTestVisible = true;
+            if (!Children.Contains(next)) Children.Add(next);
+            if (!fadesIn) { next.Opacity = 1; return; }
+            var rise = new TranslateTransform(0, HandOverRise);
+            next.RenderTransform = rise; next.Opacity = 0;
+            var arrival = new AnimatedDouble(progress =>
+            {
+                next.Opacity = progress; rise.Y = HandOverRise * (1 - progress);
+                if (progress >= 1 && ReferenceEquals(next.RenderTransform, rise)) next.RenderTransform = null;
+            });
+            arrival.Set(0, null); arrival.Set(1, HandOver);
         }
 
         private void Cut(Control next)
@@ -564,19 +623,19 @@ public sealed class ThreadTimeline : Decorator
             if (!Children.Contains(next)) Children.Add(next);
         }
 
-        private void Leave(Control layer)
+        private void Leave(Control layer, Animation? curve = null)
         {
             layer.IsHitTestVisible = false; leaving.Add(layer);
-            Animate(layer, 0);
+            Animate(layer, 0, curve);
         }
 
         // The layer's opacity goes to <paramref name="target"/> from where it is now. A leaving layer is taken out when it has gone.
-        private void Animate(Control layer, double target)
+        private void Animate(Control layer, double target, Animation? curve = null)
         {
             if (!fades.TryGetValue(layer, out var fade))
                 fades[layer] = fade = new AnimatedDouble(value => { layer.Opacity = value; if (value <= 0 && leaving.Contains(layer)) Drop(layer); });
             var isLeaving = leaving.Remove(layer); fade.Set(layer.Opacity, null); if (isLeaving) leaving.Add(layer); // primed with the opacity it has: the motion goes on from there
-            fade.Set(target, Fade);
+            fade.Set(target, curve ?? Fade);
         }
 
         private void Stop(Control layer)
@@ -605,14 +664,28 @@ public sealed class ThreadTimeline : Decorator
     private void FollowEnd() { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; EndWithAnimation(Transaction.Current); NoteScrollMovement(); }
     private void SnapEnd() => EndWithAnimation(null);
     private void EndWithAnimation(Animation? animation) { if (currentScroll is { } scroll) ScrollTo(new Vector(scroll.Offset.X, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)), animation); }
-    // :242-252. Avalonia offsets are not SwiftUI state; run the source curve on the shared frame clock.
+    // :242-252. Avalonia offsets are not SwiftUI state; the source curve runs on the shared soft scrolling (ED-246), which
+    // the reader's own wheel or touchpad takes over from, and which an unanimated move sets at once. The curve is followed
+    // exactly to its duration, as before ED-246 here (ED-NEW-rec-composer: ED-246 (4)'s run-out spring is not ruled on for it).
     private void ScrollTo(Vector target, Animation? animation)
     {
-        if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null;
-        if (currentScroll is not { } scroll) return; if (animation is null) { scroll.Offset = target; return; }
-        var origin = scroll.Offset; var started = SwiftClock.Now; scrollFrames = FrameClock.Source.Current;
-        Action<TimeSpan>? frame = null; frame = _ => { var elapsed = (SwiftClock.Now - started).TotalSeconds; var complete = elapsed >= animation.Duration; var progress = complete ? 1 : animation.Progress(elapsed); scroll.Offset = origin + (target - origin) * progress; if (complete) scrollFrame = null; else scrollFrames.RequestFrame(frame!); };
-        scrollFrame = frame; scrollFrames.RequestFrame(frame);
+        if (currentScroll is { } scroll) SoftScroll.ScrollTo(scroll, target, animation, runsOut: false);
+    }
+    // :463-485
+    private void NotePhase(ScrollPhase phase)
+    {
+        tracking.NotePhase(phase switch { ScrollPhase.Interacting => "interacting", ScrollPhase.Decelerating => "decelerating", ScrollPhase.Animating => "animating", _ => "idle" });
+        if (phase == ScrollPhase.Interacting) NoteScrollMovement(); else LiftScrollFreeze();
+        if (phase != ScrollPhase.Idle) return;
+        if (tracking.RepairSkippedWhileScrolling) { tracking.RepairSkippedWhileScrolling = false; tracking.ArmBlankWatch(); }
+        if (tracking.RefreshSkippedWhileScrolling) { tracking.RefreshSkippedWhileScrolling = false; tracking.ArmViewportRefresh(); }
+    }
+    // :747-752
+    private void LiftScrollFreeze()
+    {
+        tracking.SettleWatch?.Cancel(); tracking.SettleWatch = null;
+        if (tracking.IsReaderScrolling) tracking.IsReaderScrolling = false;
+        if (ownerRuntime is not null) tracking.ReportActivity(ownerRuntime.ThreadID);
     }
     // :727-745
     private void NoteScrollMovement()
@@ -626,7 +699,13 @@ public sealed class ThreadTimeline : Decorator
     {
         tracking.NoteGeometry(next.Offset, next.DistanceFromBottom, next.Travel);
         if (next.CenterY != old.CenterY && next.ContentHeight == old.ContentHeight && !tracking.IsCoasting) NoteScrollMovement();
-        var anchorMove = anchorsBottomOnGrowth ? next.ContentHeight - old.ContentHeight : 0; var readerMoved = Math.Abs(next.Offset - old.Offset - anchorMove) > 1;
+        var anchorMove = anchorsBottomOnGrowth ? next.ContentHeight - old.ContentHeight : 0;
+        // :511 `> 1`: one Mac wheel step moves the view by many points at once. The port's soft scrolling (ED-246) spreads a step over the
+        // frames of its glide, whose last ones move under a point: while the reader's own wheel or touchpad glides the view (not a
+        // programmatic animation), any movement is the reader's, or a pinned reader one notch up was taken for drift and snapped back
+        // to the end (ED-NEW-rec-composer).
+        var readerGlide = currentScroll is { } gliding && SoftScroll.IsScrolling(gliding) && SoftScroll.For(gliding).Phase != ScrollPhase.Animating;
+        var readerMoved = Math.Abs(next.Offset - old.Offset - anchorMove) > (readerGlide ? 0.001 : 1);
         if (readerMoved) tracking.NoteReaderMovement(); var scrolled = tracking.IsUserScrolling || (!tracking.IsArriving && readerMoved && next.ContainerHeight == old.ContainerHeight && !tracking.IsCoasting); var atRest = !tracking.IsUserScrolling && !tracking.IsCoasting;
         if (atRest && !scrolled) { var shrink = Math.Max(0, old.ContentHeight - next.ContentHeight); var drift = Math.Abs(next.Offset - old.Offset - anchorMove); if (tracking.NoteDrift(shrink + drift, JumpTolerance(viewportHeight))) tracking.ArmViewportRefresh(); if (shrink > 1) tracking.ArmBlankWatch(); } else if (scrolled) tracking.ResetDrift();
         if (next.DistanceFromBottom < -1 && atRest && (next.ContentHeight != old.ContentHeight || next.ContainerHeight != old.ContainerHeight)) MainActor.Post(SnapEnd);

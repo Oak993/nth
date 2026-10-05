@@ -41,7 +41,7 @@
       "typography": "Inherited; every font inside is Font.chat(style), the plain system text style with no separate chat zoom (DroppyCode/UI/Common/ChatFont.swift:6-10); each text style takes its ED-059 size (B1:DroppyCode/UI/Common/ChatZoom.swift:47-54), in Inter, and in Cascadia Mono where the design is .monospaced (OD-0009)",
       "colors": "No background of its own; the window backdrop shows through",
       "states": [
-        "loading history: renders a transparent zero-content view only",
+        "loading history: renders a transparent zero-content view only (DEVIATION OD-0016 / ED-097: the port draws the animated loading mark there, blank for its first 400 ms; OD-0105 (1): the mark fades out while the rows fade and rise in, in about 0.2 s, where the Mac shows the thread in one frame)",
         "empty and idle: replaced by the new-thread prompt, and the chrome travel is zeroed and the jump button hidden",
         "empty and running: renders the timeline with a working block",
         "short thread: rows rest at the bottom of the pane"
@@ -56,7 +56,7 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:436-440",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:325-341"
       ],
-      "notes": "The column width and padding are shared with the composer so messages line up with its edges. contentTopInset must be computed from its three parts, not hard-coded, even though it equals veilHeight by coincidence. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
+      "notes": "The column width and padding are shared with the composer so messages line up with its edges. contentTopInset must be computed from its three parts, not hard-coded, even though it equals veilHeight by coincidence. OD-0013 (the live-resize edge strip of probe P4 must be fixed) is closed by OD-0017: every resizable window uses `stretch` (ED-101), which removes the shrink clips and lowers the moving grow-edge strip from 2.54 % to 0.16 % of samples; the DWM type B frame (one frame, 3 to 9 px of what is behind the window) and the one-frame scaled frames that remain are a named deviation in the final report. OD-0071: the timeline scrolls softly (ED-246). OD-0105 (1): rows that leave together fold shut together, in about 0.3 s, where the Mac removes them at once (:339). OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "b2_change": "Typography: B1 fonts were `Font.chat(style, zoom:)` at the chat zoom (B1 ChatView.swift:123) -> B2 `Font.chat(style)` with no zoom (ChatFont.swift:6). Rows are built by the extracted row(_:rewindable:) (B2 ThreadTimeline.swift:325-341) with RowContext chronological false. The scroll content moved from B1 :323-408 to B2 :359-425; geometry and colours are unchanged."
     },
     {
@@ -2189,7 +2189,7 @@
         "DroppyCode/App/Views/Composer/ComposerTextView.swift:249 textContainerInset = NSSize(width: 0, height: 2); :360-376 updateHeight, total = ceil(max(18, contentHeight) + textContainerInset.height * 2)",
         "DroppyCode/App/Views/Composer/ComposerView.swift:157-158 the source comment (44); :552-564 the column's textHeight starts at 20 and is clamped to at least 20"
       ],
-      "notes": "The dots must be inside the glass content, not a sibling background: a glass view renders above ordinary siblings and would cover them."
+      "notes": "The dots must be inside the glass content, not a sibling background: a glass view renders above ordinary siblings and would cover them. The r 22 corner on the 46 point pill is drawn as the circular arc the reference video measures (ED-275 (2); OD-0102 keeps the composer as measured), not the continuous curve the source names."
     },
     {
       "area": "COMPOSER",
