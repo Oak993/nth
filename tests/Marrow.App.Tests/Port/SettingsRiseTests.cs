@@ -206,7 +206,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
     // colour at every step, and the end.
     [Fact]
     [Trait("Decision", "ED-249")]
-    [Trait("Decision", "OD-0075")]
+    [Trait("Decision", "ED-338")] // implements owner decision OD-0075
     public void The_windows_corners_fade_in_with_the_glass_not_as_a_hard_square_corner() => WithManager((_, manager) =>
     {
         using var rig = new SettingsRiseRig();

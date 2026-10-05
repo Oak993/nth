@@ -76,7 +76,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
         rig.Do(() => rig.Page.Aura!.Speed.Slider.SetValue(22.5));
         rig.Do(() => rig.Page.StyleCards!.Select("off"));
         var open = rig.Get(() => rig.Page.Sticky.Children.OfType<CzSection>().Where(s => s.Open).ToList());
-        Assert.Equal([rig.Page.Off, rig.Page.Voice!.Section, rig.Page.Dots!.Section], open);
+        Assert.Equal([rig.Page.Off!, rig.Page.Voice!.Section, rig.Page.Dots!.Section], open);
         Assert.Null(rig.Page.Off!.Title);
         var note = Assert.IsType<CzNoteRow>(Assert.Single(rig.Page.Off.Rows.Slots).Row);
         Assert.Equal("The composer has no light. Your Border beam and Uiverse light settings are kept for when you turn one back on.", note.Text.Text);
