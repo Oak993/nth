@@ -3,6 +3,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Generations;
+using Marrow.Services.Port.Skills.Import;
 using Marrow.Services.Port.Skills.Install;
 using Marrow.Services.Port.Skills.Pipelines;
 using Marrow.Services.Port.Skills.Store;
@@ -25,13 +26,14 @@ public sealed class SkillsHost : IDisposable
     private bool disposed;
     private Task? collection;
 
-    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, TermsStep terms,
+    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, ImportedSkillsLibrary imported, TermsStep terms,
         Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? downloads, IReadOnlyList<string> unrestored)
     {
         this.key = key;
         Paths = paths;
         Pipeline = pipeline;
         Generations = generations;
+        Imported = imported;
         Terms = terms;
         GuardedDownloads = downloads;
         Unrestored = unrestored;
@@ -44,6 +46,9 @@ public sealed class SkillsHost : IDisposable
 
     /// <summary>The per-chat generations, bound to <see cref="Pipeline"/>.</summary>
     public SkillGenerations Generations { get; }
+
+    /// <summary>SK-18 (OD-0118): the skills the user brought in from other apps. Their files live beside, not inside, the managed trees, so Reset skills and tools leaves them; the generations hand them out.</summary>
+    public ImportedSkillsLibrary Imported { get; }
 
     public TermsStep Terms { get; }
 
@@ -93,9 +98,10 @@ public sealed class SkillsHost : IDisposable
         var guarded = options.Downloads is null ? null : TermsGate.Guard(() => pipeline!.State, options.Downloads);
         pipeline = new SkillsPipeline(paths, options.Catalogue, trust.Versions, AddonsState.Empty, new ItemInstaller(options.InstallLock, options.InstallProcess), options.Protection,
             options.Deletion, guarded, options.Bindings, trustedDirectories: trust.Directories);
-        var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource);
+        var imported = new ImportedSkillsLibrary(paths.Skills, options.Clock ?? TimeProvider.System);
+        var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource, imported);
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        return new SkillsHost(paths.Root, paths, pipeline, generations, terms, guarded, trust.Unrestored);
+        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, terms, guarded, trust.Unrestored);
     }
 
     /// <summary>

@@ -37,6 +37,7 @@ public static class ImportWords
     public const string Replace = "Replace";
     public const string Skip = "Skip";
     public const string ApplyToRest = "Do this for the rest";
+    public const string CouldNotSave = "Marrow couldn\u2019t save the imported skills. Nothing was changed.";
 
     // ---- the result
     public const string Importing = "Importing…";

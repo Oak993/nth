@@ -29,7 +29,7 @@ public sealed class ImportedSkillsLibraryTests
         Assert.Equal(("pdf-tools", ForeignApp.ClaudeCode, ImportMode.Copy, true), (imported.Name, imported.App, imported.Mode, imported.Enabled));
         Assert.Equal(before, ForeignHome.Fingerprint(home.Home));
         var files = library.Snapshot().Single().Files;
-        Assert.Equal(["SKILL.md", "references/guide.md", "scripts/run.sh"], files.Keys.Order());
+        Assert.Equal(["SKILL.md", "references/guide.md", "scripts/run.sh"], files.Keys.Order(StringComparer.Ordinal));
         Assert.Equal("GUIDE", Encoding.UTF8.GetString(files["references/guide.md"]));
         Assert.All(Directory.EnumerateFiles(home.SkillsRoot, "*", SearchOption.AllDirectories), f => Assert.Contains("imported", f, StringComparison.Ordinal));
     }
@@ -172,7 +172,7 @@ public sealed class ImportedSkillsLibraryTests
         Assert.Equal((ForeignApp.Codex, "Codex's way.", false), (now.App, now.Description, now.Enabled));
         Assert.Empty(library.Snapshot());
         library.SetEnabled(now.Id, true);
-        Assert.Equal(["SKILL.md", "new.txt"], library.Snapshot().Single().Files.Keys.Order());
+        Assert.Equal(["SKILL.md", "new.txt"], library.Snapshot().Single().Files.Keys.Order(StringComparer.Ordinal));
         Assert.Single(Directory.GetDirectories(Path.Combine(home.SkillsRoot, "imported", "copies")));
     }
 
