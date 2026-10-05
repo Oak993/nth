@@ -43,12 +43,11 @@ public sealed class ComposerViewComponentsTests(HeadlessSession headless)
     {
         using var harness = Harness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
-        ComposerControls controls = null!; Avalonia.Controls.Window window = null!;
+        ComposerAttachButton controls = null!; Avalonia.Controls.Window window = null!; // the attachment button moved out of ComposerControls (V-14.1, owner-ruled)
         var state = new ObservableBoolBox();
         harness.Main.OnMain(() =>
         {
-            controls = new ComposerControls(harness.Runtime, harness.Thread, true, true, false, false, null,
-                new Binding<bool>(() => state.Value, value => state.Value = value), _ => { }, () => { }, () => { });
+            controls = new ComposerAttachButton(ComposerAttachPlace.Inside, true, new Binding<bool>(() => state.Value, value => state.Value = value), _ => { }, () => { });
             window = Show(controls, harness.App);
         });
         try
@@ -83,8 +82,7 @@ public sealed class ComposerViewComponentsTests(HeadlessSession headless)
         using var harness = Harness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
         harness.Main.OnMain(() =>
         {
-            var controls = new ComposerControls(harness.Runtime, harness.Thread, compact, false, false, false, null,
-                Binding<bool>.Constant(false), _ => { }, () => { }, () => { });
+            var controls = new ComposerControls(harness.Runtime, harness.Thread, compact, false, false, null, () => { });
             var window = Show(controls, harness.App);
             try
             {

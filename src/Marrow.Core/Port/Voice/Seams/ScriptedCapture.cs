@@ -55,6 +55,7 @@ public sealed class ScriptedCapture : IAudioCapture
     {
         if (sink is null) return;
         FramesDelivered += interleavedSamples.Length / Format.Channels;
+        sink.OnAudioBlock(Format, interleavedSamples); // the processing thread's tap, which a scripted capture runs on its caller's
         sink.OnAudio(interleavedSamples);
     }
 

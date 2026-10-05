@@ -1,5 +1,6 @@
 // PORT-ONLY, owner-ruled addition (OD-0091, OD-0092, OD-0097, OD-0099; first-release voice typing, VT-3): the state machine of one
 // composer's voice input (voice-SPEC V-15).
+using Marrow.Core.Port.Voice.Dsp;
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Core.Port.Voice.Transcript;
 
@@ -29,6 +30,7 @@ public sealed class VoiceSession : IAudioCaptureSink
     private readonly VoiceSeamSet seams;
     private readonly VoiceSessionHub hub;
     private readonly SpeechLabel label = new();
+    private readonly AudioLevelMeter meter = new();
 
     private VoiceSessionState state = VoiceSessionState.Rest;
     private VoiceSessionSettings? active;
@@ -102,6 +104,12 @@ public sealed class VoiceSession : IAudioCaptureSink
     /// <summary>The VAD's speech state now (V-6.2): on at p &gt;= 0.5, off after 100 ms below 0.35.</summary>
     public bool InSpeech => state == VoiceSessionState.Listening && inSpeech;
 
+    /// <summary>
+    /// The raw level and bands of the audio being listened to (V-5.3), published from the processing thread at 60 Hz of the signal (VT-11, for the orb and the glow, which smooth them
+    /// with <see cref="LevelFollowers"/> on the UI thread, V-5.5). The values come from the processing thread, but this property reads the session's state, which is UI-thread only: read it on the UI thread (the meter's own <c>Latest</c> is the any-thread part); zero outside Listening.
+    /// </summary>
+    public LevelBands AudioLevel => state == VoiceSessionState.Listening ? meter.Latest : LevelBands.Zero;
+
     /// <summary>Q-V-6 B: true from 270 s of listening until the cap at 300 s.</summary>
     public bool CapCountdownActive => state == VoiceSessionState.Listening && countdownActive;
 
@@ -115,6 +123,12 @@ public sealed class VoiceSession : IAudioCaptureSink
             return left > TimeSpan.Zero ? left : TimeSpan.Zero;
         }
     }
+
+    /// <summary>The error that ended the session in a note (VT-17: what the note's words are chosen from): a capture, load or engine exception; null when none was raised.</summary>
+    public Exception? FailureCause { get; private set; }
+
+    /// <summary>The last device event the capture reported while listening (V-4.4); null when none.</summary>
+    public CaptureDeviceEventKind? LastDeviceEvent { get; private set; }
 
     public event Action<VoiceSessionState, VoiceSessionState>? StateChanged;
 
@@ -222,6 +236,9 @@ public sealed class VoiceSession : IAudioCaptureSink
         }
     }
 
+    /// <summary>The capture's processing-thread tap (V-2.2): the block goes to the level meter, off the UI thread, allocating nothing.</summary>
+    public void OnAudioBlock(CaptureFormat captureFormat, ReadOnlySpan<float> interleavedSamples) => meter.Feed(captureFormat, interleavedSamples);
+
     /// <summary>Capture delivers interleaved float samples in the started format (main executor).</summary>
     public void OnAudio(ReadOnlySpan<float> interleavedSamples)
     {
@@ -240,6 +257,7 @@ public sealed class VoiceSession : IAudioCaptureSink
     public void OnDeviceEvent(CaptureDeviceEventKind kind)
     {
         if (state != VoiceSessionState.Listening) return;
+        LastDeviceEvent = kind;
         if (kind == CaptureDeviceEventKind.InUse) Fail(VoiceNoteKind.CaptureFailed);
         else Stop(VoiceStopReason.DeviceEvent);
     }
@@ -284,6 +302,7 @@ public sealed class VoiceSession : IAudioCaptureSink
 
     private void StartListening(VoiceSessionSettings current, LanguageResolution resolved)
     {
+        LastDeviceEvent = null;
         Teardown();
         sendTimer?.Cancel();
         landingTimer?.Cancel();
@@ -308,6 +327,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         detectedLanguage = null;
         suppressSend = false;
         lastStop = null;
+        FailureCause = null;
         lastAddAt = null;
         label.Reset();
         pending.Clear();
@@ -317,14 +337,15 @@ public sealed class VoiceSession : IAudioCaptureSink
         zeroChecked = false;
         countdownActive = false;
         seams.Vad.Reset();
+        meter.Reset(); // the last session's level is not this one's; no capture is feeding it now
         try
         {
             format = seams.Capture.Start(this);
             captureRunning = true;
         }
-        catch (Exception)
+        catch (Exception error)
         {
-            Fail(VoiceNoteKind.CaptureFailed);
+            Fail(VoiceNoteKind.CaptureFailed, error);
             return;
         }
         loadWait = hub.EnsureLoaded(seams.Engine, model);
@@ -341,7 +362,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         var wait = loadWait;
         _ = MainActor.Spawn(async () =>
         {
-            if (!await wait && gen == generation && state is VoiceSessionState.Listening or VoiceSessionState.Processing) Fail(VoiceNoteKind.ModelLoadFailed);
+            if (!await wait && gen == generation && state is VoiceSessionState.Listening or VoiceSessionState.Processing) Fail(VoiceNoteKind.ModelLoadFailed, hub.LoadFailure);
         });
     }
 
@@ -442,9 +463,9 @@ public sealed class VoiceSession : IAudioCaptureSink
             catch (OperationCanceledException)
             {
             }
-            catch (Exception)
+            catch (Exception error)
             {
-                if (gen == generation && state == VoiceSessionState.Listening) Fail(VoiceNoteKind.EngineFailed);
+                if (gen == generation && state == VoiceSessionState.Listening) Fail(VoiceNoteKind.EngineFailed, error);
             }
             finally
             {
@@ -524,9 +545,9 @@ public sealed class VoiceSession : IAudioCaptureSink
             catch (OperationCanceledException)
             {
             }
-            catch (Exception)
+            catch (Exception error)
             {
-                if (gen == generation && state == VoiceSessionState.Processing) Fail(VoiceNoteKind.EngineFailed);
+                if (gen == generation && state == VoiceSessionState.Processing) Fail(VoiceNoteKind.EngineFailed, error);
             }
         });
     }
@@ -605,8 +626,9 @@ public sealed class VoiceSession : IAudioCaptureSink
         });
     }
 
-    private void Fail(VoiceNoteKind note)
+    private void Fail(VoiceNoteKind note, Exception? cause = null)
     {
+        FailureCause = cause;
         Teardown();
         StopCapture();
         shown = [];
