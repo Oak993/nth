@@ -1093,9 +1093,15 @@ internal static class GlassMaterial
         if (under is { } taken)
         {
             using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
-            using var blurPaint = new SKPaint { ImageFilter = blur };
             using var pixels = taken.Surface.Snapshot(); // released before the next frame writes to the kept surface, so Skia copies nothing
-            blurredCanvas.DrawImage(pixels, taken.Area.Left - crop.Left, taken.Area.Top - crop.Top, blurPaint);
+            // The kept pixels are extended past the window's edge by their own edge pixels (Clamp) over the whole blurred surface, so a read the
+            // bend takes past the window (up to Optics.MaxBend + MaxRing, 50 pt, beyond the blur's 3 sigma) finds the window's edge, not nothing:
+            // a piece that fills its window keeps its outer ring as opaque as what lies under it (REVIEW_GlassWindowEdgeTests). Where the edge
+            // pixels are themselves transparent (the Acrylic), the extension is transparent too.
+            using var extended = pixels.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
+                SKMatrix.CreateTranslation(taken.Area.Left - crop.Left, taken.Area.Top - crop.Top));
+            using var blurPaint = new SKPaint { Shader = extended, ImageFilter = blur };
+            blurredCanvas.DrawRect(new SKRect(0, 0, crop.Width, crop.Height), blurPaint);
         }
         blurredCanvas.Restore();
         using var image = surface.Snapshot();
@@ -1130,7 +1136,8 @@ internal static class GlassMaterial
         using var maskShader = effect.ToShader(uniforms, children);
         uniforms["stage"] = 1f;
         using var shader = effect.ToShader(uniforms, children);
-        var faded = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255));
+        // One rule for the opacity bytes: rounded. The inside's DstOut fill is the edge stage's amount there (the piece's opacity times this paint's alpha).
+        var faded = SKColors.White.WithAlpha((byte)Math.Clamp(Math.Round(lease.CurrentOpacity * 255), 0, 255));
         using var mask = new SKPaint { Shader = maskShader, Color = faded, BlendMode = SKBlendMode.DstOut };
         using var paint = new SKPaint { Shader = shader, Color = faded, BlendMode = SKBlendMode.Plus };
         if (Inside(state) is not { } inside)
@@ -1146,7 +1153,7 @@ internal static class GlassMaterial
         using var innerShader = effect.ToShader(uniforms, children);
         using var innerPaint = new SKPaint { Shader = innerShader, Color = faded, BlendMode = SKBlendMode.Plus };
         // Inside, the amount is the piece's opacity alone (its coverage is whole and no contact line reaches there).
-        using var innerMask = new SKPaint { Color = SKColors.Black.WithAlpha((byte)Math.Clamp(Math.Round(lease.CurrentOpacity * state.Regions[0].Opacity * 255), 0, 255)), BlendMode = SKBlendMode.DstOut };
+        using var innerMask = new SKPaint { Color = SKColors.Black.WithAlpha((byte)Math.Clamp(Math.Round(faded.Alpha * state.Regions[0].Opacity), 0, 255)), BlendMode = SKBlendMode.DstOut };
         canvas.Save();
         canvas.ClipRect(inside);
         canvas.DrawRect(inside, innerMask);
