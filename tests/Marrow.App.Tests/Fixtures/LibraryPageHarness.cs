@@ -67,13 +67,18 @@ internal sealed class LibraryPageHarness : IDisposable
 
     public ManualFrameSource? Frames { get; }
 
-    public static void Run(HeadlessSession headless, LibrarySection section, Action<LibraryPageHarness> check, bool motion = false, bool reduceMotion = false, SkillsCatalogue? catalogue = null, IFirstInstall? install = null) =>
-        headless.OnUiThread(() =>
+    public static void Run(HeadlessSession headless, LibrarySection section, Action<LibraryPageHarness> check, bool motion = false, bool reduceMotion = false, SkillsCatalogue? catalogue = null, IFirstInstall? install = null)
+    {
+        void Body()
         {
             using var harness = new LibraryPageHarness(headless, section, catalogue ?? LibraryFixtures.Catalogue(), install, motion, reduceMotion);
             check(harness);
             harness.Settle();
-        });
+        }
+        // a check may open a second page (the other section) inside the first: a test body is already on the UI thread, where a second dispatch would wait for itself
+        if (HeadlessSession.IsInBody) Body();
+        else headless.OnUiThread(Body);
+    }
 
     public void Settle()
     {
