@@ -60,6 +60,12 @@ public sealed class VoicePreparation
         this.currentKey = currentKey;
     }
 
+    /// <summary>The hardware part of today's key (the key the slow-PC answer is stored under, R5) from the last probe; null before any.</summary>
+    public string? HardwarePart => throw new NotImplementedException();
+
+    /// <summary>The slow-PC answer (Q-V-1 C, R5 to R8): stores it with its hardware part, applies it to the kept model (live: the next smaller rung, installed, live words on) and rewrites the stored record. Null: nothing stored.</summary>
+    public Task<VoiceHardwareRecord?> AnswerSlowQuestionAsync(LiveWordsChoice choice, CancellationToken cancellationToken) => throw new NotImplementedException();
+
     /// <summary>True once the user said yes (Welcome) or clicked the orb.</summary>
     public bool HasConsent => consent;
 
