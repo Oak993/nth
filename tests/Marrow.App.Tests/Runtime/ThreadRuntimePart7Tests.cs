@@ -724,6 +724,7 @@ public sealed class ThreadRuntimePart7Tests
         SetField(runtime, "entries", ValueList<TimelineEntry>.Empty);
         SetField(runtime, "turns", ValueList<TurnRecord>.Empty);
         SetField(runtime, "followUps", ValueList<FollowUpPrompt>.Empty);
+        SetField(runtime, "skillsFollowUps", new HashSet<Guid>()); // SK-12: a field initializer the uninitialized object skips
         SetField(runtime, "approvals", ValueList<ApprovalRequest>.Empty);
         SetField(runtime, "questions", ValueList<QuestionRequest>.Empty);
         SetField(runtime, "entryIndex", new Dictionary<string, TimelineEntry>(SwiftStringComparer.Instance));
