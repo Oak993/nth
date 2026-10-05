@@ -35,6 +35,21 @@ public sealed class HostLibraryBackend(SkillsHost host, SkillsCatalogue catalogu
 
     public bool FetchingAvailable => CanFetch;
 
+    public string ManualFolder => ManualFiles.ManualFolder(host.Paths.Root);
+
+    public int PlaceManualFiles(CatalogueItem item) => ManualFiles.PlaceFolder(host.Paths.Root, item);
+
+    public void OpenManualPage(Uri page)
+    {
+        if (SwiftURL.Create(page.AbsoluteUri) is { } url) _ = Marrow.Services.Port.Workspace.Open.Current(url);
+    }
+
+    public void OpenManualFolder()
+    {
+        Directory.CreateDirectory(ManualFolder);
+        _ = Marrow.Services.Port.Workspace.Open.Current(SwiftURL.FileURLWithPath(ManualFolder));
+    }
+
     public FetchView? Fetching(string itemId) => host.Downloads.Running(itemId);
 
     public IDisposable? WatchFetching(Action changed) => host.Downloads.Watch(changed);

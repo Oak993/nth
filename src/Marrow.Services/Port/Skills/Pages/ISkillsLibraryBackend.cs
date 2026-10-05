@@ -39,6 +39,18 @@ public interface ISkillsLibraryBackend
     /// <summary>SK-16: calls <paramref name="changed"/> whenever a download starts, reports or ends, from any surface. Null when the backend has none to tell of.</summary>
     IDisposable? WatchFetching(Action changed) => null;
 
+    /// <summary>SK-14 ("Download it yourself"): the folder the user puts a hand-downloaded file in. Empty when the backend has none.</summary>
+    string ManualFolder => "";
+
+    /// <summary>SK-14: checks the files in <see cref="ManualFolder"/> against the item's pinned inputs and keeps the ones that match for the install; how many matched.</summary>
+    int PlaceManualFiles(CatalogueItem item) => 0;
+
+    /// <summary>SK-14: opens the vendor's download page in the browser.</summary>
+    void OpenManualPage(Uri page) { }
+
+    /// <summary>SK-14: opens <see cref="ManualFolder"/> (made first) in the file manager.</summary>
+    void OpenManualFolder() { }
+
     /// <summary>SK-16: stops the download running for the item, for everyone who asked for it (the page's Cancel).</summary>
     void CancelFetching(string itemId) { }
 

@@ -425,6 +425,37 @@ public sealed class LibraryController : IDisposable
 
     public bool CanFetch => backend.CanFetch;
 
+    // ---- "Download it yourself" (the design's fallback block under a failed item)
+
+    /// <summary>Step 1 of the fallback for the item (its file and where from, the design's words), or null when the design draws none for it.</summary>
+    public ManualFallback? ManualFallbackOf(string id) => backend.Catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item ? ManualFallbacks.For(item) : null;
+
+    /// <summary>The folder step 2 names, as the design writes it.</summary>
+    public string ManualFolderText => ManualFallbackWords.Folder;
+
+    /// <summary>
+    /// "Check again": the files the user put in the folder are checked against the item's pinned inputs (length and SHA-256; a file that is none of them is left out) and the item is downloaded the normal way, so
+    /// what matches is used without a connection and the rest is fetched. Only a failed item has the block, so any other does nothing.
+    /// </summary>
+    public Task CheckAgain(string id)
+    {
+        CatalogueItem item;
+        lock (gate)
+        {
+            if (backend.State.Get(id).State != ItemState.Failed && !(overlay.TryGetValue(id, out var mine) && mine.State == ItemState.Failed)) return Task.CompletedTask;
+            item = backend.Catalogue.Items.First(i => i.Id == id);
+        }
+        _ = backend.PlaceManualFiles(item);
+        return Download(id);
+    }
+
+    public void OpenManualPage(string id)
+    {
+        if (ManualFallbackOf(id) is { } fallback) backend.OpenManualPage(fallback.Page);
+    }
+
+    public void OpenManualFolder() => backend.OpenManualFolder();
+
     public bool CanDownloadAll => backend.CanFetch && (run is { Phase: RunPhase.Downloading or RunPhase.Paused or RunPhase.Done or RunPhase.Partial } || !Plan.IsEmpty);
 
     /// <summary>Opens the confirmation. Nothing downloads until <see cref="Continue"/>. While a run goes on, its dialog is what opens again.</summary>
