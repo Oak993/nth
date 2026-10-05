@@ -20,6 +20,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
+using Marrow.App.Port.Updates;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Settings;
@@ -305,6 +306,11 @@ public sealed class SidebarView : Decorator
         list.AddHandler(InputElement.PointerMovedEvent, ListMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
         list.AddHandler(InputElement.PointerReleasedEvent, ListReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
         list.PointerCaptureLost += (_, _) => GestureCancelled();
+
+        // UE-5 (OD-0100 place D; no Swift twin): the update pill, in the column between the list and the Add project / Settings rows, which is "above
+        // Settings". It takes no height while nothing is out of date and eases its height in and out (the list moves with it).
+        var updatePill = new UpdatePill(nested: inPopover) { Margin = new Thickness(Chrome.ListInset, 0, Chrome.ListInset, 0) };
+        Add(updatePill, GridLength.Auto);
 
         // :164-178 Add project and Settings, 1 pt apart, below the list.
         var addProject = new SidebarRow("Add project", AddProject, // :165

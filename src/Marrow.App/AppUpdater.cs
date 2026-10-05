@@ -413,19 +413,51 @@ public sealed class AppUpdater
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error))
             {
-                Progress.Fail(); // :273
-                // :274-280. PR-UPDATE-057 / UI-UPDATE-034: the modal "Update Failed" alert, run modally
-                // (await, not fire-and-forget) so this task does not finish and clear installTask until the
-                // alert is dismissed, matching runModal's block within the same MainActor.run closure.
-                await AlertPresentation.Presenter.Current.Show(
-                    "Update Failed", // :276, title case, no full stop
-                    SwiftErrors.LocalizedDescription(error), // :277
-                    AlertStyle.Warning, // :278
-                    [new AlertButton("OK", () => { })]); // :279, the single default dismiss button, no retry affordance
+                await ShowInstallFailure(error);
             }
             finally
             {
                 installTask = null; // :264 defer { installTask = nil }
+            }
+        });
+    }
+
+    // :273-280. PR-UPDATE-057 / UI-UPDATE-034: the modal "Update Failed" alert, run modally
+    // (await, not fire-and-forget) so the install task does not finish and clear installTask until the
+    // alert is dismissed, matching runModal's block within the same MainActor.run closure.
+    private static async Task ShowInstallFailure(Exception error)
+    {
+        Progress.Fail(); // :273
+        await AlertPresentation.Presenter.Current.Show(
+            "Update Failed", // :276, title case, no full stop
+            SwiftErrors.LocalizedDescription(error), // :277
+            AlertStyle.Warning, // :278
+            [new AlertButton("OK", () => { })]); // :279, the single default dismiss button, no retry affordance
+    }
+
+    // UE-5 (OD-0100 "Restart Marrow"): Update everything has already downloaded the package through the engine (MarrowUpdateItem), so
+    // this is :265-272 from the verify step on: verify, stage, hand off to Velopack's updater and quit. The same single-flight guard, the
+    // same development-build refusal and the same "Update Failed" alert as Install; an AppUpdater made without an engine does nothing.
+    public void ApplyDownloaded(string package, string version)
+    {
+        if (installTask is not null || AppInfo.Current.IsDevelopment || engine is null) return;
+        installTask = MainActor.Spawn(async () =>
+        {
+            try
+            {
+                Progress.Begin();
+                Progress.BeginVerification(); // :268
+                await Stage(package, version); // :269
+                Progress.BeginStaging(); // :270
+                HandOffToVelopack(version);
+            }
+            catch (Exception error) when (SwiftTry.IsThrownError(error))
+            {
+                await ShowInstallFailure(error);
+            }
+            finally
+            {
+                installTask = null;
             }
         });
     }

@@ -35,13 +35,15 @@ vec3 wall(vec2 p, float t) {
   float m = mix(0.35, 1.5, u_opt.x);
   float wk = mix(0.7, 1.35, u_opt.y);
   vec3 col = mix(u_pal[1], u_pal[0], smoothstep(-1.2, 1.1, p.y + 0.2 * p.x));
-  float sh1 = gauss(p.y - yc(p.x - 0.05, a, m, 0.38, 2.2) + 0.13, 0.2 * wk) * 0.1;
+  vec2 p1 = p + tiltD(-0.5);
+  vec2 p2 = p + tiltD(0.8);
+  float sh1 = gauss(p1.y - yc(p1.x - 0.05, a, m, 0.38, 2.2) + 0.13, 0.2 * wk) * 0.1;
   col.x -= sh1 * mix(0.7, 1.0, u_dark);
-  vec4 r1 = rib(p, a, m, 0.38, 0.13 * wk, 2.2);
+  vec4 r1 = rib(p1, a, m, 0.38, 0.13 * wk, 2.2);
   col = mix(col, r1.xyz, r1.w);
-  float sh2 = gauss(p.y - yc(p.x - 0.06, a, m, -0.18, 0.0) + 0.16, 0.26 * wk) * 0.14;
+  float sh2 = gauss(p2.y - yc(p2.x - 0.06, a, m, -0.18, 0.0) + 0.16, 0.26 * wk) * 0.14;
   col.x -= sh2 * mix(0.7, 1.0, u_dark);
-  vec4 r2 = rib(p, a, m, -0.18, 0.22 * wk, 0.0);
+  vec4 r2 = rib(p2, a, m, -0.18, 0.22 * wk, 0.0);
   col = mix(col, r2.xyz, r2.w);
   return outLab(col);
 }

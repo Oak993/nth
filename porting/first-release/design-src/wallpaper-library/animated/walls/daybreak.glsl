@@ -9,7 +9,7 @@ vec3 wall(vec2 p, float t) {
   float m = mix(0.3, 1.4, u_opt.x);
   float gl = mix(0.4, 1.4, u_opt.y);
   float y0 = -0.32 + 0.015 * sin(p.x * 0.9 + 1.0);
-  vec2 sun = vec2(0.42 + 0.16 * m * sin(a), y0 + 0.13 + 0.05 * m * sin(a + 1.2));
+  vec2 sun = vec2(0.42 + 0.16 * m * sin(a), y0 + 0.13 + 0.05 * m * sin(a + 1.2)) + u_sun;
   float h = p.y - y0;
   vec3 sky = mix(u_pal[2], u_pal[1], smoothstep(0.0, 0.55, h));
   sky = mix(sky, u_pal[0], smoothstep(0.45, 1.4, h));

@@ -8,12 +8,44 @@
   // The WebGL host around a wallpaper: the uniforms, the wallpaper's own constants and wall(), then main(), which maps
   // the pixel to p, calls wall(p, t) and adds the dither. Only common + wall are the wallpaper; the app's SkSL host is
   // the equivalent of this main().
-  const HEAD = '#version 300 es\nprecision highp float;\nuniform vec2 u_res;\nuniform float u_t;\nuniform vec3 u_pal[6];\nuniform float u_dark;\nuniform vec2 u_opt;\nuniform float u_px;\nuniform float u_dither;\nout vec4 o_col;\n';
+  const HEAD = '#version 300 es\nprecision highp float;\nuniform vec2 u_res;\nuniform float u_t;\nuniform vec3 u_pal[6];\nuniform float u_dark;\nuniform vec2 u_opt;\nuniform float u_px;\nuniform vec2 u_tilt;\nuniform vec2 u_sun;\nuniform float u_focus;\nuniform float u_pan;\nuniform float u_dither;\nout vec4 o_col;\n';
   const MAIN = '\nfloat wl_ign(vec2 v){ return fract(52.9829189*fract(dot(v, vec2(.06711056, .00583715)))); }\n'
-    + 'void main(){\n  vec2 fc = gl_FragCoord.xy;\n  vec2 p = (fc - .5*u_res)*(2./u_res.y);\n  vec3 c = wall(p, u_t);\n'
+    + 'void main(){\n  vec2 fc = gl_FragCoord.xy;\n  vec2 p = (fc - .5*u_res)*(2./u_res.y) + u_tilt*u_pan;\n  vec3 c = wall(p, u_t);\n'
     + '  c += u_dither*(wl_ign(fc) + wl_ign(fc + vec2(37., 17.)) - 1.)/255.;\n  o_col = vec4(c, 1.);\n}\n';
 
   const GLASS = `@@GLASS@@`;
+
+  // a flat wallpaper ('pan') is shifted as a whole by the tilt, up to 0.012 p units (5 px at 800 px high); one with layers reads u_tilt itself
+  const panOf = (w) => (w.perspective && w.perspective.mode === 'pan' ? 0.012 : 0);
+
+  // Focus: the picture is drawn into a mip-mapped texture, then this pass reads a Gaussian-weighted disc of 24 taps from the mip
+  // level that matches the tap spacing and adds the dither. In the app this is a Skia blur of the same sigma.
+  const BLUR = [
+    '#version 300 es',
+    'precision highp float;',
+    'uniform sampler2D u_src;',
+    'uniform vec2 u_res;',
+    'uniform float u_sigma;',
+    'uniform float u_dither;',
+    'out vec4 o_col;',
+    'float wl_ign(vec2 v){ return fract(52.9829189*fract(dot(v, vec2(.06711056, .00583715)))); }',
+    'void main(){',
+    '  vec2 fc = gl_FragCoord.xy; vec2 uv = fc/u_res;',
+    '  float lod = log2(max(u_sigma*.7, 1.));',
+    '  float R = 2.2*u_sigma;',
+    '  vec3 acc = vec3(0.); float ws = 0.;',
+    '  for (int i = 0; i < 24; i++) {',
+    '    float fi = float(i) + .5;',
+    '    float r = R*sqrt(fi/24.);',
+    '    float th = fi*2.39996323;',
+    '    float w = exp(-(r*r)/(2.*u_sigma*u_sigma));',
+    '    acc += w*textureLod(u_src, uv + r*vec2(cos(th), sin(th))/u_res, lod).rgb; ws += w;',
+    '  }',
+    '  vec3 c = acc/ws;',
+    '  c += u_dither*(wl_ign(fc) + wl_ign(fc + vec2(37., 17.)) - 1.)/255.;',
+    '  o_col = vec4(c, 1.);',
+    '}'
+  ].join('\n') + '\n';
 
   const FLAT = '#version 300 es\nprecision highp float;\nout vec4 o_col;\nvoid main(){ o_col = vec4(.5, .5, .5, 1.); }\n';
 
@@ -65,6 +97,7 @@
       this.vs = compile(gl, gl.VERTEX_SHADER, VERT);
       this.glass = this.link(GLASS);
       this.flat = this.link(FLAT);
+      this.blur = this.link(BLUR);
       this.fbos = {};
       this.cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.ok = false; });
     }
@@ -94,10 +127,10 @@
     prog(id) {
       if (!this.ok) return null;
       let P = this.progs[id];
-      if (!P) { const w = LIB.byId[id]; P = this.progs[id] = this.link(this.source(w)); }
+      if (!P) { const w = LIB.byId[id]; P = this.progs[id] = this.link(this.source(w)); P.pan = panOf(w); }
       return this.ready(P) ? P : null;
     }
-    warm(id) { if (this.ok && !this.progs[id]) this.progs[id] = this.link(this.source(LIB.byId[id])); }
+    warm(id) { if (this.ok && !this.progs[id]) { const w = LIB.byId[id]; this.progs[id] = this.link(this.source(w)); this.progs[id].pan = panOf(w); } }
     // the shared drawing buffer only ever grows, so drawing a tile never reallocates it
     fit(w, h) {
       if (this.cv.width < w || this.cv.height < h) {
@@ -105,7 +138,7 @@
         this.cv.height = Math.max(this.cv.height, Math.ceil(h/64)*64);
       }
     }
-    fbo(key, w, h, half) {
+    fbo(key, w, h, half, mip) {
       const gl = this.gl;
       let F = this.fbos[key];
       if (F && F.w === w && F.h === h) return F;
@@ -114,7 +147,7 @@
       gl.bindTexture(gl.TEXTURE_2D, F.tex);
       const useHalf = half && this.floatOk;
       gl.texImage2D(gl.TEXTURE_2D, 0, useHalf ? gl.RGBA16F : gl.RGBA8, w, h, 0, gl.RGBA, useHalf ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mip ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.bindFramebuffer(gl.FRAMEBUFFER, F.fb);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, F.tex, 0);
@@ -130,7 +163,33 @@
       gl.uniform3fv(U.u_pal, s.pal); gl.uniform1f(U.u_dark, s.dark);
       if (U.u_opt) gl.uniform2f(U.u_opt, s.opt[0], s.opt[1]);
       if (U.u_px) gl.uniform1f(U.u_px, 2/h);
+      const tl = s.tilt || [0, 0], sn = s.sun || [0, 0];
+      if (U.u_tilt) gl.uniform2f(U.u_tilt, tl[0], tl[1]);
+      if (U.u_sun) gl.uniform2f(U.u_sun, sn[0], sn[1]);
+      if (U.u_focus) gl.uniform1f(U.u_focus, s.focus || 0);
+      if (U.u_pan) gl.uniform1f(U.u_pan, P.pan);
       gl.uniform1f(U.u_dither, dither);
+      gl.bindVertexArray(this.vao);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    // the blur radius of a Focus value at height h, in pixels
+    sigma(h, f) { return f > 0 ? 0.035*h*Math.pow(f, 1.4) : 0; }
+    // draws the wallpaper into the framebuffer `fb` (null = the canvas), through the Focus blur when s.focus asks for one
+    render(P, w, h, t, s, dither, fb) {
+      const gl = this.gl, sg = this.sigma(h, s.focus || 0), B = this.blur;
+      if (sg < 0.35 || !this.ready(B)) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.viewport(0, 0, w, h);
+        this.wall(P, w, h, t, s, dither);
+        return;
+      }
+      const R = this.fbo('raw' + w + 'x' + h, w, h, true, true);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, R.fb); gl.viewport(0, 0, w, h);
+      this.wall(P, w, h, t, s, 0);
+      gl.bindTexture(gl.TEXTURE_2D, R.tex); gl.generateMipmap(gl.TEXTURE_2D);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.viewport(0, 0, w, h);
+      gl.useProgram(B.p);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, R.tex); gl.uniform1i(B.u.u_src, 0);
+      gl.uniform2f(B.u.u_res, w, h); gl.uniform1f(B.u.u_sigma, sg); gl.uniform1f(B.u.u_dither, dither);
       gl.bindVertexArray(this.vao);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
@@ -139,9 +198,7 @@
       const P = this.prog(id); if (!P) return false;
       const gl = this.gl;
       this.fit(w, h);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(0, 0, w, h);
-      this.wall(P, w, h, t, s, 1);
+      this.render(P, w, h, t, s, 1, null);
       ctx.drawImage(this.cv, 0, this.cv.height - h, w, h, 0, 0, w, h);
       return true;
     }
@@ -152,9 +209,7 @@
       const gl = this.gl;
       this.fit(w, h);
       const F = this.fbo('view', w, h, true);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, F.fb);
-      gl.viewport(0, 0, w, h);
-      this.wall(P, w, h, t, s, F.half ? 0 : 1);
+      this.render(P, w, h, t, s, F.half ? 0 : 1, F.fb);
       const G = this.glass;
       if (!this.ready(G)) return false;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -174,9 +229,7 @@
     read(P, w, h, t, s) {
       const gl = this.gl;
       const F = this.fbo('read' + w + 'x' + h, w, h, false);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, F.fb);
-      gl.viewport(0, 0, w, h);
-      this.wall(P, w, h, t, s, 1);
+      this.render(P, w, h, t, s, 1, F.fb);
       const px = new Uint8Array(w*h*4);
       gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -203,15 +256,13 @@
       const gl = this.gl, N = frames || 48, W = 1280, H = 800;
       const F = this.fbo('bench', W, H, false);
       const px = new Uint8Array(4);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, F.fb);
-      gl.viewport(0, 0, W, H);
       const T = LIB.byId[id].period;
-      for (let i = 0; i < 6; i++) this.wall(P, W, H, i*0.37 % T, s, 1);
+      for (let i = 0; i < 6; i++) this.render(P, W, H, i*0.37 % T, s, 1, F.fb);
       gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
       let best = 1e9;
       for (let r = 0; r < 3; r++) {
         const t0 = performance.now();
-        for (let i = 0; i < N; i++) this.wall(P, W, H, (i*0.016 + r) % T, s, 1);
+        for (let i = 0; i < N; i++) this.render(P, W, H, (i*0.016 + r) % T, s, 1, F.fb);
         gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
         best = Math.min(best, (performance.now() - t0)/N);
       }
