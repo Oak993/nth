@@ -87,7 +87,7 @@ public class OpenAICompatibleSession : ProviderSession
     public SessionConfiguration Configuration { get; private set; }   // :37
 
     // OD-0114: retain this request's payload; tool children use the selected account's environment.
-    public void RebindApiAccount(Guid id, ValueMap<string, string> environment, string? model, string? effort, bool fast)
+    public void RebindApiAccount(Guid id, ValueMap<string, string> environment, string? model, string? effort, bool fast, HydraLaunch? hydra)
     {
         MainActor.AssumeIsolated();
         if (!Configuration.Provider.IsAPIKeyBased) throw new InvalidOperationException("This session has no API account.");
@@ -97,7 +97,7 @@ public class OpenAICompatibleSession : ProviderSession
         {
             AccountId = id, Environment = environment, ApiKey = null,
             Model = switched ? model : Configuration.Model, Effort = switched ? effort : Configuration.Effort,
-            FastMode = switched ? fast : Configuration.FastMode,
+            FastMode = switched ? fast : Configuration.FastMode, Hydra = switched ? hydra : Configuration.Hydra,
         };
     }
 
@@ -692,6 +692,7 @@ public class OpenAICompatibleSession : ProviderSession
         {
             model = currentModel = ModelForInput(Configuration.Model ?? OpenAICompatibleSessionConfig.DefaultModel);
             effort = Configuration.Effort;
+            RefreshSystemPrompt();
         }
         var payload = RequestPayload(model, effort, withTools); // :511. A refusal retries this same payload.
         var attempt = 0; // :516

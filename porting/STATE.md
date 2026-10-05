@@ -640,3 +640,9 @@ Actual account credit readers, shared AutoContinue scheduler, API cap/out pill/f
 Real 402/429 waits/resume and other-service consent, destination payload defaults with identical refused-request retries, destination/final/private Hydra policy, task-group main-actor hop and bootstrap/observable account reports have scoped Windows evidence Core267/267 Services321/321 App221/221. Zero skips/build warnings/errors. Every counted defect failed exact method alone twice, including the preemption regression; fixture/interruption/lock errors excluded.
 
 **Incomplete:** verified CLI restricted text-only priming/restoration; private cost measurement, optional incoming light-model AI-summary fallback, between-tool safe pause, remaining view/report and manual-choice joins. Step1 NOT READY, no passing-step push. Settings5b76d40261c338c7f3730b7d14ef129f9359e21f is independently Windows READY but merges after step1 passes. Capsule step3a remains helper-owned and unmerged. No native/DONE/parity/package/release claim.
+
+## T11 live API Hydra continuity checkpoint, Codex, 2026-10-06
+
+Destination Hydra, system policy and the live runtime signature now move together before observers run, retaining the real API session on the next message. Windows App223/223 Services237/237, zero skips/build warnings/errors. Exact configuration/reuse tests failed alone twice; refused retry payload tests remain green. Core267 and wider Services321 are prior scoped validations, not additional fresh counts.
+
+**Incomplete:** verified CLI restricted text-only priming/restoration, private cost measurement, incoming light-model AI-summary fallback, between-tool safe pause and remaining manual/view/report joins. Step1 NOT READY and unpushed; Settings/capsule are helper-owned/unmerged. No native/DONE/release claim.

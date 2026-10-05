@@ -21,16 +21,21 @@ public sealed partial class ThreadRuntime
             if (account.Service != api.Configuration.Provider || !account.Enabled || !app.IsAccountConnected(account))
                 throw new InvalidOperationException("The selected API account is unavailable.");
             var switched = api.Configuration.AccountId != id;
-            api.RebindApiAccount(id, app.Providers.Environment(id),
-                account.Defaults.Model ?? app.Providers.DefaultModel(account.Service)?.Id, account.Defaults.Effort, account.Defaults.FastMode);
-            UsageAccount = account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, id.ToString("D"));
-            if (sessionSignature is { } signature) sessionSignature = signature with { AccountId = id };
-            app.UpdateThread(ThreadID, thread => thread with
+            var source = Thread ?? throw new CancellationError();
+            var destination = source with
             {
                 ProviderAccountID = id,
-                Model = switched ? account.Defaults.Model ?? app.Providers.DefaultModel(account.Service)?.Id : thread.Model,
-                Effort = switched ? account.Defaults.Effort : thread.Effort,
-                FastMode = switched ? account.Defaults.FastMode : thread.FastMode,
+                Model = switched ? account.Defaults.Model ?? app.Providers.DefaultModel(account.Service)?.Id : source.Model,
+                Effort = switched ? account.Defaults.Effort : source.Effort,
+                FastMode = switched ? account.Defaults.FastMode : source.FastMode,
+            };
+            var hydra = switched ? app.HydraLaunch(destination) : api.Configuration.Hydra;
+            api.RebindApiAccount(id, app.Providers.Environment(id), destination.Model, destination.Effort, destination.FastMode, hydra);
+            UsageAccount = account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, id.ToString("D"));
+            if (sessionSignature is { } signature) sessionSignature = signature with { AccountId = id, Hydra = switched ? hydra : signature.Hydra };
+            app.UpdateThread(ThreadID, thread => thread with
+            {
+                ProviderAccountID = id, Model = destination.Model, Effort = destination.Effort, FastMode = destination.FastMode,
             });
             if (!Owns()) throw new CancellationError();
         }, Owns);
