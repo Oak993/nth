@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Media.TextFormatting;
+using Avalonia.Styling;
 using Avalonia.Utilities;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Port;
@@ -44,6 +45,10 @@ internal sealed class DictationLayer : Control
     private TextLayout? baseLayout;
     private int baseKey;
     private int caretWord = -1;
+    private readonly DictationFlip caretFlip = new();
+    private bool caretPlaced;
+    private ContinuousInstant? withdrawEndAt;
+    private bool restoring;
     private ContinuousInstant blinkStart;
     private ContinuousInstant activatedAt;
     private ContinuousInstant landedAt;
@@ -247,8 +252,18 @@ internal sealed class DictationLayer : Control
 
         if (phase == DictationPhase.Withdrawing && pending.Count == 0 && words.Words.Count == 0)
         {
-            FinishWithdraw();
-            return;
+            // the last word has gone: the caret fades where the words were, and a replaced selection fades back in (the mirror of its going, V-8.1, V-8.6); only then is the editor's
+            if (withdrawEndAt is null)
+            {
+                withdrawEndAt = now;
+                restoring = original.Length > 0 && !Still;
+                settledFrames = 0;
+            }
+            if (Still || (!Moving(now) && settledFrames++ >= 1))
+            {
+                FinishWithdraw();
+                return;
+            }
         }
         if (phase == DictationPhase.Landing)
         {
@@ -278,6 +293,8 @@ internal sealed class DictationLayer : Control
         foreach (var flip in afterFlips.Values)
             if (flip.IsMoving(now)) return true;
         if (phase == DictationPhase.Landing && (now - landedAt).TotalSeconds < DictationMotion.CaretFade.Duration) return true;
+        if (withdrawEndAt is { } ended && (now - ended).TotalSeconds < Math.Max(DictationMotion.CaretFade.Duration, restoring ? DictationMotion.Ghost.Duration : 0)) return true;
+        if (caretPlaced && caretFlip.IsMoving(now)) return true;
         return ghostShown && (now - activatedAt).TotalSeconds < DictationMotion.Ghost.Duration;
     }
 
@@ -351,6 +368,9 @@ internal sealed class DictationLayer : Control
         wordRects = [];
         afterTokens = [];
         caretWord = -1;
+        caretPlaced = false;
+        withdrawEndAt = null;
+        restoring = false;
         ghostShown = false;
         scrolling = false;
         if (hadActive)
@@ -431,6 +451,7 @@ internal sealed class DictationLayer : Control
             caretWord = i;
             break;
         }
+        PlaceCaret(now, still);
         if (phase != DictationPhase.Landing) editor.LiveText = placement.Text;
         InvalidateMeasure();
         followPending = true; // the scroll goes by the field's own extent, which is known after the next layout pass: the next frame
@@ -439,6 +460,27 @@ internal sealed class DictationLayer : Control
             draftText = nextDraft;
             TextChanged?.Invoke(draftText); // V-8.2: the draft follows live
         }
+    }
+
+    // The caret rides at the end of the last word drawn, those leaving too (the design keeps it after the last span until they are removed, voice-composer.js withdraw/caretOn), and where
+    // the words were once none is left; its place glides like a word's (FLIP) instead of jumping from one word's end to the next.
+    private void PlaceCaret(ContinuousInstant now, bool still)
+    {
+        if (target is null || placement is null) return;
+        Rect rect;
+        double x;
+        if (words.Words.Count > 0 && words.Words[^1] is var last && wordRects.Length == words.Words.Count && wordRects[^1].Width > 0)
+        {
+            rect = wordRects[^1];
+            x = IsRtl(last.Text) ? rect.X - 1 - DictationCaret.Width : rect.Right + 1;
+        }
+        else
+        {
+            rect = target.HitTestTextPosition(Math.Clamp(placement.Caret, 0, placement.Text.Length));
+            x = rect.X + 1;
+        }
+        caretFlip.Place(new Point(x, rect.Y + (rect.Height - DictationCaret.Height) / 2), now, still);
+        caretPlaced = true;
     }
 
     // V-8.10: when the end of the text passes the bottom of the field it is brought into view on the design's .36 s ez, never a jump.
@@ -482,6 +524,7 @@ internal sealed class DictationLayer : Control
         if (!IsActive || placement is null || placement.WordStarts.Count != words.Words.Count) return; // between an operation and its layout there is nothing to draw
         var now = SwiftClock.Now;
         var ink = SwiftColor.LabelColor.Resolve(editor.ActualThemeVariant);
+        var dark = editor.ActualThemeVariant == ThemeVariant.Dark;
         var origin = new Point(editor.Padding.Left, editor.Padding.Top);
         var width = Math.Max(1, LayoutWidth());
         var face = Face;
@@ -507,11 +550,21 @@ internal sealed class DictationLayer : Control
             }
             else if (look.Tentative > 0)
             {
-                var alpha = Alpha(ink, DictationInk.AlphaOf(look.Tentative));
+                var alpha = Alpha(ink, DictationInk.AlphaOf(look.Tentative, dark));
                 overrides.Add(new ValueSpan<TextRunProperties>(start, word.Text.Length, Properties(face, size, new ImmutableSolidColorBrush(alpha))));
                 key.Add(start);
                 key.Add(alpha.A);
             }
+        }
+        if (restoring)
+        {
+            // a replaced selection is coming back (a cancel): it is drawn by the ghost, fading in, not by the base layout
+            var from = Math.Clamp(original.Start, 0, placement.Text.Length);
+            var to = Math.Clamp(original.Start + original.Length, from, placement.Text.Length);
+            if (to > from) overrides.Add(new ValueSpan<TextRunProperties>(from, to - from, Properties(face, size, Brushes.Transparent)));
+            key.Add(-3);
+            key.Add(from);
+            key.Add(to);
         }
         var movingTokens = new List<int>();
         for (var k = 0; k < afterTokens.Length; k++)
@@ -531,13 +584,24 @@ internal sealed class DictationLayer : Control
             baseKey = wanted;
         }
 
-        if (ghostShown) DrawGhost(context, origin, face, size, ink, now);
+        var ghost = 0.0;
+        if (restoring) ghost = DictationMotion.Ghost.Progress((now - withdrawEndAt!.Value).TotalSeconds);
+        else if (ghostShown)
+        {
+            ghost = 1 - DictationMotion.Ghost.Progress((now - activatedAt).TotalSeconds);
+            if (ghost <= 0 || Still)
+            {
+                ghostShown = false;
+                ghost = 0;
+            }
+        }
+        if (ghost > 0) DrawGhost(context, origin, face, size, ink, ghost);
         baseLayout.Draw(context, origin);
 
         foreach (var (index, word, look) in movers)
         {
             var place = origin + word.Place.Displayed(now);
-            var inkAlpha = DictationInk.AlphaOf(look.Tentative);
+            var inkAlpha = DictationInk.AlphaOf(look.Tentative, dark);
             DrawWord(context, word.Text, place + new Vector(0, look.Rise + look.TextRise), face, size, ink, inkAlpha * look.Opacity * look.TextOpacity, wordRects[index].Width);
             foreach (var old in look.Old)
                 DrawWord(context, old.Text, place + new Vector(0, look.Rise + old.Rise), face, size, ink, inkAlpha * look.Opacity * old.Opacity, wordRects[index].Width);
@@ -559,16 +623,10 @@ internal sealed class DictationLayer : Control
         layout.Draw(context, at);
     }
 
-    // The selection a dictation replaces (V-8.1) fades out as the first word comes in, where it was, with its highlight; the editor stops drawing it that moment.
-    private void DrawGhost(DrawingContext context, Point origin, Typeface face, double size, Color ink, ContinuousInstant now)
+    // The selection a dictation replaces (V-8.1) fades out as the first word comes in, where it was, with its highlight; the editor stops drawing it that moment. A cancel brings it back the
+    // same way, fading in, before the editor takes the picture over (no frame of it appears whole).
+    private void DrawGhost(DrawingContext context, Point origin, Typeface face, double size, Color ink, double fade)
     {
-        var elapsed = (now - activatedAt).TotalSeconds;
-        var fade = 1 - DictationMotion.Ghost.Progress(elapsed);
-        if (fade <= 0 || Still)
-        {
-            ghostShown = false;
-            return;
-        }
         var from = Math.Clamp(original.Start, 0, original.Text.Length);
         var to = Math.Clamp(original.Start + original.Length, from, original.Text.Length);
         var selection = SwiftColor.SelectedTextBackgroundColor.Resolve(editor.ActualThemeVariant);
@@ -586,13 +644,9 @@ internal sealed class DictationLayer : Control
     // along with the word's own place (V-8.3). Null when there is no word to follow.
     private Rect? CaretBox(Point origin, ContinuousInstant now)
     {
-        if (caretWord < 0 || caretWord >= wordRects.Length || phase == DictationPhase.Withdrawing) return null;
-        var word = words.Words[caretWord];
-        var rect = wordRects[caretWord];
-        var place = origin + word.Place.Displayed(now);
-        var x = IsRtl(word.Text) ? place.X - 1 - DictationCaret.Width : place.X + rect.Width + 1;
-        var y = place.Y + (rect.Height - DictationCaret.Height) / 2;
-        return new Rect(x, y, DictationCaret.Width, DictationCaret.Height);
+        if (!caretPlaced || (caretWord < 0 && phase != DictationPhase.Withdrawing)) return null;
+        var place = origin + caretFlip.Displayed(now);
+        return new Rect(place.X, place.Y, DictationCaret.Width, DictationCaret.Height);
     }
 
     /// <summary>Where the caret is at <paramref name="now"/> (its blink aside); null with no word to follow.</summary>
@@ -601,12 +655,22 @@ internal sealed class DictationLayer : Control
     /// <summary>Where word <paramref name="index"/> (its place among all the words, those leaving too) is drawn at <paramref name="now"/>, in the layer's coordinates before the editor's padding.</summary>
     internal Point DisplayedPlace(int index, ContinuousInstant now) => words.Words[index].Place.Displayed(now);
 
+    /// <summary>
+    /// The share of the caret's blink that shows at <paramref name="now"/>: 1 while words are being written; at Landing it leaves on .18 s ease (the editor's own caret is the editor's
+    /// business once it has the text back); after a cancel it rides with the words that are leaving and fades on the same curve where they were (the design removes it after them).
+    /// </summary>
+    internal double CaretFade(ContinuousInstant now)
+    {
+        var share = 1.0;
+        if (phase == DictationPhase.Landing) share *= 1 - DictationMotion.CaretFade.Progress((now - landedAt).TotalSeconds);
+        if (withdrawEndAt is { } ended) share *= 1 - DictationMotion.CaretFade.Progress((now - ended).TotalSeconds);
+        return share;
+    }
+
     private void DrawCaret(DrawingContext context, Point origin, Color ink, ContinuousInstant now)
     {
         if (CaretBox(origin, now) is not { } box) return;
-        var opacity = DictationCaret.Opacity((now - blinkStart).TotalSeconds, Still);
-        // landing: the caret leaves on the way the words ink in (the editor's own caret is the editor's business once it has the text back)
-        if (phase == DictationPhase.Landing) opacity *= 1 - DictationMotion.CaretFade.Progress((now - landedAt).TotalSeconds);
+        var opacity = DictationCaret.Opacity((now - blinkStart).TotalSeconds, Still) * CaretFade(now);
         if (opacity <= 0) return;
         context.DrawRectangle(new ImmutableSolidColorBrush(Alpha(ink, opacity)), null, new RoundedRect(box, 1));
     }

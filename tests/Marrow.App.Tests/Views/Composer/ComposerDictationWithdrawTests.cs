@@ -1,4 +1,7 @@
+using Avalonia;
 using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using Marrow.App.Port.Voice;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -181,6 +184,116 @@ public sealed class ComposerDictationWithdrawTests(HeadlessSession headless)
                 Assert.False(box.TextHidden);
                 Assert.False(box.IsReadOnly);
             });
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-8.1, V-8.6, OD-0076: a cancel after a replaced selection brings the old text back by a fade (the mirror of its going), every frame on the .22 s ease; the hand-over is no jump
+    [Trait("Decision", "ED-292")]
+    public void A_cancel_after_a_replaced_selection_fades_the_old_text_back_in_and_the_hand_over_is_no_cut()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window, layer, box) = Opened(rig, "keep OLD tail");
+            rig.Main.OnMain(() =>
+            {
+                box.SelectionStart = 5;
+                box.SelectionEnd = 8;
+            });
+            rig.Elapse(window, 0.05);
+            rig.Main.OnMain(() => Click(Slot(view).HitTarget));
+            rig.Elapse(window, 2.5);
+            var width = rig.Main.OnMain(() => layer.Bounds.Width);
+            var area = rig.Main.OnMain(() => DictationProbe.Region(box, window));
+            // the pixels of "OLD" in the original draft, less its first few columns (the caret stands at its left edge)
+            using var layout = new TextLayout("keep OLD tail", new Typeface(box.FontFamily, box.FontStyle, box.FontWeight), box.FontSize, Brushes.Black, box.TextAlignment, TextWrapping.Wrap, null,
+                null, box.FlowDirection, width);
+            var old = layout.HitTestTextRange(5, 3).Single();
+            var origin = rig.Main.OnMain(() => box.TranslatePoint(new Point(box.Padding.Left, box.Padding.Top), window)!.Value);
+            var oldPixels = new PixelRect((int)(origin.X + old.X) + 5, area.Y, (int)Math.Ceiling(old.Width) - 5, area.Height);
+
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
+            var frames = new List<(double T, (int Stride, byte[] Bytes, PixelSize Size) Frame)>();
+            var diffs = new List<double>();
+            double? endedAt = null;
+            var start = rig.Main.OnMain(() => SwiftClock.Now);
+            (int Stride, byte[] Bytes, PixelSize Size)? previous = null;
+            double handOverJump = 0;
+            for (var i = 0; i < 160; i++)
+            {
+                rig.Elapse(window, Frame);
+                var (t, handed, count) = rig.Main.OnMain(() => ((SwiftClock.Now - start).TotalSeconds, layer.HandedOver, layer.Words.Words.Count));
+                var frame = DictationProbe.Frame(window);
+                if (previous is { } before)
+                {
+                    var jump = DictationProbe.Difference(before, frame, area);
+                    if (handed) handOverJump = jump;
+                    else diffs.Add(jump);
+                }
+                if (handed) break;
+                if (endedAt is null && count == 0) endedAt = t;
+                if (endedAt is { } ended) frames.Add((t - ended, frame));
+                previous = frame;
+            }
+            Assert.NotNull(endedAt);
+            Assert.True(rig.Main.OnMain(() => layer.HandedOver));
+            // the old text's ink on each frame after the last word has gone follows the ease curve of the fade back in (the first frame has none: it has just begun)
+            var first = frames[0].Frame;
+            var total = DictationProbe.Difference(frames[^1].Frame, first, oldPixels);
+            Assert.True(total > 3, "the old text comes back: " + total);
+            foreach (var (t, frame) in frames.Where(f => f.T > 0 && f.T <= 0.22))
+            {
+                var ink = DictationProbe.Difference(frame, first, oldPixels);
+                var expected = CssCurves.At(CssCurves.Ease, t, 0.22);
+                Assert.True(Math.Abs(ink / total - expected) < 0.06, $"the old text {t:F3} s after the words went: {ink / total:F3} of its ink, the .22 s ease says {expected:F3}");
+            }
+            // and nothing shows whole at once: no frame to frame difference, the hand-over included, is larger than the fades' own peak
+            var peak = diffs.Max();
+            Assert.True(handOverJump <= peak + 1e-9, $"the hand-over frame differs from the one before by {handOverJump:F2}, the fades' peak is {peak:F2}");
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-8.3, OD-0076: at a cancel the caret rides with the leaving words, then fades where they were (the design removes it after them); every frame against the curve
+    [Trait("Decision", "ED-292")]
+    public void A_cancel_keeps_the_caret_riding_and_fades_it_after_the_words_have_gone()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window, layer, box) = Opened(rig, "keep ");
+            rig.Main.OnMain(() => box.SelectionStart = box.SelectionEnd = 5);
+            rig.Elapse(window, 0.05);
+            rig.Main.OnMain(() => Click(Slot(view).HitTarget));
+            rig.Elapse(window, 3.6);
+            var before = rig.Main.OnMain(() => layer.CaretRect(SwiftClock.Now))!.Value;
+            var start = rig.Main.OnMain(() => SwiftClock.Now);
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
+            double? endedAt = null;
+            var previousX = before.X;
+            for (var i = 0; i < 120; i++)
+            {
+                rig.Elapse(window, Frame);
+                var (t, handed, count, caret, fade) = rig.Main.OnMain(() => ((SwiftClock.Now - start).TotalSeconds, layer.HandedOver, layer.Words.Words.Count, layer.CaretRect(SwiftClock.Now),
+                    layer.CaretFade(SwiftClock.Now)));
+                if (handed) break;
+                Assert.True(caret is not null, $"the caret is there {t:F3} s after Esc (it rides with the words leaving)");
+                if (i == 0) Assert.True(Math.Abs(caret!.Value.X - before.X) < 1.5, $"one frame after Esc the caret is where it was ({before.X}), not at {caret.Value.X}");
+                Assert.True(caret!.Value.X <= previousX + 1e-6, $"the caret only moves toward the start: {previousX} then {caret.Value.X}");
+                previousX = caret.Value.X;
+                if (endedAt is null && count == 0) endedAt = t;
+                var expectedFade = endedAt is { } e ? 1 - CssCurves.At(CssCurves.Ease, t - e, 0.18) : 1;
+                Assert.True(Math.Abs(fade - expectedFade) < 1e-4, $"the caret's fade {t:F3} s after Esc is {fade}, the .18 s ease after the last word says {expectedFade}");
+            }
+            Assert.NotNull(endedAt);
+            // where the words were: the end of the text that was there before them
+            using var layout = new TextLayout("keep ", new Typeface(box.FontFamily, box.FontStyle, box.FontWeight), box.FontSize, Brushes.Black, box.TextAlignment, TextWrapping.Wrap, null, null,
+                box.FlowDirection, 400);
+            var insertionX = rig.Main.OnMain(() => box.Padding.Left) + layout.HitTestTextPosition(5).X + 1;
+            Assert.True(Math.Abs(previousX - insertionX) < 3, $"the caret ends at the insertion point ({insertionX}), not at {previousX}");
             rig.Close(window);
         });
     }

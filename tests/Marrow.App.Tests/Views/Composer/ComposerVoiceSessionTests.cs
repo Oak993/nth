@@ -327,9 +327,13 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
             Assert.True(second.Voice!.Session.StartQueued);
             Assert.NotEqual(VoiceSessionState.Listening, second.Voice.Session.State);
             Assert.Same(first.Voice.Session, rig.Hub.Active);
-            rig.Elapse(firstWindow, 10);
+            for (var step = 0; step < 200 && second.Voice.Session.State != VoiceSessionState.Listening; step++) rig.Elapse(firstWindow, 0.05);
             Assert.Equal(VoiceSessionState.Listening, second.Voice.Session.State);
             Assert.Same(second.Voice.Session, rig.Hub.Active);
+            // the first one's text landed in its own editor, as the one edit, before the second session has said a word
+            Assert.Equal(VoiceComposerRig.SwitchThemeText, rig.Main.OnMain(() => One<ComposerNSTextView>(first).Text));
+            Assert.Equal(VoiceComposerRig.SwitchThemeText, rig.Runtime.Draft.Text);
+            rig.Elapse(firstWindow, 10);
             Assert.StartsWith(VoiceComposerRig.SwitchThemeText, rig.Runtime.Draft.Text, StringComparison.Ordinal); // the first one's text landed (the second session's own live words follow it in the shared draft)
             rig.Close(secondWindow);
             rig.Close(firstWindow);
