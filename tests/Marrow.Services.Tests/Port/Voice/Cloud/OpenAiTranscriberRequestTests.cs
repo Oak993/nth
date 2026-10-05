@@ -8,6 +8,7 @@ namespace Marrow.Services.Tests.Port.Voice.Cloud;
 // VT-16, voice-SPEC V-18.1 and V-T110: the request is a multipart POST of the session audio as a 16 kHz mono PCM16 WAV, the model, the
 // language only when forced, response_format json, stream true where the model supports it. The handler is the seam (V-18.5): an
 // in-process one that answers for api.openai.com and never opens a socket.
+[Trait("Spec", "V-T110")]
 public sealed class OpenAiTranscriberRequestTests
 {
     private static async Task<(InProcessRequest Request, IReadOnlyList<MultipartPart> Parts)> Send(string language = "auto", string? model = null, int seconds = 1)

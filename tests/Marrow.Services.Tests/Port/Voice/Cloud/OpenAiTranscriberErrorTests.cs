@@ -27,6 +27,7 @@ public sealed class OpenAiTranscriberErrorTests
     [InlineData(503, CloudNote.EngineFailure)]
     [InlineData(400, CloudNote.EngineFailure)]
     [InlineData(413, CloudNote.EngineFailure)]
+    [Trait("Spec", "V-T112")]
     public async Task V_T112_a_status_maps_to_its_cloud_note_and_is_asked_only_once(int status, CloudNote note)
     {
         var (error, handler) = await Fail(status);
@@ -39,6 +40,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T112")]
     public async Task V_T112_what_openai_wrote_back_and_the_key_are_not_in_the_exception()
     {
         var (error, _) = await Fail(401);
@@ -50,6 +52,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T112")]
     public async Task V_T112_a_server_that_does_not_answer_in_time_is_a_network_failure_that_timed_out()
     {
         await using var server = new LoopbackHttpServer();
@@ -69,6 +72,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T112")]
     public async Task V_T112_a_stream_that_goes_quiet_after_its_first_event_is_a_network_failure_that_timed_out()
     {
         await using var server = new LoopbackHttpServer();
@@ -88,6 +92,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T112")]
     public async Task V_T112_a_stream_that_keeps_sending_events_is_not_cut_off_by_the_time_of_its_silence()
     {
         await using var server = new LoopbackHttpServer();
@@ -110,6 +115,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T112")]
     public async Task V_T112_a_refused_connection_is_a_network_failure()
     {
         var (keys, _) = CloudFixtures.KeyStore();
@@ -122,6 +128,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T112")]
     public async Task V_T112_a_reply_cut_off_in_the_middle_is_a_network_failure()
     {
         await using var server = new LoopbackHttpServer();
@@ -139,6 +146,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T112")]
     public async Task V_T112_the_users_own_cancel_is_a_cancel_and_not_a_cloud_note()
     {
         await using var server = new LoopbackHttpServer();
@@ -155,6 +163,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T113")]
     public async Task V_T113_without_a_key_loading_and_transcribing_give_the_cloud_note_and_send_nothing()
     {
         var (keys, _) = CloudFixtures.KeyStore(key: null);
@@ -171,6 +180,7 @@ public sealed class OpenAiTranscriberErrorTests
     [Fact]
     [Trait("Feature", "VT-16")]
     [Trait("Rule", "R-TEST-4")]
+    [Trait("Spec", "V-T113")]
     public async Task V_T113_the_key_is_read_from_the_secret_store_each_call_and_from_nowhere_else()
     {
         var (keys, _) = CloudFixtures.KeyStore("sk-first");

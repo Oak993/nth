@@ -24,6 +24,7 @@ public sealed class PreviewMakersTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T34, CZ-4.5.3
+    [Trait("Spec", "CZ-T34")]
     public void The_initial_maker_is_the_default_providers_and_a_provider_without_a_maker_falls_to_Claude()
     {
         var expected = new Dictionary<ProviderKind, string>
@@ -80,6 +81,7 @@ public sealed class PreviewMakersTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T31, CZ-4.5.5: the preview's palette rule is the composer slot's: dark (mid, light), light (deep, mid), plus the accent
+    [Trait("Spec", "CZ-T31")]
     public void The_preview_palette_takes_the_stops_the_same_way_the_composers_slot_does_for_all_fifteen_brands() => headless.OnUiThread(() =>
     {
         var brands = Enum.GetValues<EffortBrand>();
@@ -96,6 +98,7 @@ public sealed class PreviewMakersTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-4.5.5: a maker's palette from liquid-palettes.json's own dark and light stops, by that rule
+    [Trait("Spec", "CZ-T31")]
     public void A_makers_palette_is_its_dark_mid_and_light_and_its_light_deep_and_mid_with_the_accent()
     {
         foreach (var maker in MakerLiquids.All)

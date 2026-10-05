@@ -1,0 +1,3 @@
+gcc -shared -fPIC icu-aliases.S -Wl,--no-undefined -Wl,-l:libicuuc.so.76 -o /tmp/gap2-native/libicu.dll.so
+LD_LIBRARY_PATH=/tmp/gap2-native python run-slices.py App Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests
+Executor-only real ICU 76 bridge; not installed in the project or included in production.

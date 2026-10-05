@@ -3,6 +3,7 @@ using Marrow.Services.Port.Skills.Generations;
 
 namespace Marrow.Services.Tests.Port.Skills.Generations;
 
+[Trait("Spec", "DL-9")]
 public sealed class GenerationBudgetTests
 {
     [Fact]

@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using Marrow.Services.Port.Skills.Install;
 namespace Marrow.Services.Tests.Port.Skills.Install;
+[Trait("Spec", "DL-4")]
 public sealed class InstallerZipLayoutTests
 {
     [Fact]

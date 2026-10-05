@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 // Unit SK-10: S3, a failed command, missing MODULE (ONDEMAND-PLAN.md 5.3): "Python ModuleNotFoundError: No module named '<m>' (not localised); Node
 // MODULE_NOT_FOUND / ERR_MODULE_NOT_FOUND with Cannot find module '<m>' or Cannot find package '<m>'; Playwright 'Executable doesn't exist at' naming its
 // browsers path." Lookup: "for a module, the smallest set that provides it". The command need not name the module (a script imports it).
+[Trait("Spec", "DL-10")]
 public sealed class MissingModuleTests
 {
     private static string[] Offered(string command, int? exit, string output, bool isError = true) =>

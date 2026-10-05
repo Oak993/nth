@@ -1,0 +1,7 @@
+{
+  "existing_files": 101,
+  "added_Spec_lines": 175,
+  "removed_existing_lines": 0,
+  "production_diff_files": [],
+  "whitespace_check": "git -c core.whitespace=cr-at-eol diff --check: exit 0; existing CRLF retained"
+}

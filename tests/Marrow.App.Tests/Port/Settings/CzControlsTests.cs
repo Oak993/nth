@@ -38,6 +38,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T25
+    [Trait("Spec", "CZ-T25")]
     public void Segments_measure_the_actual_button_and_arrow_keys_wrap_and_refocus() => headless.OnUiThread(() =>
     {
         var group = new CzSegmentedControl("Shape", [("md", "Large"), ("line", "A very long shape label"), ("sm", "Small")], "md", small: true);
@@ -59,6 +60,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
     [InlineData(Key.Left, 8)] [InlineData(Key.Down, 8)] [InlineData(Key.Right, 6)] [InlineData(Key.Up, 6)]
     [InlineData(Key.PageDown, 8)] [InlineData(Key.PageUp, 6)] [InlineData(Key.Home, 12)] [InlineData(Key.End, 2)]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T9
+    [Trait("Spec", "CZ-T9")]
     public void An_inverted_slider_maps_the_knob_and_every_key_in_the_design_direction(Key key, double expected) => headless.OnUiThread(() =>
     {
         var slider = new CzSlider("Speed", 2, 12, 1, 7, inverted: true);
@@ -89,6 +91,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T13
+    [Trait("Spec", "CZ-T13")]
     public void Eight_named_swatches_use_the_four_border_stops_at_the_locked_offsets() => headless.OnUiThread(() =>
     {
         var row = CzSwatchRow.BeamPalettes("colorful");
@@ -108,6 +111,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T42
+    [Trait("Spec", "CZ-T42")]
     public void Dimmed_rows_make_the_slider_Auto_and_radio_controls_inert_and_unfocusable() => headless.OnUiThread(() =>
     {
         var slider = new CzSlider("Brightness", .2, 3, .05, null, autoValue: 1);
@@ -122,6 +126,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T43
+    [Trait("Spec", "CZ-T43")]
     public void Control_peers_expose_names_radio_selection_range_toggle_and_expand_collapse() => headless.OnUiThread(() =>
     {
         var slider = new CzSlider("Intensity", 0, 1, .01, .5, format: v => Marrow.Core.Port.Settings.CzText.Fmt(v * 100, 0) + "%");
@@ -147,6 +152,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T92
+    [Trait("Spec", "CZ-T92")]
     public void Menu_measures_widest_label_wraps_keys_picks_and_Esc_returns_focus_without_closing_the_window() => headless.OnUiThread(() =>
     {
         var menu = new CzMenuButton("Pill words", [("one", "Ready"), ("two", "Listening in the chosen language"), ("three", "Working")], "one");
@@ -176,6 +182,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T92
+    [Trait("Spec", "CZ-T92")]
     public void Menu_placement_aligns_by_row_kind_and_flips_above_when_space_is_short() => headless.OnUiThread(() =>
     {
         var menu = new CzMenuButton("Spoken language", [("a", "Auto-detect"), ("b", "English")], "a");
@@ -210,6 +217,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
     });
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T43
+    [Trait("Spec", "CZ-T43")]
     public void Style_cards_and_orb_tiles_are_named_radio_groups_with_one_tab_stop() => headless.OnUiThread(() =>
     {
         var cards = new CzStyleCards("beam");
@@ -227,6 +235,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T92
+    [Trait("Spec", "CZ-T92")]
     public void Menu_value_width_chevron_and_checks_follow_the_frame_clock_and_the_menu_has_no_tip() => headless.OnUiThread(() =>
     {
         var menu = new CzMenuButton("Language", [("a", "Auto"), ("b", "A substantially longer language label")], "a");
@@ -366,6 +375,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T43
+    [Trait("Spec", "CZ-T43")]
     public void Capsule_and_swatch_peers_expose_invoke_and_required_single_selection() => headless.OnUiThread(() =>
     {
         var capsule = new CzCapsuleButton("Reset to defaults", detail: "Border beam as Marrow ships it");
@@ -389,6 +399,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
     [InlineData(Key.PageDown, 9.35, 25)] [InlineData(Key.PageUp, 6.65, 18)]
     [InlineData(Key.Home, 14, 40)] [InlineData(Key.End, .5, 3)]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T9
+    [Trait("Spec", "CZ-T9")]
     public void Both_shipped_inverted_speed_ranges_snap_every_keyboard_action(Key key, double beamExpected, double auraExpected) => headless.OnUiThread(() =>
     {
         var beam = new CzSlider("Speed", .5, 14, .05, 8, inverted: true);

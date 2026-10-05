@@ -11,6 +11,7 @@ namespace Marrow.Core.Tests.Port.Downloads;
 // SK-0 (DL-0, skills-ONDEMAND-PLAN.md section 7): the download seam fails closed when no fake is configured. A handler made with no
 // fake server refuses every request before any connection, loopback included; the existing HTTP seam (URLSession.Transport) takes
 // the same handler.
+[Trait("Spec", "DL-0")]
 public sealed class FakeDownloadFailClosedTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(1000, seed: 13);

@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // Unit SK-1: the provides index. ONDEMAND-PLAN.md 2.3 lists what makes an item findable when missing (executables, Python modules, Node
 // modules, Playwright's missing-browser message) and 5.3 "Lookup": "the token goes through the catalogue's provides index to one item (for a
 // module, the smallest set that provides it). No hit, no offer." DL-1: "every provides name maps to exactly one tool or the smallest package set".
+[Trait("Spec", "DL-1")]
 public sealed class SkillsCatalogueProvidesTests
 {
     private static readonly Dictionary<string, string[]> PlanExecutables = new()

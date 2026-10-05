@@ -5,6 +5,7 @@ using Marrow.Testing.Downloads;
 namespace Marrow.Services.Tests.Port.Downloads;
 
 // SK-3 (DL-3, section 3.2 "Skill sets"): a set is fetched file by file, six in flight, every file hashed on its own; one bad file fails the set.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderSetTests
 {
     private static FakeArtifact Artifact(int n) => FakeArtifact.Pattern(3_000 + n, seed: 100 + n);

@@ -7,6 +7,7 @@ namespace Marrow.Services.Tests.Port.Skills.Store;
 // PORT-ONLY: DL-5; PLAN 2.1 whole-tree set comparison; ONDEMAND 3.3 and 3.5. No vendor fixture.
 [Trait("Feature", "SK-5")]
 [Trait("Rule", "R-TEST-9")]
+[Trait("Spec", "DL-5")]
 public sealed class StoreVerifierTests
 {
     [Theory]

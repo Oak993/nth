@@ -19,6 +19,7 @@ public sealed class CustomizationMotionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T40, CZ-14.1: the page's rows: dimmed row 0.3 s ease; section fold 0.34 s ease with the fade 0.24 s after 0.08 s (open) and 0.14 s (shut); detail crossfade; Advanced chevron 0.3 s ez and nest fold; Reset idle 0.25 s
+    [Trait("Spec", "CZ-T40")]
     public void The_pages_row_transitions_follow_their_curves_on_the_frame_clock() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig();
@@ -71,6 +72,7 @@ public sealed class CustomizationMotionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T40, CZ-14.1 "Preview maker": the chip's name crossfades and its width eases 0.3 s ez; the dot's colour eases 0.35 s
+    [Trait("Spec", "CZ-T40")]
     public void The_preview_makers_transitions_follow_their_curves_on_the_frame_clock() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig();
@@ -99,6 +101,7 @@ public sealed class CustomizationMotionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T40, CZ-14.1 "Preview state": the typing placeholder crossfade 0.15 s / 0.12 s and back over 0.25 s; the dots fade 0.4 s ease-in-out; the ring's arc 0.6 s and its spin eased in with a 0.35 s time constant
+    [Trait("Spec", "CZ-T40")]
     public void The_preview_states_transitions_follow_their_curves_on_the_frame_clock() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig();
@@ -142,6 +145,7 @@ public sealed class CustomizationMotionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T41, CZ-14.1: under reduce motion every one of these lands at once
+    [Trait("Spec", "CZ-T41")]
     public void Under_reduce_motion_every_transition_lands_at_once() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -177,6 +181,7 @@ public sealed class CustomizationMotionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T41, CZ-5.3: the glyphs of the style cards turn only while they are seen, and stop when the user asks for less motion
+    [Trait("Spec", "CZ-T41")]
     public void The_style_glyphs_turn_while_seen_and_stop_under_reduce_motion() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig();

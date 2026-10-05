@@ -11,6 +11,7 @@ namespace Marrow.Core.Tests.Port.Downloads;
 // the guard never saw it: a request for HTTP/3 to any address went out as UDP datagrams (observed on Windows 11: 4 to 5 QUIC datagrams reached
 // a loopback UDP socket standing where an outside host would be, and no refusal was recorded). A loopback UDP socket is used here so the test
 // itself sends nothing off the machine.
+[Trait("Spec", "DL-0")]
 public sealed class DownloadHarnessReviewTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(1000, seed: 21);

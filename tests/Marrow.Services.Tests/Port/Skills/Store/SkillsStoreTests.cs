@@ -9,6 +9,7 @@ namespace Marrow.Services.Tests.Port.Skills.Store;
 // PORT-ONLY: DL-5, ONDEMAND 3.5/3.7/3.8, PLAN 2.1 leases and GC. No network or executable launch.
 [Trait("Feature", "SK-5")]
 [Trait("Rule", "R-TEST-9")]
+[Trait("Spec", "DL-5")]
 public sealed class SkillsStoreTests
 {
     [Theory]

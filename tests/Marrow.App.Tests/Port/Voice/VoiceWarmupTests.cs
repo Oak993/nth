@@ -15,6 +15,7 @@ public sealed class VoiceWarmupTests : IDisposable
 
     [Fact] // V-T54, VT-8
     [Trait("Decision", "ED-252")]
+    [Trait("Spec", "V-T54")]
     public void Registering_adds_the_two_orb_programs_under_a_step_of_their_own_between_the_strike_and_the_voice_hardware_check()
     {
         VoiceWarmup.Register();
@@ -31,6 +32,7 @@ public sealed class VoiceWarmupTests : IDisposable
 
     [Fact] // V-T54, VT-8
     [Trait("Decision", "ED-252")]
+    [Trait("Spec", "V-T54")]
     public void Registering_twice_registers_once_and_unregistering_takes_them_out()
     {
         var before = GpuWarmup.Steps;

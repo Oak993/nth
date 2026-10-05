@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.State;
 // Unit SK-7: "state.json round trip" (ONDEMAND-PLAN.md 3.1: "installed items, versions, accepted terms, declined offers (per chat)", plus the
 // found-on-this-PC results of 3.6 and DL-7). The file is canonical (one text for one state) and strict (anything unknown fails closed), as SK-1's
 // catalogue is; ENGINEERING DECISIONS in ED-295.
+[Trait("Spec", "DL-7")]
 public sealed class AddonsStateJsonTests
 {
     private static JsonObject Doc() => JsonNode.Parse(StateFixtures.Text(StateFixtures.Full()))!.AsObject();

@@ -6,6 +6,7 @@ namespace Marrow.Services.Tests.Port.Downloads;
 
 // SK-3 (DL-3, sections 3.2 and 3.9): the disk-space check runs before connecting: the download plus the item's unpacked size plus 10% must fit on the
 // data root's volume, or the item fails at once with "Needs 1.2 GB free on C:." and a retry re-checks first.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderDiskTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(10_000, seed: 41);

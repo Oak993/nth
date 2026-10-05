@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 // Unit SK-10: "no offer from prose alone". ONDEMAND-PLAN.md 5.1: "(ED) Natural-language guessing ('LibreOffice is not installed' in the model's prose) is not
 // a signal: it is unreliable, and S3 already sees the failure that led to the sentence." The detector reads four kinds of event and nothing else; an event it
 // does not know is ignored, and words in the output of a command that did not fail the way a missing program fails are only words.
+[Trait("Spec", "DL-10")]
 public sealed class NoProseSignalTests
 {
     [Fact]

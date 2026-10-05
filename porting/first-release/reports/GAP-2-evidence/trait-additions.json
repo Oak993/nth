@@ -1,0 +1,1052 @@
+[
+  {
+    "path": "tests/Marrow.App.Tests/Views/Settings/SettingsNewPagesTests.cs",
+    "method": "The_new_pages_sit_in_the_sidebar_order_with_their_raw_values",
+    "id": "CZ-T1",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Views/Settings/SettingsNewPagesTests.cs",
+    "method": "Titles_symbols_and_keywords_are_the_specs",
+    "id": "CZ-T2",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Views/Settings/SettingsNewPagesTests.cs",
+    "method": "Search_finds_a_ready_page_by_title_or_keyword_and_never_a_hidden_one",
+    "id": "CZ-T2",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationPageTests.cs",
+    "method": "The_page_is_ready_and_the_sidebar_lists_it",
+    "id": "CZ-T2",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Views/Settings/SettingsNewPagesTests.cs",
+    "method": "Every_new_pages_symbol_draws_a_non_empty_icon",
+    "id": "CZ-T3",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationPageTests.cs",
+    "method": "The_chrome_row_carries_the_Preview_state_control_at_Rest",
+    "id": "CZ-T5",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "An_inverted_slider_maps_the_knob_and_every_key_in_the_design_direction",
+    "id": "CZ-T9",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Both_shipped_inverted_speed_ranges_snap_every_keyboard_action",
+    "id": "CZ-T9",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Auto_shows_the_resolved_value_moving_stores_and_the_capsule_toggles",
+    "id": "CZ-T10",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Auto_follows_the_windows_theme",
+    "id": "CZ-T10",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "A_stored_corner_above_the_sliders_end_shows_at_the_end_and_is_not_rewritten",
+    "id": "CZ-T11",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Motion_sets_the_families_first_shape_and_the_shape_sets_swap",
+    "id": "CZ-T12",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Eight_named_swatches_use_the_four_border_stops_at_the_locked_offsets",
+    "id": "CZ-T13",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "The_colours_row_has_the_eight_palettes_and_a_pick_writes_one",
+    "id": "CZ-T13",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Every_beam_row_says_what_the_design_says_in_every_fixture_case",
+    "id": "CZ-T14",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Colour_drift_is_dimmed_and_inert_where_it_does_nothing",
+    "id": "CZ-T14",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Every_beam_row_says_what_the_design_says_in_every_fixture_case",
+    "id": "CZ-T15",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Hold_colours_still_is_forced_on_and_inert_under_mono",
+    "id": "CZ-T15",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationSectionsTests.cs",
+    "method": "The_sections_rows_folds_and_dividers_are_the_designs_in_every_state",
+    "id": "CZ-T16",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationSectionsTests.cs",
+    "method": "Border_beam_reset_is_idle_at_the_defaults_and_resets_everything",
+    "id": "CZ-T17",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAuraRowsTests.cs",
+    "method": "Every_uiverse_row_says_what_the_design_says_in_every_fixture_case",
+    "id": "CZ-T18",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAuraRowsTests.cs",
+    "method": "The_colours_detail_follows_the_preview_maker_and_the_accent",
+    "id": "CZ-T18",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAuraRowsTests.cs",
+    "method": "A_colours_pick_writes_the_scheme_and_Custom_opens_the_wells",
+    "id": "CZ-T18",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Every_beam_row_says_what_the_design_says_in_every_fixture_case",
+    "id": "CZ-T19",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAuraRowsTests.cs",
+    "method": "Every_uiverse_row_says_what_the_design_says_in_every_fixture_case",
+    "id": "CZ-T19",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAuraRowsTests.cs",
+    "method": "The_uiverse_sliders_have_the_designs_ranges_and_write_what_they_show",
+    "id": "CZ-T19",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAuraRowsTests.cs",
+    "method": "Every_uiverse_row_says_what_the_design_says_in_every_fixture_case",
+    "id": "CZ-T20",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAuraRowsTests.cs",
+    "method": "The_rim_and_dot_rows_dim_with_their_switches",
+    "id": "CZ-T20",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationSectionsTests.cs",
+    "method": "Uiverse_reset_returns_every_setting_and_the_hidden_wells_follow",
+    "id": "CZ-T21",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationSectionsTests.cs",
+    "method": "Off_shows_the_note_alone_and_both_styles_keep_their_settings",
+    "id": "CZ-T22",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationSectionsTests.cs",
+    "method": "The_style_cards_are_a_radio_group_and_a_pick_writes_the_style_keeping_the_others_settings",
+    "id": "CZ-T23",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationSectionsTests.cs",
+    "method": "The_advanced_open_state_is_shared_between_the_styles_and_is_session_only",
+    "id": "CZ-T24",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Segments_measure_the_actual_button_and_arrow_keys_wrap_and_refocus",
+    "id": "CZ-T25",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationPersistenceTests.cs",
+    "method": "Every_page_change_reaches_a_second_composer_and_the_store",
+    "id": "CZ-T26",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewMakersTests.cs",
+    "method": "The_preview_palette_takes_the_stops_the_same_way_the_composers_slot_does_for_all_fifteen_brands",
+    "id": "CZ-T31",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewModelSwitchTests.cs",
+    "method": "The_steppers_are_named_wrap_around_the_list_and_the_chips_name_follows_the_pick",
+    "id": "CZ-T32",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewModelSwitchTests.cs",
+    "method": "The_chips_width_eases_to_the_new_name_and_reduce_motion_lands_at_once",
+    "id": "CZ-T32",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewModelSwitchTests.cs",
+    "method": "The_lists_height_is_the_room_above_the_chip_clamped_between_112_and_236",
+    "id": "CZ-T33",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewModelSwitchTests.cs",
+    "method": "The_menu_opens_above_the_chip_as_a_popover_with_the_tip_down_and_lists_the_makers",
+    "id": "CZ-T33",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewModelSwitchTests.cs",
+    "method": "Opening_centres_the_current_item_in_the_list_and_focuses_it",
+    "id": "CZ-T33",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewSessionTests.cs",
+    "method": "The_session_opens_on_the_default_providers_maker_at_rest_and_each_session_opens_afresh",
+    "id": "CZ-T34",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewMakersTests.cs",
+    "method": "The_initial_maker_is_the_default_providers_and_a_provider_without_a_maker_falls_to_Claude",
+    "id": "CZ-T34",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewSessionTests.cs",
+    "method": "The_phase_follows_the_chrome_controls_pick_and_touching_the_working_dots_picks_Running",
+    "id": "CZ-T35",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationStageTests.cs",
+    "method": "The_session_drives_the_preview_and_the_switch_and_the_composer_chip_share_one_maker",
+    "id": "CZ-T35",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationPageTests.cs",
+    "method": "The_chrome_control_and_the_previews_phase_are_one_pick",
+    "id": "CZ-T35",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationStageTests.cs",
+    "method": "Working_the_stage_writes_nothing_and_opens_only_the_model_menu",
+    "id": "CZ-T36",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/ComposerPreviewTests.cs",
+    "method": "The_preview_holds_no_runtime_no_draft_and_no_editable_text_and_its_controls_are_inert",
+    "id": "CZ-T36",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationStageTests.cs",
+    "method": "The_stage_is_496_by_212_with_radius_10_in_the_card_under_the_heading_above_the_foot",
+    "id": "CZ-T37",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/ComposerPreviewTests.cs",
+    "method": "The_composer_sits_472_wide_12_from_the_left_and_the_bottom_and_the_light_is_given_its_rectangle",
+    "id": "CZ-T37",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationStageTests.cs",
+    "method": "The_pinned_block_at_rest_is_372_high_and_520_wide",
+    "id": "CZ-T38",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationSectionsTests.cs",
+    "method": "The_sections_rows_folds_and_dividers_are_the_designs_in_every_state",
+    "id": "CZ-T39",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationPageTests.cs",
+    "method": "The_page_holds_the_stage_then_Style_then_the_style_sections_in_order",
+    "id": "CZ-T39",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs",
+    "method": "The_pages_row_transitions_follow_their_curves_on_the_frame_clock",
+    "id": "CZ-T40",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs",
+    "method": "The_preview_makers_transitions_follow_their_curves_on_the_frame_clock",
+    "id": "CZ-T40",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs",
+    "method": "The_preview_states_transitions_follow_their_curves_on_the_frame_clock",
+    "id": "CZ-T40",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs",
+    "method": "Under_reduce_motion_every_transition_lands_at_once",
+    "id": "CZ-T41",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs",
+    "method": "The_style_glyphs_turn_while_seen_and_stop_under_reduce_motion",
+    "id": "CZ-T41",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Dimmed_rows_make_the_slider_Auto_and_radio_controls_inert_and_unfocusable",
+    "id": "CZ-T42",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationBeamRowsTests.cs",
+    "method": "Colour_drift_is_dimmed_and_inert_where_it_does_nothing",
+    "id": "CZ-T42",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Control_peers_expose_names_radio_selection_range_toggle_and_expand_collapse",
+    "id": "CZ-T43",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Style_cards_and_orb_tiles_are_named_radio_groups_with_one_tab_stop",
+    "id": "CZ-T43",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Capsule_and_swatch_peers_expose_invoke_and_required_single_selection",
+    "id": "CZ-T43",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAllocationTests.cs",
+    "method": "A_warm_page_frame_allocates_nothing_on_the_ui_thread",
+    "id": "CZ-T44",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAllocationTests.cs",
+    "method": "A_style_glyphs_frame_makes_no_new_drawing_operation",
+    "id": "CZ-T44",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationAllocationTests.cs",
+    "method": "Drawing_a_style_glyph_allocates_nothing",
+    "id": "CZ-T44",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/ComposerPreviewTests.cs",
+    "method": "At_472_the_preview_is_laid_out_as_a_real_composer_of_the_same_width",
+    "id": "CZ-T45",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/ComposerPreviewTests.cs",
+    "method": "The_rendered_placeholder_and_the_control_end_match_a_real_composers_pixels",
+    "id": "CZ-T45",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/ComposerPreviewTests.cs",
+    "method": "The_placeholder_is_the_real_composers_for_a_Claude_thread_and_the_designs",
+    "id": "CZ-T46",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Menu_measures_widest_label_wraps_keys_picks_and_Esc_returns_focus_without_closing_the_window",
+    "id": "CZ-T92",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Menu_placement_aligns_by_row_kind_and_flips_above_when_space_is_short",
+    "id": "CZ-T92",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CzControlsTests.cs",
+    "method": "Menu_value_width_chevron_and_checks_follow_the_frame_clock_and_the_menu_has_no_tip",
+    "id": "CZ-T92",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Views/Settings/SettingsNewPagesTests.cs",
+    "method": "The_new_tints_are_gray_and_no_sidebar_code_reads_a_tint",
+    "id": "CZ-T4",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/ComposerPreviewTests.cs",
+    "method": "The_chip_steps_the_maker_and_the_light_wears_that_makers_palette_and_the_settings_given",
+    "id": "CZ-T32",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/ComposerPreviewTests.cs",
+    "method": "Typing_types_the_playgrounds_string_at_0_055_seconds_a_character_and_leaving_it_brings_the_placeholder_back",
+    "id": "CZ-T35",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewModelSwitchTests.cs",
+    "method": "The_keys_move_pick_and_close_and_Escape_closes_the_menu_only_and_returns_focus_to_the_chip",
+    "id": "CZ-T33",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewModelSwitchTests.cs",
+    "method": "Picking_an_item_closes_the_menu_and_focuses_the_chip",
+    "id": "CZ-T33",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/PreviewMakersTests.cs",
+    "method": "A_makers_palette_is_its_dark_mid_and_light_and_its_light_deep_and_mid_with_the_accent",
+    "id": "CZ-T31",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/AppSettingsVoiceKeysTests.cs",
+    "method": "A_two_second_composer_light_drag_writes_at_most_9_times_plus_one_and_the_value_is_current_each_frame",
+    "id": "CZ-T27",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationPersistenceTests.cs",
+    "method": "A_drag_does_not_write_the_store_every_step_and_its_end_writes_the_last_value",
+    "id": "CZ-T27",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Models/ModelDownloaderTests.cs",
+    "method": "ModelDownloaderTests",
+    "id": "V-T43",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Models/ModelStoreTests.cs",
+    "method": "ModelStoreTests",
+    "id": "V-T44",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/VoiceKeyStoreTests.cs",
+    "method": "VoiceKeyStoreTests",
+    "id": "V-T47",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/PcmWavTests.cs",
+    "method": "PcmWavTests",
+    "id": "V-T110",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberRequestTests.cs",
+    "method": "OpenAiTranscriberRequestTests",
+    "id": "V-T110",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberReplyTests.cs",
+    "method": "OpenAiTranscriberReplyTests",
+    "id": "V-T111",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiDeltaOpsTests.cs",
+    "method": "OpenAiDeltaOpsTests",
+    "id": "V-T111",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiSseReaderTests.cs",
+    "method": "OpenAiSseReaderTests",
+    "id": "V-T111",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T112_a_status_maps_to_its_cloud_note_and_is_asked_only_once",
+    "id": "V-T112",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T112_what_openai_wrote_back_and_the_key_are_not_in_the_exception",
+    "id": "V-T112",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T112_a_server_that_does_not_answer_in_time_is_a_network_failure_that_timed_out",
+    "id": "V-T112",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T112_a_stream_that_goes_quiet_after_its_first_event_is_a_network_failure_that_timed_out",
+    "id": "V-T112",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T112_a_stream_that_keeps_sending_events_is_not_cut_off_by_the_time_of_its_silence",
+    "id": "V-T112",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T112_a_refused_connection_is_a_network_failure",
+    "id": "V-T112",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T112_a_reply_cut_off_in_the_middle_is_a_network_failure",
+    "id": "V-T112",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T112_the_users_own_cancel_is_a_cancel_and_not_a_cloud_note",
+    "id": "V-T112",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T113_without_a_key_loading_and_transcribing_give_the_cloud_note_and_send_nothing",
+    "id": "V-T113",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Voice/Cloud/OpenAiTranscriberErrorTests.cs",
+    "method": "V_T113_the_key_is_read_from_the_secret_store_each_call_and_from_nowhere_else",
+    "id": "V-T113",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Voice/VoiceWarmupTests.cs",
+    "method": "Registering_adds_the_two_orb_programs_under_a_step_of_their_own_between_the_strike_and_the_voice_hardware_check",
+    "id": "V-T54",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Voice/VoiceWarmupTests.cs",
+    "method": "Registering_twice_registers_once_and_unregistering_takes_them_out",
+    "id": "V-T54",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Window/VoiceOrbNativeTests.cs",
+    "method": "VoiceOrbNativeTests",
+    "id": "V-T54",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Downloads/DownloadHarnessReviewTests.cs",
+    "method": "DownloadHarnessReviewTests",
+    "id": "DL-0",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Downloads/FakeDownloadFailClosedTests.cs",
+    "method": "FakeDownloadFailClosedTests",
+    "id": "DL-0",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Downloads/FakeDownloadFaultTests.cs",
+    "method": "FakeDownloadFaultTests",
+    "id": "DL-0",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Downloads/FakeDownloadRedirectTests.cs",
+    "method": "FakeDownloadRedirectTests",
+    "id": "DL-0",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Downloads/FakeDownloadServerTests.cs",
+    "method": "FakeDownloadServerTests",
+    "id": "DL-0",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Downloads/NetworkGuardTests.cs",
+    "method": "NetworkGuardTests",
+    "id": "DL-0",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderCancelTests.cs",
+    "method": "DownloaderCancelTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderDiskTests.cs",
+    "method": "DownloaderDiskTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderFailureTests.cs",
+    "method": "DownloaderFailureTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderFullTests.cs",
+    "method": "DownloaderFullTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderPartialsTests.cs",
+    "method": "DownloaderPartialsTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderPolicyTests.cs",
+    "method": "DownloaderPolicyTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderProgressTests.cs",
+    "method": "DownloaderProgressTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderResumeTests.cs",
+    "method": "DownloaderResumeTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderSeamTests.cs",
+    "method": "DownloaderSeamTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderSetTests.cs",
+    "method": "DownloaderSetTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Downloads/DownloaderVerifyTests.cs",
+    "method": "DownloaderVerifyTests",
+    "id": "DL-3",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Install/InstallerAcceptanceTests.cs",
+    "method": "InstallerAcceptanceTests",
+    "id": "DL-4",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Install/InstallerBoundaryTests.cs",
+    "method": "InstallerBoundaryTests",
+    "id": "DL-4",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Install/InstallerCrashTests.cs",
+    "method": "InstallerCrashTests",
+    "id": "DL-4",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Install/InstallerHandoffReviewTests.cs",
+    "method": "InstallerHandoffReviewTests",
+    "id": "DL-4",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Install/InstallerKindsTests.cs",
+    "method": "InstallerKindsTests",
+    "id": "DL-4",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Install/InstallerReviewTests.cs",
+    "method": "InstallerReviewTests",
+    "id": "DL-4",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Install/InstallerZipLayoutTests.cs",
+    "method": "InstallerZipLayoutTests",
+    "id": "DL-4",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Store/SkillsStoreTests.cs",
+    "method": "SkillsStoreTests",
+    "id": "DL-5",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Store/StoreLifecycleReviewTests.cs",
+    "method": "StoreLifecycleReviewTests",
+    "id": "DL-5",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Store/StoreReservationTests.cs",
+    "method": "StoreReservationTests",
+    "id": "DL-5",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Store/StoreVerifierTests.cs",
+    "method": "StoreVerifierTests",
+    "id": "DL-5",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Shims/ShimLauncherTests.cs",
+    "method": "ShimLauncherTests",
+    "id": "DL-6",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Shims/ShimPathTests.cs",
+    "method": "ShimPathTests",
+    "id": "DL-6",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/State/AddonsStateDeclinedTests.cs",
+    "method": "AddonsStateDeclinedTests",
+    "id": "DL-7",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/State/AddonsStateFoundTests.cs",
+    "method": "AddonsStateFoundTests",
+    "id": "DL-7",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/State/AddonsStateJsonTests.cs",
+    "method": "AddonsStateJsonTests",
+    "id": "DL-7",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/State/AddonsStateStoreTests.cs",
+    "method": "AddonsStateStoreTests",
+    "id": "DL-7",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/State/AddonsStateTransitionTests.cs",
+    "method": "AddonsStateTransitionTests",
+    "id": "DL-7",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/State/ItemDependentsTests.cs",
+    "method": "ItemDependentsTests",
+    "id": "DL-7",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/State/ItemTermsTests.cs",
+    "method": "ItemTermsTests",
+    "id": "DL-7",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/State/UpdateCheckTests.cs",
+    "method": "UpdateCheckTests",
+    "id": "DL-7",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineAcceptanceTests.cs",
+    "method": "PipelineAcceptanceTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineCrashTests.cs",
+    "method": "PipelineCrashTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineDownloadTests.cs",
+    "method": "PipelineDownloadTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineGenerationBindingTests.cs",
+    "method": "PipelineGenerationBindingTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineGenerationTests.cs",
+    "method": "PipelineGenerationTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineRecoveryTests.cs",
+    "method": "PipelineRecoveryTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineRepairCrashTests.cs",
+    "method": "PipelineRepairCrashTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineRepairTests.cs",
+    "method": "PipelineRepairTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Pipelines/PipelineUpdateGroupTests.cs",
+    "method": "PipelineUpdateGroupTests",
+    "id": "DL-8",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Generations/ClashScannerTests.cs",
+    "method": "ClashScannerTests",
+    "id": "DL-9",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Generations/GenerationBudgetTests.cs",
+    "method": "GenerationBudgetTests",
+    "id": "DL-9",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Generations/GenerationCompositionTests.cs",
+    "method": "GenerationCompositionTests",
+    "id": "DL-9",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Generations/GenerationLifecycleTests.cs",
+    "method": "GenerationLifecycleTests",
+    "id": "DL-9",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Generations/GenerationRegressionTests.cs",
+    "method": "GenerationRegressionTests",
+    "id": "DL-9",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Generations/GenerationTests.cs",
+    "method": "GenerationTests",
+    "id": "DL-9",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/CommandTokenizerTests.cs",
+    "method": "CommandTokenizerTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/DetectorGuardsTests.cs",
+    "method": "DetectorGuardsTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/HeldCommandTests.cs",
+    "method": "HeldCommandTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/MissingModuleTests.cs",
+    "method": "MissingModuleTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/MissingProgramTests.cs",
+    "method": "MissingProgramTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/ModelRequestTests.cs",
+    "method": "ModelRequestTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/NoProseSignalTests.cs",
+    "method": "NoProseSignalTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/OfferCardTests.cs",
+    "method": "OfferCardTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Detect/SkillNeedTests.cs",
+    "method": "SkillNeedTests",
+    "id": "DL-10",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/SkillsCatalogueSchemaTests.cs",
+    "method": "SkillsCatalogueSchemaTests",
+    "id": "DL-1",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/SkillsCatalogueNeedsTests.cs",
+    "method": "SkillsCatalogueNeedsTests",
+    "id": "DL-1",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/SkillsCatalogueHostsTests.cs",
+    "method": "SkillsCatalogueHostsTests",
+    "id": "DL-1",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/SkillsCatalogueProvidesTests.cs",
+    "method": "SkillsCatalogueProvidesTests",
+    "id": "DL-1",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/SkillsCatalogueCountsTests.cs",
+    "method": "SkillsCatalogueCountsTests",
+    "id": "DL-1",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/SkillsCatalogueSkillNamesTests.cs",
+    "method": "SkillsCatalogueSkillNamesTests",
+    "id": "DL-1",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/CatalogueChangeReportHashAndSizeTests.cs",
+    "method": "CatalogueChangeReportHashAndSizeTests",
+    "id": "DL-2",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/CatalogueChangeReportLicenceTests.cs",
+    "method": "CatalogueChangeReportLicenceTests",
+    "id": "DL-2",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/CatalogueChangeReportRenderTests.cs",
+    "method": "CatalogueChangeReportRenderTests",
+    "id": "DL-2",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/CatalogueChangeReportStructureTests.cs",
+    "method": "CatalogueChangeReportStructureTests",
+    "id": "DL-2",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.Core.Tests/Port/Skills/Catalogue/CatalogueChangeReportTests.cs",
+    "method": "CatalogueChangeReportTests",
+    "id": "DL-2",
+    "kind": "class"
+  },
+  {
+    "path": "tests/Marrow.App.Tests/Port/Settings/ComposerPreviewPixelsTests.cs",
+    "method": "The_restated_ring_chip_end_and_send_ink_draw_as_the_real_controls_do",
+    "id": "CZ-T45",
+    "kind": "method"
+  },
+  {
+    "path": "tests/Marrow.Services.Tests/Port/Skills/Host/SkillsHostCompositionTests.cs",
+    "method": "Reset_through_the_host_removes_what_is_installed_and_keeps_enabled_json_and_the_accepted_terms",
+    "id": "DL-16",
+    "kind": "method"
+  }
+]

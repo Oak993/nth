@@ -4,6 +4,7 @@ using Marrow.Services.Port.Skills.Shims;
 namespace Marrow.Services.Tests.Port.Skills.Shims;
 
 // PORT-ONLY: ONDEMAND 3.6, DL-6; real launcher, built fake targets only.
+[Trait("Spec", "DL-6")]
 public sealed class ShimLauncherTests
 {
     internal static readonly string[] Arguments = ["", "two words", "a\"quote", "trailing\\", "\\\"", "مرحبا 日本語 🦴", "&|<>^%$`!;()"];

@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // Unit SK-1 (DL-1 of porting/first-release/skills-ONDEMAND-PLAN.md section 7, BUILD-PLAN.md 2.5): the catalogue schema and the embedded file.
 // Expected values come from ONDEMAND-PLAN.md 2.3 (the per-item fields) and BUILD-PLAN.md 2.5 SK-1 (kind, termsClass, licence file path);
 // the plan says an unknown value stays unknown, so a key is always present and an explicit null marks "not read yet".
+[Trait("Spec", "DL-1")]
 public sealed class SkillsCatalogueSchemaTests
 {
     private static readonly string[] ItemKeys =

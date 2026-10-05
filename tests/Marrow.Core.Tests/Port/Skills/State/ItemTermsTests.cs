@@ -9,6 +9,7 @@ namespace Marrow.Core.Tests.Port.Skills.State;
 // with changed terms asks again"; 3.7: "A changed licence text in a non-open item asks for the terms again before updating". The hash of an item's
 // licence is the SHA-256 the catalogue holds for its licence file (SK-1's files list); where the catalogue has none yet the terms cannot be keyed and
 // are required (fail closed, ED-295).
+[Trait("Spec", "DL-7")]
 public sealed class ItemTermsTests
 {
     private static CatalogueItem WithLicence(string termsClass, string? hash)

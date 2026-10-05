@@ -4,6 +4,7 @@ using Marrow.Services.Port.Voice.Cloud;
 namespace Marrow.Services.Tests.Port.Voice.Cloud;
 
 // VT-16, voice-SPEC V-18.1: the events of the streaming reply.
+[Trait("Spec", "V-T111")]
 public sealed class OpenAiSseReaderTests
 {
     private static async Task<List<OpenAiEvent>> Read(string text)

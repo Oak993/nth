@@ -1,6 +1,7 @@
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Services.Port.Skills.Install;
 namespace Marrow.Services.Tests.Port.Skills.Install;
+[Trait("Spec", "DL-4")]
 public sealed class InstallerReviewTests
 {
     [Theory]

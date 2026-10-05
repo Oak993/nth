@@ -6,6 +6,7 @@ namespace Marrow.Services.Tests.Port.Downloads;
 
 // SK-3 (DL-3, section 3.2 "Big files"): resume after a drop with Range, bytes not refetched (the fake server's log is the witness); restart from zero when
 // the server cannot resume. Section 3.3: a mismatch after a resume is the one case that restarts silently, once.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderResumeTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(100_000, seed: 5);

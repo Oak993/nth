@@ -4,6 +4,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 
 // Unit SK-1: needs. ONDEMAND-PLAN.md 2.3 "needs: other catalogue ids (T1 for P1, P1 + T3 + T4 for O3, and so on); skill sets list needs per skill"
 // and the Needs and Needed-by columns of 2.1 and 2.2; DL-1: "needs form no cycle and name existing ids".
+[Trait("Spec", "DL-1")]
 public sealed class SkillsCatalogueNeedsTests
 {
     private static readonly Dictionary<string, string[]> PlanNeeds = new()

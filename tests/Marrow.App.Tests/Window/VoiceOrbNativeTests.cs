@@ -16,6 +16,7 @@ namespace Marrow.App.Tests.Window.Native;
 // OrbRenderer are read back and compared with tests/fixtures/voice/ref-orbs (<= 2/255 at >= 99.5 % of pixels, V-11.7's bar). A program that failed to compile on
 // the GPU draws nothing and fails the comparison. Recorded: voice-orb-gpu.txt (the run's data folder). Windows review of VT-8 (unit/integ-vt8).
 [Collection("WindowManagerNative")]
+[Trait("Spec", "V-T54")]
 public sealed class VoiceOrbNativeTests(WindowManagerNativeSession native)
 {
     [Fact]

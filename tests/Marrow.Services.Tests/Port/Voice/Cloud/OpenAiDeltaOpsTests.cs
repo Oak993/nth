@@ -4,6 +4,7 @@ using Marrow.Services.Port.Voice.Cloud;
 namespace Marrow.Services.Tests.Port.Voice.Cloud;
 
 // VT-16, voice-SPEC V-18.1 and V-7.5: a growing transcript becomes the same word operations the local engine's passes make.
+[Trait("Spec", "V-T111")]
 public sealed class OpenAiDeltaOpsTests
 {
     [Fact]

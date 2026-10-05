@@ -7,6 +7,7 @@ namespace Marrow.Services.Tests.Port.Downloads;
 
 // SK-3 (DL-3, section 3.2): the first url must be https and on the host list, refused before any connection; redirects are followed only to https hosts
 // (the mirror host need not be on the list: the pinned hash is the trust), the final host is logged.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderPolicyTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(20_000, seed: 21);

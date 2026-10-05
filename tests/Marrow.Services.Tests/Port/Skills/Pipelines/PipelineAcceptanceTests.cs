@@ -6,6 +6,7 @@ using Marrow.Services.Port.Skills.Shims;
 
 namespace Marrow.Services.Tests.Port.Skills.Pipelines;
 
+[Trait("Spec", "DL-8")]
 public sealed class PipelineAcceptanceTests
 {
     [Fact]

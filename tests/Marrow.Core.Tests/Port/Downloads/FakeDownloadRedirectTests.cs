@@ -7,6 +7,7 @@ namespace Marrow.Core.Tests.Port.Downloads;
 
 // SK-0 (DL-0, skills-ONDEMAND-PLAN.md section 7): the redirects the fake download server can answer. The harness handler follows
 // none: a test sees the 3xx and decides, as the downloader under test will (it refuses http, follows https).
+[Trait("Spec", "DL-0")]
 public sealed class FakeDownloadRedirectTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(2000, seed: 5);

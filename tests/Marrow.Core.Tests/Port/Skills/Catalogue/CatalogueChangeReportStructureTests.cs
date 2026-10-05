@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // Unit SK-2: the rest of what a new pin run can change in an item, so the owner's report is complete: what it needs and provides, its skills and plugin folders and
 // their counts. (ONDEMAND-PLAN.md 3.7: the report lists what a release carries; 2.3: needs and provides are catalogue fields.) None of these is invented: each is a
 // field of SK-1's schema, compared as it is.
+[Trait("Spec", "DL-2")]
 public sealed class CatalogueChangeReportStructureTests
 {
     private static CatalogueChangeReport Compare(Func<CatalogueItem, CatalogueItem> change, string id = "X3") =>

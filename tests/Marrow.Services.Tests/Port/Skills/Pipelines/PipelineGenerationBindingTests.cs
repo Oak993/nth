@@ -4,6 +4,7 @@ using Marrow.Services.Port.Skills.Store;
 
 namespace Marrow.Services.Tests.Port.Skills.Pipelines;
 
+[Trait("Spec", "DL-8")]
 public sealed class PipelineGenerationBindingTests
 {
     [Fact]

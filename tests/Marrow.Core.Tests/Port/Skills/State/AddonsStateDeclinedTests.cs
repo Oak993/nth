@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.State;
 // Unit SK-7: "the per-chat declined list". ONDEMAND-PLAN.md 3.1: state.json holds "declined offers (per chat)"; 5.3 Guards: no offer when the item is
 // "declined in this chat ('Don't ask again in this chat' is the decline's meaning)"; 5.4 `asked -> (no) declined`. A decline in one chat says nothing
 // about another chat. Forgetting a chat's list when the chat goes is an ENGINEERING DECISION (ED-295), so the file cannot grow without end.
+[Trait("Spec", "DL-7")]
 public sealed class AddonsStateDeclinedTests
 {
     [Fact]

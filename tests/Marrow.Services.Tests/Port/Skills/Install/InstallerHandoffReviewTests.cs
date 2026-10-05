@@ -4,6 +4,7 @@ using Marrow.Services.Tests.Port.Skills.Store.Fixtures;
 namespace Marrow.Services.Tests.Port.Skills.Install;
 
 // PORT-ONLY: integ-sk4-sk5 review. DL-4's output must be what DL-5 verifies, and DL-4 must not leave staging behind.
+[Trait("Spec", "DL-4")]
 public sealed class InstallerHandoffReviewTests
 {
     [Fact]

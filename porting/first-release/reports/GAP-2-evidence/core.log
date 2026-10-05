@@ -1,0 +1,71 @@
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:05.46]     Marrow.Core.Tests.Port.Skills.Catalogue.GapCatalogueAcceptanceTests.GAP_The_embedded_catalogue_has_every_required_release_pin_and_passes_the_strict_gate [FAIL]
+  Failed Marrow.Core.Tests.Port.Skills.Catalogue.GapCatalogueAcceptanceTests.GAP_The_embedded_catalogue_has_every_required_release_pin_and_passes_the_strict_gate [7 ms]
+  Error Message:
+   A1: licenceFile, licenceUrl, files, skills[academy-guide].name, skills[algorithmic-art].name, skills[canvas-design].name, skills[claude-api].name, skills[discernment-nudge].name, skills[frontend-design].name, skills[internal-comms].name, skills[mcp-builder].name, skills[skill-creator].name, skills[slack-gif-creator].name, skills[theme-factory].name, skills[web-artifacts-builder].name, skills[webapp-testing].name
+A2: licenceFile, licenceUrl, files, skills[docx].name, skills[xlsx].name, skills[pptx].name, skills[pdf].name, skills[doc-coauthoring].name
+A3: licenceFile, licenceUrl, files, skills
+A4: licenceFile, licenceUrl, files, skills
+A5: licenceFile, licenceUrl, files, skills
+A6: pin, licenceName, licenceFile, licenceUrl, files, skillCount, skills
+O1: licenceFile, licenceUrl, files, skills[imagegen].name, skills[openai-docs].name, skills[review-agent].name, skills[skill-creator].name
+O2: licenceFile, licenceUrl, files, skills
+O3: licenceFile, licenceUrl, files, skills[doc].name, skills[doc].path, skills[spreadsheet].name, skills[spreadsheet].path, skills[slides].name, skills[slides].path, skills[pdf].name, skills[pdf].path
+O4: licenceFile, licenceUrl, files, skills
+O5: licenceFile, licenceUrl, files, skills
+O6: licenceFile, licenceUrl, files, skills
+T1: licenceFile, licenceUrl, artifacts[0].sha256
+T1p: sourceUrl, licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T2: licenceFile, licenceUrl, artifacts[0].size, artifacts[0].sha256
+T3: licenceFile, licenceUrl, artifacts[0].size, artifacts[0].sha256
+T4: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T5: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T6: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T7: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T8: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T9: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T10: licenceFile, licenceUrl, artifacts[0].sha256, artifacts[1].sha256
+P1: pin, sourceUrl, licenceFile, licenceUrl, artifacts, packages[et-xmlfile].version, packages[typing-extensions].version
+P2: pin, sourceUrl, licenceFile, licenceUrl, artifacts, packages[pdfminer.six].version, packages[cffi].version, packages[pycparser].version, packages[charset-normalizer].version
+P3: pin, sourceUrl, licenceFile, licenceUrl, artifacts
+P4: pin, sourceUrl, licenceFile, licenceUrl, artifacts, packages[greenlet].version, packages[pyee].version
+P5: pin, sourceUrl, licenceFile, licenceUrl, artifacts
+P6: pin, sourceUrl, licenceFile, licenceUrl, artifacts, packages[@img/sharp-win32-x64].version
+A1: lacks real values: licenceFile, licenceUrl, files, skills[academy-guide].name, skills[algorithmic-art].name, skills[canvas-design].name, skills[claude-api].name, skills[discernment-nudge].name, skills[frontend-design].name, skills[internal-comms].name, skills[mcp-builder].name, skills[skill-creator].name, skills[slack-gif-creator].name, skills[theme-factory].name, skills[web-artifacts-builder].name, skills[webapp-testing].name
+A2: lacks real values: licenceFile, licenceUrl, files, skills[docx].name, skills[xlsx].name, skills[pptx].name, skills[pdf].name, skills[doc-coauthoring].name
+A3: lacks real values: licenceFile, licenceUrl, files, skills
+A4: lacks real values: licenceFile, licenceUrl, files, skills
+A5: lacks real values: licenceFile, licenceUrl, files, skills
+A6: lacks real values: pin, licenceName, licenceFile, licenceUrl, files, skillCount, skills
+O1: lacks real values: licenceFile, licenceUrl, files, skills[imagegen].name, skills[openai-docs].name, skills[review-agent].name, skills[skill-creator].name
+O2: lacks real values: licenceFile, licenceUrl, files, skills
+O3: lacks real values: licenceFile, licenceUrl, files, skills[doc].name, skills[doc].path, skills[spreadsheet].name, skills[spreadsheet].path, skills[slides].name, skills[slides].path, skills[pdf].name, skills[pdf].path
+O4: lacks real values: licenceFile, licenceUrl, files, skills
+O5: lacks real values: licenceFile, licenceUrl, files, skills
+O6: lacks real values: licenceFile, licenceUrl, files, skills
+T1: lacks real values: licenceFile, licenceUrl, artifacts[0].sha256
+T1p: lacks real values: sourceUrl, licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T2: lacks real values: licenceFile, licenceUrl, artifacts[0].size, artifacts[0].sha256
+T3: lacks real values: licenceFile, licenceUrl, artifacts[0].size, artifacts[0].sha256
+T4: lacks real values: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T5: lacks real values: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T6: lacks real values: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T7: lacks real values: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T8: lacks real values: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T9: lacks real values: licenceFile, licenceUrl, artifacts[0].url, artifacts[0].size, artifacts[0].sha256
+T10: lacks real values: licenceFile, licenceUrl, artifacts[0].sha256, artifacts[1].sha256
+P1: lacks real values: pin, sourceUrl, licenceFile, licenceUrl, artifacts, packages[et-xmlfile].version, packages[typing-extensions].version
+P2: lacks real values: pin, sourceUrl, licenceFile, licenceUrl, artifacts, packages[pdfminer.six].version, packages[cffi].version, packages[pycparser].version, packages[charset-normalizer].version
+P3: lacks real values: pin, sourceUrl, licenceFile, licenceUrl, artifacts
+P4: lacks real values: pin, sourceUrl, licenceFile, licenceUrl, artifacts, packages[greenlet].version, packages[pyee].version
+P5: lacks real values: pin, sourceUrl, licenceFile, licenceUrl, artifacts
+P6: lacks real values: pin, sourceUrl, licenceFile, licenceUrl, artifacts, packages[@img/sharp-win32-x64].version
+  Stack Trace:
+     at Marrow.Core.Tests.Port.Skills.Catalogue.GapCatalogueAcceptanceTests.GAP_The_embedded_catalogue_has_every_required_release_pin_and_passes_the_strict_gate() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/Skills/Catalogue/GapCatalogueAcceptanceTests.cs:line 15
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+WARNING: Overwriting results file: /tmp/GAP-2-evidence/core.trx
+Results File: /tmp/GAP-2-evidence/core.trx
+
+Failed!  - Failed:     1, Passed:   396, Skipped:     0, Total:   397, Duration: 4 s - Marrow.Core.Tests.dll (net10.0)

@@ -7,6 +7,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 // needs'"; 5.4: "An item that needs others (P1 needs T1) is offered as one download with its combined size"; 2.4: "a download of a skill set offers its missing needs
 // in the same confirmation ('Also needs Python and LibreOffice: 369 MB more')". The card names what was found missing (Requested) and everything to download
 // to satisfy them (Items, needs first, each once) with the plan's approximate sizes added up.
+[Trait("Spec", "DL-10")]
 public sealed class OfferCardTests
 {
     [Fact]

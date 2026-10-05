@@ -8,6 +8,7 @@ namespace Marrow.Core.Tests.Port.Skills.State;
 // shows 'Found on this PC' with its path, and the offer never fires for it. 'Download Marrow's copy anyway' stays available." A probe run reports
 // for the tools it probed; its answer replaces the earlier answer for exactly those tools (found, or no longer found) and leaves the others as they were
 // (ED-295). A probe result never changes an item's download state: the copy Marrow downloaded and the copy the user has are independent.
+[Trait("Spec", "DL-7")]
 public sealed class AddonsStateFoundTests
 {
     private static readonly SkillsCatalogue Catalogue = CatalogueFixtures.Real;

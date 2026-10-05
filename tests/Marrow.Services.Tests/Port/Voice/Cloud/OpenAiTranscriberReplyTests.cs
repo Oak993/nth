@@ -6,6 +6,7 @@ namespace Marrow.Services.Tests.Port.Voice.Cloud;
 
 // VT-16, voice-SPEC V-18.1 and V-T111: the streamed text arrives as transcript.text.delta events that become word operations while the
 // call runs (Processing); transcript.text.done ends it; a JSON reply ({"text": ...}) takes the one-shot path.
+[Trait("Spec", "V-T111")]
 public sealed class OpenAiTranscriberReplyTests
 {
     private static async Task<(Core.Port.Voice.Seams.Hypothesis Result, List<IReadOnlyList<WordOp>> Batches)> Run(HttpResponseMessage reply, double seconds = 2)

@@ -36,6 +36,7 @@ public sealed class CustomizationPersistenceTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T26, CZ-13.1: a change on the page is the app's setting and reaches another composer's ComposerLightView.Settings, for each kind of control
+    [Trait("Spec", "CZ-T26")]
     public void Every_page_change_reaches_a_second_composer_and_the_store() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -101,6 +102,7 @@ public sealed class CustomizationPersistenceTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T27 (page side), CZ-13.5: a drag moves the in-memory setting every step but writes the store at most every 250 ms; the end of the drag writes the last value
+    [Trait("Spec", "CZ-T27")]
     public void A_drag_does_not_write_the_store_every_step_and_its_end_writes_the_last_value() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);

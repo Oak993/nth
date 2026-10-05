@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 // Unit SK-10: S1, a skill's declared needs (ONDEMAND-PLAN.md 5.1): "The skill is used and one of its needs is neither installed nor found on this PC", from
 // Claude Skill rows, Codex skill items, Copilot and Command Code skill rows and Marrow-side use_skill, using "the catalogue's per-skill needs". Skill
 // names are folders, and two sets can share one (A1 and O1 both have skill-creator), so an unnamed set is decided by which one is installed.
+[Trait("Spec", "DL-10")]
 public sealed class SkillNeedTests
 {
     private static Detection Used(string skill, string? itemId = null, DetectionContext? context = null) =>

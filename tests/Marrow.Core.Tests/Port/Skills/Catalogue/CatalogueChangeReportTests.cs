@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // 'previous' and 'next' catalogue produce a change report listing every version, hash, size and licence-text change; a licence change in a non-open item is
 // flagged 'asks the terms again'"; 3.7: "The catalogue builder writes a change report (versions, hashes, licence changes, sizes) for the owner"; 2.1: "a pin changes
 // only with the owner's approval of its change report". This class holds the frame: what is compared, in what order, and what counts as changed. Pure and offline.
+[Trait("Spec", "DL-2")]
 public sealed class CatalogueChangeReportTests
 {
     [Fact]

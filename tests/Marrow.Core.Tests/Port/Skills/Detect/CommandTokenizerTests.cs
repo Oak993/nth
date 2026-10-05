@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 // py -3 -m, C:\...\soffice.exe". ONDEMAND-PLAN.md 5.3 "Command parsing": "split the command line into pipeline and &&/; segments with a quote-aware
 // tokenizer (cmd, PowerShell and bash quoting); take each segment's first word; strip a path and an extension (C:\x\soffice.exe becomes soffice); skip
 // leading cd, &, call, start, env assignments and py -3 -m <module> (the module counts)". Where the plan is silent the choice is in ED-296.
+[Trait("Spec", "DL-10")]
 public sealed class CommandTokenizerTests
 {
     private static string[][] Words(string line) => CommandTokenizer.Segments(line).Select(s => s.Select(w => w.Text).ToArray()).ToArray();

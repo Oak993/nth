@@ -6,6 +6,7 @@ namespace Marrow.Services.Tests.Port.Downloads;
 
 // SK-3 (DL-3 of skills-ONDEMAND-PLAN.md section 7, sections 3.2 and 3.3): a whole file, fetched, hashed while it streams, verified against the pin,
 // moved into place only then, with progress. Against SK-0's fake server; the request log is what proves what crossed the wire.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderFullTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(100_000, seed: 3);

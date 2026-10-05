@@ -25,6 +25,7 @@ public sealed class ComposerPreviewPixelsTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-TEST-4")]
     [Trait("Decision", "ED-251")]
+    [Trait("Spec", "CZ-T45")]
     public void The_restated_ring_chip_end_and_send_ink_draw_as_the_real_controls_do() => headless.OnUiThread(() =>
     {
         var real = RealComposerRig.Capture();

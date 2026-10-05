@@ -5,6 +5,7 @@ using Marrow.Testing.Downloads;
 namespace Marrow.Services.Tests.Port.Downloads;
 
 // SK-3 (section 3.2): "partial files older than 7 days are deleted at app start". Ages are measured on the downloader's clock (the manual one here).
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderPartialsTests
 {
     [Fact]

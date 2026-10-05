@@ -8,6 +8,7 @@ namespace Marrow.Core.Tests.Port.Downloads;
 
 // SK-0 (DL-0, skills-ONDEMAND-PLAN.md section 7): the faults the fake download server can switch on: a drop after N bytes (and the
 // resume the plan's DL-3 checks in the server's log), a wrong byte, a wrong length, a slow trickle on a manual clock.
+[Trait("Spec", "DL-0")]
 public sealed class FakeDownloadFaultTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(10_000, seed: 11);

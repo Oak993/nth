@@ -8,6 +8,7 @@ namespace Marrow.Services.Tests.Port.Voice.Models;
 
 // VT-7 (voice-SPEC V-9.5, V-T43): model downloads through the shared downloader, against SK-0's fake server. The files are small synthetic ones with
 // manifest-style rows; the size and hash they are checked against are the row's.
+[Trait("Spec", "V-T43")]
 public sealed class ModelDownloaderTests
 {
     private static readonly FakeArtifact Tiny = FakeArtifact.Pattern(120_000, seed: 81);

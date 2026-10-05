@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // OpenAI 227), about 49 MB", 2.2: "11 tools plus 6 package sets"; BUILD-PLAN.md 2.5 SK-1 and the OD-0099 amendment add A2 and O5 (already
 // in the ten) and claude-plugins-official and the Figma folders (the two "added" items whose counts SK-2's re-read sets).
 // The counts live in one place, SkillsCatalogueCounts; the first test pins that place to the plan, the others hold the catalogue to it.
+[Trait("Spec", "DL-1")]
 public sealed class SkillsCatalogueCountsTests
 {
     private static readonly Dictionary<string, int> PlanSkills = new()
