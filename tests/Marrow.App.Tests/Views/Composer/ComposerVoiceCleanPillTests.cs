@@ -50,7 +50,7 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         }
     }
 
-    private static VoicePillScene Open(VoiceListeningStyle style, int diameter, bool dark, string state, double scale = 1)
+    internal static VoicePillScene Open(VoiceListeningStyle style, int diameter, bool dark, string state, double scale = 1)
     {
         var rig = new VoiceComposerRig(VoiceOrbSettings.Default with { ListeningStyle = style, OrbSize = diameter });
         Avalonia.Controls.Window? cleanupWindow = null;
@@ -273,6 +273,7 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
                 || Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y)) <= ballRadius * scale + 1;
             var seen = new bool[w * h];
             var specks = new List<string>();
+            var components = new List<(int X, int Y)[]>(); // diagnostic sidecar; acceptance uses the unchanged detector below
             for (var y = 0; y < h; y++)
             for (var x = 0; x < w; x++)
             {
@@ -295,8 +296,14 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
                         stack.Push((nx, ny));
                     }
                 }
-                if (members.Count <= 9 && !members.Any(m => Inked(m.X, m.Y))) specks.Add($"{members.Count} px at ({members[0].X}, {members[0].Y})");
+                if (members.Count <= 9 && !members.Any(m => Inked(m.X, m.Y)))
+                {
+                    specks.Add($"{members.Count} px at ({members[0].X}, {members[0].Y})");
+                    components.Add(members.ToArray());
+                }
             }
+            if (VoicePillDiagnostics.Selected($"{style}-{diameter}-{dark}-{state}-{scale}"))
+                scene.Rig.Main.OnMain(() => VoicePillDiagnostics.CaptureComponents(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", frame, pillRect, orb, ballRadius * scale, components));
 #pragma warning disable CS0618
             if (specks.Count > 0 && Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump)
                 scene.Rig.Main.OnMain(() => { using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"specks-{style}-{diameter}-{dark}-{state}-{scale}.png")); VoicePillDiagnostics.Capture(scene, $"{style}-{diameter}-{dark}-{state}-{scale}"); });

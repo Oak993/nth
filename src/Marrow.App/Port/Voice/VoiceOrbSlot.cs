@@ -48,6 +48,9 @@ internal sealed class VoiceOrbSlot : Decorator
     public VoiceOrbSlot(ComposerVoiceController voice)
     {
         this.voice = voice;
+        // Keep the 72 px view centred on D/2 during size springs and at fractional desktop scales.
+        // Rounding its canvas offset separately from D/2 moves the painted ball away from the pill's anchor.
+        UseLayoutRounding = false;
         motion = new LookMotion(this);
         crossSlide = new LookNumber(motion, 0);
         crossOpacity = new LookNumber(motion, 0);
