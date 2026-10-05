@@ -106,6 +106,8 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
                 Assert.True(sheet.ClipToBounds);
                 Assert.Equal(new CornerRadius(Chrome.WindowCornerRadius), sheet.CornerRadius); // clipped to the window corner radius, so it reads as one window's worth of chrome
                 var backdrop = Assert.Single(LogicalQuery.SelfAndDescendants<WindowBackdrop>(sheet));
+                // ED-338: the sheet is clipped to its own 26 pt shape, so its backdrop's hairline follows that curve (the window backdrops' is the rectangle's)
+                Assert.Equal(new CornerRadius(26), Assert.Single(LogicalQuery.SelfAndDescendants<SwiftShapeBorder>(backdrop), layer => layer.BorderThickness != default).CornerRadius);
                 double Scrim(WindowBackdrop layer) => Assert.IsAssignableFrom<Control>(typeof(WindowBackdrop).GetField("scrim", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(layer)).Opacity;
                 var isDark = PlainControls.IsDark(backdrop.ActualThemeVariant);
                 Assert.Equal(WindowBackdrop.Scrim(model.Settings.BackdropOpacity, isDark), Scrim(backdrop), 6); // the glass base under the scrim of the user's backdrop opacity (:258)

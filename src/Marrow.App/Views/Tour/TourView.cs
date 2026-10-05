@@ -123,30 +123,32 @@ public sealed class TourView : Panel
         // border, and a scrim sitting under the glass, in this back-to-front order (:80-95 modifier order, applied
         // inside-out: background(glass) is behind content, clipShape crops that pair, overlay draws on top of it,
         // and the outer background(scrim) sits behind everything drawn so far).
-        var glassFill = new Border { CornerRadius = new CornerRadius(CardCornerRadius) }; // :80-81 shape.fill(.clear)
-        SwiftGlass.SetEffect(glassFill, GlassEffect.Regular(GlassShape.RoundedRectangle(CardCornerRadius, RoundedCornerStyle.Continuous))); // :82 .glassEffect(.regular, in: shape)
+        // PORT-ONLY (OD-0075; the owner's intent of 2026-10-05; ED-338): the source's window IS this 20 pt shape (a clear borderless window the size
+        // of the card, TourWindowController.swift:60-90), so the card is window-shaped glass. The port's window is a rectangle of the system's Acrylic that DWM
+        // rounds by 8 px at most, so the scrim, the glass, the tint and the clip reach the window's RECTANGLE (the card's corner would otherwise leave a wedge of
+        // blur with no scrim, (234,195,39) over a (240,200,40) backdrop) and DWM rounds them: the corner IS the card. The hairline is the rectangle's inner stroke too.
+        var glassFill = new Border(); // :80-81 shape.fill(.clear), the window's rectangle
+        SwiftGlass.SetEffect(glassFill, GlassEffect.Regular(GlassShape.RoundedRectangle(0, RoundedCornerStyle.Continuous))); // :82 .glassEffect(.regular, in: shape), the rectangle
         var tintPaint = new AnimatedColor(glassFill);
         glassFill.Background = tintPaint.Brush;
         void DrawTint() => tintPaint.Set(Chrome.GlassTint.Opacity(PlainControls.IsDark(glassFill.ActualThemeVariant) ? 0.22 : 0.16), null); // :84
         glassFill.ActualThemeVariantChanged += (_, _) => DrawTint();
         DrawTint();
 
-        var clipped = new Border // :87 .clipShape(shape)
+        var clipped = new Border // :87 .clipShape(shape), the window's rectangle
         {
-            CornerRadius = new CornerRadius(CardCornerRadius),
             ClipToBounds = true,
             Child = new Panel { Children = { glassFill, content } },
         };
 
         var stroke = new Border // :88-90 .overlay { shape.strokeBorder(Chrome.overlay(0.14), lineWidth: 1) }
         {
-            CornerRadius = new CornerRadius(CardCornerRadius),
             BorderThickness = new Thickness(1),
             IsHitTestVisible = false,
         };
         stroke.BorderBrush = Chrome.Overlay(0.14).Brush(stroke); // :89
 
-        var scrim = new Border { CornerRadius = new CornerRadius(CardCornerRadius) }; // :92-95
+        var scrim = new Border(); // :92-95, the window's rectangle
         var scrimPaint = new AnimatedColor(scrim);
         scrim.Background = scrimPaint.Brush;
         void DrawScrim() => scrimPaint.Set(

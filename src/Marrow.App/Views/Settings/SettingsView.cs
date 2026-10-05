@@ -176,13 +176,11 @@ public sealed class SettingsView : Decorator
     private SettingsPage? builtPage;
     private readonly SidebarSearchField search;
     private readonly WindowBackdrop backdrop;
-    private readonly WindowCornerWedge cornerWedge = new(0); // OD-0075: the wedge between the window's rectangle and its 26 pt shape, in the scrim
     private Control? riseChrome;
     private Control? risePage;
 
     // PORT-ONLY (OD-0074, ED-249): the parts the Settings window's open (Port/SettingsRise.cs) fades and raises.
     internal WindowBackdrop RiseBackdrop => backdrop;
-    internal WindowCornerWedge RiseWedge => cornerWedge; // fades in with the glass (OD-0074), as the corners belong to it
     internal Panel? RiseSheet => detail.Child as Panel; // DetailSheetModifier: wash, tint, content
     internal SidebarSearchField RiseSearch => search;
     internal Controls RiseSidebarRows => rows.Children;
@@ -213,12 +211,12 @@ public sealed class SettingsView : Decorator
         detail.Margin = new Thickness(0, Chrome.SheetInset, Chrome.SheetInset, Chrome.SheetInset); // :114-115
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("212,*") }; Grid.SetColumn(detail, 1); grid.Children.Add(sidebar); grid.Children.Add(detail);
         backdrop = new WindowBackdrop(0); // :118
-        frame = new SwiftShapeBorder { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous); frame.ClipToBounds = true; // :119-120 `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))` (ED-181)
-        // OD-0075 (owner, 2026-10-02): the wedge between the window's rectangle (system Acrylic, ED-236) and the 26 pt shape is filled with the window's
-        // scrim. Painted first (ZIndex -1), under the clipped frame, so the glass and its hairline still stop at the curve.
-        cornerWedge.ZIndex = -1;
-        Child = new Panel { Children = { frame, cornerWedge } };
-        this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => { backdrop.Update(value, null); cornerWedge.Update(value); });
+        // :119-120 `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))` (ED-181). PORT-ONLY (OD-0075; the owner's intent of 2026-10-05; ED-338): the clip is the
+        // window's RECTANGLE, which DWM rounds, so the backdrop's scrim and tint and the detail sheet's wash reach the window's edge and the corner outside the 26 pt curve is the
+        // body, not a second paint beside it. The backdrop's hairline is the rectangle's inner stroke too (WindowBackdrop). Fades in with the glass (OD-0074) because it is the glass.
+        frame = new SwiftShapeBorder { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }; frame.ClipToBounds = true;
+        Child = frame;
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => backdrop.Update(value, null));
         this.Track(() => SettingsNavigation.Shared.RequestedPage, requested => // :123-127
         {
             if (requested is not { } page) return;

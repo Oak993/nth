@@ -34,7 +34,7 @@ mat2 rot(float a){ float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }
 float h21(vec2 p){ vec3 q = fract(vec3(p.xyx)*.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y)*q.z); }
 vec2 h22(vec2 p){ vec3 q = fract(vec3(p.xyx)*vec3(.1031, .1030, .0973)); q += dot(q, q.yzx + 33.33); return fract((q.xx + q.yz)*q.zy); }
 float gn(vec2 p){
-  vec2 i = floor(p), f = fract(p);
+  vec2 i = floor(p), f = p - i;   // not fract(p): on an exact integer the two can disagree and a whole row jumps a cell
   vec2 u = f*f*f*(f*(f*6. - 15.) + 10.);
   float a = dot(h22(i)*2. - 1., f);
   float b = dot(h22(i + vec2(1., 0.))*2. - 1., f - vec2(1., 0.));
