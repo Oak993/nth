@@ -506,3 +506,18 @@ against the leaders. No stack chosen yet. No Windows code written yet.
 Machine constraint found: .NET 10 RUNTIME only (no SDK), no MSVC, no cmake, no Rust. Node 24,
 Python 3.14 and winget are present. Toolchain will be installed only for the chosen stack, after
 the decision record, rather than speculatively.
+
+## CZ-7a local Windows verification addendum, 2026-10-05
+
+`codex/verify-cz-7a`, `E:\Droppy\wt\cx\v-cz7a`: staging 50a6197b9 merged,
+CZ-5 476fd501b already contained. App/Core builds pass with 0 warnings/errors.
+Final CZ slice 117/117; dots/control checks 57/57; Core non-native 4,171/4,171;
+Traceability alone twice 3/3 each after correcting three inherited OD-valued
+Decision traits to ED-338. Off-section test now requires the ordered Off, Voice orb
+and Working dots sections specified by CZ-3.3. Full App non-native: 8,138 pass,
+4 fail of 8,142; the traceability failure is repaired, and the two dots easing
+failures and Terminal enumeration-timeout failure each passed alone twice.
+READY under the lead's alone-twice rule; raw full-suite result is not called green.
+Evidence: `porting/reports/codex-cz7a-windows.md`, ED-NEW-codex-cz-7a item 9.
+Remaining unit boundary: CZ-7b live preview/demo, CZ-6 native/sticky checks and
+CZ-8 Speech are not completed by this row unit. No native, app or installer run.
