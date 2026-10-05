@@ -1,0 +1,1383 @@
+<title>Skills Downloads</title>
+<style>
+/* Decision kit: the shared look of the 2026-10-03 decision pages (getting-ready, bubble-rim, text-smoothing,
+   voice-options, system-controls). A review sheet in Marrow's glass language: a soft wall, frosted cards with a
+   hairline rim and an inner highlight, Windows 11's default accent. Every colour is a token; every change of theme,
+   option or pick is transitioned (OD-0076). */
+:root{
+  --wall:radial-gradient(1100px 720px at 8% -4%,#bcd3ea 0%,transparent 62%),radial-gradient(900px 760px at 96% 18%,#ead7c4 0%,transparent 58%),radial-gradient(1200px 900px at 44% 104%,#c3e0db 0%,transparent 62%),#e9edf2;
+  --bg:#e9edf2;
+  --ink:#15171c; --fg:#15171c; --sub:rgba(21,23,28,.66); --faint:rgba(21,23,28,.46);
+  --card:rgba(255,255,255,.58); --card2:rgba(255,255,255,.42); --edge:rgba(255,255,255,.86); --hair:rgba(20,30,45,.10);
+  --chip:rgba(24,34,48,.07); --chipH:rgba(24,34,48,.11); --chipOn:#ffffff; --chipOnInk:#15171c; --chipOnRim:rgba(20,30,45,.12);
+  --accent:#005FB8; --accentInk:#ffffff; --accentSoft:rgba(0,95,184,.12); --accentRing:rgba(0,95,184,.55);
+  --good:#0F7B3F; --goodSoft:rgba(15,123,63,.12); --warn:#9A5B00;
+  --shadow:0 18px 44px rgba(30,45,70,.14),0 2px 6px rgba(30,45,70,.08);
+  --shadowSm:0 6px 16px rgba(30,45,70,.10);
+  --hi:inset 0 1px 0 rgba(255,255,255,.75);
+  --ui:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Geist Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --app:"Segoe UI Variable Text","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+  --appD:"Segoe UI Variable Display","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+  --ez:cubic-bezier(.32,.72,0,1); --io:cubic-bezier(.4,0,.2,1);
+  --tc:.45s;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --wall:radial-gradient(1100px 720px at 8% -4%,#22435c 0%,transparent 62%),radial-gradient(900px 760px at 96% 18%,#4d3826 0%,transparent 58%),radial-gradient(1200px 900px at 44% 104%,#123f40 0%,transparent 62%),#0f151c;
+    --bg:#0f151c;
+    --ink:#eef1f6; --fg:#eef1f6; --sub:rgba(238,241,246,.66); --faint:rgba(238,241,246,.44);
+    --card:rgba(255,255,255,.06); --card2:rgba(255,255,255,.04); --edge:rgba(255,255,255,.14); --hair:rgba(255,255,255,.09);
+    --chip:rgba(255,255,255,.07); --chipH:rgba(255,255,255,.11); --chipOn:rgba(255,255,255,.16); --chipOnInk:#f6f8fb; --chipOnRim:rgba(255,255,255,.2);
+    --accent:#60CDFF; --accentInk:#03192a; --accentSoft:rgba(96,205,255,.14); --accentRing:rgba(96,205,255,.6);
+    --good:#6CCB5F; --goodSoft:rgba(108,203,95,.14); --warn:#F2B04A;
+    --shadow:0 18px 48px rgba(0,0,0,.36),0 2px 6px rgba(0,0,0,.22);
+    --shadowSm:0 6px 18px rgba(0,0,0,.28);
+    --hi:inset 0 1px 0 rgba(255,255,255,.10);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --wall:radial-gradient(1100px 720px at 8% -4%,#22435c 0%,transparent 62%),radial-gradient(900px 760px at 96% 18%,#4d3826 0%,transparent 58%),radial-gradient(1200px 900px at 44% 104%,#123f40 0%,transparent 62%),#0f151c;
+  --bg:#0f151c;
+  --ink:#eef1f6; --fg:#eef1f6; --sub:rgba(238,241,246,.66); --faint:rgba(238,241,246,.44);
+  --card:rgba(255,255,255,.06); --card2:rgba(255,255,255,.04); --edge:rgba(255,255,255,.14); --hair:rgba(255,255,255,.09);
+  --chip:rgba(255,255,255,.07); --chipH:rgba(255,255,255,.11); --chipOn:rgba(255,255,255,.16); --chipOnInk:#f6f8fb; --chipOnRim:rgba(255,255,255,.2);
+  --accent:#60CDFF; --accentInk:#03192a; --accentSoft:rgba(96,205,255,.14); --accentRing:rgba(96,205,255,.6);
+  --good:#6CCB5F; --goodSoft:rgba(108,203,95,.14); --warn:#F2B04A;
+  --shadow:0 18px 48px rgba(0,0,0,.36),0 2px 6px rgba(0,0,0,.22);
+  --shadowSm:0 6px 18px rgba(0,0,0,.28);
+  --hi:inset 0 1px 0 rgba(255,255,255,.10);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);background-image:var(--wall);background-attachment:fixed;font:14px/1.5 var(--ui);
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background-color var(--tc) ease,color var(--tc) ease}
+/* a theme change crossfades as one picture where the browser can (View Transitions), 0.45 s */
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:var(--io)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dk-page{max-width:1180px;margin:0 auto;padding:26px 16px 120px;display:flex;flex-direction:column;gap:20px}
+@media (min-width:700px){.dk-page{padding-inline:24px}}
+
+/* header */
+.dk-hdr{display:flex;flex-direction:column;gap:8px}
+.dk-hdr h1{margin:0;font-size:28px;line-height:1.12;font-weight:600;letter-spacing:-.02em;text-wrap:balance}
+.dk-hdr p{margin:0;max-width:78ch;color:var(--sub);font-size:14px;text-wrap:pretty}
+.dk-tags{display:flex;flex-wrap:wrap;gap:6px}
+.dk-tag{font:500 11px/1 var(--mono);padding:5px 8px;border-radius:999px;background:var(--chip);color:var(--sub);white-space:nowrap}
+
+/* glass */
+.dk-glass{background:var(--card);border-radius:18px;box-shadow:inset 0 0 0 1px var(--edge),var(--hi),var(--shadow);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+  transition:background-color var(--tc) ease,box-shadow var(--tc) ease}
+
+/* toolbar */
+.dk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 12px;border-radius:20px}
+.dk-grp{display:flex;align-items:center;gap:8px;min-width:0}
+.dk-glab{font-size:12px;font-weight:500;color:var(--sub);white-space:nowrap}
+.dk-sp{flex:1 1 0;min-width:0}
+
+/* segmented control with a sliding thumb */
+.dk-seg{position:relative;display:inline-flex;align-items:stretch;padding:3px;border-radius:999px;background:var(--chip);min-width:0;max-width:100%;flex-wrap:nowrap;
+  transition:background-color var(--tc) ease}
+.dk-seg>.th{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:999px;background:var(--chipOn);box-shadow:inset 0 0 0 1px var(--chipOnRim),0 1px 3px rgba(0,0,0,.12);
+  transition:transform .32s var(--ez),width .32s var(--ez),background-color var(--tc) ease;pointer-events:none}
+.dk-seg>.th.nt{transition:none}
+.dk-seg>button{position:relative;z-index:1;appearance:none;border:0;background:none;margin:0;padding:5px 12px;border-radius:999px;cursor:pointer;
+  font-size:12.5px;font-weight:500;color:var(--sub);white-space:nowrap;transition:color .2s ease}
+.dk-seg>button:hover{color:var(--ink)}
+.dk-seg>button[aria-pressed="true"]{color:var(--chipOnInk)}
+.dk-seg.wrap{flex-wrap:wrap;border-radius:16px}
+
+/* buttons */
+.dk-btn{appearance:none;border:0;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  font-size:13px;font-weight:500;background:var(--chip);color:var(--ink);box-shadow:inset 0 0 0 1px var(--hair);
+  transition:background-color .15s ease,transform .15s ease,box-shadow var(--tc) ease,color var(--tc) ease}
+.dk-btn:hover{background:var(--chipH)}
+.dk-btn:active{transform:scale(.97)}
+.dk-btn.pri{background:var(--accent);color:var(--accentInk);box-shadow:none}
+.dk-btn.pri:hover{filter:brightness(1.06)}
+.dk-btn svg{width:12px;height:12px;flex:none}
+
+/* a question */
+.dk-q{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:20px}
+.dk-qh{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.dk-qn{font:600 12px/1 var(--mono);padding:5px 8px;border-radius:8px;background:var(--accentSoft);color:var(--accent);white-space:nowrap}
+.dk-qh h2{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;line-height:1.25;text-wrap:balance}
+.dk-rec{font-size:12px;font-weight:500;color:var(--good);background:var(--goodSoft);padding:3px 9px;border-radius:999px;white-space:nowrap}
+.dk-qd{margin:0;color:var(--sub);font-size:13.5px;max-width:86ch;text-wrap:pretty}
+
+/* options */
+.dk-opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.dk-opt{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px 12px 10px;border-radius:14px;background:var(--card2);cursor:pointer;min-width:0;
+  box-shadow:inset 0 0 0 1px var(--hair);transition:background-color .2s ease,box-shadow .25s ease,transform .2s var(--ez)}
+.dk-opt:hover{background:var(--chip)}
+.dk-opt[aria-current="true"]{box-shadow:inset 0 0 0 2px var(--accentRing);background:var(--accentSoft)}
+.dk-opt .oh{display:flex;align-items:center;gap:8px;min-width:0}
+.dk-opt .ol{font:600 12px/1 var(--mono);min-width:24px;height:22px;padding:0 6px;display:inline-grid;place-items:center;border-radius:7px;background:var(--chip);color:var(--ink);flex:none;
+  transition:background-color .25s ease,color .25s ease}
+.dk-opt[aria-current="true"] .ol{background:var(--accent);color:var(--accentInk)}
+.dk-opt .ot{font-size:13.5px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dk-opt .od{font-size:12.5px;line-height:1.42;color:var(--sub);text-wrap:pretty}
+.dk-opt .rc{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--good);background:var(--goodSoft);padding:2px 7px;border-radius:999px;white-space:nowrap;flex:none}
+.dk-opt .pk{align-self:flex-start;margin-top:2px}
+
+/* the pick button: a capsule that fills with the accent and shows a check once picked */
+.dk-pick{appearance:none;border:0;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px 0 9px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  font-size:12px;font-weight:600;color:var(--accent);background:transparent;box-shadow:inset 0 0 0 1px var(--accentRing);
+  transition:background-color .25s ease,color .25s ease,box-shadow .25s ease,transform .15s ease}
+.dk-pick:hover{background:var(--accentSoft)}
+.dk-pick:active{transform:scale(.96)}
+.dk-pick .ck{width:12px;height:12px;display:inline-grid;place-items:center;overflow:hidden}
+.dk-pick .ck svg{width:12px;height:12px;transform:scale(0);opacity:0;transition:transform .3s var(--ez),opacity .2s ease}
+.dk-pick .ck::before{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;transition:opacity .2s ease,transform .3s var(--ez)}
+.dk-pick .ck{position:relative}
+.dk-pick[aria-pressed="true"]{background:var(--accent);color:var(--accentInk);box-shadow:inset 0 0 0 1px transparent}
+.dk-pick[aria-pressed="true"] .ck svg{transform:scale(1);opacity:1}
+.dk-pick[aria-pressed="true"] .ck::before{opacity:0;transform:scale(0)}
+.dk-pick .lb{display:inline-grid}
+.dk-pick .lb>span{grid-area:1/1;transition:opacity .2s ease}
+.dk-pick .lb>span.b{opacity:0}
+.dk-pick[aria-pressed="true"] .lb>span.a{opacity:0}
+.dk-pick[aria-pressed="true"] .lb>span.b{opacity:1}
+
+/* the picks bar: pinned to the bottom, says what to tell the lead */
+.dk-picks{position:fixed;left:50%;bottom:14px;z-index:50;transform:translateX(-50%);width:min(1120px,calc(100vw - 24px));display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  padding:9px 10px 9px 16px;border-radius:20px}
+.dk-picks .pl{font-size:12px;color:var(--sub);white-space:nowrap}
+.dk-picks .pv{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1 1 300px}
+.dk-picks .pv span{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:var(--chip);font-size:12px;white-space:nowrap;
+  transition:background-color .3s ease,color .3s ease}
+.dk-picks .pv span b{font:600 11.5px/1 var(--mono)}
+.dk-picks .pv span.on{background:var(--accentSoft);color:var(--ink)}
+.dk-picks .pv span.on b{color:var(--accent)}
+.dk-picks .note{font-size:11px;color:var(--faint);white-space:nowrap}
+@media (max-width:640px){.dk-picks .note{display:none}}
+
+/* notes, small print */
+.dk-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.dk-note{padding:14px 16px;border-radius:16px;font-size:12.5px;line-height:1.5;color:var(--sub)}
+.dk-note h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--ink)}
+.dk-note p{margin:0 0 6px}
+.dk-note p:last-child{margin:0}
+.dk-note b{color:var(--ink);font-weight:600}
+.dk-note code,.dk-mono{font-family:var(--mono);font-size:11.5px}
+.dk-foot{font-size:11.5px;color:var(--faint);max-width:100ch}
+
+/* crossfading stacks: children share one grid cell */
+.dk-stack{display:grid}
+.dk-stack>*{grid-area:1/1;transition:opacity .3s ease}
+.dk-hidden{opacity:0;pointer-events:none}
+
+.dk-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01s!important;animation-duration:.01s!important}}
+
+/* ===== Skills downloads (OD-0099 amendment, OD-0070): the page ===== */
+.qrow{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 0;box-shadow:0 -1px 0 var(--hair)}
+.qrow:first-of-type{box-shadow:none;padding-top:2px}
+.qrow .qk{display:flex;flex-direction:column;gap:2px}
+.qrow .qk b{font-size:13px;font-weight:600}
+.qrow .qk span{font:500 11px/1.2 var(--mono);color:var(--good)}
+.qrow .ln{grid-column:2/4;font-size:12.5px;color:var(--sub);min-height:18px}
+.qrow .pk{justify-self:end}
+.qrow>div:nth-child(2){min-width:0;max-width:100%}
+@media (max-width:720px){.qrow{grid-template-columns:minmax(0,1fr) auto}.qrow .qk{grid-column:1/3}.qrow .ln{grid-column:1/3}}
+.qs{padding:14px 18px}
+.stagecard{padding:18px;border-radius:22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.stagecard h2{margin:0;font-size:16px;font-weight:600}
+.stagecard .sub{margin:-8px 0 0;font-size:13px;color:var(--sub);max-width:90ch}
+.stagecard .sub b{color:var(--ink);font-weight:600}
+.ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.ctl .dk-grp{flex-wrap:wrap;max-width:100%}
+.wallbg{position:absolute;inset:0;background:radial-gradient(900px 600px at 12% 8%,#2d5672 0%,transparent 60%),radial-gradient(800px 700px at 90% 35%,#7a5634 0%,transparent 55%),radial-gradient(1000px 800px at 45% 90%,#155f5f 0%,transparent 60%),#121b25;transition:opacity .45s ease}
+.wallbg.l{background:radial-gradient(900px 600px at 12% 8%,#a9cde6 0%,transparent 60%),radial-gradient(800px 700px at 90% 35%,#f1cfa8 0%,transparent 55%),radial-gradient(1000px 800px at 45% 90%,#9fd9d2 0%,transparent 60%),#e8edf2;opacity:0}
+.lt>.wallbg.l{opacity:1}
+.stage{position:relative;width:100%;border-radius:14px;overflow:hidden;height:calc(668px * var(--sc,1))}
+.slots{position:absolute;left:50%;top:calc(24px * var(--sc,1));width:960px;height:620px;transform-origin:50% 0;transform:translateX(-50%) scale(var(--sc,1))}
+.slots .slot{position:absolute;inset:0;transition:opacity .34s ease,transform .42s var(--ez)}
+.slots .slot.off{opacity:0;pointer-events:none;transform:scale(.985)}
+.rd{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;font-size:12.5px;color:var(--sub)}
+.rd b{color:var(--ink);font:500 11.5px/1.3 var(--mono)}
+.rd .cap{flex:1 1 300px;min-width:0}
+.xl{display:grid}.xl>span{grid-area:1/1;opacity:0;transition:opacity .28s ease}.xl>span.on{opacity:1}
+.dk-opt .vlab{font:500 10.5px/1.2 var(--mono);color:var(--faint)}
+.cov{display:flex;flex-direction:column}
+.cov .cr{display:grid;grid-template-columns:minmax(150px,1.3fr) minmax(0,1fr) minmax(0,.6fr) minmax(0,1.6fr);gap:4px 16px;padding:10px 2px;box-shadow:0 -1px 0 var(--hair);font-size:12.5px;line-height:1.45;color:var(--sub)}
+.cov .cr:first-child{box-shadow:none}
+.cov .cr.h{font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;padding-top:0}
+.cov .cr b{color:var(--ink);font-weight:600;font-size:13px}
+.cov .cr .lb{display:none;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin-right:6px}
+.cov .tg{font:600 10px/1 var(--mono);padding:2px 5px;border-radius:5px;background:var(--accentSoft);color:var(--accent);margin-right:4px;vertical-align:1px}
+.cov .tg.un{background:rgba(242,176,74,.16);color:var(--warn)}
+@media (max-width:860px){.cov .cr{grid-template-columns:minmax(0,1fr);gap:3px}.cov .cr.h{display:none}.cov .cr .lb{display:inline}}
+.oq{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--sub);max-width:100ch}
+.oq b{color:var(--ink);font-weight:600}
+.dk-note code{background:var(--chip);padding:1px 4px;border-radius:4px}
+
+/* ===== the window mocks (the port's surfaces, the same tokens as the update-everything page) ===== */
+.mw{--tx:#FFFFFF;--tx2:rgba(255,255,255,.7);--tx3:rgba(255,255,255,.45);--ov3:rgba(255,255,255,.035);--ov6:rgba(255,255,255,.06);--ov10:rgba(255,255,255,.10);
+  --div:rgba(255,255,255,.10);--acc:#2E8BEA;--accIn:#FFFFFF;--accT:#6FB5FF;--accSoft:rgba(76,160,255,.2);--good:#30D158;--warnC:#FFB340;--warnSoft:rgba(255,179,64,.14);--spk:#FFFFFF;--red:#FF6961;--redSoft:rgba(255,105,97,.16);
+  --side:linear-gradient(180deg,#5d6872 0%,#5f6461 58%,#6f665d 100%);--paneg:linear-gradient(180deg,#43403f 0%,#45403e 60%,#4d4743 100%);
+  --glass:rgba(255,255,255,.08);--glassE:rgba(255,255,255,.16);--glassHi:rgba(255,255,255,.2);--search:rgba(255,255,255,.1);--sel:rgba(255,255,255,.12);
+  --pop:rgba(58,56,56,.72);--gshadow:0 18px 40px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.18);--quat:rgba(255,255,255,.07);
+  position:absolute;inset:0;border-radius:10px;overflow:hidden;color:var(--tx);isolation:isolate;
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:13px;line-height:1.3;-webkit-font-smoothing:antialiased;
+  background:var(--paneg);box-shadow:0 0 0 1px rgba(255,255,255,.13),0 26px 70px rgba(0,0,0,.45);transition:background .45s ease,color .45s ease}
+.lt .mw{--tx:rgba(0,0,0,.88);--tx2:rgba(0,0,0,.6);--tx3:rgba(0,0,0,.42);--ov3:rgba(0,0,0,.03);--ov6:rgba(0,0,0,.05);--ov10:rgba(0,0,0,.08);
+  --div:rgba(0,0,0,.09);--acc:#0067C0;--accT:#005FB8;--accSoft:rgba(0,103,192,.13);--good:#1E9E45;--warnC:#B25E00;--warnSoft:rgba(178,94,0,.1);--spk:#000000;--red:#C42B1C;--redSoft:rgba(196,43,28,.1);
+  --side:linear-gradient(180deg,#b3bcc5 0%,#c2bbb4 58%,#cbb9ae 100%);--paneg:linear-gradient(180deg,#e2e0df 0%,#e0dcd9 60%,#dad1cb 100%);
+  --glass:rgba(255,255,255,.5);--glassE:rgba(255,255,255,.8);--glassHi:rgba(255,255,255,.75);--search:rgba(255,255,255,.45);--sel:rgba(0,0,0,.07);
+  --pop:rgba(246,244,242,.8);--gshadow:0 18px 40px rgba(60,50,40,.16),0 2px 6px rgba(60,50,40,.1);--quat:rgba(0,0,0,.05);
+  box-shadow:0 0 0 1px rgba(255,255,255,.7),0 26px 70px rgba(40,50,70,.22)}
+.mw *{box-sizing:border-box}
+.mw svg{display:block}
+.mw .cap3{position:absolute;top:0;right:0;display:flex;z-index:40}
+.mw .cap3 span{width:46px;height:32px;display:grid;place-items:center}
+.mw .cap3 svg{width:10px;height:10px;fill:none;stroke:var(--tx);stroke-width:1;opacity:.85}
+.mw .side{position:absolute;left:0;top:0;bottom:0;background:var(--side);box-shadow:inset -1px 0 0 var(--div);z-index:2;transition:background .45s ease}
+.mw .srch{height:28px;border-radius:14px;background:var(--search);display:flex;align-items:center;gap:7px;padding:0 11px;color:var(--tx3);font-size:12.5px}
+.mw .ic16,.mw .srch svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mw .glass{background:var(--glass);box-shadow:inset 0 0 0 1px var(--glassE),inset 0 1px 0 var(--glassHi),var(--gshadow);-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%)}
+.mw .card{border-radius:16px;background:var(--ov3);transition:background-color .3s ease}
+.mw .sec{font-size:13px;font-weight:600;color:var(--tx2);margin:14px 0 7px;display:flex;align-items:center;gap:8px}
+.mw .sec .cnt2{font-weight:400;color:var(--tx3);font-size:12px}
+.mw .ptitle{height:30px;display:flex;align-items:center;font-weight:600;font-size:13px}
+.mw .psub{font-size:12px;color:var(--tx2);margin:0 0 4px;max-width:620px}
+
+/* Settings window */
+.mw.set .side{width:212px;padding:46px 10px 0}
+.mw.set .srch{margin-bottom:12px}
+.mw.set .nav{display:flex;flex-direction:column;gap:1px}
+.mw.set .nav>span{position:relative;display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border-radius:7px;white-space:nowrap;opacity:.92}
+.mw.set .nav>span.on{background:var(--sel);opacity:1;font-weight:500}
+.mw.set .nav .nb{margin-left:auto;font-size:11px;font-weight:600;color:var(--accIn);background:var(--acc);border-radius:8px;min-width:16px;height:16px;padding:0 5px;display:grid;place-items:center;opacity:0;transform:scale(.5);transition:opacity .25s ease,transform .3s var(--ez)}
+.mw.set .nav .nb.on{opacity:1;transform:none}
+.mw.set .cnt{position:absolute;left:212px;top:0;right:0;bottom:0;padding:16px 26px 0 24px;overflow:hidden}
+.mw.set .cnt .fadeb{position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(transparent,var(--fb,rgba(77,71,67,.9)));pointer-events:none;z-index:3}
+.lt .mw.set .cnt .fadeb{--fb:rgba(218,209,203,.92)}
+
+/* small parts */
+.mw .gbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:26px;padding:0 12px;border-radius:13px;font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer;user-select:none;
+  background:var(--glass);box-shadow:inset 0 0 0 1px var(--glassE),inset 0 1px 0 var(--glassHi);transition:transform .15s ease,background-color .2s ease,color .3s ease,box-shadow .3s ease,filter .2s ease}
+.mw .gbtn:hover{filter:brightness(1.08)}
+.mw .gbtn.acc{color:var(--accT)}
+.mw .gbtn.pri{color:var(--accIn);background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 84%,#fff) 0%,var(--acc) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(255,255,255,.16),0 5px 14px color-mix(in srgb,var(--acc) 32%,transparent)}
+.mw .gbtn.red{color:var(--red);background:var(--redSoft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--red) 30%,transparent)}
+.mw .gbtn.big{height:30px;padding:0 15px;border-radius:15px;font-size:12.5px;font-weight:600}
+.mw .press{transform:scale(.93)!important}
+.mw .xb{width:20px;height:20px;border-radius:10px;display:grid;place-items:center;cursor:pointer;color:var(--tx2);background:var(--ov6);flex:none;transition:transform .15s ease}
+.mw .xb svg{width:8px;height:8px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.mw .tb{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;cursor:pointer;color:var(--tx2);flex:none;transition:background-color .2s ease,color .2s ease,transform .15s ease}
+.mw .tb:hover{background:var(--ov10);color:var(--red)}
+.mw .tb svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.mw .spn{position:relative;display:inline-block;width:14px;height:14px;flex:none;animation:sdspin 1s steps(8) infinite}
+.mw .spn i{position:absolute;left:6px;top:0;width:2px;height:4.4px;border-radius:1px;background:var(--spk);transform-origin:1px 7px;transform:rotate(calc(var(--k) * 45deg));opacity:calc(.06 + (7 - var(--k)) * .07)}
+.mw .spn i:first-child{opacity:.55}
+@keyframes sdspin{to{transform:rotate(360deg)}}
+.mw .okc{width:14px;height:14px;flex:none}
+.mw .okc circle{fill:var(--good)}
+.mw .okc path{fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mw .wrn{width:14px;height:14px;flex:none}
+.mw .wrn path:first-child{fill:var(--warnC)}
+.mw .wrn path+path{fill:none;stroke:#1d1300;stroke-width:1.5;stroke-linecap:round}
+.mw .adot{width:7px;height:7px;border-radius:50%;background:var(--acc);flex:none}
+.mw .ring{width:16px;height:16px;flex:none}
+.mw .ring circle{fill:none;stroke-width:2.2}
+.mw .ring .t{stroke:var(--ov10)}
+.mw .ring .a{stroke:var(--acc);stroke-linecap:round;stroke-dasharray:calc(var(--p,0) * 100) 100;transform:rotate(-90deg);transform-origin:center;transition:stroke-dasharray .2s linear}
+.mw .bar{height:4px;border-radius:2px;background:var(--ov10);overflow:hidden;position:relative}
+.mw .bar i{position:absolute;left:0;top:0;bottom:0;width:100%;border-radius:2px;background:var(--acc);transform-origin:left;transform:scaleX(var(--p,0));transition:transform .2s linear}
+.mw .tnum{font-variant-numeric:tabular-nums}
+.mw .xt{display:inline-grid;vertical-align:top;transition:width .3s var(--ez),height .3s var(--ez)}
+.mw .xt>span{grid-area:1/1;opacity:0;transition:opacity .22s ease;justify-self:start;white-space:nowrap}
+.mw .xt.xtb{display:grid}
+.mw .xt.xtb>span{white-space:normal;align-self:start;justify-self:stretch}
+.mw .xt>span.on{opacity:1;transition-delay:.05s}
+.mw .fold{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .34s var(--ez),opacity .26s ease}
+.mw .fold.open{grid-template-rows:1fr;opacity:1}
+.mw .fold>div{min-height:0;overflow:hidden}
+.mw .ig{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--ov10);color:var(--tx)}
+.mw .ig svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.mw .ig.set{background:var(--accSoft);color:var(--accT)}
+
+/* ===== the chat window ===== */
+.mw.main .side{width:250px}
+.mw.main .srch{position:absolute;left:14px;right:14px;top:46px}
+.mw.main .proj{position:absolute;left:10px;right:10px;top:90px;display:flex;flex-direction:column;gap:1px}
+.mw.main .proj .ph{display:flex;align-items:center;gap:7px;height:28px;padding:0 8px;font-weight:600;font-size:12.5px;color:var(--tx2)}
+.mw.main .proj .th{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px 0 12px;border-radius:7px;font-size:12.5px;white-space:nowrap;overflow:hidden}
+.mw.main .proj .th.on{background:var(--sel);font-weight:500}
+.mw.main .proj .th i{width:6px;height:6px;border-radius:50%;background:var(--tx3);flex:none}
+.mw.main .proj .th.run i{background:var(--acc);box-shadow:0 0 0 3px var(--accSoft)}
+.mw.main .foot{position:absolute;left:10px;right:10px;bottom:10px;height:34px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--tx2);font-size:12.5px;border-radius:8px}
+.mw.main .pane{position:absolute;left:250px;top:0;right:0;bottom:0;z-index:1}
+.mw.main .ttl{position:absolute;left:28px;top:9px;font-weight:600;font-size:13px}
+.mw.main .msgs{position:absolute;left:56px;right:56px;top:52px;bottom:130px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.mw.main .msgs>*{flex:none}
+.mw .um{align-self:flex-end;max-width:72%;padding:9px 14px;border-radius:16px;background:var(--ov10);font-size:13px;margin-bottom:14px}
+.mw .am{font-size:13px;line-height:1.55;color:var(--tx);max-width:94%}
+.mw .am p{margin:0 0 8px}
+.mw .trow{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--tx2);padding:3px 0;min-width:0}
+.mw .trow .tk{width:14px;height:14px;flex:none;display:grid;place-items:center}
+.mw .trow .tk svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.mw .trow .tk.bad{color:var(--warnC)}
+.mw .trow .tk.ok{color:var(--good)}
+.mw .trow code,.mw .cmdb,.mw code{font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;font-size:11.5px}
+.mw .trow .cm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mw .tout{margin:0 0 8px 22px;padding:7px 10px;border-radius:8px;background:var(--quat);font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;font-size:11px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw .note{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);margin:2px 0 8px}
+.mw .note img{width:16px;height:16px}
+.mw.main .cmp{position:absolute;left:44px;right:44px;bottom:20px;border-radius:22px;padding:0;color:var(--tx3);font-size:13px;display:flex;flex-direction:column}
+.mw.main .cmp .ta{height:88px;position:relative;padding:14px 16px}
+.mw.main .cmp .chips{position:absolute;left:14px;bottom:12px;display:flex;gap:6px}
+.mw.main .cmp .chips span{height:24px;padding:0 10px;border-radius:12px;background:var(--ov6);display:inline-flex;align-items:center;font-size:11.5px;color:var(--tx2)}
+.mw .ofs{display:grid}
+.mw .ofs>*{grid-area:1/1;opacity:0;transform:translateY(4px);transition:opacity .22s ease,transform .3s var(--ez);pointer-events:none}
+.mw[data-of="ask"] .ofs>[data-o~="ask"],.mw[data-of="dl"] .ofs>[data-o~="dl"],.mw[data-of="ck"] .ofs>[data-o~="ck"],.mw[data-of="done"] .ofs>[data-o~="done"],
+.mw[data-of="no"] .ofs>[data-o~="no"],.mw[data-of="fail"] .ofs>[data-o~="fail"]{opacity:1;transform:none;transition-delay:.05s;pointer-events:auto}
+.mw .row2{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.mw .ofs .bar{width:150px}
+.mw .lv2{font-size:12px;color:var(--tx2);white-space:nowrap}
+/* the reveal after done: the note, then the re-run and the answer, one after the other */
+.mw .fold.d1{transition-delay:.0s}
+.mw .fold.d2.open{transition-delay:.45s}
+.mw .fold.d3.open{transition-delay:.9s}
+
+/* ===== round 2: shared item parts ===== */
+#prov .cr{grid-template-columns:minmax(130px,.8fr) minmax(0,2.3fr) minmax(0,1fr)}
+#prov code{font-family:var(--mono);font-size:11.5px;background:var(--chip);padding:1px 4px;border-radius:4px}
+@media (max-width:860px){#prov .cr{grid-template-columns:minmax(0,1fr)}}
+.mw .ic14{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mw .ic12{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mw .acs{display:grid;justify-items:end;align-items:center}
+.mw .acs>span{grid-area:1/1;display:inline-flex;align-items:center;gap:7px;opacity:0;transform:translateY(4px);transition:opacity .22s ease,transform .3s var(--ez);pointer-events:none;white-space:nowrap;font-size:12px}
+.mw [data-st="av"] .acs>[data-s~="av"],.mw [data-st="q"] .acs>[data-s~="q"],.mw [data-st="dl"] .acs>[data-s~="dl"],.mw [data-st="ck"] .acs>[data-s~="ck"],
+.mw [data-st="in"] .acs>[data-s~="in"],.mw [data-st="fail"] .acs>[data-s~="fail"],.mw [data-st="rm"] .acs>[data-s~="rm"],
+.mw [data-st="del"] .acs>[data-s~="del"]{opacity:1;transform:none;transition-delay:.05s;pointer-events:auto}
+.mw .acs .sm{color:var(--tx2)}
+.mw .acs .wk{color:var(--warnC);font-weight:500}
+.mw .why{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;margin:0;padding:8px 11px;border-radius:10px;font-size:12px;line-height:1.4;background:var(--ov6)}
+.mw .why.w{background:var(--warnSoft)}
+.mw .why.r{background:var(--redSoft)}
+.mw .why .ft{flex:1 1 220px;min-width:0}
+.mw .det{display:grid;grid-template-columns:76px minmax(0,1fr);gap:4px 10px;padding:10px 12px;border-radius:10px;background:var(--ov6);font-size:12px;line-height:1.4}
+.mw .det .k{color:var(--tx3)}
+.mw.set .nav>span{transition:background-color .25s ease}
+.mw.set .nav>span[data-act]{cursor:pointer}
+.mw.set .cnt{padding-top:30px}
+
+/* title row: the page name, what the listing costs, Download all */
+.mw.set .ptitle{gap:10px;min-width:0}
+.mw.set .ptitle .pt{font-size:14px}
+.mw.set .ptitle .lst{font-size:11.5px;font-weight:400;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mw.set .ptitle .tact{margin-left:auto;display:flex;gap:8px;flex:none}
+.mw .gbtn.wide{width:100%}
+
+/* the library list (layout D) */
+.mw.set .lib{position:absolute;left:24px;top:74px;bottom:16px;width:236px;border-radius:14px;background:var(--ov3);padding:6px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.mw.set .lib.sc{display:block;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ov10) transparent}
+.mw.set .lg{display:flex;align-items:center;gap:6px;padding:9px 8px 4px;font-size:11px;font-weight:600;color:var(--tx3)}
+.mw.set .lg>span:first-child{text-transform:uppercase;letter-spacing:.04em}
+.mw.set .lg>i{font-style:normal;font-weight:500;background:var(--ov6);border-radius:7px;padding:0 5px;line-height:15px}
+.mw.set .lg .lgdl{margin-left:auto;color:var(--accT);font-weight:500;cursor:pointer;white-space:nowrap;transition:transform .15s ease}
+.mw.set .li{display:flex;align-items:center;min-width:0;height:32px;padding:0 8px;border-radius:8px;cursor:pointer;transition:background-color .22s ease}
+.mw.set .li .lir{display:flex;align-items:center;gap:9px;width:100%;min-width:0}
+.mw.set .li.on{background:var(--sel)}
+.mw.set .li .ig{width:22px;height:22px;border-radius:6px}
+.mw.set .li .ig svg{width:13px;height:13px}
+.mw.set .li b{flex:1;min-width:0;font-weight:400;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw.set .li .acs>span{gap:4px;font-size:11px}
+.mw.set .li .ring{width:14px;height:14px}
+.mw.set .li .lv{min-width:0}
+/* B: the switcher on top of the list */
+.mw.set .ssw{position:relative;display:grid;grid-template-columns:repeat(3,1fr);padding:3px;border-radius:11px;background:var(--ov6);margin-bottom:6px;flex:none}
+.mw.set .ssw>span{position:relative;z-index:1;height:24px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:500;color:var(--tx2);cursor:pointer;transition:color .2s ease,transform .15s ease}
+.mw.set .ssw>span i{font-style:normal;font-size:10.5px;color:var(--tx3)}
+.mw.set .ssw .th{position:absolute;z-index:0;top:3px;left:3px;width:calc((100% - 6px) / 3);height:24px;border-radius:9px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--glassE),0 1px 3px rgba(0,0,0,.12);transition:transform .32s var(--ez)}
+.mw.set[data-sec="skill"] .ssw .th{transform:translateX(100%)}
+.mw.set[data-sec="tool"] .ssw .th{transform:translateX(200%)}
+.mw.set[data-sec="plug"] .ssw [data-sw="plug"],.mw.set[data-sec="skill"] .ssw [data-sw="skill"],.mw.set[data-sec="tool"] .ssw [data-sw="tool"]{color:var(--tx)}
+.mw.set .lps{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+.mw.set .lp{grid-area:1/1;display:flex;flex-direction:column;min-height:0;min-width:0;opacity:0;transform:translateX(8px);pointer-events:none;transition:opacity .26s ease,transform .36s var(--ez)}
+.mw.set[data-sec="plug"] .lp[data-lp="plug"],.mw.set[data-sec="skill"] .lp[data-lp="skill"],.mw.set[data-sec="tool"] .lp[data-lp="tool"]{opacity:1;transform:none;pointer-events:auto}
+.mw.set .lrows{flex:1;min-height:0;min-width:0;overflow:hidden}
+.mw.set .lfoot{padding:6px 0 0;flex:none;min-width:0}
+.mw.set .lfoot .gbtn{max-width:100%;min-width:0}
+.mw.set .lfoot .gbtn .lv{min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+/* the detail pane */
+.mw.set .pane2{position:absolute;left:272px;top:74px;right:26px;bottom:16px}
+.mw.set .dps{position:absolute;inset:0;display:grid}
+.mw.set .dp{grid-area:1/1;min-height:0;opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .26s ease,transform .36s var(--ez);overflow:hidden}
+.mw.set .dp.on{opacity:1;transform:none;pointer-events:auto}
+.mw.set .dpi{display:flex;flex-direction:column;gap:10px;padding:0}
+.mw.set .dp .dh{display:flex;align-items:center;gap:14px}
+.mw.set .dp .dh .ig{width:48px;height:48px;border-radius:13px}
+.mw.set .dp .dh .ig svg{width:24px;height:24px;stroke-width:1.2}
+.mw.set .dp .dh .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mw.set .dp .dh .tx b{font-family:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;font-size:18px;font-weight:600}
+.mw.set .dp .dh .tx span{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw.set .dp .act{display:flex;align-items:center;min-height:30px}
+.mw.set .dp .act .acs{justify-items:start}
+.mw.set .dp .act .acs>span{font-size:12.5px}
+.mw.set .dp .act .bar{width:200px}
+.mw.set .dp .act .lv{min-width:118px}
+/* what a set costs in every session, with its Enable switches */
+.mw .cost{border-radius:10px;background:var(--ov6);padding:9px 12px 10px;font-size:12px}
+.mw .cost .ch{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.mw .cost .ch b{font-weight:600}
+.mw .cost .ch .xt{margin-left:auto;color:var(--tx2)}
+.mw .cost.t .ch{margin-bottom:3px}
+.mw .cost .cl{max-height:150px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ov10) transparent;margin:0 -4px;padding:0 4px}
+.mw .cost .sr{display:grid;grid-template-columns:30px auto minmax(0,1fr) auto;align-items:center;gap:8px;height:25px;transition:opacity .3s ease}
+.mw .cost .sr code{font-family:"Cascadia Mono",Consolas,ui-monospace,monospace;font-size:11.5px;color:var(--tx);white-space:nowrap;transition:color .3s ease}
+.mw .cost .sr .d{color:var(--tx3);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw .cost .sr .tk{color:var(--tx2);font-size:11px;font-variant-numeric:tabular-nums;transition:opacity .3s ease}
+.mw .cost .sr.off code{color:var(--tx3)}
+.mw .cost .sr.off .tk{opacity:.35;text-decoration:line-through}
+.mw .cost .sr.na{opacity:.45}
+.mw .cost .sr.na .tg{pointer-events:none}
+.mw .cost .sr.more{display:block;height:auto;padding:4px 0 0 38px}
+.mw .cost .cn{margin-top:7px;color:var(--tx2);font-size:11.5px;line-height:1.4}
+.mw .tg{position:relative;width:28px;height:16px;border-radius:8px;background:var(--acc);cursor:pointer;transition:background-color .25s ease,transform .15s ease}
+.mw .tg i{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transform:translateX(12px);transition:transform .28s var(--ez)}
+.mw .sr.off .tg{background:var(--ov10)}
+.mw .sr.off .tg i{transform:none}
+
+/* Download all: the dialog over a dimmed window (A, B) or the detail pane (C) */
+.mw.set .scrim{position:absolute;inset:0;z-index:30;background:rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .3s ease}
+.lt .mw.set .scrim{background:rgba(60,50,40,.16)}
+.mw.set .dlg{position:absolute;left:50%;top:50%;z-index:31;width:476px;border-radius:18px;padding:16px 18px 14px;background:var(--pop);opacity:0;pointer-events:none;
+  transform:translate(-50%,-47%) scale(.96);transition:opacity .26s ease,transform .42s var(--ez)}
+.mw.set:not([data-bph="none"]) .scrim{opacity:1;pointer-events:auto}
+.mw.set:not([data-bph="none"]) .dlg{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+.mw .bk{display:flex;flex-direction:column}
+.mw .bk>.fold>div>div,.mw .bk>.inc,.mw .bk>.bf{margin-top:10px}
+.mw .bh{display:flex;align-items:center;gap:12px}
+.mw .bh .bic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--accSoft);color:var(--accT);flex:none}
+.mw .bh .bic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.mw .bh .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mw .bh .tx b{font-size:15px;font-weight:600}
+.mw .bh .tx>.xt{font-size:12px;color:var(--tx2)}
+.mw .bconf{display:flex;flex-direction:column;gap:8px}
+.mw .disc{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:10px;background:var(--warnSoft);font-size:12.5px;line-height:1.42;font-weight:500}
+.mw .disc .wrn{margin-top:2px}
+.mw .disc .xt{flex:1;min-width:0}
+.mw .facts{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:4px 10px;font-size:12px;padding:0 2px}
+.mw .facts .k{color:var(--tx3)}
+.mw .facts .lv{min-width:0}
+.mw .chks{display:flex;flex-direction:column;gap:4px}
+.mw .ck2{display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-radius:9px;background:var(--ov3);cursor:pointer;font-size:12.5px;transition:background-color .2s ease,transform .15s ease}
+.mw .ck2 b{font-weight:500}
+.mw .ck2 .lv{margin-left:auto;color:var(--tx2);font-size:12px}
+.mw .ck2 .cb{width:16px;height:16px;border-radius:5px;box-shadow:inset 0 0 0 1.3px var(--tx3);display:grid;place-items:center;transition:background-color .2s ease,box-shadow .2s ease}
+.mw .ck2 .cb svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:0;transform:scale(.5);transition:opacity .2s ease,transform .28s var(--ez)}
+.mw .ck2.on{background:var(--accSoft)}
+.mw .ck2.on .cb{background:var(--acc);box-shadow:none}
+.mw .ck2.on .cb svg{opacity:1;transform:none}
+.mw .ovr{display:flex;flex-direction:column;gap:6px;font-size:12px}
+.mw .ovr .bar{height:6px;border-radius:3px}
+.mw .ovr .bar i{transform:scaleX(var(--bp,0))}
+.mw .inc .ih{font-size:11.5px;font-weight:600;color:var(--tx3);margin:0 2px 4px}
+.mw .inc .il{max-height:150px;overflow-y:auto;border-radius:10px;background:var(--ov3);padding:3px 8px;scrollbar-width:thin;scrollbar-color:var(--ov10) transparent}
+.mw .ir2{display:flex;align-items:center;gap:9px;height:28px}
+.mw .ir2 .ig{width:20px;height:20px;border-radius:6px}
+.mw .ir2 .ig svg{width:12px;height:12px}
+.mw .ir2 .nm2{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw .ir2 .acs>span{font-size:11.5px;gap:5px}
+.mw .ir2 .ring{width:14px;height:14px}
+.mw .ir2 .dn{display:inline-flex;align-items:center;gap:5px}
+.mw .ir2 .ah{display:none}
+.mw .ir2.skp2 .dn{display:none}
+.mw .ir2.skp2 .ah{display:inline}
+.mw .bf{display:flex;align-items:center;gap:12px}
+.mw .bf .bnote{flex:1;min-width:0;font-size:11.5px;color:var(--tx2);line-height:1.35}
+.mw .bbtn{display:grid;justify-items:end}
+.mw .bbtn>span{grid-area:1/1;display:flex;gap:8px;opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .22s ease,transform .3s var(--ez)}
+.mw[data-bph="confirm"] .bbtn>[data-bp="confirm"],.mw[data-bph="dl"] .bbtn>[data-bp="dl"],.mw[data-bph="paused"] .bbtn>[data-bp="paused"],
+.mw[data-bph="done"] .bbtn>[data-bp="done"],.mw[data-bph="partial"] .bbtn>[data-bp="partial"]{opacity:1;transform:none;pointer-events:auto;transition-delay:.05s}
+.mw .pz{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.mw .pz.f{fill:currentColor;stroke:none}
+.mw.set .dp[data-dp="bulk"] .dpi{padding:0}
+
+/* ===== the chat window (Q3) ===== */
+.mw.main .msgs{bottom:126px}
+.iC .msgs{bottom:160px!important}
+.mw .fold.inl{display:inline-grid;grid-template-columns:0fr;grid-template-rows:auto;vertical-align:middle;transition:grid-template-columns .34s var(--ez),opacity .26s ease}
+.mw .fold.inl.open{grid-template-columns:1fr}
+.mw .fold.inl>span{min-width:0;overflow:hidden;display:block}
+.mw .uchip,.mw .cchip{display:inline-flex;align-items:center;gap:4px;height:21px;padding:0 8px;border-radius:11px;background:var(--accSoft);color:var(--accT);font:500 11.5px/1 "Cascadia Mono",Consolas,ui-monospace,monospace;margin-right:7px;white-space:nowrap;vertical-align:1px}
+.mw .xb2{margin-left:3px;font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;cursor:pointer;opacity:.8}
+.mw .skrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:12.5px;color:var(--tx2);padding:7px 11px;border-radius:11px;background:var(--ov6);margin:0 0 9px;max-width:560px}
+.mw .skrow .ic14{color:var(--accT)}
+.mw .skrow code{color:var(--tx);font-size:12px}
+.mw .skrow .sf{color:var(--tx3);font-size:11.5px}
+.mw .skrow .who{margin-left:auto;font-size:11px;color:var(--tx2);background:var(--ov6);border-radius:9px;padding:2px 7px}
+.mw .skrow .sd{flex-basis:100%;font-size:11.5px;color:var(--tx3);padding-left:22px}
+.mw.main .cmp .ta{height:92px}
+.mw .tline{display:flex;align-items:center;color:var(--tx);min-width:0;white-space:nowrap;padding-right:30px}
+.mw .ttx{overflow:hidden;text-overflow:ellipsis}
+.mw .ttx.ph{color:var(--tx3)}
+.mw .caret{width:1.5px;height:16px;background:var(--acc);margin-left:1px;flex:none;animation:sdblink 1.05s steps(1) infinite}
+@keyframes sdblink{50%{opacity:0}}
+.mw.main .cmp .chips .skb{gap:5px;cursor:pointer;color:var(--accT);transition:transform .15s ease,background-color .2s ease}
+.mw.main .cmp .chips .skb i{font-style:normal;font-size:10.5px;color:var(--tx3)}
+.mw.main.pk .cmp .chips .skb{background:var(--accSoft)}
+.mw .send{position:absolute;right:12px;bottom:12px;width:30px;height:30px;border-radius:15px;display:grid;place-items:center;background:var(--ov10);color:var(--tx2);cursor:pointer;transition:background-color .25s ease,color .25s ease,transform .15s ease}
+.mw .send svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mw[data-cs="chosen"] .send{background:var(--acc);color:var(--accIn)}
+.mw .skp{position:absolute;left:58px;bottom:122px;width:430px;z-index:8;border-radius:16px;padding:6px;font-size:12.5px;background:var(--pop);
+  opacity:0;transform:translateY(10px) scale(.98);transform-origin:20% 100%;pointer-events:none;transition:opacity .24s ease,transform .38s var(--ez)}
+.mw.main.pk .skp{opacity:1;transform:none;pointer-events:auto}
+.mw .skp .sph{display:flex;align-items:center;gap:8px;height:32px;padding:0 9px;color:var(--tx3);box-shadow:0 1px 0 var(--div)}
+.mw .skp .sph svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.3}
+.mw .skp .sph code{color:var(--tx);font-size:12px}
+.mw .skp .spg{font-size:10.5px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;padding:8px 9px 3px}
+.mw .skp .spi{display:flex;align-items:center;gap:8px;height:28px;padding:0 9px;border-radius:8px;min-width:0;transition:background-color .2s ease}
+.mw .skp .spi[data-act]{cursor:pointer}
+.mw .skp .spi.hl{background:var(--sel)}
+.mw .skp .spi .ic14{color:var(--accT)}
+.mw .skp .spi code{font-size:12px;color:var(--tx)}
+.mw .skp .spi .d{color:var(--tx2);white-space:nowrap}
+.mw .skp .spi .f{margin-left:auto;color:var(--tx3);font-size:11px;white-space:nowrap}
+.mw .skp .spi .cv{color:var(--tx3)}
+.mw .skp .spf{font-size:11px;color:var(--tx3);padding:7px 9px 3px;box-shadow:0 -1px 0 var(--div);margin-top:4px}
+.mw .lstrip{position:absolute;left:56px;right:56px;bottom:118px}
+.mw .lsi{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);padding:5px 4px}
+.mw .lsi .ic12{color:var(--accT)}
+.mw .lsi code{font-size:11.5px;color:var(--accT);background:var(--accSoft);border-radius:9px;padding:2px 8px}
+@media (prefers-reduced-motion:reduce){.mw .spn{animation-duration:2s}.mw .caret{animation:none}}
+.mw .skp .spi.none .d{color:var(--tx3);font-size:12px;white-space:normal}
+.pickd{margin-top:8px!important;font-size:13px;color:var(--sub)}
+.pickd b{color:var(--ink)}
+
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<div class="dk-page">
+  <header class="dk-hdr">
+    <div class="dk-tags"><span class="dk-tag">OD-0099: Page D &#xb7; Offer A &#xb7; Words S1</span><span class="dk-tag">Separate pages &#xb7; Invoke A</span><span class="dk-tag">OD-0076 transitioned</span></div>
+    <h1>Plugins, Skills and Tools pages, Download all, and skills the way Claude uses them</h1>
+    <p>The design as picked. Plugins and Skills are two Settings pages next to each other in the sidebar, Plugins directly above Skills, and Tools join the existing Tools page. All three use layout D (the library list with the detail pane), and each has its own Download all. Download all states the size and waits for Continue. Skills work as they do in Claude: every session lists the names and short descriptions of the skills you installed and enabled, and a skill&#x2019;s full instructions load only when it is invoked, by the model or by you with &#x201c;/&#x201d;. Play runs each part, and the buttons drawn in the windows work: the sidebar pages, Download all, Continue, Pause, Retry, the Enable switches and the skill picker.</p>
+    <p class="pickd"><b>Picked:</b> Sections C (separate Plugins and Skills pages), Download all per page, Invoke A.</p>
+  </header>
+
+  <section class="dk-glass stagecard" aria-label="The Settings pages">
+    <h2>The Settings pages: Plugins, Skills and Tools</h2>
+    <p class="sub"><b>Play</b> opens the Skills page on OpenAI&#x2019;s document skills: what each skill adds to every session, and its Enable switch. It turns one skill off, then goes to the Tools page, asks to download all the tools, continues, pauses, resumes, hits two failures and retries them. Python and its Office and PDF packages are already on this PC, so they are skipped. <b>Download all of</b> opens the confirmation on the Plugins, Skills or Tools page.</p>
+    <div class="ctl">
+      <button class="dk-btn pri" id="playS" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span>Play</span></button>
+      <div class="dk-grp"><span class="dk-glab">State</span><div id="segS"></div></div>
+      <div class="dk-grp"><span class="dk-glab">Download all of</span><div id="segScope"></div></div>
+      <div class="dk-grp"><span class="dk-glab">Theme</span><div id="segT"></div></div>
+    </div>
+    <div class="stage" id="stageS"><div class="wallbg"></div><div class="wallbg l"></div><div class="slots" id="slotsS"></div></div>
+    <div class="rd"><span><b id="phS">Browsing</b></span><span class="cap">Three sidebar pages in layout D, each with its own Download all at the foot of its list. There is no Download everything, because no page holds everything.</span></div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="A skill in a chat">
+    <h2>In a chat: a skill is listed, then invoked</h2>
+    <p class="sub">The model sees the names and descriptions of the enabled skills from the start of the chat. You ask for <b>proposal.docx</b>. <b>Play</b> types &#x201c;/&#x201d;, picks the <code>doc</code> skill and sends. The timeline then shows a &#x201c;Skill &#xb7; doc&#x201d; row saying you invoked it. The last state shows the other way in: you don&#x2019;t pick anything, and the model invokes <code>doc</code> by itself.</p>
+    <div class="ctl">
+      <button class="dk-btn pri" id="playC" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span>Play</span></button>
+      <div class="dk-grp"><span class="dk-glab">State</span><div id="segC"></div></div>
+    </div>
+    <div class="stage" id="stageC"><div class="wallbg"></div><div class="wallbg l"></div><div class="slots" id="slotsC"></div></div>
+    <div class="rd"><span><b id="phC">Composer</b></span><span class="cap">Invoke A: &#x201c;/&#x201d; opens a picker of the enabled skills, and a loaded skill shows as one timeline row that names who invoked it.</span></div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="What each page holds">
+    <h2>What each page holds</h2>
+    <p class="sub"><b>Plugins</b> holds the vendors&#x2019; bundles: Anthropic&#x2019;s knowledge-work and financial-services plugins, OpenAI&#x2019;s open plugins and its proprietary-labelled ones. <b>Skills</b> holds the skill sets: Anthropic&#x2019;s document, example and life-sciences skills, OpenAI&#x2019;s document and curated skills, and Codex&#x2019;s built-in skills. <b>Tools</b> (the existing page, next to the provider CLIs and OD-0100&#x2019;s update rows) holds the programs they run: Python and its package sets, Node.js, LibreOffice, Poppler, qpdf, pandoc, Git, GitHub CLI, uv and Playwright&#x2019;s Chromium. Every set and plugin Anthropic and OpenAI publish is offered. Each one downloads only when you ask, from the vendor&#x2019;s official source, with its licence file kept, and none is bundled with Marrow (owner, 2026-10-04).</p>
+    <p class="sub">Each page&#x2019;s Download all takes the items on that page that aren&#x2019;t on this PC yet. All three open the same confirmation: a large-download warning, the exact download size, the disk space it takes, the free space, where it comes from and every item included. Then Cancel or Continue, and nothing downloads before Continue. After that: downloading (overall and per item, with Pause and Cancel), paused, done, and partly failed with Retry. Getting everything means confirming on Plugins, Skills and Tools in turn.</p>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="How each provider is told">
+    <h2>How each provider lists the enabled skills and loads one on use</h2>
+    <p class="sub">From <code>E:\Droppy\work\skills\research-loading.md</code>, <code>PLAN.md</code> 2.1 to 2.7 and <code>ONDEMAND-PLAN.md</code> section 4. Each chat gets a folder Marrow builds when the chat starts. It holds the installed skills that are enabled, and nothing else, so a skill that is not installed or is switched off is never listed. Every provider then does what Claude does with it. The names and descriptions go into the model&#x2019;s context: Claude Code within 1% of the context window, each description cut at 1,536 characters; Codex within 2% by default. A skill&#x2019;s full text loads when it is used (<b>SF</b>). <b>SF</b> read or run at the source, <b>ED</b> a proposal, <b>UN</b> to be checked live before it is built.</p>
+    <div class="cov" id="prov"></div>
+    <p class="sub" style="margin:0">Two honest limits. (1) The listing is paid in every session: the detail pane shows each skill&#x2019;s share, and Marrow keeps its skills to at most half of each provider&#x2019;s listing budget, leaving its own lowest-priority skills out first (PLAN.md 2.7). (2) A switch applies to new chats. A running chat keeps the folder it started with (ONDEMAND-PLAN 4.4).</p>
+  </section>
+
+  <section class="dk-notes">
+    <div class="dk-note dk-glass"><h3>The totals (ED, sizes SF)</h3><p>Plugins 32.2 MB (4 items), Skills 16.5 MB (6 items), Tools 1.08 GB (1,077.1 MB, 14 items, about 2.9 GB on disk). All three pages together: 1.13 GB (1,125.8 MB), about 3.0 GB on disk. On this page Python, its Office and PDF packages and two skill sets are already here, so the buttons show 32 MB for plugins, 8.2 MB for skills and 1.04 GB for the tools. Skills and plugins don&#x2019;t bring their tools along in a Download all. A chat asks for a missing tool when a step needs it (offer A).</p></div>
+    <div class="dk-note dk-glass"><h3>Pause, Cancel, Retry (ED)</h3><p>Items download one at a time, as in OD-0100&#x2019;s update run. Pause stops the current file where it is, and Resume carries on from there (downloads are resumable, plan 3.2). Cancel stops the rest, and what is already downloaded stays. A failed item doesn&#x2019;t stop the others. At the end, Retry downloads just the failed items again.</p></div>
+    <div class="dk-note dk-glass"><h3>On by default (ED, from Q-SKILLS-1 A)</h3><p>After a download, the skills for documents, review, security, GitHub, design and skill building start enabled. Skills that need a key, a login or the internet start disabled, with the need shown. Plugins install with their skills disabled: one plugin can hold dozens of skills. Downloading never lists anything by itself until the switch is on.</p></div>
+    <div class="dk-note dk-glass"><h3>Real and illustrative</h3><p>Names, versions, download sizes, skill counts and sources are the plan&#x2019;s pinned ones (2026-10-04), including the proprietary sets: Anthropic&#x2019;s document skills (5 skills, 3.5 MB) and OpenAI&#x2019;s proprietary-labelled plugins (8 plugins, 124 skills, 18.2 MB). The token figures are examples. The app counts each one from the installed skill&#x2019;s own name and description. Disk sizes are estimates (<b>UN</b>): the plan&#x2019;s unpacked figures, and 2.5 times the download for the Python package sets. &#x201c;212 GB free on C:&#x201d; and the chat are examples. Downloads are sped up.</p></div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="Settled">
+    <p class="sub" style="margin:0"><b>Settled since the first page:</b> the proprietary sets are offered as downloads, and Plugins and Skills are separate pages (owner, 2026-10-04). No question is open on this page.</p>
+  </section>
+  <p class="dk-foot">Every change is transitioned (OD-0076): sidebar pages crossfade, the confirmation rises from a dimmed window and eases its height between phases, the bars and rings ease, rows change status with a crossfade, the Enable switches slide and the per-session totals crossfade, the picker rises from the composer, the skill chip folds open and shut, and a loaded skill&#x2019;s row folds into the timeline. Reduce Motion stills the movement to quick fades.</p>
+</div>
+
+<script type="application/json" id="sddata">{"icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjEwMjQiIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0aWxlIiB4MT0iMC4xIiB5MT0iMCIgeDI9IjAuOSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxRDIxNDciLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIwLjU1IiBzdG9wLWNvbG9yPSIjMTIxNTI5Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzBBMEMxOCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuMyIgY3k9IjAuMTYiIHI9IjAuODIiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM5M0FDRkYiIHN0b3Atb3BhY2l0eT0iMC4yMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM5M0FDRkYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ia2V5bGluZSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNGRkZGRkYiIHN0b3Atb3BhY2l0eT0iMC4yMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjAuNiIgc3RvcC1jb2xvcj0iI0ZGRkZGRiIgc3RvcC1vcGFjaXR5PSIwLjAzIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0ZGRkZGRiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJjb3JlIiBjeD0iMC4zOCIgY3k9IjAuMzIiIHI9IjAuOCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0ZGRkZGRiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjAuNzIiIHN0b3AtY29sb3I9IiNGMkY1RkYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRDZERUZCIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhcm0wIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjM5Mi44OCIgeTE9IjIxNy4xNiIgeDI9IjY1NC41OSIgeTI9IjQxNS44MiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjOUNCQkZGIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNEY3REZGIi8+PC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXJtMSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSI4MjYuOTEiIHkxPSI1NTYuMjYiIHgyPSI1MjQiIHkyPSI2ODMuNTgiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0NCQTZGRiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzhBNUNGNiIvPjwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImFybTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMzE2LjIyIiB5MT0iNzYyLjU5IiB4Mj0iMzU3LjQxIiB5Mj0iNDM2LjYiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzc0RjJEMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJGQzZBMCIvPjwvbGluZWFyR3JhZGllbnQ+CiAgICA8Y2xpcFBhdGggaWQ9InJvdW5kIj4KICAgICAgPHJlY3QgeD0iNzIiIHk9IjcyIiB3aWR0aD0iODgwIiBoZWlnaHQ9Ijg4MCIgcng9IjIwNCIvPgogICAgPC9jbGlwUGF0aD4KICA8L2RlZnM+CiAgPGcgY2xpcC1wYXRoPSJ1cmwoI3JvdW5kKSI+CiAgICA8cmVjdCB4PSI3MiIgeT0iNzIiIHdpZHRoPSI4ODAiIGhlaWdodD0iODgwIiBmaWxsPSJ1cmwoI3RpbGUpIi8+CiAgICA8cmVjdCB4PSI3MiIgeT0iNzIiIHdpZHRoPSI4ODAiIGhlaWdodD0iODgwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPC9nPgogIDxyZWN0IHg9IjczLjUiIHk9IjczLjUiIHdpZHRoPSI4NzciIGhlaWdodD0iODc3IiByeD0iMjAyLjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNrZXlsaW5lKSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGcgZmlsbD0ibm9uZSI+CiAgICA8cGF0aCBkPSJNIDM5Mi44OCAyMTcuMTYgQSAyMzYuNTggMjM2LjU4IDAgMCAxIDY1NC41OSA0MTUuODIiIHN0cm9rZT0idXJsKCNhcm0wKSIgc3Ryb2tlLXdpZHRoPSI5MiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8cGF0aCBkPSJNIDgyNi45MSA1NTYuMjYgQSAyMzYuNTggMjM2LjU4IDAgMCAxIDUyNCA2ODMuNTgiIHN0cm9rZT0idXJsKCNhcm0xKSIgc3Ryb2tlLXdpZHRoPSI5MiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8cGF0aCBkPSJNIDMxNi4yMiA3NjIuNTkgQSAyMzYuNTggMjM2LjU4IDAgMCAxIDM1Ny40MSA0MzYuNiIgc3Ryb2tlPSJ1cmwoI2FybTIpIiBzdHJva2Utd2lkdGg9IjkyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8L2c+CiAgPGNpcmNsZSBjeD0iNTEyIiBjeT0iNTEyIiByPSI4MiIgZmlsbD0idXJsKCNjb3JlKSIvPgo8L3N2Zz4="}</script>
+
+<script>
+// Decision kit: theme (Auto | Light | Dark), segmented controls with a sliding thumb, and the picks bar.
+// Classic script, no eval; storage is a per-viewer convenience only and every access is guarded.
+(function () {
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('dk.' + k); return v == null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('dk.' + k, v); } catch (e) { /* storage blocked: the page works without it */ } },
+  };
+  const mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  const listeners = [];
+  let mode = store.get('theme', 'auto');
+  const isDark = () => (mode === 'dark' ? true : mode === 'light' ? false : !!(mq && mq.matches));
+  function applyTheme(m, animate) {
+    const run = () => {
+      mode = m;
+      const r = document.documentElement;
+      if (m === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', m);
+      listeners.forEach((f) => f(isDark()));
+    };
+    // the whole picture crossfades where the browser can; otherwise every token eases on its own (CSS transitions)
+    if (animate && document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(run);
+    else run();
+  }
+  if (mq && mq.addEventListener) mq.addEventListener('change', () => { if (mode === 'auto') listeners.forEach((f) => f(isDark())); });
+
+  // a segmented control: options [{v, t}], the thumb slides to the pressed one
+  function seg(el, options, value, onChange, opts) {
+    opts = opts || {};
+    el.classList.add('dk-seg');
+    if (opts.wrap) el.classList.add('wrap');
+    el.innerHTML = '';
+    const th = document.createElement('span'); th.className = 'th nt'; el.appendChild(th);
+    const btns = options.map((o) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = o.t; b.dataset.v = o.v;
+      if (o.title) b.title = o.title;
+      b.addEventListener('click', () => { set(o.v, true); onChange(o.v); });
+      el.appendChild(b); return b;
+    });
+    let cur = value;
+    function place(anim) {
+      const b = btns.find((x) => x.dataset.v === String(cur));
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      if (!b) { th.style.opacity = '0'; return; }
+      th.style.opacity = '1';
+      if (!anim) th.classList.add('nt');
+      th.style.width = b.offsetWidth + 'px';
+      th.style.height = b.offsetHeight + 'px';
+      th.style.top = b.offsetTop + 'px';
+      th.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+      if (!anim) { void th.offsetWidth; th.classList.remove('nt'); }
+    }
+    function set(v, anim) { cur = v; place(anim); }
+    place(false);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => place(false));
+    if (window.ResizeObserver) new ResizeObserver(() => place(false)).observe(el);
+    return { set: (v) => set(v, true), get: () => cur };
+  }
+
+  // the picks bar: one chip per question; the page sends nothing anywhere
+  function picks(page, questions) {
+    const bar = document.createElement('div');
+    bar.className = 'dk-picks dk-glass';
+    bar.innerHTML = '<span class="pl">Your picks</span><span class="pv"></span><span class="note">Tell the lead these letters; this page sends nothing.</span><button class="dk-btn" type="button">Copy</button>';
+    document.body.appendChild(bar);
+    const pv = bar.querySelector('.pv');
+    const state = {};
+    questions.forEach((q) => { state[q.id] = store.get(page + '.pick.' + q.id, ''); });
+    function render() {
+      pv.innerHTML = '';
+      questions.forEach((q) => {
+        const s = document.createElement('span');
+        const v = state[q.id];
+        s.className = v ? 'on' : '';
+        s.innerHTML = '';
+        s.appendChild(document.createTextNode(q.label + ' '));
+        const b = document.createElement('b'); b.textContent = v || '?'; s.appendChild(b);
+        pv.appendChild(s);
+      });
+      document.querySelectorAll('[data-pick-q]').forEach((btn) => {
+        const on = state[btn.dataset.pickQ] === btn.dataset.pickV;
+        btn.setAttribute('aria-pressed', String(on));
+      });
+    }
+    function text() { return page + ': ' + questions.map((q) => q.label + ' ' + (state[q.id] || '?')).join(', '); }
+    bar.querySelector('button').addEventListener('click', async () => {
+      const t = text();
+      try { await navigator.clipboard.writeText(t); bar.querySelector('button').textContent = 'Copied'; }
+      catch (e) { bar.querySelector('button').textContent = 'Select the text'; const r = document.createRange(); r.selectNodeContents(pv); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+      setTimeout(() => { bar.querySelector('button').textContent = 'Copy'; }, 1600);
+    });
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-pick-q]');
+      if (!btn) return;
+      const q = btn.dataset.pickQ, v = typeof btn.__pickValue === 'function' ? btn.__pickValue() : btn.dataset.pickV;
+      state[q] = state[q] === v ? '' : v;
+      store.set(page + '.pick.' + q, state[q]);
+      render();
+    });
+    render();
+    return { render, set(q, v) { state[q] = v; store.set(page + '.pick.' + q, v); render(); }, get: (q) => state[q] };
+  }
+  const PICK_SVG = '<svg viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.6l4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function pickButton(q, v, label) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'dk-pick'; b.dataset.pickQ = q; b.dataset.pickV = v; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<span class="ck">' + PICK_SVG + '</span><span class="lb"><span class="a"></span><span class="b"></span></span>';
+    b.querySelector('.lb .a').textContent = label || 'Pick';
+    b.querySelector('.lb .b').textContent = 'Picked';
+    return b;
+  }
+  window.Kit = { store, seg, picks, pickButton, isDark, onTheme: (f) => listeners.push(f), theme: (m) => { store.set('theme', m); applyTheme(m, true); }, themeMode: () => mode };
+  applyTheme(mode, false);
+})();
+
+</script>
+<script>
+// Skills downloads, round 2 (OD-0099 pick "Page D, Offer A, Words S1" and the owner's changes), the interactive decision
+// page. One model (every item's state and progress, every skill's Enable switch, the Download all run, the chat)
+// drives nine Settings windows (three ways to separate the sections times three Download all placements) and three chat
+// windows; only the chosen ones are visible. Every change goes through a transition (OD-0076). No eval, no network;
+// storage only through Kit.store (guarded).
+(function () {
+  const D = JSON.parse(document.getElementById('sddata').textContent);
+  const ICON = D.icon;
+  const K = window.Kit;
+  const S = K.store;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const IMG = () => '<img alt="" src="' + ICON + '">';
+  // the kit crossfades a theme change with a View Transition; in a hidden document the browser aborts it and rejects
+  // its promises (InvalidStateError). The theme still changes; only that one benign rejection is silenced here.
+  window.addEventListener('unhandledrejection', (e) => {
+    const r = e.reason;
+    if (r && r.name === 'InvalidStateError' && /Transition/.test(String(r.message))) e.preventDefault();
+  });
+
+  // ------------------------------------------------------------------ glyphs (Marrow's own line glyphs; no vendor marks)
+  const GL = {
+    doc: '<path d="M4 2h5.5L12 4.5V14H4Z"/><path d="M9.5 2v2.5H12M6 8h4M6 10.5h4"/>',
+    spark: '<path d="M6.5 2.5 7.6 5.4 10.5 6.5 7.6 7.6 6.5 10.5 5.4 7.6 2.5 6.5 5.4 5.4Z"/><path d="M11.5 9.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6Z"/>',
+    stack: '<path d="M8 2 14 5 8 8 2 5Z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/>',
+    brief: '<rect x="2.5" y="5" width="11" height="8" rx="1.5"/><path d="M6 5V3.6h4V5M2.5 8.5h11"/>',
+    code: '<path d="m5.5 4.5-3 3.5 3 3.5M10.5 4.5l3 3.5-3 3.5M9 3 7 13"/>',
+    pkg: '<path d="M8 2 13.5 5v6L8 14 2.5 11V5Z"/><path d="M2.5 5 8 8l5.5-3M8 8v6"/>',
+    node: '<path d="M8 1.8 13.4 4.9v6.2L8 14.2 2.6 11.1V4.9Z"/><path d="M8 5.2v5.6M5.6 8h4.8"/>',
+    office: '<rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M5 6h6M5 8.5h6M5 11h3.5"/>',
+    pdf: '<path d="M4 2h5.5L12 4.5V14H4Z"/><path d="M6 12V8.4h1.3a1.1 1.1 0 0 1 0 2.2H6"/>',
+    plug: '<path d="M6 2v3M10 2v3M4.5 5h7v2.5a3.5 3.5 0 0 1-7 0Z"/><path d="M8 11v3"/>',
+    chart: '<path d="M2.5 13.5h11M4.5 11V8M8 11V4.5M11.5 11V6.5"/>',
+    flask: '<path d="M6.5 2h3M7 2v4L3.4 12.3A1.2 1.2 0 0 0 4.5 14h7a1.2 1.2 0 0 0 1.1-1.7L9 6V2"/><path d="M5 10h6"/>',
+    git: '<circle cx="5" cy="4" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="11" cy="6.5" r="1.6"/><path d="M5 5.6v4.8M11 8.1c0 2-2.5 2.2-6 2.6"/>',
+    term: '<rect x="2" y="3" width="12" height="10" rx="2"/><path d="m4.8 6.5 2 1.5-2 1.5M8.5 10h3"/>',
+    globe: '<circle cx="8" cy="8" r="5.6"/><path d="M2.4 8h11.2M8 2.4c1.8 1.8 1.8 9.4 0 11.2M8 2.4c-1.8 1.8-1.8 9.4 0 11.2"/>',
+    bolt: '<path d="M9 1.8 3.8 9h3.6L7 14.2 12.2 7H8.6Z"/>',
+    img: '<rect x="2.5" y="3" width="11" height="10" rx="1.5"/><circle cx="6" cy="6.5" r="1.2"/><path d="m2.5 11.5 3.5-3 2.5 2 2-1.5 3 2.5"/>',
+    dl: '<path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13h10"/>',
+  };
+  const g = (k, cls) => '<span class="ig' + (cls ? ' ' + cls : '') + '"><svg viewBox="0 0 16 16" aria-hidden="true">' + GL[k] + '</svg></span>';
+  const sv16 = (k, cls) => '<svg class="' + (cls || 'ic16') + '" viewBox="0 0 16 16" aria-hidden="true">' + GL[k] + '</svg>';
+  const IC = {
+    general: '<circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.8M8 12.4v1.8M1.8 8h1.8M12.4 8h1.8M3.6 3.6l1.3 1.3M11.1 11.1l1.3 1.3M3.6 12.4l1.3-1.3M11.1 4.9l1.3-1.3"/>',
+    hydra: '<circle cx="5" cy="5.5" r="2"/><circle cx="11" cy="5.5" r="2"/><circle cx="8" cy="11" r="2"/><path d="M6.3 7 7.2 9.3M9.7 7 8.8 9.3"/>',
+    appearance: '<circle cx="8" cy="8" r="5.6"/><path d="M8 2.4v11.2A5.6 5.6 0 0 0 8 2.4Z"/>',
+    custom: '<path d="M3 4.5h6M11.5 4.5H13M3 11.5h1.5M7 11.5h6"/><circle cx="10" cy="4.5" r="1.4"/><circle cx="5.6" cy="11.5" r="1.4"/>',
+    voice: '<rect x="6" y="2.2" width="4" height="7.6" rx="2"/><path d="M3.8 8a4.2 4.2 0 0 0 8.4 0M8 12.2v1.8"/>',
+    providers: '<rect x="2.5" y="3" width="11" height="4" rx="1.2"/><rect x="2.5" y="9" width="11" height="4" rx="1.2"/><path d="M5 5h.1M5 11h.1"/>',
+    tools: '<path d="M10.4 2.6a3 3 0 0 0-3.7 3.9L2.8 10.4a1.3 1.3 0 0 0 1.8 1.8l3.9-3.9a3 3 0 0 0 3.9-3.7l-1.8 1.8-1.6-.4-.4-1.6Z"/>',
+    mcp: '<path d="M3 4h6l4 4-4 4H3Z"/>',
+    skills: GL.spark, plugins: GL.plug,
+    models: '<path d="M3 5h10M3 8h10M3 11h10"/><circle cx="6" cy="5" r="1.2"/><circle cx="10" cy="8" r="1.2"/><circle cx="7" cy="11" r="1.2"/>',
+    source: '<path d="M4 3v3.5C4 8 8 8 8 10v3M12 3v3.5C12 8 8 8 8 10"/>',
+    shortcuts: '<rect x="2.2" y="4" width="11.6" height="8" rx="1.6"/><path d="M4.6 6.6h.1M7 6.6h.1M9.4 6.6h.1M11.6 6.6h.1M5.4 9.4h5.2"/>',
+    archive: '<rect x="2.6" y="3.4" width="10.8" height="3" rx=".8"/><path d="M3.6 6.4v6h8.8v-6M6.6 9h2.8"/>',
+    about: '<circle cx="8" cy="8" r="5.6"/><path d="M8 7.2v3.6M8 5.2v.1"/>',
+    gear: '<circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.8M8 12.4v1.8M1.8 8h1.8M12.4 8h1.8M3.6 3.6l1.3 1.3M11.1 11.1l1.3 1.3M3.6 12.4l1.3-1.3M11.1 4.9l1.3-1.3"/>',
+  };
+  const ic = (k) => '<svg class="ic16" viewBox="0 0 16 16" aria-hidden="true">' + IC[k] + '</svg>';
+  const OKC = '<svg class="okc" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="7"/><path d="m4 7.2 2 2 4-4.4"/></svg>';
+  const WRN = '<svg class="wrn" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.2 13.4 12.6H.6Z"/><path d="M7 5.4v3.2M7 10.6v.1"/></svg>';
+  const SPN = '<span class="spn" aria-hidden="true">' + [0, 1, 2, 3, 4, 5, 6, 7].map((k) => '<i style="--k:' + k + '"></i>').join('') + '</span>';
+  const RING = '<svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="t" cx="10" cy="10" r="7.5" pathLength="100"/><circle class="a" cx="10" cy="10" r="7.5" pathLength="100"/></svg>';
+  const XB = (act) => '<span class="xb" data-act="' + act + '" role="button" aria-label="Cancel"><svg viewBox="0 0 8 8"><path d="m1 1 6 6M7 1 1 7"/></svg></span>';
+  const TRASH = (act) => '<span class="tb" data-act="' + act + '" role="button" aria-label="Remove"><svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5M7 7v4M9 7v4"/></svg></span>';
+  const BAR = '<span class="bar"><i></i></span>';
+  const CAP3 = '<div class="cap3"><span><svg viewBox="0 0 10 10"><path d="M1 5h8"/></svg></span><span><svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" rx="1.5"/></svg></span><span><svg viewBox="0 0 10 10"><path d="m1.5 1.5 7 7M8.5 1.5l-7 7"/></svg></span></div>';
+
+  // ------------------------------------------------------------------ the catalogue (pinned 2026-10-04; ONDEMAND-PLAN.md 2)
+  // mb = download (SF); disk = on disk once installed (UN: the plan's unpacked estimates, 2.5x for Python package sets).
+  // sk = the skills inside a set with their default switch (Q-SKILLS-1 A, ED) and an example listing cost in tokens.
+  const tok = (n) => { let h = 7; for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 997; return 46 + (h % 52); };
+  const SK = (spec) => spec.split(' ').map((x) => { const off = x.startsWith('-'); const n = off ? x.slice(1) : x; return { n, on: !off, t: tok(n) }; });
+  const PL = (spec) => spec.split(' ').map((x) => { const [n, c] = x.split(':'); return { n, c: +c, on: false, t: +c * 64, pl: 1 }; });
+  const ITEMS = [
+    { id: 'akw', sec: 'plug', name: 'Knowledge work plugins', sum: 'Sales, legal, finance, data, support and more', gl: 'brief', mb: 8.1, ver: '18 plugins \u00b7 252 skills', host: 'github.com', src: 'anthropics/knowledge-work-plugins', lic: 'Apache-2.0 \u00b7 MIT (partners)', srcFull: 'github.com/anthropics/knowledge-work-plugins at 8444efc',
+      sk: PL('sales:36 small-business:44 partner-built:71 data:10 engineering:10 legal:9 human-resources:9 operations:9 finance:8 marketing:8 product-management:8 design:7 bio-research:6 customer-support:5 enterprise-search:5 productivity:4 cowork-plugin-management:2 pdf-viewer:1') },
+    { id: 'afs', sec: 'plug', name: 'Financial services plugins', sum: 'Agent, vertical and partner plugins for finance work', gl: 'chart', mb: 2.0, ver: '3 groups \u00b7 112 skills', host: 'github.com', src: 'anthropics/financial-services', lic: 'Apache-2.0', srcFull: 'github.com/anthropics/financial-services at 574ed36',
+      sk: PL('agent-plugins:51 vertical-plugins:49 partner-built:11 msft-365-verify:1') },
+    { id: 'oplg', sec: 'plug', name: 'OpenAI plugins', sum: 'Web apps, data visualisation, games, Drive, Zotero', gl: 'plug', mb: 3.9, ver: '9 plugins \u00b7 65 skills', host: 'github.com', src: 'openai/plugins', lic: 'MIT', srcFull: 'github.com/openai/plugins at 5fd93af',
+      sk: PL('build-web-apps:6 build-web-data-visualization:18 game-studio:9 plugin-eval:5 test-android-apps:2 google-drive:5 ngs-analysis:18 zotero:1 sentry:1') },
+    { id: 'oprp', sec: 'plug', name: 'OpenAI plugins, proprietary-labelled', sum: 'Security, data analytics, research, design, investing', gl: 'plug', mb: 18.2, ver: '8 plugins \u00b7 124 skills', host: 'github.com', src: 'openai/plugins', lic: 'Proprietary (plugin.json); one says internal use only', srcFull: 'github.com/openai/plugins at 5fd93af, licence files kept',
+      sk: PL('codex-security:15 data-analytics:18 life-science-research:50 product-design:10 public-equity-investing:23 openai-developers:5 creative-production:2 openai-ads-conversions:1') },
+    { id: 'adoc', sec: 'skill', name: 'Anthropic document skills', sum: 'Word, Excel, PowerPoint and PDF, and co-authoring', gl: 'doc', mb: 3.5, ver: '5 skills', host: 'github.com', src: 'anthropics/skills', lic: 'Proprietary (Anthropic\u2019s terms); doc-coauthoring: none stated', srcFull: 'github.com/anthropics/skills at 8a1541c, licence files kept',
+      needs: 'Python and its Office and PDF packages, Node.js document packages, LibreOffice, Poppler, pandoc, qpdf. On Windows their LibreOffice calls fail (AF_UNIX).',
+      sk: SK('docx xlsx pptx pdf doc-coauthoring') },
+    { id: 'odoc', sec: 'skill', name: 'OpenAI document skills', sum: 'Word, Excel, PowerPoint and PDF files', gl: 'doc', mb: 0.24, ver: '4 skills', host: 'github.com', src: 'openai/skills', lic: 'Apache-2.0', srcFull: 'github.com/openai/skills, pinned commits', needs: 'Python, its Office and PDF packages, LibreOffice, Poppler',
+      sk: SK('doc spreadsheet slides pdf') },
+    { id: 'aex', sec: 'skill', name: 'Anthropic example skills', sum: 'Design, art, web testing, MCP servers, skill building', gl: 'spark', mb: 8.1, ver: '13 skills', host: 'github.com', src: 'anthropics/skills', lic: 'Apache-2.0', srcFull: 'github.com/anthropics/skills at 8a1541c', needs: 'Python, Node.js; Playwright\u2019s Chromium for webapp-testing',
+      sk: SK('-academy-guide -algorithmic-art canvas-design -claude-api -discernment-nudge frontend-design -internal-comms -mcp-builder skill-creator -slack-gif-creator theme-factory web-artifacts-builder webapp-testing') },
+    { id: 'ocur', sec: 'skill', name: 'OpenAI curated skills', sum: 'GitHub, security reviews, notebooks, deploys', gl: 'stack', mb: 3.3, ver: '30 skills', host: 'github.com', src: 'openai/skills', lic: 'Apache-2.0 \u00b7 MIT', srcFull: 'github.com/openai/skills at 49f948f', needs: 'Python, GitHub CLI, uv; keys and logins for the deploy skills',
+      sk: SK('gh-address-comments gh-fix-ci -yeet jupyter-notebook security-best-practices security-threat-model security-ownership-map aspnet-core cli-creator define-goal -screenshot'), more: 19 },
+    { id: 'ocx', sec: 'skill', name: 'Codex\u2019s built-in skills', sum: 'For providers other than Codex: images, OpenAI docs, review', gl: 'code', mb: 0.28, ver: '4 skills', host: 'github.com', src: 'openai/codex', lic: 'Apache-2.0', srcFull: 'github.com/openai/codex at 2739e82', needs: 'Python, Node.js; an OpenAI key for imagegen',
+      sk: SK('-imagegen openai-docs review-agent skill-creator') },
+    { id: 'als', sec: 'skill', name: 'Anthropic life sciences skills', sum: 'Clinical trials, single-cell RNA, lab data', gl: 'flask', mb: 1.1, ver: '6 skills', host: 'github.com', src: 'anthropics/life-sciences', lic: 'Apache-2.0', srcFull: 'github.com/anthropics/life-sciences at e96556b', needs: 'Python; science packages named in the skills',
+      sk: SK('-clinical-trial-protocol-skill -instrument-data-to-allotrope -nextflow-development -scientific-problem-selection -scvi-tools -single-cell-rna-qc') },
+    { id: 'py', sec: 'tool', name: 'Python', sum: 'Runs the Python parts of skills, with pip', gl: 'code', mb: 14.4, disk: 33, ver: '3.14.8', host: 'python.org', src: 'python.org', lic: 'PSF-2.0 \u00b7 MIT', srcFull: 'python.org, Windows embeddable x64; pip 26.2.1 from pypi.org' },
+    { id: 'pyd', sec: 'tool', name: 'Python: Office and PDF', sum: 'python-docx, openpyxl, python-pptx, pypdf, reportlab\u2026', gl: 'pkg', mb: 22.5, disk: 56.3, ver: '2 package sets', host: 'pypi.org', src: 'pypi.org', lic: 'MIT \u00b7 BSD \u00b7 Apache-2.0', srcFull: 'pypi.org, pinned wheels' },
+    { id: 'pyi', sec: 'tool', name: 'Python: images and data', sum: 'pillow, numpy, pandas, matplotlib', gl: 'img', mb: 42.9, disk: 107.3, ver: 'package set', host: 'pypi.org', src: 'pypi.org', lic: 'MIT-CMU \u00b7 BSD', srcFull: 'pypi.org, pinned wheels' },
+    { id: 'pyb', sec: 'tool', name: 'Python: browser testing', sum: 'playwright, greenlet, pyee', gl: 'pkg', mb: 38.9, disk: 97.3, ver: 'package set', host: 'pypi.org', src: 'pypi.org', lic: 'Apache-2.0 \u00b7 MIT', srcFull: 'pypi.org, pinned wheels' },
+    { id: 'pyg', sec: 'tool', name: 'Python: GIF making', sum: 'imageio, imageio-ffmpeg', gl: 'img', mb: 31.6, disk: 79, ver: 'package set', host: 'pypi.org', src: 'pypi.org', lic: 'BSD-2 \u00b7 FFmpeg GPL', srcFull: 'pypi.org, pinned wheels' },
+    { id: 'node', sec: 'tool', name: 'Node.js', sum: 'Runs the JavaScript parts of skills', gl: 'node', mb: 38, disk: 95, ver: '24.21.0', host: 'nodejs.org', src: 'nodejs.org', lic: 'MIT', srcFull: 'nodejs.org, Windows x64 zip' },
+    { id: 'lo', sec: 'tool', name: 'LibreOffice', sum: 'Converts and renders Office files', gl: 'office', mb: 356, disk: 1050, ver: '26.2.6', host: 'libreoffice.org', src: 'libreoffice.org', lic: 'MPL-2.0', fw: 'sum', srcFull: 'libreoffice.org, Windows x64 MSI' },
+    { id: 'pop', sec: 'tool', name: 'Poppler', sum: 'Turns PDF pages into images', gl: 'pdf', mb: 43.7, disk: 110, ver: '26.09.0', host: 'github.com', src: 'conda-forge build', lic: 'GPL-2.0', srcFull: 'conda-forge build, via poppler-windows' },
+    { id: 'qpdf', sec: 'tool', name: 'qpdf', sum: 'Splits, merges and repairs PDFs', gl: 'pdf', mb: 28.2, disk: 70, ver: '12.4.2', host: 'github.com', src: 'qpdf/qpdf', lic: 'Apache-2.0', srcFull: 'github.com/qpdf/qpdf releases' },
+    { id: 'pandoc', sec: 'tool', name: 'pandoc', sum: 'Converts between document formats', gl: 'doc', mb: 42.1, disk: 200, ver: '3.12', host: 'github.com', src: 'jgm/pandoc', lic: 'GPL-2.0', srcFull: 'github.com/jgm/pandoc releases' },
+    { id: 'git', sec: 'tool', name: 'Git for Windows', sum: 'Git Bash, for skills\u2019 .sh scripts', gl: 'git', mb: 60, disk: 350, ver: '2.56.0', host: 'github.com', src: 'git-for-windows', lic: 'GPL-2.0', srcFull: 'github.com/git-for-windows, portable' },
+    { id: 'gh', sec: 'tool', name: 'GitHub CLI', sum: 'For the GitHub skills; you sign in yourself', gl: 'term', mb: 15.5, disk: 45, ver: '2.102.0', host: 'github.com', src: 'cli/cli', lic: 'MIT', srcFull: 'github.com/cli/cli releases' },
+    { id: 'uv', sec: 'tool', name: 'uv', sum: 'Runs Python projects and notebooks', gl: 'bolt', mb: 18, disk: 45, ver: '0.12.23', host: 'github.com', src: 'astral-sh/uv', lic: 'MIT \u00b7 Apache-2.0', srcFull: 'github.com/astral-sh/uv releases' },
+    { id: 'chr', sec: 'tool', name: 'Playwright Chromium', sum: 'A headless browser for web-app testing', gl: 'globe', mb: 325.3, disk: 600, ver: '153', host: 'cdn.playwright.dev', src: 'cdn.playwright.dev', lic: 'BSD-3 and notices', srcFull: 'cdn.playwright.dev, the build playwright 1.63.0 pins' },
+  ];
+  ITEMS.forEach((i) => { if (i.disk == null) i.disk = i.mb; });
+  const IT = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
+  const SECS = { plug: 'Plugins', skill: 'Skills', tool: 'Tools' };
+  const SECL = { plug: 'plugins', skill: 'skills', tool: 'tools' };
+  const bySec = (s) => ITEMS.filter((i) => i.sec === s);
+  const USED = { py: 'Every skill set and plugin with scripts', pyd: 'OpenAI document skills', pyi: 'Document and data skills', pyb: 'webapp-testing', pyg: 'slack-gif-creator', node: 'Anthropic example skills, OpenAI plugins for the web',
+    lo: 'OpenAI document skills', pop: 'OpenAI document skills', qpdf: 'PDF skills', pandoc: 'Document skills', git: 'Skills with .sh scripts', gh: 'gh-address-comments, gh-fix-ci, yeet', uv: 'jupyter-notebook', chr: 'webapp-testing' };
+
+  // ------------------------------------------------------------------ the owner's picks (OD-0099, 2026-10-04): separate Plugins,
+  // Skills and Tools pages in layout D (drawn as "Sections C"), each with its own Download all and the confirmation of
+  // "Download all A"; no Download everything (no page holds everything); invoking a skill as "Invoke A"
+  const cur = { sv: 'C', da: 'A', iv: 'A' };
+  const st = {};
+  ITEMS.forEach((i) => { st[i.id] = { s: 'av', p: 0 }; });
+  const en = {};
+  ITEMS.forEach((i) => (i.sk || []).forEach((s) => { en[i.id + ':' + s.n] = s.on; }));
+  const view = { sec: 'skill', sel: 'odoc', last: { plug: 'akw', skill: 'odoc', tool: 'lo' } };
+  const bulk = { ph: 'none', scope: 'tool', items: [], skip: [], chk: { plug: true, skill: true, tool: true }, prevSel: null };
+  const chat = { s: 'idle' };
+  let scenario = 'browse', scope = 'tool';
+
+  // ------------------------------------------------------------------ numbers
+  const nf1 = (x) => x.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const fmtMb = (mb) => (mb >= 1000 ? (mb / 1000).toFixed(2) + ' GB' : mb < 1 ? mb.toFixed(2) + ' MB' : mb < 10 ? mb.toFixed(1) + ' MB' : Math.round(mb) + ' MB');
+  const fmtExact = (mb) => (mb >= 1000 ? (mb / 1000).toFixed(2) + ' GB (' + nf1(mb) + ' MB)' : mb < 1 ? mb.toFixed(2) + ' MB' : nf1(mb) + ' MB');
+  const fmtDisk = (mb) => 'about ' + (mb >= 1000 ? (mb / 1000).toFixed(1) + ' GB' : Math.round(mb) + ' MB');
+  const fmtA = (mb, tot) => (tot < 1 ? mb.toFixed(2) : tot < 10 ? mb.toFixed(1) : String(Math.round(mb)));
+  const tokS = (n) => n.toLocaleString('en-US');
+  const inl = (id) => ['in', 'rm', 'del'].includes(st[id].s);
+  const busy = (id) => ['q', 'dl', 'ck'].includes(st[id].s);
+  const list = (a) => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
+  const skRows = (it) => (it.sk || []);
+  function listedOf(it) {
+    if (!it.sk || !inl(it.id)) return { n: 0, t: 0 };
+    let n = 0, t = 0;
+    it.sk.forEach((s) => { if (en[it.id + ':' + s.n]) { n += s.pl ? s.c : 1; t += s.t; } });
+    return { n, t };
+  }
+  function listedAll() { let n = 0, t = 0; ITEMS.forEach((i) => { const l = listedOf(i); n += l.n; t += l.t; }); return { n, t }; }
+  function defOf(it) { let n = 0, t = 0; (it.sk || []).forEach((s) => { if (s.on) { n += 1; t += s.t; } }); return { n, t }; }
+
+  // ------------------------------------------------------------------ Download all: what is in scope
+  function scopeItems() {
+    if (bulk.scope === 'pick') return ITEMS.filter((i) => bulk.chk[i.sec]);
+    if (bulk.scope === 'all') return ITEMS.slice();
+    return bySec(bulk.scope);
+  }
+  const want = () => bulk.items.filter((id) => !bulk.skip.includes(id));
+  function totals() {
+    const ids = bulk.ph === 'none' || bulk.ph === 'confirm' ? scopeItems().filter((i) => !inl(i.id)).map((i) => i.id) : want();
+    const mb = ids.reduce((s, id) => s + IT[id].mb, 0), disk = ids.reduce((s, id) => s + IT[id].disk, 0);
+    const hosts = Array.from(new Set(ids.map((id) => IT[id].host)));
+    return { ids, mb, disk, hosts };
+  }
+  function whatName() {
+    if (bulk.scope === 'pick') { const s = Object.keys(SECS).filter((k) => bulk.chk[k]); return s.length === 3 ? 'everything' : s.length ? list(s.map((k) => SECL[k])) : 'nothing'; }
+    return bulk.scope === 'all' ? 'everything' : 'all ' + SECL[bulk.scope];
+  }
+  const sectionRemain = (sec) => bySec(sec).filter((i) => !inl(i.id));
+
+  // ------------------------------------------------------------------ texts (words S1, Plain)
+  function TX(k) {
+    const [a, b, c] = k.split(':');
+    if (a === '@ptitle') return cur.sv === 'C' ? SECS[view.sec] : 'Skills';
+    if (a === 'b') {
+      const T = totals(), what = whatName();
+      const fails = want().filter((id) => st[id].s === 'fail');
+      const doneN = want().filter((id) => inl(id)).length;
+      if (b === 'title') return { confirm: what === 'everything' ? 'Download everything?' : bulk.scope === 'pick' ? 'Download all?' : 'Download ' + what + '?', dl: 'Downloading ' + what, paused: 'Paused', done: 'Downloaded', partial: doneN + ' of ' + want().length + ' downloaded', none: '' }[bulk.ph];
+      if (b === 'sub') return { confirm: T.ids.length + (T.ids.length === 1 ? ' item' : ' items') + ' from ' + list(T.hosts.length > 3 ? T.hosts.slice(0, 3).concat([(T.hosts.length - 3) + ' more']) : T.hosts) + '.', dl: 'One at a time. You can keep using Marrow.', paused: 'Nothing is downloading. Resume carries on where it stopped.', done: 'All ' + want().length + ' are on this PC: ' + fmtDisk(T.disk) + '.', partial: fails.length + (fails.length === 1 ? ' didn\u2019t download.' : ' didn\u2019t download.') + ' The rest are on this PC.', none: '' }[bulk.ph];
+      if (b === 'disc') return T.ids.length ? 'This can be a large download: ' + fmtExact(T.mb) + ', and it takes ' + fmtDisk(T.disk) + ' of disk space once installed.' : 'Everything you ticked is already on this PC.';
+      if (b === 'foot') return { confirm: 'Nothing downloads until you press Continue.', dl: 'Cancel stops the rest. What has already downloaded stays.', paused: 'Cancel stops the rest. What has already downloaded stays.', done: (bulk.items.some((id) => IT[id].sec !== 'tool') ? 'New skills start as listed in each detail; switch them there.' : 'Tools are used when a step needs them.'), partial: 'Retry downloads just the ones that didn\u2019t finish.', none: '' }[bulk.ph];
+      if (b === 'fail') return fails.map((id) => IT[id].name + ': ' + (IT[id].fw === 'sum' ? 'the file didn\u2019t match its checksum, so it wasn\u2019t used.' : 'couldn\u2019t reach ' + IT[id].host + '.')).join(' ');
+      if (b === 'retry') return 'Retry ' + fails.length;
+    }
+    if (a === 'cost') {
+      const it = IT[b];
+      if (!inl(b)) { const d = defOf(it); return it.sec === 'plug' ? 'Not listed: not downloaded' : 'Not listed: not downloaded'; }
+      const l = listedOf(it);
+      return (it.sec === 'plug' ? l.n + ' skills listed' : l.n + ' of ' + it.sk.length + (it.more ? '+' + it.more : '') + ' listed') + ' \u00b7 about ' + tokS(l.t) + ' tokens';
+    }
+    if (a === 'costn') {
+      const it = IT[b];
+      if (!inl(b)) { const d = defOf(it); return it.sec === 'plug' ? 'Once downloaded, its plugins start switched off, so nothing is listed until you switch one on.' : 'Once downloaded, ' + d.n + ' start switched on: about ' + tokS(d.t) + ' tokens in every session.'; }
+      return 'Every session lists each switched-on skill\u2019s name and description, so the model knows it exists. Its full instructions load only when it is invoked. Switches apply to new chats.';
+    }
+    return '';
+  }
+  function LV(k) {
+    const [a, b, c] = k.split(':');
+    if (IT[a]) { const it = IT[a]; return Math.round(st[a].p * 100) + '% \u00b7 ' + fmtA(st[a].p * it.mb, it.mb) + ' of ' + fmtMb(it.mb); }
+    if (a === 'pc') return Math.round(st[b].p * 100) + '%';
+    if (a === 'listed') {
+      if (cur.sv === 'C' && view.sec === 'tool') return 'Tools aren\u2019t listed to the model';
+      const L = listedAll(); return 'Listed in every session: ' + L.n + ' skills \u00b7 about ' + tokS(L.t) + ' tokens';
+    }
+    if (a === 'sdl') { const r = sectionRemain(b); return r.length ? 'Download all \u00b7 ' + fmtMb(r.reduce((s, i) => s + i.mb, 0)) : 'All here'; }
+    if (a === 'sdlb') { const r = sectionRemain(b); return r.length ? 'Download all ' + SECL[b] + ' \u00b7 ' + fmtMb(r.reduce((s, i) => s + i.mb, 0)) : 'All ' + SECL[b] + ' are here'; }
+    if (a === 'every') { const r = ITEMS.filter((i) => !inl(i.id)); return r.length ? 'Download everything \u00b7 ' + fmtMb(r.reduce((s, i) => s + i.mb, 0)) : 'Everything is here'; }
+    if (a === 'chk') { const r = sectionRemain(b); return bySec(b).length + ' \u00b7 ' + (r.length ? fmtMb(r.reduce((s, i) => s + i.mb, 0)) : 'all here'); }
+    if (a === 'b') {
+      const T = totals();
+      if (b === 'dl') return fmtExact(T.mb);
+      if (b === 'disk') return fmtDisk(T.disk);
+      if (b === 'hosts') return T.hosts.join(', ') || '\u2013';
+      if (b === 'inc') { const n = (bulk.ph === 'confirm' ? scopeItems().map((i) => i.id) : bulk.items).length, k = (bulk.ph === 'confirm' ? scopeItems().filter((i) => inl(i.id)) : bulk.skip).length; return 'Included \u00b7 ' + n + (k ? ' \u00b7 ' + k + ' already here, skipped' : ''); }
+      if (b === 'prog') {
+        const w = want(); let done = 0; w.forEach((id) => { const s = st[id].s; done += s === 'in' || s === 'ck' ? IT[id].mb : s === 'dl' || s === 'fail' ? st[id].p * IT[id].mb : 0; });
+        const pct = T.mb ? Math.floor((done / T.mb) * 100) : 0, i = w.filter((id) => ['in', 'ck'].includes(st[id].s)).length;
+        return (bulk.ph === 'paused' ? 'Paused \u00b7 ' : '') + pct + '% \u00b7 ' + (T.mb >= 10 ? Math.round(done) + ' MB' : done.toFixed(1) + ' MB') + ' of ' + fmtMb(T.mb) + ' \u00b7 ' + i + ' of ' + w.length + ' done';
+      }
+    }
+    if (a === 'tk') return '~' + c + ' tokens';
+    return '';
+  }
+
+  // text: crossfade, while the box eases its width (inline) or height (block) to the new text
+  function xt(el, text) {
+    text = text == null ? '' : String(text);
+    const blk = el.classList.contains('xtb');
+    if (!el._x) { el._x = 1; el.innerHTML = '<span class="on"></span><span></span>'; el.firstChild.textContent = text; el._on = el.firstChild; return; }
+    const on = el._on;
+    if (on.textContent === text) return;
+    const off = on === el.firstChild ? el.lastChild : el.firstChild;
+    const prop = blk ? 'height' : 'width';
+    const s0 = blk ? el.offsetHeight : el.offsetWidth;
+    off.textContent = text;
+    on.classList.remove('on'); off.classList.add('on'); el._on = off;
+    const s1 = blk ? off.offsetHeight : off.offsetWidth;
+    clearTimeout(el._t);
+    if (!reduce && s0 !== s1 && el.offsetParent) {
+      el.style[prop] = s0 + 'px'; void el.offsetWidth; el.style[prop] = s1 + 'px';
+    }
+    el._t = setTimeout(() => { if (el._on === off) on.textContent = ''; el.style.width = ''; el.style.height = ''; }, 380);
+  }
+  const X = (k, cls) => '<span class="xt' + (cls ? ' ' + cls : '') + '" data-t="' + k + '"></span>';
+  const XS = (txt, cls) => '<span class="xt' + (cls ? ' ' + cls : '') + '" data-s1="' + esc(txt) + '"></span>';
+  const L = (k, cls) => '<span class="lv' + (cls ? ' ' + cls : '') + '" data-lv="' + k + '"></span>';
+
+  // ------------------------------------------------------------------ the Settings window
+  const NAV = (sv) => ['general', 'hydra', 'appearance', 'custom', 'voice', 'providers', 'tools', 'mcp'].concat(sv === 'C' ? ['plugins', 'skills'] : ['skills']).concat(['models', 'source', 'shortcuts', 'archive', 'about']);
+  const NAVN = { general: 'General', hydra: 'Hydra', appearance: 'Appearance', custom: 'Customization', voice: 'Voice typing', providers: 'Providers', tools: 'Tools', mcp: 'MCP', plugins: 'Plugins', skills: 'Skills', models: 'Models', source: 'Source control', shortcuts: 'Shortcuts', archive: 'Archive', about: 'About' };
+  const NAVSEC = { plugins: 'plug', skills: 'skill', tools: 'tool' };
+  function side(sv) {
+    return '<div class="side"><div class="srch"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6"/><path d="m10.4 10.4 3.4 3.4"/></svg>Search</div><div class="nav">' +
+      NAV(sv).map((k) => {
+        const nsec = sv === 'C' ? NAVSEC[k] : k === 'skills' ? 'any' : null;
+        return '<span class="ni" ' + (nsec ? 'data-nsec="' + nsec + '"' + (sv === 'C' ? ' data-act="sec:' + nsec + '"' : '') : '') + '>' + ic(k) + '<span>' + esc(NAVN[k]) + '</span></span>';
+      }).join('') + '</div></div>';
+  }
+  function acs(it, opt) {
+    const id = it.id; opt = opt || {};
+    return '<span class="acs">' +
+      '<span data-s="av"><span class="gbtn pri big" data-act="dl:' + id + '">Download&nbsp;\u00b7 ' + fmtMb(it.mb) + '</span></span>' +
+      '<span data-s="q"><span class="sm">Waiting</span>' + XB('cancel:' + id) + '</span>' +
+      '<span data-s="dl">' + BAR + L(id, 'tnum') + XB('cancel:' + id) + '</span>' +
+      '<span data-s="ck">' + SPN + '<span class="sm">Checking\u2026</span></span>' +
+      '<span data-s="in">' + OKC + '<span class="sm">Installed</span>' + TRASH('rm:' + id) + '</span>' +
+      '<span data-s="fail">' + WRN + '<span class="wk">Didn\u2019t download</span><span class="gbtn acc" data-act="dl:' + id + '">Retry</span></span>' +
+      '<span data-s="rm"><span class="gbtn red" data-act="rmok:' + id + '">Remove</span>' + XB('rmx:' + id) + '</span>' +
+      '<span data-s="del">' + SPN + '<span class="sm">Removing\u2026</span></span></span>';
+  }
+  function cacs(it) {
+    return '<span class="acs"><span data-s="av"><span class="sm">' + fmtMb(it.mb) + '</span></span><span data-s="q"><span class="sm">Waiting</span></span><span data-s="dl">' + RING + L('pc:' + it.id, 'tnum') + '</span>' +
+      '<span data-s="ck">' + SPN + '</span><span data-s="in">' + OKC + '</span><span data-s="fail">' + WRN + '</span><span data-s="rm">' + OKC + '</span><span data-s="del">' + SPN + '</span></span>';
+  }
+  const li = (it) => '<div class="li" data-li="' + it.id + '" data-act="sel:' + it.id + '"><span data-it="' + it.id + '" class="lir">' + g(it.gl, it.sec !== 'tool' ? 'set' : '') + '<b>' + esc(it.name) + '</b>' + cacs(it) + '</span></div>';
+  function costBox(it) {
+    if (it.sec === 'tool') return '<div class="cost t"><div class="ch"><b>Not listed to the model</b></div><div class="cn">Tools add nothing to a session. They sit on every chat\u2019s PATH, and a command finds them when a step needs them.</div></div>';
+    const rows = it.sk.map((s) => '<div class="sr" data-sk="' + it.id + ':' + s.n + '"><span class="tg" data-act="en:' + it.id + ':' + s.n + '" role="switch"><i></i></span><code>' + (it.sec === 'plug' ? esc(s.n) : '/' + esc(s.n)) + '</code>' +
+      (s.pl ? '<span class="d">' + s.c + (s.c === 1 ? ' skill' : ' skills') + '</span>' : '<span class="d"></span>') + '<span class="tk">' + L('tk:' + it.id + ':' + s.t) + '</span></div>').join('') +
+      (it.more ? '<div class="sr more"><span class="d">and ' + it.more + ' more, each with its switch</span></div>' : '');
+    return '<div class="cost"><div class="ch"><b>In every session</b>' + X('cost:' + it.id) + '</div><div class="cl">' + rows + '</div><div class="cn">' + X('costn:' + it.id, 'xtb') + '</div></div>';
+  }
+  const whyFail = (id) => '<div class="fold" data-f="fail:' + id + '"><div><div class="why w">' + WRN + '<span class="ft">' + (IT[id].fw === 'sum' ? 'The file didn\u2019t match its checksum. Retry downloads it again.' : 'Couldn\u2019t reach ' + esc(IT[id].host) + '. Retry picks up where it stopped.') + '</span></div></div></div>';
+  const whyRm = (id) => '<div class="fold" data-f="rm:' + id + '"><div><div class="why r"><span class="ft">' + (IT[id].sec === 'tool' ? 'Skills that run it will ask for it again in a chat.' : 'Its skills stop being listed in new chats.') + '</span></div></div></div>';
+  function dpane(it) {
+    const k1 = it.sec === 'tool' ? 'Used by' : 'Needs', v1 = it.sec === 'tool' ? USED[it.id] : (it.needs || 'Varies per plugin; connectors are named in the text');
+    return '<div class="dp" data-dp="' + it.id + '"><div data-it="' + it.id + '" class="dpi">' +
+      '<div class="dh">' + g(it.gl, it.sec !== 'tool' ? 'set' : '') + '<span class="tx"><b>' + esc(it.name) + '</b><span>' + esc(it.sum) + '</span><span>' + esc(it.ver + ' \u00b7 ' + fmtMb(it.mb) + ' \u00b7 ' + it.src + ' \u00b7 ' + it.lic) + '</span></span></div>' +
+      '<div class="act">' + acs(it) + '</div>' + whyFail(it.id) + whyRm(it.id) + costBox(it) +
+      '<div class="det"><span class="k">' + k1 + '</span><span>' + esc(v1) + '</span><span class="k">Source</span><span>' + esc(it.srcFull) + '</span><span class="k">Licence</span><span>' + esc(it.lic) + '</span></div></div></div>';
+  }
+  // the Download all body: the same blocks in the dialog (A, B) and in the detail pane (C)
+  function incRow(it) {
+    return '<div class="fold" data-f="inc:' + it.id + '"><div><div class="ir2" data-it="' + it.id + '">' + g(it.gl, it.sec !== 'tool' ? 'set' : '') + '<span class="nm2">' + esc(it.name) + '</span>' +
+      '<span class="acs"><span data-s="av"><span class="sm">' + fmtMb(it.mb) + '</span></span><span data-s="q"><span class="sm">Waiting \u00b7 ' + fmtMb(it.mb) + '</span></span><span data-s="dl">' + RING + L('pc:' + it.id, 'tnum') + '</span>' +
+      '<span data-s="ck">' + SPN + '<span class="sm">Checking\u2026</span></span><span data-s="in"><span class="dn">' + OKC + '<span class="sm">Downloaded</span></span><span class="ah sm">Already here</span></span>' +
+      '<span data-s="fail">' + WRN + '<span class="wk">Didn\u2019t download</span></span><span data-s="rm">' + OKC + '</span><span data-s="del">' + SPN + '</span></span></div></div></div>';
+  }
+  function bulkBody(da) {
+    const chks = da === 'B' ? '<div class="chks">' + Object.keys(SECS).map((k) => '<span class="ck2" data-chk="' + k + '" data-act="chk:' + k + '"><i class="cb"><svg viewBox="0 0 12 12"><path d="m2.5 6.3 2.4 2.3 4.6-5"/></svg></i><b>' + SECS[k] + '</b>' + L('chk:' + k) + '</span>').join('') + '</div>' : '';
+    const btn = (ph, inner) => '<span data-bp="' + ph + '">' + inner + '</span>';
+    return '<div class="bk"><div class="bh"><span class="bic">' + sv16('dl') + '</span><span class="tx"><b>' + X('b:title') + '</b>' + X('b:sub', 'xtb') + '</span></div>' +
+      '<div class="fold" data-f="bph:confirm"><div><div class="bconf">' + chks + '<div class="disc">' + WRN + X('b:disc', 'xtb') + '</div>' +
+      '<div class="facts"><span class="k">Download</span>' + L('b:dl') + '<span class="k">On disk</span>' + L('b:disk') + '<span class="k">Free on C:</span><span>212 GB</span><span class="k">From</span>' + L('b:hosts') + '</div></div></div></div>' +
+      '<div class="fold" data-f="bph:dl,paused"><div><div class="ovr"><span class="bar big2"><i></i></span>' + L('b:prog', 'tnum') + '</div></div></div>' +
+      '<div class="fold" data-f="bph:partial"><div><div class="why w" style="margin:0">' + WRN + '<span class="ft">' + X('b:fail', 'xtb') + '</span></div></div></div>' +
+      '<div class="inc"><div class="ih">' + L('b:inc') + '</div><div class="il">' + ITEMS.map(incRow).join('') + '</div></div>' +
+      '<div class="bf"><span class="bnote">' + X('b:foot', 'xtb') + '</span><span class="bbtn">' +
+      btn('confirm', '<span class="gbtn" data-act="bx:cancel">Cancel</span><span class="gbtn pri" data-act="bx:go">Continue</span>') +
+      btn('dl', '<span class="gbtn" data-act="bx:stop">Cancel</span><span class="gbtn acc" data-act="bx:pause"><svg viewBox="0 0 12 12" class="pz"><path d="M4 2.5v7M8 2.5v7"/></svg>Pause</span>') +
+      btn('paused', '<span class="gbtn" data-act="bx:stop">Cancel</span><span class="gbtn pri" data-act="bx:resume"><svg viewBox="0 0 12 12" class="pz f"><path d="M3.5 2.2 9.8 6 3.5 9.8Z"/></svg>Resume</span>') +
+      btn('done', '<span class="gbtn pri" data-act="bx:close">Close</span>') +
+      btn('partial', '<span class="gbtn" data-act="bx:close">Close</span><span class="gbtn pri" data-act="bx:retry">' + X('b:retry') + '</span>') + '</span></div></div>';
+  }
+  function libSec(sec, sv, da) {
+    const foot = da !== 'B' && sv !== 'A' ? '<div class="lfoot"><span class="gbtn acc wide" data-act="all:' + sec + '">' + sv16('dl', 'ic14') + L('sdlb:' + sec) + '</span></div>' : '';
+    return '<div class="lp" data-lp="' + sec + '"><div class="lrows">' + bySec(sec).map(li).join('') + '</div>' + foot + '</div>';
+  }
+  function buildSet(sv, da) {
+    let tact = '';
+    if (da === 'A' && sv !== 'C') tact = '<span class="gbtn" data-act="all:all">' + sv16('dl', 'ic14') + L('every') + '</span>';
+    if (da === 'B') tact = '<span class="gbtn" data-act="pick">' + sv16('dl', 'ic14') + 'Download all\u2026</span>';
+    let lib;
+    if (sv === 'A') {
+      lib = '<div class="lib sc">' + Object.keys(SECS).map((sec) => '<div class="lg" data-lg="' + sec + '"><span>' + SECS[sec] + '</span><i>' + bySec(sec).length + '</i>' +
+        (da !== 'B' ? '<span class="lgdl" data-act="all:' + sec + '">' + L('sdl:' + sec) + '</span>' : '') + '</div>' + bySec(sec).map(li).join('')).join('') + '</div>';
+    } else {
+      lib = '<div class="lib' + (sv === 'B' ? ' sw' : '') + '">' + (sv === 'B' ? '<div class="ssw"><span class="th"></span>' + Object.keys(SECS).map((s) => '<span data-sw="' + s + '" data-act="sec:' + s + '">' + SECS[s] + '<i>' + bySec(s).length + '</i></span>').join('') + '</div>' : '') +
+        '<div class="lps">' + Object.keys(SECS).map((s) => libSec(s, sv, da)).join('') + '</div></div>';
+    }
+    const dlg = da !== 'C' ? '<div class="scrim"></div><div class="dlg glass">' + bulkBody(da) + '</div>' : '';
+    return '<div class="mw set v' + sv + ' d' + da + '" data-sec="skill" data-bph="none">' + side(sv) + '<div class="cnt">' +
+      '<div class="ptitle"><span class="pt">' + X('@ptitle') + '</span>' + L('listed', 'lst') + '<span class="tact">' + tact + '</span></div>' + lib +
+      '<div class="pane2"><div class="dps">' + ITEMS.map(dpane).join('') + (da === 'C' ? '<div class="dp" data-dp="bulk"><div class="dpi">' + bulkBody(da) + '</div></div>' : '') + '</div></div>' +
+      '</div>' + dlg + CAP3 + '</div>';
+  }
+
+  // ------------------------------------------------------------------ the chat window (Q3)
+  const PICK = [['doc', 'Word documents', 'OpenAI document skills'], ['spreadsheet', 'Excel workbooks', 'OpenAI document skills'], ['slides', 'PowerPoint decks', 'OpenAI document skills'], ['pdf', 'PDF files', 'OpenAI document skills'], ['frontend-design', 'Web page design', 'Anthropic example skills'], ['skill-creator', 'Build a new skill', 'Anthropic example skills']];
+  function picker(iv) {
+    return '<div class="skp glass"><div class="sph">' + (iv === 'A' ? '<code>/do</code><span class="sm">typing filters the list</span>' : '<svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6"/><path d="m10.4 10.4 3.4 3.4"/></svg><span class="sm">Search skills</span>') + '</div>' +
+      '<div class="spl"><div class="spg">Skills</div>' + PICK.map((p, i) => '<div class="spi' + (i === 0 ? ' hl' : '') + '" ' + (i === 0 ? 'data-act="c:choose"' : '') + '>' + sv16('spark', 'ic14') + '<code>/' + p[0] + '</code><span class="d">' + p[1] + '</span><span class="f">' + p[2] + '</span></div>').join('') +
+      '<div class="spg">Plugins</div><div class="spi none"><span class="d">No plugin is switched on. Their skills show here once one is.</span></div></div>' +
+      '<div class="spf">10 skills switched on \u00b7 switched-off ones aren\u2019t listed</div></div>';
+  }
+  const SKROW = (who, iv) => '<div class="skrow">' + sv16('spark', 'ic14') + '<span class="sl">Skill</span><code>doc</code><span class="sf">OpenAI document skills</span><span class="who">' + who + '</span>' +
+    (iv === 'C' ? '<span class="sd">Loaded its instructions (SKILL.md, about 1,900 tokens). Its scripts load only if it runs them.</span>' : '') + '</div>';
+  const CK = '<span class="tk ok"><svg viewBox="0 0 12 12"><path d="m2.5 6.3 2.4 2.3 4.6-5"/></svg></span>';
+  function buildChat(iv) {
+    const ans = (who) => SKROW(who, iv) + '<div class="am"><p>I\u2019ll build it with python-docx from your notes.</p></div><div class="trow">' + CK + '<span>Ran</span><code class="cm">python make_proposal.py notes.md proposal.docx</code></div>' +
+      '<div class="am" style="margin-top:6px"><p>Done. <b>proposal.docx</b> is in the project folder: one page, four sections.</p></div>';
+    return '<div class="mw main i' + iv + '" data-cs="idle"><div class="side"><div class="srch"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6"/><path d="m10.4 10.4 3.4 3.4"/></svg>Search</div>' +
+      '<div class="proj"><span class="ph">northwind</span><span class="th on run"><i></i>Proposal draft</span><span class="th"><i></i>Clean up the invoices sheet</span><span class="th"><i></i>Slides for Monday</span><span class="th"><i></i>Fix the footer dates</span></div>' +
+      '<div class="foot">' + ic('gear') + 'Settings</div></div>' +
+      '<div class="pane"><div class="ttl">Proposal draft</div><div class="msgs">' +
+      '<div class="fold" data-f="cs:sent,model"><div><div class="um">' + '<span class="fold inl" data-f="cs:sent"><span><span class="uchip">' + sv16('spark', 'ic12') + '/doc</span></span></span>' + 'Draft a one-page proposal as proposal.docx from notes.md.</div></div></div>' +
+      '<div class="fold d1" data-f="cs:sent"><div>' + ans('you invoked it') + '</div></div>' +
+      '<div class="fold d1" data-f="cs:model"><div>' + ans('Claude invoked it') + '</div></div>' +
+      '</div>' +
+      (iv === 'C' ? '<div class="fold lstrip" data-f="cs:sent,model"><div><div class="lsi">' + sv16('spark', 'ic12') + '<span>Loaded in this chat</span><span class="lch"><code>doc</code></span></div></div></div>' : '') +
+      '<div class="cmp glass"><div class="ta"><span class="tline"><span class="fold inl" data-f="cs:chosen"><span><span class="cchip">' + sv16('spark', 'ic12') + '/doc<span class="xb2" data-act="c:unchoose">\u00d7</span></span></span></span>' +
+      '<span class="ttx" data-ttx="1"></span><span class="caret"></span></span>' +
+      '<div class="chips"><span>Opus 5.5</span><span>High</span>' + (iv !== 'A' ? '<span class="skb" data-act="c:pick">' + sv16('spark', 'ic12') + 'Skills<i>10</i></span>' : '') + '</div>' +
+      '<span class="send" data-act="c:send"><svg viewBox="0 0 16 16"><path d="M8 13V3.5M4 7.5l4-4 4 4"/></svg></span></div></div>' +
+      picker(iv) + '</div>' + CAP3 + '</div>';
+  }
+
+  // ------------------------------------------------------------------ render
+  const slotsS = $('#slotsS'), slotsC = $('#slotsC');
+  { const d = document.createElement('div'); d.className = 'slot'; d.dataset.k = cur.sv + cur.da; d.innerHTML = buildSet(cur.sv, cur.da); slotsS.appendChild(d); }
+  { const d = document.createElement('div'); d.className = 'slot'; d.dataset.i = cur.iv; d.innerHTML = buildChat(cur.iv); slotsC.appendChild(d); }
+
+  function cond(f) {
+    const [k, a] = f.split(':');
+    if (k === 'fail') return st[a].s === 'fail';
+    if (k === 'rm') return st[a].s === 'rm';
+    if (k === 'bph') return a.split(',').includes(bulk.ph);
+    if (k === 'inc') return bulk.ph === 'confirm' ? scopeItems().some((i) => i.id === a) : bulk.items.includes(a);
+    if (k === 'cs') return a.split(',').includes(chat.s);
+    return false;
+  }
+  function renderLive() {
+    $$('[data-it]').forEach((el) => { el.style.setProperty('--p', st[el.dataset.it].p.toFixed(4)); });
+    const T = totals(); let done = 0; want().forEach((id) => { const s = st[id].s; done += s === 'in' || s === 'ck' ? IT[id].mb : s === 'dl' || s === 'fail' ? st[id].p * IT[id].mb : 0; });
+    const bp = T.mb ? done / T.mb : 0;
+    $$('.mw.set').forEach((w) => w.style.setProperty('--bp', bp.toFixed(4)));
+    $$('[data-lv]').forEach((el) => { const t = LV(el.dataset.lv); if (el.textContent !== t) el.textContent = t; });
+  }
+  function render() {
+    $$('[data-it]').forEach((el) => { const s = st[el.dataset.it].s; if (el.dataset.st !== s) el.dataset.st = s; });
+    $$('.fold[data-f]').forEach((el) => el.classList.toggle('open', cond(el.dataset.f)));
+    $$('.mw.set').forEach((w) => { w.dataset.sec = view.sec; w.dataset.bph = bulk.ph; });
+    $$('.mw.set [data-nsec]').forEach((n) => n.classList.toggle('on', n.dataset.nsec === 'any' || n.dataset.nsec === view.sec));
+    $$('.mw.set .li').forEach((el) => el.classList.toggle('on', el.dataset.li === view.sel));
+    $$('.mw.set .dp').forEach((el) => el.classList.toggle('on', el.dataset.dp === view.sel));
+    $$('.mw.set .ir2').forEach((el) => el.classList.toggle('skp2', bulk.ph === 'confirm' ? inl(el.dataset.it) : bulk.skip.includes(el.dataset.it)));
+    $$('.mw.set .ck2').forEach((el) => el.classList.toggle('on', !!bulk.chk[el.dataset.chk]));
+    $$('.mw.set .sr[data-sk]').forEach((el) => { const id = el.dataset.sk.split(':')[0]; el.classList.toggle('off', !en[el.dataset.sk]); el.classList.toggle('na', !inl(id)); });
+    $$('.mw.main').forEach((w) => { if (w.dataset.cs !== chat.s) w.dataset.cs = chat.s; });
+    $$('[data-t]').forEach((el) => xt(el, TX(el.dataset.t)));
+    $$('[data-s1]').forEach((el) => xt(el, el.dataset.s1));
+    renderLive();
+  }
+
+  // ------------------------------------------------------------------ the model's actions
+  let runQ = [], active = null, epoch = 0;
+  const timers = [];
+  const later = (ms, f) => { const t = setTimeout(f, ms); timers.push(t); return t; };
+  // progress ticks on timers, not animation frames, so a run keeps going in a background tab (the rings and bars ease
+  // between ticks with their own CSS transition)
+  const tick = (f) => setTimeout(() => f(performance.now()), 33);
+  const durFor = (it) => 260 + 5200 * (it.mb / 1077);
+  const failAt = {};
+  function enqueue(id) { if (busy(id) || inl(id)) return; st[id].s = 'q'; runQ.push(id); }
+  function pump() {
+    if (active || bulk.ph === 'paused') return;
+    if (!runQ.length) { if (bulk.ph === 'dl') { bulk.ph = want().some((id) => st[id].s === 'fail') ? 'partial' : 'done'; render(); phase(); } return; }
+    const id = runQ.shift();
+    if (st[id].s !== 'q') { pump(); return; }
+    active = id; st[id].s = 'dl'; render();
+    run(id);
+  }
+  function run(id) {
+    const it = IT[id], dur = durFor(it), p0 = st[id].p, t0 = performance.now(), ep = epoch;
+    const step = (now) => {
+      if (ep !== epoch || active !== id || st[id].s !== 'dl' || bulk.ph === 'paused') return;
+      const p = Math.min(1, p0 + (now - t0) / dur);
+      if (failAt[id] && p >= failAt[id]) { st[id].p = failAt[id]; delete failAt[id]; st[id].s = 'fail'; active = null; render(); pump(); return; }
+      st[id].p = p; renderLive();
+      if (p >= 1) { st[id].s = 'ck'; render(); setTimeout(() => { if (ep !== epoch || st[id].s !== 'ck') return; st[id].s = 'in'; st[id].p = 0; active = null; render(); pump(); }, 280); return; }
+      tick(step);
+    };
+    tick(step);
+  }
+  function cancel(id) { if (active === id) active = null; runQ = runQ.filter((q) => q !== id); st[id].s = 'av'; st[id].p = 0; render(); pump(); }
+  function removeItem(id) { st[id].s = 'del'; render(); const ep = epoch; setTimeout(() => { if (ep !== epoch) return; if (st[id].s === 'del') { st[id].s = 'av'; st[id].p = 0; } render(); }, 750); }
+  function select(id) { view.sel = id; if (IT[id]) { view.sec = IT[id].sec; view.last[view.sec] = id; } render(); scrollLib(); }
+  function scrollLib() {
+    // the chosen item's section heading goes to the top of the list, so the heading and its Download all stay in view
+    $$('.mw.vA .lib').forEach((lib) => { const h = $('.lg[data-lg="' + view.sec + '"]', lib); if (h) lib.scrollTo({ top: Math.max(0, h.offsetTop - 6), behavior: reduce ? 'auto' : 'smooth' }); });
+  }
+  function openBulk(sc) {
+    bulk.scope = sc; bulk.ph = 'confirm';
+    if (cur.da === 'C') { if (view.sel !== 'bulk') bulk.prevSel = view.sel; view.sel = 'bulk'; }
+    render(); phase();
+  }
+  function closeBulk() { bulk.ph = 'none'; if (view.sel === 'bulk') view.sel = bulk.prevSel || view.last[view.sec]; render(); phase(); }
+  function bx(a) {
+    if (a === 'cancel' || a === 'close') closeBulk();
+    else if (a === 'go') {
+      const sc = scopeItems(); bulk.items = sc.map((i) => i.id); bulk.skip = sc.filter((i) => inl(i.id)).map((i) => i.id);
+      if (!want().length) { closeBulk(); return; }
+      bulk.ph = 'dl'; want().forEach(enqueue); render(); phase(); pump();
+    } else if (a === 'pause') { bulk.ph = 'paused'; render(); phase(); }
+    else if (a === 'resume') { bulk.ph = 'dl'; render(); phase(); if (active) run(active); else pump(); }
+    else if (a === 'stop') { epoch++; if (active) { st[active].s = 'av'; st[active].p = 0; active = null; } runQ.forEach((id) => { st[id].s = 'av'; st[id].p = 0; }); runQ = []; closeBulk(); }
+    else if (a === 'retry') { bulk.ph = 'dl'; want().filter((id) => st[id].s === 'fail').forEach((id) => { st[id].s = 'q'; runQ.push(id); }); render(); phase(); pump(); }
+  }
+  function act(a) {
+    const p = a.split(':'), k = p[0], id = p[1];
+    if (k === 'dl') { if (st[id].s === 'fail') { st[id].s = 'q'; runQ.push(id); } else enqueue(id); render(); pump(); }
+    else if (k === 'cancel') cancel(id);
+    else if (k === 'rm') { ITEMS.forEach((i) => { if (st[i.id].s === 'rm') st[i.id].s = 'in'; }); st[id].s = 'rm'; render(); }
+    else if (k === 'rmx') { st[id].s = 'in'; render(); }
+    else if (k === 'rmok') removeItem(id);
+    else if (k === 'sel') select(id);
+    else if (k === 'sec') { view.sec = id; if (view.sel !== 'bulk') view.sel = view.last[id]; render(); }
+    else if (k === 'en') { const key = id + ':' + p[2]; if (inl(id)) { en[key] = !en[key]; render(); } }
+    else if (k === 'all') openBulk(id);
+    else if (k === 'pick') openBulk('pick');
+    else if (k === 'chk') { if (bulk.ph === 'confirm') { bulk.chk[id] = !bulk.chk[id]; render(); } }
+    else if (k === 'bx') bx(id);
+    else if (k === 'c') chatAct(id);
+  }
+
+  // ------------------------------------------------------------------ scenarios (the State and scope controls)
+  const BASE = ['py', 'pyd', 'odoc', 'aex'];
+  const FAILS = { tool: ['lo', 'git'], skill: ['ocur'], plug: ['afs'], all: ['lo', 'git'], pick: ['lo', 'git'] };
+  const PHASE = { browse: 'Browsing', confirm: 'Confirm', dl: 'Downloading', paused: 'Paused', done: 'Done', partial: 'Partly failed' };
+  function resetModel() {
+    epoch++; runQ = []; active = null; Object.keys(failAt).forEach((k) => delete failAt[k]);
+    ITEMS.forEach((i) => { st[i.id] = { s: 'av', p: 0 }; });
+    BASE.forEach((id) => { st[id].s = 'in'; });
+    ITEMS.forEach((i) => (i.sk || []).forEach((s) => { en[i.id + ':' + s.n] = s.on; }));
+  }
+  function scen(name) {
+    stopRun(); resetModel();
+    scenario = name;
+    const sc = scope;
+    bulk.chk = { plug: scope === 'plug' || scope === 'all', skill: scope === 'skill' || scope === 'all', tool: scope === 'tool' || scope === 'all' };
+    bulk.scope = sc; bulk.ph = name === 'browse' ? 'none' : name;
+    const secOf = scope === 'all' ? 'tool' : scope;
+    view.sec = name === 'browse' ? 'skill' : secOf;
+    view.sel = name === 'browse' ? 'odoc' : view.last[view.sec];
+    if (name !== 'browse' && name !== 'confirm') {
+      const items = scopeItems(); bulk.items = items.map((i) => i.id); bulk.skip = items.filter((i) => inl(i.id)).map((i) => i.id);
+      const w = want(), fails = FAILS[sc];
+      if (name === 'done') w.forEach((id) => { st[id].s = 'in'; });
+      if (name === 'partial') w.forEach((id) => { if (fails.includes(id)) { st[id].s = 'fail'; st[id].p = IT[id].fw === 'sum' ? 0.64 : 0.3; } else st[id].s = 'in'; });
+      if (name === 'dl' || name === 'paused') {
+        const cut = Math.max(0, Math.floor(w.length * 0.4)), at = w.indexOf('lo') >= 0 ? w.indexOf('lo') : cut;
+        w.forEach((id, i) => { if (i < at) st[id].s = 'in'; else if (i === at) { st[id].s = 'dl'; st[id].p = 0.42; active = id; } else { st[id].s = 'q'; runQ.push(id); } });
+      }
+    } else { bulk.items = []; bulk.skip = []; }
+    if (cur.da === 'C' && bulk.ph !== 'none') { bulk.prevSel = view.sel; view.sel = 'bulk'; }
+    $('#phS').textContent = PHASE[name];
+    if (segS) segS.set(name);
+    render(); scrollLib();
+    if (name === 'dl' && active) run(active);
+  }
+  function phase() {
+    const m = { none: 'browse', confirm: 'confirm', dl: 'dl', paused: 'paused', done: 'done', partial: 'partial' }[bulk.ph];
+    $('#phS').textContent = PHASE[m]; if (segS) segS.set(m);
+  }
+
+  // ------------------------------------------------------------------ the chat (Q3)
+  const TYPED = 'Draft a one-page proposal as proposal.docx from notes.md.';
+  const CPH = { idle: 'Composer', pick: 'Picker open', chosen: 'Skill picked', sent: 'Sent: loaded by you', model: 'The model invoked it' };
+  function setTyped(t) { $$('.mw.main [data-ttx]').forEach((el) => { el.textContent = t; el.classList.toggle('ph', !t); if (!t) el.textContent = 'Ask Claude for anything'; }); }
+  function chatTo(s) {
+    chat.s = s; $('#phC').textContent = CPH[s]; if (segC) segC.set(s);
+    $$('.mw.main').forEach((w) => w.classList.toggle('pk', s === 'pick'));
+    setTyped(s === 'chosen' ? TYPED : '');
+    if (s === 'pick') $$('.mw.main.iA [data-ttx]').forEach((el) => { el.textContent = '/do'; el.classList.remove('ph'); });
+    render();
+  }
+  function chatAct(a) {
+    if (a === 'pick') chatTo(chat.s === 'pick' ? 'idle' : 'pick');
+    else if (a === 'choose') chatTo('chosen');
+    else if (a === 'unchoose') chatTo('idle');
+    else if (a === 'send') { if (chat.s === 'chosen') chatTo('sent'); }
+  }
+
+  // ------------------------------------------------------------------ clicks inside the windows, with a press
+  function visible(el, root) {
+    for (let n = el; n && n !== root; n = n.parentElement) {
+      if (n.classList.contains('fold') && !n.classList.contains('open')) return false;
+      if ((n.classList.contains('dp') || n.classList.contains('lp') || n.classList.contains('slot') || n.dataset.s || n.dataset.bp) && getComputedStyle(n).opacity === '0') return false;
+    }
+    return true;
+  }
+  const PRESSABLE = '.gbtn,.tb,.xb,.li,.tg,.ck2,.lgdl,[data-sw],.ni,.spi,.skb,.send,.xb2';
+  function press(a, root) {
+    const el = $$('[data-act="' + a + '"]', root).find((e) => visible(e, root));
+    const b = el && (el.closest(PRESSABLE) || el);
+    if (b) { b.classList.add('press'); later(170, () => b.classList.remove('press')); }
+    later(reduce ? 0 : 190, () => act(a));
+  }
+  [slotsS, slotsC].forEach((sl) => sl.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    if (!el || !sl.contains(el)) return;
+    if (sl === slotsS) stopRun(); else stopRunC();
+    const b = el.closest(PRESSABLE) || el;
+    b.classList.add('press'); setTimeout(() => b.classList.remove('press'), 170);
+    act(el.dataset.act);
+  }));
+
+  // ------------------------------------------------------------------ Play
+  let runTok = 0, runTokC = 0;
+  function stopRun() { runTok++; timers.splice(0).forEach(clearTimeout); }
+  function stopRunC() { runTokC++; ctimers.splice(0).forEach(clearTimeout); }
+  const ctimers = [];
+  const wait = (ms, tok) => new Promise((res, rej) => setTimeout(() => (runTok === tok ? res() : rej()), ms));
+  const waitC = (ms, tok) => new Promise((res, rej) => { const t = setTimeout(() => (runTokC === tok ? res() : rej()), ms); ctimers.push(t); });
+  const curSlot = () => $('.slot[data-k="' + cur.sv + cur.da + '"]', slotsS);
+  async function until(f, tok, max) { for (let i = 0; i < (max || 300); i++) { if (f()) return; await wait(100, tok); } }
+  async function playS() {
+    scope = 'tool'; segScope.set('tool');
+    scen('browse');
+    const tok = runTok;
+    try {
+      await wait(1600, tok);
+      press('en:odoc:slides', curSlot()); await wait(1500, tok);
+      press('sec:tool', curSlot()); await wait(1300, tok);
+      press('all:tool', curSlot()); await wait(400, tok);
+      await wait(2200, tok);
+      failAt.lo = 0.64; failAt.git = 0.3;
+      press('bx:go', curSlot()); await wait(600, tok);
+      await until(() => st.lo.s === 'dl' && st.lo.p > 0.3, tok);
+      press('bx:pause', curSlot()); await wait(1600, tok);
+      press('bx:resume', curSlot()); await wait(300, tok);
+      await until(() => bulk.ph === 'partial' || bulk.ph === 'done', tok);
+      await wait(2000, tok);
+      press('bx:retry', curSlot()); await wait(300, tok);
+      await until(() => bulk.ph === 'done', tok);
+    } catch (e) { /* stopped */ }
+  }
+  async function playC() {
+    stopRunC(); chatTo('idle');
+    const tok = runTokC, root = () => $('.slot[data-i="' + cur.iv + '"]', slotsC);
+    const pressC = (a) => { const el = $$('[data-act="' + a + '"]', root()).find((e) => visible(e, root())); const b = el && (el.closest(PRESSABLE) || el); if (b) { b.classList.add('press'); setTimeout(() => b.classList.remove('press'), 170); } };
+    try {
+      await waitC(1000, tok);
+      if (cur.iv === 'A') { for (const t of ['/', '/d', '/do']) { setTyped(t); await waitC(260, tok); } chat.s = 'pick'; $$('.mw.main').forEach((w) => w.classList.add('pk')); $('#phC').textContent = CPH.pick; segC.set('pick'); render(); }
+      else { pressC('c:pick'); await waitC(200, tok); chatTo('pick'); }
+      await waitC(1700, tok);
+      pressC('c:choose'); await waitC(200, tok); chatTo('chosen');
+      setTyped('');
+      for (let i = 1; i <= TYPED.length; i += 3) { setTyped(TYPED.slice(0, i)); await waitC(40, tok); }
+      setTyped(TYPED); await waitC(900, tok);
+      pressC('c:send'); await waitC(200, tok); chatTo('sent');
+    } catch (e) { /* stopped */ }
+  }
+  $('#playS').addEventListener('click', playS);
+  $('#playC').addEventListener('click', playC);
+
+  // ------------------------------------------------------------------ controls
+  const segS = K.seg($('#segS'), Object.keys(PHASE).map((k) => ({ v: k, t: PHASE[k] })), 'browse', (v) => scen(v), { wrap: true });
+  const segScope = K.seg($('#segScope'), [{ v: 'plug', t: 'Plugins' }, { v: 'skill', t: 'Skills' }, { v: 'tool', t: 'Tools' }], scope, (v) => { scope = v; scen(scenario === 'browse' ? 'confirm' : scenario); }, { wrap: true });
+  const segC = K.seg($('#segC'), Object.keys(CPH).map((k) => ({ v: k, t: CPH[k] })), 'idle', (v) => { stopRunC(); chatTo(v); }, { wrap: true });
+  K.seg($('#segT'), [{ v: 'auto', t: 'Auto' }, { v: 'light', t: 'Light' }, { v: 'dark', t: 'Dark' }], K.themeMode(), (m) => K.theme(m));
+  const applyTheme = (dark) => $$('.stage').forEach((s) => s.classList.toggle('lt', !dark));
+  K.onTheme(applyTheme); applyTheme(K.isDark());
+
+  // ------------------------------------------------------------------ the providers table
+  const PROV = [
+    ['Claude Code', 'The chat\u2019s folder as a plugin, <code>--plugin-dir</code>; skills show as <code>marrow:doc</code>. Claude lists them and runs one through its Skill tool, which loads the full text then.', 'Listing tested on 2.1.287; a model turn using one not yet run', 'SF'],
+    ['Codex', '<code>skills/extraRoots/set</code> with the chat\u2019s folder, right after <code>initialize</code> (0.136.0 and later). Codex lists names and descriptions within 2% of the context and reads a chosen skill in full.', 'Listing tested on 0.159.3', 'SF'],
+    ['Copilot', '<code>skillDirectories</code> in <code>session.create</code> and <code>session.resume</code>.', 'Source and docs; not installed here', 'UN'],
+    ['OpenCode', '<code>skills.paths</code> in <code>OPENCODE_CONFIG_CONTENT</code>, with your own paths kept.', 'Source; not installed here', 'UN'],
+    ['Pi \u00b7 Command Code', '<code>--skill &lt;folder&gt;</code> for the session (Command Code: each turn).', 'Docs; not installed here', 'UN'],
+    ['Grok', '<code>--plugin-dir</code>, its own folder, after a live check.', 'Docs; flag position unchecked', 'UN'],
+    ['Antigravity \u00b7 Cursor', 'Q-SKILLS-8 A: one Marrow plugin in their plugin folders after a live test. Until then a skill reaches them only when you name it (its text goes in your message).', 'Docs only', 'UN'],
+    ['Devin', 'No folder option documented: a skill reaches it only when you name it.', 'Docs', 'ED'],
+    ['DeepSeek, Meta, Z.ai, OpenRouter, OpenAI-compatible', 'Marrow runs the loop: the enabled skills\u2019 names and descriptions go in the system prompt, held to the same budget, and a <code>use_skill</code> tool returns a skill\u2019s full text when the model calls it.', 'Marrow\u2019s own design', 'ED'],
+  ];
+  $('#prov').innerHTML = '<div class="cr h"><span>Provider</span><span>How it gets the chat\u2019s enabled skills, and loads one on use</span><span>Evidence</span></div>' +
+    PROV.map((r) => '<div class="cr p3"><span><b>' + esc(r[0]) + '</b></span><span><span class="lb">How</span>' + r[1] + '</span><span><span class="lb">Evidence</span><span class="tg' + (r[3] === 'UN' ? ' un' : '') + '">' + r[3] + '</span>' + esc(r[2]) + '</span></div>').join('');
+
+  // ------------------------------------------------------------------ fit the windows to the width (no sideways scroll at 390 px)
+  function fit() { $$('.stage').forEach((s) => s.style.setProperty('--sc', Math.min(1, s.clientWidth / 1008).toFixed(4))); }
+  if (window.ResizeObserver) new ResizeObserver(fit).observe($('#stageS'));
+  window.addEventListener('resize', fit);
+  fit();
+
+  scen('browse');
+  chatTo('idle');
+  window.__sd = { st, bulk, view, chat, scen, chatTo, act, en, cur };
+})();
+
+</script>
