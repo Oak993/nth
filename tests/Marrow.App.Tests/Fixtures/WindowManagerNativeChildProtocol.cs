@@ -27,7 +27,7 @@ internal static class WindowManagerNativeChildProtocol
         if (type != typeof(WindowManagerNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
             type != typeof(EffortSliderNativeFrameTests) && type != typeof(GlassWindowNativeTests) &&
             type != typeof(WindowManagerNativeCentringTests) && type != typeof(WindowManagerNativeChromeTests) &&
-            type != typeof(GalleryNativeTests) && type != typeof(TimelineRowsNativePopoverTests) && type != typeof(TimelineRowsNativeReportTests) && type != typeof(TimelineRowsNativeReviewKeysTests) && type != typeof(TimelineRowsNativeReviewBadgeKeysTests) && type != typeof(DiffPopoverNativeTests) && type != typeof(VoiceOrbNativeTests) && type != typeof(SwiftShadowNativeTests))
+            type != typeof(GalleryNativeTests) && type != typeof(TimelineRowsNativePopoverTests) && type != typeof(TimelineRowsNativeReportTests) && type != typeof(TimelineRowsNativeReviewKeysTests) && type != typeof(TimelineRowsNativeReviewBadgeKeysTests) && type != typeof(DiffPopoverNativeTests) && type != typeof(VoiceOrbNativeTests) && type != typeof(OpenPanelNativeTests) && type != typeof(ComposerAttachPanelNativeTests) && type != typeof(SwiftShadowNativeTests) && type != typeof(RootViewDropNativeTests) && type != typeof(LinkPopoverNativeTests) && type != typeof(AboutUpdateViewsNativeTests) && type != typeof(MCPCustomEditorNativeTests) && type != typeof(ComposerWorkingDotsNativeTests) && type != typeof(GlassMaterialNativeTests) && type != typeof(ComposerSuggestionsNativeTests) && type != typeof(ThreadTimelineLiveResizeNativeTests) && type != typeof(VoiceGlowNativeTests) && type != typeof(MainWindowCornerWedgeNativeTests))
             throw new InvalidOperationException("Native child selection is not an allowed test type.");
         var method = type.GetMethod(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
         if (method is null || method.ReturnType != typeof(void) || method.GetParameters().Length != 0 ||
@@ -46,6 +46,10 @@ internal static class WindowManagerNativeChildProtocol
         Directory.CreateDirectory(run);
         foreach (var name in new[] { "data", "temp", "dev", "home", "local", "roaming", "nuget", "results" })
             Directory.CreateDirectory(WindowManagerProcessProtocol.UnderRun(run, Path.Combine(run, name)));
+        // The shell's known folders of the child's profile (USERPROFILE is <run>\home, ChildEnvironment): a shell dialog opens at the profile's
+        // Desktop, and with none the shell puts a "Location is not available" box on top of it. Inside the run directory, never the real profile.
+        foreach (var name in new[] { "Desktop", "Documents", "Downloads", "Music", "Pictures", "Videos" })
+            Directory.CreateDirectory(WindowManagerProcessProtocol.UnderRun(run, Path.Combine(run, "home", name)));
         using var parent = Process.GetCurrentProcess();
         var request = new WindowManagerNativeRequest(nonce, fact, run, Environment.ProcessId,
             parent.StartTime.ToUniversalTime().Ticks, Path.GetFullPath(typeof(WindowManagerNativeTests).Assembly.Location),

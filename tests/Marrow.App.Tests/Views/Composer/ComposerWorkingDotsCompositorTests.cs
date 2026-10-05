@@ -19,12 +19,13 @@ namespace Marrow.App.Tests.Views.Composer;
 // field (2-chat-use.mov, CATALOG scene 29, still C 92.00); ComposerWorkingDotsFrameTests compares it dot by dot (the geometry, the three rows, the wave and its phase against
 // the Swift curve) and found the third row clipped at the field's bounds (fixed). PR-COMPOSER-102, PR-COMPOSER-103 and UI-COMPOSER-017 also carry "no main-thread drawing"
 // (windows_path: "it must not tick on the UI thread"), which is not a capture clause and which the headless renderer cannot show: it needs a native
-// (Win32 compositor) test that the draw runs off the UI thread. The three stay partly proven.
+// (Win32 compositor) test that the draw runs off the UI thread. CLOSED (rec-composer): ComposerWorkingDotsNativeTests plays the field on a real window and finds every
+// render-server sample off the UI thread, no UI-thread render update, layout pass, property change, frame request or new timer, and two fields in phase on the screen.
 // The literals these classes assert from the Swift: ComposerWorkingDotsTests, ...FieldTests,
 // ...PillTests (the mounted pill at one and five lines), ...ReviewTests and this class assert every literal (2 point dots, 8 point pitch, three rows, the
 // 0.08/0.75/0.08 keyframe at 0.35, 2.2 s, 0.045 and 0.09 delays, the shared clock origin, the static 0.28). "No timer, view update or main-thread drawing" is
 // asserted as observed (no frame subscription, no property change, no active timer while the field plays) and rests, for the thread the draw runs on,
-// on Avalonia's documented behaviour that a CompositionCustomVisualHandler (DotFieldCompositionHandler) runs on the render thread: ENGINEERING DECISION.
+// on Avalonia's behaviour that a CompositionCustomVisualHandler (DotFieldCompositionHandler) runs on the render thread, which ComposerWorkingDotsNativeTests observes on a real window.
 [Collection("Headless")]
 public sealed class ComposerWorkingDotsCompositorTests(HeadlessSession headless)
 {

@@ -2,8 +2,10 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Tour;
@@ -27,8 +29,10 @@ namespace Marrow.App.Tests.Window.Native;
 // The pixels are the composed screen (BitBlt with CAPTUREBLT), so what is measured is what the user sees. The window
 // geometry that is not under test (the stripes' place, the sampled blocks) is derived from the working area.
 //
-// NOT ASSERTED, recorded in ED-236: the corners of a window outside the 26 pt shape its content draws show the Acrylic
-// without the scrim (the window is rectangular, DWM rounds it by 8 px); and a user-opened Settings window shows the same
+// The corners of a window outside the 26 pt shape its content would draw (the window is rectangular, DWM rounds it by 8 px) are
+// asserted for the Settings window and the tour window (and, in MainWindowCornerWedgeNativeTests, the main window): each is the
+// colour of the body just inside the shape, over stripes and over bands of four colours, in both themes (OD-0075, the owner's
+// intent of 2026-10-05, ED-338). NOT ASSERTED, recorded in ED-236: a user-opened Settings window shows the same
 // 200 ms gap on its first show (OD-0041 names only the launch's boot sequence).
 [Collection("WindowManagerNative")]
 public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
@@ -36,6 +40,9 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
     private const double Sharp = 42.5;      // StripeContrast of the bare stripes
     private const double Blurred = 3;       // below this the stripes are gone
     private const double ScrimAlpha = 66 / 255.0; // the test's stand-in for the app-drawn scrim, black
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(nint window, nint after, int x, int y, int width, int height, uint flags);
 
     private static void Themeless(AvaloniaWindow window) =>
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
@@ -212,6 +219,51 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         return (timeline, bareMean, shownAt);
     }
 
+    // ED-284 (1): the boot outline is the VISIBLE main window. The real factory main HWND (cloaked by the sequence, shown, so DWM knows
+    // its bounds) against the stage's outline frame: the stage window's origin plus the outline at the screen's scale lies within a
+    // pixel of DWM's extended frame bounds on the left, the top, the right and the bottom (the HWND's own origin lies one invisible
+    // strip further left, which is the defect this proves gone).
+    [Fact]
+    [Trait("Decision", "ED-284")]
+    [Trait("Req", "PR-LAUNCH-028")] // AppDelegate.swift:22 (OD-0018); WindowManager.swift:43-54 with ED-284 (1)
+    public void The_boot_outline_lies_on_the_main_windows_visible_frame_as_DWM_reports_it() => native.Run(subject =>
+    {
+        var (work, scale) = native.OnUi(() => Work(subject.Main));
+        var origin = new PixelPoint(work.X + (work.Width - 1320) / 2, work.Y + (work.Height - 860) / 2);
+        var (manager, window) = native.OnUi(() =>
+        {
+            var manager = new WindowManager { MainContent = () => new Border() };
+            var window = manager.PrepareMain();
+            Themeless(window);
+            window.ShowInTaskbar = false;
+            window.Position = origin; // the factory main window's own size (1320 x 860), as production shows it
+            native.Register(window);
+            FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Settings));
+            return (manager, window);
+        });
+        var stage = native.OnUi(() =>
+        {
+            var launched = BootStageWindow.Start(window, reduceMotion: true, manager.ShowMain);
+            launched.Ready();
+            return launched;
+        });
+        try
+        {
+            WaitFor(() => native.OnUi(() => window.IsVisible), "the sequence never showed the main window", 8000); // cloaked 0.5 s before the hand-over
+            var (outline, stageOrigin, visible) = native.OnUi(() =>
+                (stage.OutlineLayout.Frame, stage.Window.Position, WindowManagerNativePlacementGeometry.ReadVisibleBounds(window.TryGetPlatformHandle()!.Handle).VisibleBounds!));
+            Assert.InRange(stageOrigin.X + outline.X * scale, visible.Left - 1, visible.Left + 1);
+            Assert.InRange(stageOrigin.Y + outline.Y * scale, visible.Top - 1, visible.Top + 1);
+            Assert.InRange(stageOrigin.X + outline.Right * scale, visible.Right - 1, visible.Right + 1);
+            Assert.InRange(stageOrigin.Y + outline.Bottom * scale, visible.Bottom - 1, visible.Bottom + 1);
+        }
+        finally
+        {
+            WaitFor(() => !native.OnUi(() => stage.Window.IsVisible), "the boot stage never closed", 15000);
+            native.OnUi(() => window.Hide());
+        }
+    }, factType: typeof(GlassWindowNativeTests));
+
     [Fact]
     [Trait("Decision", "ED-236")]
     [Trait("Req", "PR-LAUNCH-028")] // AppDelegate.swift:22 (OD-0018); OD-0041; ED-103 (6)
@@ -264,15 +316,16 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         GC.KeepAlive(stripes);
     }, factType: typeof(GlassWindowNativeTests));
 
-    // OD-0075 (owner, 2026-10-02: "the wedge is filled with the window's scrim"), ED-236 UNRESOLVED (a): the production Settings window
-    // (the real SettingsView, WindowManager.swift:81) over the stripes. The window is a rectangle of the system's Acrylic that DWM rounds by
-    // 8 px, and its content draws a 26 pt shape (SettingsView.swift:118-122); the corner between them is the wedge. A block of the screen
-    // just inside each corner of the window, outside the shape, must show the blurred stripes under the window's scrim, not the bare blur
-    // (which read luma 126 beside 93 inside the shape).
+    // OD-0075 (owner, 2026-10-02: "the wedge is filled with the window's scrim"), the owner's intent of 2026-10-05 (the glass is extended to the window's edge
+    // and reads as one surface out to the OS edge; ED-338), ED-236 UNRESOLVED (a): the production Settings window (the real SettingsView,
+    // WindowManager.swift:81) over the stripes, and again over broad bands of four colours. The window is a rectangle of the system's Acrylic that DWM rounds
+    // by 8 px, and its content draws a 26 pt shape (SettingsView.swift:118-122); the corner between them is the wedge. A wedge pixel (inside the rounding,
+    // outside the shape) must show what the body shows in its column just inside the shape: the same colour, within 3 of 255 on each channel, in both
+    // themes (the backdrop is the same down every column). The first version of this test found the wedge wearing the scrim alone.
     [Fact]
     [Trait("Decision", "ED-236")]
     [Trait("Req", "UI-SETTINGS-001")] // SettingsView.swift:118-122 with OD-0075
-    public void The_real_Settings_window_corners_outside_the_26_point_shape_wear_the_scrim_over_the_blur_in_both_themes() => native.Run(subject =>
+    public void The_real_Settings_window_corners_outside_the_26_point_shape_are_the_body_just_inside_it_over_the_blur_in_both_themes() => native.Run(subject =>
     {
         var (work, scale) = native.OnUi(() => Work(subject.Main));
         var stripes = native.OnUi(() => Backdrop(subject, work, scale));
@@ -299,39 +352,218 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         WaitFor(() => native.OnUi(() => manager.SettingsOpening is not { Waiting: true }), "the Settings open never finished", 8000);
         Activate(settings);
 
-        var wedge = native.OnUi(() => ((Marrow.App.Views.Settings.SettingsView)typeof(WindowManager).GetField("settingsView", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(manager)!).RiseWedge);
-        foreach (var (theme, dark) in new[] { (Marrow.UI.Theme.AppTheme.Dark, true), (Marrow.UI.Theme.AppTheme.Light, false) })
+        var problems = new List<string>();
+        foreach (var busy in new[] { false, true })
         {
-            var opacity = native.OnUi(() => { manager.Model.Settings.Theme = theme; return manager.Model.Settings.BackdropOpacity; });
-            Thread.Sleep(900); // the window's colours ease 0.32 s (OD-0088); the stripes behind are blurred by the system
-            var handle = native.OnUi(() => settings.TryGetPlatformHandle()!.Handle);
-            var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
-            var alpha = Marrow.UI.Chrome.WindowCornerWedge.Alpha(opacity, dark);
-            Assert.InRange(alpha, 0.05, 0.95); // glass under a scrim, not a solid window
-            // a block of 4 x 4 pixels 4 px in from each corner of the window: inside DWM's 8 px rounding, outside the 26 pt shape
-            var corners = new[]
+            if (busy) native.OnUi(() => ((Stripes)stripes.Content!).Fill = MainWindowCornerWedgeNativeTests.Bands());
+            foreach (var (theme, dark) in new[] { (Marrow.UI.Theme.AppTheme.Dark, true), (Marrow.UI.Theme.AppTheme.Light, false) })
             {
-                (visible.Left + 4, visible.Top + 4, "top left"), (visible.Right - 8, visible.Top + 4, "top right"),
-                (visible.Left + 4, visible.Bottom - 8, "bottom left"), (visible.Right - 8, visible.Bottom - 8, "bottom right"),
-            };
-            // what the system shows there without the wedge (the control: the wedge's layer hidden), then with it
-            native.OnUi(() => wedge.Opacity = 0);
-            Thread.Sleep(400);
-            var without = corners.Select(corner => Grab(new PixelPoint(corner.Item1, corner.Item2), 4, 4)).ToArray();
-            native.OnUi(() => wedge.Opacity = 1);
-            Thread.Sleep(400);
-            for (var index = 0; index < corners.Length; index++)
-            {
-                var with = Grab(new PixelPoint(corners[index].Item1, corners[index].Item2), 4, 4);
-                var name = corners[index].Item3;
-                Assert.True(without[index].StripeContrast() < Blurred && with.StripeContrast() < Blurred,
-                    $"{theme} {name}: contrast {without[index].StripeContrast():F2} without and {with.StripeContrast():F2} with the wedge, the stripes show sharp in the corner");
-                // the wedge is the window's scrim over what the corner showed: the setting's opacity and the theme (Chrome.swift:211-215)
-                var expected = without[index].MeanLuma() * (1 - alpha) + (dark ? 0 : 255) * alpha;
-                Assert.True(Math.Abs(with.MeanLuma() - expected) <= 5, $"{theme} {name}: luma {with.MeanLuma():F1} with the wedge, {without[index].MeanLuma():F1} without it, the scrim (alpha {alpha:F2}) over it is {expected:F1}");
-                Assert.True(Math.Abs(with.MeanLuma() - without[index].MeanLuma()) > 12, $"{theme} {name}: the wedge changes the corner by {with.MeanLuma() - without[index].MeanLuma():F1} only");
+                var opacity = native.OnUi(() => { manager.Model.Settings.Theme = theme; return manager.Model.Settings.BackdropOpacity; });
+                Thread.Sleep(1000); // the window's colours ease 0.32 s (OD-0088); the backdrop behind is blurred by the system
+                var handle = native.OnUi(() => settings.TryGetPlatformHandle()!.Handle);
+                var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
+                Assert.InRange(Marrow.UI.Chrome.WindowBackdrop.Scrim(opacity, dark), 0.05, 0.95); // glass under a scrim, not a solid window
+                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, Marrow.UI.Chrome.Chrome.WindowCornerRadius, scale, [3, 4, 5, 6], [3, 4, 5], clearance: 1, block: 1);
+                var name = $"{theme}, {(busy ? "banded" : "striped")} backdrop";
+                CornerSeam.WaitSettled(pairs, 1);
+                var colours = CornerSeam.AssertOnScreen(pairs, name, block: 1, problems: problems);
             }
         }
+        Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
         GC.KeepAlive(stripes);
+    }, factType: typeof(GlassWindowNativeTests));
+
+    // OD-0075, the owner's intent of 2026-10-05, ED-338: the real tour window (TourWindowController.Present) is the same kind of window. Its source draws window-shaped
+    // glass (TourView.swift:62-96, a 20 pt continuous shape for the glass, the tint, the clip, the hairline and the scrim; the Mac window is clear and the size of that shape), and
+    // the port's window is the system's Acrylic with the card drawn over it, so the card's corner leaves a wedge of unscrimmed blur (measured: (234,195,39) over a (240,200,40)
+    // backdrop). The wedge pixel is the card pixel in its column just inside the 20 pt shape, over the stripes and over bands of four colours, in both themes.
+    [Fact]
+    [Trait("Decision", "ED-236")]
+    [Trait("Req", "PR-UPDATE-094")] // TourView.swift:62-96 over TourWindowController.swift:60-90
+    public void The_real_tour_windows_corners_outside_the_20_point_card_are_the_card_just_inside_it_over_the_blur_in_both_themes() => native.Run(subject =>
+    {
+        var (work, scale) = native.OnUi(() => Work(subject.Main));
+        var stripes = native.OnUi(() => Backdrop(subject, work, scale));
+        Thread.Sleep(800);
+        AvaloniaWindow tour = null!;
+        native.OnUi(() =>
+        {
+            tour = TourWindowController.Shared.Present(Tour.Pages);
+            Themeless(tour);
+            native.Register(tour);
+        });
+        Thread.Sleep(1200);
+        var problems = new List<string>();
+        foreach (var busy in new[] { false, true })
+        {
+            if (busy) native.OnUi(() => ((Stripes)stripes.Content!).Fill = MainWindowCornerWedgeNativeTests.Bands());
+            foreach (var (variant, dark) in new[] { (Avalonia.Styling.ThemeVariant.Dark, true), (Avalonia.Styling.ThemeVariant.Light, false) })
+            {
+                native.OnUi(() => tour.RequestedThemeVariant = variant);
+                Thread.Sleep(1000);
+                var handle = native.OnUi(() => tour.TryGetPlatformHandle()!.Handle);
+                var visible = native.OnUi(() => WindowManagerNativePlacementGeometry.ReadVisibleBounds(handle)).VisibleBounds!;
+                // The card's material shades a strip along each edge (about 10 px wide) and lights a rim along the bottom (about 3 px), so a wedge pixel is compared with the pixel in its column
+                // deep in the card, and only where it is clear of the bottom rim and of the 45 degree line where the two meet: more rows up than columns in.
+                var pairs = CornerSeam.OnScreen(visible.Left, visible.Top, visible.Right, visible.Bottom, 20, scale, [2, 3], [6, 7, 8, 9], clearance: 0.6, block: 1);
+                CornerSeam.WaitSettled(pairs, 1);
+                CornerSeam.AssertOnScreen(pairs, $"tour, {(dark ? "dark" : "light")}, {(busy ? "banded" : "striped")} backdrop", block: 1, problems: problems, corners: ["bottom left", "bottom right"]); // the top corners are the page's artwork, a picture that differs from row to row
+            }
+        }
+        native.OnUi(() => TourWindowController.Shared.Close());
+        Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
+        GC.KeepAlive(stripes);
+    }, factType: typeof(GlassWindowNativeTests));
+
+    // The archive question popover (UI-SIDEBAR-031, -032), opened from a real thread row of the real main window as the archive shortcut asks for it
+    // (AppModel.AppModelArchiveRequest, SidebarView.swift:198-202), in a real popup window. Headless cannot open a Popup, so only the glass's metadata was
+    // ever asserted; here the pixels of the real popup are read. The glass material (OD-0005) draws a rim light and an inner shade at the edge of its shape
+    // and tints the prominent one, so the ring just inside each button's capsule differs from the flat card behind it where the material is drawn and not
+    // where it falls out of the composition tree (review/glass-material-placement 090e8b843). SwiftUI's `.focusEffectDisabled`-like look (:945) is that no
+    // ring surrounds the focused Archive button: the band just outside its capsule is the card.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-031")] // SidebarView.swift:923-941 `.glass` and `.glassProminent` text buttons at `.controlSize(.small)`, :945 the Archive button holds the focus
+    [Trait("Req", "UI-SIDEBAR-032")] // :927-940 Delete plain glass with a red label, Archive prominent glass
+    public void The_archive_question_popovers_glass_buttons_draw_their_material_on_a_real_popup_and_Archive_shows_no_focus_ring() => native.Run(subject =>
+    {
+        var thread = Guid.NewGuid();
+        native.OnUi(() =>
+        {
+            var now = Marrow.Core.Port.SwiftDate.Now;
+            var folder = Path.Combine(Path.GetTempPath(), "archive-popover-native-" + Guid.NewGuid().ToString("N")[..8]);
+            Directory.CreateDirectory(folder);
+            var project = new Marrow.Core.Models.Project("archive-native", folder);
+            var chat = new Marrow.Core.Models.ChatThread(project.Id, Marrow.Core.Models.ProviderKind.Claude, "opus", "high", Marrow.Core.Models.RuntimeMode.Supervised) with
+            {
+                Id = thread, Title = "Archive in a real popup", HasCustomTitle = true, UpdatedAt = now, CreatedAt = now.AddHours(-1), LastStatus = Marrow.Core.Models.TurnStatus.Completed,
+            };
+            var library = new Marrow.Core.Models.Library() with
+            {
+                Projects = new Marrow.Core.Port.ValueList<Marrow.Core.Models.Project>([project]),
+                Threads = new Marrow.Core.Port.ValueList<Marrow.Core.Models.ChatThread>([chat]),
+            };
+            Marrow.Services.Store.DiskWriter.Shared.WriteSynchronously(library, Marrow.Services.Store.Storage.LibraryURL);
+        });
+        var (window, model) = TimelineRowsNativeRig.Open(native, subject, thread);
+        // The rig's backdrop (a topmost window over the whole working area) stands over a popup that is not itself topmost on some runs, and then the
+        // pixels under the buttons are the backdrop's. The backdrop is the rig's, not the product's: take it out of the topmost band, to the bottom.
+        var backdrops = native.OnUi(() =>
+        {
+            var mainHandle = window.TryGetPlatformHandle()!.Handle;
+            var mainRect = N.Rect(mainHandle);
+            var found = new List<nint>();
+            NativeWindowEnumerator callback = (candidate, _) =>
+            {
+                var rect = N.Rect(candidate);
+                if (candidate != mainHandle && N.IsWindowVisible(candidate) && rect.Left <= mainRect.Left && rect.Top <= mainRect.Top && rect.Right >= mainRect.Right && rect.Bottom >= mainRect.Bottom) found.Add(candidate);
+                return true;
+            };
+            _ = N.EnumThreadWindows(native.ThreadId, callback, 0);
+            GC.KeepAlive(callback);
+            return found;
+        });
+        Assert.NotEmpty(backdrops);
+        foreach (var backdrop in backdrops) Assert.True(SetWindowPos(backdrop, 1, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010), "SetWindowPos(HWND_BOTTOM) on the rig's backdrop"); // SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE
+        var popup = native.OnUi(() =>
+        {
+            var column = window.GetVisualDescendants().OfType<Marrow.App.Views.Sidebar.SidebarView>().Single();
+            model.AppModelArchiveRequest = new AppModel.ArchiveRequest(thread);
+            return column;
+        });
+        Popup archive = null!;
+        var openBy = Stopwatch.StartNew();
+        while (true)
+        {
+            if (native.OnUi(() =>
+            {
+                archive = LogicalQuery.SelfAndDescendants<Popup>(popup).FirstOrDefault(p => PopoverHost.Content(p) is Marrow.App.Views.Sidebar.ArchiveThreadPopover)!;
+                return archive is not null && archive.IsOpen;
+            })) break;
+            Assert.True(openBy.ElapsedMilliseconds < 15000, "The archive question never opened on the thread's row.");
+            Thread.Sleep(5);
+        }
+        var sinceOpen = Stopwatch.StartNew(); // from the first moment the popup is seen open
+
+        // One reading of the screen under the popup: the ring just inside each button's capsule, and the band just outside the Archive button.
+        (bool Drawn, string Report, double DeleteRingMax, double DeleteRingMean, double ArchiveRingMean, double ArchiveOuterMax, bool Focused) Read(bool save)
+        {
+            var (deleteRect, archiveRect, focused) = native.OnUi(() =>
+            {
+                var content = PopoverHost.Content(archive)!;
+                var scale = TopLevel.GetTopLevel(content)!.RenderScaling;
+                var buttons = LogicalQuery.SelfAndDescendants<Button>(content).ToList();
+                Button Named(string name) => buttons.Single(b => LogicalQuery.SelfAndDescendants<TextBlock>(b).Any(label => label.Text == name));
+                PixelRect Rect(Control c) { var p = c.PointToScreen(default); return new PixelRect(p.X, p.Y, (int)Math.Round(c.Bounds.Width * scale), (int)Math.Round(c.Bounds.Height * scale)); }
+                return (Rect(Named("Delete")), Rect(Named("Archive")), Named("Archive").IsFocused);
+            });
+            Assert.True(deleteRect.Height > 0 && archiveRect.Height > 0);
+            // The pixels read must be the popup's own: the window on top at the buttons must be the popup's, else what is read is the machine's, not the product's.
+            var probe = new NativeWindowPoint(deleteRect.X + deleteRect.Width / 2, deleteRect.Y + deleteRect.Height / 2);
+            var onTop = N.RootAt(probe);
+            var popupHandle = native.OnUi(() => TopLevel.GetTopLevel(PopoverHost.Content(archive)!)!.TryGetPlatformHandle()?.Handle ?? 0);
+            if (onTop != popupHandle)
+            {
+                _ = N.GetWindowThreadProcessId(onTop, out var owner);
+                var popupRect = popupHandle == 0 ? default : N.Rect(popupHandle);
+                throw new InvalidOperationException($"NATIVE_PRECONDITION: the window on top at the Delete button ({probe.X},{probe.Y}) is 0x{onTop:X} ({N.ClassName(onTop)}, process {owner}, this one {Environment.ProcessId}), not the popup's 0x{popupHandle:X} (visible {N.IsWindowVisible(popupHandle)}, at {popupRect.Left},{popupRect.Top} {popupRect.Width}x{popupRect.Height}); the main window is 0x{native.OnUi(() => window.TryGetPlatformHandle()?.Handle ?? 0):X}, the covering window is at {N.Rect(onTop).Left},{N.Rect(onTop).Top} {N.Rect(onTop).Width}x{N.Rect(onTop).Height}.");
+            }
+            // The card behind: the empty stretch of the buttons' row to the left of Delete.
+            var margin = 10;
+            var left = Math.Min(deleteRect.X, archiveRect.X) - 40;
+            var top = Math.Min(deleteRect.Y, archiveRect.Y) - margin;
+            var width = Math.Max(deleteRect.Right, archiveRect.Right) + margin - left;
+            var height = Math.Max(deleteRect.Height, archiveRect.Height) + 2 * margin;
+            var grab = ScreenGrab.Of(left, top, width, height);
+            var evidence = Path.Combine(Path.GetTempPath(), "archive-popover-native.png");
+            if (save) grab.SavePng(evidence);
+            (byte R, byte G, byte B) card = grab.At(8, height / 2);
+            double Distance((byte R, byte G, byte B) c) => Math.Sqrt(Math.Pow(c.R - card.R, 2) + Math.Pow(c.G - card.G, 2) + Math.Pow(c.B - card.B, 2));
+            // The signed distance from a pixel to a capsule (negative inside): the button's shape.
+            double Signed(PixelRect r, int x, int y)
+            {
+                double radius = r.Height / 2.0, cy = r.Y + radius;
+                var along = Math.Clamp(x + 0.5, r.X + radius, r.Right - radius);
+                return Math.Sqrt(Math.Pow(x + 0.5 - along, 2) + Math.Pow(y + 0.5 - cy, 2)) - radius;
+            }
+            List<double> Band(PixelRect r, double from, double to)
+            {
+                var found = new List<double>();
+                for (var y = 0; y < height; y++)
+                    for (var x = 0; x < width; x++)
+                    {
+                        var d = Signed(r, left + x, top + y);
+                        if (d >= from && d <= to) found.Add(Distance(grab.At(x, y)));
+                    }
+                return found;
+            }
+            var deleteRing = Band(deleteRect, -3, -1);
+            var archiveRing = Band(archiveRect, -3, -1);
+            var archiveOuter = Band(archiveRect, 2, 5);
+            var deleteOuter = Band(deleteRect, 2, 5);
+            var report = $"card {card}; delete ring max {deleteRing.Max():F1} mean {deleteRing.Average():F1}; archive ring max {archiveRing.Max():F1} mean {archiveRing.Average():F1}; archive outer max {archiveOuter.Max():F1}; delete outer max {deleteOuter.Max():F1}; evidence {evidence}";
+            var drawn = deleteRing.Max() >= 12 && archiveRing.Average() >= 20 && archiveRing.Average() > deleteRing.Average() + 10;
+            return (drawn, report, deleteRing.Max(), deleteRing.Average(), archiveRing.Average(), archiveOuter.Max(), focused);
+        }
+
+        // The material is composed a frame or so after the popup opens, not at the instant IsOpen turns true: read until both buttons show it, for up to 5 s.
+        // The time it took is the product's: glass that pops in late is not the Mac's, so it is reported, not hidden by the wait.
+        long toMaterial;
+        var started = sinceOpen.ElapsedMilliseconds;
+        var reading = Read(save: false);
+        while (true)
+        {
+            if (reading.Drawn) { toMaterial = started; break; }
+            if (sinceOpen.ElapsedMilliseconds >= 5000) { toMaterial = sinceOpen.ElapsedMilliseconds; break; }
+            Thread.Sleep(5);
+            started = sinceOpen.ElapsedMilliseconds;
+            reading = Read(save: false);
+        }
+        reading = Read(save: true);
+        Console.WriteLine($"TIME TO MATERIAL {toMaterial} ms after IsOpen was seen{(toMaterial > 300 ? " (SLOW: over 300 ms, a product question if the machine was quiet)" : "")}; {reading.Report}");
+        Assert.True(reading.Focused, "the Archive button holds the focus (:945)");
+        Assert.True(reading.DeleteRingMax >= 12, "Delete (.glass) draws no material on the popup: " + reading.Report);
+        Assert.True(reading.ArchiveRingMean >= 20, "Archive (.glassProminent) draws no tinted material on the popup: " + reading.Report);
+        Assert.True(reading.ArchiveRingMean > reading.DeleteRingMean + 10, "Archive is not tinted beyond Delete: " + reading.Report);
+        Assert.True(reading.ArchiveOuterMax < 8, "a ring or adorner surrounds the focused Archive button: " + reading.Report);
     }, factType: typeof(GlassWindowNativeTests));
 }

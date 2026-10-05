@@ -1,0 +1,1560 @@
+{
+  "source": "porting/first-release/design-src/customization/cz.js",
+  "paletteSha256": "a600baefbcf22aca861392456ff4d9c05088c37627fe30e95cd5142d5c441f15",
+  "captions": [
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "md",
+      "color": "colorful",
+      "text": "Border beam · Large · Colourful"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "md",
+      "color": "mono",
+      "text": "Border beam · Large · Mono"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "md",
+      "color": "ocean",
+      "text": "Border beam · Large · Ocean"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "md",
+      "color": "sunset",
+      "text": "Border beam · Large · Sunset"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "md",
+      "color": "forest",
+      "text": "Border beam · Large · Forest"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "md",
+      "color": "candy",
+      "text": "Border beam · Large · Candy"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "md",
+      "color": "ice",
+      "text": "Border beam · Large · Ice"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "md",
+      "color": "gold",
+      "text": "Border beam · Large · Gold"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "line",
+      "color": "colorful",
+      "text": "Border beam · Line · Colourful"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "line",
+      "color": "mono",
+      "text": "Border beam · Line · Mono"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "line",
+      "color": "ocean",
+      "text": "Border beam · Line · Ocean"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "line",
+      "color": "sunset",
+      "text": "Border beam · Line · Sunset"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "line",
+      "color": "forest",
+      "text": "Border beam · Line · Forest"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "line",
+      "color": "candy",
+      "text": "Border beam · Line · Candy"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "line",
+      "color": "ice",
+      "text": "Border beam · Line · Ice"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "line",
+      "color": "gold",
+      "text": "Border beam · Line · Gold"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "sm",
+      "color": "colorful",
+      "text": "Border beam · Small · Colourful"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "sm",
+      "color": "mono",
+      "text": "Border beam · Small · Mono"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "sm",
+      "color": "ocean",
+      "text": "Border beam · Small · Ocean"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "sm",
+      "color": "sunset",
+      "text": "Border beam · Small · Sunset"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "sm",
+      "color": "forest",
+      "text": "Border beam · Small · Forest"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "sm",
+      "color": "candy",
+      "text": "Border beam · Small · Candy"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "sm",
+      "color": "ice",
+      "text": "Border beam · Small · Ice"
+    },
+    {
+      "style": "beam",
+      "family": "rotate",
+      "size": "sm",
+      "color": "gold",
+      "text": "Border beam · Small · Gold"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-inner",
+      "color": "colorful",
+      "text": "Border beam · Pulse inside · Colourful"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-inner",
+      "color": "mono",
+      "text": "Border beam · Pulse inside · Mono"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-inner",
+      "color": "ocean",
+      "text": "Border beam · Pulse inside · Ocean"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-inner",
+      "color": "sunset",
+      "text": "Border beam · Pulse inside · Sunset"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-inner",
+      "color": "forest",
+      "text": "Border beam · Pulse inside · Forest"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-inner",
+      "color": "candy",
+      "text": "Border beam · Pulse inside · Candy"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-inner",
+      "color": "ice",
+      "text": "Border beam · Pulse inside · Ice"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-inner",
+      "color": "gold",
+      "text": "Border beam · Pulse inside · Gold"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-outside",
+      "color": "colorful",
+      "text": "Border beam · Pulse outside · Colourful"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-outside",
+      "color": "mono",
+      "text": "Border beam · Pulse outside · Mono"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-outside",
+      "color": "ocean",
+      "text": "Border beam · Pulse outside · Ocean"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-outside",
+      "color": "sunset",
+      "text": "Border beam · Pulse outside · Sunset"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-outside",
+      "color": "forest",
+      "text": "Border beam · Pulse outside · Forest"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-outside",
+      "color": "candy",
+      "text": "Border beam · Pulse outside · Candy"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-outside",
+      "color": "ice",
+      "text": "Border beam · Pulse outside · Ice"
+    },
+    {
+      "style": "beam",
+      "family": "pulse",
+      "size": "pulse-outside",
+      "color": "gold",
+      "text": "Border beam · Pulse outside · Gold"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Claude",
+      "speed": 3,
+      "text": "Uiverse light · Original · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Claude",
+      "speed": 3.69,
+      "text": "Uiverse light · Original · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Claude",
+      "speed": 4.25,
+      "text": "Uiverse light · Original · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Claude",
+      "speed": 12,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Claude",
+      "speed": 12.04,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Claude",
+      "speed": 13.95,
+      "text": "Uiverse light · Original · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Claude",
+      "speed": 40,
+      "text": "Uiverse light · Original · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenAI",
+      "speed": 3,
+      "text": "Uiverse light · Original · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenAI",
+      "speed": 3.69,
+      "text": "Uiverse light · Original · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenAI",
+      "speed": 4.25,
+      "text": "Uiverse light · Original · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenAI",
+      "speed": 12,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenAI",
+      "speed": 12.04,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenAI",
+      "speed": 13.95,
+      "text": "Uiverse light · Original · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenAI",
+      "speed": 40,
+      "text": "Uiverse light · Original · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenCodeGo",
+      "speed": 3,
+      "text": "Uiverse light · Original · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenCodeGo",
+      "speed": 3.69,
+      "text": "Uiverse light · Original · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenCodeGo",
+      "speed": 4.25,
+      "text": "Uiverse light · Original · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenCodeGo",
+      "speed": 12,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenCodeGo",
+      "speed": 12.04,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenCodeGo",
+      "speed": 13.95,
+      "text": "Uiverse light · Original · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "OpenCodeGo",
+      "speed": 40,
+      "text": "Uiverse light · Original · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Zai",
+      "speed": 3,
+      "text": "Uiverse light · Original · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Zai",
+      "speed": 3.69,
+      "text": "Uiverse light · Original · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Zai",
+      "speed": 4.25,
+      "text": "Uiverse light · Original · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Zai",
+      "speed": 12,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Zai",
+      "speed": 12.04,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Zai",
+      "speed": 13.95,
+      "text": "Uiverse light · Original · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "Zai",
+      "speed": 40,
+      "text": "Uiverse light · Original · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "NousResearch",
+      "speed": 3,
+      "text": "Uiverse light · Original · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "NousResearch",
+      "speed": 3.69,
+      "text": "Uiverse light · Original · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "NousResearch",
+      "speed": 4.25,
+      "text": "Uiverse light · Original · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "NousResearch",
+      "speed": 12,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "NousResearch",
+      "speed": 12.04,
+      "text": "Uiverse light · Original · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "NousResearch",
+      "speed": 13.95,
+      "text": "Uiverse light · Original · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "original",
+      "maker": "NousResearch",
+      "speed": 40,
+      "text": "Uiverse light · Original · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Claude",
+      "speed": 3,
+      "text": "Uiverse light · Claude colours · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Claude",
+      "speed": 3.69,
+      "text": "Uiverse light · Claude colours · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Claude",
+      "speed": 4.25,
+      "text": "Uiverse light · Claude colours · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Claude",
+      "speed": 12,
+      "text": "Uiverse light · Claude colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Claude",
+      "speed": 12.04,
+      "text": "Uiverse light · Claude colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Claude",
+      "speed": 13.95,
+      "text": "Uiverse light · Claude colours · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Claude",
+      "speed": 40,
+      "text": "Uiverse light · Claude colours · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenAI",
+      "speed": 3,
+      "text": "Uiverse light · OpenAI colours · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenAI",
+      "speed": 3.69,
+      "text": "Uiverse light · OpenAI colours · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenAI",
+      "speed": 4.25,
+      "text": "Uiverse light · OpenAI colours · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenAI",
+      "speed": 12,
+      "text": "Uiverse light · OpenAI colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenAI",
+      "speed": 12.04,
+      "text": "Uiverse light · OpenAI colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenAI",
+      "speed": 13.95,
+      "text": "Uiverse light · OpenAI colours · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenAI",
+      "speed": 40,
+      "text": "Uiverse light · OpenAI colours · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenCodeGo",
+      "speed": 3,
+      "text": "Uiverse light · OpenCode Go colours · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenCodeGo",
+      "speed": 3.69,
+      "text": "Uiverse light · OpenCode Go colours · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenCodeGo",
+      "speed": 4.25,
+      "text": "Uiverse light · OpenCode Go colours · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenCodeGo",
+      "speed": 12,
+      "text": "Uiverse light · OpenCode Go colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenCodeGo",
+      "speed": 12.04,
+      "text": "Uiverse light · OpenCode Go colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenCodeGo",
+      "speed": 13.95,
+      "text": "Uiverse light · OpenCode Go colours · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "OpenCodeGo",
+      "speed": 40,
+      "text": "Uiverse light · OpenCode Go colours · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Zai",
+      "speed": 3,
+      "text": "Uiverse light · Z.ai colours · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Zai",
+      "speed": 3.69,
+      "text": "Uiverse light · Z.ai colours · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Zai",
+      "speed": 4.25,
+      "text": "Uiverse light · Z.ai colours · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Zai",
+      "speed": 12,
+      "text": "Uiverse light · Z.ai colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Zai",
+      "speed": 12.04,
+      "text": "Uiverse light · Z.ai colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Zai",
+      "speed": 13.95,
+      "text": "Uiverse light · Z.ai colours · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "Zai",
+      "speed": 40,
+      "text": "Uiverse light · Z.ai colours · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "NousResearch",
+      "speed": 3,
+      "text": "Uiverse light · Nous Research colours · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "NousResearch",
+      "speed": 3.69,
+      "text": "Uiverse light · Nous Research colours · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "NousResearch",
+      "speed": 4.25,
+      "text": "Uiverse light · Nous Research colours · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "NousResearch",
+      "speed": 12,
+      "text": "Uiverse light · Nous Research colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "NousResearch",
+      "speed": 12.04,
+      "text": "Uiverse light · Nous Research colours · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "NousResearch",
+      "speed": 13.95,
+      "text": "Uiverse light · Nous Research colours · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "maker",
+      "maker": "NousResearch",
+      "speed": 40,
+      "text": "Uiverse light · Nous Research colours · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Claude",
+      "speed": 3,
+      "text": "Uiverse light · Accent · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Claude",
+      "speed": 3.69,
+      "text": "Uiverse light · Accent · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Claude",
+      "speed": 4.25,
+      "text": "Uiverse light · Accent · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Claude",
+      "speed": 12,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Claude",
+      "speed": 12.04,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Claude",
+      "speed": 13.95,
+      "text": "Uiverse light · Accent · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Claude",
+      "speed": 40,
+      "text": "Uiverse light · Accent · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenAI",
+      "speed": 3,
+      "text": "Uiverse light · Accent · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenAI",
+      "speed": 3.69,
+      "text": "Uiverse light · Accent · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenAI",
+      "speed": 4.25,
+      "text": "Uiverse light · Accent · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenAI",
+      "speed": 12,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenAI",
+      "speed": 12.04,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenAI",
+      "speed": 13.95,
+      "text": "Uiverse light · Accent · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenAI",
+      "speed": 40,
+      "text": "Uiverse light · Accent · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenCodeGo",
+      "speed": 3,
+      "text": "Uiverse light · Accent · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenCodeGo",
+      "speed": 3.69,
+      "text": "Uiverse light · Accent · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenCodeGo",
+      "speed": 4.25,
+      "text": "Uiverse light · Accent · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenCodeGo",
+      "speed": 12,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenCodeGo",
+      "speed": 12.04,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenCodeGo",
+      "speed": 13.95,
+      "text": "Uiverse light · Accent · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "OpenCodeGo",
+      "speed": 40,
+      "text": "Uiverse light · Accent · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Zai",
+      "speed": 3,
+      "text": "Uiverse light · Accent · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Zai",
+      "speed": 3.69,
+      "text": "Uiverse light · Accent · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Zai",
+      "speed": 4.25,
+      "text": "Uiverse light · Accent · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Zai",
+      "speed": 12,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Zai",
+      "speed": 12.04,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Zai",
+      "speed": 13.95,
+      "text": "Uiverse light · Accent · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "Zai",
+      "speed": 40,
+      "text": "Uiverse light · Accent · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "NousResearch",
+      "speed": 3,
+      "text": "Uiverse light · Accent · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "NousResearch",
+      "speed": 3.69,
+      "text": "Uiverse light · Accent · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "NousResearch",
+      "speed": 4.25,
+      "text": "Uiverse light · Accent · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "NousResearch",
+      "speed": 12,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "NousResearch",
+      "speed": 12.04,
+      "text": "Uiverse light · Accent · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "NousResearch",
+      "speed": 13.95,
+      "text": "Uiverse light · Accent · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "accent",
+      "maker": "NousResearch",
+      "speed": 40,
+      "text": "Uiverse light · Accent · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Claude",
+      "speed": 3,
+      "text": "Uiverse light · Custom · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Claude",
+      "speed": 3.69,
+      "text": "Uiverse light · Custom · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Claude",
+      "speed": 4.25,
+      "text": "Uiverse light · Custom · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Claude",
+      "speed": 12,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Claude",
+      "speed": 12.04,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Claude",
+      "speed": 13.95,
+      "text": "Uiverse light · Custom · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Claude",
+      "speed": 40,
+      "text": "Uiverse light · Custom · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenAI",
+      "speed": 3,
+      "text": "Uiverse light · Custom · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenAI",
+      "speed": 3.69,
+      "text": "Uiverse light · Custom · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenAI",
+      "speed": 4.25,
+      "text": "Uiverse light · Custom · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenAI",
+      "speed": 12,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenAI",
+      "speed": 12.04,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenAI",
+      "speed": 13.95,
+      "text": "Uiverse light · Custom · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenAI",
+      "speed": 40,
+      "text": "Uiverse light · Custom · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenCodeGo",
+      "speed": 3,
+      "text": "Uiverse light · Custom · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenCodeGo",
+      "speed": 3.69,
+      "text": "Uiverse light · Custom · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenCodeGo",
+      "speed": 4.25,
+      "text": "Uiverse light · Custom · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenCodeGo",
+      "speed": 12,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenCodeGo",
+      "speed": 12.04,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenCodeGo",
+      "speed": 13.95,
+      "text": "Uiverse light · Custom · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "OpenCodeGo",
+      "speed": 40,
+      "text": "Uiverse light · Custom · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Zai",
+      "speed": 3,
+      "text": "Uiverse light · Custom · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Zai",
+      "speed": 3.69,
+      "text": "Uiverse light · Custom · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Zai",
+      "speed": 4.25,
+      "text": "Uiverse light · Custom · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Zai",
+      "speed": 12,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Zai",
+      "speed": 12.04,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Zai",
+      "speed": 13.95,
+      "text": "Uiverse light · Custom · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "Zai",
+      "speed": 40,
+      "text": "Uiverse light · Custom · 40 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "NousResearch",
+      "speed": 3,
+      "text": "Uiverse light · Custom · 3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "NousResearch",
+      "speed": 3.69,
+      "text": "Uiverse light · Custom · 3.7 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "NousResearch",
+      "speed": 4.25,
+      "text": "Uiverse light · Custom · 4.3 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "NousResearch",
+      "speed": 12,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "NousResearch",
+      "speed": 12.04,
+      "text": "Uiverse light · Custom · 12 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "NousResearch",
+      "speed": 13.95,
+      "text": "Uiverse light · Custom · 14 s a turn"
+    },
+    {
+      "style": "aura",
+      "scheme": "custom",
+      "maker": "NousResearch",
+      "speed": 40,
+      "text": "Uiverse light · Custom · 40 s a turn"
+    },
+    {
+      "style": "off",
+      "text": "No light"
+    }
+  ],
+  "makers": [
+    {
+      "id": "Claude",
+      "name": "Claude",
+      "model": "claude-fable-5.1",
+      "aria": "Preview model: Claude (claude-fable-5.1)",
+      "dotDark": "#A14827",
+      "dotLight": "#A14827"
+    },
+    {
+      "id": "OpenAI",
+      "name": "OpenAI",
+      "model": "gpt-6-astra",
+      "aria": "Preview model: OpenAI (gpt-6-astra)",
+      "dotDark": "#FFFFFF",
+      "dotLight": "#adadb0"
+    },
+    {
+      "id": "Gemini",
+      "name": "Gemini",
+      "model": "gemini-3.1-pro",
+      "aria": "Preview model: Gemini (gemini-3.1-pro)",
+      "dotDark": "#3070DB",
+      "dotLight": "#3070DB"
+    },
+    {
+      "id": "DeepSeek",
+      "name": "DeepSeek",
+      "model": "deepseek-v4-pro-0813",
+      "aria": "Preview model: DeepSeek (deepseek-v4-pro-0813)",
+      "dotDark": "#4356d6",
+      "dotLight": "#1F30C6"
+    },
+    {
+      "id": "Grok",
+      "name": "Grok",
+      "model": "grok-4.7",
+      "aria": "Preview model: Grok (grok-4.7)",
+      "dotDark": "#6a6b70",
+      "dotLight": "#000001"
+    },
+    {
+      "id": "NVIDIA",
+      "name": "NVIDIA",
+      "model": "nemotron-3-ultra-550b-a55b",
+      "aria": "Preview model: NVIDIA (nemotron-3-ultra-550b-a55b)",
+      "dotDark": "#4a7107",
+      "dotLight": "#456C00"
+    },
+    {
+      "id": "Meta",
+      "name": "Meta",
+      "model": "muse-spark-1.3",
+      "aria": "Preview model: Meta (muse-spark-1.3)",
+      "dotDark": "#1a60b9",
+      "dotLight": "#0044A3"
+    },
+    {
+      "id": "Mistral",
+      "name": "Mistral",
+      "model": "mistral-large-2512",
+      "aria": "Preview model: Mistral (mistral-large-2512)",
+      "dotDark": "#bc1e5e",
+      "dotLight": "#A20049"
+    },
+    {
+      "id": "Qwen",
+      "name": "Qwen",
+      "model": "qwen3.8-max-prime",
+      "aria": "Preview model: Qwen (qwen3.8-max-prime)",
+      "dotDark": "#6347db",
+      "dotLight": "#38009C"
+    },
+    {
+      "id": "Kimi",
+      "name": "Kimi",
+      "model": "kimi-k3",
+      "aria": "Preview model: Kimi (kimi-k3)",
+      "dotDark": "#51647a",
+      "dotLight": "#3D5167"
+    },
+    {
+      "id": "Cursor",
+      "name": "Cursor",
+      "model": "",
+      "aria": "Preview model: Cursor",
+      "dotDark": "#BA3500",
+      "dotLight": "#BA3500"
+    },
+    {
+      "id": "OpenCode",
+      "name": "OpenCode",
+      "model": "",
+      "aria": "Preview model: OpenCode",
+      "dotDark": "#00772D",
+      "dotLight": "#00772D"
+    },
+    {
+      "id": "OpenCodeGo",
+      "name": "OpenCode Go",
+      "model": "",
+      "aria": "Preview model: OpenCode Go",
+      "dotDark": "#006B8B",
+      "dotLight": "#006B8B"
+    },
+    {
+      "id": "Zai",
+      "name": "Z.ai",
+      "model": "glm-5.3-prime",
+      "aria": "Preview model: Z.ai (glm-5.3-prime)",
+      "dotDark": "#4361ac",
+      "dotLight": "#01071E"
+    },
+    {
+      "id": "Devin",
+      "name": "Devin",
+      "model": "",
+      "aria": "Preview model: Devin",
+      "dotDark": "#058066",
+      "dotLight": "#058066"
+    },
+    {
+      "id": "Copilot",
+      "name": "Copilot",
+      "model": "",
+      "aria": "Preview model: Copilot",
+      "dotDark": "#8031dd",
+      "dotLight": "#731BDA"
+    },
+    {
+      "id": "CommandCode",
+      "name": "Command Code",
+      "model": "",
+      "aria": "Preview model: Command Code",
+      "dotDark": "#6c4fb9",
+      "dotLight": "#170060"
+    },
+    {
+      "id": "Pi",
+      "name": "Pi",
+      "model": "",
+      "aria": "Preview model: Pi",
+      "dotDark": "#b73045",
+      "dotLight": "#86001A"
+    },
+    {
+      "id": "MiniMax",
+      "name": "MiniMax",
+      "model": "",
+      "aria": "Preview model: MiniMax",
+      "dotDark": "#CA0073",
+      "dotLight": "#CA0073"
+    },
+    {
+      "id": "Tencent",
+      "name": "Tencent",
+      "model": "",
+      "aria": "Preview model: Tencent",
+      "dotDark": "#465bbf",
+      "dotLight": "#222B97"
+    },
+    {
+      "id": "Cohere",
+      "name": "Cohere",
+      "model": "",
+      "aria": "Preview model: Cohere",
+      "dotDark": "#A565B5",
+      "dotLight": "#A565B5"
+    },
+    {
+      "id": "Microsoft",
+      "name": "Microsoft",
+      "model": "",
+      "aria": "Preview model: Microsoft",
+      "dotDark": "#CD0037",
+      "dotLight": "#CD0037"
+    },
+    {
+      "id": "Perplexity",
+      "name": "Perplexity",
+      "model": "",
+      "aria": "Preview model: Perplexity",
+      "dotDark": "#7e576a",
+      "dotLight": "#684154"
+    },
+    {
+      "id": "NousResearch",
+      "name": "Nous Research",
+      "model": "",
+      "aria": "Preview model: Nous Research",
+      "dotDark": "#5e664b",
+      "dotLight": "#4B5337"
+    },
+    {
+      "id": "AWS",
+      "name": "AWS",
+      "model": "",
+      "aria": "Preview model: AWS",
+      "dotDark": "#52687E",
+      "dotLight": "#52687E"
+    },
+    {
+      "id": "AI21",
+      "name": "AI21",
+      "model": "",
+      "aria": "Preview model: AI21",
+      "dotDark": "#b01f89",
+      "dotLight": "#970073"
+    },
+    {
+      "id": "Inflection",
+      "name": "Inflection",
+      "model": "",
+      "aria": "Preview model: Inflection",
+      "dotDark": "#52667b",
+      "dotLight": "#263A50"
+    },
+    {
+      "id": "LiquidAI",
+      "name": "Liquid AI",
+      "model": "",
+      "aria": "Preview model: Liquid AI",
+      "dotDark": "#7a5d4e",
+      "dotLight": "#755849"
+    },
+    {
+      "id": "Baidu",
+      "name": "Baidu",
+      "model": "",
+      "aria": "Preview model: Baidu",
+      "dotDark": "#2656dd",
+      "dotLight": "#0100A2"
+    },
+    {
+      "id": "Arcee",
+      "name": "Arcee",
+      "model": "",
+      "aria": "Preview model: Arcee",
+      "dotDark": "#00A4A9",
+      "dotLight": "#00A4A9"
+    }
+  ],
+  "geometry": {
+    "composerWidth": {
+      "inside": 472,
+      "outside": 428
+    },
+    "composerLeft": {
+      "inside": 12,
+      "outside": 56
+    },
+    "stage": {
+      "width": 496,
+      "height": 212,
+      "radius": 10
+    },
+    "card": {
+      "padLeft": 12,
+      "padTop": 12,
+      "padRight": 12,
+      "padBottom": 0
+    },
+    "footMin": 46,
+    "heading": {
+      "lineHeight": 18,
+      "marginBottom": 10
+    },
+    "pin": {
+      "padTop": 59,
+      "padBottom": 14,
+      "marginBottom": 2
+    },
+    "playgroundComposer": {
+      "left": 60,
+      "bottom": 12,
+      "width": 820,
+      "height": 52,
+      "radius": 22
+    },
+    "compactMax": 92,
+    "restDesign": 371
+  },
+  "typing": {
+    "text": "Add a keyboard shortcut for the theme switch",
+    "secondsPerChar": 0.055
+  },
+  "placeholder": "Ask Claude for anything; big jobs go out to a team of heads",
+  "chat": {
+    "html": "<div class=\"pvchat\"><h4>Dark mode toggle</h4><p>I added a <b>Theme</b> switch to the settings page. It reuses the existing <code>Switch</code> row, so it picks up the same spacing and focus ring as the other options.</p></div>"
+  }
+}

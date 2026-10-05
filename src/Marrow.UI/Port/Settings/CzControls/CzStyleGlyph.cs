@@ -42,8 +42,18 @@ public sealed class CzStyleGlyph : Control
         angle = ((SwiftClock.Now - began).TotalSeconds / Period * 360) % 360; InvalidateVisual(); Request();
     }
     protected override Size ArrangeOverride(Size finalSize) { Request(); return finalSize; }
-    public override void Render(Avalonia.Media.DrawingContext context)
+    private readonly Stack<CzStyleGlyphDraw> spare = new();
+    private void GiveBack(CzStyleGlyphDraw operation) { lock (spare) spare.Push(operation); }
+
+    /// <summary>This frame's drawing operation: one Avalonia has finished with, made the next frame's (CZ-T44: no new object per frame once warm).</summary>
+    internal CzStyleGlyphDraw NextOperation()
     {
-        context.Custom(new CzStyleGlyphDraw(new Rect(Bounds.Size), Style, angle, CzTheme.Dark(this)));
+        CzStyleGlyphDraw? operation = null;
+        lock (spare) if (spare.Count > 0) operation = spare.Pop();
+        operation ??= new CzStyleGlyphDraw(GiveBack);
+        operation.Reuse(new Rect(Bounds.Size), Style, angle, CzTheme.Dark(this));
+        return operation;
     }
+
+    public override void Render(Avalonia.Media.DrawingContext context) => context.Custom(NextOperation());
 }

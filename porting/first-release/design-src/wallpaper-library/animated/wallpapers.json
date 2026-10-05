@@ -1,0 +1,3209 @@
+{
+ "name": "Marrow animated wallpapers",
+ "version": "2026-10-05",
+ "host": {
+  "signature": "vec3 wall(vec2 p, float t) returns sRGB in 0..1; the host adds the dither",
+  "coordinates": "p = (fragCoord - 0.5 * resolution) * (2 / resolution.y), y up: the height spans -1..1 and x grows with the aspect",
+  "clock": "t is the loop clock in seconds, 0 <= t < T (period). The host keeps a phase per wallpaper, phase += dt * speed, wrapped at T; changing the speed never moves the picture. All motion is built from a = TAU * t / T, its whole-number multiples and closed loops in noise space, so frame(t) == frame(t + T).",
+  "uniforms": [
+   {
+    "name": "u_pal",
+    "type": "vec3[6]",
+    "sksl": "uniform float3 u_pal[6]",
+    "meaning": "the colour pack in OKLab: the host mixes the pack\u2019s dark and light palettes for the theme, and eases from the old palette to the new on a pack or theme change (time constant 0.25 s)"
+   },
+   {
+    "name": "u_dark",
+    "type": "float",
+    "sksl": "uniform float u_dark",
+    "meaning": "0 light .. 1 dark, eased with the same time constant"
+   },
+   {
+    "name": "u_opt",
+    "type": "vec2",
+    "sksl": "uniform float2 u_opt",
+    "meaning": "x = Motion (0 calm .. 1 lively), y = the wallpaper\u2019s second option (0..1), each eased (0.3 s)"
+   },
+   {
+    "name": "u_px",
+    "type": "float",
+    "sksl": "uniform float u_px",
+    "meaning": "one device pixel in p units, 2 / resolution.y, for anti-aliased edges"
+   }
+  ],
+  "dither": "triangular, one 8-bit step, fixed in screen space: (ign(fc) + ign(fc + (37, 17)) - 1) / 255 with ign(v) = fract(52.9829189 * fract(dot(v, (0.06711056, 0.00583715))))",
+  "subset": "GLSL ES 3.00 written to the SkSL runtime-effect subset: math only, no textures, no derivatives, no preprocessor, for (int i = 0; i < N; i++) loops only, no bit operations or integer modulo, uniform arrays indexed by loop indices only. Each file is checked against this list when the library is built.",
+  "speed": "Speed is per wallpaper, 0.25x to 2.5x, default 1x. It scales the phase clock only; easing it (0.18 s) keeps a change smooth."
+ },
+ "common": "// Marrow animated wallpapers: the shared math every wallpaper may call.\n// A GLSL ES 3.00 subset that ports to Skia SkSL as written: no textures, no derivatives, no preprocessor, no arrays\n// built in the shader, constant loop bounds, no bit operations and no integer modulo. Every function is pure math.\n//\n// The host declares these uniforms and keeps them eased (so nothing ever cuts):\n//   vec3  u_pal[6]   the colour pack: six OKLab colours, already mixed for the theme and crossfaded between packs\n//   float u_dark     0 = light theme, 1 = dark theme\n//   vec2  u_opt      the wallpaper's two options, each 0..1 (x = motion amount, y = the wallpaper's second option)\n//   float u_px       the size of one device pixel in p units, for anti-aliased edges\n// wall(p, t): p is the point with the window's height spanning -1..1 (x grows with the aspect), t is the loop clock in\n// seconds, 0 <= t < T. All motion is built from a = TAU * t / T, so frame(t) == frame(t + T) exactly.\n\nconst float TAU = 6.28318530718;\n\nfloat sat(float x) { return clamp(x, 0.0, 1.0); }\nvec2 rot(vec2 p, float a) { float c = cos(a); float s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }\nvec2 orbit(float a, float r) { return r * vec2(cos(a), sin(a)); }\nfloat gauss(float x, float w) { return exp(-(x * x) / (w * w)); }\n\n// ---- colour: OKLab (Bjorn Ottosson's matrices) and sRGB\nvec3 lab2lin(vec3 c) {\n  float l = c.x + 0.3963377774 * c.y + 0.2158037573 * c.z;\n  float m = c.x - 0.1055613458 * c.y - 0.0638541728 * c.z;\n  float s = c.x - 0.0894841775 * c.y - 1.2914855480 * c.z;\n  l = l * l * l; m = m * m * m; s = s * s * s;\n  return vec3(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,\n             -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,\n             -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);\n}\nvec3 lin2lab(vec3 c) {\n  c = max(c, vec3(0.0));\n  float l = pow(0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b + 1e-9, 0.3333333);\n  float m = pow(0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b + 1e-9, 0.3333333);\n  float s = pow(0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b + 1e-9, 0.3333333);\n  return vec3(0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,\n              1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,\n              0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s);\n}\nvec3 lin2srgb(vec3 c) {\n  c = clamp(c, 0.0, 1.0);\n  return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c));\n}\nvec3 outLab(vec3 lab) { return lin2srgb(lab2lin(lab)); }\nvec3 lch(float L, float C, float h) { return vec3(L, C * cos(h), C * sin(h)); }\nvec3 hueShift(vec3 lab, float a) { return vec3(lab.x, rot(lab.yz, a)); }\nvec3 setL(vec3 lab, float L) { return vec3(L, lab.yz); }\n// a soft shoulder for light added in linear space: below the knee nothing changes, above it the value rolls toward 1\n// and the very brightest light whitens a little, the way film and the eye do\nvec3 shoulder(vec3 c) {\n  float m = max(c.r, max(c.g, c.b));\n  float k = 0.72;\n  if (m <= k) return c;\n  float n = k + (1.0 - k) * (1.0 - exp(-(m - k) / (1.0 - k)));\n  vec3 r = c * (n / m);\n  return mix(r, vec3(n), sat((m - 1.0) * 0.18));\n}\n\n// ---- noise: gradient noise on a fract-based hash (no sine, so it matches on every GPU)\nvec3 hash33(vec3 p) {\n  p = fract(p * vec3(0.1031, 0.1030, 0.0973));\n  p += dot(p, p.yxz + 33.33);\n  return fract((p.xxy + p.yxx) * p.zyx) * 2.0 - 1.0;\n}\nfloat gnoise(vec3 p) {\n  vec3 i = floor(p);\n  vec3 f = p - i;\n  vec3 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);\n  float n000 = dot(hash33(i), f);\n  float n100 = dot(hash33(i + vec3(1.0, 0.0, 0.0)), f - vec3(1.0, 0.0, 0.0));\n  float n010 = dot(hash33(i + vec3(0.0, 1.0, 0.0)), f - vec3(0.0, 1.0, 0.0));\n  float n110 = dot(hash33(i + vec3(1.0, 1.0, 0.0)), f - vec3(1.0, 1.0, 0.0));\n  float n001 = dot(hash33(i + vec3(0.0, 0.0, 1.0)), f - vec3(0.0, 0.0, 1.0));\n  float n101 = dot(hash33(i + vec3(1.0, 0.0, 1.0)), f - vec3(1.0, 0.0, 1.0));\n  float n011 = dot(hash33(i + vec3(0.0, 1.0, 1.0)), f - vec3(0.0, 1.0, 1.0));\n  float n111 = dot(hash33(i + vec3(1.0, 1.0, 1.0)), f - vec3(1.0, 1.0, 1.0));\n  return 1.6 * mix(mix(mix(n000, n100, u.x), mix(n010, n110, u.x), u.y),\n                   mix(mix(n001, n101, u.x), mix(n011, n111, u.x), u.y), u.z);\n}\n// a point that travels once round a closed loop in noise space as a goes 0..TAU: the loop is how noise animates and\n// still repeats exactly\nvec3 loop3(vec2 p, float a, float r) { return vec3(p.x + r * cos(a), p.y + r * sin(a), r * sin(a + 2.1)); }\nfloat lnoise(vec2 p, float a, float r) { return gnoise(loop3(p, a, r)); }\nfloat fbm3(vec3 p) {\n  float s = 0.0; float w = 0.5;\n  for (int i = 0; i < 3; i++) { s += w * gnoise(p); p = p * 2.03 + vec3(1.7, 9.2, 3.1); w *= 0.5; }\n  return s;\n}\nfloat fbm4(vec3 p) {\n  float s = 0.0; float w = 0.5;\n  for (int i = 0; i < 4; i++) { s += w * gnoise(p); p = p * 2.03 + vec3(1.7, 9.2, 3.1); w *= 0.5; }\n  return s;\n}\n",
+ "wallpapers": [
+  {
+   "id": "borealis",
+   "name": "Borealis",
+   "tier": "vibrant",
+   "period": 60,
+   "desc": "Curtains of aurora over a night sky, rays shimmering up from a bright foot.",
+   "defaults": {
+    "pack": "polar",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.55
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "glow",
+     "label": "Glow",
+     "lo": "Soft",
+     "hi": "Bright",
+     "default": 0.55
+    }
+   ],
+   "packs": [
+    {
+     "name": "Polar",
+     "dark": [
+      "#020715",
+      "#001a30",
+      "#0fe893",
+      "#00b6af",
+      "#9a43ce",
+      "#6d3369"
+     ],
+     "light": [
+      "#dde8fd",
+      "#edf7ff",
+      "#00b571",
+      "#00948e",
+      "#8c39bc",
+      "#f3c7ee"
+     ],
+     "id": "polar"
+    },
+    {
+     "name": "Solar Wind",
+     "dark": [
+      "#040517",
+      "#1e0e33",
+      "#00e4be",
+      "#5db748",
+      "#cb0093",
+      "#84272f"
+     ],
+     "light": [
+      "#e1e7ff",
+      "#f7f3ff",
+      "#00b194",
+      "#359915",
+      "#b70085",
+      "#ffc7c6"
+     ],
+     "id": "solar-wind"
+    },
+    {
+     "name": "Ember Sky",
+     "dark": [
+      "#060514",
+      "#1f102e",
+      "#ffaf78",
+      "#ed7665",
+      "#bd2d9a",
+      "#a74350"
+     ],
+     "light": [
+      "#e7e5fb",
+      "#fff1f1",
+      "#e57600",
+      "#ce5342",
+      "#b51c79",
+      "#ffcab7"
+     ],
+     "id": "ember-sky"
+    },
+    {
+     "name": "Glacier",
+     "dark": [
+      "#000815",
+      "#001c29",
+      "#00e0e0",
+      "#00b1ce",
+      "#186bec",
+      "#00566a"
+     ],
+     "light": [
+      "#d9eafc",
+      "#eaf8ff",
+      "#00aeae",
+      "#0090a8",
+      "#105fd9",
+      "#a3e3f8"
+     ],
+     "id": "glacier"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#151a22",
+      "#1c2936",
+      "#65bca0",
+      "#509b9f",
+      "#6e62a7",
+      "#554a6b"
+     ],
+     "light": [
+      "#d5dae4",
+      "#dde5ee",
+      "#65b097",
+      "#499ba0",
+      "#7a70b2",
+      "#d1c9e2"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Borealis: curtains of aurora over a night sky. Each curtain has a bright foot and a long upward fade, folds that\n// travel along it, and vertical rays that shimmer. In light mode the curtains are washes of colour on a dawn sky.\n// Palette: 0 zenith, 1 horizon, 2 curtain foot, 3 curtain body, 4 curtain crown, 5 horizon glow.\n// Options: x = motion (how far the curtains fold and sway), y = glow.\nconst float T = 60.0;\n\nfloat stars(vec2 p, float a) {\n  float sc = 30.0;\n  vec2 q = p * sc;\n  vec2 id = floor(q);\n  vec3 h = hash33(vec3(id, 3.7)) * 0.5 + 0.5;\n  vec2 c = id + 0.5 + (h.xy - 0.5) * 0.7;\n  float d = length(q - c) / sc;\n  float r = 0.85 * u_px;\n  float s = exp(-(d * d) / (r * r)) * step(0.84, h.z) * (h.z - 0.84) * 6.0;\n  float tw = 0.7 + 0.3 * sin(a * 3.0 + h.x * TAU);\n  float vis = sat((1.0 / sc) / u_px / 9.0 - 0.5);\n  return s * tw * vis;\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.6, u_opt.x);\n  float glow = mix(0.5, 1.5, u_opt.y);\n  float g = sat(p.y * 0.5 + 0.5);\n  vec3 sky = mix(u_pal[1], u_pal[0], smoothstep(0.0, 0.9, g));\n  vec3 skyLin = lab2lin(sky);\n  vec3 add = vec3(0.0);\n  float wsum = 0.0;\n  float wl = 0.0;\n  for (int i = 0; i < 3; i++) {\n    float f = float(i);\n    float x = p.x * (0.85 + 0.12 * f) + f * 1.7;\n    float base = -0.46 + 0.29 * f + 0.1 * p.x * (1.0 - f);\n    float fold = 0.12 * sin(x * 1.2 + a + f * 2.0) + 0.05 * sin(x * 2.5 - 2.0 * a + f);\n    fold += 0.15 * m * lnoise(vec2(x * 0.55, f * 4.0), a + f * 1.3, 0.55);\n    float d = p.y - (base + fold);\n    float h = 0.38 + 0.1 * f;\n    float prof = d < 0.0 ? exp(-(d * d) / 0.0016) : exp(-d / h) * (0.4 + 0.6 * exp(-(d * d) / 0.02));\n    float cov = smoothstep(-0.4, 0.45, lnoise(vec2(x * 0.4 + 3.0 * f, 7.0 + f), a, 0.45 + 0.3 * m));\n    float rays = sat(0.55 + 0.6 * lnoise(vec2(x * 6.5 + fold * 8.0, 2.0 * f), 2.0 * a, 0.12 + 0.3 * m));\n    rays = mix(1.0, rays * rays * 1.5, smoothstep(-0.02, 0.12, d) * 0.85);\n    vec3 col = mix(u_pal[2], u_pal[3], smoothstep(0.0, 0.18, d));\n    col = mix(col, u_pal[4], smoothstep(0.1, 0.5, d));\n    float I = prof * cov * rays * (1.0 - 0.2 * f) * (1.0 + 0.6 * smoothstep(0.12, 0.5, d));\n    add += lab2lin(col) * I;\n    wsum += I;\n    wl += I * (1.0 - 0.7 * smoothstep(0.05, 0.45, d)) * mix(1.0, 1.0 / max(rays, 0.4), 0.6);\n  }\n  vec3 hz = lab2lin(u_pal[5]) * exp(-(p.y + 1.0) * 2.6);\n  vec3 dk = skyLin + add * glow * 0.85 + hz * 0.35 + vec3(stars(p, a)) * (1.0 - sat(wsum * 1.5)) * 0.9;\n  vec3 avg = add / max(wsum, 1e-4);\n  float al = 1.0 - exp(-wl * glow * 3.0);\n  vec3 lt = mix(skyLin + hz * 0.15, avg, al * 0.9);\n  return lin2srgb(shoulder(mix(lt, dk, u_dark)));\n}\n"
+  },
+  {
+   "id": "molten",
+   "name": "Molten",
+   "tier": "vibrant",
+   "period": 40,
+   "desc": "Drops of liquid chrome drifting, merging and parting, mirroring a bright studio.",
+   "defaults": {
+    "pack": "titanium",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.55
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "depth",
+     "label": "Depth",
+     "lo": "Flat",
+     "hi": "Domed",
+     "default": 0.55
+    }
+   ],
+   "packs": [
+    {
+     "name": "Titanium",
+     "dark": [
+      "#04070f",
+      "#c1d4e4",
+      "#bf5ad6",
+      "#091b31",
+      "#00bbc3",
+      "#fefcf4"
+     ],
+     "light": [
+      "#dadee6",
+      "#d1e0ee",
+      "#c168d5",
+      "#263951",
+      "#00c2ca",
+      "#fefcf4"
+     ],
+     "id": "titanium"
+    },
+    {
+     "name": "Studio",
+     "dark": [
+      "#03080f",
+      "#c3d3e4",
+      "#e25d00",
+      "#001d2f",
+      "#a4a4a4",
+      "#fefcf4"
+     ],
+     "light": [
+      "#d9dfe6",
+      "#d2e0ee",
+      "#e86518",
+      "#1e3b4f",
+      "#ababab",
+      "#fefcf4"
+     ],
+     "id": "studio"
+    },
+    {
+     "name": "Sunset",
+     "dark": [
+      "#090511",
+      "#edc8b8",
+      "#db4da7",
+      "#181437",
+      "#a4a4a4",
+      "#fffbf7"
+     ],
+     "light": [
+      "#dfdce8",
+      "#f6d6c9",
+      "#db5dab",
+      "#353358",
+      "#ababab",
+      "#fffbf7"
+     ],
+     "id": "sunset"
+    },
+    {
+     "name": "Rose Gold",
+     "dark": [
+      "#09050f",
+      "#e8cab7",
+      "#db5c6c",
+      "#271125",
+      "#a4a4a4",
+      "#fffbf8"
+     ],
+     "light": [
+      "#e7dbd8",
+      "#f1d9c9",
+      "#dc6975",
+      "#4f2e26",
+      "#ababab",
+      "#fffbf8"
+     ],
+     "id": "rose-gold"
+    },
+    {
+     "name": "Mercury",
+     "dark": [
+      "#060709",
+      "#cdd2d5",
+      "#6d92a5",
+      "#171b20",
+      "#a4a4a4",
+      "#fafcfd"
+     ],
+     "light": [
+      "#dcdee0",
+      "#dadfe2",
+      "#7698a9",
+      "#34383e",
+      "#ababab",
+      "#fafcfd"
+     ],
+     "id": "mercury"
+    }
+   ],
+   "glsl": "// Molten: drops of liquid chrome that drift, merge and part over a studio backdrop. Each drop is a smooth dome, and\n// everything seen on it is the studio it mirrors: a bright sky above a crisp horizon, a dark floor below, a long soft\n// box overhead and a strip light at the side whose sharp edges roll over the soft curves as the drops move. Toward the\n// rim the reflection turns to the backdrop and brightens (Fresnel), with a thin bright lip. A pack can add a\n// thin-film tint (anodised titanium): its hue turns with the angle of the surface.\n// Palette: 0 backdrop, 1 sky, 2 coloured gel at the side, 3 floor, 4 thin film (its chroma is the film's strength; 0 is\n// plain chrome), 5 soft-box light (its chroma tints the metal, as gold or rose gold).\n// Options: x = motion (how far the drops travel), y = depth (flat discs to tall domes).\nconst float T = 40.0;\n\nfloat field(vec2 p, float a, float m, out vec2 g) {\n  float F = 0.0;\n  g = vec2(0.0);\n  for (int i = 0; i < 6; i++) {\n    float f = float(i);\n    float n = mod(f, 2.0) < 0.5 ? 1.0 : -1.0;\n    vec2 c = vec2(-1.05 + 0.42 * f, 0.18 * sin(f * 2.3 + 0.7) - 0.04) + orbit(n * a + f * 1.9, (0.16 + 0.04 * mod(f, 3.0)) * m);\n    c.y += 0.08 * m * sin(2.0 * a + f);\n    float r = 0.27 + 0.11 * sin(f * 1.7 + 0.4) + 0.025 * m * sin(a + f * 2.2);\n    vec2 d = p - c;\n    float w = exp(-dot(d, d) / (r * r));\n    F += w;\n    g += w * (-2.0 * d / (r * r));\n  }\n  return F;\n}\n\nvec3 env(vec3 r, float a) {\n  float up = r.y + 0.32 * r.z;\n  float side = r.x;\n  vec3 skyTop = setL(u_pal[1], u_pal[1].x * 0.86);\n  vec3 sky = mix(u_pal[1], skyTop, smoothstep(0.05, 0.9, up));\n  vec3 flo = mix(u_pal[3], setL(u_pal[3], u_pal[3].x * 0.55), smoothstep(-0.05, -0.8, up));\n  vec3 c = mix(flo, sky, smoothstep(-0.035, 0.035, up));\n  float gel = smoothstep(0.22, 0.52, side) * smoothstep(-0.5, -0.1, up) * smoothstep(0.95, 0.45, up);\n  c = mix(c, mix(u_pal[2], setL(u_pal[2], u_pal[2].x * 1.12), smoothstep(0.3, 0.8, side)), gel * 0.9);\n  vec3 lin = lab2lin(c);\n  vec3 L5 = lab2lin(vec3(u_pal[5].x, 0.0, 0.0));\n  float bx = smoothstep(0.26, 0.22, abs(side + 0.18 + 0.03 * sin(a))) * smoothstep(0.13, 0.09, abs(up - 0.62));\n  float strip = smoothstep(0.08, 0.04, abs(side + 0.72)) * smoothstep(0.55, 0.35, abs(up - 0.15));\n  lin += L5 * (bx * 1.6 + strip * 0.7);\n  float back = smoothstep(-0.88, -0.995, r.z);\n  lin = mix(lin, lab2lin(u_pal[0]) * 1.1 + 0.03, back * 0.55);\n  return lin;\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.4, 1.5, u_opt.x);\n  float depth = mix(0.35, 1.25, u_opt.y);\n  float th = 0.5;\n  vec2 g;\n  float F = field(p, a, m, g);\n  float e = max(F - th, 0.0);\n  vec2 gh = g / (2.0 * sqrt(e + 0.0012)) * 0.55 * depth;\n  vec3 n = normalize(vec3(-gh, 1.0));\n  vec3 r = reflect(vec3(0.0, 0.0, -1.0), n);\n  vec3 lin = env(r, a);\n  // the metal: tinted by the soft box's colour (gold, rose gold), and a thin film whose hue turns with the angle\n  vec3 tl = lab2lin(vec3(0.8, u_pal[5].yz * 2.2));\n  lin *= tl / max(dot(tl, vec3(0.2126, 0.7152, 0.0722)), 1e-3);\n  float fs = smoothstep(0.03, 0.11, length(u_pal[4].yz));\n  vec3 lab = lin2lab(lin);\n  float fh = atan(u_pal[4].z, u_pal[4].y) + (1.0 - n.z) * 5.0 + 0.8 * sin(a + p.x);\n  float fc = mix(length(lab.yz), 0.13 + 0.05 * (1.0 - n.z), fs * 0.8);\n  vec2 film = vec2(cos(fh), sin(fh)) * fc;\n  lab.yz = mix(lab.yz, film, fs * 0.75 * (1.0 - smoothstep(-0.3, -0.9, r.z) * 0.75));\n  lin = lab2lin(lab);\n  float fres = pow(1.0 - n.z, 5.0);\n  lin = mix(lin, vec3(1.0), fres * 0.12);\n  float lip = smoothstep(0.012, 0.0, e) * smoothstep(-0.1, 0.6, n.y + 0.3);\n  lin += lab2lin(vec3(u_pal[5].x, 0.0, 0.0)) * lip * 0.25;\n  // the backdrop: a seamless sweep with a soft light and the drops' contact shadow\n  vec3 bd = mix(u_pal[0], setL(u_pal[0], u_pal[0].x * mix(1.18, 1.04, 1.0 - u_dark) + 0.02), smoothstep(-1.2, 0.9, p.y));\n  vec3 bLin = lab2lin(bd);\n  vec2 gs;\n  float Fs = field(p - vec2(0.05, -0.11), a, m, gs);\n  bLin *= 1.0 - mix(0.18, 0.42, u_dark) * smoothstep(0.08, 0.55, Fs);\n  bLin *= 0.88 + 0.12 * smoothstep(2.1, 0.3, length(p - vec2(0.0, 0.4)));\n  float w = length(g) * u_px * 1.3 + 1e-4;\n  float cov = smoothstep(th - w, th + w, F);\n  return lin2srgb(shoulder(mix(bLin, lin, cov)));\n}\n"
+  },
+  {
+   "id": "velvet",
+   "name": "Velvet",
+   "tier": "vibrant",
+   "period": 48,
+   "desc": "Folds of heavy satin, jewel-dark in the shadows, with a sheen along every fold.",
+   "defaults": {
+    "pack": "garnet",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.45
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "folds",
+     "label": "Folds",
+     "lo": "Broad",
+     "hi": "Fine",
+     "default": 0.45
+    }
+   ],
+   "packs": [
+    {
+     "name": "Garnet",
+     "dark": [
+      "#150007",
+      "#64003f",
+      "#cd2859",
+      "#ffc7c6",
+      "#4b0059",
+      "#dc855d"
+     ],
+     "light": [
+      "#7c2b50",
+      "#c96598",
+      "#fda9b5",
+      "#fff1f1",
+      "#9e5cad",
+      "#fec1a6"
+     ],
+     "id": "garnet"
+    },
+    {
+     "name": "Sapphire",
+     "dark": [
+      "#000024",
+      "#002a84",
+      "#0072dd",
+      "#a3e3f8",
+      "#2d0d78",
+      "#00b4bb"
+     ],
+     "light": [
+      "#2c488e",
+      "#5c8ae1",
+      "#9cc7ff",
+      "#e7f9ff",
+      "#736bc9",
+      "#90e1e6"
+     ],
+     "id": "sapphire"
+    },
+    {
+     "name": "Emerald",
+     "dark": [
+      "#000903",
+      "#004125",
+      "#008c3f",
+      "#c0e3b8",
+      "#00372f",
+      "#bb9b39"
+     ],
+     "light": [
+      "#005c3a",
+      "#22a56a",
+      "#95d7a2",
+      "#ebfbe7",
+      "#008e7d",
+      "#e5cf94"
+     ],
+     "id": "emerald"
+    },
+    {
+     "name": "Amethyst",
+     "dark": [
+      "#0c001c",
+      "#46067d",
+      "#a540bb",
+      "#d6d1ff",
+      "#27117a",
+      "#d080b6"
+     ],
+     "light": [
+      "#5d3881",
+      "#9a76d4",
+      "#e1afed",
+      "#f5f4ff",
+      "#6c6ecb",
+      "#f6bde2"
+     ],
+     "id": "amethyst"
+    },
+    {
+     "name": "Platinum",
+     "dark": [
+      "#01060e",
+      "#23364f",
+      "#597797",
+      "#ccdae4",
+      "#222d46",
+      "#86a4ae"
+     ],
+     "light": [
+      "#3e4f60",
+      "#7b8ea6",
+      "#b6c6d7",
+      "#f0f6fb",
+      "#6e7a94",
+      "#c1d5dc"
+     ],
+     "id": "platinum"
+    }
+   ],
+   "glsl": "// Velvet: draped satin. Two systems of folds cross: broad rounded bulges between narrow creases, lit from the top\n// left, so every fold carries a bright ridge, a long sheen and a deep crease; a warm rim light catches the far sides.\n// Palette: 0 crease shadow, 1 body, 2 lit cloth, 3 sheen, 4 colour in the creases, 5 rim light.\n// Options: x = motion (how far the cloth shifts), y = folds (broad to fine).\nconst float T = 48.0;\n\nfloat drape(vec2 q, float a, float m) {\n  float w = q.y * 0.8 + 0.5 * m * sin(q.x * 0.7 + a);\n  float u = q.x + 0.35 * sin(q.y * 1.1 + 0.4 * m * sin(a)) + 0.16 * m * sin(q.y * 2.3 - a + 1.0);\n  return 0.5 * sin(u * 2.6 + 0.8 * sin(w)) + 0.26 * sin(u * 4.7 - 0.6 * w + 1.3) + 0.1 * sin(u * 8.1 + q.y * 0.9 + 2.0 * a);\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float fd = mix(0.7, 1.4, u_opt.y);\n  vec2 q = rot(p, 0.5) * fd;\n  float e = 0.003;\n  float h0 = drape(q, a, m);\n  float hx = drape(q + vec2(e, 0.0), a, m);\n  float hy = drape(q + vec2(0.0, e), a, m);\n  vec2 gr = vec2(hx - h0, hy - h0) / e;\n  vec3 n = normalize(vec3(-gr * 0.4, 1.0));\n  vec3 L = normalize(vec3(-0.38, 0.42, 0.82));\n  float dif = dot(n, L);\n  vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));\n  float nh = max(dot(n, H), 0.0);\n  float spec = pow(nh, 48.0);\n  float sheen = pow(nh, 6.0);\n  float s = sat(dif * 0.95 + 0.18);\n  float crease = smoothstep(-0.2, -0.75, h0);\n  vec3 col = mix(u_pal[0], u_pal[1], smoothstep(0.05, 0.6, s));\n  col = mix(col, u_pal[2], smoothstep(0.55, 0.95, s));\n  col = mix(col, u_pal[4], 0.45 * crease * (1.0 - s));\n  col = mix(col, u_pal[3], sat(spec * 0.95 + sheen * 0.3));\n  float rim = pow(sat(dot(n.xy, normalize(vec2(0.85, -0.4))) * 2.2), 2.0);\n  col = mix(col, u_pal[5], rim * 0.35);\n  col.x *= 0.9 + 0.1 * smoothstep(2.0, 0.3, length(p - vec2(-0.5, 0.5)));\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "spectra",
+   "name": "Spectra",
+   "tier": "vibrant",
+   "period": 60,
+   "desc": "A glass prism turning in a white beam, its spectrum sweeping through the haze.",
+   "defaults": {
+    "pack": "daylight",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "bright",
+     "label": "Brightness",
+     "lo": "Dim",
+     "hi": "Bright",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Daylight",
+     "dark": [
+      "#030511",
+      "#050e25",
+      "#344868",
+      "#ff7e77",
+      "#9769dc",
+      "#fbf8f1"
+     ],
+     "light": [
+      "#edf0f7",
+      "#e0e5ef",
+      "#c3cfe2",
+      "#fb817a",
+      "#a17adf",
+      "#fffdfa"
+     ],
+     "id": "daylight"
+    },
+    {
+     "name": "Sunset",
+     "dark": [
+      "#07040f",
+      "#100a23",
+      "#5a3c57",
+      "#fe7b94",
+      "#8c8c00",
+      "#fef7f2"
+     ],
+     "light": [
+      "#f1eff6",
+      "#e4e3ee",
+      "#dac7d7",
+      "#f97f95",
+      "#989900",
+      "#fffdfb"
+     ],
+     "id": "sunset"
+    },
+    {
+     "name": "Ocean",
+     "dark": [
+      "#000710",
+      "#00121d",
+      "#1a4f5e",
+      "#51c672",
+      "#876fe4",
+      "#f1fbfb"
+     ],
+     "light": [
+      "#eaf1f6",
+      "#dbe7ed",
+      "#b9d3db",
+      "#5ac576",
+      "#927fe7",
+      "#fafeff"
+     ],
+     "id": "ocean"
+    },
+    {
+     "name": "Aurora",
+     "dark": [
+      "#030511",
+      "#0c0c24",
+      "#4d4063",
+      "#70c35d",
+      "#bd5ab6",
+      "#f2fbf9"
+     ],
+     "light": [
+      "#edf0f7",
+      "#e2e4ef",
+      "#d0cadf",
+      "#74c163",
+      "#c46dbd",
+      "#fafffd"
+     ],
+     "id": "aurora"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#04060c",
+      "#080f1b",
+      "#3d485a",
+      "#60bcc1",
+      "#9f73a9",
+      "#faf8f4"
+     ],
+     "light": [
+      "#eef0f4",
+      "#e1e5ea",
+      "#c8ced9",
+      "#66bbbf",
+      "#a982b2",
+      "#fefdfb"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Spectra: a glass prism turning a little in a beam of white light; the beam leaves it as a fan of spectrum that sweeps\n// slowly across the room, through a faint haze. In light mode it is the spectrum falling on a pale wall.\n// Palette: 0 background, 1 background low, 2 haze, 3 the spectrum's first colour, 4 its last colour (the fan runs from\n// 3 to 4 the long way round the hue circle), 5 the white of the beam.\n// Options: x = motion (how far the prism turns), y = brightness.\nconst float T = 60.0;\n\nfloat tri(vec2 q, float r, float rp) {\n  float d = -1e3;\n  for (int k = 0; k < 3; k++) {\n    float an = rp - 1.5707963 + float(k) * 2.0943951;\n    d = max(d, dot(q, vec2(cos(an), sin(an))));\n  }\n  return d - r * 0.5;\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float br = mix(0.55, 1.45, u_opt.y);\n  float h3 = atan(u_pal[3].z, u_pal[3].y);\n  float h4 = atan(u_pal[4].z, u_pal[4].y);\n  if (h4 < h3) h4 += TAU;\n  float Ls = 0.5 * (u_pal[3].x + u_pal[4].x);\n  float Cs = 0.5 * (length(u_pal[3].yz) + length(u_pal[4].yz));\n  vec2 P0 = vec2(-0.82, -0.1);\n  float rp = 0.07 * m * sin(a) + 0.025 * m * sin(2.0 * a + 1.0);\n  float R = 0.5;\n  float dt = tri(p - P0, R, rp);\n  float inside = smoothstep(u_px, -u_px, dt);\n\n  vec3 bg = mix(u_pal[1], u_pal[0], smoothstep(-1.1, 1.0, p.y + 0.25 * p.x));\n  vec3 bgLin = lab2lin(bg);\n  float vig = 1.0 - 0.35 * smoothstep(0.6, 2.2, length(p * vec2(0.75, 1.0)));\n  float haze = 0.78 + 0.22 * lnoise(p * 1.3, a, 0.35 * m);\n  vec3 wht = lab2lin(u_pal[5]);\n\n  // the white beam coming in from the left, stopping at the prism\n  vec2 dIn = normalize(vec2(1.0, 0.16 + 0.5 * rp));\n  vec2 B0 = P0 + vec2(-0.08, 0.03);\n  float along = dot(p - B0, dIn);\n  float across = dot(p - B0, vec2(-dIn.y, dIn.x));\n  float beam = (gauss(across, 0.016 + u_px) + 0.18 * gauss(across, 0.09)) * smoothstep(0.02, -0.04, along) * (1.0 - inside);\n\n  // the fan: angle about the exit point, s runs -1..1 across the spectrum\n  vec2 O = P0 + vec2(0.1, -0.03);\n  vec2 dv = p - O;\n  float r = length(dv);\n  float ang = atan(dv.y, dv.x);\n  float axis = -0.2 + 2.2 * rp;\n  float hw = 0.2 + 0.015 * m * sin(a + 2.0);\n  float s = (ang - axis) / hw;\n  float fanI = smoothstep(1.08, 0.62, abs(s)) * smoothstep(0.0, 0.35, r) * (1.0 - inside) / (1.0 + 0.35 * r);\n  fanI *= step(0.0, dv.x + 0.25);\n  vec3 sc = lab2lin(lch(Ls, Cs, mix(h4, h3, sat(s * 0.5 + 0.5))));\n  float s2 = (ang - axis + 0.62 + 1.2 * rp) / 0.12;\n  float fan2 = smoothstep(1.1, 0.4, abs(s2)) * smoothstep(0.0, 0.3, r) * (1.0 - inside) * 0.22 / (1.0 + 0.6 * r);\n  vec3 sc2 = lab2lin(lch(Ls, Cs * 0.8, mix(h3, h4, sat(s2 * 0.5 + 0.5))));\n  float halo = gauss(s, 1.25) * smoothstep(0.0, 0.5, r) * (1.0 - inside) * 0.07;\n\n  // the glass: a faint body, a bright rim on the faces toward the light, the light inside it\n  float rim = exp(-abs(dt) / (1.4 * u_px + 0.002));\n  vec2 nq = normalize(p - P0 + 1e-4);\n  float lit = 0.45 + 0.55 * sat(dot(nq, normalize(vec2(-0.6, 0.8))));\n  vec2 pq = p - P0;\n  float path = gauss(dot(pq, vec2(-dIn.y, dIn.x)) + 0.03 + 0.12 * sat(dot(pq, dIn) + 0.1), 0.035 + 0.06 * sat(dot(pq, dIn) + 0.15));\n  float inner = inside * (0.012 + 0.2 * path * smoothstep(-0.3, 0.05, dot(pq, dIn)));\n  float face = inside * gauss(dot(pq, normalize(vec2(-0.6, 0.8))) - 0.12, 0.12) * 0.06;\n  vec3 inTint = sc * inside * path * smoothstep(-0.05, 0.12, dot(pq, dIn)) * 0.35;\n\n  vec3 light = sc * fanI * haze + sc2 * fan2 + wht * (beam * 1.1 + halo * haze * 0.4);\n  vec3 dk = bgLin * vig * (1.0 - 0.3 * inside) + light * br + lab2lin(u_pal[2]) * haze * 0.05 + wht * (inner + face + rim * lit * 0.55) + inTint * br;\n  float shadow = smoothstep(0.12, -0.08, tri(p - P0 - vec2(0.07, -0.09), R, rp)) * (1.0 - inside);\n  vec3 lt = bgLin * (1.0 - 0.1 * shadow) * mix(1.0, vig, 0.4);\n  lt = mix(lt, sc * 1.05, sat(fanI * haze * 0.85 * br));\n  lt = mix(lt, sc2, sat(fan2 * 1.6 * br));\n  lt = mix(lt, wht, sat(beam * 0.9 + inner * 1.5 + rim * lit * 0.7));\n  lt = mix(lt, lab2lin(u_pal[2]), inside * 0.2);\n  return lin2srgb(shoulder(mix(lt, dk, u_dark)));\n}\n"
+  },
+  {
+   "id": "bloom",
+   "name": "Bloom",
+   "tier": "vibrant",
+   "period": 72,
+   "desc": "A flower made of light: two rings of translucent petals sway and breathe.",
+   "defaults": {
+    "pack": "peony",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.45
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "soft",
+     "label": "Softness",
+     "lo": "Crisp",
+     "hi": "Feathered",
+     "default": 0.45
+    }
+   ],
+   "packs": [
+    {
+     "name": "Peony",
+     "dark": [
+      "#0e010d",
+      "#210627",
+      "#ffa571",
+      "#db479a",
+      "#9260da",
+      "#fff0d7"
+     ],
+     "light": [
+      "#f8f1f7",
+      "#f0e3f3",
+      "#ffbd98",
+      "#ec84b7",
+      "#bd9ff2",
+      "#fffbf5"
+     ],
+     "id": "peony"
+    },
+    {
+     "name": "Lotus",
+     "dark": [
+      "#080214",
+      "#240522",
+      "#ff9f9f",
+      "#c851c1",
+      "#8267e2",
+      "#ffeee2"
+     ],
+     "light": [
+      "#f4f2fb",
+      "#f2e2f0",
+      "#ffb9b8",
+      "#dc89d5",
+      "#b0a4f8",
+      "#fffbf8"
+     ],
+     "id": "lotus"
+    },
+    {
+     "name": "Marigold",
+     "dark": [
+      "#070215",
+      "#210627",
+      "#e7b643",
+      "#e84c23",
+      "#d44567",
+      "#fcf2cd"
+     ],
+     "light": [
+      "#fbf1ed",
+      "#f8e2de",
+      "#efc876",
+      "#f5886c",
+      "#f290a0",
+      "#fffcf0"
+     ],
+     "id": "marigold"
+    },
+    {
+     "name": "Hydrangea",
+     "dark": [
+      "#010417",
+      "#00142d",
+      "#00d7e0",
+      "#6a77ff",
+      "#a15acf",
+      "#ccfdf9"
+     ],
+     "light": [
+      "#eff4fc",
+      "#dceaf8",
+      "#68e4ea",
+      "#92a3ff",
+      "#c89bea",
+      "#f2fffe"
+     ],
+     "id": "hydrangea"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#1d141c",
+      "#2b202e",
+      "#cca586",
+      "#a96f95",
+      "#7c75aa",
+      "#dfd6c7"
+     ],
+     "light": [
+      "#efecef",
+      "#e7e2e9",
+      "#e8c8af",
+      "#cfa4c0",
+      "#b7b3d9",
+      "#f7f3ed"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Bloom: a flower made of light. Two rings of long translucent petals, each with a luminous edge and a clear heart,\n// sway against each other and breathe; where petals cross, their light adds (dark) or they filter each other like\n// tinted glass (light).\n// Palette: 0 background, 1 background glow, 2 petal base, 3 petal tip, 4 inner ring, 5 the flower's core.\n// Options: x = motion (how far the petals sway), y = softness (how feathered their edges are).\nconst float T = 72.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float soft = mix(0.5, 1.8, u_opt.y);\n  vec2 c = vec2(0.3, -0.06) + orbit(a, 0.02 * m);\n  vec2 d = p - c;\n  float r = length(d);\n  float ang = atan(d.y, d.x);\n  vec3 bg = mix(u_pal[1], u_pal[0], smoothstep(0.1, 1.7, r));\n  vec3 bgLin = lab2lin(bg);\n  vec3 add = vec3(0.0);\n  vec3 filt = vec3(1.0);\n  float sect = TAU / 6.0;\n  for (int j = 0; j < 2; j++) {\n    float fj = float(j);\n    float spin = (fj * 2.0 - 1.0) * 0.16 * m * sin(a + fj * 1.7) + fj * sect * 0.5 + 0.25;\n    float len = (1.3 - 0.5 * fj) * (1.0 + 0.04 * m * sin(2.0 * a + fj * 2.0));\n    float wid = 0.42 - 0.12 * fj;\n    float k0 = floor((ang - spin) / sect + 0.5);\n    for (int k = 0; k < 3; k++) {\n      float pa = (k0 + float(k) - 1.0) * sect + spin;\n      vec2 q = rot(d, -pa);\n      float u = q.x / len;\n      float bend = 0.1 * sin(pa * 2.0 + a) * m;\n      float v0 = q.y - bend * u * u * len;\n      float prof = pow(sat(sin(3.14159265 * pow(sat(u), 0.8))), 0.6);\n      float w = wid * prof + 1e-3;\n      float v = abs(v0) / w;\n      float fe = 0.06 + 0.16 * soft;\n      float body = smoothstep(1.0, 1.0 - fe * 2.0, v) * step(0.0, u) * smoothstep(1.0, 0.94, u);\n      float edge = body * smoothstep(0.55, 0.98, v) + body * smoothstep(0.75, 0.98, u) * 0.6;\n      float vein = body * gauss(v0 / w, 0.1) * smoothstep(0.2, 0.7, u) * 0.0;\n      vec3 col = mix(u_pal[2], mix(u_pal[3], u_pal[4], fj), smoothstep(0.05, 0.95, u));\n      col = hueShift(col, 0.14 * sin(pa * 2.0 + fj * 1.3 + 0.4 * sin(a)));\n      vec3 cl = lab2lin(col);\n      float amt = body * (0.14 + 0.26 * u) + edge * 0.55 + vein;\n      add += cl * amt;\n      filt *= mix(vec3(1.0), cl, sat(body * (0.2 + 0.35 * u) + edge * 0.35 + vein * 0.5));\n    }\n  }\n  vec3 core = lab2lin(u_pal[5]) * (exp(-(r * r) / 0.006) * 0.9 + exp(-(r * r) / 0.06) * 0.3);\n  vec3 dk = bgLin + add + core;\n  vec3 lt = bgLin * filt + core * 0.3;\n  return lin2srgb(shoulder(mix(lt, dk, u_dark)));\n}\n"
+  },
+  {
+   "id": "nebula",
+   "name": "Nebula",
+   "tier": "vibrant",
+   "period": 90,
+   "desc": "Glowing gas folded by slow currents, crossed by dark dust and a few still stars.",
+   "defaults": {
+    "pack": "orion",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "density",
+     "label": "Density",
+     "lo": "Sparse",
+     "hi": "Dense",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Orion",
+     "dark": [
+      "#020210",
+      "#13062a",
+      "#c22990",
+      "#0096af",
+      "#df8f48",
+      "#fbe7ff"
+     ],
+     "light": [
+      "#f5f6fc",
+      "#ece9f8",
+      "#c6589c",
+      "#00a4bf",
+      "#d58b4b",
+      "#96719e"
+     ],
+     "id": "orion"
+    },
+    {
+     "name": "Crab",
+     "dark": [
+      "#000310",
+      "#001120",
+      "#d42515",
+      "#00999f",
+      "#cf9a35",
+      "#ffeade"
+     ],
+     "light": [
+      "#f4f7fc",
+      "#e0edf8",
+      "#d55948",
+      "#00a6ad",
+      "#c5953b",
+      "#a77254"
+     ],
+     "id": "crab"
+    },
+    {
+     "name": "Veil",
+     "dark": [
+      "#00040e",
+      "#00131a",
+      "#008681",
+      "#956ed2",
+      "#31be98",
+      "#c0fbfe"
+     ],
+     "light": [
+      "#f2f8fc",
+      "#ddeff5",
+      "#009a94",
+      "#9e80d1",
+      "#3bb693",
+      "#3b8f93"
+     ],
+     "id": "veil"
+    },
+    {
+     "name": "Carina",
+     "dark": [
+      "#03020f",
+      "#190425",
+      "#cf5500",
+      "#b761b1",
+      "#e1a447",
+      "#ffe9e2"
+     ],
+     "light": [
+      "#fcf5f4",
+      "#f8e6e8",
+      "#cf630d",
+      "#bb76b5",
+      "#c5953b",
+      "#aa705b"
+     ],
+     "id": "carina"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#020308",
+      "#0d0e1d",
+      "#8d6297",
+      "#5a8ea7",
+      "#c19c80",
+      "#f1ebfe"
+     ],
+     "light": [
+      "#f6f7f9",
+      "#eaebf1",
+      "#9a78a1",
+      "#7099ad",
+      "#b8977d",
+      "#837c93"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Nebula: glowing gas folded by slow currents, with dark dust lanes across it and a few quiet stars. In light mode the\n// same clouds read as pigment drifting in milk.\n// Palette: 0 deep space, 1 space glow, 2 gas, 3 second gas, 4 warm dust, 5 the bright heart.\n// Options: x = motion (how far the gas churns), y = density (how much of the sky it fills).\nconst float T = 90.0;\n\nfloat stars(vec2 p, float a) {\n  float sc = 26.0;\n  vec2 q = p * sc;\n  vec2 id = floor(q);\n  vec3 h = hash33(vec3(id, 1.9)) * 0.5 + 0.5;\n  vec2 c = id + 0.5 + (h.xy - 0.5) * 0.7;\n  float d = length(q - c) / sc;\n  float r = 0.8 * u_px;\n  float s = exp(-(d * d) / (r * r)) * step(0.87, h.z) * (h.z - 0.87) * 7.0;\n  float vis = sat((1.0 / sc) / u_px / 9.0 - 0.5);\n  return s * (0.75 + 0.25 * sin(a * 2.0 + h.y * TAU)) * vis;\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float den = mix(0.65, 1.4, u_opt.y);\n  vec3 q = vec3(p * 0.72, 0.0);\n  vec3 o1 = vec3(orbit(a, 0.2 * m), 0.25 * m * sin(a + 1.0));\n  vec2 w = vec2(fbm3(q + o1), fbm3(q + vec3(5.2, 1.3, 2.0) - o1.yxz));\n  vec3 q2 = vec3(p * 0.72 + w * 0.95, 0.5) + vec3(orbit(-a, 0.14 * m), 0.18 * m * cos(a));\n  float dn = fbm4(q2 * 1.4);\n  float lane = fbm3(q2 * 2.7 + vec3(7.0, 2.0, 1.0));\n  float e = smoothstep(-0.2, 0.55, dn * den + 0.12 * (den - 1.0) - 0.06 * length(p));\n  vec3 cl = mix(u_pal[2], u_pal[3], smoothstep(-0.35, 0.35, w.x - w.y));\n  cl = mix(cl, u_pal[4], smoothstep(0.12, 0.5, dn) * 0.45);\n  vec3 cLin = lab2lin(cl);\n  float dust = smoothstep(-0.02, 0.32, lane) * e;\n  vec3 bgLin = lab2lin(mix(u_pal[0], u_pal[1], smoothstep(-0.3, 0.6, w.y + 0.2 * e)));\n  vec3 em = cLin * e * (1.0 - 0.6 * dust) * 1.05 + lab2lin(u_pal[5]) * pow(e, 3.0) * (1.0 - dust) * 0.4;\n  vec3 dk = bgLin + em + vec3(stars(p, a)) * (1.0 - e * 0.8);\n  vec3 ab = -log(max(cLin, vec3(0.03))) * 0.55;\n  vec3 lt = bgLin * exp(-ab * e * (1.6 + 0.6 * dust)) ;\n  lt = mix(lt, lab2lin(u_pal[5]), pow(e, 3.0) * 0.25);\n  return lin2srgb(shoulder(mix(lt, dk, u_dark)));\n}\n"
+  },
+  {
+   "id": "lagoon",
+   "name": "Lagoon",
+   "tier": "vibrant",
+   "period": 40,
+   "desc": "Sunlight focused by moving water onto a shallow floor, each line edged with colour.",
+   "defaults": {
+    "pack": "atoll",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.65
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "clarity",
+     "label": "Clarity",
+     "lo": "Soft",
+     "hi": "Sharp",
+     "default": 0.65
+    }
+   ],
+   "packs": [
+    {
+     "name": "Atoll",
+     "dark": [
+      "#003249",
+      "#007979",
+      "#937d4e",
+      "#d7fff9",
+      "#00172d",
+      "#fffced"
+     ],
+     "light": [
+      "#3590bf",
+      "#7fdddd",
+      "#eddcb9",
+      "#f2fffd",
+      "#47769d",
+      "#ffffff"
+     ],
+     "id": "atoll"
+    },
+    {
+     "name": "Reef",
+     "dark": [
+      "#00343f",
+      "#007b66",
+      "#9f7655",
+      "#dcffeb",
+      "#001925",
+      "#fffcf2"
+     ],
+     "light": [
+      "#0096af",
+      "#88dec7",
+      "#f8d7be",
+      "#f4fff8",
+      "#397a97",
+      "#ffffff"
+     ],
+     "id": "reef"
+    },
+    {
+     "name": "Grotto",
+     "dark": [
+      "#003634",
+      "#007c59",
+      "#7b8756",
+      "#dfffe4",
+      "#001a1f",
+      "#fafeef"
+     ],
+     "light": [
+      "#009a94",
+      "#91debc",
+      "#d9e3bf",
+      "#f5fff6",
+      "#2c7e8b",
+      "#ffffff"
+     ],
+     "id": "grotto"
+    },
+    {
+     "name": "Moonpool",
+     "dark": [
+      "#0f2669",
+      "#1f6cb0",
+      "#707eab",
+      "#e7f9ff",
+      "#110e39",
+      "#f9fcff"
+     ],
+     "light": [
+      "#6584c9",
+      "#a2cfff",
+      "#d1ddff",
+      "#f7fdff",
+      "#686ca0",
+      "#ffffff"
+     ],
+     "id": "moonpool"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#043342",
+      "#3c7379",
+      "#8a7f6b",
+      "#e1fbfc",
+      "#041824",
+      "#fdfcf5"
+     ],
+     "light": [
+      "#668d9d",
+      "#add3d7",
+      "#e6ddce",
+      "#f3ffff",
+      "#5d7584",
+      "#ffffff"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Lagoon: sunlight focused by moving water onto a shallow floor. The caustic net is computed from the water surface\n// itself: the surface is a sum of travelling waves whose speeds are whole multiples of the loop, its curvature is exact,\n// and where the refracted light converges the floor brightens. It is done once per colour channel at slightly\n// different focal depths, so each line carries a faint rainbow edge.\n// Palette: 0 deep water, 1 shallow water, 2 sand, 3 caustic light, 4 shade, 5 sparkle.\n// Options: x = motion (how strongly the water moves), y = clarity (how sharp the light lines are).\nconst float T = 40.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.5, 1.4, u_opt.x);\n  float clar = mix(0.2, 1.0, u_opt.y);\n  vec2 x = p + 0.06 * m * vec2(lnoise(p * 0.8, a, 0.3), lnoise(p * 0.8 + 4.0, a, 0.3));\n  x.y *= 1.12;\n  float hxx = 0.0;\n  float hyy = 0.0;\n  float hxy = 0.0;\n  for (int i = 0; i < 7; i++) {\n    float f = float(i);\n    float an = f * 2.39996 + 0.3;\n    float kk = 10.5 + 3.0 * sin(f * 1.7 + 0.4);\n    vec2 k = vec2(cos(an), sin(an)) * kk;\n    float sg = mod(f, 2.0) < 0.5 ? 1.0 : -1.0;\n    float n = sg * (1.0 + floor(f / 3.0));\n    float A = 0.3 / (kk * kk) * (0.7 + 0.3 * m) * (1.0 - 0.06 * f);\n    float s = -A * sin(dot(k, x) + n * a + f * 1.3);\n    hxx += s * k.x * k.x;\n    hyy += s * k.y * k.y;\n    hxy += s * k.x * k.y;\n  }\n  float tr = hxx + hyy;\n  float det = hxx * hyy - hxy * hxy;\n  vec3 z = vec3(0.95, 1.0, 1.06) * 2.3;\n  vec3 J = 1.0 + z * tr + z * z * det;\n  float eps = mix(0.35, 0.06, clar);\n  vec3 I = (1.0 + eps) / (abs(J) + eps);\n  I = max(pow(I, vec3(1.2)) - 0.8, vec3(0.0));\n\n  float depth = smoothstep(-1.3, 1.3, p.y * 0.85 - p.x * 0.3);\n  vec3 water = mix(u_pal[1], u_pal[0], depth);\n  water = mix(water, u_pal[2], mix(0.25, 0.08, u_dark) * (1.0 - depth));\n  vec3 base = lab2lin(water);\n  vec3 cl = lab2lin(u_pal[3]);\n  vec3 lin = base * 0.78 + cl * I * mix(0.16, 0.22, u_dark) * (1.0 - 0.45 * depth);\n  float lum = dot(I, vec3(0.3, 0.5, 0.2));\n  lin += lab2lin(u_pal[5]) * pow(max(lum - 3.0, 0.0), 2.0) * 0.02;\n  lin = mix(lin, lab2lin(u_pal[4]), 0.3 * smoothstep(0.6, 2.0, length(p * vec2(0.7, 1.0))));\n  return lin2srgb(shoulder(lin));\n}\n"
+  },
+  {
+   "id": "iris",
+   "name": "Iris",
+   "tier": "vibrant",
+   "period": 50,
+   "desc": "A soap film turning slowly, its colours true thin-film interference.",
+   "defaults": {
+    "pack": "bubble",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.45
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "thickness",
+     "label": "Thickness",
+     "lo": "Broad",
+     "hi": "Fine",
+     "default": 0.45
+    }
+   ],
+   "packs": [
+    {
+     "name": "Bubble",
+     "dark": [
+      "#03040b",
+      "#0b1628",
+      "#d14ba0",
+      "#00a4bf",
+      "#e9ab2b",
+      "#fef7f2"
+     ],
+     "light": [
+      "#eff2f9",
+      "#e0e8f6",
+      "#f1a1ce",
+      "#7bd3e9",
+      "#fad18a",
+      "#ffffff"
+     ],
+     "id": "bubble"
+    },
+    {
+     "name": "Opal",
+     "dark": [
+      "#01050b",
+      "#031826",
+      "#e14660",
+      "#00aa8e",
+      "#efa831",
+      "#fef7f2"
+     ],
+     "light": [
+      "#edf2f8",
+      "#dceaf4",
+      "#fca0a7",
+      "#82d8c1",
+      "#fece8c",
+      "#ffffff"
+     ],
+     "id": "opal"
+    },
+    {
+     "name": "Oil Slick",
+     "dark": [
+      "#04030b",
+      "#12132a",
+      "#bd4cd5",
+      "#1599ed",
+      "#76d162",
+      "#fff7f1"
+     ],
+     "light": [
+      "#f1f1f9",
+      "#e4e7f8",
+      "#e2a2f0",
+      "#8ecbff",
+      "#afeba2",
+      "#ffffff"
+     ],
+     "id": "oil-slick"
+    },
+    {
+     "name": "Frost",
+     "dark": [
+      "#01050a",
+      "#001924",
+      "#886bee",
+      "#00a5b3",
+      "#00d4bb",
+      "#f2fafd"
+     ],
+     "light": [
+      "#ecf3f8",
+      "#dbebf2",
+      "#bcb2ff",
+      "#78d5e0",
+      "#88edda",
+      "#ffffff"
+     ],
+     "id": "frost"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#030407",
+      "#0f171f",
+      "#a771a1",
+      "#5d9dad",
+      "#c6b780",
+      "#fbf8f5"
+     ],
+     "light": [
+      "#f0f2f5",
+      "#e3e8ee",
+      "#d3b1cf",
+      "#a4ccd6",
+      "#e2d8b3",
+      "#ffffff"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Iris: an iridescent film turning slowly. Its thickness field swirls and drains (thicker toward the bottom), and the\n// thickness sets the colour the way interference does: a cycle through the pack's three film colours, with a darker\n// trough between bands, so it reads as a soap film or a holographic foil rather than a gradient.\n// Palette: 0 backdrop, 1 backdrop glow, 2 first film colour, 3 second, 4 third, 5 highlight.\n// Options: x = motion (how far the film swirls), y = bands (broad to fine).\nconst float T = 50.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float th = mix(0.6, 1.6, u_opt.y);\n  vec2 c = vec2(0.25, 0.1);\n  vec2 d = p - c;\n  float r = length(d);\n  vec2 q = rot(d, 1.1 * m * sin(a) * exp(-r * 0.9) + 0.3 * m * sin(a + r * 1.6));\n  float n = gnoise(vec3(q * 0.7, 0.0) + vec3(orbit(a, 0.16 * m), 0.18 * m * sin(a + 2.0))) + 0.3 * gnoise(vec3(q * 1.5 + 2.0, 1.0) + vec3(orbit(-a, 0.12 * m), 0.0));\n  float dd = (1.2 * n + 1.1 * sat(0.6 - q.y * 0.4) + 0.2 * sin(q.x * 2.0 + n * 3.0)) * th * 1.15;\n  float ph = dd * TAU;\n  float w0 = pow(0.5 + 0.5 * cos(ph), 2.0);\n  float w1 = pow(0.5 + 0.5 * cos(ph - 2.0943951), 2.0);\n  float w2 = pow(0.5 + 0.5 * cos(ph - 4.1887902), 2.0);\n  vec3 fc = (u_pal[2] * w0 + u_pal[3] * w1 + u_pal[4] * w2) / (w0 + w1 + w2);\n  float trough = 0.5 + 0.5 * cos(ph * 1.5 + 1.0);\n  float view = dot(normalize(d + 1e-4), normalize(vec2(-0.6, 0.8)));\n  fc = hueShift(fc, 0.35 * view * (0.6 + 0.4 * sin(a)));\n  float lightAmt = 0.5 + 0.5 * smoothstep(1.9, 0.1, length(p - vec2(-0.3, 0.4)));\n  vec3 bgLin = lab2lin(mix(u_pal[0], u_pal[1], smoothstep(1.5, 0.0, r)));\n  vec3 hl = lab2lin(u_pal[5]) * (gauss(length(p - vec2(-0.6, 0.52)), 0.32) * 0.2 + gauss(length(p - vec2(-0.64, 0.56)), 0.05) * 0.3);\n  vec3 dkc = vec3(fc.x * (0.55 + 0.4 * trough), fc.yz * (0.45 + 0.55 * trough));\n  vec3 dk = bgLin * 0.6 + lab2lin(dkc) * lightAmt * 0.85 + hl;\n  vec3 ltc = vec3(mix(0.8, fc.x, 0.6) * (0.92 + 0.08 * trough), fc.yz * (0.7 + 0.3 * trough));\n  vec3 lt = mix(bgLin, lab2lin(ltc), 0.85) + hl * 0.3;\n  return lin2srgb(shoulder(mix(lt, dk, u_dark)));\n}\n"
+  },
+  {
+   "id": "dunes",
+   "name": "Dunes",
+   "tier": "balanced",
+   "period": 60,
+   "desc": "Ridge after ridge of sand under a low sun; the light slides across the faces.",
+   "defaults": {
+    "pack": "sahara",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.6
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "ripples",
+     "label": "Ripples",
+     "lo": "None",
+     "hi": "Fine",
+     "default": 0.6
+    }
+   ],
+   "packs": [
+    {
+     "name": "Sahara",
+     "dark": [
+      "#171c3b",
+      "#914f2f",
+      "#653c62",
+      "#bf7946",
+      "#3d1f49",
+      "#ffd7a0"
+     ],
+     "light": [
+      "#c7cff3",
+      "#ffe1d3",
+      "#e5c6e1",
+      "#fec7a2",
+      "#ab8abb",
+      "#fff7ed"
+     ],
+     "id": "sahara"
+    },
+    {
+     "name": "Rose Dusk",
+     "dark": [
+      "#1f1939",
+      "#934956",
+      "#6a3b5b",
+      "#c67164",
+      "#34234f",
+      "#ffd4bc"
+     ],
+     "light": [
+      "#d0ccf0",
+      "#ffdee2",
+      "#e9c5db",
+      "#ffc4b9",
+      "#a08dc3",
+      "#fff6f2"
+     ],
+     "id": "rose-dusk"
+    },
+    {
+     "name": "Mars",
+     "dark": [
+      "#1d1a3a",
+      "#ad4b47",
+      "#6e446a",
+      "#e87c56",
+      "#561d40",
+      "#ffd4b8"
+     ],
+     "light": [
+      "#f0c5c3",
+      "#ffe0d6",
+      "#f0c5c1",
+      "#ffc5ac",
+      "#c4848d",
+      "#fff7f0"
+     ],
+     "id": "mars"
+    },
+    {
+     "name": "Moonlit",
+     "dark": [
+      "#181f2e",
+      "#4d667f",
+      "#404e63",
+      "#6e91ab",
+      "#282c42",
+      "#bde5f9"
+     ],
+     "light": [
+      "#c9d1e2",
+      "#dceaf8",
+      "#c8d2e2",
+      "#bdd8ec",
+      "#9197b2",
+      "#f1faff"
+     ],
+     "id": "moonlit"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#272b38",
+      "#755e4c",
+      "#5a4c5d",
+      "#987e69",
+      "#3a3446",
+      "#d2c2a8"
+     ],
+     "light": [
+      "#ccd1df",
+      "#eee1d7",
+      "#d7cdda",
+      "#e4cfbf",
+      "#a69fb5",
+      "#f8f0e2"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Dunes: ridge after ridge of sand under a low sun. The far ridges fade into the haze, the near ones carry a lit face,\n// a shadowed lee and fine wind ripples; as the sun swings a little, the light slides across the faces and the ripples\n// creep.\n// Palette: 0 zenith, 1 horizon, 2 far haze, 3 lit sand, 4 shadowed sand, 5 sun and crest light.\n// Options: x = motion (how far the sun swings and the sand drifts), y = ripples.\nconst float T = 60.0;\n\nfloat ridge(float x, float k) {\n  return 0.55 * sin(x + 0.35 * sin(2.0 * x + k)) + 0.28 * sin(2.3 * x + 1.0 + k) + 0.1 * sin(4.7 * x + 2.0 * k);\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float rip = u_opt.y;\n  float sunX = 0.65 + 0.22 * m * sin(a);\n  vec2 sun = vec2(sunX, 0.28 + 0.04 * m * cos(a));\n  vec3 col = mix(u_pal[1], u_pal[0], smoothstep(-0.05, 1.0, p.y));\n  float sg = length(p - sun);\n  col = mix(col, u_pal[5], exp(-(sg * sg) / 0.03) * 0.75 + exp(-(sg * sg) / 0.35) * 0.25);\n  for (int i = 0; i < 5; i++) {\n    float f = float(i);\n    float fk = f / 4.0;\n    float sc = 1.0 + 0.45 * f;\n    float x = p.x * sc + f * 2.3 + 0.06 * m * sin(a + f);\n    float A = 0.07 + 0.05 * f;\n    float y = 0.12 - 0.27 * f + A * ridge(x, f);\n    float e = 0.003;\n    float slope = A * (ridge(x + e, f) - ridge(x, f)) / e * sc;\n    float dd = y - p.y;\n    float cov = smoothstep(-u_px * 1.2, u_px * 1.2, dd);\n    float lit = smoothstep(-0.55, 0.45, -slope + 0.14 * m * sin(a + f * 0.7) + 0.05);\n    float litE = mix(lit, 0.42 + 0.2 * lit, smoothstep(0.02, 0.3, dd));\n    vec3 lc = mix(u_pal[4], u_pal[3], litE);\n    lc = mix(u_pal[2], lc, 0.35 + 0.65 * fk);\n    float crest = exp(-max(dd, 0.0) / (0.006 + 0.004 * f)) * lit;\n    lc = mix(lc, u_pal[5], crest * (0.25 + 0.3 * fk));\n    lc.x *= 1.0 - (0.1 + 0.08 * fk) * smoothstep(0.0, 0.45, dd);\n    float rf = 34.0 + 10.0 * f;\n    float rv = sin(dd * rf + p.x * 3.0 + 0.6 * sin(p.x * 2.1 + f) + a);\n    float fade = sat(1.0 - rf * u_px * 3.0) * fk * fk * rip;\n    lc.x += 0.03 * rv * fade * (0.5 + 0.5 * lit);\n    col = mix(col, lc, cov);\n  }\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "tides",
+   "name": "Tides",
+   "tier": "balanced",
+   "period": 45,
+   "desc": "Five broad waves of colour laid one over another, rolling slowly.",
+   "defaults": {
+    "pack": "sonoma",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.55
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "depth",
+     "label": "Depth",
+     "lo": "Flat",
+     "hi": "Deep",
+     "default": 0.55
+    }
+   ],
+   "packs": [
+    {
+     "name": "Sonoma",
+     "dark": [
+      "#00203f",
+      "#00384d",
+      "#005860",
+      "#00826b",
+      "#60a563",
+      "#bfeff2"
+     ],
+     "light": [
+      "#cbe1f8",
+      "#9bd4f0",
+      "#6bc8d3",
+      "#57b9a1",
+      "#65a467",
+      "#e6feff"
+     ],
+     "id": "sonoma"
+    },
+    {
+     "name": "Coral",
+     "dark": [
+      "#1d1743",
+      "#4b1f65",
+      "#8d2a73",
+      "#ca4a67",
+      "#e6775b",
+      "#ffdbd5"
+     ],
+     "light": [
+      "#e2d9f5",
+      "#e5bbe1",
+      "#e6a0ba",
+      "#dc8b8b",
+      "#ca7b57",
+      "#fff6f4"
+     ],
+     "id": "coral"
+    },
+    {
+     "name": "Dusk",
+     "dark": [
+      "#111a45",
+      "#342466",
+      "#6b3078",
+      "#a44b79",
+      "#d2736c",
+      "#ffdcd0"
+     ],
+     "light": [
+      "#d3ddf9",
+      "#c9c3f6",
+      "#d1a5db",
+      "#d48aad",
+      "#cd7670",
+      "#fff6f3"
+     ],
+     "id": "dusk"
+    },
+    {
+     "name": "Glacier",
+     "dark": [
+      "#001e44",
+      "#003755",
+      "#00566e",
+      "#007d8d",
+      "#00a7a7",
+      "#c1edfc"
+     ],
+     "light": [
+      "#cde0f9",
+      "#a1d1f4",
+      "#74c4e3",
+      "#4ab6c7",
+      "#12a7a7",
+      "#effbff"
+     ],
+     "id": "glacier"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#1f2e3e",
+      "#234054",
+      "#2a596b",
+      "#41777d",
+      "#63958e",
+      "#bacfd2"
+     ],
+     "light": [
+      "#d0dae4",
+      "#b7ccdc",
+      "#9fc0cd",
+      "#8ab3b8",
+      "#79a69f",
+      "#e4f0f2"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Tides: five broad waves of colour stacked across the window, each laid over the one behind with a soft shadow under\n// its edge and a bright lip along its crest, rolling slowly, in the manner of the layered macOS wallpapers.\n// Palette: 0 the farthest wave, 1 to 4 the waves toward the front, 5 crest light.\n// Options: x = motion (how far the waves roll), y = depth (how strong the shadows are).\nconst float T = 45.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float depth = mix(0.35, 1.4, u_opt.y);\n  vec2 dir = normalize(vec2(0.36, 1.0));\n  float u = dot(p, dir);\n  float v = dot(p, vec2(dir.y, -dir.x));\n  vec3 col = setL(u_pal[0], u_pal[0].x + 0.03 + 0.04 * (1.0 - u_dark));\n  col = mix(col, u_pal[5], 0.12 * smoothstep(0.4, 1.4, u));\n  for (int k = 0; k < 5; k++) {\n    float f = float(k);\n    float e = 0.92 - 0.42 * f + (0.13 * sin(v * 1.15 + f * 1.9 + a) + 0.05 * sin(v * 2.5 - f + 2.0 * a)) * (0.55 + 0.45 * m)\n            + 0.05 * m * lnoise(vec2(v * 0.6, f * 3.0), a, 0.4);\n    float dd = e - u;\n    float cov = smoothstep(-u_px, u_px, dd);\n    float sh = exp(-max(-dd, 0.0) / 0.1) * (1.0 - cov) * 0.16 * depth;\n    col.x -= sh * mix(0.6, 1.0, u_dark);\n    vec3 lc = mix(u_pal[k], u_pal[k + 1], smoothstep(-1.6, 1.8, v) * 0.55);\n    float crest = exp(-max(dd, 0.0) / 0.018) * cov;\n    lc.x += 0.07 * crest - 0.06 * smoothstep(0.0, 0.42, dd);\n    lc = mix(lc, u_pal[5], crest * 0.18);\n    col = mix(col, lc, cov);\n  }\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "afterglow",
+   "name": "Afterglow",
+   "tier": "balanced",
+   "period": 36,
+   "desc": "Warm light leaking in at the edges, as on a roll of film, swelling and fading.",
+   "defaults": {
+    "pack": "amber",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.55
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "intensity",
+     "label": "Intensity",
+     "lo": "Faint",
+     "hi": "Strong",
+     "default": 0.55
+    }
+   ],
+   "packs": [
+    {
+     "name": "Amber",
+     "dark": [
+      "#0e0d1e",
+      "#211731",
+      "#f58e02",
+      "#de5300",
+      "#006d91",
+      "#ffe9bb"
+     ],
+     "light": [
+      "#f8ebe9",
+      "#f4dfd8",
+      "#ef8600",
+      "#e24947",
+      "#71bcdf",
+      "#fada99"
+     ],
+     "id": "amber"
+    },
+    {
+     "name": "Rose",
+     "dark": [
+      "#0f0c1d",
+      "#221630",
+      "#ff847d",
+      "#e64887",
+      "#32669a",
+      "#ffe5d7"
+     ],
+     "light": [
+      "#f7ebf0",
+      "#f4dee4",
+      "#fd7277",
+      "#d8488c",
+      "#85b6e9",
+      "#ffd4bc"
+     ],
+     "id": "rose"
+    },
+    {
+     "name": "Magenta",
+     "dark": [
+      "#160a19",
+      "#2a1328",
+      "#e96cad",
+      "#b139ab",
+      "#007176",
+      "#ffe4df"
+     ],
+     "light": [
+      "#f3ebf5",
+      "#efdfed",
+      "#f072b3",
+      "#c252bb",
+      "#64c3c8",
+      "#ffd2ca"
+     ],
+     "id": "magenta"
+    },
+    {
+     "name": "Teal Leak",
+     "dark": [
+      "#00131a",
+      "#002228",
+      "#00b6af",
+      "#00896a",
+      "#944b40",
+      "#e4f4b8"
+     ],
+     "light": [
+      "#e4f1f5",
+      "#d3eaee",
+      "#00bdb6",
+      "#009d7b",
+      "#e59c8f",
+      "#d6e7a4"
+     ],
+     "id": "teal-leak"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#0c0f16",
+      "#1b1c27",
+      "#c2936e",
+      "#a35f55",
+      "#486878",
+      "#f8e9d1"
+     ],
+     "light": [
+      "#f3edeb",
+      "#ebe3de",
+      "#c99a74",
+      "#b47267",
+      "#98b6c6",
+      "#ecdcc1"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Afterglow: warm light leaking into the frame, as at the edge of a roll of film: wide soft flares that slide along the\n// edges, swell and fade, with a hot core and a faint streak, over a quiet dark (or paper-pale) ground.\n// Palette: 0 ground, 1 ground glow, 2 warm leak, 3 hot leak, 4 cool counter-light, 5 the hot core.\n// Options: x = motion (how far the leaks travel), y = intensity.\nconst float T = 36.0;\n\nvec2 leak(vec2 p, vec2 c, vec2 s, float b) {\n  vec2 d = (p - c) / s;\n  float q = dot(d, d);\n  return vec2(exp(-q), exp(-q * 5.0)) * b;\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float k = mix(0.45, 1.35, u_opt.y);\n  vec3 ground = mix(u_pal[0], u_pal[1], smoothstep(-1.4, 1.4, p.x * 0.5 - p.y * 0.7));\n  vec3 lin = lab2lin(ground);\n  vec2 l1 = leak(p, vec2(-1.75, 0.25 + 0.45 * m * sin(a)), vec2(0.75, 1.3), 0.6 + 0.4 * cos(a + 0.5));\n  vec2 l2 = leak(p, vec2(1.0 + 0.35 * m * cos(a + 1.0), 1.25), vec2(1.2, 0.55), 0.5 + 0.4 * cos(a + 2.6));\n  vec2 l3 = leak(p, vec2(0.3 + 0.55 * m * sin(a + 2.0), -1.3), vec2(1.1, 0.5), 0.45 + 0.35 * cos(a + 4.2));\n  vec2 l4 = leak(p, vec2(1.75, -0.45 + 0.3 * m * cos(a + 3.0)), vec2(0.5, 0.9), 0.25 + 0.2 * cos(a + 1.3));\n  float sx = -1.05 + 0.3 * m * sin(a + 0.7);\n  float streak = gauss(p.x - sx - 0.12 * p.y, 0.09) * (0.15 + 0.1 * cos(a * 2.0)) * smoothstep(1.3, -0.2, abs(p.y - 0.1));\n  vec3 cw = lab2lin(u_pal[2]);\n  vec3 ch = lab2lin(u_pal[3]);\n  vec3 cc = lab2lin(u_pal[4]);\n  vec3 c5 = lab2lin(u_pal[5]);\n  vec3 L = cw * (l1.x + l3.x * 0.8) + ch * (l1.x * l1.x + l2.x) * 0.8 + cc * l4.x + c5 * (l1.y + l2.y * 0.7 + l3.y * 0.5) + cw * streak;\n  L *= k;\n  // dark: light added to film, its faint tails falling off faster than its core, so the ground stays clean between leaks\n  vec3 dk = 1.0 - (1.0 - lin) * exp(-(L * 0.9 + L * L * 1.1));\n  float wsum = l1.x + l2.x + l3.x + l4.x + streak;\n  // light mode: the leaks are coloured light laid over paper, so their colour shows as a wash, deepest at the edge of\n  // the frame, with a lighter hot core: visibly colourful, still soft\n  float al = 1.0 - exp(-wsum * k * 4.2);\n  vec3 Lc = cw * (l1.x + l3.x * 0.8 + streak) + ch * (l1.x * l1.x + l2.x) * 0.8 + cc * l4.x;\n  vec3 avg = Lc / max(l1.x * (1.8 + l1.x * 0.8) + l2.x * 0.8 + l3.x * 0.8 + l4.x + streak, 1e-3);\n  vec3 lt = mix(lin, avg, al * 0.94);\n  lt = mix(lt, c5, sat((l1.y + l2.y * 0.7 + l3.y * 0.5) * k * 0.55));\n  return lin2srgb(shoulder(mix(lt, dk, u_dark)));\n}\n"
+  },
+  {
+   "id": "inkwell",
+   "name": "Inkwell",
+   "tier": "balanced",
+   "period": 60,
+   "desc": "Two inks dropped into still water, billowing into fine tendrils.",
+   "defaults": {
+    "pack": "indigo-and-vermilion",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "density",
+     "label": "Density",
+     "lo": "Veils",
+     "hi": "Plumes",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Indigo and Vermilion",
+     "dark": [
+      "#030c17",
+      "#031826",
+      "#4c66d3",
+      "#e75c3a",
+      "#e5b28a",
+      "#fdecd1"
+     ],
+     "light": [
+      "#f0f6fc",
+      "#e3edf4",
+      "#3549ac",
+      "#d25030",
+      "#dbb597",
+      "#fffbf5"
+     ],
+     "id": "indigo-and-vermilion"
+    },
+    {
+     "name": "Teal and Rose",
+     "dark": [
+      "#000e14",
+      "#001a1f",
+      "#008283",
+      "#e2568b",
+      "#e5b28a",
+      "#fdecd1"
+     ],
+     "light": [
+      "#eef7fa",
+      "#e0eef1",
+      "#006262",
+      "#cc4a7c",
+      "#dbb597",
+      "#fffbf5"
+     ],
+     "id": "teal-and-rose"
+    },
+    {
+     "name": "Violet and Gold",
+     "dark": [
+      "#090917",
+      "#0f1528",
+      "#8254c4",
+      "#bf8100",
+      "#e5b28a",
+      "#f9eed1"
+     ],
+     "light": [
+      "#f3f4fc",
+      "#e7ebf6",
+      "#65389f",
+      "#ac7300",
+      "#dbb597",
+      "#fffcf2"
+     ],
+     "id": "violet-and-gold"
+    },
+    {
+     "name": "Sumi",
+     "dark": [
+      "#090b0f",
+      "#12171b",
+      "#5b748f",
+      "#6a97a6",
+      "#b0c0cc",
+      "#f3eee6"
+     ],
+     "light": [
+      "#f4f5f7",
+      "#e9ebee",
+      "#41586f",
+      "#5d8895",
+      "#b4c0c8",
+      "#fefbf7"
+     ],
+     "id": "sumi"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#060c11",
+      "#0c181d",
+      "#5970a4",
+      "#c07a6e",
+      "#d2b8a5",
+      "#f6ede0"
+     ],
+     "light": [
+      "#f2f6f8",
+      "#e6ecef",
+      "#3f5482",
+      "#ad6c62",
+      "#cdbaab",
+      "#fffbf5"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Inkwell: two inks dropped into still water, billowing and unfurling into fine tendrils. In light mode the ink absorbs\n// light as real ink does in clear water (Beer-Lambert): thin veils stay pale and dense plumes go deep. In dark mode the\n// same clouds glow, lit from the side.\n// Palette: 0 water, 1 water glow, 2 first ink, 3 second ink, 4 where the inks scatter light, 5 light through the water.\n// Options: x = motion (how far the ink unfurls), y = density.\nconst float T = 60.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float den = mix(0.55, 1.45, u_opt.y);\n  vec3 o = vec3(orbit(a, 0.22 * m), 0.28 * m * sin(a + 1.0));\n  vec2 w = vec2(fbm3(vec3(p * 0.8, 0.0) + o), fbm3(vec3(p * 0.8 + 3.3, 1.0) - o.yxz));\n  vec2 q = p + 0.6 * w;\n  float f = fbm4(vec3(q * 1.5, 2.0) + o * 0.6);\n  float fil = 1.0 - abs(gnoise(vec3(q * 3.4, 4.0) + o * 0.5));\n  fil = fil * fil * fil;\n  float eA = sat(1.0 - length((q - vec2(-0.55, 0.3)) * vec2(0.8, 0.62)));\n  float eB = sat(1.0 - length((q - vec2(0.75, -0.25)) * vec2(0.75, 0.7)));\n  float dA = eA * eA * sat(f * 1.6 + 0.45) * (0.55 + 0.7 * fil) * den;\n  float dB = eB * eB * sat(-f * 1.4 + 0.45) * (0.55 + 0.7 * fil) * den;\n  vec3 water = lab2lin(mix(u_pal[0], u_pal[1], smoothstep(-1.4, 1.2, p.y + 0.3 * p.x)));\n  vec3 iA = lab2lin(u_pal[2]);\n  vec3 iB = lab2lin(u_pal[3]);\n  vec3 abA = -log(max(iA, vec3(0.015)));\n  vec3 abB = -log(max(iB, vec3(0.015)));\n  vec3 lt = water * exp(-(abA * dA + abB * dB) * 1.5);\n  lt += lab2lin(u_pal[5]) * 0.05 * smoothstep(0.8, -1.2, p.y - p.x * 0.4);\n  vec3 glow = iA * dA + iB * dB;\n  vec3 dk = water * exp(-(abA * dA + abB * dB) * 0.35) + glow * 0.9 + lab2lin(u_pal[4]) * pow(sat(dA + dB), 2.0) * fil * 0.25;\n  return lin2srgb(shoulder(mix(lt, dk, u_dark)));\n}\n"
+  },
+  {
+   "id": "fluted",
+   "name": "Fluted",
+   "tier": "balanced",
+   "period": 48,
+   "desc": "Colour drifting behind a pane of reeded glass; the glass stays still.",
+   "defaults": {
+    "pack": "sorbet",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.4
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "reeds",
+     "label": "Reeds",
+     "lo": "Fine",
+     "hi": "Wide",
+     "default": 0.4
+    }
+   ],
+   "packs": [
+    {
+     "name": "Sorbet",
+     "dark": [
+      "#2b294b",
+      "#c4488b",
+      "#cb3537",
+      "#df7a22",
+      "#6d2c7b",
+      "#fbe9ee"
+     ],
+     "light": [
+      "#d6d4f1",
+      "#ed9ac1",
+      "#ed8d7d",
+      "#f1c189",
+      "#bf85cd",
+      "#fffafb"
+     ],
+     "id": "sorbet"
+    },
+    {
+     "name": "Lagoon",
+     "dark": [
+      "#0a3149",
+      "#008287",
+      "#006e55",
+      "#0093c2",
+      "#264698",
+      "#fbe9ee"
+     ],
+     "light": [
+      "#c1dcf0",
+      "#4eccd3",
+      "#4bc39f",
+      "#8bd6fa",
+      "#7a9ce9",
+      "#fffafb"
+     ],
+     "id": "lagoon"
+    },
+    {
+     "name": "Garden",
+     "dark": [
+      "#14361d",
+      "#008660",
+      "#4e6800",
+      "#009a94",
+      "#175d00",
+      "#fbe9ee"
+     ],
+     "light": [
+      "#c6dfca",
+      "#6ccea6",
+      "#99b860",
+      "#80ded7",
+      "#75b168",
+      "#fffafb"
+     ],
+     "id": "garden"
+    },
+    {
+     "name": "Twilight",
+     "dark": [
+      "#252b4c",
+      "#8059bb",
+      "#0e5caf",
+      "#b167ab",
+      "#00537c",
+      "#fbe9ee"
+     ],
+     "light": [
+      "#cfd6f3",
+      "#c2a7f4",
+      "#75aef5",
+      "#edb6e7",
+      "#4fa8e1",
+      "#fffafb"
+     ],
+     "id": "twilight"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#383949",
+      "#8d627e",
+      "#84534b",
+      "#5d899f",
+      "#5a4c72",
+      "#dad2d4"
+     ],
+     "light": [
+      "#d1d3e0",
+      "#d1aec4",
+      "#d0a49c",
+      "#afcfdf",
+      "#ab9fc3",
+      "#f3eff0"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Fluted: colour drifting behind a pane of reeded glass. Each reed is a small cylindrical lens that flips and squeezes\n// the colour behind it, with a soft highlight down its face and a fine seam between reeds. The glass stays still; only\n// the colour behind it moves.\n// Palette: 0 base, 1 to 4 the drifting colours, 5 the glass highlight.\n// Options: x = motion (how far the colours drift), y = reeds (fine to wide).\nconst float T = 48.0;\n\nvec3 field(vec2 p, float a, float m) {\n  vec3 acc = u_pal[0] * 0.25;\n  float ws = 0.25;\n  for (int i = 0; i < 4; i++) {\n    float f = float(i);\n    float n = mod(f, 2.0) < 0.5 ? 1.0 : -1.0;\n    vec2 c = vec2(cos(f * 1.9 + 0.5) * 1.05, sin(f * 2.7 + 1.0) * 0.55) + orbit(n * a + f * 1.7, 0.45 * m);\n    vec2 d = p - c;\n    float w = exp(-dot(d, d) / 0.28);\n    acc += u_pal[i + 1] * w;\n    ws += w;\n  }\n  return acc / ws;\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float W = mix(0.065, 0.16, u_opt.y);\n  float xr = p.x / W;\n  float cell = floor(xr);\n  float u = fract(xr) * 2.0 - 1.0;\n  vec2 ps = vec2((cell + 0.5) * W - u * W * 0.85, p.y + 0.015 * u * u);\n  vec3 c = (field(ps, a, m) * 2.0 + field(ps + vec2(0.0, 0.05), a, m) + field(ps - vec2(0.0, 0.05), a, m)) * 0.25;\n  float lum = 0.965 + 0.05 * (1.0 - u * u);\n  float hl = gauss(u + 0.5, 0.18) * 0.1 + gauss(u - 0.72, 0.07) * 0.04;\n  float sw = max(0.06, 1.6 * u_px / W);\n  float seam = gauss(1.0 - abs(u), sw) * 0.05;\n  vec3 col = vec3(c.x * lum - seam, c.yz * (1.0 + 0.08 * (1.0 - u * u)));\n  col = mix(col, u_pal[5], hl);\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "meridian",
+   "name": "Meridian",
+   "tier": "balanced",
+   "period": 90,
+   "desc": "A slow-turning gradient of five colours, melting toward a soft light.",
+   "defaults": {
+    "pack": "studio",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.55
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "soft",
+     "label": "Softness",
+     "lo": "Defined",
+     "hi": "Melted",
+     "default": 0.55
+    }
+   ],
+   "packs": [
+    {
+     "name": "Studio",
+     "dark": [
+      "#0e5caf",
+      "#8059bb",
+      "#c06099",
+      "#b2354a",
+      "#663693",
+      "#f3dab2"
+     ],
+     "light": [
+      "#89c3ff",
+      "#cec0ff",
+      "#fabae4",
+      "#fda19a",
+      "#bd9ff2",
+      "#fff7eb"
+     ],
+     "id": "studio"
+    },
+    {
+     "name": "Ember",
+     "dark": [
+      "#b42d5b",
+      "#d74e4b",
+      "#ee793f",
+      "#ba3a8d",
+      "#7b2e98",
+      "#fdd5b7"
+     ],
+     "light": [
+      "#fba0ad",
+      "#ffb6a3",
+      "#fdc495",
+      "#f4a0c8",
+      "#d398e0",
+      "#fff7ee"
+     ],
+     "id": "ember"
+    },
+    {
+     "name": "Ocean",
+     "dark": [
+      "#006789",
+      "#0f74c5",
+      "#00999f",
+      "#007a6b",
+      "#3448a4",
+      "#b0eaf4"
+     ],
+     "light": [
+      "#6bcbf7",
+      "#a2cfff",
+      "#85e3e8",
+      "#61d5c0",
+      "#93adfe",
+      "#ecfcff"
+     ],
+     "id": "ocean"
+    },
+    {
+     "name": "Orchid",
+     "dark": [
+      "#6c44a4",
+      "#a04c9a",
+      "#777ad8",
+      "#a83876",
+      "#184da3",
+      "#f0d2f7"
+     ],
+     "light": [
+      "#c8aefa",
+      "#f0b3ea",
+      "#c7cdff",
+      "#f4a0c8",
+      "#84b2fd",
+      "#fdf5ff"
+     ],
+     "id": "orchid"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#456689",
+      "#736d99",
+      "#9a7796",
+      "#6c6594",
+      "#276375",
+      "#d3c8b6"
+     ],
+     "light": [
+      "#a9c3e0",
+      "#c9c6e7",
+      "#e0c7dd",
+      "#bfbbdf",
+      "#90bfce",
+      "#f4eee5"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Meridian: a slow-turning gradient. Five colours lie round a point below and to the right of the window and turn once\n// a loop; the angle bends gently with distance, the centre melts into the colours' average and a soft light lifts it.\n// Palette: 0 to 4 the five colours round the circle, 5 the light at the centre.\n// Options: x = motion (how much the gradient sways as it turns), y = softness (how long the colour blends are).\nconst float T = 90.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.3, 1.5, u_opt.x);\n  float sp = mix(5.0, 1.6, u_opt.y);\n  vec2 c = vec2(1.95, -1.35) + orbit(a, 0.08 * m);\n  vec2 d = p - c;\n  float r = length(d);\n  float ang = 2.0 * atan(d.y, d.x) - a + 0.35 * m * sin(r * 1.3 - a) + 0.5 * sin(r * 0.9);\n  // the stops are mixed in LCh: lightness and chroma by weight, hue as a weighted mean on the circle, so the blend\n  // between two stops keeps its colour instead of passing through grey\n  float Ls = 0.0;\n  float Cs = 0.0;\n  vec2 hv = vec2(0.0);\n  float ws = 0.0;\n  for (int i = 0; i < 5; i++) {\n    float w = pow(0.5 + 0.5 * cos(ang - float(i) * 1.2566371), sp);\n    vec3 s = u_pal[i];\n    float C = length(s.yz);\n    Ls += s.x * w;\n    Cs += C * w;\n    hv += s.yz / max(C, 1e-4) * w;\n    ws += w;\n  }\n  vec3 col = vec3(Ls / ws, normalize(hv + 1e-5) * (Cs / ws));\n  col = mix(col, u_pal[5], 0.14 * exp(-dot(p - vec2(-0.6, 0.6), p - vec2(-0.6, 0.6)) / 0.9));\n  float sheen = gauss(dot(p, normalize(vec2(0.85, 0.5))) + 0.35 + 0.25 * sin(a + 1.0) * m, 0.5);\n  col.x += 0.045 * sheen * (1.0 - 0.4 * u_dark);\n  col.x *= 1.0 - 0.07 * smoothstep(1.0, 2.6, length(p - c * 0.5));\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "nacre",
+   "name": "Nacre",
+   "tier": "balanced",
+   "period": 56,
+   "desc": "Mother of pearl: thin layers that catch the light and shift hue as they drift.",
+   "defaults": {
+    "pack": "pearl",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.45
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "layers",
+     "label": "Layers",
+     "lo": "Few",
+     "hi": "Many",
+     "default": 0.45
+    }
+   ],
+   "packs": [
+    {
+     "name": "Pearl",
+     "dark": [
+      "#141229",
+      "#8b4486",
+      "#007c91",
+      "#5152a4",
+      "#00877c",
+      "#e2c8b4"
+     ],
+     "light": [
+      "#e6e2ed",
+      "#e7c5e2",
+      "#bae7f5",
+      "#c6cbf2",
+      "#bce9dc",
+      "#fffbf8"
+     ],
+     "id": "pearl"
+    },
+    {
+     "name": "Abalone",
+     "dark": [
+      "#001b1a",
+      "#00764c",
+      "#007b96",
+      "#2e5ba6",
+      "#5d822f",
+      "#b0d6d8"
+     ],
+     "light": [
+      "#dae8e7",
+      "#b3ddc5",
+      "#bae7f5",
+      "#b9cff2",
+      "#d3e5c3",
+      "#f4fefe"
+     ],
+     "id": "abalone"
+    },
+    {
+     "name": "Rose Shell",
+     "dark": [
+      "#1f0f23",
+      "#a44b79",
+      "#bd5f69",
+      "#6f4fa1",
+      "#b2659a",
+      "#e7c5bf"
+     ],
+     "light": [
+      "#eee1e2",
+      "#eec3d6",
+      "#fed2cb",
+      "#dec3e5",
+      "#fbd5c1",
+      "#fffbf9"
+     ],
+     "id": "rose-shell"
+    },
+    {
+     "name": "Moonstone",
+     "dark": [
+      "#061826",
+      "#006d91",
+      "#007e88",
+      "#4b569f",
+      "#008681",
+      "#bfd1db"
+     ],
+     "light": [
+      "#e0e5ea",
+      "#bed4e5",
+      "#c9e3ec",
+      "#c5cde4",
+      "#c8e4e6",
+      "#f8fdff"
+     ],
+     "id": "moonstone"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#17141f",
+      "#725a6f",
+      "#54757f",
+      "#585b76",
+      "#5d7c71",
+      "#d7cbc2"
+     ],
+     "light": [
+      "#e5e4e8",
+      "#dbcbd9",
+      "#cfe2e8",
+      "#caccde",
+      "#d0e3dc",
+      "#fefbf9"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Nacre: mother of pearl. A slow field is cut into many fine layers like the inside of a shell. Each layer is a\n// shade lighter or darker than its neighbour and carries its own faint hue, which turns with the direction the layer\n// faces, so the surface shimmers as it drifts; a soft sheen lies across it.\n// Palette: 0 the pearl, 1 to 4 the hues the layers take in turn, 5 the sheen.\n// Options: x = motion (how far the layers drift), y = layers (few to many).\nconst float T = 56.0;\n\nfloat fld(vec2 p, float a, float m) {\n  vec2 q = p + 0.25 * vec2(gnoise(vec3(p * 0.4, 3.0) + vec3(orbit(a, 0.15 * m), 0.0)), 0.0);\n  return 0.38 * fbm3(vec3(q * 0.55, 0.0) + vec3(orbit(a, 0.2 * m), 0.25 * m * sin(a + 1.0))) + 0.42 * q.y + 0.2 * q.x + 0.06 * dot(q, q);\n}\n\n// the layer colour: the pack's four hues blended round the circle in LCh (lightness and chroma by weight, hue as a\n// weighted mean of directions), so two opposite hues never cancel into grey\nvec3 hues(float ph) {\n  float L = 0.0;\n  float C = 0.0;\n  vec2 hv = vec2(0.0);\n  float ws = 0.0;\n  for (int i = 0; i < 4; i++) {\n    float w = pow(0.5 + 0.5 * cos(ph - float(i) * 1.5707963), 3.0);\n    vec3 s = u_pal[1 + i];\n    float c = length(s.yz);\n    L += s.x * w;\n    C += c * w;\n    hv += s.yz / max(c, 1e-4) * w;\n    ws += w;\n  }\n  return vec3(L / ws, normalize(hv + 1e-5) * (C / ws));\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float N = mix(7.0, 20.0, u_opt.y);\n  float e = 0.004;\n  float f0 = fld(p, a, m);\n  vec2 gv = vec2(fld(p + vec2(e, 0.0), a, m) - f0, fld(p + vec2(0.0, e), a, m) - f0) / e;\n  float g = length(gv) + 1e-4;\n  vec2 nd = gv / g;\n  float x = f0 * N;\n  float id = floor(x);\n  float fr = x - id;\n  float dLo = fr / (N * g);\n  float dHi = (1.0 - fr) / (N * g);\n  float view = dot(nd, vec2(cos(a), sin(a)));\n  float ph = id * 0.7 + 2.2 * view + 0.8 * f0;\n  vec3 c = hues(ph);\n  vec3 cPrev = hues(ph - 0.7);\n  vec3 cNext = hues(ph + 0.7);\n  float step1 = 0.5 * (1.0 - smoothstep(0.0, u_px * 1.5, dLo));\n  float step2 = 0.5 * (1.0 - smoothstep(0.0, u_px * 1.5, dHi));\n  c = mix(c, cPrev, step1);\n  c = mix(c, cNext, step2);\n  // dark: the base keeps its own colour and the layers glow over it, brightest where they face the light; light: a pearl\n  vec3 base = mix(u_pal[0], hueShift(u_pal[0], 0.6 * view), 0.5 * u_dark);\n  vec3 col = mix(base, c, mix(0.55, 0.8, u_dark));\n  float facing = sat(0.5 + 0.5 * dot(nd, normalize(vec2(-0.5, 0.85))));\n  col.x += u_dark * (0.07 * facing - 0.03) + 0.018 * sin(id * 2.3) + 0.022 * exp(-dHi / 0.008) - 0.02 * exp(-dLo / 0.012);\n  col.yz *= 1.0 + 0.25 * u_dark * facing;\n  float sheen = gauss(dot(p, vec2(0.6, 0.8)) - 0.3 + 0.2 * sin(a), 0.55);\n  col = mix(col, u_pal[5], sheen * 0.25);\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "ribbon",
+   "name": "Ribbon",
+   "tier": "balanced",
+   "period": 40,
+   "desc": "Two satin ribbons floating across the window, twisting slowly as they go.",
+   "defaults": {
+    "pack": "satin",
+    "speed": 1.0,
+    "motion": 0.5,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.5
+    },
+    {
+     "id": "width",
+     "label": "Width",
+     "lo": "Slim",
+     "hi": "Wide",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Satin",
+     "dark": [
+      "#08152c",
+      "#05091c",
+      "#d05a69",
+      "#a3489d",
+      "#49499b",
+      "#ffe9e2"
+     ],
+     "light": [
+      "#e9eff9",
+      "#dbe1f3",
+      "#ea808a",
+      "#c170bb",
+      "#6d71c0",
+      "#fffbf9"
+     ],
+     "id": "satin"
+    },
+    {
+     "name": "Lagoon",
+     "dark": [
+      "#00182a",
+      "#000d17",
+      "#009a94",
+      "#007e9a",
+      "#26529c",
+      "#d3f8ef"
+     ],
+     "light": [
+      "#e6f0f8",
+      "#d1e5ef",
+      "#00bdb6",
+      "#00a2c5",
+      "#4f7ac1",
+      "#f2fffc"
+     ],
+     "id": "lagoon"
+    },
+    {
+     "name": "Saffron",
+     "dark": [
+      "#16112b",
+      "#0e0719",
+      "#c98000",
+      "#c95427",
+      "#9c3b48",
+      "#f9eed1"
+     ],
+     "light": [
+      "#f8ebe7",
+      "#f2dcd8",
+      "#d8953d",
+      "#d8714c",
+      "#b65963",
+      "#fffcf2"
+     ],
+     "id": "saffron"
+    },
+    {
+     "name": "Iris",
+     "dark": [
+      "#14122b",
+      "#08081b",
+      "#956ed2",
+      "#346ecd",
+      "#743981",
+      "#f1ebff"
+     ],
+     "light": [
+      "#ededf8",
+      "#dee0f2",
+      "#b191ea",
+      "#5d91e7",
+      "#9961a6",
+      "#fcfbff"
+     ],
+     "id": "iris"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#101620",
+      "#060c13",
+      "#ab7675",
+      "#8a6286",
+      "#4f5275",
+      "#faebe6"
+     ],
+     "light": [
+      "#eceff3",
+      "#dce2e9",
+      "#c79695",
+      "#a985a5",
+      "#74779a",
+      "#fffbf9"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Ribbon: two satin ribbons floating across the window, twisting slowly as they go. Where a ribbon turns edge-on it\n// narrows to a line; its two faces have their own colours, a sheen runs along it, and each casts a soft shadow behind.\n// Palette: 0 background top, 1 background low, 2 ribbon face, 3 face second colour, 4 the reverse face, 5 sheen.\n// Options: x = motion (how far the ribbons sway and twist), y = width.\nconst float T = 40.0;\n\nfloat yc(float x, float a, float m, float off, float ph) {\n  return off + (0.2 * sin(x * 1.05 + ph + a) + 0.09 * sin(x * 0.55 - a + ph * 2.0)) * (0.7 + 0.3 * m);\n}\n\nvec4 rib(vec2 p, float a, float m, float off, float W, float ph) {\n  float y0 = yc(p.x, a, m, off, ph);\n  float tw = p.x * 1.15 + ph + 0.8 * m * sin(a + p.x * 0.45);\n  float ct = cos(tw);\n  float h = W * abs(ct) + 1e-3;\n  float v = (p.y - y0) / h;\n  float cov = 1.0 - smoothstep(1.0 - 1.5 * u_px / h, 1.0 + 1.5 * u_px / h, abs(v));\n  float bend = tw + 0.45 * v * sign(ct);\n  vec2 n = vec2(-sin(bend), cos(bend));\n  n *= sign(n.y);\n  vec2 L = normalize(vec2(0.55, 0.83));\n  float dif = dot(n, L);\n  float spec = pow(sat(dot(n, normalize(L + vec2(0.0, 1.0)))), 40.0);\n  float front = step(0.0, ct);\n  vec3 fc = mix(u_pal[2], u_pal[3], 0.5 + 0.5 * sin(p.x * 0.7 + ph));\n  vec3 c = mix(u_pal[4], fc, front);\n  c.x *= 0.55 + 0.5 * sat(dif);\n  c = mix(c, u_pal[5], spec * 0.7);\n  c.x -= 0.06 * smoothstep(0.6, 1.0, abs(v));\n  return vec4(c, cov);\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.35, 1.5, u_opt.x);\n  float wk = mix(0.7, 1.35, u_opt.y);\n  vec3 col = mix(u_pal[1], u_pal[0], smoothstep(-1.2, 1.1, p.y + 0.2 * p.x));\n  float sh1 = gauss(p.y - yc(p.x - 0.05, a, m, 0.38, 2.2) + 0.13, 0.2 * wk) * 0.1;\n  col.x -= sh1 * mix(0.7, 1.0, u_dark);\n  vec4 r1 = rib(p, a, m, 0.38, 0.13 * wk, 2.2);\n  col = mix(col, r1.xyz, r1.w);\n  float sh2 = gauss(p.y - yc(p.x - 0.06, a, m, -0.18, 0.0) + 0.16, 0.26 * wk) * 0.14;\n  col.x -= sh2 * mix(0.7, 1.0, u_dark);\n  vec4 r2 = rib(p, a, m, -0.18, 0.22 * wk, 0.0);\n  col = mix(col, r2.xyz, r2.w);\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "mist",
+   "name": "Mist",
+   "tier": "minimal",
+   "period": 90,
+   "desc": "Coloured mist in four layers at different depths, the near veils sliding over the far.",
+   "defaults": {
+    "pack": "morning",
+    "speed": 1.0,
+    "motion": 0.45,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.45
+    },
+    {
+     "id": "depth",
+     "label": "Depth",
+     "lo": "Close",
+     "hi": "Deep",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Morning",
+     "dark": [
+      "#102239",
+      "#003744",
+      "#43335e",
+      "#005659",
+      "#754371",
+      "#6f6149"
+     ],
+     "light": [
+      "#dfebfb",
+      "#c9e7f2",
+      "#dfd5f5",
+      "#aae0e2",
+      "#e5c0e1",
+      "#fcf4e6"
+     ],
+     "id": "morning"
+    },
+    {
+     "name": "Lavender",
+     "dark": [
+      "#1f1e38",
+      "#36284c",
+      "#293b64",
+      "#5e3a67",
+      "#584e89",
+      "#665e77"
+     ],
+     "light": [
+      "#e7e8fa",
+      "#e4ddf6",
+      "#ccdbfa",
+      "#e5c9eb",
+      "#ccc8f3",
+      "#f7f3ff"
+     ],
+     "id": "lavender"
+    },
+    {
+     "name": "Sea Glass",
+     "dark": [
+      "#00272c",
+      "#003a31",
+      "#004552",
+      "#03583f",
+      "#006662",
+      "#4a6b64"
+     ],
+     "light": [
+      "#d7eff1",
+      "#c9e9e2",
+      "#bae3ed",
+      "#b3e0cb",
+      "#a0dbd6",
+      "#e8faf5"
+     ],
+     "id": "sea-glass"
+    },
+    {
+     "name": "Peach",
+     "dark": [
+      "#251d32",
+      "#5f2d42",
+      "#8e4440",
+      "#a44f42",
+      "#924e7d",
+      "#846c5a"
+     ],
+     "light": [
+      "#f8e5db",
+      "#f8d9d4",
+      "#f3d4bf",
+      "#f6c6c9",
+      "#e8c8a4",
+      "#fcf4e6"
+     ],
+     "id": "peach"
+    },
+    {
+     "name": "Fog",
+     "dark": [
+      "#1b222a",
+      "#26323b",
+      "#2f4048",
+      "#414b5b",
+      "#4a5a6a",
+      "#5d646b"
+     ],
+     "light": [
+      "#e5eaef",
+      "#dae3e9",
+      "#d1dde3",
+      "#cdd5e1",
+      "#c4cfdb",
+      "#f2f6fa"
+     ],
+     "id": "fog"
+    }
+   ],
+   "glsl": "// Mist: coloured mist lying in four layers at different depths. A slow camera orbit shifts each layer by an amount set\n// by its depth, so the near veils slide across the far ones (parallax); the near veils are larger and softer, the far\n// ones finer and paler, and the clouds themselves change shape only slowly. Calm, but never a flat gradient.\n// Palette: 0 the far ground, 1 to 4 the layers from far to near, 5 a faint light from above.\n// Options: x = motion (how far the camera drifts), y = depth (how far apart the layers sit).\nconst float T = 90.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.3, 1.4, u_opt.x);\n  float dp = mix(0.35, 1.4, u_opt.y);\n  vec2 cam = orbit(a, 0.22 * m) + vec2(0.0, 0.05 * m * sin(2.0 * a));\n  vec3 col = mix(u_pal[0], setL(u_pal[0], u_pal[0].x * 1.06 + 0.01), smoothstep(-1.0, 1.0, p.y));\n  col = mix(col, u_pal[5], 0.16 * smoothstep(0.1, 1.2, p.y - 0.2 * p.x));\n  for (int i = 0; i < 4; i++) {\n    float f = float(i);\n    float z = 0.25 + 0.55 * f * dp;\n    float sc = 1.25 - 0.22 * f;\n    vec2 q = (p + cam * z) * sc + vec2(f * 3.1, f * 1.7);\n    float n = gnoise(vec3(q * 0.9, f * 2.0) + vec3(orbit(a + f, 0.08 * m), 0.06 * m * sin(a + f)))\n            + 0.45 * gnoise(vec3(q * 1.9, f * 5.0 + 1.0) + vec3(orbit(-a, 0.06 * m), 0.0));\n    float soft = 0.08 + 0.07 * f;\n    float d = smoothstep(-0.12 - soft, 0.25 + soft, n + 0.1 * (p.y * (f - 1.5) * 0.3));\n    float al = (0.42 + 0.12 * f) * d;\n    vec3 lc = u_pal[1 + i];\n    lc.x += 0.035 * smoothstep(0.25, 0.75, d) * (1.0 - smoothstep(0.75, 1.0, d));\n    col = mix(col, lc, al);\n    col.x -= 0.012 * smoothstep(0.2, 0.6, d) * (1.0 - smoothstep(0.6, 1.0, d)) * (f / 3.0);\n  }\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "daybreak",
+   "name": "Daybreak",
+   "tier": "minimal",
+   "period": 80,
+   "desc": "A quiet horizon at first light, a low sun resting on still water.",
+   "defaults": {
+    "pack": "first-light",
+    "speed": 1.0,
+    "motion": 0.45,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.45
+    },
+    {
+     "id": "glow",
+     "label": "Glow",
+     "lo": "Faint",
+     "hi": "Warm",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "First Light",
+     "dark": [
+      "#10213e",
+      "#332c54",
+      "#78472a",
+      "#12283e",
+      "#946640",
+      "#c5aa7b"
+     ],
+     "light": [
+      "#c2d2ec",
+      "#dddaf7",
+      "#ffe5d7",
+      "#c7daee",
+      "#ffeee2",
+      "#fffbf5"
+     ],
+     "id": "first-light"
+    },
+    {
+     "name": "Rose",
+     "dark": [
+      "#1c1d3e",
+      "#422649",
+      "#7b4247",
+      "#26223d",
+      "#9b5f55",
+      "#d0a481"
+     ],
+     "light": [
+      "#cbcfec",
+      "#ead6ef",
+      "#ffe3e5",
+      "#d7d4ee",
+      "#ffedea",
+      "#fffbf8"
+     ],
+     "id": "rose"
+    },
+    {
+     "name": "Ember",
+     "dark": [
+      "#261a3a",
+      "#462444",
+      "#944c33",
+      "#22233e",
+      "#a96749",
+      "#cba77d"
+     ],
+     "light": [
+      "#d5cce8",
+      "#eed5eb",
+      "#ffe5dc",
+      "#d2d6ef",
+      "#ffeee6",
+      "#fffbf7"
+     ],
+     "id": "ember"
+    },
+    {
+     "name": "Haze",
+     "dark": [
+      "#0d2530",
+      "#173842",
+      "#325d60",
+      "#162932",
+      "#806f52",
+      "#b8ad90"
+     ],
+     "light": [
+      "#c2d4de",
+      "#cee2e9",
+      "#d5f2f3",
+      "#cadae3",
+      "#fdf0dc",
+      "#fffcf2"
+     ],
+     "id": "haze"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#1a222f",
+      "#2f3143",
+      "#655141",
+      "#1e2731",
+      "#806e5b",
+      "#b9ac98"
+     ],
+     "light": [
+      "#cad1dd",
+      "#dbddea",
+      "#f7e8dd",
+      "#d0d9e2",
+      "#fcf0e2",
+      "#fffbf5"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Daybreak: a quiet horizon at first light. The sky runs from a cool zenith to a warm band at the horizon, a low sun\n// glows through haze and rests on still water below, and the colours drift very slightly warmer and back.\n// Palette: 0 zenith, 1 upper sky, 2 horizon band, 3 water, 4 sun glow, 5 sun core.\n// Options: x = motion (how far the sun drifts), y = glow.\nconst float T = 80.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.3, 1.4, u_opt.x);\n  float gl = mix(0.4, 1.4, u_opt.y);\n  float y0 = -0.32 + 0.015 * sin(p.x * 0.9 + 1.0);\n  vec2 sun = vec2(0.42 + 0.16 * m * sin(a), y0 + 0.13 + 0.05 * m * sin(a + 1.2));\n  float h = p.y - y0;\n  vec3 sky = mix(u_pal[2], u_pal[1], smoothstep(0.0, 0.55, h));\n  sky = mix(sky, u_pal[0], smoothstep(0.45, 1.4, h));\n  float band = 0.008 * sin(h * 22.0 + 1.5 * sin(p.x * 1.1 + a)) * smoothstep(0.0, 0.2, h) * smoothstep(0.9, 0.3, h);\n  sky.x += band;\n  vec3 water = mix(setL(u_pal[3], u_pal[3].x + 0.03), u_pal[3], smoothstep(0.0, 0.6, -h));\n  vec3 col = mix(water, sky, smoothstep(-u_px, u_px, h));\n  col = mix(col, mix(u_pal[2], u_pal[3], 0.5), exp(-(h * h) / (u_px * u_px * 4.0 + 0.00002)) * 0.5);\n  vec2 ds = p - sun;\n  float g = exp(-dot(ds, ds) / 0.16) * 0.42 + exp(-dot(ds, ds) / 0.6) * 0.18;\n  float core = exp(-dot(ds, ds) / 0.004);\n  float rx = (p.x - sun.x) / 0.16;\n  float ry = h / 0.45;\n  float refl = exp(-rx * rx - ry * ry) * 0.3 * (0.85 + 0.15 * sin(-h * 60.0 + a * 2.0)) * smoothstep(u_px, -u_px, h);\n  col = mix(col, u_pal[4], sat((g + refl) * gl));\n  col = mix(col, u_pal[5], sat(core * 0.7 * gl));\n  col = hueShift(col, 0.1 * sin(a));\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "stillwater",
+   "name": "Stillwater",
+   "tier": "minimal",
+   "period": 80,
+   "desc": "The light of a pool thrown softly onto a pale wall, never sharp.",
+   "defaults": {
+    "pack": "pool",
+    "speed": 1.0,
+    "motion": 0.45,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.45
+    },
+    {
+     "id": "shimmer",
+     "label": "Shimmer",
+     "lo": "Faint",
+     "hi": "Clear",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Pool",
+     "dark": [
+      "#13323c",
+      "#08273a",
+      "#031e29",
+      "#356e6e",
+      "#11594e",
+      "#6c8687"
+     ],
+     "light": [
+      "#d0eaf3",
+      "#c7def0",
+      "#bbd2de",
+      "#e6fefe",
+      "#d3f8ef",
+      "#ffffff"
+     ],
+     "id": "pool"
+    },
+    {
+     "name": "Celadon",
+     "dark": [
+      "#1b3427",
+      "#002b25",
+      "#032018",
+      "#4a6d51",
+      "#485324",
+      "#748677"
+     ],
+     "light": [
+      "#d4ebde",
+      "#c3e3db",
+      "#bbd4cb",
+      "#edfef0",
+      "#ebf3d5",
+      "#ffffff"
+     ],
+     "id": "celadon"
+    },
+    {
+     "name": "Blush",
+     "dark": [
+      "#34283d",
+      "#281e39",
+      "#1c172b",
+      "#926673",
+      "#7e4a4a",
+      "#90797f"
+     ],
+     "light": [
+      "#f8dde0",
+      "#ecd2e2",
+      "#dec6d0",
+      "#fff6f4",
+      "#ffeade",
+      "#ffffff"
+     ],
+     "id": "blush"
+    },
+    {
+     "name": "Dusk",
+     "dark": [
+      "#262d42",
+      "#241f3a",
+      "#17182d",
+      "#496684",
+      "#5e4065",
+      "#768193"
+     ],
+     "light": [
+      "#dde4f9",
+      "#dad7f1",
+      "#c9cce2",
+      "#f4f9ff",
+      "#fbe7ff",
+      "#ffffff"
+     ],
+     "id": "dusk"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#262f34",
+      "#1b252d",
+      "#141c21",
+      "#55676d",
+      "#3b5156",
+      "#798285"
+     ],
+     "light": [
+      "#dde6eb",
+      "#d3dce3",
+      "#c7cfd5",
+      "#f2fafd",
+      "#e3f2f4",
+      "#ffffff"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Stillwater: the light of a pool thrown softly onto a pale wall: slow, wide, out-of-focus ripples of brightness over\n// a two-colour wash, never sharp enough to pull the eye.\n// Palette: 0 wall, 1 wall's second colour, 2 shade, 3 the rippled light, 4 warm edge of the light, 5 unused highlight.\n// Options: x = motion (how strongly the water moves), y = shimmer (how bright the ripples are).\nconst float T = 80.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.4, 1.3, u_opt.x);\n  float sh = mix(0.35, 1.3, u_opt.y);\n  vec2 x = p * 0.8 + 0.08 * m * vec2(lnoise(p * 0.6, a, 0.3), lnoise(p * 0.6 + 4.0, a, 0.3));\n  float hxx = 0.0;\n  float hyy = 0.0;\n  float hxy = 0.0;\n  for (int i = 0; i < 7; i++) {\n    float f = float(i);\n    float an = f * 2.39996 + 1.1;\n    float kk = 15.0 + 3.5 * sin(f * 1.3);\n    vec2 k = vec2(cos(an), sin(an)) * kk;\n    float n = mod(f, 2.0) < 0.5 ? 1.0 : -1.0;\n    float A = 0.26 / (kk * kk) * (0.65 + 0.35 * m);\n    float s = -A * sin(dot(k, x) + n * a + f * 2.1);\n    hxx += s * k.x * k.x;\n    hyy += s * k.y * k.y;\n    hxy += s * k.x * k.y;\n  }\n  float J = 1.0 + 1.25 * (hxx + hyy) + 1.6 * (hxx * hyy - hxy * hxy);\n  float I = 1.9 / (abs(J) + 0.9) - 1.0;\n  float lightArea = smoothstep(1.7, 0.1, length((p - vec2(0.35, 0.35)) * vec2(0.65, 1.0)));\n  vec3 col = mix(u_pal[1], u_pal[0], smoothstep(-1.2, 1.2, p.y - 0.4 * p.x));\n  col = mix(col, u_pal[2], 0.3 * smoothstep(0.6, 2.0, length(p * vec2(0.65, 1.0))));\n  vec3 lc = mix(u_pal[4], u_pal[3], lightArea);\n  col = mix(col, lc, sat(I * 0.75 * sh * lightArea + 0.16 * lightArea));\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "linen",
+   "name": "Linen",
+   "tier": "minimal",
+   "period": 72,
+   "desc": "A woven linen breathing in a faint draught, its threads catching the light.",
+   "defaults": {
+    "pack": "flax",
+    "speed": 1.0,
+    "motion": 0.45,
+    "second": 0.45
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.45
+    },
+    {
+     "id": "weave",
+     "label": "Weave",
+     "lo": "Fine",
+     "hi": "Coarse",
+     "default": 0.45
+    }
+   ],
+   "packs": [
+    {
+     "name": "Flax",
+     "dark": [
+      "#162235",
+      "#21344c",
+      "#354a5f",
+      "#3b2d52",
+      "#706052",
+      "#66503f"
+     ],
+     "light": [
+      "#cdbaa6",
+      "#e8d8c6",
+      "#f7ede0",
+      "#f7d0c9",
+      "#fef8ed",
+      "#fcf4e6"
+     ],
+     "id": "flax"
+    },
+    {
+     "name": "Sage",
+     "dark": [
+      "#09281f",
+      "#103b31",
+      "#314f3f",
+      "#003e41",
+      "#57685a",
+      "#525940"
+     ],
+     "light": [
+      "#b2c4ae",
+      "#d1e0cd",
+      "#eaf1e4",
+      "#bce5dc",
+      "#f7faef",
+      "#f8f6e7"
+     ],
+     "id": "sage"
+    },
+    {
+     "name": "Mauve",
+     "dark": [
+      "#2c1a2b",
+      "#3e2a43",
+      "#563f53",
+      "#352f54",
+      "#705d69",
+      "#6a4d4c"
+     ],
+     "light": [
+      "#cbb6c9",
+      "#e4d5e7",
+      "#f7eaf5",
+      "#dad6f7",
+      "#fff5fb",
+      "#fff1f1"
+     ],
+     "id": "mauve"
+    },
+    {
+     "name": "Chambray",
+     "dark": [
+      "#122334",
+      "#1b354b",
+      "#314b5e",
+      "#003c4b",
+      "#576574",
+      "#48566c"
+     ],
+     "light": [
+      "#adc0d4",
+      "#cbddee",
+      "#e3f1fb",
+      "#bbe2f0",
+      "#f4f9ff",
+      "#f0f6ff"
+     ],
+     "id": "chambray"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#1c222b",
+      "#2a3440",
+      "#3f4954",
+      "#323446",
+      "#6a615b",
+      "#5e534a"
+     ],
+     "light": [
+      "#c5bcb2",
+      "#e3d9d1",
+      "#f3ede7",
+      "#e9d6d0",
+      "#fbf8f3",
+      "#f9f4ee"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Linen: a woven cloth breathing in a faint draught. The weave is real: warp and weft threads passing over and under\n// each other, each thread a little thicker or thinner along its length (the slubs that make linen linen), so the cloth\n// carries fine streaks along both directions. The threads follow the folds, the folds rise and settle, and the light\n// from the top left grazes the weave, showing it most on the lit slopes.\n// Palette: 0 fold shadow, 1 cloth, 2 lit cloth, 3 the second tint, 4 sheen, 5 the light.\n// Options: x = motion (how far the cloth lifts), y = weave (fine to coarse).\nconst float T = 72.0;\n\nfloat cloth(vec2 q, float a, float m) {\n  float u = q.x + 0.3 * sin(q.y * 0.9 + 0.5 * m * sin(a)) + 0.12 * m * sin(q.y * 1.7 - a + 0.5);\n  return 0.5 * sin(u * 1.7 + 0.6 * sin(q.y * 0.7 + a)) + 0.22 * sin(u * 3.1 - q.y * 0.5 + 1.1 + 0.5 * m * sin(a + 2.0));\n}\n\nfloat h1(float x) { return hash33(vec3(x, 7.0, 3.0)).x * 0.5 + 0.5; }\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.3, 1.4, u_opt.x);\n  float P = mix(0.0075, 0.018, u_opt.y);\n  vec2 q = rot(p, -0.35);\n  float e = 0.004;\n  float h0 = cloth(q, a, m);\n  vec2 gr = vec2(cloth(q + vec2(e, 0.0), a, m) - h0, cloth(q + vec2(0.0, e), a, m) - h0) / e;\n  vec3 n = normalize(vec3(-gr * 0.42, 1.0));\n  vec3 L = normalize(vec3(-0.4, 0.5, 0.77));\n  float s = sat(dot(n, L) * 1.3 - 0.05);\n  float sheen = pow(max(dot(n, normalize(L + vec3(0.0, 0.0, 1.0))), 0.0), 12.0);\n  vec3 col = mix(u_pal[0], u_pal[1], smoothstep(0.45, 0.85, s));\n  col = mix(col, u_pal[2], smoothstep(0.82, 1.0, s));\n  col = mix(col, mix(col, u_pal[3], 0.75), smoothstep(-1.4, 1.4, p.x * 0.8 + p.y * 0.4 + 0.3 * sin(a)));\n\n  // the weave, in cloth coordinates that ride on the folds\n  vec2 w = rot(p, 0.12) + gr * 0.012;\n  float wu = w.x / P + 0.18 * gnoise(vec3(w * 9.0, 4.0));\n  float wv = w.y / P + 0.18 * gnoise(vec3(w * 9.0, 8.0));\n  float cu = floor(wu);\n  float cv = floor(wv);\n  float fu = wu - cu - 0.5;\n  float fv = wv - cv - 0.5;\n  float warpTop = step(0.5, mod(cu + cv, 2.0));\n  float slubU = 0.75 + 0.5 * h1(cu) + 0.35 * gnoise(vec3(cu * 0.37, wv * 0.045, 1.0));\n  float slubV = 0.75 + 0.5 * h1(cv + 91.0) + 0.35 * gnoise(vec3(wu * 0.045, cv * 0.37, 2.0));\n  float tu = cos(3.14159 * fu * 0.95);\n  float tv = cos(3.14159 * fv * 0.95);\n  float weave = mix(tv * slubV, tu * slubU, warpTop) * (0.55 + 0.45 * mix(abs(tu), abs(tv), warpTop));\n  float gap = smoothstep(0.42, 0.5, max(abs(fu), abs(fv)));\n  float fine = sat(P / u_px / 3.5 - 0.6);\n  float grazing = 0.55 + 0.9 * sat(dot(gr, vec2(0.6, -0.55)) * 0.6 + 0.4);\n  col.x += (0.022 * (weave - 0.55) - 0.006 * gap) * fine * grazing;\n\n  // the slubs at the scale a tile can show: fine streaks along both thread directions\n  float st = gnoise(vec3(w.x * 46.0, w.y * 2.2, 3.0)) + gnoise(vec3(w.x * 2.2, w.y * 46.0, 5.0));\n  st += 0.6 * (gnoise(vec3(w.x * 110.0, w.y * 4.0, 6.0)) + gnoise(vec3(w.x * 4.0, w.y * 110.0, 7.0))) * sat(0.02 / u_px / 3.0 - 0.5);\n  col.x += 0.012 * st * (0.6 + 0.4 * s);\n  col = mix(col, u_pal[4], sheen * 0.28);\n  col = mix(col, u_pal[5], 0.1 * smoothstep(1.6, 0.0, length(p - vec2(-0.9, 0.7))));\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "fields",
+   "name": "Fields",
+   "tier": "minimal",
+   "period": 90,
+   "desc": "Three soft fields of colour floating on a ground, breathing very slowly.",
+   "defaults": {
+    "pack": "ochre-and-plum",
+    "speed": 1.0,
+    "motion": 0.45,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.45
+    },
+    {
+     "id": "edges",
+     "label": "Edges",
+     "lo": "Crisp",
+     "hi": "Feathered",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Ochre and Plum",
+     "dark": [
+      "#222137",
+      "#8e3a2e",
+      "#4b2548",
+      "#44336e",
+      "#965638",
+      "#706052"
+     ],
+     "light": [
+      "#f5d6d0",
+      "#edaaa4",
+      "#e8c3e4",
+      "#bface4",
+      "#f9cdb5",
+      "#f9ece1"
+     ],
+     "id": "ochre-and-plum"
+    },
+    {
+     "name": "Seaside",
+     "dark": [
+      "#022837",
+      "#004d50",
+      "#472400",
+      "#00404c",
+      "#00605c",
+      "#51686f"
+     ],
+     "light": [
+      "#c7e3f1",
+      "#7cced2",
+      "#efc8aa",
+      "#78c5d7",
+      "#aae5e0",
+      "#e1f2f8"
+     ],
+     "id": "seaside"
+    },
+    {
+     "name": "Orchard",
+     "dark": [
+      "#242136",
+      "#8e3935",
+      "#4d2445",
+      "#004d30",
+      "#985057",
+      "#6a6350"
+     ],
+     "light": [
+      "#e3dfc5",
+      "#dfb585",
+      "#f6c3ba",
+      "#a7c28c",
+      "#edd4ab",
+      "#f4eee0"
+     ],
+     "id": "orchard"
+    },
+    {
+     "name": "Dusk",
+     "dark": [
+      "#1f213c",
+      "#5c2f59",
+      "#182d50",
+      "#402b5f",
+      "#793f40",
+      "#666072"
+     ],
+     "light": [
+      "#d9dcf6",
+      "#dcabd6",
+      "#bad2f9",
+      "#bface4",
+      "#fdc8c7",
+      "#f0ecfa"
+     ],
+     "id": "dusk"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#26222d",
+      "#4f3b4d",
+      "#2a2c3e",
+      "#203c49",
+      "#594d62",
+      "#5f646b"
+     ],
+     "light": [
+      "#e8dbd6",
+      "#d4b6b0",
+      "#d3cde1",
+      "#a1bcca",
+      "#e7d3c8",
+      "#f3ede9"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Fields: three soft fields of colour floating on a ground, after the colour-field painters: feathered, slightly uneven\n// edges, a glow from within, and colours and edges that breathe so slowly the change is only noticed afterwards.\n// Palette: 0 ground, 1 upper field, 2 middle band, 3 lower field, 4 inner glow, 5 unused highlight.\n// Options: x = motion (how much the fields breathe), y = edges (crisp to feathered).\nconst float T = 90.0;\n\nfloat field(vec2 p, vec2 c, vec2 hs, float soft, float a, float k, float m) {\n  vec2 q = abs(p - c) - hs;\n  float d = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - 0.05;\n  d += 0.022 * lnoise(p * 2.3 + k * 7.0, a, 0.25 * m) + 0.01 * lnoise(p * 6.0 + k * 3.0, a, 0.2 * m);\n  return d;\n}\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.3, 1.4, u_opt.x);\n  float soft = mix(0.025, 0.12, u_opt.y);\n  vec3 col = mix(u_pal[0], setL(u_pal[0], u_pal[0].x * 0.94), smoothstep(-1.0, 1.0, -p.y));\n  float b = 0.02 * m;\n  float d1 = field(p, vec2(0.0, 0.47 + b * sin(a)), vec2(1.22, 0.3 + b * sin(a + 1.0)), soft, a, 1.0, m);\n  float d2 = field(p, vec2(0.0, -0.06), vec2(1.22, 0.09 + 0.6 * b * sin(a + 2.5)), soft, a, 2.0, m);\n  float d3 = field(p, vec2(0.0, -0.56 - b * sin(a + 1.7)), vec2(1.22, 0.27 + b * sin(a + 3.0)), soft, a, 3.0, m);\n  vec3 c1 = hueShift(u_pal[1], 0.07 * m * sin(a));\n  vec3 c2 = hueShift(u_pal[2], 0.07 * m * sin(a + 2.0));\n  vec3 c3 = hueShift(u_pal[3], 0.07 * m * sin(a + 4.0));\n  c1 = mix(c1, u_pal[4], 0.22 * smoothstep(0.0, -0.3, d1));\n  c3 = mix(c3, u_pal[4], 0.18 * smoothstep(0.0, -0.28, d3));\n  col = mix(col, c1, smoothstep(soft, -soft, d1));\n  col = mix(col, c2, smoothstep(soft, -soft, d2));\n  col = mix(col, c3, smoothstep(soft, -soft, d3));\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "lumen",
+   "name": "Lumen",
+   "tier": "minimal",
+   "period": 70,
+   "desc": "A shaft of sunlight sweeping slowly across a wall, a soft caustic wavering in it.",
+   "defaults": {
+    "pack": "afternoon",
+    "speed": 1.0,
+    "motion": 0.45,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.45
+    },
+    {
+     "id": "glow",
+     "label": "Glow",
+     "lo": "Faint",
+     "hi": "Bright",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Afternoon",
+     "dark": [
+      "#1a2438",
+      "#09192c",
+      "#c55f1d",
+      "#004e6f",
+      "#c98850",
+      "#6c6250"
+     ],
+     "light": [
+      "#d7e0ef",
+      "#cbd9e9",
+      "#ffe5c7",
+      "#a8d8fb",
+      "#fffbf5",
+      "#ffffff"
+     ],
+     "id": "afternoon"
+    },
+    {
+     "name": "Rose Hour",
+     "dark": [
+      "#242136",
+      "#14152c",
+      "#c2567d",
+      "#25467d",
+      "#d37c7c",
+      "#735e56"
+     ],
+     "light": [
+      "#dfddee",
+      "#d3d6ea",
+      "#ffe2df",
+      "#b7d2ff",
+      "#fffbf9",
+      "#ffffff"
+     ],
+     "id": "rose-hour"
+    },
+    {
+     "name": "Citrus",
+     "dark": [
+      "#072930",
+      "#001c25",
+      "#007b66",
+      "#004d74",
+      "#319287",
+      "#55695d"
+     ],
+     "light": [
+      "#dde2d2",
+      "#d8d9c5",
+      "#ffe998",
+      "#99dfe3",
+      "#fffdeb",
+      "#ffffff"
+     ],
+     "id": "citrus"
+    },
+    {
+     "name": "North Light",
+     "dark": [
+      "#15272f",
+      "#071b24",
+      "#177684",
+      "#284a6c",
+      "#4f8c8f",
+      "#566768"
+     ],
+     "light": [
+      "#d6e2e8",
+      "#ccdae2",
+      "#bdf5ff",
+      "#b9d4f1",
+      "#f3ffff",
+      "#ffffff"
+     ],
+     "id": "north-light"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#1d252d",
+      "#111921",
+      "#7d6446",
+      "#314b5e",
+      "#907c66",
+      "#67635b"
+     ],
+     "light": [
+      "#dbe0e6",
+      "#d2d8df",
+      "#ffe5c7",
+      "#bfd4e4",
+      "#fffbf7",
+      "#ffffff"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Lumen: a shaft of sunlight sweeping slowly across a quiet wall, as the sun moves past a window. Inside the shaft,\n// the light that passed through a glass on the sill lies in a soft caustic, a gentle net of brighter light that wavers;\n// a cool pool answers from the far corner. Low in contrast, slow, and never a plain gradient.\n// Palette: 0 wall, 1 wall low, 2 the sunlight, 3 the cool pool, 4 the caustic light, 5 unused highlight.\n// Options: x = motion (how far the shaft sweeps), y = glow.\nconst float T = 70.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.3, 1.4, u_opt.x);\n  float gl = mix(0.45, 1.4, u_opt.y);\n  vec3 col = mix(u_pal[1], u_pal[0], smoothstep(-1.2, 1.0, p.y));\n  // the shaft: a slanted band from the top left whose position swings slowly across the wall\n  vec2 dir = normalize(vec2(0.62, -0.78));\n  vec2 nrm = vec2(-dir.y, dir.x);\n  float pos = -0.25 + 0.55 * m * sin(a) + 0.08 * m * sin(2.0 * a + 1.0);\n  float across = dot(p, nrm) - pos;\n  float along = dot(p, dir);\n  float wid = 0.72 + 0.08 * sin(a + 1.3);\n  float shaft = smoothstep(wid, wid * 0.2, abs(across)) * (0.55 + 0.45 * smoothstep(2.2, -0.6, along));\n  // the caustic, in the shaft's own coordinates, from a softly moving surface\n  vec2 x = vec2(across * 2.3, along * 1.5) + 0.06 * vec2(lnoise(p * 0.7, a, 0.3), lnoise(p * 0.7 + 3.0, a, 0.3));\n  float hxx = 0.0;\n  float hyy = 0.0;\n  float hxy = 0.0;\n  for (int i = 0; i < 5; i++) {\n    float f = float(i);\n    float an = f * 2.39996 + 0.7;\n    float kk = 11.0 + 2.5 * sin(f * 1.9);\n    vec2 k = vec2(cos(an), sin(an)) * kk;\n    float s = -0.26 / (kk * kk) * sin(dot(k, x) + (mod(f, 2.0) < 0.5 ? 1.0 : -1.0) * (1.0 + floor(f / 2.0)) * a + f * 1.7);\n    hxx += s * k.x * k.x;\n    hyy += s * k.y * k.y;\n    hxy += s * k.x * k.y;\n  }\n  float J = 1.0 + 1.5 * (hxx + hyy) + 2.0 * (hxx * hyy - hxy * hxy);\n  float caus = sat(1.45 / (abs(J) + 0.45) - 1.0) * smoothstep(wid * 1.05, wid * 0.15, abs(across)) * (0.6 + 0.4 * smoothstep(2.0, -0.4, along));\n  vec3 sun = hueShift(u_pal[2], 0.1 * sin(a + 0.5));\n  col = mix(col, sun, sat(shaft * 0.68 * gl));\n  col = mix(col, u_pal[4], sat(caus * 0.3 * gl));\n  vec2 d2 = rot(p - vec2(1.05 + 0.12 * m * cos(a + 2.0), -0.72), 0.4) / vec2(1.0, 0.65);\n  col = mix(col, u_pal[3], sat(exp(-dot(d2, d2)) * 0.55 * gl));\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "drift",
+   "name": "Drift",
+   "tier": "minimal",
+   "period": 84,
+   "desc": "Banks of coloured fog lying one behind another, rising and settling.",
+   "defaults": {
+    "pack": "highlands",
+    "speed": 1.0,
+    "motion": 0.45,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.45
+    },
+    {
+     "id": "density",
+     "label": "Density",
+     "lo": "Thin",
+     "hi": "Thick",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Highlands",
+     "dark": [
+      "#0d2339",
+      "#0d3d51",
+      "#1c4a4d",
+      "#003a2b",
+      "#00250a",
+      "#7d5c35"
+     ],
+     "light": [
+      "#d6e7f8",
+      "#dbf3ff",
+      "#afdadd",
+      "#91c4b1",
+      "#77a680",
+      "#fff7ee"
+     ],
+     "id": "highlands"
+    },
+    {
+     "name": "Lilac",
+     "dark": [
+      "#1d1e39",
+      "#3d3052",
+      "#423e5b",
+      "#3f2545",
+      "#320b28",
+      "#865544"
+     ],
+     "light": [
+      "#e0e3f9",
+      "#f1ebff",
+      "#d0cded",
+      "#c9abd0",
+      "#b886a7",
+      "#fff6f3"
+     ],
+     "id": "lilac"
+    },
+    {
+     "name": "Harbour",
+     "dark": [
+      "#002635",
+      "#004049",
+      "#204955",
+      "#00383b",
+      "#002321",
+      "#286f73"
+     ],
+     "light": [
+      "#d1e9f5",
+      "#d9f5fa",
+      "#b1d9e6",
+      "#89c4c6",
+      "#5da7a2",
+      "#e6feff"
+     ],
+     "id": "harbour"
+    },
+    {
+     "name": "Autumn",
+     "dark": [
+      "#211d38",
+      "#442e4d",
+      "#5d3f56",
+      "#753233",
+      "#7b2719",
+      "#855641"
+     ],
+     "light": [
+      "#f7ded6",
+      "#feeadb",
+      "#edc7c0",
+      "#dba9a8",
+      "#bc859f",
+      "#fff7ee"
+     ],
+     "id": "autumn"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#19232c",
+      "#2b3a45",
+      "#36454c",
+      "#1f343b",
+      "#062126",
+      "#6d624f"
+     ],
+     "light": [
+      "#dee5ed",
+      "#e7f0f7",
+      "#c4d4dc",
+      "#a5bcc3",
+      "#819ea4",
+      "#fdf8ef"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Drift: hills standing in morning fog, one ridge behind another. Each ridge is a soft silhouette that pales toward its\n// foot where the fog pools; the far ridges are nearly sky, the near one carries the most colour, and the fog rises and\n// settles so the ridges seem to come and go.\n// Palette: 0 sky, 1 sky low, 2 far ridge, 3 middle ridge, 4 near ridge, 5 the light behind.\n// Options: x = motion (how much the fog rises and settles), y = density (how thick the fog lies).\nconst float T = 84.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.3, 1.4, u_opt.x);\n  float den = mix(0.45, 1.35, u_opt.y);\n  vec3 sky = mix(u_pal[1], u_pal[0], smoothstep(-0.6, 1.0, p.y));\n  vec2 ls = p - vec2(0.75, 0.42);\n  sky = mix(sky, u_pal[5], 0.4 * exp(-dot(ls, ls) / 0.5));\n  vec3 col = sky;\n  for (int i = 0; i < 4; i++) {\n    float f = float(i);\n    float fk = f / 3.0;\n    float sc = 0.7 + 0.35 * f;\n    float yk = 0.32 - 0.36 * f;\n    float edge = yk + (0.12 + 0.03 * f) * (0.6 * sin(p.x * sc + f * 2.1) + 0.4 * sin(p.x * sc * 2.3 + f * 0.7))\n               + 0.035 * m * lnoise(vec2(p.x * 0.9 + f * 3.0, f), a, 0.4);\n    float soft = 0.012 + 0.03 * (1.0 - fk);\n    float body = smoothstep(soft, -soft, p.y - edge);\n    vec3 rc = mix(u_pal[2], u_pal[3], sat(fk * 1.5));\n    rc = mix(rc, u_pal[4], sat(fk * 1.5 - 0.5));\n    rc = mix(sky, rc, 0.45 + 0.55 * fk);\n    float fog = smoothstep(0.0, 0.42, edge - p.y) * (0.55 + 0.25 * sin(a + f * 1.9)) * den;\n    fog *= 0.75 + 0.25 * lnoise(vec2(p.x * 1.3 + f * 5.0, p.y * 2.0), a, 0.3 * m);\n    rc = mix(rc, mix(sky, u_pal[5], 0.25), sat(fog * (0.75 - 0.25 * fk)));\n    col = mix(col, rc, body);\n  }\n  return outLab(col);\n}\n"
+  },
+  {
+   "id": "halo",
+   "name": "Halo",
+   "tier": "minimal",
+   "period": 90,
+   "desc": "One wide, soft ring of light, its colour turning slowly round it.",
+   "defaults": {
+    "pack": "prism",
+    "speed": 1.0,
+    "motion": 0.45,
+    "second": 0.5
+   },
+   "options": [
+    {
+     "id": "motion",
+     "label": "Motion",
+     "lo": "Calm",
+     "hi": "Lively",
+     "default": 0.45
+    },
+    {
+     "id": "width",
+     "label": "Width",
+     "lo": "Fine",
+     "hi": "Wide",
+     "default": 0.5
+    }
+   ],
+   "packs": [
+    {
+     "name": "Prism",
+     "dark": [
+      "#0f1528",
+      "#743f6f",
+      "#006266",
+      "#7d460b",
+      "#292b46",
+      "#725c62"
+     ],
+     "light": [
+      "#e7ebf6",
+      "#dfb4da",
+      "#8dd2d6",
+      "#e7ba97",
+      "#dadcf2",
+      "#f8f8f8"
+     ],
+     "id": "prism"
+    },
+    {
+     "name": "Ember",
+     "dark": [
+      "#171226",
+      "#a74954",
+      "#a64e2e",
+      "#92477b",
+      "#39253d",
+      "#725c62"
+     ],
+     "light": [
+      "#ece9f4",
+      "#eeb3b1",
+      "#eab89c",
+      "#e4b3d2",
+      "#e7d8eb",
+      "#f8f8f8"
+     ],
+     "id": "ember"
+    },
+    {
+     "name": "Ocean",
+     "dark": [
+      "#031826",
+      "#006266",
+      "#33548c",
+      "#00654e",
+      "#0d3242",
+      "#725c62"
+     ],
+     "light": [
+      "#e3edf4",
+      "#8dd2d6",
+      "#aac6f2",
+      "#96d3bd",
+      "#cbe2ee",
+      "#f8f8f8"
+     ],
+     "id": "ocean"
+    },
+    {
+     "name": "Garden",
+     "dark": [
+      "#031b10",
+      "#006262",
+      "#3c6124",
+      "#005f79",
+      "#143525",
+      "#725c62"
+     ],
+     "light": [
+      "#e8ede3",
+      "#d6c390",
+      "#9dd3b5",
+      "#e7ba97",
+      "#dbe1cb",
+      "#f8f8f8"
+     ],
+     "id": "garden"
+    },
+    {
+     "name": "Quiet",
+     "dark": [
+      "#13161e",
+      "#644c61",
+      "#365c63",
+      "#66513a",
+      "#2b2d39",
+      "#6a6063"
+     ],
+     "light": [
+      "#e9ebf0",
+      "#d0bdce",
+      "#aecacf",
+      "#d2c1af",
+      "#dcdde7",
+      "#f8f8f8"
+     ],
+     "id": "quiet"
+    }
+   ],
+   "glsl": "// Halo: one wide, soft ring of light resting off-centre, its colour turning slowly round it, the inside faintly lit by\n// it. Out of focus throughout, so it reads as light, not as a shape.\n// Palette: 0 ground, 1 to 3 the ring's colours round the circle, 4 the light inside, 5 unused highlight.\n// Options: x = motion (how much the ring breathes), y = width.\nconst float T = 90.0;\n\nvec3 wall(vec2 p, float t) {\n  float a = TAU * t / T;\n  float m = mix(0.3, 1.4, u_opt.x);\n  float wd = mix(0.22, 0.5, u_opt.y);\n  vec2 c = vec2(0.55, -0.12) + orbit(a, 0.03 * m);\n  vec2 d = p - c;\n  float r = length(d);\n  float R = 0.95 + 0.04 * m * sin(a * 2.0);\n  float ang = atan(d.y, d.x) + a;\n  vec3 acc = vec3(0.0);\n  float ws = 0.0;\n  for (int i = 0; i < 3; i++) {\n    float w = pow(0.5 + 0.5 * cos(ang - float(i) * 2.0943951), 2.0);\n    acc += u_pal[i + 1] * w;\n    ws += w;\n  }\n  vec3 rc = acc / ws;\n  float rr = (r - R) / wd;\n  float ring = exp(-rr * rr);\n  vec3 col = mix(u_pal[0], setL(u_pal[0], u_pal[0].x * 0.95), smoothstep(0.0, 2.0, length(p + vec2(0.8, 0.5))));\n  col = mix(col, mix(u_pal[4], rc, 0.3), 0.4 * exp(-(r * r) / 0.6));\n  col = mix(col, rc, ring * 0.75);\n  return outLab(col);\n}\n"
+  }
+ ]
+}

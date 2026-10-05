@@ -61,7 +61,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Animate on the id list only. Read the Windows animation-effects/reduce-motion system setting for the reduce-motion branch.",
       "verification_method": "interaction test toggling reduce motion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1220,7 +1220,7 @@
       "cancellation": "Cancels the in-flight refresh.",
       "windows_path": "Hit-test the panel window against the current cursor position on focus loss.",
       "verification_method": "interaction test clicking a row versus clicking the transcript",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2389,7 +2389,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One control with these nine literals, per port_impacts X8(c). A compositor-side replicator or an equivalent instanced draw; it must not tick on the UI thread.",
       "verification_method": "capture comparison of a one-line and a five-line composer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2410,7 +2410,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A compositor animation with these exact keyframes and per-instance delays, started from a process-wide clock origin so separate fields stay in phase.",
       "verification_method": "capture comparison of two composers side by side, asserting they are in phase",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4936,7 +4936,7 @@
       "cancellation": "The load runs in .task(id: path), which SwiftUI cancels when the row collapses or the path changes.",
       "windows_path": "Same box, radius, fill, 420 point cap, 6 point spacing and caption row. \"Open\" is verbatim and opens the file with its registered application. PR-CHAT-101 specifies the rest of the expanded tool row. Text style per ED-059: the caption row's .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison of an expanded image-reading tool row and of an expanded command row whose text names a written screenshot, each while loading and after the image lands, plus an interaction test of \"Open\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4990,7 +4990,8 @@
         "DroppyCode/App/Views/Composer/ComposerTextView.swift:249 textContainerInset = NSSize(width: 0, height: 2); :360-376 updateHeight, total = ceil(max(18, contentHeight) + textContainerInset.height * 2)",
         "DroppyCode/App/Views/Composer/ComposerView.swift:157-158 the source comment (44); :552-564 the column's textHeight starts at 20 and is clamped to at least 20"
       ],
-      "notes": "The dots must be inside the glass content, not a sibling background: a glass view renders above ordinary siblings and would cover them."
+      "notes": "The dots must be inside the glass content, not a sibling background: a glass view renders above ordinary siblings and would cover them. The r 22 corner on the 46 point pill is drawn as the circular arc the reference video measures (ED-275 (2); OD-0102 keeps the composer as measured), not the continuous curve the source names.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-003",
@@ -5354,7 +5355,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:661-675"
       ],
       "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-018",
@@ -5627,7 +5628,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:526-533",
         "DroppyCode/App/Views/Composer/PromptEditor.swift:117-124"
       ],
-      "notes": "\"Attach\" is the accept button's label, not the dialog title."
+      "notes": "\"Attach\" is the accept button's label, not the dialog title.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-030",

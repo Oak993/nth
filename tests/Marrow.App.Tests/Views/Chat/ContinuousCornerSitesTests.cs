@@ -55,6 +55,9 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
         ("Marrow.App/Port/LookCard.cs", "10", 1, Circular),
         ("Marrow.App/Port/LookCard.cs", "12", 1, Circular),
+        ("Marrow.App/Port/Settings/PreviewMenuItem.cs", "7", 1, Circular), // CZ-3 (ED-335): a model menu row, design-page layout (CSS .pitem border-radius 7)
+        ("Marrow.App/Port/Settings/PreviewStepper.cs", "11", 1, Circle), // CZ-3 (ED-335): the 22 x 22 stepper, a circle by construction
+        ("Marrow.App/Port/Settings/PreviewSwitchChip.cs", "14", 1, Capsule), // CZ-3 (ED-335): the 28 pt chip of the preview model switch, r = h / 2
         ("Marrow.App/Port/Settings/UpdatesMainButton.cs", "ButtonHeight / 2", 1, Capsule), // UE-4 (ED-NEW-f-ue-4): the Updates page's 30 pt glass capsule; CzButton draws its focus ring from this radius, r = h / 2
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
@@ -90,9 +93,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Settings/AboutUpdateViews.cs", "1.5", 1, Tiny),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "8", 1, Fit),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "9", 1, Circle),
-        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "9", 1, Circle),
-        ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "10", 1, Fit),
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "Chrome.CardCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/TokenActivitySection.cs", "999", 1, Capsule),
@@ -100,7 +101,6 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs", "22", 2, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "16, 16, 0, 0", 1, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Capsule),
-        ("Marrow.App/Views/Tour/TourView.cs", "CardCornerRadius", 4, Fit),
         ("Marrow.App/Views/Usage/UsageFloatingPanel.cs", "cornerRadius", 2, Fit), // :84, :92 the panel and its scrim, r 22 (HydraPanel.CornerRadius), tall panels
         ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
         ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Circle),

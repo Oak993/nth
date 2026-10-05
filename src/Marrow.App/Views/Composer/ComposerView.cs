@@ -36,8 +36,8 @@ namespace Marrow.App.Views.Composer;
 // top-level declarations remain internal, preserving every declared type and existing public signature.
 // All five B3 parts have been audited against pinned 1.7.0. The native chooser is behind ComposerFileDialog for
 // isolated tests. The ModelEffortButton and chip-style sites are implemented; the chip row keeps its scroller and chips
-// (STOP #7 in the tests records what the foundation's ForEach still lacks) and the approval stack's own re-layout is still
-// a cut (STOP #2); #8 records ProviderRegistry's missing notifications; #9 records the SlashCommand.Suggestions dependency
+// (STOP #7 in the tests records what the foundation's ForEach still lacks) and the approval stack's own re-layout glides
+// in window coordinates (WindowGlide, STOP #2 resolved); #8 records ProviderRegistry's missing notifications; #9 records the SlashCommand.Suggestions dependency
 // after inherited cross-unit code removal.
 // Diff popup and suggestion popup headless limits are documented in tests (STOP #3/#5). ED-180/182 retain the
 // existing material, palette and symbol-transition deferrals (ED-181, the continuous corner, is closed); visual macOS parity is unverified.
@@ -53,6 +53,9 @@ public sealed class ComposerArea : Decorator
 
     // :25-27 the approval cards, keyed by request id (R-VIEW-8), with the request each card was drawn from.
     private readonly StackPanel approvalStack;
+    // PR-COMPOSER-003 (:56): the views of the area glide to their new places in the window when the id list changes, and a resolved card leaves the
+    // layout at once and fades where it stood (WindowGlide; the area is pinned to the bottom of the chat, so a card above a new one rises).
+    private readonly WindowGlide approvalGlide;
     private readonly Dictionary<string, Control> approvalRows = new(SwiftStringComparer.Instance);
     private readonly Dictionary<string, ApprovalRequest> drawnRequests = new(SwiftStringComparer.Instance);
     private string[]? approvalIDs;
@@ -105,10 +108,12 @@ public sealed class ComposerArea : Decorator
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 };
         stack.Children.Add(layers);
         approvalStack = stack;
+        var departures = new Canvas { IsHitTestVisible = false }; // over the stack: where a resolved card fades, out of the layout
+        approvalGlide = new WindowGlide(stack, departures);
 
         // :23 GlassEffectContainer(spacing: 8), independent of the VStack's layout spacing.
         // :52 .frame(maxWidth: 820): at most 820 wide, centred in the room the padding leaves.
-        var container = new Decorator { Child = stack, MaxWidth = 820 };
+        var container = new Decorator { Child = new Panel { Children = { stack, departures } }, MaxWidth = 820 };
         SwiftGlass.SetContainerSpacing(container, 8);
         // :53-55 .padding(.horizontal, 20).padding(.bottom, 14).frame(maxWidth: .infinity)
         Child = new Border { Child = container, Padding = new Thickness(20, 0, 20, 14) };
@@ -128,7 +133,8 @@ public sealed class ComposerArea : Decorator
             var keep = new System.Collections.Generic.HashSet<string>(ids, SwiftStringComparer.Instance);
             foreach (var id in approvalRows.Keys.Where(id => !keep.Contains(id)).ToArray())
             {
-                SwiftTransition.Remove(approvalStack, approvalRows[id]);
+                if (changed) approvalGlide.Depart(approvalRows[id], SwiftTransition.Remove); // out of the layout, fading where it stood
+                else SwiftTransition.Remove(approvalStack, approvalRows[id]);
                 approvalRows.Remove(id);
                 drawnRequests.Remove(id);
             }
@@ -148,7 +154,12 @@ public sealed class ComposerArea : Decorator
                 }
             }
         }
-        if (changed) Transaction.WithAnimation(Chrome.PanelSlide, Apply);
+        if (changed)
+        {
+            var before = approvalGlide.Capture();
+            Transaction.WithAnimation(Chrome.PanelSlide, Apply);
+            approvalGlide.GlideAfterLayout(before, Chrome.PanelSlide); // :56 the views that stay move with the change, in the window
+        }
         else Apply();
     }
 

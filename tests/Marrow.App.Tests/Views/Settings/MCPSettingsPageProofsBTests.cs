@@ -550,8 +550,8 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
         // STOP opencode-proofs-mcp-b #3: UI-MCP-064 (and the rest of UI-MCP-047, below). UI-MCP-047's container, height formula, focus rule and presented chrome
         // (capsule shape and tint, Popovers.swift:8-12; the record's "background" is the native popover's own) are proven from the Swift (OD-0098) by
         // MCPCustomEditorSwiftProofTests; the editor through the REAL presenter (overlay host: shown, Close, press outside) is MCPCustomEditorRealPresenterTests and the
-        // info popover's hover onto the popover is MCPSettingsPageInfoLinksTests. UI-MCP-047 stays open for two reasons only: Escape dismissal (ED-257 (5): the shared
-        // popover host, owned by the Popovers unit, does not handle Escape) and the native popup window (NATIVE-ONLY).
+        // info popover's hover onto the popover is MCPSettingsPageInfoLinksTests. Escape dismissal is MCPCustomEditorRealPresenterTests (the overlay host), SettingsEscapeTests (the Settings window)
+        // and MCPCustomEditorNativeTests (the editor in its own native popup window over the real Settings window): PopoverHost.Listen hands the owner window's Escape to the popover.
         var editor = new MCPCustomEditor(null); var w = Show(editor, model);
         try
         {

@@ -111,6 +111,25 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
     });
 
+    // UI-MCP-047 (MCPSettingsPage.swift:570-572): the custom server editor's popover (an "Add server" row of the MCP page, PlainControls.Popover through
+    // MCPSettingsPage.Popover): Escape dismisses it as NSPopover's own Escape does, the draft goes with it (the content is built each time it shows), and the window stays.
+    // With the field focused (add mode) and with none (edit mode) is the native MCPCustomEditorNativeTests.
+    [Fact]
+    [Trait("Req", "UI-MCP-047")]
+    public void Escape_with_the_mcp_custom_server_editor_open_dismisses_it_and_the_window_stays() => Open(SettingsPage.Mcp, (window, view, presenter) =>
+    {
+        var add = view.GetVisualDescendants().OfType<Button>().First(b => b.IsEffectivelyVisible && b.Bounds.Width > 100 && b.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "Add server"));
+        Click(window, add);
+        var popup = Assert.Single(presenter.Calls, c => c.Presented).Popup;
+        Assert.True(WindowTransients.IsShown(popup));
+        Escape(window);
+        Assert.Equal((popup, false), presenter.Calls[^1]);
+        Assert.False(WindowTransients.IsShown(popup));
+        Assert.True(window.IsVisible); // the window stays
+        Escape(window);
+        Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+    });
+
     // ED-253 round 4 (F1): a link's popover (LinkPopover, right-click on a link in the Licenses popover or the About page's
     // release notes) is presented with its anchor's window: Escape closes it, the Settings window stays, and the next Escape
     // closes the window.

@@ -1432,7 +1432,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1459,7 +1459,7 @@
         "No thread selected: the files are discarded with no message"
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6490,7 +6490,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Palette/CommandPalette.swift:77-94 and :110-147"
       ],
-      "b2_change": "Subtitle colour B1 CommandPalette.swift:127 `.foregroundStyle(.secondary)` -> B2 :127 `.foregroundStyle(Chrome.secondaryText)`; chord colour B1 :136 `.foregroundStyle(.tertiary)` -> B2 :136 `.foregroundStyle(Chrome.secondaryText)`; the row symbol stays `.secondary` (:117). Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.')."
+      "b2_change": "Subtitle colour B1 CommandPalette.swift:127 `.foregroundStyle(.secondary)` -> B2 :127 `.foregroundStyle(Chrome.secondaryText)`; chord colour B1 :136 `.foregroundStyle(.tertiary)` -> B2 :136 `.foregroundStyle(Chrome.secondaryText)`; the row symbol stays `.secondary` (:117). Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7, which ED-062 adopts (B2 :77-78: 'Primary at 70% clears the 4.5:1 floor on both grounds; `secondaryLabelColor`'s 50% alpha does not.').",
+      "status": "IMPLEMENTED"
     },
     {
       "exact_text": null,

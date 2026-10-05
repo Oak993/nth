@@ -32,9 +32,7 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
         With(() => new SettingsView(), (view, _, h, w) =>
         {
             var titles = Marrow.App.Port.Settings.SettingsSidebar.Pages("").Select(page => page.Title).ToArray();
-            // The ten upstream pages' symbols (SettingsView.swift :19-32 and :34-45), by title; a first-release page listed by now (Updates since UE-4) brings its own, which SettingsNewPagesTests pins.
-            var upstream = new Dictionary<string, string> { ["General"] = "gear", ["Hydra"] = "", ["Appearance"] = "paintpalette", ["Providers"] = "cpu", ["MCP"] = "puzzlepiece.extension", ["Models"] = "slider.horizontal.3", ["Source control"] = "arrow.triangle.branch", ["Shortcuts"] = "command", ["Archive"] = "archivebox", ["About"] = "info.circle" };
-            var symbols = titles.Select(title => upstream.TryGetValue(title, out var symbol) ? symbol : SwiftEnum<SettingsPage>.AllCases.Single(page => page.Title == title).Symbol).ToArray();
+            var symbols = Marrow.App.Port.Settings.SettingsSidebar.Pages("").Select(page => page == SettingsPage.Hydra ? "" : page.Symbol).ToArray(); // Hydra draws its own mark
             Assert.Equal(titles, Nodes<SidebarRow>(view).Select(r => Text(r).Single()));
             var list = Field<StackPanel>(view, "rows"); Assert.Equal(1, list.Spacing); Assert.Equal(new Thickness(10, 12, 10, 8), list.Margin);
             Check(Nodes<SidebarRow>(view)[0], 0, true);

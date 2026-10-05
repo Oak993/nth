@@ -1024,3 +1024,24 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
     - whether one is the default for new users (upstream's default is no wallpaper, OD-0014);
     - the motion speed;
     - Reduce Motion behaviour.
+
+## OD-0110 A whole wallpaper library: a Static collection and an Animated collection, vibrant to minimal (2026-10-05)
+
+- **Context:** OD-0109's variants page (https://claude.ai/artifact/EiKx64RynPdYEAqsnqrumM, 12 wallpapers).
+- **Owner, verbatim:** "I'm not gonna answer Wallpaper Picks artifact, we need a whole sub section of collection of static wallpapers and then another whole sub section of collection of animated wallpapers with the ability to set their speed, all loopable and way more premium, but we need to ensure we cater all users, some like too vibrant while others are minimalistic and don't like too distracting yet colorful. So, we need to create a whole library."
+- **Effect (replaces OD-0109's pick questions):**
+  - The port ships a wallpaper library, not a short list. The wallpaper settings get two sub-sections: a collection of Static wallpapers, and a collection of Animated wallpapers with a speed control.
+  - Every animated wallpaper loops seamlessly, with no visible restart and no period a viewer can notice.
+  - The whole library is far more premium than the twelve on the variants page.
+  - The library covers every taste. Each collection spans tiers from vibrant through balanced to minimal: calm and undistracting, yet still colourful.
+  - Upstream's default stays: no wallpaper until the user picks one (OD-0014).
+  - Glass behaviour, cost and Reduce Motion follow OD-0109's notes. The animated wallpapers are measured natively, so the glass over them stays smooth.
+  - **LEAD plan:** the library is first drawn as one browsable page, the source of truth for each wallpaper's look and code. That page is published for the owner to see, not to pick from. The library is then built into the app with per-wallpaper fidelity tests against that page, as VT-8 did for the orb.
+- **Amendment, owner, 2026-10-05 (chat, verbatim):** "Maybe give options within those animated wallpapers to choose color packs? set speed, etc?"
+  - **Effect:** every animated wallpaper offers per-wallpaper options:
+    - colour packs, 4-6 named packs chosen by swatches, each with dark and light palettes, spanning quiet to rich;
+    - speed;
+    - at most two more where they fit, such as motion amount or brightness and softness.
+  - For consistency the lead extends colour packs (3-5) to the static wallpapers.
+  - Switching packs or options crossfades, never cuts (OD-0076).
+  - One shader per wallpaper takes the pack as data.

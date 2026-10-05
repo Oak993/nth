@@ -66,6 +66,20 @@ public sealed class WindowsOpenPanelRunner : IOpenPanelRunner
     private const FOS AllowMultiSelect = (FOS)0x00000200; // FOS_ALLOWMULTISELECT
     private const FOS PathMustExist = (FOS)0x00000800; // FOS_PATHMUSTEXIST
 
+    /// <summary>The dialog's option set for a panel: the dialog's own <paramref name="current"/> options plus what the panel's
+    /// properties ask for (exposed so the native test reads the very set that is handed to <c>SetOptions</c>).</summary>
+    internal static FOS Options(FOS current, OpenPanel panel)
+    {
+        var options = current | FOS.FORCEFILESYSTEM | FOS.NOCHANGEDIR | PathMustExist;
+        // canChooseDirectories with canChooseFiles off: folders only. No ported site asks for both at once.
+        if (panel.CanChooseDirectories && !panel.CanChooseFiles) options |= PickFolders;
+        if (panel.AllowsMultipleSelection) options |= AllowMultiSelect;
+        return options;
+    }
+
+    internal const FOS PickFoldersOption = PickFolders;
+    internal const FOS AllowMultiSelectOption = AllowMultiSelect;
+
     public IReadOnlyList<SwiftURL>? RunModal(OpenPanel panel)
     {
         var dialog = (IFileOpenDialog)new FileOpenDialogCoClass();
@@ -74,11 +88,7 @@ public sealed class WindowsOpenPanelRunner : IOpenPanelRunner
             dialog.SetTitle(panel.Message);
             dialog.SetOkButtonLabel(panel.Prompt);
             dialog.GetOptions(out var options);
-            options |= FOS.FORCEFILESYSTEM | FOS.NOCHANGEDIR | PathMustExist;
-            // canChooseDirectories with canChooseFiles off: folders only. No ported site asks for both at once.
-            if (panel.CanChooseDirectories && !panel.CanChooseFiles) options |= PickFolders;
-            if (panel.AllowsMultipleSelection) options |= AllowMultiSelect;
-            dialog.SetOptions(options);
+            dialog.SetOptions(Options(options, panel));
 
             var hr = dialog.Show(OwnerHandle());
             const int ErrorCancelled = unchecked((int)0x800704C7);

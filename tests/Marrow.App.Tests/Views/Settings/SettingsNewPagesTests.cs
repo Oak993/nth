@@ -21,6 +21,10 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
 
     private static readonly string[] UpstreamTitles = ["General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
 
+    // CZ-4 sets Customization ready: it is listed right after Appearance (CZ-2.1); the other new pages are still hidden
+
+    private static string[] ReadyTitles => SettingsSidebar.Pages("").Select(page => page.Title).ToArray();
+
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T1 / CZ-2.1: raw values, and AllCases puts Customization and Voice typing after Appearance; Updates takes the Tools place; Plugins sits directly above Skills
     public void The_new_pages_sit_in_the_sidebar_order_with_their_raw_values()
@@ -94,21 +98,21 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         Assert.Equal([SettingsPage.Updates], SettingsSidebar.Pages("latest", allReady));
         Assert.Equal([SettingsPage.Plugins, SettingsPage.Skills], SettingsSidebar.Pages("install", allReady));
         Assert.Equal(SwiftEnum<SettingsPage>.AllCases, SettingsSidebar.Pages("", allReady));
-        Assert.Empty(SettingsSidebar.Pages("glow"));
+        Assert.Equal([SettingsPage.Customization], SettingsSidebar.Pages("glow")); // CZ-4: Customization is ready
         Assert.Empty(SettingsSidebar.Pages("dictation"));
         Assert.Equal(["General", "Providers"], SettingsSidebar.Pages("credits").Select(page => page.Title));
     }
 
     [Fact]
-    [Trait("Decision", "ED-251")] // OD-0103 / V-2.6 pattern: each page is a shell whose IsReady const is false until its unit sets it
-    public void Each_new_page_is_a_shell_with_an_IsReady_const_that_is_still_false()
+    [Trait("Decision", "ED-251")] // OD-0103 / V-2.6 pattern: each page has an IsReady const that is false until its unit sets it (Customization: CZ-4 has)
+    public void Each_new_page_has_an_IsReady_const_that_its_unit_sets()
     {
-        (SettingsPage Page, string Type)[] shells =
+        (SettingsPage Page, string Type, bool Ready)[] shells =
         [
-            (SettingsPage.Customization, "CustomizationSettingsPage"), (SettingsPage.VoiceTyping, "VoiceTypingSettingsPage"),
-            (SettingsPage.Plugins, "PluginsSettingsPage"), (SettingsPage.Skills, "SkillsSettingsPage"), // Updates is built since UE-4 (its IsReady is true: UpdatesSettingsPageTests)
+            (SettingsPage.Customization, "CustomizationSettingsPage", true), (SettingsPage.VoiceTyping, "VoiceTypingSettingsPage", false),
+            (SettingsPage.Updates, "UpdatesSettingsPage", true), (SettingsPage.Plugins, "PluginsSettingsPage", false), (SettingsPage.Skills, "SkillsSettingsPage", false), // Updates is built since UE-4 (IsReady is true: UpdatesSettingsPageTests)
         ];
-        foreach (var (page, name) in shells)
+        foreach (var (page, name, ready) in shells)
         {
             var type = typeof(SettingsSidebar).Assembly.GetType("Marrow.App.Port.Settings." + name);
             Assert.NotNull(type);
@@ -116,12 +120,13 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.NotNull(field);
             Assert.True(field.IsLiteral, name + ".IsReady is a const");
             Assert.Equal(typeof(bool), field.FieldType);
-            Assert.Equal(false, field.GetRawConstantValue());
+            Assert.Equal(ready, field.GetRawConstantValue());
             Assert.Equal((bool)field.GetRawConstantValue()!, page.IsReady);
             Assert.True(typeof(Control).IsAssignableFrom(type));
         }
         Assert.All(SwiftEnum<SettingsPage>.AllCases.Where(page => !NewPages.Contains(page)), page => Assert.True(page.IsReady, page.Title));
-        Assert.Equal(WithUpdates(UpstreamRaw, "updates"), SettingsSidebar.Pages("").Select(page => page.Id));
+        Assert.Equal(SwiftEnum<SettingsPage>.AllCases.Where(page => page.IsReady).Select(page => page.Id), SettingsSidebar.Pages("").Select(page => page.Id));
+        Assert.Equal(SettingsPage.Appearance, SettingsSidebar.Pages("").SkipWhile(page => page != SettingsPage.Customization).Prepend(SettingsPage.Customization).First() == SettingsPage.Customization ? SettingsPage.Appearance : SettingsPage.Customization);
     }
 
     [Fact]
@@ -163,17 +168,17 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     [Trait("Decision", "ED-251")] // hidden pages are absent from the real sidebar and from its search
     public void Hidden_pages_are_absent_from_the_sidebar_and_from_search() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
     {
-        Assert.Equal(WithUpdates(UpstreamTitles, "Updates"), SettingsViewRig.RowTitles(sidebar));
-        foreach (var query in new[] { "glow", "customization", "voice typing", "dictation", "microphone", "plugins", "skills", "install" })
+        Assert.Equal(ReadyTitles, SettingsViewRig.RowTitles(sidebar));
+        foreach (var query in new[] { "voice typing", "dictation", "microphone", "plugins", "skills", "install" })
         {
             SettingsViewRig.Search(sidebar, query);
             var titles = SettingsViewRig.RowTitles(sidebar);
-            Assert.DoesNotContain(titles, title => title is "Customization" or "Voice typing" or "Plugins" or "Skills");
+            Assert.DoesNotContain(titles, title => title is "Voice typing" or "Plugins" or "Skills");
         }
         SettingsViewRig.Search(sidebar, "glow");
-        Assert.Empty(SettingsViewRig.RowTitles(sidebar));
+        Assert.Equal(["Customization"], SettingsViewRig.RowTitles(sidebar)); // CZ-4: the ready page is found by its keyword
         SettingsViewRig.Search(sidebar, "");
-        Assert.Equal(WithUpdates(UpstreamTitles, "Updates"), SettingsViewRig.RowTitles(sidebar));
+        Assert.Equal(ReadyTitles, SettingsViewRig.RowTitles(sidebar));
     });
 
     [Fact]
@@ -184,7 +189,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         SettingsViewRig.Sync();
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
-        foreach (var hidden in NewPages.Where(page => page != SettingsPage.Updates))
+        foreach (var hidden in NewPages.Where(page => !page.IsReady)) // CZ-4 made Customization ready: it opens when asked
         {
             SettingsNavigation.Shared.RequestedPage = hidden;
             SettingsViewRig.Sync();
@@ -192,14 +197,6 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
         }
     });
-
-    // Updates takes the place of the Tools page, after Providers (the order of SettingsPage); its unit has made it ready (UE-4).
-    private static IEnumerable<string> WithUpdates(IEnumerable<string> upstream, string updates)
-    {
-        var list = upstream.ToList();
-        list.Insert(list.FindIndex(item => item is "providers" or "Providers") + 1, updates);
-        return list;
-    }
 
     private static string RepoRoot()
     {

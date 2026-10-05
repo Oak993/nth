@@ -72,6 +72,20 @@ internal static class WindowManagerNativeMethods
         return unchecked((int)result);
     }
 
+    /// <summary>WM_GETMINMAXINFO read back from the window's own procedure: MINMAXINFO.ptMinTrackSize (offset 24), in pixels.</summary>
+    internal static NativeWindowPoint MinTrackSize(nint window)
+    {
+        RequireOwner(window);
+        var info = Marshal.AllocHGlobal(40);
+        try
+        {
+            for (var offset = 0; offset < 40; offset += 4) Marshal.WriteInt32(info, offset, 0);
+            Check(SendMessageTimeout(window, 0x0024, 0, info, 0x0002, 1000, out _) != 0, "WM_GETMINMAXINFO did not return within one second");
+            return new NativeWindowPoint(Marshal.ReadInt32(info, 24), Marshal.ReadInt32(info, 28));
+        }
+        finally { Marshal.FreeHGlobal(info); }
+    }
+
     internal static nint RootAt(NativeWindowPoint point) => GetAncestor(WindowFromPoint(point), 2);
 
     internal static NativeGuiThreadInfo Gui(uint thread)
