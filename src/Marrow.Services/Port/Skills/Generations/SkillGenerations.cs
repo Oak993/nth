@@ -202,7 +202,10 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
                 // Plugin contents may be off while individual skills are on; those go into the ordinary skills-only view.
                 foreach (var skill in selected.Where(s => !locations.ContainsKey(s.Id)))
                 {
-                    var root = (GenerationFilters.PluginLoading(provider) ? "skills/" : "") + skill.Name;
+                    // SK-17: agy's added workspace discovers .agents/skills. Explicit-only skills remain outside it,
+                    // available to Marrow's named invocation without disclosing them to the CLI's automatic catalogue.
+                    var root = (provider == "agy" && !skill.ExplicitOnly ? ".agents/skills/" :
+                        GenerationFilters.PluginLoading(provider) ? "skills/" : "") + skill.Name;
                     locations.Add(skill.Id, root + "/SKILL.md");
                     foreach (var file in item.Store.Manifest.Files.Where(f => f.Path.StartsWith(skill.SourcePath + "/", StringComparison.Ordinal)))
                         AddFile(root + "/" + file.Path[(skill.SourcePath.Length + 1)..], ReadPinned(item.Store, file));

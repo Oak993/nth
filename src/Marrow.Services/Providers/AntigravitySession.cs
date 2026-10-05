@@ -84,6 +84,10 @@ public sealed class AntigravitySession : ProviderSession
             "--print-timeout", "30m",
             "--add-dir", WorkingDirectory,
         ];
+        // DEVIATION OD-0099: SK-17 live check proved discovery under the second root's .agents/skills.
+        // The immutable Marrow-owned tree is passed per process; no provider configuration is written.
+        if (configuration.SkillGeneration is { } skills)
+            arguments.AddRange(["--add-dir", Port.Skills.Providers.SessionSkillOverlay.RequireFolder(skills, "agy")]);
         // Scoping to the connected servers happens through the generated settings file `ProviderRegistry` hands the
         // CLI in `GEMINI_CLI_SYSTEM_SETTINGS_PATH`: it lists those servers and no others, so the user's own stay
         // untouched. `agy` has no `--allowed-mcp-server-names` flag (that one is Claude's) and its flag parser exits 2

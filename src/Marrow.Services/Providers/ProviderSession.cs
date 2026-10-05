@@ -64,6 +64,8 @@ public sealed record SessionConfiguration
     /// </summary>
     public bool IsHydraHead { get; init; }                              // :43-45
     public bool AntiSlopEnabled { get; init; } = true;                  // :46
+    // PORT-ONLY: SK-17 / OD-0099 Q-SKILLS-8 A. The launch owner retains and disposes this immutable lease.
+    public Marrow.Services.Port.Skills.Generations.Generation? SkillGeneration { get; init; }
 }
 
 // :50-58. One exchange of a conversation, for replaying it into a session that starts over.

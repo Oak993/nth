@@ -1,0 +1,7 @@
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_failed_ACP_live_check_keeps_automatic_loading_off_and_argv_unchanged [814 ms]
+  Error Message:
+   Marrow.Core.Port.SwiftTrapException : Storage.Locations is not bound: Marrow.App sets it at start-up; tests override it.
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments [520 ms]
+  Error Message:
+   Marrow.Core.Port.SwiftTrapException : Storage.Locations is not bound: Marrow.App sets it at start-up; tests override it.
+Failed!  - Failed:     2, Passed:     8, Skipped:     0, Total:    10, Duration: 3 s - Marrow.Services.Tests.dll (net10.0)

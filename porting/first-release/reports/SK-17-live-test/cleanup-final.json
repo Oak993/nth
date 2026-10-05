@@ -1,0 +1,20 @@
+{
+  "verifiedUtc": "2026-10-05T16:00:26.6395747Z",
+  "pluginAbsent": true,
+  "localCursorPluginAbsent": true,
+  "trustMarkerAbsent": true,
+  "configs": [
+    {
+      "path": "C:\\Users\\omera\\.cursor\\cli-config.json",
+      "before": "49B64B4A6B8E48D50F21E8FA4B3B55AF02F19FCEA963645E00363B9774753CBF",
+      "after": "49B64B4A6B8E48D50F21E8FA4B3B55AF02F19FCEA963645E00363B9774753CBF",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\Users\\omera\\.gemini\\antigravity-cli\\settings.json",
+      "before": "61366B0A4528865384D530C4CA014EC35F73DB4D192CA68CC58D8F60563CD4AE",
+      "after": "61366B0A4528865384D530C4CA014EC35F73DB4D192CA68CC58D8F60563CD4AE",
+      "unchanged": true
+    }
+  ]
+}

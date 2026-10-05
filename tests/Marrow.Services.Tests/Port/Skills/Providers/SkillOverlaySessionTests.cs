@@ -55,33 +55,16 @@ public sealed class SkillOverlaySessionTests
     }
 
     [Fact]
-    public void Cursor_session_passes_its_plugin_before_acp_and_keeps_the_original_permission_mode()
+    public void Cursor_failed_ACP_live_check_keeps_automatic_loading_off_and_argv_unchanged()
     {
+        using var storage = new StorageScratchFolder(); // ACP's MCP setup reads Storage.Locations, even with no configured servers.
         using var f = new GenerationFixture();
         var item = f.Add("O3", "pdf");
         using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
         using var runtime = new TestRuntime();
         AcpStandIns.ResetLaunchGate();
         var script = AcpStandIns.CopyFor("sk17-cursor");
-        File.WriteAllText(Path.Combine(script.Folder, "help.txt"), "  --plugin-dir <path>  Load a local plugin directory");
         var session = new ACPSession(Config(ProviderKind.Cursor, script.ExecutablePath, f.Paths.Root, g));
-        try
-        {
-            Assert.Equal("s1", runtime.Loop.Run(() => session.Start(), TimeSpan.FromSeconds(60)));
-            Assert.Equal(new[] { "--help" }, script.Arguments(0));
-            Assert.Equal(new[] { "--plugin-dir", g.Folder, "acp" }, script.Arguments(1));
-        }
-        finally { session.Stop(); }
-    }
-
-    [Fact]
-    public void Cursor_without_a_generation_does_not_probe_or_change_its_arguments()
-    {
-        using var f = new GenerationFixture();
-        using var runtime = new TestRuntime();
-        AcpStandIns.ResetLaunchGate();
-        var script = AcpStandIns.CopyFor("sk17-cursor-off");
-        var session = new ACPSession(Config(ProviderKind.Cursor, script.ExecutablePath, f.Paths.Root, null));
         try
         {
             Assert.Equal("s1", runtime.Loop.Run(() => session.Start(), TimeSpan.FromSeconds(60)));
@@ -92,20 +75,19 @@ public sealed class SkillOverlaySessionTests
     }
 
     [Fact]
-    public void Cursor_with_an_older_cli_keeps_acp_working_without_a_plugin_flag()
+    public void Cursor_without_a_generation_does_not_probe_or_change_its_arguments()
     {
+        using var storage = new StorageScratchFolder();
         using var f = new GenerationFixture();
-        var item = f.Add("O3", "pdf");
-        using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
         using var runtime = new TestRuntime();
         AcpStandIns.ResetLaunchGate();
-        var script = AcpStandIns.CopyFor("sk17-cursor-old");
-        File.WriteAllText(Path.Combine(script.Folder, "help.txt"), "--print --mode");
-        var session = new ACPSession(Config(ProviderKind.Cursor, script.ExecutablePath, f.Paths.Root, g));
+        var script = AcpStandIns.CopyFor("sk17-cursor-off");
+        var session = new ACPSession(Config(ProviderKind.Cursor, script.ExecutablePath, f.Paths.Root, null));
         try
         {
             Assert.Equal("s1", runtime.Loop.Run(() => session.Start(), TimeSpan.FromSeconds(60)));
-            Assert.Equal(new[] { "acp" }, script.Arguments(1));
+            Assert.Equal(1, script.Launches);
+            Assert.Equal(new[] { "acp" }, script.Arguments(0));
         }
         finally { session.Stop(); }
     }

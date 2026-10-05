@@ -1,5 +1,4 @@
 // PORT-ONLY: SK-17. Layouts observed in the supervised live check, plus explicit-only confinement.
-using System.Text.Json;
 using Marrow.Services.Tests.Port.Skills.Generations;
 
 namespace Marrow.Services.Tests.Port.Skills.Providers;
@@ -9,7 +8,6 @@ public sealed class SkillOverlayLayoutTests
 {
     [Theory]
     [InlineData("agy", ".agents/skills/pdf/SKILL.md")]
-    [InlineData("cursor", "skills/pdf/SKILL.md")]
     public void Enabled_skills_use_the_live_proven_provider_layout(string provider, string relative)
     {
         using var f = new GenerationFixture();
@@ -18,17 +16,10 @@ public sealed class SkillOverlayLayoutTests
         Assert.Equal(Path.Combine(g.Folder, relative.Replace('/', Path.DirectorySeparatorChar)), Path.Combine(Assert.Single(g.Skills).Folder, "SKILL.md"));
         Assert.Contains("BODY SENTINEL", File.ReadAllText(Path.Combine(g.Folder, relative)), StringComparison.Ordinal);
         Assert.True(g.Verify());
-        if (provider == "cursor")
-        {
-            using var manifest = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(g.Folder, ".cursor-plugin", "plugin.json")));
-            Assert.Equal("marrow", manifest.RootElement.GetProperty("name").GetString());
-            Assert.Equal("fixture", manifest.RootElement.GetProperty("version").GetString());
-        }
     }
 
     [Theory]
     [InlineData("agy", ".agents/skills")]
-    [InlineData("cursor", "skills")]
     public void Explicit_only_skills_are_kept_out_of_automatic_discovery(string provider, string discovery)
     {
         using var f = new GenerationFixture();
@@ -39,6 +30,17 @@ public sealed class SkillOverlayLayoutTests
         var discovered = Directory.GetFiles(Path.Combine(g.Folder, discovery), "SKILL.md", SearchOption.AllDirectories);
         Assert.Single(discovered);
         Assert.DoesNotContain(discovered, p => p.Contains("screenshot", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Cursor_failed_live_routes_keep_the_generation_available_for_named_use_only()
+    {
+        using var f = new GenerationFixture();
+        var item = f.Add("O3", "pdf");
+        using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
+        Assert.Contains("BODY SENTINEL", g.Invoke("pdf"), StringComparison.Ordinal);
+        Assert.False(Directory.Exists(Path.Combine(g.Folder, ".cursor-plugin")));
+        Assert.False(Directory.Exists(Path.Combine(g.Folder, "skills")));
     }
 
     [Theory]
