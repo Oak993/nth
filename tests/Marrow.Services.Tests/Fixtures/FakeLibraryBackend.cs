@@ -30,12 +30,14 @@ internal sealed class FakeLibraryBackend(SkillsCatalogue catalogue, IFirstInstal
     /// <summary>SK-14: how many of an item's files the folder is said to hold; what the page asked of the manual fallback.</summary>
     public int ManualMatches { get; set; }
 
+    public Func<CatalogueItem, int>? ManualWork { get; set; }
+
     public string ManualFolder => "C:\\fixture\\manual";
 
     public int PlaceManualFiles(CatalogueItem item)
     {
         Calls.Add("place " + item.Id);
-        return ManualMatches;
+        return ManualWork?.Invoke(item) ?? ManualMatches;
     }
 
     public void OpenManualPage(Uri page) => Calls.Add("page " + page.AbsoluteUri);
