@@ -1,0 +1,45 @@
+{
+  "source": "porting/first-release/design-src/welcome-voice/wv_lib.py",
+  "set": "V2",
+  "path": "Settings > Voice typing > Speech model",
+  "words": {
+    "name": "Warm",
+    "line": "Friendlier, a little longer; names Hindi and Urdu.",
+    "ask": {
+      "t": "Talk instead of type?",
+      "b": "Marrow can turn your voice into text, right here on your PC. It needs a one-time {mb} download.",
+      "yes": "Yes, set it up",
+      "no": "Maybe later"
+    },
+    "yes": {
+      "t": "Setting up voice typing",
+      "b": "It will be ready as soon as the download finishes. Click the voice orb in the composer any time to see how it’s going. Want a different model? It’s in {path}."
+    },
+    "ready": {
+      "t": "Voice typing is ready",
+      "b": "Click the voice orb in the composer and start talking. Want a different model? It’s in {path}."
+    },
+    "no": {
+      "t": "No problem",
+      "b": "Nothing was downloaded. Whenever you’d like voice typing, click the voice orb in the composer and the download starts. You can pick the model in {path}."
+    },
+    "slow": {
+      "t": "How should voice typing work here?",
+      "b": "Your PC can’t write your words live with the accurate model. Which matters more to you?",
+      "live_t": "See my words as I speak",
+      "live_d": "Uses a smaller model ({small} more). It hears languages other than English less well, Hindi and Urdu most.",
+      "acc_t": "Get every word right",
+      "acc_d": "Keeps the accurate model; your text appears when you stop speaking.",
+      "foot": "You can switch any time in {path}."
+    },
+    "slowlive": {
+      "t": "Live words it is",
+      "b": "The smaller model is on its way. You can switch any time in {path}."
+    },
+    "slowacc": {
+      "t": "Accuracy it is",
+      "b": "Your text appears when you stop speaking. You can switch any time in {path}."
+    },
+    "done": "Got it"
+  }
+}
