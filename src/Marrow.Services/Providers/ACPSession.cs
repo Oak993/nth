@@ -84,6 +84,23 @@ public sealed class ACPSession : ProviderSession
     private string? currentEffort; // :61
     private string? currentFast; // :62
 
+    // PORT-ONLY: SK-11e / WU-10 and DL-12 (Grok). With a null launch the argv is exactly LaunchArguments and the environment exactly today's.
+    public Marrow.Services.Port.Skills.Providers.ProviderSkillLaunch? SkillLaunch { get; init; }
+    public Action<Marrow.Core.Port.Skills.Detect.ToolEvent>? ToolEvents { get; init; }
+    private Marrow.Services.Port.Skills.Providers.AcpToolEventTap? toolTap;
+    private Marrow.Services.Port.Skills.Providers.AcpToolEventTap Tap => toolTap ??= new(ToolEvents);
+
+    /// <summary>LaunchArguments, plus --plugin-dir before `agent` for Grok when a launch is set. Any other ACP provider is untouched.</summary>
+    internal ValueList<string> EffectiveLaunchArguments =>
+        SkillLaunch is { } launch && configuration.Provider == ProviderKind.Grok
+            ? new ValueList<string>(Marrow.Services.Port.Skills.Providers.ProviderSkillArguments.Grok(LaunchArguments, launch))
+            : LaunchArguments;
+
+    internal ValueMap<string, string> EffectiveEnvironment =>
+        configuration.Provider == ProviderKind.Grok
+            ? Marrow.Services.Port.Skills.Providers.ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch)
+            : configuration.Environment;
+
     public ACPSession(SessionConfiguration configuration) // :66-69
     {
         this.configuration = configuration;
@@ -136,7 +153,7 @@ public sealed class ACPSession : ProviderSession
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :109
         await LaunchGate.Wait(); // :110
-        var process = new StdioProcess(executable.Path, LaunchArguments, WorkingDirectory, ChildEnvironment); // :111-116; DL-6
+        var process = new StdioProcess(executable.Path, EffectiveLaunchArguments, WorkingDirectory, ShimPath.ForChild(EffectiveEnvironment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")))); // :111-116 (+ PORT-ONLY SK-11e)
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :117
         connection.OnNotification = (method, parameters) => HandleNotification(method, parameters); // :118
         connection.OnRequest = (id, method, parameters) => HandleRequest(id, method, parameters); // :119
@@ -720,6 +737,7 @@ public sealed class ACPSession : ProviderSession
                     return; // :511
                 }
                 skillEvents.Observe(update);
+                Tap.ToolCall(update); // PORT-ONLY: SK-11e / DL-12
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, MakeToolCall(update))); // :513
                 var initial = MakeToolUpdate(update); // :514
                 if (skillEvents.Finished(update, initial) is { } finished) OnSkillsEvent?.Invoke(finished);
@@ -736,6 +754,7 @@ public sealed class ACPSession : ProviderSession
                     if (steps.Count > 0) OnEvent?.Invoke(new ProviderEvent.Todos(steps)); // :521
                     return; // :522
                 }
+                Tap.ToolCallUpdate(update);
                 var result = MakeToolUpdate(update);
                 if (skillEvents.Finished(update, result) is { } finished) OnSkillsEvent?.Invoke(finished);
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, result)); // :524
@@ -807,6 +826,7 @@ public sealed class ACPSession : ProviderSession
             })
             .OfType<ApprovalRequest.Option>());
         pendingPermissions[id.Key] = id; // :576
+        Tap.Held(toolCall); // PORT-ONLY: SK-11e / DL-12
         var kind = call.ToolCallKind switch // :577-581
         {
             ToolCall.Kind.Command => ApprovalRequest.Kind.Command,

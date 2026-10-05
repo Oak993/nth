@@ -1,0 +1,7 @@
+{"type":"extension_ui_request","id":"g1","method":"select","title":"droppy-gate {\"kind\":\"command\",\"toolName\":\"bash\",\"input\":{\"command\":\"soffice --headless --convert-to pdf a.docx\"},\"toolCallId\":\"t1\"}","options":["Allow","Deny"]}
+{"type":"tool_execution_start","toolCallId":"t1","toolName":"bash","args":{"command":"soffice --headless --convert-to pdf a.docx"}}
+{"type":"tool_execution_end","toolCallId":"t1","isError":true,"result":{"content":[{"type":"text","text":"'soffice' is not recognized as an internal or external command"}],"details":{"exitCode":9009}}}
+{"type":"tool_execution_start","toolCallId":"t2","toolName":"read","args":{"path":"notes.md"}}
+{"type":"tool_execution_end","toolCallId":"t2","result":{"content":[{"type":"text","text":"hello"}]}}
+{"type":"tool_execution_start","toolCallId":"t3","toolName":"bash","args":{"command":"python -c \"print(1)\""}}
+{"type":"tool_execution_end","toolCallId":"t3","isError":false,"result":{"content":[{"type":"text","text":"1"}],"details":{"exitCode":0}}}
