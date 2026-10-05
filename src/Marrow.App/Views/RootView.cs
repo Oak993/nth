@@ -63,7 +63,6 @@ public sealed class RootView : Decorator
     private readonly Border detailPadded;
     private readonly Panel detailSlot = new OverlayPanel();
     private readonly WindowBackdrop backdrop;
-    private readonly WindowCornerWedge cornerWedge = new(AppSettings.DefaultBackdropOpacity);
     private readonly WindowChromeProbe chromeProbe = new();
     private readonly WindowChromeConfigurator chromeConfig = new();
     private readonly SwiftShapeBorder windowClip;
@@ -87,9 +86,6 @@ public sealed class RootView : Decorator
 
     /// <summary>Test-only: the window's own rounded clip (PR-WIN-062, :66-68).</summary>
     internal SwiftShapeBorder WindowClip => windowClip;
-
-    /// <summary>Test-only: the layer that fills the wedge between the window's rectangle and its 26 pt shape with the scrim (OD-0075).</summary>
-    internal WindowCornerWedge CornerWedge => cornerWedge;
 
     /// <summary>Test-only: the detail column's own clip, before its (inert) padding (PR-WIN-063, :40).</summary>
     internal Border DetailClip => detailClip;
@@ -238,22 +234,24 @@ public sealed class RootView : Decorator
         behindContent.Children.Add(backdrop); // :64
         behindContent.Children.Add(content);
 
-        // :66-68 clipped to the window's own rounded shape only after the backdrop is painted, so the glass and its
-        // edge stop at the window's own curve (PR-WIN-062, "Clip the composited window to the same squircle... so
-        // the DWM shadow follows the same curve" - the native region/DWM preference and four-corner capture
-        // remain STOP #4 in RootViewTests.cs; this Border is only the composited-content part of that contract; the wedge between it and the rectangular
-        // window is OD-0075's, added below as a fifth layer). .ignoresSafeArea() (:68) has nothing to do here: Windows reserves no OS-drawn
+        // :66-68 clipped to the window's own shape only after the backdrop is painted (PR-WIN-062, "Clip the composited window to the same squircle... so
+        // the DWM shadow follows the same curve" - the native region/DWM preference and four-corner capture remain STOP #4 in RootViewTests.cs; this
+        // Border is only the composited-content part of that contract). .ignoresSafeArea() (:68) has nothing to do here: Windows reserves no OS-drawn
         // safe area over this fully custom-chromed window, the identical call WindowChrome.cs's own top-of-file
         // note already makes for the titlebar container it has no counterpart for.
-        // :66 Clip the entire composition, including the backdrop: `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))`
-        // is the shape's own clip (ClipToBounds on a SwiftShapeBorder clips to its continuous path, ED-181).
+        // :66 Clip the entire composition, including the backdrop: `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))`.
+        // PORT-ONLY (OD-0075; the owner's intent of 2026-10-05; ED-338): the clip is the window's RECTANGLE, not the 26 pt shape. Windows rounds a
+        // window's corner by 8 px at most (DWM, ED-236 UNRESOLVED (a)), so a 26 pt clip left a wedge of the system's Acrylic with nothing on it, or, filled
+        // with a second paint of the scrim (the first version of OD-0075), a corner that was not the colour of the glass beside it: the body also wears the
+        // legibility tint and the detail sheet's wash. With the rectangle every layer of the body (the backdrop's scrim and tint, the sheet) reaches the
+        // window's edge and DWM rounds it: the corner IS the body. The backdrop's hairline is the rectangle's inner stroke too (WindowBackdrop).
         windowClip = new SwiftShapeBorder
         {
             Child = behindContent,
             ClipToBounds = true,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
-        }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+        };
 
         // :69 .coordinateSpace(.named(GenieAnimator.coordinateSpace)): nothing to install here. Every consumer reaches
         // "the window" through Avalonia's own ancestor-relative TranslatePoint/TransformToVisual directly
@@ -269,13 +267,6 @@ public sealed class RootView : Decorator
         outerRoot.Children.Add(genieLayer);
         outerRoot.Children.Add(rowGlideLayer);
         outerRoot.Children.Add(paletteHost); // :72-76, CommandPalette added/removed by UpdatePalette below
-        // OD-0075 (owner, 2026-10-02): the wedge between the window's rectangle (system Acrylic, ED-236) and its 26 pt shape is filled with the
-        // window's scrim. The source's four layers keep their order above; the wedge is the fifth, painted FIRST (ZIndex -1), under windowClip, so the
-        // glass and its hairline still stop at the curve. It follows the backdrop's opacity and theme (UpdateBackdrop below). On the Mac the corner
-        // outside the shape is clear.
-        cornerWedge.ZIndex = -1;
-        outerRoot.Children.Add(cornerWedge);
-
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;
         Child = outerRoot;
@@ -381,7 +372,6 @@ public sealed class RootView : Decorator
         try { model = AppEnvironment.GetAppModel(this); }
         catch (InvalidOperationException) { return; }
         backdrop.Update(model.Settings.BackdropOpacity, WallpaperStore.Shared.Current.Image);
-        cornerWedge.Update(model.Settings.BackdropOpacity); // OD-0075: the corner follows the backdrop it belongs to
     }
 
     // :65 the window-chrome probe updates in place the same way (WindowChromeConfigurator.Update's identical shape).

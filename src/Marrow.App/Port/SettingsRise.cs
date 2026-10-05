@@ -108,7 +108,6 @@ internal sealed class SettingsRiseLayout
     {
         var layout = new SettingsRiseLayout();
         layout.Glass.Add(view.RiseBackdrop);
-        layout.Glass.Add(view.RiseWedge); // OD-0075: the window's corners are filled with its scrim, so they fade in with the glass they belong to
         if (view.RiseSheet is { } sheet)
             foreach (var child in sheet.Children)
                 if (child is Shape) layout.Glass.Add(child); // DetailSheetModifier's wash and tint (Chrome.swift:195-196)

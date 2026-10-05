@@ -25,10 +25,10 @@ vec3 wall(vec2 p){
   c.x += .045*dot(gd, normalize(vec2(-.6, .8)));
   vec2 q = p/cssu();
   float per = mix(3.6, 6.5, u_opt);
-  float tx = q.x/per + .35*gn(vec2(q.y*.006, 1.)), ty = q.y/per + .35*gn(vec2(2., q.x*.006));
+  float tx = q.x/per + .35*gn(vec2(q.y*.006 + .29, 1.41)), ty = q.y/per + .35*gn(vec2(2.37, q.x*.006 + .61));
   float ix = floor(tx), iy = floor(ty);
   float fx = abs(fract(tx) - .5)*2., fy = abs(fract(ty) - .5)*2.;
-  float twx = .5 + .42*s01(-.3, .7, gn(vec2(ix*.71 + .37, q.y*.018))), twy = .5 + .42*s01(-.3, .7, gn(vec2(q.x*.018, iy*.71 + .37)));
+  float twx = .5 + .42*s01(-.3, .7, gn(vec2(ix*.71 + .37, q.y*.018 + .53))), twy = .5 + .42*s01(-.3, .7, gn(vec2(q.x*.018 + .53, iy*.71 + .37)));
   float wx = 1. - s01(twx*.7, twx, fx), wy = 1. - s01(twy*.7, twy, fy);
   float over = mod(ix + iy, 2.);
   float top = mix(wy, wx, over);

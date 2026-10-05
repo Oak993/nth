@@ -42,7 +42,7 @@
    "Palettes are sRGB hex; convert to OKLab on the CPU (the page does it with the standard OKLab matrices)."
   ],
   "head": "#version 300 es\nprecision highp float;\nuniform vec2 u_res;\nuniform float u_dpr;\nuniform vec3 u_pal[6];\nuniform float u_dark;\nuniform float u_grain;\nuniform float u_opt;\nout vec4 o;\n",
-  "lib": "const float PI = 3.14159265;\nfloat sat(float x){ return clamp(x, 0., 1.); }\nfloat s01(float a, float b, float x){ return smoothstep(a, b, x); }\nfloat pxu(){ return 2./u_res.y; }\nfloat cssu(){ return 2.*u_dpr/u_res.y; }\nmat2 rot(float a){ float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }\nfloat h21(vec2 p){ vec3 q = fract(vec3(p.xyx)*.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y)*q.z); }\nvec2 h22(vec2 p){ vec3 q = fract(vec3(p.xyx)*vec3(.1031, .1030, .0973)); q += dot(q, q.yzx + 33.33); return fract((q.xx + q.yz)*q.zy); }\nfloat gn(vec2 p){\n  vec2 i = floor(p), f = fract(p);\n  vec2 u = f*f*f*(f*(f*6. - 15.) + 10.);\n  float a = dot(h22(i)*2. - 1., f);\n  float b = dot(h22(i + vec2(1., 0.))*2. - 1., f - vec2(1., 0.));\n  float c = dot(h22(i + vec2(0., 1.))*2. - 1., f - vec2(0., 1.));\n  float d = dot(h22(i + vec2(1., 1.))*2. - 1., f - vec2(1., 1.));\n  return 1.6*mix(mix(a, b, u.x), mix(c, d, u.x), u.y);\n}\nfloat fbm(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 5; i++) { s += a*gn(p); p = mat2(1.6, 1.2, -1.2, 1.6)*p + vec2(1.7, 9.2); a *= .5; } return s; }\nfloat fbm3(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 3; i++) { s += a*gn(p); p = mat2(1.6, 1.2, -1.2, 1.6)*p + vec2(1.7, 9.2); a *= .5; } return s; }\nfloat sm1(float x){ x = sat(x); return mix(x, x*x*(3. - 2.*x), .6); }\nvec3 ramp(float t){ t = sat(t)*4.; vec3 c = mix(u_pal[0], u_pal[1], sm1(t)); c = mix(c, u_pal[2], sm1(t - 1.)); c = mix(c, u_pal[3], sm1(t - 2.)); return mix(c, u_pal[4], sm1(t - 3.)); }\nvec3 dim(vec3 c, float k){ return vec3(c.x*(1. - k), c.yz*(1. - .3*k)); }\nvec3 lift(vec3 c, float k){ return vec3(c.x + k, c.yz*(1. - .6*sat(k*2.))); }\nfloat cover(float d){ float w = pxu(); return 1. - smoothstep(-w, w, d); }\nfloat sdBox(vec2 p, vec2 b, float r){ vec2 q = abs(p) - b + r; return length(max(q, 0.)) + min(max(q.x, q.y), 0.) - r; }\n",
+  "lib": "const float PI = 3.14159265;\nfloat sat(float x){ return clamp(x, 0., 1.); }\nfloat s01(float a, float b, float x){ return smoothstep(a, b, x); }\nfloat pxu(){ return 2./u_res.y; }\nfloat cssu(){ return 2.*u_dpr/u_res.y; }\nmat2 rot(float a){ float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }\nfloat h21(vec2 p){ vec3 q = fract(vec3(p.xyx)*.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y)*q.z); }\nvec2 h22(vec2 p){ vec3 q = fract(vec3(p.xyx)*vec3(.1031, .1030, .0973)); q += dot(q, q.yzx + 33.33); return fract((q.xx + q.yz)*q.zy); }\nfloat gn(vec2 p){\n  vec2 i = floor(p), f = p - i;   // not fract(p): on an exact integer the two can disagree and a whole row jumps a cell\n  vec2 u = f*f*f*(f*(f*6. - 15.) + 10.);\n  float a = dot(h22(i)*2. - 1., f);\n  float b = dot(h22(i + vec2(1., 0.))*2. - 1., f - vec2(1., 0.));\n  float c = dot(h22(i + vec2(0., 1.))*2. - 1., f - vec2(0., 1.));\n  float d = dot(h22(i + vec2(1., 1.))*2. - 1., f - vec2(1., 1.));\n  return 1.6*mix(mix(a, b, u.x), mix(c, d, u.x), u.y);\n}\nfloat fbm(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 5; i++) { s += a*gn(p); p = mat2(1.6, 1.2, -1.2, 1.6)*p + vec2(1.7, 9.2); a *= .5; } return s; }\nfloat fbm3(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 3; i++) { s += a*gn(p); p = mat2(1.6, 1.2, -1.2, 1.6)*p + vec2(1.7, 9.2); a *= .5; } return s; }\nfloat sm1(float x){ x = sat(x); return mix(x, x*x*(3. - 2.*x), .6); }\nvec3 ramp(float t){ t = sat(t)*4.; vec3 c = mix(u_pal[0], u_pal[1], sm1(t)); c = mix(c, u_pal[2], sm1(t - 1.)); c = mix(c, u_pal[3], sm1(t - 2.)); return mix(c, u_pal[4], sm1(t - 3.)); }\nvec3 dim(vec3 c, float k){ return vec3(c.x*(1. - k), c.yz*(1. - .3*k)); }\nvec3 lift(vec3 c, float k){ return vec3(c.x + k, c.yz*(1. - .6*sat(k*2.))); }\nfloat cover(float d){ float w = pxu(); return 1. - smoothstep(-w, w, d); }\nfloat sdBox(vec2 p, vec2 b, float r){ vec2 q = abs(p) - b + r; return length(max(q, 0.)) + min(max(q.x, q.y), 0.) - r; }\n",
   "main": "vec3 s2lin(vec3 c){ return mix(c/12.92, pow((c + .055)/1.055, vec3(2.4)), step(.04045, c)); }\nvec3 lin2s(vec3 c){ c = clamp(c, 0., 1.); return mix(c*12.92, 1.055*pow(c, vec3(1./2.4)) - .055, step(.0031308, c)); }\nvec3 fromLab(vec3 L){\n  float l = L.x + .3963377774*L.y + .2158037573*L.z;\n  float m = L.x - .1055613458*L.y - .0638541728*L.z;\n  float q = L.x - .0894841775*L.y - 1.291485548*L.z;\n  l = l*l*l; m = m*m*m; q = q*q*q;\n  return lin2s(vec3(4.0767416621*l - 3.3077115913*m + .2309699292*q, -1.2684380046*l + 2.6097574011*m - .3413193965*q, -.0041960863*l - .7034186147*m + 1.707614701*q));\n}\nvoid main(){\n  vec2 fc = gl_FragCoord.xy;\n  vec2 p = (fc/u_res - .5)*2.*vec2(u_res.x/u_res.y, 1.);\n  vec3 L = wall(p);\n  float g = h21(fc*1.13 + 3.7) + h21(fc*.97 + 19.1) - 1.;\n  L.x += g*u_grain*.034;\n  vec3 c = fromLab(L);\n  c += (h21(fc + 41.) + h21(fc + 87.3) - 1.)/255.;\n  o = vec4(c, 1.);\n}\n"
  },
  "tiers": [
@@ -196,7 +196,7 @@
    ],
    "src": "float rEdge(float x, float i){\n  return .8 - i*.3 + .15*sin(x*.95 + i*1.9 + .4) + .085*sin(x*2.1 - i*2.7 + 1.3) + .03*gn(vec2(x*1.3 + i*7.1, i*3.3));\n}\nvec3 wall(vec2 p){\n  vec3 col = mix(u_pal[5], u_pal[0], sat(.55 - p.y*.45));\n  float soft = mix(.035, .15, u_opt);\n  for (int k = 0; k < 7; k++) {\n    float i = float(k);\n    float e = .01;\n    float y = rEdge(p.x, i);\n    float sl = (rEdge(p.x + e, i) - rEdge(p.x - e, i))/(2.*e);\n    float d = (p.y - y)/sqrt(1. + sl*sl);\n    float a = cover(d);\n    col = dim(col, mix(.38, .55, u_dark)*exp(-max(d, 0.)/soft)*(1. - a));\n    vec3 c = ramp(i/6. + .05*sin(p.x*.8 + i*2.));\n    float dep = max(-d, 0.);\n    c = dim(c, .34*s01(0., .5, dep));\n    c.x += .075*exp(-dep/.03) + .03*exp(-dep/.12);\n    col = mix(col, c, a);\n  }\n  col.x += .035*s01(1.8, -1.2, p.x - p.y*.6);\n  return col;\n}\n",
    "cost": {
-    "ms": 5.1,
+    "ms": 3.7,
     "px": [
      2560,
      1600
@@ -327,7 +327,7 @@
    ],
    "src": "vec3 wall(vec2 p){\n  vec2 O = vec2(-2.05, -1.5);\n  vec3 col = mix(u_pal[5], dim(u_pal[5], .35), sat(length(p - vec2(1.3, .9))*.42));\n  float step_ = mix(.118, .158, u_opt);\n  for (int k = 0; k < 10; k++) {\n    float i = float(k);\n    float th = .1 + i*step_;\n    vec2 q = rot(-th)*(p - O);\n    q.y -= .045*q.x*q.x - .12*q.x;\n    float Lp = 4.5 + .35*sin(i*1.7);\n    float s = q.x/Lp;\n    float w = (.4 + .05*sin(i*2.3))*pow(sat(sin(PI*sat(s))), .62);\n    float d = max(abs(q.y) - w, max(-q.x, q.x - Lp));\n    vec2 qs = rot(-th)*(p - O - vec2(.045, -.06));\n    qs.y -= .045*qs.x*qs.x - .12*qs.x;\n    float ws = (.4 + .05*sin(i*2.3))*pow(sat(sin(PI*sat(qs.x/Lp))), .62);\n    float sh = 1. - s01(-.05, .11, abs(qs.y) - ws);\n    float a = cover(d*.85);\n    col = dim(col, mix(.3, .42, u_dark)*sh*(1. - a));\n    float ny = clamp(q.y/max(w, 1e-3), -1.2, 1.2);\n    vec3 c = ramp(i/9. + .1*(s - .5));\n    c = dim(c, .3*(1. - s01(.25, .75, s)));\n    c.x += .05*ny - .04*ny*ny;\n    float edge = max(w - abs(q.y), 0.);\n    c.x += (ny > 0. ? .06 : .02)*exp(-edge/.012);\n    c.x += .03*exp(-edge/.07);\n    col = mix(col, c, a);\n  }\n  return col;\n}\n",
    "cost": {
-    "ms": 3,
+    "ms": 1.8,
     "px": [
      2560,
      1600
@@ -458,7 +458,7 @@
    ],
    "src": "vec3 bgP(vec2 p){\n  vec3 c = mix(u_pal[0], u_pal[1], sm1(.5 + .32*p.x - .3*p.y));\n  c = mix(c, u_pal[5], .55*s01(-.25, -1.15, p.y));\n  vec2 oc = vec2(.38, .12);\n  float r = length(p - oc);\n  c = mix(c, u_pal[4], .65*exp(-r*r*1.5));\n  vec3 orb = mix(u_pal[3], u_pal[2], sm1(r/.58));\n  orb.x += .06*s01(.55, .0, length(p - oc - vec2(-.16, .2)));\n  c = mix(c, orb, 1. - s01(.5, .64, r));\n  float r2 = length(p - vec2(-.82, -.42));\n  c = mix(c, mix(u_pal[4], u_pal[2], sm1(r2/.3)), (1. - s01(.22, .34, r2))*.9);\n  return c;\n}\nvec3 wall(vec2 p){\n  float fw = mix(.035, .12, u_opt);\n  float fx = p.x/fw;\n  float cx = (floor(fx) + .5)*fw;\n  float f = fract(fx) - .5;\n  float xs = cx - 1.6*fw*sin(f*PI);\n  vec3 acc = vec3(0.);\n  for (int j = 0; j < 6; j++) {\n    float a = float(j)*1.047 + .3;\n    acc += bgP(vec2(xs, p.y) + vec2(.04, .025)*vec2(cos(a), sin(a)));\n  }\n  vec3 c = acc/6.;\n  float hl = exp(-pow((f + .27)/.07, 2.));\n  float seam = exp(-(.5 - abs(f))/.018);\n  c.x += .03*hl - .03*seam + .03*cos(f*PI) - .015;\n  c.yz *= 1. - .2*hl;\n  return c;\n}\n",
    "cost": {
-    "ms": 0.6,
+    "ms": 0.8,
     "px": [
      2560,
      1600
@@ -851,7 +851,7 @@
    ],
    "src": "float hS(vec2 p){\n  vec2 q = rot(.35)*p;\n  q += .28*vec2(sin(q.y*1.3 + .5), sin(q.x*1.1 + 1.7));\n  float w = 1.6*sin(q.y*1.1 + .4) + .8*sin(q.y*2.3 - q.x*.5);\n  return .5*sin(q.x*3.4 + w) + .25*sin(q.x*6.1 + 1.3*w - q.y*1.1) + .2*sin(q.y*2.9 + q.x*1.2);\n}\nvec3 wall(vec2 p){\n  float e = .003, amp = mix(.3, .75, u_opt);\n  float h0 = hS(p), hx = hS(p + vec2(e, 0.)), hy = hS(p + vec2(0., e));\n  vec3 n = normalize(vec3(-(hx - h0)/e*amp, -(hy - h0)/e*amp, 1.));\n  vec3 Ld = normalize(vec3(-.5, .62, .6));\n  float dif = dot(n, Ld);\n  vec3 H = normalize(Ld + vec3(0., 0., 1.));\n  float nh = clamp(dot(n, H), 0., 1.);\n  float t = .5 + .45*sin(p.x*.55 - p.y*.4 + h0*.5);\n  vec3 c = ramp(t);\n  c.yz = rot(n.x*.9 - n.y*.5)*c.yz;\n  float occ = sat(dif*.9 + .1);\n  c = mix(c, u_pal[5], .7*(1. - occ)*(1. - occ));\n  c.x *= .78 + .3*occ;\n  c.x += .16*pow(nh, 26.) + .12*pow(nh, 160.);\n  c.yz *= 1. - .4*pow(nh, 26.);\n  return c;\n}\n",
    "cost": {
-    "ms": 0.4,
+    "ms": 0.7,
     "px": [
      2560,
      1600
@@ -1113,7 +1113,7 @@
    ],
    "src": "float shoreL(float x){ return -.5 + .22*sin(x*.8 + .6) + .1*sin(x*1.9 - 1.) + .04*gn(vec2(x*2.5, 3.)); }\nvec3 wall(vec2 p){\n  float sy = shoreL(p.x);\n  float up = p.y - sy;\n  float D = .84 - .62*sat(up*.75) + .16*fbm(p*.9 + vec2(3., 1.)) - .1*s01(.5, 1.6, up);\n  vec3 c = ramp(sat(D*1.12 - .05));\n  float reef = s01(.12, .35, fbm(p*1.6 + 9.))*s01(.2, .5, up)*s01(1.5, .7, up);\n  c = dim(c, .22*reef);\n  c.yz = mix(c.yz, u_pal[1].yz, .25*reef);\n  vec2 q = p*vec2(.9, 1.15);\n  vec2 w = q*3.4 + .9*vec2(gn(q*1.3), gn(q*1.3 + 5.2));\n  float ca = exp(-abs(gn(w))*9.) + .6*exp(-abs(gn(w*1.65 + 2.3))*11.);\n  float shal = s01(.35, .85, D)*s01(-.01, .04, up);\n  c.x += mix(.03, .12, u_opt)*ca*shal;\n  c.yz *= 1. - .2*ca*shal*u_opt;\n  float edge = up + .012*gn(vec2(p.x*9., 1.));\n  float sand = cover(edge);\n  vec3 sd = u_pal[4];\n  sd.x += .02*gn(p*7.) - .06*s01(-.08, 0., edge);\n  sd = mix(sd, dim(u_pal[3], .15), .4*s01(-.06, 0., edge));\n  c = mix(c, sd, sand);\n  float foam = exp(-abs(edge - .006)/.006) + .55*exp(-abs(edge - .055 - .01*gn(vec2(p.x*4., 7.)))/.007) + .3*exp(-abs(edge - .12 - .02*gn(vec2(p.x*3., 2.)))/.008);\n  foam *= .55 + .45*gn(p*vec2(18., 40.));\n  c = mix(c, u_pal[5], sat(foam)*.75*(1. - sand));\n  return c;\n}\n",
    "cost": {
-    "ms": 1.4,
+    "ms": 1.5,
     "px": [
      2560,
      1600
@@ -1244,7 +1244,7 @@
    ],
    "src": "vec3 wall(vec2 p){\n  vec2 O = vec2(.0, -1.32);\n  vec2 q = p - O;\n  float r = length(q);\n  float a = atan(q.x, q.y);\n  float N = mix(5., 9., u_opt);\n  float s = (a + .1*r)*N/PI*2.;\n  float x = cos(s*PI);\n  float ws = pxu()*N*2./max(r, .05);\n  float fold = x/(abs(x) + .035 + ws*2.5);\n  vec3 c = ramp(.5 + a*.37 + .03*r);\n  c = dim(c, .26*s01(.3, 2.6, r));\n  c.x += .055*fold*(1. - .4*exp(-r)) - .015*(1. - abs(fold));\n  c.yz *= 1. - .1*fold;\n  float g = exp(-r*1.15);\n  c = mix(c, u_pal[5], .8*g*g + .25*g);\n  return c;\n}\n",
    "cost": {
-    "ms": 0.3,
+    "ms": 0.6,
     "px": [
      2560,
      1600
@@ -1375,7 +1375,7 @@
    ],
    "src": "vec3 wall(vec2 p){\n  vec3 col = mix(lift(u_pal[5], .05), dim(u_pal[5], .35), sat(.42 - p.y*.3 + p.x*.1));\n  col.x += .03*fbm3(p*1.6)*u_dark;\n  vec2 P0 = vec2(-.62, .3);\n  vec2 dIn = normalize(P0 - vec2(-2.2, .95));\n  vec2 v = p - P0;\n  float along = dot(v, dIn), across = dot(v, vec2(-dIn.y, dIn.x));\n  float Iin = exp(-across*across/(.0007 + .0004*u_opt))*s01(.04, -.08, along);\n  float ang = atan(v.y, v.x);\n  float spread = mix(.35, .75, u_opt);\n  float a0 = -.2 - spread;\n  float t = (ang - a0)/spread;\n  float r = length(v);\n  float soft = .025 + .05/(1. + r*3.);\n  float fan = s01(-soft*4., soft*4., t)*s01(1. + soft*4., 1. - soft*4., t)*s01(.0, .25, r);\n  float haze = .6 + .4*fbm3(vec2(ang*14., r*1.1 + 3.));\n  float I = fan*haze*exp(-r*.32);\n  float bloom = s01(-.6, .5, t)*s01(1.6, .5, t)*exp(-r*.5)*.22;\n  col = mix(col, ramp(sat(t)), sat(bloom));\n  col = mix(col, ramp(sat(t)), sat(I*1.5));\n  col.x += .14*I*u_dark;\n  col = mix(col, lift(u_pal[2], .2), sat(Iin*.9));\n  col.x += mix(.12, .25, u_dark)*exp(-r*r*120.);\n  return col;\n}\n",
    "cost": {
-    "ms": 1.2,
+    "ms": 0.7,
     "px": [
      2560,
      1600
@@ -1637,7 +1637,7 @@
    ],
    "src": "float duneH(vec2 q){\n  vec2 w = q + .8*vec2(gn(q*.18 + 3.), gn(q*.18 + 8.));\n  float r1 = 1. - abs(gn(w*vec2(.42, .3)));\n  float r2 = 1. - abs(gn(w*vec2(.9, .7) + 5.));\n  return r1*r1*.9 + r2*r2*.25;\n}\nvec3 wall(vec2 p){\n  float hz = .3;\n  vec3 sky = mix(u_pal[4], u_pal[5], sm1((p.y - hz)/(1. - hz)*1.3));\n  vec2 sp = vec2(-1.05, hz + .12);\n  sky = mix(sky, lift(u_pal[3], .04), .5*exp(-length((p - sp)*vec2(.6, 1.))*3.));\n  if (p.y > hz + .003) return sky;\n  float z = .6/(hz - p.y + .01);\n  vec2 q = vec2(p.x*z, z*1.6);\n  float e = .015 + .004*z;\n  float h = duneH(q), hx = duneH(q + vec2(e, 0.)), hz2 = duneH(q + vec2(0., e));\n  vec3 n = normalize(vec3(-(hx - h)/e*.9, 1., -(hz2 - h)/e*.9));\n  float el = mix(.15, .6, u_opt);\n  vec3 L = normalize(vec3(-.9, el, .35));\n  float dif = dot(n, L);\n  float t = sat(dif*1.15 + .1);\n  vec3 c = mix(u_pal[0], u_pal[1], sm1(t*3.));\n  c = mix(c, u_pal[2], sm1(t*3. - 1.));\n  c = mix(c, u_pal[3], sm1(t*3. - 2.));\n  c.x += .012*gn(vec2(q.x*14., q.y*5.))*exp(-z*.3);\n  float fog = 1. - exp(-z*.06);\n  c = mix(c, u_pal[4], fog);\n  return mix(c, sky, s01(hz - .004, hz + .003, p.y));\n}\n",
    "cost": {
-    "ms": 1.1,
+    "ms": 0.9,
     "px": [
      2560,
      1600
@@ -1899,7 +1899,7 @@
    ],
    "src": "float ribY(float x, float i){\n  return -.8 + i*.47 + (.2 + .05*i)*sin(x*(.72 + .1*i) + i*1.9 + .3) + .08*sin(x*1.55 - i*2.4);\n}\nvec3 wall(vec2 p){\n  vec3 col = mix(lift(u_pal[5], .03), dim(u_pal[5], .3), sat(.55 - .3*p.y + .12*p.x));\n  col = mix(col, u_pal[2], .25*exp(-dot(p - vec2(-.6, .5), p - vec2(-.6, .5))*.5));\n  float gl = mix(.25, 1., u_opt);\n  vec3 K = normalize(vec3(-.35, .72, .6));\n  vec3 H = normalize(K + vec3(0., 0., 1.));\n  for (int k = 0; k < 4; k++) {\n    float i = float(k);\n    float e = .01;\n    float y = ribY(p.x, i);\n    float sl = (ribY(p.x + e, i) - y)/e;\n    float nr = sqrt(1. + sl*sl);\n    float w = .21 + .04*sin(p.x*.8 + i*3.1);\n    float d = (p.y - y)/nr;\n    float ds = (p.y + .06 - ribY(p.x - .04, i))/nr;\n    float sh = 1. - s01(w*.55, w + .2, abs(ds));\n    float a = 1. - smoothstep(-pxu()*1.2, pxu()*1.2, abs(d) - w);\n    col = dim(col, mix(.3, .42, u_dark)*sh*(1. - a));\n    float v = clamp(d/w, -1., 1.);\n    vec2 ac = vec2(-sl, 1.)/nr;\n    vec3 n = normalize(vec3(ac*v, sqrt(max(1. - v*v, 0.)) + .02));\n    float kw = sat(dot(n, K)*.62 + .38);\n    kw = kw*kw*(3. - 2.*kw);\n    vec3 c = mix(u_pal[k], u_pal[k + 1], .5 + .5*sin(p.x*.55 + i*1.7));\n    c = vec3(c.x*(.5 + .56*kw), c.yz*(1. + .5*kw*(1. - kw) - .1*kw*kw));\n    c.x += .05*sat(-v)*(1. - kw)*s01(.4, 1., abs(v));\n    float nh = sat(dot(n, H));\n    c.x += gl*(.16*pow(nh, 40.) + .05*pow(nh, 6.));\n    c.yz *= 1. - .4*gl*pow(nh, 40.);\n    col = mix(col, c, a);\n  }\n  return col;\n}\n",
    "cost": {
-    "ms": 0.7,
+    "ms": 0.5,
     "px": [
      2560,
      1600
@@ -2161,7 +2161,7 @@
    ],
    "src": "float drop(vec2 p, vec2 c, float R, float k){\n  float r = length(p - c);\n  float x = r - R;\n  return (sin(x*k)*exp(-x*x*16.) + .45*sin((r - R*.6)*k*1.15)*exp(-pow(r - R*.6, 2.)*30.))*exp(-r*.8);\n}\nfloat hR(vec2 p){\n  return drop(p, vec2(.6, .18), .62, 34.) + .8*drop(p, vec2(-.85, -.38), .45, 40.) + .6*drop(p, vec2(.05, -.82), .3, 46.) + .05*gn(p*1.5);\n}\nvec3 wall(vec2 p){\n  float e = .002;\n  float A = mix(.0015, .006, u_opt);\n  float h = hR(p);\n  vec2 g = vec2(hR(p + vec2(e, 0.)) - h, hR(p + vec2(0., e)) - h)/e*A;\n  float t = .5 + .14*(p.x + g.x*14.) - .16*(p.y + g.y*14.);\n  vec3 c = ramp(t);\n  vec3 n = normalize(vec3(-g*3., 1.));\n  float sp = pow(sat(dot(n, normalize(vec3(-.4, .5, .77)))), 60.);\n  c = mix(c, u_pal[5], sat(sp*.6));\n  c.x += .05*(n.y - n.x)*2.;\n  return c;\n}\n",
    "cost": {
-    "ms": 0.6,
+    "ms": 0.7,
     "px": [
      2560,
      1600
@@ -2292,7 +2292,7 @@
    ],
    "src": "float hC(vec2 p){ return fbm3(p*.42 + vec2(2., 7.))*1.1 + .08*gn(p*1.7) + .22*sin(p.x*.6 + 1.); }\nvec3 wall(vec2 p){\n  float e = .003;\n  float h = hC(p);\n  vec2 g = vec2(hC(p + vec2(e, 0.)) - h, hC(p + vec2(0., e)) - h)/e;\n  vec3 c = ramp(sat(h*.62 + .5));\n  vec3 n = normalize(vec3(-g*.5, 1.));\n  c.x += .07*(dot(n, normalize(vec3(-.6, .7, .55))) - .72);\n  float st = .07;\n  float v = h/st;\n  float dl = abs(fract(v + .5) - .5)*st/max(length(g), .02);\n  float major = step(4.5, mod(floor(v + .5) + 50., 5.));\n  float lw = cssu()*(.55 + .6*major);\n  float line = 1. - s01(lw, lw + pxu()*1.3, dl);\n  c = mix(c, u_pal[5], line*mix(.2, .6, u_opt)*(.7 + .3*major));\n  return c;\n}\n",
    "cost": {
-    "ms": 1.1,
+    "ms": 1,
     "px": [
      2560,
      1600
@@ -2423,7 +2423,7 @@
    ],
    "src": "float washW(vec2 p, vec2 c, float r, float seed, float bleed){\n  vec2 q = p + (.2 + .15*bleed)*vec2(fbm3(p*1.1 + seed), fbm3(p*1.1 + seed + 5.));\n  vec2 v = rot(seed)*(q - c);\n  return (r - length(v*vec2(.72, 1.25)))/r + .32*fbm(p*1.8 + seed*1.7);\n}\nvoid glaze(inout vec3 col, vec2 p, vec3 pig, vec3 paper, float f, float tooth, float seed){\n  float inside = s01(-.01, .05, f);\n  float edge = exp(-max(f, 0.)/.035)*inside;\n  float dens = inside*(mix(.42, .62, u_dark) + .2*fbm3(vec2(f*3., seed))) + .45*edge;\n  float gran = s01(.0, .8, gn(p/cssu()*.42 + seed*7.) + .6*gn(p/cssu()*.13 + seed));\n  float floc = fbm3(p*7. + seed*3.);\n  dens *= .72 + .32*tooth + .4*gran*mix(.6, 1., u_dark) + .18*floc;\n  dens = sat(dens);\n  col = vec3(col.x*mix(1., pig.x/paper.x, dens), col.yz + (pig.yz - paper.yz)*dens);\n}\nvec3 wall(vec2 p){\n  vec3 paper = u_pal[5];\n  float tooth = fbm3(p/cssu()*.07);\n  vec3 col = paper;\n  col.x += .012*tooth;\n  float b = u_opt;\n  glaze(col, p, u_pal[0], paper, washW(p, vec2(-.85, .35), .78, 1.3, b), tooth, 1.);\n  glaze(col, p, u_pal[1], paper, washW(p, vec2(.55, .5), .62, 4.1, b), tooth, 2.);\n  glaze(col, p, u_pal[2], paper, washW(p, vec2(.95, -.45), .7, 7.7, b), tooth, 3.);\n  glaze(col, p, u_pal[3], paper, washW(p, vec2(-.2, -.55), .55, 9.2, b), tooth, 4.);\n  glaze(col, p, u_pal[4], paper, washW(p, vec2(-1.45, -.7), .45, 12.5, b), tooth, 5.);\n  return col;\n}\n",
    "cost": {
-    "ms": 10.2,
+    "ms": 6.9,
     "px": [
      2560,
      1600
@@ -2554,7 +2554,7 @@
    ],
    "src": "float archD(vec2 p, vec2 c){ vec2 q = p - c; return q.y > 0. ? length(q) : abs(q.x); }\nvec3 bandC(float k){\n  vec3 c = u_pal[0];\n  c = mix(c, u_pal[1], step(.5, k));\n  c = mix(c, u_pal[2], step(1.5, k));\n  c = mix(c, u_pal[3], step(2.5, k));\n  return c;\n}\nvoid arches(inout vec3 col, vec2 p, vec2 c, float r0, float w, float rev){\n  float d = archD(p, c);\n  float outer = r0 + 4.*w;\n  float sk = mix(.12, .4, u_opt);\n  float dsh = archD(p - vec2(.03, -.045), c);\n  float sh = (1. - s01(outer - .03, outer + .14, dsh))*s01(r0 - .12, r0 + .03, dsh);\n  float a = cover(d - outer)*(1. - cover(d - r0));\n  col = dim(col, sk*sh*(1. - a));\n  float x = (d - r0)/w;\n  float k = clamp(floor(x), 0., 3.);\n  float f = fract(x);\n  float kk = rev > .5 ? 3. - k : k;\n  float kp = rev > .5 ? 4. - k : k - 1.;\n  vec3 bc = bandC(kk);\n  vec3 prev = bandC(clamp(kp, 0., 3.));\n  bc = mix(prev, bc, k > .5 ? s01(0., pxu()*1.5/w, f) : 1.);\n  bc = dim(bc, sk*.5*exp(-f/.07)*step(.5, k));\n  bc.x += .02*(f - .5);\n  col = mix(col, bc, a);\n}\nvec3 wall(vec2 p){\n  vec3 col = mix(u_pal[5], dim(u_pal[5], .1), sat(.5 - p.y*.35));\n  float sd = length(p - vec2(-.42, .5));\n  col = mix(col, u_pal[4], cover(sd - .2));\n  arches(col, p, vec2(.62, -.42), .2, .2, 0.);\n  arches(col, p, vec2(-1.08, -.78), .1, .12, 1.);\n  return col;\n}\n",
    "cost": {
-    "ms": 0.4,
+    "ms": 0.3,
     "px": [
      2560,
      1600
@@ -2685,7 +2685,7 @@
    ],
    "src": "float sS(vec2 p){\n  vec2 q = p*.9;\n  q += .38*vec2(fbm3(q*.8), fbm3(q*.8 + 4.));\n  return q.y*2.1 + .55*sin(q.x*1.25 + q.y*.8) + .28*fbm(q*1.2);\n}\nvec3 wall(vec2 p){\n  float e = .003;\n  float s = sS(p);\n  vec2 g = vec2(sS(p + vec2(e, 0.)) - s, sS(p + vec2(0., e)) - s)/e;\n  float bd = mix(.4, 1., u_opt);\n  float rel = sin(s*7.)*.5 + sin(s*17. + 1.)*.2;\n  vec3 c = ramp(.5 + .48*sin(s*1.15 + .3));\n  c.x += bd*(.035*sin(s*7.) + .018*sin(s*17. + 1.) + .01*sin(s*41.));\n  float gl = length(g);\n  vec2 gd = g/max(gl, 1e-3);\n  float sh = dot(gd, normalize(vec2(-.6, .8)))*cos(s*7.);\n  c.x += .03*bd*sh;\n  float groove = exp(-abs(fract(s*.6) - .5)*40.)*bd;\n  c = mix(c, u_pal[5], .2*groove);\n  c = dim(c, .1*s01(.5, 2.2, length(p*vec2(.7, 1.))));\n  return c;\n}\n",
    "cost": {
-    "ms": 3.3,
+    "ms": 1.9,
     "px": [
      2560,
      1600
@@ -2814,9 +2814,9 @@
      ]
     }
    ],
-   "src": "float drapeL(vec2 p){ return .55*sin(p.x*1.1 + .8*sin(p.y*.9 + 1.)) + .3*sin(p.x*2.3 - p.y*.6 + 2.) + .25*fbm3(p*.7 + 3.); }\nvec3 wall(vec2 p){\n  vec3 c = mix(u_pal[0], u_pal[1], sm1(.5 + .3*p.x - .3*p.y));\n  c = mix(c, u_pal[2], .6*exp(-dot(p - vec2(-1.1, .9), p - vec2(-1.1, .9))*.35));\n  c = mix(c, u_pal[3], .35*s01(.8, 2.4, length(p - vec2(-.4, .4))));\n  float e = .01;\n  float h = drapeL(p);\n  vec2 gd = vec2(drapeL(p + vec2(e, 0.)) - h, drapeL(p + vec2(0., e)) - h)/e;\n  c.x += .045*dot(gd, normalize(vec2(-.6, .8)));\n  vec2 q = p/cssu();\n  float per = mix(3.6, 6.5, u_opt);\n  float tx = q.x/per + .35*gn(vec2(q.y*.006, 1.)), ty = q.y/per + .35*gn(vec2(2., q.x*.006));\n  float ix = floor(tx), iy = floor(ty);\n  float fx = abs(fract(tx) - .5)*2., fy = abs(fract(ty) - .5)*2.;\n  float twx = .5 + .42*s01(-.3, .7, gn(vec2(ix*.71 + .37, q.y*.018))), twy = .5 + .42*s01(-.3, .7, gn(vec2(q.x*.018, iy*.71 + .37)));\n  float wx = 1. - s01(twx*.7, twx, fx), wy = 1. - s01(twy*.7, twy, fy);\n  float over = mod(ix + iy, 2.);\n  float top = mix(wy, wx, over);\n  float gap = (1. - wx)*(1. - wy);\n  float idv = .5*(h21(vec2(ix, 3.)) + h21(vec2(7., iy))) - .5;\n  float k = mix(1., .85, u_dark);\n  c.x += k*(.022*(top - .5) - .035*gap + .022*idv + .012*(twx + twy - 1.));\n  c.x += .006*fbm3(p*3.);\n  return c;\n}\n",
+   "src": "float drapeL(vec2 p){ return .55*sin(p.x*1.1 + .8*sin(p.y*.9 + 1.)) + .3*sin(p.x*2.3 - p.y*.6 + 2.) + .25*fbm3(p*.7 + 3.); }\nvec3 wall(vec2 p){\n  vec3 c = mix(u_pal[0], u_pal[1], sm1(.5 + .3*p.x - .3*p.y));\n  c = mix(c, u_pal[2], .6*exp(-dot(p - vec2(-1.1, .9), p - vec2(-1.1, .9))*.35));\n  c = mix(c, u_pal[3], .35*s01(.8, 2.4, length(p - vec2(-.4, .4))));\n  float e = .01;\n  float h = drapeL(p);\n  vec2 gd = vec2(drapeL(p + vec2(e, 0.)) - h, drapeL(p + vec2(0., e)) - h)/e;\n  c.x += .045*dot(gd, normalize(vec2(-.6, .8)));\n  vec2 q = p/cssu();\n  float per = mix(3.6, 6.5, u_opt);\n  float tx = q.x/per + .35*gn(vec2(q.y*.006 + .29, 1.41)), ty = q.y/per + .35*gn(vec2(2.37, q.x*.006 + .61));\n  float ix = floor(tx), iy = floor(ty);\n  float fx = abs(fract(tx) - .5)*2., fy = abs(fract(ty) - .5)*2.;\n  float twx = .5 + .42*s01(-.3, .7, gn(vec2(ix*.71 + .37, q.y*.018 + .53))), twy = .5 + .42*s01(-.3, .7, gn(vec2(q.x*.018 + .53, iy*.71 + .37)));\n  float wx = 1. - s01(twx*.7, twx, fx), wy = 1. - s01(twy*.7, twy, fy);\n  float over = mod(ix + iy, 2.);\n  float top = mix(wy, wx, over);\n  float gap = (1. - wx)*(1. - wy);\n  float idv = .5*(h21(vec2(ix, 3.)) + h21(vec2(7., iy))) - .5;\n  float k = mix(1., .85, u_dark);\n  c.x += k*(.022*(top - .5) - .035*gap + .022*idv + .012*(twx + twy - 1.));\n  c.x += .006*fbm3(p*3.);\n  return c;\n}\n",
    "cost": {
-    "ms": 3.7,
+    "ms": 1.1,
     "px": [
      2560,
      1600
@@ -2947,7 +2947,7 @@
    ],
    "src": "float fibreW(vec2 q, float a, float s){\n  vec2 r = rot(a)*q;\n  float v = gn(vec2(r.x*.01, r.y*.16) + s) + .4*gn(vec2(r.x*.03, r.y*.3) + s*2.);\n  return exp(-abs(v)*10.)*s01(-.2, .6, gn(r*.008 + s*3.));\n}\nvec3 wall(vec2 p){\n  vec3 c = mix(u_pal[0], u_pal[1], sm1(.5 + .25*p.x - .35*p.y));\n  c = mix(c, u_pal[2], .5*exp(-dot(p - vec2(-.9, .8), p - vec2(-.9, .8))*.4));\n  float form = fbm(p*2.6 + 4.);\n  c.x += .026*form;\n  c.yz *= 1. + .12*form;\n  vec2 q = p/cssu();\n  float fb = fibreW(q, .3, 1.) + fibreW(q, -.9, 7.) + fibreW(q, 1.6, 13.) + .7*fibreW(q*1.6, 2.4, 21.);\n  float k = mix(.5, 1.4, u_opt)*mix(1., .75, u_dark);\n  c.x += .04*sat(fb)*k;\n  c.x += .004*gn(q*.08);\n  vec2 cl = floor(q/70.);\n  vec2 cp = (cl + .2 + .6*h22(cl + 5.))*70.;\n  vec2 dq = rot(h21(cl + 2.)*6.28)*(q - cp);\n  float fl = exp(-dot(dq*vec2(.3, 1.2), dq*vec2(.3, 1.2))/(2. + 6.*h21(cl + 8.)));\n  c = mix(c, dim(u_pal[3], .2), fl*step(.62, h21(cl + 3.3))*.4*mix(.5, 1., u_opt));\n  float fd = dot(p, normalize(vec2(.94, .34))) - .35;\n  float side = s01(-.005, .005, fd);\n  c.x += .016*side - .008;\n  c.x += .025*exp(-abs(fd)/.012)*(1. - side) - .02*exp(-abs(fd)/.035)*side;\n  c = mix(c, u_pal[3], .25*s01(.9, 2.3, length(p)));\n  return c;\n}\n",
    "cost": {
-    "ms": 1.5,
+    "ms": 1.3,
     "px": [
      2560,
      1600
@@ -3078,7 +3078,7 @@
    ],
    "src": "vec3 wall(vec2 p){\n  float hz = -.22;\n  float t = sat((p.y - hz)/1.2);\n  vec3 c = mix(u_pal[2], u_pal[1], sm1(t*2.2));\n  c = mix(c, u_pal[0], sm1(t*1.5 - .4));\n  vec2 sp = vec2(.38, hz + .04);\n  float g = mix(.35, .85, u_opt);\n  c = mix(c, u_pal[4], g*(.55*exp(-length((p - sp)*vec2(.55, 1.))*2.6) + .35*exp(-length(p - sp)*9.)));\n  if (p.y < hz) {\n    float dy = hz - p.y;\n    vec3 s = mix(u_pal[3], u_pal[5], sm1(dy/.8));\n    s = mix(s, mix(u_pal[2], u_pal[1], .3), .45*exp(-dy*5.));\n    float col_ = exp(-abs(p.x - sp.x)*(2.2 + dy*3.))*exp(-dy*2.2);\n    float st = .5 + .5*gn(vec2(p.x*3., p.y*55./(dy + .3)));\n    s = mix(s, u_pal[4], g*.55*col_*(.6 + .4*st));\n    s.x += .006*gn(vec2(p.x*2., p.y*40./(dy + .2)));\n    c = mix(c, s, cover(p.y - hz));\n  }\n  return c;\n}\n",
    "cost": {
-    "ms": 0.9,
+    "ms": 0.6,
     "px": [
      2560,
      1600
@@ -3209,7 +3209,7 @@
    ],
    "src": "void disc(inout vec3 col, vec2 p, vec2 c, float r, vec3 dc, float sk){\n  float d = length(p - c) - r;\n  float ds = length(p - c - vec2(.06, -.09)*sk*2.) - r;\n  float sh = 1. - s01(-.05, .35*sk + .05, ds);\n  float a = cover(d);\n  col = dim(col, mix(.1, .18, u_dark)*sh*(1. - a)*sk*1.6);\n  vec3 b = dc;\n  b.x += .025*dot(normalize(p - c + 1e-4), vec2(-.6, .8))*s01(-.4, 0., d);\n  b.x += .012*exp(-abs(d)/.015);\n  col = mix(col, b, a);\n}\nvec3 wall(vec2 p){\n  vec3 col = mix(u_pal[0], u_pal[5], sm1(.5 - .25*p.x - .35*p.y));\n  col = mix(col, u_pal[4], .4*exp(-dot(p - vec2(-1.2, .9), p - vec2(-1.2, .9))*.4));\n  float sk = mix(.25, 1., u_opt);\n  disc(col, p, vec2(-.78, .42), .15, u_pal[3], sk*.6);\n  disc(col, p, vec2(1.05, -1.0), 1.3, u_pal[1], sk);\n  disc(col, p, vec2(1.05, -1.0), .82, u_pal[2], sk);\n  return col;\n}\n",
    "cost": {
-    "ms": 1.2,
+    "ms": 0.6,
     "px": [
      2560,
      1600
@@ -3340,7 +3340,7 @@
    ],
    "src": "float ridgeMi(float x, float i){\n  return .15 - i*.32 + .14*fbm3(vec2(x*(.55 + .2*i) + i*5.3, i*2.)) + .05*sin(x*.8 + i);\n}\nvec3 wall(vec2 p){\n  vec3 c = mix(u_pal[4], u_pal[0], sm1((p.y + .2)/1.2));\n  c = mix(c, u_pal[5], .3*s01(-.3, 1., p.y));\n  float m = mix(.08, .3, u_opt);\n  for (int k = 0; k < 3; k++) {\n    float i = float(k);\n    float y = ridgeMi(p.x, i);\n    float a = cover((p.y - y)*.6);\n    float dep = max(y - p.y, 0.);\n    vec3 r = mix(u_pal[1], u_pal[3], i/2.);\n    float fade = s01(.0, m + .1*i, dep);\n    r = mix(r, mix(u_pal[4], u_pal[0], .4), fade*.85);\n    c = mix(c, r, a);\n  }\n  return c;\n}\n",
    "cost": {
-    "ms": 1.1,
+    "ms": 1,
     "px": [
      2560,
      1600
@@ -3471,7 +3471,7 @@
    ],
    "src": "float stR(float an, float sd){ return 1. + .055*sin(an*2. + sd) + .032*sin(an*3. + sd*2.3) + .018*sin(an*5. + sd*1.7); }\nvoid stone(inout vec3 col, vec2 p, vec2 c, vec2 rr, float a, vec3 sc, float sd, float sk){\n  float m = min(rr.x, rr.y);\n  vec2 q = rot(-a)*(p - c)/rr;\n  float k = stR(atan(q.y, q.x), sd);\n  float dn = length(q)/k;\n  float d = (dn - 1.)*m;\n  vec2 qs = rot(-a)*(p - c - vec2(.05, -.065)*sk)/rr;\n  float ds = (length(qs)/stR(atan(qs.y, qs.x), sd) - 1.)*m;\n  float soft = 1. - s01(-.07, .05 + .17*sk, ds);\n  float cont = exp(-max(d, 0.)/.014);\n  float aa = pxu()*1.4;\n  float a2 = 1. - smoothstep(-aa, aa, d);\n  col = dim(col, (mix(.16, .26, u_dark)*soft*(.45 + sk) + mix(.22, .3, u_dark)*cont)*(1. - a2));\n  float z = pow(sat(1. - dn*dn), .5);\n  vec3 n = normalize(vec3(rot(a)*(q/max(k, .5))*(m/rr)*1.6, z + .04));\n  float kw = sat(dot(n, normalize(vec3(-.55, .62, .56)))*.62 + .38);\n  kw = kw*kw*(3. - 2.*kw);\n  vec3 b = vec3(sc.x*(.62 + .45*kw), sc.yz*(1. + .3*(1. - kw)));\n  b.x -= .05*pow(1. - z, 3.)*(1. - kw*.6);\n  b.x += .045*fbm3(q*2.3 + sd*3.) + .015*gn(q*7. + sd);\n  b.yz *= .88 + .24*(.5 + .5*fbm3(q*1.5 + sd*5.));\n  vec2 g = p/cssu();\n  b.x += .045*s01(.62, .82, gn(g*.38 + sd*9.)) - .05*s01(.6, .85, gn(g*.31 + sd*4.));\n  float vd = abs(dot(q, vec2(cos(sd*2.), sin(sd*2.))) - .25*sin(sd*3.) + .06*gn(q*3. + sd));\n  b.x += .05*exp(-vd/.03)*step(.5, fract(sd*.37));\n  b.x += .028*pow(sat(dot(n, normalize(vec3(-.3, .4, .87)))), 9.);\n  b.x += .03*(1. - kw)*pow(1. - z, 2.);\n  col = mix(col, b, a2);\n}\nvec3 wall(vec2 p){\n  vec3 col = mix(u_pal[5], dim(u_pal[5], .07), sat(.5 - p.y*.3 + p.x*.1));\n  col.x += .03*exp(-dot(p - vec2(-.7, .6), p - vec2(-.7, .6))*.4);\n  vec2 g = p/cssu();\n  col.x += .016*(h21(floor(g*.7)) - .5) + .008*gn(g*.12) + .006*sin(p.y*22. + 3.*gn(p*2.));\n  float sk = mix(.3, 1., u_opt);\n  stone(col, p, vec2(.18, .02), vec2(.42, .3), .3, u_pal[0], 1.3, sk);\n  stone(col, p, vec2(.8, -.3), vec2(.28, .21), -.4, u_pal[1], 4.1, sk);\n  stone(col, p, vec2(-.32, -.38), vec2(.24, .17), .9, u_pal[2], 7.4, sk);\n  stone(col, p, vec2(.64, .44), vec2(.17, .13), -.2, u_pal[3], 2.6, sk);\n  stone(col, p, vec2(1.2, .12), vec2(.13, .1), .6, u_pal[4], 9.9, sk);\n  return col;\n}\n",
    "cost": {
-    "ms": 3.5,
+    "ms": 2.7,
     "px": [
      2560,
      1600
@@ -3602,7 +3602,7 @@
    ],
    "src": "vec3 wall(vec2 p){\n  vec3 c = mix(u_pal[0], u_pal[5], sm1(.5 + .3*p.x - .3*p.y));\n  vec2 o = vec2(.5, .02);\n  vec2 q = p - o;\n  float r = length(q);\n  float an = atan(q.y, q.x);\n  float t = .5 + .5*sin(an + .6);\n  float u = .5 + .5*sin(an*2. - 1.1);\n  vec3 rc = mix(mix(u_pal[1], u_pal[2], t), mix(u_pal[3], u_pal[4], t), u);\n  float g = mix(.6, 1.15, u_opt);\n  float ring = exp(-pow((r - .62)/.17, 2.));\n  float core = exp(-pow((r - .62)/.05, 2.));\n  c = mix(c, rc, sat(ring*.8*g));\n  c.x += .03*core*g;\n  c = mix(c, mix(u_pal[0], rc, .15), .5*exp(-r*r*6.)*(1. - ring));\n  return c;\n}\n",
    "cost": {
-    "ms": 0.3,
+    "ms": 0.5,
     "px": [
      2560,
      1600
@@ -3733,7 +3733,7 @@
    ],
    "src": "vec3 wall(vec2 p){\n  float sf = mix(.35, .1, u_opt);\n  vec2 q = p + .18*vec2(gn(p*.7 + 2.), gn(p*.7 + 9.));\n  vec2 c0 = vec2(-1.1, .55), c1 = vec2(.2, .8), c2 = vec2(1.25, .35), c3 = vec2(-.4, -.65), c4 = vec2(.95, -.7);\n  float w0 = 1./pow(dot(q - c0, q - c0) + sf, 2.), w1 = 1./pow(dot(q - c1, q - c1) + sf, 2.), w2 = 1./pow(dot(q - c2, q - c2) + sf, 2.);\n  float w3 = 1./pow(dot(q - c3, q - c3) + sf, 2.), w4 = 1./pow(dot(q - c4, q - c4) + sf, 2.), w5 = .35;\n  vec3 c = (u_pal[0]*w0 + u_pal[1]*w1 + u_pal[2]*w2 + u_pal[3]*w3 + u_pal[4]*w4 + u_pal[5]*w5)/(w0 + w1 + w2 + w3 + w4 + w5);\n  return c;\n}\n",
    "cost": {
-    "ms": 0.4,
+    "ms": 0.7,
     "px": [
      2560,
      1600
@@ -3864,7 +3864,7 @@
    ],
    "src": "vec3 wall(vec2 p){\n  vec3 c = mix(u_pal[0], u_pal[1], sm1(.5 + .3*p.x + .25*p.y));\n  c = mix(c, u_pal[3], .4*s01(.6, 2.4, length(p - vec2(-.2, .1))));\n  float pl = fbm(p/cssu()*.012) + .4*gn(p/cssu()*.06);\n  c.x += .01*pl;\n  vec2 o = vec2(-.15, .05);\n  vec2 q = p - o;\n  q = vec2(q.x - q.y*.42, q.y)*rot(.08);\n  vec2 hs = vec2(.62, .5);\n  float bl = .01 + .05*sat(.5 - q.y*.8);\n  float win = s01(-hs.x - bl, -hs.x + bl, q.x)*s01(hs.x + bl, hs.x - bl, q.x)*s01(-hs.y - bl, -hs.y + bl, q.y)*s01(hs.y + bl, hs.y - bl, q.y);\n  float mw = .035;\n  float mull = s01(mw - bl, mw + bl, abs(q.x))*s01(mw*.8 - bl, mw*.8 + bl, abs(q.y + .05));\n  float lv = mix(0., .75, u_opt);\n  vec2 lq = q*2.2 + vec2(3., 1.);\n  float leaf = s01(.05, .3, fbm(lq + .4*vec2(gn(lq*1.7), gn(lq*1.7 + 3.))))*s01(.0, .5, q.x + q.y*.6 + .3);\n  float I = win*mull*(1. - lv*leaf*(.6 + .4*s01(.0, .5, bl*10.)));\n  c = mix(c, u_pal[2], sat(I)*mix(.55, .6, u_dark));\n  c.x += mix(.02, .035, u_dark)*I;\n  return c;\n}\n",
    "cost": {
-    "ms": 0.9,
+    "ms": 0.8,
     "px": [
      2560,
      1600
@@ -3995,7 +3995,7 @@
    ],
    "src": "void sheet(inout vec3 col, vec2 p, vec2 c, float R, vec3 sc, float dk){\n  float d = length(p - c) - R;\n  float ds = length(p - c - vec2(.03, -.05)*dk) - R;\n  float sh = 1. - s01(-.04, .1 + .14*dk, ds);\n  float a = cover(d);\n  col = dim(col, mix(.09, .16, u_dark)*sh*(1. - a)*(.4 + dk));\n  vec3 b = mix(sc, col, .18);\n  b.x += .01*exp(-abs(d)/.012);\n  col = mix(col, b, a);\n}\nvec3 wall(vec2 p){\n  vec3 col = mix(u_pal[0], u_pal[5], sm1(.5 + .3*p.x - .3*p.y));\n  float dk = mix(.2, 1., u_opt);\n  sheet(col, p, vec2(-2.6, 2.3), 2.55, u_pal[1], dk);\n  sheet(col, p, vec2(3.2, 1.9), 3.0, u_pal[2], dk);\n  sheet(col, p, vec2(-1.2, -3.1), 2.6, u_pal[3], dk);\n  sheet(col, p, vec2(2.4, -2.9), 2.4, u_pal[4], dk);\n  return col;\n}\n",
    "cost": {
-    "ms": 0.3,
+    "ms": 0.6,
     "px": [
      2560,
      1600

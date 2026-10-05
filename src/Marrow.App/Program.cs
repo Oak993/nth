@@ -3,7 +3,9 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Marrow.App.Port;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.App.Port.Skills;
 using Marrow.Services.Port;
+using Marrow.Services.Port.Skills.Host;
 using Marrow.Services.Store;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
@@ -38,7 +40,10 @@ public static class Program
     internal static void RunVelopackHook(string baseDirectory)
     {
         if (!InstalledByVelopack(baseDirectory)) return;
-        VelopackApp.Build().Run();
+        var app = VelopackApp.Build();
+        // SK-13 / DL-16: the skills and tools data is unlocked and deleted before Velopack removes the app (ONDEMAND-PLAN.md 3.8).
+        SkillsUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), SkillsDataRoot.Resolve);
+        app.Run();
     }
 
     internal static bool InstalledByVelopack(string baseDirectory) =>
@@ -96,6 +101,8 @@ public static class Program
         // (SwiftTrapException, "StoragePaths.Locations is not bound...") on first access if this is missed.
         Storage.Locations.SetProcessDefault(StorageLocations.CreateProduction());
         StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
+        // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
+        var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
@@ -124,6 +131,7 @@ public static class Program
         lifetime.Startup += (_, _) =>
         {
             shell.FinishLaunching();
+            skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
             DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
             reopen.Listen(() => shell.Reopen(lifetime.Windows));
         };
