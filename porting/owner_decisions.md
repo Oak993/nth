@@ -1075,3 +1075,12 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - Every place OD-0015 named uses it: the executable and its `icon.ico`, the window, the taskbar, Alt-Tab, Start, toasts, the in-app logo images, and later the installer.
   - The loading mark and boot animation (OD-0016, OD-0018 "Comet", ED-097/102/103/154) are remade from D's launch animation and idle loop. That motion goes to the owner as a review page before it ships; OD-0108's warm-up behind the boot animation is unchanged.
   - The OD-0015 files stay in history only. The deviation list in the final report names the new icon.
+
+## OD-0113 Boot animation B and three Aurora loaders (2026-10-05)
+
+- **Asked:** 2026-10-05, after OD-0112. Page: https://claude.ai/artifact/UqPvGBv5E3ToEtMLXrihvo (version 2; copy: `porting/first-release/design-src/loading-aurora/`). Round 1 had three boot variants, a per-turn pulse and an icon-based loading mark; the owner picked boot B but asked that it grow into the real window's shape, rejected the icon as a loader, and asked for five new loaders that only lightly resemble the Aurora. The per-turn pulse was dropped: OD-0018's "one pulse per turn" meant a turn of the old spiral, and the chat keeps the composer's working dots.
+- **Answer, verbatim:** "loading: boot=B, loader=?, history=2, diff=5, attachment=4"
+- **Effect:**
+  - Boot: variant B. The Aurora tile appears large over the dimmed desktop, runs D's launch, and when the app is ready its rectangle grows into the main window's exact frame (position, size, Windows 11 corner radius, title-bar band) on the window's own reveal timing, so its last frame is the window; the glass and content fade in inside that rectangle. The OD-0108 warm-up runs behind it with the window hidden. It replaces OD-0018's Comet boot.
+  - Loaders (OD-0016 / ED-097 sites, 400 ms rule kept): the older-chat history load uses loader 2 "Curtain Fold"; the diff pane (above its "Reading the diff..." label) uses loader 5 "Aurora Sheen"; the large attachment preview uses loader 4 "Flow Arc". The icon is never a loader. Under Reduce Motion each is a still pose that only breathes in opacity.
+  - Nothing in the chat moves while the model works except the composer's working dots (parity, CZ customization).
