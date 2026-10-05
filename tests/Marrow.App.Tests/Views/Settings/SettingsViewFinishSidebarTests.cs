@@ -1,3 +1,4 @@
+using Marrow.App.Port.Settings;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -37,7 +38,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             Assert.Equal("Search", field.PlaceholderText); Assert.Equal(13, field.FontSize); Assert.Equal(6, TopLeft(field, search).X - (TopLeft(glass, search).X + glass.Bounds.Width), 3);
             Assert.Equal(9, TopLeft(glass, search).X, 3); Assert.Equal(15, TopLeft(glass, search).Y + glass.Bounds.Height / 2, 1);
             // :148 the focus ring is left on (only ChromeSearchField disables it, :841); :796 empty: no clear button laid out at all.
-            Assert.False(field.IsSet(Control.FocusAdornerProperty)); Assert.Empty(Nodes<Button>(search)); Assert.Equal(10, Titles(view).Length);
+            Assert.False(field.IsSet(Control.FocusAdornerProperty)); Assert.Empty(Nodes<Button>(search)); Assert.Equal(SettingsSidebar.Pages("").Count, Titles(view).Length);
 
             // :100-107 a query trimmed, case-insensitive, over the title and every keyword; typing really filters (and the first match takes over, :130-133).
             Type(w, field, "  THEME "); Assert.Equal(new[] { "Appearance" }, Titles(view)); Assert.Single(Nodes<AppearanceSettingsPage>(view)); Assert.Empty(Nodes<GeneralSettingsPage>(view));
@@ -46,7 +47,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             var clear = Assert.Single(Nodes<Button>(search)); Assert.Equal("Clear search", AutomationProperties.GetName(clear)); var x = Assert.Single(Nodes<SwiftImage>(clear)); Assert.Equal("xmark.circle.fill", x.SymbolName);
             Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout), SwiftImage.GetFont(x)); Ink(x, x.Foreground, Chrome.SecondaryText.Opacity(0.75));
             Assert.Equal(6, TopLeft(clear, search).X - (TopLeft(field, search).X + field.Bounds.Width), 3); Assert.Equal(search.Bounds.Width - 9, TopLeft(clear, search).X + clear.Bounds.Width, 3);
-            Tick(h, 500); Click(w, clear, new Point(4, 8)); /* a point on the drawn ring: the glyph is hit-tested by its pixels, the knocked-out cross is not */ Assert.Equal("", field.Text ?? ""); Assert.Equal(10, Titles(view).Length); Assert.Empty(Nodes<Button>(search)); Assert.Single(Nodes<AppearanceSettingsPage>(view));
+            Tick(h, 500); Click(w, clear, new Point(4, 8)); /* a point on the drawn ring: the glyph is hit-tested by its pixels, the knocked-out cross is not */ Assert.Equal("", field.Text ?? ""); Assert.Equal(SettingsSidebar.Pages("").Count, Titles(view).Length); Assert.Empty(Nodes<Button>(search)); Assert.Single(Nodes<AppearanceSettingsPage>(view));
             Type(w, field, "git"); Assert.Equal(new[] { "Appearance", "Providers", "MCP", "Source control" }, Titles(view)); // "github" is a keyword of three pages, "git" of Source control itself.
             field.Text = ""; Drain(w); Type(w, field, "gen"); Assert.Equal(new[] { "General", "Hydra", "Source control" }, Titles(view)); // the title "General" and the keywords "agents" and "text generation".
             field.Text = ""; Drain(w); Type(w, field, "zen"); Assert.Equal(new[] { "Providers" }, Titles(view)); Assert.Single(Nodes<ProvidersSettingsPage>(view));
@@ -59,9 +60,9 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             field.AddHandler(InputElement.KeyDownEvent, (_, e) => arrived.Add((e.Key, e.Handled)), RoutingStrategies.Tunnel, handledEventsToo: true);
             Press(w, Key.Up); Press(w, Key.Down); Assert.Equal(new[] { (Key.Up, false), (Key.Down, false) }, arrived); Assert.Single(Nodes<SourceControlSettingsPage>(view)); Assert.Equal("git", field.Text);
             // :814 Escape empties the field.
-            Press(w, Key.Escape); Assert.Equal("", field.Text ?? ""); Assert.Equal(10, Titles(view).Length); Assert.Single(Nodes<SourceControlSettingsPage>(view));
+            Press(w, Key.Escape); Assert.Equal("", field.Text ?? ""); Assert.Equal(SettingsSidebar.Pages("").Count, Titles(view).Length); Assert.Single(Nodes<SourceControlSettingsPage>(view));
             // No match: "No results" and Return changes nothing (:142 `if let first`), the page left as it was.
-            Type(w, field, "zzz"); Assert.Empty(Titles(view)); Press(w, Key.Enter); Assert.Single(Nodes<SourceControlSettingsPage>(view)); Press(w, Key.Escape); Assert.Equal(10, Titles(view).Length);
+            Type(w, field, "zzz"); Assert.Empty(Titles(view)); Press(w, Key.Enter); Assert.Single(Nodes<SourceControlSettingsPage>(view)); Press(w, Key.Escape); Assert.Equal(SettingsSidebar.Pages("").Count, Titles(view).Length);
         });
     }
 
@@ -116,7 +117,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
     {
         With(() => new SettingsView(), (view, _, h, w) =>
         {
-            var rows = Nodes<SidebarRow>(view); Assert.Equal(10, rows.Length); var list = Field<StackPanel>(view, "rows");
+            var rows = Nodes<SidebarRow>(view); Assert.Equal(SettingsSidebar.Pages("").Count, rows.Length); var list = Field<StackPanel>(view, "rows");
             var models = RowButton(view, "Models"); var general = RowButton(view, "General"); var modelsFill = Assert.IsType<Border>(models.Content); var generalFill = Assert.IsType<Border>(general.Content);
             var selectedAlpha = Chrome.Overlay(0.12).Resolve(modelsFill.ActualThemeVariant).A; Assert.True(selectedAlpha > 0);
             byte Alpha(Border fill) => Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color.A;
@@ -129,7 +130,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             Tick(h, 101); Ink(modelsFill, modelsFill.Background, Chrome.Overlay(0.12)); Ink(generalFill, generalFill.Background, SwiftColor.Clear);
             // Chrome.swift:723-724 the same for a search that takes the selection to the first match: Appearance is selected while the list narrows to it.
             var search = Assert.Single(Nodes<TextBox>(Assert.Single(Nodes<SidebarSearchField>(view)))); Type(w, search, "theme"); Assert.Equal(new[] { "Appearance" }, Titles(view)); Tick(h, 150); Ink(Assert.IsType<Border>(RowButton(view, "Appearance").Content), Assert.IsType<Border>(RowButton(view, "Appearance").Content).Background, Chrome.Overlay(0.12));
-            search.Text = ""; Drain(w); Tick(h, 150); Assert.Equal(10, Titles(view).Length);
+            search.Text = ""; Drain(w); Tick(h, 150); Assert.Equal(SettingsSidebar.Pages("").Count, Titles(view).Length);
 
             // press.row-tile-dim (S 47.578): while the pointer holds a row its content is at 0.8 and its wash at x0.7 of what it was; letting go restores both (0.05 s in, 0.1 s out).
             var hydra = RowButton(view, "Hydra"); var hydraFill = Assert.IsType<Border>(hydra.Content); var content = Assert.IsAssignableFrom<Control>(Assert.Single(Nodes<TextBlock>(hydra)).Parent); var at = hydra.TranslatePoint(new Point(10, 10), w)!.Value;
