@@ -674,7 +674,9 @@ internal static class GlassMaterial
                 half4 deepRead = backdrop.eval(clamp(xy + n * min(24.0, 0.6 * min(extent.x, extent.y)), window.xy, window.zw));
                 half4 deepColour = unpremultiply(deepRead);
                 float level = float(dot(deepColour.rgb, half3(0.2126, 0.7152, 0.0722)) * deepRead.a + (1.0 - deepRead.a) * 0.25);
-                lit = smoothstep(LG_LITFROM, LG_LITTO, level);
+                // Small surfaces retain the rim on a dark backdrop too; the panel law takes over between 60 and 120 pt
+                // on the smaller side (OD-0107, T2's small-surface ruling; GlassMaterialPanelLawTests).
+                lit = mix(1.0, smoothstep(LG_LITFROM, LG_LITTO, level), law.w);
             }
             // The contact line just outside the edge, dark where the edge faces sideways (the Mac frames' 1 px dark line at a capsule's
             // ends), and dashersw/liquid-glass-js's soft shadow in miniature.
@@ -698,9 +700,9 @@ internal static class GlassMaterial
             float disp = (optics.x * lens + optics.w * max(exp(-0.8 * dd) - LG_RINGFLOOR, 0.0) / (1.0 - LG_RINGFLOOR)) * lit;
             // The reads stay inside the window's surface (`window`, half a device pixel in): past it the backdrop holds nothing, so a piece that fills its
             // window read transparent at its edge and its outer ring came out translucent over an opaque backdrop (REVIEW_GlassWindowEdgeTests).
-            // An unlit (dark, large) piece reads its band from as deep as its blur reaches past the edge (2.5 of its sigma, Draw's BlurSigma), so the
+            // An unlit (dark, large) piece reads its band from as deep as its blur reaches past the edge (3 of its sigma, Draw's BlurSigma), so the
             // brighter backdrop outside it does not bleed in: the Mac card's body is flat to its edge (44 to 47 over its first 10 pt; ED-NEW-glass-g3 (4)).
-            float reach = 2.5 * clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
+            float reach = 3.0 * clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
             disp -= (1.0 - lit) * max(reach - dd, 0.0);
             half4 r = backdrop.eval(clamp(xy - n * disp, window.xy, window.zw));
             half4 g = backdrop.eval(clamp(xy - n * (disp * LG_GREEN), window.xy, window.zw));
@@ -1083,12 +1085,13 @@ internal static class GlassMaterial
     // which over-lit the dark card (57.3 against 43.4). Here c + 0.95 c (1 - c)^2 per channel (89.8 and 47.5 there; it leaves white white and
     // keeps the effort knob's peach, GlassSmallLensTests). The film stays for the part of the backdrop that is transparent (over the Acrylic) and,
     // in the light appearance, over everything (no light frame was measured). x the gain, y the film over an opaque backdrop, z the darkening at
-    // the bottom of a small piece (the pill's 77 low down against 88 at its middle; the 267 pt card is flat, 43.4 and 42.7), w unused.
+    // the bottom of a small piece (the pill's 77 low down against 88 at its middle; the 267 pt card is flat, 43.4 and 42.7), w the panel share of the edge law.
     internal static float[] Law(double darkness, Size size)
     {
         var t = Math.Clamp(darkness, 0, 1);
         var small = Math.Clamp((LawFlatFrom - size.Height) / (LawFlatFrom - LawShadedTo), 0, 1);
-        return [(float)(LawGain * t), (float)(FilmLight[2] * (1 - t)), (float)(LawBottom * small), 0f];
+        var panel = Math.Clamp((Math.Min(size.Width, size.Height) - LawShadedTo) / (LawFlatFrom - LawShadedTo), 0, 1);
+        return [(float)(LawGain * t), (float)(FilmLight[2] * (1 - t)), (float)(LawBottom * small), (float)panel];
     }
     internal const double LawGain = 0.95, LawBottom = 0.13, LawShadedTo = 60, LawFlatFrom = 120;
 

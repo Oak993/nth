@@ -208,4 +208,120 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
             $" (the glass is first seen {(glassAt < 0 ? double.NaN : seen[glassAt].At - seen[first].At):F1} ms later)");
         GC.KeepAlive(window);
     }, factType: typeof(GlassMaterialNativeTests));
+    [Fact]
+    [Trait("Req", "PR-WIN-180")] // Chrome.swift:179-182; OD-0107, Mac frame 18, ED-NEW-glass-g3 (4)
+    public void A_large_dark_card_has_a_flat_body_and_no_bright_rim_on_a_real_window() => native.Run(subject =>
+    {
+        var (window, card) = native.OnUi(() =>
+        {
+            subject.Main.Hide();
+            subject.Settings.Hide();
+            var card = new Border
+            {
+                Width = 400, Height = 267, CornerRadius = new CornerRadius(22), Background = Brushes.Transparent,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            };
+            SwiftGlass.SetEffect(card, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
+            var window = new AvaloniaWindow
+            {
+                WindowDecorations = WindowDecorations.None, ShowInTaskbar = false, Topmost = true, CanResize = false,
+                Width = 520, Height = 387, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark,
+                Content = new Panel { Background = new SolidColorBrush(Color.FromRgb(27, 27, 27)), Children = { card } },
+            };
+            Themeless(window);
+            native.Register(window);
+            window.Show();
+            return (window, card);
+        });
+        var point = native.OnUi(() => card.PointToScreen(new Point(200, 46)));
+        var deadline = DateTime.UtcNow.AddSeconds(8);
+        while (ScreenPixels.At(point.X, point.Y).G is < 43 or > 51 && DateTime.UtcNow < deadline) Thread.Sleep(20);
+        var points = native.OnUi(() => Enumerable.Range(0, 11).Select(y => card.PointToScreen(new Point(200, y + 0.5)))
+            .Append(card.PointToScreen(new Point(200, 46))).Append(card.PointToScreen(new Point(200, 206))).ToArray());
+        var colours = points.Select(p => ScreenPixels.At(p.X, p.Y)).ToArray();
+        var body = colours[^2].G;
+        Assert.InRange(body, (byte)43, (byte)51); // the Mac fit's approximately 44 before the site's tint, over the 27 backdrop
+        Assert.InRange(Math.Abs(body - colours[^1].G), 0, 2);
+        foreach (var pixel in colours.Take(11)) Assert.InRange(Math.Abs(pixel.G - body), 0, 3);
+        var origin = native.OnUi(() => window.PointToScreen(default));
+        var scale = native.OnUi(() => window.RenderScaling);
+        var folder = @"E:\Droppy\work\scratch\glass-g1\compare\t2-after";
+        Directory.CreateDirectory(folder);
+        ScreenGrab.Of(origin.X, origin.Y, (int)Math.Round(520 * scale), (int)Math.Round(387 * scale))
+            .SavePng(Path.Combine(folder, "dark-card-native.png"));
+        File.WriteAllText(Path.Combine(folder, "dark-card-native.txt"),
+            $"scale {scale}; edge rows 0..10, upper body, lower body: {string.Join(" ", colours)}{Environment.NewLine}");
+        GC.KeepAlive(window);
+    }, factType: typeof(GlassMaterialNativeTests));
+
+    [Fact]
+    [Trait("Req", "PR-WIN-180")] // HydraPanel.swift:99-121; OD-0107, Mac frame 18; ED-NEW-glass-g3 (4)
+    public void The_card_material_on_a_real_window_matches_the_Mac_body_and_band_over_the_remade_backdrop() => native.Run(subject =>
+    {
+        // The packet's calibration input: frame 01 levelled to frame 18 on a ring 40-100 pt away, outside the Mac shadow.
+        const string input = @"E:\Droppy\work\scratch\glass-g1\calib\card18g3_backdrop.png";
+        if (!File.Exists(input)) throw new InvalidOperationException("NATIVE_PRECONDITION: the packet's remade calibration backdrop is missing: " + input);
+        using var bitmap = new Avalonia.Media.Imaging.Bitmap(input);
+        var previous = native.OnUi(() => Marrow.UI.Theme.ThemeManager.Current);
+        AvaloniaWindow? window = null;
+        try
+        {
+            window = native.OnUi(() =>
+            {
+                Marrow.UI.Theme.ThemeManager.Current = Marrow.UI.Theme.AppTheme.Monokai;
+                subject.Main.Hide();
+                subject.Settings.Hide();
+                static Border Placed(double x, double y) => new()
+                {
+                    Width = 400, Height = 267, Margin = new Thickness(x, y, 0, 0), CornerRadius = new CornerRadius(22),
+                    HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
+                };
+                // The same cast scrim as GlassMacCalibration's g3 render. The site shadow's production change belongs to glass-g3.
+                var cast = Placed(60, 70);
+                cast.Background = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
+                cast.Effect = new BlurEffect { Radius = 28 / 0.57735 };
+                var scrim = Placed(60, 60);
+                scrim.Background = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
+                var card = Placed(60, 60);
+                card.Background = Marrow.UI.Chrome.Chrome.GlassTint.Opacity(0.22).Brush(card);
+                SwiftGlass.SetEffect(card, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
+                var window = new AvaloniaWindow
+                {
+                    WindowDecorations = WindowDecorations.None, ShowInTaskbar = false, Topmost = true, CanResize = false,
+                    Width = 520, Height = 347, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark,
+                    Content = new Panel { Children = { new Image { Source = bitmap, Stretch = Stretch.None,
+                        HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top }, cast, scrim, card } },
+                };
+                Themeless(window);
+                native.Register(window);
+                window.Show();
+                return window;
+            });
+            var (origin, scale) = native.OnUi(() => (window.PointToScreen(default), window.RenderScaling));
+            ScreenGrab Grab() => ScreenGrab.Of(origin.X, origin.Y, (int)Math.Round(520 * scale), (int)Math.Round(347 * scale));
+            double Mean(ScreenGrab grab, int fromY, int toY)
+            {
+                var values = new List<double>();
+                for (var y = (int)Math.Round(fromY * scale); y < (int)Math.Round(toY * scale); y++)
+                    for (var x = (int)Math.Round(270 * scale); x < (int)Math.Round(440 * scale); x++) values.Add(grab.Luma(x, y));
+                return values.Average();
+            }
+            var deadline = DateTime.UtcNow.AddSeconds(8);
+            var grab = Grab();
+            while (Math.Abs(Mean(grab, 106, 156) - 43.36) > 2.5 && DateTime.UtcNow < deadline) { Thread.Sleep(50); grab = Grab(); }
+            var upper = Mean(grab, 106, 156);
+            var lower = Mean(grab, 246, 286);
+            var band = Mean(grab, 61, 62);
+            var folder = @"E:\Droppy\work\scratch\glass-g1\compare";
+            Directory.CreateDirectory(folder);
+            grab.SavePng(Path.Combine(folder, "t2-card18g3-native.png"));
+            File.WriteAllText(Path.Combine(folder, "t2-card18g3-native.txt"), $"scale {scale}; upper {upper:F3}; lower {lower:F3}; band {band:F3}{Environment.NewLine}");
+            Assert.InRange(upper, 43.36 - 2.5, 43.36 + 2.5);
+            Assert.InRange(lower, 42.70 - 2.5, 42.70 + 2.5);
+            Assert.InRange(band, 43.99 - 3, 43.99 + 3);
+            Assert.InRange(Math.Abs(upper - lower), 0, 2);
+            GC.KeepAlive(window);
+        }
+        finally { native.OnUi(() => { window?.Close(); Marrow.UI.Theme.ThemeManager.Current = previous; }); }
+    }, factType: typeof(GlassMaterialNativeTests));
 }
