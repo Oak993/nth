@@ -83,7 +83,7 @@ public sealed class ComposerVoicePillGeometryTests(HeadlessSession headless)
                 var wd = w * Math.Sqrt(1 - damping * damping);
                 return 1 - Math.Exp(-damping * w * t) * (Math.Cos(wd * t) + damping * w / wd * Math.Sin(wd * t));
             }
-            var fits = Enumerable.Range(0, 4).Where(slip => lifts.Select((value, i) => Math.Abs(value - Spring(Math.Max(0, (i - slip) * Frame), 0.36, 0.8))).All(error => error < 0.06)).ToList();
+            var fits = Enumerable.Range(0, 4).Where(slip => lifts.Select((value, i) => Math.Abs(value - Spring(Math.Max(0, (i - slip) * FrameTime), 0.36, 0.8))).All(error => error < 0.06)).ToList();
             Assert.True(fits.Count > 0, "the lift follows the spring: " + string.Join(", ", lifts.Take(30).Select(v => v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))));
             rig.Close(window);
         });

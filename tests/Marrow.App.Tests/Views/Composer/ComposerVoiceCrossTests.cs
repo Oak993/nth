@@ -106,7 +106,7 @@ public sealed class ComposerVoiceCrossTests(HeadlessSession headless)
             var xo = -(32 * 1.16 / 2 + 7);
             for (var k = 0; k < seen.Count; k++)
             {
-                var t = k * Frame;
+                var t = k * FrameTime;
                 Assert.Equal(CssCurves.At(CssCurves.Ez, t, 0.42), seen[k].Slide, 1e-4); // transform .42s ez
                 Assert.Equal(CssCurves.At(CssCurves.Ease, t - 0.04, 0.24), seen[k].Opacity, 1e-4); // opacity .24s ease after .04s
             }
@@ -120,7 +120,7 @@ public sealed class ComposerVoiceCrossTests(HeadlessSession headless)
             rig.Main.OnMain(() => Click(Slot(view).Cross));
             var back = Frames(rig, window, 30, () => (Slot(view).CrossSlide, Slot(view).CrossOpacity));
             Assert.Equal(VoiceSessionState.Rest, rig.Main.OnMain(() => view.Voice!.Session.State));
-            for (var k = 1; k < back.Count; k++) Assert.Equal(1 - CssCurves.At(CssCurves.Ease, k * Frame, 0.2), back[k].Item2, 1e-4); // out: opacity .2s ease
+            for (var k = 1; k < back.Count; k++) Assert.Equal(1 - CssCurves.At(CssCurves.Ease, k * FrameTime, 0.2), back[k].Item2, 1e-4); // out: opacity .2s ease
             Assert.Equal(0, back[^1].Item1, 1e-6);
             rig.Main.OnMain(() => Assert.False(Slot(view).Cross.IsTabStop));
             rig.Close(window);
@@ -152,7 +152,7 @@ public sealed class ComposerVoiceCrossTests(HeadlessSession headless)
                 // eased on ez over 0.42 s (the start up to three frames late: the session's turn, the track's turn)
                 var travel = rest - last;
                 Assert.True(travel > 20, "the edge moved in: " + travel);
-                var fits = Enumerable.Range(0, 4).Where(slip => edges.Select((edge, i) => Math.Abs(edge - (rest - travel * CssCurves.At(CssCurves.Ez, (i - slip) * Frame, 0.42)))).All(error => error < 1.2)).ToList();
+                var fits = Enumerable.Range(0, 4).Where(slip => edges.Select((edge, i) => Math.Abs(edge - (rest - travel * CssCurves.At(CssCurves.Ez, (i - slip) * FrameTime, 0.42)))).All(error => error < 1.2)).ToList();
                 Assert.True(fits.Count > 0, "the edge follows ez: " + string.Join(", ", edges.Take(20).Select(e => e.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))));
                 rig.Main.OnMain(() => Click(Slot(view).HitTarget)); // stop, and let the session land
                 Run(rig, window, 4);

@@ -65,13 +65,13 @@ public sealed class ComposerVoiceLightTests(HeadlessSession headless)
             }
             for (var frame = 0; frame < 120; frame++)
             {
-                rig.Elapse(window, Frame);
+                rig.Elapse(window, FrameTime);
                 if (frame > 2) Check();
             }
             rig.Main.OnMain(() => Click(Slot(view).HitTarget)); // the second click: Processing
             for (var frame = 0; frame < 600 && rig.Main.OnMain(() => view.Voice!.State) != VoiceSessionState.Rest; frame++)
             {
-                rig.Elapse(window, Frame);
+                rig.Elapse(window, FrameTime);
                 if (frame > 2) Check();
             }
             Run(rig, window, 0.2);

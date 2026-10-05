@@ -15,7 +15,7 @@ namespace Marrow.App.Tests.Fixtures;
 // label measured independently of the production code, and a frame sampler.
 internal static class VoicePillProbe
 {
-    public const double Frame = 1.0 / 60;
+    public const double FrameTime = 1.0 / 60;
 
     public static VoicePill Pill(ComposerView view) => LogicalQuery.SelfAndDescendants<VoicePill>(view).Single();
 
@@ -65,7 +65,7 @@ internal static class VoicePillProbe
         var seen = new List<T> { rig.Main.OnMain(read) };
         for (var k = 1; k <= count; k++)
         {
-            rig.Elapse(window, Frame);
+            rig.Elapse(window, FrameTime);
             seen.Add(rig.Main.OnMain(read));
         }
         return seen;
@@ -74,7 +74,7 @@ internal static class VoicePillProbe
     /// <summary>Whole seconds of frames, nothing read.</summary>
     public static void Run(VoiceComposerRig rig, AvaloniaWindow window, double seconds)
     {
-        var frames = (int)Math.Round(seconds / Frame);
-        for (var k = 0; k < frames; k++) rig.Elapse(window, Frame);
+        var frames = (int)Math.Round(seconds / FrameTime);
+        for (var k = 0; k < frames; k++) rig.Elapse(window, FrameTime);
     }
 }

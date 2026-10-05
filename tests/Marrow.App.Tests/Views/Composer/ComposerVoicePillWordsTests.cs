@@ -96,18 +96,18 @@ public sealed class ComposerVoicePillWordsTests(HeadlessSession headless)
             var seen = Frames(rig, window, 60, () => (Words: pill.Labels[0].Words, Label: pill.LabelOpacity(VoiceLabelState.Listening), Width: pill.ShownWidth));
             var swapped = seen.FindIndex(s => s.Words == "Hearing you" + E);
             Assert.True(swapped >= 0, "the words were replaced");
-            Assert.InRange(swapped * Frame, 0.16 - 1e-6, 0.16 + Frame + 1e-6); // 0.16 s after the change
+            Assert.InRange(swapped * FrameTime, 0.16 - 1e-6, 0.16 + FrameTime + 1e-6); // 0.16 s after the change
             for (var k = 0; k < swapped; k++)
             {
                 Assert.Equal("Listening" + E, seen[k].Words); // the old words are still there while they fade
-                Assert.Equal(1 - CssCurves.At(CssCurves.Ease, k * Frame, 0.14), seen[k].Label, 1e-4); // out over 0.14 s
+                Assert.Equal(1 - CssCurves.At(CssCurves.Ease, k * FrameTime, 0.14), seen[k].Label, 1e-4); // out over 0.14 s
                 Assert.Equal(from, seen[k].Width, 1e-3); // the width has not moved yet
             }
             // after the swap: its own crossfade (opacity .26s ease after .14s) and the width .42s ez, the start where the swap happened (the timer's due time or the frame that ran it)
-            var starts = new[] { 0.16, swapped * Frame };
+            var starts = new[] { 0.16, swapped * FrameTime };
             var fits = starts.Where(start => Enumerable.Range(swapped, seen.Count - swapped).All(k =>
-                Math.Abs(seen[k].Label - CssCurves.At(CssCurves.Ease, k * Frame - start - 0.14, 0.26)) < 2e-3
-                && Math.Abs(seen[k].Width - (from + (to - from) * CssCurves.At(CssCurves.Ez, k * Frame - start, 0.42))) < 0.05)).ToList();
+                Math.Abs(seen[k].Label - CssCurves.At(CssCurves.Ease, k * FrameTime - start - 0.14, 0.26)) < 2e-3
+                && Math.Abs(seen[k].Width - (from + (to - from) * CssCurves.At(CssCurves.Ez, k * FrameTime - start, 0.42))) < 0.05)).ToList();
             Assert.True(fits.Count > 0, "the new label fades in and the width eases from the swap");
             Assert.Equal(1, seen[^1].Label, 1e-6);
             rig.Close(window);

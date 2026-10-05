@@ -114,7 +114,7 @@ public sealed class ComposerVoiceLanguageNameTests(HeadlessSession headless)
             Run(rig, window, 1.2);
             rig.Main.OnMain(() => pill.Language = "English");
             var seen = Frames(rig, window, 30, () => (pill.NameOpacity, pill.Labels[1].Runs.Count, pill.TargetWidth));
-            for (var k = 0; k < seen.Count; k++) Assert.Equal(CssCurves.At(CssCurves.Ease, k * Frame - 0.1, 0.3), seen[k].NameOpacity, 1e-4);
+            for (var k = 0; k < seen.Count; k++) Assert.Equal(CssCurves.At(CssCurves.Ease, k * FrameTime - 0.1, 0.3), seen[k].NameOpacity, 1e-4);
             Assert.Equal(2, seen[0].Count); // in the layout from the first frame, drawn clear
             Assert.Equal(OpenWidth(40, "Transcribing" + E, 13.5, "English"), seen[0].TargetWidth, 0.01);
             // with the label: the label changes and the name arrives in the same moment
@@ -151,7 +151,7 @@ public sealed class ComposerVoiceLanguageNameTests(HeadlessSession headless)
             var seen = Frames(rig, window, 40, () => (Out: pill.Labels[1].OutgoingOpacity, In: pill.NameOpacity, Out2: pill.Labels[1].OutgoingName, Name: pill.Labels[1].LanguageName, Width: pill.ShownWidth));
             for (var k = 0; k < seen.Count; k++)
             {
-                var t = k * Frame;
+                var t = k * FrameTime;
                 Assert.Equal(1 - CssCurves.At(CssCurves.Ease, t, 0.1), seen[k].Out, 1e-4);
                 Assert.Equal(CssCurves.At(CssCurves.Ease, t - 0.08, 0.2), seen[k].In, 1e-4);
                 Assert.Equal("Hindi", seen[k].Name);

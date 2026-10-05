@@ -51,7 +51,7 @@ public sealed class ComposerVoiceFloatLineTests(HeadlessSession headless)
             var pillRect = rig.Main.OnMain(() => view.VoiceFloatRect(area));
             Assert.NotNull(pillRect);
             Assert.True(pillRect!.Value.Intersects(tab), "the pill's rectangle crosses the line");
-            var fits = Enumerable.Range(0, 4).Where(slip => out_.Select((v, i) => Math.Abs(v - (1 - CssCurves.At(CssCurves.Ease, (i - slip) * Frame, 0.16)))).All(e => e < 0.01)).ToList();
+            var fits = Enumerable.Range(0, 4).Where(slip => out_.Select((v, i) => Math.Abs(v - (1 - CssCurves.At(CssCurves.Ease, (i - slip) * FrameTime, 0.16)))).All(e => e < 0.01)).ToList();
             Assert.True(fits.Count > 0, "out over 0.16 s ease: " + string.Join(", ", out_.Take(14).Select(v => v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))));
             Assert.Equal(0, out_[^1], 1e-6);
             rig.Main.OnMain(() => Click(Slot(view).HitTarget)); // stop; the pill folds when the final pass is done
@@ -75,7 +75,7 @@ public sealed class ComposerVoiceFloatLineTests(HeadlessSession headless)
             Assert.Equal(0, rig.Main.OnMain(() => tabs.Opacity), 1e-6);
             rig.Main.OnMain(() => Click(Pill(view).Cross)); // the pill's own cross cancels
             var seen = Frames(rig, window, 40, () => tabs.Opacity);
-            var fits = Enumerable.Range(0, 4).Where(slip => seen.Select((v, i) => Math.Abs(v - CssCurves.At(CssCurves.Ease, (i - slip) * Frame - 0.05, 0.25))).All(e => e < 0.01)).ToList();
+            var fits = Enumerable.Range(0, 4).Where(slip => seen.Select((v, i) => Math.Abs(v - CssCurves.At(CssCurves.Ease, (i - slip) * FrameTime - 0.05, 0.25))).All(e => e < 0.01)).ToList();
             Assert.True(fits.Count > 0, "back over 0.25 s ease after 0.05 s: " + string.Join(", ", seen.Take(24).Select(v => v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))));
             Assert.Equal(1, seen[^1], 1e-6);
             rig.Close(window);

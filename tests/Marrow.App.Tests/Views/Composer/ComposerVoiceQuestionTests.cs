@@ -1,3 +1,4 @@
+using Marrow.App.Port;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -196,7 +197,7 @@ public sealed class ComposerVoiceQuestionTests(HeadlessSession headless)
             rig.Main.OnMain(() => Click(Slot(view).HitTarget));
             var seen = Frames(rig, window, 30, () => (Opacity: Question(view).ShownOpacity, Progress: Question(view).Progress));
             var fits = Enumerable.Range(0, 4).Where(slip => seen.Select((s, i) =>
-                Math.Abs(s.Opacity - CssCurves.At(CssCurves.Ease, (i - slip) * Frame, 0.18)) + Math.Abs(s.Progress - CssCurves.At(CssCurves.Ez, (i - slip) * Frame, 0.24))).All(e => e < 2e-3)).ToList();
+                Math.Abs(s.Opacity - CssCurves.At(CssCurves.Ease, (i - slip) * FrameTime, 0.18)) + Math.Abs(s.Progress - CssCurves.At(CssCurves.Ez, (i - slip) * FrameTime, 0.24))).All(e => e < 2e-3)).ToList();
             Assert.True(fits.Count > 0, "opacity on ease 0.18 s and the motion on ez 0.24 s: " + string.Join(", ", seen.Take(14).Select(s => s.Opacity.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))));
             rig.Main.OnMain(() =>
             {
@@ -234,7 +235,7 @@ public sealed class ComposerVoiceQuestionTests(HeadlessSession headless)
             Assert.True(seen[^1].Opacity < 1e-6 && !seen[^1].Open, "closed");
             // the close: opacity .18 s ease and the motion back over .24 s ez, starting 0.22 s after the answer (up to two frames either way)
             var fits = Enumerable.Range(11, 5).Where(start => seen.Select((s, i) =>
-                Math.Abs(s.Opacity - (1 - CssCurves.At(CssCurves.Ease, (i - start) * Frame, 0.18))) + Math.Abs(s.Progress - (1 - CssCurves.At(CssCurves.Ez, (i - start) * Frame, 0.24)))).Skip(start - 2).All(e => e < 3e-3)).ToList();
+                Math.Abs(s.Opacity - (1 - CssCurves.At(CssCurves.Ease, (i - start) * FrameTime, 0.18))) + Math.Abs(s.Progress - (1 - CssCurves.At(CssCurves.Ez, (i - start) * FrameTime, 0.24)))).Skip(start - 2).All(e => e < 3e-3)).ToList();
             Assert.True(fits.Count > 0, "the close follows its curves from about 0.22 s: " + string.Join(", ", seen.Skip(10).Take(14).Select(s => s.Opacity.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))));
             rig.Close(window);
         });
@@ -250,14 +251,14 @@ public sealed class ComposerVoiceQuestionTests(HeadlessSession headless)
             using var rig = Asking();
             var (view, window) = rig.Open(900);
             rig.Main.OnMain(() => Click(Slot(view).HitTarget));
-            rig.Elapse(window, Frame);
+            rig.Elapse(window, FrameTime);
             rig.Main.OnMain(() =>
             {
                 Assert.Equal(1, Question(view).ShownOpacity);
                 Assert.Equal(1, Question(view).Progress);
             });
             rig.Main.OnMain(() => Click(Question(view).Answers[0]));
-            rig.Elapse(window, Frame);
+            rig.Elapse(window, FrameTime);
             rig.Main.OnMain(() =>
             {
                 Assert.Equal(0, Question(view).ShownOpacity);

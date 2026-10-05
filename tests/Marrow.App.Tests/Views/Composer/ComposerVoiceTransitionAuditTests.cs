@@ -20,8 +20,8 @@ public sealed class ComposerVoiceTransitionAuditTests(HeadlessSession headless)
     // the steepest one-frame step of a curve over a duration, as a fraction of its travel
     private static double SteepestStep(Func<double, double> curve, double duration)
     {
-        var frames = (int)Math.Ceiling(duration / Frame) + 1;
-        return Enumerable.Range(0, frames).Max(k => Math.Abs(CssCurves.At(curve, (k + 1) * Frame, duration) - CssCurves.At(curve, k * Frame, duration)));
+        var frames = (int)Math.Ceiling(duration / FrameTime) + 1;
+        return Enumerable.Range(0, frames).Max(k => Math.Abs(CssCurves.At(curve, (k + 1) * FrameTime, duration) - CssCurves.At(curve, k * FrameTime, duration)));
     }
 
     private static VoiceScript Said() => new(
@@ -64,7 +64,7 @@ public sealed class ComposerVoiceTransitionAuditTests(HeadlessSession headless)
             {
                 for (var k = 0; k < frames; k++)
                 {
-                    rig.Elapse(window, Frame);
+                    rig.Elapse(window, FrameTime);
                     series.Add(Read());
                 }
             }
@@ -105,7 +105,7 @@ public sealed class ComposerVoiceTransitionAuditTests(HeadlessSession headless)
             {
                 for (var k = 0; k < frames; k++)
                 {
-                    rig.Elapse(window, Frame);
+                    rig.Elapse(window, FrameTime);
                     series.Add(rig.Main.OnMain(() => (Slot(view).CrossSlide, Slot(view).CrossOpacity, column.Margin.Right)));
                 }
             }
@@ -136,7 +136,7 @@ public sealed class ComposerVoiceTransitionAuditTests(HeadlessSession headless)
             {
                 for (var k = 0; k < frames; k++)
                 {
-                    rig.Elapse(window, Frame);
+                    rig.Elapse(window, FrameTime);
                     series.Add(rig.Main.OnMain(() => (Slot(view).Lift, Pill(view).ShownWidth, Pill(view).ShownOpacity)));
                 }
             }

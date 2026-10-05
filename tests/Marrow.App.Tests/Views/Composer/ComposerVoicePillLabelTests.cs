@@ -30,7 +30,7 @@ public sealed class ComposerVoicePillLabelTests(HeadlessSession headless)
             var full = OpenWidth(40, Listening, 13.5);
             for (var k = 0; k < seen.Count; k++)
             {
-                var t = k * Frame;
+                var t = k * FrameTime;
                 Assert.Equal(40 + (full - 40) * CssCurves.At(CssCurves.Ez, t, 0.42), seen[k].Width, 1e-3); // left and width .42s ez
                 Assert.Equal(CssCurves.At(CssCurves.Ease, t, 0.14), seen[k].Opacity, 1e-4); // opacity .14s ease
                 Assert.Equal(CssCurves.At(CssCurves.Ease, t - 0.14, 0.26), seen[k].Label, 1e-4); // label in: .26s ease after .14s
@@ -58,7 +58,7 @@ public sealed class ComposerVoicePillLabelTests(HeadlessSession headless)
                 Cross: pill.CrossOpacity, Scale: pill.CrossScale));
             for (var k = 0; k < seen.Count; k++)
             {
-                var t = k * Frame;
+                var t = k * FrameTime;
                 Assert.Equal(full - (full - 40) * CssCurves.At(CssCurves.Ez, t, 0.42), seen[k].Width, 1e-3); // width to H over .42s ez
                 Assert.Equal(1 - CssCurves.At(CssCurves.Ease, t - 0.24, 0.18), seen[k].Opacity, 1e-4); // then opacity .18s ease after .24s
                 Assert.Equal(1 - CssCurves.At(CssCurves.Ease, t, 0.2), seen[k].Label, 1e-4); // the label out: .2s ease
@@ -91,7 +91,7 @@ public sealed class ComposerVoicePillLabelTests(HeadlessSession headless)
                 OldShift: pill.LabelShift(VoiceLabelState.Listening), NewShift: pill.LabelShift(VoiceLabelState.Transcribing)));
             for (var k = 0; k < seen.Count; k++)
             {
-                var t = k * Frame;
+                var t = k * FrameTime;
                 Assert.Equal(from + (to - from) * CssCurves.At(CssCurves.Ez, t, 0.42), seen[k].Width, 1e-3);
                 Assert.Equal(1 - CssCurves.At(CssCurves.Ease, t, 0.2), seen[k].Old, 1e-4); // the old words out
                 Assert.Equal(CssCurves.At(CssCurves.Ease, t - 0.14, 0.26), seen[k].New, 1e-4); // the new words in
@@ -121,7 +121,7 @@ public sealed class ComposerVoicePillLabelTests(HeadlessSession headless)
                 var f = t % 2.35 / 2.35; // 0%,12% 135%; 70%,100% -55%; ease-in-out between
                 return f <= 0.12 ? 1.35 : f >= 0.70 ? -0.55 : 1.35 - 1.9 * FrameCurves.Bezier(FrameCurves.EaseInOut, (f - 0.12) / 0.58);
             }
-            for (var k = 0; k < seen.Count; k++) Assert.Equal(Expected(k * Frame), seen[k], 5e-3);
+            for (var k = 0; k < seen.Count; k++) Assert.Equal(Expected(k * FrameTime), seen[k], 5e-3);
             Assert.Contains(seen, position => position < 0.5 && position > 0); // it moved through the text
             rig.Main.OnMain(() => pill.Open = false);
             Run(rig, window, 0.1);
@@ -143,7 +143,7 @@ public sealed class ComposerVoicePillLabelTests(HeadlessSession headless)
             using var rig = Rig();
             var (pill, window) = Standalone(rig);
             rig.Main.OnMain(() => pill.Open = true);
-            rig.Elapse(window, Frame);
+            rig.Elapse(window, FrameTime);
             rig.Main.OnMain(() =>
             {
                 Assert.Equal(OpenWidth(40, Listening, 13.5), pill.ShownWidth, 0.01);
