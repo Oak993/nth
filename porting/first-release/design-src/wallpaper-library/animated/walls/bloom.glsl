@@ -12,7 +12,6 @@ vec3 wall(vec2 p, float t) {
   vec2 c = vec2(0.3, -0.06) + orbit(a, 0.02 * m);
   vec2 d = p - c;
   float r = length(d);
-  float ang = atan(d.y, d.x);
   vec3 bg = mix(u_pal[1], u_pal[0], smoothstep(0.1, 1.7, r));
   vec3 bgLin = lab2lin(bg);
   vec3 add = vec3(0.0);
@@ -23,10 +22,12 @@ vec3 wall(vec2 p, float t) {
     float spin = (fj * 2.0 - 1.0) * 0.16 * m * sin(a + fj * 1.7) + fj * sect * 0.5 + 0.25;
     float len = (1.3 - 0.5 * fj) * (1.0 + 0.04 * m * sin(2.0 * a + fj * 2.0));
     float wid = 0.42 - 0.12 * fj;
+    vec2 dj = d + tiltD(0.7 - 1.4 * fj);
+    float ang = atan(dj.y, dj.x);
     float k0 = floor((ang - spin) / sect + 0.5);
     for (int k = 0; k < 3; k++) {
       float pa = (k0 + float(k) - 1.0) * sect + spin;
-      vec2 q = rot(d, -pa);
+      vec2 q = rot(dj, -pa);
       float u = q.x / len;
       float bend = 0.1 * sin(pa * 2.0 + a) * m;
       float v0 = q.y - bend * u * u * len;

@@ -1,4 +1,4 @@
-// Animated wallpapers: the library. Twenty-four live tiles in three tiers (only the tiles on screen are drawn), a large
+// Animated wallpapers: the library. Live tiles in three tiers (only the tiles on screen are drawn), a large
 // view with the mock Marrow window and its liquid glass, a compact control panel per wallpaper (colour pack, speed,
 // motion and one more option), and in the page itself the loop proof of every pack and the frame cost of every
 // wallpaper. Every change eases: the palette crossfades in OKLab, the options and the speed ease, the theme crossfades.
@@ -21,40 +21,161 @@
   const E = new WLGL.Engine();
   WALLS.forEach((w) => E.warm(w.id));
 
-  // ------------------------------------------------------------------ state: the viewer's choices and the live values
+  // ------------------------------------------------------------------ colour: OKLab and OKLCH, gamut-fitted by lowering chroma only (as the build does for the named packs)
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const D2R = Math.PI / 180, TAU = Math.PI * 2;
+  function labLin(L, a, b) {
+    const l = Math.pow(L + 0.3963377774 * a + 0.2158037573 * b, 3), m = Math.pow(L - 0.1055613458 * a - 0.0638541728 * b, 3), s = Math.pow(L - 0.0894841775 * a - 1.291485548 * b, 3);
+    return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+  }
+  const inGamut = (L, a, b) => { const r = labLin(L, a, b); return r[0] >= -0.0005 && r[0] <= 1.0005 && r[1] >= -0.0005 && r[1] <= 1.0005 && r[2] >= -0.0005 && r[2] <= 1.0005; };
+  function fitLab(L, C, h) {
+    L = clamp(L, 0, 1); C = Math.max(0, C);
+    const cs = Math.cos(h), sn = Math.sin(h);
+    let c = C;
+    if (!inGamut(L, C * cs, C * sn)) { let lo = 0, hi = C; for (let i = 0; i < 16; i++) { const mid = (lo + hi) / 2; if (inGamut(L, mid * cs, mid * sn)) lo = mid; else hi = mid; } c = lo; }
+    return [L, c * cs, c * sn];
+  }
+
+  // ------------------------------------------------------------------ Match accent: the sixth pack, built from the system accent
+  const ACCENTS = [['#005FB8', 'Blue'], ['#00B7C3', 'Teal'], ['#107C10', 'Green'], ['#FFB900', 'Gold'], ['#F7630C', 'Orange'], ['#E3008C', 'Pink'], ['#8764B8', 'Purple']];
+  const loadAccent = () => { const a = S.get('anim.accent', ''); return /^#[0-9a-f]{6}$/i.test(a) ? a.toLowerCase() : '#005fb8'; };
+  const G = { dark: K.isDark() ? 1 : 0, play: !osReduce, open: null, accent: loadAccent(), clock: null };
+  try { const c = parseFloat(S.get('anim.clock', '')); if (isFinite(c)) G.clock = clamp(c, 0, 24); } catch (e) { G.clock = null; }
+  const MC = {};
+  function matchOf(w) {
+    const c = MC[w.id];
+    if (c && c.accent === G.accent) return c.pack;
+    const ac = WLGL.hex2lab(G.accent), Ca = Math.hypot(ac[1], ac[2]), ha = Math.atan2(ac[2], ac[1]) / D2R;
+    const m = w.match, ck = m.ck * clamp(Ca / 0.15, 0.55, 1.3);
+    const pack = { id: 'match', name: 'Match accent' };
+    [['dark', 0, 1], ['light', 2, 3]].forEach(([th, li, ci]) => {
+      const mid = w.roles.reduce((s, r) => s + r[li], 0) / 6;
+      pack[th] = w.roles.map((r, i) => {
+        let L = mid + (r[li] - mid) * m.lk + (th === 'dark' ? m.dl[i] : 0), C = r[ci] * ck * m.cm[i] * (th === 'dark' ? m.dc[i] : 1), h = ha + m.off[i];
+        if (th === 'dark') {
+          // warm hues turn brown or olive when dark: grounds go toward plum, mid tones toward rose, the lights keep the hue (m.dark_warm)
+          const dw = m.dark_warm, hh = wrapDeg(h), ss = (a0, a1, x) => { const t = clamp((x - a0) / (a1 - a0), 0, 1); return t * t * (3 - 2 * t); };
+          const wt = ss(dw.band[0], dw.band[1], hh) * (1 - ss(dw.band[2], dw.band[3], hh));
+          if (wt > 0) {
+            if (r[0] < dw.ground_below) { h = hh + wt * wrapDeg(dw.ground_hue - hh); C *= 1 + (dw.kc - 1) * wt; L += dw.dl * wt; }
+            else if (r[0] < dw.mid_below) { h = hh + dw.mid_amount * wt * wrapDeg(dw.mid_hue - hh); C *= 1 + (dw.kc - 1) * wt; L += dw.dl * wt; }
+            else { L += dw.bright_dl * wt; C *= 1 + (dw.bright_kc - 1) * wt; }
+          }
+        }
+        return lab2hex(fitLab(L, C, h * D2R));
+      });
+    });
+    MC[w.id] = { accent: G.accent, pack };
+    return pack;
+  }
+  const wrapDeg = (d) => ((d + 540) % 360) - 180;
+  const warmth = (h) => Math.max(0, 1 - Math.abs(wrapDeg(h - 65)) / 80);
+  const packsOf = (w) => w.packs.concat([matchOf(w)]);
+  const findPack = (w, id) => (id === 'match' ? matchOf(w) : (w.packs.find((p) => p.id === id) || w.packs[0]));
+
+  // ------------------------------------------------------------------ Dynamic: the four looks through the day
+  // keys at 06:00 dawn, 12:00 day, 18:00 dusk, 24:00 night; between two keys the look is their smoothstep blend; the
+  // `light` set has an empty day look, the `dark` set an empty night look, and the theme value mixes the two sets
+  const SEGS = [['night', 'dawn'], ['dawn', 'day'], ['day', 'dusk'], ['dusk', 'night']];
+  const KEYT = { dawn: 6, day: 12, dusk: 18, night: 0 };
+  const clockNow = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
+  const clockOf = () => (G.clock == null ? clockNow() : G.clock);
+  function look(w, c, dk) {
+    c = ((c % 24) + 24) % 24;
+    const seg = SEGS[Math.min(3, Math.floor(c / 6))], u = (c % 6) / 6, s = u * u * (3 - 2 * u), D = w.dynamic;
+    const o = { dL: [], kC: [], dh: [], tx: 0, ty: 0, sun: [0, 0] };
+    const lin = (set, f, i) => (1 - s) * D[set][seg[0]][f][i] + s * D[set][seg[1]][f][i];
+    const lg = (set, i) => Math.exp((1 - s) * Math.log(D[set][seg[0]].kC[i]) + s * Math.log(D[set][seg[1]].kC[i]));
+    for (let i = 0; i < 6; i++) {
+      o.dL.push((1 - dk) * lin('light', 'dL', i) + dk * lin('dark', 'dL', i));
+      o.kC.push(Math.pow(lg('light', i), 1 - dk) * Math.pow(lg('dark', i), dk));
+      o.dh.push((1 - dk) * lin('light', 'dh', i) + dk * lin('dark', 'dh', i));
+    }
+    const tv = (set) => {
+      const A = D[set][seg[0]].tint, B = D[set][seg[1]].tint;
+      return [(1 - s) * A[1] * Math.cos(A[0] * D2R) + s * B[1] * Math.cos(B[0] * D2R), (1 - s) * A[1] * Math.sin(A[0] * D2R) + s * B[1] * Math.sin(B[0] * D2R)];
+    };
+    const tl = tv('light'), td = tv('dark');
+    o.tx = (1 - dk) * tl[0] + dk * td[0]; o.ty = (1 - dk) * tl[1] + dk * td[1];
+    const sa = D.sun[seg[0]], sb = D.sun[seg[1]];
+    o.sun = [(1 - s) * sa[0] + s * sb[0], (1 - s) * sa[1] + s * sb[1]];
+    return o;
+  }
+  // the palette (OKLab x 6) after a look: the tint mixes each colour toward a colour of the tint hue (chroma 0.12) in the a/b plane,
+  // as a photo filter does, and gives back 60% of the chroma that took away; then chroma is multiplied, hue turned and lightness added
+  function applyLook(pal, L) {
+    const out = new Float32Array(18), amt = Math.min(1, Math.hypot(L.tx, L.ty)), ht = Math.atan2(L.ty, L.tx), tA = 0.12 * Math.cos(ht), tB = 0.12 * Math.sin(ht);
+    for (let i = 0; i < 6; i++) {
+      let a = pal[i * 3 + 1], b = pal[i * 3 + 2];
+      const C0 = Math.hypot(a, b) * L.kC[i];
+      if (amt > 1e-6) { a += amt * (tA - a); b += amt * (tB - b); }
+      const Cm = Math.hypot(a, b), C = Cm + 0.6 * Math.max(0, C0 - Cm);
+      const f = fitLab(pal[i * 3] + L.dL[i], C, Math.atan2(b, a) + L.dh[i] * D2R);
+      out[i * 3] = f[0]; out[i * 3 + 1] = f[1]; out[i * 3 + 2] = f[2];
+    }
+    return out;
+  }
+  // the palette a pack shows at a darkness, with the day's look at clock hour c (null = Dynamic off), and the light offset
+  function palFor(w, pk, dark, c) {
+    const pal = WLGL.packLab(pk, dark);
+    if (c == null) return { pal, sun: [0, 0] };
+    const L = look(w, c, dark);
+    return { pal: applyLook(pal, L), sun: L.sun };
+  }
+  const hhmm = (c) => { const m = Math.round(((c % 24) + 24) % 24 * 60) % 1440; return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); };
+  const keyName = (c) => { c = ((c % 24) + 24) % 24; const d = (k) => { const x = Math.abs(c - KEYT[k]); return Math.min(x, 24 - x); }; return ['dawn', 'day', 'dusk', 'night'].sort((p, q) => d(p) - d(q))[0]; };
+
+  // ------------------------------------------------------------------ state: the viewer's choices and the live values
   function loadState(w) {
     let s = null;
     try { s = JSON.parse(S.get('anim.' + w.id, 'null')); } catch (e) { s = null; }
     const d = w.defaults;
     s = s && typeof s === 'object' ? s : {};
     return {
-      pack: w.packs.some((p) => p.id === s.pack) ? s.pack : d.pack,
+      pack: s.pack === 'match' || w.packs.some((p) => p.id === s.pack) ? s.pack : d.pack,
       speed: typeof s.speed === 'number' ? clamp(s.speed, 0.25, 2.5) : d.speed,
       motion: typeof s.motion === 'number' ? clamp(s.motion, 0, 1) : d.motion,
       second: typeof s.second === 'number' ? clamp(s.second, 0, 1) : d.second,
+      focus: typeof s.focus === 'number' ? clamp(s.focus, 0, 1) : d.focus,
+      dynamic: typeof s.dynamic === 'boolean' ? s.dynamic : d.dynamic,
+      persp: typeof s.persp === 'boolean' ? s.persp : d.perspective,
     };
   }
-  const G = { dark: K.isDark() ? 1 : 0, play: !osReduce, open: null };
   const ST = {}, RT = {}, RES = {};
+  // Perspective only runs when the OS does not ask for reduced motion and the page's Motion switch is on
+  const tiltOK = () => !osReduce && G.play;
   WALLS.forEach((w) => {
     const st = ST[w.id] = loadState(w);
-    const pk = w.packs.find((p) => p.id === st.pack);
-    RT[w.id] = { phase: (w.period * 0.137) % w.period, speedE: G.play ? st.speed : 0, opt: [st.motion, st.second], pal: WLGL.packLab(pk, G.dark), dark: G.dark, dirty: true };
+    const tg = target(w);
+    RT[w.id] = { phase: (w.period * 0.137) % w.period, speedE: G.play ? st.speed : 0, opt: [st.motion, st.second], pal: Float32Array.from(tg.pal), dark: G.dark, sun: tg.sun.slice(), tilt: [0, 0], focus: st.focus, dirty: true };
     RES[w.id] = { proofs: {}, max: null, half: null, ms: null, base: null };
   });
   const save = (id) => S.set('anim.' + id, JSON.stringify(ST[id]));
-  const packOf = (w) => w.packs.find((p) => p.id === ST[w.id].pack) || w.packs[0];
+  const packOf = (w) => findPack(w, ST[w.id].pack);
+
+  // the palette and the light the wallpaper is heading for: its pack, the theme, the accent and the time of day, cached until one of them changes
+  function target(w) {
+    const st = ST[w.id], rt = RT[w.id] || (RT[w.id] = {});
+    const pk = findPack(w, st.pack), c = st.dynamic ? clockOf() : null;
+    const key = pk.id + '|' + G.dark + '|' + (c == null ? '-' : Math.round(c * 60)) + '|' + (pk.id === 'match' ? G.accent : '');
+    if (rt.tkey !== key) { rt.tkey = key; rt.tgt = palFor(w, pk, G.dark, c); }
+    return rt.tgt;
+  }
 
   // one step of easing for one wallpaper; returns whether it still moves or eases
   function step(w, dt) {
     const st = ST[w.id], rt = RT[w.id];
-    const tgt = WLGL.packLab(packOf(w), G.dark);
-    const aP = 1 - Math.exp(-dt / 0.25), aO = 1 - Math.exp(-dt / 0.3), aS = 1 - Math.exp(-dt / 0.18);
+    const tg = target(w), tgt = tg.pal;
+    const aP = 1 - Math.exp(-dt / 0.25), aO = 1 - Math.exp(-dt / 0.3), aS = 1 - Math.exp(-dt / 0.18), aT = 1 - Math.exp(-dt / 0.35);
     let easing = false;
     for (let i = 0; i < 18; i++) {
       const d = tgt[i] - rt.pal[i];
       if (Math.abs(d) > 1e-4) { rt.pal[i] += d * aP; easing = true; } else rt.pal[i] = tgt[i];
+    }
+    for (let j = 0; j < 2; j++) {
+      const d = tg.sun[j] - rt.sun[j];
+      if (Math.abs(d) > 1e-4) { rt.sun[j] += d * aP; easing = true; } else rt.sun[j] = tg.sun[j];
     }
     const dd = G.dark - rt.dark;
     if (Math.abs(dd) > 1e-3) { rt.dark += dd * aP; easing = true; } else rt.dark = G.dark;
@@ -62,6 +183,13 @@
     for (let j = 0; j < 2; j++) {
       const d = ot[j] - rt.opt[j];
       if (Math.abs(d) > 1e-3) { rt.opt[j] += d * aO; easing = true; } else rt.opt[j] = ot[j];
+    }
+    const df = st.focus - rt.focus;
+    if (Math.abs(df) > 1e-3) { rt.focus += df * aO; easing = true; } else rt.focus = st.focus;
+    const tt = G.open === w.id && st.persp && tiltOK() ? V.tilt : [0, 0];
+    for (let j = 0; j < 2; j++) {
+      const d = tt[j] - rt.tilt[j];
+      if (Math.abs(d) > 2e-3) { rt.tilt[j] += d * aT; easing = true; } else rt.tilt[j] = tt[j];
     }
     const sT = G.play ? st.speed : 0;
     const ds = sT - rt.speedE;
@@ -71,7 +199,7 @@
     if (easing || moving) rt.dirty = true;
     return easing || moving;
   }
-  const uni = (w) => { const rt = RT[w.id]; return { pal: rt.pal, dark: rt.dark, opt: rt.opt }; };
+  const uni = (w) => { const rt = RT[w.id]; return { pal: rt.pal, dark: rt.dark, opt: rt.opt, tilt: rt.tilt, sun: rt.sun, focus: rt.focus }; };
 
   // ------------------------------------------------------------------ the swatch of a pack: its most colourful three, on its ground
   function lab2hex(L) {
@@ -101,7 +229,7 @@
     TIERS.forEach((T) => {
       const sec = document.createElement('section');
       sec.className = 'tier dk-glass'; sec.dataset.tier = T.id; sec.id = 'tier-' + T.id; sec.setAttribute('aria-labelledby', 'th-' + T.id);
-      sec.innerHTML = '<div class="tier-h"><h2 id="th-' + T.id + '">' + T.name + '</h2><span class="tag">' + T.tag + ' · 8</span><p>' + esc(T.blurb) + '</p></div><div class="grid"></div>';
+      sec.innerHTML = '<div class="tier-h"><h2 id="th-' + T.id + '">' + T.name + '</h2><span class="tag">' + T.tag + ' · ' + WALLS.filter((w) => w.tier === T.id).length + '</span><p>' + esc(T.blurb) + '</p></div><div class="grid"></div>';
       host.appendChild(sec);
       const grid = $('.grid', sec);
       WALLS.filter((w) => w.tier === T.id).forEach((w) => {
@@ -114,7 +242,7 @@
         const t = { w, el, cv: $('canvas', el), wrap: $('.tc', el), vis: false, ctx: null, size: [0, 0] };
         t.ctx = t.cv.getContext('2d', { alpha: false });
         const dots = $('.dots', el);
-        w.packs.forEach((pk) => {
+        packsOf(w).forEach((pk) => {
           const b = document.createElement('button');
           b.type = 'button'; b.className = 'dot'; b.dataset.pack = pk.id; b.setAttribute('role', 'radio'); b.title = pk.name; b.setAttribute('aria-label', pk.name);
           b.addEventListener('click', (e) => { e.stopPropagation(); setPack(w, pk.id); });
@@ -142,7 +270,7 @@
     tiles.forEach((t) => {
       const w = t.w;
       $$('.dot', t.el).forEach((b) => {
-        const pk = w.packs.find((p) => p.id === b.dataset.pack);
+        const pk = findPack(w, b.dataset.pack);
         const bg = swatch(pk, G.dark);
         if (b.__bg !== bg) { b.style.background = bg; b.__bg = bg; }
         b.setAttribute('aria-checked', String(ST[w.id].pack === pk.id));
@@ -190,6 +318,20 @@
   // ------------------------------------------------------------------ choices
   function setPack(w, id) { ST[w.id].pack = id; save(w.id); renderTiles(); renderView(); wake(); }
   function setOpt(w, k, v) { ST[w.id][k] = v; save(w.id); renderView(); wake(); }
+  function setClock(c) {
+    G.clock = c == null ? null : clamp(c, 0, 24);
+    S.set('anim.clock', G.clock == null ? '' : String(G.clock));
+    renderView(); wake();
+  }
+  // picking an accent also selects Match accent for the open wallpaper, so the pick is seen at once
+  function setAccent(hex) {
+    G.accent = hex; S.set('anim.accent', hex);
+    const w = LIB.byId[G.open];
+    if (w) { ST[w.id].pack = 'match'; save(w.id); }
+    renderTiles(); renderView(); wake();
+  }
+  // the live clock moves on by itself while Dynamic is on
+  setInterval(() => { if (G.clock == null && WALLS.some((w) => ST[w.id].dynamic)) { renderView(); wake(); } }, 20000);
 
   // ------------------------------------------------------------------ the mock window and its glass (layouts from the wallpapers page)
   const IC = {
@@ -245,7 +387,7 @@
   }
 
   // ------------------------------------------------------------------ the large view
-  const V = { el: null, glass: true, glassE: 1, size: [0, 0], L: LW, dirty: true };
+  const V = { el: null, glass: true, glassE: 1, size: [0, 0], L: LW, dirty: true, tilt: [0, 0] };
   function buildView() {
     const el = V.el = $('#vw');
     V.stage = $('.vstage', el); V.cv = $('canvas', V.stage); V.ctx = V.cv.getContext('2d', { alpha: false });
@@ -271,7 +413,35 @@
     bindRange('#vspeed', 'speed');
     bindRange('#vmotion', 'motion');
     bindRange('#vsecond', 'second');
-    $('#vreset').addEventListener('click', () => { const w = LIB.byId[G.open]; if (!w) return; Object.assign(ST[w.id], { pack: w.defaults.pack, speed: w.defaults.speed, motion: w.defaults.motion, second: w.defaults.second }); save(w.id); renderTiles(); renderView(); wake(); });
+    bindRange('#vfocus', 'focus');
+    $('#vreset').addEventListener('click', () => { const w = LIB.byId[G.open]; if (!w) return; Object.assign(ST[w.id], { pack: w.defaults.pack, speed: w.defaults.speed, motion: w.defaults.motion, second: w.defaults.second, focus: w.defaults.focus, dynamic: w.defaults.dynamic, persp: w.defaults.perspective }); save(w.id); renderTiles(); renderView(); wake(); });
+    // Dynamic: the switch, the clock scrubber and the key looks
+    $('#vdynsw').addEventListener('click', () => { const w = LIB.byId[G.open]; if (!w) return; ST[w.id].dynamic = !ST[w.id].dynamic; save(w.id); renderView(); renderTiles(); wake(); });
+    $('#vclock').addEventListener('input', () => setClock(parseFloat($('#vclock').value)));
+    const keys = $('#vkeys');
+    [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['now', 'Now']].forEach(([k, t]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'kb'; b.dataset.key = k; b.textContent = t;
+      b.addEventListener('click', () => setClock(k === 'now' ? null : KEYT[k]));
+      keys.appendChild(b);
+    });
+    // Perspective
+    $('#vpersp').addEventListener('click', () => { const w = LIB.byId[G.open]; if (!w || !tiltOK()) return; ST[w.id].persp = !ST[w.id].persp; save(w.id); renderView(); wake(); });
+    V.stage.addEventListener('pointermove', (e) => {
+      const r = V.stage.getBoundingClientRect(); if (!r.width) return;
+      V.tilt = [clamp((e.clientX - (r.left + r.width / 2)) / (r.width / 2), -1, 1), clamp(-(e.clientY - (r.top + r.height / 2)) / (r.height / 2), -1, 1)];
+      wake();
+    });
+    V.stage.addEventListener('pointerleave', () => { V.tilt = [0, 0]; wake(); });
+    // Match accent: the picker
+    const acc = $('#vacc');
+    ACCENTS.forEach(([hex, name]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'ac'; b.dataset.hex = hex.toLowerCase(); b.title = name; b.setAttribute('aria-label', name + ' accent'); b.setAttribute('role', 'radio'); b.style.background = hex;
+      b.addEventListener('click', () => setAccent(hex.toLowerCase()));
+      acc.insertBefore(b, $('#vacccustom').parentNode);
+    });
+    $('#vacccustom').addEventListener('input', (e) => setAccent(e.target.value.toLowerCase()));
     $('#vprove').addEventListener('click', () => { const w = LIB.byId[G.open]; if (w) proveNow(w, true); });
     $('#vcopy').addEventListener('click', async () => {
       const w = LIB.byId[G.open]; if (!w) return;
@@ -318,20 +488,23 @@
     const packs = $('#vpacks');
     if (packs.__id !== w.id) {
       packs.__id = w.id; packs.innerHTML = '';
-      w.packs.forEach((pk, i) => {
+      packsOf(w).forEach((pk, i) => {
         const b = document.createElement('button');
-        b.type = 'button'; b.className = 'pk'; b.dataset.pack = pk.id; b.setAttribute('role', 'radio'); b.title = pk.name + (i === 0 ? ' (default)' : ''); b.setAttribute('aria-label', pk.name);
+        b.type = 'button'; b.className = 'pk' + (pk.id === 'match' ? ' mt' : ''); b.dataset.pack = pk.id; b.setAttribute('role', 'radio'); b.title = pk.name + (i === 0 ? ' (default)' : pk.id === 'match' ? ' (from the accent colour)' : ''); b.setAttribute('aria-label', pk.name);
         if (pk.id === w.defaults.pack) b.innerHTML = '<span class="def" aria-hidden="true"></span>';
         b.addEventListener('click', () => setPack(w, pk.id));
         packs.appendChild(b);
       });
     }
     $$('.pk', packs).forEach((b) => {
-      const pk = w.packs.find((p) => p.id === b.dataset.pack);
+      const pk = findPack(w, b.dataset.pack);
       const bg = swatch(pk, G.dark);
       if (b.__bg !== bg) { b.style.background = bg; b.__bg = bg; }
       b.setAttribute('aria-checked', String(st.pack === pk.id));
     });
+    $$('#vacc .ac').forEach((b) => b.setAttribute('aria-checked', String(st.pack === 'match' && b.dataset.hex === G.accent)));
+    const cu = $('#vacccustom'); if (cu.value !== G.accent) cu.value = G.accent;
+    $('.accust', V.el).setAttribute('aria-checked', String(st.pack === 'match' && !ACCENTS.some(([h]) => h.toLowerCase() === G.accent)));
     $('#vpackname').textContent = packOf(w).name + (st.pack === w.defaults.pack ? ' · default' : '');
     setRange($('#vspeed'), st.speed, 0.25, 2.5); $('#vspeedv').textContent = xfmt(st.speed);
     setRange($('#vmotion'), st.motion, 0, 1); $('#vmotionv').textContent = Math.round(st.motion * 100) + '%';
@@ -340,6 +513,15 @@
     setRange($('#vsecond'), st.second, 0, 1); $('#vsecondv').textContent = Math.round(st.second * 100) + '%';
     $('#vsecond').setAttribute('aria-label', o2.label);
     $('#vsecondlo').textContent = o2.lo; $('#vsecondhi').textContent = o2.hi;
+    setRange($('#vfocus'), st.focus, 0, 1); $('#vfocusv').textContent = st.focus < 0.005 ? 'Sharp' : Math.round(st.focus * 100) + '%';
+    const cl = clockOf();
+    $('#vdynsw').setAttribute('aria-checked', String(st.dynamic)); $('#vdyn').classList.toggle('open', st.dynamic);
+    $('#vdynv').textContent = st.dynamic ? hhmm(cl) + ' · ' + keyName(cl) : 'Off';
+    $('#vclock').disabled = !st.dynamic; $$('#vkeys button').forEach((b) => { b.disabled = !st.dynamic; b.setAttribute('aria-pressed', String(b.dataset.key === 'now' ? G.clock == null : G.clock != null && Math.abs(G.clock - KEYT[b.dataset.key]) < 0.01)); });
+    setRange($('#vclock'), cl, 0, 24);
+    const ok = tiltOK(), pe = $('#vpersp');
+    pe.setAttribute('aria-checked', String(st.persp && ok)); pe.disabled = !ok;
+    $('#vperspnote').textContent = ok ? (w.perspective.mode === 'layers' ? 'The layers shift a few pixels with the pointer.' : 'A flat picture: the whole picture pans a few pixels.') : 'Off: Reduce Motion is on, or Motion is paused.';
     $('#vloop').textContent = w.period + ' s';
     $('#vloops').textContent = st.speed === 1 ? 'at 1x, the default speed' : 'at 1x; ' + (w.period / st.speed).toFixed(1) + ' s at ' + xfmt(st.speed);
     const pp = r.proofs[st.pack];
@@ -415,22 +597,32 @@
 
   // ------------------------------------------------------------------ the loop proofs and the frame cost, measured here
   const PW = 256, PH = 160;
-  function proofPack(w, pk, opt) {
-    const d = E.proof(w.id, { pal: WLGL.packLab(pk, 1), dark: 1, opt }, PW, PH);
-    const l = E.proof(w.id, { pal: WLGL.packLab(pk, 0), dark: 0, opt }, PW, PH);
+  // one loop proof of a state in both themes; x holds the extra uniforms (tilt, focus); clk is the clock hour of the look, or null
+  function proofState(w, pk, opt, clk, x) {
+    const one = (dk) => { const pf = palFor(w, pk, dk, clk); return E.proof(w.id, Object.assign({ pal: pf.pal, dark: dk, opt, sun: pf.sun }, x || {}), PW, PH); };
+    const d = one(1), l = one(0);
     if (!d || !l) return null;
     return { d: d.dT, l: l.dT, hd: d.dH, hl: l.dH };
   }
+  const proofPack = (w, pk, opt) => proofState(w, pk, opt, null, null);
   function proveAll(w) {
     const r = RES[w.id], def = [w.defaults.motion, w.defaults.second];
-    let mx = 0, hmin = 999, hdef = 999, n = 0;
-    for (const pk of w.packs) {
+    let mx = 0, hdef = 999, n = 0;
+    const take = (p) => { mx = Math.max(mx, p.d, p.l); n += 2; };
+    // the five named packs and Match accent, with the default options
+    for (const pk of packsOf(w)) {
       const p = proofPack(w, pk, def); if (!p) return false;
-      r.proofs[pk.id] = p; mx = Math.max(mx, p.d, p.l); hdef = Math.min(hdef, p.hd, p.hl); n += 2;
+      r.proofs[pk.id] = p; take(p); hdef = Math.min(hdef, p.hd, p.hl);
     }
-    hmin = hdef;
+    let hmin = hdef;
     // the options at both ends, on the default pack
-    for (const o of [[0, 0], [1, 1]]) { const p = proofPack(w, w.packs[0], o); mx = Math.max(mx, p.d, p.l); hmin = Math.min(hmin, p.hd, p.hl); n += 2; }
+    for (const o of [[0, 0], [1, 1]]) { const p = proofPack(w, w.packs[0], o); take(p); hmin = Math.min(hmin, p.hd, p.hl); }
+    // Dynamic: the four key looks and the light track, on the default pack
+    r.dyn = {};
+    for (const k of ['dawn', 'day', 'dusk', 'night']) { const p = proofState(w, w.packs[0], def, KEYT[k], null); take(p); r.dyn[k] = Math.max(p.d, p.l); }
+    // Perspective at full tilt and Focus at its extremes, together with the other options at their ends
+    const px = proofState(w, w.packs[0], [1, 1], 18, { tilt: [1, 1], focus: 1 }); take(px); r.ext = Math.max(px.d, px.l);
+    const py = proofState(w, matchOf(w), [0, 0], 0, { tilt: [-1, 1], focus: 0.5 }); take(py); r.ext = Math.max(r.ext, py.d, py.l);
     r.max = mx; r.halfMin = hmin; r.halfDef = hdef; r.checks = n;
     return true;
   }
@@ -438,16 +630,20 @@
     const st = ST[w.id];
     const pk = custom ? packOf(w) : w.packs[0];
     const opt = custom ? [st.motion, st.second] : [w.defaults.motion, w.defaults.second];
-    const b = E.bench(w.id, { pal: WLGL.packLab(pk, G.dark), dark: G.dark, opt }, 48);
+    const pf = palFor(w, pk, G.dark, custom && st.dynamic ? clockOf() : null);
+    const s = { pal: pf.pal, dark: G.dark, opt, sun: pf.sun, tilt: custom && st.persp && tiltOK() ? [0.5, 0.5] : [0, 0], focus: custom ? st.focus : 0 };
+    const b = E.bench(w.id, s, 48);
     if (!b) return false;
     RES[w.id].ms = b.ms; RES[w.id].base = b.base; RES[w.id].custom = !!custom;
+    const f = E.bench(w.id, Object.assign({}, s, { focus: 1 }), 24);
+    if (f) RES[w.id].msFocus = f.ms;
     return true;
   }
   function proveNow(w, custom) {
     if (!E.prog(w.id)) { setTimeout(() => proveNow(w, custom), 120); return; }
     if (custom) {
       const st = ST[w.id];
-      const p = proofPack(w, packOf(w), [st.motion, st.second]);
+      const p = proofState(w, packOf(w), [st.motion, st.second], st.dynamic ? clockOf() : null, { tilt: st.persp && tiltOK() ? [1, 1] : [0, 0], focus: st.focus });
       if (p) { p.custom = true; RES[w.id].proofs[st.pack] = p; }
     } else if (RES[w.id].max == null) proveAll(w);
     measure(w, custom);
@@ -480,11 +676,11 @@
     const hmin = done.length ? Math.min.apply(null, done.map((w) => RES[w.id].halfDef)) : null;
     $('#sProof').textContent = mx == null ? 'proving' : 'Δ ' + mx + '/255';
     $('#sProof').style.color = mx != null && mx <= 1 ? 'var(--lib-good)' : '';
-    $('#sProofs').textContent = done.length + ' of 24 proved, ' + checks + ' checks: frame 0 vs frame T, every pack, dark and light' + (hmin != null ? '; at T/2, with the default options, each differs by at least ' + hmin + ' (the minimal tier moves least)' : '');
+    $('#sProofs').textContent = done.length + ' of ' + WALLS.length + ' proved, ' + checks + ' checks: frame 0 vs frame T, every pack, dark and light' + (hmin != null ? '; at T/2, with the default options, each differs by at least ' + hmin + ' (the minimal tier moves least)' : '');
     if (costs.length) {
       const lo = Math.min.apply(null, costs), hi = Math.max.apply(null, costs);
       $('#sCost').textContent = fmt(lo, 2) + ' to ' + fmt(hi, 2) + ' ms';
-      $('#sCosts').textContent = costs.length + ' of 24 measured at 1280 x 800 on ' + gpuName(E.renderer) + '; budget 1 ms';
+      $('#sCosts').textContent = costs.length + ' of ' + WALLS.length + ' measured at 1280 x 800 on ' + gpuName(E.renderer) + '; budget 1 ms';
     }
     window.__lib = { RES, done: done.length, max: mx, checks, costs, renderer: E.renderer, hmin };
   }
@@ -499,7 +695,7 @@
     K.seg($('#segTier'), [{ v: 'all', t: 'All' }].concat(TIERS.map((T) => ({ v: T.id, t: T.name }))), 'all', (v) => showTier(v));
     const play = $('#play');
     play.setAttribute('aria-checked', String(G.play));
-    play.addEventListener('click', () => { G.play = !G.play; play.setAttribute('aria-checked', String(G.play)); wake(); });
+    play.addEventListener('click', () => { G.play = !G.play; play.setAttribute('aria-checked', String(G.play)); renderView(); wake(); });
     K.onTheme((d) => { G.dark = d ? 1 : 0; renderTiles(); renderView(); wake(); });
   }
   function showTier(v) {
@@ -519,4 +715,5 @@
   wake();
   setTimeout(runQueue, 250);
   window.__E = E; window.__ST = ST; window.__RT = RT; window.__G = G; window.__open = openView; window.__close = closeView; window.__tiles = tiles; window.__V = V;
+  window.__fn = { palFor, look, matchOf, packsOf, target, step, tiltOK, keyName, hhmm, setClock, setAccent, KEYT };
 })();
