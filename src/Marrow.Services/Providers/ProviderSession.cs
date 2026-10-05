@@ -148,7 +148,7 @@ public abstract record ProviderEvent
     public sealed record Notice(global::Marrow.Core.Models.Notice Value) : ProviderEvent;     // :106
 
     /// <summary>The account's usage limit is spent; the turn stops until it resets, at the time given when known.</summary>
-    public sealed record UsageLimit(DateTimeOffset? ResetsAt) : ProviderEvent;                // :107-108
+    public sealed record UsageLimit(DateTimeOffset? ResetsAt, UsageAccountKey? Account = null) : ProviderEvent;                // :107-108
 
     public sealed record ModeChanged(InteractionMode Value) : ProviderEvent;                  // :109
     public sealed record Models(ValueList<ModelOption> Value, string? Current) : ProviderEvent; // :110

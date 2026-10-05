@@ -747,6 +747,7 @@ public sealed class CodexSession : ProviderSession
                     {
                         Id = $"{snapshot["limitId"]?.JSONValueString ?? "codex"}-{key}", // :425
                         Title = title,                                                    // :426
+                        DurationMinutes = window["windowDurationMins"]?.JSONValueInt, // OD-0114 / ED-NEW-ma-2
                         Percent = percent,                                                // :427
                         ResetsAt = window["resetsAt"]?.JSONValueDouble is { } resets ? SwiftDate.From1970Seconds(resets) : null, // :428
                     });
