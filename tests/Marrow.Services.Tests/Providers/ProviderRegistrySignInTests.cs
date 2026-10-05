@@ -49,10 +49,10 @@ public sealed class ProviderRegistrySignInTests
     public async Task a_successful_login_runs_the_login_arguments_then_rechecks_the_provider_and_reloads_its_catalog()
     {
         using var runtime = new TestRuntime();
-        using var shell = ShellRecording.Start();
         // Codex: its login command is "codex login", its status check reads "login status", and both a plan-limits
         // read and a model listing launch its app-server, so each follow-up step leaves its own launch.
         var (registry, script) = Arrange(new FakeProviderSettings(), ProviderKind.Codex);
+        using var shell = ShellRecording.Start(); // fixture compilation is setup, before observing the login command
         script.SetStdout("Logged in using ChatGPT\n").SetExitCode(0).UseCodexRPC();
         // Both follow-ups are FORCED: with the catalog attempt closed and the limits just read, an unforced ask of
         // either would do nothing, so only a forced one leaves a launch.
