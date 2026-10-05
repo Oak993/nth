@@ -57,4 +57,13 @@ internal static class PreviewPixels
         for (var i = 0; i < a.Length; i++) total += Math.Abs(a[i] - b[i]);
         return total / (double)a.Length;
     }
+
+    /// <summary>The largest absolute difference of any one channel, 0 to 255.</summary>
+    internal static int MaxDifference(byte[] a, byte[] b)
+    {
+        if (a.Length != b.Length) throw new ArgumentException("The regions differ in size.");
+        var max = 0;
+        for (var i = 0; i < a.Length; i++) if (i % 4 != 3) max = Math.Max(max, Math.Abs(a[i] - b[i]));
+        return max;
+    }
 }

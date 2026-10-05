@@ -225,7 +225,7 @@ provider or a microphone. It must look exactly like a real `ComposerArea` of the
 
 | Part | Rule |
 |---|---|
-| Frame | width 472 (attachment inside) or 428 (outside); left inset 12 or 56; bottom inset 12; height 52; radius 22; the composer's glass plate (`SwiftGlass`, as the real composer). The width and left inset ease over 0.42 s `cubic-bezier(.32,.72,0,1)` when the attachment place changes (DESIGN gen.py:463, voicecmp.js:224-238) |
+| Frame | width 472 (attachment inside) or 428 (outside); left inset 12 or 56; bottom inset 12; height 46 (the real pill's, 46 from rim to rim on the reference frame: 2-chat-use.mov at 19.7 s, rows 1299-1344; the playground's 52 is a web mock; amended by ED-NEW-f-cz-3 item 2); radius 22; the composer's glass plate (`SwiftGlass`, as the real composer). The width and left inset ease over 0.42 s `cubic-bezier(.32,.72,0,1)` when the attachment place changes (DESIGN gen.py:463, voicecmp.js:224-238) |
 | Placeholder | the app's composer placeholder for a Claude thread: `Ask Claude for anything; big jobs go out to a team of heads` (playground gen.py:385; must equal the real composer's string, test CZ-T46); text left inset 48 (attachment inside) or 14 (outside), eased 0.34 s ez |
 | Typing demo | state Typing types `Add a keyboard shortcut for the theme switch` one character every 0.055 s from empty, with a caret (playground logic.js:37, 304-307); leaving Typing clears it with the placeholder crossfade |
 | Model chip | the preview maker's display name (CZ-4.5.4) in the real chip's style; clicking it steps to the next maker (DESIGN cz.js:776) |
@@ -899,7 +899,7 @@ the locked page in headless Chrome (window at 780 x 580, the sidebar at 212) and
 | CZ-T34 | Preview maker is session state, initial = default provider's maker, Purple -> Claude | CZ-4.5.3 |
 | CZ-T35 | Preview phase follows the chrome control; Typing types the playground's string at 0.055 s per char | CZ-4.6, CZ-4.3 |
 | CZ-T36 | Preview opens no microphone, network, model or draft (seams throw if touched) | CZ-4.8 |
-| CZ-T37 | Stage geometry: 496 x 212, radius 10; composer 472 x 52 at left 12, bottom 12 (fixture) | CZ-4.1, CZ-4.3 |
+| CZ-T37 | Stage geometry: 496 x 212, radius 10; composer 472 wide (height 46, the real pill's: ED-NEW-f-cz-3 item 2) at left 12, bottom 12 (fixture) | CZ-4.1, CZ-4.3 |
 | CZ-T38 | Pinned block rest height 372 (fixture from the design, adjusted by the port's 60 top) | CZ-3.4 |
 | CZ-T39 | Section order and headings exact | CZ-3.3 |
 | CZ-T40 | Transition table: each row's duration and curve sampled on the frame clock (monotonic, no single-frame jump over 15 % of the travel) | CZ-14.1 |

@@ -32,6 +32,9 @@ internal sealed class PreviewRing : Decorator
     /// <summary>The spin so far, in degrees, 0 up to 360.</summary>
     internal double Angle => angle;
 
+    /// <summary>Whether the arc is drawn over the track. Internal for the tests, which compare the track alone with the real ring's (the real arc is the context window's share).</summary>
+    internal bool ArcVisible { get => arc.IsVisible; set => arc.IsVisible = value; }
+
     /// <summary>The arc's share of the circle now drawn.</summary>
     internal double Fraction => fraction.Value;
 
