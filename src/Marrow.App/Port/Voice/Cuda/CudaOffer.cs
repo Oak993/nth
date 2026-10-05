@@ -85,10 +85,10 @@ public sealed class CudaOffer : IDisposable
         {
             if (row.State == CudaOfferState.Downloading) return running;
             if (row.State is not (CudaOfferState.Offer or CudaOfferState.Failed)) return Task.CompletedTask;
-            cancel = new CancellationTokenSource();
+            var source = cancel = new CancellationTokenSource();
             progress = 0;
             shown = row = CudaOfferStates.Downloading(size, 0);
-            started = running = Run(cancel.Token);
+            started = running = Run(source);
         }
         Raise(shown); // a handler is never called under the lock
         return started;
@@ -105,8 +105,9 @@ public sealed class CudaOffer : IDisposable
         Cancel();
     }
 
-    private async Task Run(CancellationToken cancellationToken)
+    private async Task Run(CancellationTokenSource source)
     {
+        var cancellationToken = source.Token;
         await Task.Yield(); // never run on inside StartAsync's lock
         var total = (double)(pack.Bytes + companions.Bytes);
         try
@@ -147,8 +148,9 @@ public sealed class CudaOffer : IDisposable
         {
             lock (gate)
             {
-                cancel?.Dispose();
-                cancel = null;
+                // Only this run's own source: a Download pressed as the cancel was announced has already made the next one (and the x must cancel that).
+                source.Dispose();
+                if (ReferenceEquals(cancel, source)) cancel = null;
             }
         }
     }
