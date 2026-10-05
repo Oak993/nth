@@ -14,7 +14,7 @@ namespace Marrow.App.Tests.Fixtures;
 internal static class HydraCardCalibrationSite
 {
     internal const string Backdrop = @"E:\Droppy\work\scratch\glass-g3\calib\card18_backdrop.png";
-    internal static string Evidence => GalleryRun.OptionalOutputFolder() ?? Path.Combine(Path.GetTempPath(), "marrow-glass-compare");
+    internal static string Evidence => GalleryRun.OptionalOutputFolder() ?? Path.GetTempPath();
 
     internal static (Panel Host, HydraPanel Card, Bitmap Bitmap) Create(AppModel model, ThreadRuntime runtime)
     {

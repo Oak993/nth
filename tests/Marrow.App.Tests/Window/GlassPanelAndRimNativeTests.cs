@@ -28,7 +28,7 @@ namespace Marrow.App.Tests.Window.Native;
 [Collection("WindowManagerNative")]
 public sealed class GlassPanelAndRimNativeTests(WindowManagerNativeSession native, Xunit.Abstractions.ITestOutputHelper output)
 {
-    private static string Evidence => GalleryRun.OptionalOutputFolder() ?? Path.Combine(Path.GetTempPath(), "marrow-glass-native");
+    private static string Evidence => GalleryRun.OptionalOutputFolder() ?? Path.GetTempPath();
     private const string Calibration = @"E:\Droppy\work\scratch\glass-g3\calib";
     private const double CardX = 60, CardY = 60, CardW = 400, CardH = 267, ShotW = 520, ShotH = 347;
 

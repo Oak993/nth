@@ -209,7 +209,7 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
         Assert.True(scrimmed.StripeContrast() > 20, $"without the glass the sheet's line keeps only {scrimmed.StripeContrast():F2}, so the line does not measure the glass");
     }, factType: typeof(GlassMaterialNativeTests));
 
-    private static string Evidence => GalleryRun.OptionalOutputFolder() ?? Path.Combine(Path.GetTempPath(), "marrow-glass-native");
+    private static string Evidence => GalleryRun.OptionalOutputFolder() ?? Path.GetTempPath();
 
     private static void Themeless(AvaloniaWindow window) =>
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
