@@ -19,6 +19,8 @@ internal sealed class FakeLibraryBackend(SkillsCatalogue catalogue, IFirstInstal
 
     public IFirstInstall Installs { get; } = installs;
 
+    public bool CanFetch { get; set; } = installs is not FailClosedFirstInstall;
+
     public DriveSpace? FreeSpace { get; set; }
 
     public List<IReadOnlyList<ProviderSkillGroup>> Reports { get; } = [];
