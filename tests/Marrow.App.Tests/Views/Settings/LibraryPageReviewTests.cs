@@ -32,9 +32,13 @@ public sealed class LibraryPageReviewTests(HeadlessSession headless)
             Assert.Equal(0, content.Opacity);
             harness.Step(30); Assert.InRange(content.Opacity, 0.01, 0.99);
             harness.Step(300); dismiss!();
+            Assert.NotNull(TopLevel.GetTopLevel(content)); // a fade on detached content is a visible cut, not a closing transition
             Assert.Null(content.RenderTransform);
             harness.Step(80); Assert.InRange(content.Opacity, 0.01, 0.99);
+            Assert.NotNull(TopLevel.GetTopLevel(content));
+            Assert.True(content.IsEffectivelyVisible);
             harness.Step(300);
+            Assert.Null(TopLevel.GetTopLevel(content));
         }, motion: true);
 
     [Fact, Trait("Decision", "ED-326")]

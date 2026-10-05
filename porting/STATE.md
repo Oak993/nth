@@ -514,3 +514,9 @@ against the leaders. No stack chosen yet. No Windows code written yet.
 Machine constraint found: .NET 10 RUNTIME only (no SDK), no MSVC, no cmake, no Rust. Node 24,
 Python 3.14 and winget are present. Toolchain will be installed only for the chosen stack, after
 the decision record, rather than speculatively.
+
+## SK-15 T7 Windows review addendum (2026-10-05)
+
+The ready Plugins/Skills page bodies and all staging-ready Settings pages are retained. Unbound first installs now advertise CanFetch=false: Download, Retry, Download all, Continue and Retry N are disabled with the existing one-line reason; direct controller requests start nothing. Reduce Motion opts these sheets into opacity-only open/close fades; default sheets retain scale. Dialog facts/progress, changed Included ids and changed Needs transition. Required free space rounds upward. Ready in new chats is drawn for installed skill sets. The exact Sections source/page and words audit are in the tree; the two shortened prototype sentences were corrected. See ED-NEW-codex-sk-15.
+
+**Incomplete / UNRESOLVED:** SK-2 has no unpacked-size field: displayed sizes and the disk-space admission estimate are provisional, explicitly labelled, not exact or certified. Your Claude account provides this cannot yet be drawn truthfully: provider reports have no synced-account origin / equivalence fact (SK-11/SK-16). First-install wiring, pins, descriptions/default-on metadata, provider reports, Minimize/pill, manual-file fallback, Add and Tools remain their original outstanding work. No app, native gate, packaging, installer or real provider/transfer was run. T7's Windows counts and isolated failure outcomes are recorded in porting/reports/codex-sk15-windows.md when the full run completes.
