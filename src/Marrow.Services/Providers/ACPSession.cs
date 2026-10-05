@@ -3,6 +3,10 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
+using Marrow.Core.Port.Skills.Detect;
+using Marrow.Services.Port.Skills.Providers;
+using Marrow.Services.Port.Skills.Shims;
+using Marrow.Services.Store;
 
 // Source: DroppyCode/Services/Providers/ACPSession.swift (B3 52bc792), :1-921. Part 1 of 8: the launch gate,
 // launchArguments, and start() through the initialize reply (PR-PROVACP-001..024). Part 2 of 8: openSession,
@@ -43,6 +47,9 @@ public sealed class ACPSession : ProviderSession
     private static readonly ACPLaunchGate LaunchGate = new(TimeSpan.FromSeconds(1.5)); // :26
 
     public Action<ProviderEvent>? OnEvent { get; set; } // :28
+    // DEVIATION ED-NEW-f-sk-11c: DL-12 observations; no new ACP protocol fields.
+    public Action<ToolEvent>? OnSkillsEvent { get; set; }
+    private readonly ACPSkillEvents skillEvents = new();
 
     private readonly SessionConfiguration configuration; // :30
     private JSONRPCConnection? connection; // :31
@@ -139,11 +146,19 @@ public sealed class ACPSession : ProviderSession
         _ => new ValueList<string>(["acp"]), // :103-104 .opencode, .opencodeGo (and any other ACP kind)
     };
 
+    // PORT-ONLY: DL-6 applies to every ACP child, including the catalog probe's session.
+    private Dictionary<string, string> ChildEnvironment => ShimPath.ForChild(configuration.Environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
+
+    // PORT-ONLY: SK-11c's DL-6 rule (addonsin on PATH of every ACP child) and SK-11e's Grok launch (the same rule from the generation's data root) both
+    // insert the folder, so a Grok session with a launch takes SK-11e's environment and every other child takes SK-11c's: the folder goes on PATH exactly once.
+    private IReadOnlyDictionary<string, string> LaunchEnvironment =>
+        SkillLaunch is not null && configuration.Provider == ProviderKind.Grok ? EffectiveEnvironment : ChildEnvironment;
+
     public async Task<string> Start() // :108-152
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :109
         await LaunchGate.Wait(); // :110
-        var process = new StdioProcess(executable.Path, EffectiveLaunchArguments, WorkingDirectory, EffectiveEnvironment); // :111-116 (+ PORT-ONLY SK-11e)
+        var process = new StdioProcess(executable.Path, EffectiveLaunchArguments, WorkingDirectory, LaunchEnvironment); // :111-116 (+ PORT-ONLY SK-11e argv, SK-11c DL-6 PATH)
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :117
         connection.OnNotification = (method, parameters) => HandleNotification(method, parameters); // :118
         connection.OnRequest = (id, method, parameters) => HandleRequest(id, method, parameters); // :119
@@ -291,6 +306,7 @@ public sealed class ACPSession : ProviderSession
 
     public void Stop() // :221-224
     {
+        skillEvents.Clear();
         isStopping = true;
         connection?.Close();
     }
@@ -367,8 +383,12 @@ public sealed class ACPSession : ProviderSession
     // MARK: - Session state
 
     // :251-269. Part 2 of 8 (PR-PROVACP-026, 028-031).
-    private async Task<JSONValue> OpenSession(JSONRPCConnection connection)
+    private Task<JSONValue> OpenSession(JSONRPCConnection connection) => OpenSessionCore(connection.Request);
+
+    // PORT-ONLY: explicit offline request seam; body is the existing OpenSession protocol unchanged.
+    private async Task<JSONValue> OpenSessionCore(Func<string, JSONValue, Task<JSONValue>> request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         // :252-253. The connected servers ride into every new session through ACP's own field, HTTP ones
         // directly where the agent says it speaks HTTP MCP, else through mcp-remote.
         var baseParams = new Dictionary<string, JSONValue>
@@ -381,7 +401,7 @@ public sealed class ACPSession : ProviderSession
             var parameters = new Dictionary<string, JSONValue>(baseParams) { ["sessionId"] = resumeID }; // :256-257
             isReplaying = true; // :258
             var result = await SwiftTry.OptionalAsync<JSONValue>(async () =>
-                await connection.Request("session/load", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters)))); // :259
+                await request("session/load", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters)))); // :259
             isReplaying = false; // :260
             if (result is { } r) // :261
             {
@@ -389,7 +409,7 @@ public sealed class ACPSession : ProviderSession
                 return r; // :263
             }
         }
-        var newResult = await connection.Request("session/new", new JSONValue.Object(new ValueMap<string, JSONValue>(baseParams))); // :266
+        var newResult = await request("session/new", new JSONValue.Object(new ValueMap<string, JSONValue>(baseParams))); // :266
         sessionID = newResult["sessionId"]?.JSONValueString; // :267
         return newResult; // :268
     }
@@ -665,6 +685,7 @@ public sealed class ACPSession : ProviderSession
     {
         if (!promptActive) return; // :605
         promptActive = false; // :606
+        skillEvents.Clear();
         todoToolCallIDs.Clear(); // :607
         foreach (var (key, id) in pendingPermissions) // :608
         {
@@ -721,8 +742,10 @@ public sealed class ACPSession : ProviderSession
                     return; // :511
                 }
                 Tap.ToolCall(update); // PORT-ONLY: SK-11e / DL-12
+                skillEvents.Observe(update); // PORT-ONLY: SK-11c / DL-12
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, MakeToolCall(update))); // :513
                 var initial = MakeToolUpdate(update); // :514
+                if (skillEvents.Finished(update, initial) is { } finished) OnSkillsEvent?.Invoke(finished);
                 if (initial.Output is not null || initial.Status is not null) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, initial)); // :515
                 break;
             }
@@ -737,7 +760,9 @@ public sealed class ACPSession : ProviderSession
                     return; // :522
                 }
                 Tap.ToolCallUpdate(update); // PORT-ONLY: SK-11e / DL-12
-                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, MakeToolUpdate(update))); // :524
+                var result = MakeToolUpdate(update);
+                if (skillEvents.Finished(update, result) is { } finished) OnSkillsEvent?.Invoke(finished); // PORT-ONLY: SK-11c / DL-12
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, result)); // :524
                 break;
             }
             case "plan": // :525
@@ -815,6 +840,7 @@ public sealed class ACPSession : ProviderSession
         };
         OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest( // :582-589
             id.Key, kind, call.Title, mapped, call.Detail, null, toolCall["toolCallId"]?.JSONValueString)));
+        if (skillEvents.Held(toolCall) is { } held) OnSkillsEvent?.Invoke(held);
     }
 
     // :592-602. Part 4 of 8 (PR-PROVACP-095).
@@ -835,6 +861,7 @@ public sealed class ACPSession : ProviderSession
     // :625-631. Part 4 of 8 (PR-PROVACP-074).
     private void HandleClose(string tail)
     {
+        skillEvents.Clear();
         if (promptActive) // :626
             FinishPrompt(null, new ProviderError(new ProviderError.Case.Failed(TextCleanup.LastLines(tail) ?? "The agent exited."))); // :627
         if (isStopping) return; // :629
