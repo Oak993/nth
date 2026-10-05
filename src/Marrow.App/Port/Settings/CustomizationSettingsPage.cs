@@ -139,7 +139,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Off.Open = light.Style == ComposerLightStyle.Off;
     }
 
-    // CZ-6: the Auto values are the preview composer's: 472 wide and 46 high, the real pill's height (SPEC CZ-6 and ED-NEW-f-cz-3 item 2; the playground's 52 is a web mock)
+    // CZ-6: the Auto values are the preview composer's: 472 wide and 46 high, the real pill's height (SPEC CZ-6 and ED-335 item 2; the playground's 52 is a web mock)
     private static (double Width, double Height) ComposerSize() => (ComposerPreview.ComposerWidth, ComposerPreview.PillHeight);
 
     private static string AccentName(AppSettings settings)

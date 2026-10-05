@@ -365,7 +365,7 @@ The glyphs animate only while the card is on screen and stop under reduce motion
 Value formats (cz.js:509): `x2(v) = fmt(v, 2) + '×'`, `deg(v) = round(v) + '°'`, `s(v) = fmt(v, 2) + ' s'`,
 `px(v) = fmt(v, 1) + ' px'`, `pc(v) = round(v * 100) + '%'`. `round` is JavaScript `Math.round` (half up).
 "Auto" values come from `BorderBeamResolved.AutoValues(beam, appDark, w, 46, 22)` with `w` = the preview composer's
-width (472 or 428) and `h` = 46, the real pill's height (the playground's 52 is a web mock; amended by ED-NEW-f-cz-3
+width (472 or 428) and `h` = 46, the real pill's height (the playground's 52 is a web mock; amended by ED-335
 item 2): the page shows the preview's Auto values (DESIGN gen.py:43-49).
 
 ### CZ-6.1 Section `Look`
@@ -409,7 +409,7 @@ card folds in with:
 | `Core softness` | `coreBlur` | 0 | 20 | 0.5 | yes | `px` | `The bright glow near the edge` (Pulse outside only) |
 | `Bloom softness` | `bloomBlur` | 0 | 60 | 0.5 | yes | `px` | `The wide glow around it` (Pulse outside only) |
 | `Glow width` | `glowX` | 0.35 | 4 | 0.01 | yes: `clamp(w / 350, 0.35, 4)` to 3 places | `x2` | `How far it spreads sideways` (Pulse outside only) |
-| `Glow height` | `glowY` | 0.35 | 4 | 0.01 | yes: `clamp(46 / 140, 0.35, 4)` to 3 places (0.35 at the preview's 46 high; the design's 52 gave 0.371; amended by ED-NEW-f-cz-3 item 2) | `x2` | `How far it spreads up and down` (Pulse outside only) |
+| `Glow height` | `glowY` | 0.35 | 4 | 0.01 | yes: `clamp(46 / 140, 0.35, 4)` to 3 places (0.35 at the preview's 46 high; the design's 52 gave 0.371; amended by ED-335 item 2) | `x2` | `How far it spreads up and down` (Pulse outside only) |
 | `Glow boost` | `boost` | 0.5 | 2 | 0.01 | no | `x2` | `Extra brightness in the glow` (Pulse outside only) |
 | caption `Line` | | | | | | | shown only for Line |
 | `Flare` | `spike` | 0 | 3 | 0.05 | no | `x2` | `How much the streak flares as it goes` (Line only) |
