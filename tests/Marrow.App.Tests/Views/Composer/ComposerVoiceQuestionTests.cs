@@ -277,15 +277,15 @@ public sealed class ComposerVoiceQuestionTests(HeadlessSession headless)
             using var rig = Asking();
             var (view, window) = rig.Open(900);
             Ask(rig, view, window);
-            Button Focused() => rig.Main.OnMain(() => (Button)Question(view).Answers.Single(a => a.IsFocused));
-            Assert.Equal("English", ((VoiceAnswerButton)Focused()).Text);
+            VoiceAnswerButton FocusedNow() => Question(view).Answers.Single(a => a.IsFocused);
+            string Name() => rig.Main.OnMain(() => FocusedNow().Text);
+            Assert.Equal("English", Name());
             void Press(Key key, KeyModifiers modifiers = KeyModifiers.None) => rig.Main.OnMain(() =>
             {
                 var args = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers };
-                ((VoiceAnswerButton)Focused()).RaiseEvent(args);
+                FocusedNow().RaiseEvent(args);
                 Assert.True(args.Handled);
             });
-            string Name() => ((VoiceAnswerButton)Focused()).Text;
             Press(Key.Right); Assert.Equal("Hindi", Name());
             Press(Key.Right); Assert.Equal("Urdu", Name());
             Press(Key.Tab); Assert.Equal("Auto-detect", Name());
@@ -293,7 +293,7 @@ public sealed class ComposerVoiceQuestionTests(HeadlessSession headless)
             Press(Key.Left); Assert.Equal("Auto-detect", Name()); // and back
             Press(Key.Tab, KeyModifiers.Shift); Assert.Equal("Urdu", Name());
             Press(Key.Left); Assert.Equal("Hindi", Name());
-            rig.Main.OnMain(() => Click((Button)Focused())); // Enter and Space on a button click it; the click is what picks
+            rig.Main.OnMain(() => Click(FocusedNow())); // Enter and Space on a button click it; the click is what picks
             rig.Main.OnMain(() => Assert.Equal("hi", rig.App.Settings.VoiceTyping.Lang));
             rig.Close(window);
         });

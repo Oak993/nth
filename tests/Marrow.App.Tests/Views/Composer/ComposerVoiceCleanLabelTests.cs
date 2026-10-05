@@ -61,7 +61,7 @@ public sealed class ComposerVoiceCleanLabelTests(HeadlessSession headless)
     private static (int Width, int Height, bool[] Ink, int[] Strength) Render(VoiceComposerRig rig, string words, string? name, double sweep, bool dark)
     {
         var label = rig.Main.OnMain(() => new VoicePillLabel { Words = words, LanguageName = name, Sweep = sweep, Opacity = 1, Margin = new Thickness(8) });
-        var host = rig.Main.OnMain(() => new Border { Child = label, Width = 260, Height = 40, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top });
+        var host = rig.Main.OnMain(() => new Border { Background = new SolidColorBrush(dark ? Color.FromRgb(18, 18, 22) : Color.FromRgb(250, 249, 251)), Child = label, Width = 260, Height = 40, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top });
         var window = rig.Main.OnMain(() => new Avalonia.Controls.Window { Content = host, Width = 300, Height = 80, RequestedThemeVariant = dark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light });
         rig.Main.OnMain(() => window.Show());
         rig.PumpWindow(window);
