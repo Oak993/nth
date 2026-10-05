@@ -135,6 +135,14 @@ public sealed class AutoContinue : MainActorModel
         UpdateOutcomes();
     }
 
+    // ED-NEW-ma-ui: a first-time card and a switch have one limit owner, including migrated/default accounts.
+    public void TakeLimitOwnership(Guid threadID)
+    {
+        Cancel(threadID);
+        noted.Remove(threadID);
+        notedAccounts.Remove(threadID);
+    }
+
     // :78-85. LimitHandoff is not ported; leave this member unchanged.
     public void HandOff(Guid threadID) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/AutoContinue.swift:78");

@@ -18,7 +18,8 @@ public sealed partial class ThreadRuntime
 
     public HandoffSummary SaveHandshakeCheckpoint()
     {
-        var journal = HandoffJournal.Read(HandoffFolder);
+        FlushHandoffJournal(explicitCheckpoint: true);
+        var journal = ReadHandoffJournal();
         var history = HandoffJournal.Restore(SnapshotForPersistence(), journal);
         var diff = string.Join("\n", history.Turns.Where(turn => turn.ProviderDiff is not null).Select(turn => turn.ProviderDiff)
             .Append(currentProviderDiff).Where(patch => !string.IsNullOrWhiteSpace(patch)));

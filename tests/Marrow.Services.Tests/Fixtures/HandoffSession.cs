@@ -13,17 +13,22 @@ public sealed class HandoffSession : ProviderSession
     public bool FailStart { get; init; }
     public bool Stopped { get; private set; }
     public bool StartedBeforeSend { get; private set; }
+    public Func<Task<string>>? StartScript { get; init; }
+    public TaskCompletionSource StartFinished { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public int StopCalls { get; private set; }
     public List<TurnInput> Inputs { get; } = [];
-    public Task<string> Start()
+    public async Task<string> Start()
     {
         if (FailStart) throw new IOException("offline resume refusal");
+        var id = StartScript is null ? SessionId : await StartScript();
         IsRunning = true;
-        return Task.FromResult(SessionId);
+        StartFinished.TrySetResult();
+        return id;
     }
     public Task Send(TurnInput input) { StartedBeforeSend = IsRunning; Inputs.Add(input); return Task.CompletedTask; }
     public Task Interrupt() => Task.CompletedTask;
     public void ResolveApproval(string requestID, string optionID) { }
     public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) { }
     public Task Compact() => Task.CompletedTask;
-    public void Stop() { Stopped = true; IsRunning = false; }
+    public void Stop() { StopCalls++; Stopped = true; IsRunning = false; }
 }

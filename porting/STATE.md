@@ -561,3 +561,10 @@ The ready Plugins/Skills page bodies and all staging-ready Settings pages are re
 ## MA-2 isolated foundation checkpoint, 2026-10-05, Codex
 
 User-assigned usage-limits foundation on codex/ma-2, from claude/verify-terminal-20261001 at 7a4cfad3ef57459faf2f593368412fd44d54de06. See porting/reports/codex-ma-2.md and appended ED-NEW-ma-2. No UI or parity/task ledger advancement. Build: 0 warnings/errors with EnableWindowsTargeting and warnaserror. 39 MA-2 tests plus 12 Traceability checks pass; broader slices retain exactly the untouched base's 190 Services and 14 App Linux failures, with no introduced failing names. Unit delivery status NOT READY pending supported Windows verification of those inherited paths. This isolated checkpoint does not supersede the staging/release checkpoint above.
+
+
+## T11 multi-account integration checkpoint, 2026-10-05, Codex
+
+All seven foundations, staging bffb63a39 and independent review 2780ba681 are merged on codex/ma-ui. Windows scoped validation is Core 196/196, Services 178/178, App 55/55, zero skipped/build warnings/errors; see ED-NEW-ma-ui and E:/Droppy/work/scratch/handoff/codex-T11-ma-ui.md.
+
+**Incomplete:** T11 step 1 production host/controller, final-tail/full-Git summary, pill new-thread routing, MA-6 live key routing/caps/spend/pins and verified CLI standby restriction/restoration. Steps 2-5 Settings/composer/cards/opinions/usage, capsule styles, GPU neural motion and Fast/actual-window labels have not begun. No native or release gate, push, mark/DONE claim. Work continues under OD-0116 and OD-0117.

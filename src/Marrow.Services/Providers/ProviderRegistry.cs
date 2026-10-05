@@ -219,7 +219,8 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     {
         this.settings = settings; // :163
         // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Existing fixtures can retain the provider-only contract.
-        accountStore = accounts ?? (settings as AccountProviderSettings)?.Accounts;
+        var configuredAccounts = accounts ?? (settings as AccountProviderSettings)?.Accounts;
+        accountStore = configuredAccounts is { SaveBlocked: false } ? configuredAccounts : null;
         accountEnvironment = accountStore is null ? null : new AccountEnvironment(accountDataRoot ?? Marrow.Services.Store.Storage.Root);
         InitializeLocal(local); // PORT-ONLY (ED-NEW-ma-3)
 
@@ -1036,7 +1037,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         UpdatingCLIs = updatingCLIs.Mutating(s => s.Add(provider)); // :510
         try
         {
-            var environment = Environment(provider); // :512
+            var environment = LegacyEnvironment(provider); // :512
             var before = await CliVersion(executable.Path, environment); // :513
             _ = await SwiftTry.OptionalAsync<ShellResult>(async () =>
                 await Shell.Run(executable.Path, ["update"], @in: Path.GetTempPath(), environment: environment, timeout: 300)); // :514
@@ -1067,7 +1068,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         UpdatingCLIs = updatingCLIs.Mutating(s => s.Add(provider));
         try
         {
-            var environment = Environment(provider);
+            var environment = LegacyEnvironment(provider);
             var before = await CliVersion(executable.Path, environment);
             var ran = await SwiftTry.OptionalAsync<ShellResult>(async () =>
                 await Shell.Run(executable.Path, ["update"], @in: Path.GetTempPath(), environment: environment, timeout: 300));
@@ -1121,7 +1122,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     {
         await LoginEnvironment.Load(); // :526
         if (Executable(provider) is not { } executable) return null; // :527
-        return await CliVersion(executable.Path, Environment(provider)); // :528
+        return await CliVersion(executable.Path, LegacyEnvironment(provider)); // :528
     }
 
     // :531-536. Swift: cliVersion(_:environment:). Kept internal so this part's tests can call it directly,

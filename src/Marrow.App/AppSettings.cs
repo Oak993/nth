@@ -324,12 +324,22 @@ public sealed class AppSettings : MainActorModel, ProviderSettings, AccountProvi
     private readonly ISettingsStore defaults = UserDefaults.Standard.Current;
     // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Read settings only; never inspect or move CLI credentials during migration.
     private AccountStore? accounts;
-    public AccountStore Accounts => accounts ??= new AccountStore(defaults, provider => new AccountDefaults
+    public AccountStore Accounts
     {
-        Model = LastModel(provider),
-        Effort = LastEffort(provider) ?? Preference(provider, LastModel(provider)).Effort,
-        FastMode = Preference(provider, LastModel(provider)).FastMode,
-    });
+        get
+        {
+            if (accounts is not null) return accounts;
+            AccountDefaults Defaults(ProviderKind provider) => new()
+            {
+                Model = LastModel(provider),
+                Effort = LastEffort(provider) ?? Preference(provider, LastModel(provider)).Effort,
+                FastMode = Preference(provider, LastModel(provider)).FastMode,
+            };
+            try { accounts = new AccountStore(defaults, Defaults); }
+            catch (InvalidDataException) { accounts = AccountStore.LegacyReadOnly(defaults, Defaults); }
+            return accounts;
+        }
+    }
 
     // :299
     public const double DefaultBackdropOpacity = 0.5;

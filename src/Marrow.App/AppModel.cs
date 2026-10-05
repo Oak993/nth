@@ -799,13 +799,13 @@ public sealed partial class AppModel : MainActorModel
     public void UpdateThread(Guid id, Func<ChatThread, ChatThread> change) =>
         UpdateThreadValue(id, change); // AppModel.swift:705-712
 
-    private void UpdateThreadValue(Guid id, Func<ChatThread, ChatThread> change)
+    private void UpdateThreadValue(Guid id, Func<ChatThread, ChatThread> change, bool accountSwitch = false)
     {
         if (!threadIndex.Positions.TryGetValue(id, out var position)) return; // AppModel.swift:705-708
         var index = checked((int)position);
         var changed = change(threads[index]); // AppModel.swift:709-710
         // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Account bindings belong to one service.
-        if (changed.Provider != threads[index].Provider) changed = changed with { ProviderAccountID = null };
+        if (changed.Provider != threads[index].Provider && !accountSwitch) changed = changed with { ProviderAccountID = null };
         if (changed == threads[index]) return; // AppModel.swift:711: nothing changed, nothing assigned or saved
         Threads = threads.SetItem(index, changed); // AppModel.swift:712
         ScheduleSave(); // AppModel.swift:713

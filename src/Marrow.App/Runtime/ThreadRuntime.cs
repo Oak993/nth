@@ -1545,6 +1545,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         turn = turn with { UserItemID = userItem.Id };
         Turns = Turns.Appending(turn);
         saveRevision++;
+        limitedReplyTurnID = null;
         currentTurnID = turn.Id;
         currentProviderDiff = null;
         currentProviderAnchor = null;
@@ -2311,6 +2312,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 };
                 Append(new TimelineItem(turnID, new TimelineItem.Content.TurnEnd(summary)));
 
+                if (status == TurnStatus.Completed && limitedReplyTurnID == turnID) limitedReplyTurnID = null;
                 Phase = RuntimePhase.Idle;
                 TurnStartedAt = null;
                 SaveNow();
@@ -2455,7 +2457,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public void Resolve(ApprovalRequest request, ApprovalRequest.Option option)
     {
         // DEVIATION OD-0114 / ED-NEW-ma-4: retain the request, chosen answer and scope after it leaves Approvals.
-        HandoffJournal.Resolution(HandoffFolder, request.Id, new { Request = request, Option = option });
+        BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Option = option }), preserve: true);
         Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         if (request.RequestKind == ApprovalRequest.Kind.Plan
             && request.ToolItemID is { } itemID
@@ -2478,7 +2480,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1733-1736. Swift: answer(_:answers:); the map is ProviderSession.AnswerQuestion's.
     public void Answer(QuestionRequest request, ValueMap<string, ValueList<string>> answers)
     {
-        HandoffJournal.Resolution(HandoffFolder, request.Id, new { Request = request, Answers = answers });
+        BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Answers = answers }), preserve: true);
         Questions = Questions.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         session?.AnswerQuestion(request.Id, answers);
     }
@@ -3758,6 +3760,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         saveTask?.Cancel();
         saveTask = null;
         if (!persistenceEnabled || IsLoadingHistory) return; // :3612
+        FlushHandoffJournal();
         if (saveRevision == lastSavedRevision) return; // :3617
         lastSavedRevision = saveRevision; // :3618
         DiskWriter.Shared.EncodeAndWrite(SnapshotForPersistence(), Storage.ThreadURL(ThreadID)); // :3619
@@ -3779,6 +3782,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :3642-3648
     public void CancelPersistence()
     {
+        FlushHandoffJournal();
         persistenceEnabled = false;
         saveTask?.Cancel();
         saveTask = null;
@@ -3806,13 +3810,14 @@ public sealed partial class ThreadRuntime : MainActorModel
 
     public HandoffSummary SaveHandoff(string currentDiff)
     {
-        if (!IsAccountSwitchSafe)
-            throw new InvalidOperationException("A handoff requires a quiescent thread with no pending tools, approvals or head results.");
-        var journal = HandoffJournal.Read(HandoffFolder);
+        if (!IsAccountSwitchSafe && !IsHandshakeCheckpointSafe)
+            throw new InvalidOperationException("A handoff requires a quiet boundary with no pending tools, approvals or head results.");
+        FlushHandoffJournal(explicitCheckpoint: true);
+        var journal = ReadHandoffJournal();
         var context = new HandoffContext(HandoffJournal.Restore(SnapshotForPersistence(), journal), Thread?.Title ?? "", currentDiff)
         {
             EventJournal = journal,
-            IsQuiescent = true,
+            IsQuiescent = IsAccountSwitchSafe,
         };
         return HandoffStore.Save(context, HandoffFolder);
     }
@@ -3821,7 +3826,11 @@ public sealed partial class ThreadRuntime : MainActorModel
     // Swift's pinned implementation contains two .tokenSpend arms; the first is selected for every such event.
     private void Handle(ProviderEvent @event)
     {
-        HandoffJournal.Record(HandoffFolder, @event);
+        if (@event is ProviderEvent.MessageCompleted) handoffMessageBoundary = true;
+        else if (@event is ProviderEvent.MessageDelta or ProviderEvent.TurnStarted or ProviderEvent.ToolStarted
+            or ProviderEvent.Approval or ProviderEvent.Question) handoffMessageBoundary = false;
+        CaptureHandoff(@event);
+        if (@event is ProviderEvent.TurnCompleted or ProviderEvent.Exited) FlushHandoffJournal();
         switch (@event)
         {
             case ProviderEvent.SessionReady value:
@@ -3927,6 +3936,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 AppendNotice(value.Value.NoticeLevel, value.Value.Message);
                 break;
             case ProviderEvent.UsageLimit value:
+                limitedReplyTurnID = currentTurnID;
                 if (value.Account is { } limitedAccount) App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt, limitedAccount);
                 else App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt);
                 break;

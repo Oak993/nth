@@ -47,6 +47,22 @@ public sealed class AccountStore
         }
     }
 
+    // ED-NEW-ma-ui: a corrupt/newer document keeps single-account launches available, but cannot be replaced by editing a recovered row.
+    public bool SaveBlocked { get; private init; }
+
+    public static AccountStore LegacyReadOnly(ISettingsStore settings, Func<ProviderKind, AccountDefaults>? defaults = null) => new(settings,
+        new AccountDocument { Accounts = SwiftEnum<ProviderKind>.AllCases.Select(provider => new Account
+        {
+            Id = Guid.NewGuid(), Service = provider, UsesLegacyCredentials = true, Defaults = defaults?.Invoke(provider) ?? new(),
+        }).ToArray() });
+
+    private AccountStore(ISettingsStore settings, AccountDocument recovered)
+    {
+        this.settings = settings;
+        document = recovered;
+        SaveBlocked = true;
+    }
+
     /// <summary>Creation order is separate from priority, so reordering does not rename identities.</summary>
     public IReadOnlyList<Account> Accounts => Array.AsReadOnly(document.Accounts);
     public IReadOnlyList<Account> ForService(ProviderKind service) => Array.AsReadOnly(document.Accounts
@@ -145,6 +161,7 @@ public sealed class AccountStore
 
     private void Save(AccountDocument next)
     {
+        if (SaveBlocked) throw new InvalidOperationException("Account settings could not be read; the original value was preserved.");
         Validate(next);
         var bytes = JsonSerializer.SerializeToUtf8Bytes(next, JsonOptions);
         settings.Set(SettingsKey, bytes);

@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO.Compression;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Marrow.Core.Models;
@@ -16,24 +17,121 @@ public static class HandoffJournal
 
     public static void Record(string threadFolder, ProviderEvent value)
     {
-        // Stream deltas and all final/replacement outputs remain recoverable, including failed commands.
-        if (value is ProviderEvent.ToolStarted or ProviderEvent.ToolOutput or ProviderEvent.ToolUpdated
-            or ProviderEvent.Approval or ProviderEvent.Question or ProviderEvent.RequestResolved
-            or ProviderEvent.MessageDelta or ProviderEvent.MessageCompleted or ProviderEvent.TurnCompleted or ProviderEvent.Exited
-            or ProviderEvent.ReasoningDelta or ProviderEvent.ReasoningCompleted or ProviderEvent.PlanDelta or ProviderEvent.PlanCompleted
-            or ProviderEvent.Todos or ProviderEvent.Diff or ProviderEvent.Notice)
-            Append(threadFolder, value.GetType().Name, JsonSerializer.SerializeToElement(value, value.GetType(), Options));
+        if (Encode(value) is { } line) AppendBatch(threadFolder, [line]);
     }
 
-    public static void Resolution(string threadFolder, string id, object result) => Append(threadFolder, "Resolution", new { Id = id, Result = result });
+    public static string? Encode(ProviderEvent value) => value is
+        ProviderEvent.ToolStarted or ProviderEvent.ToolOutput or ProviderEvent.ToolUpdated
+        or ProviderEvent.Approval or ProviderEvent.Question or ProviderEvent.RequestResolved
+        or ProviderEvent.MessageDelta or ProviderEvent.MessageCompleted or ProviderEvent.TurnCompleted or ProviderEvent.Exited
+        or ProviderEvent.ReasoningDelta or ProviderEvent.ReasoningCompleted or ProviderEvent.PlanDelta or ProviderEvent.PlanCompleted
+        or ProviderEvent.Todos or ProviderEvent.Diff or ProviderEvent.Notice
+        ? Encode(value.GetType().Name, JsonSerializer.SerializeToElement(value, value.GetType(), Options)) : null;
 
-    private static void Append(string threadFolder, string kind, object payload)
+    // Original provider IDs are preserved in the archive, but only the display projection is replayed.
+    public static string? EncodeTrace(ProviderEvent value) => Encode(value) is null ? null
+        : JsonSerializer.Serialize(new { Event = value.GetType().Name, Payload = JsonSerializer.SerializeToElement(value, value.GetType(), Options), Replay = false }, Options);
+
+    public static string EncodeResolution(string id, object result) => Encode("Resolution", new { Id = id, Result = result });
+    public static void Resolution(string threadFolder, string id, object result) => AppendBatch(threadFolder, [EncodeResolution(id, result)]);
+    private static string Encode(string kind, object payload) => JsonSerializer.Serialize(new { Event = kind, Payload = payload }, Options);
+
+    private const long LiveJournalBytes = 4 * 1024 * 1024;
+    private static readonly object FileGate = new();
+
+    public static void AppendBatch(string threadFolder, IReadOnlyList<string> lines)
     {
-        Directory.CreateDirectory(threadFolder);
-        File.AppendAllText(PathIn(threadFolder), JsonSerializer.Serialize(new { Event = kind, Payload = payload }, Options) + "\n", new UTF8Encoding(false, true));
+        if (lines.Count == 0) return;
+        lock (FileGate)
+        {
+            Directory.CreateDirectory(threadFolder);
+            var path = PathIn(threadFolder);
+            var bytes = File.Exists(path) ? new FileInfo(path).Length : 0;
+            var buffered = new StringBuilder();
+            long bufferedBytes = 0;
+            void Flush()
+            {
+                if (buffered.Length == 0) return;
+                File.AppendAllText(path, buffered.ToString(), new UTF8Encoding(false, true));
+                bytes += bufferedBytes;
+                buffered.Clear();
+                bufferedBytes = 0;
+            }
+            foreach (var line in lines)
+            {
+                var size = Encoding.UTF8.GetByteCount(line) + 1L;
+                if (bytes + bufferedBytes + size > LiveJournalBytes)
+                {
+                    Flush();
+                    if (bytes > 0) { Rotate(threadFolder); bytes = 0; }
+                }
+                if (size > LiveJournalBytes)
+                {
+                    // A single large output is stored whole in a compressed segment, never clipped to fit the live file.
+                    var segment = NextSegment(threadFolder);
+                    File.WriteAllText(segment, line + "\n", new UTF8Encoding(false, true));
+                    Compress(segment);
+                }
+                else { buffered.Append(line).Append('\n'); bufferedBytes += size; }
+            }
+            Flush();
+            if (!File.Exists(path)) using (File.Create(path)) { }
+        }
     }
 
-    public static string[] Read(string threadFolder) => File.Exists(PathIn(threadFolder)) ? File.ReadAllLines(PathIn(threadFolder)) : [];
+    private static string NextSegment(string folder)
+    {
+        var existing = Directory.EnumerateFiles(folder, "handoff-events-*.jsonl*").Select(Path.GetFileName)
+            .Select(name => long.TryParse(name!.Split('-')[2].Split('.')[0], out var number) ? number : 0).DefaultIfEmpty().Max();
+        return Path.Combine(folder, "handoff-events-" + (existing + 1).ToString("D12", System.Globalization.CultureInfo.InvariantCulture) + ".jsonl");
+    }
+
+    private static void Rotate(string folder)
+    {
+        var segment = NextSegment(folder);
+        File.Move(PathIn(folder), segment, overwrite: false);
+        Compress(segment);
+    }
+
+    private static void Compress(string segment)
+    {
+        var temporary = segment + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var input = File.OpenRead(segment))
+            using (var output = File.Create(temporary))
+            using (var gzip = new GZipStream(output, CompressionLevel.Fastest)) input.CopyTo(gzip);
+            File.Move(temporary, segment + ".gz", overwrite: false);
+            File.Delete(segment);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+    }
+
+    public static string[] Read(string threadFolder)
+    {
+        lock (FileGate)
+        {
+            if (!Directory.Exists(threadFolder)) return [];
+            var lines = new List<string>();
+            var stems = Directory.EnumerateFiles(threadFolder, "handoff-events-*.jsonl*")
+                .Where(path => path.EndsWith(".jsonl", StringComparison.Ordinal) || path.EndsWith(".jsonl.gz", StringComparison.Ordinal))
+                .Select(path => path.EndsWith(".gz", StringComparison.Ordinal) ? path[..^3] : path).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+            foreach (var stem in stems)
+            {
+                // A crash after publishing gzip but before removing its raw input must not replay the same events twice.
+                if (File.Exists(stem + ".gz"))
+                {
+                    using var input = File.OpenRead(stem + ".gz");
+                    using var gzip = new GZipStream(input, CompressionMode.Decompress);
+                    using var reader = new StreamReader(gzip, new UTF8Encoding(false, true));
+                    while (reader.ReadLine() is { } line) lines.Add(line);
+                }
+                else lines.AddRange(File.ReadAllLines(stem));
+            }
+            if (File.Exists(PathIn(threadFolder))) lines.AddRange(File.ReadAllLines(PathIn(threadFolder)));
+            return [.. lines];
+        }
+    }
 
     public static ThreadDocument Restore(ThreadDocument history, IReadOnlyList<string> journal)
     {
@@ -42,6 +140,7 @@ public static class HandoffJournal
         foreach (var line in journal)
         {
             using var entry = JsonDocument.Parse(line);
+            if (entry.RootElement.TryGetProperty("Replay", out var replay) && !replay.GetBoolean()) continue;
             var payload = entry.RootElement.GetProperty("Payload");
             switch (entry.RootElement.GetProperty("Event").GetString())
             {
@@ -57,7 +156,8 @@ public static class HandoffJournal
                         outputs[payload.GetProperty("Id").GetString()!] = output.GetString()!;
                     break;
                 case "MessageCompleted":
-                    messages[payload.GetProperty("Id").GetString()!] = payload.GetProperty("Text").GetString()!;
+                    if (payload.GetProperty("Text").GetString() is { Length: > 0 } completedText)
+                        messages[payload.GetProperty("Id").GetString()!] = completedText;
                     break;
                 case "MessageDelta":
                     var messageId = payload.GetProperty("Id").GetString()!;

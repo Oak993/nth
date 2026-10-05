@@ -65,6 +65,7 @@ public sealed partial class ProviderRegistry
             // Native IDs and Pi absolute paths are account-owned; an unbound ID is legacy-only.
             ResumeID = ownsResume ? configuration.ResumeID : null,
             ResumeAt = ownsResume ? configuration.ResumeAt : null,
+            ResumePath = ownsResume ? configuration.ResumePath : null,
         };
     }
 
