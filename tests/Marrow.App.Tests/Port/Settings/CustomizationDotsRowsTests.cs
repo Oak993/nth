@@ -13,7 +13,7 @@ namespace Marrow.App.Tests.Port.Settings;
 [Collection("Headless")]
 public sealed class CustomizationDotsRowsTests(HeadlessSession headless)
 {
-    private static string[] Names(CzRadioGroup group) => group.Buttons.Select(b => AutomationProperties.GetName(b)).ToArray();
+    private static string?[] Names(CzRadioGroup group) => group.Buttons.Select(b => AutomationProperties.GetName(b)).ToArray();
 
     private static void Show(CustomizationPageRig rig, string wd, string wdc)
     {

@@ -46,8 +46,8 @@ internal sealed class WorkingDotsSwatches : Decorator
             Spacing = 6,
             Children = { Row(classicLabel, Classic), Row(Label(CzDotsText.Signature), Signature) },
         };
-        Classic.SelectionChanged += id => Picked?.Invoke(id);
-        Signature.SelectionChanged += id => Picked?.Invoke(id);
+        Classic.SelectionInvoked += id => Picked?.Invoke(id);
+        Signature.SelectionInvoked += id => Picked?.Invoke(id);
         AttachedToVisualTree += (_, _) =>
         {
             Refresh(animate: false);

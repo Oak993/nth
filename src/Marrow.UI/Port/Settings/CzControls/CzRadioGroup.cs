@@ -11,6 +11,8 @@ public class CzRadioGroup : StackPanel
     public IReadOnlyList<CzRadioButton> Buttons { get; }
     public string SelectedId { get; private set; }
     public event Action<string>? SelectionChanged;
+    /// <summary>CZ-10.2: every enabled user pick, including the current one. Showing a stored selection raises nothing here.</summary>
+    public event Action<string>? SelectionInvoked;
     private bool dimmed;
     private readonly CzNumber opacity;
     public bool Dimmed
@@ -37,6 +39,7 @@ public class CzRadioGroup : StackPanel
         var changed = SelectedId != id; SelectedId = id; UpdateSelection();
         if (focus) button.Focus(NavigationMethod.Directional);
         if (changed) SelectionChanged?.Invoke(id);
+        SelectionInvoked?.Invoke(id);
     }
     /// <summary>PORT-ONLY CZ-4: shows <paramref name="id"/> as the pick because the setting it mirrors changed (not a user's pick): works while the group is folded shut or dimmed, and raises <see cref="SelectionChanged"/> so the pill and cards follow; the owner of the setting ignores that echo.</summary>
     public void Show(string id)

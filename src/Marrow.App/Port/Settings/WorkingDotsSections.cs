@@ -35,7 +35,8 @@ internal sealed class WorkingDotsSections
         this.makerName = makerName;
         var settings = read();
         DotColour = new CzSegmentRow(CzDotsText.DotColour, Detail(settings), [("accent", "Accent"), ("model", "Model colour"), ("custom", "Custom")], ModeIds[(int)settings.Mode],
-            id => { touched(); write(read() with { Mode = (WorkingDotsMode)Array.IndexOf(ModeIds, id) }); });
+            id => write(read() with { Mode = (WorkingDotsMode)Array.IndexOf(ModeIds, id) }));
+        DotColour.Control.SelectionInvoked += _ => touched();
         Swatches = new WorkingDotsSwatches(settings.Custom);
         Swatches.Picked += id => { if (!showing) { touched(); write(read() with { Custom = id }); } };
         Swatches.Show(settings.Custom);
