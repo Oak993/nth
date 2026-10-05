@@ -139,7 +139,8 @@ public sealed class ImportDetectorTests
         Assert.False(again.Current.Visible);
         rig.Home.Skill(".cursor/skills", "fresh", "fresh", "Fresh skill.");
         again.Refresh();
-        Assert.Equal((1, [ForeignApp.Cursor]), (again.Current.Count, again.Current.Apps.ToArray()));
+        Assert.Equal(1, again.Current.Count);
+        Assert.Equal([ForeignApp.Cursor], again.Current.Apps);
     }
 
     [Fact]

@@ -58,25 +58,29 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
     public ImportResult Import(IEnumerable<ForeignSkill> chosen, ImportMode mode, Func<DuplicateQuestion, DuplicateChoice> onDuplicate)
     {
         ArgumentNullException.ThrowIfNull(onDuplicate);
-        lock (gate)
+        lock (gate) CheckWritable();
+        var imported = new List<ImportedSkill>();
+        var replaced = new List<ImportedSkill>();
+        var skipped = new List<ForeignSkill>();
+        var failed = new List<ImportFailure>();
+        var changed = false;
+        try
         {
-            if (ReadOnly) throw new InvalidOperationException("The imported skills were written by a newer Marrow and are not changed.");
-            var imported = new List<ImportedSkill>();
-            var replaced = new List<ImportedSkill>();
-            var skipped = new List<ForeignSkill>();
-            var failed = new List<ImportFailure>();
-            var changed = false;
-            try
+            foreach (var skill in chosen)
             {
-                foreach (var skill in chosen)
+                // The question is asked with the library free: the person may take a while, and the page and the chats read the library meanwhile.
+                DuplicateQuestion? question;
+                lock (gate) question = Duplicate(skill) is { } found ? new DuplicateQuestion(skill, Resolve(found).Skill) : null;
+                var choice = DuplicateChoice.KeepBoth;
+                if (question is not null)
                 {
+                    choice = onDuplicate(question);
+                    if (choice == DuplicateChoice.Skip) { skipped.Add(skill); continue; }
+                }
+                lock (gate)
+                {
+                    CheckWritable();
                     var existing = Duplicate(skill);
-                    var choice = DuplicateChoice.KeepBoth;
-                    if (existing is not null)
-                    {
-                        choice = onDuplicate(new DuplicateQuestion(skill, Resolve(existing).Skill));
-                        if (choice == DuplicateChoice.Skip) { skipped.Add(skill); continue; }
-                    }
                     var name = existing is null || choice == DuplicateChoice.Replace ? skill.Name : UniqueName(skill);
                     try
                     {
@@ -101,12 +105,17 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
                     }
                 }
             }
-            finally
-            {
-                if (changed) Save();
-            }
-            return new ImportResult(imported, replaced, skipped, failed);
         }
+        finally
+        {
+            if (changed) lock (gate) Save();
+        }
+        return new ImportResult(imported, replaced, skipped, failed);
+    }
+
+    private void CheckWritable()
+    {
+        if (ReadOnly) throw new InvalidOperationException("The imported skills were written by a newer Marrow and are not changed.");
     }
 
     public bool Remove(string id)

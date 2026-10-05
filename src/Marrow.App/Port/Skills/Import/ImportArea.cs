@@ -6,6 +6,8 @@ using Marrow.App.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.Import;
 using Marrow.Services.Port.Skills.Import;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Settings;
+using Avalonia.Layout;
 
 namespace Marrow.App.Port.Skills.Import;
 
@@ -18,6 +20,8 @@ internal sealed class ImportArea : Decorator
     private bool closingFromHere;
     private bool hidden;
     private bool shown;
+    private readonly CzCrossfadeText found = new("") { FontSize = 12, Secondary = true };
+    private readonly CzFoldRow foundFold;
 
     public ImportArea(ImportModel model)
     {
@@ -26,17 +30,37 @@ internal sealed class ImportArea : Decorator
         var button = LibraryButtons.Make(ImportWords.Action, Open, ButtonLook.Plain, "import-skills");
         button.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
         var note = LibraryUi.Text(ImportWords.ActionNote, 12, secondary: true, wrap: true);
-        Child = new StackPanel { Spacing = 8, Children = { button, note, imported } };
+        // the quiet line (OD-0118 addendum): "Found 12 skills in Claude Code and Codex · Import", with a way to dismiss it; nothing is imported until the user chooses
+        var dot = LibraryUi.Text("·", 12, secondary: true);
+        var line = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(0, 2),
+            Children =
+            {
+                found, dot,
+                LibraryButtons.Make(ImportWords.FoundImport, Open, ButtonLook.Accent, "import-found-open"),
+                LibraryButtons.Glyph("xmark", ImportWords.FoundDismiss, "import-found-dismiss", () => model.Detector?.Dismiss()),
+            },
+        };
+        foreach (var part in line.Children) part.VerticalAlignment = VerticalAlignment.Center;
+        foundFold = new CzFoldRow(line, false);
+        Child = new StackPanel { Spacing = 8, Children = { button, note, foundFold, imported } };
         this.Track(() => model.Revision, _ => Sync());
         AttachedToVisualTree += (_, _) =>
         {
             if (model.PickFolder is null) model.PickFolder = chooser = Choose;
+            if (model.Detector is { } detector)
+            {
+                detector.Start();
+                _ = detector.RefreshAsync();
+            }
             Sync();
         };
         DetachedFromVisualTree += (_, _) =>
         {
             if (chooser is not null && ReferenceEquals(model.PickFolder, chooser)) model.PickFolder = null;
             chooser = null;
+            model.Detector?.Stop();
             CloseSheet();
         };
     }
@@ -45,10 +69,19 @@ internal sealed class ImportArea : Decorator
 
     internal bool SheetShown => shown;
 
+    internal bool LineOpen => foundFold.Open;
+
     private void Open()
     {
         hidden = false;
         _ = model.Controller.OpenAsync();
+    }
+
+    private void Detect()
+    {
+        var now = model.Detector?.Current;
+        foundFold.Open = now is { Visible: true };
+        if (now is { Visible: true }) found.SetText(ImportWords.Found(now.Count, [.. now.Apps.Select(ImportedSection.Title)]));
     }
 
     private async Task<string?> Choose()
@@ -60,6 +93,7 @@ internal sealed class ImportArea : Decorator
 
     private void Sync()
     {
+        Detect();
         var phase = model.Controller.Phase;
         if (phase is ImportPhase.Closed or ImportPhase.Done) hidden = false;
         if (phase == ImportPhase.Closed) { CloseSheet(); return; }

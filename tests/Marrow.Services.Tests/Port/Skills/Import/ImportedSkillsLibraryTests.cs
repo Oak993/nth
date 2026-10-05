@@ -336,4 +336,29 @@ public sealed class ImportedSkillsLibraryTests
         var json = File.ReadAllText(Path.Combine(home.SkillsRoot, "imported", "index.json"));
         Assert.Equal(1, System.Text.Json.JsonDocument.Parse(json).RootElement.GetProperty("version").GetInt32());
     }
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_library_can_be_read_while_a_duplicate_question_waits_for_its_answer()
+    {
+        using var home = new ForeignHome();
+        home.Skill(".claude/skills", "pdf", "pdf", "Work with PDF files.");
+        var library = Open(home);
+        library.Import([Find(home, "pdf")], ImportMode.Copy, NeverAsked);
+        var asking = new ManualResetEventSlim();
+        var answer = new ManualResetEventSlim();
+        var import = Task.Run(() => library.Import([Find(home, "pdf")], ImportMode.Copy, _ =>
+        {
+            asking.Set();
+            Assert.True(answer.Wait(TimeSpan.FromSeconds(10)));
+            return DuplicateChoice.Skip;
+        }));
+        Assert.True(asking.Wait(TimeSpan.FromSeconds(10)));
+        var read = Task.Run(() => (library.List().Count, library.Snapshot().Count));
+        Assert.True(read.Wait(TimeSpan.FromSeconds(5)), "the library was locked while the question waited");
+        Assert.Equal((1, 1), read.Result);
+        answer.Set();
+        Assert.Single(import.Result.Skipped);
+    }
 }

@@ -24,6 +24,15 @@ public sealed partial class ForeignSkillScanner
     [GeneratedRegex(@"\A(?:v?[0-9]+(?:\.[0-9A-Za-z]+)*(?:[-+][0-9A-Za-z.\-+]+)?|[0-9a-f]{7,40})\z", RegexOptions.CultureInvariant)]
     private static partial Regex VersionLike();
 
+    /// <summary>The places of the apps the scanner reads, for a listener (SK-18 detection): the same set as <see cref="Scan"/> looks in, picked folders aside.</summary>
+    public static IReadOnlyList<string> WatchRoots(string home) =>
+    [
+        Path.Combine(home, ".claude", "skills"), Path.Combine(home, ".claude", "plugins"),
+        Path.Combine(home, ".codex", "skills"), Path.Combine(home, ".agents", "skills"),
+        Path.Combine(home, ".gemini", "antigravity-cli", "skills"), Path.Combine(home, ".gemini", "config", "skills"), Path.Combine(home, ".gemini", "skills"),
+        Path.Combine(home, ".cursor", "skills"), Path.Combine(home, ".cursor", "rules"),
+    ];
+
     public ForeignScan Scan(CancellationToken cancellation = default)
     {
         var found = new Dictionary<string, ForeignSkill>(StringComparer.Ordinal);

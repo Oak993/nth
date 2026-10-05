@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia;
+using Avalonia.VisualTree;
 using Marrow.App.Port.Skills.Import;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port.Skills.Import;
@@ -14,17 +16,43 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class ImportSkillsTests(HeadlessSession headless)
 {
+    private sealed class CountingWatch : IFolderWatch
+    {
+        private int started, ended;
+        public int Started => Volatile.Read(ref started);
+        public int Ended => Volatile.Read(ref ended);
+        public Action? Changed { get; private set; }
+
+        public IDisposable Watch(IReadOnlyList<WatchTarget> targets, Action changed)
+        {
+            Interlocked.Increment(ref started);
+            Changed = changed;
+            return new End(this);
+        }
+
+        private sealed class End(CountingWatch owner) : IDisposable
+        {
+            public void Dispose() => Interlocked.Increment(ref owner.ended);
+        }
+    }
+
     private sealed class Rig : IDisposable
     {
-        public Rig(Func<Task<string?>>? pick = null)
+        public Rig(Func<Task<string?>>? pick = null, bool detect = false)
         {
             Home = new ForeignHome();
-            Library = new ImportedSkillsLibrary(Home.SkillsRoot, new ManualTimeProvider());
+            Time = new ManualTimeProvider();
+            Library = new ImportedSkillsLibrary(Home.SkillsRoot, Time);
+            Watch = new CountingWatch();
+            if (detect) Detector = new ImportDetector(() => new ForeignSkillScanner(Home.Home).Scan(), Library, Home.Home, Watch, null, Time);
             Controller = new ImportController(folders => new ForeignSkillScanner(Home.Home, folders).Scan(), Library, () => Model!.PickFolder?.Invoke() ?? Task.FromResult<string?>(null));
-            Model = new ImportModel(Controller) { PickFolder = pick };
+            Model = new ImportModel(Controller, Detector) { PickFolder = pick };
         }
 
         public ForeignHome Home { get; }
+        public ManualTimeProvider Time { get; }
+        public CountingWatch Watch { get; }
+        public ImportDetector? Detector { get; }
         public ImportedSkillsLibrary Library { get; }
         public ImportController Controller { get; }
         public ImportModel? Model { get; }
@@ -37,7 +65,11 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
             Home.Raw(".cursor/rules/delta.mdc", "---\ndescription: Delta rule\n---\nbody\n");
         }
 
-        public void Dispose() => Home.Dispose();
+        public void Dispose()
+        {
+            Detector?.Dispose();
+            Home.Dispose();
+        }
     }
 
     private static void OpenSheet(LibraryPageHarness h)
@@ -61,6 +93,14 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
             Assert.Contains(ImportWords.ActionNote, skills.Words());
         }, imports: rig.Model);
     });
+
+    // A crossfade keeps its outgoing text in the tree at opacity 0 until the next change; only text a person can see counts.
+    private static IReadOnlyList<string> Shown(LibraryPageHarness h) =>
+        h.Window.GetVisualDescendants().OfType<TextBlock>()
+            .Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text) && t.GetSelfAndVisualAncestors().OfType<Visual>().Aggregate(1.0, (a, v) => a * v.Opacity) > 0.01)
+            .Select(t => t.Text!).ToList();
+
+    private static bool LineOpen(LibraryPageHarness h) => h.All().OfType<ImportArea>().Single().LineOpen;
 
     private static string LibraryButtonsWords(Button button) => ((TextBlock)button.Content!).Text ?? "";
 
@@ -136,7 +176,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
         Assert.True(h.Press("import-link"));
         Assert.Equal(ImportMode.Link, rig.Controller.Mode);
         Assert.Contains(ImportWords.LinkNote, h.Words());
-        Assert.DoesNotContain(ImportWords.CopyNote, h.Words());
+        Assert.DoesNotContain(ImportWords.CopyNote, Shown(h));
         Assert.True(h.Press("import-all"));
         h.Until(() => rig.Controller.Phase == ImportPhase.Done);
         Assert.Equal(4, rig.Library.List().Count);
@@ -241,7 +281,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
             h.Until(() => rig.Controller.Groups.Count == 1);
             Assert.Contains(ImportWords.Folders, h.Words());
             Assert.Contains("own-skill", h.Words());
-            Assert.DoesNotContain(ImportWords.NothingFound, h.Words());
+            Assert.DoesNotContain(ImportWords.NothingFound, Shown(h));
         }, imports: rig.Model);
     }
 
@@ -263,6 +303,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
         var tick = h.All().OfType<ImportTick>().First();
         Assert.Equal(0, tick.Drawn, 6);
         tick.Button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var samples = new List<double> { tick.Drawn };
         for (var spent = 0; spent < 260; spent += 16)
         {
@@ -281,6 +322,113 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
         OpenSheet(h);
         var tick = h.All().OfType<ImportTick>().First();
         tick.Button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         Assert.Equal(1, tick.Drawn, 6);
     }, motion: true, reduceMotion: true);
+
+    private void RunDetecting(Action<LibraryPageHarness, Rig> check, bool fill = true)
+    {
+        using var rig = new Rig(detect: true);
+        if (fill) rig.Fill();
+        LibraryPageHarness.Run(headless, LibrarySection.Skills, h => check(h, rig), imports: rig.Model);
+    }
+
+    private static string FoundLine(int count, params string[] apps) => ImportWords.Found(count, apps);
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_page_finds_the_apps_by_itself_and_says_so_in_one_quiet_line_with_nothing_imported() => RunDetecting((h, rig) =>
+    {
+        h.Until(() => LineOpen(h));
+        Assert.Contains(FoundLine(4, ImportWords.ClaudeCode, ImportWords.Codex, ImportWords.Cursor), h.Words());
+        Assert.Equal(ImportWords.FoundImport, LibraryButtonsWords(h.Find<Button>("import-found-open")));
+        Assert.NotNull(h.TryFind("import-found-dismiss"));
+        Assert.Equal(ImportPhase.Closed, rig.Controller.Phase);
+        Assert.Empty(rig.Library.List());
+    });
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void No_line_when_nothing_is_found_and_none_without_a_detector() => RunDetecting((h, rig) =>
+    {
+        h.Wait(rig.Detector!.RefreshAsync());
+        Assert.False(LineOpen(h));
+    }, fill: false);
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Import_in_the_line_opens_the_sheet_already_listing_every_detected_app_ready_to_tick() => RunDetecting((h, rig) =>
+    {
+        h.Until(() => LineOpen(h));
+        Assert.True(h.Press("import-found-open"));
+        h.Until(() => h.TryFind("import-sheet") is not null && rig.Controller.Groups.Count == 3);
+        Assert.Equal(0, rig.Controller.TickedCount);
+        Assert.Equal(0, rig.Controller.Groups.Count(g => g.AllTicked));
+        Assert.NotNull(h.TryFind("import-tick-ClaudeCode-alpha"));
+        Assert.NotNull(h.TryFind("import-tick-group-Cursor"));
+        Assert.Empty(rig.Library.List());
+    });
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Dismiss_takes_the_line_away_and_it_stays_away_when_the_page_is_built_again()
+    {
+        using var rig = new Rig(detect: true);
+        rig.Fill();
+        LibraryPageHarness.Run(headless, LibrarySection.Skills, h =>
+        {
+            h.Until(() => LineOpen(h));
+            Assert.True(h.Press("import-found-dismiss"));
+            h.Until(() => !LineOpen(h));
+        }, imports: rig.Model);
+        LibraryPageHarness.Run(headless, LibrarySection.Skills, h =>
+        {
+            h.Wait(rig.Detector!.RefreshAsync());
+            Assert.False(LineOpen(h));
+        }, imports: rig.Model);
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Once_everything_found_is_imported_the_line_goes() => RunDetecting((h, rig) =>
+    {
+        h.Until(() => LineOpen(h));
+        Assert.True(h.Press("import-found-open"));
+        h.Until(() => rig.Controller.Phase == ImportPhase.Choosing);
+        Assert.True(h.Press("import-all"));
+        h.Until(() => rig.Controller.Phase == ImportPhase.Done);
+        Assert.True(h.Press("import-close"));
+        h.Until(() => !LineOpen(h));
+        Assert.Equal(4, rig.Library.List().Count);
+    });
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_page_listens_to_the_folders_while_it_shows_and_a_change_updates_the_line() => RunDetecting((h, rig) =>
+    {
+        h.Until(() => LineOpen(h));
+        Assert.Equal(1, rig.Watch.Started);
+        rig.Home.Skill(".claude/skills", "epsilon", "epsilon", "Epsilon skill.");
+        rig.Watch.Changed!();
+        rig.Time.Advance(TimeSpan.FromSeconds(3));
+        h.Until(() => Shown(h).Contains(FoundLine(5, ImportWords.ClaudeCode, ImportWords.Codex, ImportWords.Cursor)));
+    });
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Leaving_the_page_ends_the_listening()
+    {
+        using var rig = new Rig(detect: true);
+        rig.Fill();
+        LibraryPageHarness.Run(headless, LibrarySection.Skills, h => h.Until(() => rig.Watch.Started == 1), imports: rig.Model);
+        Assert.False(rig.Detector!.Watching);
+        Assert.Equal(1, rig.Watch.Ended);
+    }
 }

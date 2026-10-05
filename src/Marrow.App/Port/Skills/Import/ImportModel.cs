@@ -10,12 +10,19 @@ internal sealed class ImportModel : MainActorModel
     private int revision;
     private bool posted;
 
-    public ImportModel(ImportController controller)
+    private int pulse;
+
+    public ImportModel(ImportController controller, ImportDetector? detector = null)
     {
         Controller = controller;
+        Detector = detector;
         controller.Changed += OnChanged;
+        if (detector is not null) detector.Changed += OnChanged;
         revision = controller.Revision;
     }
+
+    /// <summary>The finder of installed apps' skills (OD-0118 addendum); null when the page does not offer it.</summary>
+    public ImportDetector? Detector { get; }
 
     public ImportController Controller { get; }
 
@@ -28,7 +35,7 @@ internal sealed class ImportModel : MainActorModel
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            Revision = Controller.Revision;
+            Revision = Interlocked.Increment(ref pulse) + Controller.Revision;
             return;
         }
         lock (this)
@@ -39,7 +46,7 @@ internal sealed class ImportModel : MainActorModel
         Dispatcher.UIThread.Post(() =>
         {
             lock (this) posted = false;
-            Revision = Controller.Revision;
+            Revision = Interlocked.Increment(ref pulse) + Controller.Revision;
         });
     }
 }

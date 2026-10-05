@@ -67,9 +67,10 @@ public sealed class ImportController
     {
         get
         {
+            // the library is asked before the gate is taken: an import holds the library while it asks its question under the gate
+            var already = library.List().Select(i => i.App + "|" + i.SourcePath).ToHashSet(StringComparer.Ordinal);
             lock (gate)
             {
-                var already = library.List().Select(i => i.App + "|" + i.SourcePath).ToHashSet(StringComparer.Ordinal);
                 return [.. found.Skills.GroupBy(s => s.App).OrderBy(g => g.Key).Select(g =>
                 {
                     var rows = g.Select(s => new ImportRow(s.Key, s.Name, s.Description, s.Source, ticks.Contains(s.Key), already.Contains(s.Key))).ToArray();
@@ -137,10 +138,10 @@ public sealed class ImportController
 
     public void ToggleGroup(ForeignApp app)
     {
+        var already = library.List().Select(i => i.App + "|" + i.SourcePath).ToHashSet(StringComparer.Ordinal);
         lock (gate)
         {
             if (phase != ImportPhase.Choosing) return;
-            var already = library.List().Select(i => i.App + "|" + i.SourcePath).ToHashSet(StringComparer.Ordinal);
             var keys = found.Skills.Where(s => s.App == app && !already.Contains(s.Key)).Select(s => s.Key).ToArray();
             if (keys.Length == 0) return;
             if (keys.All(ticks.Contains)) foreach (var key in keys) ticks.Remove(key);
@@ -181,9 +182,9 @@ public sealed class ImportController
     public Task ImportAllAsync()
     {
         ForeignSkill[] chosen;
+        var already = library.List().Select(i => i.App + "|" + i.SourcePath).ToHashSet(StringComparer.Ordinal);
         lock (gate)
         {
-            var already = library.List().Select(i => i.App + "|" + i.SourcePath).ToHashSet(StringComparer.Ordinal);
             chosen = [.. found.Skills.Where(s => !already.Contains(s.Key))];
         }
         return RunAsync(chosen);
