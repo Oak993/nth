@@ -7165,7 +7165,8 @@
         "decision": "OD-0008 C3",
         "upstream": "Opened by the Settings shortcut (default ⌘,) and by the macOS app menu (App/AppCommands.swift:12).",
         "port": "No menu bar; opened by the shortcut, rendered Ctrl+, (B7), and the command palette."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-002",
@@ -8841,7 +8842,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:49, :53 chatBaseSize - .title2 17, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Symbols in order: checkmark / archivebox; sidebar.left / macwindow.on.rectangle / macwindow; list.bullet / text.alignleft; doc.on.doc / folder; chart.bar / list.number; rectangle / square.grid.2x2. Five of these six pickers take their row's detail line from the selected option (Done with a thread, Sidebar, Activity list, Checkout, Heads' panels: SettingsView.swift:395, :432, :438; HydraSettingsPage.swift:52-54, :84); Head panel's detail is fixed (:76).",
-      "b2_change": "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:88 and :79 at 1fbf81e6: `.system(.title2, weight: .medium)` and `.system(.subheadline)` (17pt and 11pt at the default text size). Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef)."
+      "b2_change": "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:88 and :79 at 1fbf81e6: `.system(.title2, weight: .medium)` and `.system(.subheadline)` (17pt and 11pt at the default text size). Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-066",

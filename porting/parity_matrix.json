@@ -7,10 +7,10 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3932,
+      "IMPLEMENTED": 3935,
       "RETIRED": 15,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
-      "SPECIFIED": 23
+      "SPECIFIED": 20
     },
     "by_area": {
       "CHAT": 193,
@@ -24967,9 +24967,9 @@
       "persistence": "The window frame is saved under the autosave name \"DroppyCodeMainWindow\".",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Create or restore the main window with the same default and minimum sizes and the same persisted-frame key, then activate and foreground it. The detailed window chrome is specified by the shell and chrome area; this requirement covers only that launch shows it. That chrome follows ED-063 (WindowDecorations.Full, ExtendClientAreaToDecorationsHint, 44 px title bar, the WndProc caption and system-menu hook), and it is not accepted while live resize shows the edge strip OD-0013 rules must be fixed. The window stays clear by default as upstream (OD-0014).",
+      "windows_path": "Create or restore the main window with the same default and minimum sizes and the same persisted-frame key, then activate and foreground it. The detailed window chrome is specified by the shell and chrome area; this requirement covers only that launch shows it. That chrome follows ED-063 (WindowDecorations.Full, ExtendClientAreaToDecorationsHint, 44 px title bar, the WndProc caption and system-menu hook) and ED-101's stretch under OD-0017, which closed OD-0013: the DWM one-frame residual during live resize is a named deviation. The window stays clear by default as upstream (OD-0014).",
       "verification_method": "restart test: window position and size survive a restart",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -97651,7 +97651,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -97679,7 +97679,7 @@
         "No thread selected: the files are discarded with no message"
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

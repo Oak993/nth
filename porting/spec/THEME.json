@@ -5669,7 +5669,8 @@
         "DroppyCode/UI/Markdown/LinkPopover.swift:68-108"
       ],
       "notes": "One popover instance serves every link paragraph in the app.",
-      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:124-177 and :180-219 lay beyond the end of the file (108 lines at B1 and at B2; the file is byte-identical between them) -> B2 LinkPopover.swift:9-66 (the LinkPopover class) and :68-108 (LinkPopoverContent)."
+      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:124-177 and :180-219 lay beyond the end of the file (108 lines at B1 and at B2; the file is byte-identical between them) -> B2 LinkPopover.swift:9-66 (the LinkPopover class) and :68-108 (LinkPopoverContent).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-043",
