@@ -115,7 +115,8 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
         using (var hash = System.Security.Cryptography.SHA256.Create())
             lockName = "Local\\MarrowProviderProbe-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "", StringComparison.Ordinal);
         using var recording = new Mutex(false, lockName);
-        recording.WaitOne();
+        try { recording.WaitOne(); }
+        catch (AbandonedMutexException) { /* The terminated owner left us holding the mutex. */ }
         try { return ReadRecordedCalls(); }
         finally { recording.ReleaseMutex(); }
     }

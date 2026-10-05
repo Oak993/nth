@@ -112,7 +112,8 @@ public sealed class PiScript
         using (var hash = System.Security.Cryptography.SHA256.Create())
             lockName = "Local\\MarrowPiStandIn-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "", StringComparison.Ordinal);
         using var publication = new Mutex(false, lockName);
-        publication.WaitOne();
+        try { publication.WaitOne(); }
+        catch (AbandonedMutexException) { /* Ownership is acquired even though the previous writer died. */ }
         try
         {
             var path = Path.Combine(ControlDirectory, name);

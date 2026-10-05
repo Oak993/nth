@@ -50,7 +50,8 @@ internal static class ProviderProbeStandIn
         int call;
         using (var recording = new Mutex(false, lockName))
         {
-            recording.WaitOne();
+            try { recording.WaitOne(); }
+            catch (AbandonedMutexException) { /* Ownership is acquired even though the previous publisher died. */ }
             try
             {
                 call = 0;

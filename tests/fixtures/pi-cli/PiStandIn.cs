@@ -83,7 +83,8 @@ internal static class PiStandIn
             lockName = "Local\\MarrowPiStandIn-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "");
         using (var publication = new Mutex(false, lockName))
         {
-            publication.WaitOne();
+            try { publication.WaitOne(); }
+            catch (AbandonedMutexException) { /* Ownership is acquired even though the previous publisher died. */ }
             try
             {
                 string pending = Path.Combine(dir, name + ".tmp");

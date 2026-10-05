@@ -386,7 +386,8 @@ public sealed class ShellTests
         Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(120))), "no deadline was armed");
         handle.Cancel();
         // The deadline sleep is not the kill: the kill is a second timer, one second out.
-        Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(1))), "the kill was never scheduled");
+        Assert.True(Eventually(() => runtime.Time.TimerDeadlines.SequenceEqual([TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(120)])),
+            "the one-second kill must be scheduled alongside the still-pending 120-second deadline");
         Assert.False(SpinWait.SpinUntil(() => handle.Value.IsCompleted, TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
         runtime.Advance(TimeSpan.FromSeconds(1));
         await Assert.ThrowsAsync<CancellationError>(() => handle.Value.WaitAsync(Bound));
