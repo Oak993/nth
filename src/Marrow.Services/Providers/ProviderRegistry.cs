@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Marrow.Core.Models;
+using Marrow.Core.Port.Accounts;
+using Marrow.Services.Port.Accounts;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Updates;
 using Marrow.Core.Support;
@@ -205,9 +207,12 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // :162-196. ED-001: CaptureRun is not ported (dead in a shipped launch); the non-capture branch is the
     // only one implemented. :164 (recentCommands), :165-178 (cached catalogs), :179-185 (cached dates) and
     // :186-195 (seeding) each read `!CaptureRun.isEnabled` in the source and are ported without that guard.
-    public ProviderRegistry(ProviderSettings settings)
+    public ProviderRegistry(ProviderSettings settings, AccountStore? accounts = null, string? accountDataRoot = null)
     {
         this.settings = settings; // :163
+        // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Existing fixtures can retain the provider-only contract.
+        accountStore = accounts ?? (settings as AccountProviderSettings)?.Accounts;
+        accountEnvironment = accountStore is null ? null : new AccountEnvironment(accountDataRoot ?? Marrow.Services.Store.Storage.Root);
 
         // :164
         if (UserDefaults.Standard.Current.Dictionary("recentSlashCommands") is { } storedRecent)
@@ -447,7 +452,10 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         SwiftURL.Create("marrow-native-path:" + path.Replace('\\', '/')) ?? throw SwiftTraps.Fatal("Invalid executable path.");
 
     // :260-279. Swift: environment(for:).
-    public ValueMap<string, string> Environment(ProviderKind provider)
+    public ValueMap<string, string> Environment(ProviderKind provider) => accountStore is null
+        ? LegacyEnvironment(provider) : Environment(RequireAccount(provider).Id);
+
+    private ValueMap<string, string> LegacyEnvironment(ProviderKind provider)
     {
         var environment = new Dictionary<string, string>(LoginEnvironment.Current, StringComparer.OrdinalIgnoreCase); // :261, ED-128
         if (ResolveExecutable(provider) is { } executablePath) // :262
@@ -497,6 +505,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // dead_code.md), so nothing in the app reaches it; it is kept so the behaviour is there if a caller is found.
     public async Task<string?> SignIn(ProviderKind provider)
     {
+        if (accountStore is not null) return await SignIn(RequireAccount(provider).Id);
         if (signingIn is not null) return null; // :290
         if (provider.IsAPIKeyBased) return null; // :291
         SigningIn = provider; // :292
@@ -590,6 +599,11 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // :358-378
     public async Task Refresh(ProviderKind provider)
     {
+        if (!HasEnabledAccount(provider))
+        {
+            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() });
+            return;
+        }
         var status = statuses.TryGetValue(provider, out var existing) ? existing : new ProviderStatus(); // :359
         status = status with { IsChecking = true }; // :360
         Statuses = statuses.Mutating(d => d[provider] = status); // :369
@@ -719,7 +733,9 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
             }
             case ProviderKind.Grok: // :852-863
             {
-                var path = testGrokAuthPath ?? SwiftPath.AppendingPathComponent(LoginEnvironment.HomeDirectory, ".grok/auth.json");
+                var path = environment.TryGetValue("GROK_HOME", out var grokHome) && grokHome.Length != 0
+                    ? SwiftPath.AppendingPathComponent(grokHome, "auth.json")
+                    : testGrokAuthPath.Value ?? SwiftPath.AppendingPathComponent(LoginEnvironment.HomeDirectory, ".grok/auth.json");
                 var data = SwiftTry.Optional(() => File.ReadAllBytes(path));
                 using var document = data is null ? null : SwiftTry.Optional(() => JsonDocument.Parse(data));
                 if (document is null || document.RootElement.ValueKind != JsonValueKind.Object) return new ProviderStatus.Auth.Unknown(); // :854
@@ -756,11 +772,11 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
 
     // PORT-ONLY testing support (matching MCPSessionOverrides.cs's convention): overrides the Grok auth.json
     // path so PR-PROVREG-121/122's tests never read %USERPROFILE%\.grok\auth.json.
-    private static string? testGrokAuthPath;
+    private static readonly AsyncLocal<string?> testGrokAuthPath = new();
 
-    internal static void SetGrokAuthPathForTesting(string path) => testGrokAuthPath = path;
+    internal static void SetGrokAuthPathForTesting(string path) => testGrokAuthPath.Value = path;
 
-    internal static void ResetGrokAuthPathForTesting() => testGrokAuthPath = null;
+    internal static void ResetGrokAuthPathForTesting() => testGrokAuthPath.Value = null;
 
     // :869-878. Swift: devinAccount(from:).
     private static string? DevinAccount(string text)
@@ -780,7 +796,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // Refresh (:362-364), a MARROW_STUB in this file left to a later part of this unit.
     internal async Task RefreshAPIProvider(ProviderKind provider)
     {
-        var apiKey = settings.ApiKey(provider); // :382
+        var apiKey = SelectedApiKey(provider); // :382
         if (apiKey.Length == 0) // :383
         {
             Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); // :392
@@ -1113,6 +1129,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // gate, the seeded/stale test, the nine-arm dispatch table, and the OpenCode sibling delivery.
     public async Task LoadCatalog(ProviderKind provider, bool force = false)
     {
+        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-NEW-ma-1: Off accounts cannot be probed.
         if (loadingCatalogs.Contains(provider)) return; // :460
         if (!force && attemptedCatalogs.Contains(provider)) return; // :461
         if (provider.IsAPIKeyBased) // :462-464
@@ -1228,7 +1245,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         LoadingCatalogs = loadingCatalogs.Mutating(s => s.Add(provider)); // :656
         try
         {
-            var apiKey = settings.ApiKey(provider); // :579
+            var apiKey = SelectedApiKey(provider); // :579
             if (apiKey.Length == 0) return; // :580
             attemptedCatalogs.Add(provider); // :581
             ValueList<ModelOption>? list = provider switch // :582-586
@@ -1306,6 +1323,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // :606-641
     public void RefreshPlanLimits(ProviderKind provider, bool force = false)
     {
+        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-NEW-ma-1: Off accounts cannot be probed.
         if (!PlanLimitsReader.ExposesLimits(provider)) return; // :607, PR-PROVREG-163
         if (loadingLimits.Contains(provider)) // :608
         {
@@ -1315,7 +1333,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         if (!force && limitsFetchedAt.TryGetValue(provider, out var fetched) && SwiftDate.Now - fetched < TimeSpan.FromSeconds(60)) return; // :609, PR-PROVREG-165
         if (provider.IsAPIKeyBased) // :610
         {
-            var apiKey = settings.ApiKey(provider); // :611
+            var apiKey = SelectedApiKey(provider); // :611
             if (apiKey.Length == 0) // :612
             {
                 PlanLimits = planLimits.Mutating(d => d.Remove(provider)); // :692, PR-PROVREG-166 (limitsFetchedAt left untouched)
@@ -1407,7 +1425,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
                 }
                 case ProviderKind.Zai: // :664, PR-PROVREG-194
                 {
-                    var apiKey = settings.ApiKey(ProviderKind.Zai); // :665
+                    var apiKey = SelectedApiKey(ProviderKind.Zai); // :665
                     if (apiKey.Length == 0 || creditID is null) throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome()); // :666
                     var outcome = await ZaiAPI.ConsumeResetCredit(apiKey, creditID); // :667 (throws propagate)
                     if (await ZaiAPI.PlanLimits(apiKey) is { } limits) // :668 (non-throwing)
@@ -1441,11 +1459,12 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // unlike RefreshPlanLimits' forcedLimitReads (PR-PROVREG-164).
     public void RefreshCredits(ProviderKind provider, bool force = false)
     {
+        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-NEW-ma-1: Off accounts cannot be probed.
         if (!CreditsReader.ExposesCredits(provider) || loadingCredits.Contains(provider)) return; // :682
         // :683-686. Command Code's key is the CLI's own login unless Settings holds one.
         var apiKey = provider == ProviderKind.Commandcode
             ? CommandCodeAPI.ApiKey(Environment(provider)) ?? ""
-            : settings.ApiKey(provider);
+            : SelectedApiKey(provider);
         if (apiKey.Length == 0) // :687
         {
             Credits = credits.Mutating(d => d.Remove(provider)); // :767 (creditsFetchedAt left untouched, PR-PROVREG-199)
@@ -1606,6 +1625,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // oldest-entry eviction of the command cache itself).
     public async Task LoadCommands(ProviderKind provider, string directory, bool force = false)
     {
+        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-NEW-ma-1: Off accounts cannot be probed.
         if (provider != ProviderKind.Codex && provider != ProviderKind.Claude) return; // :763
         var key = CommandKey(provider, directory); // :764
         if (commandLoads.TryGetValue(key, out var inFlight)) // :765

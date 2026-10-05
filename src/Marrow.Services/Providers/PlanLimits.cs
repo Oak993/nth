@@ -265,6 +265,9 @@ public static partial class PlanLimitsReader
     // spawning nothing and taking no Keychain or Credential Manager branch in its place.
     internal static Task<ClaudeLogin?> ReaderClaudeLogin(IReadOnlyDictionary<string, string> environment, string? homeDirectory = null)
     {
+        // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Explicit new accounts use the CLI-owned usage path;
+        // do not collect their OAuth tokens or fall back to another account's global credential file.
+        if (environment.ContainsKey("MARROW_ACCOUNT_ID")) return Task.FromResult<ClaudeLogin?>(null);
         var directories = new List<string>();
         if (environment.TryGetValue("CLAUDE_CONFIG_DIR", out var configured) && configured.Length > 0)
         {
