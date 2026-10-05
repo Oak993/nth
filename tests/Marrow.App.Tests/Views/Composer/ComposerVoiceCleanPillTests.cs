@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Headless;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Marrow.App.Port.Voice;
@@ -94,6 +95,9 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
             var (orb, cap, radius) = Marks(scene);
             Assert.True(scene.Rig.Main.OnMain(() => Pill(scene.View).ShownOpacity) > 0.99, "the pill is open");
             var withPill = Shot(scene);
+#pragma warning disable CS0618
+            if (Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump) scene.Rig.Main.OnMain(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"with-{style}-{diameter}-{dark}-{state}.png")); });
+#pragma warning restore CS0618
             scene.Rig.Main.OnMain(() => Pill(scene.View).IsVisible = false);
             scene.Rig.PumpWindow(scene.Window);
             var without = Shot(scene);
