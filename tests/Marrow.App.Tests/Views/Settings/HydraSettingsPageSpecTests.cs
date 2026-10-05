@@ -242,6 +242,7 @@ public sealed class HydraSettingsPageSpecTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-154")] // HydraSettingsPage.swift:76-80 false-first order, fixed detail
+    [Trait("Req", "UI-SETTINGS-065")] // HydraSettingsPage.swift:76-80 over ChromeVisualPicker.swift:10-105: the Head panel picker, its detail fixed (:76)
     public void Head_panel_lists_Progress_before_Every_step_and_keeps_one_detail() => Page(scene =>
     {
         var row = Row(scene.View, "Head panel");
@@ -264,6 +265,7 @@ public sealed class HydraSettingsPageSpecTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-155")] // HydraSettingsPage.swift:82-89 One panel / A panel each and the dependent detail
+    [Trait("Req", "UI-SETTINGS-065")] // HydraSettingsPage.swift:82-89 over ChromeVisualPicker.swift:10-105: the Heads' panels picker, its detail follows the choice
     public void Heads_panels_lists_One_panel_before_A_panel_each_and_its_detail_follows_the_choice() => Page(scene =>
     {
         var row = Row(scene.View, "Heads' panels");
@@ -280,6 +282,33 @@ public sealed class HydraSettingsPageSpecTests(HeadlessSession headless)
         Click(Of<Button>(Tiles(Row(scene.View, "Heads' panels"))[0]).First());
         Assert.False(scene.Model.Settings.HydraAutoPopsHeads);
         Assert.Equal("One panel over the chat lists every head.", Detail(Row(scene.View, "Heads' panels")));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-065")] // HydraSettingsPage.swift:50-59 Checkout: options [(true, "Own copy"), (false, "Shared")], doc.on.doc / folder, hydraIsolateHeads default true (AppSettings.swift:765), the detail follows the choice
+    public void Checkout_lists_Own_copy_before_Shared_and_its_detail_follows_the_choice() => Page(scene =>
+    {
+        const string ownCopy = "Each head works in a copy of its own; its changes land in the chat's checkout when it reports.";
+        const string shared = "Heads work in the chat's checkout itself.";
+        var row = Row(scene.View, "Checkout");
+        var tiles = Tiles(row);
+        Assert.Equal(new[] { "Own copy", "Shared" }, tiles.Select(tile => AutomationProperties.GetName(tile)).ToArray());
+        Assert.Equal(new[] { "doc.on.doc", "folder" }, TileSymbols(tiles));
+        Assert.True(scene.Model.Settings.HydraIsolateHeads);
+        Assert.True(tiles[0].IsSelected);
+        Assert.False(tiles[1].IsSelected);
+        Assert.Equal(ownCopy, Detail(row));
+
+        Click(Of<Button>(tiles[1]).First());
+        Assert.False(scene.Model.Settings.HydraIsolateHeads);
+        row = Row(scene.View, "Checkout");
+        Assert.Equal(shared, Detail(row));
+        Assert.False(Tiles(row)[0].IsSelected);
+        Assert.True(Tiles(row)[1].IsSelected);
+
+        Click(Of<Button>(Tiles(row)[0]).First());
+        Assert.True(scene.Model.Settings.HydraIsolateHeads);
+        Assert.Equal(ownCopy, Detail(Row(scene.View, "Checkout")));
     });
 
     // ---- PR-SETTINGS-158, 159 (the two toggle sections) ------------------------------------------------------------

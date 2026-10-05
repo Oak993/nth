@@ -55,6 +55,9 @@ public sealed class BootStageWindow
     /// <summary>The stage control (for tests).</summary>
     internal BootStage Stage => stage;
 
+    /// <summary>The outline and content areas the particles fly to, in stage coordinates (for tests).</summary>
+    internal BootWindowLayout OutlineLayout { get; }
+
     /// <summary>The stage window (for tests).</summary>
     internal AvaloniaWindow Window => stageWindow;
 
@@ -70,8 +73,12 @@ public sealed class BootStageWindow
         var screen = main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary;
         var area = screen?.WorkingArea ?? new PixelRect(0, 0, (int)main.Width, (int)main.Height);
         var scale = screen?.Scaling ?? 1;
-        var frame = new Rect((main.Position.X - area.X) / scale, (main.Position.Y - area.Y) / scale, main.Width, main.Height);
-        stage = new BootStage(new BootSequence(Layout(frame), reduceMotion));
+        // ED-284 (1): main.Position is the HWND origin, one invisible strip (WindowInvisibleBorder, pixels) left of the visible window and
+        // level with its top; the outline the boot hands over to is the visible window, so its left edge moves right by the strip.
+        var strip = WindowInvisibleBorder.Pixels.Current(main, scale);
+        var frame = new Rect((main.Position.X + strip - area.X) / scale, (main.Position.Y - area.Y) / scale, main.Width, main.Height);
+        OutlineLayout = Layout(frame);
+        stage = new BootStage(new BootSequence(OutlineLayout, reduceMotion));
         stageWindow = new AvaloniaWindow
         {
             WindowDecorations = WindowDecorations.None,
