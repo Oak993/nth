@@ -49,6 +49,12 @@ public sealed class ACPSession : ProviderSession
     public Action<ProviderEvent>? OnEvent { get; set; } // :28
     // DEVIATION ED-NEW-f-sk-11c: DL-12 observations; no new ACP protocol fields.
     public Action<ToolEvent>? OnSkillsEvent { get; set; }
+    public Exception? LastSkillEventFailure { get; private set; }
+    private void EmitSkillEvent(ToolEvent value)
+    {
+        try { OnSkillsEvent?.Invoke(value); }
+        catch (Exception error) { LastSkillEventFailure = error; } // DL-12: an observer cannot interrupt the existing timeline or permission protocol.
+    }
     private readonly ACPSkillEvents skillEvents = new();
 
     private readonly SessionConfiguration configuration; // :30
@@ -745,7 +751,7 @@ public sealed class ACPSession : ProviderSession
                 skillEvents.Observe(update); // PORT-ONLY: SK-11c / DL-12
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, MakeToolCall(update))); // :513
                 var initial = MakeToolUpdate(update); // :514
-                if (skillEvents.Finished(update, initial) is { } finished) OnSkillsEvent?.Invoke(finished);
+                if (skillEvents.Finished(update, initial) is { } finished) EmitSkillEvent(finished);
                 if (initial.Output is not null || initial.Status is not null) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, initial)); // :515
                 break;
             }
@@ -761,7 +767,7 @@ public sealed class ACPSession : ProviderSession
                 }
                 Tap.ToolCallUpdate(update); // PORT-ONLY: SK-11e / DL-12
                 var result = MakeToolUpdate(update);
-                if (skillEvents.Finished(update, result) is { } finished) OnSkillsEvent?.Invoke(finished); // PORT-ONLY: SK-11c / DL-12
+                if (skillEvents.Finished(update, result) is { } finished) EmitSkillEvent(finished); // PORT-ONLY: SK-11c / DL-12
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, result)); // :524
                 break;
             }
@@ -840,7 +846,7 @@ public sealed class ACPSession : ProviderSession
         };
         OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest( // :582-589
             id.Key, kind, call.Title, mapped, call.Detail, null, toolCall["toolCallId"]?.JSONValueString)));
-        if (skillEvents.Held(toolCall) is { } held) OnSkillsEvent?.Invoke(held);
+        if (skillEvents.Held(toolCall) is { } held) EmitSkillEvent(held);
     }
 
     // :592-602. Part 4 of 8 (PR-PROVACP-095).
