@@ -68,6 +68,12 @@ public sealed class TerminalHostView : Border
         };
         Child = scrollbackText;
         scrollbackText.UpdateFrame(screen.Snapshot());
+        // MacTerminalView.swift:2878-3190: a program that asked for the mouse (DECSET 9, 1000-1003, 1005, 1006, 1015, 1016) is told of presses, drags, motion and the wheel.
+        scrollbackText.MouseState = () =>
+        {
+            lock (scrollbackGate) return new TerminalMouseState(screen.MouseMode, screen.MouseEncoding, screen.MouseShiftCapture);
+        };
+        scrollbackText.MouseOutput += SendBytes;
 
         KeyDown += OnKeyDown;
         TextInput += OnTextInput;
@@ -78,6 +84,19 @@ public sealed class TerminalHostView : Border
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
                 Focus();
         }, RoutingStrategies.Bubble, handledEventsToo: true);
+    }
+
+    // MacCaretView.swift:104-123: the caret is a block that blinks while the terminal has the keyboard, an outline when it has not.
+    protected override void OnGotFocus(FocusChangedEventArgs e)
+    {
+        base.OnGotFocus(e);
+        scrollbackText.FocusChanged();
+    }
+
+    protected override void OnLostFocus(FocusChangedEventArgs e)
+    {
+        base.OnLostFocus(e);
+        scrollbackText.FocusChanged();
     }
 
     /// <summary>:22 <c>view.font = TerminalFont.preferred()</c>.</summary>

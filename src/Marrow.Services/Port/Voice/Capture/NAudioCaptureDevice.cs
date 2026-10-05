@@ -25,7 +25,7 @@ public sealed class NAudioCaptureDevice : ICaptureDevice
         catch (Exception error)
         {
             endpoint.Dispose();
-            throw new CaptureDeviceException(NAudioFailures.Map(error), "The capture endpoint could not be opened.", error);
+            throw NAudioFailures.Wrap(error);
         }
         if (!NAudioFormats.TryMap(recorder.WaveFormat, out var format))
         {
@@ -48,7 +48,17 @@ public sealed class NAudioCaptureDevice : ICaptureDevice
 
     public event Action<CaptureDeviceFailure?>? Stopped;
 
-    public void Start() => recorder.StartRecording();
+    public void Start()
+    {
+        try
+        {
+            recorder.StartRecording();
+        }
+        catch (Exception error)
+        {
+            throw NAudioFailures.Wrap(error); // AudioDeviceInUseException and COM errors reach the session as a CaptureDeviceException of their kind
+        }
+    }
 
     public void Stop()
     {
@@ -58,9 +68,9 @@ public sealed class NAudioCaptureDevice : ICaptureDevice
 
     public void Dispose()
     {
+        recorder.Dispose(); // joins the capture thread: a buffer it is still delivering reaches OnData first
         recorder.DataAvailable -= OnData;
         recorder.RecordingStopped -= OnRecordingStopped;
-        recorder.Dispose();
         device.Dispose();
     }
 

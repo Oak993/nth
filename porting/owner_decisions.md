@@ -991,3 +991,36 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Owner, 2026-10-05 (chat, verbatim; translated):** "In the app that opens in the tests the Acrylic look is coming, but the liquid glass look from the two repos I gave you is not. Is that done in the first-release features, or done but done improperly, which is why I don't see it right? Confirm." The owner then re-sent both links: "https://github.com/rizzytoday/liquid-glass/tree/main https://github.com/dashersw/liquid-glass-js".
 - **How it fits OD-0005:** where a window shows the desktop, Windows gives only its system Acrylic. OD-0005 ("acrylic edge", no screen capture) rules out sampling the desktop, so the desktop behind a window cannot be refracted. Everywhere the app draws its own glass over its own content (panels, pills, capsules, popovers, the composer, the effort track), the repos' look applies: the refracting rim band, the displacement map, the specular edge and the colour fringe.
 - **Effect:** an audit compares, on a real window, every app-drawn glass surface against the repos' own rendering. Every surface that should carry the material and does not, or carries it weaker than the repos draw, is a defect, fixed test-first. Rim effects that need only the app's own content (specular edge, rim highlight, fringe) are also checked on the window glass over Acrylic.
+- **Amendment, owner, 2026-10-05 (chat, verbatim):** "भाई मैंने जो तुम्हें दो रेपो भेजे हैं ना उन्हीं को यूज करते हुए मेरे कजन ने भी अपनी एक और ऐप के अंदर एग्जैक्ट वही मैक ओ एस वाला लिक्विड ग्लास का लुक लेके आया है वो वो दो रेपोस को यूज करते हुए ठीक है ना तो जब मैं सुबह उठूं तो ये लिक्विड ग्लास प्रॉपरली इम्प्लीमेंट होना चाहिए जैसे वीडियोस के अंदर नज़र आ रहा है ठीक है ना और जहाँ जहाँ नज़र आ रहा है वैसी नज़र आना चाहिए ठीक है दिस शुड बी डन बाय मॉर्निंग"
+  - **In English:** "Using the two repos I sent, my cousin brought the exact macOS liquid-glass look into another app of his. So when I wake up, this liquid glass must be properly implemented, as it appears in the videos, and look that way wherever it appears. This should be done by morning."
+  - **Effect:** top priority overnight. The reference is the Mac videos: every surface that shows liquid glass there shows the same look in the port, built with the two repos' techniques (the refracting rim band and displacement map, the blur, the specular rim, the colour fringe, the tint). It is proven on a real window against frames extracted from the video, side by side. OD-0005 still holds for the desktop behind a window: no screen capture, so the desktop itself is not refracted. Everything the app draws over its own content carries the full look.
+
+## OD-0108 The GPU warm-up runs behind the Marrow boot animation (2026-10-05)
+
+- **Context:** OD-0105 item 5 ("No, find another way"). The fix-knobcache unit then drew every GPU program part in a cloaked helper window before the boot stage, which added 386-541 ms before a later launch's first shown frame.
+- **Owner, verbatim:** "भाई वो स्टटर नहीं आना चाहिए जो तुमने ऊपर वाली बात लिखी हुई है कि नॉब कैश रिवर्क फॉलोज योर फाइंड अनदर वे रूल ऑन एवरी लॉन्च आफ्टर द फर्स्ट द ऐप क्वाइटली ड्रॉज ऑल इट्स ग्राफिक्स वंस इन अ हिडन विंडो बिफोर एनीथिंग अपीयर्स भाई जब ऐप लोड हो रही होती है शुरू में तो ऑलरेडी मैरो का एक आती है एनिमेशन लोडिंग की तो उस दौरान क्यों नहीं कर रहा वो उस वक्त तो पूरी विंडो छुपी भी होती है तो जब वो ऐप की एनिमेशन आ रही है मैरो की ना स्पिन स्पिनर जो चल रहा होता है स्पिनिंग एनिमेशन फिर वो पार्टिकल्स बन के जब जाता है तो उसी वक्त सब कुछ चीज़ें हो जानी चाहिए ना लोड तो उस उस दौरान करवाओ ठीक है ना बेशक अगर एक सेकंड और भी लेट हो जाए कोई मसला नहीं है ठीक है ना लेकिन जब शुरू होते साथ ही ऐप की एनिमेशन आ रही है मैरो की आइकन आ रहा है एनिमेट होके और फिर वो पार्टिकल्स बन के विंडो में जा रहा है ठीक है ना तो उसी दौरान सब चीज़ें रेडी हो जानी चाहिए ऐप की पीछे से ताकि जब कोई बंदा यूज़र जब उसको विंडो सामने आए तो एवरी थिंग शुड बी लोडेड एंड रेडी स्मूथ विदाउट एनी स्टटर्स"
+- **In English:** "There should be no stutter. When the app starts, the Marrow loading animation already plays: the icon animates and spins, then turns into particles that fly into the window, and the whole window is hidden at that time. Do all the loading during that animation, even if it makes launch up to a second later. By the time the window comes in front of the user, everything should be loaded and ready, smooth, without any stutters."
+- **Effect:**
+  - The warm-up runs behind the boot animation, while the main window is still hidden: the icon's spin, then the particles into the window. The main window is shown only once everything is ready.
+  - The boot animation itself must not stutter.
+  - Up to about one extra second of launch is accepted.
+  - The cloaked pre-boot pass is replaced or reduced to whatever cannot be hidden in the animation.
+  - Nothing is left to first use.
+  - This applies to every launch after the first. The first run keeps the Getting ready sheet.
+
+## OD-0109 Built-in colourful wallpapers, animated too, behind the liquid glass (2026-10-05)
+
+- **Owner, verbatim:** "और हाँ ठीक है चलो अगर वो जो तुम बोल रहे हो ना कि डेस्कटॉप डायरेक्टली बिहाइंड अ विंडो स्टिल कैन नॉट बी बेंट तो कोई ना कोई वॉलपेपर्स या तो एनिमेटेड वॉलपेपर्स हम लगा सकें पीछे की तरफ जो कलरफुल हो ठीक है ना मतलब एब्स्ट्रैक्ट कलरफुल मूवमेंट्स या स्मूथ मूवमेंट्स तरह की कुछ वॉलपेपर्स हम लोग एनिमेटेड वॉलपेपर्स का डाल दें इसके अंदर ताकि वो लिक्विड ग्लास का लुक भी मेंटेन रहे और बैकग्राउंड से हमें कोई फ़र्क ना पड़े बिकॉज अवर वॉलपेपर इज़ रनिंग बिहाइंड इस तरह से कुछ भी कर सकते हैं"
+- **In English:** "If the desktop directly behind a window still can't be bent, then let us put wallpapers behind it, or animated wallpapers, colourful ones: abstract colourful movements or smooth movements. Then the liquid-glass look is kept, and the background doesn't matter, because our own wallpaper is running behind."
+- **Context:**
+  - The app already has upstream's wallpaper setting (WallpaperCard). With a wallpaper set, the window draws its own backdrop and the full drawn material refracts it (OD-0014, OD-0005), as in the eight Mac screenshots over the app's own wallpaper (OD-0003).
+  - Without one, the glass sits over the desktop as Acrylic.
+- **Effect:**
+  - The port gains built-in wallpapers: colourful and abstract, some still and some smoothly animated. The liquid glass refracts them everywhere it appears. A user's own wallpaper still works as upstream.
+  - This is a new, port-only feature, so it is designed on a variants page for the owner's pick before it is built (OD-0070, OD-0104 style).
+  - The page shows the wallpapers behind the app's real glass, each with its per-frame cost: an animated wallpaper re-renders the glass above it every frame, so smooth playback, battery and the composer light are measured.
+  - Open for the pick:
+    - which wallpapers ship;
+    - whether one is the default for new users (upstream's default is no wallpaper, OD-0014);
+    - the motion speed;
+    - Reduce Motion behaviour.

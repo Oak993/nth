@@ -26,4 +26,21 @@ public sealed class WindowManagerChildEnvironmentTests
             Assert.DoesNotContain(environment.Keys, key => key.Contains("API_KEY", StringComparison.OrdinalIgnoreCase));
         }
     }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-9")]
+    [Trait("Rule", "R-TEST-10")]
+    public void The_native_childs_profile_is_inside_its_run_directory_and_has_the_shell_known_folders_a_dialog_opens_at()
+    {
+        var request = WindowManagerNativeChildProtocol.CreateRequest(
+            WindowManagerNativeChildProtocol.FactName(nameof(WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI)));
+        var native = WindowManagerNativeChildProtocol.ChildEnvironment(request, WindowManagerProcessProtocol.ResolveDotnetHost());
+        var home = Path.GetFullPath(native["USERPROFILE"]);
+        Assert.Equal(home, Path.GetFullPath(native["HOME"]));
+        Assert.StartsWith(Path.TrimEndingDirectorySeparator(request.RunDirectory) + Path.DirectorySeparatorChar, home, StringComparison.OrdinalIgnoreCase); // never the real profile
+        // A shell dialog (the folder chooser, a file picker) opens at the profile's Desktop; with no such folder the shell puts a
+        // "Location is not available" box on top of it.
+        foreach (var name in new[] { "Desktop", "Documents", "Downloads", "Music", "Pictures", "Videos" })
+            Assert.True(Directory.Exists(Path.Combine(home, name)), name + " is missing from the child's profile");
+    }
 }

@@ -28,9 +28,19 @@ public sealed class ScriptedCaptureDevice(string endpointId, DeviceFormat format
     /// <summary>Frames pushed so far (one sample per channel each).</summary>
     public long FramesPushed { get; private set; }
 
+    /// <summary>When set, <see cref="Start"/> throws it (a device that cannot start).</summary>
+    public Exception? FailStart { get; set; }
+
+    /// <summary>A buffer the capture thread is still delivering when <see cref="Stop"/> is called: it arrives inside Stop, as a real device's last buffer does.</summary>
+    public float[]? InFlightDuringStop { get; set; }
+
+    /// <summary>A buffer that arrives while <see cref="Dispose"/> joins the capture thread (after Stop returned): the last one a real device may still deliver.</summary>
+    public float[]? InFlightDuringDispose { get; set; }
+
     public void Start()
     {
         StartCount += 1;
+        if (FailStart is { } failure) throw failure;
         IsStarted = true;
     }
 
@@ -38,12 +48,20 @@ public sealed class ScriptedCaptureDevice(string endpointId, DeviceFormat format
     {
         StopCount += 1;
         if (!IsStarted) return;
+        if (InFlightDuringStop is { } last) Push(last);
         IsStarted = false;
         Stopped?.Invoke(null);
     }
 
     public void Dispose()
     {
+        if (InFlightDuringDispose is { } last)
+        {
+            var bytes = new byte[last.Length * Format.BytesPerSample];
+            for (var i = 0; i < last.Length; i++) Encode(last[i], bytes.AsSpan(i * Format.BytesPerSample));
+            FramesPushed += bytes.Length / Format.BytesPerFrame;
+            DataAvailable?.Invoke(bytes, false); // the capture thread's last buffer, delivered although Stop has returned
+        }
         IsDisposed = true;
         IsStarted = false;
     }

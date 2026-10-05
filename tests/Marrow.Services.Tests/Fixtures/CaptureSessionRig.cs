@@ -57,7 +57,7 @@ public sealed class CaptureSessionRig : IDisposable
     }
 
     /// <summary>One 10 ms step: the device pushes <paramref name="signal"/> from the session's clock, the processing step runs, the main loop runs, the clock moves 10 ms.</summary>
-    public void Feed(Func<long, float> signal, double seconds, bool silent = false)
+    public void Feed(Func<long, float> signal, double seconds, bool silent = false, Func<int, float>? channelGain = null)
     {
         var steps = (int)Math.Round(seconds * 100);
         var rate = Device.Format.SampleRate;
@@ -68,7 +68,7 @@ public sealed class CaptureSessionRig : IDisposable
             for (var f = 0; f < frames; f++)
             {
                 var value = signal(Device.FramesPushed + f);
-                for (var c = 0; c < Device.Format.Channels; c++) samples[f * Device.Format.Channels + c] = value;
+                for (var c = 0; c < Device.Format.Channels; c++) samples[f * Device.Format.Channels + c] = value * (channelGain?.Invoke(c) ?? 1f);
             }
             Device.Push(samples, silent);
             Capture.Pump();
