@@ -27,6 +27,7 @@ public sealed class HandshakeStandbySession : IStandbySession
 
     public SessionConfiguration Configuration { get; }
     public string SessionId { get; private set; } = "";
+    public HandoffPackage? ReceivedPackage { get; private set; }
 
     public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct)
     {
@@ -67,14 +68,23 @@ public sealed class HandshakeStandbySession : IStandbySession
             Bring.Full when package.Summary.FilePath is { } path => File.ReadAllText(path),
             Bring.Full => throw new InvalidOperationException("The full conversation archive is unavailable."),
             Bring.MarrowSummary => package.Summary.Text,
-            Bring.AiSummary when !string.IsNullOrWhiteSpace(package.Briefing) => package.Briefing,
+            Bring.AiSummary when !string.IsNullOrWhiteSpace(package.Briefing) => package.Briefing + "\nRecorded context:\n" + package.Summary.Text,
             Bring.AiSummary => throw new InvalidOperationException("The outgoing account did not produce an AI briefing."),
             _ => throw new ArgumentOutOfRangeException(nameof(package)),
         };
+        if (package.Bring != Bring.AiSummary && !string.IsNullOrWhiteSpace(package.Briefing))
+            context += "\nOutgoing account's briefing:\n" + package.Briefing;
         var prompt = "[Marrow Handshake] Read this recorded context without taking any actions. "
             + (readBack ? "Reply with the files, open tasks, and latest user instructions you understood.\n" : "Acknowledge the context and wait for the user's next turn.\n")
             + context;
-        return RunTextTurnAsync(prompt, readBack, ct);
+        return ReceivePackageAsync(package, prompt, readBack, ct);
+    }
+
+    private async Task<string?> ReceivePackageAsync(HandoffPackage package, string prompt, bool readBack, CancellationToken ct)
+    {
+        var answer = await RunTextTurnAsync(prompt, readBack, ct);
+        ReceivedPackage = package;
+        return answer;
     }
 
     public async Task FillGapsAsync(IReadOnlyList<string> gaps, CancellationToken ct) =>

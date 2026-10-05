@@ -235,7 +235,7 @@ internal sealed class ModelPreferenceConverter : JsonConverter<ModelPreference>
 }
 
 // :110-944. @MainActor @Observable -> MainActorModel (R-OBS-6); :947 extension AppSettings: ProviderSettings.
-public sealed class AppSettings : MainActorModel, ProviderSettings, AccountProviderSettings
+public sealed partial class AppSettings : MainActorModel, ProviderSettings, AccountProviderSettings
 {
     // :115
     public const string HydraDefaultEnabledKey = ChatThread.HydraDefaultKey;

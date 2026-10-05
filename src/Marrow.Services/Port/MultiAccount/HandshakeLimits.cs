@@ -9,8 +9,8 @@ namespace Marrow.Services.Port.MultiAccount;
 
 public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsScheduler scheduler, UsageRateEstimator rates, TimeProvider clock) : IAccountLimits
 {
-    private readonly Dictionary<Guid, (string Window, double Percent)> costs = [];
-    private readonly Dictionary<Guid, DateTimeOffset?> hardLimits = [];
+    private readonly Dictionary<Guid, (string Window, DateTimeOffset? Reset, long? Duration, string? Plan, double Percent)> costs = [];
+    private readonly Dictionary<Guid, (DateTimeOffset? Reset, DateTimeOffset ObservedAt)> hardLimits = [];
 
     public UsageAccountKey Key(Guid id)
     {
@@ -23,23 +23,23 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
     public AccountUsage? Usage(string accountId)
     {
         if (!Guid.TryParse(accountId, out var id)) return null;
-        if (hardLimits.TryGetValue(id, out var reset))
+        if (hardLimits.TryGetValue(id, out var hard))
         {
-            if (reset is null || reset > clock.GetUtcNow()) return new(100, reset, IsOut: true);
+            if (hard.Reset is null || hard.Reset > clock.GetUtcNow()) return new(100, hard.Reset, IsOut: true);
             hardLimits.Remove(id);
         }
         var binding = Binding(Snapshot(id));
         return binding is null ? null : new(binding.Percent, binding.ResetsAt);
     }
 
-    public void NoteLimit(Guid id, DateTimeOffset? reset) => hardLimits[id] = reset;
+    public void NoteLimit(Guid id, DateTimeOffset? reset) => hardLimits[id] = (reset, clock.GetUtcNow());
 
     public void Observe(Guid thread, Guid id)
     {
         if (Snapshot(id) is not { } snapshot) return;
         rates.Observe(thread, snapshot);
-        if (Binding(snapshot) is { Percent: < 100 } && hardLimits.TryGetValue(id, out var reset)
-            && reset is { } at && snapshot.ObservedAt >= at) hardLimits.Remove(id);
+        if (Binding(snapshot) is { Percent: < 100 } && hardLimits.TryGetValue(id, out var hard)
+            && snapshot.ObservedAt > hard.ObservedAt && (hard.Reset is null || snapshot.ObservedAt >= hard.Reset)) hardLimits.Remove(id);
     }
 
     public double? SpendPercentPerMinute(string accountId, Guid threadId)
@@ -49,7 +49,9 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
     }
 
     public double? HandshakeCostPercent(string accountId) => Guid.TryParse(accountId, out var id)
-        && costs.TryGetValue(id, out var cost) && Binding(Snapshot(id))?.Id == cost.Window ? cost.Percent : null;
+        && costs.TryGetValue(id, out var cost) && Binding(Snapshot(id)) is { } window
+        && window.Id == cost.Window && window.ResetsAt == cost.Reset && window.DurationMinutes == cost.Duration
+        && Snapshot(id)?.Limits?.PlanName == cost.Plan ? cost.Percent : null;
 
     // A reset, changed binding window or stale observation cannot manufacture a Handshake cost.
     public void RecordHandshakeCost(Guid id, AccountPlanLimitsSnapshot before, AccountPlanLimitsSnapshot after)
@@ -59,7 +61,7 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
         var last = Binding(after);
         if (first is null || last is null || first.Id != last.Id || first.DurationMinutes != last.DurationMinutes
             || first.ResetsAt != last.ResetsAt || before.Limits?.PlanName != after.Limits?.PlanName || last.Percent < first.Percent) return;
-        costs[id] = (last.Id, last.Percent - first.Percent);
+        costs[id] = (last.Id, last.ResetsAt, last.DurationMinutes, after.Limits?.PlanName, last.Percent - first.Percent);
     }
 
     private PlanLimits.Window? Binding(AccountPlanLimitsSnapshot? snapshot) => snapshot?.Limits?.Windows

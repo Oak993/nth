@@ -96,6 +96,7 @@ public sealed class HandshakeStandbySessionTests
         var receive = standby.ReceiveAsync(new(bring, summary, "ACTUAL-AI-BRIEFING"), true, CancellationToken.None);
         var expected = bring == Bring.Full ? full : bring == Bring.MarrowSummary ? summary.Text : "ACTUAL-AI-BRIEFING";
         Assert.Contains(expected, session.Inputs[0].Text, StringComparison.Ordinal);
+        Assert.Contains("ACTUAL-AI-BRIEFING", session.Inputs[0].Text, StringComparison.Ordinal);
         if (bring != Bring.Full) Assert.DoesNotContain("LAST-DETAIL", session.Inputs[0].Text, StringComparison.Ordinal);
         session.OnEvent!(new ProviderEvent.MessageCompleted("reply", "Understood."));
         session.OnEvent!(new ProviderEvent.TurnCompleted(TurnStatus.Completed, null));

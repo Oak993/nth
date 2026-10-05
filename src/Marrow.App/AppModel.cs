@@ -670,21 +670,25 @@ public sealed partial class AppModel : MainActorModel
             .FirstOrDefault(); // AppModel.swift:576-581
         if (unused is not null)
         {
-            var fresh = MakeThread(project, null); // AppModel.swift:582-585
-            UpdateThread(unused.Id, thread =>
+            var fresh = ApplyNewThreadPill(MakeThread(project, null)); // OD-0114 / ED-NEW-ma-ui; AppModel.swift:582-585
+            UpdateThreadValue(unused.Id, thread =>
             {
-                if (thread.Provider != fresh.Provider)
+                if (thread.Provider != fresh.Provider || thread.ProviderAccountID != fresh.ProviderAccountID)
                     thread = thread with { ProviderSessionID = null, ProviderResumeAt = null }; // AppModel.swift:587-590
                 return thread with
                 {
                     Provider = fresh.Provider,
+                    ProviderAccountID = fresh.ProviderAccountID,
+                    PillID = fresh.PillID,
+                    PillStepIndex = fresh.PillStepIndex,
+                    PillStepAccountID = fresh.PillStepAccountID,
                     Model = fresh.Model,
                     Effort = fresh.Effort,
                     FastMode = fresh.FastMode,
                     HydraPairID = fresh.HydraPairID,
                     HydraEnabled = fresh.HydraEnabled,
                 }; // AppModel.swift:591-597
-            });
+            }, accountSwitch: true);
             SelectedThreadID = unused.Id; // AppModel.swift:598
         }
         else
@@ -705,7 +709,7 @@ public sealed partial class AppModel : MainActorModel
             ChooseProjectFolder(); // AppModel.swift:606-609
             return null;
         }
-        var thread = MakeThread(destination, SelectedThread); // AppModel.swift:610
+        var thread = ApplyNewThreadPill(MakeThread(destination, SelectedThread)); // OD-0114 / ED-NEW-ma-ui; AppModel.swift:610
         Threads = Threads.Appending(thread); // AppModel.swift:611
         UpdateProject(destination.Id, existing => existing with { IsExpanded = true }); // AppModel.swift:612
         RememberLastProject(destination.Id); // AppModel.swift:613

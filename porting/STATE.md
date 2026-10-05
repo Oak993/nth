@@ -568,3 +568,10 @@ User-assigned usage-limits foundation on codex/ma-2, from claude/verify-terminal
 All seven foundations, staging bffb63a39 and independent review 2780ba681 are merged on codex/ma-ui. Windows scoped validation is Core 196/196, Services 178/178, App 55/55, zero skipped/build warnings/errors; see ED-NEW-ma-ui and E:/Droppy/work/scratch/handoff/codex-T11-ma-ui.md.
 
 **Incomplete:** T11 step 1 production host/controller, final-tail/full-Git summary, pill new-thread routing, MA-6 live key routing/caps/spend/pins and verified CLI standby restriction/restoration. Steps 2-5 Settings/composer/cards/opinions/usage, capsule styles, GPU neural motion and Fast/actual-window labels have not begun. No native or release gate, push, mark/DONE claim. Work continues under OD-0116 and OD-0117.
+
+
+## T11 host and summary checkpoint, 2026-10-05, Codex
+
+The real ThreadRuntime host, final-tail acknowledgement/revalidation, full Git context/facts, new-thread and launch-reuse pill routing, Local identity projection, briefing payload and cost-window/recovery adapters are implemented with narrow Windows Services 29/29 and App 11/11 tests; see ED-NEW-ma-ui.
+
+**Incomplete:** live account factory/controller/scheduler and Local discovery joins; API key metadata/rotation/caps/spend/pins; independently identified consent bypasses; CLI pre-tool restriction/restoration; all steps 2-5 and native checks. A new uncommitted API metadata test batch is in progress. Prior full-foundation counts are not relabelled as this checkpoint. T11 remains NOT READY, no push or DONE.
