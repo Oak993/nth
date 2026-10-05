@@ -8,9 +8,11 @@ using Marrow.Services.Port.Skills.Store;
 namespace Marrow.Services.Port.Skills.Generations;
 
 /// <summary>One coordinator per root owner (SkillsStore, or SK-8's SkillsPipeline through IGenerationStore). Pool-thread work: copying and hashing never run on a UI executor here.</summary>
-public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, IStoreProtection? protection = null, Func<string, IReadOnlyList<ExistingSkill>>? clashSource = null) : IDisposable
+public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, IStoreProtection? protection = null, Func<string, IReadOnlyList<ExistingSkill>>? clashSource = null,
+    IImportedSkillSource? importedSource = null) : IDisposable
 {
     private readonly object gate = new();
+    internal IImportedSkillSource? Imported => importedSource; // SK-18 (not yet composed)
     private readonly ChatGenerationPaths chatPaths = new(paths);
     private readonly IStoreProtection acl = protection ?? new WindowsStoreProtection();
     private readonly Dictionary<string, Generation> spares = new(StringComparer.Ordinal);
