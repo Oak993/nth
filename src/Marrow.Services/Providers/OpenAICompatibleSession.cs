@@ -703,9 +703,10 @@ public class OpenAICompatibleSession : ProviderSession
         if (rotation.Current() is { } choice)
         {
             rotatedKey = choice.Secret;
+            if (rotation.ContinuedOn is { } name) OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = $"Continued on {name}" }));
             return;
         }
-        var message = $"All {OpenAICompatibleSessionConfig.Title} API keys are out.";
+        var message = rotation.StopReason ?? $"All {OpenAICompatibleSessionConfig.Title} API keys are out.";
         OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = message }));
         throw new ProviderError(new ProviderError.Case.Failed(message));
     }
@@ -717,7 +718,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (KeyRotation is not { } rotation || round.StatusCode is not (402 or 429)) return false;
         if (rotation.OnFailure(round.StatusCode, round.RetryAfter) is not { } next)
         {
-            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = $"All {OpenAICompatibleSessionConfig.Title} API keys are out." }));
+            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = rotation.StopReason ?? $"All {OpenAICompatibleSessionConfig.Title} API keys are out." }));
             return false;
         }
         rotatedKey = next.Secret;

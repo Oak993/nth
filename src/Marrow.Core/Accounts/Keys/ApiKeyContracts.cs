@@ -90,6 +90,9 @@ public interface IApiKeyRotation
     /// <summary>Why <see cref="Current"/> or <see cref="OnFailure"/> last left the thread without a key to send on (the notice text), or null.</summary>
     string? StopReason { get; }
 
+    /// <summary>The nickname of the key the last <see cref="Current"/> moved the thread onto because its key was out or capped (a "Continued on" the session still has to say), else null.</summary>
+    string? ContinuedOn { get; }
+
     /// <summary>"Yes, just this time": the next forced move for this thread is allowed once. A remembered answer lives in <see cref="IKeyMovePolicy"/>.</summary>
     void AllowMoveOnce();
 

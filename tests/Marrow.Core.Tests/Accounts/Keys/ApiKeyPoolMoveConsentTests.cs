@@ -80,13 +80,13 @@ public sealed class ApiKeyPoolMoveConsentTests
 
         rig.Moves.Set(ApiKeyRig.Other, KeyMoveSetting.Deny);
         var no = rig.Rotation(ApiKeyRig.Other);
-        Assert.Equal("c", no.Current()!.Id);
+        Assert.Equal("b", no.Current()!.Id);
         Assert.Null(no.OnFailure(402, null));
         var declined = Assert.Single(rig.Events, e => e.Kind == ApiKeyEventKind.MoveDeclined);
-        Assert.Equal("c", declined.FromKeyId);
+        Assert.Equal("b", declined.FromKeyId);
         Assert.Null(no.Current());
         no.AllowMoveOnce();
-        Assert.Equal("a", no.Current()!.Id);
+        Assert.Equal("c", no.Current()!.Id);
     }
 
     [Fact]

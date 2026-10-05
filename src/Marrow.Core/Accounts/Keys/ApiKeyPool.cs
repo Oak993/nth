@@ -91,12 +91,13 @@ public sealed class ApiKeyPool
         return [.. ordered.Select(r => (r.Entry, r.Secret))];
     }
 
-    private bool Usable(ApiKeyEntry entry, DateTimeOffset now)
-    {
-        if (!entry.Allowed || string.IsNullOrWhiteSpace(store.Secret(entry.Id))) return false;
-        if (IsOut(entry.Id, now)) return false;
-        return !(entry.MonthlyCapUsd is { } cap && spend.SpendSince(entry.Id, MonthStart(now)) >= cap);
-    }
+    private bool HasSecret(ApiKeyEntry entry) => !string.IsNullOrWhiteSpace(store.Secret(entry.Id));
+
+    private bool Usable(ApiKeyEntry entry, DateTimeOffset now) =>
+        entry.Allowed && HasSecret(entry) && !IsOut(entry.Id, now) && !OverCap(entry, now);
+
+    private bool OverCap(ApiKeyEntry entry, DateTimeOffset now) =>
+        entry.MonthlyCapUsd is { } cap && spend.SpendSince(entry.Id, Month(now).Start) >= cap;
 
     private bool IsOut(string keyId, DateTimeOffset now)
     {
@@ -108,26 +109,38 @@ public sealed class ApiKeyPool
         return false;
     }
 
-    /// <summary>The earliest moment an allowed key with a secret can take a request: its out time or the start of next month for a capped one. Null when none is known.</summary>
+    /// <summary>The user's LOCAL calendar month around <paramref name="now"/> (lead decision): its first instant, the next month's first instant, and an index to tell months apart.</summary>
+    private (DateTimeOffset Start, DateTimeOffset Next, int Index) Month(DateTimeOffset now)
+    {
+        var zone = clock.LocalTimeZone;
+        var local = TimeZoneInfo.ConvertTime(now, zone);
+        DateTimeOffset First(int year, int month)
+        {
+            var first = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+            return new DateTimeOffset(first, zone.GetUtcOffset(first));
+        }
+        var next = local.Month == 12 ? First(local.Year + 1, 1) : First(local.Year, local.Month + 1);
+        return (First(local.Year, local.Month), next, local.Year * 12 + local.Month);
+    }
+
+    /// <summary>The earliest moment an allowed key with a secret can take a request: its out time or the start of next local month for a capped one. Null when none is known.</summary>
     private DateTimeOffset? EarliestReturn(DateTimeOffset now)
     {
         DateTimeOffset? earliest = null;
         foreach (var entry in store.Keys(service))
         {
-            if (!entry.Allowed || string.IsNullOrWhiteSpace(store.Secret(entry.Id))) continue;
+            if (!entry.Allowed || !HasSecret(entry)) continue;
             DateTimeOffset? back = null;
             if (outs.TryGetValue(entry.Id, out var state) && state.Until > now) back = state.Until;
-            if (entry.MonthlyCapUsd is { } cap && spend.SpendSince(entry.Id, MonthStart(now)) >= cap)
+            if (OverCap(entry, now))
             {
-                var next = new DateTimeOffset(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(1);
+                var next = Month(now).Next;
                 back = back is { } b && b > next ? b : next;
             }
             if (back is { } when && (earliest is null || when < earliest)) earliest = when;
         }
         return earliest;
     }
-
-    private DateTimeOffset MonthStart(DateTimeOffset now) => new(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, TimeSpan.Zero);
 
     private ApiKeyEvent Event(ApiKeyEventKind kind, Guid thread, KeyChoice? from, KeyChoice? to, int? status, DateTimeOffset? returns, string message) =>
         new(kind, service, thread, from?.Id, from?.Nickname, to?.Id, to?.Nickname, status, clock.GetUtcNow(), returns, message);
@@ -138,22 +151,33 @@ public sealed class ApiKeyPool
     {
         private readonly HashSet<string> tried = [];
         private KeyChoice? current;
+        // The key the thread was last on: leaving it because it ran out or hit its cap is a forced move (OD-0116); leaving it because the user turned it off is not.
+        private KeyChoice? anchor;
+        private bool moveOnce;
 
-        public string? StopReason => null;
+        public string? StopReason { get; private set; }
 
-        public void AllowMoveOnce() { }
+        public string? ContinuedOn { get; private set; }
+
+        public void AllowMoveOnce()
+        {
+            lock (pool.gate) moveOnce = true;
+        }
 
         public KeyChoice? Current()
         {
-            ApiKeyEvent? raised = null;
+            var raised = new List<ApiKeyEvent>();
             KeyChoice? choice;
             lock (pool.gate)
             {
                 tried.Clear();
-                choice = Pick(out raised);
+                StopReason = null;
+                ContinuedOn = null;
+                choice = Pick(raised);
                 current = choice;
+                if (choice is not null) anchor = choice;
             }
-            if (raised is not null) pool.Raise(raised);
+            foreach (var e in raised) pool.Raise(e);
             return choice;
         }
 
@@ -171,24 +195,30 @@ public sealed class ApiKeyPool
                     : (now + (retryAfter ?? pool.settings.RateLimitCooldown), OutKind.RateLimit);
                 pool.outs[failed.Id] = (until, kind);
                 tried.Add(failed.Id);
+                current = null;
 
                 if (pool.pins.ContainsKey(threadId))
                 {
-                    current = null;
-                    raised.Add(pool.Event(ApiKeyEventKind.PinnedKeyOut, threadId, failed, null, status, until, $"{failed.Nickname} is out. This thread is pinned to it."));
+                    StopReason = $"{failed.Nickname} is out. Unpin this thread to use another key.";
+                    raised.Add(pool.Event(ApiKeyEventKind.PinnedKeyOut, threadId, failed, null, status, until, StopReason));
+                }
+                else if (pool.Candidates(now, tried) is not { Count: > 0 } candidates)
+                {
+                    raised.Add(pool.Event(ApiKeyEventKind.AllKeysOut, threadId, failed, null, status, pool.EarliestReturn(now), "All keys are out."));
                 }
                 else
                 {
-                    next = Pick(out _);
-                    if (next is not null)
+                    var proposed = new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret);
+                    if (MoveAllowed(out var setting))
                     {
+                        next = Choose(proposed);
                         current = next;
+                        anchor = next;
                         raised.Add(pool.Event(ApiKeyEventKind.Continued, threadId, failed, next, status, null, $"Continued on {next.Nickname}"));
                     }
                     else
                     {
-                        current = null;
-                        raised.Add(pool.Event(ApiKeyEventKind.AllKeysOut, threadId, failed, null, status, pool.EarliestReturn(now), "All keys are out."));
+                        raised.Add(Withheld(setting, failed, proposed, $"{failed.Nickname} is out.", status));
                     }
                 }
             }
@@ -205,35 +235,98 @@ public sealed class ApiKeyPool
                 var now = pool.clock.GetUtcNow();
                 pool.spend.Add(key.Id, usd, now);
                 var entry = pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == key.Id);
-                if (entry?.MonthlyCapUsd is { } cap && pool.spend.SpendSince(key.Id, pool.MonthStart(now)) >= cap
-                    && pool.capped.Add((key.Id, now.UtcDateTime.Year * 12 + now.UtcDateTime.Month)))
-                {
+                if (entry is not null && pool.OverCap(entry, now) && pool.capped.Add((key.Id, pool.Month(now).Index)))
                     raised = pool.Event(ApiKeyEventKind.CapReached, threadId, key, null, null, null, $"{key.Nickname} reached its monthly cap.");
-                }
             }
             if (raised is not null) pool.Raise(raised);
         }
 
-        private KeyChoice? Pick(out ApiKeyEvent? raised)
+        // OD-0116: a forced move needs the user's yes (remembered, or once); the default is off.
+        private bool MoveAllowed(out KeyMoveSetting setting)
         {
-            raised = null;
-            var now = pool.clock.GetUtcNow();
-            if (pool.pins.TryGetValue(threadId, out var pin))
+            setting = pool.moves?.Setting(threadId) ?? KeyMoveSetting.Unset;
+            if (moveOnce)
             {
-                var entry = pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == pin);
-                if (entry is null || !entry.Allowed || string.IsNullOrWhiteSpace(pool.store.Secret(pin)) || pool.IsOut(pin, now)) return null;
-                return Choose(entry, pool.store.Secret(pin)!.Trim());
+                moveOnce = false;
+                return true;
             }
+            return setting == KeyMoveSetting.Allow;
+        }
+
+        private ApiKeyEvent Withheld(KeyMoveSetting setting, KeyChoice from, KeyChoice proposed, string why, int? status)
+        {
+            if (setting == KeyMoveSetting.Deny)
+            {
+                StopReason = $"{why} Moving to another key is off for this thread.";
+                return pool.Event(ApiKeyEventKind.MoveDeclined, threadId, from, proposed, status, null, StopReason);
+            }
+            StopReason = $"{why} Continue on {proposed.Nickname}?";
+            return pool.Event(ApiKeyEventKind.MoveNeedsAnswer, threadId, from, proposed, status, null, StopReason);
+        }
+
+        private KeyChoice? Pick(List<ApiKeyEvent> raised)
+        {
+            var now = pool.clock.GetUtcNow();
+            if (pool.pins.TryGetValue(threadId, out var pin)) return PickPinned(pin, now, raised);
+
             var candidates = pool.Candidates(now, tried);
-            if (candidates.Count > 0) return Choose(candidates[0].Entry, candidates[0].Secret);
-            if (tried.Count == 0) raised = pool.Event(ApiKeyEventKind.AllKeysOut, threadId, null, null, null, pool.EarliestReturn(now), "All keys are out.");
+            if (anchor is { } held && pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == held.Id) is { } entry
+                && entry.Allowed && pool.HasSecret(entry) && (pool.IsOut(held.Id, now) || pool.OverCap(entry, now)))
+            {
+                if (candidates.Count == 0)
+                {
+                    raised.Add(pool.Event(ApiKeyEventKind.AllKeysOut, threadId, held, null, null, pool.EarliestReturn(now), "All keys are out."));
+                    return null;
+                }
+                var proposed = new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret);
+                if (MoveAllowed(out var setting))
+                {
+                    var moved = Choose(proposed);
+                    ContinuedOn = moved.Nickname;
+                    raised.Add(pool.Event(ApiKeyEventKind.Continued, threadId, held, moved, null, null, $"Continued on {moved.Nickname}"));
+                    return moved;
+                }
+                var why = pool.IsOut(held.Id, now) ? $"{held.Nickname} is out." : $"{held.Nickname} reached its monthly cap.";
+                raised.Add(Withheld(setting, held, proposed, why, null));
+                return null;
+            }
+
+            if (candidates.Count > 0) return Choose(new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret));
+            raised.Add(pool.Event(ApiKeyEventKind.AllKeysOut, threadId, null, null, null, pool.EarliestReturn(now), "All keys are out."));
             return null;
         }
 
-        private KeyChoice Choose(ApiKeyEntry entry, string secret)
+        private KeyChoice? PickPinned(string pin, DateTimeOffset now, List<ApiKeyEvent> raised)
         {
-            pool.uses[entry.Id] = pool.uses.GetValueOrDefault(entry.Id) + 1;
-            return new KeyChoice(entry.Id, entry.Nickname, secret);
+            var entry = pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == pin);
+            var named = entry is null ? null : new KeyChoice(entry.Id, entry.Nickname, "");
+            if (entry is null || !entry.Allowed || !pool.HasSecret(entry))
+            {
+                StopReason = entry is null
+                    ? "The key this thread is pinned to is gone. Unpin this thread to use another key."
+                    : $"{entry.Nickname} is off. Unpin this thread to use another key.";
+                raised.Add(pool.Event(ApiKeyEventKind.PinnedKeyOut, threadId, named, null, null, null, StopReason));
+                return null;
+            }
+            if (pool.IsOut(pin, now))
+            {
+                StopReason = $"{entry.Nickname} is out. Unpin this thread to use another key.";
+                raised.Add(pool.Event(ApiKeyEventKind.PinnedKeyOut, threadId, named, null, null, pool.outs.TryGetValue(pin, out var o) ? o.Until : null, StopReason));
+                return null;
+            }
+            if (pool.OverCap(entry, now))
+            {
+                StopReason = $"{entry.Nickname} reached its monthly cap. Unpin this thread or raise the cap.";
+                raised.Add(pool.Event(ApiKeyEventKind.PinnedKeyCapped, threadId, named, null, null, pool.Month(now).Next, StopReason));
+                return null;
+            }
+            return Choose(new KeyChoice(entry.Id, entry.Nickname, pool.store.Secret(pin)!.Trim()));
+        }
+
+        private KeyChoice Choose(KeyChoice choice)
+        {
+            pool.uses[choice.Id] = pool.uses.GetValueOrDefault(choice.Id) + 1;
+            return choice;
         }
     }
 }
