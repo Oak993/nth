@@ -533,6 +533,7 @@ public sealed class FollowUpRow : Decorator
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         Child = rowSurface;
+        rowSurface.PropertyChanged += (_, e) => { if (e.Property == BoundsProperty) InvalidateVisual(); }; // the held capsule's shadow (Render)
         BuildRow();
         UpdateLeading();
         UpdateGrip();
@@ -769,6 +770,23 @@ public sealed class FollowUpRow : Decorator
         UpdateSurface();
     }
 
+    // :474-477 `Capsule(style: .continuous).fill(Chrome.overlay(0.12)).shadow(color: .black.opacity(0.28), radius: 10, y: 4)` while held: the
+    // capsule's shadow is its own coverage at the fill's alpha, drawn under it (SwiftShadow.DrawShadowOf, ED-358; sigma 10, ED-327).
+    // The row draws it before its children, so under the capsule; the pair target's capsule (:466-472) casts none.
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+        if (LiftShadow is { } shadow) SwiftShadow.DrawShadowOf(context, this, rowSurface, shadow, LiftShadowRadius, y: LiftShadowY);
+    }
+
+    internal const double LiftShadowRadius = 10, LiftShadowY = 4; // :477 radius 10 (sigma 10, ED-327), y 4
+
+    /// <summary>:477 the held capsule's <c>.shadow(color:)</c> as the Swift states it (black 0.28), or null while the row is not held.</summary>
+    internal Color? LiftShadow => isDragged ? Color.FromArgb((byte)(0.28 * 255), 0, 0, 0) : null;
+
+    /// <summary>What Render draws: <see cref="LiftShadow"/> cast at the capsule fill's alpha (SwiftShadow.Cast), transparent while not held.</summary>
+    internal Color DrawnLiftShadow => LiftShadow is { } shadow ? SwiftShadow.Cast(shadow, SwiftShadow.FillAlpha(rowSurface.Background) * rowSurface.Opacity) : default;
+
     private void UpdateSurface()
     {
         // :118 .offset(x: pairTarget != nil && isDragged ? 14 : 0, y: isDragged ? drag.visualOffset : 0)
@@ -782,9 +800,9 @@ public sealed class FollowUpRow : Decorator
             ? Chrome.Overlay(0.12).Brush(this)
             : isPairTarget ? Chrome.Accent.Opacity(0.18).Brush(this) : null;
         rowSurface.CornerRadius = isDragged || isPairTarget ? new CornerRadius(999) : new CornerRadius(0);
-        rowSurface.BoxShadow = isDragged
-            ? SwiftShadow.BoxShadows(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), radius: 10, y: 4) // :477 (sigma 10, ED-327)
-            : default;
+        // :477 the lifted capsule's shadow (black 0.28, radius 10, y 4; sigma 10, ED-327) is its own coverage, cast at the fill's alpha and
+        // drawn under it (ED-358): drawn by this row in Render, before its children. The pair target's capsule casts none.
+        InvalidateVisual();
         pairFrame.IsVisible = isPairTarget;
         if (isPairTarget)
         {

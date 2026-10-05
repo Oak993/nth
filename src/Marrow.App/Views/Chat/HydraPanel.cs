@@ -89,6 +89,9 @@ public sealed class HydraPanel : Decorator
         var shape = new Border { ClipToBounds = true, Child = stageHost }.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous); // :57 `shape`, the 22-point continuous rounded rectangle (ED-181, ED-275)
         SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :105
         var scrim = new Border { CornerRadius = new CornerRadius(CornerRadius) };
+        // :120 `.shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)` on the filled scrim: the scrim's own coverage, cast at
+        // its fill's alpha and drawn under it, through it (SwiftShadow.Caster, ED-358; sigma 28, ED-327).
+        var shadow = new SwiftShadow.Caster(scrim, Colors.Black, radius: 28, y: 10);
         // :102, :117 `let isDark = colorScheme == .dark` is read inside `body`, so the tint, the scrim and its shadow follow
         // the theme as it changes (the control is built before it has a theme, so this cannot be fixed at construction).
         void UpdateTheme()
@@ -97,7 +100,7 @@ public sealed class HydraPanel : Decorator
             shape.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this); // :107
             scrim.Background = new SolidColorBrush(Color.FromArgb(isDark ? (byte)77 : (byte)87, // :119 black 0.3 / white 0.34
                 isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255));
-            scrim.BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), radius: 28, y: 10); // :120 (sigma 28, ED-327)
+            shadow.Set(Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), radius: 28, y: 10); // :120 black 1.0 / 0.65, cast by the 0.3 / 0.34 fill
         }
         UpdateTheme();
         ActualThemeVariantChanged += (_, _) => UpdateTheme();
@@ -106,7 +109,7 @@ public sealed class HydraPanel : Decorator
         panelContents.Children.Add(waveHost);
         panelContents.Children.Add(Strip(isPoppedOut ? heads.FirstOrDefault() : null, runtime, heads, isPoppedOut, popOut, dismiss, onDrag, onDragEnd));
         var panel = new Border { ClipToBounds=true, Child=panelContents }.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous); // :113 .clipShape(shape)
-        Child = new Grid { Children = { scrim, panel } };
+        Child = new Grid { Children = { shadow, scrim, panel } };
         ClipToBounds=false; Width=size.Width; Height=size.Height;
         Apply(heads, isPoppedOut ? null : runtime.HydraSelectedHeadID, false, false);
         // :43-91 Observation and task are registered before attachment. Detachment cancels both.

@@ -454,12 +454,15 @@ internal sealed class PinnedModelRow : Decorator
         // :255-263 the lifted look is a layer behind the row, scaled with it: a fill, a shadow and the 1.02 scale, all
         // driven by one amount (0 at rest, 1 held) that the page springs (SetLift).
         liftLayer = new Border { CornerRadius = new CornerRadius(10), IsHitTestVisible = false };
-        host = new Panel { Children = { liftLayer, surface } };
+        // :259 the shadow is the filled shape's own coverage, cast at the fill's alpha and under it (SwiftShadow.Caster, ED-358).
+        liftShadow = new SwiftShadow.Caster(liftLayer, Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), radius: 10, y: 4); // :259 (sigma 10, ED-327)
+        host = new Panel { Children = { liftShadow, liftLayer, surface } };
         SetLift(lift ?? (isDragged ? 1 : 0));
         Child = host;
     }
 
     private readonly Border liftLayer;
+    private readonly SwiftShadow.Caster liftShadow;
     private readonly Panel host;
 
     /// <summary>:255-262 the lift: <c>.background { if isDragged { RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -469,14 +472,12 @@ internal sealed class PinnedModelRow : Decorator
     {
         if (amount <= 0)
         {
-            liftLayer.Background = null;
-            liftLayer.BoxShadow = default;
+            liftLayer.Background = null; // no fill, no shadow (the caster draws the fill's alpha)
             liftLayer.Opacity = 1;
             host.RenderTransform = null;
             return;
         }
         liftLayer.Background = Chrome.Overlay(0.12).Brush(liftLayer);
-        liftLayer.BoxShadow = SwiftShadow.BoxShadows(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), radius: 10, y: 4); // :259 (sigma 10, ED-327)
         liftLayer.Opacity = Math.Clamp(amount, 0, 1);
         var scale = 1 + 0.02 * amount;
         host.RenderTransform = new ScaleTransform(scale, scale);

@@ -1107,3 +1107,8 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Context:** the feasibility study (codex/ma-0) and the Handshake engine (cloud/ma-5) note that provider terms forbid bypassing protective measures or circumventing rate limits; the lead asked whether "Keep me going" starts on or off.
 - **Owner, verbatim:** "Switched off by default, app asks user the first time."
 - **Effect:** automatic switching ("Keep me going", the Handshake into another account) is off by default for every service. The first time an account runs out, the first-time card asks the user (OD-0115 layout A, with the Remember line); nothing switches automatically until the user chooses it. Pills a user creates are that user's explicit choice.
+
+## OD-0117 The Pills section is visible to everyone (2026-10-05)
+
+- **Owner, verbatim:** "Also, pills section in settings will be visible to users who have single accounts connected as well, just the options will be disabled with a message letting them know what this feature is and what would enable its functionality (multiple accounts)"
+- **Effect:** amends the notes' "Pills only once 2+ accounts or services are connected". Settings › Pills always shows in the sidebar. With fewer than two accounts or services connected, its controls are present but disabled (dimmed, not focusable as actions), under one short plain message that says what Pills are (a chain of accounts and models that Marrow moves through when one runs out) and what turns them on (connecting a second account or service, with a button to Settings › Models). Everything enables live, with a transition, the moment a second account or service is connected.

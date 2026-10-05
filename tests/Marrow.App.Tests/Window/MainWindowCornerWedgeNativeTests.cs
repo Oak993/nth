@@ -58,6 +58,7 @@ public sealed class MainWindowCornerWedgeNativeTests(WindowManagerNativeSession 
     [Fact]
     [Trait("Decision", "ED-236")]
     [Trait("Decision", "ED-338")] // implements owner decision OD-0075
+    // Owner ruling OD-0075; engineering provenance ED-236.
     [Trait("Req", "UI-LAUNCH-001")] // the main window's clear glass: Acrylic plus the app's scrim (OD-0014)
     public void The_real_main_windows_four_corners_outside_the_26_point_shape_are_the_body_just_inside_it_over_a_solid_and_a_busy_backdrop_in_both_themes() => native.Run(subject =>
     {
