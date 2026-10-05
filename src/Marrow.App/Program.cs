@@ -3,7 +3,9 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Marrow.App.Port;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.App.Port.Skills;
 using Marrow.Services.Port;
+using Marrow.Services.Port.Skills.Host;
 using Marrow.Services.Store;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
@@ -38,7 +40,10 @@ public static class Program
     internal static void RunVelopackHook(string baseDirectory)
     {
         if (!InstalledByVelopack(baseDirectory)) return;
-        VelopackApp.Build().Run();
+        var app = VelopackApp.Build();
+        // SK-13 / DL-16: the skills and tools data is unlocked and deleted before Velopack removes the app (ONDEMAND-PLAN.md 3.8).
+        SkillsUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), SkillsDataRoot.Resolve);
+        app.Run();
     }
 
     internal static bool InstalledByVelopack(string baseDirectory) =>
