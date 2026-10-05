@@ -2,8 +2,8 @@
 // The renderer in Marrow.App draws these; the maths of "what is left", the roles of the steps and the geometry of the styles live here so they can be proved without a screen.
 namespace Marrow.Core.Port.MultiAccount.Capsule;
 
-/// <summary>One step of a pill: the account's mark, its hue, and whether it is a local model (it never runs low).</summary>
-public sealed record CapsuleStep(string Mono, double Hue, bool Local);
+/// <summary>One step of a pill: the account's mark, its hue (0xRRGGBB, the mark's tint and never the usage light), and whether it is a local model (it never runs low).</summary>
+public sealed record CapsuleStep(string Mono, uint Hue, bool Local);
 
 /// <summary>What a pill capsule shows (the page's <c>set(o)</c> of a pill): the steps, the current one, the steps already run (null: those before the current one), the step on stand-by, a running Handshake, and the used share of the current and of the next account.</summary>
 public sealed record CapsuleView(IReadOnlyList<CapsuleStep> Steps, int Cur, IReadOnlyList<int>? Used, int? Stand, bool Handshake, double? Use, double? NextUse, string? Name);

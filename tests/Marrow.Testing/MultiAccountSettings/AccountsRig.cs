@@ -38,6 +38,8 @@ public sealed class AccountsRig
     public PillStore Pills { get; }
     public PillsSettingsModel PillsModel { get; }
 
+    public bool IsConnected(Account account) => connected.Contains(account.Id);
+
     public PillEditorModel Editor(Guid pill) => new(Pills, Accounts, a => connected.Contains(a.Id), (service, model) => model is null ? "" : service.Id + ":" + model, pill);
 
     public Pill MakePill(string name, params Account[] steps) => Pills.Create(name, steps.Select(a => new PillStep(a.Id.ToString("D"))));
