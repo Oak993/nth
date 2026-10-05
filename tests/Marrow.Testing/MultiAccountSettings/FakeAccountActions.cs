@@ -1,9 +1,9 @@
 using Marrow.Core.Models;
 using Marrow.Core.Port.MultiAccount.Settings;
 
-namespace Marrow.Core.Tests.Port.MultiAccount.Settings;
+namespace Marrow.Testing.MultiAccountSettings;
 
-/// <summary>Records the sign-in and sign-out the Models page asks for; nothing is launched (MA-8 fixtures).</summary>
+/// <summary>Records the sign-in and sign-out the Models page asks for; nothing is launched (MA-8 fixtures, shared by the Core and App tests).</summary>
 public sealed class FakeAccountActions : IAccountActions
 {
     public List<ProviderKind> Added { get; } = [];

@@ -3,11 +3,10 @@ using Marrow.Core.Accounts.Pills;
 using Marrow.Core.Models;
 using Marrow.Core.Port.Accounts;
 using Marrow.Core.Port.MultiAccount.Settings;
-using Marrow.Testing;
 
-namespace Marrow.Core.Tests.Port.MultiAccount.Settings;
+namespace Marrow.Testing.MultiAccountSettings;
 
-/// <summary>Accounts and pills over in-memory stores: Claude Max twice, Codex once, Local once, all connected (MA-8 fixtures).</summary>
+/// <summary>Accounts and pills over in-memory stores: Claude Max twice, Codex once, Local once, all connected (MA-8 fixtures, shared by the Core and App tests).</summary>
 public sealed class PillsRig
 {
     private readonly HashSet<Guid> connected = [];

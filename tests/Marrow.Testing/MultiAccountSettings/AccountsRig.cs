@@ -1,12 +1,13 @@
+using Marrow.Core.Accounts;
+using Marrow.Core.Accounts.Pills;
 using Marrow.Core.Models;
 using Marrow.Core.Port.Accounts;
 using Marrow.Core.Port.MultiAccount;
 using Marrow.Core.Port.MultiAccount.Settings;
-using Marrow.Testing;
 
-namespace Marrow.Core.Tests.Port.MultiAccount.Settings;
+namespace Marrow.Testing.MultiAccountSettings;
 
-/// <summary>An account store, the decision store and the Models page's model over them, with nothing connected until a test connects it (MA-8 fixtures).</summary>
+/// <summary>An account store, the decision store and the Models page's model over them, with nothing connected until a test connects it (MA-8 fixtures, shared by the Core and App tests).</summary>
 public sealed class AccountsRig
 {
     private readonly HashSet<Guid> connected = [];
@@ -19,7 +20,9 @@ public sealed class AccountsRig
         Actions = new FakeAccountActions();
         Clock = new ManualTimeProvider();
         PillsExist = pills;
-        Model = new AccountsSettingsModel(Accounts, Decisions, Handshake, a => connected.Contains(a.Id), () => PillsExist, Actions, id => Usage.GetValueOrDefault(id), Clock, TimeZoneInfo.Utc);
+        Pills = new PillStore();
+        Model = new AccountsSettingsModel(Accounts, Decisions, Handshake, a => connected.Contains(a.Id), () => PillsExist || Pills.Pills.Count > 0, Actions, id => Usage.GetValueOrDefault(id), Clock, TimeZoneInfo.Utc);
+        PillsModel = new PillsSettingsModel(Pills, Accounts, a => connected.Contains(a.Id));
     }
 
     public InMemorySettingsStore Settings { get; }
@@ -31,6 +34,12 @@ public sealed class AccountsRig
     public bool PillsExist { get; set; }
     public Dictionary<Guid, AccountUsageLine> Usage { get; } = [];
     public AccountsSettingsModel Model { get; }
+    public PillStore Pills { get; }
+    public PillsSettingsModel PillsModel { get; }
+
+    public PillEditorModel Editor(Guid pill) => new(Pills, Accounts, a => connected.Contains(a.Id), (service, model) => model is null ? "" : service.Id + ":" + model, pill);
+
+    public Pill MakePill(string name, params Account[] steps) => Pills.Create(name, steps.Select(a => new PillStep(a.Id.ToString("D"))));
 
     /// <summary>Connects the service's first account (the migrated one) and returns it.</summary>
     public Account Connect(ProviderKind service, string? plan = null)
