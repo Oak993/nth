@@ -1,0 +1,18 @@
+  Determining projects to restore...
+  Restored /workspace/marrow-port/tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj (in 287 ms).
+  2 of 3 projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:02.09]     Marrow.Core.Tests.Support.ThumbnailCacheTests.Square_fill_multiplies_by_aspect_ratio_and_caps_the_long_edge_at_2048 [FAIL]
+  Failed Marrow.Core.Tests.Support.ThumbnailCacheTests.Square_fill_multiplies_by_aspect_ratio_and_caps_the_long_edge_at_2048 [99 ms]
+  Error Message:
+   System.NullReferenceException : Object reference not set to an instance of an object.
+  Stack Trace:
+     at Marrow.Core.Tests.Support.ThumbnailCacheTests.Square_fill_multiplies_by_aspect_ratio_and_caps_the_long_edge_at_2048() in /workspace/marrow-port/tests/Marrow.Core.Tests/Support/ThumbnailCacheTests.cs:line 116
+--- End of stack trace from previous location ---
+Results File: /tmp/sk12-results/core-sk12-checks.trx
+
+Failed!  - Failed:     1, Passed:   166, Skipped:     0, Total:   167, Duration: 878 ms - Marrow.Core.Tests.dll (net10.0)

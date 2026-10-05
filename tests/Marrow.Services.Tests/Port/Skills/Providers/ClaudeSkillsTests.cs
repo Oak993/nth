@@ -36,7 +36,8 @@ public sealed class ClaudeSkillsTests
         throw new FileNotFoundException(name);
     }
 
-    [Theory, InlineData(false), InlineData(true), Trait("Rule", "DL-11")]
+    // Specification citation: DL-11 (SK-11a).
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Empty_install_matches_frozen_existing_provider_argv_environment_and_RPC_bytes(bool configured)
     {
         using var runtime = new TestRuntime();
@@ -55,11 +56,11 @@ public sealed class ClaudeSkillsTests
         });
         var legacy = new LegacyClaudeSession(config);
         runtime.Loop.Run(() => legacy.Start(), TimeSpan.FromSeconds(5));
-        runtime.Loop.Run(() => legacy.Send(new TurnInput { Images = [], Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
+        runtime.Loop.Run(() => legacy.Send(new TurnInput { Images = ValueList<Attachment>.Empty, Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
         legacy.Stop();
         var current = new ClaudeSession(config, () => null);
         runtime.Loop.Run(() => current.Start(), TimeSpan.FromSeconds(5));
-        runtime.Loop.Run(() => current.Send(new TurnInput { Images = [], Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
+        runtime.Loop.Run(() => current.Send(new TurnInput { Images = ValueList<Attachment>.Empty, Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
         current.Stop();
         Assert.Equal(2, recordings.Count);
         Assert.Equal(2, helpEnvironments.Count);
@@ -71,7 +72,8 @@ public sealed class ClaudeSkillsTests
         for (var i = 0; i < recordings[0].Sent.Count; i++) Assert.Equal(recordings[0].Sent[i], recordings[1].Sent[i]);
     }
 
-    [Fact, Trait("Rule", "DL-11")]
+    // Specification citation: DL-11 (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Empty_handshake_matches_existing_provider_without_an_extra_help_or_RPC_call()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder();
@@ -85,7 +87,8 @@ public sealed class ClaudeSkillsTests
         Assert.Equal(EncodeEnvironment(ShimPath.ForChild(calls[0].Environment, Marrow.Services.Store.Storage.Root)), EncodeEnvironment(calls[1].Environment));
     }
 
-    [Fact, Trait("Rule", "WU-6")]
+    // Specification citation: WU-6 (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Start_passes_generation_and_each_installed_plugin_as_single_arguments_and_keeps_user_command_first()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -106,7 +109,8 @@ public sealed class ClaudeSkillsTests
         s.Stop(); Drain(runtime, gen); Assert.False(gen.Verify());
     }
 
-    [Fact, Trait("Rule", "WU-6")]
+    // Specification citation: WU-6 (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Missing_plugin_flag_never_acquires_a_generation_and_keeps_existing_argv()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help("");
@@ -116,7 +120,8 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5)); Assert.Empty(PluginArgs(call!.Arguments)); s.Stop();
     }
 
-    [Fact, Trait("Rule", "DL-12")]
+    // Specification citation: DL-12 (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Fixture_tool_use_result_and_can_use_tool_emit_only_correlated_normalized_events()
     {
         var events = new List<ToolEvent>(); var s = new ClaudeSession(Config()) { OnSkillEvent = events.Add };
@@ -127,7 +132,8 @@ public sealed class ClaudeSkillsTests
             new CommandFinished("node render.js", null, false, "done") }, events);
     }
 
-    [Fact, Trait("Rule", "DL-12")]
+    // Specification citation: DL-12 (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Taps_leave_existing_provider_events_and_permission_responses_unchanged()
     {
         var a = new List<ProviderEvent>(); var b = new List<ProviderEvent>();
@@ -135,7 +141,8 @@ public sealed class ClaudeSkillsTests
         foreach (var line in File.ReadLines(Fixture("claude-tools.jsonl"))) { var m = JSONValue.Parse(line)!; old.Handle(m); current.Handle(m); }
         Assert.Equal(a, b);
     }
-    [Fact, Trait("Rule", "WU-6")]
+    // Specification citation: WU-6 (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Handshake_passes_verified_listing_and_plugin_folders_and_releases_its_lease()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -152,7 +159,8 @@ public sealed class ClaudeSkillsTests
         Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
     }
 
-    [Fact, Trait("Rule", "WU-6-resume")]
+    // Specification citation: WU-6-resume (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Resume_after_GC_and_coordinator_restart_keeps_argv_root_and_transcript_skill_directory_verified()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -178,7 +186,8 @@ public sealed class ClaudeSkillsTests
         resumed.Stop(); Drain(runtime, next);
     }
 
-    [Fact, Trait("Rule", "WU-6-held-folder")]
+    // Specification citation: WU-6-held-folder (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Held_old_generation_uses_new_root_and_exact_plan_moved_line_in_existing_prompt()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -196,7 +205,8 @@ public sealed class ClaudeSkillsTests
         resumed.Stop(); Drain(runtime, next); f.Deletion.Held.Clear();
     }
 
-    [Fact, Trait("Rule", "WU-6-integrity")]
+    // Specification citation: WU-6-integrity (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Tampered_generation_fails_before_any_provider_process_and_releases_lease()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -209,7 +219,8 @@ public sealed class ClaudeSkillsTests
         Assert.False(gen.Verify());
     }
 
-    [Fact, Trait("Rule", "DL-12")]
+    // Specification citation: DL-12 (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Edge_fixture_isolates_head_commands_and_ignores_unknown_malformed_noncommand_and_prose_events()
     {
         var events = new List<ToolEvent>(); var s = new ClaudeSession(Config()) { OnSkillEvent = events.Add };
@@ -219,7 +230,8 @@ public sealed class ClaudeSkillsTests
             new CommandFinished("soffice --headless", null, true, "CommandNotFoundException"), new SkillUsed("pdf"), new CommandHeld("soffice --headless") }, events);
     }
 
-    [Fact, Trait("Rule", "DL-12-observer")]
+    // Specification citation: DL-12-observer (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Observer_failure_is_reported_without_changing_approval_or_provider_events()
     {
         var actual = new List<ProviderEvent>(); var expected = new List<ProviderEvent>();
@@ -230,7 +242,8 @@ public sealed class ClaudeSkillsTests
         Assert.Equal(expected, actual); Assert.Same(failure, current.LastSkillEventFailure);
     }
 
-    [Theory, InlineData("allow"), InlineData("deny"), Trait("Rule", "DL-11-permissions")]
+    // Specification citation: DL-11-permissions (SK-11a).
+    [Theory, InlineData("allow"), InlineData("deny"), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Tap_keeps_real_permission_response_RPC_bytes_identical(string answer)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -243,7 +256,8 @@ public sealed class ClaudeSkillsTests
         Assert.Equal(calls[0].Sent.Last(), calls[1].Sent.Last()); old.Stop(); current.Stop(); Drain(runtime);
     }
 
-    [Fact, Trait("Rule", "WU-6-lease")]
+    // Specification citation: WU-6-lease (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Session_generation_survives_stdout_EOF_and_Stop_until_child_exit()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -259,7 +273,8 @@ public sealed class ClaudeSkillsTests
         call.CompleteExit(); Drain(runtime, gen); Assert.False(gen.Verify());
     }
 
-    [Fact, Trait("Rule", "WU-6-lease")]
+    // Specification citation: WU-6-lease (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Handshake_listing_remains_leased_until_the_terminated_child_actually_exits()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -271,11 +286,12 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.Enqueue(() => task = ClaudeSession.Handshake(c.Executable!, c.WorkingDirectory, c.Environment, () => probe));
         runtime.Loop.RunUntil(() => call?.TerminateRequested == true, TimeSpan.FromSeconds(5));
         Assert.False(task!.IsCompleted); Assert.Equal(path, probe.Folder); service.Collect(); Assert.True(Directory.Exists(path));
-        call!.CompleteExit(); runtime.Loop.RunUntil(() => task.IsCompleted, TimeSpan.FromSeconds(5)); task.GetAwaiter().GetResult();
+        call!.CompleteExit(); runtime.Loop.RunUntil(() => task.IsCompleted, TimeSpan.FromSeconds(5)); runtime.Loop.Run(() => task, TimeSpan.FromSeconds(5));
         Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
     }
 
-    [Theory, InlineData(false), InlineData(true), Trait("Rule", "WU-6-help-failure")]
+    // Specification citation: WU-6-help-failure (SK-11a).
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Failed_help_even_with_flag_text_never_adds_plugin_arguments(bool throws)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder();
@@ -287,7 +303,8 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5)); Assert.Empty(PluginArgs(call!.Arguments)); s.Stop(); Drain(runtime);
     }
 
-    [Fact, Trait("Rule", "PLAN-2.1-per-turn")]
+    // Specification citation: PLAN-2.1-per-turn (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Changed_generation_warns_once_before_turn_and_remains_leased_until_exit()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -297,7 +314,7 @@ public sealed class ClaudeSkillsTests
         using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => new RecordingClaudeProcess(args, env));
         var s = new ClaudeSession(Config(), () => gen) { OnEvent = events.Add }; runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5));
         f.Trees.Unlock(gen.Folder); File.WriteAllText(Path.Combine(gen.Folder, "extra.py"), "fixture"); f.Trees.Lock(gen.Folder);
-        var input = new TurnInput { Text = "fixture", Images = [], RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
+        var input = new TurnInput { Text = "fixture", Images = ValueList<Attachment>.Empty, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
         runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5)); runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5));
         var notices = events.OfType<ProviderEvent.Notice>().ToArray();
         Assert.Single(notices); Assert.Equal("A Marrow skill file changed during this chat; new chats are not affected", notices[0].Value.Message);
@@ -307,7 +324,8 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.RunUntil(() => released, TimeSpan.FromSeconds(5)); service.Collect();
     }
 
-    [Fact, Trait("Rule", "DL-12-held-request")]
+    // Specification citation: DL-12-held-request (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Held_observer_runs_after_the_existing_permission_request_is_registered()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -321,7 +339,8 @@ public sealed class ClaudeSkillsTests
         s.Stop(); Drain(runtime);
     }
 
-    [Theory, InlineData(false), InlineData(true), Trait("Rule", "WU-6-fail-closed")]
+    // Specification citation: WU-6-fail-closed (SK-11a).
+    [Theory, InlineData(false), InlineData(true), Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Failed_launch_or_initialization_releases_generation_and_never_uses_a_live_CLI(bool rejectInitialize)
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();
@@ -339,7 +358,8 @@ public sealed class ClaudeSkillsTests
         Drain(runtime, gen); Assert.False(call!.IsRunning); Assert.False(gen.Verify());
     }
 
-    [Fact, Trait("Rule", "WU-6-probe-integrity")]
+    // Specification citation: WU-6-probe-integrity (SK-11a).
+    [Fact, Trait("Feature", "SK-11a"), Trait("Rule", "R-TEST-10")]
     public void Tampered_listing_is_refused_before_provider_spawn_and_probe_lease_is_released()
     {
         using var runtime = new TestRuntime(); using var scratch = new StorageScratchFolder(); using var help = Help();

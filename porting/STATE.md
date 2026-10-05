@@ -502,3 +502,8 @@ against the leaders. No stack chosen yet. No Windows code written yet.
 Machine constraint found: .NET 10 RUNTIME only (no SDK), no MSVC, no cmake, no Rust. Node 24,
 Python 3.14 and winget are present. Toolchain will be installed only for the chosen stack, after
 the decision record, rather than speculatively.
+
+
+## 2026-10-05 SK-12 checkpoint (codex/f-sk-12)
+
+Merged SK-11a, SK-11c, SK-11b, SK-11e and SK-11f from their requested remote heads, preserving both ledger contributions and their original line endings. Implemented DL-13 offer flow/R1-R4 and S1 continuation with offline test-first evidence. See ED-NEW-codex-sk-12 and porting/evidence/first-release/sk-12/REPORT.md for named tests, suite counts and Windows-only gaps. Validation remains partial on Linux; no release/parity claim, package, sign, publish or installer.

@@ -69,7 +69,8 @@ public sealed class CommandCodeSkillFlagProbeTests
         Assert.Equal(2, calls());
     }
 
-    [Fact, Trait("Feature", "SK-11e"), Trait("Rule", "R-TEST-4"), Trait("Decision", "ED-NEW-f-sk-11e")]
+    // Engineering choice: ED-NEW-f-sk-11e (append-only ledger heading, not a numbered Decision trait).
+    [Fact, Trait("Feature", "SK-11e"), Trait("Rule", "R-TEST-4")]
     public void The_real_runner_has_a_bounded_timeout_and_the_turn_path_member_never_runs_anything()
     {
         Assert.Equal(10, CommandCodeHelpRunner.TimeoutSeconds);
