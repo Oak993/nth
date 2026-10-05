@@ -7,7 +7,7 @@ using Marrow.Services.Tests.Port.Skills.Pipelines;
 namespace Marrow.Services.Tests.Port.Skills.Host;
 
 [Trait("Feature", "SK-13")]
-[Trait("Spec", "ED-326")]
+[Trait("Decision", "ED-326")]
 [Trait("Rule", "R-TEST-9")]
 [Collection("Dev data root env")]
 public sealed class SkillsHostOrphanTests

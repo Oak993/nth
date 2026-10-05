@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Marrow.App.Port;
+using Marrow.App.Port.Updates;
 using Marrow.App.Window;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -36,6 +37,11 @@ public sealed class LaunchHarness : IDisposable
         scopes.Add(WindowManager.OverrideShared(Manager));
         Checker = Harness.Main.OnMain(() => new UpdateChecker(AppInfo.Current, [], ""));
         scopes.Add(UpdateChecker.OverrideShared(Checker));
+        // UE-5: the launch's Update everything step can never reach the real service, the real self-update engine, a CLI or a listing: a fresh
+        // service, a fake engine and no items, whatever the launch configures.
+        scopes.Add(SelfUpdateEngine.OverrideShared(new FakeSelfUpdateEngine { Installed = false }));
+        scopes.Add(UpdateEverythingService.OverrideShared(Harness.Main.OnMain(() => new UpdateEverythingService([], () => { }))));
+        scopes.Add(UpdateEverythingProduction.OverrideSource(_ => ([], () => { })));
         Progress = UpdateInstallProgressFixtures.NewProgress();
         scopes.Add(UpdateInstallProgress.Running.Override(Progress));
         savedDelegationBlock = MarkdownDelegationCard.Render;

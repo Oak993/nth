@@ -1,4 +1,5 @@
 using Marrow.App.Port;
+using Marrow.App.Port.Updates;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Settings;
 using Marrow.App.Views.Tour;
@@ -92,6 +93,7 @@ public sealed class AppDelegate
             boot?.Ready(); // ED-103 (3): the app is ready once its model has bootstrapped
         });
         UpdateChecker.Shared.StartBackgroundChecks(); // :28
+        UpdateEverythingProduction.Configure(windows.Model); // UE-5 (OD-0100): Update everything's items and its background check; no Swift twin
         // :29 The relaunch after an install: the update story finishes on About, where it began.
         if (AppUpdater.Shared.ConsumeRelaunchMarker()) // :30
         {

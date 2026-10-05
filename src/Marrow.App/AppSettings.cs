@@ -624,7 +624,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     public VoiceTypingSettings VoiceTyping
     {
         get => Read(voiceTyping);
-        set => Set(ref voiceTyping, value, _ => Store(Key.VoiceTyping, value.ToJson()));
+        set => Set(ref voiceTyping, value, _ => { Marrow.App.Port.Voice.VoiceTypingMirror.Publish(defaults, value); Store(Key.VoiceTyping, value.ToJson()); });
     }
 
     /// <summary><c>voiceHardware</c> (V-16.4): the stored result of the hardware check; null until one has run (setting null removes the key).</summary>
@@ -1295,6 +1295,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         // PORT-ONLY (SA-1): unreadable or missing, the record default (the hardware record: none)
         voiceOrb = defaults.Data(Key.VoiceOrb) is { } orbStored ? VoiceOrbSettings.FromJson(orbStored) : VoiceOrbSettings.Default;
         voiceTyping = defaults.Data(Key.VoiceTyping) is { } typingStored ? VoiceTypingSettings.FromJson(typingStored) : VoiceTypingSettings.Default;
+        Marrow.App.Port.Voice.VoiceTypingMirror.Publish(defaults, voiceTyping); // the readers without a settings object (VT-14 review)
         voiceHardware = defaults.Data(Key.VoiceHardware) is { } hardwareStored ? VoiceHardwareRecord.FromJson(hardwareStored) : null;
         voiceNotes = defaults.Data(Key.VoiceNotes) is { } notesStored ? VoiceNotesSettings.FromJson(notesStored) : VoiceNotesSettings.Default;
         workingDots = defaults.Data(Key.WorkingDots) is { } dotsStored ? WorkingDotsSettings.FromJson(dotsStored) : WorkingDotsSettings.Default;

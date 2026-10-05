@@ -7,6 +7,13 @@
 //   float u_dark     0 = light theme, 1 = dark theme
 //   vec2  u_opt      the wallpaper's two options, each 0..1 (x = motion amount, y = the wallpaper's second option)
 //   float u_px       the size of one device pixel in p units, for anti-aliased edges
+//   vec2  u_tilt     perspective: the pointer's (or the window's) offset, each -1..1, eased; (0, 0) when Perspective is off
+//                    or under Reduce Motion. A wallpaper with depth shifts each layer by tiltD(depth); a flat wallpaper
+//                    ignores it (the host pans its whole picture a few pixels instead).
+//   vec2  u_sun      dynamic (time of day): the offset to add to the wallpaper's own light position or light direction,
+//                    in p units, eased; (0, 0) when Dynamic is off or the wallpaper declares no light
+//   float u_focus    Focus, 0 sharp .. 1 dreamy, eased. The host blurs the picture; a wallpaper may also widen its own
+//                    hard edges with edgePx().
 // wall(p, t): p is the point with the window's height spanning -1..1 (x grows with the aspect), t is the loop clock in
 // seconds, 0 <= t < T. All motion is built from a = TAU * t / T, so frame(t) == frame(t + T) exactly.
 
@@ -16,6 +23,11 @@ float sat(float x) { return clamp(x, 0.0, 1.0); }
 vec2 rot(vec2 p, float a) { float c = cos(a); float s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
 vec2 orbit(float a, float r) { return r * vec2(cos(a), sin(a)); }
 float gauss(float x, float w) { return exp(-(x * x) / (w * w)); }
+// parallax: add tiltD(d) to p before evaluating a layer; d runs from -1 (the farthest layer) to +1 (the nearest). At full
+// tilt the nearest layer moves 0.010 p units (4 px at 800 px high), the farthest the other way, so a few pixels at most.
+vec2 tiltD(float d) { return u_tilt * (0.010 * d); }
+// the width of an anti-aliased edge: one pixel when sharp, wider as Focus rises (use in place of u_px on hard edges)
+float edgePx() { return u_px * (1.0 + 14.0 * u_focus); }
 
 // ---- colour: OKLab (Bjorn Ottosson's matrices) and sRGB
 vec3 lab2lin(vec3 c) {

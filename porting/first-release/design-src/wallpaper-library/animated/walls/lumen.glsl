@@ -13,7 +13,7 @@ vec3 wall(vec2 p, float t) {
   // the shaft: a slanted band from the top left whose position swings slowly across the wall
   vec2 dir = normalize(vec2(0.62, -0.78));
   vec2 nrm = vec2(-dir.y, dir.x);
-  float pos = -0.25 + 0.55 * m * sin(a) + 0.08 * m * sin(2.0 * a + 1.0);
+  float pos = -0.25 + 0.55 * m * sin(a) + 0.08 * m * sin(2.0 * a + 1.0) + u_sun.x;
   float across = dot(p, nrm) - pos;
   float along = dot(p, dir);
   float wid = 0.72 + 0.08 * sin(a + 1.3);
