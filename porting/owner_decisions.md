@@ -1054,3 +1054,14 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Approval, owner, 2026-10-05 (chat, verbatim):** "All wallpapers approved"
   - **What was approved:** both published library pages. Animated: https://claude.ai/artifact/LFRLdPKiHhScEMwqBBs55c, 72 wallpapers (version 2). Static: https://claude.ai/artifact/CrziwfNftCftsFK6mGgUPz, 90 wallpapers.
   - **Effect:** all 162 wallpapers ship as drawn, in the design snapshot at porting/first-release/design-src/wallpaper-library (static at ab4308969, animated at 76a61a4e2). That snapshot is the source of truth for the app's per-wallpaper fidelity tests. This includes the four premium options (Dynamic, Match accent, Perspective, Focus) and the names, all unique across both collections.
+
+## OD-0111 Every update ships with its What's new, and the app shows it with the update (2026-10-05)
+
+- **Context:** the self-update (UE-1, ED-320) already reads a release's markdown notes and the About page shows them as section cards, but the packaging script's `-ReleaseNotesFile` was optional, so a release could go out with no notes.
+- **Owner, verbatim:** "अच्छा एक चीज़ मैंडेटरी करवा देना कि आपकी जो अपडेट होती है ना जो मैं फॉर एग्जांपल अपने गिट हब पे अपलोड करूँगा न्यू अपडेट तो जब ऐप के अंदर शो होगी किसी और यूज़र को कि अपडेट आई हुई है ठीक है ना तो यू नो इट शुड शो कि न्यू वर्जन के अंदर क्या चेंजेस हैं क्या अपडेट्स हैं ठीक है ना वो एक चेंज लॉग और अपडेट्स व्हाट्स न्यू ठीक है ना वो होना चाहिए ठीक है ना विथ एवरी पुश ऑफ न्यू अपडेट ये चीज़ साथ साथ पुश होनी चाहिए ताकि जिसका भी ऐप में अपडेट आए उसको पता हो कि क्या चीज़ चेंज हो रही है क्या अपडेट हो रहा है क्या नई चीज़ ऐड हो रही है एवरी थिंग ठीक है ना"
+- **In English:** "Make one thing mandatory. When I upload a new update to my GitHub and the app shows another user that an update is available, it should show what changed in the new version: a changelog and What's new. It must be pushed together with every new update, so whoever gets the update knows what is changing, what is updated and what is new."
+- **Effect:**
+  - Release notes are mandatory. A release cannot be packaged or uploaded without a What's new for that exact version: packaging fails closed when the notes are missing, empty, for another version, or have no recognised section.
+  - The notes come from the repository's CHANGELOG, one section per version, in the parity headings (New features, Bug fixes, Refinements), so every pushed update carries its own changelog.
+  - When the app offers an update, the user sees that version's What's new (the parity section cards) before installing, and can read it again after updating.
+  - Nothing is published or uploaded without the owner's word (unchanged).
