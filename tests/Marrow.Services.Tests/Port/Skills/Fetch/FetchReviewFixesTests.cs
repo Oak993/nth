@@ -1,5 +1,4 @@
 // PORT-ONLY: first-release feature unit SK-16, review fixes (ED-NEW-cloud-sk-16): the cases the reviewer's REVIEW_ tests do not pin. Scripted seams on a fresh data root; no network, no CLI.
-using System.Collections.Concurrent;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Fetch;
 using Marrow.Services.Port.Skills.Host;
@@ -58,8 +57,8 @@ public sealed class FetchReviewFixesTests
         rig.Hold["S1"] = new(TaskCreationOptions.RunContinuationsAsynchronously);
         var first = rig.Host.Downloads.Install(rig.Item("S1"), new PipelineProgress([]), CancellationToken.None);
         await rig.Entered("S1");
-        var seen = new ConcurrentQueue<double?>();
-        var joined = rig.Host.Downloads.Install(rig.Item("S1"), new Collecting(seen), CancellationToken.None);
+        var seen = new List<double?>();
+        var joined = rig.Host.Downloads.Install(rig.Item("S1"), new PipelineProgress(seen), CancellationToken.None);
         rig.Hold["S1"].SetResult();
         await Task.WhenAll(first, joined).WaitAsync(Guard);
         var values = seen.Select(v => v!.Value).ToArray();
@@ -102,10 +101,5 @@ public sealed class FetchReviewFixesTests
         using var reopened = SkillsHost.Open(rig.Root, SkillsHostRig.Options(rig.Protection, SkillsHostRig.Catalogue(rig.Item("S1") with { Pin = new string('a', 40) })));
         Assert.Null(reopened.Pipeline.Acquire("S1")); // refused: the tree is not the one that was verified
         Assert.Equal(ItemState.Damaged, reopened.Pipeline.State.Get("S1").State);
-    }
-
-    private sealed class Collecting(ConcurrentQueue<double?> sink) : IProgress<double?>
-    {
-        public void Report(double? value) => sink.Enqueue(value);
     }
 }
