@@ -59,6 +59,13 @@ public sealed class RootView : Decorator
     private readonly SidebarResizeHandle leadingHandleConfig;
     private readonly DragHandleView leadingHandle;
     private readonly DetailView detailView = new();
+
+    /// <summary>WV-1: the Welcome voice question the detail pane draws on the empty page (see <see cref="DetailView.VoiceQuestion"/>).</summary>
+    internal Marrow.App.Port.Voice.VoiceSpeedQuestion? VoiceQuestion
+    {
+        get => detailView.VoiceQuestion;
+        set => detailView.VoiceQuestion = value;
+    }
     private readonly Border detailClip;
     private readonly Border detailPadded;
     private readonly Panel detailSlot = new OverlayPanel();
@@ -652,6 +659,22 @@ public sealed class DetailView : Decorator
     private ThreadColumns? columns;
     private AppModel? columnModel;
     private ObservationTracker? runningObservation;
+    private Marrow.App.Port.Voice.VoiceSpeedQuestion? voiceQuestion;
+
+    /// <summary>
+    /// WV-1 (OD-0098 welcome-voice pick): the Welcome voice question the empty page draws (a "Voice typing" section above Activity). When the page gives way to a thread or the no-thread page the question is told
+    /// Welcome has gone, so an open slow-PC question is asked at the next orb click (the orb's wiring is VT-12's).
+    /// </summary>
+    internal Marrow.App.Port.Voice.VoiceSpeedQuestion? VoiceQuestion
+    {
+        get => voiceQuestion;
+        set
+        {
+            if (ReferenceEquals(voiceQuestion, value)) return;
+            voiceQuestion = value;
+            Rebuild();
+        }
+    }
 
     // :147 combined-session input idle. Windows' session-wide last-input tick is the Quartz counterpart;
     // the ambient seam lets headless tests exercise the one-second gate without the user's real pointer.
@@ -747,6 +770,7 @@ public sealed class DetailView : Decorator
         // :130 `if let threadID = model.selectedThreadID, model.thread(threadID) != nil`
         if (model.SelectedThreadID is { } threadID && model.Thread(threadID) is not null)
         {
+            voiceQuestion?.CloseWelcome();
             if (shown != threadID) prebuilt.Clear(); // :133 onChange(threadID)
             shown = threadID;
             var running = model.Threads.Where(thread => model.ExistingRuntime(thread.Id)?.IsRunning == true).Select(thread => thread.Id).ToHashSet();
@@ -770,7 +794,8 @@ public sealed class DetailView : Decorator
         runningObservation = null;
 
         // :156-164 the empty states, frame(maxWidth:.infinity,maxHeight:.infinity).detailSheet()
-        Control content = model.Projects.Count == 0 ? new WelcomeView() : new NoThreadView();
+        if (model.Projects.Count != 0) voiceQuestion?.CloseWelcome();
+        Control content = model.Projects.Count == 0 ? new WelcomeView(voiceQuestion) : new NoThreadView();
         content.HorizontalAlignment = HorizontalAlignment.Stretch;
         content.VerticalAlignment = VerticalAlignment.Stretch;
         Child = content.DetailSheet();
