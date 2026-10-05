@@ -3560,7 +3560,7 @@
       "typography": "TerminalFont.preferred() (TerminalFont.swift:8-16), read once when the session is created: the first configured terminal font (Ghostty, iTerm2, Terminal.app; running ones first) that covers the four Nerd probe glyphs; else, with a configured font, its Nerd sibling family at its size, else the first installed Nerd Font at its size, else that configured font; with no configured font, the first installed Nerd Font at 12 points, else NSFont.monospacedSystemFont(ofSize: 12, weight: .regular).",
       "colors": "Dark: background white 0.08, foreground white 0.9. Light: background white 0.985, foreground white 0.12. Caret = Chrome.accentNSColor (theme accent, or the system control accent for System, Light and Dark). Selection background = that accent at 0.3 alpha. The 16 ANSI colours are SwiftTerm 1.20.0 defaults and are not configured anywhere in the source.",
       "states": [
-        "focused: takes the keyboard once when the drawer is opened",
+        "focused: takes the keyboard once when the drawer is opened", "focused: the caret is a block that fades out in about 0.64 s and back in about 0.64 s, a cycle of about 1.4 s (MacCaretView.swift:104-123; catalogue terminal.block-cursor-blink, 2-chat-use.mov S 132.237-134.31); unfocused: an outline that does not blink",
         "exited: keeps showing its final scrollback; the tab dims",
         "window live-resizing: autoresizing parked, frame synced at most every 50 ms, one final sync on release"
       ],
@@ -3568,7 +3568,7 @@
         "all keyboard input goes to the shell",
         "Option is sent as Meta (optionAsMetaKey = true)",
         "Escape at the shell prompt with no modifiers closes the drawer and is swallowed; Escape with a foreground program running reaches that program",
-        "mouse selection uses SwiftTerm's own handling"
+        "mouse selection uses SwiftTerm's own handling (SwiftTerm 1.20.0 MacTerminalView.swift:2878-3012 with SelectionService.swift): a double click selects the word (letters, digits and . _ -) or the balanced bracket expression under the pointer, a triple click the line, a shift click extends the selection, a press-drag selects; after a double click a drag keeps the seed word and snaps to words, after a triple click it grows by lines", "a program that asked for the mouse (DECSET 9, 1000, 1002, 1003; encodings 1005, 1006, 1015, 1016; XTSHIFTESCAPE CSI > Ps s) is told of presses, releases, drags, motion and the wheel (Terminal.swift:6916-6999, MacTerminalView.swift:2878-3270); shift selects locally unless the program asked for shift clicks", "the pointer is the I-beam over the body (MacTerminalView.swift:3271-3273; catalogue pointer.ibeam-text)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:58-63",

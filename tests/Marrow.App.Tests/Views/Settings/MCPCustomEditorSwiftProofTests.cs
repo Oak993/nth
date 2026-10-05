@@ -22,8 +22,8 @@ namespace Marrow.App.Tests.Views.Settings;
 // Swift states are the proof: the 380 width, the height min(560, base + variables x 34), the 16 point padding, the VStack at spacing 12 holding the header,
 // the form's ScrollView (a VStack at spacing 12) and the footer (a VStack at spacing 10) outside the scroll, add mode taking focus and edit mode not,
 // and `.presentedChrome()` (capsule button shape and the theme's tint, Popovers.swift:8-12) on the presented tree (:438-439, :571-572).
-// NOT proven here, still open on the record: Escape closes the popover (ED-257 (5): the shared popover host, another unit's, does not handle it)
-// and the editor in its own native popup window (NATIVE-ONLY).
+// Escape (from the focused Name field and with no field focused) closes the popover: MCPCustomEditorRealPresenterTests, SettingsEscapeTests and, in the
+// editor's own native popup window over the real Settings window, MCPCustomEditorNativeTests (ED-332 (4)).
 [Collection("Headless")]
 public sealed class MCPCustomEditorSwiftProofTests(HeadlessSession headless)
 {

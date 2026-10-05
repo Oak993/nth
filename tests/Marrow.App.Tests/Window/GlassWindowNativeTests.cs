@@ -217,6 +217,51 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         return (timeline, bareMean, shownAt);
     }
 
+    // ED-284 (1): the boot outline is the VISIBLE main window. The real factory main HWND (cloaked by the sequence, shown, so DWM knows
+    // its bounds) against the stage's outline frame: the stage window's origin plus the outline at the screen's scale lies within a
+    // pixel of DWM's extended frame bounds on the left, the top, the right and the bottom (the HWND's own origin lies one invisible
+    // strip further left, which is the defect this proves gone).
+    [Fact]
+    [Trait("Decision", "ED-284")]
+    [Trait("Req", "PR-LAUNCH-028")] // AppDelegate.swift:22 (OD-0018); WindowManager.swift:43-54 with ED-284 (1)
+    public void The_boot_outline_lies_on_the_main_windows_visible_frame_as_DWM_reports_it() => native.Run(subject =>
+    {
+        var (work, scale) = native.OnUi(() => Work(subject.Main));
+        var origin = new PixelPoint(work.X + (work.Width - 1320) / 2, work.Y + (work.Height - 860) / 2);
+        var (manager, window) = native.OnUi(() =>
+        {
+            var manager = new WindowManager { MainContent = () => new Border() };
+            var window = manager.PrepareMain();
+            Themeless(window);
+            window.ShowInTaskbar = false;
+            window.Position = origin; // the factory main window's own size (1320 x 860), as production shows it
+            native.Register(window);
+            FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Settings));
+            return (manager, window);
+        });
+        var stage = native.OnUi(() =>
+        {
+            var launched = BootStageWindow.Start(window, reduceMotion: true, manager.ShowMain);
+            launched.Ready();
+            return launched;
+        });
+        try
+        {
+            WaitFor(() => native.OnUi(() => window.IsVisible), "the sequence never showed the main window", 8000); // cloaked 0.5 s before the hand-over
+            var (outline, stageOrigin, visible) = native.OnUi(() =>
+                (stage.OutlineLayout.Frame, stage.Window.Position, WindowManagerNativePlacementGeometry.ReadVisibleBounds(window.TryGetPlatformHandle()!.Handle).VisibleBounds!));
+            Assert.InRange(stageOrigin.X + outline.X * scale, visible.Left - 1, visible.Left + 1);
+            Assert.InRange(stageOrigin.Y + outline.Y * scale, visible.Top - 1, visible.Top + 1);
+            Assert.InRange(stageOrigin.X + outline.Right * scale, visible.Right - 1, visible.Right + 1);
+            Assert.InRange(stageOrigin.Y + outline.Bottom * scale, visible.Bottom - 1, visible.Bottom + 1);
+        }
+        finally
+        {
+            WaitFor(() => !native.OnUi(() => stage.Window.IsVisible), "the boot stage never closed", 15000);
+            native.OnUi(() => window.Hide());
+        }
+    }, factType: typeof(GlassWindowNativeTests));
+
     [Fact]
     [Trait("Decision", "ED-236")]
     [Trait("Req", "PR-LAUNCH-028")] // AppDelegate.swift:22 (OD-0018); OD-0041; ED-103 (6)
