@@ -39,7 +39,7 @@ public sealed class WelcomeVoiceWordsTests
     public void The_section_is_titled_Voice_typing_and_the_path_is_the_speech_model_page()
     {
         Assert.Equal("Voice typing", WelcomeVoiceWords.Title);
-        Assert.Equal(Fixture().GetProperty("path").GetString(), WelcomeVoiceWords.SettingsPath);
+        Assert.Equal(WelcomeVoiceWords.SettingsPath, Fixture().GetProperty("path").GetString());
         Assert.Equal("Settings > Voice typing > Speech model", WelcomeVoiceWords.SettingsPath);
     }
 
@@ -81,14 +81,14 @@ public sealed class WelcomeVoiceWordsTests
     [Fact]
     [Trait("Feature", "WV-1")]
     [Trait("Decision", "ED-289")]
-    public void The_sizes_the_words_name_are_the_models_the_scripted_pcs_would_get()
+    public async Task The_sizes_the_words_name_are_the_models_the_scripted_pcs_would_get()
     {
         var pc = VoiceQuestionRig.Pc();
         Assert.Equal("874 MB", pc.Question.Mb);
         Assert.Null(pc.Question.SmallMb); // nothing stored yet
         var slow = VoiceQuestionRig.Slow();
         Assert.Equal("574 MB", slow.Question.Mb);
-        slow.Question.YesAsync(null, CancellationToken.None).GetAwaiter().GetResult();
+        await slow.Question.YesAsync(null, CancellationToken.None);
         Assert.Equal("264 MB", slow.Question.SmallMb); // the smaller rung a live answer installs
     }
 }
