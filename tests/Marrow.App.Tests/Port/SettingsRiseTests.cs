@@ -208,7 +208,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         var (_, view) = Open(manager, rig);
         ToGlassReady(rig);
         var parts = Parts(view);
-        Assert.Equal(18, parts.Items.Count);
+        Assert.Equal(PageTitles.Length + 8, parts.Items.Count); // the search, one item per sidebar row (it was ten) and the page's seven
         for (var k = 0; k <= 15; k++)
         {
             if (k > 0) rig.At(k * Frame);
