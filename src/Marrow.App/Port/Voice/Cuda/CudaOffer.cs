@@ -79,17 +79,19 @@ public sealed class CudaOffer : IDisposable
     /// <summary>The Download capsule. While a download runs, a second press is that same download. Nothing happens while the row is hidden or installed.</summary>
     public Task StartAsync()
     {
+        Task started;
+        CudaOfferRow shown;
         lock (gate)
         {
             if (row.State == CudaOfferState.Downloading) return running;
             if (row.State is not (CudaOfferState.Offer or CudaOfferState.Failed)) return Task.CompletedTask;
             cancel = new CancellationTokenSource();
             progress = 0;
-            row = CudaOfferStates.Downloading(size, 0);
-            running = Run(cancel.Token);
-            Raise(row);
-            return running;
+            shown = row = CudaOfferStates.Downloading(size, 0);
+            started = running = Run(cancel.Token);
         }
+        Raise(shown); // a handler is never called under the lock
+        return started;
     }
 
     /// <summary>The x: stops the download, keeps the partial and returns to the offer.</summary>
