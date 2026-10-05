@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Icon Harness</title>
+<style>
+  :root{--bg:#0e1319;--fg:#e9eef5;--sub:#9aa6b4;--card:#151c25;--lite:#eef1f5;--liteFg:#15171c}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.45 "Segoe UI",system-ui,sans-serif;padding:16px}
+  h2{margin:18px 0 6px;font-size:16px} .sub{color:var(--sub)}
+  .row{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;padding:14px;border-radius:12px;margin:8px 0}
+  .row.dark{background:#1b2230}.row.light{background:#f0f2f6;color:#15171c}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px}
+  canvas.px{image-rendering:pixelated}
+  .hero{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  .herobox{width:512px;height:512px;max-width:100%;border-radius:16px;display:grid;place-items:center}
+  .herobox.dark{background:radial-gradient(circle at 30% 20%,#25324a,#0b0f16)}.herobox.light{background:radial-gradient(circle at 30% 20%,#ffffff,#d9dfe8)}
+  button{font:inherit;padding:6px 12px;border-radius:999px;border:1px solid #3a4656;background:#1d2633;color:inherit;cursor:pointer}
+  .bad{color:#ff6b6b;font-weight:600}.ok{color:#6ccb5f}
+  pre{white-space:pre-wrap}
+</style></head><body>
+<div id="out"></div>
+<script src="iconkit.js"></script>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search);
+  const list = (q.get('m') || '').split(',').filter(Boolean);
+  let left = list.length;
+  if (!left) document.getElementById('out').innerHTML = '<p>Add ?m=icons-k-t/K-id.js (comma-separate several).</p>';
+  list.forEach((src) => { const s = document.createElement('script'); s.src = src; s.onload = s.onerror = () => { if (--left === 0) run(); }; document.body.appendChild(s); });
+  const SIZES = [16, 20, 24, 32, 40, 48, 64, 96, 256];
+  function cv(m, size, theme, t, dpr) { const c = document.createElement('canvas'); c.style.width = c.style.height = size + 'px'; MarrowIcons.render(c, m, size, theme, t, dpr); return c; }
+  function same(m, size, a, b) {
+    const c1 = document.createElement('canvas'), c2 = document.createElement('canvas');
+    MarrowIcons.render(c1, m, size, 'dark', a, 1); MarrowIcons.render(c2, m, size, 'dark', b, 1);
+    const d1 = c1.getContext('2d').getImageData(0, 0, size, size).data, d2 = c2.getContext('2d').getImageData(0, 0, size, size).data;
+    let mx = 0; for (let i = 0; i < d1.length; i++) mx = Math.max(mx, Math.abs(d1[i] - d2[i])); return mx;
+  }
+  function run() {
+    const out = document.getElementById('out');
+    MarrowIcons.all().forEach((m) => {
+      const sec = document.createElement('section');
+      sec.innerHTML = '<h2>' + m.letter + ' ' + m.name + '</h2><div class="sub">' + m.meaning + '</div><div class="sub">' + m.story + '</div>';
+      const checks = [];
+      ['dark', 'light'].forEach((th) => {
+        const row = document.createElement('div'); row.className = 'row ' + th;
+        SIZES.forEach((s) => { const d = document.createElement('div'); d.className = 'cell'; const c = cv(m, s, th, null, s >= 256 ? devicePixelRatio : 1); if (s < 256) c.className = 'px'; d.appendChild(c); d.appendChild(document.createTextNode(s + '')); row.appendChild(d); });
+        [16, 24].forEach((s) => { const d = document.createElement('div'); d.className = 'cell'; const c = cv(m, s, th, null, 1); c.className = 'px'; c.style.width = c.style.height = s * 8 + 'px'; d.appendChild(c); d.appendChild(document.createTextNode(s + ' px, 8x loupe')); row.appendChild(d); });
+        sec.appendChild(row);
+      });
+      const hero = document.createElement('div'); hero.className = 'hero';
+      const hb = document.createElement('div'); hb.className = 'herobox dark';
+      const hc = cv(m, 512, 'dark', null, devicePixelRatio); hc.style.width = hc.style.height = '420px'; hb.appendChild(hc);
+      const ctl = document.createElement('div');
+      const bL = document.createElement('button'); bL.textContent = 'Replay launch (' + m.launch.ms + ' ms)';
+      const bI = document.createElement('button'); bI.textContent = m.idle ? 'Idle loop (' + m.idle.ms + ' ms)' : 'No idle';
+      const bT = document.createElement('button'); bT.textContent = 'Hero theme';
+      const st = document.createElement('pre');
+      ctl.append(bL, ' ', bI, ' ', bT, st);
+      let theme = 'dark', raf = 0, times = [];
+      function play(kind) {
+        cancelAnimationFrame(raf); const t0 = performance.now(); times = [];
+        const dur = kind === 'launch' ? m.launch.ms : (m.idle ? m.idle.ms * 2 : 0);
+        const tick = (now) => {
+          const e = now - t0, a = performance.now();
+          const t = kind === 'launch' ? { launch: Math.min(1, e / dur), idle: 0 } : { launch: 1, idle: e / 1000 };
+          MarrowIcons.render(hc, m, 512, theme, t, devicePixelRatio);
+          times.push(performance.now() - a);
+          if (e < dur) raf = requestAnimationFrame(tick); else { MarrowIcons.render(hc, m, 512, theme, null, devicePixelRatio); report(); }
+        };
+        raf = requestAnimationFrame(tick);
+      }
+      function report() {
+        const s = times.slice().sort((a, b) => a - b); const p95 = s[Math.floor(s.length * 0.95)] || 0;
+        st.innerHTML = checks.join('\n') + '\nlast run: ' + times.length + ' frames, p95 draw ' + p95.toFixed(2) + ' ms ' + (p95 > 6 ? '<span class="bad">over 6 ms</span>' : '<span class="ok">ok</span>');
+      }
+      bL.onclick = () => play('launch'); bI.onclick = () => m.idle && play('idle');
+      bT.onclick = () => { theme = theme === 'dark' ? 'light' : 'dark'; hb.className = 'herobox ' + theme; MarrowIcons.render(hc, m, 512, theme, null, devicePixelRatio); };
+      // the contract checks
+      const S = MarrowIcons.STILL;
+      [16, 48, 256].forEach((s) => {
+        const d1 = same(m, s, S, { launch: 1, idle: 0 });
+        checks.push(d1 === 0 ? '<span class="ok">launch end = still at ' + s + '</span>' : '<span class="bad">launch end differs from still at ' + s + ' by ' + d1 + '</span>');
+        if (m.idle) {
+          const d2 = same(m, s, S, { launch: 1, idle: m.idle.ms / 1000 });
+          checks.push(d2 <= 2 ? '<span class="ok">idle loop closes at ' + s + '</span>' : '<span class="bad">idle end differs from still at ' + s + ' by ' + d2 + '</span>');
+        }
+      });
+      const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.setTransform(2, 0, 0, 2, 0, 0);
+      m.draw(x, 32, 'dark', { launch: 0.5, idle: 0, still: false }); const tr = x.getTransform();
+      checks.push(tr.a === 2 && tr.e === 0 ? '<span class="ok">transform restored</span>' : '<span class="bad">draw leaves the transform changed</span>');
+      if (!(m.launch.ms >= 800 && m.launch.ms <= 1200)) checks.push('<span class="bad">launch.ms out of 800..1200</span>');
+      hero.append(hb, ctl); sec.appendChild(hero); out.appendChild(sec);
+      report();
+    });
+  }
+})();
+</script>
+</body></html>

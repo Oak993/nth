@@ -1065,3 +1065,13 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - The notes come from the repository's CHANGELOG, one section per version, in the parity headings (New features, Bug fixes, Refinements), so every pushed update carries its own changelog.
   - When the app offers an update, the user sees that version's What's new (the parity section cards) before installing, and can read it again after updating.
   - Nothing is published or uploaded without the owner's word (unchanged).
+
+## OD-0112 The app icon is D "Aurora" (2026-10-05)
+
+- **Asked:** 2026-10-05. The owner found the OD-0015 icon and its animation less premium than the app ("an app's icon tells you what the app will be like inside") and asked for twenty original directions, each with a launch animation and an idle loop, free of the old three-colour mark. Page: https://claude.ai/artifact/1FCzPs4jpmNAFidJ5FRotZ (copy: `porting/first-release/design-src/app-icon/`).
+- **Answer, verbatim:** "app-icon: D lock it and ship it, see who you want to delegate this task to , claude helper or codex whichever"
+- **Effect:**
+  - Supersedes OD-0015. The port ships D "Aurora": a tile of smoked night glass holding an aurora curtain (emerald foot, teal above, violet fringe) over a dark ridge and a few stars. The locked source is `porting/first-release/design-src/app-icon/src/icons-a-j/D-aurora.js` with `iconkit.js`, including its own small-size art for 16 to 32 px.
+  - Every place OD-0015 named uses it: the executable and its `icon.ico`, the window, the taskbar, Alt-Tab, Start, toasts, the in-app logo images, and later the installer.
+  - The loading mark and boot animation (OD-0016, OD-0018 "Comet", ED-097/102/103/154) are remade from D's launch animation and idle loop. That motion goes to the owner as a review page before it ships; OD-0108's warm-up behind the boot animation is unchanged.
+  - The OD-0015 files stay in history only. The deviation list in the final report names the new icon.
