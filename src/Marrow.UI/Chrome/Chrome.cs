@@ -354,8 +354,11 @@ namespace Marrow.UI.Chrome
         /// <param name="overAppContent">PORT-ONLY (OD-0005 (b), ED-333): the backdrop lies over the app's own window, not the desktop
         /// (the scripts sheet's <c>.presentationBackground</c>, ChatView.swift:1459-1463), so its glass is the app's material, which frosts what
         /// the window drew under it, instead of the window's Acrylic.</param>
+        /// <param name="roundedHairline">PORT-ONLY (ED-NEW-corner-seam): for a backdrop that is NOT a window's whole content but is clipped by its own 26 pt shape (the scripts sheet,
+        /// ChatView.cs): the hairline is the source's inner stroke of that shape (:218, :266-271), so it follows the curve. A window's backdrop leaves it false: its hairline is the
+        /// rectangle's, because the glass reaches the window's edge and the OS rounds it.</param>
         // :217-272 body
-        public WindowBackdrop(double opacity, IImage? wallpaper = null, bool overAppContent = false)
+        public WindowBackdrop(double opacity, IImage? wallpaper = null, bool overAppContent = false, bool roundedHairline = false)
         {
             this.opacity = opacity;
             this.wallpaper = wallpaper;
@@ -364,7 +367,7 @@ namespace Marrow.UI.Chrome
             tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-254)
             // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
             // which is how an Avalonia Border draws its border.
-            var hairline = Fill();
+            var hairline = roundedHairline ? Shape() : Fill();
             hairline.BorderThickness = new Thickness(1);
             hairline.BorderBrush = Chrome.Overlay(0.14).Brush(hairline);
             Child = new Panel { Children = { group, tint, hairline } };
@@ -422,6 +425,9 @@ namespace Marrow.UI.Chrome
             var t = 1 < floored ? 1 : floored; // :213 min(_, 1)
             return t <= 0.5 ? stock * (t / 0.5) : stock + (1 - stock) * ((t - 0.5) / 0.5); // :214
         }
+
+        // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous), the shape of a backdrop clipped to its own curve (roundedHairline).
+        private static SwiftShapeBorder Shape() => new SwiftShapeBorder().RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
 
         // PORT-ONLY (OD-0075, ED-NEW-corner-seam): every layer of the backdrop is the window's rectangle, out to the window's edge; see the class summary.
         // :218 `RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous)` is the rectangle the OS then rounds.
