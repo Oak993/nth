@@ -1,0 +1,7 @@
+{"type":"stream_event","event":{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"cmd-1","name":"Bash","input":{}}}}
+{"type":"control_request","request_id":"approval-1","request":{"subtype":"can_use_tool","tool_name":"Bash","tool_use_id":"cmd-1","input":{"command":"python -m report"}}}
+{"type":"assistant","message":{"id":"msg-1","content":[{"type":"tool_use","id":"cmd-1","name":"Bash","input":{"command":"python -m report"}},{"type":"tool_use","id":"skill-1","name":"Skill","input":{"skill":"marrow:pdf"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"cmd-1","is_error":true,"content":[{"type":"text","text":"ModuleNotFoundError: No module named 'report'"}]}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"cmd-1","is_error":true,"content":"duplicate"}]}}
+{"type":"assistant","message":{"id":"msg-2","content":[{"type":"tool_use","id":"cmd-2","name":"Bash","input":{"command":"node render.js"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"cmd-2","is_error":false,"content":"done"}]}}
